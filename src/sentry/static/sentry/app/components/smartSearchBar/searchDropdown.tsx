@@ -131,7 +131,7 @@ const Info = styled('div')`
   display: flex;
   padding: ${space(1)} ${space(2)};
   font-size: ${p => p.theme.fontSizeLarge};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
 
   &:not(:last-child) {
     border-bottom: 1px solid ${p => p.theme.borderLight};

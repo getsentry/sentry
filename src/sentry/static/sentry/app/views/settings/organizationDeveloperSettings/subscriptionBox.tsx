@@ -116,7 +116,7 @@ const SubscriptionGridItemWrapper = styled('div')`
 const SubscriptionDescription = styled('div')`
   font-size: 12px;
   line-height: 1;
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   white-space: nowrap;
 `;
 

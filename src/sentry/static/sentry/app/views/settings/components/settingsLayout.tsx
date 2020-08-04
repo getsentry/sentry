@@ -142,7 +142,7 @@ const NavMenuToggle = styled(Button)`
   display: none;
   margin: -${space(1)} ${space(1)} -${space(1)} -${space(1)};
   padding: ${space(1)};
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.gray400};
   &:hover,
   &:focus,
   &:active {

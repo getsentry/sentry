@@ -94,7 +94,7 @@ class FilesChanged extends AsyncView<Props, State> {
 
 const StyledMain = styled(Main)`
   h5 {
-    color: ${p => p.theme.gray600};
+    color: ${p => p.theme.gray400};
     font-size: ${p => p.theme.fontSizeMedium};
     margin-bottom: ${space(1.5)};
   }

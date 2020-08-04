@@ -312,7 +312,7 @@ const StyledDateRangePicker = styled(DateRangePicker)`
   }
 
   .rdrNextPrevButton {
-    background-color: ${p => p.theme.gray300};
+    background-color: ${p => p.theme.gray200};
   }
 
   .rdrPprevButton i {
@@ -332,7 +332,7 @@ const TimeAndUtcPicker = styled('div')`
 `;
 
 const UtcPicker = styled('div')`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   display: flex;
   align-items: center;
   justify-content: flex-end;

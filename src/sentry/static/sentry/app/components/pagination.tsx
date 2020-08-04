@@ -63,7 +63,7 @@ class Pagination extends React.Component<Props> {
               <IconChevron
                 direction="left"
                 size="sm"
-                color={previousDisabled ? 'gray400' : 'gray700'}
+                color={previousDisabled ? 'gray200' : 'gray700'}
               />
             }
             aria-label={t('Previous')}
@@ -77,7 +77,7 @@ class Pagination extends React.Component<Props> {
               <IconChevron
                 direction="right"
                 size="sm"
-                color={nextDisabled ? 'gray400' : 'gray700'}
+                color={nextDisabled ? 'gray200' : 'gray700'}
               />
             }
             aria-label={t('Next')}

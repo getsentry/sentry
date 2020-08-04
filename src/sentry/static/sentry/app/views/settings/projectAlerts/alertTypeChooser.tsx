@@ -268,13 +268,13 @@ const ExampleHeading = styled('div')`
   text-transform: uppercase;
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: bold;
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.gray400};
   margin-bottom: ${space(2)};
 `;
 
 const Example = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
 `;
 
 const Container = styled('div')`

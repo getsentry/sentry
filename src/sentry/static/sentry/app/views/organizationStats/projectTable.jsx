@@ -87,7 +87,7 @@ const Percentage = styled(
   ({children, ...props}) => children !== '' && <div {...props}>{children}</div>
 )`
   margin-top: ${space(0.25)};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   font-size: 12px;
   line-height: 1.2;
 `;

@@ -130,7 +130,7 @@ class RegisterForm extends React.Component {
 }
 
 const PrivacyPolicyLink = styled(ExternalLink)`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
 
   &:hover {
     color: ${p => p.theme.gray800};

@@ -443,7 +443,7 @@ const CropContainer = styled('div')`
 
 const Cropper = styled('div')`
   position: absolute;
-  border: 2px dashed ${p => p.theme.gray500};
+  border: 2px dashed ${p => p.theme.gray300};
 `;
 
 const Resizer = styled('div')<{position: Position}>`
@@ -451,7 +451,7 @@ const Resizer = styled('div')<{position: Position}>`
   width: 10px;
   height: 10px;
   position: absolute;
-  background-color: ${p => p.theme.gray500};
+  background-color: ${p => p.theme.gray300};
   cursor: ${p => `${p.position}-resize`};
   ${p => resizerPositions[p.position].map(pos => `${pos}: -5px;`)}
 `;

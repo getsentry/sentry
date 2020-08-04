@@ -121,5 +121,5 @@ const ExampleQuery = styled(Panel)`
 `;
 const ExampleQueryDescription = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.gray200};
 `;

@@ -398,11 +398,11 @@ class BaseChart extends React.Component<Props> {
                       name: previous.seriesName,
                       data: previous.data.map(({name, value}) => [name, value]),
                       lineStyle: {
-                        color: theme.gray400,
+                        color: theme.gray200,
                         type: 'dotted',
                       },
                       itemStyle: {
-                        color: theme.gray400,
+                        color: theme.gray200,
                       },
                     })
                   ),
@@ -426,7 +426,7 @@ const ChartContainer = styled('div')`
   /* Tooltip styling */
   .tooltip-series,
   .tooltip-date {
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.gray300};
     font-family: ${p => p.theme.text.family};
     background: ${p => p.theme.gray800};
     padding: ${space(1)} ${space(2)};
@@ -448,7 +448,7 @@ const ChartContainer = styled('div')`
     align-items: baseline;
   }
   .tooltip-date {
-    border-top: 1px solid ${p => p.theme.gray600};
+    border-top: 1px solid ${p => p.theme.gray400};
     text-align: center;
     position: relative;
     width: auto;

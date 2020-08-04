@@ -234,7 +234,7 @@ const ToggleWrapper = styled('div')`
 
 const Toggle = styled(Button)`
   font-weight: 700;
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.gray400};
   &:hover,
   &:focus {
     color: ${p => p.theme.gray700};

@@ -66,13 +66,13 @@ const colors = {
 };
 
 const aliases = {
-  textColor: colors.gray500,
+  textColor: colors.gray300,
   success: colors.green400,
   error: colors.red400,
   borderLighter: colors.gray100,
   borderLight: colors.gray100,
-  borderDark: colors.gray300,
-  disabled: colors.gray400,
+  borderDark: colors.gray200,
+  disabled: colors.gray200,
   background: colors.white,
   backgroundAccent: colors.gray100,
 };
@@ -86,7 +86,7 @@ const warning = {
 
 const alert = {
   muted: {
-    background: colors.gray400,
+    background: colors.gray200,
     backgroundLight: colors.gray100,
     border: aliases.borderDark,
     iconColor: 'inherit',
@@ -139,7 +139,7 @@ const button = {
     backgroundActive: colors.white,
     border: '#d8d2de',
     borderActive: '#c9c0d1',
-    focusShadow: color(colors.gray300)
+    focusShadow: color(colors.gray200)
       .alpha(0.5)
       .string(),
   },
@@ -327,7 +327,7 @@ const theme = {
     getColorPalette: (length: number) =>
       CHART_PALETTE[Math.min(CHART_PALETTE.length - 1, length + 1)],
 
-    previousPeriod: colors.gray400,
+    previousPeriod: colors.gray200,
     symbolSize: 6,
   },
 
@@ -352,8 +352,8 @@ export const darkTheme = {
 
   background: colors.black,
   backgroundAccent: colors.gray500,
-  borderLighter: colors.gray300,
-  borderLight: colors.gray300,
+  borderLighter: colors.gray200,
+  borderLight: colors.gray200,
   borderDark: colors.gray100,
   textColor: colors.white,
 };

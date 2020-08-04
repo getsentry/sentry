@@ -35,7 +35,7 @@ const SettingsNavItem = ({badge, label, index, id, ...props}: Props) => {
 
 const StyledNavItem = styled(Link)`
   display: block;
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   font-size: 14px;
   line-height: 30px;
   position: relative;

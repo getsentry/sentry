@@ -141,11 +141,11 @@ const SubscriptionName = styled('div')`
 const Description = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   margin-top: ${space(0.75)};
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.gray400};
 `;
 
 const SubscribedDescription = styled(Description)`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
 `;
 
 export default AccountSubscriptions;

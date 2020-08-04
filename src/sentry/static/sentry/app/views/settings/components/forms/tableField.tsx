@@ -189,7 +189,7 @@ export default class TableField extends React.Component<Props> {
 const HeaderLabel = styled('div')`
   font-size: 0.8em;
   text-transform: uppercase;
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.gray400};
 `;
 
 const HeaderContainer = styled('div')`

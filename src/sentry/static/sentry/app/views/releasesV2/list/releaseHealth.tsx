@@ -211,7 +211,7 @@ const StyledPanelHeader = styled(PanelHeader)`
   border-top: 1px solid ${p => p.theme.borderDark};
   border-top-left-radius: 0;
   border-top-right-radius: 0;
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
@@ -314,8 +314,8 @@ const StyledScoreBar = styled(ScoreBar)`
 const ChartWrapper = styled('div')`
   flex: 1;
   g > .barchart-rect {
-    background: ${p => p.theme.gray400};
-    fill: ${p => p.theme.gray400};
+    background: ${p => p.theme.gray200};
+    fill: ${p => p.theme.gray200};
   }
 `;
 

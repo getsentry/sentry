@@ -361,7 +361,7 @@ class ActionsPanel extends React.PureComponent<Props> {
               type="button"
               disabled={disabled || loading}
               size="small"
-              icon={<IconAdd isCircled color="gray500" />}
+              icon={<IconAdd isCircled color="gray300" />}
               onClick={this.handleAddAction}
             >
               Add Item

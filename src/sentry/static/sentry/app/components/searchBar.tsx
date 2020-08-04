@@ -101,7 +101,7 @@ class SearchBar extends React.PureComponent<Props, State> {
               onChange={this.onQueryChange}
               width={width}
             />
-            <StyledIconSearch className="search-input-icon" size="sm" color="gray500" />
+            <StyledIconSearch className="search-input-icon" size="sm" color="gray300" />
             {this.state.query !== this.props.defaultQuery && (
               <div>
                 <a className="search-clear-form" onClick={this.clearSearch}>

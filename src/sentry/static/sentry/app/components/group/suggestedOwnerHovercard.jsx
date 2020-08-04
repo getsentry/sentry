@@ -181,7 +181,7 @@ const CommitDate = styled(({date, ...props}) => (
   <div {...props}>{moment(date).fromNow()}</div>
 ))`
   margin-top: ${space(0.5)};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
 `;
 
 const CommitReasonItem = styled('div')`
@@ -220,7 +220,7 @@ const ViewMoreButton = styled(p => (
   </Button>
 ))`
   border: none;
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   padding: ${space(0.25)} ${space(0.5)};
   margin: ${space(1)} ${space(0.25)} ${space(0.25)} 0;

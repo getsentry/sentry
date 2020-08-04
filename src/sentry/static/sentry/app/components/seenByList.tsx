@@ -64,7 +64,7 @@ const SeenByList = ({
       />
       <IconWrapper iconPosition={iconPosition}>
         <Tooltip title={iconTooltip}>
-          <IconShow size="sm" color="gray400" />
+          <IconShow size="sm" color="gray200" />
         </Tooltip>
       </IconWrapper>
     </SeenByWrapper>

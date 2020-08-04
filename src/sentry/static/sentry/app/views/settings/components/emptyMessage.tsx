@@ -66,7 +66,7 @@ EmptyMessage.propTypes = {
 };
 
 const IconWrapper = styled('div')`
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.gray200};
   margin-bottom: ${space(1)};
 `;
 

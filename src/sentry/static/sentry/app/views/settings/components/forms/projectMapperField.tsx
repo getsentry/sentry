@@ -136,7 +136,7 @@ export class RenderField extends React.Component<RenderProps, State> {
           </MappedItemValue>
           <DeleteButton
             onClick={() => handleDelete(index)}
-            icon={<IconDelete color="gray500" />}
+            icon={<IconDelete color="gray300" />}
             size="small"
             type="button"
             aria-label={t('Delete')}
@@ -289,7 +289,7 @@ const StyledSelectControl = styled(SelectControl)`
 
 const Item = styled('div')`
   margin: -1px;
-  border: 1px solid ${p => p.theme.gray400};
+  border: 1px solid ${p => p.theme.gray200};
   display: flex;
   align-items: center;
   height: 60px;

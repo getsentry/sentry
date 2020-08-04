@@ -105,14 +105,14 @@ class OnboardingStatus extends React.Component<Props> {
 const Heading = styled('div')`
   transition: color 100ms;
   font-size: ${p => p.theme.gray100};
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.gray200};
   margin-bottom: ${space(0.25)};
 `;
 
 const Remaining = styled('div')`
   transition: color 100ms;
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   display: grid;
   grid-template-columns: max-content max-content;
   grid-gap: ${space(0.75)};
@@ -143,7 +143,7 @@ const hoverCss = (p: {theme: Theme}) => css`
     color: ${p.theme.white};
   }
   ${Remaining} {
-    color: ${p.theme.gray400};
+    color: ${p.theme.gray200};
   }
 `;
 

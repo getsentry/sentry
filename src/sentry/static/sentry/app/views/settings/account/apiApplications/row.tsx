@@ -105,7 +105,7 @@ const ApplicationName = styled(Link)`
 `;
 
 const ClientId = styled('div')`
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.gray200};
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 

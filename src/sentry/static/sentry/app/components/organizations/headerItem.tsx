@@ -101,14 +101,14 @@ class HeaderItem extends React.Component<Props> {
           <StyledChevron isOpen={isOpen}>
             <IconChevron
               direction="down"
-              color={isOpen ? 'gray700' : 'gray500'}
+              color={isOpen ? 'gray700' : 'gray300'}
               size="sm"
             />
           </StyledChevron>
         )}
         {locked && (
           <Tooltip title={lockedMessage || 'This selection is locked'} position="bottom">
-            <StyledLock color="gray500" />
+            <StyledLock color="gray300" />
           </Tooltip>
         )}
       </StyledHeaderItem>
@@ -190,7 +190,7 @@ const StyledChevron = styled('div')<StyledChevronProps>`
 `;
 
 const SettingsIconLink = styled(Link)`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   display: flex;
   align-items: center;
   justify-content: space-between;

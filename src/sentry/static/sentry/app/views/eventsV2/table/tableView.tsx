@@ -396,7 +396,7 @@ class TableView extends React.Component<TableViewProps> {
 }
 
 const PrependHeader = styled('span')`
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.gray400};
 `;
 
 const StyledLink = styled(Link)`

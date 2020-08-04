@@ -81,7 +81,7 @@ class PasswordStrength extends React.Component {
 }
 
 const StrengthProgress = styled('div')`
-  background: ${theme.gray300};
+  background: ${theme.gray200};
   height: 8px;
   border-radius: 2px;
   overflow: hidden;
@@ -90,7 +90,7 @@ const StrengthProgress = styled('div')`
 const StrengthLabel = styled('div')`
   font-size: 0.8em;
   margin-top: 2px;
-  color: ${theme.gray600};
+  color: ${theme.gray400};
 `;
 
 const ScoreText = styled('strong')`

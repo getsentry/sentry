@@ -125,7 +125,7 @@ const StyledIconAnchor = styled(IconAnchor)`
 const Permalink = styled('a')`
   :hover ${StyledIconAnchor} {
     display: block;
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.gray300};
   }
 `;
 
@@ -139,7 +139,7 @@ const SectionHeader = styled('div')<{isCentered?: boolean}>`
     font-size: 14px;
     font-weight: 600;
     line-height: 1.2;
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.gray300};
   }
 
   & h3 {

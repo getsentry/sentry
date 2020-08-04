@@ -61,7 +61,7 @@ const getInputButtonStyles = (p: {
   isActive?: boolean;
   collapseIntoEllipsisMenu?: number;
 }) => `
-  color: ${p.isActive ? theme.blue300 : theme.gray500};
+  color: ${p.isActive ? theme.blue300 : theme.gray300};
   margin-left: ${space(0.5)};
   width: 18px;
 
@@ -72,7 +72,7 @@ const getInputButtonStyles = (p: {
   }
 
   &:hover {
-    color: ${theme.gray600};
+    color: ${theme.gray400};
   }
 
   ${p.collapseIntoEllipsisMenu &&
@@ -1289,7 +1289,7 @@ const StyledInput = styled('input')`
   padding: 0 0 0 ${space(1)};
 
   &::placeholder {
-    color: ${p => p.theme.gray400};
+    color: ${p => p.theme.gray200};
   }
   &:focus {
     border-color: ${p => p.theme.borderDark};

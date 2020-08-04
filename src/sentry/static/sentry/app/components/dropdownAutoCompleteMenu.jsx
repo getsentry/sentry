@@ -523,7 +523,7 @@ const StyledInput = styled(Input)`
     font-size: 13px;
     padding: ${space(1)};
     font-weight: normal;
-    color: ${p => p.gray500};
+    color: ${p => p.gray300};
   }
 `;
 
@@ -565,7 +565,7 @@ const LabelWithBorder = styled('div')`
   background-color: ${p => p.theme.backgroundAccent};
   border-bottom: 1px solid ${p => p.theme.borderLight};
   border-width: 1px 0;
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.gray400};
   font-size: ${p => p.theme.fontSizeMedium};
 
   &:first-child {
@@ -597,7 +597,7 @@ const BusyMessage = styled('div')`
 `;
 
 const EmptyMessage = styled('div')`
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.gray200};
   padding: ${space(2)};
   text-align: center;
   text-transform: none;

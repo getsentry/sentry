@@ -11,7 +11,7 @@ export default function YAxis(props: EChartOption.YAxis = {}): EChartOption.YAxi
       show: false,
     },
     axisLabel: {
-      color: theme.gray400,
+      color: theme.gray200,
     },
     splitLine: {
       lineStyle: {

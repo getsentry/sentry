@@ -68,7 +68,7 @@ const MenuContainer = styled('div')`
 const StyledDropdownButton = styled(DropdownButton)`
   padding: ${space(1)} ${space(2)};
   font-weight: normal;
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.gray400};
   z-index: ${p => (p.isOpen ? p.theme.zIndex.dropdownAutocomplete.actor : 'auto')};
 
   &:hover,

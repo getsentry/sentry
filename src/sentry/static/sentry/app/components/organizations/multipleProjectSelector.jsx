@@ -400,9 +400,9 @@ const StyledHeaderItem = styled(HeaderItem)`
 `;
 
 const StyledLink = styled(Link)`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
 
   &:hover {
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.gray300};
   }
 `;

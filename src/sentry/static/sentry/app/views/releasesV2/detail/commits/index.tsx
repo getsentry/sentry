@@ -168,7 +168,7 @@ const RepoSwitcher = styled('div')`
 
 const FilterText = styled('em')`
   font-style: normal;
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
 `;
 
 const RepoLabel = styled('div')`

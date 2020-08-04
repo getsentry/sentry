@@ -184,7 +184,7 @@ const ProviderWrapper = styled('div')`
 `;
 
 const LostPasswordLink = styled(Link)`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
 
   &:hover {
     color: ${p => p.theme.gray800};

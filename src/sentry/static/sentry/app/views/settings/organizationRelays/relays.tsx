@@ -160,7 +160,7 @@ class Relays extends AsyncComponent<Props, State> {
                   <IconWrapper>
                     <Clipboard value={key}>
                       <Tooltip title={t('Click to copy')} containerDisplayMode="flex">
-                        <IconCopy color="gray500" />
+                        <IconCopy color="gray300" />
                       </Tooltip>
                     </Clipboard>
                   </IconWrapper>

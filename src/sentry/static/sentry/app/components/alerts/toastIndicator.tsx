@@ -59,14 +59,14 @@ const Message = styled('div')`
 
 const Undo = styled('div')`
   display: inline-block;
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   padding-left: ${space(2)};
   margin-left: ${space(2)};
   border-left: 1px solid ${p => p.theme.gray300};
   cursor: pointer;
 
   &:hover {
-    color: ${p => p.theme.gray400};
+    color: ${p => p.theme.gray200};
   }
 `;
 

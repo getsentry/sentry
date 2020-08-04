@@ -355,7 +355,7 @@ const ChartActions = styled(PanelFooter)`
 `;
 
 const ChartParameters = styled('div')`
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.gray400};
   font-size: ${p => p.theme.fontSizeMedium};
   display: grid;
   grid-auto-flow: column;
@@ -373,7 +373,7 @@ const ChartParameters = styled('div')`
     display: block;
     height: 70%;
     width: 1px;
-    background: ${p => p.theme.gray300};
+    background: ${p => p.theme.gray200};
     position: absolute;
     right: -${space(2)};
     top: 15%;

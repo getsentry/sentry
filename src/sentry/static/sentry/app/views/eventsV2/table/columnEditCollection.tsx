@@ -305,7 +305,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
             <Button
               aria-label={t('Remove column')}
               onClick={() => this.removeColumn(i)}
-              icon={<IconDelete color="gray500" />}
+              icon={<IconDelete color="gray300" />}
               borderless
             />
           ) : (

@@ -40,7 +40,7 @@ const ReleaseChartContainer = ({
           if (errored) {
             return (
               <ErrorPanel>
-                <IconWarning color="gray500" size="lg" />
+                <IconWarning color="gray300" size="lg" />
               </ErrorPanel>
             );
           }

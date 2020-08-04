@@ -232,7 +232,7 @@ const ItemTitle = styled('h6')`
   font-size: ${p => p.theme.fontSizeSmall};
   margin-bottom: 0;
   text-transform: uppercase;
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   letter-spacing: 0.1px;
 `;
 
@@ -255,7 +255,7 @@ const IncidentSubTitle = styled('div', {
 })<{loading: boolean}>`
   ${p => p.loading && 'opacity: 0'};
   font-size: ${p => p.theme.fontSizeLarge};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
 `;
 
 const StyledStatus = styled(Status)`

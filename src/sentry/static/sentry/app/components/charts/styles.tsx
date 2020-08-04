@@ -23,14 +23,14 @@ export const SectionHeading = styled('h4')`
   display: inline-grid;
   grid-auto-flow: column;
   grid-gap: ${space(1)};
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.gray400};
   font-size: ${p => p.theme.fontSizeMedium};
   margin: ${space(1)} 0;
   line-height: 1.3;
 `;
 
 export const SectionValue = styled('span')`
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.gray400};
   font-size: ${p => p.theme.fontSizeMedium};
   margin-right: ${space(1)};
 `;

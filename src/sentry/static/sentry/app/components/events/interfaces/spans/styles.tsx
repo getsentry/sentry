@@ -43,7 +43,7 @@ export const SpanRowMessage = styled(SpanRow)`
   line-height: ${SPAN_ROW_HEIGHT}px;
   padding-left: ${space(1)};
   padding-right: ${space(1)};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   background-color: ${p => p.theme.gray100};
   outline: 1px solid ${p => p.theme.borderDark};
   font-size: ${p => p.theme.fontSizeSmall};

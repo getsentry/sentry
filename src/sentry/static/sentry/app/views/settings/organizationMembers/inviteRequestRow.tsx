@@ -185,7 +185,7 @@ const UserName = styled('div')`
 
 const Description = styled('div')`
   display: block;
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.gray400};
   font-size: 14px;
   overflow: hidden;
   text-overflow: ellipsis;

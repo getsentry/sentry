@@ -121,7 +121,7 @@ const Content = styled(DropdownBubble)<{isOpen: boolean}>`
 
 const DropdownItem = styled(MenuItem)`
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
 `;
 
 export default DropdownControl;

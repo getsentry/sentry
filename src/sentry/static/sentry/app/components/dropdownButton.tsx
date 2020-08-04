@@ -76,7 +76,7 @@ const StyledButton = styled(Button)<
 
 const LabelText = styled('em')`
   font-style: normal;
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   padding-right: ${space(0.75)};
 `;
 

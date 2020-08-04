@@ -25,7 +25,7 @@ const Label = styled('div')`
   font-weight: 600;
   font-size: ${p => p.theme.fontSizeSmall};
   text-transform: uppercase;
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   line-height: 1.3;
   margin-bottom: ${space(0.25)};
   white-space: nowrap;

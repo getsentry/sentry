@@ -194,7 +194,7 @@ const IconWrapper = styled('span')`
 
   &,
   a {
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.gray300};
     display: flex;
     &:hover {
       cursor: pointer;

@@ -160,7 +160,7 @@ const NavContainer = styled('div')`
 const SearchBar = styled('div')`
   ${inputStyles};
   padding: 0 8px;
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.gray400};
   display: flex;
   align-items: center;
   font-size: 15px;

@@ -125,7 +125,7 @@ const StyledShortId = styled(ShortId)`
 `;
 
 const IssueCardFooter = styled('div')`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   font-size: ${p => p.theme.fontSizeSmall};
   padding: ${space(0.5)} ${space(1)};
 `;

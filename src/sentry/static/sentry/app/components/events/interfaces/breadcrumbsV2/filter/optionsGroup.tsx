@@ -48,7 +48,7 @@ const Header = styled('div')`
   align-items: center;
   margin: 0;
   background-color: ${p => p.theme.gray100};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   font-weight: normal;
   font-size: ${p => p.theme.fontSizeMedium};
   padding: ${space(1)} ${space(2)};

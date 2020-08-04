@@ -61,7 +61,7 @@ const OpenInContainer = styled('div')<{columnQuantity: number}>`
   display: grid;
   grid-template-columns: repeat(${p => p.columnQuantity}, max-content);
   grid-gap: ${space(1)};
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.gray400};
   background-color: ${p => p.theme.white};
   font-family: ${p => p.theme.text.family};
   border-bottom: 1px solid ${p => p.theme.borderLight};
@@ -77,10 +77,10 @@ const OpenInLink = styled(ExternalLink)`
   align-items: center;
   grid-template-columns: max-content auto;
   grid-gap: ${space(0.75)};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
 `;
 
 const OpenInName = styled('strong')`
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.gray400};
   font-weight: 700;
 `;

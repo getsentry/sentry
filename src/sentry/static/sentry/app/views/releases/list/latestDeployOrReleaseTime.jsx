@@ -61,7 +61,7 @@ const TimeWithIcon = styled(({date, ...props}) => (
 ))`
   display: inline-flex;
   align-items: center;
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   font-size: ${p => p.theme.fontSizeSmall};
   & > svg {
     margin-right: ${space(0.25)};

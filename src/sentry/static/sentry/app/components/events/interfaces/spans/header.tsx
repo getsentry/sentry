@@ -488,7 +488,7 @@ const TimeAxis = styled('div')`
   border-top: 1px solid ${p => p.theme.borderDark};
   height: ${TIME_AXIS_HEIGHT}px;
   background-color: ${p => p.theme.white};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   font-size: 10px;
   font-weight: 500;
 `;
@@ -530,7 +530,7 @@ const TickText = styled('span')<{align: TickAlignment}>`
 const TickMarker = styled('div')`
   width: 1px;
   height: 4px;
-  background-color: ${p => p.theme.gray400};
+  background-color: ${p => p.theme.gray200};
   position: absolute;
   top: 0;
   left: 0;

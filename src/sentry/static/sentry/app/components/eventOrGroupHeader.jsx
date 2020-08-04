@@ -131,7 +131,7 @@ const Title = styled('div')`
     font-size: 14px;
     font-style: normal;
     font-weight: 300;
-    color: ${p => p.theme.gray600};
+    color: ${p => p.theme.gray400};
   }
 `;
 
@@ -141,7 +141,7 @@ const LocationWrapper = styled('div')`
   direction: rtl;
   text-align: left;
   font-size: 14px;
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.gray400};
   span {
     direction: ltr;
   }
@@ -189,7 +189,7 @@ const GroupLevel = styled('div')`
       case 'fatal':
         return p.theme.red400;
       default:
-        return p.theme.gray500;
+        return p.theme.gray300;
     }
   }};
 
