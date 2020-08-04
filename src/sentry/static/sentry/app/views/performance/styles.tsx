@@ -34,7 +34,7 @@ export const HeaderTitle = styled('h3')`
 `;
 
 export const HeaderTitleLegend = styled(HeaderTitle)`
-  background-color: ${p => p.theme.white};
+  background-color: ${p => p.theme.background};
   position: absolute;
   z-index: 1;
 `;
