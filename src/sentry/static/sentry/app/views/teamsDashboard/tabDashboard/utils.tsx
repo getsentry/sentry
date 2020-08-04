@@ -10,44 +10,52 @@ export function getDevData(): DashboardData {
   return {
     cards: [
       {
-        id: generateRandomId(),
         columnSpan: 1,
-        content: null,
+        data: {
+          id: generateRandomId(),
+        },
       },
       {
-        id: generateRandomId(),
         columnSpan: 1,
-        content: null,
+        data: {
+          id: generateRandomId(),
+        },
       },
       {
-        id: generateRandomId(),
         columnSpan: 1,
-        content: null,
+        data: {
+          id: generateRandomId(),
+        },
       },
       {
-        id: generateRandomId(),
         columnSpan: 2,
-        content: null,
+        data: {
+          id: generateRandomId(),
+        },
       },
       {
-        id: generateRandomId(),
         columnSpan: 1,
-        content: null,
+        data: {
+          id: generateRandomId(),
+        },
       },
       {
-        id: generateRandomId(),
         columnSpan: 3,
-        content: null,
+        data: {
+          id: generateRandomId(),
+        },
       },
       {
-        id: generateRandomId(),
         columnSpan: 1,
-        content: null,
+        data: {
+          id: generateRandomId(),
+        },
       },
       {
-        id: generateRandomId(),
         columnSpan: 2,
-        content: null,
+        data: {
+          id: generateRandomId(),
+        },
       },
     ],
   };

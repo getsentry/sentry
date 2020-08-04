@@ -60,8 +60,14 @@ class Dashboard extends React.Component<Props> {
 
     return (
       <Container>
+        {/* If your add/remove is behaving weirdly, it's due to i.toString() */}
         {cards.map((c, i) => (
-          <Card key={c.id || i} index={i} removeCard={this.removeCard} {...c} />
+          <Card
+            key={c.key || c.data?.id || i.toString()}
+            index={i}
+            removeCard={this.removeCard}
+            {...c}
+          />
         ))}
 
         <CardAddNew

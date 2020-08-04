@@ -22,11 +22,11 @@ class Card extends React.Component<Props> {
   };
 
   render() {
-    const {columnSpan, isRemovable = true} = this.props;
+    const {columnSpan, isRemovable = true, data} = this.props;
 
     return (
       <CardWrapper columnSpan={columnSpan}>
-        {this.props.children || `ID: ${this.props.id}`}
+        {this.props.children || `ID: ${data.id}`}
         {isRemovable && <div onClick={this.removeCard}>[remove card]</div>}
       </CardWrapper>
     );

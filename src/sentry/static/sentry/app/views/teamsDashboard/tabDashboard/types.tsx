@@ -3,7 +3,13 @@ export type DashboardData = {
 };
 
 export type CardData = {
-  id?: string;
+  // For drawing the UI
+  key?: string;
   columnSpan: 1 | 2 | 3; // Size of the card
-  content: React.ReactNode;
+
+  // Data that'll fill a database row
+  data: {
+    id?: string;
+    [key: string]: any;
+  };
 };

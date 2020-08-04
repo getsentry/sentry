@@ -4,7 +4,7 @@ import Card from './index';
 import {CardData} from '../types';
 import {generateRandomId} from '../utils';
 
-type DefaultProps = Pick<CardData, 'columnSpan' | 'content'>;
+type DefaultProps = Pick<CardData, 'key' | 'columnSpan' | 'data'>;
 
 type Props = Card['props'] & {
   addCard: (index: number, data: CardData) => void;
@@ -14,17 +14,18 @@ type Props = Card['props'] & {
 
 class CardAddNew extends React.Component<Props> {
   static defaultProps: DefaultProps = {
+    key: 'card-add-new',
     columnSpan: 1,
-    content: null,
+    data: {},
   };
 
   addCard = (columnSpan: CardData['columnSpan'] = 1) => {
     const {addCard, index} = this.props;
 
     addCard(index, {
-      id: generateRandomId(),
+      key: generateRandomId(),
       columnSpan,
-      content: null,
+      data: {},
     });
   };
 
