@@ -70,7 +70,7 @@ class GroupTags extends React.Component {
   };
 
   getTagsDocsUrl() {
-    return 'https://docs.sentry.io/hosted/learn/context/';
+    return 'https://docs.sentry.io/enriching-error-data/additional-data/';
   }
 
   render() {

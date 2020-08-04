@@ -224,7 +224,7 @@ exports[`SettingsIndex renders 1`] = `
           <ul>
             <li>
               <ExternalHomeLink
-                href="https://docs.sentry.io/quickstart/"
+                href="https://docs.sentry.io/error-reporting/quickstart/"
               >
                 Quickstart Guide
               </ExternalHomeLink>
@@ -238,7 +238,7 @@ exports[`SettingsIndex renders 1`] = `
             </li>
             <li>
               <ExternalHomeLink
-                href="https://docs.sentry.io/learn/cli/"
+                href="https://docs.sentry.io/cli/"
               >
                 Sentry CLI
               </ExternalHomeLink>
@@ -335,7 +335,7 @@ exports[`SettingsIndex renders 1`] = `
             </li>
             <li>
               <ExternalHomeLink
-                href="https://docs.sentry.io/hosted/api/"
+                href="https://docs.sentry.io/api/"
               >
                 Documentation
               </ExternalHomeLink>

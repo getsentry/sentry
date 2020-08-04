@@ -25,9 +25,9 @@ import {Organization} from 'app/types';
 const LINKS = {
   DOCUMENTATION: 'https://docs.sentry.io/',
   DOCUMENTATION_PLATFORMS: 'https://docs.sentry.io/clients/',
-  DOCUMENATATION_QUICKSTART: 'https://docs.sentry.io/quickstart/',
-  DOCUMENTATION_CLI: 'https://docs.sentry.io/learn/cli/',
-  DOCUMENTATION_API: 'https://docs.sentry.io/hosted/api/',
+  DOCUMENATATION_QUICKSTART: 'https://docs.sentry.io/error-reporting/quickstart/',
+  DOCUMENTATION_CLI: 'https://docs.sentry.io/cli/',
+  DOCUMENTATION_API: 'https://docs.sentry.io/api/',
   API: '/settings/account/api/',
   MANAGE: '/manage/',
   FORUM: 'https://forum.sentry.io/',

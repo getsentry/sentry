@@ -299,12 +299,12 @@ urlpatterns += [
     # Legacy Redirects
     url(
         r"^docs/?$",
-        RedirectView.as_view(url="https://docs.sentry.io/hosted/", permanent=False),
+        RedirectView.as_view(url="https://docs.sentry.io/", permanent=False),
         name="sentry-docs-redirect",
     ),
     url(
         r"^docs/api/?$",
-        RedirectView.as_view(url="https://docs.sentry.io/hosted/api/", permanent=False),
+        RedirectView.as_view(url="https://docs.sentry.io/api/", permanent=False),
         name="sentry-api-docs-redirect",
     ),
     url(r"^api/$", RedirectView.as_view(pattern_name="sentry-api", permanent=False)),

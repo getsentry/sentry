@@ -172,11 +172,11 @@ exports[`ProjectTags renders 1`] = `
                  Learn how to 
             </span>
             <ForwardRef(ExternalLink)
-              href="https://docs.sentry.io/hosted/learn/context/"
+              href="https://docs.sentry.io/enriching-error-data/additional-data/"
               key="2"
             >
               <a
-                href="https://docs.sentry.io/hosted/learn/context/"
+                href="https://docs.sentry.io/enriching-error-data/additional-data/"
                 rel="noreferrer noopener"
                 target="_blank"
               >

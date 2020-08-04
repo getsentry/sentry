@@ -41,7 +41,7 @@ exports[`ApiTokens renders empty result 1`] = `
           For more information on how to use the web API, see our 
         </span>
         <a
-          href="https://docs.sentry.io/hosted/api/"
+          href="https://docs.sentry.io/api/"
           key="2"
         >
           <span
@@ -129,7 +129,7 @@ exports[`ApiTokens renders with result 1`] = `
           For more information on how to use the web API, see our 
         </span>
         <a
-          href="https://docs.sentry.io/hosted/api/"
+          href="https://docs.sentry.io/api/"
           key="2"
         >
           <span

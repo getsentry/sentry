@@ -410,7 +410,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               Object {
                 "id": "csharp",
                 "language": "csharp",
-                "link": "https://docs.getsentry.com/hosted/clients/csharp/",
+                "link": "https://docs.getsentry.com/clients/csharp/",
                 "name": "C#",
                 "type": "language",
               }
@@ -426,7 +426,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                 Object {
                   "id": "csharp",
                   "language": "csharp",
-                  "link": "https://docs.getsentry.com/hosted/clients/csharp/",
+                  "link": "https://docs.getsentry.com/clients/csharp/",
                   "name": "C#",
                   "type": "language",
                 }
@@ -460,7 +460,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               Object {
                 "id": "elixir",
                 "language": "elixir",
-                "link": "https://docs.getsentry.com/hosted/clients/elixir/",
+                "link": "https://docs.getsentry.com/clients/elixir/",
                 "name": "Elixir",
                 "type": "language",
               }
@@ -476,7 +476,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                 Object {
                   "id": "elixir",
                   "language": "elixir",
-                  "link": "https://docs.getsentry.com/hosted/clients/elixir/",
+                  "link": "https://docs.getsentry.com/clients/elixir/",
                   "name": "Elixir",
                   "type": "language",
                 }
@@ -510,7 +510,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               Object {
                 "id": "java",
                 "language": "java",
-                "link": "https://docs.getsentry.com/hosted/clients/java/",
+                "link": "https://docs.getsentry.com/clients/java/",
                 "name": "Java",
                 "type": "language",
               }
@@ -526,7 +526,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                 Object {
                   "id": "java",
                   "language": "java",
-                  "link": "https://docs.getsentry.com/hosted/clients/java/",
+                  "link": "https://docs.getsentry.com/clients/java/",
                   "name": "Java",
                   "type": "language",
                 }
@@ -560,7 +560,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               Object {
                 "id": "javascript-angular",
                 "language": "javascript",
-                "link": "https://docs.getsentry.com/hosted/clients/javascript/integrations/angular/",
+                "link": "https://docs.getsentry.com/clients/javascript/integrations/angular/",
                 "name": "Angular",
                 "type": "framework",
               }
@@ -576,7 +576,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                 Object {
                   "id": "javascript-angular",
                   "language": "javascript",
-                  "link": "https://docs.getsentry.com/hosted/clients/javascript/integrations/angular/",
+                  "link": "https://docs.getsentry.com/clients/javascript/integrations/angular/",
                   "name": "Angular",
                   "type": "framework",
                 }
@@ -610,7 +610,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               Object {
                 "id": "javascript",
                 "language": "javascript",
-                "link": "https://docs.getsentry.com/hosted/clients/javascript/install/",
+                "link": "https://docs.getsentry.com/clients/javascript/install/",
                 "name": "JavaScript",
                 "type": "language",
               }
@@ -626,7 +626,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                 Object {
                   "id": "javascript",
                   "language": "javascript",
-                  "link": "https://docs.getsentry.com/hosted/clients/javascript/install/",
+                  "link": "https://docs.getsentry.com/clients/javascript/install/",
                   "name": "JavaScript",
                   "type": "language",
                 }
@@ -660,7 +660,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               Object {
                 "id": "javascript-react",
                 "language": "javascript",
-                "link": "https://docs.getsentry.com/hosted/clients/javascript/integrations/react/",
+                "link": "https://docs.getsentry.com/clients/javascript/integrations/react/",
                 "name": "React",
                 "type": "framework",
               }
@@ -676,7 +676,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                 Object {
                   "id": "javascript-react",
                   "language": "javascript",
-                  "link": "https://docs.getsentry.com/hosted/clients/javascript/integrations/react/",
+                  "link": "https://docs.getsentry.com/clients/javascript/integrations/react/",
                   "name": "React",
                   "type": "framework",
                 }
@@ -710,7 +710,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               Object {
                 "id": "node-express",
                 "language": "node",
-                "link": "https://docs.getsentry.com/hosted/clients/node/integrations/express/",
+                "link": "https://docs.getsentry.com/clients/node/integrations/express/",
                 "name": "Express",
                 "type": "framework",
               }
@@ -726,7 +726,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                 Object {
                   "id": "node-express",
                   "language": "node",
-                  "link": "https://docs.getsentry.com/hosted/clients/node/integrations/express/",
+                  "link": "https://docs.getsentry.com/clients/node/integrations/express/",
                   "name": "Express",
                   "type": "framework",
                 }
@@ -760,7 +760,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               Object {
                 "id": "node",
                 "language": "node",
-                "link": "https://docs.getsentry.com/hosted/clients/node/",
+                "link": "https://docs.getsentry.com/clients/node/",
                 "name": "Node.js",
                 "type": "language",
               }
@@ -776,7 +776,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                 Object {
                   "id": "node",
                   "language": "node",
-                  "link": "https://docs.getsentry.com/hosted/clients/node/",
+                  "link": "https://docs.getsentry.com/clients/node/",
                   "name": "Node.js",
                   "type": "language",
                 }
@@ -810,7 +810,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               Object {
                 "id": "php-laravel",
                 "language": "php",
-                "link": "https://docs.getsentry.com/hosted/clients/php/integrations/laravel/",
+                "link": "https://docs.getsentry.com/clients/php/integrations/laravel/",
                 "name": "Laravel",
                 "type": "framework",
               }
@@ -826,7 +826,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                 Object {
                   "id": "php-laravel",
                   "language": "php",
-                  "link": "https://docs.getsentry.com/hosted/clients/php/integrations/laravel/",
+                  "link": "https://docs.getsentry.com/clients/php/integrations/laravel/",
                   "name": "Laravel",
                   "type": "framework",
                 }
@@ -860,7 +860,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               Object {
                 "id": "php",
                 "language": "php",
-                "link": "https://docs.getsentry.com/hosted/clients/php/",
+                "link": "https://docs.getsentry.com/clients/php/",
                 "name": "PHP",
                 "type": "language",
               }
@@ -876,7 +876,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                 Object {
                   "id": "php",
                   "language": "php",
-                  "link": "https://docs.getsentry.com/hosted/clients/php/",
+                  "link": "https://docs.getsentry.com/clients/php/",
                   "name": "PHP",
                   "type": "language",
                 }
@@ -910,7 +910,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               Object {
                 "id": "php-symfony2",
                 "language": "php",
-                "link": "https://docs.getsentry.com/hosted/clients/php/integrations/symfony2/",
+                "link": "https://docs.getsentry.com/clients/php/integrations/symfony2/",
                 "name": "Symfony2",
                 "type": "framework",
               }
@@ -926,7 +926,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                 Object {
                   "id": "php-symfony2",
                   "language": "php",
-                  "link": "https://docs.getsentry.com/hosted/clients/php/integrations/symfony2/",
+                  "link": "https://docs.getsentry.com/clients/php/integrations/symfony2/",
                   "name": "Symfony2",
                   "type": "framework",
                 }
@@ -960,7 +960,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               Object {
                 "id": "python-django",
                 "language": "python",
-                "link": "https://docs.getsentry.com/hosted/clients/python/integrations/django/",
+                "link": "https://docs.getsentry.com/clients/python/integrations/django/",
                 "name": "Django",
                 "type": "framework",
               }
@@ -976,7 +976,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                 Object {
                   "id": "python-django",
                   "language": "python",
-                  "link": "https://docs.getsentry.com/hosted/clients/python/integrations/django/",
+                  "link": "https://docs.getsentry.com/clients/python/integrations/django/",
                   "name": "Django",
                   "type": "framework",
                 }
@@ -1010,7 +1010,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               Object {
                 "id": "python-flask",
                 "language": "python",
-                "link": "https://docs.getsentry.com/hosted/clients/python/integrations/flask/",
+                "link": "https://docs.getsentry.com/clients/python/integrations/flask/",
                 "name": "Flask",
                 "type": "framework",
               }
@@ -1026,7 +1026,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                 Object {
                   "id": "python-flask",
                   "language": "python",
-                  "link": "https://docs.getsentry.com/hosted/clients/python/integrations/flask/",
+                  "link": "https://docs.getsentry.com/clients/python/integrations/flask/",
                   "name": "Flask",
                   "type": "framework",
                 }
@@ -1060,7 +1060,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               Object {
                 "id": "python",
                 "language": "python",
-                "link": "https://docs.getsentry.com/hosted/clients/python/",
+                "link": "https://docs.getsentry.com/clients/python/",
                 "name": "Python",
                 "type": "language",
               }
@@ -1076,7 +1076,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                 Object {
                   "id": "python",
                   "language": "python",
-                  "link": "https://docs.getsentry.com/hosted/clients/python/",
+                  "link": "https://docs.getsentry.com/clients/python/",
                   "name": "Python",
                   "type": "language",
                 }
@@ -1110,7 +1110,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               Object {
                 "id": "react-native",
                 "language": "react-native",
-                "link": "https://docs.getsentry.com/hosted/clients/react-native/",
+                "link": "https://docs.getsentry.com/clients/react-native/",
                 "name": "React-Native",
                 "type": "language",
               }
@@ -1126,7 +1126,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                 Object {
                   "id": "react-native",
                   "language": "react-native",
-                  "link": "https://docs.getsentry.com/hosted/clients/react-native/",
+                  "link": "https://docs.getsentry.com/clients/react-native/",
                   "name": "React-Native",
                   "type": "language",
                 }
@@ -1160,7 +1160,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               Object {
                 "id": "ruby-rails",
                 "language": "ruby",
-                "link": "https://docs.getsentry.com/hosted/clients/ruby/integrations/rails/",
+                "link": "https://docs.getsentry.com/clients/ruby/integrations/rails/",
                 "name": "Rails",
                 "type": "framework",
               }
@@ -1176,7 +1176,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                 Object {
                   "id": "ruby-rails",
                   "language": "ruby",
-                  "link": "https://docs.getsentry.com/hosted/clients/ruby/integrations/rails/",
+                  "link": "https://docs.getsentry.com/clients/ruby/integrations/rails/",
                   "name": "Rails",
                   "type": "framework",
                 }
@@ -1210,7 +1210,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               Object {
                 "id": "ruby",
                 "language": "ruby",
-                "link": "https://docs.getsentry.com/hosted/clients/ruby/",
+                "link": "https://docs.getsentry.com/clients/ruby/",
                 "name": "Ruby",
                 "type": "language",
               }
@@ -1226,7 +1226,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                 Object {
                   "id": "ruby",
                   "language": "ruby",
-                  "link": "https://docs.getsentry.com/hosted/clients/ruby/",
+                  "link": "https://docs.getsentry.com/clients/ruby/",
                   "name": "Ruby",
                   "type": "language",
                 }
@@ -2113,7 +2113,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
               Object {
                 "id": "ruby-rack",
                 "language": "ruby",
-                "link": "https://docs.getsentry.com/hosted/clients/ruby/integrations/rack/",
+                "link": "https://docs.getsentry.com/clients/ruby/integrations/rack/",
                 "name": "Rack",
                 "type": "framework",
               }
@@ -2129,7 +2129,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                 Object {
                   "id": "ruby-rack",
                   "language": "ruby",
-                  "link": "https://docs.getsentry.com/hosted/clients/ruby/integrations/rack/",
+                  "link": "https://docs.getsentry.com/clients/ruby/integrations/rack/",
                   "name": "Rack",
                   "type": "framework",
                 }
@@ -2163,7 +2163,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
               Object {
                 "id": "ruby-rails",
                 "language": "ruby",
-                "link": "https://docs.getsentry.com/hosted/clients/ruby/integrations/rails/",
+                "link": "https://docs.getsentry.com/clients/ruby/integrations/rails/",
                 "name": "Rails",
                 "type": "framework",
               }
@@ -2179,7 +2179,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                 Object {
                   "id": "ruby-rails",
                   "language": "ruby",
-                  "link": "https://docs.getsentry.com/hosted/clients/ruby/integrations/rails/",
+                  "link": "https://docs.getsentry.com/clients/ruby/integrations/rails/",
                   "name": "Rails",
                   "type": "framework",
                 }
@@ -2213,7 +2213,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
               Object {
                 "id": "ruby",
                 "language": "ruby",
-                "link": "https://docs.getsentry.com/hosted/clients/ruby/",
+                "link": "https://docs.getsentry.com/clients/ruby/",
                 "name": "Ruby",
                 "type": "language",
               }
@@ -2229,7 +2229,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                 Object {
                   "id": "ruby",
                   "language": "ruby",
-                  "link": "https://docs.getsentry.com/hosted/clients/ruby/",
+                  "link": "https://docs.getsentry.com/clients/ruby/",
                   "name": "Ruby",
                   "type": "language",
                 }
@@ -3227,7 +3227,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
               Object {
                 "id": "csharp",
                 "language": "csharp",
-                "link": "https://docs.getsentry.com/hosted/clients/csharp/",
+                "link": "https://docs.getsentry.com/clients/csharp/",
                 "name": "C#",
                 "type": "language",
               }
@@ -3243,7 +3243,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                 Object {
                   "id": "csharp",
                   "language": "csharp",
-                  "link": "https://docs.getsentry.com/hosted/clients/csharp/",
+                  "link": "https://docs.getsentry.com/clients/csharp/",
                   "name": "C#",
                   "type": "language",
                 }
@@ -3388,7 +3388,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
               Object {
                 "id": "elixir",
                 "language": "elixir",
-                "link": "https://docs.getsentry.com/hosted/clients/elixir/",
+                "link": "https://docs.getsentry.com/clients/elixir/",
                 "name": "Elixir",
                 "type": "language",
               }
@@ -3404,7 +3404,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                 Object {
                   "id": "elixir",
                   "language": "elixir",
-                  "link": "https://docs.getsentry.com/hosted/clients/elixir/",
+                  "link": "https://docs.getsentry.com/clients/elixir/",
                   "name": "Elixir",
                   "type": "language",
                 }
@@ -3438,7 +3438,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
               Object {
                 "id": "java",
                 "language": "java",
-                "link": "https://docs.getsentry.com/hosted/clients/java/",
+                "link": "https://docs.getsentry.com/clients/java/",
                 "name": "Java",
                 "type": "language",
               }
@@ -3454,7 +3454,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                 Object {
                   "id": "java",
                   "language": "java",
-                  "link": "https://docs.getsentry.com/hosted/clients/java/",
+                  "link": "https://docs.getsentry.com/clients/java/",
                   "name": "Java",
                   "type": "language",
                 }
@@ -3488,7 +3488,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
               Object {
                 "id": "javascript-angular",
                 "language": "javascript",
-                "link": "https://docs.getsentry.com/hosted/clients/javascript/integrations/angular/",
+                "link": "https://docs.getsentry.com/clients/javascript/integrations/angular/",
                 "name": "Angular",
                 "type": "framework",
               }
@@ -3504,7 +3504,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                 Object {
                   "id": "javascript-angular",
                   "language": "javascript",
-                  "link": "https://docs.getsentry.com/hosted/clients/javascript/integrations/angular/",
+                  "link": "https://docs.getsentry.com/clients/javascript/integrations/angular/",
                   "name": "Angular",
                   "type": "framework",
                 }
@@ -3538,7 +3538,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
               Object {
                 "id": "javascript",
                 "language": "javascript",
-                "link": "https://docs.getsentry.com/hosted/clients/javascript/install/",
+                "link": "https://docs.getsentry.com/clients/javascript/install/",
                 "name": "JavaScript",
                 "type": "language",
               }
@@ -3554,7 +3554,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                 Object {
                   "id": "javascript",
                   "language": "javascript",
-                  "link": "https://docs.getsentry.com/hosted/clients/javascript/install/",
+                  "link": "https://docs.getsentry.com/clients/javascript/install/",
                   "name": "JavaScript",
                   "type": "language",
                 }
@@ -3588,7 +3588,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
               Object {
                 "id": "javascript-react",
                 "language": "javascript",
-                "link": "https://docs.getsentry.com/hosted/clients/javascript/integrations/react/",
+                "link": "https://docs.getsentry.com/clients/javascript/integrations/react/",
                 "name": "React",
                 "type": "framework",
               }
@@ -3604,7 +3604,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                 Object {
                   "id": "javascript-react",
                   "language": "javascript",
-                  "link": "https://docs.getsentry.com/hosted/clients/javascript/integrations/react/",
+                  "link": "https://docs.getsentry.com/clients/javascript/integrations/react/",
                   "name": "React",
                   "type": "framework",
                 }
@@ -3638,7 +3638,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
               Object {
                 "id": "node-express",
                 "language": "node",
-                "link": "https://docs.getsentry.com/hosted/clients/node/integrations/express/",
+                "link": "https://docs.getsentry.com/clients/node/integrations/express/",
                 "name": "Express",
                 "type": "framework",
               }
@@ -3654,7 +3654,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                 Object {
                   "id": "node-express",
                   "language": "node",
-                  "link": "https://docs.getsentry.com/hosted/clients/node/integrations/express/",
+                  "link": "https://docs.getsentry.com/clients/node/integrations/express/",
                   "name": "Express",
                   "type": "framework",
                 }
@@ -3688,7 +3688,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
               Object {
                 "id": "node",
                 "language": "node",
-                "link": "https://docs.getsentry.com/hosted/clients/node/",
+                "link": "https://docs.getsentry.com/clients/node/",
                 "name": "Node.js",
                 "type": "language",
               }
@@ -3704,7 +3704,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                 Object {
                   "id": "node",
                   "language": "node",
-                  "link": "https://docs.getsentry.com/hosted/clients/node/",
+                  "link": "https://docs.getsentry.com/clients/node/",
                   "name": "Node.js",
                   "type": "language",
                 }
@@ -3738,7 +3738,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
               Object {
                 "id": "php-laravel",
                 "language": "php",
-                "link": "https://docs.getsentry.com/hosted/clients/php/integrations/laravel/",
+                "link": "https://docs.getsentry.com/clients/php/integrations/laravel/",
                 "name": "Laravel",
                 "type": "framework",
               }
@@ -3754,7 +3754,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                 Object {
                   "id": "php-laravel",
                   "language": "php",
-                  "link": "https://docs.getsentry.com/hosted/clients/php/integrations/laravel/",
+                  "link": "https://docs.getsentry.com/clients/php/integrations/laravel/",
                   "name": "Laravel",
                   "type": "framework",
                 }
@@ -3788,7 +3788,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
               Object {
                 "id": "php",
                 "language": "php",
-                "link": "https://docs.getsentry.com/hosted/clients/php/",
+                "link": "https://docs.getsentry.com/clients/php/",
                 "name": "PHP",
                 "type": "language",
               }
@@ -3804,7 +3804,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                 Object {
                   "id": "php",
                   "language": "php",
-                  "link": "https://docs.getsentry.com/hosted/clients/php/",
+                  "link": "https://docs.getsentry.com/clients/php/",
                   "name": "PHP",
                   "type": "language",
                 }
@@ -3838,7 +3838,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
               Object {
                 "id": "php-symfony2",
                 "language": "php",
-                "link": "https://docs.getsentry.com/hosted/clients/php/integrations/symfony2/",
+                "link": "https://docs.getsentry.com/clients/php/integrations/symfony2/",
                 "name": "Symfony2",
                 "type": "framework",
               }
@@ -3854,7 +3854,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                 Object {
                   "id": "php-symfony2",
                   "language": "php",
-                  "link": "https://docs.getsentry.com/hosted/clients/php/integrations/symfony2/",
+                  "link": "https://docs.getsentry.com/clients/php/integrations/symfony2/",
                   "name": "Symfony2",
                   "type": "framework",
                 }
@@ -3888,7 +3888,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
               Object {
                 "id": "python-django",
                 "language": "python",
-                "link": "https://docs.getsentry.com/hosted/clients/python/integrations/django/",
+                "link": "https://docs.getsentry.com/clients/python/integrations/django/",
                 "name": "Django",
                 "type": "framework",
               }
@@ -3904,7 +3904,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                 Object {
                   "id": "python-django",
                   "language": "python",
-                  "link": "https://docs.getsentry.com/hosted/clients/python/integrations/django/",
+                  "link": "https://docs.getsentry.com/clients/python/integrations/django/",
                   "name": "Django",
                   "type": "framework",
                 }
@@ -3938,7 +3938,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
               Object {
                 "id": "python-flask",
                 "language": "python",
-                "link": "https://docs.getsentry.com/hosted/clients/python/integrations/flask/",
+                "link": "https://docs.getsentry.com/clients/python/integrations/flask/",
                 "name": "Flask",
                 "type": "framework",
               }
@@ -3954,7 +3954,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                 Object {
                   "id": "python-flask",
                   "language": "python",
-                  "link": "https://docs.getsentry.com/hosted/clients/python/integrations/flask/",
+                  "link": "https://docs.getsentry.com/clients/python/integrations/flask/",
                   "name": "Flask",
                   "type": "framework",
                 }
@@ -3988,7 +3988,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
               Object {
                 "id": "python",
                 "language": "python",
-                "link": "https://docs.getsentry.com/hosted/clients/python/",
+                "link": "https://docs.getsentry.com/clients/python/",
                 "name": "Python",
                 "type": "language",
               }
@@ -4004,7 +4004,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                 Object {
                   "id": "python",
                   "language": "python",
-                  "link": "https://docs.getsentry.com/hosted/clients/python/",
+                  "link": "https://docs.getsentry.com/clients/python/",
                   "name": "Python",
                   "type": "language",
                 }
@@ -4038,7 +4038,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
               Object {
                 "id": "react-native",
                 "language": "react-native",
-                "link": "https://docs.getsentry.com/hosted/clients/react-native/",
+                "link": "https://docs.getsentry.com/clients/react-native/",
                 "name": "React-Native",
                 "type": "language",
               }
@@ -4054,7 +4054,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                 Object {
                   "id": "react-native",
                   "language": "react-native",
-                  "link": "https://docs.getsentry.com/hosted/clients/react-native/",
+                  "link": "https://docs.getsentry.com/clients/react-native/",
                   "name": "React-Native",
                   "type": "language",
                 }
@@ -4088,7 +4088,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
               Object {
                 "id": "ruby-rails",
                 "language": "ruby",
-                "link": "https://docs.getsentry.com/hosted/clients/ruby/integrations/rails/",
+                "link": "https://docs.getsentry.com/clients/ruby/integrations/rails/",
                 "name": "Rails",
                 "type": "framework",
               }
@@ -4104,7 +4104,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                 Object {
                   "id": "ruby-rails",
                   "language": "ruby",
-                  "link": "https://docs.getsentry.com/hosted/clients/ruby/integrations/rails/",
+                  "link": "https://docs.getsentry.com/clients/ruby/integrations/rails/",
                   "name": "Rails",
                   "type": "framework",
                 }
@@ -4138,7 +4138,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
               Object {
                 "id": "ruby",
                 "language": "ruby",
-                "link": "https://docs.getsentry.com/hosted/clients/ruby/",
+                "link": "https://docs.getsentry.com/clients/ruby/",
                 "name": "Ruby",
                 "type": "language",
               }
@@ -4154,7 +4154,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                 Object {
                   "id": "ruby",
                   "language": "ruby",
-                  "link": "https://docs.getsentry.com/hosted/clients/ruby/",
+                  "link": "https://docs.getsentry.com/clients/ruby/",
                   "name": "Ruby",
                   "type": "language",
                 }

@@ -1094,7 +1094,7 @@ exports[`Sidebar SidebarPanel can display Broadcasts panel and mark as seen 1`] 
 <SidebarPanelItem
   hasSeen={false}
   key="8"
-  link="https://docs.sentry.io/hosted/clients/javascript/sourcemaps/#uploading-source-maps-to-sentry"
+  link="https://docs.sentry.io/clients/javascript/sourcemaps/#uploading-source-maps-to-sentry"
   message="Source maps are JSON files that contain information on how to map your transpiled source code back to their original source."
   title="Learn about Source Maps"
 >
@@ -1123,10 +1123,10 @@ exports[`Sidebar SidebarPanel can display Broadcasts panel and mark as seen 1`] 
           className="css-166h1v-Text ekutvbl3"
         >
           <ForwardRef(ExternalLink)
-            href="https://docs.sentry.io/hosted/clients/javascript/sourcemaps/#uploading-source-maps-to-sentry"
+            href="https://docs.sentry.io/clients/javascript/sourcemaps/#uploading-source-maps-to-sentry"
           >
             <a
-              href="https://docs.sentry.io/hosted/clients/javascript/sourcemaps/#uploading-source-maps-to-sentry"
+              href="https://docs.sentry.io/clients/javascript/sourcemaps/#uploading-source-maps-to-sentry"
               rel="noreferrer noopener"
               target="_blank"
             >
