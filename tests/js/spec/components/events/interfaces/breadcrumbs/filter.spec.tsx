@@ -31,7 +31,7 @@ const options: React.ComponentProps<typeof Filter>['options'] = [
       type: BreadcrumbType.UI,
       description: 'User Action',
       levels: [BreadcrumbLevelType.INFO],
-      symbol: <Icon color="purple400" icon={IconUser} size="xs" />,
+      symbol: <Icon color="purple300" icon={IconUser} size="xs" />,
       isChecked: true,
     },
     {

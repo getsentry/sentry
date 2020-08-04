@@ -118,8 +118,8 @@ const badge = {
     indicatorColor: colors.orange400,
   },
   beta: {
-    background: `linear-gradient(90deg, ${colors.pink300}, ${colors.purple400})`,
-    indicatorColor: colors.purple400,
+    background: `linear-gradient(90deg, ${colors.pink300}, ${colors.purple300})`,
+    indicatorColor: colors.purple300,
   },
   new: {
     background: `linear-gradient(90deg, ${colors.green400}, ${colors.green500})`,
@@ -144,11 +144,11 @@ const button = {
   primary: {
     color: colors.white,
     colorActive: colors.white,
-    background: colors.purple400,
+    background: colors.purple300,
     backgroundActive: '#4e3fb4',
     border: '#3d328e',
     borderActive: '#352b7b',
-    focusShadow: color(colors.purple400)
+    focusShadow: color(colors.purple300)
       .alpha(0.4)
       .string(),
   },

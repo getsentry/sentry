@@ -150,7 +150,7 @@ const getActiveStyle = ({active, theme}: {active?: string; theme?: Theme}) => {
     }
 
     &:before {
-      background-color: ${theme?.purple400};
+      background-color: ${theme?.purple300};
     }
   `;
 };

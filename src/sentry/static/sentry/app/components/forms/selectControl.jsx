@@ -100,7 +100,7 @@ const defaultStyles = {
     backgroundColor: state.isFocused
       ? theme.gray100
       : state.isSelected
-      ? theme.purple400
+      ? theme.purple300
       : 'transparent',
     '&:active': {
       backgroundColor: theme.gray100,
