@@ -13,6 +13,11 @@ export function getDevData(): DashboardData {
         columnSpan: 1,
         data: {
           id: generateRandomId(),
+          kind: 'performance',
+          transactionName: '/api/0/organizations/{organization_slug}/eventsv2/',
+          projectId: 1,
+          apdex: 0.85,
+          userMisery: 0.23,
         },
       },
       {

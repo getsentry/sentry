@@ -5,6 +5,7 @@ export type DashboardData = {
 export type CardData = {
   // For drawing the UI
   key?: string;
+  type?: string;
   columnSpan: 1 | 2 | 3; // Size of the card
 
   // Data that'll fill a database row
