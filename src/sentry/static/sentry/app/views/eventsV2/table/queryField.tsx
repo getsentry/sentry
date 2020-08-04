@@ -27,6 +27,12 @@ type ParameterDescription =
       required: boolean;
     }
   | {
+      kind: 'field';
+      value: FieldValue | null;
+      options: SelectValue<FieldValue>[];
+      required: boolean;
+    }
+  | {
       kind: 'column';
       value: FieldValue | null;
       options: SelectValue<FieldValue>[];
@@ -232,7 +238,7 @@ class QueryField extends React.Component<Props> {
             const fieldParameter = this.getFunctionValue(fieldValue.function[index + 1]);
             fieldOptions = this.appendFieldIfUnknown(fieldOptions, fieldParameter);
             return {
-              kind: 'column',
+              kind: 'field',
               value: fieldParameter,
               required: param.required,
               options: Object.values(fieldOptions).filter(
@@ -291,7 +297,7 @@ class QueryField extends React.Component<Props> {
 
   renderParameterInputs(parameters: ParameterDescription[]): React.ReactNode[] {
     const inputs = parameters.map((descriptor: ParameterDescription, index: number) => {
-      if (descriptor.kind === 'column' && descriptor.options.length > 0) {
+      if (descriptor.kind === 'field' || (descriptor.kind === 'column' && descriptor.options.length > 0)) {
         return (
           <SelectControl
             key={'select:' + index}
