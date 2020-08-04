@@ -192,6 +192,7 @@ jobs:
           if: always()
           run: |
             mkdir -p ${{ steps.config.outputs.acceptance-dir }}
+            mkdir -p ${{ steps.config.outputs.acceptance-dir }}-night
             mkdir -p ${{ steps.config.outputs.acceptance-dir }}-mobile
             make run-acceptance
           env:
