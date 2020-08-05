@@ -132,7 +132,7 @@ class TeamDetails extends AsyncComponent<Props, State> {
 
   renderTabContent = () => {
     const {currentTab, projects, unlinkedProjects, projectsPageLinks} = this.state;
-    const {organization, team} = this.props;
+    const {organization, team, location} = this.props;
 
     const access = new Set(organization.access);
     const canWrite = access.has('org:write') || access.has('team:admin');
@@ -166,7 +166,7 @@ class TeamDetails extends AsyncComponent<Props, State> {
           />
         );
       case TAB.SETTINGS:
-        return <Settings />;
+        return <Settings organization={organization} team={team} location={location} />;
       default:
         return null;
     }
