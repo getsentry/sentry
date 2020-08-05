@@ -2,18 +2,24 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import {t} from 'app/locale';
+import Button from 'app/components/button';
 import space from 'app/styles/space';
 import {Team, Organization, Member} from 'app/types';
 import IdBadge from 'app/components/idBadge';
 import Link from 'app/components/links/link';
 import AsyncComponent from 'app/components/asyncComponent';
 import AvatarList from 'app/components/avatar/avatarList';
+import {IconMegaphone} from 'app/icons';
 
 type Props = AsyncComponent['props'] & {
   team: Team;
   organization: Organization;
   hasTeamAdminAccess: boolean;
+  hasOpenMembership: boolean;
   location: Location;
+  onLeaveTeam: () => void;
+  onJoinTeam: () => void;
 };
 
 type State = AsyncComponent['state'] & {
@@ -50,6 +56,48 @@ class TeamCard extends AsyncComponent<Props, State> {
     return members.filter(({user}) => !!user).map(({user}) => user);
   }
 
+  renderAction() {
+    const {loading} = this.state;
+    const {team, hasOpenMembership, onJoinTeam, onLeaveTeam} = this.props;
+
+    if (loading) {
+      <Button size="xsmall" disabled>
+        {'\u2026'}
+      </Button>;
+    }
+
+    if (team.isMember) {
+      return (
+        <Button size="xsmall" onClick={onLeaveTeam}>
+          {t('Leave Team')}
+        </Button>
+      );
+    }
+
+    if (team.isPending) {
+      return (
+        <Button size="xsmall" disabled>
+          {t('Request Pending')}
+        </Button>
+      );
+    }
+
+    if (hasOpenMembership) {
+      return (
+        <Button
+          size="xsmall"
+          priority="primary"
+          icon={<IconMegaphone />}
+          onClick={onJoinTeam}
+        >
+          {t('Request to Join')}
+        </Button>
+      );
+    }
+
+    return <Button size="xsmall">{t('Request Access')}</Button>;
+  }
+
   renderBody() {
     const {hasTeamAdminAccess, location, team} = this.props;
     const users = this.getFakeUsers();
@@ -72,6 +120,7 @@ class TeamCard extends AsyncComponent<Props, State> {
             }
           </Description>
           <AvatarList users={users} />
+          <div>{this.renderAction()}</div>
         </Body>
       </Wrapper>
     );

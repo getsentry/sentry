@@ -195,6 +195,7 @@ export type Team = {
   id: string;
   slug: string;
   isMember: boolean;
+  isPending: boolean;
   avatar: Avatar;
   memberCount: number;
   dateCreated: string;

@@ -2,23 +2,27 @@ import React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import {Location} from 'history';
 
+import withApi from 'app/utils/withApi';
 import {openCreateTeamModal} from 'app/actionCreators/modal';
 import Button from 'app/components/button';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import ListLink from 'app/components/links/listLink';
 import NavTabs from 'app/components/navTabs';
-import LoadingIndicator from 'app/components/loadingIndicator';
 import Badge from 'app/components/badge';
 import {IconGroup} from 'app/icons';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import {PageContent, PageHeader} from 'app/styles/organization';
 import {Organization, Team} from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
 import recreateRoute from 'app/utils/recreateRoute';
 import withTeams from 'app/utils/withTeams';
 import Breadcrumbs from 'app/components/breadcrumbs';
+import {joinTeam, leaveTeam} from 'app/actionCreators/teams';
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import {Client} from 'app/api';
 
-import TabListTeam from './tabListTeam';
+import AllTeams from './allTeams';
+import MyTeams from './myTeams';
 import {TAB} from './utils';
 
 type Props = RouteComponentProps<
@@ -29,41 +33,52 @@ type Props = RouteComponentProps<
   location: Location;
   params: Record<string, string | undefined>;
   teams: Array<Team>;
-  isLoading: boolean;
+  api: Client;
 };
 
 type State = {
   currentTab: TAB;
+  teams: Array<Team>;
   myTeams: Array<Team>;
 };
 
 class TeamsTabDashboard extends React.Component<Props, State> {
   state: State = {
     currentTab: TAB.DASHBOARD,
+    teams: [],
     myTeams: [],
   };
 
   componentDidMount() {
-    this.loadState();
+    this.getCurrentTab();
+    this.getTeams();
   }
 
-  loadState() {
-    const {location, teams} = this.props;
+  componentDidUpdate(prevProps: Props) {
+    if (prevProps.teams.length !== this.props.teams.length) {
+      this.getTeams();
+    }
+  }
+
+  getCurrentTab() {
+    const {location} = this.props;
 
     const pathname = location.pathname;
-    const myTeams = teams.filter(team => team.isMember);
 
     if (pathname.endsWith('all-teams/')) {
-      this.setState({currentTab: TAB.ALL_TEAMS, myTeams});
+      this.setState({currentTab: TAB.ALL_TEAMS});
       return;
     }
 
-    if (pathname.endsWith('my-teams/')) {
-      this.setState({currentTab: TAB.MY_TEAMS, myTeams});
-      return;
-    }
+    this.setState({currentTab: TAB.MY_TEAMS});
+  }
 
-    this.setState({currentTab: TAB.DASHBOARD, myTeams});
+  getTeams() {
+    const {teams} = this.props;
+    this.setState({
+      teams,
+      myTeams: teams.filter(team => team.isMember),
+    });
   }
 
   getCrumbs() {
@@ -90,13 +105,76 @@ class TeamsTabDashboard extends React.Component<Props, State> {
     openCreateTeamModal({organization});
   };
 
+  handleJoinTeam = (teamToJoin: Team) => () => {
+    const {api, organization} = this.props;
+
+    joinTeam(
+      api,
+      {
+        orgId: organization.slug,
+        teamId: teamToJoin.slug,
+      },
+      {
+        success: () => {
+          this.setState(prevState => ({
+            myTeams: [...prevState.myTeams, teamToJoin],
+          }));
+
+          addSuccessMessage(
+            tct('You have joined [team]', {
+              team: `#${teamToJoin.slug}`,
+            })
+          );
+        },
+        error: () => {
+          addErrorMessage(
+            tct('Unable to join [team]', {
+              team: `#${teamToJoin.slug}`,
+            })
+          );
+        },
+      }
+    );
+  };
+
+  handleLeaveTeam = (teamToLeave: Team) => () => {
+    const {api, organization} = this.props;
+
+    leaveTeam(
+      api,
+      {
+        orgId: organization.slug,
+        teamId: teamToLeave.slug,
+      },
+      {
+        success: () => {
+          this.setState(prevState => ({
+            myTeams: prevState.myTeams.filter(team => team.id !== teamToLeave.id),
+          }));
+
+          addSuccessMessage(
+            tct('You have left [team]', {
+              team: `#${teamToLeave.slug}`,
+            })
+          );
+        },
+        error: () => {
+          addErrorMessage(
+            tct('Unable to leave [team]', {
+              team: `#${teamToLeave.slug}`,
+            })
+          );
+        },
+      }
+    );
+  };
+
   renderHeader() {
-    const {organization, location, params, routes, teams} = this.props;
-    const {currentTab, myTeams} = this.state;
+    const {organization, location, params, routes} = this.props;
+    const {currentTab, myTeams, teams} = this.state;
 
     const hasTeamAdminAccess = organization.access.includes('project:admin');
     const baseUrl = recreateRoute('', {location, routes, params, stepBack: -2});
-    const createTeamLabel = t('Create Team');
 
     return (
       <React.Fragment>
@@ -112,7 +190,7 @@ class TeamsTabDashboard extends React.Component<Props, State> {
             onClick={this.handleCreateTeam}
             icon={<IconGroup />}
           >
-            {createTeamLabel}
+            {t('Create Team')}
           </Button>
         </PageHeader>
         <NavTabs>
@@ -147,43 +225,44 @@ class TeamsTabDashboard extends React.Component<Props, State> {
     const {currentTab, myTeams} = this.state;
     const {teams, organization, location} = this.props;
 
-    switch (currentTab) {
-      case TAB.ALL_TEAMS:
-        return (
-          <TabListTeam
-            handleCreateTeam={this.handleCreateTeam}
-            teams={teams}
-            organization={organization}
-            location={location}
-          />
-        );
-      case TAB.MY_TEAMS:
-        return (
-          <TabListTeam
-            handleCreateTeam={this.handleCreateTeam}
-            teams={myTeams}
-            organization={organization}
-            location={location}
-          />
-        );
-      default:
-        return <div>This should not happen</div>;
+    const access = new Set(organization.access);
+    const features = new Set(organization.features);
+    const hasTeamAdminAccess = access.has('project:admin');
+    const hasOpenMembership = !!(
+      features.has('open-membership') || access.has('org:write')
+    );
+
+    const tabListTeamProps = {
+      onCreateTeam: this.handleCreateTeam,
+      onJoinTeam: this.handleJoinTeam,
+      onLeaveTeam: this.handleLeaveTeam,
+      teams,
+      organization,
+      location,
+      hasTeamAdminAccess,
+      hasOpenMembership,
+    };
+
+    if (currentTab === TAB.ALL_TEAMS) {
+      return <AllTeams {...tabListTeamProps} />;
     }
+
+    return <MyTeams {...tabListTeamProps} myTeams={myTeams} />;
   }
 
   render() {
-    const {organization, isLoading} = this.props;
+    const {organization} = this.props;
 
     return (
       <React.Fragment>
         <SentryDocumentTitle title={t('Teams')} objSlug={organization.slug} />
         <PageContent>
           {this.renderHeader()}
-          {isLoading ? <LoadingIndicator /> : this.renderContent()}
+          {this.renderContent()}
         </PageContent>
       </React.Fragment>
     );
   }
 }
 
-export default withOrganization(withTeams(TeamsTabDashboard));
+export default withApi(withOrganization(withTeams(TeamsTabDashboard)));

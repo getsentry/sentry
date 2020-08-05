@@ -41,7 +41,7 @@ const Badge = styled(({priority: _priority, text, ...props}: Props) => (
 
 Badge.propTypes = {
   text: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-  priority: PropTypes.oneOf(['strong', 'new', 'highlight']),
+  priority: PropTypes.oneOf(['strong', 'new', 'highlight', 'active']),
 } as any;
 
 export default Badge;
