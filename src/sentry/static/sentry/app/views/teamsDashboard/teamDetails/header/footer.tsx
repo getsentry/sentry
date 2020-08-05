@@ -2,7 +2,6 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
-import space from 'app/styles/space';
 import AvatarList from 'app/components/avatar/avatarList';
 import {User, Project, Environment} from 'app/types';
 import ProjectBadge from 'app/components/idBadge/projectBadge';

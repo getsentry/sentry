@@ -39,6 +39,10 @@ type State = AsyncComponent['state'] & {
 };
 
 class TeamDetails extends AsyncComponent<Props, State> {
+  componentDidMount() {
+    this.getCurrentTab();
+  }
+
   getDefaultState(): State {
     return {
       ...super.getDefaultState(),
@@ -63,6 +67,33 @@ class TeamDetails extends AsyncComponent<Props, State> {
         },
       ],
     ];
+  }
+
+  getCurrentTab() {
+    const {location} = this.props;
+
+    const pathnameEnd = location.pathname.split('/');
+    const pathname = pathnameEnd[pathnameEnd.length - 2];
+    let currentTab = TAB.TEAM_FEED;
+
+    switch (pathname) {
+      case TAB.TEAM_GOALS:
+        currentTab = TAB.TEAM_GOALS;
+        break;
+      case TAB.PROJECTS:
+        currentTab = TAB.PROJECTS;
+        break;
+      case TAB.MEMBERS:
+        currentTab = TAB.MEMBERS;
+        break;
+      case TAB.SETTINGS:
+        currentTab = TAB.SETTINGS;
+        break;
+      default:
+        currentTab = TAB.TEAM_FEED;
+    }
+
+    this.setState({currentTab});
   }
 
   handleSearch = () => {};
@@ -109,7 +140,8 @@ class TeamDetails extends AsyncComponent<Props, State> {
     }
 
     const {currentTab, projects} = this.state;
-    const baseUrl = recreateRoute('', {location, routes, params, stepBack: -1});
+    const baseUrl = recreateRoute('', {location, routes, params, stepBack: -2});
+    const baseTabUrl = `${baseUrl}${teamSlug}/`;
 
     return (
       <StyledPageContent>
@@ -122,25 +154,44 @@ class TeamDetails extends AsyncComponent<Props, State> {
         />
         <Body>
           <StyledNavTabs>
-            <ListLink to="" index isActive={() => currentTab === TAB.TEAM_FEED}>
+            <ListLink
+              to={`${baseTabUrl}team-feed/`}
+              index
+              isActive={() => currentTab === TAB.TEAM_FEED}
+              onClick={() => this.setState({currentTab: TAB.TEAM_FEED})}
+            >
               {t('Team Feed')}
             </ListLink>
-            <ListLink to="" isActive={() => currentTab === TAB.TEAM_GOALS}>
+            <ListLink
+              to={`${baseTabUrl}team-goals/`}
+              isActive={() => currentTab === TAB.TEAM_GOALS}
+              onClick={() => this.setState({currentTab: TAB.TEAM_GOALS})}
+            >
               {t('Team Goals')}
             </ListLink>
-            <ListLink to="" isActive={() => currentTab === TAB.PROJECTS}>
+            <ListLink
+              to={`${baseTabUrl}projects/`}
+              isActive={() => currentTab === TAB.PROJECTS}
+              onClick={() => this.setState({currentTab: TAB.PROJECTS})}
+            >
               {t('Projects')}
             </ListLink>
-            <ListLink to="" isActive={() => currentTab === TAB.MEMBERS}>
+            <ListLink
+              to={`${baseTabUrl}members/`}
+              isActive={() => currentTab === TAB.MEMBERS}
+              onClick={() => this.setState({currentTab: TAB.MEMBERS})}
+            >
               {t('Members')}
             </ListLink>
-            <ListLink to="" isActive={() => currentTab === TAB.SETTINGS}>
+            <ListLink
+              to={`${baseTabUrl}settings/`}
+              isActive={() => currentTab === TAB.SETTINGS}
+              onClick={() => this.setState({currentTab: TAB.SETTINGS})}
+            >
               {t('Settings')}
             </ListLink>
           </StyledNavTabs>
-          <TabContent>
-            <Feed />
-          </TabContent>
+          <TabContent>{this.renderTabContent()}</TabContent>
         </Body>
       </StyledPageContent>
     );

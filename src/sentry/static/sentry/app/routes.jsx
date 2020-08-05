@@ -1201,7 +1201,13 @@ function routes() {
                   )
                 }
                 component={errorHandler(LazyLoad)}
-              />
+              >
+                <Route path="team-feed/" />
+                <Route path="team-goals/" />
+                <Route path="projects/" />
+                <Route path="members/" />
+                <Route path="settings/" />
+              </Route>
             </Route>
             <Route path="my-teams/">
               <IndexRoute
@@ -1220,7 +1226,13 @@ function routes() {
                   )
                 }
                 component={errorHandler(LazyLoad)}
-              />
+              >
+                <Route path="team-feed/" />
+                <Route path="team-goals/" />
+                <Route path="projects/" />
+                <Route path="members/" />
+                <Route path="settings/" />
+              </Route>
             </Route>
           </Route>
           <Route
