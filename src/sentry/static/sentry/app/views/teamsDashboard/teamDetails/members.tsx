@@ -10,6 +10,8 @@ import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import Pagination from 'app/components/pagination';
 import IdBadge from 'app/components/idBadge';
 import {Organization, Team, Member, Config} from 'app/types';
+import {leaveTeam} from 'app/actionCreators/teams';
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import withConfig from 'app/utils/withConfig';
 
 type Props = {
@@ -21,11 +23,55 @@ type Props = {
   config: Config;
 };
 
-class Members extends React.Component<Props> {
-  handleRemoveMember = (member: Member) => () => {};
+type State = {
+  members: Array<Member>;
+};
+
+class Members extends React.Component<Props, State> {
+  state: State = {
+    members: this.props.members || [],
+  };
+
+  componentDidUpdate(prevProps: Props) {
+    if (prevProps.members?.length !== this.props.members?.length) {
+      this.getMembers();
+    }
+  }
+
+  getMembers() {
+    this.setState({members: this.props.members});
+  }
+
+  handleRemoveMember = (member: Member) => async () => {
+    const {api, teamSlug, organization} = this.props;
+
+    leaveTeam(
+      api,
+      {
+        orgId: organization.slug,
+        teamId: teamSlug,
+        memberId: member.id,
+      },
+      {
+        success: () => {
+          this.setState(prevState => ({
+            members: prevState.members.filter(m => m.id !== member.id),
+          }));
+          addSuccessMessage(t('Successfully removed member from team.'));
+        },
+        error: () => {
+          addErrorMessage(
+            t('There was an error while trying to remove a member from the team.')
+          );
+        },
+      }
+    );
+  };
 
   render() {
-    const {members, canWrite, organization, config} = this.props;
+    const {canWrite, organization, config} = this.props;
+    const {members} = this.state;
+
     return (
       <React.Fragment>
         <Panel>
@@ -64,7 +110,7 @@ class Members extends React.Component<Props> {
             )}
           </PanelBody>
         </Panel>
-        <Pagination pageLinks={pageLinks} />
+        {/* <Pagination pageLinks={pageLinks} /> */}
       </React.Fragment>
     );
   }
