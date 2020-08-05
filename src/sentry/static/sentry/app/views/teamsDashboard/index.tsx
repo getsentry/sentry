@@ -9,13 +9,14 @@ import ListLink from 'app/components/links/listLink';
 import NavTabs from 'app/components/navTabs';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import PageHeading from 'app/components/pageHeading';
-import {IconAdd} from 'app/icons';
+import {IconGroup} from 'app/icons';
 import {t} from 'app/locale';
 import {PageContent, PageHeader} from 'app/styles/organization';
 import {Organization, Team} from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
 import recreateRoute from 'app/utils/recreateRoute';
 import withTeams from 'app/utils/withTeams';
+import Breadcrumbs from 'app/components/breadcrumbs';
 
 import TabListTeam from './tabListTeam';
 import {TAB} from './utils';
@@ -62,6 +63,25 @@ class TeamsTabDashboard extends React.Component<Props, State> {
     this.setState({currentTab: TAB.DASHBOARD});
   }
 
+  getCrumbs() {
+    const {currentTab} = this.state;
+    const {organization} = this.props;
+    const orgSlug = organization.slug;
+    const crumbs = [
+      {
+        to: `/organizations/${orgSlug}`,
+        label: orgSlug,
+        preserveGlobalSelection: true,
+      },
+    ];
+
+    if (currentTab === TAB.ALL_TEAMS) {
+      return [...crumbs, {label: t('All Teams')}];
+    }
+
+    return [...crumbs, {label: t('My Teams')}];
+  }
+
   handleCreateTeam = () => {
     const {organization} = this.props;
     openCreateTeamModal({organization});
@@ -78,9 +98,8 @@ class TeamsTabDashboard extends React.Component<Props, State> {
     return (
       <React.Fragment>
         <PageHeader>
-          <PageHeading>{t('Teams')}</PageHeading>
+          <Breadcrumbs crumbs={this.getCrumbs()} />
           <Button
-            size="small"
             disabled={!hasTeamAdminAccess}
             title={
               !hasTeamAdminAccess
@@ -88,13 +107,12 @@ class TeamsTabDashboard extends React.Component<Props, State> {
                 : undefined
             }
             onClick={this.handleCreateTeam}
-            icon={<IconAdd size="xs" isCircled />}
+            icon={<IconGroup />}
           >
             {createTeamLabel}
           </Button>
         </PageHeader>
-
-        <NavTabs underlined>
+        <NavTabs>
           <ListLink
             to={`${baseUrl}all-teams/`}
             isActive={() => currentTab === TAB.ALL_TEAMS}
