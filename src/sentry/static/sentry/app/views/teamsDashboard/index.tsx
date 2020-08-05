@@ -8,7 +8,7 @@ import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import ListLink from 'app/components/links/listLink';
 import NavTabs from 'app/components/navTabs';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import PageHeading from 'app/components/pageHeading';
+import Badge from 'app/components/badge';
 import {IconGroup} from 'app/icons';
 import {t} from 'app/locale';
 import {PageContent, PageHeader} from 'app/styles/organization';
@@ -34,33 +34,36 @@ type Props = RouteComponentProps<
 
 type State = {
   currentTab: TAB;
+  myTeams: Array<Team>;
 };
 
 class TeamsTabDashboard extends React.Component<Props, State> {
   state: State = {
     currentTab: TAB.DASHBOARD,
+    myTeams: [],
   };
 
   componentDidMount() {
-    this.getCurrentTab();
+    this.loadState();
   }
 
-  getCurrentTab() {
-    const {location} = this.props;
+  loadState() {
+    const {location, teams} = this.props;
 
     const pathname = location.pathname;
+    const myTeams = teams.filter(team => team.isMember);
 
     if (pathname.endsWith('all-teams/')) {
-      this.setState({currentTab: TAB.ALL_TEAMS});
+      this.setState({currentTab: TAB.ALL_TEAMS, myTeams});
       return;
     }
 
     if (pathname.endsWith('my-teams/')) {
-      this.setState({currentTab: TAB.MY_TEAMS});
+      this.setState({currentTab: TAB.MY_TEAMS, myTeams});
       return;
     }
 
-    this.setState({currentTab: TAB.DASHBOARD});
+    this.setState({currentTab: TAB.DASHBOARD, myTeams});
   }
 
   getCrumbs() {
@@ -88,8 +91,8 @@ class TeamsTabDashboard extends React.Component<Props, State> {
   };
 
   renderHeader() {
-    const {organization, location, params, routes} = this.props;
-    const {currentTab} = this.state;
+    const {organization, location, params, routes, teams} = this.props;
+    const {currentTab, myTeams} = this.state;
 
     const hasTeamAdminAccess = organization.access.includes('project:admin');
     const baseUrl = recreateRoute('', {location, routes, params, stepBack: -2});
@@ -119,6 +122,10 @@ class TeamsTabDashboard extends React.Component<Props, State> {
             onClick={() => this.setState({currentTab: TAB.ALL_TEAMS})}
           >
             {t('All Teams')}
+            <Badge
+              text={teams.length}
+              priority={currentTab === TAB.ALL_TEAMS ? 'active' : undefined}
+            />
           </ListLink>
           <ListLink
             to={`${baseUrl}my-teams/`}
@@ -126,6 +133,10 @@ class TeamsTabDashboard extends React.Component<Props, State> {
             onClick={() => this.setState({currentTab: TAB.MY_TEAMS})}
           >
             {t('My Teams')}
+            <Badge
+              text={myTeams.length}
+              priority={currentTab === TAB.MY_TEAMS ? 'active' : undefined}
+            />
           </ListLink>
         </NavTabs>
       </React.Fragment>
@@ -133,7 +144,7 @@ class TeamsTabDashboard extends React.Component<Props, State> {
   }
 
   renderContent() {
-    const {currentTab} = this.state;
+    const {currentTab, myTeams} = this.state;
     const {teams, organization, location} = this.props;
 
     switch (currentTab) {
@@ -150,7 +161,7 @@ class TeamsTabDashboard extends React.Component<Props, State> {
         return (
           <TabListTeam
             handleCreateTeam={this.handleCreateTeam}
-            teams={teams.filter(team => team.isMember)}
+            teams={myTeams}
             organization={organization}
             location={location}
           />

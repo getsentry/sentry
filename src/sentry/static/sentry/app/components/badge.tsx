@@ -9,6 +9,7 @@ const priorityColors = {
   new: theme.red400,
   strong: theme.blue400,
   highlight: theme.green400,
+  active: theme.purple400,
 } as const;
 
 type Props = React.HTMLProps<HTMLSpanElement> & {
@@ -30,7 +31,7 @@ const Badge = styled(({priority: _priority, text, ...props}: Props) => (
   font-size: 75%;
   font-weight: 600;
   text-align: center;
-  color: #fff;
+  color: ${p => p.theme.white};
   background: ${p => (p.priority ? priorityColors[p.priority] : theme.gray400)};
   transition: background 100ms linear;
 
