@@ -3,6 +3,7 @@ from __future__ import absolute_import, print_function
 import logging
 import time
 import sentry_sdk
+import six
 
 from django.conf import settings
 
@@ -97,8 +98,53 @@ def check_event_already_post_processed(event):
     return not result
 
 
-def handle_owner_assignment(project, group, event):
-    from sentry.models import GroupAssignee, ProjectOwnership
+def handle_owner_assignment(project, group, event, is_new):
+    from sentry.models import (
+        Commit,
+        GroupAssignee,
+        GroupOwner,
+        OwnershipType,
+        ProjectOwnership,
+        Release,
+        User,
+    )
+    from sentry.utils.committers import get_serialized_event_file_committers
+
+    ownership = ProjectOwnership.get_ownership_cached(group.project_id)
+    owner = False
+
+    if is_new:
+        if ownership:
+            owner = ProjectOwnership.get_autoassign_owner(group.project_id, event.data, ownership)
+            if isinstance(owner, User):
+                GroupOwner.objects.create(
+                    project_id=project.id,
+                    group_id=group.id,
+                    user_id=owner.user.id,
+                    ownership_type=OwnershipType.RULE,
+                )
+        try:
+            committers = get_serialized_event_file_committers(project, event)
+        except (Commit.DoesNotExist, Release.DoesNotExist):
+            pass
+        except Exception as exc:
+            logging.exception(six.text_type(exc))
+        else:
+            best_score = -1
+            best_author = None
+            for committer in committers:
+                if "id" in committer["author"]:
+                    for commit in committer["commits"]:
+                        if commit["score"] > best_score:
+                            best_score = commit["score"]
+                            best_author = committer["author"]
+            if best_author:
+                GroupOwner.objects.create(
+                    project_id=project.id,
+                    group_id=group.id,
+                    user_id=best_author["id"],
+                    ownership_type=OwnershipType.COMMIT,
+                )
 
     # Is the issue already assigned to a team or user?
     key = "assignee_exists:1:%s" % (group.id)
@@ -110,9 +156,11 @@ def handle_owner_assignment(project, group, event):
     if assignee_exists:
         return
 
-    owner = ProjectOwnership.get_autoassign_owner(group.project_id, event.data)
-    if owner is not None:
-        GroupAssignee.objects.assign(group, owner)
+    if ownership and ownership.auto_assignment:
+        if owner is False:
+            owner = ProjectOwnership.get_autoassign_owner(group.project_id, event.data, ownership)
+        if owner is not None:
+            GroupAssignee.objects.assign(group, owner)
 
 
 @instrumented_task(name="sentry.tasks.post_process.post_process_group")
@@ -169,7 +217,7 @@ def post_process_group(event, is_new, is_regression, is_new_group_environment, *
             # but not if it's new because you can't immediately snooze a new group
             has_reappeared = False if is_new else process_snoozes(event.group)
 
-            handle_owner_assignment(event.project, event.group, event)
+            handle_owner_assignment(event.project, event.group, event, is_new)
 
             rp = RuleProcessor(
                 event, is_new, is_regression, is_new_group_environment, has_reappeared

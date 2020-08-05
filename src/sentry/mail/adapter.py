@@ -156,7 +156,9 @@ class MailAdapter(object):
         # only notify if we have users to notify
         return self.get_sendable_users(group.project)
 
-    def get_send_to(self, project, target_type, target_identifier=None, event=None):
+    def get_send_to(
+        self, project, target_type, target_identifier=None, committers=None, event=None
+    ):
         """
         Returns a list of user IDs for the users that should receive
         notifications for the provided project.
@@ -171,30 +173,18 @@ class MailAdapter(object):
             if not event:
                 send_to = self.get_send_to_all_in_project(project)
             else:
-                send_to = self.get_send_to_owners(event, project)
+                send_to = self.get_send_to_owners(event, project, committers)
         elif target_type == ActionTargetType.MEMBER:
             send_to = self.get_send_to_member(project, target_identifier)
         elif target_type == ActionTargetType.TEAM:
             send_to = self.get_send_to_team(project, target_identifier)
         return set(send_to)
 
-    def get_send_to_owners(self, event, project):
+    def get_send_to_owners(self, event, project, committers):
+        send_to = set(int(c["author"]["id"]) for c in committers if "id" in c["author"])
+
         owners, _ = ProjectOwnership.get_owners(project.id, event.data)
         if owners != ProjectOwnership.Everyone:
-            if not owners:
-                metrics.incr(
-                    "features.owners.send_to",
-                    tags={"organization": project.organization_id, "outcome": "empty"},
-                    skip_internal=True,
-                )
-                return set()
-
-            metrics.incr(
-                "features.owners.send_to",
-                tags={"organization": project.organization_id, "outcome": "match"},
-                skip_internal=True,
-            )
-            send_to = set()
             teams_to_resolve = set()
             for owner in owners:
                 if owner.type == User:
@@ -211,14 +201,22 @@ class MailAdapter(object):
                     ).values_list("id", flat=True)
                 )
 
-            return send_to - self.disabled_users_from_project(project)
-        else:
+        if send_to:
+            metrics.incr(
+                "features.owners.send_to",
+                tags={"organization": project.organization_id, "outcome": "match"},
+                skip_internal=True,
+            )
+            send_to -= self.disabled_users_from_project(project)
+        elif owners == ProjectOwnership.Everyone:
             metrics.incr(
                 "features.owners.send_to",
                 tags={"organization": project.organization_id, "outcome": "everyone"},
                 skip_internal=True,
             )
-            return self.get_send_to_all_in_project(project)
+            send_to = self.get_send_to_all_in_project(project)
+
+        return send_to
 
     def disabled_users_from_project(self, project):
         alert_settings = project.get_member_alert_settings(self.alert_option_key)
@@ -372,6 +370,7 @@ class MailAdapter(object):
             project=project,
             target_type=target_type,
             target_identifier=target_identifier,
+            committers=committers,
             event=event,
         ):
             logger.info(

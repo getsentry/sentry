@@ -95,16 +95,12 @@ class ProjectOwnership(Model):
         return ordered_actors, rules
 
     @classmethod
-    def get_autoassign_owner(cls, project_id, data):
+    def get_autoassign_owner(cls, project_id, data, ownership):
         """
         Get the auto-assign owner for a project if there are any.
 
         Will return None if there are no owners, or a list of owners.
         """
-        ownership = cls.get_ownership_cached(project_id)
-        if not ownership or not ownership.auto_assignment:
-            return None
-
         rules = cls._matching_ownership_rules(ownership, project_id, data)
         if not rules:
             return None

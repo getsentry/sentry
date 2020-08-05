@@ -106,7 +106,7 @@ class Backend(Service):
         """
         Check if a project has digests enabled.
         """
-        return True
+        return False
 
     def add(self, key, record, increment_delay=None, maximum_delay=None):
         """
