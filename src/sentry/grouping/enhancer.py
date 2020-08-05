@@ -437,7 +437,7 @@ class Enhancements(object):
             raise InvalidEnhancerConfig(
                 'Invalid syntax near "%s" (line %s, column %s)' % (context, e.line(), e.column())
             )
-        return EnhancmentsVisitor(bases, id).visit(tree)
+        return EnhancementsVisitor(bases, id).visit(tree)
 
 
 class Rule(object):
@@ -479,7 +479,7 @@ class Rule(object):
         )
 
 
-class EnhancmentsVisitor(NodeVisitor):
+class EnhancementsVisitor(NodeVisitor):
     visit_comment = visit_empty = lambda *a: None
 
     def __init__(self, bases, id=None):

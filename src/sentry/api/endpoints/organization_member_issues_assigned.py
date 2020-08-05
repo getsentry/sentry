@@ -17,6 +17,6 @@ class OrganizationMemberIssuesAssignedEndpoint(OrganizationIssuesEndpoint):
                 Q(assignee_set__user=member.user, assignee_set__project__in=project_list)
                 | Q(assignee_set__team__in=teams)
             )
-            .extra(select={"sort_by": "sentry_groupasignee.date_added"})
+            .extra(select={"sort_by": "sentry_groupassignee.date_added"})
             .order_by("-sort_by")
         )

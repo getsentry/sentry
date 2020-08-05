@@ -45,7 +45,7 @@ class BaseApiResponse(object):
 
     @classmethod
     def from_response(self, response, allow_text=False):
-        # XXX(dcramer): this doesnt handle leading spaces, but they're not common
+        # XXX(dcramer): this doesn't handle leading spaces, but they're not common
         # paths so its ok
         if response.text.startswith(u"<?xml"):
             return XmlApiResponse(response.text, response.headers, response.status_code)

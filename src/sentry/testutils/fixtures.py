@@ -29,7 +29,7 @@ class Fixtures(object):
 
     @cached_property
     def organization(self):
-        # XXX(dcramer): ensure that your org slug doesnt match your team slug
+        # XXX(dcramer): ensure that your org slug doesn't match your team slug
         # and the same for your project slug
         return self.create_organization(name="baz", slug="baz", owner=self.user)
 

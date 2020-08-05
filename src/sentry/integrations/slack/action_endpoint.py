@@ -149,7 +149,7 @@ class SlackActionEndpoint(Endpoint):
         return attachment
 
     def is_message(self, data):
-        # XXX(epurkhsier): Used in coordination with construct_reply. Bot
+        # XXX(epurkhiser): Used in coordination with construct_reply. Bot
         # posted messages will not have the type at all.
         return data.get("original_message", {}).get("type") == "message"
 

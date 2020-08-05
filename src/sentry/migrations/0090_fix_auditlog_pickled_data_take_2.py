@@ -12,7 +12,7 @@ def cleanup_audit_log_data(apps, schema_editor):
     Fix `AuditLogEntry` rows that have pickled `Team` models in their `data` field.
 
     We originally had fixed this in [0], but we missed some types. This is
-    basically the same migration, but without the audit log entry type gaurd.
+    basically the same migration, but without the audit log entry type guard.
 
     [0]: https://github.com/getsentry/sentry/pull/17545
     """

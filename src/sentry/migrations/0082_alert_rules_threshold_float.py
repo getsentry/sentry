@@ -25,7 +25,7 @@ class Migration(migrations.Migration):
 
 
     dependencies = [
-        ('sentry', '0081_add_integraiton_upgrade_audit_log'),
+        ('sentry', '0081_add_integration_upgrade_audit_log'),
     ]
 
     operations = [

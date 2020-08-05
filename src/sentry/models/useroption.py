@@ -106,7 +106,7 @@ class UserOptionManager(OptionManager):
         )
 
 
-# TODO(dcramer): the NULL UNIQUE constraint here isnt valid, and instead has to
+# TODO(dcramer): the NULL UNIQUE constraint here isn't valid, and instead has to
 # be manually replaced in the database. We should restructure this model.
 class UserOption(Model):
     """

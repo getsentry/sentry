@@ -220,7 +220,7 @@ class GroupAssignee(Model):
 
     class Meta:
         app_label = "sentry"
-        db_table = "sentry_groupasignee"
+        db_table = "sentry_groupassignee"
         unique_together = [("project", "group")]
 
     __repr__ = sane_repr("group_id", "user_id", "team_id")

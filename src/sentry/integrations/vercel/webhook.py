@@ -77,7 +77,7 @@ class VercelWebhookEndpoint(Endpoint):
             or meta.get("bitbucketCommitSha")
         )
 
-        # contruct the repo depeding what provider we use
+        # construct the repo depending what provider we use
         if meta.get("githubCommitSha"):
             # we use these instead of githubOrg and githubRepo since it's the repo the user has access to
             repository = u"%s/%s" % (meta["githubCommitOrg"], meta["githubCommitRepo"])

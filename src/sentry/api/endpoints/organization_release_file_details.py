@@ -137,7 +137,7 @@ class OrganizationReleaseFileDetailsEndpoint(OrganizationReleasesBaseEndpoint):
 
         file = releasefile.file
 
-        # TODO(dcramer): this doesnt handle a failure from file.deletefile() to
+        # TODO(dcramer): this doesn't handle a failure from file.deletefile() to
         # the actual deletion of the db row
         releasefile.delete()
         file.delete()

@@ -997,7 +997,7 @@ def convert_search_boolean_to_snuba_query(terms, params=None):
         )
     terms = new_terms
 
-    # We put precedence on AND, which sort of counter-intuitevely means we have to split the query
+    # We put precedence on AND, which sort of counter-intuitively means we have to split the query
     # on ORs first, so the ANDs are grouped together. Search through the query for ORs and split the
     # query on each OR.
     # We want to maintain a binary tree, so split the terms on the first OR we can find and recurse on
@@ -1086,7 +1086,7 @@ def get_filter(query=None, params=None):
         for term in parsed_terms
     ):
         # TODO evanh: We can remove all top level ANDs and extend the conditions/having to
-        # avoid unnecesary nesting, e.g. [["and", [["and", [a, b]], ["and", [c, d]]]]] -> [a, b, c, d]
+        # avoid unnecessary nesting, e.g. [["and", [["and", [a, b]], ["and", [c, d]]]]] -> [a, b, c, d]
         (
             condition,
             having,

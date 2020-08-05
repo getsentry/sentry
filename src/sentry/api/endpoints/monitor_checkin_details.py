@@ -39,7 +39,7 @@ class MonitorCheckInDetailsEndpoint(Endpoint):
     permission_classes = (ProjectPermission,)
 
     # TODO(dcramer): this code needs shared with other endpoints as its security focused
-    # TODO(dcramer): this doesnt handle is_global roles
+    # TODO(dcramer): this doesn't handle is_global roles
     def convert_args(self, request, monitor_id, checkin_id, *args, **kwargs):
         try:
             monitor = Monitor.objects.get(guid=monitor_id)

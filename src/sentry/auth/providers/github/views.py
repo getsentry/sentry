@@ -79,7 +79,7 @@ class ConfirmEmail(AuthView):
     def handle(self, request, helper):
         user = helper.fetch_state("user")
 
-        # TODO(dcramer): this isnt ideal, but our current flow doesnt really
+        # TODO(dcramer): this isn't ideal, but our current flow doesn't really
         # support this behavior;
         try:
             auth_identity = AuthIdentity.objects.select_related("user").get(

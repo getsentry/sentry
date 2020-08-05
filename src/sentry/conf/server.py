@@ -843,7 +843,7 @@ SENTRY_FEATURES = {
     "organizations:integrations-alert-rule": True,
     # Enable integration functionality to work with alert rules (specifically chat integrations)
     "organizations:integrations-chat-unfurl": True,
-    # Enable integration functionality to work with alert rules (specifically indicdent)
+    # Enable integration functionality to work with alert rules (specifically incident)
     # management integrations)
     "organizations:integrations-incident-management": True,
     # Enable the MsTeams integration

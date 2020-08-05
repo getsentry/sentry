@@ -257,7 +257,7 @@ class Superuser(object):
             "exp": self.expires.strftime("%s"),
             "idl": (current_datetime + IDLE_MAX_AGE).strftime("%s"),
             "tok": self.token,
-            # XXX(dcramer): do we really need the uid safety m echanism
+            # XXX(dcramer): do we really need the uid safety mechanism
             "uid": self.uid,
         }
 

@@ -467,7 +467,7 @@ class ChunkedFileBlobIndexWrapper(object):
 
     def detach_tempfile(self):
         if not self.prefetched:
-            raise TypeError("Can only detech tempfiles in prefetch mode")
+            raise TypeError("Can only detach tempfiles in prefetch mode")
         rv = self._curfile
         self._curfile = None
         self.close()

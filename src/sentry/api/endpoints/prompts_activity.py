@@ -69,7 +69,7 @@ class PromptsActivityEndpoint(Endpoint):
             return Response({"detail": "Missing required field"}, status=400)
 
         # if project_id or organization_id in required fields make sure they exist
-        # if NOT in required fields, insert dummy value so dups aren't recorded
+        # if NOT in required fields, insert dummy value so dupes aren't recorded
         if "project_id" in required_fields:
             if not Project.objects.filter(id=fields["project_id"]).exists():
                 return Response({"detail": "Project no longer exists"}, status=400)
