@@ -75,7 +75,7 @@ def _get_commit_file_changes(commits, path_name_set):
 
     commit_file_change_matches = CommitFileChange.objects.filter(
         path_query, commit__in=commits
-    ).order_by("id")
+    ).order_by("commit_id")
 
     return list(commit_file_change_matches)
 
