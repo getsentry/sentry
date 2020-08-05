@@ -293,7 +293,7 @@ def get_serialized_event_file_committers(project, event, frame_limit=25):
 
     for (commit, score, score_reason), serialized_commit in zip(commits, serialized_commits):
         serialized_commit["score"] = score
-        serialized_commit["score_reason"] = score_reason
+        serialized_commit["scoreReason"] = score_reason
         serialized_commits_by_id[commit.id] = serialized_commit
 
     for committer in committers:
