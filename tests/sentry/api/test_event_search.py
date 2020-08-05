@@ -1307,8 +1307,6 @@ class ParseBooleanSearchQueryTest(TestCase):
 
         for test in tests:
             result = get_filter(test[0])
-            print("EXP", test[1])
-            print("ACT", result.conditions)
             assert test[1] == result.conditions, "cond: " + test[0]
 
     def test_project_in_condition_filters(self):
