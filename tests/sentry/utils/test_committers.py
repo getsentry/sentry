@@ -348,6 +348,71 @@ class GetEventFileCommitters(CommitTestCase):
         assert len(result[0]["commits"]) == 1
         assert result[0]["commits"][0]["id"] == "a" * 40
 
+    def test_matching_no_line_blames(self):
+        event = self.store_event(
+            data={
+                "message": "Kaboom!",
+                "platform": "python",
+                "timestamp": iso_format(before_now(seconds=1)),
+                "stacktrace": {
+                    "frames": [
+                        {
+                            "function": "handle_set_commits",
+                            "abs_path": "/usr/src/sentry/src/sentry/tasks.py",
+                            "module": "sentry.tasks",
+                            "in_app": True,
+                            "lineno": 30,
+                            "filename": "sentry/tasks.py",
+                        },
+                        {
+                            "function": "set_commits",
+                            "abs_path": "/usr/src/sentry/src/sentry/models/release.py",
+                            "module": "sentry.models.release",
+                            "in_app": True,
+                            "lineno": 39,
+                            "filename": "sentry/models/release.py",
+                        },
+                    ]
+                },
+                "tags": {"sentry:release": self.release.version},
+            },
+            project_id=self.project.id,
+        )
+        self.release.set_commits(
+            [
+                {
+                    "id": "a" * 40,
+                    "repository": self.repo.name,
+                    "author_email": "bob@example.com",
+                    "author_name": "Bob",
+                    "message": "i fixed a bug",
+                    "patch_set": [{"path": "src/sentry/models/release.py", "type": "M"}],
+                },
+                {
+                    "id": "b" * 40,
+                    "repository": self.repo.name,
+                    "author_email": "bob@example.com",
+                    "author_name": "Bob",
+                    "message": "i fixed a bug",
+                    "patch_set": [{"path": "src/sentry/models/release.py", "type": "M"}],
+                },
+                {
+                    "id": "c" * 40,
+                    "repository": self.repo.name,
+                    "author_email": "bob2@example.com",
+                    "author_name": "Bob2",
+                    "message": "i fixed a bug",
+                    "patch_set": [{"path": "src/sentry/models/release.py", "type": "M"}],
+                },
+            ]
+        )
+
+        result = get_serialized_event_file_committers(self.project, event)
+        assert len(result) == 2
+        assert "commits" in result[0]
+        assert len(result[0]["commits"]) == 1
+        assert result[0]["commits"][0]["id"] == "c" * 40
+
     def test_matching_by_line(self):
         event = self.store_event(
             data={
