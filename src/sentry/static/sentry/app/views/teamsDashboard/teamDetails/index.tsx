@@ -3,7 +3,7 @@ import {RouteComponentProps} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
-import {Team} from 'app/types';
+import {Team, Project} from 'app/types';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {PageContent} from 'app/styles/organization';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
@@ -13,25 +13,78 @@ import NavTabs from 'app/components/navTabs';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import space from 'app/styles/space';
 import recreateRoute from 'app/utils/recreateRoute';
+import AsyncComponent from 'app/components/asyncComponent';
 
 import Header from './header';
-import Dashboard from './dashboard';
+import Feed from './feed';
 
-type Props = RouteComponentProps<{orgSlug: string; teamSlug: string}, {}> & {
-  team: Team;
-  isLoading: boolean;
-};
+enum TAB {
+  TEAM_FEED = 'team_feed',
+  TEAM_GOALS = 'team_goals',
+  PROJECTS = 'projects',
+  MEMBERS = 'members',
+  SETTINGS = 'settings',
+}
 
-type State = {
+type Props = RouteComponentProps<{orgSlug: string; teamSlug: string}, {}> &
+  AsyncComponent['props'] & {
+    team: Team;
+    projects: Array<Project>;
+    isLoading: boolean;
+  };
+
+type State = AsyncComponent['state'] & {
   searchTerm: string;
+  currentTab: TAB;
 };
 
-class TeamDetails extends React.Component<Props, State> {
-  state: State = {searchTerm: ''};
+class TeamDetails extends AsyncComponent<Props, State> {
+  getDefaultState(): State {
+    return {
+      ...super.getDefaultState(),
+      searchTerm: '',
+      currentTab: TAB.TEAM_FEED,
+      projects: [],
+    };
+  }
+
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+    const {
+      params: {teamSlug, orgSlug},
+    } = this.props;
+    return [
+      [
+        'projects',
+        `/organizations/${orgSlug}/projects/`,
+        {
+          query: {
+            query: `!team:${teamSlug}`,
+          },
+        },
+      ],
+    ];
+  }
 
   handleSearch = () => {};
 
-  rendertabContent = () => {};
+  renderTabContent = () => {
+    const {currentTab} = this.state;
+
+    switch (currentTab) {
+      case TAB.TEAM_FEED:
+        return <Feed />;
+      case TAB.TEAM_GOALS:
+        return <div>Team Goals</div>;
+      case TAB.PROJECTS:
+        return <div>Projects</div>;
+      case TAB.MEMBERS:
+        return <div>Members</div>;
+      case TAB.SETTINGS:
+        return <div>Settings</div>;
+      default:
+        return null;
+    }
+  };
 
   renderContent() {
     const {
@@ -55,6 +108,7 @@ class TeamDetails extends React.Component<Props, State> {
       );
     }
 
+    const {currentTab, projects} = this.state;
     const baseUrl = recreateRoute('', {location, routes, params, stepBack: -1});
 
     return (
@@ -64,27 +118,28 @@ class TeamDetails extends React.Component<Props, State> {
           teamSlug={teamSlug}
           orgSlug={orgSlug}
           origin={baseUrl.endsWith('all-teams/') ? 'all-teams' : 'my-teams'}
+          projects={projects}
         />
         <Body>
           <StyledNavTabs>
-            <ListLink to="" index isActive={() => true}>
+            <ListLink to="" index isActive={() => currentTab === TAB.TEAM_FEED}>
               {t('Team Feed')}
             </ListLink>
-            <ListLink to="" isActive={() => false}>
+            <ListLink to="" isActive={() => currentTab === TAB.TEAM_GOALS}>
               {t('Team Goals')}
             </ListLink>
-            <ListLink to="" isActive={() => false}>
+            <ListLink to="" isActive={() => currentTab === TAB.PROJECTS}>
               {t('Projects')}
             </ListLink>
-            <ListLink to="" isActive={() => false}>
+            <ListLink to="" isActive={() => currentTab === TAB.MEMBERS}>
               {t('Members')}
             </ListLink>
-            <ListLink to="" isActive={() => false}>
+            <ListLink to="" isActive={() => currentTab === TAB.SETTINGS}>
               {t('Settings')}
             </ListLink>
           </StyledNavTabs>
           <TabContent>
-            <Dashboard />
+            <Feed />
           </TabContent>
         </Body>
       </StyledPageContent>

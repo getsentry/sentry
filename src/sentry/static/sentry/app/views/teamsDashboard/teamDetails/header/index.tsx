@@ -3,19 +3,21 @@ import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 
 import {t} from 'app/locale';
-import {Team} from 'app/types';
+import {Team, Project} from 'app/types';
 import Avatar from 'app/components/avatar';
 import Breadcrumbs from 'app/components/breadcrumbs';
 import space from 'app/styles/space';
 import Button from 'app/components/button';
 import {IconMegaphone} from 'app/icons';
-import AvatarList from 'app/components/avatar/avatarList';
+
+import Footer from './footer';
 
 type Props = {
   team: Team;
   orgSlug: string;
   teamSlug: string;
   origin: 'my-teams' | 'all-teams';
+  projects: Array<Project>;
 };
 
 type State = {
@@ -34,8 +36,8 @@ class TeamDetailsHeader extends React.Component<Props, State> {
 
     const crumbs = [
       {
-        to: `/organizations/${orgSlug}/teams/`,
-        label: t('Teams'),
+        to: `/organizations/${orgSlug}`,
+        label: orgSlug,
         preserveGlobalSelection: true,
       },
       {
@@ -58,7 +60,7 @@ class TeamDetailsHeader extends React.Component<Props, State> {
   }
 
   render() {
-    const {team} = this.props;
+    const {team, projects} = this.props;
     const {members = []} = team;
     return (
       <Wrapper>
@@ -81,20 +83,7 @@ class TeamDetailsHeader extends React.Component<Props, State> {
             </Details>
           </DetailsContainer>
         </Body>
-        <Footer>
-          <FooterItem>
-            <FooterItemTitle>{t('Team Projects')}</FooterItemTitle>
-            content goes here
-          </FooterItem>
-          <FooterItem>
-            <FooterItemTitle>{t('Team Enviroments')}</FooterItemTitle>
-            content goes here
-          </FooterItem>
-          <FooterItem>
-            <FooterItemTitle>{t('Team Members')}</FooterItemTitle>
-            <StyledAvatarList users={members as any} avatarSize={35} />
-          </FooterItem>
-        </Footer>
+        <Footer users={members as any} projects={projects} enviroments={[]} />
       </Wrapper>
     );
   }
@@ -136,26 +125,4 @@ const Title = styled('h5')`
   font-weight: 400;
   margin-bottom: ${space(1)};
   color: ${p => p.theme.gray700};
-`;
-
-const Footer = styled('div')`
-  display: grid;
-  grid-template-columns: max-content max-content max-content;
-  grid-gap: ${space(4)};
-`;
-
-const FooterItem = styled('div')``;
-
-const FooterItemTitle = styled('div')`
-  color: ${p => p.theme.gray600};
-  text-transform: uppercase;
-  font-weight: 600;
-  font-size: ${p => p.theme.fontSizeSmall};
-`;
-
-const StyledAvatarList = styled(AvatarList)`
-  justify-content: center;
-  .avatar {
-    margin-left: 0;
-  }
 `;

@@ -1,4 +1,4 @@
-export type DashboardData = {
+export type FeedData = {
   cards: CardData[];
 };
 
