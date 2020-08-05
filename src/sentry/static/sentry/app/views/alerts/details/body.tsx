@@ -426,6 +426,6 @@ const RuleDetails = styled('div')`
 
   & > span:nth-child(4n + 1),
   & > span:nth-child(4n + 2) {
-    background-color: ${p => p.theme.gray100};
+    background-color: ${p => p.theme.rowBackground};
   }
 `;

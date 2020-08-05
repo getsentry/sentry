@@ -65,6 +65,7 @@ const aliases = {
     'linear-gradient(294.17deg,#2f1937 35.57%,#452650 92.42%,#452650 92.42%)',
   formPlaceholder: colors.gray200,
   formText: colors.gray500,
+  rowBackground: colors.gray100,
 };
 
 const warning = {
@@ -347,9 +348,10 @@ const darkAliases = {
   textColor: colors.white,
   subText: colors.gray200,
   linkColor: colors.purple200,
-  secondaryButton: colors.white,
+  secondaryButton: colors.purple200,
   sidebarGradient: 'linear-gradient(6.01deg, #0A090F -8.44%, #1B0921 85.02%)',
   formText: colors.white,
+  rowBackground: colors.gray500,
 };
 
 export const darkTheme = {

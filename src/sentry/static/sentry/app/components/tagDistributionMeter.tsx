@@ -244,7 +244,7 @@ const Title = styled('div')`
 `;
 
 const TitleType = styled('div')`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.textColor};
   font-weight: bold;
   ${overflowEllipsis};
 `;

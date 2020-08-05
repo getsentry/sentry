@@ -38,6 +38,13 @@ const styles = (theme: Theme) => css`
     border-top-color: ${theme.border};
   }
 
+  .search .search-input,
+  .Select-control,
+  .Select-menu-outer {
+    background: ${theme.background};
+    color: ${theme.formText};
+  }
+
   .nav-tabs > li.active a,
   .nav-tabs > li.active a:hover {
     border-bottom-color: ${theme.active};
