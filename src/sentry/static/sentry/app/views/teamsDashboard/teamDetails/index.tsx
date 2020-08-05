@@ -25,8 +25,8 @@ import Members from './members';
 import Settings from './settings';
 
 enum TAB {
-  TEAM_FEED = 'team_feed',
-  TEAM_GOALS = 'team_goals',
+  TEAM_FEED = 'team-feed',
+  TEAM_GOALS = 'team-goals',
   PROJECTS = 'projects',
   MEMBERS = 'members',
   SETTINGS = 'settings',
