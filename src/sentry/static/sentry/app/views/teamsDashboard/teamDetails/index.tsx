@@ -21,6 +21,7 @@ import Header from './header';
 import Feed from './feed';
 import Projects from './projects';
 import Members from './members';
+import Settings from './settings';
 
 enum TAB {
   TEAM_FEED = 'team_feed',
@@ -165,7 +166,7 @@ class TeamDetails extends AsyncComponent<Props, State> {
           />
         );
       case TAB.SETTINGS:
-        return <div>Settings</div>;
+        return <Settings />;
       default:
         return null;
     }
