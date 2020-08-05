@@ -1,6 +1,7 @@
 import React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 
 import Badge from 'app/components/badge';
 import {t} from 'app/locale';
@@ -37,6 +38,7 @@ type Props = RouteComponentProps<{orgSlug: string; teamSlug: string}, {}> &
     projects: Array<Project>;
     isLoading: boolean;
     organization: Organization;
+    location: Location;
   };
 
 type State = AsyncComponent['state'] & {
@@ -45,10 +47,43 @@ type State = AsyncComponent['state'] & {
   projectsPageLinks: string;
 };
 
+const getCurrentTab = (location: Location): TAB => {
+  const pathnameEnd = location.pathname.split('/');
+  const pathname = pathnameEnd[pathnameEnd.length - 2];
+  let currentTab = TAB.TEAM_FEED;
+
+  switch (pathname) {
+    case TAB.TEAM_GOALS:
+      currentTab = TAB.TEAM_GOALS;
+      break;
+    case TAB.PROJECTS:
+      currentTab = TAB.PROJECTS;
+      break;
+    case TAB.MEMBERS:
+      currentTab = TAB.MEMBERS;
+      break;
+    case TAB.SETTINGS:
+      currentTab = TAB.SETTINGS;
+      break;
+    default:
+      currentTab = TAB.TEAM_FEED;
+  }
+
+  return currentTab;
+};
+
 class TeamDetails extends AsyncComponent<Props, State> {
   componentDidMount() {
-    this.getCurrentTab();
     this.fetchUnlinkedProjects();
+  }
+
+  static getDerivedStateFromProps(props: Props, state: State): State {
+    const {location} = props;
+
+    return {
+      ...state,
+      currentTab: getCurrentTab(location),
+    };
   }
 
   getDefaultState(): State {
@@ -100,33 +135,6 @@ class TeamDetails extends AsyncComponent<Props, State> {
       //error
     }
   };
-
-  getCurrentTab() {
-    const {location} = this.props;
-
-    const pathnameEnd = location.pathname.split('/');
-    const pathname = pathnameEnd[pathnameEnd.length - 2];
-    let currentTab = TAB.TEAM_FEED;
-
-    switch (pathname) {
-      case TAB.TEAM_GOALS:
-        currentTab = TAB.TEAM_GOALS;
-        break;
-      case TAB.PROJECTS:
-        currentTab = TAB.PROJECTS;
-        break;
-      case TAB.MEMBERS:
-        currentTab = TAB.MEMBERS;
-        break;
-      case TAB.SETTINGS:
-        currentTab = TAB.SETTINGS;
-        break;
-      default:
-        currentTab = TAB.TEAM_FEED;
-    }
-
-    this.setState({currentTab});
-  }
 
   handleSearch = () => {};
 
