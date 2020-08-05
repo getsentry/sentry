@@ -140,8 +140,8 @@ const generateButton = alias => ({
     colorActive: colors.white,
     background: colors.purple300,
     backgroundActive: '#4e3fb4',
-    border: '#3d328e',
-    borderActive: '#352b7b',
+    border: colors.purple300,
+    borderActive: colors.purple300,
     focusShadow: color(colors.purple300)
       .alpha(0.4)
       .string(),

@@ -32,6 +32,16 @@ const styles = (theme: Theme) => css`
     color: ${theme.subText};
   }
 
+  .box {
+    background-color: ${theme.backgroundAccent};
+    border-color: ${theme.border};
+  }
+
+  .modal-dialog {
+    border-radius: ${theme.borderRadius};
+    border: 1px solid ${theme.border};
+  }
+
   .modal .modal-header {
     border-bottom-color: ${theme.border};
   }
@@ -44,11 +54,27 @@ const styles = (theme: Theme) => css`
     border-top-color: ${theme.border};
   }
 
+  .release-meta {
+    color: ${theme.subText};
+  }
+
   .search .search-input,
   .Select-control,
   .Select-menu-outer {
     background: ${theme.background};
     color: ${theme.formText};
+  }
+
+  .release-details {
+    border-bottom-color: ${theme.border};
+  }
+
+  .nav-tabs {
+    border-bottom-color: ${theme.border};
+  }
+
+  .nav-tabs > li > a {
+    color: ${theme.subText};
   }
 
   .nav-tabs > li.active a,

@@ -190,14 +190,12 @@ class ReleaseProgress extends AsyncComponent {
         <div className="col-sm-4">
           <div className="pull-right">
             <StyledButton
-              className="text-light"
               onClick={() => this.handleClick('dismissed')}
               data-test-id="dismissed"
             >
               {t('Dismiss')}
             </StyledButton>
             <StyledButton
-              className="text-light"
               onClick={() => this.handleClick('snoozed')}
               data-test-id="snoozed"
             >

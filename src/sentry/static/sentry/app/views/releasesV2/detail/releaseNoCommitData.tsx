@@ -27,7 +27,7 @@ const ReleaseNoCommitData = ({orgId}: Props) => (
 );
 
 const StyledWell = styled(Well)`
-  background-color: ${p => p.theme.white};
+  background-color: ${p => p.theme.background};
   padding-top: ${space(2)};
   padding-bottom: ${space(4)};
 `;

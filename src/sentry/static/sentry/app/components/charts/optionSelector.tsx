@@ -68,7 +68,6 @@ const MenuContainer = styled('div')`
 const StyledDropdownButton = styled(DropdownButton)`
   padding: ${space(1)} ${space(2)};
   font-weight: normal;
-  color: ${p => p.theme.formText};
   z-index: ${p => (p.isOpen ? p.theme.zIndex.dropdownAutocomplete.actor : 'auto')};
 `;
 
