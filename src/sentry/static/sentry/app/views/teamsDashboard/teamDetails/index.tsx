@@ -297,9 +297,8 @@ const Body = styled('div')`
   flex-direction: column;
 `;
 
-const StyledNavTabs = styled(NavTabs)`
-  margin-bottom: 0;
-`;
+// TODO: do we need this?
+const StyledNavTabs = styled(NavTabs)``;
 
 const TabContent = styled('div')`
   display: flex;
