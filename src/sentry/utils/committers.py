@@ -4,7 +4,14 @@ import operator
 import six
 
 from sentry.api.serializers import serialize
-from sentry.models import Release, ReleaseCommit, Commit, CommitFileChange, Group
+from sentry.models import (
+    Release,
+    ReleaseCommit,
+    Commit,
+    CommitFileChange,
+    CommitFileLineChange,
+    Group,
+)
 from sentry.api.serializers.models.commit import CommitSerializer, get_users_for_commits
 from sentry.utils import metrics
 from sentry.utils.hashlib import hash_values
@@ -66,17 +73,37 @@ def _get_commit_file_changes(commits, path_name_set):
     # build a single query to get all of the commit file that might match the first n frames
     path_query = reduce(operator.or_, (Q(filename__iendswith=path) for path in filenames))
 
-    commit_file_change_matches = CommitFileChange.objects.filter(path_query, commit__in=commits)
+    commit_file_change_matches = CommitFileChange.objects.filter(
+        path_query, commit__in=commits
+    ).order_by("id")
 
     return list(commit_file_change_matches)
 
 
-def _match_commits_path(commit_file_changes, path):
+def _match_commits_path(commit_file_changes, path, lineno=None):
     # find commits that match the run time path the best.
     matching_commits = {}
     best_score = 1
+    best_line_score = 0
     for file_change in commit_file_changes:
         score = score_path_match_length(file_change.filename, path)
+
+        if score > 0:
+            # Raise the score if the line range changed in this commit
+            # contains the lineno from the frame
+            try:
+                file_line_change = CommitFileLineChange.objects.get(commitfilechange=file_change)
+                line_score = int(file_line_change.line_start <= lineno <= file_line_change.line_end)
+                # additional points for single line change
+                line_score += int(
+                    file_line_change.line_start == lineno == file_line_change.line_end
+                )
+                if line_score > 0:
+                    best_line_score += line_score
+                    score += best_line_score
+            except CommitFileLineChange.DoesNotExist:
+                pass
+
         if score > best_score:
             # reset matches for better match.
             best_score = score
@@ -206,14 +233,21 @@ def get_event_file_committers(project, event, frame_limit=25):
     # XXX(dcramer): frames may not define a filepath. For example, in Java its common
     # to only have a module name/path
     path_set = {
-        f for f in (frame.get("filename") or frame.get("abs_path") for frame in app_frames) if f
+        f
+        for f in (
+            (frame.get("filename") or frame.get("abs_path"), frame.get("lineno"))
+            for frame in app_frames
+        )
+        if f[0]
     }
 
     file_changes = []
     if path_set:
-        file_changes = _get_commit_file_changes(commits, path_set)
+        file_changes = _get_commit_file_changes(commits, {p[0] for p in path_set})
 
-    commit_path_matches = {path: _match_commits_path(file_changes, path) for path in path_set}
+    commit_path_matches = {
+        path[0]: _match_commits_path(file_changes, path[0], lineno=path[1]) for path in path_set
+    }
 
     annotated_frames = [
         {

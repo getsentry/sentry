@@ -23,7 +23,7 @@ from sentry.db.models import (
 
 from sentry_relay import parse_release, RelayError
 from sentry.constants import BAD_RELEASE_CHARS, COMMIT_RANGE_DELIMITER
-from sentry.models import CommitFileChange
+from sentry.models import CommitFileChange, CommitFileLineChange
 from sentry.signals import issue_resolved
 from sentry.utils import metrics
 from sentry.utils.cache import cache
@@ -495,12 +495,29 @@ class Release(Model):
                     for patched_file in patch_set:
                         try:
                             with transaction.atomic():
-                                CommitFileChange.objects.create(
+                                file_change = CommitFileChange.objects.create(
                                     organization_id=self.organization.id,
                                     commit=commit,
                                     filename=patched_file["path"],
                                     type=patched_file["type"],
                                 )
+                                if patched_file.get("blame"):
+                                    for blame_range in patched_file["blame"]["ranges"]:
+                                        author_data = {
+                                            "name": blame_range["commit"]["author"]["name"]
+                                        }
+                                        author, created = CommitAuthor.objects.get_or_create(
+                                            organization_id=self.organization.id,
+                                            email=blame_range["commit"]["author"]["email"],
+                                            defaults=author_data,
+                                        )
+                                        CommitFileLineChange.objects.create(
+                                            organization_id=self.organization.id,
+                                            commitfilechange=file_change,
+                                            author=author,
+                                            line_start=blame_range["startingLine"],
+                                            line_end=blame_range["endingLine"],
+                                        )
                         except IntegrityError:
                             pass
 
