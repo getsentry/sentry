@@ -16,6 +16,7 @@ const DEFAULT_STATE = {
 export type InjectedLocalStorageProps = {
   data: Record<TAB, FeedData | any> | undefined;
   setLs: (key: string, data: any) => void;
+  getLs: (key: string) => any;
   resetLs: (key: string, defaultState: any) => void;
   resetLsAll: () => void;
 };
@@ -67,6 +68,10 @@ const withLocalStorage = <P extends InjectedLocalStorageProps>(
       this._getLs();
     };
 
+    getLs = (data: any = {}) => (key: string): any => {
+      return data[key];
+    };
+
     /**
      * @param defaultState - Empty default state for a tab
      */
@@ -100,10 +105,12 @@ const withLocalStorage = <P extends InjectedLocalStorageProps>(
     };
 
     render() {
+      const data = this.state[tabName];
       return (
         <WrappedComponent
           {...(this.props as P)}
-          data={this.state[tabName]}
+          data={data}
+          getLs={this.getLs(data)}
           setLs={this.setLs}
           resetLs={this.resetLs}
           resetLsAll={this.resetLsAll}
