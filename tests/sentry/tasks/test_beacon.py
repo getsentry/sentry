@@ -121,7 +121,7 @@ class SendBeaconTest(TestCase):
         assert broadcast.message == "Hello world"
         assert broadcast.is_active
 
-        # ensure we arent duplicating the broadcast
+        # ensure we aren't duplicating the broadcast
         with self.settings():
             send_beacon()
 

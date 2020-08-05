@@ -57,6 +57,6 @@ class ProjectRuleTaskDetailsTest(APITestCase):
         assert response.data["status"] == "success"
 
         rule_data = response.data["rule"]
-        # TODO(meredith): shoudl I check every attribute?
+        # TODO(meredith): should I check every attribute?
         assert rule_data["id"] == six.text_type(self.rule.id)
         assert rule_data["name"] == self.rule.label

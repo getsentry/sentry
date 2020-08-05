@@ -45,7 +45,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
         assert redirect.netloc == "github.example.org"
         assert redirect.path == "/github-apps/test-app"
 
-        # App installation ID is provided, mveo thr
+        # App installation ID is provided, move thr
         resp = self.client.get(
             u"{}?{}".format(self.setup_path, urlencode({"installation_id": installation_id}))
         )

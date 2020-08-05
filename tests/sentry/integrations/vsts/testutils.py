@@ -240,7 +240,7 @@ COMMIT_DETAILS_EXAMPLE = r"""
         "date": "2018-11-23T15:59:19Z",
         "email": "max@sentry.io",
         "imageUrl": "https://www.gravatar.com/avatar/1cee8d752bcad4c172d60e56bb398c11?r=g&d=mm",
-        "name": "max bitker"
+        "name": "max bittker"
     },
     "comment": "Updated README.md\n\nSecond line\n\nFixes SENTRY-1",
     "commitId": "6c36052c58bde5e57040ebe6bdb9f6a52c906fff",

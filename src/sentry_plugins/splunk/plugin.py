@@ -261,7 +261,7 @@ class SplunkPlugin(CorePluginMixin, Plugin):
             resp = session.post(
                 instance,
                 json=payload,
-                # Splunk cloud instances certifcates dont play nicely
+                # Splunk cloud instances certificates dont play nicely
                 verify=False,
                 headers={"Authorization": "Splunk {}".format(token)},
                 timeout=5,

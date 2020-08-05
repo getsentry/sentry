@@ -67,7 +67,7 @@ class CloudflareWebhookTest(BaseWebhookTest):
         assert resp.status_code == 400
 
     def test_invalid_variant(self):
-        resp = self.post_webhook({"event": "test"}, variant="fizzbuz")
+        resp = self.post_webhook({"event": "test"}, variant="fizzbuzz")
         assert resp.status_code == 400
 
     def test_invalid_signature_with_test_variant(self):

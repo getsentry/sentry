@@ -7,7 +7,7 @@ from sentry.testutils import APITestCase
 
 
 class SkipOnboardingTaskTest(APITestCase):
-    def test_upadte_onboarding_task(self):
+    def test_update_onboarding_task(self):
         self.login_as(user=self.user)
 
         organization = self.create_organization(name="foo", owner=self.user)

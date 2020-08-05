@@ -54,7 +54,7 @@ class OrganizationDashboardWidgetsPostTestCase(OrganizationDashboardWidgetTestCa
             data_sources=data_sources,
         )
 
-    def test_widget_no_data_souces(self):
+    def test_widget_no_data_sources(self):
         response = self.get_response(
             self.organization.slug,
             self.dashboard.id,

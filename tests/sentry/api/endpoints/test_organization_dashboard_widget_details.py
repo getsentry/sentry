@@ -77,7 +77,7 @@ class OrganizationDashboardWidgetDetailsPutTestCase(OrganizationDashboardWidgetD
             data_sources=data_sources,
         )
 
-    def test_widget_no_data_souces(self):
+    def test_widget_no_data_sources(self):
         WidgetDataSource.objects.create(
             name="knownUsersAffectedQuery_2",
             data=self.known_users_query,

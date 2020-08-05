@@ -391,7 +391,7 @@ class StatusActionTest(BaseEventTest):
             data={"submission": {"resolve_type": "resolved"}},
         )
 
-        client_put.asser_called()
+        client_put.assert_called()
 
         associate_url = build_unlinking_url(
             self.integration.id, self.org.id, "slack_id", "C065W1189", self.response_url
