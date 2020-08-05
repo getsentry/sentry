@@ -1,32 +1,21 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
 
-import {Organization, Team} from 'app/types';
 import space from 'app/styles/space';
 
 import TeamCard from './teamCard';
 
-type Props = {
-  organization: Organization;
-  hasTeamAdminAccess: boolean;
-  hasOpenMembership: boolean;
-  location: Location;
+type TeamCardProps = TeamCard['props'];
+type Team = TeamCardProps['team'];
+
+type Props = Omit<TeamCardProps, 'team'> & {
   teams: Array<Team>;
-  onJoinTeam: (team: Team) => () => void;
-  onLeaveTeam: (team: Team) => () => void;
 };
 
-const ListTeam = ({teams, onLeaveTeam, onJoinTeam, ...props}: Props) => (
+const ListTeam = ({teams, ...props}: Props) => (
   <TeamCards>
     {teams.map(team => (
-      <TeamCard
-        key={team.id}
-        {...props}
-        team={team}
-        onLeaveTeam={onLeaveTeam(team)}
-        onJoinTeam={onJoinTeam(team)}
-      />
+      <TeamCard key={team.id} {...props} team={team} />
     ))}
   </TeamCards>
 );

@@ -105,33 +105,55 @@ class TeamsTabDashboard extends React.Component<Props, State> {
     openCreateTeamModal({organization});
   };
 
-  handleJoinTeam = (teamToJoin: Team) => () => {
+  handleRequestAccess = (team: Team) => () => {
+    this.joinTeam({
+      successMessage: tct('You have requested access to [team]', {
+        team: `#${team.slug}`,
+      }),
+
+      errorMessage: tct('Unable to request access to [team]', {
+        team: `#${team.slug}`,
+      }),
+      team: {...team, isPending: true},
+    });
+  };
+
+  handleJoinTeam = (team: Team) => () => {
+    this.joinTeam({
+      successMessage: tct('You have joined [team]', {
+        team: `#${team.slug}`,
+      }),
+      errorMessage: tct('Unable to join [team]', {
+        team: `#${team.slug}`,
+      }),
+      team,
+    });
+  };
+
+  joinTeam = ({successMessage, errorMessage, team}) => {
     const {api, organization} = this.props;
 
     joinTeam(
       api,
       {
         orgId: organization.slug,
-        teamId: teamToJoin.slug,
+        teamId: team.slug,
       },
       {
         success: () => {
           this.setState(prevState => ({
-            myTeams: [...prevState.myTeams, teamToJoin],
+            teams: prevState.teams.map(t => {
+              if (t.id === team.id) {
+                return team;
+              }
+              return t;
+            }),
+            myTeams: [...prevState.myTeams, team],
           }));
-
-          addSuccessMessage(
-            tct('You have joined [team]', {
-              team: `#${teamToJoin.slug}`,
-            })
-          );
+          addSuccessMessage(successMessage);
         },
         error: () => {
-          addErrorMessage(
-            tct('Unable to join [team]', {
-              team: `#${teamToJoin.slug}`,
-            })
-          );
+          addErrorMessage(errorMessage);
         },
       }
     );
@@ -222,8 +244,8 @@ class TeamsTabDashboard extends React.Component<Props, State> {
   }
 
   renderContent() {
-    const {currentTab, myTeams} = this.state;
-    const {teams, organization, location} = this.props;
+    const {currentTab, teams, myTeams} = this.state;
+    const {organization, location} = this.props;
 
     const access = new Set(organization.access);
     const features = new Set(organization.features);
@@ -236,6 +258,7 @@ class TeamsTabDashboard extends React.Component<Props, State> {
       onCreateTeam: this.handleCreateTeam,
       onJoinTeam: this.handleJoinTeam,
       onLeaveTeam: this.handleLeaveTeam,
+      onRequestAccess: this.handleRequestAccess,
       teams,
       organization,
       location,

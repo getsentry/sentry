@@ -18,8 +18,9 @@ type Props = AsyncComponent['props'] & {
   hasTeamAdminAccess: boolean;
   hasOpenMembership: boolean;
   location: Location;
-  onLeaveTeam: () => void;
-  onJoinTeam: () => void;
+  onLeaveTeam: (team: Team) => () => void;
+  onJoinTeam: (team: Team) => () => void;
+  onRequestAccess: (team: Team) => () => void;
 };
 
 type State = AsyncComponent['state'] & {
@@ -58,7 +59,13 @@ class TeamCard extends AsyncComponent<Props, State> {
 
   renderAction() {
     const {loading} = this.state;
-    const {team, hasOpenMembership, onJoinTeam, onLeaveTeam} = this.props;
+    const {
+      team,
+      hasOpenMembership,
+      onJoinTeam,
+      onLeaveTeam,
+      onRequestAccess,
+    } = this.props;
 
     if (loading) {
       <Button size="xsmall" disabled>
@@ -68,7 +75,7 @@ class TeamCard extends AsyncComponent<Props, State> {
 
     if (team.isMember) {
       return (
-        <Button size="xsmall" onClick={onLeaveTeam}>
+        <Button size="xsmall" onClick={onLeaveTeam(team)}>
           {t('Leave Team')}
         </Button>
       );
@@ -88,14 +95,18 @@ class TeamCard extends AsyncComponent<Props, State> {
           size="xsmall"
           priority="primary"
           icon={<IconMegaphone />}
-          onClick={onJoinTeam}
+          onClick={onJoinTeam(team)}
         >
           {t('Request to Join')}
         </Button>
       );
     }
 
-    return <Button size="xsmall">{t('Request Access')}</Button>;
+    return (
+      <Button size="xsmall" onClick={onRequestAccess(team)}>
+        {t('Request Access')}
+      </Button>
+    );
   }
 
   renderBody() {
