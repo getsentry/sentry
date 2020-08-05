@@ -22,6 +22,10 @@ const styles = (theme: Theme) => css`
     }
   }
 
+  footer {
+    border-top-color: ${theme.border};
+  }
+
   .nav-tabs > li.active a,
   .nav-tabs > li.active a:hover {
     border-bottom-color: ${theme.active};

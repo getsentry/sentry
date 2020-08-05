@@ -54,10 +54,12 @@ const aliases = {
   error: colors.red300,
   border: colors.gray200,
   disabled: colors.gray200,
+  headerBackground: colors.white,
   bodyBackground: colors.gray100,
   background: colors.white,
   backgroundAccent: colors.gray100,
   active: colors.pink300,
+  linkColor: colors.pink300,
 };
 
 const warning = {
@@ -160,8 +162,8 @@ const button = {
       .string(),
   },
   link: {
-    color: colors.purple300,
-    colorActive: colors.purple300,
+    color: aliases.linkColor,
+    colorActive: aliases.linkColor,
     background: 'transparent',
     border: false,
     borderActive: false,
@@ -333,11 +335,13 @@ const theme = {
 export const darkTheme = {
   ...theme,
   bodyBackground: colors.black,
+  headerBackground: colors.gray500,
   background: colors.black,
   backgroundAccent: colors.gray500,
   border: colors.gray400,
   textColor: colors.white,
   subText: colors.gray200,
+  linkColor: colors.purple200,
 };
 
 export type Theme = typeof theme | typeof darkTheme;
