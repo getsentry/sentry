@@ -355,7 +355,7 @@ const ChartActions = styled(PanelFooter)`
 `;
 
 const ChartParameters = styled('div')`
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
   display: grid;
   grid-auto-flow: column;

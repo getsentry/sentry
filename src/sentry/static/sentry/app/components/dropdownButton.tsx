@@ -58,19 +58,21 @@ const StyledChevron = styled(IconChevron)`
 const StyledButton = styled(Button)<
   Pick<Props, 'isOpen' | 'disabled' | 'hideBottomBorder'>
 >`
+  border-color: ${p => p.theme.border};
   border-bottom-right-radius: ${p => (p.isOpen ? 0 : p.theme.borderRadius)};
   border-bottom-left-radius: ${p => (p.isOpen ? 0 : p.theme.borderRadius)};
   position: relative;
   z-index: 2;
   box-shadow: ${p => (p.isOpen || p.disabled ? 'none' : p.theme.dropShadowLight)};
   border-bottom-color: ${p =>
-    p.isOpen && p.hideBottomBorder ? 'transparent' : p.theme.secondaryButton};
+    p.isOpen && p.hideBottomBorder ? 'transparent' : p.theme.border};
 
   &:active,
   &:focus,
   &:hover {
+    border-color: ${p => p.theme.border};
     border-bottom-color: ${p =>
-      p.isOpen && p.hideBottomBorder ? 'transparent' : p.theme.secondaryButton};
+      p.isOpen && p.hideBottomBorder ? 'transparent' : p.theme.border};
   }
 `;
 

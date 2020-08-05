@@ -59,7 +59,7 @@ const aliases = {
   background: colors.white,
   backgroundAccent: colors.gray100,
   active: colors.pink300,
-  linkColor: colors.pink300,
+  linkColor: colors.purple300,
   secondaryButton: colors.purple300,
   sidebarGradient:
     'linear-gradient(294.17deg,#2f1937 35.57%,#452650 92.42%,#452650 92.42%)',

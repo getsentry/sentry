@@ -26,6 +26,12 @@ const styles = (theme: Theme) => css`
     background: ${theme.background};
   }
 
+  pre,
+  code {
+    background-color: ${theme.backgroundAccent};
+    color: ${theme.subText};
+  }
+
   .modal .modal-header {
     border-bottom-color: ${theme.border};
   }

@@ -17,6 +17,8 @@ import Button from 'app/components/button';
 const CodeBlock = styled('pre')`
   word-break: break-all;
   white-space: pre-wrap;
+  background-color: ${p => p.theme.backgroundAccent};
+  color: ${p => p.theme.subText};
 `;
 
 class ProjectOwnership extends AsyncView {
