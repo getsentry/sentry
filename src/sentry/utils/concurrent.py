@@ -49,7 +49,7 @@ class TimedFuture(Future):
         a timestamp or ``None`` (if the future has not been either completed or
         cancelled.)
 
-        There are some idiosyncracies with the way the timings are recorded:
+        There are some idiosyncrasies with the way the timings are recorded:
 
         - The ``started`` value will generally not be ``None`` if the
           ``finished`` value is also not ``None``. However, for a future that

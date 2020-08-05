@@ -15,14 +15,14 @@ class InvalidTypeError(TypeError):
 
 
 class Type(object):
-    """Base Type that provides type coersion"""
+    """Base Type that provides type coercion"""
 
     name = ""
     # Default value to be returned when initializing
     default = None
     # Types that do not need to be coerced
     expected_types = ()
-    # Types that are acceptable for coersion
+    # Types that are acceptable for coercion
     compatible_types = six.string_types
 
     def __call__(self, value=None):
@@ -53,7 +53,7 @@ class Type(object):
 
 
 class AnyType(Type):
-    """A type that accepts any value and does no coersion"""
+    """A type that accepts any value and does no coercion"""
 
     name = "any"
     expected_types = (object,)
@@ -107,7 +107,7 @@ class FloatType(Type):
 
 
 class StringType(Type):
-    """String type without any coersion, must be a string"""
+    """String type without any coercion, must be a string"""
 
     name = "string"
     default = u""

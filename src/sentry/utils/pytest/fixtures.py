@@ -168,7 +168,7 @@ def default_user(factories):
 @pytest.mark.django_db
 @pytest.fixture(scope="function")
 def default_organization(factories, default_user):
-    # XXX(dcramer): ensure that your org slug doesnt match your team slug
+    # XXX(dcramer): ensure that your org slug doesn't match your team slug
     # and the same for your project slug
     return factories.create_organization(name="baz", slug="baz", owner=default_user)
 

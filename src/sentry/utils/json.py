@@ -39,7 +39,7 @@ def better_default_encoder(o):
         return int(o)
     elif callable(o):
         return "<function>"
-    # seralization for certain Django objects here: https://docs.djangoproject.com/en/1.8/topics/serialization/
+    # serialization for certain Django objects here: https://docs.djangoproject.com/en/1.8/topics/serialization/
     elif isinstance(o, Promise):
         return force_text(o)
     raise TypeError(repr(o) + " is not JSON serializable")

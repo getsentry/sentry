@@ -193,7 +193,7 @@ class ListResolver(object):
 
     class UnregisteredTypeError(Exception):
         """
-        Error raised when attempting to build a list-id from an unregisted object type.
+        Error raised when attempting to build a list-id from an unregistered object type.
         """
 
     def __init__(self, namespace, type_handlers):
