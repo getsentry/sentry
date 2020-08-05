@@ -6,7 +6,7 @@ import space from 'app/styles/space';
 
 type Props = {
   title: string;
-  items?: Array<React.ReactElement>;
+  items?: Array<React.ReactNode>;
   children?: React.ReactElement;
 };
 
@@ -56,6 +56,7 @@ const Items = styled('div')`
   display: grid;
   grid-template-columns: repeat(2, auto);
   grid-gap: ${space(1)};
+  align-items: flex-start;
 `;
 
 const Item = styled('div')`

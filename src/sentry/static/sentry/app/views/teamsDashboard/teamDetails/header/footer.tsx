@@ -23,6 +23,7 @@ const Footer = ({users, projects}: Props) => (
         <ProjectBadge key={project.id} project={project} avatarSize={16} />
       ))}
     />
+    <FooterItem title={t('Team Environments')} items={['development', 'prod']} />
     <FooterItem title={t('Team Members')}>
       <StyledAvatarList users={users} avatarSize={35} />
     </FooterItem>
@@ -34,7 +35,7 @@ export default Footer;
 const Wrapper = styled('div')`
   display: grid;
   grid-template-columns: max-content max-content max-content;
-  grid-gap: ${space(4)};
+  grid-gap: 60px;
 `;
 
 const StyledAvatarList = styled(AvatarList)`
