@@ -1,3 +1,6 @@
+import {NewQuery, Project, Organization} from 'app/types';
+import {getPrebuiltQueries} from 'app/views/eventsV2/utils';
+
 import {DashboardData} from './types';
 
 export function generateRandomId() {
@@ -6,7 +9,17 @@ export function generateRandomId() {
     .substring(7);
 }
 
-export function getDevData(): DashboardData {
+export function getDevData(
+  projects: Project[],
+  organization: Organization,
+  keyTransactions: any[]
+): DashboardData {
+  const projectIds = projects.map(proj => parseInt(proj.id, 10));
+  const prebuiltQueries: NewQuery[] = getPrebuiltQueries(organization).map(query => ({
+    ...query,
+    projects: projectIds,
+  }));
+
   return {
     cards: [
       {
@@ -58,6 +71,24 @@ export function getDevData(): DashboardData {
           id: generateRandomId(),
         },
       },
+      ...prebuiltQueries.map(query => ({
+        columnSpan: 1,
+        type: 'discover',
+        data: query,
+      })),
+      ...keyTransactions
+        .filter(transaction => projectIds.includes(transaction['project.id']))
+        .map(transaction => ({
+          columnSpan: 1,
+          type: 'performance',
+          data: {
+            transaction: transaction.transaction,
+            project: transaction.project,
+            projectId: transaction['project.id'],
+            apdex: transaction.apdex_300,
+            userMisery: transaction.user_misery_300,
+          },
+        })),
     ],
   };
 }

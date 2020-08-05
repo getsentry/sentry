@@ -1,5 +1,4 @@
 import React from 'react';
-import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
 import {Organization} from 'app/types';
@@ -7,10 +6,7 @@ import EventsRequest from 'app/components/charts/eventsRequest';
 import LineChart from 'app/components/charts/lineChart';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import LoadingContainer from 'app/components/loading/loadingContainer';
 import {IconFire, IconLaptop, IconLightning, IconWarning} from 'app/icons';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
 import {formatFloat, formatPercentage} from 'app/utils/formatters';
 import Projects from 'app/utils/projects';
 import theme from 'app/utils/theme';
@@ -18,6 +14,15 @@ import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
 import Card from './index';
+import {
+  CardHeader,
+  CardContent,
+  CardTitle,
+  CardDetail,
+  CardBody,
+  CardFooter,
+  GraphContainer,
+} from '../styles';
 
 type Props = Card['props'] & {
   api: Client;
@@ -85,24 +90,24 @@ class CardPerformance extends React.Component<Props> {
           {({loading, timeseriesData, errored}) => {
             if (errored) {
               return (
-                <StyledGraphContainer>
+                <GraphContainer>
                   <IconWarning color="gray500" size="md" />
-                </StyledGraphContainer>
+                </GraphContainer>
               );
             }
             if (loading) {
               return (
-                <StyledGraphContainer>
+                <GraphContainer>
                   <LoadingIndicator mini />
-                </StyledGraphContainer>
+                </GraphContainer>
               );
             }
 
             if (loading) {
               return (
-                <StyledGraphContainer>
+                <GraphContainer>
                   <LoadingIndicator mini />
-                </StyledGraphContainer>
+                </GraphContainer>
               );
             }
 
@@ -187,54 +192,5 @@ class CardPerformance extends React.Component<Props> {
     );
   }
 }
-
-const CardHeader = styled('div')`
-  display: flex;
-  padding: ${space(1.5)} ${space(2)};
-`;
-
-const CardContent = styled('div')`
-  flex-grow: 1;
-  overflow: hidden;
-  margin-right: ${space(1)};
-`;
-
-const CardTitle = styled('div')`
-  color: ${p => p.theme.textColor};
-  ${overflowEllipsis};
-`;
-
-const CardDetail = styled('div')`
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray500};
-  line-height: 1.5;
-  ${overflowEllipsis};
-`;
-
-const CardBody = styled('div')`
-  background: ${p => p.theme.gray200};
-  max-height: 100px;
-  height: 100%;
-  overflow: hidden;
-`;
-
-const CardFooter = styled('div')`
-  display: flex;
-  font-size: ${p => p.theme.fontSizeSmall};
-  justify-content: space-between;
-  align-items: center;
-  padding: ${space(1)} ${space(2)};
-`;
-
-const StyledGraphContainer = styled(props => (
-  <LoadingContainer {...props} maskBackgroundColor="transparent" />
-))`
-  height: 100px;
-
-  display: flex;
-  justify-content: center;
-  align-items: center;
-`;
 
 export default withApi(withOrganization(CardPerformance));

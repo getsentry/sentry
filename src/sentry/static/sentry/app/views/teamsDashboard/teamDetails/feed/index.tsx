@@ -11,6 +11,7 @@ import Card from './cards';
 import CardAddNew from './cards/cardAddNew';
 import CardIssueList from './cards/cardIssueList';
 import CardPerformance from './cards/cardPerformance';
+import CardDiscover from './cards/cardDiscover';
 import {CardData, DashboardData} from './types';
 import {getDevData} from './utils';
 
@@ -63,9 +64,13 @@ class Dashboard extends AsyncComponent<Props, State> {
       return;
     }
 
+    const {projects, organization} = this.props;
+    const {keyTransactions} = this.state;
+    const keyTransactionsData = keyTransactions?.data ?? [];
+
     // Set localStorage with dev data
     if (!this.props.data) {
-      this.props.setLs(getDevData());
+      this.props.setLs(getDevData(projects, organization, keyTransactionsData));
     }
   }
 
@@ -95,36 +100,16 @@ class Dashboard extends AsyncComponent<Props, State> {
         return CardPerformance;
       case 'issueList':
         return CardIssueList;
+      case 'discover':
+        return CardDiscover;
       default:
         return Card;
     }
   }
 
   getCardData(): CardData[] {
-    const {data, projects} = this.props;
+    const {data} = this.props;
     const cards: CardData[] = [...data?.cards] ?? [];
-
-    const {keyTransactions} = this.state;
-
-    const projectIds = new Set(projects.map(proj => proj.id));
-
-    if (keyTransactions) {
-      keyTransactions.data.forEach(row => {
-        if (projectIds.has(row['project.id'].toString())) {
-          cards.push({
-            type: 'performance',
-            columnSpan: 1,
-            data: {
-              transaction: row.transaction,
-              project: row.project,
-              projectId: row['project.id'],
-              apdex: row.apdex_300,
-              userMisery: row.user_misery_300,
-            },
-          });
-        }
-      });
-    }
 
     return cards;
   }
