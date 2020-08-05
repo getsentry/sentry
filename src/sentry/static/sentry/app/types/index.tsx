@@ -194,6 +194,7 @@ export type HealthGraphData = Record<string, [number, number][]>;
 export type Team = {
   id: string;
   slug: string;
+  name: string;
   isMember: boolean;
   isPending: boolean;
   avatar: Avatar;
