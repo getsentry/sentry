@@ -64,7 +64,7 @@ const StyledButton = styled(Button)<
   z-index: 2;
   box-shadow: ${p => (p.isOpen || p.disabled ? 'none' : p.theme.dropShadowLight)};
   border-bottom-color: ${p =>
-    p.isOpen && p.hideBottomBorder ? 'transparent' : p.theme.border};
+    p.isOpen && p.hideBottomBorder ? 'transparent' : p.theme.secondaryButton};
 
   &:active,
   &:focus,

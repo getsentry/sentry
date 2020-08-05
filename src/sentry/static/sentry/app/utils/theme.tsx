@@ -60,10 +60,11 @@ const aliases = {
   backgroundAccent: colors.gray100,
   active: colors.pink300,
   linkColor: colors.pink300,
+  secondaryButton: colors.purple300,
 };
 
 const warning = {
-  background: colors.yellow300,
+  background: colors.yellow100,
   backgroundLight: colors.yellow100,
   border: colors.yellow300,
   iconColor: colors.yellow300,
@@ -77,23 +78,23 @@ const alert = {
     iconColor: 'inherit',
   },
   info: {
-    background: colors.blue300,
+    background: colors.blue100,
     backgroundLight: colors.blue100,
-    border: colors.blue100,
+    border: colors.blue300,
     iconColor: colors.blue300,
   },
   warning,
   warn: warning,
   success: {
-    background: colors.green300,
+    background: colors.green100,
     backgroundLight: colors.green100,
-    border: colors.green200,
+    border: colors.green300,
     iconColor: colors.green300,
   },
   error: {
-    background: colors.red300,
+    background: colors.red100,
     backgroundLight: colors.red100,
-    border: colors.red200,
+    border: colors.red300,
     iconColor: colors.red300,
     textLight: colors.red200,
   },
@@ -101,7 +102,7 @@ const alert = {
 
 const badge = {
   alpha: {
-    background: `linear-gradient(90deg, ${colors.red200}, ${colors.orange500})`,
+    background: `linear-gradient(90deg, ${colors.red200}, ${colors.red300})`,
     indicatorColor: colors.red200,
   },
   beta: {
@@ -118,12 +119,12 @@ const button = {
   borderRadius: '3px',
 
   default: {
-    color: '#2f2936',
-    colorActive: '#161319',
-    background: colors.white,
-    backgroundActive: colors.white,
-    border: '#d8d2de',
-    borderActive: '#c9c0d1',
+    color: aliases.secondaryButton,
+    colorActive: aliases.secondaryButton,
+    background: 'transparent',
+    backgroundActive: aliases.secondaryButton,
+    border: aliases.secondaryButton,
+    borderActive: aliases.secondaryButton,
     focusShadow: color(colors.gray200)
       .alpha(0.5)
       .string(),
@@ -342,6 +343,7 @@ export const darkTheme = {
   textColor: colors.white,
   subText: colors.gray200,
   linkColor: colors.purple200,
+  secondaryButton: colors.white,
 };
 
 export type Theme = typeof theme | typeof darkTheme;
