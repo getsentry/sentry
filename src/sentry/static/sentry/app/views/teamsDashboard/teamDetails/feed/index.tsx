@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import AsyncComponent from 'app/components/asyncComponent';
 import space from 'app/styles/space';
-import {Project, Organization} from 'app/types';
+import {Team, Project, Organization} from 'app/types';
 
 import withLocalStorage, {InjectedLocalStorageProps} from '../../withLocalStorage';
 import {TAB} from '../../utils';
@@ -23,6 +23,7 @@ type Props = AsyncComponent['props'] &
   InjectedLocalStorageProps & {
     data: DashboardData;
     organization: Organization;
+    team: Team;
     projects: Project[];
   };
 
@@ -64,34 +65,43 @@ class Dashboard extends AsyncComponent<Props, State> {
       return;
     }
 
-    const {projects, organization} = this.props;
+    const {team, projects, organization} = this.props;
     const {keyTransactions} = this.state;
     const keyTransactionsData = keyTransactions?.data ?? [];
+    const data = this.getTabData();
 
+    // we need to wait for all the necessary data to finish loading,
+    // so check all the necessary values before setting it
     // Set localStorage with dev data
-    if (!this.props.data) {
-      this.props.setLs(getDevData(projects, organization, keyTransactionsData));
+    if (Object.keys(data).length === 0 && team?.slug && projects.length) {
+      this.props.setLs(
+        team.slug,
+        getDevData(projects, organization, keyTransactionsData)
+      );
     }
   }
 
   resetLs = () => {
-    this.props.resetLs(DEFAULT_STATE);
+    const {team} = this.props;
+    this.props.resetLs(team.slug, DEFAULT_STATE);
   };
 
   addCard = (index: number, cardData: CardData) => {
-    const {data} = this.props;
+    const {team} = this.props;
+    const data = this.getTabData();
     const prevCards = data.cards;
     const nextCards = [...prevCards.slice(0, index), cardData, ...prevCards.slice(index)];
 
-    this.props.setLs({...data, cards: nextCards});
+    this.props.setLs(team.slug, {...data, cards: nextCards});
   };
 
   removeCard = (index: number) => {
-    const {data} = this.props;
+    const {team} = this.props;
+    const data = this.getTabData();
     const prevCards = data.cards;
     const nextCards = [...prevCards.slice(0, index), ...prevCards.slice(index + 1)];
 
-    this.props.setLs({...data, cards: nextCards});
+    this.props.setLs(team.slug, {...data, cards: nextCards});
   };
 
   getCardComponent(type) {
@@ -107,17 +117,22 @@ class Dashboard extends AsyncComponent<Props, State> {
     }
   }
 
+  getTabData() {
+    const {data, team} = this.props;
+    return data?.[team.slug] ?? {};
+  }
+
   getCardData(): CardData[] {
-    const {data} = this.props;
+    const data = this.getTabData();
     const cards: CardData[] = [...data?.cards] ?? [];
 
     return cards;
   }
 
   render() {
-    const {data} = this.props;
+    const data = this.getTabData();
 
-    if (!data) {
+    if (Object.keys(data).length === 0) {
       return <h3>LOADING!</h3>;
     }
 

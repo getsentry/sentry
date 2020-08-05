@@ -74,6 +74,8 @@ const getCurrentTab = (location: Location): TAB => {
 
 class TeamDetails extends AsyncComponent<Props, State> {
   componentDidMount() {
+    // I have no excuses other than I need this to work
+    super.UNSAFE_componentWillMount();
     this.fetchUnlinkedProjects();
   }
 
@@ -140,14 +142,14 @@ class TeamDetails extends AsyncComponent<Props, State> {
 
   renderTabContent = () => {
     const {currentTab, projects, unlinkedProjects, projectsPageLinks} = this.state;
-    const {organization, team, location} = this.props;
+    const {organization, team} = this.props;
 
     const access = new Set(organization.access);
     const canWrite = access.has('org:write') || access.has('team:admin');
 
     switch (currentTab) {
       case TAB.TEAM_FEED:
-        return <Feed organization={organization} projects={projects} />;
+        return <Feed organization={organization} team={team} projects={projects} />;
       case TAB.TEAM_GOALS:
         return <div>Team Goals</div>;
       case TAB.PROJECTS:
@@ -174,7 +176,7 @@ class TeamDetails extends AsyncComponent<Props, State> {
           />
         );
       case TAB.SETTINGS:
-        return <Settings organization={organization} team={team} location={location} />;
+        return <Settings organization={organization} team={team} />;
       default:
         return null;
     }

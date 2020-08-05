@@ -15,8 +15,8 @@ const DEFAULT_STATE = {
 
 export type InjectedLocalStorageProps = {
   data: Record<TAB, FeedData | any> | undefined;
-  setLs: (data: any) => void;
-  resetLs: (defaultState: any) => void;
+  setLs: (key: string, data: any) => void;
+  resetLs: (key: string, defaultState: any) => void;
   resetLsAll: () => void;
 };
 
@@ -52,10 +52,14 @@ const withLocalStorage = <P extends InjectedLocalStorageProps>(
       }
     }
 
-    setLs = (data: any = {}) => {
+    setLs = (key: string, data: any = {}) => {
+      const tabData = this.state[tabName] ?? {};
       const nextState = {
         ...this.state,
-        [tabName]: data,
+        [tabName]: {
+          ...tabData,
+          [key]: data,
+        },
       };
 
       console.log('ls.set', nextState); // eslint-disable-line no-console
@@ -66,7 +70,7 @@ const withLocalStorage = <P extends InjectedLocalStorageProps>(
     /**
      * @param defaultState - Empty default state for a tab
      */
-    resetLs = (defaultState: any) => {
+    resetLs = (key: string, defaultState: any) => {
       if (!defaultState) {
         throw new Error('You must provide a defaultState for your tab');
       }
@@ -74,9 +78,13 @@ const withLocalStorage = <P extends InjectedLocalStorageProps>(
       // Dump state before reset
       console.log('ls.reset', JSON.stringify(this.state)); // eslint-disable-line no-console
 
+      const tabData = this.state[tabName] ?? {};
       const nextState = {
         ...this.state,
-        [tabName]: defaultState,
+        [tabName]: {
+          ...tabData,
+          [key]: defaultState,
+        },
       };
 
       localStorage.setItem(LS_KEY, JSON.stringify(nextState));
