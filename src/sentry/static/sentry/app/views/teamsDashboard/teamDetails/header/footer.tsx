@@ -8,49 +8,60 @@ import ProjectBadge from 'app/components/idBadge/projectBadge';
 import {IconArrow} from 'app/icons';
 
 import FooterItem from './footerItem';
+import {getSelectedEnvironments} from '../utils';
+import withLocalStorage, {InjectedLocalStorageProps} from '../../withLocalStorage';
+import {TAB} from '../../utils';
 
 type Props = {
+  teamSlug: string;
   users: Array<User>;
   projects: Array<Project>;
   enviroments: Array<Environment>;
+} & InjectedLocalStorageProps;
+
+const Footer = ({users, projects, teamSlug, data}: Props) => {
+  const selectedEnvironments = getSelectedEnvironments(teamSlug, data);
+  console.log('selectedEnvironments', selectedEnvironments);
+
+  return (
+    <Wrapper>
+      {projects.length > 0 && (
+        <FooterItem
+          title={t('Team Projects')}
+          items={projects.map(project => (
+            <ProjectBadge key={project.id} project={project} avatarSize={16} />
+          ))}
+        />
+      )}
+      {selectedEnvironments.length > 0 && (
+        <FooterItem title={t('Team Environments')} items={selectedEnvironments} />
+      )}
+      {users.length > 0 && (
+        <FooterItem title={t('Team Members')}>
+          <StyledAvatarList users={users} avatarSize={35} />
+        </FooterItem>
+      )}
+      <FooterItem title={t('Q3 Apdex Goal')}>
+        <GoalContainer>
+          <CurrentGoalNumber>0.964</CurrentGoalNumber>
+          <UpArrow>
+            <IconArrow direction="up" />
+          </UpArrow>
+        </GoalContainer>
+      </FooterItem>
+      <FooterItem title={t('Q3 Miserable Users Goal')}>
+        <GoalContainer>
+          <CurrentGoalNumber>{Number(2749).toLocaleString()}</CurrentGoalNumber>
+          <DownArrow>
+            <IconArrow direction="down" />
+          </DownArrow>
+        </GoalContainer>
+      </FooterItem>
+    </Wrapper>
+  );
 };
 
-const Footer = ({users, projects}: Props) => (
-  <Wrapper>
-    {projects.length > 0 && (
-      <FooterItem
-        title={t('Team Projects')}
-        items={projects.map(project => (
-          <ProjectBadge key={project.id} project={project} avatarSize={16} />
-        ))}
-      />
-    )}
-    <FooterItem title={t('Team Environments')} items={['development', 'prod']} />
-    {users.length > 0 && (
-      <FooterItem title={t('Team Members')}>
-        <StyledAvatarList users={users} avatarSize={35} />
-      </FooterItem>
-    )}
-    <FooterItem title={t('Q3 Apdex Goal')}>
-      <GoalContainer>
-        <CurrentGoalNumber>0.964</CurrentGoalNumber>
-        <UpArrow>
-          <IconArrow direction="up" />
-        </UpArrow>
-      </GoalContainer>
-    </FooterItem>
-    <FooterItem title={t('Q3 Miserable Users Goal')}>
-      <GoalContainer>
-        <CurrentGoalNumber>{Number(2749).toLocaleString()}</CurrentGoalNumber>
-        <DownArrow>
-          <IconArrow direction="down" />
-        </DownArrow>
-      </GoalContainer>
-    </FooterItem>
-  </Wrapper>
-);
-
-export default Footer;
+export default withLocalStorage(Footer, TAB.DASHBOARD);
 
 const Wrapper = styled('div')`
   display: grid;

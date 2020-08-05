@@ -84,7 +84,12 @@ class TeamDetailsHeader extends React.Component<Props, State> {
             </Details>
           </DetailsContainer>
         </Body>
-        <Footer users={members as any} projects={projects} enviroments={[]} />
+        <Footer
+          teamSlug={team.slug}
+          users={members as any}
+          projects={projects}
+          enviroments={[]}
+        />
       </Wrapper>
     );
   }
