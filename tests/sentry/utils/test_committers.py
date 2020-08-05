@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import six
 import unittest
 
 from datetime import timedelta
@@ -67,14 +68,14 @@ class CommitTestCase(TestCase):
             type=type or "M",
         )
 
-    def create_commitfilelinechange(self, start, end, commitfilechange=None):
+    def create_commitfilelinechange(self, start, end, commitfilechange=None, author=None):
         if not commitfilechange:
             commitfilechange = self.create_commitfilechange()
 
         return CommitFileLineChange.objects.create(
             organization_id=self.organization.id,
             commitfilechange_id=commitfilechange.id,
-            author_id=commitfilechange.commit.author_id,
+            author_id=commitfilechange.commit.author_id if author is None else author.id,
             line_start=start,
             line_end=end,
         )
@@ -178,7 +179,9 @@ class MatchCommitsPathTestCase(CommitTestCase):
             file_change,
             self.create_commitfilechange(filename="goodbye/app.js", type="A"),
         ]
-        assert [(file_change.commit, 2)] == _match_commits_path(file_changes, "hello/app.py")
+        assert [
+            (file_change.commit, 2, "Commit file changes match the run time path.")
+        ] == _match_commits_path(file_changes, "hello/app.py")
 
     def test_skip_one_score_match_longer_than_one_token(self):
         file_changes = [
@@ -195,9 +198,110 @@ class MatchCommitsPathTestCase(CommitTestCase):
             self.create_commitfilechange(filename="template/hello/app.py", type="A"),
         ]
 
-        commits = sorted([(fc.commit, 2) for fc in file_changes], key=lambda fc: fc[0].id)
+        commits = sorted(
+            [(fc.commit, 2, "Commit file changes match the run time path.") for fc in file_changes],
+            key=lambda fc: fc[0].id,
+        )
         assert commits == sorted(
             _match_commits_path(file_changes, "hello/app.py"), key=lambda fc: fc[0].id
+        )
+
+    def test_similar_paths_with_line_range(self):
+        user2 = self.create_user(name="Sentry2", email="sentry2@sentry.io")
+        user3 = self.create_user(name="Sentry3", email="sentry3@sentry.io")
+
+        for user in {user2, user3}:
+            CommitAuthor.objects.create(
+                organization_id=self.organization.id,
+                name=user.name,
+                email=user.email,
+                external_id=user.id,
+            )
+
+        file_changes = [
+            self.create_commitfilechange(filename="hello/app.py", type="A"),
+            self.create_commitfilechange(filename="world/hello/app.py", type="A"),
+            self.create_commitfilechange(filename="template/hello/app.py", type="A"),
+            self.create_commitfilechange(filename="hello/app.py", type="M"),
+        ]
+
+        for file_change in file_changes[:-1]:
+            file_change.commit.update(author=CommitAuthor.objects.get(email=user2.email))
+
+        file_changes[-1].commit.update(author=CommitAuthor.objects.get(email=user3.email))
+
+        self.create_commitfilelinechange(5, 10, commitfilechange=file_changes[-1])
+
+        commits = sorted(
+            [
+                (fc.commit, 3, "Commit modified the line range contained in the runtime path.")
+                for fc in file_changes[-1:]
+            ],
+            key=lambda fc: fc[0].id,
+        )
+        assert commits == sorted(
+            _match_commits_path(file_changes, "hello/app.py", lineno=6), key=lambda fc: fc[0].id
+        )
+
+    def test_similar_paths_with_exact_line_range(self):
+        user2 = self.create_user(name="Sentry2", email="sentry2@sentry.io")
+        user3 = self.create_user(name="Sentry3", email="sentry3@sentry.io")
+
+        for user in {user2, user3}:
+            CommitAuthor.objects.create(
+                organization_id=self.organization.id,
+                name=user.name,
+                email=user.email,
+                external_id=user.id,
+            )
+
+        file_changes = [
+            self.create_commitfilechange(filename="hello/app.py", type="A"),
+            self.create_commitfilechange(filename="world/hello/app.py", type="A"),
+            self.create_commitfilechange(filename="template/hello/app.py", type="A"),
+            self.create_commitfilechange(filename="hello/app.py", type="M"),
+            self.create_commitfilechange(filename="hello/app.py", type="M"),
+            self.create_commitfilechange(filename="world/hello/app.py", type="M"),
+            self.create_commitfilechange(filename="template/hello/app.py", type="M"),
+        ]
+
+        for file_change in file_changes[:-1]:
+            file_change.commit.update(author=CommitAuthor.objects.get(email=user2.email))
+
+        file_changes[-1].commit.update(author=CommitAuthor.objects.get(email=user3.email))
+
+        self.create_commitfilelinechange(5, 10, commitfilechange=file_changes[-3])
+        self.create_commitfilelinechange(6, 6, commitfilechange=file_changes[-4])
+
+        commits = sorted(
+            [
+                (fc.commit, 8, "Commit modified the exact line contained the runtime path.")
+                for fc in file_changes[-4:-3]
+            ],
+            key=lambda fc: fc[0].id,
+        )
+
+        assert commits == sorted(
+            _match_commits_path(file_changes, "hello/app.py", lineno=6), key=lambda fc: fc[0].id
+        )
+
+        # Later commit also modifies the exact same line
+        file_changes.extend([self.create_commitfilechange(filename="hello/app.py", type="M")])
+
+        file_changes[-1].commit.update(author=CommitAuthor.objects.get(email=user2.email))
+
+        self.create_commitfilelinechange(6, 6, commitfilechange=file_changes[-1])
+
+        commits = sorted(
+            [
+                (fc.commit, 13, "Commit modified the exact line contained the runtime path.")
+                for fc in file_changes[-1:]
+            ],
+            key=lambda fc: fc[0].id,
+        )
+
+        assert commits == sorted(
+            _match_commits_path(file_changes, "hello/app.py", lineno=6), key=lambda fc: fc[0].id
         )
 
 
@@ -524,10 +628,14 @@ class GetEventFileCommitters(CommitTestCase):
         )
 
         result = get_serialized_event_file_committers(self.project, event)
+
         assert len(result) == 1
         assert "commits" in result[0]
         assert len(result[0]["commits"]) == 1
         assert result[0]["commits"][0]["id"] == "b" * 40
+        assert result[0]["commits"][0]["score_reason"] == (
+            six.binary_type("Commit modified the line range contained in the runtime path.")
+        )
 
     def test_matching_case_insensitive(self):
         event = self.store_event(
