@@ -2,6 +2,7 @@ import React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 
+import Badge from 'app/components/badge';
 import {t} from 'app/locale';
 import {Team, Project, Organization} from 'app/types';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
@@ -187,6 +188,7 @@ class TeamDetails extends AsyncComponent<Props, State> {
     const baseUrl = recreateRoute('', {location, routes, params, stepBack: -2});
     const origin = baseUrl.endsWith('all-teams/') ? 'all-teams' : 'my-teams';
     const baseTabUrl = `${baseUrl}${teamSlug}/`;
+    const {members = []} = team;
 
     return (
       <StyledPageContent>
@@ -220,6 +222,10 @@ class TeamDetails extends AsyncComponent<Props, State> {
               onClick={() => this.setState({currentTab: TAB.PROJECTS})}
             >
               {t('Projects')}
+              <Badge
+                text={projects.length}
+                priority={currentTab === TAB.PROJECTS ? 'active' : undefined}
+              />
             </ListLink>
             <ListLink
               to={`${baseTabUrl}members/`}
@@ -227,6 +233,10 @@ class TeamDetails extends AsyncComponent<Props, State> {
               onClick={() => this.setState({currentTab: TAB.MEMBERS})}
             >
               {t('Members')}
+              <Badge
+                text={members.length}
+                priority={currentTab === TAB.MEMBERS ? 'active' : undefined}
+              />
             </ListLink>
             <ListLink
               to={`${baseTabUrl}settings/`}
