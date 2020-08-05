@@ -18,6 +18,8 @@ import {IconDelete} from 'app/icons';
 import withApi from 'app/utils/withApi';
 import {Client} from 'app/api';
 
+import Environments from './environments';
+
 type Props = {
   api: Client;
   location: Location;
@@ -116,6 +118,8 @@ class Settings extends React.Component<Props> {
             </div>
           </Field>
         </Panel>
+
+        <Environments />
       </div>
     );
   }
