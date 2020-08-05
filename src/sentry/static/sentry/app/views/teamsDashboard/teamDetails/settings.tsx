@@ -119,7 +119,7 @@ class Settings extends React.Component<Props> {
           </Field>
         </Panel>
 
-        <Environments />
+        <Environments teamSlug={team.slug} />
       </div>
     );
   }

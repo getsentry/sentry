@@ -13,7 +13,12 @@ import Tooltip from 'app/components/tooltip';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import Button from 'app/components/button';
 
-type Props = {
+import {TAB} from '../utils';
+import withLocalStorage, {InjectedLocalStorageProps} from '../withLocalStorage';
+import {ENVIRONMENT_KEY} from './utils';
+
+type Props = InjectedLocalStorageProps & {
+  teamSlug: string;
   projects: Project[];
 };
 
@@ -32,40 +37,57 @@ class Environments extends React.Component<Props> {
     return Array.from(new Set(environments));
   };
 
-  handleQueryUpdate = (event: React.ChangeEvent<HTMLInputElement>) => {
+  handleQueryUpdate = (_event: React.ChangeEvent<HTMLInputElement>) => {
     // this.props.onQueryUpdate(event.target.value);
   };
 
-  handleProjectSelected = (selectedProject: {value: string}) => {
-    // const {unlinkedProjects} = this.props;
-    // const project = unlinkedProjects.find(
-    //   unlinkedProject => unlinkedProject.id === selectedProject.value
-    // );
-    // if (!project) {
-    //   return;
-    // }
-    // this.handleLinkProject(project);
+  handleSelectEnvironment = (selectedEnvironment: {value: string}) => {
+    const {setLs, getLs, teamSlug} = this.props;
+
+    const teamData = getLs(teamSlug);
+
+    const nextEnvironments = new Set([
+      ...this.getSelectedEnvironments(),
+      selectedEnvironment.value,
+    ]);
+
+    setLs(teamSlug, {...teamData, [ENVIRONMENT_KEY]: Array.from(nextEnvironments)});
   };
 
-  handleUnlinkProject = (environmentName: name) => async () => {
-    // const {api, organization, teamSlug} = this.props;
-    // try {
-    //   await api.requestPromise(
-    //     `/projects/${organization.slug}/${project.slug}/teams/${teamSlug}/`,
-    //     {
-    //       method: 'DELETE',
-    //     }
-    //   );
-    //   addSuccessMessage(t('Successfully removed project from team.'));
-    // } catch {
-    //   addErrorMessage(t("Wasn't able to change project association."));
-    // }
+  handleUnlinkEnvironment = (environmentName: string) => async () => {
+    const {setLs, getLs, teamSlug} = this.props;
+
+    const teamData = getLs(teamSlug);
+
+    const nextEnvironments = new Set(this.getSelectedEnvironments());
+    nextEnvironments.delete(environmentName);
+
+    setLs(teamSlug, {...teamData, [ENVIRONMENT_KEY]: Array.from(nextEnvironments)});
+  };
+
+  getSelectedEnvironments = (): Array<string> => {
+    const {data, getLs, teamSlug} = this.props;
+
+    if (!data) {
+      return [];
+    }
+
+    const teamData = getLs(teamSlug);
+
+    return teamData[ENVIRONMENT_KEY] ?? [];
+  };
+
+  getUnlinkedEnvironments = (): Array<string> => {
+    const envs = this.getEnvironments();
+    const selectedEnvs = new Set(this.getSelectedEnvironments());
+
+    return envs.filter(env => {
+      return !selectedEnvs.has(env);
+    });
   };
 
   render() {
-    console.log('this.props', this.props);
-
-    const envs = this.getEnvironments();
+    const selectedEnvs = this.getSelectedEnvironments();
 
     const canWrite = true;
     return (
@@ -85,13 +107,13 @@ class Environments extends React.Component<Props> {
               </DropdownButton>
             ) : (
               <DropdownAutoComplete
-                items={envs.map((unlinkedEnv: string) => ({
+                items={this.getUnlinkedEnvironments().map((unlinkedEnv: string) => ({
                   value: unlinkedEnv,
                   searchKey: unlinkedEnv,
                   label: <UnlinkedProject>{unlinkedEnv}</UnlinkedProject>,
                 }))}
                 onChange={this.handleQueryUpdate}
-                onSelect={this.handleProjectSelected}
+                onSelect={this.handleSelectEnvironment}
                 emptyMessage={t('No environments')}
               >
                 {({isOpen}) => (
@@ -104,8 +126,8 @@ class Environments extends React.Component<Props> {
           </div>
         </PanelHeader>
         <PanelBody>
-          {envs.length ? (
-            envs.map(environmentName => (
+          {selectedEnvs.length ? (
+            selectedEnvs.map(environmentName => (
               <StyledPanelItem key={environmentName}>
                 <div>{environmentName}</div>
                 <Tooltip
@@ -118,7 +140,7 @@ class Environments extends React.Component<Props> {
                     size="small"
                     disabled={!canWrite}
                     icon={<IconSubtract isCircled size="xs" />}
-                    onClick={this.handleUnlinkProject(environmentName)}
+                    onClick={this.handleUnlinkEnvironment(environmentName)}
                   >
                     {t('Remove')}
                   </Button>
@@ -127,7 +149,7 @@ class Environments extends React.Component<Props> {
             ))
           ) : (
             <EmptyMessage size="large" icon={<IconFlag size="xl" />}>
-              {t('No environments')}
+              {t('No environments selected for this team')}
             </EmptyMessage>
           )}
         </PanelBody>
@@ -147,4 +169,4 @@ const UnlinkedProject = styled('div')`
   padding: ${space(0.25)} 0;
 `;
 
-export default withProjects(Environments);
+export default withLocalStorage(withProjects(Environments), TAB.DASHBOARD);
