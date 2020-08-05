@@ -67,7 +67,7 @@ class TeamDetailsHeader extends React.Component<Props, State> {
       <Wrapper>
         <Header>
           <Breadcrumbs crumbs={this.state.crumbs} />
-          {team.isMember ? (
+          {!team.isMember ? (
             <Button priority="primary" icon={<IconMegaphone />}>
               {t('Request to Join')}
             </Button>
