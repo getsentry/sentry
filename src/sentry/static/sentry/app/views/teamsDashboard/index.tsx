@@ -87,7 +87,7 @@ class TeamsTabDashboard extends React.Component<Props, State> {
     const orgSlug = organization.slug;
     const crumbs = [
       {
-        to: `/organizations/${orgSlug}`,
+        to: `/organizations/${orgSlug}/`,
         label: orgSlug,
         preserveGlobalSelection: true,
       },
@@ -130,25 +130,25 @@ class TeamsTabDashboard extends React.Component<Props, State> {
     });
   };
 
-  joinTeam = ({successMessage, errorMessage, team}) => {
+  joinTeam = ({successMessage, errorMessage, team: teamToJoin}) => {
     const {api, organization} = this.props;
 
     joinTeam(
       api,
       {
         orgId: organization.slug,
-        teamId: team.slug,
+        teamId: teamToJoin.slug,
       },
       {
-        success: () => {
+        success: (joinedTeam: Team) => {
           this.setState(prevState => ({
-            teams: prevState.teams.map(t => {
-              if (t.id === team.id) {
-                return team;
+            teams: prevState.teams.map(team => {
+              if (team.id === teamToJoin.id) {
+                return joinedTeam;
               }
-              return t;
+              return team;
             }),
-            myTeams: [...prevState.myTeams, team],
+            myTeams: [...prevState.myTeams, joinedTeam],
           }));
           addSuccessMessage(successMessage);
         },
@@ -169,9 +169,15 @@ class TeamsTabDashboard extends React.Component<Props, State> {
         teamId: teamToLeave.slug,
       },
       {
-        success: () => {
+        success: (leftTeam: Team) => {
           this.setState(prevState => ({
-            myTeams: prevState.myTeams.filter(team => team.id !== teamToLeave.id),
+            teams: prevState.teams.map(team => {
+              if (team.id === leftTeam.id) {
+                return leftTeam;
+              }
+              return team;
+            }),
+            myTeams: prevState.myTeams.filter(team => team.id !== leftTeam.id),
           }));
 
           addSuccessMessage(

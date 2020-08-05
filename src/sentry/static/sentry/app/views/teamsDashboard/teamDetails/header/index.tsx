@@ -36,7 +36,7 @@ class TeamDetailsHeader extends React.Component<Props, State> {
 
     const crumbs = [
       {
-        to: `/organizations/${orgSlug}`,
+        to: `/organizations/${orgSlug}/`,
         label: orgSlug,
         preserveGlobalSelection: true,
       },
