@@ -49,10 +49,12 @@ const colors = {
 
 const aliases = {
   textColor: colors.gray500,
+  subText: colors.gray400,
   success: colors.green300,
   error: colors.red300,
   border: colors.gray200,
   disabled: colors.gray200,
+  bodyBackground: colors.gray100,
   background: colors.white,
   backgroundAccent: colors.gray100,
   active: colors.pink300,
@@ -330,11 +332,12 @@ const theme = {
 
 export const darkTheme = {
   ...theme,
-
+  bodyBackground: colors.black,
   background: colors.black,
   backgroundAccent: colors.gray500,
-  border: colors.gray200,
+  border: colors.gray400,
   textColor: colors.white,
+  subText: colors.gray200,
 };
 
 export type Theme = typeof theme | typeof darkTheme;

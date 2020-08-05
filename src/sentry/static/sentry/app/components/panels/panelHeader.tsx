@@ -26,7 +26,7 @@ const PanelHeader = styled('div')<Props>`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.subText};
   font-size: 13px;
   font-weight: 600;
   text-transform: uppercase;
@@ -41,7 +41,6 @@ const PanelHeader = styled('div')<Props>`
 PanelHeader.propTypes = {
   disablePadding: PropTypes.bool,
   hasButtons: PropTypes.bool,
-  lightText: PropTypes.bool,
 };
 
 export default PanelHeader;

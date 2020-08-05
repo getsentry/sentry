@@ -597,7 +597,6 @@ const BusyMessage = styled('div')`
 `;
 
 const EmptyMessage = styled('div')`
-  color: ${p => p.theme.gray200};
   padding: ${space(2)};
   text-align: center;
   text-transform: none;

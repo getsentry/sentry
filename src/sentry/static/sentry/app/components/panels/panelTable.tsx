@@ -148,7 +148,7 @@ const Wrapper = styled(Panel, {
 `;
 
 export const PanelTableHeader = styled('div')`
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.subText};
   font-size: 13px;
   font-weight: 600;
   text-transform: uppercase;

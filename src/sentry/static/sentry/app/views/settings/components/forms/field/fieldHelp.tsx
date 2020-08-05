@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import space from 'app/styles/space';
 
 const FieldHelp = styled('div')<{stacked?: boolean; inline?: boolean}>`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.subText};
   font-size: 14px;
   margin-top: ${p => (p.stacked && !p.inline ? 0 : space(1))};
   line-height: 1.4;

@@ -7,11 +7,25 @@ import {Theme} from 'app/utils/theme';
 const styles = (theme: Theme) => css`
   body {
     color: ${theme.textColor};
-    background-color: ${theme.background};
+    background-color: ${theme.bodyBackground};
 
     .sentry-error-embed-wrapper {
       z-index: ${theme.zIndex.sentryErrorEmbed};
     }
+  }
+
+  a {
+    color: ${theme.button.link.color};
+
+    &:hover {
+      color: ${theme.button.link.colorActive};
+    }
+  }
+
+  .nav-tabs > li.active a,
+  .nav-tabs > li.active a:hover {
+    border-bottom-color: ${theme.active};
+    color: ${theme.textColor};
   }
 
   abbr {

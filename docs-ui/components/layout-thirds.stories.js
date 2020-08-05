@@ -157,7 +157,7 @@ SingleColumnMode.story = {
 const Container = styled('div')`
   background: ${p => p.theme.gray100};
   margin: ${space(2)};
-  border: 1px solid ${p => p.theme.borderDark};
+  border: 1px solid ${p => p.theme.border};
 `;
 
 const MarginedButtonBar = styled(ButtonBar)`
