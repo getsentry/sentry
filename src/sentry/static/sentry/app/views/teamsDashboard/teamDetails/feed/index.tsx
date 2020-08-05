@@ -3,8 +3,7 @@ import styled from '@emotion/styled';
 
 import AsyncComponent from 'app/components/asyncComponent';
 import space from 'app/styles/space';
-import {Organization} from 'app/types';
-import withOrganization from 'app/utils/withOrganization';
+import {Project, Organization} from 'app/types';
 
 import withLocalStorage, {InjectedLocalStorageProps} from '../../withLocalStorage';
 import {TAB} from '../../utils';
@@ -23,6 +22,7 @@ type Props = AsyncComponent['props'] &
   InjectedLocalStorageProps & {
     data: DashboardData;
     organization: Organization;
+    projects: Project[];
   };
 
 type State = AsyncComponent['state'] & {
@@ -101,24 +101,28 @@ class Dashboard extends AsyncComponent<Props, State> {
   }
 
   getCardData(): CardData[] {
-    const {data} = this.props;
+    const {data, projects} = this.props;
     const cards: CardData[] = [...data?.cards] ?? [];
 
     const {keyTransactions} = this.state;
 
+    const projectIds = new Set(projects.map(proj => proj.id));
+
     if (keyTransactions) {
       keyTransactions.data.forEach(row => {
-        cards.push({
-          type: 'performance',
-          columnSpan: 1,
-          data: {
-            transaction: row.transaction,
-            project: row.project,
-            projectId: row['project.id'],
-            apdex: row.apdex_300,
-            userMisery: row.user_misery_300,
-          },
-        });
+        if (projectIds.has(row['project.id'].toString())) {
+          cards.push({
+            type: 'performance',
+            columnSpan: 1,
+            data: {
+              transaction: row.transaction,
+              project: row.project,
+              projectId: row['project.id'],
+              apdex: row.apdex_300,
+              userMisery: row.user_misery_300,
+            },
+          });
+        }
       });
     }
 
@@ -163,7 +167,7 @@ class Dashboard extends AsyncComponent<Props, State> {
   }
 }
 
-export default withLocalStorage(withOrganization(Dashboard), TAB.DASHBOARD);
+export default withLocalStorage(Dashboard, TAB.DASHBOARD);
 
 const Container = styled('div')`
   display: grid;

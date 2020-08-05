@@ -137,7 +137,7 @@ class TeamDetails extends AsyncComponent<Props, State> {
 
     switch (currentTab) {
       case TAB.TEAM_FEED:
-        return <Feed />;
+        return <Feed organization={organization} projects={projects} />;
       case TAB.TEAM_GOALS:
         return <div>Team Goals</div>;
       case TAB.PROJECTS:
