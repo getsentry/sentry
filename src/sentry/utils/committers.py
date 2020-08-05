@@ -4,7 +4,14 @@ import operator
 import six
 
 from sentry.api.serializers import serialize
-from sentry.models import Release, ReleaseCommit, Commit, CommitFileChange, Group
+from sentry.models import (
+    Release,
+    ReleaseCommit,
+    Commit,
+    CommitFileChange,
+    CommitFileLineChange,
+    Group,
+)
 from sentry.api.serializers.models.commit import CommitSerializer, get_users_for_commits
 from sentry.utils import metrics
 from sentry.utils.hashlib import hash_values
@@ -66,17 +73,52 @@ def _get_commit_file_changes(commits, path_name_set):
     # build a single query to get all of the commit file that might match the first n frames
     path_query = reduce(operator.or_, (Q(filename__iendswith=path) for path in filenames))
 
-    commit_file_change_matches = CommitFileChange.objects.filter(path_query, commit__in=commits)
+    commit_file_change_matches = CommitFileChange.objects.filter(
+        path_query, commit__in=commits
+    ).order_by("commit_id")
 
     return list(commit_file_change_matches)
 
 
-def _match_commits_path(commit_file_changes, path):
+def _match_commits_path(commit_file_changes, path, lineno=None):
     # find commits that match the run time path the best.
     matching_commits = {}
     best_score = 1
-    for file_change in commit_file_changes:
+    best_line_score = 0
+    best_exact_line_score = 0
+
+    for i, file_change in enumerate(commit_file_changes):
         score = score_path_match_length(file_change.filename, path)
+        score_reason = "Commit file changes match the run time path."
+
+        if score > 0:
+            # Raise the score if the line range changed in this commit
+            # contains the lineno from the frame
+            try:
+                file_line_change = CommitFileLineChange.objects.get(commitfilechange=file_change)
+                line_score = int(file_line_change.line_start <= lineno <= file_line_change.line_end)
+
+                exact_line_score = int(
+                    file_line_change.line_start == lineno == file_line_change.line_end
+                )
+
+                if exact_line_score:
+                    # Ensure it can rank higher than any files scored
+                    exact_line_score += (len(commit_file_changes) - i) + best_exact_line_score
+                    best_exact_line_score = exact_line_score
+
+                if line_score > 0:
+                    best_line_score += line_score
+                    score += best_line_score + exact_line_score
+                    if exact_line_score:
+                        score_reason = "Commit modified the exact line contained the runtime path."
+                    else:
+                        score_reason = (
+                            "Commit modified the line range contained in the runtime path."
+                        )
+            except CommitFileLineChange.DoesNotExist:
+                pass
+
         if score > best_score:
             # reset matches for better match.
             best_score = score
@@ -86,7 +128,7 @@ def _match_commits_path(commit_file_changes, path):
             if score == 1 and len(list(tokenize_path(file_change.filename))) > 1:
                 continue
             #  we want a list of unique commits that tie for longest match
-            matching_commits[file_change.commit.id] = (file_change.commit, score)
+            matching_commits[file_change.commit.id] = (file_change.commit, score, score_reason)
 
     return matching_commits.values()
 
@@ -109,7 +151,7 @@ def _get_committers(annotated_frames, commits):
     for annotated_frame in annotated_frames:
         if limit == 0:
             break
-        for commit, score in annotated_frame["commits"]:
+        for commit, score, score_reason in annotated_frame["commits"]:
             committers[commit.author.id] += limit
             limit -= 1
             if limit == 0:
@@ -117,13 +159,15 @@ def _get_committers(annotated_frames, commits):
 
     # organize them by this heuristic (first frame is worth 5 points, second is worth 4, etc.)
     sorted_committers = sorted(committers, key=committers.get)
-    users_by_author = get_users_for_commits([c for c, _ in commits])
+    users_by_author = get_users_for_commits([c for c, _, _ in commits])
 
     user_dicts = [
         {
             "author": users_by_author.get(six.text_type(author_id)),
             "commits": [
-                (commit, score) for (commit, score) in commits if commit.author.id == author_id
+                (commit, score, score_reason)
+                for (commit, score, score_reason) in commits
+                if commit.author.id == author_id
             ],
         }
         for author_id in sorted_committers
@@ -206,14 +250,21 @@ def get_event_file_committers(project, event, frame_limit=25):
     # XXX(dcramer): frames may not define a filepath. For example, in Java its common
     # to only have a module name/path
     path_set = {
-        f for f in (frame.get("filename") or frame.get("abs_path") for frame in app_frames) if f
+        f
+        for f in (
+            (frame.get("filename") or frame.get("abs_path"), frame.get("lineno"))
+            for frame in app_frames
+        )
+        if f[0]
     }
 
     file_changes = []
     if path_set:
-        file_changes = _get_commit_file_changes(commits, path_set)
+        file_changes = _get_commit_file_changes(commits, {p[0] for p in path_set})
 
-    commit_path_matches = {path: _match_commits_path(file_changes, path) for path in path_set}
+    commit_path_matches = {
+        path[0]: _match_commits_path(file_changes, path[0], lineno=path[1]) for path in path_set
+    }
 
     annotated_frames = [
         {
@@ -235,17 +286,18 @@ def get_serialized_event_file_committers(project, event, frame_limit=25):
     committers = get_event_file_committers(project, event, frame_limit=frame_limit)
     commits = [commit for committer in committers for commit in committer["commits"]]
     serialized_commits = serialize(
-        [c for (c, score) in commits], serializer=CommitSerializer(exclude=["author"])
+        [c for (c, score, score_reason) in commits], serializer=CommitSerializer(exclude=["author"])
     )
 
     serialized_commits_by_id = {}
 
-    for (commit, score), serialized_commit in zip(commits, serialized_commits):
+    for (commit, score, score_reason), serialized_commit in zip(commits, serialized_commits):
         serialized_commit["score"] = score
+        serialized_commit["scoreReason"] = score_reason
         serialized_commits_by_id[commit.id] = serialized_commit
 
     for committer in committers:
-        commit_ids = [commit.id for (commit, _) in committer["commits"]]
+        commit_ids = [commit.id for (commit, _, _) in committer["commits"]]
         commits_result = [serialized_commits_by_id[commit_id] for commit_id in commit_ids]
         committer["commits"] = dedupe_commits(commits_result)
 

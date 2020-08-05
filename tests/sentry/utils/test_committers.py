@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import six
 import unittest
 
 from datetime import timedelta
@@ -7,7 +8,14 @@ from django.utils import timezone
 from sentry.utils.compat.mock import Mock
 from uuid import uuid4
 
-from sentry.models import Commit, CommitAuthor, CommitFileChange, Release, Repository
+from sentry.models import (
+    Commit,
+    CommitAuthor,
+    CommitFileChange,
+    CommitFileLineChange,
+    Release,
+    Repository,
+)
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.committers import (
@@ -58,6 +66,18 @@ class CommitTestCase(TestCase):
             commit=commit or self.create_commit(),
             filename=filename or "foo.bar",
             type=type or "M",
+        )
+
+    def create_commitfilelinechange(self, start, end, commitfilechange=None, author=None):
+        if not commitfilechange:
+            commitfilechange = self.create_commitfilechange()
+
+        return CommitFileLineChange.objects.create(
+            organization_id=self.organization.id,
+            commitfilechange_id=commitfilechange.id,
+            author_id=commitfilechange.commit.author_id if author is None else author.id,
+            line_start=start,
+            line_end=end,
         )
 
 
@@ -159,7 +179,9 @@ class MatchCommitsPathTestCase(CommitTestCase):
             file_change,
             self.create_commitfilechange(filename="goodbye/app.js", type="A"),
         ]
-        assert [(file_change.commit, 2)] == _match_commits_path(file_changes, "hello/app.py")
+        assert [
+            (file_change.commit, 2, "Commit file changes match the run time path.")
+        ] == _match_commits_path(file_changes, "hello/app.py")
 
     def test_skip_one_score_match_longer_than_one_token(self):
         file_changes = [
@@ -176,9 +198,110 @@ class MatchCommitsPathTestCase(CommitTestCase):
             self.create_commitfilechange(filename="template/hello/app.py", type="A"),
         ]
 
-        commits = sorted([(fc.commit, 2) for fc in file_changes], key=lambda fc: fc[0].id)
+        commits = sorted(
+            [(fc.commit, 2, "Commit file changes match the run time path.") for fc in file_changes],
+            key=lambda fc: fc[0].id,
+        )
         assert commits == sorted(
             _match_commits_path(file_changes, "hello/app.py"), key=lambda fc: fc[0].id
+        )
+
+    def test_similar_paths_with_line_range(self):
+        user2 = self.create_user(name="Sentry2", email="sentry2@sentry.io")
+        user3 = self.create_user(name="Sentry3", email="sentry3@sentry.io")
+
+        for user in {user2, user3}:
+            CommitAuthor.objects.create(
+                organization_id=self.organization.id,
+                name=user.name,
+                email=user.email,
+                external_id=user.id,
+            )
+
+        file_changes = [
+            self.create_commitfilechange(filename="hello/app.py", type="A"),
+            self.create_commitfilechange(filename="world/hello/app.py", type="A"),
+            self.create_commitfilechange(filename="template/hello/app.py", type="A"),
+            self.create_commitfilechange(filename="hello/app.py", type="M"),
+        ]
+
+        for file_change in file_changes[:-1]:
+            file_change.commit.update(author=CommitAuthor.objects.get(email=user2.email))
+
+        file_changes[-1].commit.update(author=CommitAuthor.objects.get(email=user3.email))
+
+        self.create_commitfilelinechange(5, 10, commitfilechange=file_changes[-1])
+
+        commits = sorted(
+            [
+                (fc.commit, 3, "Commit modified the line range contained in the runtime path.")
+                for fc in file_changes[-1:]
+            ],
+            key=lambda fc: fc[0].id,
+        )
+        assert commits == sorted(
+            _match_commits_path(file_changes, "hello/app.py", lineno=6), key=lambda fc: fc[0].id
+        )
+
+    def test_similar_paths_with_exact_line_range(self):
+        user2 = self.create_user(name="Sentry2", email="sentry2@sentry.io")
+        user3 = self.create_user(name="Sentry3", email="sentry3@sentry.io")
+
+        for user in {user2, user3}:
+            CommitAuthor.objects.create(
+                organization_id=self.organization.id,
+                name=user.name,
+                email=user.email,
+                external_id=user.id,
+            )
+
+        file_changes = [
+            self.create_commitfilechange(filename="hello/app.py", type="A"),
+            self.create_commitfilechange(filename="world/hello/app.py", type="A"),
+            self.create_commitfilechange(filename="template/hello/app.py", type="A"),
+            self.create_commitfilechange(filename="hello/app.py", type="M"),
+            self.create_commitfilechange(filename="hello/app.py", type="M"),
+            self.create_commitfilechange(filename="world/hello/app.py", type="M"),
+            self.create_commitfilechange(filename="template/hello/app.py", type="M"),
+        ]
+
+        for file_change in file_changes[:-1]:
+            file_change.commit.update(author=CommitAuthor.objects.get(email=user2.email))
+
+        file_changes[-1].commit.update(author=CommitAuthor.objects.get(email=user3.email))
+
+        self.create_commitfilelinechange(5, 10, commitfilechange=file_changes[-3])
+        self.create_commitfilelinechange(6, 6, commitfilechange=file_changes[-4])
+
+        commits = sorted(
+            [
+                (fc.commit, 8, "Commit modified the exact line contained the runtime path.")
+                for fc in file_changes[-4:-3]
+            ],
+            key=lambda fc: fc[0].id,
+        )
+
+        assert commits == sorted(
+            _match_commits_path(file_changes, "hello/app.py", lineno=6), key=lambda fc: fc[0].id
+        )
+
+        # Later commit also modifies the exact same line
+        file_changes.extend([self.create_commitfilechange(filename="hello/app.py", type="M")])
+
+        file_changes[-1].commit.update(author=CommitAuthor.objects.get(email=user2.email))
+
+        self.create_commitfilelinechange(6, 6, commitfilechange=file_changes[-1])
+
+        commits = sorted(
+            [
+                (fc.commit, 13, "Commit modified the exact line contained the runtime path.")
+                for fc in file_changes[-1:]
+            ],
+            key=lambda fc: fc[0].id,
+        )
+
+        assert commits == sorted(
+            _match_commits_path(file_changes, "hello/app.py", lineno=6), key=lambda fc: fc[0].id
         )
 
 
@@ -328,6 +451,191 @@ class GetEventFileCommitters(CommitTestCase):
         assert "commits" in result[0]
         assert len(result[0]["commits"]) == 1
         assert result[0]["commits"][0]["id"] == "a" * 40
+
+    def test_matching_no_line_blames(self):
+        event = self.store_event(
+            data={
+                "message": "Kaboom!",
+                "platform": "python",
+                "timestamp": iso_format(before_now(seconds=1)),
+                "stacktrace": {
+                    "frames": [
+                        {
+                            "function": "handle_set_commits",
+                            "abs_path": "/usr/src/sentry/src/sentry/tasks.py",
+                            "module": "sentry.tasks",
+                            "in_app": True,
+                            "lineno": 30,
+                            "filename": "sentry/tasks.py",
+                        },
+                        {
+                            "function": "set_commits",
+                            "abs_path": "/usr/src/sentry/src/sentry/models/release.py",
+                            "module": "sentry.models.release",
+                            "in_app": True,
+                            "lineno": 39,
+                            "filename": "sentry/models/release.py",
+                        },
+                    ]
+                },
+                "tags": {"sentry:release": self.release.version},
+            },
+            project_id=self.project.id,
+        )
+        self.release.set_commits(
+            [
+                {
+                    "id": "a" * 40,
+                    "repository": self.repo.name,
+                    "author_email": "bob@example.com",
+                    "author_name": "Bob",
+                    "message": "i fixed a bug",
+                    "patch_set": [{"path": "src/sentry/models/release.py", "type": "M"}],
+                },
+                {
+                    "id": "b" * 40,
+                    "repository": self.repo.name,
+                    "author_email": "bob@example.com",
+                    "author_name": "Bob",
+                    "message": "i fixed a bug",
+                    "patch_set": [{"path": "src/sentry/models/release.py", "type": "M"}],
+                },
+                {
+                    "id": "c" * 40,
+                    "repository": self.repo.name,
+                    "author_email": "bob2@example.com",
+                    "author_name": "Bob2",
+                    "message": "i fixed a bug",
+                    "patch_set": [{"path": "src/sentry/models/release.py", "type": "M"}],
+                },
+            ]
+        )
+
+        result = get_serialized_event_file_committers(self.project, event)
+        assert len(result) == 2
+        assert "commits" in result[0]
+        assert len(result[0]["commits"]) == 1
+        assert result[0]["commits"][0]["id"] == "c" * 40
+
+    def test_matching_by_line(self):
+        event = self.store_event(
+            data={
+                "message": "Kaboom!",
+                "platform": "python",
+                "timestamp": iso_format(before_now(seconds=1)),
+                "stacktrace": {
+                    "frames": [
+                        {
+                            "function": "handle_set_commits",
+                            "abs_path": "/usr/src/sentry/src/sentry/tasks.py",
+                            "module": "sentry.tasks",
+                            "in_app": True,
+                            "lineno": 30,
+                            "filename": "sentry/tasks.py",
+                        },
+                        {
+                            "function": "set_commits",
+                            "abs_path": "/usr/src/sentry/src/sentry/models/release.py",
+                            "module": "sentry.models.release",
+                            "in_app": True,
+                            "lineno": 39,
+                            "filename": "sentry/models/release.py",
+                        },
+                    ]
+                },
+                "tags": {"sentry:release": self.release.version},
+            },
+            project_id=self.project.id,
+        )
+        self.release.set_commits(
+            [
+                {
+                    "id": "a" * 40,
+                    "repository": self.repo.name,
+                    "author_email": "bob@example.com",
+                    "author_name": "Bob",
+                    "message": "i fixed a bug",
+                    "patch_set": [
+                        {
+                            "path": "src/sentry/models/release.py",
+                            "type": "M",
+                            "blame": {
+                                "ranges": [
+                                    {
+                                        "commit": {
+                                            "author": {"name": "Bob", "email": "bob@example.com"},
+                                        },
+                                        "age": 10,
+                                        "startingLine": 30,
+                                        "endingLine": 75,
+                                    },
+                                ]
+                            },
+                        }
+                    ],
+                },
+                {
+                    "id": "b" * 40,
+                    "repository": self.repo.name,
+                    "author_email": "bob@example.com",
+                    "author_name": "Bob",
+                    "message": "i fixed a bug",
+                    "patch_set": [
+                        {
+                            "path": "src/sentry/models/release.py",
+                            "type": "M",
+                            "blame": {
+                                "ranges": [
+                                    {
+                                        "commit": {
+                                            "author": {"name": "Bob", "email": "bob@example.com"},
+                                        },
+                                        "age": 10,
+                                        "startingLine": 38,
+                                        "endingLine": 40,
+                                    },
+                                ]
+                            },
+                        }
+                    ],
+                },
+                {
+                    "id": "c" * 40,
+                    "repository": self.repo.name,
+                    "author_email": "bob2@example.com",
+                    "author_name": "Bob2",
+                    "message": "i fixed a bug",
+                    "patch_set": [
+                        {
+                            "path": "src/sentry/models/release.py",
+                            "type": "M",
+                            "blame": {
+                                "ranges": [
+                                    {
+                                        "commit": {
+                                            "author": {"name": "Bob2", "email": "bob2@example.com"},
+                                        },
+                                        "age": 10,
+                                        "startingLine": 50,
+                                        "endingLine": 60,
+                                    },
+                                ]
+                            },
+                        }
+                    ],
+                },
+            ]
+        )
+
+        result = get_serialized_event_file_committers(self.project, event)
+
+        assert len(result) == 1
+        assert "commits" in result[0]
+        assert len(result[0]["commits"]) == 1
+        assert result[0]["commits"][0]["id"] == "b" * 40
+        assert result[0]["commits"][0]["score_reason"] == (
+            six.binary_type("Commit modified the line range contained in the runtime path.")
+        )
 
     def test_matching_case_insensitive(self):
         event = self.store_event(
