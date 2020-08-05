@@ -81,7 +81,7 @@ function getCrumbDetails(type: BreadcrumbType) {
       };
     case BreadcrumbType.SESSION:
       return {
-        color: 'orange500',
+        color: 'red300',
         icon: IconRefresh,
         description: t('Session'),
       };

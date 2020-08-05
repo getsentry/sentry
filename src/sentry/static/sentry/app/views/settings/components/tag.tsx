@@ -64,7 +64,7 @@ const Tag = styled(
   border-radius: ${p => (p.size === 'small' ? '0.25em' : '2em')};
   text-transform: lowercase;
   font-weight: ${p => (p.size === 'small' ? 'bold' : 'normal')};
-  background: ${p => getPriority(p)?.background ?? p.theme.ggray200ray300};
+  background: ${p => getPriority(p)?.background ?? p.theme.gray200};
   ${p => getBorder(p)};
   ${p => getMarginLeft(p)};
 `;

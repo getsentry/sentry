@@ -70,7 +70,7 @@ const StyledButton = styled(Button)<
   &:focus,
   &:hover {
     border-bottom-color: ${p =>
-      p.isOpen && p.hideBottomBorder ? 'transparent' : p.theme.border};
+      p.isOpen && p.hideBottomBorder ? 'transparent' : p.theme.secondaryButton};
   }
 `;
 

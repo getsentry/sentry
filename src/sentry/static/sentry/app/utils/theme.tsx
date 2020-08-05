@@ -115,16 +115,16 @@ const badge = {
   },
 };
 
-const button = {
+const generateButton = alias => ({
   borderRadius: '3px',
 
   default: {
-    color: aliases.secondaryButton,
-    colorActive: aliases.secondaryButton,
+    color: alias.secondaryButton,
+    colorActive: alias.secondaryButton,
     background: 'transparent',
-    backgroundActive: aliases.secondaryButton,
-    border: aliases.secondaryButton,
-    borderActive: aliases.secondaryButton,
+    backgroundActive: 'transparent',
+    border: alias.secondaryButton,
+    borderActive: alias.secondaryButton,
     focusShadow: color(colors.gray200)
       .alpha(0.5)
       .string(),
@@ -163,8 +163,8 @@ const button = {
       .string(),
   },
   link: {
-    color: aliases.linkColor,
-    colorActive: aliases.linkColor,
+    color: alias.linkColor,
+    colorActive: alias.linkColor,
     background: 'transparent',
     border: false,
     borderActive: false,
@@ -172,15 +172,15 @@ const button = {
     focusShadow: false,
   },
   disabled: {
-    color: aliases.disabled,
-    colorActive: aliases.disabled,
+    color: alias.disabled,
+    colorActive: alias.disabled,
     border: '#e3e5e6',
     borderActive: '#e3e5e6',
     background: colors.white,
     backgroundActive: colors.white,
     focusShadow: false,
   },
-} as const;
+});
 
 const iconSizes = {
   xs: '12px',
@@ -304,7 +304,7 @@ const theme = {
 
   alert,
   badge,
-  button,
+  button: generateButton(aliases),
 
   charts: {
     colors: CHART_PALETTE[CHART_PALETTE.length - 1],
@@ -333,8 +333,7 @@ const theme = {
   space: [0, 8, 16, 20, 30],
 };
 
-export const darkTheme = {
-  ...theme,
+const darkAliases = {
   bodyBackground: colors.black,
   headerBackground: colors.gray500,
   background: colors.black,
@@ -344,6 +343,12 @@ export const darkTheme = {
   subText: colors.gray200,
   linkColor: colors.purple200,
   secondaryButton: colors.white,
+};
+
+export const darkTheme = {
+  ...theme,
+  ...darkAliases,
+  button: generateButton(darkAliases),
 };
 
 export type Theme = typeof theme | typeof darkTheme;
