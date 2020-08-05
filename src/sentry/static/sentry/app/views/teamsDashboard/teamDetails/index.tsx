@@ -305,6 +305,5 @@ const TabContent = styled('div')`
   display: flex;
   flex: 1;
   flex-direction: column;
-  background: ${p => p.theme.white};
   padding-bottom: ${space(4)};
 `;
