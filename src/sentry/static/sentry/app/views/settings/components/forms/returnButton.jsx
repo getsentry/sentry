@@ -30,7 +30,7 @@ const ClickTargetStyled = styled('div')`
   &:hover ${SubmitButton} {
     background: #fff;
     box-shadow: ${p => p.theme.dropShadowLight};
-    border: 1px solid ${p => p.theme.borderLight};
+    border: 1px solid ${p => p.theme.border};
   }
 `;
 

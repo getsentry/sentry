@@ -35,7 +35,7 @@ const StyledSelectorItem = styled(SelectorItem)`
   flex: 1;
   background-color: ${p => (p.selected ? p.theme.backgroundAccent : p.theme.background)};
   font-weight: ${p => (p.selected ? 'bold' : 'normal')};
-  border-bottom: 1px solid ${p => (p.last ? 'transparent' : p.theme.borderLight)};
+  border-bottom: 1px solid ${p => (p.last ? 'transparent' : p.theme.border)};
 
   &:hover {
     background: ${p => p.theme.backgroundAccent};

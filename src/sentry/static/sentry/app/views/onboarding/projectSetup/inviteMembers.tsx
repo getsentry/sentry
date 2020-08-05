@@ -141,7 +141,7 @@ class InviteMembers extends React.Component<Props, State> {
 const HelpText = styled(TextBlock)`
   padding: ${space(2)};
   margin: 0;
-  border-bottom: 1px solid ${p => p.theme.borderLight};
+  border-bottom: 1px solid ${p => p.theme.border};
 `;
 
 const RoleDescriptiom = styled('div')`

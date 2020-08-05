@@ -168,7 +168,7 @@ export default class DetailsHeader extends React.Component<Props> {
 
 const Header = styled('div')`
   background-color: ${p => p.theme.backgroundAccent};
-  border-bottom: 1px solid ${p => p.theme.borderDark};
+  border-bottom: 1px solid ${p => p.theme.border};
 `;
 
 const BreadCrumbBar = styled('div')`

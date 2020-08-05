@@ -92,7 +92,7 @@ export const Header = styled('div')`
   margin: 0;
 
   background-color: transparent;
-  border-bottom: 1px solid ${p => p.theme.borderDark};
+  border-bottom: 1px solid ${p => p.theme.border};
 
   @media (max-width: ${p => p.theme.breakpoints[1]}) {
     flex-direction: column;

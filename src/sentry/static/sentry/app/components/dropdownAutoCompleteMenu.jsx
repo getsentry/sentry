@@ -505,7 +505,7 @@ const InputLoadingWrapper = styled('div')`
 
 const StyledInputWrapper = styled('div')`
   display: flex;
-  border-bottom: 1px solid ${p => p.theme.borderLight};
+  border-bottom: 1px solid ${p => p.theme.border};
   border-radius: ${p => `${p.theme.borderRadius} ${p.theme.borderRadius} 0 0`};
   align-items: center;
 `;
@@ -550,7 +550,7 @@ const AutoCompleteItem = styled('div')`
     p.index === p.highlightedIndex ? p.theme.backgroundAccent : 'transparent'};
   padding: ${p => getItemPaddingForSize(p.size)};
   cursor: pointer;
-  border-bottom: 1px solid ${p => p.theme.borderLight};
+  border-bottom: 1px solid ${p => p.theme.border};
 
   &:last-child {
     border-bottom: none;
@@ -563,7 +563,7 @@ const AutoCompleteItem = styled('div')`
 
 const LabelWithBorder = styled('div')`
   background-color: ${p => p.theme.backgroundAccent};
-  border-bottom: 1px solid ${p => p.theme.borderLight};
+  border-bottom: 1px solid ${p => p.theme.border};
   border-width: 1px 0;
   color: ${p => p.theme.gray400};
   font-size: ${p => p.theme.fontSizeMedium};

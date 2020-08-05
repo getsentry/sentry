@@ -178,7 +178,7 @@ class ReleaseProgress extends AsyncComponent {
                   {t(`${nextStep.desc}`)}
                 </a>
               </span>
-              <h4 className="text-light"> {t("Releases aren't 100% set up")}</h4>
+              <h4>{t("Releases aren't 100% set up")}</h4>
             </StyledDiv>
             <div className="row">
               <ProgressBar width={this.getWidth()} />

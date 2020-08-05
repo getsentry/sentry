@@ -98,7 +98,7 @@ const NoDeploys = () => (
 const DeployRow = styled('div')`
   display: flex;
   justify-content: space-between;
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   font-size: ${p => p.theme.fontSizeSmall};
 
   &:not(:last-of-type) {
@@ -110,7 +110,7 @@ const Environment = styled(TextOverflow)`
   font-size: ${p => p.theme.fontSizeExtraSmall};
   text-transform: uppercase;
   width: 80px;
-  border: 1px solid ${p => p.theme.borderLight};
+  border: 1px solid ${p => p.theme.border};
   margin-right: ${space(1)};
   background-color: ${p => p.theme.gray100};
   text-align: center;

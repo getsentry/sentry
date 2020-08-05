@@ -234,7 +234,7 @@ const GuideAction = styled('div')`
 `;
 
 const StyledButton = styled(Button)`
-  border-color: ${p => p.theme.borderLighter};
+  border-color: ${p => p.theme.border};
   min-width: 40%;
 `;
 
@@ -244,7 +244,7 @@ const DismissButton = styled(StyledButton)`
   &:hover,
   &:focus,
   &:active {
-    border-color: ${p => p.theme.borderLighter};
+    border-color: ${p => p.theme.border};
   }
 `;
 

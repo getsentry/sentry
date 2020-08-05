@@ -93,7 +93,7 @@ const getDropdownElementStyles = (p: {showBelowMediaQuery: number; last?: boolea
   &,
   &:hover,
   &:focus {
-    border-bottom: ${p.last ? null : `1px solid ${theme.borderDark}`};
+    border-bottom: ${p.last ? null : `1px solid ${theme.border}`};
     border-radius: 0;
   }
 
@@ -1292,7 +1292,7 @@ const StyledInput = styled('input')`
     color: ${p => p.theme.gray200};
   }
   &:focus {
-    border-color: ${p => p.theme.borderDark};
+    border-color: ${p => p.theme.border};
     border-bottom-right-radius: 0;
   }
 

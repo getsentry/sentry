@@ -52,9 +52,6 @@ const aliases = {
   success: colors.green300,
   error: colors.red300,
   border: colors.gray200,
-  borderLighter: colors.gray100,
-  borderLight: colors.gray100,
-  borderDark: colors.gray200,
   disabled: colors.gray200,
   background: colors.white,
   backgroundAccent: colors.gray100,
@@ -72,7 +69,7 @@ const alert = {
   muted: {
     background: colors.gray200,
     backgroundLight: colors.gray100,
-    border: aliases.borderDark,
+    border: aliases.border,
     iconColor: 'inherit',
   },
   info: {
@@ -337,9 +334,6 @@ export const darkTheme = {
   background: colors.black,
   backgroundAccent: colors.gray500,
   border: colors.gray200,
-  borderLighter: colors.gray200,
-  borderLight: colors.gray200,
-  borderDark: colors.gray100,
   textColor: colors.white,
 };
 

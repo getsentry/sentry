@@ -185,12 +185,12 @@ export default withApi(InstalledPlugin);
 
 const Container = styled('div')`
   padding: ${space(2)};
-  border: 1px solid ${p => p.theme.borderLight};
+  border: 1px solid ${p => p.theme.border};
   border-bottom: none;
   background-color: white;
 
   &:last-child {
-    border-bottom: 1px solid ${p => p.theme.borderLight};
+    border-bottom: 1px solid ${p => p.theme.border};
   }
 `;
 

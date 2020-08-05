@@ -972,8 +972,7 @@ export const SpanTreeTogglerContainer = styled('div')<TogglerTypes>`
 export const SpanTreeConnector = styled('div')<TogglerTypes & {orphanBranch: boolean}>`
   height: ${p => (p.isLast ? SPAN_ROW_HEIGHT / 2 : SPAN_ROW_HEIGHT)}px;
   width: 100%;
-  border-left: 1px ${p => (p.orphanBranch ? 'dashed' : 'solid')}
-    ${p => p.theme.borderDark};
+  border-left: 1px ${p => (p.orphanBranch ? 'dashed' : 'solid')} ${p => p.theme.border};
   position: absolute;
   top: 0;
 
@@ -981,7 +980,7 @@ export const SpanTreeConnector = styled('div')<TogglerTypes & {orphanBranch: boo
     content: '';
     height: 1px;
     border-bottom: 1px ${p => (p.orphanBranch ? 'dashed' : 'solid')}
-      ${p => p.theme.borderDark};
+      ${p => p.theme.border};
 
     width: 100%;
     position: absolute;
@@ -1003,8 +1002,7 @@ export const SpanTreeConnector = styled('div')<TogglerTypes & {orphanBranch: boo
 export const ConnectorBar = styled('div')<{orphanBranch: boolean}>`
   height: 250%;
 
-  border-left: 1px ${p => (p.orphanBranch ? 'dashed' : 'solid')}
-    ${p => p.theme.borderDark};
+  border-left: 1px ${p => (p.orphanBranch ? 'dashed' : 'solid')} ${p => p.theme.border};
   top: -5px;
   position: absolute;
 `;
@@ -1023,7 +1021,7 @@ const getTogglerTheme = ({
   if (disabled) {
     return `
     background: ${buttonTheme.background};
-    border: 1px solid ${theme.borderDark};
+    border: 1px solid ${theme.border};
     color: ${buttonTheme.color};
     cursor: default;
   `;
@@ -1031,7 +1029,7 @@ const getTogglerTheme = ({
 
   return `
     background: ${buttonTheme.background};
-    border: 1px solid ${theme.borderDark};
+    border: 1px solid ${theme.border};
     color: ${buttonTheme.color};
   `;
 };

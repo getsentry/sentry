@@ -74,7 +74,7 @@ const SearchInput = styled('input')`
   width: 260px;
   line-height: 1;
   padding: 5px 8px 4px 28px;
-  border: 1px solid ${p => p.theme.borderDark};
+  border: 1px solid ${p => p.theme.border};
   border-radius: 30px;
   height: 28px;
 
@@ -82,7 +82,7 @@ const SearchInput = styled('input')`
 
   &:focus {
     outline: none;
-    border: 1px solid ${p => p.theme.borderDark};
+    border: 1px solid ${p => p.theme.border};
   }
 
   &::placeholder {

@@ -5,9 +5,9 @@ import space from 'app/styles/space';
 const HintPanelItem = styled('div')`
   display: flex;
   padding: ${space(2)};
-  border-top: 1px solid ${p => p.theme.borderLighter};
-  border-left: 1px solid ${p => p.theme.borderLighter};
-  border-bottom: 1px solid ${p => p.theme.borderLight};
+  border-top: 1px solid ${p => p.theme.border};
+  border-left: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.border};
   background: ${p => p.theme.gray100};
   font-size: ${p => p.theme.fontSizeMedium};
 

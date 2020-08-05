@@ -15,7 +15,7 @@ export default function YAxis(props: EChartOption.YAxis = {}): EChartOption.YAxi
     },
     splitLine: {
       lineStyle: {
-        color: theme.borderLighter,
+        color: theme.border,
       },
     },
     ...props,

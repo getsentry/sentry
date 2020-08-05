@@ -41,17 +41,17 @@ const StyledNavItem = styled(Link)`
   position: relative;
 
   &.active {
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.textColor};
 
     &:before {
-      background: ${p => p.theme.purple300};
+      background: ${p => p.theme.active};
     }
   }
 
   &:hover,
   &:focus,
   &:active {
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.textColor};
     outline: none;
   }
 

@@ -152,7 +152,7 @@ const StyledProjectCardHeader = styled('div')`
 
 const StyledProjectCard = styled('div')`
   background-color: white;
-  border: 1px solid ${p => p.theme.borderDark};
+  border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   box-shadow: ${p => p.theme.dropShadowLight};
 `;

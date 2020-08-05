@@ -162,7 +162,7 @@ const HeaderAndFooter = styled('div')`
 
 const ActivityHeader = styled(HeaderAndFooter)`
   display: flex;
-  border-bottom: 1px solid ${p => p.theme.borderLight};
+  border-bottom: 1px solid ${p => p.theme.border};
   font-size: ${p => p.theme.fontSizeMedium};
 
   &:last-child {
@@ -176,7 +176,7 @@ const ActivityHeaderContent = styled('div')`
 
 const ActivityFooter = styled(HeaderAndFooter)`
   display: flex;
-  border-top: 1px solid ${p => p.theme.borderLight};
+  border-top: 1px solid ${p => p.theme.border};
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 

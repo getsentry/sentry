@@ -58,11 +58,7 @@ const alertStyles = ({theme, type = DEFAULT_TYPE, system}: Props & {theme: any})
   border-radius: ${theme.borderRadius};
   background: ${theme.gray100};
   border: 1px solid ${theme.borderDark};
-
-  a:not([role='button']) {
-    color: ${theme.textColor};
-    border-bottom: 1px dotted ${theme.textColor};
-  }
+  color: ${theme.gray500};
 
   ${getAlertColorStyles(theme.alert[type])};
   ${system && getSystemAlertColorStyles(theme.alert[type])};
