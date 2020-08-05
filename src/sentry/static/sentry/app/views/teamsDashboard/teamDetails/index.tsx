@@ -20,6 +20,7 @@ import withOrganization from 'app/utils/withOrganization';
 import Header from './header';
 import Feed from './feed';
 import Projects from './projects';
+import Members from './members';
 
 enum TAB {
   TEAM_FEED = 'team_feed',
@@ -133,7 +134,7 @@ class TeamDetails extends AsyncComponent<Props, State> {
     const {organization, team} = this.props;
 
     const access = new Set(organization.access);
-    const canWrite = access.has('org:write');
+    const canWrite = access.has('org:write') || access.has('team:admin');
 
     switch (currentTab) {
       case TAB.TEAM_FEED:
@@ -154,7 +155,15 @@ class TeamDetails extends AsyncComponent<Props, State> {
           />
         );
       case TAB.MEMBERS:
-        return <div>Members</div>;
+        return (
+          <Members
+            organization={organization}
+            api={this.api}
+            teamSlug={team.slug}
+            canWrite={canWrite}
+            members={team.members}
+          />
+        );
       case TAB.SETTINGS:
         return <div>Settings</div>;
       default:
