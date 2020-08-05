@@ -156,6 +156,7 @@ export type Project = {
   isMember: boolean;
   teams: Team[];
   features: string[];
+  environments: string[];
 
   isBookmarked: boolean;
   hasUserReports?: boolean;
