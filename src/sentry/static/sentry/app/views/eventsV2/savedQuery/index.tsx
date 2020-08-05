@@ -265,7 +265,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
 
     return (
       <Button disabled data-test-id="discover2-savedquery-button-saved">
-        <StyledIconBookmark isSolid size="xs" color="yellow400" />
+        <StyledIconBookmark isSolid size="xs" color="yellow300" />
         {t('Saved query')}
       </Button>
     );
@@ -376,7 +376,7 @@ const IconUpdate = styled('div')`
 
   margin-right: ${space(0.75)};
   border-radius: 5px;
-  background-color: ${p => p.theme.yellow400};
+  background-color: ${p => p.theme.yellow300};
 `;
 
 export default withProjects(withApi(SavedQueryButtonGroup));

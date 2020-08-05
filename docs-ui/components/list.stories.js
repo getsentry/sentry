@@ -16,9 +16,9 @@ export const Default = withInfo('Default message goes here')(() => (
       <ListItem>Item 3</ListItem>
     </List>
     <List>
-      <ListItem icon={<IconBusiness color="orange400" size="sm" />}>Item 1</ListItem>
-      <ListItem icon={<IconBusiness color="orange400" size="sm" />}>Item 2</ListItem>
-      <ListItem icon={<IconBusiness color="orange400" size="sm" />}>Item 3</ListItem>
+      <ListItem icon={<IconBusiness color="red200" size="sm" />}>Item 1</ListItem>
+      <ListItem icon={<IconBusiness color="red200" size="sm" />}>Item 2</ListItem>
+      <ListItem icon={<IconBusiness color="red200" size="sm" />}>Item 3</ListItem>
     </List>
     <List as="ol">
       <ListItem>Item 1</ListItem>

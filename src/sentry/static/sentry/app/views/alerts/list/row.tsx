@@ -85,7 +85,7 @@ class AlertListRow extends AsyncComponent<Props, State> {
     const isResolved = status === IncidentStatus.CLOSED;
     const isWarning = status === IncidentStatus.WARNING;
 
-    const color = isResolved ? theme.gray200 : isWarning ? theme.orange300 : theme.red300;
+    const color = isResolved ? theme.gray200 : isWarning ? theme.red200 : theme.red200;
     const text = isResolved ? t('Resolved') : isWarning ? t('Warning') : t('Critical');
 
     return (

@@ -170,7 +170,7 @@ export class Frame extends React.Component {
     const func = this.props.data.function || '<unknown>';
     // Custom color used to match adjacent text.
     const warningIcon = <IconQuestion size="xs" color="#2c45a8" />;
-    const errorIcon = <IconWarning size="xs" color="red400" />;
+    const errorIcon = <IconWarning size="xs" color="red300" />;
 
     if (func.match(/^@objc\s/)) {
       return [t('Objective-C -> Swift shim frame'), warningIcon];

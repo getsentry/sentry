@@ -110,9 +110,9 @@ const Toggle = styled(IconFilter)`
 const AddressText = styled('span')<Partial<Props> & {canBeConverted: boolean}>`
   border-bottom: ${p => {
     if (p.isFoundByStackScanning) {
-      return `1px dashed ${p.theme.red400}`;
+      return `1px dashed ${p.theme.red300}`;
     } else if (p.isInlineFrame) {
-      return `1px dashed ${p.theme.blue400}`;
+      return `1px dashed ${p.theme.blue300}`;
     } else {
       return 'none';
     }

@@ -83,13 +83,13 @@ const PillValue = styled(PillName)<PillValueProps>`
       case 'positive':
         return `
           background: ${p.theme.green100};
-          border: 1px solid ${p.theme.green400};
+          border: 1px solid ${p.theme.green300};
           margin: -1px;
         `;
       case 'negative':
         return `
           background: ${p.theme.red100};
-          border: 1px solid ${p.theme.red400};
+          border: 1px solid ${p.theme.red300};
           margin: -1px;
         `;
       default:

@@ -17,7 +17,7 @@ const options: React.ComponentProps<typeof Filter>['options'] = [
       type: BreadcrumbType.HTTP,
       description: 'HTTP request',
       levels: [BreadcrumbLevelType.INFO],
-      symbol: <Icon color="green400" icon={IconSwitch} size="xs" />,
+      symbol: <Icon color="green300" icon={IconSwitch} size="xs" />,
       isChecked: true,
     },
     {
@@ -38,7 +38,7 @@ const options: React.ComponentProps<typeof Filter>['options'] = [
       type: BreadcrumbType.NAVIGATION,
       description: 'Navigation',
       levels: [BreadcrumbLevelType.INFO],
-      symbol: <Icon color="green500" icon={IconLocation} size="xs" />,
+      symbol: <Icon color="green300" icon={IconLocation} size="xs" />,
       isChecked: true,
     },
     {
@@ -52,7 +52,7 @@ const options: React.ComponentProps<typeof Filter>['options'] = [
       type: BreadcrumbType.ERROR,
       description: 'Error',
       levels: [BreadcrumbLevelType.ERROR],
-      symbol: <Icon color="red400" icon={IconFire} size="xs" />,
+      symbol: <Icon color="red300" icon={IconFire} size="xs" />,
       isChecked: true,
     },
   ],

@@ -57,7 +57,7 @@ function IncompatibleQueryAlert({incompatibleQuery, eventView, onClose}: AlertPr
   const totalErrors = Object.values(incompatibleQuery).filter(val => val === true).length;
 
   return (
-    <StyledAlert type="warning" icon={<IconInfo color="yellow400" size="sm" />}>
+    <StyledAlert type="warning" icon={<IconInfo color="yellow300" size="sm" />}>
       {totalErrors === 1 && (
         <React.Fragment>
           {hasProjectError &&
@@ -116,7 +116,7 @@ function IncompatibleQueryAlert({incompatibleQuery, eventView, onClose}: AlertPr
         </React.Fragment>
       )}
       <StyledCloseButton
-        icon={<IconClose color="yellow400" size="sm" isCircled />}
+        icon={<IconClose color="yellow300" size="sm" isCircled />}
         aria-label={t('Close')}
         size="zero"
         onClick={onClose}

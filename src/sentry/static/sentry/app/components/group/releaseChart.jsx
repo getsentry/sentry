@@ -147,7 +147,7 @@ class GroupReleaseChart extends React.Component {
           label: t('Last seen'),
           x: lastSeenX,
           className: 'last-seen',
-          fill: theme.green400,
+          fill: theme.green300,
         });
       }
     }

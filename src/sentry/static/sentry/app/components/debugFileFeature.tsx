@@ -33,13 +33,13 @@ const DebugFileFeature = ({available, feature}: Props) => {
   if (available === true) {
     icon = (
       <IconWrapper>
-        <IconCheckmark size="sm" color="green500" />
+        <IconCheckmark size="sm" color="green300" />
       </IconWrapper>
     );
   } else if (available === false) {
     icon = (
       <IconWrapper>
-        <IconClose size="sm" color="red400" />
+        <IconClose size="sm" color="red300" />
       </IconWrapper>
     );
   }

@@ -12,39 +12,25 @@ const colors = {
   gray400: '#776589',
   gray500: '#2B1D38',
 
-  yellow100: '#FFFDF5',
-  yellow200: '#FFF8C4',
-  yellow300: '#FFF492',
-  yellow400: '#FFC227',
-  yellow500: '#E2A301',
+  yellow100: '#FDE8b4',
+  yellow200: '#FFD577',
+  yellow300: '#FFC227',
 
   purple100: '#D4D1EC',
   purple200: '#A396DA',
   purple300: '#6C5FC7',
 
-  blue100: '#F5F9FF',
-  blue200: '#AFC7EE',
-  blue300: '#7199DD',
-  blue400: '#3D74DB',
-  blue500: '#194591',
+  blue100: '#D2DFF7',
+  blue200: '#92A8EA',
+  blue300: '#3D74DB',
 
-  orange100: '#FCF8F7',
-  orange200: '#F9C7B9',
-  orange300: '#F69C7D',
-  orange400: '#FF7738',
-  orange500: '#BA4A23',
+  red100: '#FCC6C8',
+  red200: '#FD918F',
+  red300: '#F55459',
 
-  red100: '#FFF5F7',
-  red200: '#F4B1BB',
-  red300: '#EA7282',
-  red400: '#FA4747',
-  red500: '#AC1025',
-
-  green100: '#F5FFFB',
-  green200: '#C0F3DD',
-  green300: '#8FE7BF',
-  green400: '#4DC771',
-  green500: '#1C8952',
+  green100: '#B6ECDF',
+  green200: '#7DD6BE',
+  green300: '#33BF9E',
 
   pink100: '#FDC9D7',
   pink200: '#FA93AB',
@@ -63,8 +49,8 @@ const colors = {
 
 const aliases = {
   textColor: colors.gray500,
-  success: colors.green400,
-  error: colors.red400,
+  success: colors.green300,
+  error: colors.red300,
   border: colors.gray200,
   borderLighter: colors.gray100,
   borderLight: colors.gray100,
@@ -76,10 +62,10 @@ const aliases = {
 };
 
 const warning = {
-  background: colors.yellow500,
+  background: colors.yellow300,
   backgroundLight: colors.yellow100,
-  border: colors.yellow400,
-  iconColor: colors.yellow500,
+  border: colors.yellow300,
+  iconColor: colors.yellow300,
 } as const;
 
 const alert = {
@@ -90,40 +76,40 @@ const alert = {
     iconColor: 'inherit',
   },
   info: {
-    background: colors.blue400,
+    background: colors.blue300,
     backgroundLight: colors.blue100,
-    border: colors.blue200,
-    iconColor: colors.blue400,
+    border: colors.blue100,
+    iconColor: colors.blue300,
   },
   warning,
   warn: warning,
   success: {
-    background: colors.green400,
+    background: colors.green300,
     backgroundLight: colors.green100,
-    border: colors.green300,
-    iconColor: colors.green500,
+    border: colors.green200,
+    iconColor: colors.green300,
   },
   error: {
-    background: colors.red400,
+    background: colors.red300,
     backgroundLight: colors.red100,
     border: colors.red200,
-    iconColor: colors.red400,
+    iconColor: colors.red300,
     textLight: colors.red200,
   },
 };
 
 const badge = {
   alpha: {
-    background: `linear-gradient(90deg, ${colors.orange300}, ${colors.orange500})`,
-    indicatorColor: colors.orange400,
+    background: `linear-gradient(90deg, ${colors.red200}, ${colors.orange500})`,
+    indicatorColor: colors.red200,
   },
   beta: {
     background: `linear-gradient(90deg, ${colors.pink300}, ${colors.purple300})`,
     indicatorColor: colors.purple300,
   },
   new: {
-    background: `linear-gradient(90deg, ${colors.green400}, ${colors.green500})`,
-    indicatorColor: colors.green400,
+    background: `linear-gradient(90deg, ${colors.green300}, ${colors.green300})`,
+    indicatorColor: colors.green300,
   },
 };
 
@@ -156,21 +142,21 @@ const button = {
     color: colors.white,
     colorActive: colors.white,
     background: '#3fa372',
-    backgroundActive: colors.green400,
+    backgroundActive: colors.green300,
     border: '#7ccca5',
     borderActive: '#7ccca5',
-    focusShadow: color(colors.green400)
+    focusShadow: color(colors.green300)
       .alpha(0.5)
       .string(),
   },
   danger: {
     color: colors.white,
     colorActive: colors.white,
-    background: colors.red400,
+    background: colors.red300,
     backgroundActive: '#bf2a1d',
     border: '#bf2a1d',
     borderActive: '#7d1c13',
-    focusShadow: color(colors.red400)
+    focusShadow: color(colors.red300)
       .alpha(0.5)
       .string(),
   },
@@ -350,6 +336,7 @@ export const darkTheme = {
 
   background: colors.black,
   backgroundAccent: colors.gray500,
+  border: colors.gray200,
   borderLighter: colors.gray200,
   borderLight: colors.gray200,
   borderDark: colors.gray100,

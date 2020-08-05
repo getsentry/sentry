@@ -77,10 +77,10 @@ BookmarkStar.propTypes = {
 const Star = styled(IconStar, {shouldForwardProp: p => p !== 'isBookmarked'})<{
   isBookmarked: boolean;
 }>`
-  color: ${p => (p.isBookmarked ? p.theme.orange300 : p.theme.gray200)};
+  color: ${p => (p.isBookmarked ? p.theme.red100 : p.theme.gray200)};
 
   &:hover {
-    color: ${p => (p.isBookmarked ? p.theme.orange200 : p.theme.gray300)};
+    color: ${p => (p.isBookmarked ? p.theme.red300 : p.theme.gray300)};
   }
 `;
 

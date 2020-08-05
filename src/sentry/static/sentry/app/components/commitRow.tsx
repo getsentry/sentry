@@ -131,7 +131,7 @@ const EmailWarningIcon = styled(IconFlag)`
   border-radius: 11px;
   margin-bottom: -25px;
   border: 1px solid ${p => p.theme.white};
-  background: ${p => p.theme.yellow300};
+  background: ${p => p.theme.yellow200};
 `;
 
 const CommitMessage = styled('div')`

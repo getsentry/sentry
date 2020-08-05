@@ -17,25 +17,25 @@ const Level = React.memo(({level, searchTerm = ''}: Props) => {
   switch (level) {
     case BreadcrumbLevelType.FATAL:
       return (
-        <StyledTag color="red500">
+        <StyledTag color="red300">
           <Highlight text={searchTerm}>{t('fatal')}</Highlight>
         </StyledTag>
       );
     case BreadcrumbLevelType.ERROR:
       return (
-        <StyledTag color="red400">
+        <StyledTag color="red300">
           <Highlight text={searchTerm}>{t('error')}</Highlight>
         </StyledTag>
       );
     case BreadcrumbLevelType.INFO:
       return (
-        <StyledTag color="blue400">
+        <StyledTag color="blue300">
           <Highlight text={searchTerm}>{t('info')}</Highlight>
         </StyledTag>
       );
     case BreadcrumbLevelType.WARNING:
       return (
-        <StyledTag color="orange400">
+        <StyledTag color="red200">
           <Highlight text={searchTerm}>{t('warning')}</Highlight>
         </StyledTag>
       );

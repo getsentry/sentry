@@ -43,7 +43,7 @@ class ProcessingIssueHint extends React.Component {
     }
 
     if (issue.numIssues > 0) {
-      icon = <IconWarning size="sm" color="red400" />;
+      icon = <IconWarning size="sm" color="red300" />;
       text = tn(
         'There is %s issue blocking event processing',
         'There are %s issues blocking event processing',
@@ -61,7 +61,7 @@ class ProcessingIssueHint extends React.Component {
       className['alert-error'] = true;
       showButton = true;
     } else if (issue.issuesProcessing > 0) {
-      icon = <IconSettings size="sm" color="blue400" />;
+      icon = <IconSettings size="sm" color="blue300" />;
       className['alert-info'] = true;
       text = tn(
         'Reprocessing %s event …',
@@ -69,7 +69,7 @@ class ProcessingIssueHint extends React.Component {
         issue.issuesProcessing
       );
     } else if (issue.resolveableIssues > 0) {
-      icon = <IconSettings size="sm" color="yellow400" />;
+      icon = <IconSettings size="sm" color="yellow300" />;
       className['alert-warning'] = true;
       text = tn(
         'There is %s event pending reprocessing.',

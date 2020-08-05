@@ -66,7 +66,7 @@ class EventOrGroupExtraDetails extends React.Component {
               size="xs"
               color={
                 subscriptionDetails && subscriptionDetails.reason === 'mentioned'
-                  ? 'green400'
+                  ? 'green300'
                   : 'currentColor'
               }
             />

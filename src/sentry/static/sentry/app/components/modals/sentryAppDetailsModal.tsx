@@ -243,7 +243,7 @@ const Author = styled('div')`
 
 const DisabledNotice = styled(({reason, ...p}: {reason: React.ReactNode}) => (
   <div {...p}>
-    <IconFlag color="red400" size="1.5em" />
+    <IconFlag color="red300" size="1.5em" />
     {reason}
   </div>
 ))`
@@ -251,7 +251,7 @@ const DisabledNotice = styled(({reason, ...p}: {reason: React.ReactNode}) => (
   align-items: center;
   flex: 1;
   grid-template-columns: max-content 1fr;
-  color: ${p => p.theme.red400};
+  color: ${p => p.theme.red300};
   font-size: 0.9em;
 `;
 

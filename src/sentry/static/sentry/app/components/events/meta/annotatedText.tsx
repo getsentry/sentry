@@ -107,7 +107,7 @@ function renderErrors(errors: Array<MetaError>) {
 
   return (
     <Tooltip title={tooltip}>
-      <IconWarning color="red500" />
+      <IconWarning color="red300" />
     </Tooltip>
   );
 }

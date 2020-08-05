@@ -34,22 +34,22 @@ function getBreadcrumbDetails(breadcrumb: Breadcrumb): Partial<Output> {
     }
     case BreadcrumbType.NAVIGATION: {
       return {
-        color: 'blue400',
+        color: 'blue300',
         icon: <IconLocation />,
         renderer: <DefaultRenderer breadcrumb={breadcrumb} />,
       };
     }
     case BreadcrumbType.INFO: {
       return {
-        color: 'blue400',
+        color: 'blue300',
         icon: <IconInfo />,
         renderer: <DefaultRenderer breadcrumb={breadcrumb} />,
       };
     }
     case BreadcrumbType.WARNING: {
       return {
-        color: 'orange300',
-        borderColor: 'orange500',
+        color: 'red100',
+        borderColor: 'red300',
         icon: <IconWarning />,
         renderer: <ErrorRenderer breadcrumb={breadcrumb} />,
       };
@@ -58,14 +58,14 @@ function getBreadcrumbDetails(breadcrumb: Breadcrumb): Partial<Output> {
     case BreadcrumbType.MESSAGE:
     case BreadcrumbType.ERROR: {
       return {
-        color: 'red400',
+        color: 'red300',
         icon: <IconWarning />,
         renderer: <ErrorRenderer breadcrumb={breadcrumb} />,
       };
     }
     case BreadcrumbType.HTTP: {
       return {
-        color: 'green400',
+        color: 'green300',
         icon: <IconRefresh />,
         renderer: <HttpRenderer breadcrumb={breadcrumb} />,
       };

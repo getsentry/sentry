@@ -78,12 +78,12 @@ class EventOrGroupHeader extends React.Component {
         )}
         {!hideIcons && data.status === 'ignored' && (
           <IconWrapper>
-            <IconMute color="red400" />
+            <IconMute color="red300" />
           </IconWrapper>
         )}
         {!hideIcons && data.isBookmarked && (
           <IconWrapper>
-            <IconStar isSolid color="orange300" />
+            <IconStar isSolid color="red100" />
           </IconWrapper>
         )}
         <EventOrGroupTitle
@@ -181,13 +181,13 @@ const GroupLevel = styled('div')`
       case 'sample':
         return p.theme.purple300;
       case 'info':
-        return p.theme.blue400;
+        return p.theme.blue300;
       case 'warning':
-        return p.theme.yellow400;
+        return p.theme.yellow300;
       case 'error':
-        return p.theme.orange400;
+        return p.theme.red200;
       case 'fatal':
-        return p.theme.red400;
+        return p.theme.red300;
       default:
         return p.theme.gray300;
     }

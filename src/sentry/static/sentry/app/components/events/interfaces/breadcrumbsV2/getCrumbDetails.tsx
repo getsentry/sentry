@@ -28,7 +28,7 @@ function getCrumbDetails(type: BreadcrumbType) {
 
     case BreadcrumbType.NAVIGATION:
       return {
-        color: 'green500',
+        color: 'green300',
         icon: IconLocation,
         description: t('Navigation'),
       };
@@ -42,34 +42,34 @@ function getCrumbDetails(type: BreadcrumbType) {
 
     case BreadcrumbType.INFO:
       return {
-        color: 'blue400',
+        color: 'blue300',
         icon: IconInfo,
         description: t('Info'),
       };
 
     case BreadcrumbType.ERROR:
       return {
-        color: 'red400',
+        color: 'red300',
         icon: IconFire,
         description: t('Error'),
       };
 
     case BreadcrumbType.HTTP:
       return {
-        color: 'green400',
+        color: 'green300',
         icon: IconSwitch,
         description: t('HTTP request'),
       };
 
     case BreadcrumbType.WARNING:
       return {
-        color: 'orange400',
+        color: 'red200',
         icon: IconWarning,
         description: t('Warning'),
       };
     case BreadcrumbType.QUERY:
       return {
-        color: 'blue500',
+        color: 'blue300',
         icon: IconStack,
         description: t('Query'),
       };

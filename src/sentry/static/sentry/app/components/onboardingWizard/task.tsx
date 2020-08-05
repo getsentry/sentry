@@ -111,7 +111,7 @@ function Task({router, task, onSkip, onMarkComplete, forwardedRef, organization}
         requisite: task.requisiteTasks[0].title,
       })}
     >
-      <IconLock size="xs" color="red400" />
+      <IconLock size="xs" color="red300" />
     </Tooltip>
   );
 
@@ -204,7 +204,7 @@ const InProgressIndicator = styled(({user, ...props}: InProgressIndicatorProps) 
 ))`
   font-size: ${p => p.theme.fontSizeMedium};
   font-weight: bold;
-  color: ${p => p.theme.orange300};
+  color: ${p => p.theme.red100};
   display: grid;
   grid-template-columns: max-content max-content;
   align-items: center;
@@ -212,7 +212,7 @@ const InProgressIndicator = styled(({user, ...props}: InProgressIndicatorProps) 
 `;
 
 const CTA = styled('div')`
-  color: ${p => p.theme.blue400};
+  color: ${p => p.theme.blue300};
   font-size: ${p => p.theme.fontSizeMedium};
   font-weight: bold;
 `;
@@ -247,13 +247,13 @@ StatusIndicator.defaultProps = {
 const CompleteIndicator = styled(IconCheckmark)``;
 CompleteIndicator.defaultProps = {
   isCircled: true,
-  color: 'green400',
+  color: 'green300',
 };
 
 const SkippedIndicator = styled(IconClose)``;
 SkippedIndicator.defaultProps = {
   isCircled: true,
-  color: 'orange300',
+  color: 'red100',
 };
 
 const completedItemAnimation = {

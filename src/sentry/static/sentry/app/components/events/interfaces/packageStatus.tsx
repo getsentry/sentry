@@ -14,12 +14,12 @@ class PackageStatus extends React.Component<Props> {
   getIcon(status: Props['status']): React.ReactNode {
     switch (status) {
       case 'success':
-        return <IconCheckmark isCircled color="green500" />;
+        return <IconCheckmark isCircled color="green300" />;
       case 'empty':
         return <IconCircle />;
       case 'error':
       default:
-        return <IconFlag color="red400" />;
+        return <IconFlag color="red300" />;
     }
   }
 
