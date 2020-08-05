@@ -361,7 +361,7 @@ class PostSentryAppsTest(SentryAppsTest):
         assert response.status_code == 400
         assert response.data == {"name": ["Cannot exceed 57 characters"]}
 
-    def test_invalid_with_missing_webhool_url_scheme(self):
+    def test_invalid_with_missing_webhook_url_scheme(self):
         self.login_as(user=self.user)
         kwargs = {"webhookUrl": "example.com"}
         response = self._post(**kwargs)
