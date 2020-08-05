@@ -30,7 +30,7 @@ export const Header = styled('div')`
 export const HeaderTitle = styled('h4')`
   margin: 0;
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.subText};
 `;
 
 export const HeaderButtonContainer = styled('div')`

@@ -22,6 +22,18 @@ const styles = (theme: Theme) => css`
     }
   }
 
+  .modal-content {
+    background: ${theme.background};
+  }
+
+  .modal .modal-header {
+    border-bottom-color: ${theme.border};
+  }
+
+  .modal .modal-footer {
+    border-top-color: ${theme.border};
+  }
+
   footer {
     border-top-color: ${theme.border};
   }

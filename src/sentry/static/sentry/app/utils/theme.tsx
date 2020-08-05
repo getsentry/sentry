@@ -61,6 +61,10 @@ const aliases = {
   active: colors.pink300,
   linkColor: colors.pink300,
   secondaryButton: colors.purple300,
+  sidebarGradient:
+    'linear-gradient(294.17deg,#2f1937 35.57%,#452650 92.42%,#452650 92.42%)',
+  formPlaceholder: colors.gray200,
+  formText: colors.gray500,
 };
 
 const warning = {
@@ -123,6 +127,7 @@ const generateButton = alias => ({
     colorActive: alias.secondaryButton,
     background: 'transparent',
     backgroundActive: 'transparent',
+
     border: alias.secondaryButton,
     borderActive: alias.secondaryButton,
     focusShadow: color(colors.gray200)
@@ -343,6 +348,8 @@ const darkAliases = {
   subText: colors.gray200,
   linkColor: colors.purple200,
   secondaryButton: colors.white,
+  sidebarGradient: 'linear-gradient(6.01deg, #0A090F -8.44%, #1B0921 85.02%)',
+  formText: colors.white,
 };
 
 export const darkTheme = {

@@ -287,7 +287,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
             <Button
               aria-label={t('Drag to reorder')}
               onMouseDown={event => this.startDrag(event, i)}
-              icon={<IconGrabbable size="xs" color="gray500" />}
+              icon={<IconGrabbable size="xs" />}
               size="zero"
               borderless
             />

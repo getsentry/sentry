@@ -23,7 +23,7 @@ export const SectionHeading = styled('h4')`
   display: inline-grid;
   grid-auto-flow: column;
   grid-gap: ${space(1)};
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
   margin: ${space(1)} 0;
   line-height: 1.3;

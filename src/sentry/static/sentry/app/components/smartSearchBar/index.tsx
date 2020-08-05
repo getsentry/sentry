@@ -1277,7 +1277,7 @@ const StyledForm = styled('form')`
 `;
 
 const StyledInput = styled('input')`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.textColor};
   background: transparent;
   border: 0;
   outline: none;
