@@ -16,16 +16,20 @@ type Props = {
 
 const Footer = ({users, projects}: Props) => (
   <Wrapper>
-    <FooterItem
-      title={t('Team Projects')}
-      items={projects.map(project => (
-        <ProjectBadge key={project.id} project={project} avatarSize={16} />
-      ))}
-    />
+    {projects.length > 0 && (
+      <FooterItem
+        title={t('Team Projects')}
+        items={projects.map(project => (
+          <ProjectBadge key={project.id} project={project} avatarSize={16} />
+        ))}
+      />
+    )}
     <FooterItem title={t('Team Environments')} items={['development', 'prod']} />
-    <FooterItem title={t('Team Members')}>
-      <StyledAvatarList users={users} avatarSize={35} />
-    </FooterItem>
+    {users.length > 0 && (
+      <FooterItem title={t('Team Members')}>
+        <StyledAvatarList users={users} avatarSize={35} />
+      </FooterItem>
+    )}
   </Wrapper>
 );
 

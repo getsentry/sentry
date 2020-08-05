@@ -62,6 +62,7 @@ class TeamDetailsHeader extends React.Component<Props, State> {
   render() {
     const {team, projects} = this.props;
     const {members = []} = team;
+
     return (
       <Wrapper>
         <Header>

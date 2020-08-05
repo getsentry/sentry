@@ -1184,6 +1184,10 @@ function routes() {
             to="/organizations/:orgSlug/teams/all-teams/"
           />
           <Route path="/organizations/:orgSlug/teams/">
+            <Redirect
+              from="/organizations/:orgSlug/teams/all-teams/:teamSlug/"
+              to="/organizations/:orgSlug/teams/all-teams/:teamSlug/team-feed/"
+            />
             <Route path="all-teams/">
               <IndexRoute
                 componentPromise={() =>
@@ -1209,6 +1213,10 @@ function routes() {
                 <Route path="settings/" />
               </Route>
             </Route>
+            <Redirect
+              from="/organizations/:orgSlug/teams/my-teams/:teamSlug/"
+              to="/organizations/:orgSlug/teams/my-teams/:teamSlug/team-feed/"
+            />
             <Route path="my-teams/">
               <IndexRoute
                 componentPromise={() =>
@@ -1938,22 +1946,6 @@ function routes() {
               <Redirect
                 path="/organizations/:orgId/teams/your-teams/"
                 to="/settings/:orgId/teams/"
-              />
-              <Redirect
-                path="/organizations/:orgId/teams/all-teams/"
-                to="/settings/:orgId/teams/"
-              />
-              <Redirect
-                path="/organizations/:orgId/teams/:teamId/members/"
-                to="/settings/:orgId/teams/:teamId/members/"
-              />
-              <Redirect
-                path="/organizations/:orgId/teams/:teamId/projects/"
-                to="/settings/:orgId/teams/:teamId/projects/"
-              />
-              <Redirect
-                path="/organizations/:orgId/teams/:teamId/settings/"
-                to="/settings/:orgId/teams/:teamId/settings/"
               />
               <Redirect path="/organizations/:orgId/settings/" to="/settings/:orgId/" />
               <Redirect

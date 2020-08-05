@@ -3,7 +3,7 @@ import {RouteComponentProps} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
-import {Team, Project} from 'app/types';
+import {Team, Project, Organization} from 'app/types';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {PageContent} from 'app/styles/organization';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
@@ -14,9 +14,11 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import space from 'app/styles/space';
 import recreateRoute from 'app/utils/recreateRoute';
 import AsyncComponent from 'app/components/asyncComponent';
+import withOrganization from 'app/utils/withOrganization';
 
 import Header from './header';
 import Feed from './feed';
+import Projects from './projects';
 
 enum TAB {
   TEAM_FEED = 'team_feed',
@@ -31,24 +33,29 @@ type Props = RouteComponentProps<{orgSlug: string; teamSlug: string}, {}> &
     team: Team;
     projects: Array<Project>;
     isLoading: boolean;
+    organization: Organization;
   };
 
 type State = AsyncComponent['state'] & {
   searchTerm: string;
   currentTab: TAB;
+  projectsPageLinks: string;
 };
 
 class TeamDetails extends AsyncComponent<Props, State> {
   componentDidMount() {
     this.getCurrentTab();
+    this.fetchUnlinkedProjects();
   }
 
   getDefaultState(): State {
     return {
       ...super.getDefaultState(),
       searchTerm: '',
+      projectsPageLinks: '',
       currentTab: TAB.TEAM_FEED,
       projects: [],
+      unlinkedProjects: [],
     };
   }
 
@@ -62,12 +69,34 @@ class TeamDetails extends AsyncComponent<Props, State> {
         `/organizations/${orgSlug}/projects/`,
         {
           query: {
-            query: `!team:${teamSlug}`,
+            query: `team:${teamSlug}`,
           },
+          includeAllArgs: true,
         },
       ],
     ];
   }
+
+  fetchUnlinkedProjects = async (query?: string) => {
+    const {
+      params: {teamSlug, orgSlug},
+    } = this.props;
+
+    try {
+      const unlinkedProjects = await this.api.requestPromise(
+        `/organizations/${orgSlug}/projects/`,
+        {
+          query: {
+            query: query ? `!team:${teamSlug} ${query}` : `!team:${teamSlug}`,
+          },
+        }
+      );
+
+      this.setState({unlinkedProjects});
+    } catch {
+      //error
+    }
+  };
 
   getCurrentTab() {
     const {location} = this.props;
@@ -99,7 +128,11 @@ class TeamDetails extends AsyncComponent<Props, State> {
   handleSearch = () => {};
 
   renderTabContent = () => {
-    const {currentTab} = this.state;
+    const {currentTab, projects, unlinkedProjects, projectsPageLinks} = this.state;
+    const {organization, team} = this.props;
+
+    const access = new Set(organization.access);
+    const canWrite = access.has('org:write');
 
     switch (currentTab) {
       case TAB.TEAM_FEED:
@@ -107,7 +140,18 @@ class TeamDetails extends AsyncComponent<Props, State> {
       case TAB.TEAM_GOALS:
         return <div>Team Goals</div>;
       case TAB.PROJECTS:
-        return <div>Projects</div>;
+        return (
+          <Projects
+            organization={organization}
+            projects={projects}
+            unlinkedProjects={unlinkedProjects}
+            canWrite={canWrite}
+            api={this.api}
+            teamSlug={team.slug}
+            pageLinks={projectsPageLinks}
+            onQueryUpdate={this.fetchUnlinkedProjects}
+          />
+        );
       case TAB.MEMBERS:
         return <div>Members</div>;
       case TAB.SETTINGS:
@@ -141,6 +185,7 @@ class TeamDetails extends AsyncComponent<Props, State> {
 
     const {currentTab, projects} = this.state;
     const baseUrl = recreateRoute('', {location, routes, params, stepBack: -2});
+    const origin = baseUrl.endsWith('all-teams/') ? 'all-teams' : 'my-teams';
     const baseTabUrl = `${baseUrl}${teamSlug}/`;
 
     return (
@@ -149,7 +194,7 @@ class TeamDetails extends AsyncComponent<Props, State> {
           team={team}
           teamSlug={teamSlug}
           orgSlug={orgSlug}
-          origin={baseUrl.endsWith('all-teams/') ? 'all-teams' : 'my-teams'}
+          origin={origin}
           projects={projects}
         />
         <Body>
@@ -211,7 +256,7 @@ class TeamDetails extends AsyncComponent<Props, State> {
   }
 }
 
-export default withTeam(TeamDetails);
+export default withOrganization(withTeam(TeamDetails));
 
 const Wrapper = styled('div')`
   display: flex;
@@ -242,4 +287,5 @@ const TabContent = styled('div')`
   flex: 1;
   flex-direction: column;
   background: ${p => p.theme.white};
+  padding-bottom: ${space(4)};
 `;
