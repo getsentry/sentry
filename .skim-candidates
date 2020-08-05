@@ -1,0 +1,4 @@
+
+compatibilty (1)
+src/sentry/snuba/discover.py line 395
+[37m# TODO(evanh) This is only here for backwards [0m[33mcompatibilty[0m[37m with old queries using these deprecated[0m
