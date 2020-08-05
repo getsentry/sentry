@@ -41,7 +41,7 @@ export function getDevData(
         },
       },
       {
-        columnSpan: 2,
+        columnSpan: 3,
         type: 'issueList',
         data: {
           id: generateRandomId(),

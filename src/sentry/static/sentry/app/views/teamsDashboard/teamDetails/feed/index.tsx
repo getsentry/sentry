@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
 import space from 'app/styles/space';
 import {Team, Project, Organization} from 'app/types';
@@ -129,6 +130,60 @@ class Dashboard extends AsyncComponent<Props, State> {
     return cards;
   }
 
+  renderIssueList(cards) {
+    return (
+      <div>
+        <h3>{t('Issues List')}</h3>
+        <Container>
+          {cards.map((c, i) => (
+            <CardIssueList
+              key={c.key || c.data?.id || i.toString()}
+              index={i}
+              card={this.removeCard}
+              {...c}
+            />
+          ))}
+        </Container>
+      </div>
+    );
+  }
+
+  renderDiscoverCards(cards) {
+    return (
+      <div>
+        <h3>{`${t('Discover Queries')} (${cards.length})`}</h3>
+        <Container>
+          {cards.map((c, i) => (
+            <CardDiscover
+              key={c.key || c.data?.id || i.toString()}
+              index={i}
+              card={this.removeCard}
+              {...c}
+            />
+          ))}
+        </Container>
+      </div>
+    );
+  }
+
+  renderPerformanceCards(cards) {
+    return (
+      <div>
+        <h3>{`${t('Key Transactions')} (${cards.length})`}</h3>
+        <Container>
+          {cards.map((c, i) => (
+            <CardPerformance
+              key={c.key || c.data?.id || i.toString()}
+              index={i}
+              card={this.removeCard}
+              {...c}
+            />
+          ))}
+        </Container>
+      </div>
+    );
+  }
+
   render() {
     const data = this.getTabData();
 
@@ -139,35 +194,34 @@ class Dashboard extends AsyncComponent<Props, State> {
     const cards = this.getCardData();
 
     return (
-      <Container>
-        {/* If your add/remove is behaving weirdly, it's due to i.toString() */}
-        {cards.map((c, i) => {
-          const Component = this.getCardComponent(c.type);
-          return (
-            <Component
-              key={c.key || c.data?.id || i.toString()}
-              index={i}
+      <Content>
+        {this.renderIssueList(cards.filter(c => c.type === 'issueList'))}
+        {this.renderDiscoverCards(cards.filter(c => c.type === 'discover'))}
+        {this.renderPerformanceCards(cards.filter(c => c.type === 'performance'))}
+        <div>
+          <h3>{t('Debugging Stuff')}</h3>
+          <Container>
+            <CardAddNew
+              index={cards.length + 1}
               removeCard={this.removeCard}
-              {...c}
+              addCard={this.addCard}
+              resetLs={this.resetLs}
+              resetLsAll={this.props.resetLsAll}
             />
-          );
-        })}
-
-        <CardAddNew
-          index={cards.length + 1}
-          removeCard={this.removeCard}
-          addCard={this.addCard}
-          resetLs={this.resetLs}
-          resetLsAll={this.props.resetLsAll}
-        />
-
-        {this.props.children}
-      </Container>
+          </Container>
+        </div>
+      </Content>
     );
   }
 }
 
 export default withLocalStorage(Dashboard, TAB.DASHBOARD);
+
+const Content = styled('div')`
+  display: grid;
+  grid-template-columns: repeat(1, minmax(100px, 1fr));
+  grid-gap: ${space(3)};
+`;
 
 const Container = styled('div')`
   display: grid;
