@@ -43,6 +43,8 @@ export const transactionFieldConfig: OptionConfig = {
     'p99',
     'p100',
     'slo',
+    'countStatus',
+    'countStatusExclude',
   ],
   fields: ['transaction.duration'],
 };

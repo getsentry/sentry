@@ -291,6 +291,38 @@ export const AGGREGATIONS = {
     isSortable: true,
     multiPlotType: 'area',
   },
+  countStatusExclude: {
+    parameters: [
+      {
+        kind: 'choice',
+        choices: [
+          'aborted',
+          'already_exists',
+          'cancelled',
+          'data_loss',
+          'deadline_exceeded',
+          'failed_precondition',
+          'internal_error',
+          'invalid_argument',
+          'not_found',
+          'ok',
+          'out_of_range',
+          'permission_denied',
+          'resource_exhausted',
+          'unauthenticated',
+          'unavailable',
+          'unimplemented',
+          'unknown',
+          'unknown_error',
+        ],
+        defaultValue: 'ok',
+        required: true,
+      },
+    ],
+    outputType: 'number',
+    isSortable: true,
+    multiPlotType: 'area',
+  },
   slo: {
     parameters: [
       {

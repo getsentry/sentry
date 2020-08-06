@@ -1446,6 +1446,15 @@ FUNCTIONS = {
         "transform": "countIf(equals(transaction_status,{status_no}))",
         "result_type": "number",
     },
+    "countStatusExclude": {
+        "name": "countStatusExclude",
+        "args": [FunctionArg("status")],
+        "calculated_args": [
+            {"name": "status_no", "fn": lambda args: SPAN_STATUS_NAME_TO_CODE.get(args["status"])}
+        ],
+        "transform": "countIf(notEquals(transaction_status,{status_no}))",
+        "result_type": "number",
+    },
 }
 
 

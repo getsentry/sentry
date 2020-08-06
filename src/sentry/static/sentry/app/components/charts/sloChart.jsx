@@ -51,11 +51,11 @@ export default class SloChart extends React.Component {
           data: data.map(dataObj => [getDataItemName(dataObj), getValue(dataObj)]),
         })
       ),
-      ...series.map(({data}) =>
+      ...series.map(({seriesName, data}) =>
         AreaSeries({
           barCategoryGap: 0,
-          name: 'other',
-          color: theme.alert.error.background,
+          name: `not ${seriesName}`,
+          color: '#EA7282',
           lineStyle: {width: 1},
           areaStyle: {opacity: 1},
           smooth: false,
@@ -78,7 +78,7 @@ export default class SloChart extends React.Component {
             // Filter series that have 0 counts
             const date =
               `${series.length &&
-                moment(series[0].axisValue).format('MMM D, YYYY')}<br />` || '';
+                moment(series[0].data[0]).format('MMM D, YYYY HH:mm')}<br />` || '';
 
             return [
               '<div class="tooltip-series">',

@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from contextlib import contextmanager
+import math
 import sentry_sdk
 import six
 from rest_framework.exceptions import PermissionDenied
@@ -20,7 +21,6 @@ from sentry.api.serializers.snuba import SnubaTSResultSerializer
 from sentry.models.project import Project
 from sentry.models.group import Group
 from sentry.snuba import discover
-from sentry.snuba.discover import resolve_discover_column
 from sentry.utils.compat import map
 from sentry.utils.dates import get_rollup_from_request
 from sentry.utils import snuba
@@ -172,6 +172,11 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 row["transaction.status"] = SPAN_STATUS_CODE_TO_NAME.get(row["transaction.status"])
 
         fields = request.GET.getlist("field")
+        for result in results:
+            for key in result.keys():
+                value = result[key]
+                if isinstance(value, float) and (math.isnan(value) or math.isinf(value)):
+                    result[key] = None
         if "issue" in fields:  # Look up the short ID and return that in the results
             issue_ids = set(row.get("issue.id") for row in results)
             issues = Group.issues_mapping(issue_ids, project_ids, organization)

@@ -2,6 +2,7 @@ from __future__ import absolute_import, division
 
 import six
 import itertools
+import math
 from functools import reduce, partial
 from operator import or_
 
@@ -312,7 +313,10 @@ class SnubaTSResultSerializer(BaseSnubaSerializer):
         for k, v in data:
             row = []
             for r in v:
-                item = {"count": r.get(column, 0 if not column.startswith("slo") else 1)}
+                value = r.get(column, 0 if not column.startswith("slo") else 1)
+                if isinstance(value, float) and (math.isnan(value) or math.isinf(value)):
+                    value = 0 if not column.startswith("slo") else 1
+                item = {"count": value}
                 if self.lookup:
                     value = value_from_row(r, self.lookup.columns)
                     item[self.lookup.name] = (attrs.get(value),)

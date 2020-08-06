@@ -342,7 +342,11 @@ class EventsChart extends React.Component<Props> {
       previousName ?? yAxis ? t('previous %s', yAxis) : undefined;
     const currentSeriesName = currentName ?? yAxis;
 
-    const intervalVal = showDaily ? '1d' : interval || getInterval(this.props, true);
+    const intervalVal = showDaily
+      ? '1d'
+      : interval || yAxis.startsWith('slo')
+      ? '1h'
+      : interval || getInterval(this.props, true);
 
     let chartImplementation = ({
       zoomRenderProps,
