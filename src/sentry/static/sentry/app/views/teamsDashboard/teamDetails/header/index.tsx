@@ -8,7 +8,7 @@ import Avatar from 'app/components/avatar';
 import Breadcrumbs from 'app/components/breadcrumbs';
 import space from 'app/styles/space';
 import Button from 'app/components/button';
-import {IconMegaphone} from 'app/icons';
+import {IconMegaphone, IconEdit} from 'app/icons';
 
 import Footer from './footer';
 
@@ -75,7 +75,10 @@ class TeamDetailsHeader extends React.Component<Props, State> {
           )}
         </Header>
         <Body>
-          <Avatar team={team} size={90} />
+          <AvatarWrapper>
+            <Avatar team={team} size={90} />
+            <AvatarEditButton size="xsmall" icon={<IconEdit size="16px" />} />
+          </AvatarWrapper>
           <DetailsContainer>
             <Details>
               <Title>{capitalize(team.slug)}</Title>
@@ -130,4 +133,21 @@ const Title = styled('h5')`
   font-weight: 400;
   margin-bottom: ${space(1)};
   color: ${p => p.theme.gray700};
+`;
+
+const AvatarWrapper = styled('div')`
+  position: relative;
+`;
+
+const AvatarEditButton = styled(Button)`
+  position: absolute;
+  transform: translate(50%, 50%);
+  border-radius: 50%;
+  bottom: ${space(1.5)};
+  right: ${space(1.5)};
+  height: 30px;
+  width: 30px;
+  :hover {
+    background: ${p => p.theme.gray200};
+  }
 `;
