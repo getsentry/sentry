@@ -169,7 +169,7 @@ class TeamDetails extends React.Component<Props, State> {
           projects={projects}
         />
         <Body>
-          <StyledNavTabs>
+          <NavTabs>
             <ListLink
               to={`${baseTabUrl}team-feed/`}
               index
@@ -214,7 +214,7 @@ class TeamDetails extends React.Component<Props, State> {
             >
               {t('Settings')}
             </ListLink>
-          </StyledNavTabs>
+          </NavTabs>
           <TabContent>{this.renderTabContent()}</TabContent>
         </Body>
       </StyledPageContent>
@@ -258,9 +258,6 @@ const Body = styled('div')`
   display: flex;
   flex-direction: column;
 `;
-
-// TODO: do we need this?
-const StyledNavTabs = styled(NavTabs)``;
 
 const TabContent = styled('div')`
   display: flex;
