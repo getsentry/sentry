@@ -94,8 +94,11 @@ def _match_commits_path(commit_file_changes, path, lineno=None):
         if score > 0:
             # Raise the score if the line range changed in this commit
             # contains the lineno from the frame
-            try:
-                file_line_change = CommitFileLineChange.objects.get(commitfilechange=file_change)
+            for file_line_change in CommitFileLineChange.objects.filter(
+                commitfilechange=file_change,
+                line_start__lte=lineno if lineno is not None else -1,
+                line_end__gte=lineno if lineno is not None else -1,
+            ):
                 line_score = int(file_line_change.line_start <= lineno <= file_line_change.line_end)
 
                 exact_line_score = int(
@@ -103,7 +106,7 @@ def _match_commits_path(commit_file_changes, path, lineno=None):
                 )
 
                 if exact_line_score:
-                    # Ensure it can rank higher than any files scored
+                    # Ensure it can rank higher than any remaining files scored
                     exact_line_score += (len(commit_file_changes) - i) + best_exact_line_score
                     best_exact_line_score = exact_line_score
 
@@ -116,8 +119,6 @@ def _match_commits_path(commit_file_changes, path, lineno=None):
                         score_reason = (
                             "Commit modified the line range contained in the runtime path."
                         )
-            except CommitFileLineChange.DoesNotExist:
-                pass
 
         if score > best_score:
             # reset matches for better match.
