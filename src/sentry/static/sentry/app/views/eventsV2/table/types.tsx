@@ -33,6 +33,7 @@ export enum FieldValueKind {
   FIELD = 'field',
   FUNCTION = 'function',
   COLUMN = 'column',
+  CHOICE = 'choice',
 }
 
 // Payload of select options in the column editor.
@@ -59,7 +60,13 @@ export type FieldValue =
       kind: FieldValueKind.COLUMN;
       meta: {
         name: string;
-        dataType: AggregateParameter[];
+        dataType: ColumnType;
+      };
+    }
+  | {
+      kind: FieldValueKind.CHOICE;
+      meta: {
+        name: string;
       };
     }
   | {

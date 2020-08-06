@@ -1437,10 +1437,13 @@ FUNCTIONS = {
         "transform": u"divide({dividend},{divisor})",
         "result_type": "percentage",
     },
-    "countIf": {
-        "name": "countIf",
-        "args": [FunctionArg("value")],
-        "transform": "countIf(equals(transaction_status,{value}))",
+    "countStatus": {
+        "name": "countStatus",
+        "args": [FunctionArg("status")],
+        "calculated_args": [
+            {"name": "status_no", "fn": lambda args: SPAN_STATUS_NAME_TO_CODE.get(args["status"])}
+        ],
+        "transform": "countIf(equals(transaction_status,{status_no}))",
         "result_type": "number",
     },
 }
@@ -1458,6 +1461,11 @@ def is_function(field):
 
 
 def get_function_alias(field):
+    if field.startswith("slo"):
+        slo_columns = field[4:-1].split(",")
+        field = "slo({})".format(
+            ",".join([get_function_alias(slo_column) for slo_column in slo_columns])
+        )
     match = FUNCTION_PATTERN.search(field)
     if match is None:
         return field
@@ -1664,20 +1672,31 @@ def resolve_field_list(fields, snuba_filter, auto_fields=True):
     for field in fields:
         if isinstance(field, six.string_types) and field.strip() == "":
             continue
+        if field.startswith("slo"):
+            slo_columns = field[4:-1].split(",")
+            slo_column = []
+            for col in slo_columns:
+                if not col.endswith(")"):
+                    col += "()"
+                column_additions, agg_additions = resolve_field(col, snuba_filter.date_params)
+
+                if column_additions:
+                    columns.extend([column for column in column_additions if column not in columns])
+                    slo_column.append(column_additions[0])
+
+                if agg_additions:
+                    aggregations.extend(agg_additions)
+                    slo_column.append(agg_additions[0][-1])
+            field = "slo({})".format(",".join(slo_column))
+
         column_additions, agg_additions = resolve_field(field, snuba_filter.date_params)
         if column_additions:
             columns.extend([column for column in column_additions if column not in columns])
 
         if agg_additions:
-            aggregations.extend(agg_additions)
-
-            if agg_additions[0][-1].startswith("slo"):
-                match = is_function(agg_additions[0][0])
-                for agg in [
-                    c.strip() for c in match.group("columns").split(",") if len(c.strip()) > 0
-                ]:
-                    _, additions = resolve_field(agg + "()", snuba_filter.date_params)
-                    aggregations.extend(additions)
+            aggregations.extend(
+                [agg_addition for agg_addition in agg_additions if agg_addition not in aggregations]
+            )
 
     rollup = snuba_filter.rollup
     if not rollup and auto_fields:

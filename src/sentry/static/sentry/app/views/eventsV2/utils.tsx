@@ -491,19 +491,20 @@ export function generateFieldOptions({
   if (columns !== undefined && columns !== null) {
     columns.forEach(column => {
       if (column.kind === 'function') {
-        fieldOptions[`column:${column.function[0]}`] = {
-          label: `${column.function[0]}(${column.function
-            .filter(x => x)
-            .slice(1)
-            .join(',')})`,
-          value: {
-            kind: FieldValueKind.COLUMN,
-            meta: {
-              name: column.function[0],
-              dataType: AGGREGATIONS[column.function[0]].outputType,
+        const columnFunctions = column.function.filter(x => x);
+        if (columnFunctions.length > 1) {
+          const label = `${column.function[0]}(${columnFunctions.slice(1).join(',')})`;
+          fieldOptions[`column:${label}`] = {
+            label,
+            value: {
+              kind: FieldValueKind.COLUMN,
+              meta: {
+                name: label,
+                dataType: AGGREGATIONS[column.function[0]].outputType,
+              },
             },
-          },
-        };
+          };
+        }
       }
     });
   }

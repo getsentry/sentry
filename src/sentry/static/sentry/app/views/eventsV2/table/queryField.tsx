@@ -33,6 +33,12 @@ type ParameterDescription =
       required: boolean;
     }
   | {
+      kind: 'choice';
+      value: FieldValue | null;
+      options: SelectValue<FieldValue>[];
+      required: boolean;
+    }
+  | {
       kind: 'column';
       value: FieldValue | null;
       options: SelectValue<FieldValue>[];
@@ -164,9 +170,14 @@ class QueryField extends React.Component<Props> {
       return null;
     }
 
-    const fieldName = `column:${name}`;
-    if (fieldOptions[fieldName]) {
-      return fieldOptions[fieldName].value;
+    const columnName = `column:${name}`;
+    if (fieldOptions[columnName]) {
+      return fieldOptions[columnName].value;
+    }
+
+    const functionName = `function:${name}`;
+    if (fieldOptions[functionName]) {
+      return fieldOptions[functionName].value;
     }
 
     return null;
@@ -237,15 +248,19 @@ class QueryField extends React.Component<Props> {
           if (param.kind === 'function') {
             const fieldParameter = this.getFunctionValue(fieldValue.function[index + 1]);
             fieldOptions = this.appendFieldIfUnknown(fieldOptions, fieldParameter);
+            const options = Object.values(fieldOptions).filter(({value}) => {
+              return (
+                (value.kind === FieldValueKind.COLUMN ||
+                  (value.kind === FieldValueKind.FUNCTION &&
+                    value.meta.parameters.length === 0)) &&
+                !value.meta.name.startsWith(fieldValue.function[0])
+              );
+            });
             return {
               kind: 'field',
               value: fieldParameter,
               required: param.required,
-              options: Object.values(fieldOptions).filter(
-                ({value}) =>
-                  value.kind === FieldValueKind.COLUMN &&
-                  value.meta.name !== fieldValue.function[0]
-              ),
+              options,
             };
           } else if (param.kind === 'column') {
             const fieldParameter = this.getFieldOrTagValue(fieldValue.function[1]);
@@ -259,6 +274,33 @@ class QueryField extends React.Component<Props> {
                   (value.kind === FieldValueKind.FIELD ||
                     value.kind === FieldValueKind.TAG) &&
                   param.columnTypes.includes(value.meta.dataType)
+              ),
+            };
+          } else if (param.kind === 'choice') {
+            param.choices.forEach(choice => {
+              fieldOptions[`choice:${choice}`] = {
+                label: choice,
+                value: {
+                  kind: FieldValueKind.CHOICE,
+                  meta: {
+                    name: choice,
+                  },
+                },
+              };
+            });
+            const columnName = `choice:${fieldValue.function[1]}`;
+            let fieldParameter;
+            if (fieldOptions[columnName]) {
+              fieldParameter = fieldOptions[columnName].value;
+            } else {
+              fieldParameter = null;
+            }
+            return {
+              kind: 'choice',
+              value: fieldParameter,
+              required: param.required,
+              options: Object.values(fieldOptions).filter(
+                ({value}) => value.kind === FieldValueKind.CHOICE
               ),
             };
           }
@@ -297,7 +339,11 @@ class QueryField extends React.Component<Props> {
 
   renderParameterInputs(parameters: ParameterDescription[]): React.ReactNode[] {
     const inputs = parameters.map((descriptor: ParameterDescription, index: number) => {
-      if (descriptor.kind === 'field' || (descriptor.kind === 'column' && descriptor.options.length > 0)) {
+      if (
+        descriptor.kind === 'field' ||
+        ((descriptor.kind === 'column' || descriptor.kind === 'choice') &&
+          descriptor.options.length > 0)
+      ) {
         return (
           <SelectControl
             key={'select:' + index}

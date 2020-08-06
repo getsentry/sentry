@@ -167,7 +167,8 @@ function incompatibleYAxis(eventView: EventView): boolean {
   // Allow empty parameters, allow all numeric parameters - eg. apdex(300)
   const aggregation: Aggregation = AGGREGATIONS[column.function[0]];
   const isNumericParameter = aggregation.parameters.some(
-    param => param.kind === 'value' && param.dataType === 'number'
+    param =>
+      (param.kind === 'value' && param.dataType === 'number') || param.kind === 'function'
   );
   const invalidParameter =
     !isNumericParameter && !['', ...yAxisConfig.fields].includes(column.function[1]);

@@ -12,7 +12,7 @@ import ChartZoom from 'app/components/charts/chartZoom';
 import AreaChart from 'app/components/charts/areaChart';
 import BarChart from 'app/components/charts/barChart';
 import LineChart from 'app/components/charts/lineChart';
-import PercentageAreaChart from 'app/components/charts/percentageAreaChart';
+import SloChart from 'app/components/charts/sloChart';
 import TransitionChart from 'app/components/charts/transitionChart';
 import ReleaseSeries from 'app/components/charts/releaseSeries';
 import {IconWarning} from 'app/icons';
@@ -92,7 +92,7 @@ class Chart extends React.Component<ChartProps, State> {
   getChartComponent() {
     const {showDaily, timeseriesData, yAxis} = this.props;
     if (yAxis.startsWith('slo')) {
-      return PercentageAreaChart;
+      return SloChart;
     }
     if (showDaily) {
       return BarChart;
