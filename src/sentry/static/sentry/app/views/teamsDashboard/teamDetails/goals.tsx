@@ -1,5 +1,6 @@
 import React from 'react';
 import {Location} from 'history';
+import styled from '@emotion/styled';
 
 import {PanelTable} from 'app/components/panels';
 import DateTime from 'app/components/dateTime';
@@ -9,6 +10,9 @@ import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import ProgressRing from 'app/components/progressRing';
 import {t} from 'app/locale';
+import GlobalModal from 'app/components/globalModal';
+import Button from 'app/components/button';
+import {openModal} from 'app/actionCreators/modal';
 
 type Props = {
   goals?: Array<Goal>;
@@ -120,35 +124,59 @@ class Goals extends React.Component<Props, State> {
 
   render() {
     return (
-      <PanelTable
-        headers={[
-          t('Title'),
-          t('Transaction Name'),
-          t('Objective'),
-          t('Due date'),
-          t('Progress'),
-          t('Description'),
-          t('Created By'),
-        ]}
-        emptyMessage={t('This team has no goals')}
-      >
-        {goals.map(goal => (
-          <React.Fragment key={goal.id}>
-            <div>{goal.title}</div>
-            <div>{goal.transactionName}</div>
-            <div>{`${goal.aggregateObjective} ${goal.comparisonOperator} ${goal.valueObjective}`}</div>
-            <DateTime date={goal.duedate} shortDate />
-            <div>
-              <ProgressRing value={goal.progress} size={40} barWidth={6} />
-            </div>
-            <div>{goal.description || '-'}</div>
-            <div>{goal.owner.user.name}</div>
-          </React.Fragment>
-        ))}
-        {this.calculateGoals()}
-      </PanelTable>
+      <React.Fragment>
+        <HeaderContainer>
+          <Button
+            onClick={() =>
+              openModal(({closeModal, Header, Body}) => (
+                <div>
+                  <Header>Modal Header</Header>
+                  <Body>
+                    <div>Test Modal Body</div>
+                    <Button onClick={closeModal}>Close</Button>
+                  </Body>
+                </div>
+              ))
+            }
+          >
+            Add Goal
+          </Button>
+        </HeaderContainer>
+        <PanelTable
+          headers={[
+            t('Title'),
+            t('Transaction Name'),
+            t('Objective'),
+            t('Due date'),
+            t('Progress'),
+            t('Description'),
+            t('Created By'),
+          ]}
+          emptyMessage={t('This team has no goals')}
+        >
+          {goals.map(goal => (
+            <React.Fragment key={goal.id}>
+              <div>{goal.title}</div>
+              <div>{goal.transactionName}</div>
+              <div>{`${goal.aggregateObjective} ${goal.comparisonOperator} ${goal.valueObjective}`}</div>
+              <DateTime date={goal.duedate} shortDate />
+              <div>
+                <ProgressRing value={goal.progress} size={40} barWidth={6} />
+              </div>
+              <div>{goal.description || '-'}</div>
+              <div>{goal.owner.user.name}</div>
+            </React.Fragment>
+          ))}
+          {this.calculateGoals()}
+        </PanelTable>
+        <GlobalModal />
+      </React.Fragment>
     );
   }
 }
+
+const HeaderContainer = styled('div')`
+  margin-bottom: 8px;
+`;
 
 export default Goals;
