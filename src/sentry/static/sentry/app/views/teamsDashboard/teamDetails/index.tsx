@@ -92,11 +92,6 @@ class TeamDetails extends React.Component<Props, State> {
     };
   }
 
-  componentDidMount() {
-    // I have no excuses other than I need this to work
-    // UNSAFE_componentWillMount();
-  }
-
   componentDidUpdate(prevProps: Props) {
     if (!prevProps.team?.members?.length && this.props.team?.members?.length) {
       this.getMembers();
