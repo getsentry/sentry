@@ -34,10 +34,10 @@ type Props = AsyncComponent['props'] & {
   organization: Organization;
   canWrite: boolean;
   config: Config;
+  onUpdateMembers: (newMembers: Array<Member>) => void;
 };
 
 type State = AsyncComponent['state'] & {
-  members: Array<Member>;
   orgMemberList: Array<Member>;
   isDropdownBusy: boolean;
   query: string;
@@ -48,27 +48,19 @@ class Members extends AsyncComponent<Props, State> {
     return {
       ...super.getDefaultState(),
       orgMembersList: [],
-      members: this.props.members || [],
       isDropdownBusy: false,
       query: '',
     };
   }
 
-  componentDidUpdate(prevProps: Props, prevState: State) {
+  componentDidUpdate(_prevProps: Props, prevState: State) {
     if (prevState.query !== this.state.query) {
       this.fetchData();
-    }
-    if (prevProps.members.length === 0 && this.props.members.length > 0) {
-      this.getMembers();
     }
 
     if (!isEqual(prevState.orgMembersList, this.state.orgMemberList)) {
       this.setDropDownStatus();
     }
-  }
-
-  getMembers() {
-    this.setState({members: this.props.members});
   }
 
   getEndpoints = (): ReturnType<AsyncComponent['getEndpoints']> => {
@@ -93,7 +85,7 @@ class Members extends AsyncComponent<Props, State> {
   }
 
   handleRemoveMember = (member: Member) => () => {
-    const {api, teamSlug, organization} = this.props;
+    const {api, members, teamSlug, organization, onUpdateMembers} = this.props;
 
     leaveTeam(
       api,
@@ -104,9 +96,8 @@ class Members extends AsyncComponent<Props, State> {
       },
       {
         success: () => {
-          this.setState(prevState => ({
-            members: prevState.members.filter(m => m.id !== member.id),
-          }));
+          const newMembers = members.filter(m => m.id !== member.id);
+          onUpdateMembers(newMembers);
           addSuccessMessage(t('Successfully removed member from team.'));
         },
         error: () => {
@@ -119,7 +110,7 @@ class Members extends AsyncComponent<Props, State> {
   };
 
   handleAddTeamMember = (memberId: Member['id']) => {
-    const {organization, teamSlug} = this.props;
+    const {organization, teamSlug, onUpdateMembers, members} = this.props;
     const {orgMembersList} = this.state;
 
     // Reset members list after adding member to team
@@ -135,14 +126,13 @@ class Members extends AsyncComponent<Props, State> {
       {
         success: () => {
           const memberData = orgMembersList.find(orgMember => orgMember.id === memberId);
+
           if (!memberData) {
             return;
           }
 
-          this.setState(prevState => ({
-            members: [...prevState.members, memberData],
-          }));
-
+          const newMembers = [...members, memberData];
+          onUpdateMembers(newMembers);
           addSuccessMessage(t('Successfully added member in the team.'));
         },
         error: () => {
@@ -167,8 +157,8 @@ class Members extends AsyncComponent<Props, State> {
   };
 
   renderDropdown = () => {
-    const {organization, canWrite, teamSlug} = this.props;
-    const {members, isDropdownBusy, orgMembersList} = this.state;
+    const {organization, canWrite, teamSlug, members} = this.props;
+    const {isDropdownBusy, orgMembersList} = this.state;
 
     const existingMembers = new Set(members.map(member => member.id));
 
@@ -231,8 +221,7 @@ class Members extends AsyncComponent<Props, State> {
   };
 
   render() {
-    const {canWrite, organization, config} = this.props;
-    const {members} = this.state;
+    const {canWrite, organization, config, members} = this.props;
 
     return (
       <Panel>

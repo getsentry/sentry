@@ -2,10 +2,11 @@ import React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
+import isEqual from 'lodash/isEqual';
 
 import Badge from 'app/components/badge';
 import {t} from 'app/locale';
-import {Team, Organization} from 'app/types';
+import {Team, Organization, Member} from 'app/types';
 import {sortProjects} from 'app/utils';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {PageContent} from 'app/styles/organization';
@@ -43,6 +44,7 @@ type Props = RouteComponentProps<{orgSlug: string; teamSlug: string}, {}> & {
 type State = {
   searchTerm: string;
   currentTab: TAB;
+  members: Array<Member>;
 };
 
 const getCurrentTab = (location: Location): TAB => {
@@ -74,6 +76,7 @@ class TeamDetails extends React.Component<Props, State> {
   state: State = {
     searchTerm: '',
     currentTab: TAB.TEAM_FEED,
+    members: [],
   };
 
   static getDerivedStateFromProps(props: Props, state: State): State {
@@ -87,13 +90,27 @@ class TeamDetails extends React.Component<Props, State> {
 
   componentDidMount() {
     // I have no excuses other than I need this to work
-    // super.UNSAFE_componentWillMount();
+    // UNSAFE_componentWillMount();
+  }
+
+  componentDidUpdate(prevProps: Props) {
+    if (!prevProps.team?.members && this.props.team?.members) {
+      this.getMembers();
+    }
+  }
+
+  getMembers() {
+    this.setState({members: this.props.team.members || []});
   }
 
   handleSearch = () => {};
 
+  handleUpdateMembers = (newMembers: Array<Member>) => {
+    this.setState({members: newMembers});
+  };
+
   renderTabContent = () => {
-    const {currentTab} = this.state;
+    const {currentTab, members} = this.state;
     const {organization, team} = this.props;
 
     const access = new Set(organization.access);
@@ -120,7 +137,8 @@ class TeamDetails extends React.Component<Props, State> {
             organization={organization}
             teamSlug={team.slug}
             canWrite={canWrite}
-            members={team.members || []}
+            members={members}
+            onUpdateMembers={this.handleUpdateMembers}
           />
         );
       case TAB.SETTINGS:
@@ -152,12 +170,11 @@ class TeamDetails extends React.Component<Props, State> {
       );
     }
 
-    const {currentTab} = this.state;
+    const {currentTab, members} = this.state;
     const projects = team.projects;
     const baseUrl = recreateRoute('', {location, routes, params, stepBack: -2});
     const origin = baseUrl.endsWith('all-teams/') ? 'all-teams' : 'my-teams';
     const baseTabUrl = `${baseUrl}${teamSlug}/`;
-    const {members = []} = team;
 
     return (
       <StyledPageContent>
@@ -228,10 +245,8 @@ class TeamDetails extends React.Component<Props, State> {
 
     return (
       <LocalStorageContext.Provider>
-        <React.Fragment>
-          <SentryDocumentTitle title={t('Team %s', teamSlug)} objSlug={orgSlug} />
-          <Wrapper>{this.renderContent()}</Wrapper>
-        </React.Fragment>
+        <SentryDocumentTitle title={t('Team %s', teamSlug)} objSlug={orgSlug} />
+        <Wrapper>{this.renderContent()}</Wrapper>
       </LocalStorageContext.Provider>
     );
   }
