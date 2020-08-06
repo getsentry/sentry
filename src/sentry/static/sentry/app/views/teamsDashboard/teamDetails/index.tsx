@@ -5,7 +5,7 @@ import {Location} from 'history';
 
 import Badge from 'app/components/badge';
 import {t} from 'app/locale';
-import {Team, Organization, Member} from 'app/types';
+import {Team, Organization, Member, Project} from 'app/types';
 import {sortProjects} from 'app/utils';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {PageContent} from 'app/styles/organization';
@@ -44,6 +44,7 @@ type State = {
   searchTerm: string;
   currentTab: TAB;
   members: Array<Member>;
+  projects: Array<Project>;
 };
 
 const getCurrentTab = (location: Location): TAB => {
@@ -76,6 +77,7 @@ class TeamDetails extends React.Component<Props, State> {
     searchTerm: '',
     currentTab: TAB.TEAM_FEED,
     members: [],
+    projects: [],
   };
 
   static getDerivedStateFromProps(props: Props, state: State): State {
@@ -93,13 +95,21 @@ class TeamDetails extends React.Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    if (!prevProps.team?.members && this.props.team?.members) {
+    if (!prevProps.team?.members?.length && this.props.team?.members?.length) {
       this.getMembers();
+    }
+
+    if (!prevProps.team?.projects?.length && this.props.team?.projects?.length) {
+      this.getProjects();
     }
   }
 
   getMembers() {
-    this.setState({members: this.props.team.members || []});
+    this.setState({projects: this.props.team.projects});
+  }
+
+  getProjects() {
+    this.setState({members: this.props.team.members});
   }
 
   handleSearch = () => {};
@@ -109,11 +119,10 @@ class TeamDetails extends React.Component<Props, State> {
   };
 
   renderTabContent = () => {
-    const {currentTab, members} = this.state;
+    const {currentTab, members, projects} = this.state;
     const {organization, team} = this.props;
 
     const access = new Set(organization.access);
-    const projects = team.projects;
 
     switch (currentTab) {
       case TAB.TEAM_FEED:
@@ -169,8 +178,7 @@ class TeamDetails extends React.Component<Props, State> {
       );
     }
 
-    const {currentTab, members} = this.state;
-    const projects = team.projects;
+    const {currentTab, members, projects} = this.state;
     const baseUrl = recreateRoute('', {location, routes, params, stepBack: -2});
     const origin = baseUrl.endsWith('all-teams/') ? 'all-teams' : 'my-teams';
     const baseTabUrl = `${baseUrl}${teamSlug}/`;
