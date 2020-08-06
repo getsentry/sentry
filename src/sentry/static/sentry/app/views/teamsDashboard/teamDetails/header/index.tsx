@@ -13,6 +13,9 @@ import {openModal} from 'app/actionCreators/modal';
 
 import Footer from './footer';
 import ModalEditAvatar from './modalEditAvatar';
+import withLocalStorage, {InjectedLocalStorageProps} from '../../withLocalStorage';
+import {TAB} from '../../utils';
+import {getTeamDescription} from '../utils';
 
 type Props = {
   team: Team;
@@ -21,7 +24,7 @@ type Props = {
   origin: 'my-teams' | 'all-teams';
   projects: Array<Project>;
   canWrite: boolean;
-};
+} & InjectedLocalStorageProps;
 
 type State = {
   crumbs: Array<any>;
@@ -76,7 +79,8 @@ class TeamDetailsHeader extends React.Component<Props, State> {
   };
 
   render() {
-    const {team, projects} = this.props;
+    const {team, projects, data} = this.props;
+    const teamDescription = getTeamDescription(team.slug, data);
 
     return (
       <Wrapper>
@@ -102,7 +106,7 @@ class TeamDetailsHeader extends React.Component<Props, State> {
           <DetailsContainer>
             <Details>
               <Title>{capitalize(team.slug)}</Title>
-              <div>This is copy about the team.</div>
+              <div>{teamDescription ?? ''}</div>
             </Details>
           </DetailsContainer>
         </Body>
@@ -117,7 +121,7 @@ class TeamDetailsHeader extends React.Component<Props, State> {
   }
 }
 
-export default TeamDetailsHeader;
+export default withLocalStorage(TeamDetailsHeader, TAB.DASHBOARD);
 
 const Wrapper = styled('div')`
   display: grid;
