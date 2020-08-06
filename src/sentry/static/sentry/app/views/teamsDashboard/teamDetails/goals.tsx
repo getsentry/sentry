@@ -160,7 +160,11 @@ class Goals extends React.Component<Props, State> {
               </div>
               <div>{goal.transactionName}</div>
               <div>{`${goal.aggregateObjective} ${goal.comparisonOperator} ${goal.valueObjective}`}</div>
-              <div>{goal.aggregateObjective.startsWith("slo") ? formatPercentage(currentValue) : currentValue }</div>
+              <div>
+                {goal.aggregateObjective.startsWith('slo')
+                  ? formatPercentage(currentValue)
+                  : currentValue}
+              </div>
               <div>
                 {/*<ProgressRing value={progress * 100} size={40} barWidth={6} />*/}
                 <GoalSparkline
