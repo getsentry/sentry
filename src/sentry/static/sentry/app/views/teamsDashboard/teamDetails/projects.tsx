@@ -1,9 +1,13 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import {t} from 'app/locale';
 import {Project, Organization} from 'app/types';
 import ProjectsStatsStore from 'app/stores/projectsStatsStore';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import ProjectCard from 'app/views/projectsDashboard/projectCard';
+import {IconFlag} from 'app/icons';
+import {Panel, PanelHeader, PanelBody} from 'app/components/panels';
 
 type Props = {
   projects: Array<Project>;
@@ -17,8 +21,16 @@ class Projects extends React.Component<Props> {
     ProjectsStatsStore.reset();
   }
 
-  render() {
+  renderContent() {
     const {projects, organization, hasAccess} = this.props;
+
+    if (projects.length === 0) {
+      return (
+        <EmptyMessage icon={<IconFlag size="xl" />} size="large">
+          {t('This team has no projects')}
+        </EmptyMessage>
+      );
+    }
 
     return (
       <Wrapper>
@@ -33,6 +45,17 @@ class Projects extends React.Component<Props> {
       </Wrapper>
     );
   }
+
+  render() {
+    return (
+      <Panel>
+        <PanelHeader>
+          <div>{t('Projects')}</div>
+        </PanelHeader>
+        <PanelBody>{this.renderContent()}</PanelBody>
+      </Panel>
+    );
+  }
 }
 
 export default Projects;
@@ -40,5 +63,4 @@ export default Projects;
 const Wrapper = styled('div')`
   display: flex;
   flex-wrap: wrap;
-  margin: -10px;
 `;

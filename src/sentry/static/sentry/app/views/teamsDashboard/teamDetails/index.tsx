@@ -96,10 +96,7 @@ class TeamDetails extends React.Component<Props, State> {
     const {currentTab} = this.state;
     const {organization, team} = this.props;
 
-    console.log('team', team);
-
     const access = new Set(organization.access);
-    const canWrite = access.has('org:write') || access.has('team:admin');
     const projects = team.projects;
 
     switch (currentTab) {
@@ -117,15 +114,14 @@ class TeamDetails extends React.Component<Props, State> {
           />
         );
       case TAB.MEMBERS:
+        const canWrite = access.has('org:write') || access.has('team:admin');
         return (
-          // <Members
-          //   organization={organization}
-          //   // api={this.api}
-          //   teamSlug={team.slug}
-          //   canWrite={canWrite}
-          //   members={team.members}
-          // />
-          <div>Members</div>
+          <Members
+            organization={organization}
+            teamSlug={team.slug}
+            canWrite={canWrite}
+            members={team.members || []}
+          />
         );
       case TAB.SETTINGS:
         return <Settings organization={organization} team={team} />;

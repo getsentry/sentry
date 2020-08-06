@@ -6,6 +6,7 @@ import AvatarList from 'app/components/avatar/avatarList';
 import {User, Project, Environment} from 'app/types';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
 import {IconArrow} from 'app/icons';
+import space from 'app/styles/space';
 
 import FooterItem from './footerItem';
 import {getSelectedEnvironments} from '../utils';
@@ -80,9 +81,7 @@ const GoalContainer = styled('div')`
 
 const StyledAvatarList = styled(AvatarList)`
   flex-direction: row;
-  .avatar {
-    margin-left: 0;
-  }
+  margin-left: ${space(1)};
 `;
 
 const CurrentGoalNumber = styled('div')`

@@ -61,7 +61,6 @@ class TeamDetailsHeader extends React.Component<Props, State> {
 
   render() {
     const {team, projects} = this.props;
-    const {members = []} = team;
 
     return (
       <Wrapper>
@@ -86,7 +85,7 @@ class TeamDetailsHeader extends React.Component<Props, State> {
         </Body>
         <Footer
           teamSlug={team.slug}
-          users={members as any}
+          users={(team.members || []) as Array<any>}
           projects={projects}
           enviroments={[]}
         />
