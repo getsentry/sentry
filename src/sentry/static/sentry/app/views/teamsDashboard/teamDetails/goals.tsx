@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import isFinite from 'lodash/isFinite';
 
 import {PanelTable, Panel, PanelItem} from 'app/components/panels';
+import DiscoverButton from 'app/components/discoverButton';
 import DateTime from 'app/components/dateTime';
 import {Goal, Member, Organization, Project, SelectValue} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
@@ -127,7 +128,15 @@ class Goals extends React.Component<Props, State> {
 
           return (
             <React.Fragment key={goal.id}>
-              <div>{goal.title}</div>
+              <div>
+                <DiscoverButton
+                  to={eventView.getResultsViewUrlTarget(organization.slug)}
+                  size="small"
+                  data-test-id="discover-open"
+                >
+                  {goal.title}
+                </DiscoverButton>
+              </div>
               <div>{goal.transactionName}</div>
               <div>{`${goal.aggregateObjective} ${goal.comparisonOperator} ${goal.valueObjective}`}</div>
               <div>{`${currentValue}`}</div>
