@@ -39,6 +39,6 @@ const CardWrapper = styled(AppComponentCard)<{columnSpan: number}>`
   height: 200px; /* Allow taller rows based on content */
   grid-column: auto / span ${p => p.columnSpan || 1};
 
-  overflow-y: scroll;
+  overflow-y: auto;
   overflow-x: hidden;
 `;
