@@ -9,8 +9,10 @@ import Breadcrumbs from 'app/components/breadcrumbs';
 import space from 'app/styles/space';
 import Button from 'app/components/button';
 import {IconMegaphone, IconEdit} from 'app/icons';
+import {openModal} from 'app/actionCreators/modal';
 
 import Footer from './footer';
+import ModalEditAvatar from './modalEditAvatar';
 
 type Props = {
   team: Team;
@@ -59,6 +61,10 @@ class TeamDetailsHeader extends React.Component<Props, State> {
     this.setState({crumbs});
   }
 
+  handleOpenEditAvatarModal = () => {
+    openModal(modalProps => <ModalEditAvatar {...modalProps} />);
+  };
+
   render() {
     const {team, projects} = this.props;
 
@@ -77,7 +83,11 @@ class TeamDetailsHeader extends React.Component<Props, State> {
         <Body>
           <AvatarWrapper>
             <Avatar team={team} size={90} />
-            <AvatarEditButton size="xsmall" icon={<IconEdit size="16px" />} />
+            <AvatarEditButton
+              size="xsmall"
+              icon={<IconEdit size="16px" />}
+              onClick={this.handleOpenEditAvatarModal}
+            />
           </AvatarWrapper>
           <DetailsContainer>
             <Details>
