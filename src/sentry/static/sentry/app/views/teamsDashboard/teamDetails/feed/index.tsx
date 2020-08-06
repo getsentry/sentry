@@ -142,6 +142,7 @@ class Dashboard extends AsyncComponent<Props, State> {
               index={i}
               card={this.removeCard}
               teamSlug={team.slug}
+              projects={this.props.projects}
               {...c}
             />
           ))}
