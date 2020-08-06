@@ -62,24 +62,21 @@ class Dashboard extends AsyncComponent<Props, State> {
     ];
   }
 
-  componentDidUpdate(prevProps) {
-    if (prevProps === this.props) {
-      return;
-    }
+  componentDidUpdate(_, prevState: State) {
+    if (this.state.loading !== prevState.loading && !this.state.loading) {
+      const {team, projects, organization, isLocalStorageLoading} = this.props;
+      const {keyTransactions} = this.state;
+      const keyTransactionsData = keyTransactions?.data ?? [];
 
-    const {team, projects, organization} = this.props;
-    const {keyTransactions} = this.state;
-    const keyTransactionsData = keyTransactions?.data ?? [];
-    const data = this.getTabData();
-
-    // we need to wait for all the necessary data to finish loading,
-    // so check all the necessary values before setting it
-    // Set localStorage with dev data
-    if (Object.keys(data).length === 0 && team?.slug && projects.length) {
-      this.props.setLs(
-        team.slug,
-        getDevData(projects, organization, keyTransactionsData)
-      );
+      // we need to wait for all the necessary data to finish loading,
+      // so check all the necessary values before setting it
+      // Set localStorage with dev data
+      if (!isLocalStorageLoading) {
+        this.props.setLs(
+          team.slug,
+          getDevData(projects, organization, keyTransactionsData)
+        );
+      }
     }
   }
 
