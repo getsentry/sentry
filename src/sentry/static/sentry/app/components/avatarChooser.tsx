@@ -68,10 +68,8 @@ class AvatarChooser extends React.Component<Props, State> {
     if (typeof nextProps.model !== 'undefined') {
       this.setState({model: nextProps.model});
     }
-  }
 
-  componentDidUpdate(prevProps: Props) {
-    if (prevProps.isSaving !== this.props.isSaving && this.props.isSaving) {
+    if (nextProps.isSaving !== this.props.isSaving && nextProps.isSaving) {
       this.handleSaveSettings();
     }
   }
@@ -98,6 +96,8 @@ class AvatarChooser extends React.Component<Props, State> {
     let data = {};
     const avatarType = model && model.avatar ? model.avatar.avatarType : undefined;
     const avatarPhoto = dataUrl ? dataUrl.split(',')[1] : undefined;
+
+    console.log('avatarType', avatarType);
 
     data = {
       avatar_photo: avatarPhoto,

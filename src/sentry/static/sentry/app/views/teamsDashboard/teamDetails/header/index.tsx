@@ -163,8 +163,8 @@ const AvatarEditButton = styled(Button)`
   position: absolute;
   transform: translate(50%, 50%);
   border-radius: 50%;
-  bottom: ${space(1.5)};
-  right: ${space(1.5)};
+  bottom: 11px;
+  right: 11px;
   height: 30px;
   width: 30px;
   :hover {

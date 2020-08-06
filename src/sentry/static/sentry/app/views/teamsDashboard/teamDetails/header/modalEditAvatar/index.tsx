@@ -7,6 +7,7 @@ import AvatarChooser from 'app/components/avatarChooser';
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
+import {updateTeamSuccess} from 'app/actionCreators/teams';
 
 type Props = {
   team: Team;
@@ -22,6 +23,12 @@ class ModalEditAvatar extends React.Component<Props, State> {
     isSaving: false,
   };
 
+  handleOnSave = (team: Team) => {
+    this.setState({isSaving: false});
+    updateTeamSuccess(team.slug, team);
+    this.props.closeModal();
+  };
+
   render() {
     const {canWrite, team, orgSlug, Header, Body, Footer, closeModal} = this.props;
     const {isSaving} = this.state;
@@ -35,10 +42,10 @@ class ModalEditAvatar extends React.Component<Props, State> {
           <AvatarChooser
             type="team"
             allowGravatar={false}
-            endpoint={`/teams/${orgSlug}/${team.slug}/avatar`}
+            endpoint={`/teams/${orgSlug}/${team.slug}/avatar/`}
             model={team}
             isSaving={isSaving}
-            onSave={() => this.setState({isSaving: false})}
+            onSave={data => this.handleOnSave(data as Team)}
             disabled={!canWrite}
             withoutPanels
           />
