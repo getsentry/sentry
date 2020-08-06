@@ -24,6 +24,7 @@ import {Client} from 'app/api';
 import AllTeams from './allTeams';
 import MyTeams from './myTeams';
 import {TAB} from './utils';
+import * as LocalStorageContext from './withLocalStorage';
 
 type Props = RouteComponentProps<
   {orgId: string; projectId: string; location: Location},
@@ -283,13 +284,15 @@ class TeamsTabDashboard extends React.Component<Props, State> {
     const {organization} = this.props;
 
     return (
-      <React.Fragment>
-        <SentryDocumentTitle title={t('Teams')} objSlug={organization.slug} />
-        <PageContent>
-          {this.renderHeader()}
-          {this.renderContent()}
-        </PageContent>
-      </React.Fragment>
+      <LocalStorageContext.Provider>
+        <React.Fragment>
+          <SentryDocumentTitle title={t('Teams')} objSlug={organization.slug} />
+          <PageContent>
+            {this.renderHeader()}
+            {this.renderContent()}
+          </PageContent>
+        </React.Fragment>
+      </LocalStorageContext.Provider>
     );
   }
 }

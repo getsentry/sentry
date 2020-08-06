@@ -16,10 +16,67 @@ const DEFAULT_STATE = {
 export type InjectedLocalStorageProps = {
   data: Record<TAB, FeedData | any> | undefined;
   setLs: (key: string, data: any) => void;
-  getLs: (key: string) => any;
   resetLs: (key: string, defaultState: any) => void;
   resetLsAll: () => void;
 };
+
+export type LocalStorageChildrenProps = {
+  data: Record<TAB, FeedData | any> | undefined;
+  setLocalStorageData: (data: any) => void;
+};
+
+const LocalStorageContext = React.createContext<LocalStorageChildrenProps>({
+  data: undefined,
+  setLocalStorageData: () => {},
+});
+
+type Props = {};
+
+type State = {
+  [TAB.DASHBOARD]: null | any;
+  [TAB.ALL_TEAMS]: null | any;
+  [TAB.MY_TEAMS]: null | any;
+};
+
+export class Provider extends React.Component<Props, State> {
+  state: State = {...DEFAULT_STATE};
+
+  componentDidMount() {
+    this._getLs();
+  }
+
+  private _getLs() {
+    try {
+      const data = localStorage.getItem(LS_KEY);
+      // console.log('ls.get', data);
+      this.setState(data ? JSON.parse(data) : {});
+    } catch (err) {
+      console.error(err); // eslint-disable-line no-console
+      Sentry.captureException(err);
+    }
+  }
+
+  setLocalStorageData = (nextState: any = {}) => {
+    console.log('ls.set', nextState); // eslint-disable-line no-console
+    localStorage.setItem(LS_KEY, JSON.stringify(nextState));
+    this._getLs();
+  };
+
+  render() {
+    const childrenProps: LocalStorageChildrenProps = {
+      data: this.state,
+      setLocalStorageData: this.setLocalStorageData,
+    };
+
+    return (
+      <LocalStorageContext.Provider value={childrenProps}>
+        {this.props.children}
+      </LocalStorageContext.Provider>
+    );
+  }
+}
+
+export const Consumer = LocalStorageContext.Consumer;
 
 /**
  * This HOC helps to stringify/parse JSON as LocalStorage stores strings only
@@ -36,85 +93,65 @@ const withLocalStorage = <P extends InjectedLocalStorageProps>(
   class extends React.Component<Omit<P, keyof InjectedLocalStorageProps>> {
     static displayName = `withLocalStorage(${getDisplayName(WrappedComponent)})`;
 
-    state = {...DEFAULT_STATE};
-
-    componentDidMount() {
-      this._getLs();
-    }
-
-    private _getLs() {
-      try {
-        const data = localStorage.getItem(LS_KEY);
-        // console.log('ls.get', data);
-        this.setState(data ? JSON.parse(data) : {});
-      } catch (err) {
-        console.error(err); // eslint-disable-line no-console
-        Sentry.captureException(err);
-      }
-    }
-
-    setLs = (key: string, data: any = {}) => {
-      const tabData = this.state[tabName] ?? {};
+    setLs = (setLocalStorageData, prevData) => (key: string, data: any = {}) => {
+      const tabData = prevData[tabName] ?? {};
       const nextState = {
-        ...this.state,
+        ...prevData,
         [tabName]: {
           ...tabData,
           [key]: data,
         },
       };
 
-      console.log('ls.set', nextState); // eslint-disable-line no-console
-      localStorage.setItem(LS_KEY, JSON.stringify(nextState));
-      this._getLs();
-    };
-
-    getLs = (data: any = {}) => (key: string): any => {
-      return data[key];
+      setLocalStorageData(nextState);
     };
 
     /**
      * @param defaultState - Empty default state for a tab
      */
-    resetLs = (key: string, defaultState: any) => {
+    resetLs = (setLocalStorageData, prevdata) => (key: string, defaultState: any) => {
       if (!defaultState) {
         throw new Error('You must provide a defaultState for your tab');
       }
 
       // Dump state before reset
-      console.log('ls.reset', JSON.stringify(this.state)); // eslint-disable-line no-console
+      console.log('ls.reset', JSON.stringify(prevdata)); // eslint-disable-line no-console
 
-      const tabData = this.state[tabName] ?? {};
+      const tabData = prevdata[tabName] ?? {};
       const nextState = {
-        ...this.state,
+        ...prevdata,
         [tabName]: {
           ...tabData,
           [key]: defaultState,
         },
       };
 
-      localStorage.setItem(LS_KEY, JSON.stringify(nextState));
-      this._getLs();
+      setLocalStorageData(nextState);
     };
 
-    resetLsAll = () => {
+    resetLsAll = (setLocalStorageData, prevData) => () => {
       // Dump state before reset
-      console.log('ls.resetAll', JSON.stringify(this.state)); // eslint-disable-line no-console
+      console.log('ls.resetAll', JSON.stringify(prevData)); // eslint-disable-line no-console
 
-      localStorage.setItem(LS_KEY, JSON.stringify({...DEFAULT_STATE}));
-      this._getLs();
+      setLocalStorageData({...DEFAULT_STATE});
     };
 
     render() {
-      const data = this.state[tabName];
       return (
-        <WrappedComponent
-          {...(this.props as P)}
-          data={data}
-          getLs={this.getLs(data)}
-          setLs={this.setLs}
-          resetLs={this.resetLs}
-          resetLsAll={this.resetLsAll}
-        />
+        <LocalStorageContext.Consumer>
+          {({data, setLocalStorageData}: LocalStorageChildrenProps) => {
+            const tabLocalData = (data ?? {})[tabName] ?? {};
+            return (
+              <WrappedComponent
+                {...(this.props as P)}
+                data={tabLocalData}
+                setLs={this.setLs(setLocalStorageData, data)}
+                resetLs={this.resetLs(setLocalStorageData, data)}
+                resetLsAll={this.resetLsAll(setLocalStorageData, data)}
+              />
+            );
+          }}
+        </LocalStorageContext.Consumer>
       );
     }
   };

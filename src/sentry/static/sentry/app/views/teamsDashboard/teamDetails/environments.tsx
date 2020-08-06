@@ -42,9 +42,13 @@ class Environments extends React.Component<Props> {
   };
 
   handleSelectEnvironment = (selectedEnvironment: {value: string}) => {
-    const {setLs, getLs, teamSlug} = this.props;
+    const {setLs, data, teamSlug} = this.props;
 
-    const teamData = getLs(teamSlug);
+    if (!data) {
+      return;
+    }
+
+    const teamData = data[teamSlug] ?? {};
 
     const nextEnvironments = new Set([
       ...this.getSelectedEnvironments(),
@@ -55,9 +59,13 @@ class Environments extends React.Component<Props> {
   };
 
   handleUnlinkEnvironment = (environmentName: string) => async () => {
-    const {setLs, getLs, teamSlug} = this.props;
+    const {setLs, data, teamSlug} = this.props;
 
-    const teamData = getLs(teamSlug);
+    if (!data) {
+      return;
+    }
+
+    const teamData = data[teamSlug] ?? {};
 
     const nextEnvironments = new Set(this.getSelectedEnvironments());
     nextEnvironments.delete(environmentName);
@@ -66,13 +74,13 @@ class Environments extends React.Component<Props> {
   };
 
   getSelectedEnvironments = (): Array<string> => {
-    const {data, getLs, teamSlug} = this.props;
+    const {data, teamSlug} = this.props;
 
     if (!data) {
       return [];
     }
 
-    const teamData = getLs(teamSlug);
+    const teamData = data[teamSlug] ?? {};
 
     return teamData[ENVIRONMENT_KEY] ?? [];
   };

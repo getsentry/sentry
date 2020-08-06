@@ -21,7 +21,6 @@ type Props = {
 
 const Footer = ({users, projects, teamSlug, data}: Props) => {
   const selectedEnvironments = getSelectedEnvironments(teamSlug, data);
-  console.log('selectedEnvironments', selectedEnvironments);
 
   return (
     <Wrapper>

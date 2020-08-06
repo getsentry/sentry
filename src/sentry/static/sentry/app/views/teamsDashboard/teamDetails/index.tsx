@@ -23,6 +23,7 @@ import Feed from './feed';
 import Projects from './projects';
 import Members from './members';
 import Settings from './settings';
+import * as LocalStorageContext from '../withLocalStorage';
 
 enum TAB {
   TEAM_FEED = 'team-feed',
@@ -278,10 +279,12 @@ class TeamDetails extends AsyncComponent<Props, State> {
     } = this.props;
 
     return (
-      <React.Fragment>
-        <SentryDocumentTitle title={t('Team %s', teamSlug)} objSlug={orgSlug} />
-        <Wrapper>{this.renderContent()}</Wrapper>
-      </React.Fragment>
+      <LocalStorageContext.Provider>
+        <React.Fragment>
+          <SentryDocumentTitle title={t('Team %s', teamSlug)} objSlug={orgSlug} />
+          <Wrapper>{this.renderContent()}</Wrapper>
+        </React.Fragment>
+      </LocalStorageContext.Provider>
     );
   }
 }
