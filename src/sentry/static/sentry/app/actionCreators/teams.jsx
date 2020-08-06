@@ -38,8 +38,8 @@ export function fetchTeamDetails(api, params, options) {
   });
 }
 
-export function updateTeamSuccess(teamId, data) {
-  TeamActions.updateSuccess(teamId, data);
+export function updateTeamSuccess(teamSlug, data) {
+  TeamActions.updateSuccess(teamSlug, data);
 }
 
 export function updateTeam(api, params, options) {
