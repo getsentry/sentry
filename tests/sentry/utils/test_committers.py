@@ -179,9 +179,13 @@ class MatchCommitsPathTestCase(CommitTestCase):
             file_change,
             self.create_commitfilechange(filename="goodbye/app.js", type="A"),
         ]
-        assert [
-            (file_change.commit, 2, "Commit file changes match the run time path.")
-        ] == _match_commits_path(file_changes, "hello/app.py")
+        score_reason = "Commited file `%s` matches the run time path `%s`." % (
+            "hello/app.py",
+            "hello/app.py",
+        )
+        assert [(file_change.commit, 2, score_reason)] == _match_commits_path(
+            file_changes, "hello/app.py"
+        )
 
     def test_skip_one_score_match_longer_than_one_token(self):
         file_changes = [
@@ -198,8 +202,10 @@ class MatchCommitsPathTestCase(CommitTestCase):
             self.create_commitfilechange(filename="template/hello/app.py", type="A"),
         ]
 
+        score_reason = "Commited file `%s` matches the run time path `hello/app.py`."
+
         commits = sorted(
-            [(fc.commit, 2, "Commit file changes match the run time path.") for fc in file_changes],
+            [(fc.commit, 2, score_reason % fc.filename) for fc in file_changes],
             key=lambda fc: fc[0].id,
         )
         assert commits == sorted(
@@ -232,12 +238,13 @@ class MatchCommitsPathTestCase(CommitTestCase):
 
         self.create_commitfilelinechange(5, 10, commitfilechange=file_changes[-1])
 
+        score_reason = (
+            "Commit modified `%s` from lines %d-%d which matches the run time path `%s:%d`."
+            % ("hello/app.py", 5, 10, "hello/app.py", 6,)
+        )
+
         commits = sorted(
-            [
-                (fc.commit, 3, "Commit modified the line range contained in the runtime path.")
-                for fc in file_changes[-1:]
-            ],
-            key=lambda fc: fc[0].id,
+            [(fc.commit, 3, score_reason) for fc in file_changes[-1:]], key=lambda fc: fc[0].id,
         )
         assert commits == sorted(
             _match_commits_path(file_changes, "hello/app.py", lineno=6), key=lambda fc: fc[0].id
@@ -273,12 +280,13 @@ class MatchCommitsPathTestCase(CommitTestCase):
         self.create_commitfilelinechange(5, 10, commitfilechange=file_changes[-3])
         self.create_commitfilelinechange(6, 6, commitfilechange=file_changes[-4])
 
+        score_reason = (
+            "Commit modified `%s` on line %d which matches the run time path `%s:%d`."
+            % ("hello/app.py", 6, "hello/app.py", 6,)
+        )
+
         commits = sorted(
-            [
-                (fc.commit, 8, "Commit modified the exact line contained the runtime path.")
-                for fc in file_changes[-4:-3]
-            ],
-            key=lambda fc: fc[0].id,
+            [(fc.commit, 8, score_reason) for fc in file_changes[-4:-3]], key=lambda fc: fc[0].id,
         )
 
         assert commits == sorted(
@@ -293,11 +301,7 @@ class MatchCommitsPathTestCase(CommitTestCase):
         self.create_commitfilelinechange(6, 6, commitfilechange=file_changes[-1])
 
         commits = sorted(
-            [
-                (fc.commit, 13, "Commit modified the exact line contained the runtime path.")
-                for fc in file_changes[-1:]
-            ],
-            key=lambda fc: fc[0].id,
+            [(fc.commit, 13, score_reason) for fc in file_changes[-1:]], key=lambda fc: fc[0].id,
         )
 
         assert commits == sorted(
@@ -634,7 +638,10 @@ class GetEventFileCommitters(CommitTestCase):
         assert len(result[0]["commits"]) == 1
         assert result[0]["commits"][0]["id"] == "b" * 40
         assert result[0]["commits"][0]["scoreReason"] == (
-            six.binary_type("Commit modified the line range contained in the runtime path.")
+            six.binary_type(
+                "Commit modified `%s` from lines %d-%d which matches the run time path `%s:%d`."
+                % ("src/sentry/models/release.py", 38, 40, "sentry/models/release.py", 39)
+            )
         )
 
     def test_matching_case_insensitive(self):

@@ -89,7 +89,10 @@ def _match_commits_path(commit_file_changes, path, lineno=None):
 
     for i, file_change in enumerate(commit_file_changes):
         score = score_path_match_length(file_change.filename, path)
-        score_reason = "Commit file changes match the run time path."
+        score_reason = "Commited file `%s` matches the run time path `%s`." % (
+            file_change.filename,
+            path,
+        )
 
         if score > 0:
             # Raise the score if the line range changed in this commit
@@ -114,10 +117,20 @@ def _match_commits_path(commit_file_changes, path, lineno=None):
                     best_line_score += line_score
                     score += best_line_score + exact_line_score
                     if exact_line_score:
-                        score_reason = "Commit modified the exact line contained the runtime path."
+                        score_reason = (
+                            "Commit modified `%s` on line %d which matches the run time path `%s:%d`."
+                            % (file_change.filename, lineno, path, lineno)
+                        )
                     else:
                         score_reason = (
-                            "Commit modified the line range contained in the runtime path."
+                            "Commit modified `%s` from lines %d-%d which matches the run time path `%s:%d`."
+                            % (
+                                file_change.filename,
+                                file_line_change.line_start,
+                                file_line_change.line_end,
+                                path,
+                                lineno,
+                            )
                         )
 
         if score > best_score:
