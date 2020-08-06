@@ -45,7 +45,7 @@ type State = {
 
 class TeamsTabDashboard extends React.Component<Props, State> {
   state: State = {
-    currentTab: TAB.DASHBOARD,
+    currentTab: TAB.MY_TEAMS,
     teams: [],
     myTeams: [],
   };
