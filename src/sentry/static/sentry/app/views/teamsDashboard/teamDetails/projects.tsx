@@ -26,6 +26,7 @@ type Props = {
   canWrite: boolean;
   pageLinks: string;
   onQueryUpdate: (query: string) => void;
+  reloadData: () => void;
 };
 
 class Projects extends React.Component<Props> {
@@ -43,7 +44,7 @@ class Projects extends React.Component<Props> {
     this.handleLinkProject(project);
   };
 
-  handleLinkProject = (project: Project) => async () => {
+  handleLinkProject = async (project: Project) => {
     const {api, organization, teamSlug} = this.props;
 
     try {
@@ -54,6 +55,8 @@ class Projects extends React.Component<Props> {
         }
       );
       addSuccessMessage(t('Successfully added project to team.'));
+
+      this.props.reloadData();
     } catch {
       addErrorMessage(t("Wasn't able to change project association."));
     }
@@ -70,6 +73,8 @@ class Projects extends React.Component<Props> {
         }
       );
       addSuccessMessage(t('Successfully removed project from team.'));
+
+      this.props.reloadData();
     } catch {
       addErrorMessage(t("Wasn't able to change project association."));
     }

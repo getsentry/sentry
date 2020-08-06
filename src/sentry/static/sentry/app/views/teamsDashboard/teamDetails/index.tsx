@@ -164,6 +164,9 @@ class TeamDetails extends AsyncComponent<Props, State> {
             teamSlug={team.slug}
             pageLinks={projectsPageLinks}
             onQueryUpdate={this.fetchUnlinkedProjects}
+            reloadData={() => {
+              this.reloadData();
+            }}
           />
         );
       case TAB.MEMBERS:
