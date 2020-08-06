@@ -227,7 +227,7 @@ class Members extends AsyncComponent<Props, State> {
       <Panel>
         <PanelHeader hasButtons>
           {t('Members')}
-          {this.renderDropdown()}
+          <DropDownWrapper>{this.renderDropdown()}</DropDownWrapper>
         </PanelHeader>
         <PanelBody>
           {members.length ? (
@@ -266,6 +266,10 @@ class Members extends AsyncComponent<Props, State> {
 }
 
 export default withApi(withConfig(Members));
+
+const DropDownWrapper = styled('div')`
+  text-transform: none;
+`;
 
 const StyledPanelItem = styled(PanelItem)`
   justify-content: space-between;
