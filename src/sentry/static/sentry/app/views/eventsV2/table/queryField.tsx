@@ -425,7 +425,7 @@ type InputState = {value: string};
  * Using a buffered input lets us throttle rendering and enforce data
  * constraints better.
  */
-class BufferedInput extends React.Component<InputProps, InputState> {
+export class BufferedInput extends React.Component<InputProps, InputState> {
   constructor(props: InputProps) {
     super(props);
     this.input = React.createRef();

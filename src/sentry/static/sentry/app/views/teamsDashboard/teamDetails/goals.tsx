@@ -17,6 +17,7 @@ import {openModal} from 'app/actionCreators/modal';
 import {getAggregateAlias} from 'app/utils/discover/fields';
 import TextField from 'app/views/settings/components/forms/textField';
 import SelectControl from 'app/components/forms/selectControl';
+import {BufferedInput} from 'app/views/eventsV2/table/queryField';
 
 type Props = {
   goals?: Array<Goal>;
@@ -155,6 +156,25 @@ class Goals extends React.Component<Props, State> {
       },
     ];
 
+    const comparisonOperatorsOptions: Array<SelectValue<string>> = [
+      {
+        label: '>',
+        value: '>',
+      },
+      {
+        label: '<',
+        value: '<',
+      },
+      {
+        label: '>=',
+        value: '>=',
+      },
+      {
+        label: '<=',
+        value: '<=',
+      },
+    ];
+
     return (
       <React.Fragment>
         <HeaderContainer>
@@ -192,6 +212,31 @@ class Goals extends React.Component<Props, State> {
                               onChange={this.setAggregateFunction}
                             />
                           </AggregateContainer>
+                          <ComparisonOperatorContainer>
+                            <SelectControl
+                              key="select"
+                              name="comparison-operator"
+                              placeholder={t('Comparison operator')}
+                              options={comparisonOperatorsOptions}
+                              value={comparisonOperatorsOptions[0]}
+                              required
+                              onChange={this.setAggregateFunction}
+                            />
+                          </ComparisonOperatorContainer>
+                          <ObjectiveValueContainer>
+                            <BufferedInput
+                              name="refinement"
+                              key="parameter:number"
+                              type="text"
+                              inputMode="numeric"
+                              pattern="[0-9]*(\.[0-9]*)?"
+                              required
+                              value={'0.99'}
+                              onUpdate={() => {
+                                return;
+                              }}
+                            />
+                          </ObjectiveValueContainer>
                         </ObjectiveContainer>
                       </PanelItem>
                     </Panel>
@@ -232,10 +277,22 @@ const HeaderContainer = styled('div')`
 const ObjectiveContainer = styled('div')`
   width: 100%;
   display: flex;
+
+  > * + * {
+    margin-left: 8px;
+  }
 `;
 
 const AggregateContainer = styled('div')`
   flex-grow: 1;
+`;
+
+const ComparisonOperatorContainer = styled('div')`
+  min-width: 100px;
+`;
+
+const ObjectiveValueContainer = styled('div')`
+  min-width: 150px;
 `;
 
 export default Goals;
