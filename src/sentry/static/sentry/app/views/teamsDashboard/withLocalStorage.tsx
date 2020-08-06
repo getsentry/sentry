@@ -19,28 +19,32 @@ export type InjectedLocalStorageProps = {
   setLs: (key: string, data: LocalStorageDashboardType) => void;
   resetLs: (key: string, defaultState: any) => void;
   resetLsAll: () => void;
+  isLocalStorageLoading: boolean;
 };
 
 export type LocalStorageChildrenProps = {
   data: Record<TAB, FeedData | any> | undefined;
+  isLocalStorageLoading: boolean;
   setLocalStorageData: (data: any) => void;
 };
 
 const LocalStorageContext = React.createContext<LocalStorageChildrenProps>({
   data: undefined,
+  isLocalStorageLoading: true,
   setLocalStorageData: () => {},
 });
 
 type Props = {};
 
 type State = {
+  isLocalStorageLoading: boolean;
   [TAB.DASHBOARD]: null | LocalStorageDashboardType;
   [TAB.ALL_TEAMS]: null | any;
   [TAB.MY_TEAMS]: null | any;
 };
 
 export class Provider extends React.Component<Props, State> {
-  state: State = {...DEFAULT_STATE};
+  state: State = {...DEFAULT_STATE, isLocalStorageLoading: true};
 
   componentDidMount() {
     this._getLs();
@@ -50,7 +54,13 @@ export class Provider extends React.Component<Props, State> {
     try {
       const data = localStorage.getItem(LS_KEY);
       // console.log('ls.get', data);
-      this.setState(data ? JSON.parse(data) : {});
+
+      const nextState = data ? JSON.parse(data) : {};
+
+      this.setState({
+        ...nextState,
+        isLocalStorageLoading: false,
+      });
     } catch (err) {
       console.error(err); // eslint-disable-line no-console
       Sentry.captureException(err);
@@ -67,6 +77,7 @@ export class Provider extends React.Component<Props, State> {
     const childrenProps: LocalStorageChildrenProps = {
       data: this.state,
       setLocalStorageData: this.setLocalStorageData,
+      isLocalStorageLoading: this.state.isLocalStorageLoading,
     };
 
     return (
@@ -143,17 +154,22 @@ const withLocalStorage = <P extends InjectedLocalStorageProps>(
     render() {
       return (
         <LocalStorageContext.Consumer>
-          {({data, setLocalStorageData}: LocalStorageChildrenProps) => {
+          {({
+            data,
+            setLocalStorageData,
+            isLocalStorageLoading,
+          }: LocalStorageChildrenProps) => {
             const tabLocalData = (data ?? {})[tabName] ?? {};
-            return (
-              <WrappedComponent
-                {...(this.props as P)}
-                data={tabLocalData}
-                setLs={this.setLs(setLocalStorageData, data)}
-                resetLs={this.resetLs(setLocalStorageData, data)}
-                resetLsAll={this.resetLsAll(setLocalStorageData, data)}
-              />
-            );
+
+            const injectedProps: InjectedLocalStorageProps = {
+              data: tabLocalData,
+              setLs: this.setLs(setLocalStorageData, data),
+              resetLs: this.resetLs(setLocalStorageData, data),
+              resetLsAll: this.resetLsAll(setLocalStorageData, data),
+              isLocalStorageLoading,
+            };
+
+            return <WrappedComponent {...(this.props as P)} {...injectedProps} />;
           }}
         </LocalStorageContext.Consumer>
       );
