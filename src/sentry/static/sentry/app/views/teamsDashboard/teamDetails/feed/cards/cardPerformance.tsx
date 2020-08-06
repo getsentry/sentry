@@ -1,9 +1,11 @@
 import React from 'react';
+import {browserHistory} from 'react-router';
 
 import {Client} from 'app/api';
 import {Organization} from 'app/types';
 import EventsRequest from 'app/components/charts/eventsRequest';
 import LineChart from 'app/components/charts/lineChart';
+import Link from 'app/components/links/link';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {IconFire, IconLaptop, IconLightning, IconWarning} from 'app/icons';
@@ -12,6 +14,7 @@ import Projects from 'app/utils/projects';
 import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
+import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
 
 import Card from './index';
 import {
@@ -183,12 +186,31 @@ class CardPerformance extends React.Component<Props> {
   }
 
   render() {
+    const {organization, data} = this.props;
+    const {transaction = null, project = null} = data ?? {};
+
+    const to = transactionSummaryRouteWithQuery({
+      orgSlug: organization.slug,
+      transaction: String(transaction),
+      projectID: project?.id,
+      query: {
+        // hard coded to match the query above
+        environment: [],
+        utc: 'true',
+        start: undefined,
+        end: undefined,
+        statsPeriod: '24h',
+      },
+    });
+
     return (
-      <Card {...this.props} columnSpan={1} isRemovable={false}>
-        {this.renderHeader()}
-        {this.renderBody()}
-        {this.renderFooter()}
-      </Card>
+      <Link to={to}>
+        <Card {...this.props} columnSpan={1} isRemovable={false}>
+          {this.renderHeader()}
+          {this.renderBody()}
+          {this.renderFooter()}
+        </Card>
+      </Link>
     );
   }
 }

@@ -1,11 +1,14 @@
 import React from 'react';
+import {Location} from 'history';
 
 import {Client} from 'app/api';
 import EventsRequest from 'app/components/charts/eventsRequest';
+import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import AreaChart from 'app/components/charts/areaChart';
 import {getInterval} from 'app/components/charts/utils';
-import {Organization} from 'app/types';
+import EventView from 'app/utils/discover/eventView';
+import {NewQuery, Organization} from 'app/types';
 import {IconWarning} from 'app/icons';
 import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
@@ -25,6 +28,7 @@ import {
 
 type Props = Card['props'] & {
   api: Client;
+  location: Location;
   organization: Organization;
 };
 
@@ -160,12 +164,17 @@ class CardDiscover extends React.Component<Props> {
   }
 
   render() {
+    const {data, location, organization} = this.props;
+    const eventView = EventView.fromNewQueryWithLocation(data as NewQuery, location);
+    const to = eventView.getResultsViewUrlTarget(organization.slug);
     return (
-      <Card {...this.props} columnSpan={1} isRemovable={false}>
-        {this.renderHeader()}
-        {this.renderBody()}
-        {this.renderFooter()}
-      </Card>
+      <Link to={to}>
+        <Card {...this.props} columnSpan={1} isRemovable={false}>
+          {this.renderHeader()}
+          {this.renderBody()}
+          {this.renderFooter()}
+        </Card>
+      </Link>
     );
   }
 }

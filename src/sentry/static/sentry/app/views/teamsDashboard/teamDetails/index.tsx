@@ -116,11 +116,18 @@ class TeamDetails extends React.Component<Props, State> {
 
   renderTabContent = (canWrite: boolean, hasProjectAccess: boolean) => {
     const {currentTab, members, projects} = this.state;
-    const {organization, team} = this.props;
+    const {location, organization, team} = this.props;
 
     switch (currentTab) {
       case TAB.FEED:
-        return <Feed organization={organization} team={team} projects={projects} />;
+        return (
+          <Feed
+            location={location}
+            organization={organization}
+            team={team}
+            projects={projects}
+          />
+        );
       case TAB.GOALS:
         return <Goals />;
       case TAB.PROJECTS:

@@ -1,4 +1,5 @@
 import React from 'react';
+import {Location} from 'history';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
@@ -23,6 +24,7 @@ const DEFAULT_STATE: FeedData = {
 
 type Props = AsyncComponent['props'] &
   InjectedLocalStorageProps & {
+    location: Location;
     data: FeedData;
     organization: Organization;
     team: Team;
@@ -152,6 +154,8 @@ class Dashboard extends AsyncComponent<Props, State> {
   }
 
   renderDiscoverCards(cards) {
+    const {location} = this.props;
+
     return (
       <div>
         <h3>{`${t('Discover Queries')} (${cards.length})`}</h3>
@@ -161,6 +165,7 @@ class Dashboard extends AsyncComponent<Props, State> {
               key={c.key || c.data?.id || i.toString()}
               index={i}
               card={this.removeCard}
+              location={location}
               {...c}
             />
           ))}
