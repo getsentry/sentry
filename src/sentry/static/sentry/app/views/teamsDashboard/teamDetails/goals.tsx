@@ -3,10 +3,16 @@ import {Location} from 'history';
 import styled from '@emotion/styled';
 import isFinite from 'lodash/isFinite';
 
+import {formatPercentage} from 'app/utils/formatters';
+import theme from 'app/utils/theme';
+import Placeholder from 'app/components/placeholder';
+import {Client} from 'app/api';
 import {PanelTable, Panel, PanelItem} from 'app/components/panels';
 import DiscoverButton from 'app/components/discoverButton';
+import {getInterval} from 'app/components/charts/utils';
 import DateTime from 'app/components/dateTime';
 import {Goal, Member, Organization, Project, SelectValue} from 'app/types';
+import EventsRequest from 'app/components/charts/eventsRequest';
 import EventView from 'app/utils/discover/eventView';
 import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
@@ -19,9 +25,21 @@ import {getAggregateAlias} from 'app/utils/discover/fields';
 import TextField from 'app/views/settings/components/forms/textField';
 import SelectControl from 'app/components/forms/selectControl';
 import {BufferedInput} from 'app/views/eventsV2/table/queryField';
+import withApi from 'app/utils/withApi';
+
+const Sparklines = React.lazy(() =>
+  import(/* webpackChunkName: "Sparklines" */ 'app/components/sparklines')
+);
+const SparklinesLine = React.lazy(() =>
+  import(/* webpackChunkName: "SparklinesLine" */ 'app/components/sparklines/line')
+);
+
+// Height of sparkline
+const SPARKLINE_HEIGHT = 38;
 
 type Props = {
   goals?: Array<Goal>;
+  api: Client;
   organization: Organization;
   projects: Project[];
   location: Location;
@@ -85,17 +103,23 @@ class Goals extends React.Component<Props, State> {
     searchConditions.setTag('event.type', ['transaction']);
     searchConditions.setTag('transaction', [goal.transactionName]);
 
+    const range = '30d';
+
+    // if an org has no global-views, we make an assumption that errors are collected in the same
+    // project as the current transaction event where spans are collected into
+    const projs = orgFeatures.has('global-views') ? [] : projects.map(p => Number(p.id));
+
+    const query = stringifyQueryObject(searchConditions);
+
     const eventView = EventView.fromSavedQuery({
       id: undefined,
       name: 'Transaction',
       fields: ['transaction', goal.aggregateObjective],
       orderby: '-timestamp',
-      query: stringifyQueryObject(searchConditions),
-      // if an org has no global-views, we make an assumption that errors are collected in the same
-      // project as the current transaction event where spans are collected into
-      projects: orgFeatures.has('global-views') ? [] : projects.map(p => Number(p.id)),
+      query,
+      projects: projs,
       version: 2,
-      range: '30d',
+      range,
     });
 
     return (
@@ -121,11 +145,6 @@ class Goals extends React.Component<Props, State> {
             currentValue = 0;
           }
 
-          const progress =
-            1 -
-            Math.abs(Math.min(currentValue, goal.valueObjective) - goal.valueObjective) /
-              goal.valueObjective;
-
           return (
             <React.Fragment key={goal.id}>
               <div>
@@ -139,9 +158,16 @@ class Goals extends React.Component<Props, State> {
               </div>
               <div>{goal.transactionName}</div>
               <div>{`${goal.aggregateObjective} ${goal.comparisonOperator} ${goal.valueObjective}`}</div>
-              <div>{`${currentValue}`}</div>
+              <div>{formatPercentage(currentValue)}</div>
               <div>
-                <ProgressRing value={progress * 100} size={40} barWidth={6} />
+                {/*<ProgressRing value={progress * 100} size={40} barWidth={6} />*/}
+                <GoalSparkline
+                  organization={organization}
+                  query={query}
+                  range={range}
+                  projects={projs}
+                  yAxis={goal.aggregateObjective}
+                />
               </div>
               <DateTime date={goal.duedate} shortDate />
               <div>{goal.description || '-'}</div>
@@ -287,6 +313,62 @@ class Goals extends React.Component<Props, State> {
   }
 }
 
+type SparklineProps = {
+  organization: Organization;
+  api: Client;
+  query: string;
+  range: string;
+  projects: number[];
+  yAxis: string;
+};
+
+class _GoalSparkline extends React.Component<SparklineProps> {
+  render() {
+    const {organization, api, query, range, projects, yAxis} = this.props;
+    return (
+      <EventsRequest
+        organization={organization}
+        api={api}
+        query={query}
+        start={undefined}
+        end={undefined}
+        period={range}
+        interval={getInterval({period: range}, true)}
+        project={projects}
+        environment={[] as string[]}
+        includePrevious={false}
+        yAxis={yAxis}
+      >
+        {({loading, timeseriesData, errored}) => {
+          if (loading || errored) {
+            return null;
+          }
+
+          const data = (timeseriesData?.[0]?.data ?? []).map(d => d.value);
+
+          return (
+            <React.Suspense fallback={<SparkLinePlaceholder />}>
+              <div data-test-id="incident-sparkline">
+                <Sparklines data={data} width={100} height={32}>
+                  <SparklinesLine
+                    style={{
+                      stroke: theme.gray500,
+                      fill: 'none',
+                      strokeWidth: 2,
+                    }}
+                  />
+                </Sparklines>
+              </div>
+            </React.Suspense>
+          );
+        }}
+      </EventsRequest>
+    );
+  }
+}
+
+const GoalSparkline = withApi(_GoalSparkline);
+
 const HeaderContainer = styled('div')`
   margin-bottom: 8px;
 `;
@@ -310,6 +392,10 @@ const ComparisonOperatorContainer = styled('div')`
 
 const ObjectiveValueContainer = styled('div')`
   min-width: 150px;
+`;
+
+const SparkLinePlaceholder = styled(Placeholder)`
+  height: ${SPARKLINE_HEIGHT}px;
 `;
 
 export default Goals;

@@ -84,13 +84,6 @@ class CardDiscover extends React.Component<Props> {
                 </GraphContainer>
               );
             }
-            if (loading) {
-              return (
-                <GraphContainer>
-                  <LoadingIndicator mini />
-                </GraphContainer>
-              );
-            }
 
             if (loading) {
               return (
