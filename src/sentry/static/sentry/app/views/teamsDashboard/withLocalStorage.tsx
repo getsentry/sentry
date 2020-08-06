@@ -5,6 +5,7 @@ import getDisplayName from 'app/utils/getDisplayName';
 
 import {TAB} from './utils';
 import {FeedData} from './teamDetails/feed/types';
+import {LocalStorageDashboardType} from './types';
 
 const LS_KEY = 'HACKWEEK_TEAM_PAGE';
 const DEFAULT_STATE = {
@@ -33,7 +34,7 @@ const LocalStorageContext = React.createContext<LocalStorageChildrenProps>({
 type Props = {};
 
 type State = {
-  [TAB.DASHBOARD]: null | any;
+  [TAB.DASHBOARD]: null | LocalStorageDashboardType;
   [TAB.ALL_TEAMS]: null | any;
   [TAB.MY_TEAMS]: null | any;
 };
