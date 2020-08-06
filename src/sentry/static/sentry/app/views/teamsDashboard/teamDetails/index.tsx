@@ -129,7 +129,9 @@ class TeamDetails extends React.Component<Props, State> {
           />
         );
       case TAB.GOALS:
-        return <Goals />;
+        return (
+          <Goals location={location} organization={organization} projects={projects} />
+        );
       case TAB.PROJECTS:
         return (
           <Projects
