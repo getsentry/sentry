@@ -1,5 +1,4 @@
 import React from 'react';
-import {browserHistory} from 'react-router';
 
 import {Client} from 'app/api';
 import {Organization} from 'app/types';
