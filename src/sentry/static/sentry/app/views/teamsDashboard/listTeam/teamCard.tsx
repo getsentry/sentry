@@ -12,6 +12,10 @@ import AsyncComponent from 'app/components/asyncComponent';
 import AvatarList from 'app/components/avatar/avatarList';
 import {IconMegaphone} from 'app/icons';
 
+import {getTeamDescription} from '../teamDetails/utils';
+import withLocalStorage, {InjectedLocalStorageProps} from '../withLocalStorage';
+import {TAB} from '../utils';
+
 type Props = AsyncComponent['props'] & {
   team: Team;
   organization: Organization;
@@ -21,7 +25,7 @@ type Props = AsyncComponent['props'] & {
   onLeaveTeam: (team: Team) => () => void;
   onJoinTeam: (team: Team) => () => void;
   onRequestAccess: (team: Team) => () => void;
-};
+} & InjectedLocalStorageProps;
 
 type State = AsyncComponent['state'] & {
   members: Array<Member>;
@@ -110,8 +114,10 @@ class TeamCard extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
-    const {hasTeamAdminAccess, location, team} = this.props;
+    const {hasTeamAdminAccess, location, team, data} = this.props;
     const users = this.getFakeUsers();
+
+    const teamDescription = getTeamDescription(team.slug, data);
 
     return (
       <Wrapper>
@@ -125,11 +131,7 @@ class TeamCard extends AsyncComponent<Props, State> {
           )}
         </div>
         <Body>
-          <Description>
-            {
-              'Curabitur ligula sapien, tincidunt non, euismod vitae, posuere imperdiet, leo. Maecenas malesuada. Praesent congue erat at massa.'
-            }
-          </Description>
+          <Description>{teamDescription ?? ''}</Description>
           <AvatarList users={users} />
           <div>{this.renderAction()}</div>
         </Body>
@@ -138,7 +140,7 @@ class TeamCard extends AsyncComponent<Props, State> {
   }
 }
 
-export default TeamCard;
+export default withLocalStorage(TeamCard, TAB.DASHBOARD);
 
 const Wrapper = styled('div')`
   background-color: ${p => p.theme.white};
