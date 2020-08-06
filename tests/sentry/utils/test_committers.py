@@ -633,7 +633,7 @@ class GetEventFileCommitters(CommitTestCase):
         assert "commits" in result[0]
         assert len(result[0]["commits"]) == 1
         assert result[0]["commits"][0]["id"] == "b" * 40
-        assert result[0]["commits"][0]["score_reason"] == (
+        assert result[0]["commits"][0]["scoreReason"] == (
             six.binary_type("Commit modified the line range contained in the runtime path.")
         )
 
