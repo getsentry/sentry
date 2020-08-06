@@ -170,14 +170,14 @@ class Goals extends React.Component<Props, State> {
                         label="Set goal name"
                         placeholder="Set goal name"
                         onChange={this.setGoalName}
-                        value={''}
+                        value=""
                       />
                       <TextField
                         name="transaction-name"
                         label="Set transaction name"
                         placeholder="Set transaction name"
                         onChange={this.setGoalName}
-                        value={''}
+                        value=""
                       />
                       <PanelItem>
                         <ObjectiveContainer>
