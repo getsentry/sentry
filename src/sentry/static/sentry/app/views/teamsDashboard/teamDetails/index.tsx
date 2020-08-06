@@ -104,11 +104,11 @@ class TeamDetails extends React.Component<Props, State> {
     }
   }
 
-  getMembers() {
+  getProjects() {
     this.setState({projects: this.props.team.projects || []});
   }
 
-  getProjects() {
+  getMembers() {
     this.setState({members: this.props.team.members || []});
   }
 
