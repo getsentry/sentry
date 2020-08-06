@@ -121,7 +121,7 @@ class TeamDetailsHeader extends React.Component<Props, State> {
   }
 }
 
-export default withLocalStorage(TeamDetailsHeader, TAB.DASHBOARD);
+export default withLocalStorage(TeamDetailsHeader, TAB.MY_TEAMS);
 
 const Wrapper = styled('div')`
   display: grid;
