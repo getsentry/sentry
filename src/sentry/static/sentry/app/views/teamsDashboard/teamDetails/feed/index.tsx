@@ -12,6 +12,7 @@ import withLocalStorage, {InjectedLocalStorageProps} from '../../withLocalStorag
 import {TAB} from '../../utils';
 import Card from './cards';
 import CardActivity from './cards/cardActivity';
+import CardAlerts from './cards/cardAlerts';
 import CardAddNew from './cards/cardAddNew';
 import CardIssueList from './cards/cardIssueList';
 import CardPerformance from './cards/cardPerformance';
@@ -110,6 +111,8 @@ class Dashboard extends AsyncComponent<Props, State> {
     switch (type) {
       case 'activity':
         return CardActivity;
+      case 'alerts':
+        return CardAlerts;
       case 'discover':
         return CardDiscover;
       case 'issueList':
@@ -139,16 +142,54 @@ class Dashboard extends AsyncComponent<Props, State> {
       <div>
         <h3>{t('Issues List')}</h3>
         <Container>
-          {cards.map((c, i) => (
-            <CardIssueList
-              key={c.key || c.data?.id || i.toString()}
-              index={i}
-              card={this.removeCard}
-              teamSlug={team.slug}
-              projects={this.props.projects}
-              {...c}
-            />
-          ))}
+          {cards.map(
+            (c, i) =>
+              c.type === 'issueList' && (
+                <CardIssueList
+                  key={c.key || c.data?.id || i.toString()}
+                  index={i}
+                  card={this.removeCard}
+                  teamSlug={team.slug}
+                  projects={this.props.projects}
+                  {...c}
+                />
+              )
+          )}
+          {cards.map(
+            (c, i) =>
+              c.type === 'activity' && (
+                <CardActivity
+                  key={c.key || c.data?.id || i.toString()}
+                  index={i}
+                  card={this.removeCard}
+                  {...c}
+                />
+              )
+          )}
+        </Container>
+      </div>
+    );
+  }
+
+  renderAlerts(cards) {
+    const {team} = this.props;
+    return (
+      <div>
+        <h3>{t('Alerts')}</h3>
+        <Container>
+          {cards.map(
+            (c, i) =>
+              c.type === 'alerts' && (
+                <CardIssueList
+                  key={c.key || c.data?.id || i.toString()}
+                  index={i}
+                  card={this.removeCard}
+                  teamSlug={team.slug}
+                  projects={this.props.projects}
+                  {...c}
+                />
+              )
+          )}
         </Container>
       </div>
     );
@@ -208,7 +249,10 @@ class Dashboard extends AsyncComponent<Props, State> {
 
     return (
       <Content>
-        {this.renderIssueList(cards.filter(c => c.type === 'issueList'))}
+        {this.renderIssueList(
+          cards.filter(c => c.type === 'issueList' || c.type === 'activity')
+        )}
+        {this.renderAlerts(cards.filter(c => c.type === 'alerts'))}
         {this.renderDiscoverCards(cards.filter(c => c.type === 'discover'))}
         {this.renderPerformanceCards(cards.filter(c => c.type === 'performance'))}
         <div>

@@ -23,25 +23,7 @@ export function getDevData(
   return {
     cards: [
       {
-        columnSpan: 1,
-        data: {
-          id: generateRandomId(),
-        },
-      },
-      {
-        columnSpan: 1,
-        data: {
-          id: generateRandomId(),
-        },
-      },
-      {
-        columnSpan: 1,
-        data: {
-          id: generateRandomId(),
-        },
-      },
-      {
-        columnSpan: 3,
+        columnSpan: 2,
         type: 'issueList',
         data: {
           id: generateRandomId(),
@@ -49,24 +31,14 @@ export function getDevData(
       },
       {
         columnSpan: 1,
-        data: {
-          id: generateRandomId(),
-        },
-      },
-      {
-        columnSpan: 3,
-        data: {
-          id: generateRandomId(),
-        },
-      },
-      {
-        columnSpan: 1,
+        type: 'activity',
         data: {
           id: generateRandomId(),
         },
       },
       {
         columnSpan: 2,
+        type: 'alerts',
         data: {
           id: generateRandomId(),
         },
