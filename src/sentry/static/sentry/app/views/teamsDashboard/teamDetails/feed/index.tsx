@@ -2,6 +2,7 @@ import React from 'react';
 import {Location} from 'history';
 import styled from '@emotion/styled';
 
+import LoadingIndicator from 'app/components/loadingIndicator';
 import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
 import space from 'app/styles/space';
@@ -196,7 +197,11 @@ class Dashboard extends AsyncComponent<Props, State> {
     const data = this.getTabData();
 
     if (Object.keys(data).length === 0) {
-      return <h3>LOADING!</h3>;
+      return (
+        <LoadingWrapper>
+          <LoadingIndicator />
+        </LoadingWrapper>
+      );
     }
 
     const cards = this.getCardData();
@@ -235,4 +240,10 @@ const Container = styled('div')`
   display: grid;
   grid-template-columns: repeat(3, minmax(100px, 1fr));
   grid-gap: ${space(3)};
+`;
+
+const LoadingWrapper = styled('div')`
+  flex: 1;
+  display: flex;
+  align-items: center;
 `;
