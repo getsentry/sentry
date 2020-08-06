@@ -1,7 +1,7 @@
 import {NewQuery, Project, Organization} from 'app/types';
 import {getPrebuiltQueries} from 'app/views/eventsV2/utils';
 
-import {DashboardData} from './types';
+import {FeedData} from './types';
 
 export function generateRandomId() {
   return Math.random()
@@ -13,7 +13,7 @@ export function getDevData(
   projects: Project[],
   organization: Organization,
   keyTransactions: any[]
-): DashboardData {
+): FeedData {
   const projectIds = projects.map(proj => parseInt(proj.id, 10));
   const prebuiltQueries: NewQuery[] = getPrebuiltQueries(organization).map(query => ({
     ...query,

@@ -9,20 +9,21 @@ import {Team, Project, Organization} from 'app/types';
 import withLocalStorage, {InjectedLocalStorageProps} from '../../withLocalStorage';
 import {TAB} from '../../utils';
 import Card from './cards';
+import CardActivity from './cards/cardActivity';
 import CardAddNew from './cards/cardAddNew';
 import CardIssueList from './cards/cardIssueList';
 import CardPerformance from './cards/cardPerformance';
 import CardDiscover from './cards/cardDiscover';
-import {CardData, DashboardData} from './types';
+import {CardData, FeedData} from './types';
 import {getDevData} from './utils';
 
-const DEFAULT_STATE: DashboardData = {
+const DEFAULT_STATE: FeedData = {
   cards: [],
 };
 
 type Props = AsyncComponent['props'] &
   InjectedLocalStorageProps & {
-    data: DashboardData;
+    data: FeedData;
     organization: Organization;
     team: Team;
     projects: Project[];
@@ -105,14 +106,16 @@ class Dashboard extends AsyncComponent<Props, State> {
     this.props.setLs(team.slug, {...data, cards: nextCards});
   };
 
-  getCardComponent(type) {
+  getCardComponent(type): typeof React.Component {
     switch (type) {
-      case 'performance':
-        return CardPerformance;
-      case 'issueList':
-        return CardIssueList;
+      case 'activity':
+        return CardActivity;
       case 'discover':
         return CardDiscover;
+      case 'issueList':
+        return CardIssueList;
+      case 'performance':
+        return CardPerformance;
       default:
         return Card;
     }
