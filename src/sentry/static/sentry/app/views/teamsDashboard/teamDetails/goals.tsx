@@ -3,9 +3,9 @@ import {Location} from 'history';
 import styled from '@emotion/styled';
 import isFinite from 'lodash/isFinite';
 
-import {PanelTable} from 'app/components/panels';
+import {PanelTable, Panel, PanelHeader, PanelItem} from 'app/components/panels';
 import DateTime from 'app/components/dateTime';
-import {Goal, Member, Organization, Project} from 'app/types';
+import {Goal, Member, Organization, Project, SelectValue} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
@@ -15,6 +15,8 @@ import GlobalModal from 'app/components/globalModal';
 import Button from 'app/components/button';
 import {openModal} from 'app/actionCreators/modal';
 import {getAggregateAlias} from 'app/utils/discover/fields';
+import TextField from 'app/views/settings/components/forms/textField';
+import SelectControl from 'app/components/forms/selectControl';
 
 type Props = {
   goals?: Array<Goal>;
@@ -133,7 +135,26 @@ class Goals extends React.Component<Props, State> {
     );
   };
 
+  setGoalName = value => {
+    // this.setState({
+    //   teamDescription: value,
+    // });
+  };
+
+  setAggregateFunction = value => {};
+
   render() {
+    const aggregateOptions: Array<SelectValue<string>> = [
+      {
+        label: 'foo',
+        value: 'foo',
+      },
+      {
+        label: 'bar',
+        value: 'bar',
+      },
+    ];
+
     return (
       <React.Fragment>
         <HeaderContainer>
@@ -141,9 +162,39 @@ class Goals extends React.Component<Props, State> {
             onClick={() =>
               openModal(({closeModal, Header, Body}) => (
                 <div>
-                  <Header>Modal Header</Header>
+                  <Header>Add Goal</Header>
                   <Body>
-                    <div>Test Modal Body</div>
+                    <Panel>
+                      <TextField
+                        name="goal-name"
+                        label="Set goal name"
+                        placeholder="Set goal name"
+                        onChange={this.setGoalName}
+                        value={''}
+                      />
+                      <TextField
+                        name="transaction-name"
+                        label="Set transaction name"
+                        placeholder="Set transaction name"
+                        onChange={this.setGoalName}
+                        value={''}
+                      />
+                      <PanelItem>
+                        <ObjectiveContainer>
+                          <AggregateContainer>
+                            <SelectControl
+                              key="select"
+                              name="aggregate"
+                              placeholder={t('Select aggregate')}
+                              options={aggregateOptions}
+                              value={aggregateOptions[1]}
+                              required
+                              onChange={this.setAggregateFunction}
+                            />
+                          </AggregateContainer>
+                        </ObjectiveContainer>
+                      </PanelItem>
+                    </Panel>
                     <Button onClick={closeModal}>Close</Button>
                   </Body>
                 </div>
@@ -176,6 +227,15 @@ class Goals extends React.Component<Props, State> {
 
 const HeaderContainer = styled('div')`
   margin-bottom: 8px;
+`;
+
+const ObjectiveContainer = styled('div')`
+  width: 100%;
+  display: flex;
+`;
+
+const AggregateContainer = styled('div')`
+  flex-grow: 1;
 `;
 
 export default Goals;
