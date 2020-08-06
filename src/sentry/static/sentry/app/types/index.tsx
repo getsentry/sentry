@@ -658,6 +658,9 @@ export type Goal = {
   progress: number;
   owner: Member;
   description?: string;
+  transactionName: string;
+  aggregateObjective: string;
+  valueObjective: number;
 };
 
 export type AccessRequest = {

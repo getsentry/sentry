@@ -39,6 +39,9 @@ const goals: Array<Goal> = [
       },
       inviteStatus: 'requested_to_join',
     },
+    transactionName: '/api/0/organizations/{organization_slug}/eventsv2/',
+    aggregateObjective: 'apdex()',
+    valueObjective: 0.9,
   },
 ];
 class Goals extends React.Component<Props, State> {
