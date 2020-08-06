@@ -100,7 +100,7 @@ class Chart extends React.Component<Props> {
           scale: true,
           max: dataMax,
           axisLabel: {
-            color: theme.gray200,
+            color: theme.chartLabel,
             formatter(value: number) {
               return axisLabelFormatter(value, data[0].seriesName);
             },
@@ -111,7 +111,7 @@ class Chart extends React.Component<Props> {
           scale: true,
           max: dataMax,
           axisLabel: {
-            color: theme.gray200,
+            color: theme.chartLabel,
             formatter(value: number) {
               return axisLabelFormatter(value, data[1].seriesName);
             },

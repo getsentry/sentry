@@ -26,6 +26,35 @@ const styles = (theme: Theme) => css`
     background: ${theme.background};
   }
 
+  .traceback {
+    border-color: ${theme.border};
+    background-color: ${theme.background};
+  }
+
+  .traceback .frame {
+    border-top-color: ${theme.border};
+  }
+
+  .traceback .frame .context {
+    background-color: ${theme.background};
+  }
+
+  .traceback ol.context > li {
+    color: ${theme.subText};
+  }
+
+  .traceback .frame.system-frame .title {
+    background-color: ${theme.backgroundAccent};
+  }
+
+  .traceback .frame.system-frame.is-expandable .title:hover {
+    background-color: ${theme.background};
+  }
+
+  .exc-message {
+    color: ${theme.subText};
+  }
+
   pre,
   code {
     background-color: ${theme.backgroundAccent};

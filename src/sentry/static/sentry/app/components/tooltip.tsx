@@ -251,9 +251,8 @@ const Container = styled('span')<{
 `;
 
 const TooltipContent = styled('div')<{hide: boolean} & Pick<Props, 'popperStyle'>>`
-  color: #fff;
-  background: #000;
-  opacity: 0.9;
+  color: ${p => p.theme.white};
+  background: ${p => p.theme.purple300};
   padding: 5px 10px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
   border-radius: ${p => p.theme.borderRadius};

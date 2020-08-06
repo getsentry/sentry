@@ -298,7 +298,7 @@ const RuleRow = styled('div')`
 
 const RuleRowContainer = styled('div')`
   &:nth-child(odd) {
-    background-color: ${p => p.theme.gray100};
+    background-color: ${p => p.theme.backgroundAccent};
   }
 `;
 

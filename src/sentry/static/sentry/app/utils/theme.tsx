@@ -66,6 +66,8 @@ const aliases = {
   formPlaceholder: colors.gray200,
   formText: colors.gray500,
   rowBackground: colors.gray100,
+  chartLineColor: colors.gray200,
+  chartLabel: colors.gray300,
 };
 
 const warning = {
@@ -352,6 +354,8 @@ const darkAliases = {
   sidebarGradient: 'linear-gradient(6.01deg, #0A090F -8.44%, #1B0921 85.02%)',
   formText: colors.white,
   rowBackground: colors.gray500,
+  chartLineColor: colors.gray400,
+  chartLabel: colors.gray400,
 };
 
 export const darkTheme = {

@@ -1,7 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import theme from 'app/utils/theme';
 import space from 'app/styles/space';
 
 export const List = styled('ul')`
@@ -49,14 +48,14 @@ export const ListItem = styled(({icon, className, children}: ListItemProps) => (
   }
 
   ul & {
-    color: ${theme.gray500};
+    color: ${p => p.theme.textColor};
     &:before {
       content: '';
       width: 6px;
       height: 6px;
       border-radius: 50%;
       margin-right: ${space(2)};
-      border: 1px solid ${theme.gray500};
+      border: 1px solid ${p => p.theme.textColor};
       background-color: transparent;
       left: 5px;
       top: 10px;
@@ -88,7 +87,7 @@ export const ListItem = styled(({icon, className, children}: ListItemProps) => (
       height: 18px;
       font-size: 10px;
       font-weight: 600;
-      border: 1px solid ${theme.gray500};
+      border: 1px solid ${p => p.theme.textColor};
       border-radius: 50%;
       background-color: transparent;
       margin-right: ${space(2)};

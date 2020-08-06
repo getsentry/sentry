@@ -24,7 +24,7 @@ const StyledInput = styled('input')`
 
   &:hover,
   &:focus {
-    background-color: ${p => p.theme.gray100};
+    background-color: ${p => p.theme.background};
     border-right-width: 0;
   }
 `;

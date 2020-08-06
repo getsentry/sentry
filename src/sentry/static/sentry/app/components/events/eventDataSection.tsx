@@ -152,7 +152,7 @@ const SectionHeader = styled('div')<{isCentered?: boolean}>`
   }
 
   & small {
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.subText};
     font-size: ${p => p.theme.fontSizeMedium};
     margin-right: ${space(0.5)};
     margin-left: ${space(0.5)};
@@ -160,7 +160,7 @@ const SectionHeader = styled('div')<{isCentered?: boolean}>`
     text-transform: none;
   }
   & small > span {
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.subText};
     border-bottom: 1px dotted ${p => p.theme.border};
     font-weight: normal;
   }

@@ -118,7 +118,7 @@ export const GridHeadCell = styled('th')<{isFirst: boolean}>`
   border-right: 1px solid transparent;
   border-left: 1px solid transparent;
   background-color: ${p => p.theme.backgroundAccent};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.subText};
 
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: 600;
@@ -146,6 +146,7 @@ export const GridHeadCell = styled('th')<{isFirst: boolean}>`
   &:hover {
     border-left-color: ${p => (p.isFirst ? 'transparent' : p.theme.border)};
     border-right-color: ${p => p.theme.border};
+    color: ${p => p.theme.textColor};
   }
 `;
 

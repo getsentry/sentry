@@ -12,7 +12,7 @@ const checkedCss = (p: CheckedProps) => css`
   width: 1rem;
   height: 1rem;
   border-radius: 50%;
-  background-color: ${p.theme.green300};
+  background-color: ${p.theme.active};
   animation: 0.2s ${growIn} ease;
   opacity: ${p.disabled ? 0.4 : null};
 `;
