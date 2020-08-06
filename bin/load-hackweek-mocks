@@ -1,0 +1,89 @@
+#!/usr/bin/env python
+from __future__ import absolute_import
+
+import os
+import random
+
+from sentry.runner import configure
+from subprocess import check_call
+
+configure()
+
+from sentry.models import (
+    CommitFileChange,
+    CommitFileLineChange,
+    ProjectKey,
+    ReleaseCommit,
+    Repository,
+)
+
+
+dirname = os.path.dirname(__file__)
+dir = os.path.join(dirname, "temp", "raven")
+
+if not os.path.exists(dir):
+    os.makedirs(dir)
+
+code = """import sentry_sdk
+
+sentry_sdk.init('%s', release='%s')
+"""
+
+exception = """try:
+    %d/0
+except Exception:
+    sentry_sdk.capture_exception()
+"""
+
+digit = 10
+counter = 1
+
+# Clear all line changes
+CommitFileLineChange.objects.filter().delete()
+
+for filelinechange in CommitFileChange.objects.all():
+    if filelinechange.filename == "raven/base.py":
+        repo = Repository.objects.get(pk=filelinechange.commit.repository_id)
+        release_commit = ReleaseCommit.objects.get(commit=filelinechange.commit)
+        version = release_commit.release.version
+
+        line_start = random.randint(4, 100)
+
+        CommitFileLineChange.objects.create(
+            organization_id=filelinechange.commit.organization_id,
+            commitfilechange=filelinechange,
+            author=filelinechange.commit.author,
+            line_start=line_start,
+            line_end=line_start + 3,
+        )
+
+        # Files are different based on spacing and digit divided by zero
+        middle = "\n" * (line_start - 4)
+        end = "\n" * (100 - line_start - 4)
+        file_code = code + middle + exception + end
+
+        dsns = []
+        for project in release_commit.release.projects.all():
+            project_key = ProjectKey.objects.get(project_id=project.id)
+            dsns.append((project_key.public_key, project.id))
+
+        for (public_key, _id) in dsns:
+            _dsn = "http://%s@dev.getsentry.net:8000/%s" % (public_key, _id)
+            code_file = os.path.join(dir, "base.py")
+
+            with open(code_file, "wb") as temp_file:
+                temp_file.write(file_code % (_dsn, version, digit))
+
+            digit += 1
+            counter += 1
+            # Run Python programs that generates exception
+            check_call(["python", code_file])
+
+print("Generated %d programs..." % counter)
+
+print("Ran %d programs..." % counter)
+
+# Delete temp files
+check_call(["rm", "-rf", os.path.join(dirname, "temp")])
+
+print("Done.")
