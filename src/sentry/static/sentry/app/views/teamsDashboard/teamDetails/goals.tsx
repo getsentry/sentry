@@ -13,6 +13,7 @@ import {t} from 'app/locale';
 import GlobalModal from 'app/components/globalModal';
 import Button from 'app/components/button';
 import {openModal} from 'app/actionCreators/modal';
+import {getAggregateAlias} from 'app/utils/discover/fields';
 
 type Props = {
   goals?: Array<Goal>;
@@ -44,7 +45,7 @@ const goals: Array<Goal> = [
       inviteStatus: 'requested_to_join',
     },
     transactionName: '/api/0/organizations/{organization_slug}/eventsv2/',
-    aggregateObjective: 'apdex()',
+    aggregateObjective: 'apdex(300)',
     comparisonOperator: '>=',
     valueObjective: 0.9,
   },
@@ -89,10 +90,21 @@ class Goals extends React.Component<Props, State> {
         location={location}
       >
         {({isLoading, tableData}) => {
-          if (isLoading) {
+          if (isLoading || !tableData) {
             return null;
           }
+
+          if (tableData.data.length <= 0) {
+            return null;
+          }
+
+          const row = tableData.data[0];
+          const needle = getAggregateAlias(goal.aggregateObjective);
+
           console.log('tableData', tableData);
+          console.log('row', row);
+          console.log('cell', row[needle]);
+
           return (
             <React.Fragment key={goal.id}>
               <div>{goal.title}</div>
