@@ -106,6 +106,12 @@ const tagStoreConfig: Reflux.StoreDefinition & TagStoreInterface = {
         values: [],
         predefined: true,
       },
+      owner: {
+        key: 'owner',
+        name: 'Owned By',
+        values: [],
+        predefined: true,
+      },
       lastSeen: {
         key: 'lastSeen',
         name: 'Last Seen',

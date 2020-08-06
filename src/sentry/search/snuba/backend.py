@@ -15,6 +15,25 @@ from sentry.search.base import SearchBackend
 from sentry.search.snuba.executors import PostgresSnubaQueryExecutor
 
 
+def issue_owner_filter(actor, projects):
+    from sentry.models import GroupOwner, OwnershipType, GroupAssignee
+
+    owner_query = Q(
+        id__in=GroupOwner.objects.filter(
+            project_id__in=[p.id for p in projects],
+            user_id=actor.id,
+            ownership_type=OwnershipType.RULE,
+        ).values_list("group_id", flat=True)
+    )
+    assignee_query = Q(
+        id__in=GroupAssignee.objects.filter(
+            project_id__in=[p.id for p in projects], user_id=actor.id
+        ).values_list("group_id", flat=True)
+    )
+
+    return Q(owner_query | assignee_query)
+
+
 def assigned_to_filter(actor, projects):
     from sentry.models import OrganizationMember, OrganizationMemberTeam, Team
 
@@ -271,6 +290,9 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
                         project__in=projects, user=user, is_active=True
                     ).values_list("group")
                 )
+            ),
+            "issue_owner": QCallbackCondition(
+                functools.partial(issue_owner_filter, projects=projects)
             ),
             "active_at": ScalarCondition("active_at"),
         }

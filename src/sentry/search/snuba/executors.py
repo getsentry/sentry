@@ -223,6 +223,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             "status",
             "bookmarked_by",
             "assigned_to",
+            "issue_owner",
             "unassigned",
             "subscribed_by",
             "active_at",
@@ -343,7 +344,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         elif len(group_ids) > max_candidates:
             # If the pre-filter query didn't include anything to significantly
             # filter down the number of results (from 'first_release', 'query',
-            # 'status', 'bookmarked_by', 'assigned_to', 'unassigned',
+            # 'status', 'bookmarked_by', 'assigned_to', 'issue_owner', 'unassigned',
             # 'subscribed_by', 'active_at_from', or 'active_at_to') then it
             # might have surpassed the `max_candidates`. In this case,
             # we *don't* want to pass candidates down to Snuba, and instead we

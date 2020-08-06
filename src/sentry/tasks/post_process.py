@@ -120,7 +120,7 @@ def handle_owner_assignment(project, group, event, is_new):
                 GroupOwner.objects.create(
                     project_id=project.id,
                     group_id=group.id,
-                    user_id=owner.user.id,
+                    user_id=owner.id,
                     ownership_type=OwnershipType.RULE,
                 )
         try:
