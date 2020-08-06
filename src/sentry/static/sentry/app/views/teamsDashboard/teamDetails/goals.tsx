@@ -121,7 +121,9 @@ class Goals extends React.Component<Props, State> {
           }
 
           const progress =
-            1 - Math.abs(currentValue - goal.valueObjective) / goal.valueObjective;
+            1 -
+            Math.abs(Math.min(currentValue, goal.valueObjective) - goal.valueObjective) /
+              goal.valueObjective;
 
           return (
             <React.Fragment key={goal.id}>
