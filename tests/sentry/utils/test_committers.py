@@ -183,7 +183,7 @@ class MatchCommitsPathTestCase(CommitTestCase):
             "hello/app.py",
             "hello/app.py",
         )
-        assert [(file_change.commit, 2, score_reason)] == _match_commits_path(
+        assert [(file_change.commit, 2, score_reason, "Low")] == _match_commits_path(
             file_changes, "hello/app.py"
         )
 
@@ -205,7 +205,7 @@ class MatchCommitsPathTestCase(CommitTestCase):
         score_reason = "Commited file `%s` matches the run time path `hello/app.py`."
 
         commits = sorted(
-            [(fc.commit, 2, score_reason % fc.filename) for fc in file_changes],
+            [(fc.commit, 2, score_reason % fc.filename, "Low") for fc in file_changes],
             key=lambda fc: fc[0].id,
         )
         assert commits == sorted(
@@ -244,7 +244,8 @@ class MatchCommitsPathTestCase(CommitTestCase):
         )
 
         commits = sorted(
-            [(fc.commit, 3, score_reason) for fc in file_changes[-1:]], key=lambda fc: fc[0].id,
+            [(fc.commit, 3, score_reason, "Medium") for fc in file_changes[-1:]],
+            key=lambda fc: fc[0].id,
         )
         assert commits == sorted(
             _match_commits_path(file_changes, "hello/app.py", lineno=6), key=lambda fc: fc[0].id
@@ -286,7 +287,8 @@ class MatchCommitsPathTestCase(CommitTestCase):
         )
 
         commits = sorted(
-            [(fc.commit, 8, score_reason) for fc in file_changes[-4:-3]], key=lambda fc: fc[0].id,
+            [(fc.commit, 8, score_reason, "High") for fc in file_changes[-4:-3]],
+            key=lambda fc: fc[0].id,
         )
 
         assert commits == sorted(
@@ -301,7 +303,8 @@ class MatchCommitsPathTestCase(CommitTestCase):
         self.create_commitfilelinechange(6, 6, commitfilechange=file_changes[-1])
 
         commits = sorted(
-            [(fc.commit, 13, score_reason) for fc in file_changes[-1:]], key=lambda fc: fc[0].id,
+            [(fc.commit, 13, score_reason, "High") for fc in file_changes[-1:]],
+            key=lambda fc: fc[0].id,
         )
 
         assert commits == sorted(
@@ -643,6 +646,7 @@ class GetEventFileCommitters(CommitTestCase):
                 % ("src/sentry/models/release.py", 38, 40, "sentry/models/release.py", 39)
             )
         )
+        assert result[0]["commits"][0]["scoreConfidence"] == six.binary_type("Medium")
 
     def test_matching_case_insensitive(self):
         event = self.store_event(
