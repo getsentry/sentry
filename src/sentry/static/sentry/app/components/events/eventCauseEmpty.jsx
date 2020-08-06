@@ -188,7 +188,7 @@ class EventCauseEmpty extends React.Component {
 const StyledPanel = styled(Panel)`
   padding: ${space(3)};
   padding-bottom: 0;
-  background: none;
+  background: ${p => p.theme.backgroundAccent};
 `;
 
 const Description = styled('div')`
@@ -196,13 +196,13 @@ const Description = styled('div')`
     font-size: 14px;
     text-transform: uppercase;
     margin-bottom: ${space(0.25)};
-    color: ${p => p.theme.gray300};
+    color: ${p => p.theme.textColor};
   }
 
   p {
     font-size: 13px;
     font-weight: bold;
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.subText};
     margin-bottom: ${space(1.5)};
   }
 `;

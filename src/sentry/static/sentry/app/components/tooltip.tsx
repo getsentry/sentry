@@ -281,7 +281,7 @@ const TooltipArrow = styled('span')`
     margin-top: -5px;
     &::before {
       border-width: 0 5px 5px 5px;
-      border-color: transparent transparent #000 transparent;
+      border-color: transparent transparent ${p => p.theme.purple300} transparent;
     }
   }
 
@@ -297,10 +297,13 @@ const TooltipArrow = styled('span')`
 
   &[data-placement*='right'] {
     left: 0;
-    margin-left: -5px;
+    margin-left: -6px;
     &::before {
+      position: absolute;
+      top: -2px;
+      left: 1px;
       border-width: 5px 5px 5px 0;
-      border-color: transparent #000 transparent transparent;
+      border-color: transparent ${p => p.theme.purple300} transparent transparent;
     }
   }
 
@@ -309,7 +312,7 @@ const TooltipArrow = styled('span')`
     margin-right: -5px;
     &::before {
       border-width: 5px 0 5px 5px;
-      border-color: transparent transparent transparent #000;
+      border-color: transparent transparent transparent red;
     }
   }
 

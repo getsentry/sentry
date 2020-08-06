@@ -139,7 +139,7 @@ const SectionHeader = styled('div')<{isCentered?: boolean}>`
     font-size: 14px;
     font-weight: 600;
     line-height: 1.2;
-    color: ${p => p.theme.gray300};
+    color: ${p => p.theme.subText};
   }
 
   & h3 {

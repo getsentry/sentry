@@ -41,7 +41,7 @@ const BreadCrumbIconWrapper = styled('div')<{color?: Color; borderColor?: Color}
   justify-content: center;
   width: 26px;
   height: 26px;
-  background: ${p => p.theme.white};
+  background: ${p => p.theme.background};
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
   border-radius: 32px;
   z-index: 1;

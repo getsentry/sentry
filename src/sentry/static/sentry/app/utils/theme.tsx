@@ -80,7 +80,7 @@ const warning = {
 const alert = {
   muted: {
     background: colors.gray200,
-    backgroundLight: colors.gray100,
+    backgroundLight: aliases.backgroundAccent,
     border: aliases.border,
     iconColor: 'inherit',
   },

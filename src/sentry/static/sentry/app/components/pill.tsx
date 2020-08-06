@@ -78,6 +78,7 @@ type PillValueProps = {
   type: 'positive' | 'negative' | undefined;
 };
 const PillValue = styled(PillName)<PillValueProps>`
+  color: ${p => p.theme.linkColor};
   ${p => {
     switch (p.type) {
       case 'positive':
@@ -88,13 +89,14 @@ const PillValue = styled(PillName)<PillValueProps>`
         `;
       case 'negative':
         return `
-          background: ${p.theme.red100};
+          background: transparent;
           border: 1px solid ${p.theme.red300};
           margin: -1px;
+          color: ${p.theme.red300};
         `;
       default:
         return `
-          background: ${p.theme.gray100};
+          background: ${p.theme.backgroundAccent};
         `;
     }
   }}
