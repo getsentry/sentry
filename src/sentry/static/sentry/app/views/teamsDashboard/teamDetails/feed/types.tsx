@@ -1,5 +1,11 @@
 export type FeedData = {
   cards: CardData[];
+  sections: Section[];
+};
+
+export type Section = {
+  kind: string;
+  name: string;
 };
 
 export type CardData = {

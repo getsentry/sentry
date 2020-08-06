@@ -2,6 +2,7 @@ import {NewQuery, Project, Organization} from 'app/types';
 import {getPrebuiltQueries} from 'app/views/eventsV2/utils';
 
 import {FeedData, CardData} from './types';
+import {SECTIONS} from './sectionEditModal';
 
 export function generateRandomId() {
   return Math.random()
@@ -65,6 +66,12 @@ export function getDevData(
             },
           })
         ),
+    ],
+    sections: [
+      SECTIONS.issueList,
+      SECTIONS.alerts,
+      SECTIONS.discover,
+      SECTIONS.keyTransactions,
     ],
   };
 }
