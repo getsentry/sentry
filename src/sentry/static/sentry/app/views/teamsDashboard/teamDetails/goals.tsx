@@ -1,6 +1,7 @@
 import React from 'react';
 import {Location} from 'history';
 import styled from '@emotion/styled';
+import isFinite from 'lodash/isFinite';
 
 import {PanelTable} from 'app/components/panels';
 import DateTime from 'app/components/dateTime';
@@ -101,6 +102,14 @@ class Goals extends React.Component<Props, State> {
           const row = tableData.data[0];
           const needle = getAggregateAlias(goal.aggregateObjective);
 
+          let currentValue = Number(row[needle]);
+          if (!isFinite(currentValue)) {
+            currentValue = 0;
+          }
+
+          const progress =
+            1 - Math.abs(currentValue - goal.valueObjective) / goal.valueObjective;
+
           console.log('tableData', tableData);
           console.log('row', row);
           console.log('cell', row[needle]);
@@ -110,10 +119,11 @@ class Goals extends React.Component<Props, State> {
               <div>{goal.title}</div>
               <div>{goal.transactionName}</div>
               <div>{`${goal.aggregateObjective} ${goal.comparisonOperator} ${goal.valueObjective}`}</div>
-              <DateTime date={goal.duedate} shortDate />
+              <div>{`${currentValue}`}</div>
               <div>
-                <ProgressRing value={goal.progress} size={40} barWidth={6} />
+                <ProgressRing value={progress * 100} size={40} barWidth={6} />
               </div>
+              <DateTime date={goal.duedate} shortDate />
               <div>{goal.description || '-'}</div>
               <div>{goal.owner.user.name}</div>
             </React.Fragment>
@@ -148,8 +158,9 @@ class Goals extends React.Component<Props, State> {
             t('Title'),
             t('Transaction Name'),
             t('Objective'),
-            t('Due date'),
+            t('Current'),
             t('Progress'),
+            t('Due date'),
             t('Description'),
             t('Created By'),
           ]}
