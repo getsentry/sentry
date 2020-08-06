@@ -53,6 +53,26 @@ const goals: Array<Goal> = [
     comparisonOperator: '>=',
     valueObjective: 0.9,
   },
+  {
+    id: '2',
+    dateCreated: String(new Date()),
+    title: 'Discover Goals',
+    duedate: String(new Date()),
+    progress: 30,
+    owner: {
+      // @ts-ignore
+      user: {
+        id: '1',
+        name: 'Jane Bloggs',
+        email: 'janebloggs@example.com',
+      },
+      inviteStatus: 'requested_to_join',
+    },
+    transactionName: '/api/0/organizations/{organization_slug}/events*',
+    aggregateObjective: 'slo(countStatus(ok),count())',
+    comparisonOperator: '>=',
+    valueObjective: 0.95,
+  },
 ];
 class Goals extends React.Component<Props, State> {
   renderGoal = (goal: Goal) => {
@@ -67,24 +87,14 @@ class Goals extends React.Component<Props, State> {
     const eventView = EventView.fromSavedQuery({
       id: undefined,
       name: 'Transaction',
-      fields: [
-        'transaction',
-        'project',
-        'epm()',
-        'p50()',
-        'p95()',
-        'failure_rate()',
-        `apdex(${organization.apdexThreshold})`,
-        'count_unique(user)',
-        `user_misery(${organization.apdexThreshold})`,
-      ],
+      fields: ['transaction', goal.aggregateObjective],
       orderby: '-timestamp',
       query: stringifyQueryObject(searchConditions),
       // if an org has no global-views, we make an assumption that errors are collected in the same
       // project as the current transaction event where spans are collected into
       projects: orgFeatures.has('global-views') ? [] : projects.map(p => Number(p.id)),
       version: 2,
-      range: '90d',
+      range: '30d',
     });
 
     return (
