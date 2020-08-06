@@ -3,7 +3,7 @@ import {Location} from 'history';
 import styled from '@emotion/styled';
 import isFinite from 'lodash/isFinite';
 
-import {PanelTable, Panel, PanelHeader, PanelItem} from 'app/components/panels';
+import {PanelTable, Panel, PanelItem} from 'app/components/panels';
 import DateTime from 'app/components/dateTime';
 import {Goal, Member, Organization, Project, SelectValue} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
@@ -36,8 +36,8 @@ const goals: Array<Goal> = [
   {
     id: '1',
     dateCreated: String(new Date()),
-    title: 'Finish Goals Page',
-    duedate: String(new Date()),
+    title: 'Q3 Apdex Goal',
+    duedate: String(new Date('September 30, 2020 11:59:59')),
     progress: 30,
     owner: {
       // @ts-ignore
@@ -113,10 +113,6 @@ class Goals extends React.Component<Props, State> {
           const progress =
             1 - Math.abs(currentValue - goal.valueObjective) / goal.valueObjective;
 
-          console.log('tableData', tableData);
-          console.log('row', row);
-          console.log('cell', row[needle]);
-
           return (
             <React.Fragment key={goal.id}>
               <div>{goal.title}</div>
@@ -136,13 +132,13 @@ class Goals extends React.Component<Props, State> {
     );
   };
 
-  setGoalName = value => {
+  setGoalName = _value => {
     // this.setState({
     //   teamDescription: value,
     // });
   };
 
-  setAggregateFunction = value => {};
+  setAggregateFunction = _value => {};
 
   render() {
     const aggregateOptions: Array<SelectValue<string>> = [
