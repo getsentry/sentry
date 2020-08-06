@@ -9,7 +9,6 @@ import {LocalStorageDashboardType} from './types';
 
 const LS_KEY = 'HACKWEEK_TEAM_PAGE';
 const DEFAULT_STATE = {
-  [TAB.DASHBOARD]: null,
   [TAB.ALL_TEAMS]: null,
   [TAB.MY_TEAMS]: null,
 };
@@ -38,9 +37,8 @@ type Props = {};
 
 type State = {
   isLocalStorageLoading: boolean;
-  [TAB.DASHBOARD]: null | LocalStorageDashboardType;
   [TAB.ALL_TEAMS]: null | any;
-  [TAB.MY_TEAMS]: null | any;
+  [TAB.MY_TEAMS]: null | LocalStorageDashboardType;
 };
 
 export class Provider extends React.Component<Props, State> {

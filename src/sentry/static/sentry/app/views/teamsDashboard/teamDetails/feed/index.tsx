@@ -22,6 +22,7 @@ import CardDiscover from './cards/cardDiscover';
 import {CardData, Section, FeedData} from './types';
 import {getDevData} from './utils';
 import SectionEditModal, {modalCss} from './sectionEditModal';
+import {LocalStorageDashboardType} from '../../types';
 
 const DEFAULT_STATE: FeedData = {
   cards: [],
@@ -70,7 +71,7 @@ class Dashboard extends AsyncComponent<Props, State> {
     ];
   }
 
-  componentDidUpdate(_, prevState: State) {
+  componentDidUpdate(_prevProps: Props, prevState: State) {
     if (this.state.loading !== prevState.loading && !this.state.loading) {
       const {team, projects, organization, isLocalStorageLoading} = this.props;
       const {keyTransactions} = this.state;
@@ -83,7 +84,11 @@ class Dashboard extends AsyncComponent<Props, State> {
       if (!isLocalStorageLoading && Object.keys(data).length === 0) {
         this.props.setLs(
           team.slug,
-          getDevData(projects, organization, keyTransactionsData)
+          getDevData(
+            projects,
+            organization,
+            keyTransactionsData
+          ) as LocalStorageDashboardType
         );
       }
     }
@@ -309,7 +314,11 @@ class Dashboard extends AsyncComponent<Props, State> {
             Sections
           </Button>
         </Header>
-        {sections.map(section => this.renderSection(section, cards))}
+        {sections.map(section => (
+          <React.Fragment key={section.kind}>
+            {this.renderSection(section, cards)}
+          </React.Fragment>
+        ))}
         {this.renderDebuggingCards()}
       </Content>
     );
