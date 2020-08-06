@@ -122,6 +122,22 @@ class Goals extends React.Component<Props, State> {
     );
   };
 
+  renderGoal = (goal: Goal) => {
+    return (
+      <React.Fragment key={goal.id}>
+        <div>{goal.title}</div>
+        <div>{goal.transactionName}</div>
+        <div>{`${goal.aggregateObjective} ${goal.comparisonOperator} ${goal.valueObjective}`}</div>
+        <DateTime date={goal.duedate} shortDate />
+        <div>
+          <ProgressRing value={goal.progress} size={40} barWidth={6} />
+        </div>
+        <div>{goal.description || '-'}</div>
+        <div>{goal.owner.user.name}</div>
+      </React.Fragment>
+    );
+  };
+
   render() {
     return (
       <React.Fragment>
@@ -154,19 +170,7 @@ class Goals extends React.Component<Props, State> {
           ]}
           emptyMessage={t('This team has no goals')}
         >
-          {goals.map(goal => (
-            <React.Fragment key={goal.id}>
-              <div>{goal.title}</div>
-              <div>{goal.transactionName}</div>
-              <div>{`${goal.aggregateObjective} ${goal.comparisonOperator} ${goal.valueObjective}`}</div>
-              <DateTime date={goal.duedate} shortDate />
-              <div>
-                <ProgressRing value={goal.progress} size={40} barWidth={6} />
-              </div>
-              <div>{goal.description || '-'}</div>
-              <div>{goal.owner.user.name}</div>
-            </React.Fragment>
-          ))}
+          {goals.map(goal => this.renderGoal(goal))}
           {this.calculateGoals()}
         </PanelTable>
         <GlobalModal />
