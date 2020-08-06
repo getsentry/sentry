@@ -1,14 +1,19 @@
 import React from 'react';
 
-import {Panel, PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
-import {Goal} from 'app/types';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import Button from 'app/components/button';
+import {PanelTable} from 'app/components/panels';
+import {Goal, Member} from 'app/types';
+import DateTime from 'app/components/dateTime';
+import ProgressRing from 'app/components/progressRing';
 import {t} from 'app/locale';
-import {IconFlag, IconLab} from 'app/icons';
 
 type Props = {
   goals?: Array<Goal>;
+};
+
+type State = {
+  orgMemberList: Array<Member>;
+  isDropdownBusy: boolean;
+  query: string;
 };
 
 const goals: Array<Goal> = [
@@ -17,46 +22,44 @@ const goals: Array<Goal> = [
     dateCreated: String(new Date()),
     title: 'Finish Goals Page',
     duedate: String(new Date()),
+    progress: 30,
     owner: {
       // @ts-ignore
       user: {
         id: '1',
-        name: 'Priscila Oliveira',
-        email: 'priscila.oliveira@sentry.io',
+        name: 'Jane Bloggs',
+        email: 'janebloggs@example.com',
       },
       inviteStatus: 'requested_to_join',
     },
   },
 ];
 
-class Goals extends React.Component<Props> {
+class Goals extends React.Component<Props, State> {
   render() {
     return (
-      <Panel>
-        <PanelHeader hasButtons>
-          {t('Goals')}
-          <Button size="small" icon={<IconLab />}>
-            {t('Add Goal')}
-          </Button>
-        </PanelHeader>
-        <PanelBody>
-          {goals.length > 0 ? (
-            goals.map(goal => (
-              <PanelItem key={goal.id}>
-                <div>{goal.title}</div>
-                <div>{goal.duedate}</div>
-                <div>{goal.progress}</div>
-                <div>{goal.description}</div>
-                <div>{goal.owner.name}</div>
-              </PanelItem>
-            ))
-          ) : (
-            <EmptyMessage icon={<IconFlag size="xl" />} size="large">
-              {t('This team has no goals')}
-            </EmptyMessage>
-          )}
-        </PanelBody>
-      </Panel>
+      <PanelTable
+        headers={[
+          t('Title'),
+          t('Due date'),
+          t('Progress'),
+          t('Description'),
+          t('Created By'),
+        ]}
+        emptyMessage={t('This team has no goals')}
+      >
+        {goals.map(goal => (
+          <React.Fragment key={goal.id}>
+            <div>{goal.title}</div>
+            <DateTime date={goal.duedate} shortDate />
+            <div>
+              <ProgressRing value={goal.progress} size={40} barWidth={6} />
+            </div>
+            <div>{goal.description || '-'}</div>
+            <div>{goal.owner.user.name}</div>
+          </React.Fragment>
+        ))}
+      </PanelTable>
     );
   }
 }
