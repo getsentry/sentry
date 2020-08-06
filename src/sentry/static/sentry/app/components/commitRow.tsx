@@ -14,10 +14,18 @@ import Link from 'app/components/links/link';
 import TextOverflow from 'app/components/textOverflow';
 import TimeSince from 'app/components/timeSince';
 import space from 'app/styles/space';
+import ScoreBar from 'app/components/scoreBar';
+import theme from 'app/utils/theme';
 
 type Props = {
   commit: Commit;
   customAvatar?: React.ReactNode;
+};
+
+const ScoreConfidenceToScore = {
+  Low: 1,
+  Medium: 2,
+  High: 3,
 };
 
 class CommitRow extends React.Component<Props> {
@@ -36,9 +44,9 @@ class CommitRow extends React.Component<Props> {
     return firstLine;
   }
 
-  renderHovercardBody(author) {
+  renderEmailWarningHovercardBody(author) {
     return (
-      <EmailWarning>
+      <CommitHoverCardBody>
         {tct(
           'The email [actorEmail] is not a member of your organization. [inviteUser:Invite] them or link additional emails in [accountSettings:account settings].',
           {
@@ -61,13 +69,30 @@ class CommitRow extends React.Component<Props> {
             ),
           }
         )}
-      </EmailWarning>
+      </CommitHoverCardBody>
     );
   }
-
+  renderCommitScoreHovercardBody(scoreConfidence, scoreReason) {
+    return (
+      <CommitHoverCardBody>
+        <div>
+          <strong>Confidence: </strong> {scoreConfidence}
+        </div>
+        <div>{scoreReason}</div>
+      </CommitHoverCardBody>
+    );
+  }
   render() {
     const {commit, customAvatar, ...props} = this.props;
-    const {id, dateCreated, message, author, repository} = commit;
+    const {
+      id,
+      dateCreated,
+      message,
+      author,
+      repository,
+      scoreConfidence,
+      scoreReason,
+    } = commit;
     const nonMemberEmail = author && author.id === undefined;
 
     return (
@@ -76,7 +101,7 @@ class CommitRow extends React.Component<Props> {
           customAvatar
         ) : nonMemberEmail ? (
           <AvatarWrapper>
-            <Hovercard body={this.renderHovercardBody(author)}>
+            <Hovercard body={this.renderEmailWarningHovercardBody(author)}>
               <UserAvatar size={36} user={author} />
               <EmailWarningIcon />
             </Hovercard>
@@ -100,17 +125,42 @@ class CommitRow extends React.Component<Props> {
         <div>
           <CommitLink commitId={id} repository={repository} />
         </div>
+
+        <CommitScoreWrapper>
+          <Hovercard
+            body={this.renderCommitScoreHovercardBody(scoreConfidence, scoreReason)}
+          >
+            <div style={{width: 40}}>
+              <ScoreBar
+                size={20}
+                thickness={10}
+                score={ScoreConfidenceToScore[scoreConfidence]}
+                palette={[
+                  theme.similarity.colors[0],
+                  theme.similarity.colors[2],
+                  theme.similarity.colors[4],
+                ]}
+              />
+            </div>
+          </Hovercard>
+        </CommitScoreWrapper>
       </PanelItem>
     );
   }
 }
+
+const CommitScoreWrapper = styled('div')`
+  margin-left: ${space(1.5)};
+  width: 40px;
+  display: flex;
+`;
 
 const AvatarWrapper = styled('div')`
   align-self: flex-start;
   margin-right: ${space(2)};
 `;
 
-const EmailWarning = styled('div')`
+const CommitHoverCardBody = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   line-height: 1.4;
   margin: -4px;

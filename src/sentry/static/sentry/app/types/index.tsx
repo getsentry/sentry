@@ -974,6 +974,8 @@ export type Commit = {
   repository?: Repository;
   author?: User;
   releases: BaseRelease[];
+  scoreReason: string;
+  scoreConfidence: string;
 };
 
 export type CommitFile = {
