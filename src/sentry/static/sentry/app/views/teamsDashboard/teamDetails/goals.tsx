@@ -231,7 +231,7 @@ class Goals extends React.Component<Props, State> {
                               inputMode="numeric"
                               pattern="[0-9]*(\.[0-9]*)?"
                               required
-                              value={'0.99'}
+                              value="0.99"
                               onUpdate={() => {
                                 return;
                               }}
