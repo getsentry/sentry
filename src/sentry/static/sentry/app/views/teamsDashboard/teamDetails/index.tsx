@@ -2,7 +2,6 @@ import React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
-import isEqual from 'lodash/isEqual';
 
 import Badge from 'app/components/badge';
 import {t} from 'app/locale';
@@ -186,7 +185,7 @@ class TeamDetails extends React.Component<Props, State> {
           projects={projects}
         />
         <Body>
-          <NavTabs>
+          <StyledNavTabs>
             <ListLink
               to={`${baseTabUrl}team-feed/`}
               index
@@ -231,7 +230,7 @@ class TeamDetails extends React.Component<Props, State> {
             >
               {t('Settings')}
             </ListLink>
-          </NavTabs>
+          </StyledNavTabs>
           <TabContent>{this.renderTabContent()}</TabContent>
         </Body>
       </StyledPageContent>
@@ -279,4 +278,11 @@ const TabContent = styled('div')`
   flex: 1;
   flex-direction: column;
   padding-bottom: ${space(4)};
+  background: ${p => p.theme.white};
+  margin: 0 -${space(4)};
+  padding: ${space(2)} ${space(4)};
+`;
+
+const StyledNavTabs = styled(NavTabs)`
+  margin-bottom: 0;
 `;
