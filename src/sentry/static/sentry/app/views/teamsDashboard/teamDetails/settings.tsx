@@ -144,6 +144,8 @@ class Settings extends React.Component<Props, State> {
           </Field>
         </Panel>
 
+        <Environments teamSlug={team.slug} />
+
         <Panel>
           <PanelHeader>{t('Remove Team')}</PanelHeader>
           <Field
@@ -171,8 +173,6 @@ class Settings extends React.Component<Props, State> {
             </div>
           </Field>
         </Panel>
-
-        <Environments teamSlug={team.slug} />
       </div>
     );
   }
