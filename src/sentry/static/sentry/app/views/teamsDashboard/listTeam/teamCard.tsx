@@ -140,7 +140,7 @@ class TeamCard extends AsyncComponent<Props, State> {
   }
 }
 
-export default withLocalStorage(TeamCard, TAB.DASHBOARD);
+export default withLocalStorage(TeamCard, TAB.MY_TEAMS);
 
 const Wrapper = styled('div')`
   background-color: ${p => p.theme.white};

@@ -178,4 +178,4 @@ class Settings extends React.Component<Props, State> {
   }
 }
 
-export default ReactRouter.withRouter(withApi(withLocalStorage(Settings, TAB.DASHBOARD)));
+export default ReactRouter.withRouter(withApi(withLocalStorage(Settings, TAB.MY_TEAMS)));

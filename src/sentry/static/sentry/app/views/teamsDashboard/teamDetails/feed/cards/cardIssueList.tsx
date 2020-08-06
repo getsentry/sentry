@@ -50,4 +50,4 @@ class CardIssueList extends React.Component<Props> {
   }
 }
 
-export default withLocalStorage(CardIssueList, TAB.DASHBOARD);
+export default withLocalStorage(CardIssueList, TAB.MY_TEAMS);

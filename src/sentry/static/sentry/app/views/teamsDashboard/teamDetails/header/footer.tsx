@@ -61,7 +61,7 @@ const Footer = ({users, projects, teamSlug, data}: Props) => {
   );
 };
 
-export default withLocalStorage(Footer, TAB.DASHBOARD);
+export default withLocalStorage(Footer, TAB.MY_TEAMS);
 
 const Wrapper = styled('div')`
   display: grid;

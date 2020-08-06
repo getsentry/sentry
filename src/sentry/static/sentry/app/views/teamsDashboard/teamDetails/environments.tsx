@@ -177,4 +177,4 @@ const UnlinkedProject = styled('div')`
   padding: ${space(0.25)} 0;
 `;
 
-export default withLocalStorage(withProjects(Environments), TAB.DASHBOARD);
+export default withLocalStorage(withProjects(Environments), TAB.MY_TEAMS);
