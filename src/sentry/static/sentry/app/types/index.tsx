@@ -650,6 +650,8 @@ export type Member = {
   user: User;
 };
 
+type ComparisonOperator = '>' | '<' | '<=' | '>=';
+
 export type Goal = {
   id: string;
   dateCreated: string;
@@ -660,6 +662,7 @@ export type Goal = {
   description?: string;
   transactionName: string;
   aggregateObjective: string;
+  comparisonOperator: ComparisonOperator;
   valueObjective: number;
 };
 

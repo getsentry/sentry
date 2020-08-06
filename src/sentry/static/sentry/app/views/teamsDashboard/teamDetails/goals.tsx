@@ -41,6 +41,7 @@ const goals: Array<Goal> = [
     },
     transactionName: '/api/0/organizations/{organization_slug}/eventsv2/',
     aggregateObjective: 'apdex()',
+    comparisonOperator: '>=',
     valueObjective: 0.9,
   },
 ];
@@ -123,6 +124,7 @@ class Goals extends React.Component<Props, State> {
         headers={[
           t('Title'),
           t('Transaction Name'),
+          t('Objective'),
           t('Due date'),
           t('Progress'),
           t('Description'),
@@ -134,6 +136,7 @@ class Goals extends React.Component<Props, State> {
           <React.Fragment key={goal.id}>
             <div>{goal.title}</div>
             <div>{goal.transactionName}</div>
+            <div>{`${goal.aggregateObjective} ${goal.comparisonOperator} ${goal.valueObjective}`}</div>
             <DateTime date={goal.duedate} shortDate />
             <div>
               <ProgressRing value={goal.progress} size={40} barWidth={6} />
