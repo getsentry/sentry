@@ -4,7 +4,6 @@ import IssueList from 'app/components/issueList';
 
 import Card from './index';
 import {CardData} from '../types';
-
 import withLocalStorage, {InjectedLocalStorageProps} from '../../../withLocalStorage';
 import {getSelectedEnvironments} from '../../utils';
 import {TAB} from '../../../utils';
