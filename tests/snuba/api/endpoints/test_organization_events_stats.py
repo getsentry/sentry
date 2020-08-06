@@ -846,7 +846,6 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert len(data) == 5
-
         for index, event in enumerate(self.events[:5]):
             message = event.message or event.transaction
             results = data[",".join([message, event.project.slug])]
