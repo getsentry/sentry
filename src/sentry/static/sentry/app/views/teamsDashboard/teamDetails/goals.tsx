@@ -122,6 +122,7 @@ class Goals extends React.Component<Props, State> {
       <PanelTable
         headers={[
           t('Title'),
+          t('Transaction Name'),
           t('Due date'),
           t('Progress'),
           t('Description'),
@@ -132,6 +133,7 @@ class Goals extends React.Component<Props, State> {
         {goals.map(goal => (
           <React.Fragment key={goal.id}>
             <div>{goal.title}</div>
+            <div>{goal.transactionName}</div>
             <DateTime date={goal.duedate} shortDate />
             <div>
               <ProgressRing value={goal.progress} size={40} barWidth={6} />
