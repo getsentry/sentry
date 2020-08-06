@@ -17,23 +17,40 @@ import Button from 'app/components/button';
 import {IconDelete} from 'app/icons';
 import withApi from 'app/utils/withApi';
 import {Client} from 'app/api';
+import TextField from 'app/views/settings/components/forms/textField';
 
 import Environments from './environments';
+import {TAB} from '../utils';
+import withLocalStorage, {InjectedLocalStorageProps} from '../withLocalStorage';
+import {getTeamDescription, setTeamDescription} from './utils';
 
 type Props = {
   api: Client;
   location: Location;
   team: Team;
   organization: Organization;
-} & ReactRouter.WithRouterProps;
+} & ReactRouter.WithRouterProps &
+  InjectedLocalStorageProps;
 
-class Settings extends React.Component<Props> {
+type State = {
+  teamDescription: string | undefined;
+};
+
+class Settings extends React.Component<Props, State> {
   constructor(props: Props, context) {
     super(props, context);
 
     this.model = new TeamModel();
     this.model.teamId = props.team.slug;
     this.model.orgId = props.organization.slug;
+
+    const {team, data} = props;
+
+    const teamDescription = getTeamDescription(team.slug, data);
+
+    this.state = {
+      teamDescription,
+    };
   }
 
   // TODO: needs a type
@@ -54,8 +71,18 @@ class Settings extends React.Component<Props> {
           this.props.organization.slug
         }/teams/${this.getTeamsRoute()}/${model.getValue(id)}/settings/`
       );
-      this.setState({loading: true});
     }
+  };
+
+  handleChangeTeamDescription = value => {
+    this.setState({
+      teamDescription: value,
+    });
+  };
+
+  saveTeamDescription = () => {
+    const {team, data, setLs} = this.props;
+    setTeamDescription(setLs, team.slug, data, this.state.teamDescription);
   };
 
   handleRemoveTeam = async () => {
@@ -71,8 +98,12 @@ class Settings extends React.Component<Props> {
   };
 
   render() {
-    const {organization, location, team} = this.props;
+    const {organization, location, team, data} = this.props;
     const access = new Set(organization.access);
+
+    const teamDescriptionOriginalValue = getTeamDescription(team.slug, data);
+    const teamDescriptionHasChanged =
+      teamDescriptionOriginalValue !== this.state.teamDescription;
 
     return (
       <div>
@@ -90,6 +121,28 @@ class Settings extends React.Component<Props> {
         >
           <JsonForm access={access} location={location} forms={teamSettingsFields} />
         </Form>
+
+        <Panel>
+          <PanelHeader>{t('Team Description')}</PanelHeader>
+          <TextField
+            name="team-description"
+            label="Set team description"
+            placeholder="Set team description"
+            onChange={this.handleChangeTeamDescription}
+            value={this.state.teamDescription}
+          />
+          <Field help=" ">
+            <div>
+              <Button
+                priority="primary"
+                disabled={!(access.has('team:admin') && teamDescriptionHasChanged)}
+                onClick={this.saveTeamDescription}
+              >
+                {t('Save Changes')}
+              </Button>
+            </div>
+          </Field>
+        </Panel>
 
         <Panel>
           <PanelHeader>{t('Remove Team')}</PanelHeader>
@@ -125,4 +178,4 @@ class Settings extends React.Component<Props> {
   }
 }
 
-export default ReactRouter.withRouter(withApi(Settings));
+export default ReactRouter.withRouter(withApi(withLocalStorage(Settings, TAB.DASHBOARD)));
