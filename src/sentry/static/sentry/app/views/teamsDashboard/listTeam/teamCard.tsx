@@ -16,7 +16,7 @@ import {getTeamDescription} from '../teamDetails/utils';
 import withLocalStorage, {InjectedLocalStorageProps} from '../withLocalStorage';
 import {TAB} from '../utils';
 
-type Props = AsyncComponent['props'] & {
+export type TeamCardProps = {
   team: Team;
   organization: Organization;
   hasTeamAdminAccess: boolean;
@@ -25,7 +25,9 @@ type Props = AsyncComponent['props'] & {
   onLeaveTeam: (team: Team) => () => void;
   onJoinTeam: (team: Team) => () => void;
   onRequestAccess: (team: Team) => () => void;
-} & InjectedLocalStorageProps;
+};
+
+type Props = AsyncComponent['props'] & TeamCardProps & InjectedLocalStorageProps;
 
 type State = AsyncComponent['state'] & {
   members: Array<Member>;

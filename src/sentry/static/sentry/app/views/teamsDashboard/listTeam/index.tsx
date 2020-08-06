@@ -3,9 +3,8 @@ import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
 
-import TeamCard from './teamCard';
+import TeamCard, {TeamCardProps} from './teamCard';
 
-type TeamCardProps = TeamCard['props'];
 type Team = TeamCardProps['team'];
 
 type Props = Omit<TeamCardProps, 'team'> & {

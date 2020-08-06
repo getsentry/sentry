@@ -2,28 +2,31 @@ import React from 'react';
 import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 
+import withApi from 'app/utils/withApi';
 import {t} from 'app/locale';
-import {Team, Project} from 'app/types';
+import {Team, Project, Organization} from 'app/types';
 import Avatar from 'app/components/avatar';
 import Breadcrumbs from 'app/components/breadcrumbs';
 import space from 'app/styles/space';
 import Button from 'app/components/button';
 import {IconMegaphone, IconEdit} from 'app/icons';
 import {openModal} from 'app/actionCreators/modal';
+import {Client} from 'app/api';
 
 import Footer from './footer';
 import ModalEditAvatar from './modalEditAvatar';
 import withLocalStorage, {InjectedLocalStorageProps} from '../../withLocalStorage';
-import {TAB} from '../../utils';
+import {TAB, leaveTheTeam, joinTheTeam} from '../../utils';
 import {getTeamDescription} from '../utils';
 
 type Props = {
   team: Team;
-  orgSlug: string;
+  organization: Organization;
   teamSlug: string;
   origin: 'my-teams' | 'all-teams';
   projects: Array<Project>;
   canWrite: boolean;
+  api: Client;
 } & InjectedLocalStorageProps;
 
 type State = {
@@ -38,7 +41,8 @@ class TeamDetailsHeader extends React.Component<Props, State> {
   }
 
   getCrumbs() {
-    const {origin, orgSlug, teamSlug} = this.props;
+    const {origin, organization, teamSlug} = this.props;
+    const orgSlug = organization.slug;
 
     const crumbs = [
       {
@@ -66,16 +70,36 @@ class TeamDetailsHeader extends React.Component<Props, State> {
   }
 
   handleOpenEditAvatarModal = () => {
-    const {canWrite, orgSlug, team} = this.props;
+    const {canWrite, organization, team} = this.props;
 
     openModal(modalProps => (
       <ModalEditAvatar
         {...modalProps}
         canWrite={canWrite}
-        orgSlug={orgSlug}
+        orgSlug={organization.slug}
         team={team}
       />
     ));
+  };
+
+  handleLeaveTeam = () => {
+    const {api, organization, team: teamToLeave} = this.props;
+
+    leaveTheTeam({
+      teamToLeave,
+      organization,
+      api,
+    });
+  };
+
+  handleJoinTeam = () => {
+    const {api, organization, team: teamToJoin} = this.props;
+
+    joinTheTeam({
+      teamToJoin,
+      organization,
+      api,
+    });
   };
 
   render() {
@@ -87,11 +111,15 @@ class TeamDetailsHeader extends React.Component<Props, State> {
         <Header>
           <Breadcrumbs crumbs={this.state.crumbs} />
           {!team.isMember ? (
-            <Button priority="primary" icon={<IconMegaphone />}>
+            <Button
+              priority="primary"
+              icon={<IconMegaphone />}
+              onClick={this.handleJoinTeam}
+            >
               {t('Request to Join')}
             </Button>
           ) : (
-            <Button>{t('Leave Team')}</Button>
+            <Button onClick={this.handleLeaveTeam}>{t('Leave Team')}</Button>
           )}
         </Header>
         <Body>
@@ -121,7 +149,7 @@ class TeamDetailsHeader extends React.Component<Props, State> {
   }
 }
 
-export default withLocalStorage(TeamDetailsHeader, TAB.MY_TEAMS);
+export default withApi(withLocalStorage(TeamDetailsHeader, TAB.MY_TEAMS));
 
 const Wrapper = styled('div')`
   display: grid;

@@ -160,7 +160,7 @@ class TeamDetails extends React.Component<Props, State> {
   renderContent() {
     const {
       team,
-      params: {teamSlug, orgSlug},
+      params: {teamSlug},
       isLoading,
       location,
       routes,
@@ -194,7 +194,7 @@ class TeamDetails extends React.Component<Props, State> {
         <Header
           team={{...team, members}}
           teamSlug={teamSlug}
-          orgSlug={orgSlug}
+          organization={organization}
           origin={origin}
           projects={projects}
           canWrite={canWrite}

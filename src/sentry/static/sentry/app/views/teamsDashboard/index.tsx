@@ -10,20 +10,18 @@ import ListLink from 'app/components/links/listLink';
 import NavTabs from 'app/components/navTabs';
 import Badge from 'app/components/badge';
 import {IconGroup} from 'app/icons';
-import {t, tct} from 'app/locale';
+import {t} from 'app/locale';
 import {PageContent, PageHeader} from 'app/styles/organization';
 import {Organization, Team} from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
 import recreateRoute from 'app/utils/recreateRoute';
 import withTeams from 'app/utils/withTeams';
 import Breadcrumbs from 'app/components/breadcrumbs';
-import {joinTeam, leaveTeam} from 'app/actionCreators/teams';
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
 
 import AllTeams from './allTeams';
 import MyTeams from './myTeams';
-import {TAB} from './utils';
+import {TAB, joinTheTeam, leaveTheTeam} from './utils';
 import * as LocalStorageContext from './withLocalStorage';
 
 type Props = RouteComponentProps<
@@ -106,96 +104,53 @@ class TeamsTabDashboard extends React.Component<Props, State> {
     openCreateTeamModal({organization});
   };
 
-  handleRequestAccess = (team: Team) => () => {
-    this.joinTeam({
-      successMessage: tct('You have requested access to [team]', {
-        team: `#${team.slug}`,
-      }),
-
-      errorMessage: tct('Unable to request access to [team]', {
-        team: `#${team.slug}`,
-      }),
-      team: {...team, isPending: true},
-    });
-  };
-
-  handleJoinTeam = (team: Team) => () => {
-    this.joinTeam({
-      successMessage: tct('You have joined [team]', {
-        team: `#${team.slug}`,
-      }),
-      errorMessage: tct('Unable to join [team]', {
-        team: `#${team.slug}`,
-      }),
-      team,
-    });
-  };
-
-  joinTeam = ({successMessage, errorMessage, team: teamToJoin}) => {
-    const {api, organization} = this.props;
-
-    joinTeam(
-      api,
-      {
-        orgId: organization.slug,
-        teamId: teamToJoin.slug,
-      },
-      {
-        success: (joinedTeam: Team) => {
-          this.setState(prevState => ({
-            teams: prevState.teams.map(team => {
-              if (team.id === teamToJoin.id) {
-                return joinedTeam;
-              }
-              return team;
-            }),
-            myTeams: [...prevState.myTeams, joinedTeam],
-          }));
-          addSuccessMessage(successMessage);
-        },
-        error: () => {
-          addErrorMessage(errorMessage);
-        },
-      }
-    );
-  };
-
   handleLeaveTeam = (teamToLeave: Team) => () => {
     const {api, organization} = this.props;
+    const {teams, myTeams} = this.state;
 
-    leaveTeam(
+    leaveTheTeam({
+      teamToLeave,
+      organization,
       api,
-      {
-        orgId: organization.slug,
-        teamId: teamToLeave.slug,
-      },
-      {
-        success: (leftTeam: Team) => {
-          this.setState(prevState => ({
-            teams: prevState.teams.map(team => {
-              if (team.id === leftTeam.id) {
-                return leftTeam;
-              }
-              return team;
-            }),
-            myTeams: prevState.myTeams.filter(team => team.id !== leftTeam.id),
-          }));
+      onSubmitSuccess: leftTeam => {
+        const updatedTeams = teams.map(team => {
+          if (team.id === leftTeam.id) {
+            return leftTeam;
+          }
+          return team;
+        });
 
-          addSuccessMessage(
-            tct('You have left [team]', {
-              team: `#${teamToLeave.slug}`,
-            })
-          );
-        },
-        error: () => {
-          addErrorMessage(
-            tct('Unable to leave [team]', {
-              team: `#${teamToLeave.slug}`,
-            })
-          );
-        },
-      }
-    );
+        const updatedMyTeams = myTeams.filter(team => team.id !== leftTeam.id);
+
+        this.setState({teams: updatedTeams, myTeams: updatedMyTeams});
+      },
+    });
+  };
+
+  handleRequestAccess = (teamToJoin: Team) => () => {
+    this.handleJoinTeam(teamToJoin, 'request');
+  };
+
+  handleJoinTeam = (teamToJoin: Team, type: 'join' | 'request' = 'join') => () => {
+    const {organization, api} = this.props;
+    const {teams, myTeams} = this.state;
+
+    joinTheTeam({
+      type,
+      teamToJoin,
+      organization,
+      api,
+      onSubmitSuccess: joinedTeam => {
+        const updatedTeams = teams.map(team => {
+          if (team.id === joinedTeam.id) {
+            return joinedTeam;
+          }
+          return team;
+        });
+        const updatedMyTeams = [...myTeams, joinedTeam];
+        this.setState({teams: updatedTeams, myTeams: updatedMyTeams});
+      },
+    });
   };
 
   renderHeader() {
