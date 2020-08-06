@@ -120,11 +120,9 @@ class TeamDetails extends React.Component<Props, State> {
     this.setState({members: newMembers});
   };
 
-  renderTabContent = () => {
+  renderTabContent = (canWrite: boolean, hasProjectAccess: boolean) => {
     const {currentTab, members, projects} = this.state;
     const {organization, team} = this.props;
-
-    const access = new Set(organization.access);
 
     switch (currentTab) {
       case TAB.TEAM_FEED:
@@ -132,7 +130,6 @@ class TeamDetails extends React.Component<Props, State> {
       case TAB.TEAM_GOALS:
         return <div>Team Goals</div>;
       case TAB.PROJECTS:
-        const hasProjectAccess = access.has('project:read');
         return (
           <Projects
             organization={organization}
@@ -141,7 +138,6 @@ class TeamDetails extends React.Component<Props, State> {
           />
         );
       case TAB.MEMBERS:
-        const canWrite = access.has('org:write') || access.has('team:admin');
         return (
           <Members
             organization={organization}
@@ -166,6 +162,7 @@ class TeamDetails extends React.Component<Props, State> {
       location,
       routes,
       params,
+      organization,
     } = this.props;
 
     if (isLoading) {
@@ -185,14 +182,19 @@ class TeamDetails extends React.Component<Props, State> {
     const origin = baseUrl.endsWith('all-teams/') ? 'all-teams' : 'my-teams';
     const baseTabUrl = `${baseUrl}${teamSlug}/`;
 
+    const access = new Set(organization.access);
+    const canWrite = access.has('org:write') || access.has('team:admin');
+    const hasProjectAccess = access.has('project:read');
+
     return (
       <StyledPageContent>
         <Header
-          team={team}
+          team={{...team, members}}
           teamSlug={teamSlug}
           orgSlug={orgSlug}
           origin={origin}
           projects={projects}
+          canWrite={canWrite}
         />
         <Body>
           <StyledNavTabs>
@@ -241,7 +243,7 @@ class TeamDetails extends React.Component<Props, State> {
               {t('Settings')}
             </ListLink>
           </StyledNavTabs>
-          <TabContent>{this.renderTabContent()}</TabContent>
+          <TabContent>{this.renderTabContent(canWrite, hasProjectAccess)}</TabContent>
         </Body>
       </StyledPageContent>
     );

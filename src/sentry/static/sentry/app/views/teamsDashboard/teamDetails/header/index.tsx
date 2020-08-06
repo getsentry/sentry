@@ -20,6 +20,7 @@ type Props = {
   teamSlug: string;
   origin: 'my-teams' | 'all-teams';
   projects: Array<Project>;
+  canWrite: boolean;
 };
 
 type State = {
@@ -62,7 +63,16 @@ class TeamDetailsHeader extends React.Component<Props, State> {
   }
 
   handleOpenEditAvatarModal = () => {
-    openModal(modalProps => <ModalEditAvatar {...modalProps} />);
+    const {canWrite, orgSlug, team} = this.props;
+
+    openModal(modalProps => (
+      <ModalEditAvatar
+        {...modalProps}
+        canWrite={canWrite}
+        orgSlug={orgSlug}
+        team={team}
+      />
+    ));
   };
 
   render() {
@@ -98,7 +108,7 @@ class TeamDetailsHeader extends React.Component<Props, State> {
         </Body>
         <Footer
           teamSlug={team.slug}
-          users={(team.members || []) as Array<any>}
+          users={team.members as Array<any>}
           projects={projects}
           enviroments={[]}
         />

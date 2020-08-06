@@ -26,6 +26,7 @@ type DefaultProps = {
   allowLetter?: boolean;
   allowUpload?: boolean;
   type?: AvatarChooserType;
+  withoutPanels?: boolean;
 };
 
 type Props = {
@@ -35,6 +36,7 @@ type Props = {
   disabled?: boolean;
   savedDataUrl?: string;
   isUser?: boolean;
+  isSaving?: boolean;
 } & DefaultProps;
 
 type State = {
@@ -49,6 +51,7 @@ class AvatarChooser extends React.Component<Props, State> {
     allowGravatar: true,
     allowLetter: true,
     allowUpload: true,
+    withoutPanels: false,
     type: 'user',
     onSave: () => {},
   };
@@ -67,6 +70,12 @@ class AvatarChooser extends React.Component<Props, State> {
     }
   }
 
+  componentDidUpdate(prevProps: Props) {
+    if (prevProps.isSaving !== this.props.isSaving && this.props.isSaving) {
+      this.handleSaveSettings();
+    }
+  }
+
   updateState(model: Model) {
     this.setState({model});
   }
@@ -82,10 +91,10 @@ class AvatarChooser extends React.Component<Props, State> {
     addSuccessMessage(t('Successfully saved avatar preferences'));
   }
 
-  handleSaveSettings = (ev: React.MouseEvent) => {
+  handleSaveSettings = (ev?: React.MouseEvent) => {
     const {endpoint, api} = this.props;
     const {model, dataUrl} = this.state;
-    ev.preventDefault();
+    ev?.preventDefault();
     let data = {};
     const avatarType = model && model.avatar ? model.avatar.avatarType : undefined;
     const avatarPhoto = dataUrl ? dataUrl.split(',')[1] : undefined;
@@ -121,6 +130,7 @@ class AvatarChooser extends React.Component<Props, State> {
       type,
       isUser,
       disabled,
+      withoutPanels,
     } = this.props;
     const {hasError, model} = this.state;
 
@@ -146,6 +156,51 @@ class AvatarChooser extends React.Component<Props, State> {
     }
     if (allowGravatar) {
       choices.push(['gravatar', t('Use Gravatar')]);
+    }
+
+    if (withoutPanels) {
+      return (
+        <AvatarForm>
+          <AvatarGroup inline={isLetter}>
+            <RadioGroup
+              style={{flex: 1}}
+              choices={choices}
+              value={avatarType}
+              label={t('Avatar Type')}
+              onChange={this.handleChange}
+              disabled={disabled}
+            />
+            {isLetter && (
+              <Avatar
+                gravatar={false}
+                style={{width: 90, height: 90}}
+                user={isUser ? (model as AvatarUser) : undefined}
+                organization={isOrganization ? (model as Organization) : undefined}
+                team={isTeam ? (model as Team) : undefined}
+              />
+            )}
+          </AvatarGroup>
+
+          <AvatarUploadSection>
+            {allowGravatar && avatarType === 'gravatar' && (
+              <Well>
+                {t('Gravatars are managed through ')}
+                <ExternalLink href="http://gravatar.com">Gravatar.com</ExternalLink>
+              </Well>
+            )}
+
+            {model.avatar && avatarType === 'upload' && (
+              <AvatarCropper
+                {...this.props}
+                type={type!}
+                model={model}
+                savedDataUrl={savedDataUrl}
+                updateDataUrlState={dataState => this.setState(dataState)}
+              />
+            )}
+          </AvatarUploadSection>
+        </AvatarForm>
+      );
     }
 
     return (
