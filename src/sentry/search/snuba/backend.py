@@ -16,13 +16,11 @@ from sentry.search.snuba.executors import PostgresSnubaQueryExecutor
 
 
 def issue_owner_filter(actor, projects):
-    from sentry.models import GroupOwner, OwnershipType, GroupAssignee
+    from sentry.models import GroupOwner, GroupAssignee
 
     owner_query = Q(
         id__in=GroupOwner.objects.filter(
-            project_id__in=[p.id for p in projects],
-            user_id=actor.id,
-            ownership_type=OwnershipType.RULE,
+            project_id__in=[p.id for p in projects], user_id=actor.id
         ).values_list("group_id", flat=True)
     )
     assignee_query = Q(
