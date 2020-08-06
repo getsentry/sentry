@@ -196,7 +196,7 @@ class TeamDetails extends AsyncComponent<Props, State> {
       params,
     } = this.props;
 
-    if (isLoading) {
+    if (isLoading || this.state.loading) {
       return <LoadingIndicator />;
     }
 
