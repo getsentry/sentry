@@ -22,6 +22,7 @@ import Header from './header';
 import Feed from './feed';
 import Projects from './projects';
 import Members from './members';
+import Goals from './goals';
 import Settings from './settings';
 import * as LocalStorageContext from '../withLocalStorage';
 
@@ -126,7 +127,7 @@ class TeamDetails extends React.Component<Props, State> {
       case TAB.FEED:
         return <Feed organization={organization} team={team} projects={projects} />;
       case TAB.GOALS:
-        return <div>Team Goals</div>;
+        return <Goals />;
       case TAB.PROJECTS:
         return (
           <Projects

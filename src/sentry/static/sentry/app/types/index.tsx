@@ -650,6 +650,16 @@ export type Member = {
   user: User;
 };
 
+export type Goal = {
+  id: string;
+  dateCreated: string;
+  title: string;
+  duedate: string;
+  progress: number;
+  owner: Member;
+  description?: string;
+};
+
 export type AccessRequest = {
   id: string;
   team: Team;
