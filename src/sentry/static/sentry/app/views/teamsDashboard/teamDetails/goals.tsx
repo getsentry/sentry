@@ -123,18 +123,63 @@ class Goals extends React.Component<Props, State> {
   };
 
   renderGoal = (goal: Goal) => {
+    const {organization, projects, location} = this.props;
+
+    const orgFeatures = new Set(organization.features);
+
+    const searchConditions = tokenizeSearch('');
+    searchConditions.setTag('event.type', ['transaction']);
+    searchConditions.setTag('transaction', [goal.transactionName]);
+
+    const eventView = EventView.fromSavedQuery({
+      id: undefined,
+      name: 'Transaction',
+      fields: [
+        'transaction',
+        'project',
+        'epm()',
+        'p50()',
+        'p95()',
+        'failure_rate()',
+        `apdex(${organization.apdexThreshold})`,
+        'count_unique(user)',
+        `user_misery(${organization.apdexThreshold})`,
+      ],
+      orderby: '-timestamp',
+      query: stringifyQueryObject(searchConditions),
+      // if an org has no global-views, we make an assumption that errors are collected in the same
+      // project as the current transaction event where spans are collected into
+      projects: orgFeatures.has('global-views') ? [] : projects.map(p => Number(p.id)),
+      version: 2,
+      range: '90d',
+    });
+
     return (
-      <React.Fragment key={goal.id}>
-        <div>{goal.title}</div>
-        <div>{goal.transactionName}</div>
-        <div>{`${goal.aggregateObjective} ${goal.comparisonOperator} ${goal.valueObjective}`}</div>
-        <DateTime date={goal.duedate} shortDate />
-        <div>
-          <ProgressRing value={goal.progress} size={40} barWidth={6} />
-        </div>
-        <div>{goal.description || '-'}</div>
-        <div>{goal.owner.user.name}</div>
-      </React.Fragment>
+      <DiscoverQuery
+        eventView={eventView}
+        orgSlug={organization.slug}
+        location={location}
+      >
+        {({isLoading, tableData}) => {
+          if (isLoading) {
+            return null;
+          }
+          console.log('tableData', tableData);
+          return (
+            <React.Fragment key={goal.id}>
+              <div>{goal.title}</div>
+              <div>{goal.transactionName}</div>
+              <div>{`${goal.aggregateObjective} ${goal.comparisonOperator} ${goal.valueObjective}`}</div>
+              <DateTime date={goal.duedate} shortDate />
+              <div>
+                <ProgressRing value={goal.progress} size={40} barWidth={6} />
+              </div>
+              <div>{goal.description || '-'}</div>
+              <div>{goal.owner.user.name}</div>
+            </React.Fragment>
+          );
+        }}
+      </DiscoverQuery>
     );
   };
 
@@ -171,7 +216,6 @@ class Goals extends React.Component<Props, State> {
           emptyMessage={t('This team has no goals')}
         >
           {goals.map(goal => this.renderGoal(goal))}
-          {this.calculateGoals()}
         </PanelTable>
         <GlobalModal />
       </React.Fragment>
