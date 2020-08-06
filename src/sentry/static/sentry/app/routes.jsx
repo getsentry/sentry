@@ -1181,7 +1181,7 @@ function routes() {
         <Route component={errorHandler(LightWeightOrganizationDetails)}>
           <Redirect
             from="/organizations/:orgSlug/teams/"
-            to="/organizations/:orgSlug/teams/all-teams/"
+            to="/organizations/:orgSlug/teams/my-teams/"
           />
           <Route path="/organizations/:orgSlug/teams/">
             <Redirect
