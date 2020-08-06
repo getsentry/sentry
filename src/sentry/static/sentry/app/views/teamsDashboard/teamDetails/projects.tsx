@@ -7,6 +7,7 @@ import ProjectsStatsStore from 'app/stores/projectsStatsStore';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import ProjectCard from 'app/views/projectsDashboard/projectCard';
 import {IconFlag} from 'app/icons';
+import {PanelHeader, Panel, PanelBody} from 'app/components/panels';
 
 type Props = {
   projects: Array<Project>;
@@ -20,7 +21,7 @@ class Projects extends React.Component<Props> {
     ProjectsStatsStore.reset();
   }
 
-  render() {
+  renderContent() {
     const {projects, organization, hasAccess} = this.props;
 
     if (projects.length === 0) {
@@ -42,6 +43,15 @@ class Projects extends React.Component<Props> {
           />
         ))}
       </Wrapper>
+    );
+  }
+
+  render() {
+    return (
+      <Panel>
+        <PanelHeader>{t('Projects')}</PanelHeader>
+        <PanelBody>{this.renderContent()}</PanelBody>
+      </Panel>
     );
   }
 }

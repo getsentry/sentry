@@ -4,7 +4,7 @@ import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
 
 import {Client} from 'app/api';
-import {Panel, PanelItem} from 'app/components/panels';
+import {Panel, PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
 import {IconUser, IconSubtract} from 'app/icons';
 import {Organization, Team, Member, Config} from 'app/types';
 import {leaveTeam, joinTeam} from 'app/actionCreators/teams';
@@ -224,42 +224,43 @@ class Members extends AsyncComponent<Props, State> {
     const {canWrite, organization, config, members} = this.props;
 
     return (
-      <React.Fragment>
-        {members.length ? (
-          <Wrapper>
-            <AddMemberWrapper>{this.renderDropdown()}</AddMemberWrapper>
-            <Panel>
-              {members.map(member => {
-                const isSelf = member.email === config.user.email;
-                return (
-                  <StyledPanelItem key={member.id}>
-                    <IdBadge
-                      avatarSize={36}
-                      member={member}
-                      useLink
-                      orgId={organization.slug}
-                    />
-                    {(canWrite || isSelf) && (
-                      <Button
-                        size="small"
-                        icon={<IconSubtract size="xs" isCircled />}
-                        onClick={this.handleRemoveMember(member)}
-                        label={t('Remove')}
-                      >
-                        {t('Remove')}
-                      </Button>
-                    )}
-                  </StyledPanelItem>
-                );
-              })}
-            </Panel>
-          </Wrapper>
-        ) : (
-          <EmptyMessage icon={<IconUser size="xl" />} size="large">
-            {t('This team has no members')}
-          </EmptyMessage>
-        )}
-      </React.Fragment>
+      <Panel>
+        <PanelHeader hasButtons>
+          {t('Members')}
+          {this.renderDropdown()}
+        </PanelHeader>
+        <PanelBody>
+          {members.length ? (
+            members.map(member => {
+              const isSelf = member.email === config.user.email;
+              return (
+                <StyledPanelItem key={member.id}>
+                  <IdBadge
+                    avatarSize={36}
+                    member={member}
+                    useLink
+                    orgId={organization.slug}
+                  />
+                  {(canWrite || isSelf) && (
+                    <Button
+                      size="small"
+                      icon={<IconSubtract size="xs" isCircled />}
+                      onClick={this.handleRemoveMember(member)}
+                      label={t('Remove')}
+                    >
+                      {t('Remove')}
+                    </Button>
+                  )}
+                </StyledPanelItem>
+              );
+            })
+          ) : (
+            <EmptyMessage icon={<IconUser size="xl" />} size="large">
+              {t('This team has no members')}
+            </EmptyMessage>
+          )}
+        </PanelBody>
+      </Panel>
     );
   }
 }
@@ -300,14 +301,4 @@ const StyledMembersLabel = styled('div')`
 
 const StyledCreateMemberLink = styled(Link)`
   text-transform: none;
-`;
-
-const Wrapper = styled('div')`
-  display: grid;
-  grid-gap: ${space(2)};
-`;
-
-const AddMemberWrapper = styled('div')`
-  display: flex;
-  justify-content: flex-end;
 `;

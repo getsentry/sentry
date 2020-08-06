@@ -221,7 +221,7 @@ class Dashboard extends AsyncComponent<Props, State> {
   }
 }
 
-export default withLocalStorage(Dashboard, TAB.DASHBOARD);
+export default withLocalStorage(Dashboard, TAB.ALL_TEAMS);
 
 const Content = styled('div')`
   display: grid;

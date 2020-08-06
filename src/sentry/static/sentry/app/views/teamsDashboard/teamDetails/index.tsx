@@ -114,8 +114,6 @@ class TeamDetails extends React.Component<Props, State> {
     this.setState({members: this.props.team.members || []});
   }
 
-  handleSearch = () => {};
-
   handleUpdateMembers = (newMembers: Array<Member>) => {
     this.setState({members: newMembers});
   };
