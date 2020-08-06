@@ -1186,7 +1186,7 @@ function routes() {
           <Route path="/organizations/:orgSlug/teams/">
             <Redirect
               from="/organizations/:orgSlug/teams/all-teams/:teamSlug/"
-              to="/organizations/:orgSlug/teams/all-teams/:teamSlug/team-feed/"
+              to="/organizations/:orgSlug/teams/all-teams/:teamSlug/feed/"
             />
             <Route path="all-teams/">
               <IndexRoute
@@ -1206,8 +1206,8 @@ function routes() {
                 }
                 component={errorHandler(LazyLoad)}
               >
-                <Route path="team-feed/" />
-                <Route path="team-goals/" />
+                <Route path="feed/" />
+                <Route path="goals/" />
                 <Route path="projects/" />
                 <Route path="members/" />
                 <Route path="settings/" />
@@ -1215,7 +1215,7 @@ function routes() {
             </Route>
             <Redirect
               from="/organizations/:orgSlug/teams/my-teams/:teamSlug/"
-              to="/organizations/:orgSlug/teams/my-teams/:teamSlug/team-feed/"
+              to="/organizations/:orgSlug/teams/my-teams/:teamSlug/feed/"
             />
             <Route path="my-teams/">
               <IndexRoute
@@ -1235,8 +1235,8 @@ function routes() {
                 }
                 component={errorHandler(LazyLoad)}
               >
-                <Route path="team-feed/" />
-                <Route path="team-goals/" />
+                <Route path="feed/" />
+                <Route path="goals/" />
                 <Route path="projects/" />
                 <Route path="members/" />
                 <Route path="settings/" />

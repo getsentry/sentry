@@ -24,6 +24,6 @@ export default ListTeam;
 
 const TeamCards = styled('div')`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fit, 360px);
   grid-gap: ${space(3)};
 `;

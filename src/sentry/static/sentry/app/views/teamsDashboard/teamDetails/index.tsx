@@ -26,8 +26,8 @@ import Settings from './settings';
 import * as LocalStorageContext from '../withLocalStorage';
 
 enum TAB {
-  TEAM_FEED = 'team-feed',
-  TEAM_GOALS = 'team-goals',
+  FEED = 'feed',
+  GOALS = 'goals',
   PROJECTS = 'projects',
   MEMBERS = 'members',
   SETTINGS = 'settings',
@@ -50,11 +50,11 @@ type State = {
 const getCurrentTab = (location: Location): TAB => {
   const pathnameEnd = location.pathname.split('/');
   const pathname = pathnameEnd[pathnameEnd.length - 2];
-  let currentTab = TAB.TEAM_FEED;
+  let currentTab = TAB.FEED;
 
   switch (pathname) {
-    case TAB.TEAM_GOALS:
-      currentTab = TAB.TEAM_GOALS;
+    case TAB.GOALS:
+      currentTab = TAB.GOALS;
       break;
     case TAB.PROJECTS:
       currentTab = TAB.PROJECTS;
@@ -66,7 +66,7 @@ const getCurrentTab = (location: Location): TAB => {
       currentTab = TAB.SETTINGS;
       break;
     default:
-      currentTab = TAB.TEAM_FEED;
+      currentTab = TAB.FEED;
   }
 
   return currentTab;
@@ -75,7 +75,7 @@ const getCurrentTab = (location: Location): TAB => {
 class TeamDetails extends React.Component<Props, State> {
   state: State = {
     searchTerm: '',
-    currentTab: TAB.TEAM_FEED,
+    currentTab: TAB.FEED,
     members: [],
     projects: [],
   };
@@ -125,9 +125,9 @@ class TeamDetails extends React.Component<Props, State> {
     const {organization, team} = this.props;
 
     switch (currentTab) {
-      case TAB.TEAM_FEED:
+      case TAB.FEED:
         return <Feed organization={organization} team={team} projects={projects} />;
-      case TAB.TEAM_GOALS:
+      case TAB.GOALS:
         return <div>Team Goals</div>;
       case TAB.PROJECTS:
         return (
@@ -199,19 +199,19 @@ class TeamDetails extends React.Component<Props, State> {
         <Body>
           <StyledNavTabs>
             <ListLink
-              to={`${baseTabUrl}team-feed/`}
+              to={`${baseTabUrl}feed/`}
               index
-              isActive={() => currentTab === TAB.TEAM_FEED}
-              onClick={() => this.setState({currentTab: TAB.TEAM_FEED})}
+              isActive={() => currentTab === TAB.FEED}
+              onClick={() => this.setState({currentTab: TAB.FEED})}
             >
-              {t('Team Feed')}
+              {t('Feed')}
             </ListLink>
             <ListLink
-              to={`${baseTabUrl}team-goals/`}
-              isActive={() => currentTab === TAB.TEAM_GOALS}
-              onClick={() => this.setState({currentTab: TAB.TEAM_GOALS})}
+              to={`${baseTabUrl}goals/`}
+              isActive={() => currentTab === TAB.GOALS}
+              onClick={() => this.setState({currentTab: TAB.GOALS})}
             >
-              {t('Team Goals')}
+              {t('Goals')}
             </ListLink>
             <ListLink
               to={`${baseTabUrl}projects/`}
