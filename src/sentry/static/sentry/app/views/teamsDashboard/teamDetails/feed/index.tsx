@@ -131,6 +131,7 @@ class Dashboard extends AsyncComponent<Props, State> {
   }
 
   renderIssueList(cards) {
+    const {team} = this.props;
     return (
       <div>
         <h3>{t('Issues List')}</h3>
@@ -140,6 +141,7 @@ class Dashboard extends AsyncComponent<Props, State> {
               key={c.key || c.data?.id || i.toString()}
               index={i}
               card={this.removeCard}
+              teamSlug={team.slug}
               {...c}
             />
           ))}
