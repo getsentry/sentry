@@ -70,6 +70,7 @@ class Dashboard extends React.Component {
         </NoProjectMessage>
       );
     }
+
     return (
       <React.Fragment>
         <SentryDocumentTitle

@@ -5,7 +5,8 @@ import {Location} from 'history';
 
 import Badge from 'app/components/badge';
 import {t} from 'app/locale';
-import {Team, Project, Organization} from 'app/types';
+import {Team, Organization} from 'app/types';
+import {sortProjects} from 'app/utils';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {PageContent} from 'app/styles/organization';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
@@ -15,7 +16,6 @@ import NavTabs from 'app/components/navTabs';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import space from 'app/styles/space';
 import recreateRoute from 'app/utils/recreateRoute';
-import AsyncComponent from 'app/components/asyncComponent';
 import withOrganization from 'app/utils/withOrganization';
 
 import Header from './header';
@@ -33,19 +33,16 @@ enum TAB {
   SETTINGS = 'settings',
 }
 
-type Props = RouteComponentProps<{orgSlug: string; teamSlug: string}, {}> &
-  AsyncComponent['props'] & {
-    team: Team;
-    projects: Array<Project>;
-    isLoading: boolean;
-    organization: Organization;
-    location: Location;
-  };
+type Props = RouteComponentProps<{orgSlug: string; teamSlug: string}, {}> & {
+  team: Team;
+  isLoading: boolean;
+  organization: Organization;
+  location: Location;
+};
 
-type State = AsyncComponent['state'] & {
+type State = {
   searchTerm: string;
   currentTab: TAB;
-  projectsPageLinks: string;
 };
 
 const getCurrentTab = (location: Location): TAB => {
@@ -73,12 +70,11 @@ const getCurrentTab = (location: Location): TAB => {
   return currentTab;
 };
 
-class TeamDetails extends AsyncComponent<Props, State> {
-  componentDidMount() {
-    // I have no excuses other than I need this to work
-    super.UNSAFE_componentWillMount();
-    this.fetchUnlinkedProjects();
-  }
+class TeamDetails extends React.Component<Props, State> {
+  state: State = {
+    searchTerm: '',
+    currentTab: TAB.TEAM_FEED,
+  };
 
   static getDerivedStateFromProps(props: Props, state: State): State {
     const {location} = props;
@@ -89,64 +85,22 @@ class TeamDetails extends AsyncComponent<Props, State> {
     };
   }
 
-  getDefaultState(): State {
-    return {
-      ...super.getDefaultState(),
-      searchTerm: '',
-      projectsPageLinks: '',
-      currentTab: TAB.TEAM_FEED,
-      projects: [],
-      unlinkedProjects: [],
-    };
+  componentDidMount() {
+    // I have no excuses other than I need this to work
+    // super.UNSAFE_componentWillMount();
   }
-
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {
-      params: {teamSlug, orgSlug},
-    } = this.props;
-    return [
-      [
-        'projects',
-        `/organizations/${orgSlug}/projects/`,
-        {
-          query: {
-            query: `team:${teamSlug}`,
-          },
-          includeAllArgs: true,
-        },
-      ],
-    ];
-  }
-
-  fetchUnlinkedProjects = async (query?: string) => {
-    const {
-      params: {teamSlug, orgSlug},
-    } = this.props;
-
-    try {
-      const unlinkedProjects = await this.api.requestPromise(
-        `/organizations/${orgSlug}/projects/`,
-        {
-          query: {
-            query: query ? `!team:${teamSlug} ${query}` : `!team:${teamSlug}`,
-          },
-        }
-      );
-
-      this.setState({unlinkedProjects});
-    } catch {
-      //error
-    }
-  };
 
   handleSearch = () => {};
 
   renderTabContent = () => {
-    const {currentTab, projects, unlinkedProjects, projectsPageLinks} = this.state;
+    const {currentTab} = this.state;
     const {organization, team} = this.props;
+
+    console.log('team', team);
 
     const access = new Set(organization.access);
     const canWrite = access.has('org:write') || access.has('team:admin');
+    const projects = team.projects;
 
     switch (currentTab) {
       case TAB.TEAM_FEED:
@@ -154,30 +108,24 @@ class TeamDetails extends AsyncComponent<Props, State> {
       case TAB.TEAM_GOALS:
         return <div>Team Goals</div>;
       case TAB.PROJECTS:
+        const hasProjectAccess = access.has('project:read');
         return (
           <Projects
             organization={organization}
-            projects={projects}
-            unlinkedProjects={unlinkedProjects}
-            canWrite={canWrite}
-            api={this.api}
-            teamSlug={team.slug}
-            pageLinks={projectsPageLinks}
-            onQueryUpdate={this.fetchUnlinkedProjects}
-            reloadData={() => {
-              this.reloadData();
-            }}
+            projects={sortProjects(projects)}
+            hasAccess={hasProjectAccess}
           />
         );
       case TAB.MEMBERS:
         return (
-          <Members
-            organization={organization}
-            api={this.api}
-            teamSlug={team.slug}
-            canWrite={canWrite}
-            members={team.members}
-          />
+          // <Members
+          //   organization={organization}
+          //   // api={this.api}
+          //   teamSlug={team.slug}
+          //   canWrite={canWrite}
+          //   members={team.members}
+          // />
+          <div>Members</div>
         );
       case TAB.SETTINGS:
         return <Settings organization={organization} team={team} />;
@@ -196,7 +144,7 @@ class TeamDetails extends AsyncComponent<Props, State> {
       params,
     } = this.props;
 
-    if (isLoading || this.state.loading) {
+    if (isLoading) {
       return <LoadingIndicator />;
     }
 
@@ -208,7 +156,8 @@ class TeamDetails extends AsyncComponent<Props, State> {
       );
     }
 
-    const {currentTab, projects} = this.state;
+    const {currentTab} = this.state;
+    const projects = team.projects;
     const baseUrl = recreateRoute('', {location, routes, params, stepBack: -2});
     const origin = baseUrl.endsWith('all-teams/') ? 'all-teams' : 'my-teams';
     const baseTabUrl = `${baseUrl}${teamSlug}/`;
