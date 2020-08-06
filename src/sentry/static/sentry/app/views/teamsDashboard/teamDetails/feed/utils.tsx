@@ -1,7 +1,7 @@
 import {NewQuery, Project, Organization} from 'app/types';
 import {getPrebuiltQueries} from 'app/views/eventsV2/utils';
 
-import {FeedData} from './types';
+import {FeedData, CardData} from './types';
 
 export function generateRandomId() {
   return Math.random()
@@ -71,24 +71,28 @@ export function getDevData(
           id: generateRandomId(),
         },
       },
-      ...prebuiltQueries.map(query => ({
-        columnSpan: 1,
-        type: 'discover',
-        data: query,
-      })),
+      ...prebuiltQueries.map(
+        (query): CardData => ({
+          columnSpan: 1,
+          type: 'discover',
+          data: query,
+        })
+      ),
       ...keyTransactions
         .filter(transaction => projectIds.includes(transaction['project.id']))
-        .map(transaction => ({
-          columnSpan: 1,
-          type: 'performance',
-          data: {
-            transaction: transaction.transaction,
-            project: transaction.project,
-            projectId: transaction['project.id'],
-            apdex: transaction.apdex_300,
-            userMisery: transaction.user_misery_300,
-          },
-        })),
+        .map(
+          (transaction): CardData => ({
+            columnSpan: 1,
+            type: 'performance',
+            data: {
+              transaction: transaction.transaction,
+              project: transaction.project,
+              projectId: transaction['project.id'],
+              apdex: transaction.apdex_300,
+              userMisery: transaction.user_misery_300,
+            },
+          })
+        ),
     ],
   };
 }

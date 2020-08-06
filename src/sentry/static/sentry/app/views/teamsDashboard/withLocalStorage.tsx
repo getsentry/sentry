@@ -16,7 +16,7 @@ const DEFAULT_STATE = {
 
 export type InjectedLocalStorageProps = {
   data: Record<TAB, FeedData | any> | undefined;
-  setLs: (key: string, data: any) => void;
+  setLs: (key: string, data: LocalStorageDashboardType) => void;
   resetLs: (key: string, defaultState: any) => void;
   resetLsAll: () => void;
 };
@@ -94,7 +94,10 @@ const withLocalStorage = <P extends InjectedLocalStorageProps>(
   class extends React.Component<Omit<P, keyof InjectedLocalStorageProps>> {
     static displayName = `withLocalStorage(${getDisplayName(WrappedComponent)})`;
 
-    setLs = (setLocalStorageData, prevData) => (key: string, data: any = {}) => {
+    setLs = (setLocalStorageData, prevData) => (
+      key: string,
+      data: LocalStorageDashboardType = {}
+    ) => {
       const tabData = prevData[tabName] ?? {};
       const nextState = {
         ...prevData,
