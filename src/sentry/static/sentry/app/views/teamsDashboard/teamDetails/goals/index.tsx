@@ -112,7 +112,7 @@ class Goals extends React.Component<Props, State> {
                   yAxis={goal.aggregateObjective}
                 />
               </div>
-              <DateTime date={goal.duedate} shortDate />
+              <DateTime date={goal.duedate} dateOnly />
               <div>{goal.description || '-'}</div>
               <div>{goal.owner.user.name}</div>
             </React.Fragment>

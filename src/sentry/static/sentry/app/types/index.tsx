@@ -667,6 +667,22 @@ export type Goal = {
   refinement?: string;
 };
 
+export type AchievementType =
+  | 'first-transaction'
+  | 'sent-first-event'
+  | 'team-is-growing'
+  | 'everything-is-broke'
+  | 'we-knew-you-could-do-it'
+  | 'transactions-are-alive'
+  | 'sent-one-million-errors'
+  | 'ten-gb-sent';
+
+export type Achievement = {
+  id: string;
+  dateUnlock: string;
+  type: AchievementType;
+};
+
 export type AccessRequest = {
   id: string;
   team: Team;

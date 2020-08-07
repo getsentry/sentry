@@ -22,6 +22,7 @@ import Header from './header';
 import Feed from './feed';
 import Goals from './goals';
 import Projects from './projects';
+import Achievements from './achievements';
 import Members from './members';
 import Settings from './settings';
 import * as LocalStorageContext from '../withLocalStorage';
@@ -30,6 +31,7 @@ enum TAB {
   FEED = 'feed',
   GOALS = 'goals',
   PROJECTS = 'projects',
+  ACHIEVEMENTS = 'achievements',
   MEMBERS = 'members',
   SETTINGS = 'settings',
 }
@@ -65,6 +67,9 @@ const getCurrentTab = (location: Location): TAB => {
       break;
     case TAB.SETTINGS:
       currentTab = TAB.SETTINGS;
+      break;
+    case TAB.ACHIEVEMENTS:
+      currentTab = TAB.ACHIEVEMENTS;
       break;
     default:
       currentTab = TAB.FEED;
@@ -116,7 +121,7 @@ class TeamDetails extends React.Component<Props, State> {
 
   renderTabContent = (canWrite: boolean, hasProjectAccess: boolean) => {
     const {currentTab, members, projects} = this.state;
-    const {location, organization, team} = this.props;
+    const {location, organization, team, routes, params} = this.props;
 
     switch (currentTab) {
       case TAB.FEED:
@@ -152,6 +157,8 @@ class TeamDetails extends React.Component<Props, State> {
         );
       case TAB.SETTINGS:
         return <Settings organization={organization} team={team} />;
+      case TAB.ACHIEVEMENTS:
+        return <Achievements location={location} routes={routes} params={params} />;
       default:
         return null;
     }
@@ -218,6 +225,17 @@ class TeamDetails extends React.Component<Props, State> {
               <Badge
                 text={2}
                 priority={currentTab === TAB.GOALS ? 'active' : undefined}
+              />
+            </ListLink>
+            <ListLink
+              to={`${baseTabUrl}achievements/`}
+              isActive={() => currentTab === TAB.ACHIEVEMENTS}
+              onClick={() => this.setState({currentTab: TAB.ACHIEVEMENTS})}
+            >
+              {t('Achievements')}
+              <Badge
+                text={5}
+                priority={currentTab === TAB.ACHIEVEMENTS ? 'active' : undefined}
               />
             </ListLink>
             <ListLink

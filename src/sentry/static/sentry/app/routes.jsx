@@ -1208,6 +1208,7 @@ function routes() {
               >
                 <Route path="feed/" />
                 <Route path="goals/" />
+                <Route path="achievements/" />
                 <Route path="projects/" />
                 <Route path="members/" />
                 <Route path="settings/" />
@@ -1237,6 +1238,7 @@ function routes() {
               >
                 <Route path="feed/" />
                 <Route path="goals/" />
+                <Route path="achievements/" />
                 <Route path="projects/" />
                 <Route path="members/" />
                 <Route path="settings/" />
