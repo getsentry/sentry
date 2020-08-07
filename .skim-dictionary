@@ -254,7 +254,9 @@
         "alderaan",
         "abcdefghjiklmnog",
         "abcdefghi",
-        "abaafd"
+        "abaafd",
+        "addons",
+        "realtime"
     ],
     "skipped": [
         "intstallation",
