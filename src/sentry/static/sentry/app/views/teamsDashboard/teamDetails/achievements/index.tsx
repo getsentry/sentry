@@ -7,6 +7,7 @@ import space from 'app/styles/space';
 import {PanelHeader, Panel, PanelBody} from 'app/components/panels';
 import Badge from 'app/components/badge';
 import recreateRoute from 'app/utils/recreateRoute';
+import Link from 'app/components/links/link';
 
 import Card from './card';
 import {all, earned, locked} from './mocks';
@@ -34,21 +35,24 @@ class Achievements extends React.Component<Props, State> {
   renderSidebarContent = () => {
     const {currentTab} = this.state;
 
-    let content = all;
-
     switch (currentTab) {
       case TAB.EARNED:
-        content = earned;
-        break;
+        return earned.map(achievement => (
+          <Card key={achievement.id} achievement={achievement} />
+        ));
       case TAB.LOCKED:
-        content = locked;
-        break;
+        return locked.map(achievement => (
+          <Card key={achievement.id} achievement={achievement} isDisabled />
+        ));
       default:
-        content = all;
-        break;
+        return all.map(achievement => (
+          <Card
+            key={achievement.id}
+            achievement={achievement}
+            isDisabled={!!locked.find(lockedAch => lockedAch.id === achievement.id)}
+          />
+        ));
     }
-
-    return content.map(c => <Card key={c.id} achievement={c} />);
   };
 
   renderContent() {
@@ -60,8 +64,9 @@ class Achievements extends React.Component<Props, State> {
       <Wrapper>
         <Sidebar>
           <SidebarItem
-            isActive={currentTab === TAB.ALL}
+            to={`${baseUrl}all/`}
             onClick={() => this.setState({currentTab: TAB.ALL})}
+            isActive={currentTab === TAB.ALL}
           >
             {t('All')}
             <Badge
@@ -70,8 +75,9 @@ class Achievements extends React.Component<Props, State> {
             />
           </SidebarItem>
           <SidebarItem
-            isActive={currentTab === TAB.EARNED}
+            to={`${baseUrl}earned/`}
             onClick={() => this.setState({currentTab: TAB.EARNED})}
+            isActive={currentTab === TAB.EARNED}
           >
             {t('Earned')}
             <Badge
@@ -80,8 +86,9 @@ class Achievements extends React.Component<Props, State> {
             />
           </SidebarItem>
           <SidebarItem
-            isActive={currentTab === TAB.LOCKED}
+            to={`${baseUrl}locked/`}
             onClick={() => this.setState({currentTab: TAB.LOCKED})}
+            isActive={currentTab === TAB.LOCKED}
           >
             {t('Locked')}
             <Badge
@@ -118,7 +125,9 @@ const Sidebar = styled('div')`
   padding-right: ${space(4)};
 `;
 
-const SidebarItem = styled('div')<{isActive: boolean}>`
+const SidebarItem = styled(Link, {shouldForwardProp: prop => prop !== 'isActive'})<{
+  isActive: boolean;
+}>`
   color: ${p => (p.isActive ? p.theme.gray800 : p.theme.gray500)};
   font-size: ${p => p.theme.fontSizeMedium};
   height: 40px;

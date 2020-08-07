@@ -1208,7 +1208,15 @@ function routes() {
               >
                 <Route path="feed/" />
                 <Route path="goals/" />
-                <Route path="achievements/" />
+                <Redirect
+                  from="/organizations/:orgSlug/teams/all-teams/:teamSlug/achievements/"
+                  to="/organizations/:orgSlug/teams/all-teams/:teamSlug/achievements/all/"
+                />
+                <Route path="achievements/">
+                  <Route path="all/" />
+                  <Route path="earned/" />
+                  <Route path="locked/" />
+                </Route>
                 <Route path="projects/" />
                 <Route path="members/" />
                 <Route path="settings/" />
@@ -1238,7 +1246,15 @@ function routes() {
               >
                 <Route path="feed/" />
                 <Route path="goals/" />
-                <Route path="achievements/" />
+                <Redirect
+                  from="/organizations/:orgSlug/teams/my-teams/:teamSlug/achievements/"
+                  to="/organizations/:orgSlug/teams/my-teams/:teamSlug/achievements/all/"
+                />
+                <Route path="achievements/">
+                  <Route path="all/" />
+                  <Route path="earned/" />
+                  <Route path="locked/" />
+                </Route>
                 <Route path="projects/" />
                 <Route path="members/" />
                 <Route path="settings/" />

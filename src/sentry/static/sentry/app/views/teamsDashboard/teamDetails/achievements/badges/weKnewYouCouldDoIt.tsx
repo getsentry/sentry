@@ -2,7 +2,7 @@ import * as React from 'react';
 
 const TransactionsAreAlive = () => (
   <svg width={126} height={125} viewBox="0 0 126 125" fill="none">
-    <path fill="#fff" d="M.5 0h125v125H.5z" />
+    <path d="M.5 0h125v125H.5z" />
     <path
       d="M61.113 98.552c-8.448.484-4.96 10.36-4.728 10.482l2.403-4.06 3.72 15.814s1.783-12.785 1.783-13.027c0-.243 2.712 4.423 2.712 4.423s3.62-14.178-5.89-13.632z"
       fill="#fff"

@@ -3,7 +3,7 @@ import * as React from 'react';
 const YourTeamIsGrowing = () => (
   <svg width={125} height={125} viewBox="0 0 125 125" fill="none">
     <g clipPath="url(#prefix__clip0)">
-      <path fill="#fff" d="M0 0h125v125H0z" />
+      <path d="M0 0h125v125H0z" />
       <path
         d="M110.697 36.114s.519 26.97.686 28.637c.127 1.268-1 1.333-1 1.333l-7.417.584-.298-5.143 4.465-.107s.833.25.833-.75.591-24.554.591-24.554 1.121.196 2.14 0z"
         fill="#fff"

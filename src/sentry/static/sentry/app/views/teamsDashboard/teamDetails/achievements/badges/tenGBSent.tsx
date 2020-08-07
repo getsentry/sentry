@@ -2,7 +2,7 @@ import * as React from 'react';
 
 const tenGBSent = () => (
   <svg width={126} height={125} viewBox="0 0 126 125" fill="none">
-    <path fill="#fff" d="M.5 0h125v125H.5z" />
+    <path d="M.5 0h125v125H.5z" />
     <path
       d="M32.658 72.684l-16.303-20.56 6.463-5.434 9.843 19.574-.003 6.42z"
       fill="#fff"

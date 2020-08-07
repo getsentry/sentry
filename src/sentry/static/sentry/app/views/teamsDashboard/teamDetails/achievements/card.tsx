@@ -10,12 +10,13 @@ import getAchievementDetails from './getAchievementDetails';
 
 type Props = {
   achievement: Achievement;
+  isDisabled?: boolean;
 };
 
-const Card = ({achievement}: Props) => {
+const Card = ({achievement, isDisabled = false}: Props) => {
   const {title, img} = getAchievementDetails(achievement.type);
   return (
-    <Wrapper>
+    <Wrapper isDisabled={isDisabled}>
       {img}
       <Title>{title}</Title>
       {tct('Unlock [on]', {
@@ -27,8 +28,7 @@ const Card = ({achievement}: Props) => {
 
 export default Card;
 
-const Wrapper = styled('div')`
-  background: ${p => p.theme.white};
+const Wrapper = styled('div')<{isDisabled: boolean}>`
   border: 1px solid ${p => p.theme.gray400};
   box-shadow: 0px 2px 1px rgba(0, 0, 0, 0.08);
   border-radius: ${p => p.theme.borderRadius};
@@ -39,6 +39,13 @@ const Wrapper = styled('div')`
   justify-content: center;
   color: ${p => p.theme.gray600};
   font-size: ${p => p.theme.fontSizeMedium};
+  background: ${p => p.theme.white};
+  ${p =>
+    p.isDisabled &&
+    `
+    background: ${p.theme.gray200};
+    opacity: 0.5;
+  `}
 `;
 
 const Title = styled('div')`

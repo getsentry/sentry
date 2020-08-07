@@ -52,6 +52,11 @@ type State = {
 
 const getCurrentTab = (location: Location): TAB => {
   const pathnameEnd = location.pathname.split('/');
+
+  if (pathnameEnd[pathnameEnd.length - 3] === TAB.ACHIEVEMENTS) {
+    return TAB.ACHIEVEMENTS;
+  }
+
   const pathname = pathnameEnd[pathnameEnd.length - 2];
   let currentTab = TAB.FEED;
 
@@ -188,7 +193,13 @@ class TeamDetails extends React.Component<Props, State> {
     }
 
     const {currentTab, members, projects} = this.state;
-    const baseUrl = recreateRoute('', {location, routes, params, stepBack: -2});
+
+    const baseUrl = recreateRoute('', {
+      location,
+      routes,
+      params,
+      stepBack: currentTab === TAB.ACHIEVEMENTS ? -3 : -2,
+    });
     const origin = baseUrl.endsWith('all-teams/') ? 'all-teams' : 'my-teams';
     const baseTabUrl = `${baseUrl}${teamSlug}/`;
 
