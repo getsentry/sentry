@@ -158,7 +158,7 @@ ont-size: 12px=22>https://app.getsentry.com/sentry/runscope-check/group/1=
 <th style=3D=22font-size: 12px; text-align: left=22>Server:</th>
 <td style=3D=22font-size: 12px; padding: 0; margin: 0; text-align: left=22=
 >None</td>
-<th style=3D=22font-size: 12px; text-align: left=22>=46irst Seen:</th>
+<th style=3D=22font-size: 12px; text-align: left=22>First Seen:</th>
 <td style=3D=22font-size: 12px; padding: 0; margin: 0; text-align: left=22=
 >Nov. 15, 2013</td>
 </tr>
