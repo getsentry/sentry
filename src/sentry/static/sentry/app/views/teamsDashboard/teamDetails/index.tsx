@@ -97,7 +97,6 @@ class TeamDetails extends React.Component<Props, State> {
     return {
       ...state,
       projects: props?.team?.projects ?? [],
-      members: props?.team?.members ?? [],
       currentTab: getCurrentTab(location),
     };
   }
@@ -154,7 +153,7 @@ class TeamDetails extends React.Component<Props, State> {
         return (
           <Members
             organization={organization}
-            teamSlug={team.slug}
+            team={team}
             canWrite={canWrite}
             members={members}
             onUpdateMembers={this.handleUpdateMembers}

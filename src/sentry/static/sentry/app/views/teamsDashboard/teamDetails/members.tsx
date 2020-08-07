@@ -7,8 +7,6 @@ import {Client} from 'app/api';
 import {Panel, PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
 import {IconUser, IconSubtract} from 'app/icons';
 import {Organization, Team, Member, Config} from 'app/types';
-import {leaveTeam, joinTeam} from 'app/actionCreators/teams';
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import AsyncComponent from 'app/components/asyncComponent';
 import {
   openInviteMembersModal,
@@ -26,10 +24,13 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import withConfig from 'app/utils/withConfig';
+import LoadingIndicator from 'app/components/loadingIndicator';
+
+import {joinTheTeam, leaveTheTeam} from '../utils';
 
 type Props = AsyncComponent['props'] & {
   api: Client;
-  teamSlug: Team['slug'];
+  team: Team;
   members: Array<Member>;
   organization: Organization;
   canWrite: boolean;
@@ -84,64 +85,44 @@ class Members extends AsyncComponent<Props, State> {
     }
   }
 
-  handleRemoveMember = (member: Member) => () => {
-    const {api, members, teamSlug, organization, onUpdateMembers} = this.props;
+  handleRemoveMember = (memberId: Member['id']) => () => {
+    const {api, members, team: teamToLeave, organization, onUpdateMembers} = this.props;
 
-    leaveTeam(
+    leaveTheTeam({
       api,
-      {
-        orgId: organization.slug,
-        teamId: teamSlug,
-        memberId: member.id,
+      teamToLeave,
+      organization,
+      memberId,
+      onSubmitSuccess: () => {
+        const newMembers = members.filter(member => member.id !== memberId);
+        onUpdateMembers(newMembers);
       },
-      {
-        success: () => {
-          const newMembers = members.filter(m => m.id !== member.id);
-          onUpdateMembers(newMembers);
-          addSuccessMessage(t('Successfully removed member from team.'));
-        },
-        error: () => {
-          addErrorMessage(
-            t('There was an error while trying to remove a member from the team.')
-          );
-        },
-      }
-    );
+    });
   };
 
   handleAddTeamMember = (memberId: Member['id']) => {
-    const {organization, teamSlug, onUpdateMembers, members} = this.props;
+    const {api, organization, team: teamToJoin, onUpdateMembers, members} = this.props;
     const {orgMembersList} = this.state;
 
     // Reset members list after adding member to team
     this.debouncedFetchMembersRequest('');
 
-    joinTeam(
-      this.props.api,
-      {
-        orgId: organization.slug,
-        teamId: teamSlug,
-        memberId,
+    joinTheTeam({
+      api,
+      type: 'member',
+      teamToJoin,
+      organization,
+      onSubmitSuccess: () => {
+        const memberData = orgMembersList.find(orgMember => orgMember.id === memberId);
+
+        if (!memberData) {
+          return;
+        }
+
+        const newMembers = [...members, memberData];
+        onUpdateMembers(newMembers);
       },
-      {
-        success: () => {
-          const memberData = orgMembersList.find(orgMember => orgMember.id === memberId);
-
-          if (!memberData) {
-            return;
-          }
-
-          const newMembers = [...members, memberData];
-          onUpdateMembers(newMembers);
-          addSuccessMessage(t('Successfully added member in the team.'));
-        },
-        error: () => {
-          addErrorMessage(
-            t('There was an error while trying to add a member in the team.')
-          );
-        },
-      }
-    );
+    });
   };
 
   debouncedFetchMembersRequest = debounce(query => {
@@ -157,7 +138,7 @@ class Members extends AsyncComponent<Props, State> {
   };
 
   renderDropdown = () => {
-    const {organization, canWrite, teamSlug, members} = this.props;
+    const {organization, canWrite, team, members} = this.props;
     const {isDropdownBusy, orgMembersList} = this.state;
 
     const existingMembers = new Set(members.map(member => member.id));
@@ -200,7 +181,7 @@ class Members extends AsyncComponent<Props, State> {
             ? (selection: {value: string}) => this.handleAddTeamMember(selection.value)
             : (selection: {value: string}) =>
                 openTeamAccessRequestModal({
-                  teamId: teamSlug,
+                  teamId: team.slug,
                   orgId: organization.slug,
                   memberId: selection.value,
                 })
@@ -220,46 +201,50 @@ class Members extends AsyncComponent<Props, State> {
     );
   };
 
-  render() {
+  renderContent() {
     const {canWrite, organization, config, members} = this.props;
+    const {loading} = this.state;
 
+    if (loading) {
+      return <LoadingIndicator />;
+    }
+
+    if (members.length === 0) {
+      return (
+        <EmptyMessage icon={<IconUser size="xl" />} size="large">
+          {t('This team has no members')}
+        </EmptyMessage>
+      );
+    }
+
+    return members.map(member => {
+      const isSelf = member.email === config.user.email;
+      return (
+        <StyledPanelItem key={member.id}>
+          <IdBadge avatarSize={36} member={member} useLink orgId={organization.slug} />
+          {(canWrite || isSelf) && (
+            <Button
+              size="small"
+              icon={<IconSubtract size="xs" isCircled />}
+              onClick={this.handleRemoveMember(member.id)}
+              label={t('Remove')}
+            >
+              {t('Remove')}
+            </Button>
+          )}
+        </StyledPanelItem>
+      );
+    });
+  }
+
+  render() {
     return (
       <Panel>
         <PanelHeader hasButtons>
           {t('Members')}
           <DropDownWrapper>{this.renderDropdown()}</DropDownWrapper>
         </PanelHeader>
-        <PanelBody>
-          {members.length ? (
-            members.map(member => {
-              const isSelf = member.email === config.user.email;
-              return (
-                <StyledPanelItem key={member.id}>
-                  <IdBadge
-                    avatarSize={36}
-                    member={member}
-                    useLink
-                    orgId={organization.slug}
-                  />
-                  {(canWrite || isSelf) && (
-                    <Button
-                      size="small"
-                      icon={<IconSubtract size="xs" isCircled />}
-                      onClick={this.handleRemoveMember(member)}
-                      label={t('Remove')}
-                    >
-                      {t('Remove')}
-                    </Button>
-                  )}
-                </StyledPanelItem>
-              );
-            })
-          ) : (
-            <EmptyMessage icon={<IconUser size="xl" />} size="large">
-              {t('This team has no members')}
-            </EmptyMessage>
-          )}
-        </PanelBody>
+        <PanelBody>{this.renderContent()}</PanelBody>
       </Panel>
     );
   }
