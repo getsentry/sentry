@@ -74,8 +74,7 @@ const PanelTable = ({
   loader,
 }: Props) => {
   const isChildrenValid =
-    React.Children.toArray(children).filter(child => child).length > 0 &&
-    typeof children !== 'object';
+    React.Children.toArray(children).filter(child => child).length > 0;
 
   const shouldShowLoading = isLoading === true;
   const shouldShowEmptyMessage = !shouldShowLoading && (isEmpty || !isChildrenValid);
