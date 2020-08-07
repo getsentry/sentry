@@ -16,7 +16,6 @@ import EventsRequest from 'app/components/charts/eventsRequest';
 import EventView from 'app/utils/discover/eventView';
 import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
-import ProgressRing from 'app/components/progressRing';
 import {t} from 'app/locale';
 import GlobalModal from 'app/components/globalModal';
 import Button from 'app/components/button';
@@ -26,6 +25,7 @@ import TextField from 'app/views/settings/components/forms/textField';
 import SelectControl from 'app/components/forms/selectControl';
 import {BufferedInput} from 'app/views/eventsV2/table/queryField';
 import withApi from 'app/utils/withApi';
+import space from 'app/styles/space';
 
 const Sparklines = React.lazy(() =>
   import(/* webpackChunkName: "Sparklines" */ 'app/components/sparklines')
@@ -39,7 +39,6 @@ const SPARKLINE_HEIGHT = 38;
 
 type Props = {
   goals?: Array<Goal>;
-  api: Client;
   organization: Organization;
   projects: Project[];
   location: Location;
@@ -143,6 +142,7 @@ class Goals extends React.Component<Props, State> {
           const needle = getAggregateAlias(goal.aggregateObjective);
 
           let currentValue = Number(row[needle]);
+
           if (!isFinite(currentValue)) {
             currentValue = 0;
           }
@@ -231,7 +231,7 @@ class Goals extends React.Component<Props, State> {
             onClick={() =>
               openModal(({closeModal, Header, Body}) => (
                 <div>
-                  <Header>Add Goal</Header>
+                  <Header>{t('Add Goal')}</Header>
                   <Body>
                     <Panel>
                       <TextField
@@ -289,13 +289,13 @@ class Goals extends React.Component<Props, State> {
                         </ObjectiveContainer>
                       </PanelItem>
                     </Panel>
-                    <Button onClick={closeModal}>Close</Button>
+                    <Button onClick={closeModal}>{t('Close')}</Button>
                   </Body>
                 </div>
               ))
             }
           >
-            Add Goal
+            {t('Add Goal')}
           </Button>
         </HeaderContainer>
         <PanelTable
@@ -311,7 +311,9 @@ class Goals extends React.Component<Props, State> {
           ]}
           emptyMessage={t('This team has no goals')}
         >
-          {goals.map(goal => this.renderGoal(goal))}
+          {goals.map(goal => (
+            <React.Fragment key={goal.id}>{this.renderGoal(goal)}</React.Fragment>
+          ))}
         </PanelTable>
         <GlobalModal />
       </React.Fragment>
@@ -376,7 +378,7 @@ class _GoalSparkline extends React.Component<SparklineProps> {
 const GoalSparkline = withApi(_GoalSparkline);
 
 const HeaderContainer = styled('div')`
-  margin-bottom: 8px;
+  margin-bottom: ${space(1)};
 `;
 
 const ObjectiveContainer = styled('div')`
@@ -384,7 +386,7 @@ const ObjectiveContainer = styled('div')`
   display: flex;
 
   > * + * {
-    margin-left: 8px;
+    margin-left: ${space(1)};
   }
 `;
 

@@ -215,6 +215,10 @@ class TeamDetails extends React.Component<Props, State> {
               onClick={() => this.setState({currentTab: TAB.GOALS})}
             >
               {t('Goals')}
+              <Badge
+                text={2}
+                priority={currentTab === TAB.GOALS ? 'active' : undefined}
+              />
             </ListLink>
             <ListLink
               to={`${baseTabUrl}projects/`}
