@@ -49,7 +49,7 @@ class Achievements extends React.Component<Props, State> {
           <Card
             key={achievement.id}
             achievement={achievement}
-            isDisabled={!!locked.find(lockedAch => lockedAch.id === achievement.id)}
+            isDisabled={!!locked.find(lockedAch => lockedAch.type === achievement.type)}
           />
         ));
     }
