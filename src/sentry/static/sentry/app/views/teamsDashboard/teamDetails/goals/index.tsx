@@ -100,9 +100,9 @@ class Goals extends React.Component<Props, State> {
               <div>
                 {goal.aggregateObjective.startsWith('slo')
                   ? formatPercentage(currentValue)
-                  : currentValue}
+                  : Number(currentValue.toFixed(3)).toLocaleString()}
               </div>
-              <div>
+              <GraphContainer>
                 {/*<ProgressRing value={progress * 100} size={40} barWidth={6} />*/}
                 <Sparkline
                   organization={organization}
@@ -111,7 +111,7 @@ class Goals extends React.Component<Props, State> {
                   projects={projs}
                   yAxis={goal.aggregateObjective}
                 />
-              </div>
+              </GraphContainer>
               <DateTime date={goal.duedate} dateOnly />
               <div>{goal.description || '-'}</div>
               <div>{goal.owner.user.name}</div>
@@ -144,7 +144,7 @@ class Goals extends React.Component<Props, State> {
             t('Transaction Name'),
             t('Objective'),
             t('Current'),
-            t('Progress'),
+            t('Graph'),
             t('Due date'),
             t('Description'),
             t('Created By'),
@@ -163,6 +163,10 @@ const HeaderContainer = styled('div')`
   margin-bottom: ${space(1)};
   display: flex;
   justify-content: flex-end;
+`;
+
+const GraphContainer = styled('div')`
+  min-width: 150px;
 `;
 
 export default Goals;
