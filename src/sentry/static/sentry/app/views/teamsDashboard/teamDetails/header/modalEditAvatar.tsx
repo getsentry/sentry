@@ -18,6 +18,7 @@ type Props = {
 type State = {
   isSaving: boolean;
 };
+
 class ModalEditAvatar extends React.Component<Props, State> {
   state: State = {
     isSaving: false,

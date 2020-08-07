@@ -20,9 +20,9 @@ import withOrganization from 'app/utils/withOrganization';
 
 import Header from './header';
 import Feed from './feed';
+import Goals from './goals';
 import Projects from './projects';
 import Members from './members';
-import Goals from './goals';
 import Settings from './settings';
 import * as LocalStorageContext from '../withLocalStorage';
 

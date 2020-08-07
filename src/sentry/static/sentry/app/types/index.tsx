@@ -659,11 +659,12 @@ export type Goal = {
   duedate: string;
   progress: number;
   owner: Member;
-  description?: string;
   transactionName: string;
   aggregateObjective: string;
   comparisonOperator: ComparisonOperator;
   valueObjective: number;
+  description?: string;
+  refinement?: string;
 };
 
 export type AccessRequest = {
