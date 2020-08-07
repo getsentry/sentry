@@ -39,18 +39,31 @@ export function getDevData(
       },
       {
         columnSpan: 2,
+        type: 'releases',
+        data: {
+          id: generateRandomId(),
+        },
+      },
+      {
+        columnSpan: 1,
         type: 'alerts',
         data: {
           id: generateRandomId(),
         },
       },
-      ...prebuiltQueries.map(
-        (query): CardData => ({
-          columnSpan: 1,
-          type: 'discover',
-          data: query,
-        })
-      ),
+
+      ...prebuiltQueries.reverse().reduce((acc, query, i): CardData => {
+        // Show only 3 discover queries for demo so the page flow looks good
+        if (i < 3) {
+          acc.push({
+            columnSpan: 1,
+            type: 'discover',
+            data: query,
+          });
+        }
+        return acc;
+      }, [] as any),
+
       ...keyTransactions
         .filter(transaction => projectIds.includes(transaction['project.id']))
         .map(

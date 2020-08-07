@@ -52,14 +52,14 @@ const Title = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
-const Items = styled('div')`
+export const Items = styled('div')`
   display: grid;
   grid-template-columns: repeat(2, auto);
   grid-gap: ${space(1)};
   align-items: flex-start;
 `;
 
-const Item = styled('div')`
+export const Item = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeMedium};
   border: 1px solid ${p => p.theme.gray500};

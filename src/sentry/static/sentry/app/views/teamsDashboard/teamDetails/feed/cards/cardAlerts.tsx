@@ -186,7 +186,7 @@ class CardAlerts extends AsyncComponent<Props, State & AsyncComponent['state']> 
 
   renderBody() {
     return (
-      <Card {...this.props} columnSpan={2} isRemovable={false}>
+      <Card {...this.props} columnSpan={1} isRemovable={false}>
         {this.renderList()}
       </Card>
     );

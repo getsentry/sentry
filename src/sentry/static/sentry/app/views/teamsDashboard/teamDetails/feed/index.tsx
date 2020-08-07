@@ -16,9 +16,10 @@ import {TAB} from '../../utils';
 import CardActivity from './cards/cardActivity';
 import CardAlerts from './cards/cardAlerts';
 import CardAddNew from './cards/cardAddNew';
+import CardDiscover from './cards/cardDiscover';
 import CardIssueList from './cards/cardIssueList';
 import CardPerformance from './cards/cardPerformance';
-import CardDiscover from './cards/cardDiscover';
+import CardReleases from './cards/cardReleases';
 import {CardData, Section, FeedData} from './types';
 import {getDevData} from './utils';
 import SectionEditModal, {modalCss} from './sectionEditModal';
@@ -140,7 +141,7 @@ class Dashboard extends AsyncComponent<Props, State> {
     const {team} = this.props;
     return (
       <div>
-        <h3>{t('Issues List')}</h3>
+        <SectionTitle>{t('Issues List')}</SectionTitle>
         <Container>
           {cards.map(
             (c, i) =>
@@ -171,12 +172,25 @@ class Dashboard extends AsyncComponent<Props, State> {
     );
   }
 
-  renderAlerts(cards) {
+  renderRelease(cards) {
     const {team} = this.props;
     return (
       <div>
-        <h3>{t('Alerts')}</h3>
+        <SectionTitle>{t('Releases')}</SectionTitle>
         <Container>
+          {cards.map(
+            (c, i) =>
+              c.type === 'releases' && (
+                <CardReleases
+                  key={c.key || c.data?.id || i.toString()}
+                  index={i}
+                  card={this.removeCard}
+                  teamSlug={team.slug}
+                  projects={this.props.projects}
+                  {...c}
+                />
+              )
+          )}
           {cards.map(
             (c, i) =>
               c.type === 'alerts' && (
@@ -200,7 +214,7 @@ class Dashboard extends AsyncComponent<Props, State> {
 
     return (
       <div>
-        <h3>{`${t('Discover Queries')} (${cards.length})`}</h3>
+        <SectionTitle>{`${t('Discover Queries')} (${cards.length})`}</SectionTitle>
         <Container>
           {cards.map((c, i) => (
             <CardDiscover
@@ -219,7 +233,7 @@ class Dashboard extends AsyncComponent<Props, State> {
   renderPerformanceCards(cards) {
     return (
       <div>
-        <h3>{`${t('Key Transactions')} (${cards.length})`}</h3>
+        <SectionTitle>{`${t('Key Transactions')} (${cards.length})`}</SectionTitle>
         <Container>
           {cards.map((c, i) => (
             <CardPerformance
@@ -237,7 +251,7 @@ class Dashboard extends AsyncComponent<Props, State> {
   renderDebuggingCards() {
     return (
       <div>
-        <h3>{t('Debugging Stuff')}</h3>
+        <SectionTitle>{t('Debugging Stuff')}</SectionTitle>
         <Container>
           <CardAddNew
             index={0}
@@ -278,14 +292,17 @@ class Dashboard extends AsyncComponent<Props, State> {
           cards.filter(c => c.type === 'issueList' || c.type === 'activity')
         );
       case 'alerts':
-        return this.renderAlerts(cards.filter(c => c.type === 'alerts'));
+        return this.renderRelease(
+          cards.filter(c => c.type === 'releases' || c.type === 'alerts')
+        );
       case 'discover':
         return this.renderDiscoverCards(cards.filter(c => c.type === 'discover'));
       case 'keyTransactions':
         // naming is questionable here will fix if we get around to it
         return this.renderPerformanceCards(cards.filter(c => c.type === 'performance'));
       default:
-        throw new Error('Unknown Section Kind');
+        // throw new Error('Unknown Section Kind');
+        return null;
     }
   }
 
@@ -346,6 +363,13 @@ const LoadingWrapper = styled('div')`
 const Header = styled('div')`
   display: flex;
   justify-content: flex-end;
+`;
+
+const SectionTitle = styled('div')`
+  font-size: 18px;
+  color: #7c6a8e;
+  padding-bottom: 4px;
+  font-family: 'Rubik', 'Avenir Next', 'Helvetica Neue', sans-serif;
 `;
 
 export default withLocalStorage(Dashboard, TAB.ALL_TEAMS);
