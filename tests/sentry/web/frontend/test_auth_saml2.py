@@ -103,7 +103,7 @@ class AuthSAML2Test(AuthProviderTestCase):
         assert redirect.path == "/sso_url"
         assert "SAMLRequest" in query
 
-    def accept_auth(self, **kargs):
+    def accept_auth(self, **kwargs):
         saml_response = self.load_fixture("saml2_auth_response.xml")
         saml_response = base64.b64encode(saml_response)
 
@@ -111,7 +111,7 @@ class AuthSAML2Test(AuthProviderTestCase):
         is_valid = "onelogin.saml2.response.OneLogin_Saml2_Response.is_valid"
 
         with mock.patch(is_valid, return_value=True):
-            return self.client.post(self.acs_path, {"SAMLResponse": saml_response}, **kargs)
+            return self.client.post(self.acs_path, {"SAMLResponse": saml_response}, **kwargs)
 
     def test_auth_sp_initiated(self):
         # Start auth process from SP side
