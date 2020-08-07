@@ -107,6 +107,10 @@ const SidebarDropdown = ({api, org, orientation, collapsed, config, user}: Props
                     </SidebarMenuItem>
                   )}
 
+                  <SidebarMenuItem to={`/organizations/${org.slug}/badges/`}>
+                    {t('Badges')}
+                  </SidebarMenuItem>
+
                   <Hook name="sidebar:organization-dropdown-menu" organization={org} />
 
                   {!config.singleOrganization && (

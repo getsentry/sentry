@@ -1349,3 +1349,13 @@ export type Frame = {
   mapUrl?: string;
   instructionAddr?: string;
 };
+
+export type Badge = {
+  id: string;
+  icon: React.ComponentType;
+  title: string;
+  flavor: string;
+  description: string;
+  dateEarned: Date;
+  unlocked: boolean;
+};

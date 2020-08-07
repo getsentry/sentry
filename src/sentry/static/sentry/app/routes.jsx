@@ -1566,6 +1566,14 @@ function routes() {
           />
 
           <Route
+            path="/organizations/:orgId/badges/"
+            componentPromise={() =>
+              import(/* webpackChunkName: "OrganizationBadges" */ 'app/views/badges')
+            }
+            component={errorHandler(LazyLoad)}
+          />
+
+          <Route
             path="/organizations/:orgId/projects/:projectId/events/:eventId/"
             component={errorHandler(ProjectEventRedirect)}
           />

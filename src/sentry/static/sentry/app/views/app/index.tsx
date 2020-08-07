@@ -23,6 +23,7 @@ import ErrorBoundary from 'app/components/errorBoundary';
 import GlobalModal from 'app/components/globalModal';
 import HookStore from 'app/stores/hookStore';
 import Indicators from 'app/components/indicators';
+import BadgeAlerts from 'app/components/badgeAlerts';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import NewsletterConsent from 'app/views/newsletterConsent';
 import OrganizationsStore from 'app/stores/organizationsStore';
@@ -255,6 +256,7 @@ class App extends React.Component<Props, State> {
         <GlobalModal onClose={this.handleGlobalModalClose} />
         <SystemAlerts className="messages-container" />
         <Indicators className="indicators-container" />
+        <BadgeAlerts />
         <ErrorBoundary>{this.renderBody()}</ErrorBoundary>
       </div>
     );

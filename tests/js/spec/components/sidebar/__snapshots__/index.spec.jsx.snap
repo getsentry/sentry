@@ -398,6 +398,46 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
         </SidebarMenuItemLink>
       </StyledSidebarMenuItemLink>
     </SidebarMenuItem>
+    <SidebarMenuItem
+      to="/organizations/org-slug/badges/"
+    >
+      <StyledSidebarMenuItemLink
+        to="/organizations/org-slug/badges/"
+      >
+        <SidebarMenuItemLink
+          className="css-1eunyni-StyledSidebarMenuItemLink eev51g21"
+          to="/organizations/org-slug/badges/"
+        >
+          <Link
+            className="css-1eunyni-StyledSidebarMenuItemLink eev51g21"
+            to="/organizations/org-slug/badges/"
+          >
+            <Link
+              className="css-1eunyni-StyledSidebarMenuItemLink eev51g21"
+              onlyActiveOnIndex={false}
+              style={Object {}}
+              to="/organizations/org-slug/badges/"
+            >
+              <a
+                className="css-1eunyni-StyledSidebarMenuItemLink eev51g21"
+                onClick={[Function]}
+                style={Object {}}
+              >
+                <MenuItemLabel
+                  hasMenu={false}
+                >
+                  <span
+                    className="css-1ug1il4-MenuItemLabel-MenuItemLabel eev51g20"
+                  >
+                    Badges
+                  </span>
+                </MenuItemLabel>
+              </a>
+            </Link>
+          </Link>
+        </SidebarMenuItemLink>
+      </StyledSidebarMenuItemLink>
+    </SidebarMenuItem>
     <Hook
       name="sidebar:organization-dropdown-menu"
       organization={

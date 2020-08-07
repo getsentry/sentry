@@ -3,7 +3,7 @@ import {css} from '@emotion/core';
 import {ModalHeader, ModalBody, ModalFooter} from 'react-bootstrap';
 
 import ModalActions from 'app/actions/modalActions';
-import {Organization, SentryApp, Project} from 'app/types';
+import {Organization, SentryApp, Project, Badge} from 'app/types';
 
 export type ModalRenderProps = {
   closeModal: () => void;
@@ -184,4 +184,15 @@ export async function openInviteMembersModal(options = {}) {
   const {default: Modal, modalCss} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />, {modalCss});
+}
+
+type BadgeModalOptions = {
+  badge: Badge;
+};
+
+export async function openBadgeModal(options: BadgeModalOptions) {
+  const mod = await import(/* webpackChunkName: "BadgeModal" */ 'app/views/badges/modal');
+  const {default: Modal} = mod;
+
+  openModal(deps => <Modal {...deps} {...options} />);
 }
