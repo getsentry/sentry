@@ -11,20 +11,19 @@ import {IconWarning} from 'app/icons';
 import space from 'app/styles/space';
 
 type Props = WithRouterProps & {
+  error: Error | undefined;
+  /**
+   * Disable logging to Sentry
+   */
   disableLogSentry?: boolean;
   disableReport?: boolean;
-  error: Error;
 };
 
 class RouteError extends React.Component<Props> {
   static propTypes = {
-    /**
-     * Disable logging to Sentry
-     */
     disableLogSentry: PropTypes.bool,
     disableReport: PropTypes.bool,
-    error: PropTypes.instanceOf(Error).isRequired,
-    routes: PropTypes.array,
+    error: PropTypes.instanceOf(Error),
   };
 
   static contextTypes = {
