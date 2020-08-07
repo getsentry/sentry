@@ -285,7 +285,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             )
 
             # the current release is the 'latest seen' release within the
-            # environment even if it hasnt affected this issue
+            # environment even if it hasn't affected this issue
             if environments:
                 with sentry_sdk.start_span(op="GroupDetailsEndpoint.get.current_release") as span:
                     span.set_data("Environment Count", len(environments))

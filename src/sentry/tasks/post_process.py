@@ -211,7 +211,7 @@ def post_process_group(event, is_new, is_regression, is_new_group_environment, *
 
             for plugin in plugins.for_project(event.project):
                 plugin_post_process_group(
-                    plugin_slug=plugin.slug, event=event, is_new=is_new, is_regresion=is_regression
+                    plugin_slug=plugin.slug, event=event, is_new=is_new, is_regression=is_regression
                 )
 
         event_processed.send_robust(

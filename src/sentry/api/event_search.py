@@ -1086,7 +1086,7 @@ def get_filter(query=None, params=None):
         for term in parsed_terms
     ):
         # TODO evanh: We can remove all top level ANDs and extend the conditions/having to
-        # avoid unnecesary nesting, e.g. [["and", [["and", [a, b]], ["and", [c, d]]]]] -> [a, b, c, d]
+        # avoid unnecessary nesting, e.g. [["and", [["and", [a, b]], ["and", [c, d]]]]] -> [a, b, c, d]
         (
             condition,
             having,

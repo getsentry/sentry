@@ -120,7 +120,7 @@ class HerokuPlugin(CorePluginMixin, ReleaseTrackingPlugin):
         return [
             {
                 "name": "repository",
-                "label": "Respository",
+                "label": "Repository",
                 "type": "select",
                 "required": True,
                 "choices": choices,

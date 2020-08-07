@@ -77,10 +77,10 @@ class ApiApplication(Model):
 
     def is_valid_redirect_uri(self, value):
         v_netloc = urlparse(value).netloc
-        for ruri in self.redirect_uris.split("\n"):
-            if v_netloc != urlparse(ruri).netloc:
+        for uri in self.redirect_uris.split("\n"):
+            if v_netloc != urlparse(uri).netloc:
                 continue
-            if value.startswith(ruri):
+            if value.startswith(uri):
                 return True
         return False
 

@@ -47,9 +47,9 @@ class MentionsMixin(object):
     def validate_mentions(self, mentions):
         if mentions and "projects" in self.context:
 
-            seperated_actors = seperate_actors(mentions)
+            separated_actors = seperate_actors(mentions)
             # Validate that all mentioned users exist and are on the project.
-            users = seperated_actors["users"]
+            users = separated_actors["users"]
 
             mentioned_user_ids = {user.id for user in users}
 
@@ -62,7 +62,7 @@ class MentionsMixin(object):
                 raise serializers.ValidationError("Cannot mention a non team member")
 
             # Validate that all mentioned teams exist and are on the project.
-            teams = seperated_actors["teams"]
+            teams = separated_actors["teams"]
             mentioned_team_ids = {team.id for team in teams}
             if (
                 len(mentioned_team_ids)

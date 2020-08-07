@@ -33,7 +33,7 @@ class AbstractBatchWorker(object):
     @abc.abstractmethod
     def process_message(self, message):
         """Called with each (raw) Kafka message, allowing the worker to do
-        incremental (preferablly local!) work on events. The object returned
+        incremental (preferably local!) work on events. The object returned
         is put into the batch maintained by the `BatchingKafkaConsumer`.
 
         If this method returns `None` it is not added to the batch.
@@ -84,7 +84,7 @@ class BatchingKafkaConsumer(object):
       `process_message` are sent so as not to block the pipeline.
 
     NOTE: This does not eliminate the possibility of duplicates if the consumer process
-    crashes between writing to its backend and commiting Kafka offsets. This should eliminate
+    crashes between writing to its backend and committing Kafka offsets. This should eliminate
     the possibility of *losing* data though. An "exactly once" consumer would need to store
     offsets in the external datastore and reconcile them on any partition rebalance.
     """

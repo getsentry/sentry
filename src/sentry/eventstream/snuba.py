@@ -73,7 +73,7 @@ class SnubaProtocolEventStream(EventStream):
     EVENT_PROTOCOL_VERSION = 2
 
     # These keys correspond to tags that are typically prefixed with `sentry:`
-    # and will wreak havok in the UI if both the `sentry:`-prefixed and
+    # and will wreak havoc in the UI if both the `sentry:`-prefixed and
     # non-prefixed variations occur in a response.
     UNEXPECTED_TAG_KEYS = frozenset(["dist", "release", "user"])
 

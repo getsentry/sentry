@@ -89,11 +89,11 @@ class PagerDutyIntegration(IntegrationInstallation):
                 raise IntegrationError("Name and key are required")
 
             with transaction.atomic():
-                exising_service_items = PagerDutyService.objects.filter(
+                existing_service_items = PagerDutyService.objects.filter(
                     organization_integration=self.org_integration
                 )
 
-                for service_item in exising_service_items:
+                for service_item in existing_service_items:
                     # find the matching row from the input
                     matched_rows = filter(lambda x: x["id"] == service_item.id, service_rows)
                     if matched_rows:
