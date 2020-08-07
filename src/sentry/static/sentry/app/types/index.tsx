@@ -392,10 +392,31 @@ export type Environment = {
   id: string;
 };
 
-// TODO(ts): This type is incomplete
-export type SavedSearch = {
-  query?: string;
+export type RecentSearch = {
+  id: string;
+  organizationId: string;
+  type: SavedSearchType;
+  query: string;
+  lastSeen: string;
+  dateCreated: string;
 };
+
+// XXX: Deprecated Sentry 9 attributes are not included here.
+export type SavedSearch = {
+  id: string;
+  type: SavedSearchType;
+  name: string;
+  query: string;
+  isGlobal: boolean;
+  isPinned: boolean;
+  isOrgCustom: boolean;
+  dateCreated: string;
+};
+
+export enum SavedSearchType {
+  ISSUE,
+  EVENT,
+}
 
 export type PluginNoProject = {
   id: string;
