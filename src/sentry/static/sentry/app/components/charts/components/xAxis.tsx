@@ -30,7 +30,7 @@ export default function XAxis({
   period,
   utc,
   ...props
-}: Props = {}): EChartOption.XAxis {
+}: Props): EChartOption.XAxis {
   const axisLabelFormatter = (value: string, index: number) => {
     if (isGroupedByDate) {
       const timeFormat = getTimeFormat();
