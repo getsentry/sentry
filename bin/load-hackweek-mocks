@@ -3,87 +3,425 @@ from __future__ import absolute_import
 
 import os
 import random
+import six
+from hashlib import sha1
+from uuid import uuid4
 
+from django.db import transaction
 from sentry.runner import configure
+from sentry.utils import loremipsum
 from subprocess import check_call
 
 configure()
 
 from sentry.models import (
+    Activity,
+    Commit,
+    CommitAuthor,
     CommitFileChange,
     CommitFileLineChange,
+    Deploy,
+    Environment,
+    File,
+    Group,
+    GroupTombstone,
+    Project,
     ProjectKey,
+    Release,
     ReleaseCommit,
+    ReleaseFile,
+    ReleaseProjectEnvironment,
     Repository,
+    TOMBSTONE_FIELDS_FROM_GROUP,
+    User,
 )
 
 
-dirname = os.path.dirname(__file__)
-dir = os.path.join(dirname, "temp", "raven")
+def add_commit_file_line_changes():
+    dirname = os.path.dirname(__file__)
+    dir = os.path.join(dirname, "temp", "raven")
 
-if not os.path.exists(dir):
-    os.makedirs(dir)
+    if not os.path.exists(dir):
+        os.makedirs(dir)
 
-code = """import sentry_sdk
+    code = """import sentry_sdk
 
 sentry_sdk.init('%s', release='%s')
+
+with sentry_sdk.configure_scope() as scope:
+    scope.user = {"email": "john.doe@example.com"}
 """
 
-exception = """try:
+    exception = """try:
     %d/0
 except Exception:
     sentry_sdk.capture_exception()
 """
 
-digit = 10
-counter = 1
+    import_file_code = """from raven import base
 
-# Clear all line changes
-CommitFileLineChange.objects.filter().delete()
+"""
 
-for filelinechange in CommitFileChange.objects.all():
-    if filelinechange.filename == "raven/base.py":
-        repo = Repository.objects.get(pk=filelinechange.commit.repository_id)
-        release_commit = ReleaseCommit.objects.get(commit=filelinechange.commit)
-        version = release_commit.release.version
+    with open(os.path.join(dir, "__init__.py"), "wb") as temp_file:
+        temp_file.write("")
+    with open(os.path.join(dirname, "temp", "run.py"), "wb") as temp_file:
+        temp_file.write(import_file_code)
 
-        line_start = random.randint(4, 100)
+    digit = 10
+    counter = 1
+    min_start_line = 7
+    projects = set()
 
-        CommitFileLineChange.objects.create(
-            organization_id=filelinechange.commit.organization_id,
-            commitfilechange=filelinechange,
-            author=filelinechange.commit.author,
-            line_start=line_start,
-            line_end=line_start + 3,
+    # Clear all line changes
+    CommitFileLineChange.objects.filter().delete()
+
+    for filelinechange in CommitFileChange.objects.all():
+        if filelinechange.filename == "raven/base.py":
+            repo = Repository.objects.get(pk=filelinechange.commit.repository_id)
+            release_commit = ReleaseCommit.objects.get(commit=filelinechange.commit)
+            version = release_commit.release.version
+
+            line_start = random.randint(min_start_line, 100)
+
+            CommitFileLineChange.objects.create(
+                organization_id=filelinechange.commit.organization_id,
+                commitfilechange=filelinechange,
+                author=filelinechange.commit.author,
+                line_start=line_start,
+                line_end=line_start + 3,
+            )
+
+            # Files are different based on spacing and digit divided by zero
+            middle = "\n" * (line_start - min_start_line)
+            end = "\n" * (100 - line_start - min_start_line)
+            file_code = code + middle + exception + end
+
+            dsns = []
+            for project in release_commit.release.projects.all():
+                projects.add(project)
+                project_key = ProjectKey.objects.get(project_id=project.id)
+                dsns.append((project_key.public_key, project.id))
+
+            for (public_key, _id) in dsns:
+                _dsn = "http://%s@dev.getsentry.net:8000/%s" % (public_key, _id)
+                code_file = os.path.join(dir, "base.py")
+
+                with open(code_file, "wb") as temp_file:
+                    temp_file.write(file_code % (_dsn, version, digit))
+
+                digit += 1
+                counter += 1
+                # Run Python programs that generates exception
+                check_call(["python", os.path.join(dirname, "temp", "run.py")])
+
+    print("Generated %d programs..." % counter)
+
+    print("Ran %d programs..." % counter)
+
+    # Delete temp files
+    check_call(["rm", "-rf", os.path.join(dirname, "temp")])
+
+    print("Done.")
+
+    return projects
+
+
+def make_sentence(words=None):
+    if words is None:
+        words = int(random.weibullvariate(8, 3))
+    return " ".join(random.choice(loremipsum.words) for _ in range(words))
+
+
+def generate_commits(user):
+    commits = []
+    # Create some new files/commits for Low confidence
+    file_paths = [("raven", "base10.py"), ("raven", "base16.py")]
+
+    for file_path in file_paths:
+        filename = "/".join(file_path)
+
+        if random.randint(0, 5) == 1:
+            author = (user.name, user.email)
+        else:
+            author = (
+                "{} {}".format(random.choice(loremipsum.words), random.choice(loremipsum.words)),
+                "{}@example.com".format(random.choice(loremipsum.words)),
+            )
+
+        commits.append(
+            {
+                "key": sha1(uuid4().hex).hexdigest(),
+                "message": "feat: Do something to {}\n{}".format(filename, make_sentence()),
+                "author": author,
+                "files": [(filename, "M")],
+            }
+        )
+    return commits
+
+
+def generate_tombstones(project, user):
+    # attempt to create a high enough previous_group_id
+    # that it won't conflict with any group ids
+    prev_group_id = 100000
+    try:
+        prev_group_id = (
+            max(
+                GroupTombstone.objects.order_by("-previous_group_id")[0].previous_group_id,
+                prev_group_id,
+            )
+            + 1
+        )
+    except IndexError:
+        pass
+
+    for group in Group.objects.filter(project=project)[:5]:
+        GroupTombstone.objects.create(
+            previous_group_id=prev_group_id,
+            actor_id=user.id,
+            **{name: getattr(group, name) for name in TOMBSTONE_FIELDS_FROM_GROUP}
+        )
+        prev_group_id += 1
+
+
+def create_release_from_commit(projects, raw_commit):
+    user = User.objects.filter(is_superuser=True)[0]
+
+    organization_id = list(projects)[0].organization.id
+
+    # Create new release
+    release = Release.objects.create(
+        version=sha1(uuid4().bytes).hexdigest(), organization_id=organization_id,
+    )
+
+    author = CommitAuthor.objects.get_or_create(
+        organization_id=organization_id, email=user.email, defaults={"name": user.name},
+    )[0]
+
+    raw_commit["author"] = author
+
+    repo = Repository.objects.get(organization_id=organization_id, provider="integrations:github")
+
+    commit = Commit.objects.get_or_create(
+        organization_id=organization_id,
+        repository_id=repo.id,
+        key=raw_commit["key"],
+        defaults={"author": author, "message": raw_commit["message"]},
+    )[0]
+
+    for commit_file, commit_type, line_range in raw_commit["files"]:
+        ReleaseFile.objects.get_or_create(
+            organization_id=organization_id,
+            release=release,
+            name=commit_file,
+            file=File.objects.get_or_create(
+                name=commit_file, type="release.file", checksum="abcde" * 8, size=13043
+            )[0],
+            defaults={"organization_id": organization_id},
         )
 
-        # Files are different based on spacing and digit divided by zero
-        middle = "\n" * (line_start - 4)
-        end = "\n" * (100 - line_start - 4)
-        file_code = code + middle + exception + end
+        filechange = CommitFileChange.objects.get_or_create(
+            organization_id=organization_id, commit=commit, filename=commit_file, type=commit_type
+        )[0]
 
-        dsns = []
-        for project in release_commit.release.projects.all():
-            project_key = ProjectKey.objects.get(project_id=project.id)
-            dsns.append((project_key.public_key, project.id))
+        # optionally add line ranges here
+        if line_range is not None:
+            CommitFileLineChange.objects.get_or_create(
+                organization_id=organization_id,
+                commitfilechange=filechange,
+                author=author,
+                line_start=line_range[0],
+                line_end=line_range[1],
+            )
 
-        for (public_key, _id) in dsns:
-            _dsn = "http://%s@dev.getsentry.net:8000/%s" % (public_key, _id)
-            code_file = os.path.join(dir, "base.py")
+        ReleaseCommit.objects.get_or_create(
+            organization_id=organization_id, release=release, commit=commit, order=0
+        )
 
-            with open(code_file, "wb") as temp_file:
-                temp_file.write(file_code % (_dsn, version, digit))
+    # All prior projects are in the release
+    for _project in projects:
+        with transaction.atomic():
+            release.add_project(_project)
 
-            digit += 1
-            counter += 1
-            # Run Python programs that generates exception
-            check_call(["python", code_file])
+        generate_tombstones(_project, user)
 
-print("Generated %d programs..." % counter)
+        Activity.objects.create(
+            type=Activity.RELEASE,
+            project=_project,
+            ident=release.version,
+            user=user,
+            data={"version": release.version},
+        )
 
-print("Ran %d programs..." % counter)
+        environment = Environment.objects.filter(projects__in=[_project]).first()
 
-# Delete temp files
-check_call(["rm", "-rf", os.path.join(dirname, "temp")])
+        deploy = Deploy.objects.create(
+            organization_id=_project.organization.id,
+            release=release,
+            environment_id=environment.id,
+        )
 
-print("Done.")
+        release.update(
+            commit_count=1,
+            last_commit_id=commit.id,
+            total_deploys=Deploy.objects.filter(release=release).count(),
+            last_deploy_id=deploy.id,
+            authors=[six.text_type(author.id)],
+        )
+
+        ReleaseProjectEnvironment.objects.create_or_update(
+            project=_project,
+            environment=environment,
+            release=release,
+            defaults={"last_deploy_id": deploy.id},
+        )
+
+        Activity.objects.create(
+            type=Activity.RELEASE,
+            project=_project,
+            ident=release.version,
+            user=user,
+            data={"version": release.version},
+        )
+
+        Activity.objects.create(
+            type=Activity.DEPLOY,
+            project=_project,
+            ident=release.version,
+            data={
+                "version": release.version,
+                "deploy_id": deploy.id,
+                "environment": environment.name,
+            },
+            datetime=deploy.date_finished,
+        )
+
+    Activity.objects.create(
+        type=Activity.RELEASE,
+        project=_project,
+        ident="ca9ec1a499b087f893fb80eed104dd8d84daef46",
+        user=user,
+        data={"version": "ca9ec1a499b087f893fb80eed104dd8d84daef46"},
+    )
+
+
+def create_file_exception(project):
+    dirname = os.path.dirname(__file__)
+    dir = os.path.join(dirname, "temp", "raven")
+
+    if not os.path.exists(dir):
+        os.makedirs(dir)
+
+    code = """import sentry_sdk
+
+sentry_sdk.init('%s', release='%s')
+
+with sentry_sdk.configure_scope() as scope:
+    scope.user = {"email": "john.doe2@example.com"}
+
+try:
+    43/0
+except Exception:
+    sentry_sdk.capture_exception()
+    """
+
+    import_file_code = """from raven import base10
+
+    """
+
+    with open(os.path.join(dir, "__init__.py"), "wb") as temp_file:
+        temp_file.write("")
+    with open(os.path.join(dirname, "temp", "run.py"), "wb") as temp_file:
+        temp_file.write(import_file_code)
+
+    release = Release.objects.filter(projects__in=[project]).last()
+
+    project_key = ProjectKey.objects.get(project_id=project.id)
+    _dsn = "http://%s@dev.getsentry.net:8000/%s" % (project_key.public_key, project.id)
+    code_file = os.path.join(dir, "base10.py")
+
+    with open(code_file, "wb") as temp_file:
+        temp_file.write(code % (_dsn, release.version))
+
+    # Run Python programs that generates exception
+    check_call(["python", os.path.join(dirname, "temp", "run.py")])
+
+    # Delete temp files
+    check_call(["rm", "-rf", os.path.join(dirname, "temp")])
+
+
+def create_file_line_exception(project):
+    dirname = os.path.dirname(__file__)
+    dir = os.path.join(dirname, "temp", "raven")
+
+    if not os.path.exists(dir):
+        os.makedirs(dir)
+
+    code = """import sentry_sdk
+
+sentry_sdk.init('%s', release='%s')
+
+with sentry_sdk.configure_scope() as scope:
+    scope.user = {"email": "john.doe3@example.com"}
+
+try:
+    48/0
+except Exception:
+    sentry_sdk.capture_exception()
+    """
+
+    import_file_code = """from raven import base16
+
+    """
+
+    with open(os.path.join(dir, "__init__.py"), "wb") as temp_file:
+        temp_file.write("")
+    with open(os.path.join(dirname, "temp", "run.py"), "wb") as temp_file:
+        temp_file.write(import_file_code)
+
+    release = Release.objects.filter(projects__in=[project]).last()
+
+    project_key = ProjectKey.objects.get(project_id=project.id)
+    _dsn = "http://%s@dev.getsentry.net:8000/%s" % (project_key.public_key, project.id)
+    code_file = os.path.join(dir, "base16.py")
+
+    with open(code_file, "wb") as temp_file:
+        temp_file.write(code % (_dsn, release.version))
+
+    # Run Python programs that generates exception
+    check_call(["python", os.path.join(dirname, "temp", "run.py")])
+
+    # Delete temp files
+    check_call(["rm", "-rf", os.path.join(dirname, "temp")])
+
+
+if __name__ == "__main__":
+    commit_projects = add_commit_file_line_changes()
+
+    raw_commit = {
+        "key": sha1(uuid4().hex).hexdigest(),
+        "message": "feat: Add new files.",
+        "files": [
+            ("/".join(("raven", "base10.py")), "A", None),
+            ("/".join(("raven", "base16.py")), "A", None),
+        ],
+    }
+
+    create_release_from_commit(commit_projects, raw_commit)
+
+    rand_index = random.randint(0, len(commit_projects) - 1)
+    create_file_exception(commit_projects[rand_index])
+
+    prev_ran_index = rand_index
+    rand_index = random.randint(0, len(commit_projects) - 1)
+
+    while prev_ran_index == rand_index:
+        rand_index = random.randint(0, len(commit_projects) - 1)
+
+    raw_commit = {
+        "key": sha1(uuid4().hex).hexdigest(),
+        "message": "feat: Modify base16.",
+        "files": [("/".join(("raven", "base16.py")), "M", (9, 9)),],  # add with line range
+    }
+
+    create_release_from_commit([commit_projects[rand_index]], raw_commit)
+    create_file_line_exception(commit_projects[rand_index])
