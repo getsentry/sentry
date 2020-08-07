@@ -217,7 +217,7 @@ describe('IssueList', function() {
       await tick();
       wrapper.update();
 
-      // auxillary requests being made
+      // auxiliary requests being made
       expect(recentSearchesRequest).toHaveBeenCalledTimes(1);
       expect(fetchTagsRequest).toHaveBeenCalledTimes(1);
       expect(fetchMembersRequest).toHaveBeenCalledTimes(1);

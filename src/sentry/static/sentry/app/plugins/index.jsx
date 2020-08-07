@@ -9,7 +9,7 @@ import Jira from './jira';
 const contexts = {};
 const registry = new Registry();
 
-// Register legacy plguins
+// Register legacy plugins
 
 // Sessionstack
 registry.add('sessionstack', SessionStackPlugin);

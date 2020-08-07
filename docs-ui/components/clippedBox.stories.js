@@ -28,7 +28,7 @@ export const Default = withInfo(
         hoodie 8-bit occupy distillery. Tote bag godard thundercats small batch banjo, DIY
         waistcoat. Glossier poutine VHS put a bird on it listicle deep v letterpress. Tbh
         banjo paleo cred hoodie. Live-edge synth twee, subway tile coloring book woke swag
-        XOXO cornhole glossier neutra hell of lo-fi brooklyn actually. Retro beard
+        XOXO cornhole glossier neutral hell of lo-fi brooklyn actually. Retro beard
         jianbing, shoreditch kitsch banh mi flexitarian mustache cold-pressed. Sriracha af
         brooklyn, poutine snackwave taxidermy ugh locavore mlkshk shaman before they sold
         out +1. Microdosing copper mug edison bulb, synth tote bag man braid heirloom.

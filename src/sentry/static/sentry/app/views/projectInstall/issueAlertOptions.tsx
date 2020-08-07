@@ -139,7 +139,7 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
           key={Actions.CUSTOMIZED_ALERTS}
           onClick={e => {
             // XXX(epurkhiser): The `e.preventDefault` here is needed to stop
-            // propegation of the click up to the label, causing it to focus
+            // propagation of the click up to the label, causing it to focus
             // the radio input and lose focus on the select.
             e.preventDefault();
             const alertSetting = Actions.CUSTOMIZED_ALERTS.toString();

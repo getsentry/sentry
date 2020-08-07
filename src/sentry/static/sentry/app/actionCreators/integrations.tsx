@@ -61,7 +61,7 @@ export function addIntegrationToProject(
 }
 
 /**
- * Delete a respository
+ * Delete a repository
  *
  * @param {Object} client ApiClient
  * @param {String} orgId Organization Slug
@@ -83,7 +83,7 @@ export function deleteRepository(client: Client, orgId: string, repositoryId: st
 }
 
 /**
- * Cancel the deletion of a respository
+ * Cancel the deletion of a repository
  *
  * @param {Object} client ApiClient
  * @param {String} orgId Organization Slug

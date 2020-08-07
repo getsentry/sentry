@@ -173,7 +173,7 @@ export default class DetailsBody extends React.Component<Props> {
     const {incident, params, stats} = this.props;
 
     return (
-      // Currently only one button in pannel, hide panel if not available
+      // Currently only one button in panel, hide panel if not available
       <Feature features={['discover-basic']}>
         <ChartActions>
           <Projects slugs={incident?.projects} orgId={params.orgId}>

@@ -33,7 +33,7 @@ export default class OrganizationRateLimit extends React.Component {
     organization: PropTypes.object.isRequired,
   };
 
-  handleSubmitSucces = () => {
+  handleSubmitSuccess = () => {
     // TODO(billy): Update organization.quota in organizationStore with new values
   };
 

@@ -128,7 +128,7 @@ class GroupDetails extends React.Component<Props, State> {
           locationWithProject.query._allp === undefined
         ) {
           //We use _allp as a temporary measure to know they came from the issue list page with no project selected (all projects included in filter).
-          //If it is not defined, we add the locked project id to the URL (this is because if someone navigates directly to an issue on single-project priveleges, then goes back - they were getting assigned to the first project).
+          //If it is not defined, we add the locked project id to the URL (this is because if someone navigates directly to an issue on single-project privileges, then goes back - they were getting assigned to the first project).
           //If it is defined, we do not so that our back button will bring us to the issue list page with no project selected instead of the locked project.
           locationWithProject.query.project = project.id;
         }

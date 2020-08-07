@@ -73,7 +73,7 @@ class Button extends React.Component<ButtonProps, {}> {
      */
     borderless: PropTypes.bool,
     /**
-     * Text aligment, takes justify-content properties.
+     * Text alignment, takes justify-content properties.
      */
     align: PropTypes.oneOf(['center', 'left', 'right']),
     /**

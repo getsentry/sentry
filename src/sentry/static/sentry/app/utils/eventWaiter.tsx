@@ -9,7 +9,7 @@ import withApi from 'app/utils/withApi';
 const DEFAULT_POLL_INTERVAL = 5000;
 
 const recordAnalyticsFirstEvent = ({organization, project}) =>
-  analytics('onboarding_v2.first_event_recieved', {
+  analytics('onboarding_v2.first_event_received', {
     org_id: parseInt(organization.id, 10),
     project: parseInt(project.id, 10),
   });

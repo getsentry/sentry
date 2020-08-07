@@ -655,7 +655,7 @@ export const EChartsAxis = PropTypes.shape({
   // distributed when not set.
   //
   // In category axis, it can also be set as the ordinal number. For example,
-  // if a catergory axis has data: ['categoryA', 'categoryB', 'categoryC'], and
+  // if a category axis has data: ['categoryA', 'categoryB', 'categoryC'], and
   // the ordinal 2 represents 'categoryC'. Moreover, it can be set as negative
   // number, like -3.
   min: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
@@ -668,7 +668,7 @@ export const EChartsAxis = PropTypes.shape({
   // distributed when not set.
   //
   // In category axis, it can also be set as the ordinal number. For example,
-  // if a catergory axis has data: ['categoryA', 'categoryB', 'categoryC'], and
+  // if a category axis has data: ['categoryA', 'categoryB', 'categoryC'], and
   // the ordinal 2 represents 'categoryC'. Moreover, it can be set as negative
   // number, like -3.
   max: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
@@ -789,7 +789,7 @@ export const EChartsAxis = PropTypes.shape({
   // axisPointer settings on the axis.
   axisPointer: PropTypes.object,
 
-  // zlevel value of all graghical elements in x axis.
+  // zlevel value of all graphical elements in x axis.
   //
   // zlevel is used to make layers with Canvas. Graphical elements with
   // different zlevel values will be placed in different Canvases, which is a
@@ -927,7 +927,7 @@ export const EChartsTooltip = PropTypes.shape({
   //   ]
   padding: PropTypes.number,
 
-  // The text syle of tooltip's floating layer.
+  // The text style of tooltip's floating layer.
   textStyle: PropTypes.object,
 
   extraCssText: PropTypes.string,
@@ -941,7 +941,7 @@ export const EChartsGrid = PropTypes.shape({
   // Whether to show the grid in rectangular coordinate.
   show: PropTypes.bool,
 
-  // zlevel value of all graghical elements in .
+  // zlevel value of all graphical elements in .
   //
   // zlevel is used to make layers with Canvas. Graphical elements with
   // different zlevel values will be placed in different Canvases, which is a
@@ -953,7 +953,7 @@ export const EChartsGrid = PropTypes.shape({
   // Canvases with bigger zlevel will be placed on Canvases with smaller zlevel.
   zlevel: PropTypes.number,
 
-  // z value of all graghical elements in , which controls order of drawing
+  // z value of all graphical elements in , which controls order of drawing
   // graphical components. Components with smaller z values may be overwritten
   // by those with larger z values.
   //
@@ -1157,7 +1157,7 @@ export const EChartsToolBox = PropTypes.shape({
   // The style setting of Shared icon.
   iconStyle: PropTypes.object,
 
-  // zlevel value of all graghical elements in .
+  // zlevel value of all graphical elements in .
   //
   // zlevel is used to make layers with Canvas. Graphical elements with
   // different zlevel values will be placed in different Canvases, which is a
@@ -1170,7 +1170,7 @@ export const EChartsToolBox = PropTypes.shape({
   // zlevel.
   zlevel: PropTypes.number,
 
-  // z value of all graghical elements in , which controls order of drawing
+  // z value of all graphical elements in , which controls order of drawing
   // graphical components. Components with smaller z values may be overwritten
   // by those with larger z values.
   //

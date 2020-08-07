@@ -270,7 +270,7 @@ describe('deepFreeze', function() {
 describe('utils.escapeDoubleQuotes', function() {
   // test cases from https://gist.github.com/getify/3667624
 
-  it('should escapse any unescaped double quotes', function() {
+  it('should escape any unescaped double quotes', function() {
     const cases = [
       ['a"b', 'a\\"b'], //
       ['a\\"b', 'a\\"b'], //

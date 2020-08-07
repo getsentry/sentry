@@ -539,7 +539,7 @@ export function parseTrace(event: Readonly<SentryTransactionEvent>): ParsedTrace
 }
 
 function sortSpans(firstSpan: SpanType, secondSpan: SpanType) {
-  // orphan spans come after non-ophan spans.
+  // orphan spans come after non-orphan spans.
 
   if (isOrphanSpan(firstSpan) && !isOrphanSpan(secondSpan)) {
     // sort secondSpan before firstSpan

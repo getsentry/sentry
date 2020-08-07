@@ -15,7 +15,7 @@ const MockStep = ({
   project,
   onReturnToStep,
   onComplete,
-  onUpadte,
+  onUpdate,
 }) => (
   <div>
     {active && <div id="is_active" />}
@@ -24,7 +24,7 @@ const MockStep = ({
     </div>
     <div id="project_slug">{project && project.slug}</div>
     <a id="complete" href="#" onClick={() => onComplete(data)} />
-    <a id="update" href="#" onClick={() => onUpadte(data)} />
+    <a id="update" href="#" onClick={() => onUpdate(data)} />
     <a id="return" href="#" onClick={() => onReturnToStep(data)} />
   </div>
 );

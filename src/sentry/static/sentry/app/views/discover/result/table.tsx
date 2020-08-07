@@ -88,7 +88,7 @@ class ResultTable extends React.Component<Props> {
       value = this.getEventLink(data[rowIndex - 1]);
     }
 
-    // check for issue.id columm
+    // check for issue.id column
     if (columnIndex < cols.length && cols[columnIndex].name === 'issue.id') {
       value = this.getIssueLink(data[rowIndex - 1]);
     }

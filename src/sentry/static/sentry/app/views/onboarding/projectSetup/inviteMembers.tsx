@@ -127,7 +127,7 @@ class InviteMembers extends React.Component<Props, State> {
                 role.id,
                 <React.Fragment key={role.id}>
                   {role.name}
-                  <RoleDescriptiom>{role.desc}</RoleDescriptiom>
+                  <RoleDescription>{role.desc}</RoleDescription>
                 </React.Fragment>,
               ])}
             />
@@ -144,7 +144,7 @@ const HelpText = styled(TextBlock)`
   border-bottom: 1px solid ${p => p.theme.borderLight};
 `;
 
-const RoleDescriptiom = styled('div')`
+const RoleDescription = styled('div')`
   margin-top: ${space(0.5)};
   line-height: 1.4em;
   font-size: 0.8em;

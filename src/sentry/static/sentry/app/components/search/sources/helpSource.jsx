@@ -16,7 +16,7 @@ import withLatestContext from 'app/utils/withLatestContext';
 
 /**
  * Use unique markers for highlighting so we can parse these into fuse-style
- * indicidies.
+ * indices.
  */
 const HIGHLIGHT_TAGS = {
   highlightPreTag: '<algolia-highlight-0000000000>',

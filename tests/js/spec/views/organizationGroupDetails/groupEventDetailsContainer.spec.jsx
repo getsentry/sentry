@@ -32,7 +32,7 @@ describe('groupEventDetailsContainer', () => {
     expect(wrapper.find('LoadingIndicator').exists()).toBe(false);
     expect(wrapper.text('GroupEventDetails')).toBe('GroupEventDetails');
 
-    // remountWithThemeing will not rerender
+    // remountWithTheming will not rerender
     const wrapper2 = mountWithTheme(<GroupEventDetailsContainer organization={org} />);
     expect(wrapper2.find('LoadingIndicator').exists()).toBe(false);
     expect(wrapper.text('GroupEventDetails')).toBe('GroupEventDetails');

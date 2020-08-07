@@ -16,7 +16,7 @@ type ConfigStoreInterface = {
 
 const configStoreConfig: Reflux.StoreDefinition & ConfigStoreInterface = {
   // When the app is booted we will _immediately_ hydrate the config store,
-  // effecively ensureing this is not empty.
+  // effectively ensureing this is not empty.
   config: {} as Config,
 
   init(): void {

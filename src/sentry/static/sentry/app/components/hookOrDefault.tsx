@@ -31,7 +31,7 @@ type State<H extends HookName> = {
 };
 
 /**
- * Use this instead of the usual ternery operator when using getsentry hooks.
+ * Use this instead of the usual ternary operator when using getsentry hooks.
  * So in lieu of:
  *
  *  HookStore.get('component:org-auth-view').length

@@ -103,7 +103,7 @@ const prettyFormString = (val: FieldValue, model: FormModel, fieldName: string) 
 
   if (descriptor && typeof descriptor.formatMessageValue === 'function') {
     const initialData = model.initialData;
-    // XXX(epurkhsier): We pass the "props" as the descriptor and initialData.
+    // XXX(epurkhiser): We pass the "props" as the descriptor and initialData.
     // This isn't necessarily all of the props of the form field, but should
     // make up a good portion needed for formatting.
     return descriptor.formatMessageValue(val, {...descriptor, initialData});

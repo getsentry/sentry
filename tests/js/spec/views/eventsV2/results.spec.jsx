@@ -268,7 +268,7 @@ describe('EventsV2 > Results', function() {
     const initialData = initializeOrg({
       organization,
       router: {
-        location: {query: {...generateFields(), display: 'previoux'}},
+        location: {query: {...generateFields(), display: 'previous'}},
       },
     });
 
@@ -307,7 +307,7 @@ describe('EventsV2 > Results', function() {
     const initialData = initializeOrg({
       organization,
       router: {
-        location: {query: {...generateFields(), display: 'previoux'}},
+        location: {query: {...generateFields(), display: 'previous'}},
       },
     });
 

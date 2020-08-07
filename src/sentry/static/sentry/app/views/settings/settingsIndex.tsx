@@ -25,7 +25,7 @@ import {Organization} from 'app/types';
 const LINKS = {
   DOCUMENTATION: 'https://docs.sentry.io/',
   DOCUMENTATION_PLATFORMS: 'https://docs.sentry.io/clients/',
-  DOCUMENATATION_QUICKSTART: 'https://docs.sentry.io/quickstart/',
+  DOCUMENTATION_QUICKSTART: 'https://docs.sentry.io/quickstart/',
   DOCUMENTATION_CLI: 'https://docs.sentry.io/learn/cli/',
   DOCUMENTATION_API: 'https://docs.sentry.io/hosted/api/',
   API: '/settings/account/api/',
@@ -178,7 +178,7 @@ class SettingsIndex extends React.Component<Props> {
                 <h3>{t('Quick links')}:</h3>
                 <ul>
                   <li>
-                    <ExternalHomeLink href={LINKS.DOCUMENATATION_QUICKSTART}>
+                    <ExternalHomeLink href={LINKS.DOCUMENTATION_QUICKSTART}>
                       {t('Quickstart Guide')}
                     </ExternalHomeLink>
                   </li>
