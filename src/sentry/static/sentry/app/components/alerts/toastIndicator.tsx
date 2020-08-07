@@ -4,6 +4,7 @@ import classNames from 'classnames';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
+import {Indicator} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 import {IconCheckmark, IconClose} from 'app/icons';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -42,7 +43,7 @@ Toast.defaultProps = {
   }),
 };
 
-const Icon = styled('div')`
+const Icon = styled('div', {shouldForwardProp: p => p !== 'type'})<{type: string}>`
   margin-right: 6px;
   svg {
     display: block;
@@ -60,7 +61,7 @@ const Undo = styled('div')`
   color: ${p => p.theme.gray500};
   padding-left: 16px;
   margin-left: 16px;
-  border-left: 1px solid ${p => p.theme.gray3};
+  border-left: 1px solid ${p => p.theme.gray300};
   cursor: pointer;
 
   &:hover {
@@ -75,8 +76,14 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
   }
 `;
 
-function ToastIndicator({indicator, onDismiss, className, ...props}) {
-  let icon;
+type Props = {
+  className?: string;
+  indicator: Indicator;
+  onDismiss: (indicator: Indicator, event: React.MouseEvent) => void;
+};
+
+function ToastIndicator({indicator, onDismiss, className, ...props}: Props) {
+  let icon: React.ReactNode;
   const {options, message, type} = indicator;
   const {undo, disableDismiss} = options || {};
   const showUndo = typeof undo === 'function';
