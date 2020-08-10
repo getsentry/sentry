@@ -1445,8 +1445,8 @@ FUNCTIONS = {
     # These range functions for performance trends, these aren't If functions
     # to avoid allowing arbitrary if statements
     # Not yet supported in Discover, and shouldn't be added to fields.tsx
-    "percentileRange": {
-        "name": "percentileRange",
+    "percentile_range": {
+        "name": "percentile_range",
         "args": [
             DurationColumn("column"),
             NumberRange("percentile", 0, 1),
@@ -1457,12 +1457,12 @@ FUNCTIONS = {
         "aggregate": [
             u"quantileIf({percentile:.2f})({column},and(greaterOrEquals(timestamp,toDateTime('{start}')),less(timestamp,toDateTime('{end}'))))",
             None,
-            "percentileRange_{index:g}",
+            "percentile_range_{index:g}",
         ],
         "result_type": "duration",
     },
-    "avgRange": {
-        "name": "avgRange",
+    "avg_range": {
+        "name": "avg_range",
         "args": [
             DurationColumn("column"),
             DateArg("start"),
@@ -1472,12 +1472,12 @@ FUNCTIONS = {
         "aggregate": [
             u"avgIf({column},and(greaterOrEquals(timestamp,toDateTime('{start}')),less(timestamp,toDateTime('{end}'))))",
             None,
-            "avgRange_{index:g}",
+            "avg_range_{index:g}",
         ],
         "result_type": "duration",
     },
-    "user_miseryRange": {
-        "name": "user_miseryRange",
+    "user_misery_range": {
+        "name": "user_misery_range",
         "args": [
             NumberRange("satisfaction", 0, None),
             DateArg("start"),
@@ -1488,17 +1488,17 @@ FUNCTIONS = {
         "aggregate": [
             u"uniqIf(user,and(greaterOrEquals(timestamp,toDateTime('{start}')),less(timestamp,toDateTime('{end}')),greater(duration,{tolerated:g})))",
             None,
-            u"user_miseryRange_{index:g}",
+            u"user_misery_range_{index:g}",
         ],
         "result_type": "number",
     },
-    "countRange": {
-        "name": "countRange",
+    "count_range": {
+        "name": "count_range",
         "args": [DateArg("start"), DateArg("end"), NumberRange("index", 1, None)],
         "aggregate": [
             u"countIf(and(greaterOrEquals(timestamp,toDateTime('{start}')),less(timestamp,toDateTime('{end}'))))",
             None,
-            "countRange_{index:g}",
+            "count_range_{index:g}",
         ],
         "result_type": "integer",
     },

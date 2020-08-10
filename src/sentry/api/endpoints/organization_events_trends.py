@@ -17,16 +17,16 @@ from sentry.snuba import discover
 class OrganizationEventsTrendsEndpoint(OrganizationEventsV2EndpointBase):
     trend_columns = {
         "p50": {
-            "format": "percentileRange(transaction.duration, 0.5, {start}, {end}, {index})",
-            "alias": "percentileRange_",
+            "format": "percentile_range(transaction.duration, 0.5, {start}, {end}, {index})",
+            "alias": "percentile_range_",
         },
         "avg": {
-            "format": "avgRange(transaction.duration, {start}, {end}, {index})",
-            "alias": "avgRange_",
+            "format": "avg_range(transaction.duration, {start}, {end}, {index})",
+            "alias": "avg_range_",
         },
         "user_misery": {
-            "format": "user_miseryRange({}, {start}, {end}, {index})",
-            "alias": "user_miseryRange_",
+            "format": "user_misery_range({}, {start}, {end}, {index})",
+            "alias": "user_misery_range_",
         },
     }
 
@@ -80,9 +80,9 @@ class OrganizationEventsTrendsEndpoint(OrganizationEventsV2EndpointBase):
                     trend_column["format"].format(*columns, start=middle, end=end, index="2"),
                     "divide({alias}2,{alias}1)".format(alias=trend_column["alias"]),
                     "minus({alias}2,{alias}1)".format(alias=trend_column["alias"]),
-                    "countRange({start},{end},1)".format(start=start, end=end),
-                    "countRange({start},{end},2)".format(start=start, end=end),
-                    "divide(countRange_2,countRange_1)",
+                    "count_range({start},{end},1)".format(start=start, end=end),
+                    "count_range({start},{end},2)".format(start=start, end=end),
+                    "divide(count_range_2,count_range_1)",
                 ],
                 query=query,
                 params=params,
