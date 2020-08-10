@@ -414,8 +414,8 @@ export type SavedSearch = {
 };
 
 export enum SavedSearchType {
-  ISSUE,
-  EVENT,
+  ISSUE = 0,
+  EVENT = 1,
 }
 
 export type PluginNoProject = {
