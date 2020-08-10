@@ -99,7 +99,7 @@ const DeployRow = styled('div')`
   display: flex;
   justify-content: space-between;
   color: ${p => p.theme.gray500};
-  font-size: 12px;
+  font-size: ${p => p.theme.fontSizeSmall};
 
   &:not(:last-of-type) {
     margin-top: ${space(1)};
@@ -107,7 +107,7 @@ const DeployRow = styled('div')`
 `;
 
 const Environment = styled(TextOverflow)`
-  font-size: 11px;
+  font-size: ${p => p.theme.fontSizeExtraSmall};
   text-transform: uppercase;
   width: 80px;
   border: 1px solid ${p => p.theme.borderLight};
