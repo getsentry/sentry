@@ -5,10 +5,16 @@ from collections import defaultdict
 import six
 
 from sentry.api.serializers import register, serialize, Serializer
-from sentry.incidents.models import AlertRule, AlertRuleExcludedProjects, AlertRuleTrigger
+from sentry.incidents.models import (
+    AlertRule,
+    AlertRuleActivity,
+    AlertRuleActivityType,
+    AlertRuleExcludedProjects,
+    AlertRuleTrigger,
+)
 from sentry.incidents.logic import translate_aggregate_field
 
-from sentry.models import Rule, RuleActivity, RuleActivityType
+from sentry.models import Rule
 from sentry.utils.compat import zip
 from sentry.utils.db import attach_foreignkey
 
@@ -28,8 +34,8 @@ class AlertRuleSerializer(Serializer):
             )
             alert_rule_triggers.append(serialized)
 
-        for rule, user in RuleActivity.objects.filter(
-            rule__in=item_list, type=RuleActivityType.CREATED.value
+        for rule, user in AlertRuleActivity.objects.filter(
+            rule__in=item_list, type=AlertRuleActivityType.CREATED.value
         ).values_list("rule", "user"):
             result[rule].update({"created_by": user})
 
