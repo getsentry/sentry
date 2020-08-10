@@ -3,13 +3,13 @@
 from __future__ import absolute_import
 
 import os
-import json
 import pytest
 
 from sentry import eventstore
 from sentry.event_manager import EventManager
 from sentry.grouping.api import apply_server_fingerprinting
 from sentry.grouping.fingerprinting import FingerprintingRules
+from sentry.utils import json
 
 
 def test_basic_parsing(insta_snapshot):

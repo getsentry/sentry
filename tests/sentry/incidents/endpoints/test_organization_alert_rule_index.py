@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import json
 import pytz
 import requests
 import six
@@ -8,6 +7,7 @@ import six
 from exam import fixture
 from freezegun import freeze_time
 
+from sentry.utils import json
 from sentry.api.serializers import serialize
 from sentry.incidents.models import AlertRule, AlertRuleThresholdType
 from sentry.snuba.models import QueryDatasets

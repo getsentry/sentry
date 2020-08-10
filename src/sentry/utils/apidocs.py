@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import os
 import re
-import json
 import inspect
 import requests
 import mimetypes
@@ -20,6 +19,7 @@ from pytz import utc
 from random import randint
 from six import StringIO
 from sentry.utils.compat import map
+from sentry.utils import json
 
 # Do not import from sentry here!  Bad things will happen
 

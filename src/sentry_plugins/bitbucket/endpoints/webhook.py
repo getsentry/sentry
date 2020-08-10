@@ -13,7 +13,6 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 from django.utils import timezone
-from simplejson import JSONDecodeError
 from sentry.models import Commit, CommitAuthor, Organization, Repository
 from sentry.plugins.providers import RepositoryProvider
 from sentry.utils import json
@@ -163,7 +162,7 @@ class BitbucketWebhookEndpoint(View):
 
         try:
             event = json.loads(body.decode("utf-8"))
-        except JSONDecodeError:
+        except json.JSONDecodeError:
             logger.error(
                 "bitbucket.webhook.invalid-json",
                 extra={"organization_id": organization.id},

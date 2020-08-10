@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import json
 import logging
 
 from django.http import HttpResponse
@@ -11,6 +10,7 @@ from six.moves.urllib.parse import urlencode
 from sentry.api.base import Endpoint, allow_cors_options
 from sentry.constants import ObjectStatus
 from sentry.models import Integration, Organization, OrganizationIntegration, OrganizationStatus
+from sentry.utils import json
 from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
 

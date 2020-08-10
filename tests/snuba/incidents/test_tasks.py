@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import json
 from copy import deepcopy
 from uuid import uuid4
 
@@ -26,6 +25,7 @@ from sentry.incidents.models import (
 )
 from sentry.incidents.tasks import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.snuba.query_subscription_consumer import QuerySubscriptionConsumer, subscriber_registry
+from sentry.utils import json
 
 from sentry.testutils import TestCase
 

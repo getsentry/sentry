@@ -1,8 +1,9 @@
 from __future__ import absolute_import
-import json
 
 from django import forms
 from django.utils.translation import ugettext_lazy as _
+
+from sentry.utils import json
 
 from .client import RedmineClient
 

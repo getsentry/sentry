@@ -74,7 +74,7 @@ class JSONFieldTest(TestCase):
         field.set_attributes_from_name("json")
         self.assertEqual(None, field.get_db_prep_save(None, connection=None))
         self.assertEqual(
-            '{"spam": "eggs"}', field.get_db_prep_save({"spam": "eggs"}, connection=None)
+            '{"spam":"eggs"}', field.get_db_prep_save({"spam": "eggs"}, connection=None)
         )
 
     def test_formfield(self):

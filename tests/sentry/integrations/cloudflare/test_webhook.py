@@ -2,10 +2,10 @@ from __future__ import absolute_import
 
 from hashlib import sha256
 import hmac
-import json
 import six
 
 from sentry import options
+from sentry.utils import json
 from sentry.models import ApiToken, ProjectKey
 from sentry.testutils import TestCase
 

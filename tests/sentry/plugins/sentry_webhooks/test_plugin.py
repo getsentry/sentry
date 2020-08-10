@@ -2,7 +2,6 @@
 
 from __future__ import absolute_import
 
-import json
 import pytest
 import responses
 
@@ -13,6 +12,7 @@ from sentry.models import Rule
 from sentry.plugins.base import Notification
 from sentry.plugins.sentry_webhooks.plugin import validate_urls, WebHooksPlugin, WebHooksOptionsForm
 from sentry.testutils import TestCase
+from sentry.utils import json
 
 
 class WebHooksPluginTest(TestCase):

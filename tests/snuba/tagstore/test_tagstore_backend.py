@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import calendar
 from datetime import timedelta
-import json
 import pytest
 import requests
 import six
@@ -19,6 +18,7 @@ from sentry.tagstore.exceptions import (
 )
 from sentry.tagstore.snuba.backend import SnubaTagStorage
 from sentry.testutils import SnubaTestCase, TestCase
+from sentry.utils import json
 
 
 class TagStorageTest(TestCase, SnubaTestCase):

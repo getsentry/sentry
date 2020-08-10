@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import logging
-import json
 import requests
 import sentry_sdk
 import six
@@ -13,7 +12,7 @@ from bs4 import BeautifulSoup
 from django.utils.functional import cached_property
 from requests.exceptions import ConnectionError, Timeout, HTTPError
 from sentry.http import build_session
-from sentry.utils import metrics
+from sentry.utils import metrics, json
 from sentry.utils.hashlib import md5_text
 from sentry.utils.decorators import classproperty
 

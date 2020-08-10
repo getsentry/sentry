@@ -7,9 +7,12 @@ import multiprocessing
 import multiprocessing.dummy
 import os
 import sys
-import json
 import logging
 import time
+
+# Import the stdlib json instead of sentry.utils.json, since this command is
+# run at build time
+import json  # NOQA
 
 import sentry
 

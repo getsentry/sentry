@@ -1,10 +1,11 @@
 from __future__ import absolute_import
 
-import json
 from datetime import timedelta
 from uuid import uuid4
 
 import six
+from six.moves.urllib.parse import quote
+
 from django.conf import settings
 from django.utils import timezone
 from exam import fixture
@@ -34,7 +35,7 @@ from sentry.models import (
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import iso_format, before_now
-from six.moves.urllib.parse import quote
+from sentry.utils import json
 
 
 class GroupListTest(APITestCase, SnubaTestCase):

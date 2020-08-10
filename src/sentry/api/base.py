@@ -17,7 +17,6 @@ from rest_framework.authentication import SessionAuthentication
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from simplejson import JSONDecodeError
 
 from sentry import tsdb
 from sentry.auth import access
@@ -167,7 +166,7 @@ class Endpoint(APIView):
 
         try:
             request.json_body = json.loads(request.body)
-        except JSONDecodeError:
+        except json.JSONDecodeError:
             return
 
     def initialize_request(self, request, *args, **kwargs):

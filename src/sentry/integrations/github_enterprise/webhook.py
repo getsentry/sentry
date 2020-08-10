@@ -11,7 +11,6 @@ from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
-from simplejson import JSONDecodeError
 from sentry.models import Integration
 from sentry.utils import json
 from sentry.integrations.github.webhook import (
@@ -128,7 +127,7 @@ class GitHubEnterpriseWebhookBase(View):
 
         try:
             event = json.loads(body.decode("utf-8"))
-        except JSONDecodeError:
+        except json.JSONDecodeError:
             logger.warning(
                 "github_enterprise.webhook.invalid-json",
                 extra=self.get_logging_data(),

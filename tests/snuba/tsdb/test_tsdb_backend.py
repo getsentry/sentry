@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import calendar
 from datetime import datetime, timedelta
-import json
 import pytz
 import requests
 import six
@@ -10,6 +9,7 @@ import six
 from django.conf import settings
 from sentry.utils.compat.mock import patch
 
+from sentry.utils import json
 from sentry.models import GroupHash, GroupRelease, Release
 from sentry.tsdb.base import TSDBModel
 from sentry.tsdb.snuba import SnubaTSDB

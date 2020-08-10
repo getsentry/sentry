@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import re
-import json
 import time
 import logging
 import random
@@ -12,6 +11,7 @@ from django.core.cache import cache
 from six.moves.urllib.parse import parse_qsl
 
 from sentry import http
+from sentry.utils import json
 from sentry.utils.safe import get_path
 from sentry.utils.strings import count_sprintf_parameters
 

@@ -3,7 +3,6 @@ from __future__ import absolute_import
 import os
 import re
 import logging
-import json
 import six
 
 from pkg_resources import parse_version
@@ -12,6 +11,7 @@ from sentry.utils.compat import functools
 import sentry
 
 from django.conf import settings
+from sentry.utils import json
 from sentry.utils.compat import map
 
 logger = logging.getLogger("sentry")

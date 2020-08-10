@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import logging
 import jwt
-import json
 import time
 
 from django.views.decorators.csrf import csrf_exempt
@@ -18,6 +17,7 @@ from sentry.models import (
     Group,
     Project,
 )
+from sentry.utils import json
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.compat import filter
 from sentry.utils.signing import sign

@@ -1,13 +1,13 @@
 from __future__ import absolute_import
 
 import six
-import json
 import requests
 import pytz
 
 from exam import fixture
 from freezegun import freeze_time
 
+from sentry.utils import json
 from sentry.api.serializers import serialize
 from sentry.incidents.models import AlertRule
 from sentry.testutils.helpers.datetime import before_now

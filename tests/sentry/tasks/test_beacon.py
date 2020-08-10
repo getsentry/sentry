@@ -1,6 +1,5 @@
 from __future__ import absolute_import, print_function
 
-import json
 import responses
 import sentry
 
@@ -11,6 +10,7 @@ from sentry import options
 from sentry.models import Broadcast
 from sentry.testutils import TestCase
 from sentry.tasks.beacon import BEACON_URL, send_beacon
+from sentry.utils import json
 
 
 class SendBeaconTest(TestCase):

@@ -1,11 +1,9 @@
 from __future__ import absolute_import
 
-import json
-
 from sentry.api.event_search import get_filter, resolve_field_list
 from sentry.snuba.models import QueryDatasets, QuerySubscription
 from sentry.tasks.base import instrumented_task
-from sentry.utils import metrics
+from sentry.utils import metrics, json
 from sentry.utils.snuba import (
     _snuba_pool,
     Dataset,
