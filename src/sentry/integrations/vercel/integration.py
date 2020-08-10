@@ -316,8 +316,7 @@ class VercelIntegrationProvider(IntegrationProvider):
             external_id = data["user_id"]
             installation_type = "user"
             user = client.get_user()
-            name = user["name"]
-
+            name = user.get("name") or user["username"]
         try:
             webhook = client.create_deploy_webhook()
         except ApiError as err:

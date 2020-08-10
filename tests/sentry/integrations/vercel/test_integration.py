@@ -26,7 +26,7 @@ from sentry.utils.http import absolute_uri
 class VercelIntegrationTest(IntegrationTestCase):
     provider = VercelIntegrationProvider
 
-    def assert_setup_flow(self, is_team=False, multi_config_org=None):
+    def assert_setup_flow(self, is_team=False, multi_config_org=None, no_name=False):
         class MockUuid4:
             hex = "1234567"
 
@@ -49,10 +49,11 @@ class VercelIntegrationTest(IntegrationTestCase):
             )
         else:
             team_query = ""
+            name = None if no_name else "My Name"
             responses.add(
                 responses.GET,
                 "https://api.vercel.com/www/user",
-                json={"user": {"name": "My Name", "username": "my_user_name"}},
+                json={"user": {"name": name, "username": "my_user_name"}},
             )
 
         responses.add(
@@ -93,7 +94,7 @@ class VercelIntegrationTest(IntegrationTestCase):
         integration = Integration.objects.get(provider=self.provider.key)
 
         external_id = "my_team_id" if is_team else "my_user_id"
-        name = "My Team Name" if is_team else "My Name"
+        name = "My Team Name" if is_team else "my_user_name" if no_name else "My Name"
         installation_type = "team" if is_team else "user"
 
         assert integration.external_id == external_id
@@ -132,6 +133,10 @@ class VercelIntegrationTest(IntegrationTestCase):
     @responses.activate
     def test_user_flow(self):
         self.assert_setup_flow(is_team=False)
+
+    @responses.activate
+    def test_no_name(self):
+        self.assert_setup_flow(no_name=True)
 
     @responses.activate
     def test_use_existing_installation(self):
