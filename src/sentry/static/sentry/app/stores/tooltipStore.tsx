@@ -7,6 +7,8 @@ type TooltipStoreInterface = {
   init: () => TooltipStoreInterface;
 };
 
+const MAX_TOOLTIPS_TO_OPEN = 100; 
+
 const TooltipStore: TooltipStoreInterface = {
   tooltips: [],
 
@@ -16,6 +18,9 @@ const TooltipStore: TooltipStoreInterface = {
   openAllTooltips() {
     if (!this.tooltips.length) {
       return false;
+    }
+    if (this.tooltips.length > MAX_TOOLTIPS_TO_OPEN) {
+      return false; // Pages with too many tooltip components will take too long to render and it isn't likely helpful anyway.
     }
     this.tooltips.forEach(tooltip => {
       tooltip.setState({
