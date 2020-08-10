@@ -5,6 +5,7 @@ import isObject from 'lodash/isObject';
 import keyBy from 'lodash/keyBy';
 import pickBy from 'lodash/pickBy';
 
+import {Client} from 'app/api';
 import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 import ErrorBoundary from 'app/components/errorBoundary';
@@ -17,8 +18,24 @@ import LoadingError from 'app/components/loadingError';
 import SentryTypes from 'app/sentryTypes';
 import SuggestedOwners from 'app/components/group/suggestedOwners/suggestedOwners';
 import withApi from 'app/utils/withApi';
+import {Event, Environment, Group, Organization, Project} from 'app/types';
 
-class GroupSidebar extends React.Component {
+type Props = {
+  api: Client;
+  organization: Organization;
+  project: Project;
+  group: Group;
+  event: Event;
+  environments: Environment[];
+};
+
+type State = {
+  participants: Group['participants'];
+  environments: Environment[];
+  error: boolean;
+};
+
+class GroupSidebar extends React.Component<Props, State> {
   static propTypes = {
     api: PropTypes.object,
     organization: SentryTypes.Organization,
@@ -101,6 +118,7 @@ class GroupSidebar extends React.Component {
   toggleSubscription() {
     const {api, group, project, organization} = this.props;
     addLoadingMessage(t('Saving changes\u2026'));
+    console.log(group);
 
     api.bulkUpdate(
       {
@@ -134,7 +152,7 @@ class GroupSidebar extends React.Component {
   }
 
   renderPluginIssue() {
-    const issues = [];
+    const issues: React.ReactNode[] = [];
     (this.props.group.pluginIssues || []).forEach(plugin => {
       const issue = plugin.issue;
       // # TODO(dcramer): remove plugin.title check in Sentry 8.22+
