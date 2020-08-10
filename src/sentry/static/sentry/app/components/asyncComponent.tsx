@@ -444,10 +444,8 @@ export default class AsyncComponent<
     return (
       <RouteError
         error={error}
-        component={this}
         disableLogSentry={!shouldLogSentry}
         disableReport={disableReport}
-        onRetry={this.remountComponent}
       />
     );
   }

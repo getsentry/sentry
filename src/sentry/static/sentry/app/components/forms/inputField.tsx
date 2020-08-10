@@ -4,7 +4,7 @@ import React from 'react';
 import FormField from 'app/components/forms/formField';
 
 type InputFieldProps = FormField['props'] & {
-  placeholder: string;
+  placeholder?: string;
   inputStyle?: object;
   onBlur?: (event: React.FocusEvent<HTMLInputElement>) => void;
   onKeyPress?: (event: React.KeyboardEvent<HTMLInputElement>) => void;

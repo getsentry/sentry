@@ -1,22 +1,29 @@
-import {withRouter} from 'react-router';
+import {withRouter, WithRouterProps} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import * as Sentry from '@sentry/react';
 import styled from '@emotion/styled';
 
+import Alert from 'app/components/alert';
+import {t, tct} from 'app/locale';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 import {IconWarning} from 'app/icons';
 import space from 'app/styles/space';
 
-class RouteError extends React.Component {
+type Props = WithRouterProps & {
+  error: Error | undefined;
+  /**
+   * Disable logging to Sentry
+   */
+  disableLogSentry?: boolean;
+  disableReport?: boolean;
+};
+
+class RouteError extends React.Component<Props> {
   static propTypes = {
-    /**
-     * Disable logging to Sentry
-     */
     disableLogSentry: PropTypes.bool,
     disableReport: PropTypes.bool,
-    error: PropTypes.object.isRequired,
-    routes: PropTypes.array,
+    error: PropTypes.instanceOf(Error),
   };
 
   static contextTypes = {
@@ -82,44 +89,48 @@ class RouteError extends React.Component {
     document.querySelector('.sentry-error-embed-wrapper')?.remove();
   }
 
+  private _timeout: undefined | number;
+
   render() {
     // TODO(dcramer): show additional resource links
     return (
-      <div className="alert alert-block alert-error">
+      <Alert icon={<IconWarning size="md" />} type="error">
         <Heading>
-          <StyledIconWarning size="md" />
-          <span>Oops! Something went wrong</span>
+          <span>{t('Oops! Something went wrong')}</span>
         </Heading>
         <p>
+          {t(`
           It looks like you've hit an issue in our client application. Don't worry though!
           We use Sentry to monitor Sentry and it's likely we're already looking into this!
+          `)}
         </p>
-        <p>If you're daring, you may want to try the following:</p>
+        <p>{t("If you're daring, you may want to try the following:")}</p>
         <ul>
           {window && window.adblockSuspected && (
             <li>
-              We detected something AdBlock-like. Try disabling it, as it's known to cause
-              issues.
+              {t(
+                "We detected something AdBlock-like. Try disabling it, as it's known to cause issues."
+              )}
             </li>
           )}
           <li>
-            Give it a few seconds and{' '}
-            <a
-              onClick={() => {
-                window.location.href = window.location.href;
-              }}
-            >
-              reload the page
-            </a>
-            .
+            {tct(`Give it a few seconds and [link:reload the page].`, {
+              link: (
+                <a
+                  onClick={() => {
+                    window.location.href = window.location.href;
+                  }}
+                />
+              ),
+            })}
           </li>
           <li>
-            If all else fails,{' '}
-            <a href="http://github.com/getsentry/sentry/issues">create an issue</a> with
-            more details.
+            {tct(`If all else fails, [link:create an issue] with more details.`, {
+              link: <a href="http://github.com/getsentry/sentry/issues" />,
+            })}
           </li>
         </ul>
-      </div>
+      </Alert>
     );
   }
 }
@@ -132,10 +143,6 @@ const Heading = styled('h3')`
   font-weight: normal;
 
   margin-bottom: ${space(1.5)};
-`;
-
-const StyledIconWarning = styled(IconWarning)`
-  margin-right: ${space(1)};
 `;
 
 export default withRouter(RouteError);
