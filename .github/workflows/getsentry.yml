@@ -1,0 +1,98 @@
+name: getsentry
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+
+jobs:
+  ensure_docker:
+    name: Ensure docker image
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: getsentry token
+      id: getsentry
+      uses: getsentry/action-github-app-token@v1
+      with:
+        private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
+
+    - name: Checkout getsentry
+      uses: actions/checkout@v2
+      with:
+        repository: getsentry/getsentry
+        token: ${{ steps.getsentry.outputs.token }}
+
+    - name: Install gcloud utils
+      uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
+      with:
+        version: '281.0.0'
+        export_default_credentials: true
+        service_account_key: ${{ secrets.GCR_SERVICE_ACCOUNT }}
+
+    - name: Configure docker
+      run: |
+        mkdir -p $HOME/.docker
+        echo '{"experimental": "enabled"}' > $HOME/.docker/config.json
+        gcloud auth configure-docker --quiet
+
+    - name: bump-sentry ${{ github.event.pull_request.base.sha }}
+      run: |
+        git config --global user.email "github-actions@sentry.io"
+        git config --global user.name "github-actions[bot]"
+        bin/bump-sentry ${{ github.event.pull_request.head.sha }}
+
+    - name: Collect dependencies
+      run: bin/test-utils/collect_deps
+
+    - name: Ensure image
+      run: bin/test-utils/ensure_image
+
+  frontend:
+    name: frontend
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    needs: [ensure_docker]
+
+    steps:
+    - name: Checkout sentry
+      uses: actions/checkout@v2
+
+    - name: getsentry token
+      id: getsentry
+      uses: getsentry/action-github-app-token@v1
+      with:
+        private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
+
+    - name: Checkout getsentry
+      uses: actions/checkout@v2
+      with:
+        repository: getsentry/getsentry
+        token: ${{ steps.getsentry.outputs.token }}
+
+    - name: Install gcloud utils
+      uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
+      with:
+        version: '281.0.0'
+        export_default_credentials: true
+        service_account_key: ${{ secrets.GCR_SERVICE_ACCOUNT }}
+
+    - name: Configure docker
+      run: |
+        mkdir -p $HOME/.docker
+        echo '{"experimental": "enabled"}' > $HOME/.docker/config.json
+        gcloud auth configure-docker --quiet
+
+    - name: bump-sentry ${{ github.event.pull_request.base.sha }}
+      run: |
+        git config --global user.email "github-actions@sentry.io"
+        git config --global user.name "github-actions[bot]"
+        bin/bump-sentry ${{ github.event.pull_request.head.sha }}
+
+    - name: Collect dependencies
+      run: bin/test-utils/collect_deps
+
+    - name: Run tests
+      run: |
+        bin/test-utils/docker_run_tests make ci-test-js

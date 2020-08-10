@@ -22,7 +22,7 @@ sentry-package.json
 /dist
 /env
 /tmp
-/node_modules/
+**/node_modules/
 /docs-ui/node_modules/
 /src/sentry/assets.json
 /src/sentry/static/version
