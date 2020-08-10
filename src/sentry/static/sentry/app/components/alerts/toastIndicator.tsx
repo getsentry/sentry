@@ -9,6 +9,7 @@ import {t} from 'app/locale';
 import {IconCheckmark, IconClose} from 'app/icons';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import testableTransition from 'app/utils/testableTransition';
+import space from 'app/styles/space';
 
 const Toast = styled(motion.div)`
   display: flex;
@@ -77,9 +78,9 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 `;
 
 type Props = {
-  className?: string;
   indicator: Indicator;
   onDismiss: (indicator: Indicator, event: React.MouseEvent) => void;
+  className?: string;
 };
 
 function ToastIndicator({indicator, onDismiss, className, ...props}: Props) {
