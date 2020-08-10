@@ -61,6 +61,9 @@ OVERRIDE_OPTIONS = {
     "consistent": os.environ.get("SENTRY_SNUBA_CONSISTENT", "false").lower() in ("true", "1")
 }
 
+# Show the snuba query params and the corresponding sql or errors in the server logs
+SNUBA_INFO = os.environ.get("SENTRY_SNUBA_INFO", "false").lower() in ("true", "1")
+
 # There are several cases here where we support both a top level column name and
 # a tag with the same name. Existing search patterns expect to refer to the tag,
 # so we support <real_column_name>.name to refer to the top level column name.
@@ -592,6 +595,8 @@ def bulk_raw_query(snuba_param_list, referrer=None):
         query_params, forward, reverse, thread_hub = params
         try:
             with timer("snuba_query"):
+                if SNUBA_INFO:
+                    query_params["debug"] = True
                 body = json.dumps(query_params)
                 referrer = headers.get("referer", "<unknown>")
                 with thread_hub.start_span(
@@ -628,6 +633,15 @@ def bulk_raw_query(snuba_param_list, referrer=None):
     for response, _, reverse in query_results:
         try:
             body = json.loads(response.data)
+            if SNUBA_INFO:
+                if "sql" in body:
+                    logger.info(
+                        "{}.sql: {}".format(headers.get("referer", "<unknown>"), body["sql"])
+                    )
+                if "error" in body:
+                    logger.info(
+                        "{}.err: {}".format(headers.get("referer", "<unknown>"), body["error"])
+                    )
         except ValueError:
             if response.status != 200:
                 logger.error("snuba.query.invalid-json")
