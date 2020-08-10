@@ -1767,19 +1767,6 @@ class TimeseriesQueryTest(SnubaTestCase, TestCase):
 
     def test_field_alias(self):
         result = discover.timeseries_query(
-            selected_columns=["p95"],
-            query="event.type:transaction transaction:api.issue.delete",
-            params={
-                "start": self.day_ago,
-                "end": self.day_ago + timedelta(hours=2),
-                "project_id": [self.project.id],
-            },
-            rollup=3600,
-        )
-        assert len(result.data["data"]) == 3
-
-    def test_field_alias_with_brackets(self):
-        result = discover.timeseries_query(
             selected_columns=["p95()"],
             query="event.type:transaction transaction:api.issue.delete",
             params={
@@ -2283,7 +2270,7 @@ class GetFacetsTest(SnubaTestCase, TestCase):
         assert "color" in keys
         assert "toy" not in keys
 
-        result = discover.get_facets("color:red p95:>1", params)
+        result = discover.get_facets("color:red p95():>1", params)
         keys = {r.key for r in result}
         assert "color" in keys
         assert "toy" not in keys
