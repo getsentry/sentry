@@ -433,7 +433,7 @@ def query(
         raise InvalidSearchQuery("No columns selected")
     else:
         # We clobber this value throughout this code, so copy the value
-        selected_columns = [c for c in selected_columns]
+        selected_columns = selected_columns[:]
 
     with sentry_sdk.start_span(
         op="discover.discover", description="query.filter_transform"
