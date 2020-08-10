@@ -20,7 +20,8 @@ import {replaceAtArrayIndex} from 'app/utils/replaceAtArrayIndex';
 //0 is a valid choice but empty string, undefined, and null are not
 const hasValue = value => !!value || value === 0;
 
-type FieldFromSchema = Omit<Field, 'choices'> & {
+type FieldFromSchema = Omit<Field, 'choices' | 'type'> & {
+  type: 'select' | 'textarea' | 'text';
   default?: string;
   uri?: string;
   depends_on?: string[];
@@ -35,7 +36,7 @@ type Config = {
 
 //only need required_fields and optional_fields
 type State = Omit<Config, 'uri'> & {
-  optionsByField: any;
+  optionsByField: Map<string, Array<{label: string; value: any}>>;
 };
 
 type Props = {
@@ -60,7 +61,7 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
     event: SentryTypes.Event,
     onSubmitSuccess: PropTypes.func,
   };
-  state: State = {optionsByField: {}};
+  state: State = {optionsByField: new Map()};
 
   componentDidMount() {
     this.resetStateFromProps();
@@ -112,8 +113,8 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
       const choices = await this.makeExternalRequest(field, input);
       const options = choices.map(([value, label]) => ({value, label}));
       // const options = choices;
-      const optionsByField = {...this.state.optionsByField};
-      optionsByField[field.name] = options;
+      const optionsByField = new Map(this.state.optionsByField);
+      optionsByField.set(field.name, options);
       this.setState({
         optionsByField,
       });
@@ -260,9 +261,25 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
     });
   };
 
-  renderField = (field: FieldFromSchema) => {
-    if (['text', 'textarea'].includes(field.type) && field.default) {
-      field = {...field, defaultValue: this.getFieldDefault(field)};
+  renderField = (field: FieldFromSchema, required: boolean) => {
+    let fieldToPass: Field = {
+      ...field,
+      inline: false,
+      stacked: true,
+      flexibleControlStateSize: true,
+      required,
+    };
+
+    if (fieldToPass.type === 'select') {
+      // find the option from state
+      const options = this.state.optionsByField.get(field.name) || [];
+      const defaultOptions = (field.choices || []).map(([value, label]) => ({
+        value,
+        label,
+      }));
+      fieldToPass = {...fieldToPass, options, defaultOptions};
+    } else if (['text', 'textarea'].includes(fieldToPass.type || '') && field.default) {
+      fieldToPass = {...fieldToPass, defaultValue: this.getFieldDefault(field)};
     }
 
     if (field.depends_on) {
@@ -271,7 +288,7 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
         dependentField => !hasValue(this.model.getValue(dependentField))
       );
       if (shouldDisable) {
-        field = {...field, disabled: true};
+        fieldToPass = {...fieldToPass, disabled: true};
       }
     }
 
@@ -280,7 +297,7 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
       <FieldFromConfig
         deprecatedSelectControl={false}
         key={field.name}
-        field={field as Field}
+        field={fieldToPass}
         {...this.fieldProps(field)}
       />
     );
@@ -291,7 +308,6 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
 
     const requiredFields = this.state.required_fields || [];
     const optionalFields = this.state.optional_fields || [];
-    const optionsByField = this.state.optionsByField;
 
     if (!sentryAppInstallation) {
       return '';
@@ -308,36 +324,11 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
         model={this.model}
       >
         {requiredFields.map((field: FieldFromSchema) => {
-          //TODO(TS): Object.assign causing type checks to not correctly run on the params being passed
-          field = Object.assign({}, field, {
-            options: optionsByField[field.name] || [],
-            defaultOptions: (field.choices || []).map(([value, label]) => ({
-              value,
-              label,
-            })),
-            inline: false,
-            stacked: true,
-            flexibleControlStateSize: true,
-            required: true,
-          });
-
-          return this.renderField(field);
+          return this.renderField(field, true);
         })}
 
         {optionalFields.map((field: FieldFromSchema) => {
-          //TODO(TS): Object.assign causing type checks to not correctly run on the params being passed
-          field = Object.assign({}, field, {
-            options: optionsByField[field.name] || [],
-            defaultOptions: (field.choices || []).map(([value, label]) => ({
-              value,
-              label,
-            })),
-            inline: false,
-            stacked: true,
-            flexibleControlStateSize: true,
-          });
-
-          return this.renderField(field);
+          return this.renderField(field, false);
         })}
       </Form>
     );

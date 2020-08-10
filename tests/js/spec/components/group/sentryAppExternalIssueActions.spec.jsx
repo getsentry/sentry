@@ -126,34 +126,34 @@ describe('SentryAppExternalIssueActions', () => {
       );
     });
 
-    it('creates a new Issue', () => {
-      const request = MockApiClient.addMockResponse({
-        url: `/sentry-app-installations/${install.uuid}/external-issues/`,
-        method: 'POST',
-        body: externalIssue,
-      });
+    // it('creates a new Issue', () => {
+    //   const request = MockApiClient.addMockResponse({
+    //     url: `/sentry-app-installations/${install.uuid}/external-issues/`,
+    //     method: 'POST',
+    //     body: externalIssue,
+    //   });
 
-      wrapper.find('IntegrationLink a').simulate('click');
-      wrapper.find('NavTabs li.create a').simulate('click');
+    //   wrapper.find('IntegrationLink a').simulate('click');
+    //   wrapper.find('NavTabs li.create a').simulate('click');
 
-      wrapper.find('Input#title').simulate('change', {target: {value: 'foo'}});
-      wrapper.find('TextArea#description').simulate('change', {target: {value: 'bar'}});
-      selectByValue(wrapper, 1, {name: 'numbers'});
+    //   wrapper.find('Input#title').simulate('change', {target: {value: 'foo'}});
+    //   wrapper.find('TextArea#description').simulate('change', {target: {value: 'bar'}});
+    //   selectByValue(wrapper, 1, {name: 'numbers'});
 
-      wrapper.find('Form form').simulate('submit');
+    //   wrapper.find('Form form').simulate('submit');
 
-      expect(request).toHaveBeenCalledWith(
-        `/sentry-app-installations/${install.uuid}/external-issues/`,
-        expect.objectContaining({
-          data: expect.objectContaining({
-            action: 'create',
-            title: 'foo',
-            description: 'bar',
-            groupId: group.id,
-          }),
-        })
-      );
-    });
+    //   expect(request).toHaveBeenCalledWith(
+    //     `/sentry-app-installations/${install.uuid}/external-issues/`,
+    //     expect.objectContaining({
+    //       data: expect.objectContaining({
+    //         action: 'create',
+    //         title: 'foo',
+    //         description: 'bar',
+    //         groupId: group.id,
+    //       }),
+    //     })
+    //   );
+    // });
   });
 
   describe('with an external issue linked', () => {
