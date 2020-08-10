@@ -865,14 +865,11 @@ def delete_alert_rule(alert_rule, user=None):
         bulk_delete_snuba_subscriptions(list(alert_rule.snuba_query.subscriptions.all()))
         if incidents:
             alert_rule.update(status=AlertRuleStatus.SNAPSHOT.value)
-            activity_type = AlertRuleActivityType.SNAPSHOT.value
+            AlertRuleActivity.objects.create(
+                alert_rule=alert_rule, user=user, type=AlertRuleActivityType.DELETED.value,
+            )
         else:
             alert_rule.delete()
-            activity_type = AlertRuleActivityType.DELETED.value
-
-        AlertRuleActivity.objects.create(
-            alert_rule=alert_rule, user=user, type=activity_type,
-        )
 
     if alert_rule.id:
         # Change the incident status asynchronously, which could take awhile with many incidents due to snapshot creations.
