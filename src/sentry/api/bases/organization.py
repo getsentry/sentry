@@ -157,7 +157,12 @@ class OrganizationEndpoint(Endpoint):
             raise ParseError(detail="Invalid project parameter. Values must be numbers.")
 
     def get_projects(
-        self, request, organization, force_global_perms=False, include_all_accessible=False
+        self,
+        request,
+        organization,
+        force_global_perms=False,
+        include_all_accessible=False,
+        project_ids=None,
     ):
         """
         Determines which project ids to filter the endpoint by. If a list of
@@ -177,9 +182,12 @@ class OrganizationEndpoint(Endpoint):
         :param include_all_accessible: Whether to factor the organization
         allow_joinleave flag into permission checks. We should ideally
         standardize how this is used and remove this parameter.
+        :param project_ids: Projects if they were passed via request
+        data instead of get params
         :return: A list of Project objects, or raises PermissionDenied.
         """
-        project_ids = self.get_requested_project_ids(request)
+        if project_ids is None:
+            project_ids = self.get_requested_project_ids(request)
         return self._get_projects_by_id(
             project_ids, request, organization, force_global_perms, include_all_accessible
         )
@@ -237,13 +245,17 @@ class OrganizationEndpoint(Endpoint):
         with sentry_sdk.start_span(op="PERF: Org.get_environments"):
             return get_environments(request, organization)
 
-    def get_filter_params(self, request, organization, date_filter_optional=False):
+    def get_filter_params(
+        self, request, organization, date_filter_optional=False, project_ids=None
+    ):
         """
         Extracts common filter parameters from the request and returns them
         in a standard format.
         :param request:
         :param organization: Organization to get params for
         :param date_filter_optional: Defines what happens if no date filter
+        :param project_ids: Project ids if they were already grabbed but not
+        validated yet
         parameters are passed. If False, no date filtering occurs. If True, we
         provide default values.
         :return: A dict with keys:
@@ -265,7 +277,7 @@ class OrganizationEndpoint(Endpoint):
 
         with sentry_sdk.start_span(op="PERF: org.get_filter_params - projects"):
             try:
-                projects = self.get_projects(request, organization)
+                projects = self.get_projects(request, organization, project_ids)
             except ValueError:
                 raise ParseError(detail="Invalid project ids")
 
@@ -315,7 +327,7 @@ class OrganizationEndpoint(Endpoint):
 class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationReleasePermission,)
 
-    def get_projects(self, request, organization):
+    def get_projects(self, request, organization, project_ids=None):
         """
         Get all projects the current user or API token has access to. More
         detail in the parent class's method of the same name.
@@ -335,7 +347,11 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
             return []
 
         return super(OrganizationReleasesBaseEndpoint, self).get_projects(
-            request, organization, force_global_perms=has_valid_api_key, include_all_accessible=True
+            request,
+            organization,
+            force_global_perms=has_valid_api_key,
+            include_all_accessible=True,
+            project_ids=project_ids,
         )
 
     def has_release_permission(self, request, organization, release):
