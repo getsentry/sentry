@@ -6,7 +6,6 @@ from six.moves.urllib.parse import urlencode
 
 from sentry import options
 from sentry.integrations.client import ApiClient
-from sentry.utils.http import absolute_uri
 
 
 # five minutes which is industry standard clock skew tolerence
@@ -48,61 +47,7 @@ class MsTeamsAbstractClient(ApiClient):
     def send_message(self, conversation_id, data):
         return self.post(self.ACTIVITY_URL % conversation_id, data=data)
 
-    def send_welcome_message(self, conversation_id, signed_params):
-        url = u"%s?signed_params=%s" % (
-            absolute_uri("/extensions/msteams/configure/"),
-            signed_params,
-        )
-        # TODO: Refactor message creation
-        logo = {
-            "type": "Image",
-            "url": "https://sentry-brand.storage.googleapis.com/sentry-glyph-black.png",
-            "size": "Medium",
-        }
-        welcome = {
-            "type": "TextBlock",
-            "weight": "Bolder",
-            "size": "Large",
-            "text": "Welcome to Sentry for Microsoft Teams",
-            "wrap": True,
-        }
-        description = {
-            "type": "TextBlock",
-            "text": "You can use the Sentry app for Microsoft Teams to get notifications that allow you to assign, ignore, or resolve directly in your chat.",
-            "wrap": True,
-        }
-        instruction = {
-            "type": "TextBlock",
-            "text": "If that sounds good to you, finish the setup process.",
-            "wrap": True,
-        }
-        button = {
-            "type": "Action.OpenUrl",
-            "title": "Complete Setup",
-            "url": url,
-        }
-        card = {
-            "type": "AdaptiveCard",
-            "body": [
-                {
-                    "type": "ColumnSet",
-                    "columns": [
-                        {"type": "Column", "items": [logo], "width": "auto"},
-                        {
-                            "type": "Column",
-                            "items": [welcome],
-                            "width": "stretch",
-                            "verticalContentAlignment": "Center",
-                        },
-                    ],
-                },
-                description,
-                instruction,
-            ],
-            "actions": [button],
-            "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
-            "version": "1.2",
-        }
+    def send_card(self, conversation_id, card):
         payload = {
             "type": "message",
             "attachments": [

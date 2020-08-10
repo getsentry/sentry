@@ -85,6 +85,10 @@ describe('EventsV2 > EventDetails', function() {
       statusCode: 404,
       body: {},
     });
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/events/1234/grouping-info/',
+      body: {},
+    });
 
     // Missing event
     MockApiClient.addMockResponse({

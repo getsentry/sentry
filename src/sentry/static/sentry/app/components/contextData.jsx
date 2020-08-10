@@ -128,7 +128,7 @@ class ContextData extends React.Component {
     withAnnotatedText: false,
   };
 
-  renderValue = value => {
+  renderValue(value) {
     const {preserveQuotes, meta, withAnnotatedText} = this.props;
 
     function getValueWithAnnotatedText(v, meta) {
@@ -230,7 +230,7 @@ class ContextData extends React.Component {
       }
     }
     return walk(value, 0);
-  };
+  }
 
   render() {
     const {
@@ -243,10 +243,10 @@ class ContextData extends React.Component {
     } = this.props;
 
     return (
-      <pre className="val-string" {...other}>
+      <ContextValues {...other}>
         {this.renderValue(data)}
         {children}
-      </pre>
+      </ContextValues>
     );
   }
 }
@@ -256,6 +256,11 @@ ContextData.displayName = 'ContextData';
 const StyledIconOpen = styled(IconOpen)`
   position: relative;
   top: 1px;
+`;
+
+const ContextValues = styled('pre')`
+  /* Not using theme to be consistent with less files */
+  color: #4e3fb4;
 `;
 
 export default ContextData;

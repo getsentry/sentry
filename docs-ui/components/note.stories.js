@@ -1,6 +1,5 @@
 import React from 'react';
 import {action} from '@storybook/addon-actions';
-import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 
 import ConfigStore from 'app/stores/configStore';
@@ -18,18 +17,23 @@ const user = {
 
 ConfigStore.set('user', {...user, isSuperuser: true, options: {}});
 
-storiesOf('UI|Activity/Note', module).add(
-  'default',
-  withInfo(
-    'A `<Note>` is an `<ActivityItem>` that can be edited with an editor. The editor has an input mode and a preview mode.'
-  )(() => (
-    <Note
-      author={{name: 'Billy'}}
-      item={{id: '123', data: {text: 'hello'}, user, dateCreated: new Date()}}
-      group={{project: {slug: 'sentry'}}}
-      onDelete={action('Deleted item')}
-      sessionUser={{}}
-      memberList={[]}
-    />
-  ))
-);
+export default {
+  title: 'UI/Activity/Note',
+};
+
+export const Default = withInfo(
+  'A `<Note>` is an `<ActivityItem>` that can be edited with an editor. The editor has an input mode and a preview mode.'
+)(() => (
+  <Note
+    author={{name: 'Billy'}}
+    item={{id: '123', data: {text: 'hello'}, user, dateCreated: new Date()}}
+    group={{project: {slug: 'sentry'}}}
+    onDelete={action('Deleted item')}
+    sessionUser={{}}
+    memberList={[]}
+  />
+));
+
+Default.story = {
+  name: 'default',
+};

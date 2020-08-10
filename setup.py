@@ -4,6 +4,9 @@ from __future__ import absolute_import
 import os
 import sys
 
+if os.environ.get("SENTRY_PYTHON3") and sys.version_info[:2] != (3, 6):
+    sys.exit("Error: Sentry [In EXPERIMENTAL python 3 mode] requires Python 3.6.")
+
 if not os.environ.get("SENTRY_PYTHON3") and sys.version_info[:2] != (2, 7):
     sys.exit("Error: Sentry requires Python 2.7.")
 
@@ -102,7 +105,7 @@ setup(
     packages=find_packages("src"),
     zip_safe=False,
     install_requires=install_requires,
-    extras_require={"dev": dev_requires},
+    extras_require={"dev": dev_requires, "rabbitmq": ["amqp==2.6.1"]},
     cmdclass=cmdclass,
     license="BSL-1.1",
     include_package_data=True,

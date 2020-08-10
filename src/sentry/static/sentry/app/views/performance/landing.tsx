@@ -19,6 +19,7 @@ import EventView from 'app/utils/discover/eventView';
 import space from 'app/styles/space';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
+import {IconFlag} from 'app/icons';
 import {decodeScalar} from 'app/utils/queryString';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import withApi from 'app/utils/withApi';
@@ -57,11 +58,14 @@ type State = {
 
 class PerformanceLanding extends React.Component<Props, State> {
   static getDerivedStateFromProps(nextProps: Props, prevState: State): State {
-    return {...prevState, eventView: generatePerformanceEventView(nextProps.location)};
+    return {
+      ...prevState,
+      eventView: generatePerformanceEventView(nextProps.organization, nextProps.location),
+    };
   }
 
   state: State = {
-    eventView: generatePerformanceEventView(this.props.location),
+    eventView: generatePerformanceEventView(this.props.organization, this.props.location),
     error: undefined,
   };
 
@@ -93,7 +97,7 @@ class PerformanceLanding extends React.Component<Props, State> {
     }
 
     return (
-      <Alert type="error" icon="icon-circle-exclamation">
+      <Alert type="error" icon={<IconFlag size="md" />}>
         {error}
       </Alert>
     );

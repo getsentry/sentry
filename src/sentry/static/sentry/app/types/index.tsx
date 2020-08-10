@@ -45,6 +45,11 @@ declare global {
      */
     SentryRenderApp: () => void;
     sentryEmbedCallback?: ((embed: any) => void) | null;
+    /**
+     * Set to true if adblock could be installed.
+     * See sentry/js/ads.js for how this global is disabled.
+     */
+    adblockSuspected?: boolean;
   }
 }
 
@@ -130,6 +135,7 @@ export type LightWeightOrganization = OrganizationSummary & {
   allowSharedIssues: boolean;
   dataScrubberDefaults: boolean;
   dataScrubber: boolean;
+  apdexThreshold: number;
   onboardingTasks: OnboardingTaskStatus[];
   trustedRelays: Relay[];
   role?: string;
@@ -167,6 +173,7 @@ export type Project = {
   processingIssues: number;
   relayPiiConfig: string;
   builtinSymbolSources?: string[];
+  stats?: Array<[number, number]>;
 } & AvatarProject;
 
 export type MinimalProject = Pick<Project, 'id' | 'slug'>;

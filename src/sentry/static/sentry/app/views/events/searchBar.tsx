@@ -69,7 +69,10 @@ class SearchBar extends React.PureComponent<SearchBarProps> {
         tag.key,
         query,
         projectIdStrings,
-        endpointParams
+        endpointParams,
+
+        // allows searching for tags on transactions as well
+        true
       ).then(
         results =>
           flatten(results.filter(({name}) => defined(name)).map(({name}) => name)),

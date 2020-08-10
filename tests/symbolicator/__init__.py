@@ -65,6 +65,6 @@ def insta_snapshot_stacktrace_data(self, event):
             },
             "debug_meta": event.get("debug_meta"),
             "contexts": event.get("contexts"),
-            "errors": event.get("errors"),
+            "errors": [e for e in event.get("errors") or () if e.get("name") != "timestamp"],
         }
     )

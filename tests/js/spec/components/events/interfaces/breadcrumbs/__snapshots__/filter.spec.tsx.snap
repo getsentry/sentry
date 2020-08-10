@@ -142,7 +142,7 @@ exports[`Filter default render 1`] = `
 >
   <Wrapper>
     <div
-      className="css-cd4fy0-Wrapper efxik2w0"
+      className="css-cd4fy0-Wrapper eo9f4dt0"
     >
       <DropdownControl
         alwaysRenderMenu={true}
@@ -608,6 +608,7 @@ exports[`Filter default render 1`] = `
                       "sm": "16px",
                       "xl": "32px",
                       "xs": "12px",
+                      "xxl": "72px",
                     },
                     "orange100": "#FCF8F7",
                     "orange200": "#F9C7B9",

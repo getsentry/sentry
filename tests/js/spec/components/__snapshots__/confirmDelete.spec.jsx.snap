@@ -31,12 +31,10 @@ exports[`ConfirmDelete renders 1`] = `
           className="modal-body"
         >
           <Alert
-            iconSize="20px"
             type="error"
           >
             <Component
               className="css-1f91eup-Alert ejthpj82"
-              iconSize="20px"
               type="error"
             >
               <div
