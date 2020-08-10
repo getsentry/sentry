@@ -35,7 +35,7 @@ class AlertRuleSerializer(Serializer):
             alert_rule_triggers.append(serialized)
 
         for rule, user in AlertRuleActivity.objects.filter(
-            rule__in=item_list, type=AlertRuleActivityType.CREATED.value
+            alert_rule__in=item_list, type=AlertRuleActivityType.CREATED.value
         ).values_list("rule", "user"):
             result[rule].update({"created_by": user})
 
