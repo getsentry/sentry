@@ -3,10 +3,13 @@ import LazyLoad from 'react-lazyload';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
-import uniq from 'lodash/uniq';
+import uniqBy from 'lodash/uniqBy';
 import flatten from 'lodash/flatten';
 import {withProfiler} from '@sentry/react';
+import {RouteComponentProps} from 'react-router/lib/Router';
 
+import {Client} from 'app/api';
+import {TeamWithProjects, Organization} from 'app/types';
 import {sortProjects} from 'app/utils';
 import {t} from 'app/locale';
 import LoadingError from 'app/components/loadingError';
@@ -27,7 +30,15 @@ import {IconAdd} from 'app/icons';
 import Resources from './resources';
 import TeamSection from './teamSection';
 
-class Dashboard extends React.Component {
+type Props = {
+  api: Client;
+  organization: Organization;
+  teams: TeamWithProjects[];
+  loadingTeams: boolean;
+  error: Error | null;
+} & RouteComponentProps<{orgId: string}, {}>;
+
+class Dashboard extends React.Component<Props> {
   static propTypes = {
     teams: PropTypes.array,
     organization: SentryTypes.Organization,
@@ -53,7 +64,7 @@ class Dashboard extends React.Component {
     const filteredTeams = teams.filter(team => team.projects.length);
     filteredTeams.sort((team1, team2) => team1.slug.localeCompare(team2.slug));
 
-    const projects = uniq(flatten(teams.map(teamObj => teamObj.projects)), 'id');
+    const projects = uniqBy(flatten(teams.map(teamObj => teamObj.projects)), 'id');
     const favorites = projects.filter(project => project.isBookmarked);
 
     const access = new Set(organization.access);
@@ -70,6 +81,7 @@ class Dashboard extends React.Component {
         </NoProjectMessage>
       );
     }
+
     return (
       <React.Fragment>
         <SentryDocumentTitle
@@ -120,13 +132,13 @@ class Dashboard extends React.Component {
           );
         })}
 
-        {showResources && <Resources />}
+        {showResources && <Resources organization={organization} />}
       </React.Fragment>
     );
   }
 }
 
-const OrganizationDashboard = props => (
+const OrganizationDashboard = (props: Props) => (
   <OrganizationDashboardWrapper>
     <Dashboard {...props} />
   </OrganizationDashboardWrapper>

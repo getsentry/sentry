@@ -396,7 +396,7 @@ export default class AsyncComponent<
     );
   }
 
-  renderLoading() {
+  renderLoading(): React.ReactNode {
     return <LoadingIndicator />;
   }
 

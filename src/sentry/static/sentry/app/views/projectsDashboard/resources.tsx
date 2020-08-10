@@ -1,7 +1,8 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {analytics} from 'app/utils/analytics';
+import {Organization} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import PageHeading from 'app/components/pageHeading';
 import ResourceCard from 'app/components/resourceCard';
 import space from 'app/styles/space';
@@ -11,15 +12,24 @@ import releasesImg from '../../../images/spot/releases.svg';
 import breadcrumbsImg from '../../../images/spot/breadcrumbs-generic.svg';
 import docsImg from '../../../images/spot/code-arguments-tags-mirrored.svg';
 
-export default class Resources extends React.Component {
+type Props = {
+  organization: Organization;
+};
+
+class Resources extends React.Component<Props> {
   componentDidMount() {
-    analytics('orgdash.resources_shown');
+    const {organization} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'orgdash.resources_shown',
+      eventName: 'Projects Dashboard: Resources Shown',
+      organization: organization.id,
+    });
   }
 
   render() {
     return (
       <ResourcesWrapper data-test-id="resources">
-        <PageHeading>{t('Resources')}</PageHeading>
+        <PageHeading withMargins>{t('Resources')}</PageHeading>
         <ResourceCards>
           <ResourceCard
             link="https://blog.sentry.io/2018/03/06/the-sentry-workflow"
@@ -42,6 +52,8 @@ export default class Resources extends React.Component {
   }
 }
 
+export default Resources;
+
 const ResourcesWrapper = styled('div')`
   border-top: 1px solid ${p => p.theme.borderLight};
   padding: 25px 30px 10px 30px;
@@ -49,7 +61,10 @@ const ResourcesWrapper = styled('div')`
 
 const ResourceCards = styled('div')`
   display: grid;
-  grid-template-columns: repeat(3, auto);
-  grid-gap: ${space(4)};
-  margin-top: ${space(3)};
+  grid-template-columns: minmax(100px, 1fr);
+  grid-gap: ${space(3)};
+
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  }
 `;

@@ -174,6 +174,7 @@ export type Project = {
   relayPiiConfig: string;
   builtinSymbolSources?: string[];
   stats?: Array<[number, number]>;
+  latestDeploys: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
 } & AvatarProject;
 
 export type MinimalProject = Pick<Project, 'id' | 'slug'>;
@@ -969,6 +970,7 @@ export type Deploy = {
   environment: string;
   dateStarted: string;
   dateFinished: string;
+  version: string;
 };
 
 export type Commit = {

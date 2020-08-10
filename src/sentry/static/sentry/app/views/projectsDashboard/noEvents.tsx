@@ -3,15 +3,13 @@ import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 
-export default class NoEvents extends React.Component {
-  render() {
-    return (
-      <Container>
-        <EmptyText>{t('No activity yet.')}</EmptyText>
-      </Container>
-    );
-  }
-}
+const NoEvents = () => (
+  <Container>
+    <EmptyText>{t('No activity yet.')}</EmptyText>
+  </Container>
+);
+
+export default NoEvents;
 
 const Container = styled('div')`
   position: absolute;
