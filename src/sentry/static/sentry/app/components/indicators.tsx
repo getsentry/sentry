@@ -19,8 +19,8 @@ const Toasts = styled('div')`
 `;
 
 type Props = {
-  className?: string;
   items: Indicator[];
+  className?: string;
 };
 
 class Indicators extends React.Component<Props> {
