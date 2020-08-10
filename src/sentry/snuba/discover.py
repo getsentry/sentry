@@ -814,6 +814,7 @@ def top_events_timeseries(
     limit,
     organization,
     referrer=None,
+    top_events=None,
 ):
     """
     High-level API for doing arbitrary user timeseries queries for a limited number of top events
@@ -834,16 +835,17 @@ def top_events_timeseries(
     organization (Organization) Used to map group ids to short ids
     referrer (str|None) A referrer string to help locate the origin of this query.
     """
-    with sentry_sdk.start_span(op="discover.discover", description="top_events.fetch_events"):
-        top_events = query(
-            selected_columns,
-            query=user_query,
-            params=params,
-            orderby=orderby,
-            limit=limit,
-            referrer=referrer,
-            use_aggregate_conditions=True,
-        )
+    if top_events is None:
+        with sentry_sdk.start_span(op="discover.discover", description="top_events.fetch_events"):
+            top_events = query(
+                selected_columns,
+                query=user_query,
+                params=params,
+                orderby=orderby,
+                limit=limit,
+                referrer=referrer,
+                use_aggregate_conditions=True,
+            )
 
     with sentry_sdk.start_span(
         op="discover.discover", description="top_events.filter_transform"

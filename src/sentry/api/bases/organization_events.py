@@ -189,12 +189,14 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 
         return results
 
-    def get_event_stats_data(self, request, organization, get_event_stats, top_events=False):
+    def get_event_stats_data(
+        self, request, organization, get_event_stats, top_events=False, query_column="count()"
+    ):
         with self.handle_query_errors():
             with sentry_sdk.start_span(
                 op="discover.endpoint", description="base.stats_query_creation"
             ):
-                columns = request.GET.getlist("yAxis", ["count()"])
+                columns = request.GET.getlist("yAxis", [query_column])
                 query = request.GET.get("query")
                 try:
                     params = self.get_filter_params(request, organization)
