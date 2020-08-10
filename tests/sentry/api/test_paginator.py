@@ -620,7 +620,7 @@ class CombinedQuerysetPaginatorTest(APITestCase):
         rule1 = Rule.objects.create(label="rule1", project=self.project)
         alert_rule2 = self.create_alert_rule(name="alertrule2")
         alert_rule3 = self.create_alert_rule(name="alertrule3")
-        rule2 = Rule.objects.create(label="rule2", project=self.project)
+        # rule2 = Rule.objects.create(label="rule2", project=self.project)
         rule3 = Rule.objects.create(label="rule3", project=self.project)
         # rule4 = Rule.objects.create(label="A", project=self.project)
         rule5 = Rule.objects.create(label="a", project=self.project)
@@ -639,30 +639,32 @@ class CombinedQuerysetPaginatorTest(APITestCase):
 
         assert page1_results[0].id == rule7.id
         assert page1_results[1].id == rule3.id
-        assert page1_results[2].id == rule2.id
+        assert page1_results[2].id == rule1.id
 
         next_cursor = result.next
         result = paginator.get_result(limit=3, cursor=next_cursor)
         page2_results = list(result)
         assert len(result) == 3
-        assert page2_results[0].id == rule1.id
-        assert page2_results[1].id == alert_rule3.id
-        assert page2_results[2].id == alert_rule2.id
+        # assert page2_results[0].id == rule1.id
+        assert page2_results[0].id == alert_rule3.id
+        assert page2_results[1].id == alert_rule2.id
+        assert page2_results[2].id == alert_rule1.id
 
         next_cursor = result.next
         result = paginator.get_result(limit=3, cursor=next_cursor)
         page3_results = list(result)
         assert len(result) == 3
-        assert page3_results[0].id == alert_rule1.id
-        assert page3_results[1].id == alert_rule0.id
-        assert page3_results[2].id == rule5.id
+        # assert page3_results[0].id == alert_rule1.id
+        assert page3_results[0].id == alert_rule0.id
+        assert page3_results[1].id == rule5.id
+        assert page3_results[2].id == rule6.id
 
         next_cursor = result.next
         result = paginator.get_result(limit=3, cursor=next_cursor)
         page4_results = list(result)
-        assert len(result) == 2
-        assert page4_results[0].id == rule6.id
-        assert page4_results[1].id == rule0.id
+        assert len(result) == 1
+        # assert page4_results[0].id == rule6.id
+        assert page4_results[0].id == rule0.id
 
         # Test reverse ordering
         alert_rule_intermediary = CombinedQuerysetIntermediary(AlertRule.objects.all(), "name")
@@ -692,14 +694,15 @@ class CombinedQuerysetPaginatorTest(APITestCase):
         assert len(result) == 3
         assert page3_results[0].id == alert_rule3.id
         assert page3_results[1].id == rule1.id
-        assert page3_results[2].id == rule2.id
+        assert page3_results[2].id == rule3.id
+        # assert page3_results[2].id == rule2.id
 
         next_cursor = result.next
         result = paginator.get_result(limit=3, cursor=next_cursor)
         page4_results = list(result)
-        assert len(result) == 2
-        assert page4_results[0].id == rule3.id
-        assert page4_results[1].id == rule7.id
+        assert len(result) == 1
+        # assert page4_results[0].id == rule3.id
+        assert page4_results[0].id == rule7.id
 
     def test_order_by_invalid_key(self):
         with self.assertRaises(AssertionError):
