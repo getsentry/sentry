@@ -18,7 +18,7 @@ export default class OrganizationCreate extends AsyncView {
   }
 
   getTitle() {
-    return 'Create Organization';
+    return t('Create Organization');
   }
 
   renderBody() {

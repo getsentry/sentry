@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import json
 import six
 from datetime import timedelta
 from uuid import uuid4
@@ -30,6 +29,7 @@ from sentry.models import (
     UserOption,
     Release,
 )
+from sentry.utils import json
 from sentry.utils.compat.mock import patch, Mock
 
 from sentry.testutils import APITestCase, SnubaTestCase

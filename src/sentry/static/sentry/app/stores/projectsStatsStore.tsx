@@ -1,13 +1,25 @@
 import Reflux from 'reflux';
 
+import {Project} from 'app/types';
 import ProjectActions from 'app/actions/projectActions';
+
+type ProjectsStatsStoreInterface = {
+  itemsBySlug: Record<string, Project>;
+
+  getInitialState(): ProjectsStatsStoreInterface['itemsBySlug'];
+  reset(): void;
+  getBySlug(slug: string): Project;
+  getAll(): ProjectsStatsStoreInterface['itemsBySlug'];
+};
 
 /**
  * This is a store specifically used by the dashboard, so that we can
  * clear the store when the Dashboard unmounts
  * (as to not disrupt ProjectsStore which a lot more components use)
  */
-const ProjectsStatsStore = Reflux.createStore({
+const projectsStatsStore: Reflux.StoreDefinition & ProjectsStatsStoreInterface = {
+  itemsBySlug: {},
+
   init() {
     this.reset();
     this.listenTo(ProjectActions.loadStatsForProjectSuccess, this.onStatsLoadSuccess);
@@ -24,7 +36,7 @@ const ProjectsStatsStore = Reflux.createStore({
     this.updatingItems = new Map();
   },
 
-  onStatsLoadSuccess(projects) {
+  onStatsLoadSuccess(projects: Project[]) {
     projects.forEach(project => {
       this.itemsBySlug[project.slug] = project;
     });
@@ -33,17 +45,17 @@ const ProjectsStatsStore = Reflux.createStore({
 
   /**
    * Optimistic updates
-   * @param {String} projectSlug  Project slug
-   * @param {Object} data Project data
+   * @param projectSlug Project slug
+   * @param data Project data
    */
-  onUpdate(projectSlug, data) {
+  onUpdate(projectSlug: string, data: Project) {
     const project = this.getBySlug(projectSlug);
     this.updatingItems.set(projectSlug, project);
     if (!project) {
       return;
     }
 
-    const newProject = {
+    const newProject: Project = {
       ...project,
       ...data,
     };
@@ -55,17 +67,17 @@ const ProjectsStatsStore = Reflux.createStore({
     this.trigger(this.itemsBySlug);
   },
 
-  onUpdateSuccess(data) {
+  onUpdateSuccess(data: Project) {
     // Remove project from updating map
     this.updatingItems.delete(data.slug);
   },
 
   /**
    * Revert project data when there was an error updating project details
-   * @param {Object} err Error object
-   * @param {Object} data Previous project data
+   * @param err Error object
+   * @param data Previous project data
    */
-  onUpdateError(_err, projectSlug) {
+  onUpdateError(_err: Error, projectSlug: string) {
     const project = this.updatingItems.get(projectSlug);
     if (!project) {
       return;
@@ -87,6 +99,8 @@ const ProjectsStatsStore = Reflux.createStore({
   getBySlug(slug) {
     return this.itemsBySlug[slug];
   },
-});
+};
 
-export default ProjectsStatsStore;
+type ProjectsStatsStore = Reflux.Store & ProjectsStatsStoreInterface;
+
+export default Reflux.createStore(projectsStatsStore) as ProjectsStatsStore;

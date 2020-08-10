@@ -1,6 +1,5 @@
 from __future__ import absolute_import, print_function
 
-import json
 import logging
 import sentry
 
@@ -11,6 +10,7 @@ from hashlib import sha1
 from uuid import uuid4
 
 from sentry.app import locks, tsdb
+from sentry.utils import json
 from sentry.http import safe_urlopen, safe_urlread
 from sentry.tasks.base import instrumented_task
 from sentry.debug.utils.packages import get_all_package_versions

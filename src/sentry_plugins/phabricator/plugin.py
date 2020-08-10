@@ -1,12 +1,11 @@
 from __future__ import absolute_import
 
-import json
-
 from django.conf.urls import url
 from rest_framework.response import Response
 
 from sentry.exceptions import PluginError
 from sentry.plugins.bases.issue2 import IssuePlugin2, IssueGroupActionEndpoint
+from sentry.utils import json
 from sentry.utils.http import absolute_uri
 from sentry.integrations import FeatureDescription, IntegrationFeatures
 from six.moves.urllib.parse import urljoin
