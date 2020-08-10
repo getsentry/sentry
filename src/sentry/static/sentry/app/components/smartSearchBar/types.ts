@@ -30,8 +30,3 @@ export type Tag = {
   desc: string;
   values: string[];
 };
-
-export enum SearchType {
-  ISSUE = 0,
-  EVENT = 1,
-}

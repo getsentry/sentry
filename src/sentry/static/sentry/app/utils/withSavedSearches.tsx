@@ -13,7 +13,7 @@ type InjectedSavedSearchesProps = {
 };
 
 type State = {
-  SavedSearchs: SavedSearch;
+  savedSearches: SavedSearch[];
   isLoading: boolean;
 };
 

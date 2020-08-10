@@ -25,7 +25,7 @@ import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import {Client} from 'app/api';
-import {LightWeightOrganization, SavedSearch, Tag} from 'app/types';
+import {LightWeightOrganization, SavedSearch, Tag, SavedSearchType} from 'app/types';
 import {
   fetchRecentSearches,
   pinSearch,
@@ -39,7 +39,7 @@ import {
 } from 'app/constants';
 
 import SearchDropdown from './searchDropdown';
-import {SearchItem, SearchType, SearchGroup, ItemType} from './types';
+import {SearchItem, SearchGroup, ItemType} from './types';
 import {
   addSpace,
   removeSpace,
@@ -166,7 +166,7 @@ type Props = {
    * If this is defined, attempt to save search term scoped to the user and
    * the current org
    */
-  savedSearchType?: SearchType;
+  savedSearchType?: SavedSearchType;
   /**
    * Has pinned search feature
    */
@@ -281,6 +281,7 @@ class SmartSearchBar extends React.Component<Props, State> {
     defaultSearchItems: [[], []],
     hasPinnedSearch: false,
     useFormWrapper: true,
+    savedSearchType: SavedSearchType.ISSUE,
   };
 
   state: State = {
@@ -651,6 +652,9 @@ class SmartSearchBar extends React.Component<Props, State> {
 
   fetchRecentSearches = async (fullQuery: string): Promise<SearchItem[]> => {
     const {api, organization, savedSearchType} = this.props;
+    if (savedSearchType === undefined) {
+      return [];
+    }
 
     try {
       const recentSearches: any[] = await fetchRecentSearches(
@@ -905,7 +909,7 @@ class SmartSearchBar extends React.Component<Props, State> {
     evt.preventDefault();
     evt.stopPropagation();
 
-    if (!defined(savedSearchType) || !hasPinnedSearch) {
+    if (savedSearchType === undefined || !hasPinnedSearch) {
       return;
     }
 
@@ -1246,7 +1250,7 @@ const SmartSearchBarContainer = createReactClass<Props>({
 });
 
 export default withApi(withOrganization(SmartSearchBarContainer));
-export {SmartSearchBar, SearchType};
+export {SmartSearchBar};
 
 const Container = styled('div')<{isOpen: boolean}>`
   border: 1px solid ${p => (p.isOpen ? p.theme.borderDark : p.theme.borderLight)};
