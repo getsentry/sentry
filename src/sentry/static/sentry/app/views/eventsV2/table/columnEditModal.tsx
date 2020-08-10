@@ -8,7 +8,7 @@ import ExternalLink from 'app/components/links/externalLink';
 import {DISCOVER2_DOCS_URL} from 'app/constants';
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import {t, tct} from 'app/locale';
-import {OrganizationSummary} from 'app/types';
+import {LightWeightOrganization} from 'app/types';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 import {Column} from 'app/utils/discover/fields';
@@ -18,7 +18,7 @@ import ColumnEditCollection from './columnEditCollection';
 
 type Props = {
   columns: Column[];
-  organization: OrganizationSummary;
+  organization: LightWeightOrganization;
   tagKeys: null | string[];
   // Fired when column selections have been applied.
   onApply: (columns: Column[]) => void;

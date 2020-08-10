@@ -1907,8 +1907,10 @@ class TimeseriesQueryTest(SnubaTestCase, TestCase):
         )
 
         data = result.data["data"]
-        assert len(data) == 1
-        assert data[0]["count"] == 1
+        assert len([d for d in data if "count" in d]) == 1
+        for d in data:
+            if "count" in d:
+                assert d["count"] == 1
 
     def test_nested_conditional_filter(self):
         project2 = self.create_project(organization=self.organization)
@@ -1943,8 +1945,11 @@ class TimeseriesQueryTest(SnubaTestCase, TestCase):
         )
 
         data = result.data["data"]
-        assert len(data) == 1
-        assert data[0]["count"] == 2
+        data = result.data["data"]
+        assert len([d for d in data if "count" in d]) == 1
+        for d in data:
+            if "count" in d:
+                assert d["count"] == 2
 
     def test_reference_event(self):
         ref = discover.ReferenceEvent(

@@ -1704,6 +1704,15 @@ class ParseBooleanSearchQueryTest(TestCase):
             ],
         ]
 
+    def test_or_does_not_match_organization(self):
+        result = get_filter(
+            "organization.slug:{}".format(self.organization.slug),
+            params={"organization_id": self.organization.id, "project_id": [self.project.id]},
+        )
+        assert result.conditions == [
+            [["ifNull", ["organization.slug", "''"]], "=", "{}".format(self.organization.slug)]
+        ]
+
 
 class GetSnubaQueryArgsTest(TestCase):
     def test_simple(self):
@@ -2123,6 +2132,9 @@ class ResolveFieldListTest(unittest.TestCase):
             "percentile(transaction.duration, 0.75)",
             "percentile(transaction.duration, 0.95)",
             "percentile(transaction.duration, 0.99)",
+            "percentile(transaction.duration, 0.995)",
+            "percentile(transaction.duration, 0.99900)",
+            "percentile(transaction.duration, 0.99999)",
         ]
         result = resolve_field_list(fields, eventstore.Filter())
 
@@ -2141,6 +2153,13 @@ class ResolveFieldListTest(unittest.TestCase):
             ["quantile(0.75)", "transaction.duration", "percentile_transaction_duration_0_75"],
             ["quantile(0.95)", "transaction.duration", "percentile_transaction_duration_0_95"],
             ["quantile(0.99)", "transaction.duration", "percentile_transaction_duration_0_99"],
+            ["quantile(0.995)", "transaction.duration", "percentile_transaction_duration_0_995"],
+            ["quantile(0.999)", "transaction.duration", "percentile_transaction_duration_0_99900"],
+            [
+                "quantile(0.99999)",
+                "transaction.duration",
+                "percentile_transaction_duration_0_99999",
+            ],
         ]
         assert result["groupby"] == []
 

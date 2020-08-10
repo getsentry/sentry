@@ -1,11 +1,9 @@
 import styled from '@emotion/styled';
 import React from 'react';
 import omit from 'lodash/omit';
-import {withScope, captureException, Severity} from '@sentry/react';
 
 import Link from 'app/components/links/link';
 import ExternalLink from 'app/components/links/externalLink';
-import InlineSvg from 'app/components/inlineSvg';
 import {IconChevron} from 'app/icons';
 import space from 'app/styles/space';
 
@@ -54,15 +52,6 @@ class AlertLink extends React.Component<Props> {
       href,
     } = this.props;
 
-    if (typeof icon === 'string') {
-      withScope(scope => {
-        scope.setLevel(Severity.Warning);
-        scope.setTag('icon', icon);
-        scope.setTag('componentType', 'alertLink');
-        captureException(new Error('Deprecated SVG icon referenced'));
-      });
-    }
-
     return (
       <StyledLink
         to={to}
@@ -73,11 +62,7 @@ class AlertLink extends React.Component<Props> {
         withoutMarginBottom={withoutMarginBottom}
         openInNewTab={openInNewTab}
       >
-        {icon && (
-          <IconWrapper>
-            {typeof icon === 'string' ? <InlineSvg src={icon} /> : icon}
-          </IconWrapper>
-        )}
+        {icon && <IconWrapper>{icon}</IconWrapper>}
         <AlertLinkText>{children}</AlertLinkText>
         <IconLink>
           <IconChevron direction="right" />
