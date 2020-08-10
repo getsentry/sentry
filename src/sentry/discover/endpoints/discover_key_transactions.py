@@ -62,7 +62,7 @@ class KeyTransactionEndpoint(KeyTransactionBase):
                 base_filter["transaction"] = data["transaction"]
                 base_filter["project"] = project
 
-                if KeyTransaction.objects.filter(**base_filter).count() > 0:
+                if KeyTransaction.objects.filter(**base_filter).exists():
                     return Response(status=204)
 
                 KeyTransaction.objects.create(**base_filter)
