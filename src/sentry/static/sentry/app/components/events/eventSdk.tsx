@@ -17,7 +17,7 @@ const EventSdk = ({event: {sdk: data}}: Props) => (
           <td className="key">{t('Name')}</td>
           <td className="value">
             <Annotated object={data} objectKey="name">
-              {value => <pre>{value}</pre>}
+              {value => <pre className="val-string">{value}</pre>}
             </Annotated>
           </td>
         </tr>
@@ -25,7 +25,7 @@ const EventSdk = ({event: {sdk: data}}: Props) => (
           <td className="key">{t('Version')}</td>
           <td className="value">
             <Annotated object={data} objectKey="version">
-              {value => <pre>{value}</pre>}
+              {value => <pre className="val-string">{value}</pre>}
             </Annotated>
           </td>
         </tr>
