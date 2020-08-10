@@ -6,7 +6,7 @@ export function Broadcast(params = {}) {
     id: '8',
     isActive: true,
     link:
-      'https://docs.sentry.io/hosted/clients/javascript/sourcemaps/#uploading-source-maps-to-sentry',
+      'https://docs.sentry.io/clients/javascript/sourcemaps/#uploading-source-maps-to-sentry',
     message:
       'Source maps are JSON files that contain information on how to map your transpiled source code back to their original source.',
     title: 'Learn about Source Maps',

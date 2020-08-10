@@ -1,19 +1,20 @@
-import {withRouter} from 'react-router';
+import {withRouter, WithRouterProps} from 'react-router';
 import React from 'react';
 
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
-import CreateTeamForm from 'app/components/createTeamForm';
 import NarrowLayout from 'app/components/narrowLayout';
-import SentryTypes from 'app/sentryTypes';
+import CreateTeamForm from 'app/components/teams/createTeamForm';
+import withOrganization from 'app/utils/withOrganization';
+import {Organization} from 'app/types';
 
-class TeamCreate extends AsyncView {
-  static contextTypes = {
-    organization: SentryTypes.Organization,
-  };
+type Props = WithRouterProps<{orgId: string}, {}> & {
+  organization: Organization;
+};
 
+class TeamCreate extends AsyncView<Props> {
   getTitle() {
-    return 'Create Team';
+    return t('Create Team');
   }
 
   getEndpoints() {
@@ -33,7 +34,7 @@ class TeamCreate extends AsyncView {
 
         <CreateTeamForm
           onSuccess={this.handleSubmitSuccess}
-          organization={this.context.organization}
+          organization={this.props.organization}
         />
       </NarrowLayout>
     );
@@ -41,4 +42,4 @@ class TeamCreate extends AsyncView {
 }
 
 export {TeamCreate};
-export default withRouter(TeamCreate);
+export default withRouter(withOrganization(TeamCreate));

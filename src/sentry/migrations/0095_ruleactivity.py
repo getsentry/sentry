@@ -30,7 +30,7 @@ class Migration(migrations.Migration):
 
 
     dependencies = [
-        ('sentry', '0093_make_identity_user_id_textfield'),
+        ('sentry', '0094_cleanup_unreferenced_event_files'),
     ]
 
     operations = [
