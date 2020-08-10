@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import json
 import six
 import tempfile
 from datetime import timedelta
@@ -12,6 +11,7 @@ from sentry.data_export.base import ExportQueryType, ExportStatus, DEFAULT_EXPIR
 from sentry.data_export.models import ExportedData
 from sentry.models import File
 from sentry.testutils import TestCase
+from sentry.utils import json
 from sentry.utils.http import absolute_uri
 from sentry.utils.compat.mock import patch
 
