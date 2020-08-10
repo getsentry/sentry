@@ -36,4 +36,4 @@ class OrganizationProjectsSentFirstEventEndpoint(OrganizationEndpoint):
         if project_ids:
             queryset = queryset.filter(id__in=project_ids)
 
-        return Response(serialize({"sentFirstEvent": queryset.count() > 0}, request.user))
+        return Response(serialize({"sentFirstEvent": queryset.exists()}, request.user))
