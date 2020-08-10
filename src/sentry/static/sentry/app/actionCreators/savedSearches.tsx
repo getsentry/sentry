@@ -13,8 +13,8 @@ export function resetSavedSearches() {
   SavedSearchesActions.resetSavedSearches();
 }
 
-export function fetchSavedSearches(api: Client, orgId: string): Promise<SavedSearch[]> {
-  const url = `/organizations/${orgId}/searches/`;
+export function fetchSavedSearches(api: Client, orgSlug: string): Promise<SavedSearch[]> {
+  const url = `/organizations/${orgSlug}/searches/`;
   const data: Query = {use_org_level: '1'};
 
   SavedSearchesActions.startFetchSavedSearches();
@@ -38,33 +38,33 @@ export function fetchSavedSearches(api: Client, orgId: string): Promise<SavedSea
 
 export function fetchProjectSavedSearches(
   api: Client,
-  orgId: string,
+  orgSlug: string,
   projectId: string
 ): Promise<SavedSearch[]> {
-  const url = `/projects/${orgId}/${projectId}/searches/`;
+  const url = `/projects/${orgSlug}/${projectId}/searches/`;
   return api.requestPromise(url, {
     method: 'GET',
   });
 }
 
-const getRecentSearchUrl = (orgId: string): string =>
-  `/organizations/${orgId}/recent-searches/`;
+const getRecentSearchUrl = (orgSlug: string): string =>
+  `/organizations/${orgSlug}/recent-searches/`;
 
 /**
- * Saves search term for `user` + `orgId`
+ * Saves search term for `user` + `orgSlug`
  *
  * @param api API client
- * @param orgId Organization slug
+ * @param orgSlug Organization slug
  * @param type Context for where search happened, 0 for issue, 1 for event
  * @param query The search term that was used
  */
 export function saveRecentSearch(
   api: Client,
-  orgId: string,
+  orgSlug: string,
   type: SavedSearchType,
   query: string
 ): Promise<SavedSearch> {
-  const url = getRecentSearchUrl(orgId);
+  const url = getRecentSearchUrl(orgSlug);
   const promise = api.requestPromise(url, {
     method: 'POST',
     data: {
@@ -82,17 +82,17 @@ export function saveRecentSearch(
  * Creates a saved search
  *
  * @param api API client
- * @param orgId Organization slug
+ * @param orgSlug Organization slug
  * @param name Saved search name
  * @param query Query to save
  */
 export function createSavedSearch(
   api: Client,
-  orgId: string,
+  orgSlug: string,
   name: string,
   query: string
 ): Promise<SavedSearch> {
-  const promise = api.requestPromise(`/organizations/${orgId}/searches/`, {
+  const promise = api.requestPromise(`/organizations/${orgSlug}/searches/`, {
     method: 'POST',
     data: {
       type: SearchType.ISSUE,
@@ -111,10 +111,10 @@ export function createSavedSearch(
 }
 
 /**
- * Fetches a list of recent search terms conducted by `user` for `orgId`
+ * Fetches a list of recent search terms conducted by `user` for `orgSlug`
  *
  * @param api API client
- * @param orgId Organization slug
+ * @param orgSlug Organization slug
  * @param type Context for where search happened, 0 for issue, 1 for event
  * @param query A query term used to filter results
  *
@@ -122,11 +122,11 @@ export function createSavedSearch(
  */
 export function fetchRecentSearches(
   api: Client,
-  orgId: string,
+  orgSlug: string,
   type: SavedSearchType,
   query: string
 ): Promise<RecentSearch[]> {
-  const url = getRecentSearchUrl(orgId);
+  const url = getRecentSearchUrl(orgSlug);
   const promise = api.requestPromise(url, {
     query: {
       query,
@@ -144,16 +144,16 @@ export function fetchRecentSearches(
   return promise;
 }
 
-const getPinSearchUrl = (orgId: string): string =>
-  `/organizations/${orgId}/pinned-searches/`;
+const getPinSearchUrl = (orgSlug: string): string =>
+  `/organizations/${orgSlug}/pinned-searches/`;
 
 export function pinSearch(
   api: Client,
-  orgId: string,
+  orgSlug: string,
   type: SavedSearchType,
   query: string
 ): Promise<SavedSearch> {
-  const url = getPinSearchUrl(orgId);
+  const url = getPinSearchUrl(orgSlug);
 
   // Optimistically update store
   SavedSearchesActions.pinSearch(type, query);
@@ -179,11 +179,11 @@ export function pinSearch(
 
 export function unpinSearch(
   api: Client,
-  orgId: string,
+  orgSlug: string,
   type: SavedSearchType,
   pinnedSearch: SavedSearch
 ) {
-  const url = getPinSearchUrl(orgId);
+  const url = getPinSearchUrl(orgSlug);
 
   // Optimistically update store
   SavedSearchesActions.unpinSearch(type);
@@ -209,15 +209,15 @@ export function unpinSearch(
  * Send a DELETE request to remove a saved search
  *
  * @param api API client
- * @param orgId Organization slug
+ * @param orgSlug Organization slug
  * @param search The search to remove.
  */
 export function deleteSavedSearch(
   api: Client,
-  orgId: string,
+  orgSlug: string,
   search: SavedSearch
 ): Promise<void> {
-  const url = `/organizations/${orgId}/searches/${search.id}/`;
+  const url = `/organizations/${orgSlug}/searches/${search.id}/`;
 
   const promise = api
     .requestPromise(url, {
