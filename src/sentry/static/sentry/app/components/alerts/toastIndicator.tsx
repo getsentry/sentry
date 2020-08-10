@@ -44,7 +44,7 @@ Toast.defaultProps = {
 };
 
 const Icon = styled('div', {shouldForwardProp: p => p !== 'type'})<{type: string}>`
-  margin-right: 6px;
+  margin-right: ${space(0.75)};
   svg {
     display: block;
   }
@@ -59,8 +59,8 @@ const Message = styled('div')`
 const Undo = styled('div')`
   display: inline-block;
   color: ${p => p.theme.gray500};
-  padding-left: 16px;
-  margin-left: 16px;
+  padding-left: ${space(2)};
+  margin-left: ${space(2)};
   border-left: 1px solid ${p => p.theme.gray300};
   cursor: pointer;
 
