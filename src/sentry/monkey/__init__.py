@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from .pickle import patch_pickle_loaders
+
 
 def register_scheme(name):
     try:
@@ -100,5 +102,6 @@ for patch in (
     patch_httprequest_repr,
     patch_django_views_debug,
     patch_celery_imgcat,
+    patch_pickle_loaders,
 ):
     patch()
