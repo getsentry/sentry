@@ -90,6 +90,7 @@ type Props = {
   formatMessageValue?: boolean | Function; //used in prettyFormString
   defaultValue?: any; //TODO(TS): Do we need this?
   resetOnError?: boolean;
+  transformInput?: (value: any) => any;
 } & Omit<FieldControl['props'], typeof propsToObserver[number]> &
   Omit<Field['props'], 'inline'>;
 
