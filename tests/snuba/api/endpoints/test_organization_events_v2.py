@@ -2616,7 +2616,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 expected = six.text_type(expected)
             # All context columns are treated as strings, regardless of the type of data they stored.
             elif isinstance(expected, six.integer_types):
-                expected = "{:.1f}".format(expected)
+                expected = "{:g}".format(expected)
 
             assert results[0][field] == expected
         assert results[0]["count"] == 1
