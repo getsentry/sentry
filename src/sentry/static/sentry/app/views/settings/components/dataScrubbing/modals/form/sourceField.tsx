@@ -235,7 +235,9 @@ class SourceField extends React.Component<Props, State> {
     for (const index in fieldValues) {
       const fieldValue = fieldValues[index];
       if (Array.isArray(fieldValue)) {
-        newValue.push(`${fieldValue[0].value}${fieldValue[1].value}`);
+        if (fieldValue[0]?.value || fieldValue[1]?.value) {
+          newValue.push(`${fieldValue[0]?.value}${fieldValue[1]?.value}`);
+        }
         continue;
       }
       newValue.push(fieldValue.value);
