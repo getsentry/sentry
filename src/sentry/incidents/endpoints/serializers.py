@@ -443,7 +443,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             with transaction.atomic():
                 triggers = validated_data.pop("triggers")
                 alert_rule = create_alert_rule(
-                    user=self.context["user"],
+                    user=self.context.get("user", None),
                     organization=self.context["organization"],
                     **validated_data
                 )
