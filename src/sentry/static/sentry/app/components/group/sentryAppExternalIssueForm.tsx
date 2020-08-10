@@ -1,7 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import debounce from 'lodash/debounce';
-import isEqual from 'lodash/isEqual';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
@@ -21,10 +20,11 @@ import {replaceAtArrayIndex} from 'app/utils/replaceAtArrayIndex';
 //0 is a valid choice but empty string, undefined, and null are not
 const hasValue = value => !!value || value === 0;
 
-type FieldFromSchema = Field & {
+type FieldFromSchema = Omit<Field, 'choices'> & {
   default?: string;
   uri?: string;
   depends_on?: string[];
+  choices?: Array<[any, string]>;
 };
 
 type Config = {
@@ -34,7 +34,9 @@ type Config = {
 };
 
 //only need required_fields and optional_fields
-type State = Omit<Config, 'uri'>;
+type State = Omit<Config, 'uri'> & {
+  optionsByField: any;
+};
 
 type Props = {
   api: Client;
@@ -58,14 +60,10 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
     event: SentryTypes.Event,
     onSubmitSuccess: PropTypes.func,
   };
-  state: State = {};
+  state: State = {optionsByField: {}};
 
   componentDidMount() {
     this.resetStateFromProps();
-  }
-
-  shouldComponentUpdate(nextProps: Props, nextState: State) {
-    return !isEqual(this.state, nextState) || !isEqual(this.props, nextProps);
   }
 
   componentDidUpdate(prevProps: Props) {
@@ -102,7 +100,7 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
     addErrorMessage(t('Unable to %s %s issue.', action, appName));
   };
 
-  getOptions = (field: Field, input: string) =>
+  getOptions = (field: FieldFromSchema, input: string) =>
     new Promise(resolve => {
       this.debouncedOptionLoad(field, input, resolve);
     });
@@ -113,7 +111,13 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
     async (field: FieldFromSchema, input, resolve) => {
       const choices = await this.makeExternalRequest(field, input);
       const options = choices.map(([value, label]) => ({value, label}));
-      return resolve({options});
+      // const options = choices;
+      const optionsByField = {...this.state.optionsByField};
+      optionsByField[field.name] = options;
+      this.setState({
+        optionsByField,
+      });
+      return resolve(options);
     },
     200,
     {trailing: true}
@@ -272,7 +276,14 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
     }
 
     //Note that upgrading this to work with the new react select will be quite a challenge!
-    return <FieldFromConfig key={field.name} field={field} {...this.fieldProps(field)} />;
+    return (
+      <FieldFromConfig
+        deprecatedSelectControl={false}
+        key={field.name}
+        field={field as Field}
+        {...this.fieldProps(field)}
+      />
+    );
   };
 
   render() {
@@ -280,6 +291,7 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
 
     const requiredFields = this.state.required_fields || [];
     const optionalFields = this.state.optional_fields || [];
+    const optionsByField = this.state.optionsByField;
 
     if (!sentryAppInstallation) {
       return '';
@@ -298,7 +310,11 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
         {requiredFields.map((field: FieldFromSchema) => {
           //TODO(TS): Object.assign causing type checks to not correctly run on the params being passed
           field = Object.assign({}, field, {
-            choices: field.choices || [],
+            options: optionsByField[field.name] || [],
+            defaultOptions: (field.choices || []).map(([value, label]) => ({
+              value,
+              label,
+            })),
             inline: false,
             stacked: true,
             flexibleControlStateSize: true,
@@ -311,7 +327,11 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
         {optionalFields.map((field: FieldFromSchema) => {
           //TODO(TS): Object.assign causing type checks to not correctly run on the params being passed
           field = Object.assign({}, field, {
-            choices: field.choices || [],
+            options: optionsByField[field.name] || [],
+            defaultOptions: (field.choices || []).map(([value, label]) => ({
+              value,
+              label,
+            })),
             inline: false,
             stacked: true,
             flexibleControlStateSize: true,
