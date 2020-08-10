@@ -1,9 +1,30 @@
 import findIndex from 'lodash/findIndex';
 import Reflux from 'reflux';
 
+import {SavedSearch, SavedSearchType} from 'app/types';
 import SavedSearchesActions from 'app/actions/savedSearchesActions';
 
-const SavedSearchesStore = Reflux.createStore({
+type State = {
+  savedSearches: SavedSearch[];
+  hasError: boolean;
+  isLoading: boolean;
+};
+
+type SavedSearchesStoreInterface = {
+  reset: () => void;
+  get: () => State;
+  getFilteredSearches: (type: SavedSearchType, id?: string) => SavedSearch[];
+  updateExistingSearch: (id: string, changes: Partial<SavedSearch>) => SavedSearch;
+  findByQuery: (query: string) => SavedSearch | undefined;
+};
+
+const savedSearchesStoreConfig: Reflux.StoreDefinition & SavedSearchesStoreInterface = {
+  state: {
+    savedSearches: [],
+    hasError: false,
+    isLoading: true,
+  },
+
   init() {
     const {
       startFetchSavedSearches,
@@ -49,7 +70,7 @@ const SavedSearchesStore = Reflux.createStore({
   getFilteredSearches(type, existingSearchId) {
     return this.state.savedSearches
       .filter(
-        savedSearch =>
+        (savedSearch: SavedSearch) =>
           !(
             savedSearch.isPinned &&
             savedSearch.type === type &&
@@ -58,7 +79,7 @@ const SavedSearchesStore = Reflux.createStore({
             savedSearch.id !== existingSearchId
           )
       )
-      .map(savedSearch => {
+      .map((savedSearch: SavedSearch) => {
         if (
           typeof existingSearchId !== 'undefined' &&
           existingSearchId === savedSearch.id
@@ -74,7 +95,7 @@ const SavedSearchesStore = Reflux.createStore({
   updateExistingSearch(id, updateObj) {
     const index = findIndex(
       this.state.savedSearches,
-      savedSearch => savedSearch.id === id
+      (savedSearch: SavedSearch) => savedSearch.id === id
     );
 
     if (index === -1) {
@@ -203,6 +224,8 @@ const SavedSearchesStore = Reflux.createStore({
     };
     this.trigger(this.state);
   },
-});
+};
 
-export default SavedSearchesStore;
+type SavedSearchesStore = Reflux.Store & SavedSearchesStoreInterface;
+
+export default Reflux.createStore(savedSearchesStoreConfig) as SavedSearchesStore;
