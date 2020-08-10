@@ -64,7 +64,6 @@ default_manager.add("organizations:data-forwarding", OrganizationFeature)  # NOQ
 default_manager.add("organizations:discover", OrganizationFeature)  # NOQA
 default_manager.add("organizations:discover-basic", OrganizationFeature)  # NOQA
 default_manager.add("organizations:discover-query", OrganizationFeature)  # NOQA
-default_manager.add("organizations:create-from-discover", OrganizationFeature)  # NOQA
 default_manager.add("organizations:enterprise-perf", OrganizationFeature)  # NOQA
 default_manager.add("organizations:event-attachments", OrganizationFeature)  # NOQA
 default_manager.add("organizations:events", OrganizationFeature)  # NOQA
