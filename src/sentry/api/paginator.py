@@ -3,7 +3,6 @@ from __future__ import absolute_import
 import bisect
 import functools
 import math
-import six
 
 from datetime import datetime
 from django.core.exceptions import ObjectDoesNotExist
@@ -540,17 +539,14 @@ class CombinedQuerysetPaginator(object):
 
     def get_item_key(self, item, for_prev=False):
         if self.using_dates:
-            return self.multiplier * float(
-                getattr(item, self.key_from_item(item)).strftime("%s.%f")
+            return int(
+                self.multiplier * float(getattr(item, self.key_from_item(item)).strftime("%s.%f"))
             )
         else:
             value = getattr(item, self.key_from_item(item))
             value_type = type(value)
             if value_type is float:
                 return math.floor(value) if self._is_asc(for_prev) else math.ceil(value)
-            elif value_type is six.text_type:
-                return value
-
             return value
 
     def value_from_cursor(self, cursor):
@@ -559,7 +555,11 @@ class CombinedQuerysetPaginator(object):
                 tzinfo=timezone.utc
             )
         else:
-            return cursor.value
+            value = cursor.value
+            value_type = type(value)
+            if value_type is float:
+                return math.floor(value) if self._is_asc(cursor.is_prev) else math.ceil(value)
+            return value
 
     def _is_asc(self, is_prev):
         return (self.desc and is_prev) or not (self.desc or is_prev)
