@@ -1,21 +1,24 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 
 import {t} from 'app/locale';
+import {Organization} from 'app/types';
 import Form from 'app/views/settings/components/forms/form';
-import SentryTypes from 'app/sentryTypes';
 import TextField from 'app/views/settings/components/forms/textField';
 import slugify from 'app/utils/slugify';
 
-export default class CreateTeamForm extends React.Component {
-  static propTypes = {
-    organization: SentryTypes.Organization.isRequired,
-    onSuccess: PropTypes.func,
-    onSubmit: PropTypes.func,
-    formProps: PropTypes.object,
-  };
+type Payload = {
+  slug: string;
+};
 
-  handleCreateTeamSuccess = data => {
+type Props = {
+  organization: Organization;
+  onSubmit?: (data: object, onSuccess: Function, onError: Function) => void;
+  onSuccess?: (data: Payload) => void;
+  formProps?: Partial<typeof Form>;
+};
+
+export default class CreateTeamForm extends React.Component<Props> {
+  handleCreateTeamSuccess = (data: Payload) => {
     const {onSuccess} = this.props;
 
     if (typeof onSuccess !== 'function') {
