@@ -1,4 +1,4 @@
-import {extractMultilineFields} from 'app/utils';
+import {extractMultilineFields, convertMultilineFieldValue} from 'app/utils';
 import {t} from 'app/locale';
 import {
   STORE_CRASH_REPORTS_VALUES,
@@ -51,6 +51,46 @@ const organizationSecurityAndPrivacy: JsonFormObject[] = [
         },
       },
       {
+        name: 'scrapeJavaScript',
+        type: 'boolean',
+        confirm: {
+          false: t(
+            "Are you sure you want to disable sourcecode fetching for JavaScript events? This will affect Sentry's ability to aggregate issues if you're not already uploading sourcemaps as artifacts."
+          ),
+        },
+        label: t('Allow JavaScript Source Fetching'),
+        help: t('Allow Sentry to scrape missing JavaScript source context when possible'),
+      },
+      {
+        name: 'storeCrashReports',
+        type: 'range',
+        label: t('Store Native Crash Reports'),
+        help: t(
+          'Store native crash reports such as Minidumps for improved processing and download in issue details'
+        ),
+        visible: ({features}) => features.has('event-attachments'),
+        allowedValues: STORE_CRASH_REPORTS_VALUES,
+        formatLabel: formatStoreCrashReports,
+      },
+      {
+        name: 'allowJoinRequests',
+        type: 'boolean',
+
+        label: t('Allow Join Requests'),
+        help: t('Allow users to request to join your organization'),
+        confirm: {
+          true: t(
+            'Are you sure you want to allow users to request to join your organization?'
+          ),
+        },
+        visible: ({hasSsoEnabled}) => !hasSsoEnabled,
+      },
+    ],
+  },
+  {
+    title: t('Data Scrubbing'),
+    fields: [
+      {
         name: 'dataScrubber',
         type: 'boolean',
         label: t('Require Data Scrubber'),
@@ -89,7 +129,7 @@ const organizationSecurityAndPrivacy: JsonFormObject[] = [
           'Note: These fields will be used in addition to project specific fields.'
         ),
         getValue: val => extractMultilineFields(val),
-        setValue: val => (val && typeof val.join === 'function' && val.join('\n')) || '',
+        setValue: val => convertMultilineFieldValue(val),
       },
       {
         name: 'safeFields',
@@ -106,7 +146,7 @@ const organizationSecurityAndPrivacy: JsonFormObject[] = [
           'Note: These fields will be used in addition to project specific fields'
         ),
         getValue: val => extractMultilineFields(val),
-        setValue: val => (val && typeof val.join === 'function' && val.join('\n')) || '',
+        setValue: val => convertMultilineFieldValue(val),
       },
       {
         name: 'scrubIPAddresses',
@@ -120,56 +160,6 @@ const organizationSecurityAndPrivacy: JsonFormObject[] = [
             'Disabling this can have privacy implications for ALL projects, are you sure you want to continue?'
           ),
         },
-      },
-      {
-        name: 'scrapeJavaScript',
-        type: 'boolean',
-        confirm: {
-          false: t(
-            "Are you sure you want to disable sourcecode fetching for JavaScript events? This will affect Sentry's ability to aggregate issues if you're not already uploading sourcemaps as artifacts."
-          ),
-        },
-        label: t('Allow JavaScript Source Fetching'),
-        help: t('Allow Sentry to scrape missing JavaScript source context when possible'),
-      },
-      {
-        name: 'storeCrashReports',
-        type: 'range',
-        label: t('Store Native Crash Reports'),
-        help: t(
-          'Store native crash reports such as Minidumps for improved processing and download in issue details'
-        ),
-        visible: ({features}) => features.has('event-attachments'),
-        allowedValues: STORE_CRASH_REPORTS_VALUES,
-        formatLabel: formatStoreCrashReports,
-      },
-      {
-        name: 'trustedRelays',
-        type: 'string',
-        multiline: true,
-        autosize: true,
-        maxRows: 10,
-        placeholder: t('Paste the relay public keys here'),
-        label: t('Trusted Relays'),
-        help: t(
-          'The list of relay public keys that should be trusted. Any relay in this list will be permitted to access org and project configs. Separate multiple entries with a newline.'
-        ),
-        getValue: val => extractMultilineFields(val),
-        setValue: val => (val && typeof val.join === 'function' && val.join('\n')) || '',
-        visible: ({features}) => features.has('relay'),
-      },
-      {
-        name: 'allowJoinRequests',
-        type: 'boolean',
-
-        label: t('Allow Join Requests'),
-        help: t('Allow users to request to join your organization'),
-        confirm: {
-          true: t(
-            'Are you sure you want to allow users to request to join your organization?'
-          ),
-        },
-        visible: ({hasSsoEnabled}) => !hasSsoEnabled,
       },
     ],
   },

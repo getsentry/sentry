@@ -11,6 +11,7 @@ from django.utils import timezone
 from sentry.cache import default_cache
 from sentry.utils import json
 from sentry.models import Relay
+from sentry.auth.system import is_internal_ip
 from sentry.api.base import Endpoint
 from sentry.api.serializers import serialize
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
@@ -20,6 +21,7 @@ from sentry_relay import (
     create_register_challenge,
     validate_register_response,
     get_register_response_relay_id,
+    is_version_supported,
     PublicKey,
 )
 
@@ -42,13 +44,10 @@ def is_internal_relay(request, public_key):
     """
     Checks if the relay is allowed to register, otherwise raises an exception
     """
-    if (
-        settings.DEBUG
-        or request.META.get("REMOTE_ADDR", None) in settings.INTERNAL_IPS
-        or public_key in settings.SENTRY_RELAY_WHITELIST_PK
-    ):
+    if settings.DEBUG or public_key in settings.SENTRY_RELAY_WHITELIST_PK:
         return True
-    return False
+
+    return is_internal_ip(request)
 
 
 class RelayRegisterChallengeEndpoint(Endpoint):
@@ -73,11 +72,23 @@ class RelayRegisterChallengeEndpoint(Endpoint):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+        if not is_version_supported(json_data.get("version")):
+            return Response(
+                {
+                    "detail": "Relay version no longer supported, please upgrade to a more recent version"
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        public_key = json_data.get("public_key")
+        if not public_key:
+            return Response({"detail": "Missing public key"}, status=status.HTTP_400_FORBIDDEN)
+
         if not settings.SENTRY_RELAY_OPEN_REGISTRATION and not is_internal_relay(
-            request, json_data.get("public_key")
+            request, public_key
         ):
             return Response(
-                {"detail": "Relay is not allowed to register"}, status=status.HTTP_401_UNAUTHORIZED
+                {"detail": "Relay is not allowed to register"}, status=status.HTTP_403_FORBIDDEN
             )
 
         sig = get_header_relay_signature(request)

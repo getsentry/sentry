@@ -62,7 +62,7 @@ class EventGroupingInfo extends AsyncComponent<Props, State> {
   renderGroupInfoSummary() {
     const {groupInfo} = this.state;
 
-    if (groupInfo === null) {
+    if (!groupInfo) {
       return null;
     }
 
@@ -73,8 +73,9 @@ class EventGroupingInfo extends AsyncComponent<Props, State> {
       .join(', ');
 
     return (
-      <SummaryGroupedBy>{`(${t('grouped by')} ${groupedBy ||
-        t('nothing')})`}</SummaryGroupedBy>
+      <SummaryGroupedBy data-test-id="loaded-grouping-info">{`(${t(
+        'grouped by'
+      )} ${groupedBy || t('nothing')})`}</SummaryGroupedBy>
     );
   }
 
@@ -99,13 +100,15 @@ class EventGroupingInfo extends AsyncComponent<Props, State> {
     const {groupInfo, loading} = this.state;
     const {showGroupingConfig} = this.props;
 
-    const variants = Object.values(groupInfo).sort((a, b) =>
-      a.hash && !b.hash
-        ? -1
-        : a.description
-            ?.toLowerCase()
-            .localeCompare(b.description?.toLowerCase() ?? '') ?? 1
-    );
+    const variants = groupInfo
+      ? Object.values(groupInfo).sort((a, b) =>
+          a.hash && !b.hash
+            ? -1
+            : a.description
+                ?.toLowerCase()
+                .localeCompare(b.description?.toLowerCase() ?? '') ?? 1
+        )
+      : [];
 
     return (
       <React.Fragment>
@@ -181,6 +184,7 @@ export const GroupingConfigItem = styled('span')<{
   font-family: ${p => p.theme.text.familyMono};
   opacity: ${p => (p.isHidden ? 0.5 : null)};
   font-weight: ${p => (p.isActive ? 'bold' : null)};
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 const VariantDivider = styled('hr')`

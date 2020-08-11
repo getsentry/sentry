@@ -1,5 +1,7 @@
 import React from 'react';
+import {browserHistory} from 'react-router';
 import * as ReactRouter from 'react-router';
+import {Location} from 'history';
 
 import {OrganizationSummary} from 'app/types';
 import {Client} from 'app/api';
@@ -9,17 +11,17 @@ import ChartZoom from 'app/components/charts/chartZoom';
 import ErrorPanel from 'app/components/charts/errorPanel';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import TransitionChart from 'app/components/charts/transitionChart';
+import EventsRequest from 'app/components/charts/eventsRequest';
 import ReleaseSeries from 'app/components/charts/releaseSeries';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {getInterval} from 'app/components/charts/utils';
 import {IconWarning} from 'app/icons';
-import EventsRequest from 'app/views/events/utils/eventsRequest';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 import EventView from 'app/utils/discover/eventView';
 import withApi from 'app/utils/withApi';
 import {decodeScalar} from 'app/utils/queryString';
 import theme from 'app/utils/theme';
-import {getDuration} from 'app/utils/formatters';
+import {tooltipFormatter, axisLabelFormatter} from 'app/utils/discover/charts';
 import getDynamicText from 'app/utils/getDynamicText';
 
 import {HeaderTitleLegend} from '../styles';
@@ -38,6 +40,7 @@ type ViewProps = Pick<EventView, typeof QUERY_KEYS[number]>;
 type Props = ReactRouter.WithRouterProps &
   ViewProps & {
     api: Client;
+    location: Location;
     organization: OrganizationSummary;
   };
 
@@ -48,16 +51,41 @@ const YAXIS_VALUES = ['p50()', 'p75()', 'p95()', 'p99()', 'p100()'];
  * percentiles over the past 7 days
  */
 class DurationChart extends React.Component<Props> {
+  handleLegendSelectChanged = legendChange => {
+    const {location} = this.props;
+    const {selected} = legendChange;
+    const unselected = Object.keys(selected).filter(key => !selected[key]);
+
+    const to = {
+      ...location,
+      query: {
+        ...location.query,
+        unselectedSeries: unselected,
+      },
+    };
+    browserHistory.push(to);
+  };
+
   render() {
     const {
       api,
       project,
       environment,
+      location,
       organization,
       query,
       statsPeriod,
       router,
     } = this.props;
+
+    const unselectedSeries = location.query.unselectedSeries ?? [];
+    const unselectedMetrics = Array.isArray(unselectedSeries)
+      ? unselectedSeries
+      : [unselectedSeries];
+    const seriesSelection = unselectedMetrics.reduce((selection, metric) => {
+      selection[metric] = false;
+      return selection;
+    }, {});
 
     const start = this.props.start
       ? getUtcToLocalDateObject(this.props.start)
@@ -79,18 +107,35 @@ class DurationChart extends React.Component<Props> {
         fontSize: 11,
         fontFamily: 'Rubik',
       },
-    };
-
-    const tooltip = {
-      valueFormatter(value: number) {
-        return getDuration(value / 1000, 2);
-      },
+      selected: seriesSelection,
     };
 
     const datetimeSelection = {
       start: start || null,
       end: end || null,
       period: statsPeriod,
+    };
+
+    const chartOptions = {
+      grid: {
+        left: '10px',
+        right: '10px',
+        top: '40px',
+        bottom: '0px',
+      },
+      seriesOptions: {
+        showSymbol: false,
+      },
+      tooltip: {
+        valueFormatter: tooltipFormatter,
+      },
+      yAxis: {
+        axisLabel: {
+          color: theme.gray400,
+          // p50 coerces the axis to be time based
+          formatter: (value: number) => axisLabelFormatter(value, 'p50()'),
+        },
+      },
     };
 
     return (
@@ -130,7 +175,7 @@ class DurationChart extends React.Component<Props> {
                 if (errored) {
                   return (
                     <ErrorPanel>
-                      <IconWarning color={theme.gray500} size="lg" />
+                      <IconWarning color="gray500" size="lg" />
                     </ErrorPanel>
                   );
                 }
@@ -153,8 +198,18 @@ class DurationChart extends React.Component<Props> {
                       .reverse()
                   : [];
 
+                // Stack the toolbox under the legend.
+                // so all series names are clickable.
+                zoomRenderProps.toolBox.z = -1;
+
                 return (
-                  <ReleaseSeries utc={utc} api={api} projects={project}>
+                  <ReleaseSeries
+                    start={start}
+                    end={end}
+                    period={statsPeriod}
+                    utc={utc}
+                    projects={project}
+                  >
                     {({releaseSeries}) => (
                       <TransitionChart loading={loading} reloading={reloading}>
                         <TransparentLoadingMask visible={reloading} />
@@ -162,18 +217,10 @@ class DurationChart extends React.Component<Props> {
                           value: (
                             <AreaChart
                               {...zoomRenderProps}
+                              {...chartOptions}
                               legend={legend}
+                              onLegendSelectChanged={this.handleLegendSelectChanged}
                               series={[...series, ...releaseSeries]}
-                              seriesOptions={{
-                                showSymbol: false,
-                              }}
-                              tooltip={tooltip}
-                              grid={{
-                                left: '10px',
-                                right: '10px',
-                                top: '40px',
-                                bottom: '0px',
-                              }}
                             />
                           ),
                           fixed: 'Duration Chart',

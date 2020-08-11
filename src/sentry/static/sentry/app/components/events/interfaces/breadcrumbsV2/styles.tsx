@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
+import {css} from '@emotion/core';
 
-import {Color} from 'app/utils/theme';
+import theme, {Color} from 'app/utils/theme';
 import space from 'app/styles/space';
 
 const IconWrapper = styled('div', {
@@ -15,11 +16,11 @@ const IconWrapper = styled('div', {
   width: 26px;
   height: 26px;
   background: ${p => p.theme.white};
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  box-shadow: ${p => p.theme.dropShadowLightest};
   border-radius: 32px;
-  z-index: 1;
+  z-index: ${p => p.theme.zIndex.breadcrumbs.iconWrapper};
   position: relative;
-  border: 1px solid ${p => p.theme.gray400};
+  border: 1px solid ${p => p.theme.borderDark};
   color: ${p => p.theme.gray800};
   ${p =>
     p.color &&
@@ -33,11 +34,11 @@ const GridCell = styled('div')<{
   hasError?: boolean;
   isLastItem?: boolean;
 }>`
+  height: 100%;
   position: relative;
+  white-space: pre-wrap;
+  word-break: break-all;
   border-bottom: 1px solid ${p => p.theme.borderLight};
-  margin-bottom: -1px;
-  text-overflow: ellipsis;
-  overflow: hidden;
   padding: ${space(1)};
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     padding: ${space(1)} ${space(2)};
@@ -46,9 +47,16 @@ const GridCell = styled('div')<{
     p.hasError &&
     `
       background: #fffcfb;
-      border-top: 1px solid #fa4747;
-      border-bottom: 1px solid #fa4747;
-      z-index: 1;
+      border-bottom: 1px solid ${p.theme.red400};
+      :after {
+        content: '';
+        position: absolute;
+        top: -1px;
+        left: 0;
+        height: 1px;
+        width: 100%;
+        background: ${p.theme.red400};
+      }
     `}
   ${p => p.isLastItem && `border-bottom: none`};
 `;
@@ -64,7 +72,7 @@ const GridCellLeft = styled(GridCell)`
     top: 0;
     bottom: 0;
     left: 21px;
-    background: ${p => (p.hasError ? '#fa4747' : p.theme.borderLight)};
+    background: ${p => (p.hasError ? p.theme.red400 : p.theme.gray300)};
     position: absolute;
     @media (min-width: ${p => p.theme.breakpoints[0]}) {
       left: 29px;
@@ -72,18 +80,11 @@ const GridCellLeft = styled(GridCell)`
   }
 `;
 
-const Grid = styled('div')<{maxHeight?: React.CSSProperties['maxHeight']}>`
-  border: 1px solid ${p => p.theme.borderDark};
-  display: grid;
-  overflow-y: auto;
-  ${p => p.maxHeight && `max-height: ${p.maxHeight}`};
-  > *:nth-last-child(5):before {
-    bottom: calc(100% - ${space(1)});
-  }
-  grid-template-columns: 45px 55px 1fr 76px 65px;
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    grid-template-columns: 65px 132px 1fr 94px 84px;
-  }
+const aroundContentStyle = css`
+  border: 1px solid ${theme.borderDark};
+  border-radius: ${theme.borderRadius};
+  box-shadow: ${theme.dropShadowLightest};
+  z-index: 1;
 `;
 
-export {Grid, GridCell, GridCellLeft, IconWrapper};
+export {GridCell, GridCellLeft, IconWrapper, aroundContentStyle};

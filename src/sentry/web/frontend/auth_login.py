@@ -141,15 +141,19 @@ class AuthLoginView(BaseView):
             request.session.pop("can_register", None)
             request.session.pop("invite_email", None)
 
-            # In single org mode, associate the user to the orgnaization
-            if settings.SENTRY_SINGLE_ORGANIZATION:
+            # Attempt to directly accept any pending invites
+            invite_helper = ApiInviteHelper.from_cookie(request=request, instance=self)
+
+            # In single org mode, associate the user to the only organization.
+            #
+            # XXX: Only do this if there isn't a pending invitation. The user
+            # may need to configure 2FA in which case, we don't want to make
+            # the association for them.
+            if settings.SENTRY_SINGLE_ORGANIZATION and not invite_helper:
                 organization = Organization.get_default()
                 OrganizationMember.objects.create(
                     organization=organization, role=organization.default_role, user=user
                 )
-
-            # Attempt to directly accept any pending invites
-            invite_helper = ApiInviteHelper.from_cookie(request=request, instance=self)
 
             if invite_helper and invite_helper.valid_request:
                 invite_helper.accept_invite()

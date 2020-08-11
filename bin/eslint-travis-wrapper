@@ -27,7 +27,12 @@ console.log(consoleFormatter(report.results));
 if (otherFormatterType) {
   const otherFormatter = cli.getFormatter(otherFormatterType);
 
-  fs.writeFile('eslint.checkstyle.xml', otherFormatter(report.results), 'utf8', () => {
-    process.exit(report.errorCount);
-  });
+  fs.writeFile(
+    '.artifacts/eslint.checkstyle.xml',
+    otherFormatter(report.results),
+    'utf8',
+    () => {
+      process.exit(report.errorCount);
+    }
+  );
 }

@@ -1,4 +1,4 @@
-import {extractMultilineFields} from 'app/utils';
+import {extractMultilineFields, convertMultilineFieldValue} from 'app/utils';
 import getDynamicText from 'app/utils/getDynamicText';
 import {JsonFormObject} from 'app/views/settings/components/forms/type';
 
@@ -15,7 +15,7 @@ const forms: JsonFormObject[] = [
         // additional data/props that is related to rendering of form field rather than data
         label: 'Name',
         help: 'e.g. My Application',
-        setValue: value => getDynamicText({value, fixed: 'PERCY_APPLICATION_NAME'}),
+        setValue: value => getDynamicText({value, fixed: 'CI_APPLICATION_NAME'}),
       },
       {
         name: 'homepageUrl',
@@ -53,7 +53,7 @@ const forms: JsonFormObject[] = [
         label: 'Authorized Redirect URIs',
         help: 'Separate multiple entries with a newline.',
         getValue: val => extractMultilineFields(val),
-        setValue: val => (val && typeof val.join === 'function' && val.join('\n')) || '',
+        setValue: val => convertMultilineFieldValue(val),
       },
       {
         name: 'allowedOrigins',
@@ -63,7 +63,7 @@ const forms: JsonFormObject[] = [
         label: 'Authorized JavaScript Origins',
         help: 'Separate multiple entries with a newline.',
         getValue: val => extractMultilineFields(val),
-        setValue: val => (val && typeof val.join === 'function' && val.join('\n')) || '',
+        setValue: val => convertMultilineFieldValue(val),
       },
     ],
   },

@@ -3,8 +3,10 @@ import React from 'react';
 import isString from 'lodash/isString';
 import isNumber from 'lodash/isNumber';
 import isArray from 'lodash/isArray';
+import styled from '@emotion/styled';
 
 import AnnotatedText from 'app/components/events/meta/annotatedText';
+import {IconOpen, IconAdd, IconSubtract} from 'app/icons';
 import {isUrl} from 'app/utils';
 
 function looksLikeObjectRepr(value) {
@@ -92,22 +94,23 @@ class ToggleWrap extends React.Component {
       return wrappedChildren;
     }
 
-    const classes = ['val-toggle'];
-    if (this.state.toggled) {
-      classes.push('val-toggle-open');
-    }
-
     return (
-      <span className={classes.join(' ')}>
-        <a
+      <span>
+        <ToggleIcon
+          isOpen={this.state.toggled}
           href="#"
-          className="val-toggle-link"
           onClick={evt => {
             this.setState(state => ({toggled: !state.toggled}));
             evt.preventDefault();
           }}
-        />
-        {wrappedChildren}
+        >
+          {this.state.toggled ? (
+            <IconSubtract size="9px" color="white" />
+          ) : (
+            <IconAdd size="9px" color="white" />
+          )}
+        </ToggleIcon>
+        {this.state.toggled && wrappedChildren}
       </span>
     );
   }
@@ -126,7 +129,7 @@ class ContextData extends React.Component {
     withAnnotatedText: false,
   };
 
-  renderValue = value => {
+  renderValue(value) {
     const {preserveQuotes, meta, withAnnotatedText} = this.props;
 
     function getValueWithAnnotatedText(v, meta) {
@@ -164,7 +167,7 @@ class ContextData extends React.Component {
         if (valueInfo.isString && isUrl(value)) {
           out.push(
             <a key="external" href={value} className="external-icon">
-              <em className="icon-open" />
+              <StyledIconOpen size="xs" />
             </a>
           );
         }
@@ -228,7 +231,7 @@ class ContextData extends React.Component {
       }
     }
     return walk(value, 0);
-  };
+  }
 
   render() {
     const {
@@ -241,14 +244,41 @@ class ContextData extends React.Component {
     } = this.props;
 
     return (
-      <pre className="val-string" {...other}>
+      <ContextValues {...other}>
         {this.renderValue(data)}
         {children}
-      </pre>
+      </ContextValues>
     );
   }
 }
 
 ContextData.displayName = 'ContextData';
+
+const StyledIconOpen = styled(IconOpen)`
+  position: relative;
+  top: 1px;
+`;
+
+const ToggleIcon = styled('a')`
+  display: inline-block;
+  position: relative;
+  top: 1px;
+  height: 11px;
+  width: 11px;
+  line-height: 1;
+  padding-left: 1px;
+  margin-left: 1px;
+  border-radius: 2px;
+
+  background: ${p => (p.isOpen ? p.theme.gray500 : p.theme.blue400)};
+  &:hover {
+    background: ${p => (p.isOpen ? p.theme.gray600 : p.theme.blue500)};
+  }
+`;
+
+const ContextValues = styled('pre')`
+  /* Not using theme to be consistent with less files */
+  color: #4e3fb4;
+`;
 
 export default ContextData;

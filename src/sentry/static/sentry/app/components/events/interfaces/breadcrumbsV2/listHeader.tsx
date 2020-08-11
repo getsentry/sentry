@@ -2,23 +2,45 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
+import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
+import {IconSwitch} from 'app/icons';
 
-import {Grid, GridCell} from './styles';
+import {GridCell} from './styles';
 
-const ListHeader = () => (
-  <StyledGrid>
+const getTimeTooltipTitle = (displayRelativeTime: boolean) => {
+  if (displayRelativeTime) {
+    return t('Switch to absolute');
+  }
+  return t('Switch to relative');
+};
+
+type Props = {
+  onSwitchTimeFormat: () => void;
+  displayRelativeTime: boolean;
+};
+
+const ListHeader = React.memo(({onSwitchTimeFormat, displayRelativeTime}: Props) => (
+  <React.Fragment>
     <StyledGridCell>{t('Type')}</StyledGridCell>
-    <StyledGridCellCategory>{t('Category')}</StyledGridCellCategory>
+    <Category>{t('Category')}</Category>
     <StyledGridCell>{t('Description')}</StyledGridCell>
     <StyledGridCell>{t('Level')}</StyledGridCell>
-    <StyledGridCell>{t('Time')}</StyledGridCell>
-  </StyledGrid>
-);
+    <Time onClick={onSwitchTimeFormat}>
+      <Tooltip title={getTimeTooltipTitle(displayRelativeTime)}>
+        <StyledIconSwitch size="xs" />
+      </Tooltip>
+      <span> {t('Time')}</span>
+    </Time>
+  </React.Fragment>
+));
 
 export default ListHeader;
 
 const StyledGridCell = styled(GridCell)`
+  position: sticky;
+  z-index: ${p => p.theme.zIndex.breadcrumbs.header};
+  top: 0;
   border-bottom: 1px solid ${p => p.theme.borderDark};
   background: ${p => p.theme.gray100};
   color: ${p => p.theme.gray600};
@@ -33,12 +55,22 @@ const StyledGridCell = styled(GridCell)`
   }
 `;
 
-const StyledGridCellCategory = styled(StyledGridCell)`
+const Category = styled(StyledGridCell)`
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     padding-left: ${space(1)};
   }
 `;
 
-const StyledGrid = styled(Grid)`
-  border-radius: ${p => p.theme.borderRadiusTop};
+const Time = styled(StyledGridCell)`
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  grid-gap: ${space(1)};
+  cursor: pointer;
+`;
+
+const StyledIconSwitch = styled(IconSwitch)`
+  transition: 0.15s color;
+  &:hover {
+    color: ${p => p.theme.gray500};
+  }
 `;

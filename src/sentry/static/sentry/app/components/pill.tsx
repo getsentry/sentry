@@ -58,7 +58,7 @@ const StyledPill = styled('li')`
   white-space: nowrap;
   margin: 0 10px 10px 0;
   display: flex;
-  border: 1px solid ${p => p.theme.gray400};
+  border: 1px solid ${p => p.theme.borderDark};
   border-radius: ${p => p.theme.button.borderRadius};
   box-shadow: ${p => p.theme.dropShadowLightest};
   line-height: 1.2;
@@ -88,8 +88,8 @@ const PillValue = styled(PillName)<PillValueProps>`
         `;
       case 'negative':
         return `
-          background: ${p.theme.redLightest};
-          border: 1px solid ${p.theme.red};
+          background: ${p.theme.red100};
+          border: 1px solid ${p.theme.red400};
           margin: -1px;
         `;
       default:
@@ -99,11 +99,13 @@ const PillValue = styled(PillName)<PillValueProps>`
     }
   }}
 
-  border-left: 1px solid ${p => p.theme.gray400};
+  border-left: 1px solid ${p => p.theme.borderDark};
   border-radius: ${p =>
     `0 ${p.theme.button.borderRadius} ${p.theme.button.borderRadius} 0`};
   font-family: ${p => p.theme.text.familyMono};
   max-width: 100%;
+  display: flex;
+  align-items: center;
 
   > a {
     max-width: 100%;
@@ -119,7 +121,6 @@ const PillValue = styled(PillName)<PillValueProps>`
     display: inline;
     margin: 0 0 0 ${space(1)};
     color: ${p => p.theme.gray500};
-    line-height: 1.2;
     &:hover {
       color: ${p => p.theme.gray700};
     }

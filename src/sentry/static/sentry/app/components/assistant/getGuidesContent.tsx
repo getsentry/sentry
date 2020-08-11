@@ -100,22 +100,5 @@ export default function getGuidesContent(): GuidesContent {
         },
       ],
     },
-    {
-      guide: 'discover_sidebar',
-      requiredTargets: ['discover_sidebar'],
-      steps: [
-        {
-          title: t('Event Pages have moved'),
-          target: 'discover_sidebar',
-          description: tct(
-            `These are now in our powerful new query builder, Discover.
-            [link:Learn more about its advanced features].`,
-            {
-              link: <ExternalLink href="https://docs.sentry.io/performance/discover/" />,
-            }
-          ),
-        },
-      ],
-    },
   ];
 }

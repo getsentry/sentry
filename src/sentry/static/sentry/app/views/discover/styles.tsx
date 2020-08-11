@@ -10,7 +10,6 @@ import Link from 'app/components/links/link';
 import NavTabs from 'app/components/navTabs';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
-import InlineSvg from 'app/components/inlineSvg';
 import ExternalLink from 'app/components/links/externalLink';
 
 const HEADER_HEIGHT = 60;
@@ -100,26 +99,17 @@ export const DocsLink = styled(ExternalLink)`
   }
 `;
 
-export const StyledInlineSvg = styled(InlineSvg)`
-  justify-content: flex-end;
-`;
-
 export const DiscoverDocs = styled('span')`
   align-items: center;
-  display: flex;
+  display: grid;
+  grid-gap: ${space(1)};
+  grid-template-columns: min-content auto min-content;
   margin: 25px ${space(3)};
-  justify-content: space-between;
 `;
 
 export const DocsLabel = styled('span')`
   font-size: 15px;
   flex-grow: 1;
-`;
-
-export const DocsIcon = styled(InlineSvg)`
-  width: 20px;
-  height: 20px;
-  margin-right: 8px;
 `;
 
 export const Body = styled('div')`
@@ -172,6 +162,7 @@ export const SelectListItem = styled('div')`
   display: grid;
   grid-template-columns: auto ${space(2)};
   grid-gap: ${space(1)};
+  align-items: center;
   margin-top: ${space(0.5)};
 `;
 
@@ -212,7 +203,7 @@ export const ButtonSpinner = styled('div')`
   border-top: 2px solid ${p => p.theme.borderLight};
   border-right: 2px solid ${p => p.theme.borderLight};
   border-bottom: 2px solid ${p => p.theme.borderLight};
-  border-left: 2px solid ${p => p.theme.purple};
+  border-left: 2px solid ${p => p.theme.purple400};
   margin-left: 4px;
 `;
 
@@ -302,7 +293,8 @@ export const QueryPanelTitle = styled('div')`
 `;
 
 export const QueryPanelCloseLink = styled(Link)`
-  color: ${p => p.theme.gray400};
+  display: flex;
+  align-content: center;
 `;
 
 export const QueryActions = styled('div')`

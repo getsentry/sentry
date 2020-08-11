@@ -26,17 +26,20 @@ class OrganizationSerializerTest(TestCase):
                 "open-membership",
                 "integrations-issue-basic",
                 "integrations-issue-sync",
+                "integrations-alert-rule",
+                "integrations-chat-unfurl",
+                "integrations-incident-management",
+                "integrations-event-hooks",
                 "data-forwarding",
                 "invite-members",
                 "sso-saml2",
                 "sso-basic",
                 "symbol-sources",
                 "custom-symbol-sources",
-                "tweak-grouping-config",
-                "grouping-info",
                 "releases-v2",
                 "discover-basic",
                 "discover-query",
+                "artifacts-in-settings",
             ]
         )
 

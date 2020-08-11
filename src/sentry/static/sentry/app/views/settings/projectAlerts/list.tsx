@@ -85,7 +85,7 @@ class ProjectAlertRules extends AsyncView<Props, State> {
     return (
       <React.Fragment>
         <SettingsPageHeader
-          title={t('Alerts')}
+          title={t('Alert Rules')}
           action={
             <HeaderActions>
               <Button to={`${basePath}settings/`} size="small" icon={<IconSettings />}>
@@ -97,7 +97,7 @@ class ProjectAlertRules extends AsyncView<Props, State> {
                   title={t('You do not have permission to edit alert rules.')}
                 >
                   <Button
-                    to={`${basePath}new/`}
+                    to={`${basePath}new/?referrer=project_alerts`}
                     disabled={!canEditRule}
                     priority="primary"
                     size="small"

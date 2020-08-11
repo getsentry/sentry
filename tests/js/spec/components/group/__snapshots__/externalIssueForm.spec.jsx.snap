@@ -505,6 +505,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                   onSelectResetsInput={false}
                   placeholder="--"
                   required={true}
+                  showHelpInTooltip={false}
                   small={false}
                   stacked={true}
                   type="select"
@@ -532,15 +533,16 @@ exports[`ExternalIssueForm link renders 1`] = `
                             disabled={false}
                           >
                             <div
-                              className="css-1c18lg-FieldLabel e16ushrl0"
+                              className="css-wufuns-FieldLabel e16ushrl0"
                             >
-                              GitHub Repository
-                               
-                              <FieldRequiredBadge>
-                                <div
-                                  className="css-z6v0fv-FieldRequiredBadge e1uclnuk0"
-                                />
-                              </FieldRequiredBadge>
+                              <span>
+                                GitHub Repository
+                                <FieldRequiredBadge>
+                                  <div
+                                    className="css-34gop3-FieldRequiredBadge e1uclnuk0"
+                                  />
+                                </FieldRequiredBadge>
+                              </span>
                             </div>
                           </FieldLabel>
                         </label>
@@ -1460,7 +1462,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                                                 autoload={true}
                                                 backspaceRemoves={false}
                                                 cache={false}
-                                                className="css-1miq8qr-StyledSelect e1ynsgsr0"
+                                                className="css-awk01x-StyledSelect e1ynsgsr0"
                                                 clearable={false}
                                                 default="scefali/test"
                                                 deleteRemoves={false}
@@ -1648,7 +1650,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                                                   autoload={true}
                                                   backspaceRemoves={false}
                                                   cache={false}
-                                                  className="css-1miq8qr-StyledSelect e1ynsgsr0"
+                                                  className="css-awk01x-StyledSelect e1ynsgsr0"
                                                   clearable={false}
                                                   default="scefali/test"
                                                   deleteRemoves={false}
@@ -1841,7 +1843,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                                                     backspaceRemoves={false}
                                                     backspaceToRemoveMessage="Press backspace to remove {label}"
                                                     cache={false}
-                                                    className="css-1miq8qr-StyledSelect e1ynsgsr0"
+                                                    className="css-awk01x-StyledSelect e1ynsgsr0"
                                                     clearAllText="Clear all"
                                                     clearRenderer={[Function]}
                                                     clearValueText="Clear value"
@@ -2046,7 +2048,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                                                     valueKey="value"
                                                   >
                                                     <div
-                                                      className="Select css-1miq8qr-StyledSelect e1ynsgsr0 is-loading is-searchable Select--single"
+                                                      className="Select css-awk01x-StyledSelect e1ynsgsr0 is-loading is-searchable Select--single"
                                                     >
                                                       <div
                                                         className="Select-control"
@@ -2136,9 +2138,59 @@ exports[`ExternalIssueForm link renders 1`] = `
                                                           className="Select-arrow-zone"
                                                           onMouseDown={[Function]}
                                                         >
-                                                          <span
-                                                            className="icon-arrow-down"
-                                                          />
+                                                          <StyledIconChevron
+                                                            direction="down"
+                                                            size="xs"
+                                                          >
+                                                            <IconChevron
+                                                              className="css-1y21wp1-StyledIconChevron e1ynsgsr1"
+                                                              direction="down"
+                                                              size="xs"
+                                                            >
+                                                              <EmotionCssPropInternal
+                                                                __EMOTION_LABEL_PLEASE_DO_NOT_USE__="IconChevron"
+                                                                __EMOTION_TYPE_PLEASE_DO_NOT_USE__={
+                                                                  Object {
+                                                                    "$$typeof": Symbol(react.forward_ref),
+                                                                    "propTypes": Object {
+                                                                      "color": [Function],
+                                                                      "size": [Function],
+                                                                      "viewBox": [Function],
+                                                                    },
+                                                                    "render": [Function],
+                                                                  }
+                                                                }
+                                                                className="css-1y21wp1-StyledIconChevron e1ynsgsr1"
+                                                                css={
+                                                                  Object {
+                                                                    "map": undefined,
+                                                                    "name": "7chgxg-IconChevron",
+                                                                    "next": undefined,
+                                                                    "styles": "transform:rotate(180deg);;label:IconChevron;",
+                                                                    "toString": [Function],
+                                                                  }
+                                                                }
+                                                                size="xs"
+                                                              >
+                                                                <ForwardRef(SvgIcon)
+                                                                  className="e1ynsgsr1 css-7arx5j-IconChevron-StyledIconChevron"
+                                                                  size="xs"
+                                                                >
+                                                                  <svg
+                                                                    className="e1ynsgsr1 css-7arx5j-IconChevron-StyledIconChevron"
+                                                                    fill="currentColor"
+                                                                    height="12px"
+                                                                    viewBox="0 0 16 16"
+                                                                    width="12px"
+                                                                  >
+                                                                    <path
+                                                                      d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                                                                    />
+                                                                  </svg>
+                                                                </ForwardRef(SvgIcon)>
+                                                              </EmotionCssPropInternal>
+                                                            </IconChevron>
+                                                          </StyledIconChevron>
                                                         </span>
                                                       </div>
                                                     </div>
@@ -2451,6 +2503,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                   onSelectResetsInput={false}
                   placeholder="--"
                   required={true}
+                  showHelpInTooltip={false}
                   small={false}
                   stacked={true}
                   type="select"
@@ -2477,15 +2530,16 @@ exports[`ExternalIssueForm link renders 1`] = `
                             disabled={false}
                           >
                             <div
-                              className="css-1c18lg-FieldLabel e16ushrl0"
+                              className="css-wufuns-FieldLabel e16ushrl0"
                             >
-                              Issue
-                               
-                              <FieldRequiredBadge>
-                                <div
-                                  className="css-z6v0fv-FieldRequiredBadge e1uclnuk0"
-                                />
-                              </FieldRequiredBadge>
+                              <span>
+                                Issue
+                                <FieldRequiredBadge>
+                                  <div
+                                    className="css-34gop3-FieldRequiredBadge e1uclnuk0"
+                                  />
+                                </FieldRequiredBadge>
+                              </span>
                             </div>
                           </FieldLabel>
                         </label>
@@ -3357,7 +3411,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                                                 autoload={true}
                                                 backspaceRemoves={false}
                                                 cache={false}
-                                                className="css-1miq8qr-StyledSelect e1ynsgsr0"
+                                                className="css-awk01x-StyledSelect e1ynsgsr0"
                                                 clearable={false}
                                                 default=""
                                                 deleteRemoves={false}
@@ -3533,7 +3587,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                                                   autoload={true}
                                                   backspaceRemoves={false}
                                                   cache={false}
-                                                  className="css-1miq8qr-StyledSelect e1ynsgsr0"
+                                                  className="css-awk01x-StyledSelect e1ynsgsr0"
                                                   clearable={false}
                                                   default=""
                                                   deleteRemoves={false}
@@ -3714,7 +3768,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                                                     backspaceRemoves={false}
                                                     backspaceToRemoveMessage="Press backspace to remove {label}"
                                                     cache={false}
-                                                    className="css-1miq8qr-StyledSelect e1ynsgsr0"
+                                                    className="css-awk01x-StyledSelect e1ynsgsr0"
                                                     clearAllText="Clear all"
                                                     clearRenderer={[Function]}
                                                     clearValueText="Clear value"
@@ -3918,7 +3972,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                                                     valueKey="value"
                                                   >
                                                     <div
-                                                      className="Select css-1miq8qr-StyledSelect e1ynsgsr0 is-loading is-searchable Select--single"
+                                                      className="Select css-awk01x-StyledSelect e1ynsgsr0 is-loading is-searchable Select--single"
                                                     >
                                                       <div
                                                         className="Select-control"
@@ -4008,9 +4062,59 @@ exports[`ExternalIssueForm link renders 1`] = `
                                                           className="Select-arrow-zone"
                                                           onMouseDown={[Function]}
                                                         >
-                                                          <span
-                                                            className="icon-arrow-down"
-                                                          />
+                                                          <StyledIconChevron
+                                                            direction="down"
+                                                            size="xs"
+                                                          >
+                                                            <IconChevron
+                                                              className="css-1y21wp1-StyledIconChevron e1ynsgsr1"
+                                                              direction="down"
+                                                              size="xs"
+                                                            >
+                                                              <EmotionCssPropInternal
+                                                                __EMOTION_LABEL_PLEASE_DO_NOT_USE__="IconChevron"
+                                                                __EMOTION_TYPE_PLEASE_DO_NOT_USE__={
+                                                                  Object {
+                                                                    "$$typeof": Symbol(react.forward_ref),
+                                                                    "propTypes": Object {
+                                                                      "color": [Function],
+                                                                      "size": [Function],
+                                                                      "viewBox": [Function],
+                                                                    },
+                                                                    "render": [Function],
+                                                                  }
+                                                                }
+                                                                className="css-1y21wp1-StyledIconChevron e1ynsgsr1"
+                                                                css={
+                                                                  Object {
+                                                                    "map": undefined,
+                                                                    "name": "7chgxg-IconChevron",
+                                                                    "next": undefined,
+                                                                    "styles": "transform:rotate(180deg);;label:IconChevron;",
+                                                                    "toString": [Function],
+                                                                  }
+                                                                }
+                                                                size="xs"
+                                                              >
+                                                                <ForwardRef(SvgIcon)
+                                                                  className="e1ynsgsr1 css-7arx5j-IconChevron-StyledIconChevron"
+                                                                  size="xs"
+                                                                >
+                                                                  <svg
+                                                                    className="e1ynsgsr1 css-7arx5j-IconChevron-StyledIconChevron"
+                                                                    fill="currentColor"
+                                                                    height="12px"
+                                                                    viewBox="0 0 16 16"
+                                                                    width="12px"
+                                                                  >
+                                                                    <path
+                                                                      d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                                                                    />
+                                                                  </svg>
+                                                                </ForwardRef(SvgIcon)>
+                                                              </EmotionCssPropInternal>
+                                                            </IconChevron>
+                                                          </StyledIconChevron>
                                                         </span>
                                                       </div>
                                                     </div>
@@ -4256,6 +4360,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                   label="Comment"
                   name="comment"
                   required={false}
+                  showHelpInTooltip={false}
                   stacked={true}
                   type="textarea"
                   visible={true}
@@ -4280,10 +4385,11 @@ exports[`ExternalIssueForm link renders 1`] = `
                             disabled={false}
                           >
                             <div
-                              className="css-1c18lg-FieldLabel e16ushrl0"
+                              className="css-wufuns-FieldLabel e16ushrl0"
                             >
-                              Comment
-                               
+                              <span>
+                                Comment
+                              </span>
                             </div>
                           </FieldLabel>
                           <FieldHelp
@@ -4619,8 +4725,8 @@ exports[`ExternalIssueForm link renders 1`] = `
                                         type="textarea"
                                         value="Default Value"
                                       >
-                                        <ForwardRef
-                                          className="css-1g9y5dx-TextArea e1oph3pe0"
+                                        <TextAreaControl
+                                          className="css-u4op3m-TextArea edis3zx0"
                                           default="Default Value"
                                           disabled={false}
                                           id="comment"
@@ -4633,7 +4739,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                                           value="Default Value"
                                         >
                                           <textarea
-                                            className="css-1g9y5dx-TextArea e1oph3pe0"
+                                            className="css-u4op3m-TextArea edis3zx0"
                                             default="Default Value"
                                             disabled={false}
                                             id="comment"
@@ -4645,7 +4751,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                                             type="textarea"
                                             value="Default Value"
                                           />
-                                        </ForwardRef>
+                                        </TextAreaControl>
                                       </TextArea>
                                     </Observer>
                                   </div>

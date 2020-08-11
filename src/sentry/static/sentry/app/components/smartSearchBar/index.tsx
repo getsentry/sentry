@@ -3,10 +3,10 @@ import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
-import * as Sentry from '@sentry/browser';
 import createReactClass from 'create-react-class';
 import debounce from 'lodash/debounce';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
@@ -18,15 +18,14 @@ import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import CreateSavedSearchButton from 'app/views/issueList/createSavedSearchButton';
 import DropdownLink from 'app/components/dropdownLink';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconEllipsis, IconSearch, IconSliders, IconClose, IconPin} from 'app/icons';
 import MemberListStore from 'app/stores/memberListStore';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import {Client} from 'app/api';
-import {SavedSearch, LightWeightOrganization} from 'app/types';
-import {IconSearch, IconClose} from 'app/icons';
+import {LightWeightOrganization, SavedSearch, Tag, SavedSearchType} from 'app/types';
 import {
   fetchRecentSearches,
   pinSearch,
@@ -37,11 +36,10 @@ import {
   DEFAULT_DEBOUNCE_DURATION,
   MAX_AUTOCOMPLETE_RELEASES,
   NEGATION_OPERATOR,
-  SEARCH_WILDCARD,
 } from 'app/constants';
 
 import SearchDropdown from './searchDropdown';
-import {SearchItem, SearchType, SearchGroup, Tag, ItemType} from './types';
+import {SearchItem, SearchGroup, ItemType} from './types';
 import {
   addSpace,
   removeSpace,
@@ -95,12 +93,15 @@ const getDropdownElementStyles = (p: {showBelowMediaQuery: number; last?: boolea
   &,
   &:hover,
   &:focus {
-    border-bottom: ${p.last ? null : `1px solid ${theme.gray400}`};
+    border-bottom: ${p.last ? null : `1px solid ${theme.borderDark}`};
     border-radius: 0;
   }
 
   &:hover {
     color: ${theme.blue500};
+  }
+  & > svg {
+    margin-right: ${space(1)};
   }
 
   ${p.showBelowMediaQuery &&
@@ -165,7 +166,7 @@ type Props = {
    * If this is defined, attempt to save search term scoped to the user and
    * the current org
    */
-  savedSearchType?: SearchType;
+  savedSearchType?: SavedSearchType;
   /**
    * Has pinned search feature
    */
@@ -213,7 +214,7 @@ type Props = {
    * is because we don't want to treat environment as a tag in some places
    * such as the stream view where it is a top level concept
    */
-  excludeEnvironment: boolean;
+  excludeEnvironment?: boolean;
 };
 
 type State = {
@@ -280,6 +281,7 @@ class SmartSearchBar extends React.Component<Props, State> {
     defaultSearchItems: [[], []],
     hasPinnedSearch: false,
     useFormWrapper: true,
+    savedSearchType: SavedSearchType.ISSUE,
   };
 
   state: State = {
@@ -605,9 +607,10 @@ class SmartSearchBar extends React.Component<Props, State> {
 
       return values.map(value => {
         // Wrap in quotes if there is a space
-        const escapedValue = value.includes(' ')
-          ? `"${value.replace('"', '\\"')}"`
-          : value;
+        const escapedValue =
+          value.includes(' ') || value.includes('"')
+            ? `"${value.replace(/"/g, '\\"')}"`
+            : value;
 
         return {value: escapedValue, desc: escapedValue, type: 'tag-value' as ItemType};
       });
@@ -621,7 +624,7 @@ class SmartSearchBar extends React.Component<Props, State> {
    * with results
    */
   getPredefinedTagValues = (tag: Tag, query: string): SearchItem[] =>
-    tag.values
+    (tag.values ?? [])
       .filter(value => value.indexOf(query) > -1)
       .map(value => ({
         value,
@@ -649,6 +652,9 @@ class SmartSearchBar extends React.Component<Props, State> {
 
   fetchRecentSearches = async (fullQuery: string): Promise<SearchItem[]> => {
     const {api, organization, savedSearchType} = this.props;
+    if (savedSearchType === undefined) {
+      return [];
+    }
 
     try {
       const recentSearches: any[] = await fetchRecentSearches(
@@ -903,7 +909,7 @@ class SmartSearchBar extends React.Component<Props, State> {
     evt.preventDefault();
     evt.stopPropagation();
 
-    if (!defined(savedSearchType) || !hasPinnedSearch) {
+    if (savedSearchType === undefined || !hasPinnedSearch) {
       return;
     }
 
@@ -988,20 +994,33 @@ class SmartSearchBar extends React.Component<Props, State> {
       newQuery = `${query}${replaceText}`;
     } else {
       const last = terms.pop() ?? '';
-
       newQuery = query.slice(0, lastTermIndex); // get text preceding last term
 
-      const prefix = newQuery.startsWith(NEGATION_OPERATOR) ? NEGATION_OPERATOR : '';
-      const valuePrefix = newQuery.endsWith(SEARCH_WILDCARD) ? SEARCH_WILDCARD : '';
+      const prefix = last.startsWith(NEGATION_OPERATOR) ? NEGATION_OPERATOR : '';
 
-      // newQuery is "<term>:"
+      // newQuery is all the terms up to the current term: "... <term>:"
       // replaceText should be the selected value
-      newQuery =
-        last.indexOf(':') > -1
-          ? // tag key present: replace everything after colon with replaceText
-            newQuery.replace(/\:"[^"]*"?$|\:\S*$/, `:${valuePrefix}` + replaceText)
-          : // no tag key present: replace last token with replaceText
-            newQuery.replace(/\S+$/, `${prefix}${replaceText}`);
+      if (last.indexOf(':') > -1) {
+        let replacement = `:${replaceText}`;
+
+        // NOTE: The user tag is a special case here as it store values like
+        // `id:1` or `ip:127.0.0.1`. To handle autocompletion for it correctly,
+        // and efficiently, we convert the tag to be `user.id` or `user.ip` etc.
+        if (last.startsWith('user:')) {
+          const colonIndex = replaceText.indexOf(':');
+          if (colonIndex > -1) {
+            const tagEnding = replaceText.substring(0, colonIndex);
+            const tagValue = replaceText.substring(colonIndex + 1);
+            replacement = `.${tagEnding}:${tagValue}`;
+          }
+        }
+
+        // tag key present: replace everything after colon with replaceText
+        newQuery = newQuery.replace(/\:"[^"]*"?$|\:\S*$/, replacement);
+      } else {
+        // no tag key present: replace last token with replaceText
+        newQuery = newQuery.replace(/\S+$/, `${prefix}${replaceText}`);
+      }
 
       newQuery = newQuery.concat(query.slice(lastTermIndex));
     }
@@ -1034,7 +1053,11 @@ class SmartSearchBar extends React.Component<Props, State> {
     } = this.props;
 
     const pinTooltip = !!pinnedSearch ? t('Unpin this search') : t('Pin this search');
-    const pinIconSrc = !!pinnedSearch ? 'icon-pin-filled' : 'icon-pin';
+    const pinIcon = !!pinnedSearch ? (
+      <IconPin isSolid size="xs" />
+    ) : (
+      <IconPin size="xs" />
+    );
     const hasQuery = !!this.state.query;
 
     const input = (
@@ -1111,9 +1134,8 @@ class SmartSearchBar extends React.Component<Props, State> {
               onClick={this.onTogglePinnedSearch}
               collapseIntoEllipsisMenu={1}
               isActive={!!pinnedSearch}
-            >
-              <InlineSvg src={pinIconSrc} />
-            </InputButton>
+              icon={pinIcon}
+            />
           )}
           {canCreateSavedSearch && (
             <ClassNames>
@@ -1144,9 +1166,8 @@ class SmartSearchBar extends React.Component<Props, State> {
               collapseIntoEllipsisMenu={2}
               aria-label={t('Toggle search builder')}
               onClick={onSidebarToggle}
-            >
-              <InlineSvg src="icon-sliders" size="13" />
-            </SearchBuilderButton>
+              icon={<IconSliders size="xs" />}
+            />
           )}
 
           {(hasPinnedSearch || canCreateSavedSearch || hasSearchBuilder) && (
@@ -1162,9 +1183,8 @@ class SmartSearchBar extends React.Component<Props, State> {
                   }}
                   type="button"
                   aria-label={t('Show more')}
-                >
-                  <EllipsisIcon src="icon-ellipsis-filled" />
-                </EllipsisButton>
+                  icon={<VerticalEllipsisIcon size="xs" />}
+                />
               }
             >
               {hasPinnedSearch && (
@@ -1173,8 +1193,8 @@ class SmartSearchBar extends React.Component<Props, State> {
                   data-test-id="pin-icon"
                   onClick={this.onTogglePinnedSearch}
                 >
-                  <MenuIcon src={pinIconSrc} size="13" />
-                  {!!pinnedSearch ? 'Unpin Search' : 'Pin Search'}
+                  {pinIcon}
+                  {!!pinnedSearch ? t('Unpin Search') : t('Pin Search')}
                 </DropdownElement>
               )}
               {canCreateSavedSearch && (
@@ -1196,8 +1216,8 @@ class SmartSearchBar extends React.Component<Props, State> {
               )}
               {hasSearchBuilder && (
                 <DropdownElement showBelowMediaQuery={2} last onClick={onSidebarToggle}>
-                  <MenuIcon src="icon-sliders" size="12" />
-                  Toggle sidebar
+                  <IconSliders size="xs" />
+                  {t('Toggle sidebar')}
                 </DropdownElement>
               )}
             </StyledDropdownLink>
@@ -1230,7 +1250,7 @@ const SmartSearchBarContainer = createReactClass<Props>({
 });
 
 export default withApi(withOrganization(SmartSearchBarContainer));
-export {SmartSearchBar, SearchType};
+export {SmartSearchBar};
 
 const Container = styled('div')<{isOpen: boolean}>`
   border: 1px solid ${p => (p.isOpen ? p.theme.borderDark : p.theme.borderLight)};
@@ -1310,10 +1330,6 @@ const StyledButtonBar = styled(ButtonBar)`
   margin-right: ${space(1)};
 `;
 
-const MenuIcon = styled(InlineSvg)`
-  margin-right: ${space(1)};
-`;
-
 const EllipsisButton = styled(InputButton)`
   /*
    * this is necessary because DropdownLink wraps the button in an unstyled
@@ -1322,9 +1338,7 @@ const EllipsisButton = styled(InputButton)`
   margin: 6px 0 0 0;
 `;
 
-const EllipsisIcon = styled(InlineSvg)`
-  width: 12px;
-  height: 12px;
+const VerticalEllipsisIcon = styled(IconEllipsis)`
   transform: rotate(90deg);
 `;
 

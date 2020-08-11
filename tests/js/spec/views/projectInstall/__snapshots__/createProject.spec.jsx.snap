@@ -15,79 +15,90 @@ exports[`CreateProject should block if you have access to no teams 1`] = `
                your organization. For example, you might have separate projects
                for your API server and frontend client.
     </HelpText>
+    <PageHeading
+      withMargins={true}
+    >
+      Choose a platform
+    </PageHeading>
     <PlatformPicker
       platform=""
       setPlatform={[Function]}
       showOther={true}
     />
-    <StickyWrapper>
-      <CreateProjectForm
-        onSubmit={[Function]}
-      >
-        <div>
-          <FormLabel>
-            Give your project a name
-          </FormLabel>
-          <ProjectNameInput>
-            <ProjectPlatformIcon
-              monoTone={true}
-              platform=""
-            />
-            <input
-              autoComplete="off"
-              label="Project Name"
-              name="name"
-              onChange={[Function]}
-              placeholder="Project name"
-              type="text"
-              value=""
-            />
-          </ProjectNameInput>
-        </div>
-        <div>
-          <FormLabel>
-            Assign a Team
-          </FormLabel>
-          <TeamSelectInput>
-            <ForwardRef(RefForwardedSelectControl)
-              clearable={false}
-              deprecatedSelectControl={true}
-              name="select-team"
-              onChange={[Function]}
-              options={Array []}
-              placeholder="Select a Team"
-              value={0}
-            />
-            <Tooltip
-              containerDisplayMode="inline-block"
-              position="top"
-              title="Create a team"
-            >
-              <forwardRef<Button>
-                borderless={true}
-                data-test-id="create-team"
-                icon={
-                  <ForwardRef
-                    isCircled={true}
-                  />
-                }
-                onClick={[Function]}
-                type="button"
-              />
-            </Tooltip>
-          </TeamSelectInput>
-        </div>
-        <div>
-          <forwardRef<Button>
-            data-test-id="create-project"
-            disabled={true}
-            priority="primary"
+    <WithOrganizationMockWrapper
+      onChange={[Function]}
+    />
+    <PageHeading
+      withMargins={true}
+    >
+      Give your project a name
+    </PageHeading>
+    <CreateProjectForm
+      onSubmit={[Function]}
+    >
+      <div>
+        <FormLabel>
+          Project name
+        </FormLabel>
+        <ProjectNameInput>
+          <ProjectPlatformIcon
+            monoTone={true}
+            platform=""
+          />
+          <input
+            autoComplete="off"
+            label="Project Name"
+            name="name"
+            onChange={[Function]}
+            placeholder="Project name"
+            type="text"
+            value=""
+          />
+        </ProjectNameInput>
+      </div>
+      <div>
+        <FormLabel>
+          Team
+        </FormLabel>
+        <TeamSelectInput>
+          <ForwardRef(RefForwardedSelectControl)
+            clearable={false}
+            deprecatedSelectControl={true}
+            name="select-team"
+            onChange={[Function]}
+            options={Array []}
+            placeholder="Select a Team"
+            value={0}
+          />
+          <Tooltip
+            containerDisplayMode="inline-block"
+            position="top"
+            title="Create a team"
           >
-            Create Project
-          </forwardRef<Button>>
-        </div>
-      </CreateProjectForm>
-    </StickyWrapper>
+            <forwardRef<Button>
+              borderless={true}
+              data-test-id="create-team"
+              icon={
+                <ForwardRef(IconAdd)
+                  isCircled={true}
+                />
+              }
+              onClick={[Function]}
+              type="button"
+            />
+          </Tooltip>
+        </TeamSelectInput>
+      </div>
+      <div>
+        <forwardRef<Button>
+          data-test-id="create-project"
+          disabled={true}
+          priority="primary"
+        >
+          Create Project
+        </forwardRef<Button>>
+      </div>
+    </CreateProjectForm>
   </div>
 </Fragment>
 `;
@@ -166,6 +177,15 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                for your API server and frontend client.
       </p>
     </HelpText>
+    <PageHeading
+      withMargins={true}
+    >
+      <h1
+        className="css-uisydj-PageHeading e1bz0f4q0"
+      >
+        Choose a platform
+      </h1>
+    </PageHeading>
     <PlatformPicker
       platform=""
       setPlatform={[Function]}
@@ -173,7 +193,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
     >
       <NavContainer>
         <div
-          className="css-17aiwa2-NavContainer exv4dm80"
+          className="css-1lllzuy-NavContainer exv4dm80"
         >
           <CategoryNav>
             <NavTabs
@@ -343,28 +363,29 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
           </CategoryNav>
           <SearchBar>
             <div
-              className="css-lsyimw-SearchBar exv4dm81"
+              className="css-1wzdmtr-SearchBar exv4dm81"
             >
-              <InlineSvg
-                src="icon-search"
+              <IconSearch
+                size="xs"
               >
-                <ForwardRef
-                  className="css-tbsmsq-InlineSvg enyz4ql0"
-                  src="icon-search"
+                <ForwardRef(SvgIcon)
+                  size="xs"
                 >
                   <svg
-                    className="css-tbsmsq-InlineSvg enyz4ql0"
-                    height="1em"
-                    viewBox={Object {}}
-                    width="1em"
+                    fill="currentColor"
+                    height="12px"
+                    viewBox="0 0 16 16"
+                    width="12px"
                   >
-                    <use
-                      href="#test"
-                      xlinkHref="#test"
+                    <path
+                      d="M6,12A6,6,0,1,1,12,6,6,6,0,0,1,6,12ZM6,1.54A4.46,4.46,0,1,0,10.45,6,4.46,4.46,0,0,0,6,1.54Z"
+                    />
+                    <path
+                      d="M15.2,16a.74.74,0,0,1-.53-.22L9.14,10.2A.75.75,0,0,1,10.2,9.14l5.53,5.53a.75.75,0,0,1,0,1.06A.74.74,0,0,1,15.2,16Z"
                     />
                   </svg>
-                </ForwardRef>
-              </InlineSvg>
+                </ForwardRef(SvgIcon)>
+              </IconSearch>
               <input
                 label="Filter Platforms"
                 onChange={[Function]}
@@ -389,7 +410,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               Object {
                 "id": "csharp",
                 "language": "csharp",
-                "link": "https://docs.getsentry.com/hosted/clients/csharp/",
+                "link": "https://docs.getsentry.com/clients/csharp/",
                 "name": "C#",
                 "type": "language",
               }
@@ -405,7 +426,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                 Object {
                   "id": "csharp",
                   "language": "csharp",
-                  "link": "https://docs.getsentry.com/hosted/clients/csharp/",
+                  "link": "https://docs.getsentry.com/clients/csharp/",
                   "name": "C#",
                   "type": "language",
                 }
@@ -439,7 +460,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               Object {
                 "id": "elixir",
                 "language": "elixir",
-                "link": "https://docs.getsentry.com/hosted/clients/elixir/",
+                "link": "https://docs.getsentry.com/clients/elixir/",
                 "name": "Elixir",
                 "type": "language",
               }
@@ -455,7 +476,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                 Object {
                   "id": "elixir",
                   "language": "elixir",
-                  "link": "https://docs.getsentry.com/hosted/clients/elixir/",
+                  "link": "https://docs.getsentry.com/clients/elixir/",
                   "name": "Elixir",
                   "type": "language",
                 }
@@ -489,7 +510,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               Object {
                 "id": "java",
                 "language": "java",
-                "link": "https://docs.getsentry.com/hosted/clients/java/",
+                "link": "https://docs.getsentry.com/clients/java/",
                 "name": "Java",
                 "type": "language",
               }
@@ -505,7 +526,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                 Object {
                   "id": "java",
                   "language": "java",
-                  "link": "https://docs.getsentry.com/hosted/clients/java/",
+                  "link": "https://docs.getsentry.com/clients/java/",
                   "name": "Java",
                   "type": "language",
                 }
@@ -539,7 +560,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               Object {
                 "id": "javascript-angular",
                 "language": "javascript",
-                "link": "https://docs.getsentry.com/hosted/clients/javascript/integrations/angular/",
+                "link": "https://docs.getsentry.com/clients/javascript/integrations/angular/",
                 "name": "Angular",
                 "type": "framework",
               }
@@ -555,7 +576,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                 Object {
                   "id": "javascript-angular",
                   "language": "javascript",
-                  "link": "https://docs.getsentry.com/hosted/clients/javascript/integrations/angular/",
+                  "link": "https://docs.getsentry.com/clients/javascript/integrations/angular/",
                   "name": "Angular",
                   "type": "framework",
                 }
@@ -589,7 +610,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               Object {
                 "id": "javascript",
                 "language": "javascript",
-                "link": "https://docs.getsentry.com/hosted/clients/javascript/install/",
+                "link": "https://docs.getsentry.com/clients/javascript/install/",
                 "name": "JavaScript",
                 "type": "language",
               }
@@ -605,7 +626,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                 Object {
                   "id": "javascript",
                   "language": "javascript",
-                  "link": "https://docs.getsentry.com/hosted/clients/javascript/install/",
+                  "link": "https://docs.getsentry.com/clients/javascript/install/",
                   "name": "JavaScript",
                   "type": "language",
                 }
@@ -639,7 +660,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               Object {
                 "id": "javascript-react",
                 "language": "javascript",
-                "link": "https://docs.getsentry.com/hosted/clients/javascript/integrations/react/",
+                "link": "https://docs.getsentry.com/clients/javascript/integrations/react/",
                 "name": "React",
                 "type": "framework",
               }
@@ -655,7 +676,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                 Object {
                   "id": "javascript-react",
                   "language": "javascript",
-                  "link": "https://docs.getsentry.com/hosted/clients/javascript/integrations/react/",
+                  "link": "https://docs.getsentry.com/clients/javascript/integrations/react/",
                   "name": "React",
                   "type": "framework",
                 }
@@ -689,7 +710,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               Object {
                 "id": "node-express",
                 "language": "node",
-                "link": "https://docs.getsentry.com/hosted/clients/node/integrations/express/",
+                "link": "https://docs.getsentry.com/clients/node/integrations/express/",
                 "name": "Express",
                 "type": "framework",
               }
@@ -705,7 +726,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                 Object {
                   "id": "node-express",
                   "language": "node",
-                  "link": "https://docs.getsentry.com/hosted/clients/node/integrations/express/",
+                  "link": "https://docs.getsentry.com/clients/node/integrations/express/",
                   "name": "Express",
                   "type": "framework",
                 }
@@ -739,7 +760,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               Object {
                 "id": "node",
                 "language": "node",
-                "link": "https://docs.getsentry.com/hosted/clients/node/",
+                "link": "https://docs.getsentry.com/clients/node/",
                 "name": "Node.js",
                 "type": "language",
               }
@@ -755,7 +776,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                 Object {
                   "id": "node",
                   "language": "node",
-                  "link": "https://docs.getsentry.com/hosted/clients/node/",
+                  "link": "https://docs.getsentry.com/clients/node/",
                   "name": "Node.js",
                   "type": "language",
                 }
@@ -789,7 +810,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               Object {
                 "id": "php-laravel",
                 "language": "php",
-                "link": "https://docs.getsentry.com/hosted/clients/php/integrations/laravel/",
+                "link": "https://docs.getsentry.com/clients/php/integrations/laravel/",
                 "name": "Laravel",
                 "type": "framework",
               }
@@ -805,7 +826,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                 Object {
                   "id": "php-laravel",
                   "language": "php",
-                  "link": "https://docs.getsentry.com/hosted/clients/php/integrations/laravel/",
+                  "link": "https://docs.getsentry.com/clients/php/integrations/laravel/",
                   "name": "Laravel",
                   "type": "framework",
                 }
@@ -839,7 +860,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               Object {
                 "id": "php",
                 "language": "php",
-                "link": "https://docs.getsentry.com/hosted/clients/php/",
+                "link": "https://docs.getsentry.com/clients/php/",
                 "name": "PHP",
                 "type": "language",
               }
@@ -855,7 +876,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                 Object {
                   "id": "php",
                   "language": "php",
-                  "link": "https://docs.getsentry.com/hosted/clients/php/",
+                  "link": "https://docs.getsentry.com/clients/php/",
                   "name": "PHP",
                   "type": "language",
                 }
@@ -889,7 +910,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               Object {
                 "id": "php-symfony2",
                 "language": "php",
-                "link": "https://docs.getsentry.com/hosted/clients/php/integrations/symfony2/",
+                "link": "https://docs.getsentry.com/clients/php/integrations/symfony2/",
                 "name": "Symfony2",
                 "type": "framework",
               }
@@ -905,7 +926,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                 Object {
                   "id": "php-symfony2",
                   "language": "php",
-                  "link": "https://docs.getsentry.com/hosted/clients/php/integrations/symfony2/",
+                  "link": "https://docs.getsentry.com/clients/php/integrations/symfony2/",
                   "name": "Symfony2",
                   "type": "framework",
                 }
@@ -939,7 +960,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               Object {
                 "id": "python-django",
                 "language": "python",
-                "link": "https://docs.getsentry.com/hosted/clients/python/integrations/django/",
+                "link": "https://docs.getsentry.com/clients/python/integrations/django/",
                 "name": "Django",
                 "type": "framework",
               }
@@ -955,7 +976,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                 Object {
                   "id": "python-django",
                   "language": "python",
-                  "link": "https://docs.getsentry.com/hosted/clients/python/integrations/django/",
+                  "link": "https://docs.getsentry.com/clients/python/integrations/django/",
                   "name": "Django",
                   "type": "framework",
                 }
@@ -989,7 +1010,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               Object {
                 "id": "python-flask",
                 "language": "python",
-                "link": "https://docs.getsentry.com/hosted/clients/python/integrations/flask/",
+                "link": "https://docs.getsentry.com/clients/python/integrations/flask/",
                 "name": "Flask",
                 "type": "framework",
               }
@@ -1005,7 +1026,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                 Object {
                   "id": "python-flask",
                   "language": "python",
-                  "link": "https://docs.getsentry.com/hosted/clients/python/integrations/flask/",
+                  "link": "https://docs.getsentry.com/clients/python/integrations/flask/",
                   "name": "Flask",
                   "type": "framework",
                 }
@@ -1039,7 +1060,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               Object {
                 "id": "python",
                 "language": "python",
-                "link": "https://docs.getsentry.com/hosted/clients/python/",
+                "link": "https://docs.getsentry.com/clients/python/",
                 "name": "Python",
                 "type": "language",
               }
@@ -1055,7 +1076,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                 Object {
                   "id": "python",
                   "language": "python",
-                  "link": "https://docs.getsentry.com/hosted/clients/python/",
+                  "link": "https://docs.getsentry.com/clients/python/",
                   "name": "Python",
                   "type": "language",
                 }
@@ -1089,7 +1110,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               Object {
                 "id": "react-native",
                 "language": "react-native",
-                "link": "https://docs.getsentry.com/hosted/clients/react-native/",
+                "link": "https://docs.getsentry.com/clients/react-native/",
                 "name": "React-Native",
                 "type": "language",
               }
@@ -1105,7 +1126,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                 Object {
                   "id": "react-native",
                   "language": "react-native",
-                  "link": "https://docs.getsentry.com/hosted/clients/react-native/",
+                  "link": "https://docs.getsentry.com/clients/react-native/",
                   "name": "React-Native",
                   "type": "language",
                 }
@@ -1139,7 +1160,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               Object {
                 "id": "ruby-rails",
                 "language": "ruby",
-                "link": "https://docs.getsentry.com/hosted/clients/ruby/integrations/rails/",
+                "link": "https://docs.getsentry.com/clients/ruby/integrations/rails/",
                 "name": "Rails",
                 "type": "framework",
               }
@@ -1155,7 +1176,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                 Object {
                   "id": "ruby-rails",
                   "language": "ruby",
-                  "link": "https://docs.getsentry.com/hosted/clients/ruby/integrations/rails/",
+                  "link": "https://docs.getsentry.com/clients/ruby/integrations/rails/",
                   "name": "Rails",
                   "type": "framework",
                 }
@@ -1189,7 +1210,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
               Object {
                 "id": "ruby",
                 "language": "ruby",
-                "link": "https://docs.getsentry.com/hosted/clients/ruby/",
+                "link": "https://docs.getsentry.com/clients/ruby/",
                 "name": "Ruby",
                 "type": "language",
               }
@@ -1205,7 +1226,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                 Object {
                   "id": "ruby",
                   "language": "ruby",
-                  "link": "https://docs.getsentry.com/hosted/clients/ruby/",
+                  "link": "https://docs.getsentry.com/clients/ruby/",
                   "name": "Ruby",
                   "type": "language",
                 }
@@ -1233,82 +1254,161 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
         </div>
       </PlatformList>
     </PlatformPicker>
-    <StickyWrapper>
-      <div
-        className="css-1n1wv6u-StickyWrapper e19kiapg6"
+    <WithOrganizationMockWrapper
+      onChange={[Function]}
+    >
+      <IssueAlertOptions
+        onChange={[Function]}
+        organization={
+          Object {
+            "id": "1",
+            "slug": "testOrg",
+            "teams": Array [
+              Object {
+                "hasAccess": true,
+                "id": "1",
+                "name": "test",
+                "slug": "test",
+              },
+            ],
+          }
+        }
       >
-        <CreateProjectForm
-          onSubmit={[Function]}
-        >
-          <form
-            className="css-1dq1lt0-CreateProjectForm e19kiapg0"
-            onSubmit={[Function]}
+        <profiler(LoadingIndicator)>
+          <Profiler
+            disabled={false}
+            includeRender={true}
+            includeUpdates={false}
+            name="LoadingIndicator"
+            updateProps={Object {}}
           >
-            <div>
-              <FormLabel>
+            <LoadingIndicator>
+              <div
+                className="loading"
+              >
                 <div
-                  className="css-1ynor6-FormLabel e19kiapg1"
-                >
-                  Give your project a name
-                </div>
-              </FormLabel>
-              <ProjectNameInput>
+                  className="loading-indicator"
+                  style={Object {}}
+                />
                 <div
-                  className="css-qxeifl-ProjectNameInput e19kiapg3"
-                >
-                  <ProjectPlatformIcon
-                    monoTone={true}
-                    platform=""
-                  >
-                    <div
-                      className="css-12loq7n-PlatformIconTile-ProjectPlatformIcon e19kiapg2"
-                    />
-                  </ProjectPlatformIcon>
-                  <input
-                    autoComplete="off"
-                    label="Project Name"
-                    name="name"
-                    onChange={[Function]}
-                    placeholder="Project name"
-                    type="text"
-                    value=""
-                  />
-                </div>
-              </ProjectNameInput>
+                  className="loading-message"
+                />
+              </div>
+            </LoadingIndicator>
+          </Profiler>
+        </profiler(LoadingIndicator)>
+      </IssueAlertOptions>
+    </WithOrganizationMockWrapper>
+    <PageHeading
+      withMargins={true}
+    >
+      <h1
+        className="css-uisydj-PageHeading e1bz0f4q0"
+      >
+        Give your project a name
+      </h1>
+    </PageHeading>
+    <CreateProjectForm
+      onSubmit={[Function]}
+    >
+      <form
+        className="css-1dq1lt0-CreateProjectForm e19kiapg0"
+        onSubmit={[Function]}
+      >
+        <div>
+          <FormLabel>
+            <div
+              className="css-1ynor6-FormLabel e19kiapg1"
+            >
+              Project name
             </div>
-            <div>
-              <FormLabel>
+          </FormLabel>
+          <ProjectNameInput>
+            <div
+              className="css-euuyn4-ProjectNameInput e19kiapg3"
+            >
+              <ProjectPlatformIcon
+                monoTone={true}
+                platform=""
+              >
                 <div
-                  className="css-1ynor6-FormLabel e19kiapg1"
+                  className="css-12loq7n-PlatformIconTile-ProjectPlatformIcon e19kiapg2"
+                />
+              </ProjectPlatformIcon>
+              <input
+                autoComplete="off"
+                label="Project Name"
+                name="name"
+                onChange={[Function]}
+                placeholder="Project name"
+                type="text"
+                value=""
+              />
+            </div>
+          </ProjectNameInput>
+        </div>
+        <div>
+          <FormLabel>
+            <div
+              className="css-1ynor6-FormLabel e19kiapg1"
+            >
+              Team
+            </div>
+          </FormLabel>
+          <TeamSelectInput>
+            <div
+              className="css-15lxetg-TeamSelectInput e19kiapg4"
+            >
+              <ForwardRef(RefForwardedSelectControl)
+                clearable={false}
+                deprecatedSelectControl={true}
+                name="select-team"
+                onChange={[Function]}
+                options={Array []}
+                placeholder="Select a Team"
+                value={0}
+              >
+                <SelectControl
+                  clearable={false}
+                  deprecatedSelectControl={true}
+                  forwardedRef={null}
+                  name="select-team"
+                  onChange={[Function]}
+                  options={Array []}
+                  placeholder="Select a Team"
+                  value={0}
                 >
-                  Assign a Team
-                </div>
-              </FormLabel>
-              <TeamSelectInput>
-                <div
-                  className="css-15lxetg-TeamSelectInput e19kiapg4"
-                >
-                  <ForwardRef(RefForwardedSelectControl)
+                  <SelectControlLegacy
                     clearable={false}
-                    deprecatedSelectControl={true}
+                    forwardedRef={null}
+                    height={36}
+                    multiple={false}
                     name="select-team"
                     onChange={[Function]}
                     options={Array []}
                     placeholder="Select a Team"
                     value={0}
                   >
-                    <SelectControl
+                    <StyledSelect
+                      arrowRenderer={[Function]}
+                      backspaceRemoves={false}
                       clearable={false}
-                      deprecatedSelectControl={true}
+                      deleteRemoves={false}
                       forwardedRef={null}
+                      height={36}
+                      multiple={false}
                       name="select-team"
                       onChange={[Function]}
                       options={Array []}
                       placeholder="Select a Team"
                       value={0}
                     >
-                      <SelectControlLegacy
+                      <SelectPicker
+                        arrowRenderer={[Function]}
+                        backspaceRemoves={false}
+                        className="css-awk01x-StyledSelect e1ynsgsr0"
                         clearable={false}
+                        deleteRemoves={false}
                         forwardedRef={null}
                         height={36}
                         multiple={false}
@@ -1318,371 +1418,390 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                         placeholder="Select a Team"
                         value={0}
                       >
-                        <StyledSelect
+                        <Select
                           arrowRenderer={[Function]}
+                          autosize={true}
                           backspaceRemoves={false}
+                          backspaceToRemoveMessage="Press backspace to remove {label}"
+                          className="css-awk01x-StyledSelect e1ynsgsr0"
+                          clearAllText="Clear all"
+                          clearRenderer={[Function]}
+                          clearValueText="Clear value"
                           clearable={false}
+                          closeOnSelect={true}
                           deleteRemoves={false}
-                          forwardedRef={null}
+                          delimiter=","
+                          disabled={false}
+                          escapeClearsValue={true}
+                          filterOptions={[Function]}
                           height={36}
+                          ignoreAccents={true}
+                          ignoreCase={true}
+                          inputProps={Object {}}
+                          isLoading={false}
+                          joinValues={false}
+                          labelKey="label"
+                          matchPos="any"
+                          matchProp="any"
+                          menuBuffer={0}
+                          menuRenderer={[Function]}
+                          multi={false}
                           multiple={false}
                           name="select-team"
+                          noResultsText="No results found"
+                          onBlurResetsInput={true}
                           onChange={[Function]}
+                          onCloseResetsInput={true}
+                          onSelectResetsInput={true}
+                          openOnClick={true}
+                          optionComponent={[Function]}
                           options={Array []}
+                          pageSize={5}
                           placeholder="Select a Team"
+                          removeSelected={true}
+                          required={false}
+                          rtl={false}
+                          scrollMenuIntoView={true}
+                          searchable={true}
+                          simpleValue={false}
+                          tabSelectsValue={true}
+                          trimFilter={true}
                           value={0}
+                          valueComponent={[Function]}
+                          valueKey="value"
                         >
-                          <SelectPicker
-                            arrowRenderer={[Function]}
-                            backspaceRemoves={false}
-                            className="css-1miq8qr-StyledSelect e1ynsgsr0"
-                            clearable={false}
-                            deleteRemoves={false}
-                            forwardedRef={null}
-                            height={36}
-                            multiple={false}
-                            name="select-team"
-                            onChange={[Function]}
-                            options={Array []}
-                            placeholder="Select a Team"
-                            value={0}
+                          <div
+                            className="Select css-awk01x-StyledSelect e1ynsgsr0 is-searchable Select--single"
                           >
-                            <Select
-                              arrowRenderer={[Function]}
-                              autosize={true}
-                              backspaceRemoves={false}
-                              backspaceToRemoveMessage="Press backspace to remove {label}"
-                              className="css-1miq8qr-StyledSelect e1ynsgsr0"
-                              clearAllText="Clear all"
-                              clearRenderer={[Function]}
-                              clearValueText="Clear value"
-                              clearable={false}
-                              closeOnSelect={true}
-                              deleteRemoves={false}
-                              delimiter=","
-                              disabled={false}
-                              escapeClearsValue={true}
-                              filterOptions={[Function]}
-                              height={36}
-                              ignoreAccents={true}
-                              ignoreCase={true}
-                              inputProps={Object {}}
-                              isLoading={false}
-                              joinValues={false}
-                              labelKey="label"
-                              matchPos="any"
-                              matchProp="any"
-                              menuBuffer={0}
-                              menuRenderer={[Function]}
-                              multi={false}
-                              multiple={false}
-                              name="select-team"
-                              noResultsText="No results found"
-                              onBlurResetsInput={true}
-                              onChange={[Function]}
-                              onCloseResetsInput={true}
-                              onSelectResetsInput={true}
-                              openOnClick={true}
-                              optionComponent={[Function]}
-                              options={Array []}
-                              pageSize={5}
-                              placeholder="Select a Team"
-                              removeSelected={true}
-                              required={false}
-                              rtl={false}
-                              scrollMenuIntoView={true}
-                              searchable={true}
-                              simpleValue={false}
-                              tabSelectsValue={true}
-                              trimFilter={true}
-                              value={0}
-                              valueComponent={[Function]}
-                              valueKey="value"
+                            <div
+                              className="Select-control"
+                              onKeyDown={[Function]}
+                              onMouseDown={[Function]}
+                              onTouchEnd={[Function]}
+                              onTouchMove={[Function]}
+                              onTouchStart={[Function]}
                             >
                               <div
-                                className="Select css-1miq8qr-StyledSelect e1ynsgsr0 is-searchable Select--single"
+                                className="Select-multi-value-wrapper"
+                                id="react-select-5--value"
                               >
                                 <div
-                                  className="Select-control"
-                                  onKeyDown={[Function]}
-                                  onMouseDown={[Function]}
-                                  onTouchEnd={[Function]}
-                                  onTouchMove={[Function]}
-                                  onTouchStart={[Function]}
+                                  className="Select-placeholder"
+                                >
+                                  Select a Team
+                                </div>
+                                <AutosizeInput
+                                  aria-activedescendant="react-select-5--value"
+                                  aria-expanded="false"
+                                  aria-haspopup="false"
+                                  aria-owns=""
+                                  className="Select-input"
+                                  injectStyles={true}
+                                  minWidth="5"
+                                  onBlur={[Function]}
+                                  onChange={[Function]}
+                                  onFocus={[Function]}
+                                  required={false}
+                                  role="combobox"
+                                  value=""
                                 >
                                   <div
-                                    className="Select-multi-value-wrapper"
-                                    id="react-select-5--value"
+                                    className="Select-input"
+                                    style={
+                                      Object {
+                                        "display": "inline-block",
+                                      }
+                                    }
                                   >
-                                    <div
-                                      className="Select-placeholder"
-                                    >
-                                      Select a Team
-                                    </div>
-                                    <AutosizeInput
+                                    <input
                                       aria-activedescendant="react-select-5--value"
                                       aria-expanded="false"
                                       aria-haspopup="false"
                                       aria-owns=""
-                                      className="Select-input"
-                                      injectStyles={true}
-                                      minWidth="5"
                                       onBlur={[Function]}
                                       onChange={[Function]}
                                       onFocus={[Function]}
                                       required={false}
                                       role="combobox"
-                                      value=""
-                                    >
-                                      <div
-                                        className="Select-input"
-                                        style={
-                                          Object {
-                                            "display": "inline-block",
-                                          }
+                                      style={
+                                        Object {
+                                          "boxSizing": "content-box",
+                                          "width": "5px",
                                         }
-                                      >
-                                        <input
-                                          aria-activedescendant="react-select-5--value"
-                                          aria-expanded="false"
-                                          aria-haspopup="false"
-                                          aria-owns=""
-                                          onBlur={[Function]}
-                                          onChange={[Function]}
-                                          onFocus={[Function]}
-                                          required={false}
-                                          role="combobox"
-                                          style={
-                                            Object {
-                                              "boxSizing": "content-box",
-                                              "width": "5px",
-                                            }
-                                          }
-                                          value=""
-                                        />
-                                        <div
-                                          style={
-                                            Object {
-                                              "height": 0,
-                                              "left": 0,
-                                              "overflow": "scroll",
-                                              "position": "absolute",
-                                              "top": 0,
-                                              "visibility": "hidden",
-                                              "whiteSpace": "pre",
-                                            }
-                                          }
-                                        />
-                                      </div>
-                                    </AutosizeInput>
-                                  </div>
-                                  <span
-                                    className="Select-arrow-zone"
-                                    onMouseDown={[Function]}
-                                  >
-                                    <span
-                                      className="icon-arrow-down"
+                                      }
+                                      value=""
                                     />
-                                  </span>
-                                </div>
+                                    <div
+                                      style={
+                                        Object {
+                                          "height": 0,
+                                          "left": 0,
+                                          "overflow": "scroll",
+                                          "position": "absolute",
+                                          "top": 0,
+                                          "visibility": "hidden",
+                                          "whiteSpace": "pre",
+                                        }
+                                      }
+                                    />
+                                  </div>
+                                </AutosizeInput>
                               </div>
-                            </Select>
-                          </SelectPicker>
-                        </StyledSelect>
-                      </SelectControlLegacy>
-                    </SelectControl>
-                  </ForwardRef(RefForwardedSelectControl)>
-                  <Tooltip
-                    containerDisplayMode="inline-block"
-                    position="top"
-                    title="Create a team"
-                  >
-                    <Manager>
-                      <Reference>
-                        <InnerReference
-                          setReferenceNode={[Function]}
+                              <span
+                                className="Select-arrow-zone"
+                                onMouseDown={[Function]}
+                              >
+                                <StyledIconChevron
+                                  direction="down"
+                                  size="xs"
+                                >
+                                  <IconChevron
+                                    className="css-1y21wp1-StyledIconChevron e1ynsgsr1"
+                                    direction="down"
+                                    size="xs"
+                                  >
+                                    <EmotionCssPropInternal
+                                      __EMOTION_LABEL_PLEASE_DO_NOT_USE__="IconChevron"
+                                      __EMOTION_TYPE_PLEASE_DO_NOT_USE__={
+                                        Object {
+                                          "$$typeof": Symbol(react.forward_ref),
+                                          "propTypes": Object {
+                                            "color": [Function],
+                                            "size": [Function],
+                                            "viewBox": [Function],
+                                          },
+                                          "render": [Function],
+                                        }
+                                      }
+                                      className="css-1y21wp1-StyledIconChevron e1ynsgsr1"
+                                      css={
+                                        Object {
+                                          "map": undefined,
+                                          "name": "7chgxg-IconChevron",
+                                          "next": undefined,
+                                          "styles": "transform:rotate(180deg);;label:IconChevron;",
+                                          "toString": [Function],
+                                        }
+                                      }
+                                      size="xs"
+                                    >
+                                      <ForwardRef(SvgIcon)
+                                        className="e1ynsgsr1 css-7arx5j-IconChevron-StyledIconChevron"
+                                        size="xs"
+                                      >
+                                        <svg
+                                          className="e1ynsgsr1 css-7arx5j-IconChevron-StyledIconChevron"
+                                          fill="currentColor"
+                                          height="12px"
+                                          viewBox="0 0 16 16"
+                                          width="12px"
+                                        >
+                                          <path
+                                            d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                                          />
+                                        </svg>
+                                      </ForwardRef(SvgIcon)>
+                                    </EmotionCssPropInternal>
+                                  </IconChevron>
+                                </StyledIconChevron>
+                              </span>
+                            </div>
+                          </div>
+                        </Select>
+                      </SelectPicker>
+                    </StyledSelect>
+                  </SelectControlLegacy>
+                </SelectControl>
+              </ForwardRef(RefForwardedSelectControl)>
+              <Tooltip
+                containerDisplayMode="inline-block"
+                position="top"
+                title="Create a team"
+              >
+                <Manager>
+                  <Reference>
+                    <InnerReference
+                      setReferenceNode={[Function]}
+                    >
+                      <Container
+                        aria-describedby="tooltip-123456"
+                        containerDisplayMode="inline-block"
+                        onBlur={[Function]}
+                        onFocus={[Function]}
+                        onMouseEnter={[Function]}
+                        onMouseLeave={[Function]}
+                      >
+                        <span
+                          aria-describedby="tooltip-123456"
+                          className="css-1y4rfpo-Container eowlwvy0"
+                          onBlur={[Function]}
+                          onFocus={[Function]}
+                          onMouseEnter={[Function]}
+                          onMouseLeave={[Function]}
                         >
-                          <Container
-                            aria-describedby="tooltip-123456"
-                            containerDisplayMode="inline-block"
-                            onBlur={[Function]}
-                            onFocus={[Function]}
-                            onMouseEnter={[Function]}
-                            onMouseLeave={[Function]}
+                          <forwardRef<Button>
+                            borderless={true}
+                            data-test-id="create-team"
+                            icon={
+                              <ForwardRef(IconAdd)
+                                isCircled={true}
+                              />
+                            }
+                            onClick={[Function]}
+                            type="button"
                           >
-                            <span
-                              aria-describedby="tooltip-123456"
-                              className="css-1y4rfpo-Container eowlwvy0"
-                              onBlur={[Function]}
-                              onFocus={[Function]}
-                              onMouseEnter={[Function]}
-                              onMouseLeave={[Function]}
+                            <Button
+                              align="center"
+                              borderless={true}
+                              data-test-id="create-team"
+                              disabled={false}
+                              forwardRef={null}
+                              icon={
+                                <ForwardRef(IconAdd)
+                                  isCircled={true}
+                                />
+                              }
+                              onClick={[Function]}
+                              type="button"
                             >
-                              <forwardRef<Button>
+                              <StyledButton
+                                aria-disabled={false}
                                 borderless={true}
                                 data-test-id="create-team"
-                                icon={
-                                  <ForwardRef
-                                    isCircled={true}
-                                  />
-                                }
+                                disabled={false}
+                                forwardRef={null}
                                 onClick={[Function]}
+                                role="button"
                                 type="button"
                               >
-                                <Button
-                                  align="center"
-                                  borderless={true}
+                                <Component
+                                  aria-disabled={false}
+                                  className="css-1hvuuup-StyledButton edwq9my0"
                                   data-test-id="create-team"
-                                  disabled={false}
                                   forwardRef={null}
-                                  icon={
-                                    <ForwardRef
-                                      isCircled={true}
-                                    />
-                                  }
                                   onClick={[Function]}
+                                  role="button"
                                   type="button"
                                 >
-                                  <StyledButton
+                                  <button
                                     aria-disabled={false}
-                                    borderless={true}
+                                    className="css-1hvuuup-StyledButton edwq9my0"
                                     data-test-id="create-team"
-                                    disabled={false}
-                                    forwardRef={null}
                                     onClick={[Function]}
                                     role="button"
                                     type="button"
                                   >
-                                    <Component
-                                      aria-disabled={false}
-                                      className="css-e1k74m-StyledButton edwq9my0"
-                                      data-test-id="create-team"
-                                      forwardRef={null}
-                                      onClick={[Function]}
-                                      role="button"
-                                      type="button"
+                                    <ButtonLabel
+                                      align="center"
+                                      borderless={true}
                                     >
-                                      <button
-                                        aria-disabled={false}
-                                        className="css-e1k74m-StyledButton edwq9my0"
-                                        data-test-id="create-team"
-                                        onClick={[Function]}
-                                        role="button"
-                                        type="button"
+                                      <span
+                                        className="css-zmpclt-ButtonLabel edwq9my1"
                                       >
-                                        <ButtonLabel
-                                          align="center"
-                                          borderless={true}
+                                        <Icon
+                                          hasChildren={false}
                                         >
                                           <span
-                                            className="css-zmpclt-ButtonLabel edwq9my1"
+                                            className="css-1a0nfqj-Icon edwq9my2"
                                           >
-                                            <Icon
-                                              hasChildren={false}
+                                            <IconAdd
+                                              isCircled={true}
                                             >
-                                              <span
-                                                className="css-1a0nfqj-Icon edwq9my2"
-                                              >
-                                                <ForwardRef
-                                                  isCircled={true}
+                                              <ForwardRef(SvgIcon)>
+                                                <svg
+                                                  fill="currentColor"
+                                                  height="16px"
+                                                  viewBox="0 0 16 16"
+                                                  width="16px"
                                                 >
-                                                  <ForwardRef(SvgIcon)>
-                                                    <svg
-                                                      fill="currentColor"
-                                                      height="16px"
-                                                      viewBox="0 0 16 16"
-                                                      width="16px"
-                                                    >
-                                                      <path
-                                                        d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
-                                                      />
-                                                      <path
-                                                        d="M8,12a.76.76,0,0,1-.75-.75V4.72a.75.75,0,0,1,1.5,0v6.56A.76.76,0,0,1,8,12Z"
-                                                      />
-                                                      <path
-                                                        d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
-                                                      />
-                                                    </svg>
-                                                  </ForwardRef(SvgIcon)>
-                                                </ForwardRef>
-                                              </span>
-                                            </Icon>
+                                                  <path
+                                                    d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
+                                                  />
+                                                  <path
+                                                    d="M8,12a.76.76,0,0,1-.75-.75V4.72a.75.75,0,0,1,1.5,0v6.56A.76.76,0,0,1,8,12Z"
+                                                  />
+                                                  <path
+                                                    d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                                                  />
+                                                </svg>
+                                              </ForwardRef(SvgIcon)>
+                                            </IconAdd>
                                           </span>
-                                        </ButtonLabel>
-                                      </button>
-                                    </Component>
-                                  </StyledButton>
-                                </Button>
-                              </forwardRef<Button>>
-                            </span>
-                          </Container>
-                        </InnerReference>
-                      </Reference>
-                    </Manager>
-                  </Tooltip>
-                </div>
-              </TeamSelectInput>
+                                        </Icon>
+                                      </span>
+                                    </ButtonLabel>
+                                  </button>
+                                </Component>
+                              </StyledButton>
+                            </Button>
+                          </forwardRef<Button>>
+                        </span>
+                      </Container>
+                    </InnerReference>
+                  </Reference>
+                </Manager>
+              </Tooltip>
             </div>
-            <div>
-              <forwardRef<Button>
+          </TeamSelectInput>
+        </div>
+        <div>
+          <forwardRef<Button>
+            data-test-id="create-project"
+            disabled={true}
+            priority="primary"
+          >
+            <Button
+              align="center"
+              data-test-id="create-project"
+              disabled={true}
+              forwardRef={null}
+              priority="primary"
+            >
+              <StyledButton
+                aria-disabled={true}
+                aria-label="Create Project"
                 data-test-id="create-project"
                 disabled={true}
+                forwardRef={null}
+                onClick={[Function]}
                 priority="primary"
+                role="button"
               >
-                <Button
-                  align="center"
+                <Component
+                  aria-disabled={true}
+                  aria-label="Create Project"
+                  className="css-9j7ei9-StyledButton edwq9my0"
                   data-test-id="create-project"
-                  disabled={true}
                   forwardRef={null}
-                  priority="primary"
+                  onClick={[Function]}
+                  role="button"
                 >
-                  <StyledButton
+                  <button
                     aria-disabled={true}
                     aria-label="Create Project"
+                    className="css-9j7ei9-StyledButton edwq9my0"
                     data-test-id="create-project"
-                    disabled={true}
-                    forwardRef={null}
                     onClick={[Function]}
-                    priority="primary"
                     role="button"
                   >
-                    <Component
-                      aria-disabled={true}
-                      aria-label="Create Project"
-                      className="css-9j7ei9-StyledButton edwq9my0"
-                      data-test-id="create-project"
-                      forwardRef={null}
-                      onClick={[Function]}
-                      role="button"
+                    <ButtonLabel
+                      align="center"
+                      priority="primary"
                     >
-                      <button
-                        aria-disabled={true}
-                        aria-label="Create Project"
-                        className="css-9j7ei9-StyledButton edwq9my0"
-                        data-test-id="create-project"
-                        onClick={[Function]}
-                        role="button"
+                      <span
+                        className="css-zmpclt-ButtonLabel edwq9my1"
                       >
-                        <ButtonLabel
-                          align="center"
-                          priority="primary"
-                        >
-                          <span
-                            className="css-zmpclt-ButtonLabel edwq9my1"
-                          >
-                            Create Project
-                          </span>
-                        </ButtonLabel>
-                      </button>
-                    </Component>
-                  </StyledButton>
-                </Button>
-              </forwardRef<Button>>
-            </div>
-          </form>
-        </CreateProjectForm>
-      </div>
-    </StickyWrapper>
+                        Create Project
+                      </span>
+                    </ButtonLabel>
+                  </button>
+                </Component>
+              </StyledButton>
+            </Button>
+          </forwardRef<Button>>
+        </div>
+      </form>
+    </CreateProjectForm>
   </div>
 </CreateProject>
 `;
@@ -1761,6 +1880,15 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                for your API server and frontend client.
       </p>
     </HelpText>
+    <PageHeading
+      withMargins={true}
+    >
+      <h1
+        className="css-uisydj-PageHeading e1bz0f4q0"
+      >
+        Choose a platform
+      </h1>
+    </PageHeading>
     <PlatformPicker
       platform="ruby"
       setPlatform={[Function]}
@@ -1768,7 +1896,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
     >
       <NavContainer>
         <div
-          className="css-17aiwa2-NavContainer exv4dm80"
+          className="css-1lllzuy-NavContainer exv4dm80"
         >
           <CategoryNav>
             <NavTabs
@@ -1938,28 +2066,29 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
           </CategoryNav>
           <SearchBar>
             <div
-              className="css-lsyimw-SearchBar exv4dm81"
+              className="css-1wzdmtr-SearchBar exv4dm81"
             >
-              <InlineSvg
-                src="icon-search"
+              <IconSearch
+                size="xs"
               >
-                <ForwardRef
-                  className="css-tbsmsq-InlineSvg enyz4ql0"
-                  src="icon-search"
+                <ForwardRef(SvgIcon)
+                  size="xs"
                 >
                   <svg
-                    className="css-tbsmsq-InlineSvg enyz4ql0"
-                    height="1em"
-                    viewBox={Object {}}
-                    width="1em"
+                    fill="currentColor"
+                    height="12px"
+                    viewBox="0 0 16 16"
+                    width="12px"
                   >
-                    <use
-                      href="#test"
-                      xlinkHref="#test"
+                    <path
+                      d="M6,12A6,6,0,1,1,12,6,6,6,0,0,1,6,12ZM6,1.54A4.46,4.46,0,1,0,10.45,6,4.46,4.46,0,0,0,6,1.54Z"
+                    />
+                    <path
+                      d="M15.2,16a.74.74,0,0,1-.53-.22L9.14,10.2A.75.75,0,0,1,10.2,9.14l5.53,5.53a.75.75,0,0,1,0,1.06A.74.74,0,0,1,15.2,16Z"
                     />
                   </svg>
-                </ForwardRef>
-              </InlineSvg>
+                </ForwardRef(SvgIcon)>
+              </IconSearch>
               <input
                 label="Filter Platforms"
                 onChange={[Function]}
@@ -1984,7 +2113,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
               Object {
                 "id": "ruby-rack",
                 "language": "ruby",
-                "link": "https://docs.getsentry.com/hosted/clients/ruby/integrations/rack/",
+                "link": "https://docs.getsentry.com/clients/ruby/integrations/rack/",
                 "name": "Rack",
                 "type": "framework",
               }
@@ -2000,7 +2129,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                 Object {
                   "id": "ruby-rack",
                   "language": "ruby",
-                  "link": "https://docs.getsentry.com/hosted/clients/ruby/integrations/rack/",
+                  "link": "https://docs.getsentry.com/clients/ruby/integrations/rack/",
                   "name": "Rack",
                   "type": "framework",
                 }
@@ -2034,7 +2163,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
               Object {
                 "id": "ruby-rails",
                 "language": "ruby",
-                "link": "https://docs.getsentry.com/hosted/clients/ruby/integrations/rails/",
+                "link": "https://docs.getsentry.com/clients/ruby/integrations/rails/",
                 "name": "Rails",
                 "type": "framework",
               }
@@ -2050,7 +2179,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                 Object {
                   "id": "ruby-rails",
                   "language": "ruby",
-                  "link": "https://docs.getsentry.com/hosted/clients/ruby/integrations/rails/",
+                  "link": "https://docs.getsentry.com/clients/ruby/integrations/rails/",
                   "name": "Rails",
                   "type": "framework",
                 }
@@ -2084,7 +2213,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
               Object {
                 "id": "ruby",
                 "language": "ruby",
-                "link": "https://docs.getsentry.com/hosted/clients/ruby/",
+                "link": "https://docs.getsentry.com/clients/ruby/",
                 "name": "Ruby",
                 "type": "language",
               }
@@ -2100,7 +2229,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                 Object {
                   "id": "ruby",
                   "language": "ruby",
-                  "link": "https://docs.getsentry.com/hosted/clients/ruby/",
+                  "link": "https://docs.getsentry.com/clients/ruby/",
                   "name": "Ruby",
                   "type": "language",
                 }
@@ -2133,7 +2262,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                       borderless={true}
                       className="css-rqv9pd-ClearButton exv4dm85"
                       icon={
-                        <ForwardRef
+                        <ForwardRef(IconClose)
                           isCircled={true}
                           size="xs"
                         />
@@ -2148,7 +2277,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                         disabled={false}
                         forwardRef={null}
                         icon={
-                          <ForwardRef
+                          <ForwardRef(IconClose)
                             isCircled={true}
                             size="xs"
                           />
@@ -2168,7 +2297,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                         >
                           <Component
                             aria-disabled={false}
-                            className="exv4dm85 css-4y1t77-StyledButton-ClearButton edwq9my0"
+                            className="exv4dm85 css-5yg4v-StyledButton-ClearButton edwq9my0"
                             forwardRef={null}
                             onClick={[Function]}
                             role="button"
@@ -2176,7 +2305,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                           >
                             <button
                               aria-disabled={false}
-                              className="exv4dm85 css-4y1t77-StyledButton-ClearButton edwq9my0"
+                              className="exv4dm85 css-5yg4v-StyledButton-ClearButton edwq9my0"
                               onClick={[Function]}
                               role="button"
                               size="xsmall"
@@ -2197,7 +2326,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                                       className="css-dm7gfi-Icon edwq9my2"
                                       size="xsmall"
                                     >
-                                      <ForwardRef
+                                      <IconClose
                                         isCircled={true}
                                         size="xs"
                                       >
@@ -2221,7 +2350,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                                             />
                                           </svg>
                                         </ForwardRef(SvgIcon)>
-                                      </ForwardRef>
+                                      </IconClose>
                                     </span>
                                   </Icon>
                                 </span>
@@ -2239,82 +2368,161 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
         </div>
       </PlatformList>
     </PlatformPicker>
-    <StickyWrapper>
-      <div
-        className="css-1n1wv6u-StickyWrapper e19kiapg6"
+    <WithOrganizationMockWrapper
+      onChange={[Function]}
+    >
+      <IssueAlertOptions
+        onChange={[Function]}
+        organization={
+          Object {
+            "id": "1",
+            "slug": "testOrg",
+            "teams": Array [
+              Object {
+                "hasAccess": true,
+                "id": "1",
+                "name": "test",
+                "slug": "test",
+              },
+            ],
+          }
+        }
       >
-        <CreateProjectForm
-          onSubmit={[Function]}
-        >
-          <form
-            className="css-1dq1lt0-CreateProjectForm e19kiapg0"
-            onSubmit={[Function]}
+        <profiler(LoadingIndicator)>
+          <Profiler
+            disabled={false}
+            includeRender={true}
+            includeUpdates={false}
+            name="LoadingIndicator"
+            updateProps={Object {}}
           >
-            <div>
-              <FormLabel>
+            <LoadingIndicator>
+              <div
+                className="loading"
+              >
                 <div
-                  className="css-1ynor6-FormLabel e19kiapg1"
-                >
-                  Give your project a name
-                </div>
-              </FormLabel>
-              <ProjectNameInput>
+                  className="loading-indicator"
+                  style={Object {}}
+                />
                 <div
-                  className="css-qxeifl-ProjectNameInput e19kiapg3"
-                >
-                  <ProjectPlatformIcon
-                    monoTone={true}
-                    platform="ruby"
-                  >
-                    <div
-                      className="css-17k22u3-PlatformIconTile-ProjectPlatformIcon e19kiapg2"
-                    />
-                  </ProjectPlatformIcon>
-                  <input
-                    autoComplete="off"
-                    label="Project Name"
-                    name="name"
-                    onChange={[Function]}
-                    placeholder="Project name"
-                    type="text"
-                    value="Ruby"
-                  />
-                </div>
-              </ProjectNameInput>
+                  className="loading-message"
+                />
+              </div>
+            </LoadingIndicator>
+          </Profiler>
+        </profiler(LoadingIndicator)>
+      </IssueAlertOptions>
+    </WithOrganizationMockWrapper>
+    <PageHeading
+      withMargins={true}
+    >
+      <h1
+        className="css-uisydj-PageHeading e1bz0f4q0"
+      >
+        Give your project a name
+      </h1>
+    </PageHeading>
+    <CreateProjectForm
+      onSubmit={[Function]}
+    >
+      <form
+        className="css-1dq1lt0-CreateProjectForm e19kiapg0"
+        onSubmit={[Function]}
+      >
+        <div>
+          <FormLabel>
+            <div
+              className="css-1ynor6-FormLabel e19kiapg1"
+            >
+              Project name
             </div>
-            <div>
-              <FormLabel>
+          </FormLabel>
+          <ProjectNameInput>
+            <div
+              className="css-euuyn4-ProjectNameInput e19kiapg3"
+            >
+              <ProjectPlatformIcon
+                monoTone={true}
+                platform="ruby"
+              >
                 <div
-                  className="css-1ynor6-FormLabel e19kiapg1"
+                  className="css-17k22u3-PlatformIconTile-ProjectPlatformIcon e19kiapg2"
+                />
+              </ProjectPlatformIcon>
+              <input
+                autoComplete="off"
+                label="Project Name"
+                name="name"
+                onChange={[Function]}
+                placeholder="Project name"
+                type="text"
+                value="Ruby"
+              />
+            </div>
+          </ProjectNameInput>
+        </div>
+        <div>
+          <FormLabel>
+            <div
+              className="css-1ynor6-FormLabel e19kiapg1"
+            >
+              Team
+            </div>
+          </FormLabel>
+          <TeamSelectInput>
+            <div
+              className="css-15lxetg-TeamSelectInput e19kiapg4"
+            >
+              <ForwardRef(RefForwardedSelectControl)
+                clearable={false}
+                deprecatedSelectControl={true}
+                name="select-team"
+                onChange={[Function]}
+                options={Array []}
+                placeholder="Select a Team"
+                value={0}
+              >
+                <SelectControl
+                  clearable={false}
+                  deprecatedSelectControl={true}
+                  forwardedRef={null}
+                  name="select-team"
+                  onChange={[Function]}
+                  options={Array []}
+                  placeholder="Select a Team"
+                  value={0}
                 >
-                  Assign a Team
-                </div>
-              </FormLabel>
-              <TeamSelectInput>
-                <div
-                  className="css-15lxetg-TeamSelectInput e19kiapg4"
-                >
-                  <ForwardRef(RefForwardedSelectControl)
+                  <SelectControlLegacy
                     clearable={false}
-                    deprecatedSelectControl={true}
+                    forwardedRef={null}
+                    height={36}
+                    multiple={false}
                     name="select-team"
                     onChange={[Function]}
                     options={Array []}
                     placeholder="Select a Team"
                     value={0}
                   >
-                    <SelectControl
+                    <StyledSelect
+                      arrowRenderer={[Function]}
+                      backspaceRemoves={false}
                       clearable={false}
-                      deprecatedSelectControl={true}
+                      deleteRemoves={false}
                       forwardedRef={null}
+                      height={36}
+                      multiple={false}
                       name="select-team"
                       onChange={[Function]}
                       options={Array []}
                       placeholder="Select a Team"
                       value={0}
                     >
-                      <SelectControlLegacy
+                      <SelectPicker
+                        arrowRenderer={[Function]}
+                        backspaceRemoves={false}
+                        className="css-awk01x-StyledSelect e1ynsgsr0"
                         clearable={false}
+                        deleteRemoves={false}
                         forwardedRef={null}
                         height={36}
                         multiple={false}
@@ -2324,371 +2532,390 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                         placeholder="Select a Team"
                         value={0}
                       >
-                        <StyledSelect
+                        <Select
                           arrowRenderer={[Function]}
+                          autosize={true}
                           backspaceRemoves={false}
+                          backspaceToRemoveMessage="Press backspace to remove {label}"
+                          className="css-awk01x-StyledSelect e1ynsgsr0"
+                          clearAllText="Clear all"
+                          clearRenderer={[Function]}
+                          clearValueText="Clear value"
                           clearable={false}
+                          closeOnSelect={true}
                           deleteRemoves={false}
-                          forwardedRef={null}
+                          delimiter=","
+                          disabled={false}
+                          escapeClearsValue={true}
+                          filterOptions={[Function]}
                           height={36}
+                          ignoreAccents={true}
+                          ignoreCase={true}
+                          inputProps={Object {}}
+                          isLoading={false}
+                          joinValues={false}
+                          labelKey="label"
+                          matchPos="any"
+                          matchProp="any"
+                          menuBuffer={0}
+                          menuRenderer={[Function]}
+                          multi={false}
                           multiple={false}
                           name="select-team"
+                          noResultsText="No results found"
+                          onBlurResetsInput={true}
                           onChange={[Function]}
+                          onCloseResetsInput={true}
+                          onSelectResetsInput={true}
+                          openOnClick={true}
+                          optionComponent={[Function]}
                           options={Array []}
+                          pageSize={5}
                           placeholder="Select a Team"
+                          removeSelected={true}
+                          required={false}
+                          rtl={false}
+                          scrollMenuIntoView={true}
+                          searchable={true}
+                          simpleValue={false}
+                          tabSelectsValue={true}
+                          trimFilter={true}
                           value={0}
+                          valueComponent={[Function]}
+                          valueKey="value"
                         >
-                          <SelectPicker
-                            arrowRenderer={[Function]}
-                            backspaceRemoves={false}
-                            className="css-1miq8qr-StyledSelect e1ynsgsr0"
-                            clearable={false}
-                            deleteRemoves={false}
-                            forwardedRef={null}
-                            height={36}
-                            multiple={false}
-                            name="select-team"
-                            onChange={[Function]}
-                            options={Array []}
-                            placeholder="Select a Team"
-                            value={0}
+                          <div
+                            className="Select css-awk01x-StyledSelect e1ynsgsr0 is-searchable Select--single"
                           >
-                            <Select
-                              arrowRenderer={[Function]}
-                              autosize={true}
-                              backspaceRemoves={false}
-                              backspaceToRemoveMessage="Press backspace to remove {label}"
-                              className="css-1miq8qr-StyledSelect e1ynsgsr0"
-                              clearAllText="Clear all"
-                              clearRenderer={[Function]}
-                              clearValueText="Clear value"
-                              clearable={false}
-                              closeOnSelect={true}
-                              deleteRemoves={false}
-                              delimiter=","
-                              disabled={false}
-                              escapeClearsValue={true}
-                              filterOptions={[Function]}
-                              height={36}
-                              ignoreAccents={true}
-                              ignoreCase={true}
-                              inputProps={Object {}}
-                              isLoading={false}
-                              joinValues={false}
-                              labelKey="label"
-                              matchPos="any"
-                              matchProp="any"
-                              menuBuffer={0}
-                              menuRenderer={[Function]}
-                              multi={false}
-                              multiple={false}
-                              name="select-team"
-                              noResultsText="No results found"
-                              onBlurResetsInput={true}
-                              onChange={[Function]}
-                              onCloseResetsInput={true}
-                              onSelectResetsInput={true}
-                              openOnClick={true}
-                              optionComponent={[Function]}
-                              options={Array []}
-                              pageSize={5}
-                              placeholder="Select a Team"
-                              removeSelected={true}
-                              required={false}
-                              rtl={false}
-                              scrollMenuIntoView={true}
-                              searchable={true}
-                              simpleValue={false}
-                              tabSelectsValue={true}
-                              trimFilter={true}
-                              value={0}
-                              valueComponent={[Function]}
-                              valueKey="value"
+                            <div
+                              className="Select-control"
+                              onKeyDown={[Function]}
+                              onMouseDown={[Function]}
+                              onTouchEnd={[Function]}
+                              onTouchMove={[Function]}
+                              onTouchStart={[Function]}
                             >
                               <div
-                                className="Select css-1miq8qr-StyledSelect e1ynsgsr0 is-searchable Select--single"
+                                className="Select-multi-value-wrapper"
+                                id="react-select-4--value"
                               >
                                 <div
-                                  className="Select-control"
-                                  onKeyDown={[Function]}
-                                  onMouseDown={[Function]}
-                                  onTouchEnd={[Function]}
-                                  onTouchMove={[Function]}
-                                  onTouchStart={[Function]}
+                                  className="Select-placeholder"
+                                >
+                                  Select a Team
+                                </div>
+                                <AutosizeInput
+                                  aria-activedescendant="react-select-4--value"
+                                  aria-expanded="false"
+                                  aria-haspopup="false"
+                                  aria-owns=""
+                                  className="Select-input"
+                                  injectStyles={true}
+                                  minWidth="5"
+                                  onBlur={[Function]}
+                                  onChange={[Function]}
+                                  onFocus={[Function]}
+                                  required={false}
+                                  role="combobox"
+                                  value=""
                                 >
                                   <div
-                                    className="Select-multi-value-wrapper"
-                                    id="react-select-4--value"
+                                    className="Select-input"
+                                    style={
+                                      Object {
+                                        "display": "inline-block",
+                                      }
+                                    }
                                   >
-                                    <div
-                                      className="Select-placeholder"
-                                    >
-                                      Select a Team
-                                    </div>
-                                    <AutosizeInput
+                                    <input
                                       aria-activedescendant="react-select-4--value"
                                       aria-expanded="false"
                                       aria-haspopup="false"
                                       aria-owns=""
-                                      className="Select-input"
-                                      injectStyles={true}
-                                      minWidth="5"
                                       onBlur={[Function]}
                                       onChange={[Function]}
                                       onFocus={[Function]}
                                       required={false}
                                       role="combobox"
-                                      value=""
-                                    >
-                                      <div
-                                        className="Select-input"
-                                        style={
-                                          Object {
-                                            "display": "inline-block",
-                                          }
+                                      style={
+                                        Object {
+                                          "boxSizing": "content-box",
+                                          "width": "5px",
                                         }
-                                      >
-                                        <input
-                                          aria-activedescendant="react-select-4--value"
-                                          aria-expanded="false"
-                                          aria-haspopup="false"
-                                          aria-owns=""
-                                          onBlur={[Function]}
-                                          onChange={[Function]}
-                                          onFocus={[Function]}
-                                          required={false}
-                                          role="combobox"
-                                          style={
-                                            Object {
-                                              "boxSizing": "content-box",
-                                              "width": "5px",
-                                            }
-                                          }
-                                          value=""
-                                        />
-                                        <div
-                                          style={
-                                            Object {
-                                              "height": 0,
-                                              "left": 0,
-                                              "overflow": "scroll",
-                                              "position": "absolute",
-                                              "top": 0,
-                                              "visibility": "hidden",
-                                              "whiteSpace": "pre",
-                                            }
-                                          }
-                                        />
-                                      </div>
-                                    </AutosizeInput>
-                                  </div>
-                                  <span
-                                    className="Select-arrow-zone"
-                                    onMouseDown={[Function]}
-                                  >
-                                    <span
-                                      className="icon-arrow-down"
+                                      }
+                                      value=""
                                     />
-                                  </span>
-                                </div>
+                                    <div
+                                      style={
+                                        Object {
+                                          "height": 0,
+                                          "left": 0,
+                                          "overflow": "scroll",
+                                          "position": "absolute",
+                                          "top": 0,
+                                          "visibility": "hidden",
+                                          "whiteSpace": "pre",
+                                        }
+                                      }
+                                    />
+                                  </div>
+                                </AutosizeInput>
                               </div>
-                            </Select>
-                          </SelectPicker>
-                        </StyledSelect>
-                      </SelectControlLegacy>
-                    </SelectControl>
-                  </ForwardRef(RefForwardedSelectControl)>
-                  <Tooltip
-                    containerDisplayMode="inline-block"
-                    position="top"
-                    title="Create a team"
-                  >
-                    <Manager>
-                      <Reference>
-                        <InnerReference
-                          setReferenceNode={[Function]}
+                              <span
+                                className="Select-arrow-zone"
+                                onMouseDown={[Function]}
+                              >
+                                <StyledIconChevron
+                                  direction="down"
+                                  size="xs"
+                                >
+                                  <IconChevron
+                                    className="css-1y21wp1-StyledIconChevron e1ynsgsr1"
+                                    direction="down"
+                                    size="xs"
+                                  >
+                                    <EmotionCssPropInternal
+                                      __EMOTION_LABEL_PLEASE_DO_NOT_USE__="IconChevron"
+                                      __EMOTION_TYPE_PLEASE_DO_NOT_USE__={
+                                        Object {
+                                          "$$typeof": Symbol(react.forward_ref),
+                                          "propTypes": Object {
+                                            "color": [Function],
+                                            "size": [Function],
+                                            "viewBox": [Function],
+                                          },
+                                          "render": [Function],
+                                        }
+                                      }
+                                      className="css-1y21wp1-StyledIconChevron e1ynsgsr1"
+                                      css={
+                                        Object {
+                                          "map": undefined,
+                                          "name": "7chgxg-IconChevron",
+                                          "next": undefined,
+                                          "styles": "transform:rotate(180deg);;label:IconChevron;",
+                                          "toString": [Function],
+                                        }
+                                      }
+                                      size="xs"
+                                    >
+                                      <ForwardRef(SvgIcon)
+                                        className="e1ynsgsr1 css-7arx5j-IconChevron-StyledIconChevron"
+                                        size="xs"
+                                      >
+                                        <svg
+                                          className="e1ynsgsr1 css-7arx5j-IconChevron-StyledIconChevron"
+                                          fill="currentColor"
+                                          height="12px"
+                                          viewBox="0 0 16 16"
+                                          width="12px"
+                                        >
+                                          <path
+                                            d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                                          />
+                                        </svg>
+                                      </ForwardRef(SvgIcon)>
+                                    </EmotionCssPropInternal>
+                                  </IconChevron>
+                                </StyledIconChevron>
+                              </span>
+                            </div>
+                          </div>
+                        </Select>
+                      </SelectPicker>
+                    </StyledSelect>
+                  </SelectControlLegacy>
+                </SelectControl>
+              </ForwardRef(RefForwardedSelectControl)>
+              <Tooltip
+                containerDisplayMode="inline-block"
+                position="top"
+                title="Create a team"
+              >
+                <Manager>
+                  <Reference>
+                    <InnerReference
+                      setReferenceNode={[Function]}
+                    >
+                      <Container
+                        aria-describedby="tooltip-123456"
+                        containerDisplayMode="inline-block"
+                        onBlur={[Function]}
+                        onFocus={[Function]}
+                        onMouseEnter={[Function]}
+                        onMouseLeave={[Function]}
+                      >
+                        <span
+                          aria-describedby="tooltip-123456"
+                          className="css-1y4rfpo-Container eowlwvy0"
+                          onBlur={[Function]}
+                          onFocus={[Function]}
+                          onMouseEnter={[Function]}
+                          onMouseLeave={[Function]}
                         >
-                          <Container
-                            aria-describedby="tooltip-123456"
-                            containerDisplayMode="inline-block"
-                            onBlur={[Function]}
-                            onFocus={[Function]}
-                            onMouseEnter={[Function]}
-                            onMouseLeave={[Function]}
+                          <forwardRef<Button>
+                            borderless={true}
+                            data-test-id="create-team"
+                            icon={
+                              <ForwardRef(IconAdd)
+                                isCircled={true}
+                              />
+                            }
+                            onClick={[Function]}
+                            type="button"
                           >
-                            <span
-                              aria-describedby="tooltip-123456"
-                              className="css-1y4rfpo-Container eowlwvy0"
-                              onBlur={[Function]}
-                              onFocus={[Function]}
-                              onMouseEnter={[Function]}
-                              onMouseLeave={[Function]}
+                            <Button
+                              align="center"
+                              borderless={true}
+                              data-test-id="create-team"
+                              disabled={false}
+                              forwardRef={null}
+                              icon={
+                                <ForwardRef(IconAdd)
+                                  isCircled={true}
+                                />
+                              }
+                              onClick={[Function]}
+                              type="button"
                             >
-                              <forwardRef<Button>
+                              <StyledButton
+                                aria-disabled={false}
                                 borderless={true}
                                 data-test-id="create-team"
-                                icon={
-                                  <ForwardRef
-                                    isCircled={true}
-                                  />
-                                }
+                                disabled={false}
+                                forwardRef={null}
                                 onClick={[Function]}
+                                role="button"
                                 type="button"
                               >
-                                <Button
-                                  align="center"
-                                  borderless={true}
+                                <Component
+                                  aria-disabled={false}
+                                  className="css-1hvuuup-StyledButton edwq9my0"
                                   data-test-id="create-team"
-                                  disabled={false}
                                   forwardRef={null}
-                                  icon={
-                                    <ForwardRef
-                                      isCircled={true}
-                                    />
-                                  }
                                   onClick={[Function]}
+                                  role="button"
                                   type="button"
                                 >
-                                  <StyledButton
+                                  <button
                                     aria-disabled={false}
-                                    borderless={true}
+                                    className="css-1hvuuup-StyledButton edwq9my0"
                                     data-test-id="create-team"
-                                    disabled={false}
-                                    forwardRef={null}
                                     onClick={[Function]}
                                     role="button"
                                     type="button"
                                   >
-                                    <Component
-                                      aria-disabled={false}
-                                      className="css-e1k74m-StyledButton edwq9my0"
-                                      data-test-id="create-team"
-                                      forwardRef={null}
-                                      onClick={[Function]}
-                                      role="button"
-                                      type="button"
+                                    <ButtonLabel
+                                      align="center"
+                                      borderless={true}
                                     >
-                                      <button
-                                        aria-disabled={false}
-                                        className="css-e1k74m-StyledButton edwq9my0"
-                                        data-test-id="create-team"
-                                        onClick={[Function]}
-                                        role="button"
-                                        type="button"
+                                      <span
+                                        className="css-zmpclt-ButtonLabel edwq9my1"
                                       >
-                                        <ButtonLabel
-                                          align="center"
-                                          borderless={true}
+                                        <Icon
+                                          hasChildren={false}
                                         >
                                           <span
-                                            className="css-zmpclt-ButtonLabel edwq9my1"
+                                            className="css-1a0nfqj-Icon edwq9my2"
                                           >
-                                            <Icon
-                                              hasChildren={false}
+                                            <IconAdd
+                                              isCircled={true}
                                             >
-                                              <span
-                                                className="css-1a0nfqj-Icon edwq9my2"
-                                              >
-                                                <ForwardRef
-                                                  isCircled={true}
+                                              <ForwardRef(SvgIcon)>
+                                                <svg
+                                                  fill="currentColor"
+                                                  height="16px"
+                                                  viewBox="0 0 16 16"
+                                                  width="16px"
                                                 >
-                                                  <ForwardRef(SvgIcon)>
-                                                    <svg
-                                                      fill="currentColor"
-                                                      height="16px"
-                                                      viewBox="0 0 16 16"
-                                                      width="16px"
-                                                    >
-                                                      <path
-                                                        d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
-                                                      />
-                                                      <path
-                                                        d="M8,12a.76.76,0,0,1-.75-.75V4.72a.75.75,0,0,1,1.5,0v6.56A.76.76,0,0,1,8,12Z"
-                                                      />
-                                                      <path
-                                                        d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
-                                                      />
-                                                    </svg>
-                                                  </ForwardRef(SvgIcon)>
-                                                </ForwardRef>
-                                              </span>
-                                            </Icon>
+                                                  <path
+                                                    d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
+                                                  />
+                                                  <path
+                                                    d="M8,12a.76.76,0,0,1-.75-.75V4.72a.75.75,0,0,1,1.5,0v6.56A.76.76,0,0,1,8,12Z"
+                                                  />
+                                                  <path
+                                                    d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                                                  />
+                                                </svg>
+                                              </ForwardRef(SvgIcon)>
+                                            </IconAdd>
                                           </span>
-                                        </ButtonLabel>
-                                      </button>
-                                    </Component>
-                                  </StyledButton>
-                                </Button>
-                              </forwardRef<Button>>
-                            </span>
-                          </Container>
-                        </InnerReference>
-                      </Reference>
-                    </Manager>
-                  </Tooltip>
-                </div>
-              </TeamSelectInput>
+                                        </Icon>
+                                      </span>
+                                    </ButtonLabel>
+                                  </button>
+                                </Component>
+                              </StyledButton>
+                            </Button>
+                          </forwardRef<Button>>
+                        </span>
+                      </Container>
+                    </InnerReference>
+                  </Reference>
+                </Manager>
+              </Tooltip>
             </div>
-            <div>
-              <forwardRef<Button>
+          </TeamSelectInput>
+        </div>
+        <div>
+          <forwardRef<Button>
+            data-test-id="create-project"
+            disabled={true}
+            priority="primary"
+          >
+            <Button
+              align="center"
+              data-test-id="create-project"
+              disabled={true}
+              forwardRef={null}
+              priority="primary"
+            >
+              <StyledButton
+                aria-disabled={true}
+                aria-label="Create Project"
                 data-test-id="create-project"
                 disabled={true}
+                forwardRef={null}
+                onClick={[Function]}
                 priority="primary"
+                role="button"
               >
-                <Button
-                  align="center"
+                <Component
+                  aria-disabled={true}
+                  aria-label="Create Project"
+                  className="css-9j7ei9-StyledButton edwq9my0"
                   data-test-id="create-project"
-                  disabled={true}
                   forwardRef={null}
-                  priority="primary"
+                  onClick={[Function]}
+                  role="button"
                 >
-                  <StyledButton
+                  <button
                     aria-disabled={true}
                     aria-label="Create Project"
+                    className="css-9j7ei9-StyledButton edwq9my0"
                     data-test-id="create-project"
-                    disabled={true}
-                    forwardRef={null}
                     onClick={[Function]}
-                    priority="primary"
                     role="button"
                   >
-                    <Component
-                      aria-disabled={true}
-                      aria-label="Create Project"
-                      className="css-9j7ei9-StyledButton edwq9my0"
-                      data-test-id="create-project"
-                      forwardRef={null}
-                      onClick={[Function]}
-                      role="button"
+                    <ButtonLabel
+                      align="center"
+                      priority="primary"
                     >
-                      <button
-                        aria-disabled={true}
-                        aria-label="Create Project"
-                        className="css-9j7ei9-StyledButton edwq9my0"
-                        data-test-id="create-project"
-                        onClick={[Function]}
-                        role="button"
+                      <span
+                        className="css-zmpclt-ButtonLabel edwq9my1"
                       >
-                        <ButtonLabel
-                          align="center"
-                          priority="primary"
-                        >
-                          <span
-                            className="css-zmpclt-ButtonLabel edwq9my1"
-                          >
-                            Create Project
-                          </span>
-                        </ButtonLabel>
-                      </button>
-                    </Component>
-                  </StyledButton>
-                </Button>
-              </forwardRef<Button>>
-            </div>
-          </form>
-        </CreateProjectForm>
-      </div>
-    </StickyWrapper>
+                        Create Project
+                      </span>
+                    </ButtonLabel>
+                  </button>
+                </Component>
+              </StyledButton>
+            </Button>
+          </forwardRef<Button>>
+        </div>
+      </form>
+    </CreateProjectForm>
   </div>
 </CreateProject>
 `;
@@ -2767,6 +2994,15 @@ exports[`CreateProject should fill in project name if its empty when platform is
                for your API server and frontend client.
       </p>
     </HelpText>
+    <PageHeading
+      withMargins={true}
+    >
+      <h1
+        className="css-uisydj-PageHeading e1bz0f4q0"
+      >
+        Choose a platform
+      </h1>
+    </PageHeading>
     <PlatformPicker
       platform="csharp"
       setPlatform={[Function]}
@@ -2774,7 +3010,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
     >
       <NavContainer>
         <div
-          className="css-17aiwa2-NavContainer exv4dm80"
+          className="css-1lllzuy-NavContainer exv4dm80"
         >
           <CategoryNav>
             <NavTabs
@@ -2944,28 +3180,29 @@ exports[`CreateProject should fill in project name if its empty when platform is
           </CategoryNav>
           <SearchBar>
             <div
-              className="css-lsyimw-SearchBar exv4dm81"
+              className="css-1wzdmtr-SearchBar exv4dm81"
             >
-              <InlineSvg
-                src="icon-search"
+              <IconSearch
+                size="xs"
               >
-                <ForwardRef
-                  className="css-tbsmsq-InlineSvg enyz4ql0"
-                  src="icon-search"
+                <ForwardRef(SvgIcon)
+                  size="xs"
                 >
                   <svg
-                    className="css-tbsmsq-InlineSvg enyz4ql0"
-                    height="1em"
-                    viewBox={Object {}}
-                    width="1em"
+                    fill="currentColor"
+                    height="12px"
+                    viewBox="0 0 16 16"
+                    width="12px"
                   >
-                    <use
-                      href="#test"
-                      xlinkHref="#test"
+                    <path
+                      d="M6,12A6,6,0,1,1,12,6,6,6,0,0,1,6,12ZM6,1.54A4.46,4.46,0,1,0,10.45,6,4.46,4.46,0,0,0,6,1.54Z"
+                    />
+                    <path
+                      d="M15.2,16a.74.74,0,0,1-.53-.22L9.14,10.2A.75.75,0,0,1,10.2,9.14l5.53,5.53a.75.75,0,0,1,0,1.06A.74.74,0,0,1,15.2,16Z"
                     />
                   </svg>
-                </ForwardRef>
-              </InlineSvg>
+                </ForwardRef(SvgIcon)>
+              </IconSearch>
               <input
                 label="Filter Platforms"
                 onChange={[Function]}
@@ -2990,7 +3227,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
               Object {
                 "id": "csharp",
                 "language": "csharp",
-                "link": "https://docs.getsentry.com/hosted/clients/csharp/",
+                "link": "https://docs.getsentry.com/clients/csharp/",
                 "name": "C#",
                 "type": "language",
               }
@@ -3006,7 +3243,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                 Object {
                   "id": "csharp",
                   "language": "csharp",
-                  "link": "https://docs.getsentry.com/hosted/clients/csharp/",
+                  "link": "https://docs.getsentry.com/clients/csharp/",
                   "name": "C#",
                   "type": "language",
                 }
@@ -3039,7 +3276,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                       borderless={true}
                       className="css-rqv9pd-ClearButton exv4dm85"
                       icon={
-                        <ForwardRef
+                        <ForwardRef(IconClose)
                           isCircled={true}
                           size="xs"
                         />
@@ -3054,7 +3291,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                         disabled={false}
                         forwardRef={null}
                         icon={
-                          <ForwardRef
+                          <ForwardRef(IconClose)
                             isCircled={true}
                             size="xs"
                           />
@@ -3074,7 +3311,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                         >
                           <Component
                             aria-disabled={false}
-                            className="exv4dm85 css-4y1t77-StyledButton-ClearButton edwq9my0"
+                            className="exv4dm85 css-5yg4v-StyledButton-ClearButton edwq9my0"
                             forwardRef={null}
                             onClick={[Function]}
                             role="button"
@@ -3082,7 +3319,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                           >
                             <button
                               aria-disabled={false}
-                              className="exv4dm85 css-4y1t77-StyledButton-ClearButton edwq9my0"
+                              className="exv4dm85 css-5yg4v-StyledButton-ClearButton edwq9my0"
                               onClick={[Function]}
                               role="button"
                               size="xsmall"
@@ -3103,7 +3340,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                                       className="css-dm7gfi-Icon edwq9my2"
                                       size="xsmall"
                                     >
-                                      <ForwardRef
+                                      <IconClose
                                         isCircled={true}
                                         size="xs"
                                       >
@@ -3127,7 +3364,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                                             />
                                           </svg>
                                         </ForwardRef(SvgIcon)>
-                                      </ForwardRef>
+                                      </IconClose>
                                     </span>
                                   </Icon>
                                 </span>
@@ -3151,7 +3388,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
               Object {
                 "id": "elixir",
                 "language": "elixir",
-                "link": "https://docs.getsentry.com/hosted/clients/elixir/",
+                "link": "https://docs.getsentry.com/clients/elixir/",
                 "name": "Elixir",
                 "type": "language",
               }
@@ -3167,7 +3404,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                 Object {
                   "id": "elixir",
                   "language": "elixir",
-                  "link": "https://docs.getsentry.com/hosted/clients/elixir/",
+                  "link": "https://docs.getsentry.com/clients/elixir/",
                   "name": "Elixir",
                   "type": "language",
                 }
@@ -3201,7 +3438,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
               Object {
                 "id": "java",
                 "language": "java",
-                "link": "https://docs.getsentry.com/hosted/clients/java/",
+                "link": "https://docs.getsentry.com/clients/java/",
                 "name": "Java",
                 "type": "language",
               }
@@ -3217,7 +3454,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                 Object {
                   "id": "java",
                   "language": "java",
-                  "link": "https://docs.getsentry.com/hosted/clients/java/",
+                  "link": "https://docs.getsentry.com/clients/java/",
                   "name": "Java",
                   "type": "language",
                 }
@@ -3251,7 +3488,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
               Object {
                 "id": "javascript-angular",
                 "language": "javascript",
-                "link": "https://docs.getsentry.com/hosted/clients/javascript/integrations/angular/",
+                "link": "https://docs.getsentry.com/clients/javascript/integrations/angular/",
                 "name": "Angular",
                 "type": "framework",
               }
@@ -3267,7 +3504,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                 Object {
                   "id": "javascript-angular",
                   "language": "javascript",
-                  "link": "https://docs.getsentry.com/hosted/clients/javascript/integrations/angular/",
+                  "link": "https://docs.getsentry.com/clients/javascript/integrations/angular/",
                   "name": "Angular",
                   "type": "framework",
                 }
@@ -3301,7 +3538,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
               Object {
                 "id": "javascript",
                 "language": "javascript",
-                "link": "https://docs.getsentry.com/hosted/clients/javascript/install/",
+                "link": "https://docs.getsentry.com/clients/javascript/install/",
                 "name": "JavaScript",
                 "type": "language",
               }
@@ -3317,7 +3554,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                 Object {
                   "id": "javascript",
                   "language": "javascript",
-                  "link": "https://docs.getsentry.com/hosted/clients/javascript/install/",
+                  "link": "https://docs.getsentry.com/clients/javascript/install/",
                   "name": "JavaScript",
                   "type": "language",
                 }
@@ -3351,7 +3588,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
               Object {
                 "id": "javascript-react",
                 "language": "javascript",
-                "link": "https://docs.getsentry.com/hosted/clients/javascript/integrations/react/",
+                "link": "https://docs.getsentry.com/clients/javascript/integrations/react/",
                 "name": "React",
                 "type": "framework",
               }
@@ -3367,7 +3604,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                 Object {
                   "id": "javascript-react",
                   "language": "javascript",
-                  "link": "https://docs.getsentry.com/hosted/clients/javascript/integrations/react/",
+                  "link": "https://docs.getsentry.com/clients/javascript/integrations/react/",
                   "name": "React",
                   "type": "framework",
                 }
@@ -3401,7 +3638,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
               Object {
                 "id": "node-express",
                 "language": "node",
-                "link": "https://docs.getsentry.com/hosted/clients/node/integrations/express/",
+                "link": "https://docs.getsentry.com/clients/node/integrations/express/",
                 "name": "Express",
                 "type": "framework",
               }
@@ -3417,7 +3654,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                 Object {
                   "id": "node-express",
                   "language": "node",
-                  "link": "https://docs.getsentry.com/hosted/clients/node/integrations/express/",
+                  "link": "https://docs.getsentry.com/clients/node/integrations/express/",
                   "name": "Express",
                   "type": "framework",
                 }
@@ -3451,7 +3688,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
               Object {
                 "id": "node",
                 "language": "node",
-                "link": "https://docs.getsentry.com/hosted/clients/node/",
+                "link": "https://docs.getsentry.com/clients/node/",
                 "name": "Node.js",
                 "type": "language",
               }
@@ -3467,7 +3704,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                 Object {
                   "id": "node",
                   "language": "node",
-                  "link": "https://docs.getsentry.com/hosted/clients/node/",
+                  "link": "https://docs.getsentry.com/clients/node/",
                   "name": "Node.js",
                   "type": "language",
                 }
@@ -3501,7 +3738,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
               Object {
                 "id": "php-laravel",
                 "language": "php",
-                "link": "https://docs.getsentry.com/hosted/clients/php/integrations/laravel/",
+                "link": "https://docs.getsentry.com/clients/php/integrations/laravel/",
                 "name": "Laravel",
                 "type": "framework",
               }
@@ -3517,7 +3754,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                 Object {
                   "id": "php-laravel",
                   "language": "php",
-                  "link": "https://docs.getsentry.com/hosted/clients/php/integrations/laravel/",
+                  "link": "https://docs.getsentry.com/clients/php/integrations/laravel/",
                   "name": "Laravel",
                   "type": "framework",
                 }
@@ -3551,7 +3788,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
               Object {
                 "id": "php",
                 "language": "php",
-                "link": "https://docs.getsentry.com/hosted/clients/php/",
+                "link": "https://docs.getsentry.com/clients/php/",
                 "name": "PHP",
                 "type": "language",
               }
@@ -3567,7 +3804,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                 Object {
                   "id": "php",
                   "language": "php",
-                  "link": "https://docs.getsentry.com/hosted/clients/php/",
+                  "link": "https://docs.getsentry.com/clients/php/",
                   "name": "PHP",
                   "type": "language",
                 }
@@ -3601,7 +3838,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
               Object {
                 "id": "php-symfony2",
                 "language": "php",
-                "link": "https://docs.getsentry.com/hosted/clients/php/integrations/symfony2/",
+                "link": "https://docs.getsentry.com/clients/php/integrations/symfony2/",
                 "name": "Symfony2",
                 "type": "framework",
               }
@@ -3617,7 +3854,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                 Object {
                   "id": "php-symfony2",
                   "language": "php",
-                  "link": "https://docs.getsentry.com/hosted/clients/php/integrations/symfony2/",
+                  "link": "https://docs.getsentry.com/clients/php/integrations/symfony2/",
                   "name": "Symfony2",
                   "type": "framework",
                 }
@@ -3651,7 +3888,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
               Object {
                 "id": "python-django",
                 "language": "python",
-                "link": "https://docs.getsentry.com/hosted/clients/python/integrations/django/",
+                "link": "https://docs.getsentry.com/clients/python/integrations/django/",
                 "name": "Django",
                 "type": "framework",
               }
@@ -3667,7 +3904,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                 Object {
                   "id": "python-django",
                   "language": "python",
-                  "link": "https://docs.getsentry.com/hosted/clients/python/integrations/django/",
+                  "link": "https://docs.getsentry.com/clients/python/integrations/django/",
                   "name": "Django",
                   "type": "framework",
                 }
@@ -3701,7 +3938,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
               Object {
                 "id": "python-flask",
                 "language": "python",
-                "link": "https://docs.getsentry.com/hosted/clients/python/integrations/flask/",
+                "link": "https://docs.getsentry.com/clients/python/integrations/flask/",
                 "name": "Flask",
                 "type": "framework",
               }
@@ -3717,7 +3954,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                 Object {
                   "id": "python-flask",
                   "language": "python",
-                  "link": "https://docs.getsentry.com/hosted/clients/python/integrations/flask/",
+                  "link": "https://docs.getsentry.com/clients/python/integrations/flask/",
                   "name": "Flask",
                   "type": "framework",
                 }
@@ -3751,7 +3988,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
               Object {
                 "id": "python",
                 "language": "python",
-                "link": "https://docs.getsentry.com/hosted/clients/python/",
+                "link": "https://docs.getsentry.com/clients/python/",
                 "name": "Python",
                 "type": "language",
               }
@@ -3767,7 +4004,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                 Object {
                   "id": "python",
                   "language": "python",
-                  "link": "https://docs.getsentry.com/hosted/clients/python/",
+                  "link": "https://docs.getsentry.com/clients/python/",
                   "name": "Python",
                   "type": "language",
                 }
@@ -3801,7 +4038,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
               Object {
                 "id": "react-native",
                 "language": "react-native",
-                "link": "https://docs.getsentry.com/hosted/clients/react-native/",
+                "link": "https://docs.getsentry.com/clients/react-native/",
                 "name": "React-Native",
                 "type": "language",
               }
@@ -3817,7 +4054,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                 Object {
                   "id": "react-native",
                   "language": "react-native",
-                  "link": "https://docs.getsentry.com/hosted/clients/react-native/",
+                  "link": "https://docs.getsentry.com/clients/react-native/",
                   "name": "React-Native",
                   "type": "language",
                 }
@@ -3851,7 +4088,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
               Object {
                 "id": "ruby-rails",
                 "language": "ruby",
-                "link": "https://docs.getsentry.com/hosted/clients/ruby/integrations/rails/",
+                "link": "https://docs.getsentry.com/clients/ruby/integrations/rails/",
                 "name": "Rails",
                 "type": "framework",
               }
@@ -3867,7 +4104,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                 Object {
                   "id": "ruby-rails",
                   "language": "ruby",
-                  "link": "https://docs.getsentry.com/hosted/clients/ruby/integrations/rails/",
+                  "link": "https://docs.getsentry.com/clients/ruby/integrations/rails/",
                   "name": "Rails",
                   "type": "framework",
                 }
@@ -3901,7 +4138,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
               Object {
                 "id": "ruby",
                 "language": "ruby",
-                "link": "https://docs.getsentry.com/hosted/clients/ruby/",
+                "link": "https://docs.getsentry.com/clients/ruby/",
                 "name": "Ruby",
                 "type": "language",
               }
@@ -3917,7 +4154,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                 Object {
                   "id": "ruby",
                   "language": "ruby",
-                  "link": "https://docs.getsentry.com/hosted/clients/ruby/",
+                  "link": "https://docs.getsentry.com/clients/ruby/",
                   "name": "Ruby",
                   "type": "language",
                 }
@@ -3945,82 +4182,161 @@ exports[`CreateProject should fill in project name if its empty when platform is
         </div>
       </PlatformList>
     </PlatformPicker>
-    <StickyWrapper>
-      <div
-        className="css-1n1wv6u-StickyWrapper e19kiapg6"
+    <WithOrganizationMockWrapper
+      onChange={[Function]}
+    >
+      <IssueAlertOptions
+        onChange={[Function]}
+        organization={
+          Object {
+            "id": "1",
+            "slug": "testOrg",
+            "teams": Array [
+              Object {
+                "hasAccess": true,
+                "id": "1",
+                "name": "test",
+                "slug": "test",
+              },
+            ],
+          }
+        }
       >
-        <CreateProjectForm
-          onSubmit={[Function]}
-        >
-          <form
-            className="css-1dq1lt0-CreateProjectForm e19kiapg0"
-            onSubmit={[Function]}
+        <profiler(LoadingIndicator)>
+          <Profiler
+            disabled={false}
+            includeRender={true}
+            includeUpdates={false}
+            name="LoadingIndicator"
+            updateProps={Object {}}
           >
-            <div>
-              <FormLabel>
+            <LoadingIndicator>
+              <div
+                className="loading"
+              >
                 <div
-                  className="css-1ynor6-FormLabel e19kiapg1"
-                >
-                  Give your project a name
-                </div>
-              </FormLabel>
-              <ProjectNameInput>
+                  className="loading-indicator"
+                  style={Object {}}
+                />
                 <div
-                  className="css-qxeifl-ProjectNameInput e19kiapg3"
-                >
-                  <ProjectPlatformIcon
-                    monoTone={true}
-                    platform="csharp"
-                  >
-                    <div
-                      className="css-nwocbk-PlatformIconTile-ProjectPlatformIcon e19kiapg2"
-                    />
-                  </ProjectPlatformIcon>
-                  <input
-                    autoComplete="off"
-                    label="Project Name"
-                    name="name"
-                    onChange={[Function]}
-                    placeholder="Project name"
-                    type="text"
-                    value="another"
-                  />
-                </div>
-              </ProjectNameInput>
+                  className="loading-message"
+                />
+              </div>
+            </LoadingIndicator>
+          </Profiler>
+        </profiler(LoadingIndicator)>
+      </IssueAlertOptions>
+    </WithOrganizationMockWrapper>
+    <PageHeading
+      withMargins={true}
+    >
+      <h1
+        className="css-uisydj-PageHeading e1bz0f4q0"
+      >
+        Give your project a name
+      </h1>
+    </PageHeading>
+    <CreateProjectForm
+      onSubmit={[Function]}
+    >
+      <form
+        className="css-1dq1lt0-CreateProjectForm e19kiapg0"
+        onSubmit={[Function]}
+      >
+        <div>
+          <FormLabel>
+            <div
+              className="css-1ynor6-FormLabel e19kiapg1"
+            >
+              Project name
             </div>
-            <div>
-              <FormLabel>
+          </FormLabel>
+          <ProjectNameInput>
+            <div
+              className="css-euuyn4-ProjectNameInput e19kiapg3"
+            >
+              <ProjectPlatformIcon
+                monoTone={true}
+                platform="csharp"
+              >
                 <div
-                  className="css-1ynor6-FormLabel e19kiapg1"
+                  className="css-nwocbk-PlatformIconTile-ProjectPlatformIcon e19kiapg2"
+                />
+              </ProjectPlatformIcon>
+              <input
+                autoComplete="off"
+                label="Project Name"
+                name="name"
+                onChange={[Function]}
+                placeholder="Project name"
+                type="text"
+                value="another"
+              />
+            </div>
+          </ProjectNameInput>
+        </div>
+        <div>
+          <FormLabel>
+            <div
+              className="css-1ynor6-FormLabel e19kiapg1"
+            >
+              Team
+            </div>
+          </FormLabel>
+          <TeamSelectInput>
+            <div
+              className="css-15lxetg-TeamSelectInput e19kiapg4"
+            >
+              <ForwardRef(RefForwardedSelectControl)
+                clearable={false}
+                deprecatedSelectControl={true}
+                name="select-team"
+                onChange={[Function]}
+                options={Array []}
+                placeholder="Select a Team"
+                value={0}
+              >
+                <SelectControl
+                  clearable={false}
+                  deprecatedSelectControl={true}
+                  forwardedRef={null}
+                  name="select-team"
+                  onChange={[Function]}
+                  options={Array []}
+                  placeholder="Select a Team"
+                  value={0}
                 >
-                  Assign a Team
-                </div>
-              </FormLabel>
-              <TeamSelectInput>
-                <div
-                  className="css-15lxetg-TeamSelectInput e19kiapg4"
-                >
-                  <ForwardRef(RefForwardedSelectControl)
+                  <SelectControlLegacy
                     clearable={false}
-                    deprecatedSelectControl={true}
+                    forwardedRef={null}
+                    height={36}
+                    multiple={false}
                     name="select-team"
                     onChange={[Function]}
                     options={Array []}
                     placeholder="Select a Team"
                     value={0}
                   >
-                    <SelectControl
+                    <StyledSelect
+                      arrowRenderer={[Function]}
+                      backspaceRemoves={false}
                       clearable={false}
-                      deprecatedSelectControl={true}
+                      deleteRemoves={false}
                       forwardedRef={null}
+                      height={36}
+                      multiple={false}
                       name="select-team"
                       onChange={[Function]}
                       options={Array []}
                       placeholder="Select a Team"
                       value={0}
                     >
-                      <SelectControlLegacy
+                      <SelectPicker
+                        arrowRenderer={[Function]}
+                        backspaceRemoves={false}
+                        className="css-awk01x-StyledSelect e1ynsgsr0"
                         clearable={false}
+                        deleteRemoves={false}
                         forwardedRef={null}
                         height={36}
                         multiple={false}
@@ -4030,371 +4346,390 @@ exports[`CreateProject should fill in project name if its empty when platform is
                         placeholder="Select a Team"
                         value={0}
                       >
-                        <StyledSelect
+                        <Select
                           arrowRenderer={[Function]}
+                          autosize={true}
                           backspaceRemoves={false}
+                          backspaceToRemoveMessage="Press backspace to remove {label}"
+                          className="css-awk01x-StyledSelect e1ynsgsr0"
+                          clearAllText="Clear all"
+                          clearRenderer={[Function]}
+                          clearValueText="Clear value"
                           clearable={false}
+                          closeOnSelect={true}
                           deleteRemoves={false}
-                          forwardedRef={null}
+                          delimiter=","
+                          disabled={false}
+                          escapeClearsValue={true}
+                          filterOptions={[Function]}
                           height={36}
+                          ignoreAccents={true}
+                          ignoreCase={true}
+                          inputProps={Object {}}
+                          isLoading={false}
+                          joinValues={false}
+                          labelKey="label"
+                          matchPos="any"
+                          matchProp="any"
+                          menuBuffer={0}
+                          menuRenderer={[Function]}
+                          multi={false}
                           multiple={false}
                           name="select-team"
+                          noResultsText="No results found"
+                          onBlurResetsInput={true}
                           onChange={[Function]}
+                          onCloseResetsInput={true}
+                          onSelectResetsInput={true}
+                          openOnClick={true}
+                          optionComponent={[Function]}
                           options={Array []}
+                          pageSize={5}
                           placeholder="Select a Team"
+                          removeSelected={true}
+                          required={false}
+                          rtl={false}
+                          scrollMenuIntoView={true}
+                          searchable={true}
+                          simpleValue={false}
+                          tabSelectsValue={true}
+                          trimFilter={true}
                           value={0}
+                          valueComponent={[Function]}
+                          valueKey="value"
                         >
-                          <SelectPicker
-                            arrowRenderer={[Function]}
-                            backspaceRemoves={false}
-                            className="css-1miq8qr-StyledSelect e1ynsgsr0"
-                            clearable={false}
-                            deleteRemoves={false}
-                            forwardedRef={null}
-                            height={36}
-                            multiple={false}
-                            name="select-team"
-                            onChange={[Function]}
-                            options={Array []}
-                            placeholder="Select a Team"
-                            value={0}
+                          <div
+                            className="Select css-awk01x-StyledSelect e1ynsgsr0 is-searchable Select--single"
                           >
-                            <Select
-                              arrowRenderer={[Function]}
-                              autosize={true}
-                              backspaceRemoves={false}
-                              backspaceToRemoveMessage="Press backspace to remove {label}"
-                              className="css-1miq8qr-StyledSelect e1ynsgsr0"
-                              clearAllText="Clear all"
-                              clearRenderer={[Function]}
-                              clearValueText="Clear value"
-                              clearable={false}
-                              closeOnSelect={true}
-                              deleteRemoves={false}
-                              delimiter=","
-                              disabled={false}
-                              escapeClearsValue={true}
-                              filterOptions={[Function]}
-                              height={36}
-                              ignoreAccents={true}
-                              ignoreCase={true}
-                              inputProps={Object {}}
-                              isLoading={false}
-                              joinValues={false}
-                              labelKey="label"
-                              matchPos="any"
-                              matchProp="any"
-                              menuBuffer={0}
-                              menuRenderer={[Function]}
-                              multi={false}
-                              multiple={false}
-                              name="select-team"
-                              noResultsText="No results found"
-                              onBlurResetsInput={true}
-                              onChange={[Function]}
-                              onCloseResetsInput={true}
-                              onSelectResetsInput={true}
-                              openOnClick={true}
-                              optionComponent={[Function]}
-                              options={Array []}
-                              pageSize={5}
-                              placeholder="Select a Team"
-                              removeSelected={true}
-                              required={false}
-                              rtl={false}
-                              scrollMenuIntoView={true}
-                              searchable={true}
-                              simpleValue={false}
-                              tabSelectsValue={true}
-                              trimFilter={true}
-                              value={0}
-                              valueComponent={[Function]}
-                              valueKey="value"
+                            <div
+                              className="Select-control"
+                              onKeyDown={[Function]}
+                              onMouseDown={[Function]}
+                              onTouchEnd={[Function]}
+                              onTouchMove={[Function]}
+                              onTouchStart={[Function]}
                             >
                               <div
-                                className="Select css-1miq8qr-StyledSelect e1ynsgsr0 is-searchable Select--single"
+                                className="Select-multi-value-wrapper"
+                                id="react-select-3--value"
                               >
                                 <div
-                                  className="Select-control"
-                                  onKeyDown={[Function]}
-                                  onMouseDown={[Function]}
-                                  onTouchEnd={[Function]}
-                                  onTouchMove={[Function]}
-                                  onTouchStart={[Function]}
+                                  className="Select-placeholder"
+                                >
+                                  Select a Team
+                                </div>
+                                <AutosizeInput
+                                  aria-activedescendant="react-select-3--value"
+                                  aria-expanded="false"
+                                  aria-haspopup="false"
+                                  aria-owns=""
+                                  className="Select-input"
+                                  injectStyles={true}
+                                  minWidth="5"
+                                  onBlur={[Function]}
+                                  onChange={[Function]}
+                                  onFocus={[Function]}
+                                  required={false}
+                                  role="combobox"
+                                  value=""
                                 >
                                   <div
-                                    className="Select-multi-value-wrapper"
-                                    id="react-select-3--value"
+                                    className="Select-input"
+                                    style={
+                                      Object {
+                                        "display": "inline-block",
+                                      }
+                                    }
                                   >
-                                    <div
-                                      className="Select-placeholder"
-                                    >
-                                      Select a Team
-                                    </div>
-                                    <AutosizeInput
+                                    <input
                                       aria-activedescendant="react-select-3--value"
                                       aria-expanded="false"
                                       aria-haspopup="false"
                                       aria-owns=""
-                                      className="Select-input"
-                                      injectStyles={true}
-                                      minWidth="5"
                                       onBlur={[Function]}
                                       onChange={[Function]}
                                       onFocus={[Function]}
                                       required={false}
                                       role="combobox"
-                                      value=""
-                                    >
-                                      <div
-                                        className="Select-input"
-                                        style={
-                                          Object {
-                                            "display": "inline-block",
-                                          }
+                                      style={
+                                        Object {
+                                          "boxSizing": "content-box",
+                                          "width": "5px",
                                         }
-                                      >
-                                        <input
-                                          aria-activedescendant="react-select-3--value"
-                                          aria-expanded="false"
-                                          aria-haspopup="false"
-                                          aria-owns=""
-                                          onBlur={[Function]}
-                                          onChange={[Function]}
-                                          onFocus={[Function]}
-                                          required={false}
-                                          role="combobox"
-                                          style={
-                                            Object {
-                                              "boxSizing": "content-box",
-                                              "width": "5px",
-                                            }
-                                          }
-                                          value=""
-                                        />
-                                        <div
-                                          style={
-                                            Object {
-                                              "height": 0,
-                                              "left": 0,
-                                              "overflow": "scroll",
-                                              "position": "absolute",
-                                              "top": 0,
-                                              "visibility": "hidden",
-                                              "whiteSpace": "pre",
-                                            }
-                                          }
-                                        />
-                                      </div>
-                                    </AutosizeInput>
-                                  </div>
-                                  <span
-                                    className="Select-arrow-zone"
-                                    onMouseDown={[Function]}
-                                  >
-                                    <span
-                                      className="icon-arrow-down"
+                                      }
+                                      value=""
                                     />
-                                  </span>
-                                </div>
+                                    <div
+                                      style={
+                                        Object {
+                                          "height": 0,
+                                          "left": 0,
+                                          "overflow": "scroll",
+                                          "position": "absolute",
+                                          "top": 0,
+                                          "visibility": "hidden",
+                                          "whiteSpace": "pre",
+                                        }
+                                      }
+                                    />
+                                  </div>
+                                </AutosizeInput>
                               </div>
-                            </Select>
-                          </SelectPicker>
-                        </StyledSelect>
-                      </SelectControlLegacy>
-                    </SelectControl>
-                  </ForwardRef(RefForwardedSelectControl)>
-                  <Tooltip
-                    containerDisplayMode="inline-block"
-                    position="top"
-                    title="Create a team"
-                  >
-                    <Manager>
-                      <Reference>
-                        <InnerReference
-                          setReferenceNode={[Function]}
+                              <span
+                                className="Select-arrow-zone"
+                                onMouseDown={[Function]}
+                              >
+                                <StyledIconChevron
+                                  direction="down"
+                                  size="xs"
+                                >
+                                  <IconChevron
+                                    className="css-1y21wp1-StyledIconChevron e1ynsgsr1"
+                                    direction="down"
+                                    size="xs"
+                                  >
+                                    <EmotionCssPropInternal
+                                      __EMOTION_LABEL_PLEASE_DO_NOT_USE__="IconChevron"
+                                      __EMOTION_TYPE_PLEASE_DO_NOT_USE__={
+                                        Object {
+                                          "$$typeof": Symbol(react.forward_ref),
+                                          "propTypes": Object {
+                                            "color": [Function],
+                                            "size": [Function],
+                                            "viewBox": [Function],
+                                          },
+                                          "render": [Function],
+                                        }
+                                      }
+                                      className="css-1y21wp1-StyledIconChevron e1ynsgsr1"
+                                      css={
+                                        Object {
+                                          "map": undefined,
+                                          "name": "7chgxg-IconChevron",
+                                          "next": undefined,
+                                          "styles": "transform:rotate(180deg);;label:IconChevron;",
+                                          "toString": [Function],
+                                        }
+                                      }
+                                      size="xs"
+                                    >
+                                      <ForwardRef(SvgIcon)
+                                        className="e1ynsgsr1 css-7arx5j-IconChevron-StyledIconChevron"
+                                        size="xs"
+                                      >
+                                        <svg
+                                          className="e1ynsgsr1 css-7arx5j-IconChevron-StyledIconChevron"
+                                          fill="currentColor"
+                                          height="12px"
+                                          viewBox="0 0 16 16"
+                                          width="12px"
+                                        >
+                                          <path
+                                            d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                                          />
+                                        </svg>
+                                      </ForwardRef(SvgIcon)>
+                                    </EmotionCssPropInternal>
+                                  </IconChevron>
+                                </StyledIconChevron>
+                              </span>
+                            </div>
+                          </div>
+                        </Select>
+                      </SelectPicker>
+                    </StyledSelect>
+                  </SelectControlLegacy>
+                </SelectControl>
+              </ForwardRef(RefForwardedSelectControl)>
+              <Tooltip
+                containerDisplayMode="inline-block"
+                position="top"
+                title="Create a team"
+              >
+                <Manager>
+                  <Reference>
+                    <InnerReference
+                      setReferenceNode={[Function]}
+                    >
+                      <Container
+                        aria-describedby="tooltip-123456"
+                        containerDisplayMode="inline-block"
+                        onBlur={[Function]}
+                        onFocus={[Function]}
+                        onMouseEnter={[Function]}
+                        onMouseLeave={[Function]}
+                      >
+                        <span
+                          aria-describedby="tooltip-123456"
+                          className="css-1y4rfpo-Container eowlwvy0"
+                          onBlur={[Function]}
+                          onFocus={[Function]}
+                          onMouseEnter={[Function]}
+                          onMouseLeave={[Function]}
                         >
-                          <Container
-                            aria-describedby="tooltip-123456"
-                            containerDisplayMode="inline-block"
-                            onBlur={[Function]}
-                            onFocus={[Function]}
-                            onMouseEnter={[Function]}
-                            onMouseLeave={[Function]}
+                          <forwardRef<Button>
+                            borderless={true}
+                            data-test-id="create-team"
+                            icon={
+                              <ForwardRef(IconAdd)
+                                isCircled={true}
+                              />
+                            }
+                            onClick={[Function]}
+                            type="button"
                           >
-                            <span
-                              aria-describedby="tooltip-123456"
-                              className="css-1y4rfpo-Container eowlwvy0"
-                              onBlur={[Function]}
-                              onFocus={[Function]}
-                              onMouseEnter={[Function]}
-                              onMouseLeave={[Function]}
+                            <Button
+                              align="center"
+                              borderless={true}
+                              data-test-id="create-team"
+                              disabled={false}
+                              forwardRef={null}
+                              icon={
+                                <ForwardRef(IconAdd)
+                                  isCircled={true}
+                                />
+                              }
+                              onClick={[Function]}
+                              type="button"
                             >
-                              <forwardRef<Button>
+                              <StyledButton
+                                aria-disabled={false}
                                 borderless={true}
                                 data-test-id="create-team"
-                                icon={
-                                  <ForwardRef
-                                    isCircled={true}
-                                  />
-                                }
+                                disabled={false}
+                                forwardRef={null}
                                 onClick={[Function]}
+                                role="button"
                                 type="button"
                               >
-                                <Button
-                                  align="center"
-                                  borderless={true}
+                                <Component
+                                  aria-disabled={false}
+                                  className="css-1hvuuup-StyledButton edwq9my0"
                                   data-test-id="create-team"
-                                  disabled={false}
                                   forwardRef={null}
-                                  icon={
-                                    <ForwardRef
-                                      isCircled={true}
-                                    />
-                                  }
                                   onClick={[Function]}
+                                  role="button"
                                   type="button"
                                 >
-                                  <StyledButton
+                                  <button
                                     aria-disabled={false}
-                                    borderless={true}
+                                    className="css-1hvuuup-StyledButton edwq9my0"
                                     data-test-id="create-team"
-                                    disabled={false}
-                                    forwardRef={null}
                                     onClick={[Function]}
                                     role="button"
                                     type="button"
                                   >
-                                    <Component
-                                      aria-disabled={false}
-                                      className="css-e1k74m-StyledButton edwq9my0"
-                                      data-test-id="create-team"
-                                      forwardRef={null}
-                                      onClick={[Function]}
-                                      role="button"
-                                      type="button"
+                                    <ButtonLabel
+                                      align="center"
+                                      borderless={true}
                                     >
-                                      <button
-                                        aria-disabled={false}
-                                        className="css-e1k74m-StyledButton edwq9my0"
-                                        data-test-id="create-team"
-                                        onClick={[Function]}
-                                        role="button"
-                                        type="button"
+                                      <span
+                                        className="css-zmpclt-ButtonLabel edwq9my1"
                                       >
-                                        <ButtonLabel
-                                          align="center"
-                                          borderless={true}
+                                        <Icon
+                                          hasChildren={false}
                                         >
                                           <span
-                                            className="css-zmpclt-ButtonLabel edwq9my1"
+                                            className="css-1a0nfqj-Icon edwq9my2"
                                           >
-                                            <Icon
-                                              hasChildren={false}
+                                            <IconAdd
+                                              isCircled={true}
                                             >
-                                              <span
-                                                className="css-1a0nfqj-Icon edwq9my2"
-                                              >
-                                                <ForwardRef
-                                                  isCircled={true}
+                                              <ForwardRef(SvgIcon)>
+                                                <svg
+                                                  fill="currentColor"
+                                                  height="16px"
+                                                  viewBox="0 0 16 16"
+                                                  width="16px"
                                                 >
-                                                  <ForwardRef(SvgIcon)>
-                                                    <svg
-                                                      fill="currentColor"
-                                                      height="16px"
-                                                      viewBox="0 0 16 16"
-                                                      width="16px"
-                                                    >
-                                                      <path
-                                                        d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
-                                                      />
-                                                      <path
-                                                        d="M8,12a.76.76,0,0,1-.75-.75V4.72a.75.75,0,0,1,1.5,0v6.56A.76.76,0,0,1,8,12Z"
-                                                      />
-                                                      <path
-                                                        d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
-                                                      />
-                                                    </svg>
-                                                  </ForwardRef(SvgIcon)>
-                                                </ForwardRef>
-                                              </span>
-                                            </Icon>
+                                                  <path
+                                                    d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
+                                                  />
+                                                  <path
+                                                    d="M8,12a.76.76,0,0,1-.75-.75V4.72a.75.75,0,0,1,1.5,0v6.56A.76.76,0,0,1,8,12Z"
+                                                  />
+                                                  <path
+                                                    d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                                                  />
+                                                </svg>
+                                              </ForwardRef(SvgIcon)>
+                                            </IconAdd>
                                           </span>
-                                        </ButtonLabel>
-                                      </button>
-                                    </Component>
-                                  </StyledButton>
-                                </Button>
-                              </forwardRef<Button>>
-                            </span>
-                          </Container>
-                        </InnerReference>
-                      </Reference>
-                    </Manager>
-                  </Tooltip>
-                </div>
-              </TeamSelectInput>
+                                        </Icon>
+                                      </span>
+                                    </ButtonLabel>
+                                  </button>
+                                </Component>
+                              </StyledButton>
+                            </Button>
+                          </forwardRef<Button>>
+                        </span>
+                      </Container>
+                    </InnerReference>
+                  </Reference>
+                </Manager>
+              </Tooltip>
             </div>
-            <div>
-              <forwardRef<Button>
+          </TeamSelectInput>
+        </div>
+        <div>
+          <forwardRef<Button>
+            data-test-id="create-project"
+            disabled={true}
+            priority="primary"
+          >
+            <Button
+              align="center"
+              data-test-id="create-project"
+              disabled={true}
+              forwardRef={null}
+              priority="primary"
+            >
+              <StyledButton
+                aria-disabled={true}
+                aria-label="Create Project"
                 data-test-id="create-project"
                 disabled={true}
+                forwardRef={null}
+                onClick={[Function]}
                 priority="primary"
+                role="button"
               >
-                <Button
-                  align="center"
+                <Component
+                  aria-disabled={true}
+                  aria-label="Create Project"
+                  className="css-9j7ei9-StyledButton edwq9my0"
                   data-test-id="create-project"
-                  disabled={true}
                   forwardRef={null}
-                  priority="primary"
+                  onClick={[Function]}
+                  role="button"
                 >
-                  <StyledButton
+                  <button
                     aria-disabled={true}
                     aria-label="Create Project"
+                    className="css-9j7ei9-StyledButton edwq9my0"
                     data-test-id="create-project"
-                    disabled={true}
-                    forwardRef={null}
                     onClick={[Function]}
-                    priority="primary"
                     role="button"
                   >
-                    <Component
-                      aria-disabled={true}
-                      aria-label="Create Project"
-                      className="css-9j7ei9-StyledButton edwq9my0"
-                      data-test-id="create-project"
-                      forwardRef={null}
-                      onClick={[Function]}
-                      role="button"
+                    <ButtonLabel
+                      align="center"
+                      priority="primary"
                     >
-                      <button
-                        aria-disabled={true}
-                        aria-label="Create Project"
-                        className="css-9j7ei9-StyledButton edwq9my0"
-                        data-test-id="create-project"
-                        onClick={[Function]}
-                        role="button"
+                      <span
+                        className="css-zmpclt-ButtonLabel edwq9my1"
                       >
-                        <ButtonLabel
-                          align="center"
-                          priority="primary"
-                        >
-                          <span
-                            className="css-zmpclt-ButtonLabel edwq9my1"
-                          >
-                            Create Project
-                          </span>
-                        </ButtonLabel>
-                      </button>
-                    </Component>
-                  </StyledButton>
-                </Button>
-              </forwardRef<Button>>
-            </div>
-          </form>
-        </CreateProjectForm>
-      </div>
-    </StickyWrapper>
+                        Create Project
+                      </span>
+                    </ButtonLabel>
+                  </button>
+                </Component>
+              </StyledButton>
+            </Button>
+          </forwardRef<Button>>
+        </div>
+      </form>
+    </CreateProjectForm>
   </div>
 </CreateProject>
 `;

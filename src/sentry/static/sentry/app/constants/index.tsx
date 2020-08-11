@@ -1,9 +1,16 @@
+/* global process */
 /**
  * Common constants here
  */
 
 import {t} from 'app/locale';
 import {Scope} from 'app/types';
+
+// This is considered the "default" route/view that users should be taken
+// to when the application does not have any further context
+//
+// e.g. loading app root or switching organization
+export const DEFAULT_APP_ROUTE = '/organizations/:orgSlug/issues/';
 
 export const API_ACCESS_SCOPES = [
   'project:read',
@@ -216,7 +223,6 @@ export const DEFAULT_PER_PAGE = 50;
 export const TEAMS_PER_PAGE = 25;
 
 // Webpack configures DEPLOY_PREVIEW_CONFIG for deploy preview builds.
-// eslint-disable-next-line no-undef
 export const DEPLOY_PREVIEW_CONFIG = (process.env.DEPLOY_PREVIEW_CONFIG as unknown) as
   | undefined
   | {
@@ -227,7 +233,6 @@ export const DEPLOY_PREVIEW_CONFIG = (process.env.DEPLOY_PREVIEW_CONFIG as unkno
     };
 
 // Webpack configures EXPERIMENTAL_SPA.
-// eslint-disable-next-line no-undef
 export const EXPERIMENTAL_SPA = (process.env.EXPERIMENTAL_SPA as unknown) as
   | undefined
   | boolean;
@@ -243,4 +248,10 @@ export const ORGANIZATION_FETCH_ERROR_TYPES = {
 };
 
 export const CONFIG_DOCS_URL = 'https://docs.sentry.io/server/config/';
-export const DISCOVER2_DOCS_URL = 'https://docs.sentry.io/performance/discover/';
+export const DISCOVER2_DOCS_URL =
+  'https://docs.sentry.io/performance-monitoring/discover-queries/';
+
+export const IS_CI = !!process.env.IS_CI;
+export const NODE_ENV = process.env.NODE_ENV;
+export const DISABLE_RR_WEB = !!process.env.DISABLE_RR_WEB;
+export const SPA_DSN = process.env.SPA_DSN;

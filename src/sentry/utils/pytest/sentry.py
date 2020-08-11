@@ -84,7 +84,7 @@ def pytest_configure(config):
         settings.SENTRY_NEWSLETTER_OPTIONS = {}
 
     settings.BROKER_BACKEND = "memory"
-    settings.BROKER_URL = None
+    settings.BROKER_URL = "memory://"
     settings.CELERY_ALWAYS_EAGER = False
     settings.CELERY_EAGER_PROPAGATES_EXCEPTIONS = True
 
@@ -115,11 +115,18 @@ def pytest_configure(config):
             "slack.client-id": "slack-client-id",
             "slack.client-secret": "slack-client-secret",
             "slack.verification-token": "slack-verification-token",
+            "slack.legacy-app": True,
             "github-app.name": "sentry-test-app",
             "github-app.client-id": "github-client-id",
             "github-app.client-secret": "github-client-secret",
             "vsts.client-id": "vsts-client-id",
             "vsts.client-secret": "vsts-client-secret",
+            "vsts-limited.client-id": "vsts-limited-client-id",
+            "vsts-limited.client-secret": "vsts-limited-client-secret",
+            "vercel.client-id": "vercel-client-id",
+            "vercel.client-secret": "vercel-client-secret",
+            "msteams.client-id": "msteams-client-id",
+            "msteams.client-secret": "msteams-client-secret",
         }
     )
 
@@ -188,6 +195,7 @@ def register_extensions():
         AliasedIntegrationProvider,
         ExampleRepositoryProvider,
         ServerExampleProvider,
+        FeatureFlagIntegration,
     )
     from sentry.integrations.github import GitHubIntegrationProvider
     from sentry.integrations.github_enterprise import GitHubEnterpriseIntegrationProvider
@@ -204,6 +212,7 @@ def register_extensions():
     integrations.register(ExampleIntegrationProvider)
     integrations.register(AliasedIntegrationProvider)
     integrations.register(ServerExampleProvider)
+    integrations.register(FeatureFlagIntegration)
     integrations.register(GitHubIntegrationProvider)
     integrations.register(GitHubEnterpriseIntegrationProvider)
     integrations.register(GitlabIntegrationProvider)

@@ -50,8 +50,8 @@ const OrganizationStore = Reflux.createStore({
     this.organization = null;
     this.errorType = null;
 
-    switch (err.statusText) {
-      case 'NOT FOUND':
+    switch (err?.status) {
+      case 404:
         this.errorType = ORGANIZATION_FETCH_ERROR_TYPES.ORG_NOT_FOUND;
         break;
       default:

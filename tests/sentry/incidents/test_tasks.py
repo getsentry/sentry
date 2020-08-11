@@ -16,7 +16,6 @@ from sentry.incidents.logic import (
     subscribe_to_incident,
 )
 from sentry.incidents.models import (
-    AlertRuleThresholdType,
     AlertRuleTriggerAction,
     IncidentActivityType,
     IncidentStatus,
@@ -70,7 +69,7 @@ class TestSendSubscriberNotifications(BaseIncidentActivityTest, TestCase):
         ).exists()
 
     def test_invalid_types(self):
-        activity_type = IncidentActivityType.DETECTED
+        activity_type = IncidentActivityType.CREATED
         activity = create_incident_activity(self.incident, activity_type)
         send_subscriber_notifications(activity.id)
         self.send_async.assert_not_called()  # NOQA
@@ -155,7 +154,7 @@ class HandleTriggerActionTest(TestCase):
 
     @fixture
     def trigger(self):
-        return create_alert_rule_trigger(self.alert_rule, "", AlertRuleThresholdType.ABOVE, 100)
+        return create_alert_rule_trigger(self.alert_rule, "", 100)
 
     @fixture
     def action(self):
@@ -192,10 +191,13 @@ class HandleTriggerActionTest(TestCase):
                 mock_handler
             )
             incident = self.create_incident()
+            metric_value = 1234
             with self.tasks():
-                handle_trigger_action.delay(self.action.id, incident.id, self.project.id, "fire")
+                handle_trigger_action.delay(
+                    self.action.id, incident.id, self.project.id, "fire", metric_value=metric_value
+                )
             mock_handler.assert_called_once_with(self.action, incident, self.project)
-            mock_handler.return_value.fire.assert_called_once_with()
+            mock_handler.return_value.fire.assert_called_once_with(metric_value)
 
 
 class ProcessPendingIncidentSnapshots(TestCase):

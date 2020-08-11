@@ -8,7 +8,6 @@ import logging
 import os.path
 import six
 from datetime import timedelta
-from enum import IntEnum, unique
 
 from collections import OrderedDict, namedtuple
 from django.conf import settings
@@ -270,7 +269,7 @@ MAX_RELEASE_FILES_OFFSET = 20000
 # to go from an integration id (in _platforms.json) to the platform
 # data, such as documentation url or humanized name.
 # example: java-logback -> {"type": "framework",
-#                           "link": "https://docs.getsentry.com/hosted/clients/java/modules/logback/",
+#                           "link": "https://docs.sentry.io/clients/java/integrations/#logback",
 #                           "id": "java-logback",
 #                           "name": "Logback"}
 INTEGRATION_ID_TO_PLATFORM_DATA = {}
@@ -499,30 +498,6 @@ ALL_ACCESS_PROJECTS = {-1}
 # Most number of events for the top-n graph
 MAX_TOP_EVENTS = 5
 
-
-@unique
-class DataCategory(IntEnum):
-    DEFAULT = 0
-    ERROR = 1
-    TRANSACTION = 2
-    SECURITY = 3
-    ATTACHMENT = 4
-    SESSION = 5
-
-    @classmethod
-    def from_event_type(cls, event_type):
-        if event_type == "error":
-            return DataCategory.ERROR
-        elif event_type == "transaction":
-            return DataCategory.TRANSACTION
-        elif event_type in ("csp", "hpkp", "expectct", "expectstaple"):
-            return DataCategory.SECURITY
-        return DataCategory.DEFAULT
-
-    def api_name(self):
-        return self.name.lower()
-
-
 # org option default values
 PROJECT_RATE_LIMIT_DEFAULT = 100
 ACCOUNT_RATE_LIMIT_DEFAULT = 0
@@ -536,6 +511,10 @@ REQUIRE_SCRUB_IP_ADDRESS_DEFAULT = False
 SCRAPE_JAVASCRIPT_DEFAULT = True
 TRUSTED_RELAYS_DEFAULT = None
 JOIN_REQUESTS_DEFAULT = True
+APDEX_THRESHOLD_DEFAULT = 300
 
 # `sentry:events_member_admin` - controls whether the 'member' role gets the event:admin scope
 EVENTS_MEMBER_ADMIN_DEFAULT = True
+
+# Defined at https://github.com/getsentry/relay/blob/master/relay-common/src/constants.rs
+DataCategory = sentry_relay.DataCategory

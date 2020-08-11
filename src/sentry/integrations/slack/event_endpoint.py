@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import json
 import re
 import six
 from collections import defaultdict
@@ -12,6 +11,7 @@ from sentry.incidents.models import Incident
 from sentry.models import Group, Project
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.web.decorators import transaction_start
+from sentry.utils import json
 
 from .client import SlackClient
 from .requests import SlackEventRequest, SlackRequestError

@@ -7,6 +7,7 @@ import {t} from 'app/locale';
 import Button from 'app/components/button';
 import ConfigStore from 'app/stores/configStore';
 import NavTabs from 'app/components/navTabs';
+import {IconMarkdown} from 'app/icons';
 import marked from 'app/utils/marked';
 import space from 'app/styles/space';
 import textStyles from 'app/styles/text';
@@ -210,7 +211,7 @@ class NoteInput extends React.Component {
             </NoteInputNavTabLink>
           </NoteInputNavTab>
           <MarkdownTab>
-            <MarkdownIcon className="icon-markdown" />
+            <IconMarkdown />
             <MarkdownSupported>{t('Markdown supported')}</MarkdownSupported>
           </MarkdownTab>
         </NoteInputNavTabs>
@@ -328,7 +329,7 @@ const getNoteInputErrorStyles = p => {
       height: 0;
       border-top: 7px solid transparent;
       border-bottom: 7px solid transparent;
-      border-right: 7px solid ${p.theme.red};
+      border-right: 7px solid ${p.theme.red400};
       position: absolute;
       left: -7px;
       top: 12px;
@@ -422,10 +423,6 @@ const MarkdownTab = styled(NoteInputNavTab)`
 const MarkdownSupported = styled('span')`
   margin-left: ${space(0.5)};
   font-size: 14px;
-`;
-
-const MarkdownIcon = styled('span')`
-  font-size: 20px;
 `;
 
 const NotePreview = styled('div')`

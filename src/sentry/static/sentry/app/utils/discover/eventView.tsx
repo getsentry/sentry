@@ -9,12 +9,12 @@ import moment from 'moment';
 
 import {DEFAULT_PER_PAGE} from 'app/constants';
 import {EventQuery} from 'app/actionCreators/events';
-import {SavedQuery, NewQuery, SelectValue, User} from 'app/types';
+import {GlobalSelection, SavedQuery, NewQuery, SelectValue, User} from 'app/types';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
 import {TableColumn, TableColumnSort} from 'app/views/eventsV2/table/types';
 import {decodeColumnOrder} from 'app/views/eventsV2/utils';
-import {decodeScalar} from 'app/utils/queryString';
+import {decodeScalar, decodeList} from 'app/utils/queryString';
 
 import {
   Sort,
@@ -26,7 +26,12 @@ import {
   generateFieldAsString,
 } from './fields';
 import {getSortField} from './fieldRenderers';
-import {CHART_AXIS_OPTIONS, DisplayModes, DISPLAY_MODE_OPTIONS} from './types';
+import {
+  CHART_AXIS_OPTIONS,
+  DisplayModes,
+  DISPLAY_MODE_OPTIONS,
+  DISPLAY_MODE_FALLBACK_OPTIONS,
+} from './types';
 
 // Metadata mapping for discover results.
 export type MetaType = Record<string, ColumnType>;
@@ -49,6 +54,11 @@ const EXTERNAL_QUERY_STRING_KEYS: Readonly<Array<keyof LocationQuery>> = [
   'cursor',
 ];
 
+const setSortOrder = (sort: Sort, kind: 'desc' | 'asc'): Sort => ({
+  kind,
+  field: sort.field,
+});
+
 const reverseSort = (sort: Sort): Sort => ({
   kind: sort.kind === 'desc' ? 'asc' : 'desc',
   field: sort.field,
@@ -63,7 +73,11 @@ const isSortEqualToField = (
   return sort.field === sortKey;
 };
 
-const fieldToSort = (field: Field, tableMeta: MetaType | undefined): Sort | undefined => {
+const fieldToSort = (
+  field: Field,
+  tableMeta: MetaType | undefined,
+  kind?: 'desc' | 'asc'
+): Sort | undefined => {
   const sortKey = getSortKeyFromField(field, tableMeta);
 
   if (!sortKey) {
@@ -71,7 +85,7 @@ const fieldToSort = (field: Field, tableMeta: MetaType | undefined): Sort | unde
   }
 
   return {
-    kind: 'desc',
+    kind: kind || 'desc',
     field: sortKey,
   };
 };
@@ -91,17 +105,8 @@ const decodeFields = (location: Location): Array<Field> => {
     return [];
   }
 
-  // TODO(leedongwei): Probably need to refactor this into utils.tsx
-  const fields: string[] = Array.isArray(query.field)
-    ? query.field
-    : isString(query.field)
-    ? [query.field]
-    : [];
-  const widths = Array.isArray(query.widths)
-    ? query.widths
-    : isString(query.widths)
-    ? [query.widths]
-    : [];
+  const fields = decodeList(query.field) || [];
+  const widths = decodeList(query.widths) || [];
 
   const parsed: Field[] = [];
   fields.forEach((field, i) => {
@@ -153,7 +158,7 @@ const decodeSorts = (location: Location): Array<Sort> => {
     return [];
   }
 
-  const sorts: Array<string> = isString(query.sort) ? [query.sort] : query.sort;
+  const sorts = decodeList(query.sort);
 
   return fromSorts(sorts);
 };
@@ -177,12 +182,7 @@ const encodeSorts = (sorts: Readonly<Array<Sort>>): Array<string> =>
 
 const collectQueryStringByKey = (query: Query, key: string): Array<string> => {
   const needle = query[key];
-  const collection: Array<string> = Array.isArray(needle)
-    ? needle
-    : typeof needle === 'string'
-    ? [needle]
-    : [];
-
+  const collection = decodeList(needle) || [];
   return collection.reduce((acc: Array<string>, item: string) => {
     item = item.trim();
 
@@ -201,13 +201,7 @@ const decodeQuery = (location: Location): string | undefined => {
 
   const queryParameter = location.query.query;
 
-  const query =
-    Array.isArray(queryParameter) && queryParameter.length > 0
-      ? queryParameter[0]
-      : isString(queryParameter)
-      ? queryParameter
-      : undefined;
-
+  const query = decodeScalar(queryParameter);
   return isString(query) ? query.trim() : undefined;
 };
 
@@ -244,6 +238,7 @@ class EventView {
   environment: Readonly<string[]>;
   yAxis: string | undefined;
   display: string | undefined;
+  interval: string | undefined;
   createdBy: User | undefined;
 
   constructor(props: {
@@ -259,6 +254,7 @@ class EventView {
     environment: Readonly<string[]>;
     yAxis: string | undefined;
     display: string | undefined;
+    interval?: string;
     createdBy: User | undefined;
   }) {
     const fields: Field[] = Array.isArray(props.fields) ? props.fields : [];
@@ -288,6 +284,7 @@ class EventView {
     this.environment = environment;
     this.yAxis = props.yAxis;
     this.display = props.display;
+    this.interval = props.interval;
     this.createdBy = props.createdBy;
   }
 
@@ -307,6 +304,7 @@ class EventView {
       environment: collectQueryStringByKey(location.query, 'environment'),
       yAxis: decodeScalar(location.query.yAxis),
       display: decodeScalar(location.query.display),
+      interval: decodeScalar(location.query.interval),
       createdBy: undefined,
     });
   }
@@ -449,22 +447,41 @@ class EventView {
     return newQuery;
   }
 
-  // TODO(mark) Refactor this to return the GlobalSelection type instead.
-  // We'll likely also need a function somewhere to convert GlobalSelection
-  // into query parameters, as that is how this method is currently used.
-  getGlobalSelection(): {
-    start: string | undefined;
-    end: string | undefined;
-    statsPeriod: string | undefined;
-    environment: string[];
-    project: number[];
-  } {
+  getGlobalSelection(): GlobalSelection {
     return {
-      start: this.start,
-      end: this.end,
-      statsPeriod: this.statsPeriod,
-      project: this.project as number[],
-      environment: this.environment as string[],
+      projects: this.project as number[],
+      environments: this.environment as string[],
+      datetime: {
+        start: this.start ?? null,
+        end: this.end ?? null,
+        period: this.statsPeriod ?? '',
+        // TODO(tony) Add support for the Use UTC option from
+        // the global headers, currently, that option is not
+        // supported and all times are assumed to be UTC
+        utc: true,
+      },
+    };
+  }
+
+  getGlobalSelectionQuery(): Query {
+    const {
+      environments: environment,
+      projects,
+      datetime: {start, end, period, utc},
+    } = this.getGlobalSelection();
+    return {
+      project: projects.map(proj => proj.toString()),
+      environment,
+      utc: utc ? 'true' : 'false',
+
+      // since these values are from `getGlobalSelection`
+      // we know they have type `string | null`
+      start: (start ?? undefined) as string | undefined,
+      end: (end ?? undefined) as string | undefined,
+
+      // we can't use the ?? operator here as we want to
+      // convert the empty string to undefined
+      statsPeriod: period ? period : undefined,
     };
   }
 
@@ -479,6 +496,7 @@ class EventView {
       query: undefined,
       yAxis: undefined,
       display: undefined,
+      interval: undefined,
     };
 
     for (const field of EXTERNAL_QUERY_STRING_KEYS) {
@@ -500,6 +518,7 @@ class EventView {
       query: this.query,
       yAxis: this.yAxis,
       display: this.display,
+      interval: this.interval,
     };
 
     for (const field of EXTERNAL_QUERY_STRING_KEYS) {
@@ -539,6 +558,22 @@ class EventView {
     return decodeColumnOrder(this.fields);
   }
 
+  getDays(): number {
+    const statsPeriod = decodeScalar(this.statsPeriod);
+
+    if (statsPeriod && statsPeriod.endsWith('d')) {
+      return parseInt(statsPeriod.slice(0, -1), 10);
+    } else if (statsPeriod && statsPeriod.endsWith('h')) {
+      return parseInt(statsPeriod.slice(0, -1), 10) / 24;
+    } else if (this.start && this.end) {
+      return (
+        (new Date(this.end).getTime() - new Date(this.start).getTime()) /
+        (24 * 60 * 60 * 1000)
+      );
+    }
+    return 0;
+  }
+
   clone(): EventView {
     // NOTE: We rely on usage of Readonly from TypeScript to ensure we do not mutate
     //       the attributes of EventView directly. This enables us to quickly
@@ -557,13 +592,14 @@ class EventView {
       environment: this.environment,
       yAxis: this.yAxis,
       display: this.display,
+      interval: this.interval,
       createdBy: this.createdBy,
     });
   }
 
   withSorts(sorts: Sort[]): EventView {
     const newEventView = this.clone();
-    const fields = newEventView.fields.map(field => field.field);
+    const fields = newEventView.fields.map(field => getAggregateAlias(field.field));
     newEventView.sorts = sorts.filter(sort => fields.includes(sort.field));
 
     return newEventView;
@@ -845,7 +881,7 @@ class EventView {
   ): Exclude<EventQuery & LocationQuery, 'sort' | 'cursor'> {
     const payload = this.getEventsAPIPayload(location);
 
-    const remove = ['id', 'name', 'per_page', 'sort', 'cursor', 'field'];
+    const remove = ['id', 'name', 'per_page', 'sort', 'cursor', 'field', 'interval'];
     for (const key of remove) {
       delete payload[key];
     }
@@ -922,7 +958,7 @@ class EventView {
     return this.sorts.find(sort => isSortEqualToField(sort, field, tableMeta));
   }
 
-  sortOnField(field: Field, tableMeta: MetaType): EventView {
+  sortOnField(field: Field, tableMeta: MetaType, kind?: 'desc' | 'asc'): EventView {
     // check if field can be sorted
     if (!isFieldSortable(field, tableMeta)) {
       return this;
@@ -938,7 +974,9 @@ class EventView {
       const currentSort = this.sorts[needleIndex];
 
       const sorts = [...newEventView.sorts];
-      sorts[needleIndex] = reverseSort(currentSort);
+      sorts[needleIndex] = kind
+        ? setSortOrder(currentSort, kind)
+        : reverseSort(currentSort);
 
       newEventView.sorts = sorts;
 
@@ -949,7 +987,7 @@ class EventView {
     const newEventView = this.clone();
 
     // invariant: this is not falsey, since sortKey exists
-    const sort = fieldToSort(field, tableMeta)!;
+    const sort = fieldToSort(field, tableMeta, kind)!;
 
     newEventView.sorts = [sort];
 
@@ -962,7 +1000,8 @@ class EventView {
       this.getAggregateFields()
         // Exclude last_seen and latest_event as they don't produce useful graphs.
         .filter(
-          (field: Field) => ['last_seen', 'latest_event'].includes(field.field) === false
+          (field: Field) =>
+            ['last_seen()', 'latest_event()'].includes(field.field) === false
         )
         .map((field: Field) => ({label: field.field, value: field.field}))
         .concat(CHART_AXIS_OPTIONS),
@@ -992,16 +1031,53 @@ class EventView {
     return defaultOption;
   }
 
-  getDisplayOptions() {
-    if (!this.start && !this.end) {
-      return DISPLAY_MODE_OPTIONS;
-    }
+  getDisplayOptions(): SelectValue<string>[] {
     return DISPLAY_MODE_OPTIONS.map(item => {
       if (item.value === DisplayModes.PREVIOUS) {
-        return {...item, disabled: true};
+        if (this.start || this.end) {
+          return {...item, disabled: true};
+        }
       }
+
+      if (item.value === DisplayModes.TOP5 || item.value === DisplayModes.DAILYTOP5) {
+        if (this.getAggregateFields().length === 0) {
+          return {...item, disabled: true};
+        }
+      }
+
+      if (item.value === DisplayModes.DAILY || item.value === DisplayModes.DAILYTOP5) {
+        if (this.getDays() < 1) {
+          return {...item, disabled: true};
+        }
+      }
+
       return item;
     });
+  }
+
+  getDisplayMode() {
+    const mode = this.display ?? DisplayModes.DEFAULT;
+    const displayOptions = this.getDisplayOptions();
+
+    let display = (Object.values(DisplayModes) as string[]).includes(mode)
+      ? mode
+      : DisplayModes.DEFAULT;
+    const cond = option => option.value === display;
+
+    // Just in case we define a fallback chain that results in an infinite loop.
+    // The number 5 isn't anything special, its just larger than the longest fallback
+    // chain that exists and isn't too big.
+    for (let i = 0; i < 5; i++) {
+      const selectedOption = displayOptions.find(cond);
+      if (selectedOption && !selectedOption.disabled) {
+        return display;
+      }
+      display = DISPLAY_MODE_FALLBACK_OPTIONS[display];
+    }
+
+    // after trying to find an enabled display mode and failing to find one,
+    // we just use the default display mode
+    return DisplayModes.DEFAULT;
   }
 }
 

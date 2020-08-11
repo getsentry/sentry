@@ -61,7 +61,7 @@ describe('Performance > Landing', function() {
           epm: 'number',
           p50: 'number',
           p95: 'number',
-          error_rate: 'number',
+          failure_rate: 'number',
           apdex_300: 'number',
           count_unique_user: 'number',
           user_misery_300: 'number',
@@ -74,7 +74,7 @@ describe('Performance > Landing', function() {
             epm: 30,
             p50: 100,
             p95: 500,
-            error_rate: 0.1,
+            failure_rate: 0.1,
             apdex_300: 0.6,
             count_unique_user: 1000,
             user_misery_300: 122,
@@ -144,10 +144,10 @@ describe('Performance > Landing', function() {
 
   it('does not render onboarding for "my projects"', async function() {
     const projects = [
-      TestStubs.Project({id: 1, firstTransactionEvent: false}),
-      TestStubs.Project({id: 2, firstTransactionEvent: true}),
+      TestStubs.Project({id: '1', firstTransactionEvent: false}),
+      TestStubs.Project({id: '2', firstTransactionEvent: true}),
     ];
-    const data = initializeData(projects, {project: [-1]});
+    const data = initializeData(projects, {project: ['-1']});
 
     const wrapper = mountWithTheme(
       <PerformanceLanding

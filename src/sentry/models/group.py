@@ -9,13 +9,10 @@ from enum import Enum
 from datetime import timedelta
 
 import six
-from django.core.urlresolvers import reverse
 from django.db import models
 from django.utils import timezone
-from django.utils.http import urlencode
+from django.utils.http import urlencode, urlquote
 from django.utils.translation import ugettext_lazy as _
-
-import sentry_sdk
 
 from sentry import eventstore, eventtypes, tagstore
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS, MAX_CULPRIT_LENGTH
@@ -320,16 +317,14 @@ class Group(Model):
         super(Group, self).save(*args, **kwargs)
 
     def get_absolute_url(self, params=None):
-        url_args = [self.organization.slug, self.id]
-        with sentry_sdk.start_span(op="models.group.absolute_url.reverse") as span:
-            span.set_data("url_args", url_args)
-            url = reverse("sentry-organization-issue", args=url_args)
-        if params:
-            with sentry_sdk.start_span(op="models.group.absolute_url.params") as span:
-                span.set_data("params", params)
-                url = url + "?" + urlencode(params)
-        with sentry_sdk.start_span(op="models.group.absolute_url.format", description=url):
-            return absolute_uri(url)
+        # Built manually in preference to django.core.urlresolvers.reverse,
+        # because reverse has a measured performance impact.
+        url = u"organizations/{org}/issues/{id}/{params}".format(
+            org=urlquote(self.organization.slug),
+            id=self.id,
+            params="?" + urlencode(params) if params else "",
+        )
+        return absolute_uri(url)
 
     @property
     def qualified_short_id(self):

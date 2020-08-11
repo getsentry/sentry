@@ -1,9 +1,9 @@
 import isEqual from 'lodash/isEqual';
 import PropTypes from 'prop-types';
 import React from 'react';
-import * as Sentry from '@sentry/browser';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import {WithRouterProps} from 'react-router/lib/withRouter';
+import * as Sentry from '@sentry/react';
 
 import {Client} from 'app/api';
 import {t} from 'app/locale';
@@ -15,15 +15,7 @@ import RouteError from 'app/views/routeError';
 import {metric} from 'app/utils/analytics';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 
-type AsyncComponentProps = {
-  /**
-   * Optional sentry APM profiling.
-   *
-   * NOTE: we don't decorate `AsyncComponent` but rather the subclass so we can
-   *       get its component name
-   */
-  finishProfile?: () => void;
-} & Partial<RouteComponentProps<{}, {}>>;
+type AsyncComponentProps = Partial<RouteComponentProps<{}, {}>>;
 
 type AsyncComponentState = {
   loading: boolean;
@@ -167,11 +159,6 @@ export default class AsyncComponent<
         },
       });
       this._measurement.hasMeasured = true;
-
-      // sentry apm profiling
-      if (typeof this.props.finishProfile === 'function') {
-        this.props.finishProfile();
-      }
     }
 
     // Re-fetch data when router params change.
@@ -409,7 +396,7 @@ export default class AsyncComponent<
     );
   }
 
-  renderLoading() {
+  renderLoading(): React.ReactNode {
     return <LoadingIndicator />;
   }
 
@@ -457,10 +444,8 @@ export default class AsyncComponent<
     return (
       <RouteError
         error={error}
-        component={this}
         disableLogSentry={!shouldLogSentry}
         disableReport={disableReport}
-        onRetry={this.remountComponent}
       />
     );
   }

@@ -210,55 +210,8 @@ fieldset[disabled] .btn-danger.active,
   text-shadow: none;
 }
 
-/* Icons */
-.icon-star-solid.bookmark,
-.icon-star-outline.bookmark {
-  margin-right: 6px;
-}
-.icon-star-solid.bookmark {
-  color: @yellow-orange;
-  &:hover {
-    color: @yellow-orange;
-  }
-}
-
-/* Button icons */
-
-.btn {
-  .icon-star-solid {
-    position: relative;
-    top: 1px;
-    margin-right: -1px;
-    margin-left: -1px;
-  }
-
-  .icon-ellipsis {
-    position: relative;
-    top: 2px;
-  }
-
-  .icon-checkmark,
-  .icon-trash,
-  .icon-pause {
-    position: relative;
-    top: 1px;
-    margin-right: -1px;
-  }
-
-  .icon-play {
-    font-size: 14px;
-    position: relative;
-    top: 2px;
-    left: -2px;
-    width: 0;
-    margin-right: -6px;
-  }
-}
-
 /* Small button icons */
-
 .btn-sm {
-  .icon-arrow-down,
   .icon-arrow-right,
   .icon-arrow-left,
   .icon-refresh {
@@ -360,6 +313,7 @@ pre.plain {
   margin: 0 5px;
   color: @gray-light;
   line-height: 1;
+  vertical-align: middle;
 
   &:hover {
     color: @gray;
@@ -387,6 +341,10 @@ table.table.key-value {
       word-break: break-word;
       padding: 8px 10px;
       font-size: 12px;
+
+      .val-string:first-child {
+        padding-left: 0;
+      }
     }
   }
 
@@ -665,14 +623,6 @@ table.table.key-value {
     position: relative;
   }
 
-  .icon-search {
-    color: lighten(@gray, 15);
-    position: absolute;
-    top: 12px;
-    left: 14px;
-    font-size: 14px;
-  }
-
   .search-input {
     // Match the height of buttons adjacent to the search input.
     height: 40px;
@@ -696,10 +646,6 @@ table.table.key-value {
       box-shadow: none;
     }
 
-    .icon-search {
-      color: @gray-light;
-    }
-
     &:after {
       display: block;
       content: '';
@@ -714,8 +660,11 @@ table.table.key-value {
 
 .search-clear-form {
   position: absolute;
-  top: 11px;
+  top: 50%;
+  height: 16px;
+  transform: translateY(-50%);
   right: 10px;
+  font-size: 16px;
   color: lighten(@gray, 30);
 
   &:hover {
@@ -1019,45 +968,6 @@ ul.faces {
     .with-padding {
       padding: 10px 10px 0;
     }
-  }
-}
-
-.box-clippable {
-  position: relative;
-  margin-left: -20px;
-  margin-right: -20px;
-  padding: 16px 20px 0;
-  border-top: 1px solid #f1f2f3;
-  .transition(all 5s ease-in-out);
-
-  &.revealed {
-    /* For "Show More" animation */
-    max-height: 50000px;
-  }
-
-  &:first-of-type {
-    margin-top: -16px;
-    border: 0;
-  }
-
-  h5 {
-    margin-bottom: 15px;
-  }
-
-  .clip-fade {
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    padding: 40px 0 0;
-    #gradient > .vertical(rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 1));
-    text-align: center;
-    border-bottom: 10px solid #fff;
-  }
-
-  &.clipped {
-    max-height: 200px;
-    overflow: hidden;
   }
 }
 
@@ -1603,7 +1513,6 @@ ul.radio-inputs {
   }
 
   .modal-header {
-    background: rgba(249, 250, 251, 0.8);
     border-bottom: 1px solid @trim;
     border-radius: 7px 7px 0 0;
     padding: 20px 30px;

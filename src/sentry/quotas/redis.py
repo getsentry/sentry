@@ -84,6 +84,7 @@ class RedisQuota(Quota):
                     id="p",
                     scope=QuotaScope.PROJECT,
                     scope_id=project.id,
+                    categories=DataCategory.event_categories(),
                     limit=pquota[0],
                     window=pquota[1],
                     reason_code="project_quota",
@@ -97,6 +98,7 @@ class RedisQuota(Quota):
                     id="o",
                     scope=QuotaScope.ORGANIZATION,
                     scope_id=project.organization.id,
+                    categories=DataCategory.event_categories(),
                     limit=oquota[0],
                     window=oquota[1],
                     reason_code="org_quota",
@@ -116,6 +118,7 @@ class RedisQuota(Quota):
                         id="k",
                         scope=QuotaScope.KEY,
                         scope_id=key.id,
+                        categories=DataCategory.event_categories(),
                         limit=kquota[0],
                         window=kquota[1],
                         reason_code="key_quota",
@@ -161,11 +164,24 @@ class RedisQuota(Quota):
     def get_refunded_quota_key(self, key):
         return u"r:{}".format(key)
 
-    def refund(self, project, key=None, timestamp=None):
+    def refund(self, project, key=None, timestamp=None, category=None, quantity=None):
         if timestamp is None:
             timestamp = time()
 
-        quotas = [quota for quota in self.get_quotas(project, key=key) if quota.should_track]
+        if category is None:
+            category = DataCategory.ERROR
+
+        if quantity is None:
+            quantity = 1
+
+        # only refund quotas that can be tracked and that specify the given
+        # category. an empty categories list usually refers to all categories,
+        # but such quotas are invalid with counters.
+        quotas = [
+            quota
+            for quota in self.get_quotas(project, key=key)
+            if quota.should_track and category in quota.categories
+        ]
 
         if not quotas:
             return
@@ -181,7 +197,7 @@ class RedisQuota(Quota):
             return_key = self.get_refunded_quota_key(
                 self.__get_redis_key(quota, timestamp, shift, project.organization_id)
             )
-            pipe.incr(return_key, 1)
+            pipe.incr(return_key, quantity)
             pipe.expireat(return_key, int(expiry))
 
         pipe.execute()

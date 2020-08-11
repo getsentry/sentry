@@ -4,7 +4,6 @@ import copy
 import six
 import pytest
 import pytz
-import time
 from sentry.utils.compat.mock import patch
 from datetime import timedelta
 
@@ -13,13 +12,13 @@ from six.moves.urllib.parse import urlencode
 from sentry.discover.models import DiscoverSavedQuery
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.utils.samples import load_data
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils.helpers.datetime import iso_format, before_now, timestamp_format
 
 
 FEATURE_NAMES = [
     "organizations:discover-basic",
     "organizations:discover-query",
-    "organizations:transaction-events",
+    "organizations:performance-view",
 ]
 
 
@@ -60,19 +59,10 @@ def transactions_query(**kwargs):
 
 
 def generate_transaction():
-    event_data = load_data("transaction")
+    start_datetime = before_now(minutes=1, milliseconds=500)
+    end_datetime = before_now(minutes=1)
+    event_data = load_data("transaction", timestamp=end_datetime, start_timestamp=start_datetime)
     event_data.update({"event_id": "a" * 32})
-
-    # set timestamps
-
-    start_datetime = before_now(minutes=1)
-    end_datetime = start_datetime + timedelta(milliseconds=500)
-
-    def generate_timestamp(date_time):
-        return time.mktime(date_time.utctimetuple()) + date_time.microsecond / 1e6
-
-    event_data["start_timestamp"] = generate_timestamp(start_datetime)
-    event_data["timestamp"] = generate_timestamp(end_datetime)
 
     # generate and build up span tree
     reference_span = event_data["spans"][0]
@@ -108,8 +98,8 @@ def generate_transaction():
             (start_delta, span_length) = time_offsets.get(span_id, (timedelta(), timedelta()))
 
             span_start_time = start_datetime + start_delta
-            span["start_timestamp"] = generate_timestamp(span_start_time)
-            span["timestamp"] = generate_timestamp(span_start_time + span_length)
+            span["start_timestamp"] = timestamp_format(span_start_time)
+            span["timestamp"] = timestamp_format(span_start_time + span_length)
             spans.append(span)
 
             if isinstance(child, dict):
@@ -126,8 +116,8 @@ def generate_transaction():
                 (start_delta, span_length) = time_offsets.get(span_id, (timedelta(), timedelta()))
 
                 span_start_time = start_datetime + start_delta
-                span["start_timestamp"] = generate_timestamp(span_start_time)
-                span["timestamp"] = generate_timestamp(span_start_time + span_length)
+                span["start_timestamp"] = timestamp_format(span_start_time)
+                span["timestamp"] = timestamp_format(span_start_time + span_length)
                 spans.append(span)
 
         return spans
@@ -149,8 +139,6 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
         self.login_as(self.user)
         self.landing_path = u"/organizations/{}/discover/queries/".format(self.org.slug)
         self.result_path = u"/organizations/{}/discover/results/".format(self.org.slug)
-
-        self.dismiss_assistant("discover_sidebar")
 
     def wait_until_loaded(self):
         self.browser.wait_until_not(".loading-indicator")
@@ -178,12 +166,31 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
     def test_all_events_query(self, mock_now):
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
         min_ago = iso_format(before_now(minutes=1))
+        two_min_ago = iso_format(before_now(minutes=2))
         self.store_event(
             data={
                 "event_id": "a" * 32,
                 "message": "oh no",
                 "timestamp": min_ago,
                 "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
+
+        self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "message": "this is bad.",
+                "timestamp": two_min_ago,
+                "fingerprint": ["group-2"],
+                "user": {
+                    "id": "123",
+                    "email": "someone@example.com",
+                    "username": "haveibeenpwned",
+                    "ip_address": "8.8.8.8",
+                    "name": "Someone",
+                },
             },
             project_id=self.project.id,
             assert_no_errors=False,
@@ -300,8 +307,8 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.browser.get(self.result_path + "?" + all_events_query())
             self.wait_until_loaded()
 
-            # Click the event link to open the events detail view
-            self.browser.element('[data-test-id="view-events"]').click()
+            # View Event
+            self.browser.elements('[data-test-id="view-event"]')[0].click()
             self.wait_until_loaded()
 
             header = self.browser.element('[data-test-id="event-header"] span')
@@ -312,41 +319,31 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
     @patch("django.utils.timezone.now")
     def test_event_detail_view_from_errors_view(self, mock_now):
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
-        event_source = (("a", 1), ("b", 39), ("c", 69))
-        event_ids = []
+
         event_data = load_data("javascript")
-        event_data["fingerprint"] = ["group-1"]
-        for id_prefix, offset in event_source:
-            event_time = iso_format(before_now(minutes=offset))
-            event_data.update(
-                {
-                    "timestamp": event_time,
-                    "received": event_time,
-                    "event_id": id_prefix * 32,
-                    "type": "error",
-                }
-            )
-            event = self.store_event(data=event_data, project_id=self.project.id)
-            event_ids.append(event.event_id)
+        event_data.update(
+            {
+                "timestamp": iso_format(before_now(minutes=5)),
+                "event_id": "d" * 32,
+                "fingerprint": ["group-1"],
+            }
+        )
+        self.store_event(data=event_data, project_id=self.project.id)
 
         with self.feature(FEATURE_NAMES):
             # Get the list page
             self.browser.get(self.result_path + "?" + errors_query() + "&statsPeriod=24h")
             self.wait_until_loaded()
 
-            # Click the event link to open the event detail view
-            self.browser.element('[data-test-id="view-events"]').click()
+            # Open the stack
+            self.browser.element('[data-test-id="open-stack"]').click()
             self.wait_until_loaded()
 
-            self.browser.snapshot("events-v2 - grouped error event detail view")
+            # View Event
+            self.browser.elements('[data-test-id="view-event"]')[0].click()
+            self.wait_until_loaded()
 
-            # Check that the newest event is loaded first and that pagination
-            # controls display
-            display_id = self.browser.element('[data-test-id="event-id"]')
-            assert event_ids[0] in display_id.text
-
-            assert self.browser.element_exists_by_test_id("older-event")
-            assert self.browser.element_exists_by_test_id("newer-event")
+            self.browser.snapshot("events-v2 - error event detail view")
 
     @patch("django.utils.timezone.now")
     def test_event_detail_view_from_transactions_query(self, mock_now):
@@ -355,7 +352,8 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
         event_data = generate_transaction()
         self.store_event(data=event_data, project_id=self.project.id, assert_no_errors=True)
 
-        # Create a child event that is linked to the parent.
+        # Create a child event that is linked to the parent so we have coverage
+        # of traversal buttons.
         child_event = generate_transaction()
         child_event["event_id"] = "b" * 32
         child_event["contexts"]["trace"]["parent_span_id"] = event_data["spans"][5]["span_id"]
@@ -367,23 +365,25 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             # Get the list page
             self.browser.get(self.result_path + "?" + transactions_query())
             self.wait_until_loaded()
-            self.browser.save_screenshot("./index.png")
 
-            # Click the event link to open the event detail view
-            self.browser.find_elements_by_css_selector('[data-test-id="view-events"]')[0].click()
+            # Open the stack
+            self.browser.elements('[data-test-id="open-stack"]')[0].click()
             self.wait_until_loaded()
-            self.browser.save_screenshot("./details.png")
+
+            # View Event
+            self.browser.elements('[data-test-id="view-event"]')[0].click()
+            self.wait_until_loaded()
 
             # Open a span detail so we can check the search by trace link.
             # Click on the 6th one as a missing instrumentation span is inserted.
-            self.browser.find_elements_by_css_selector('[data-test-id="span-row"]')[6].click()
-            self.browser.save_screenshot("./span.png")
+            self.browser.elements('[data-test-id="span-row"]')[6].click()
 
-            # Click on the child transaction.
+            # Wait until the child event loads.
             child_button = '[data-test-id="view-child-transaction"]'
             self.browser.wait_until(child_button)
             self.browser.snapshot("events-v2 - transactions event detail view")
 
+            # Click on the child transaction.
             self.browser.click(child_button)
             self.wait_until_loaded()
 
@@ -440,7 +440,6 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             new_name = "Custom queryupdated!"
             new_card_selector = 'div[name="discover2-query-name"][value="{}"]'.format(new_name)
             self.browser.wait_until(new_card_selector)
-            self.browser.save_screenshot("./rename.png")
 
         # Assert the name was updated.
         assert DiscoverSavedQuery.objects.filter(name=new_name).exists()
@@ -532,9 +531,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.wait_until_loaded()
 
             assert self.browser.element_exists_by_test_id("grid-editable"), "table should exist."
-            headers = self.browser.find_elements_by_css_selector(
-                '[data-test-id="grid-editable"] thead th'
-            )
+            headers = self.browser.elements('[data-test-id="grid-editable"] thead th')
             expected = ["", "MESSAGE", "PROJECT", "ID"]
             actual = [header.text for header in headers]
             assert expected == actual

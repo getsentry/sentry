@@ -26,7 +26,10 @@ function mountModal({tagKeys, columns, onApply}, initialData) {
 
 describe('EventsV2 -> ColumnEditModal', function() {
   const initialData = initializeOrg({
-    organization: {features: ['transaction-events']},
+    organization: {
+      features: ['performance-view'],
+      apdexThreshold: 400,
+    },
   });
   const tagKeys = ['browser.name', 'custom-field'];
   const columns = [
@@ -226,7 +229,7 @@ describe('EventsV2 -> ColumnEditModal', function() {
 
       // Parameter select should display and use the default value.
       const field = wrapper.find('QueryField input[name="refinement"]');
-      expect(field.props().value).toBe('300');
+      expect(field.props().value).toBe('400');
 
       // Trigger a blur and make sure the column is not wrong.
       field.simulate('blur');
@@ -234,7 +237,7 @@ describe('EventsV2 -> ColumnEditModal', function() {
       // Apply the changes so we can see the new columns.
       wrapper.find('Button[priority="primary"]').simulate('click');
       expect(onApply).toHaveBeenCalledWith([
-        {kind: 'function', function: ['apdex', '300', undefined]},
+        {kind: 'function', function: ['apdex', '400', undefined]},
       ]);
     });
 
@@ -246,20 +249,40 @@ describe('EventsV2 -> ColumnEditModal', function() {
       // Apply the changes so we can see the new columns.
       wrapper.find('Button[priority="primary"]').simulate('click');
       expect(onApply).toHaveBeenCalledWith([
-        {kind: 'function', function: ['apdex', '300', undefined]},
+        {kind: 'function', function: ['apdex', '400', undefined]},
       ]);
     });
 
     it('clears all unused parameters', function() {
-      // Choose percentile, then error_rate which has no parameters.
+      // Choose percentile, then failure_rate which has no parameters.
       selectByLabel(wrapper, 'percentile(\u2026)', {name: 'field', at: 0, control: true});
-      selectByLabel(wrapper, 'error_rate()', {name: 'field', at: 0, control: true});
+      selectByLabel(wrapper, 'failure_rate()', {name: 'field', at: 0, control: true});
 
       // Apply the changes so we can see the new columns.
       wrapper.find('Button[priority="primary"]').simulate('click');
       expect(onApply).toHaveBeenCalledWith([
-        {kind: 'function', function: ['error_rate', '', undefined]},
+        {kind: 'function', function: ['failure_rate', '', undefined]},
       ]);
+    });
+  });
+
+  describe('adding rows', function() {
+    const wrapper = mountModal(
+      {
+        columns: [columns[0]],
+        onApply: () => void 0,
+        tagKeys,
+      },
+      initialData
+    );
+    it('allows rows to be added, but only up to 20', function() {
+      for (let i = 2; i <= 20; i++) {
+        wrapper.find('button[aria-label="Add a Column"]').simulate('click');
+        expect(wrapper.find('QueryField')).toHaveLength(i);
+      }
+      expect(
+        wrapper.find('button[aria-label="Add a Column"]').prop('aria-disabled')
+      ).toBe(true);
     });
   });
 

@@ -1,13 +1,13 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import InlineSvg from 'app/components/inlineSvg';
 import {Theme} from 'app/utils/theme';
+import space from 'app/styles/space';
 
 type Props = React.HTMLAttributes<HTMLDivElement> & {
   priority?: keyof Theme['badge'] | keyof Theme['alert'];
   size?: string;
-  icon?: string;
+  icon?: string | React.ReactNode;
   border?: boolean;
   inline?: boolean;
 };
@@ -29,7 +29,7 @@ const getMarginLeft = (p: StyleFuncProps) =>
   p.inline ? `margin-left: ${p.size === 'small' ? '0.25em' : '0.5em'};` : '';
 
 const getBorder = (p: StyleFuncProps) =>
-  p.border ? `border: 1px solid ${getPriority(p)?.border ?? p.theme.gray400};` : '';
+  p.border ? `border: 1px solid ${getPriority(p)?.border ?? p.theme.borderDark};` : '';
 
 const Tag = styled(
   ({
@@ -42,7 +42,11 @@ const Tag = styled(
     ...props
   }: Props) => (
     <div {...props}>
-      {icon && <StyledInlineSvg src={icon} size="12px" />}
+      {icon && (
+        <IconWrapper>
+          {React.isValidElement(icon) && React.cloneElement(icon, {size: 'xs'})}
+        </IconWrapper>
+      )}
       {children}
     </div>
   )
@@ -56,6 +60,7 @@ const Tag = styled(
   text-align: center;
   white-space: nowrap;
   vertical-align: middle;
+  align-items: center;
   border-radius: ${p => (p.size === 'small' ? '0.25em' : '2em')};
   text-transform: lowercase;
   font-weight: ${p => (p.size === 'small' ? 'bold' : 'normal')};
@@ -64,8 +69,8 @@ const Tag = styled(
   ${p => getMarginLeft(p)};
 `;
 
-const StyledInlineSvg = styled(InlineSvg)`
-  margin-right: 4px;
+const IconWrapper = styled('span')`
+  margin-right: ${space(0.5)};
 `;
 
 export default Tag;

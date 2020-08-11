@@ -17,17 +17,18 @@ import InputField from './inputField';
 import ChoiceMapperField from './choiceMapperField';
 import RichListField from './richListField';
 import FieldSeparator from './fieldSeparator';
+import ProjectMapperField from './projectMapperField';
 import {Field} from './type';
 
 type Props = {
   field: Field;
   highlighted?: boolean;
-  disabled?: boolean;
+  disabled?: boolean | ((props) => boolean);
   flexibleControlStateSize?: boolean;
   stacked?: boolean;
   inline?: boolean;
   onBlur?: (value, event) => void;
-  access?: Scope[];
+  access?: Set<Scope>;
 };
 
 export default class FieldFromConfig extends React.Component<Props> {
@@ -55,6 +56,7 @@ export default class FieldFromConfig extends React.Component<Props> {
         'textarea',
         'url',
         'table',
+        'project_mapper',
       ]),
       required: PropTypes.bool,
       multiline: PropTypes.bool,
@@ -135,6 +137,8 @@ export default class FieldFromConfig extends React.Component<Props> {
         return <RichListField {...props} />;
       case 'table':
         return <TableField {...props} />;
+      case 'project_mapper':
+        return <ProjectMapperField {...props} />;
       case 'custom':
         return field.Component(props);
       default:

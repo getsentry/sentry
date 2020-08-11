@@ -31,16 +31,14 @@ exports[`ConfirmDelete renders 1`] = `
           className="modal-body"
         >
           <Alert
-            iconSize="24px"
             type="error"
           >
             <Component
-              className="css-red6oa-Alert ejthpj82"
-              iconSize="24px"
+              className="css-1f91eup-Alert ejthpj82"
               type="error"
             >
               <div
-                className="ref-error css-red6oa-Alert ejthpj82"
+                className="ref-error css-1f91eup-Alert ejthpj82"
               >
                 <StyledTextBlock>
                   <span
@@ -67,6 +65,7 @@ exports[`ConfirmDelete renders 1`] = `
               ]
             }
             required={false}
+            showHelpInTooltip={false}
             visible={true}
           >
             <FieldWrapper
@@ -74,7 +73,7 @@ exports[`ConfirmDelete renders 1`] = `
               inline={false}
             >
               <div
-                className="css-1j6rikj-FieldWrapper-FieldWrapper-FieldWrapper e2iyls20"
+                className="css-5lt4z9-FieldWrapper-FieldWrapper-FieldWrapper e2iyls20"
               >
                 <FieldDescription
                   inline={false}
@@ -86,16 +85,17 @@ exports[`ConfirmDelete renders 1`] = `
                       disabled={false}
                     >
                       <div
-                        className="css-1c18lg-FieldLabel e16ushrl0"
+                        className="css-wufuns-FieldLabel e16ushrl0"
                       >
-                        Please enter 
-                        <code
-                          key="1"
-                        >
-                          CoolOrg
-                        </code>
-                         to confirm the deletion
-                         
+                        <span>
+                          Please enter 
+                          <code
+                            key="1"
+                          >
+                            CoolOrg
+                          </code>
+                           to confirm the deletion
+                        </span>
                       </div>
                     </FieldLabel>
                   </label>
@@ -131,7 +131,7 @@ exports[`ConfirmDelete renders 1`] = `
                                 value=""
                               >
                                 <input
-                                  className="css-1iurn5e-Input e1xej46s0"
+                                  className="css-1g2jzij-Input e1xej46s0"
                                   onChange={[Function]}
                                   placeholder="CoolOrg"
                                   type="text"
@@ -196,7 +196,7 @@ exports[`ConfirmDelete renders 1`] = `
                 <Component
                   aria-disabled={false}
                   aria-label="Cancel"
-                  className="css-1c2phb1-StyledButton edwq9my0"
+                  className="css-1ili4om-StyledButton edwq9my0"
                   forwardRef={null}
                   onClick={[Function]}
                   role="button"
@@ -209,7 +209,7 @@ exports[`ConfirmDelete renders 1`] = `
                   <button
                     aria-disabled={false}
                     aria-label="Cancel"
-                    className="css-1c2phb1-StyledButton edwq9my0"
+                    className="css-1ili4om-StyledButton edwq9my0"
                     onClick={[Function]}
                     role="button"
                     style={

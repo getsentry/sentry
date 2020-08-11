@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import io
 import os
-import json
 
 from six.moves.urllib.parse import parse_qsl
 from django.core.urlresolvers import reverse
@@ -16,6 +15,7 @@ from sentry.models import (
     Organization,
     OrganizationMember,
 )
+from sentry.utils import json
 from sentry.utils.compat import mock
 from sentry.testutils import APITestCase
 

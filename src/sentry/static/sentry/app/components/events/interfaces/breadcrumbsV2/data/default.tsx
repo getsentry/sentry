@@ -5,23 +5,26 @@ import {getMeta} from 'app/components/events/meta/metaProxy';
 import withProjects from 'app/utils/withProjects';
 import {generateEventSlug, eventDetailsRoute} from 'app/utils/discover/urls';
 import Link from 'app/components/links/link';
+import Highlight from 'app/components/highlight';
 
 import getBreadcrumbCustomRendererValue from '../../breadcrumbs/getBreadcrumbCustomRendererValue';
 import {BreadcrumbTypeDefault, BreadcrumbTypeNavigation} from '../types';
 import Summary from './summary';
 
 type Props = {
+  searchTerm: string;
   breadcrumb: BreadcrumbTypeDefault | BreadcrumbTypeNavigation;
   event: Event;
   orgId: string | null;
 };
 
-const Default = ({breadcrumb, event, orgId}: Props) => (
-  <Summary kvData={breadcrumb.data}>
+const Default = ({breadcrumb, event, orgId, searchTerm}: Props) => (
+  <Summary kvData={breadcrumb.data} searchTerm={searchTerm}>
     {breadcrumb?.message &&
       getBreadcrumbCustomRendererValue({
         value: (
           <FormatMessage
+            searchTerm={searchTerm}
             event={event}
             orgId={orgId}
             breadcrumb={breadcrumb}
@@ -39,6 +42,7 @@ function isEventId(maybeEventId: string): boolean {
 }
 
 const FormatMessage = withProjects(function FormatMessageInner({
+  searchTerm,
   event,
   message,
   breadcrumb,
@@ -46,6 +50,7 @@ const FormatMessage = withProjects(function FormatMessageInner({
   loadingProjects,
   orgId,
 }: {
+  searchTerm: string;
   event: Event;
   projects: Project[];
   loadingProjects: boolean;
@@ -53,6 +58,7 @@ const FormatMessage = withProjects(function FormatMessageInner({
   message: string;
   orgId: string | null;
 }) {
+  const content = <Highlight text={searchTerm}>{message}</Highlight>;
   if (
     !loadingProjects &&
     typeof orgId === 'string' &&
@@ -64,16 +70,16 @@ const FormatMessage = withProjects(function FormatMessageInner({
     });
 
     if (!maybeProject) {
-      return <React.Fragment>{message}</React.Fragment>;
+      return content;
     }
 
     const projectSlug = maybeProject.slug;
     const eventSlug = generateEventSlug({project: projectSlug, id: message});
 
-    return <Link to={eventDetailsRoute({orgSlug: orgId, eventSlug})}>{message}</Link>;
+    return <Link to={eventDetailsRoute({orgSlug: orgId, eventSlug})}>{content}</Link>;
   }
 
-  return <React.Fragment>{message}</React.Fragment>;
+  return content;
 });
 
 export default Default;

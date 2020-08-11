@@ -92,11 +92,17 @@ export const sourceMaps: PlatformKey[] = [
   'electron',
 ];
 
+// TODO(epurkhiser): I've added these since there was a need to have them in
+// the platform key type. However I have not added them anywhere else.
+const tracing = ['python-tracing', 'node-tracing'] as const;
+
 export type PlatformKey =
   | typeof popular[number]
   | typeof frontend[number]
   | typeof mobile[number]
   | typeof backend[number]
-  | typeof desktop[number];
+  | typeof desktop[number]
+  | typeof tracing[number]
+  | 'other';
 
 export default categoryList;

@@ -111,7 +111,11 @@ exports[`OrganizationRepositories renders with github provider 1`] = `
         </ForwardRef>
       }
       description="Adding one or more repositories will enable enhanced releases and the ability to resolve Sentry Issues via git message."
-      icon={<ForwardRef />}
+      icon={
+        <ForwardRef(IconCommit)
+          size="xl"
+        />
+      }
       title="Sentry is better with commit data"
     />
   </Panel>
@@ -175,7 +179,11 @@ exports[`OrganizationRepositories renders without providers 1`] = `
         </ForwardRef>
       }
       description="Adding one or more repositories will enable enhanced releases and the ability to resolve Sentry Issues via git message."
-      icon={<ForwardRef />}
+      icon={
+        <ForwardRef(IconCommit)
+          size="xl"
+        />
+      }
       title="Sentry is better with commit data"
     />
   </Panel>

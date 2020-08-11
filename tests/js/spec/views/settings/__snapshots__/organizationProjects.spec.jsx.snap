@@ -66,7 +66,7 @@ exports[`OrganizationProjects should render the projects in the store 1`] = `
               <ForwardRef
                 disabled={false}
                 icon={
-                  <ForwardRef
+                  <ForwardRef(IconAdd)
                     isCircled={true}
                     size="xs"
                   />
@@ -86,7 +86,7 @@ exports[`OrganizationProjects should render the projects in the store 1`] = `
                 <ForwardRef
                   disabled={false}
                   icon={
-                    <ForwardRef
+                    <ForwardRef(IconAdd)
                       isCircled={true}
                       size="xs"
                     />
@@ -113,7 +113,7 @@ exports[`OrganizationProjects should render the projects in the store 1`] = `
                       styled={false}
                     >
                       <div
-                        className="css-120v9s3-Title e1uay4fd1"
+                        className="css-u2ls9d-Title e1uay4fd1"
                       >
                         <HeaderTitle>
                           <h4
@@ -131,7 +131,7 @@ exports[`OrganizationProjects should render the projects in the store 1`] = `
                         <forwardRef<Button>
                           disabled={false}
                           icon={
-                            <ForwardRef
+                            <ForwardRef(IconAdd)
                               isCircled={true}
                               size="xs"
                             />
@@ -145,7 +145,7 @@ exports[`OrganizationProjects should render the projects in the store 1`] = `
                             disabled={false}
                             forwardRef={null}
                             icon={
-                              <ForwardRef
+                              <ForwardRef(IconAdd)
                                 isCircled={true}
                                 size="xs"
                               />
@@ -211,7 +211,7 @@ exports[`OrganizationProjects should render the projects in the store 1`] = `
                                             className="css-1hbuack-Icon edwq9my2"
                                             size="small"
                                           >
-                                            <ForwardRef
+                                            <IconAdd
                                               isCircled={true}
                                               size="xs"
                                             >
@@ -235,7 +235,7 @@ exports[`OrganizationProjects should render the projects in the store 1`] = `
                                                   />
                                                 </svg>
                                               </ForwardRef(SvgIcon)>
-                                            </ForwardRef>
+                                            </IconAdd>
                                           </span>
                                         </Icon>
                                         Create Project
@@ -256,16 +256,16 @@ exports[`OrganizationProjects should render the projects in the store 1`] = `
           </StyledSettingsPageHeading>
           <Panel>
             <Component
-              className="css-15hwgrz-Panel e119nu470"
+              className="css-ietoyz-Panel e119nu470"
             >
               <div
-                className="css-15hwgrz-Panel e119nu470"
+                className="css-ietoyz-Panel e119nu470"
               >
                 <PanelHeader
                   hasButtons={true}
                 >
                   <div
-                    className="css-yhsu7n-PanelHeader en8g1d30"
+                    className="css-13it3e1-PanelHeader en8g1d30"
                   >
                     Projects
                     <withRouter(AsyncComponentSearchInput)
@@ -357,7 +357,7 @@ exports[`OrganizationProjects should render the projects in the store 1`] = `
                               value=""
                             >
                               <input
-                                className="search css-1iurn5e-Input e1xej46s0"
+                                className="search css-1g2jzij-Input e1xej46s0"
                                 onChange={[Function]}
                                 placeholder="Search Projects"
                                 value=""
@@ -388,14 +388,14 @@ exports[`OrganizationProjects should render the projects in the store 1`] = `
                       withPadding={false}
                     >
                       <div
-                        className="css-13ovabz-FlexBox-OrganizationProjects e1vnwt6f0"
+                        className="css-ok1i83-FlexBox-OrganizationProjects e1vnwt6f0"
                       >
                         <GridPanelItem
                           key="2"
                           p={2}
                         >
                           <div
-                            className="css-1mb4cot-PanelItem-GridPanelItem ew99cs00"
+                            className="css-1huwkq6-PanelItem-GridPanelItem ew99cs00"
                           >
                             <ProjectListItemWrapper>
                               <div
@@ -599,28 +599,32 @@ exports[`OrganizationProjects should render the projects in the store 1`] = `
                                             <Star
                                               className="css-1qavcxg-BookmarkLink enngb6z1"
                                               isBookmarked={false}
+                                              isSolid={true}
                                               onClick={[Function]}
-                                              src="icon-star-small-filled"
                                             >
-                                              <ForwardRef
-                                                className="enngb6z1 css-wprtkf-InlineSvg-Star-BookmarkLink ez1a7zv0"
-                                                isBookmarked={false}
+                                              <IconStar
+                                                className="enngb6z1 css-1uxzi56-Star-BookmarkLink ez1a7zv0"
+                                                isSolid={true}
                                                 onClick={[Function]}
-                                                src="icon-star-small-filled"
                                               >
-                                                <svg
-                                                  className="enngb6z1 css-wprtkf-InlineSvg-Star-BookmarkLink ez1a7zv0"
-                                                  height="1em"
+                                                <ForwardRef(SvgIcon)
+                                                  className="enngb6z1 css-1uxzi56-Star-BookmarkLink ez1a7zv0"
                                                   onClick={[Function]}
-                                                  viewBox={Object {}}
-                                                  width="1em"
                                                 >
-                                                  <use
-                                                    href="#test"
-                                                    xlinkHref="#test"
-                                                  />
-                                                </svg>
-                                              </ForwardRef>
+                                                  <svg
+                                                    className="enngb6z1 css-1uxzi56-Star-BookmarkLink ez1a7zv0"
+                                                    fill="currentColor"
+                                                    height="16px"
+                                                    onClick={[Function]}
+                                                    viewBox="0 0 16 16"
+                                                    width="16px"
+                                                  >
+                                                    <path
+                                                      d="M12.47,15.63a.73.73,0,0,1-.35-.09L8,13.38,3.88,15.54a.75.75,0,0,1-.79,0,.76.76,0,0,1-.3-.74l.79-4.59L.24,6.91A.75.75,0,0,1,.66,5.63L5.27,5,7.33.79a.78.78,0,0,1,1.34,0L10.73,5l4.61.67a.75.75,0,0,1,.42,1.28l-3.34,3.25.79,4.59a.76.76,0,0,1-.3.74A.79.79,0,0,1,12.47,15.63Z"
+                                                    />
+                                                  </svg>
+                                                </ForwardRef(SvgIcon)>
+                                              </IconStar>
                                             </Star>
                                           </BookmarkStar>
                                         </withApi(BookmarkStar)>

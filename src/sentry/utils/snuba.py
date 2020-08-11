@@ -5,6 +5,7 @@ from copy import deepcopy
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from dateutil.parser import parse as parse_datetime
+import logging
 import functools
 import os
 import pytz
@@ -37,12 +38,21 @@ from sentry.snuba.events import Columns
 from sentry.snuba.dataset import Dataset
 from sentry.utils.compat import map
 
+
+logger = logging.getLogger(__name__)
+
 # TODO remove this when Snuba accepts more than 500 issues
 MAX_ISSUES = 500
 MAX_HASHES = 5000
 
+# We limit the number of fields an user can ask for
+# in a single query to lessen the load on snuba
+MAX_FIELDS = 20
+
 SAFE_FUNCTION_RE = re.compile(r"-?[a-zA-Z_][a-zA-Z0-9_]*$")
-QUOTED_LITERAL_RE = re.compile(r"^'.*'$")
+# Match any text surrounded by quotes, can't use `.*` here since it
+# doesn't include new lines,
+QUOTED_LITERAL_RE = re.compile(r"^'[\s\S]*'$")
 
 # Global Snuba request option override dictionary. Only intended
 # to be used with the `options_override` contextmanager below.
@@ -51,6 +61,9 @@ OVERRIDE_OPTIONS = {
     "consistent": os.environ.get("SENTRY_SNUBA_CONSISTENT", "false").lower() in ("true", "1")
 }
 
+# Show the snuba query params and the corresponding sql or errors in the server logs
+SNUBA_INFO = os.environ.get("SENTRY_SNUBA_INFO", "false").lower() in ("true", "1")
+
 # There are several cases here where we support both a top level column name and
 # a tag with the same name. Existing search patterns expect to refer to the tag,
 # so we support <real_column_name>.name to refer to the top level column name.
@@ -58,6 +71,11 @@ SENTRY_SNUBA_MAP = {
     col.value.alias: col.value.event_name for col in Columns if col.value.event_name is not None
 }
 
+TRANSACTIONS_SNUBA_MAP = {
+    col.value.alias: col.value.transaction_name
+    for col in Columns
+    if col.value.transaction_name is not None
+}
 
 # This maps the public column aliases to the discover dataset column names.
 # Longer term we would like to not expose the transactions dataset directly
@@ -70,15 +88,32 @@ DISCOVER_COLUMN_MAP = {
 }
 
 
-DATASETS = {Dataset.Events: SENTRY_SNUBA_MAP, Dataset.Discover: DISCOVER_COLUMN_MAP}
+DATASETS = {
+    Dataset.Events: SENTRY_SNUBA_MAP,
+    Dataset.Transactions: TRANSACTIONS_SNUBA_MAP,
+    Dataset.Discover: DISCOVER_COLUMN_MAP,
+}
 
 # Store the internal field names to save work later on.
 # Add `group_id` to the events dataset list as we don't want to publically
 # expose that field, but it is used by eventstore and other internals.
 DATASET_FIELDS = {
     Dataset.Events: list(SENTRY_SNUBA_MAP.values()),
+    Dataset.Transactions: list(TRANSACTIONS_SNUBA_MAP.values()),
     Dataset.Discover: list(DISCOVER_COLUMN_MAP.values()),
 }
+
+SNUBA_OR = "or"
+SNUBA_AND = "and"
+OPERATOR_TO_FUNCTION = {
+    "=": "equals",
+    "!=": "notEquals",
+    ">": "greater",
+    "<": "less",
+    ">=": "greaterOrEquals",
+    "<=": "lessOrEquals",
+}
+FUNCTION_TO_OPERATOR = {v: k for k, v in OPERATOR_TO_FUNCTION.items()}
 
 
 def parse_snuba_datetime(value):
@@ -560,6 +595,8 @@ def bulk_raw_query(snuba_param_list, referrer=None):
         query_params, forward, reverse, thread_hub = params
         try:
             with timer("snuba_query"):
+                if SNUBA_INFO:
+                    query_params["debug"] = True
                 body = json.dumps(query_params)
                 referrer = headers.get("referer", "<unknown>")
                 with thread_hub.start_span(
@@ -596,7 +633,19 @@ def bulk_raw_query(snuba_param_list, referrer=None):
     for response, _, reverse in query_results:
         try:
             body = json.loads(response.data)
+            if SNUBA_INFO:
+                if "sql" in body:
+                    logger.info(
+                        "{}.sql: {}".format(headers.get("referer", "<unknown>"), body["sql"])
+                    )
+                if "error" in body:
+                    logger.info(
+                        "{}.err: {}".format(headers.get("referer", "<unknown>"), body["error"])
+                    )
         except ValueError:
+            if response.status != 200:
+                logger.error("snuba.query.invalid-json")
+                raise SnubaError("Failed to parse snuba error response")
             raise UnexpectedResponseError(
                 u"Could not decode JSON response: {}".format(response.data)
             )
@@ -701,25 +750,33 @@ def nest_groups(data, groups, aggregate_cols):
         )
 
 
-def resolve_column(col, dataset):
-    if col.startswith("tags["):
-        return col
+def resolve_column(dataset):
+    def _resolve_column(col):
+        if col is None or col.startswith("tags[") or QUOTED_LITERAL_RE.match(col):
+            return col
 
-    if not col or QUOTED_LITERAL_RE.match(col):
-        return col
-    if col in DATASETS[dataset]:
-        return DATASETS[dataset][col]
-    if col in DATASET_FIELDS[dataset]:
-        return col
+        # Some dataset specific logic:
+        if dataset == Dataset.Discover:
+            if isinstance(col, (list, tuple)) or col == "project_id":
+                return col
+        else:
+            if (
+                col in DATASET_FIELDS[dataset]
+            ):  # Discover does not allow internal aliases to be used by customers, so doesn't get this logic.
+                return col
 
-    return u"tags[{}]".format(col)
+        if col in DATASETS[dataset]:
+            return DATASETS[dataset][col]
+        return u"tags[{}]".format(col)
+
+    return _resolve_column
 
 
 def resolve_condition(cond, column_resolver):
     """
     When conditions have been parsed by the api.event_search module
     we can end up with conditions that are not valid on the current dataset
-    due to how ap.event_search checks for valid field names without
+    due to how api.event_search checks for valid field names without
     being aware of the dataset.
 
     We have the dataset context here, so we need to re-scope conditions to the
@@ -734,6 +791,19 @@ def resolve_condition(cond, column_resolver):
         # IN conditions are detected as a function but aren't really.
         if cond[index] == "IN":
             cond[0] = column_resolver(cond[0])
+            return cond
+        elif cond[index] in FUNCTION_TO_OPERATOR:
+            func_args = cond[index + 1]
+            for i, arg in enumerate(func_args):
+                if i == 0:
+                    if isinstance(arg, (list, tuple)):
+                        func_args[i] = resolve_condition(arg, column_resolver)
+                    else:
+                        func_args[i] = column_resolver(arg)
+                else:
+                    func_args[i] = u"'{}'".format(arg) if isinstance(arg, six.string_types) else arg
+
+            cond[index + 1] = func_args
             return cond
 
         func_args = cond[index + 1]
@@ -797,12 +867,13 @@ def _aliased_query_impl(
         raise ValueError("A dataset is required, and is no longer automatically detected.")
 
     derived_columns = []
+    resolve_func = resolve_column(dataset)
     if selected_columns:
         for (i, col) in enumerate(selected_columns):
             if isinstance(col, (list, tuple)):
                 derived_columns.append(col[2])
             else:
-                selected_columns[i] = resolve_column(col, dataset)
+                selected_columns[i] = resolve_func(col)
         selected_columns = [c for c in selected_columns if c]
 
     if aggregations:
@@ -810,8 +881,11 @@ def _aliased_query_impl(
             derived_columns.append(aggregation[2])
 
     if conditions:
-        condition_resolver = condition_resolver or resolve_column
-        column_resolver = functools.partial(condition_resolver, dataset=dataset)
+        column_resolver = (
+            functools.partial(condition_resolver, dataset=dataset)
+            if condition_resolver
+            else resolve_func
+        )
         for (i, condition) in enumerate(conditions):
             replacement = resolve_condition(condition, column_resolver)
             conditions[i] = replacement
@@ -823,7 +897,7 @@ def _aliased_query_impl(
         for (i, order) in enumerate(orderby):
             order_field = order.lstrip("-")
             if order_field not in derived_columns:
-                order_field = resolve_column(order_field, dataset)
+                order_field = resolve_func(order_field)
             updated_order.append(u"{}{}".format("-" if order.startswith("-") else "", order_field))
         orderby = updated_order
 
@@ -841,6 +915,89 @@ def _aliased_query_impl(
         orderby=orderby,
         **kwargs
     )
+
+
+# TODO (evanh) Since we are assuming that all string values are columns,
+# this will get tricky if we ever have complex columns where there are
+# string arguments to the functions that aren't columns
+def resolve_complex_column(col, resolve_func):
+    args = col[1]
+
+    for i in range(len(args)):
+        if isinstance(args[i], (list, tuple)):
+            resolve_complex_column(args[i], resolve_func)
+        elif isinstance(args[i], six.string_types):
+            args[i] = resolve_func(args[i])
+
+
+def resolve_snuba_aliases(snuba_filter, resolve_func, function_translations=None):
+    resolved = snuba_filter.clone()
+    translated_columns = {}
+    derived_columns = set()
+    if function_translations:
+        for snuba_name, sentry_name in six.iteritems(function_translations):
+            derived_columns.add(snuba_name)
+            translated_columns[snuba_name] = sentry_name
+
+    selected_columns = resolved.selected_columns
+    if selected_columns:
+        for (idx, col) in enumerate(selected_columns):
+            if isinstance(col, (list, tuple)):
+                if len(col) == 3 and col[0] == "transform":
+                    # Add the name from the project transform, and remove the backticks so its not treated as a new col
+                    derived_columns.add(col[2].strip("`"))
+                resolve_complex_column(col, resolve_func)
+            else:
+                name = resolve_func(col)
+                selected_columns[idx] = name
+                translated_columns[name] = col
+
+        resolved.selected_columns = selected_columns
+
+    groupby = resolved.groupby
+    if groupby:
+        for (idx, col) in enumerate(groupby):
+            name = col
+            if isinstance(col, (list, tuple)):
+                if len(col) == 3:
+                    name = col[2]
+            elif col not in derived_columns:
+                name = resolve_func(col)
+
+            groupby[idx] = name
+        resolved.groupby = groupby
+
+    aggregations = resolved.aggregations
+    for aggregation in aggregations or []:
+        derived_columns.add(aggregation[2])
+        if isinstance(aggregation[1], six.string_types):
+            aggregation[1] = resolve_func(aggregation[1])
+        elif isinstance(aggregation[1], (set, tuple, list)):
+            aggregation[1] = [resolve_func(col) for col in aggregation[1]]
+    resolved.aggregations = aggregations
+
+    conditions = resolved.conditions
+    if conditions:
+        for (i, condition) in enumerate(conditions):
+            replacement = resolve_condition(condition, resolve_func)
+            conditions[i] = replacement
+        resolved.conditions = [c for c in conditions if c]
+
+    orderby = resolved.orderby
+    if orderby:
+        orderby = orderby if isinstance(orderby, (list, tuple)) else [orderby]
+        resolved_orderby = []
+
+        for field_with_order in orderby:
+            field = field_with_order.lstrip("-")
+            resolved_orderby.append(
+                u"{}{}".format(
+                    "-" if field_with_order.startswith("-") else "",
+                    field if field in derived_columns else resolve_func(field),
+                )
+            )
+        resolved.orderby = resolved_orderby
+    return resolved, translated_columns
 
 
 JSON_TYPE_MAP = {

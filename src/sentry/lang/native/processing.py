@@ -4,12 +4,11 @@ import logging
 import posixpath
 import six
 
-from sentry.event_manager import validate_and_set_timestamp
 from sentry.lang.native.error import write_error, SymbolicationFailed
-from sentry.lang.native.minidump import MINIDUMP_ATTACHMENT_TYPE, is_minidump_event
 from sentry.lang.native.symbolicator import Symbolicator
-from sentry.lang.native.unreal import APPLECRASHREPORT_ATTACHMENT_TYPE, is_applecrashreport_event
 from sentry.lang.native.utils import (
+    is_minidump_event,
+    is_applecrashreport_event,
     get_sdk_from_event,
     native_images_from_data,
     is_native_platform,
@@ -30,6 +29,12 @@ logger = logging.getLogger(__name__)
 
 
 IMAGE_STATUS_FIELDS = frozenset(("unwind_status", "debug_status"))
+
+# Attachment type used for minidump files
+MINIDUMP_ATTACHMENT_TYPE = "event.minidump"
+
+# Attachment type used for Apple Crash Reports
+APPLECRASHREPORT_ATTACHMENT_TYPE = "event.applecrashreport"
 
 
 def _merge_frame(new_frame, symbolicated):
@@ -73,7 +78,7 @@ def _merge_frame(new_frame, symbolicated):
         frame_meta["symbolicator_status"] = symbolicated["status"]
 
 
-def _handle_image_status(status, image, sdk_info, handle_symbolication_failed):
+def _handle_image_status(status, image, sdk_info, data):
     if status in ("found", "unused"):
         return
     elif status == "missing":
@@ -104,10 +109,11 @@ def _handle_image_status(status, image, sdk_info, handle_symbolication_failed):
     error.image_path = image.get("code_file")
     error.image_name = image_name(image.get("code_file"))
     error.image_uuid = image.get("debug_id")
-    handle_symbolication_failed(error)
+
+    write_error(error, data)
 
 
-def _merge_image(raw_image, complete_image, sdk_info, handle_symbolication_failed):
+def _merge_image(raw_image, complete_image, sdk_info, data):
     statuses = set()
 
     # Set image data from symbolicator as symbolicator might know more
@@ -119,7 +125,7 @@ def _merge_image(raw_image, complete_image, sdk_info, handle_symbolication_faile
             raw_image[k] = v
 
     for status in set(statuses):
-        _handle_image_status(status, raw_image, sdk_info, handle_symbolication_failed)
+        _handle_image_status(status, raw_image, sdk_info, data)
 
 
 def _handle_response_status(event_data, response_json):
@@ -167,8 +173,6 @@ def _merge_full_response(data, response):
     if response.get("crashed") is not None:
         data["level"] = "fatal" if response["crashed"] else "info"
 
-    validate_and_set_timestamp(data, response.get("timestamp"))
-
     if response.get("system_info"):
         _merge_system_info(data, response["system_info"])
 
@@ -179,7 +183,7 @@ def _merge_full_response(data, response):
 
     for complete_image in response["modules"]:
         image = {}
-        _merge_image(image, complete_image, sdk_info, lambda e: write_error(e, data))
+        _merge_image(image, complete_image, sdk_info, data)
         images.append(image)
 
     # Extract the crash reason and infos
@@ -316,7 +320,7 @@ def process_payload(data):
     sdk_info = get_sdk_from_event(data)
 
     for raw_image, complete_image in zip(modules, response["modules"]):
-        _merge_image(raw_image, complete_image, sdk_info, lambda e: write_error(e, data))
+        _merge_image(raw_image, complete_image, sdk_info, data)
 
     assert len(stacktraces) == len(response["stacktraces"]), (stacktraces, response)
 

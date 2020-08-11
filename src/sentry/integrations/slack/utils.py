@@ -7,6 +7,7 @@ from datetime import timedelta
 
 from django.core.cache import cache
 from django.core.urlresolvers import reverse
+from django.http import Http404
 
 from sentry import tagstore
 from sentry.api.fields.actor import Actor
@@ -23,12 +24,14 @@ from sentry.models import (
     Project,
     User,
     Identity,
+    IdentityProvider,
     Integration,
+    Organization,
     Team,
     ReleaseProject,
 )
 
-from sentry.shared_integrations.exceptions import ApiError
+from sentry.shared_integrations.exceptions import ApiError, DuplicateDisplayNameError
 from .client import SlackClient
 
 logger = logging.getLogger("sentry.integrations.slack")
@@ -51,6 +54,13 @@ QUERY_AGGREGATION_DISPLAY = {
     "count()": "events",
     "count_unique(tags[sentry:user])": "users affected",
 }
+
+
+def get_integration_type(integration):
+    metadata = integration.metadata
+    # classic bots had a user_access_token in the metadata
+    default_installation = "classic_bot" if "user_access_token" in metadata else "workspace_app"
+    return metadata.get("installation_type", default_installation)
 
 
 def format_actor_option(actor):
@@ -162,6 +172,29 @@ def build_action_text(group, identity, action):
     )
 
 
+def build_rule_url(rule, group, project):
+    org_slug = group.organization.slug
+    project_slug = project.slug
+    rule_url = u"/settings/{}/projects/{}/alerts/rules/{}/".format(org_slug, project_slug, rule.id)
+    return absolute_uri(rule_url)
+
+
+def build_upgrade_notice_attachment(group):
+    org_slug = group.organization.slug
+    url = absolute_uri(
+        u"/settings/{}/integrations/slack/?tab=configurations&referrer=slack".format(org_slug)
+    )
+
+    return {
+        "title": "Reminder",
+        "text": (
+            u"It looks like you are still using the Legacy Sentry-Slack integration. "
+            u"You will need to upgrade by October 1st to continue receiving alerts. "
+            u"Click <{}|here> to upgrade.".format(url)
+        ),
+    }
+
+
 def build_group_attachment(group, event=None, tags=None, identity=None, actions=None, rules=None):
     # XXX(dcramer): options are limited to 100 choices, even when nested
     status = group.get_status()
@@ -265,7 +298,8 @@ def build_group_attachment(group, event=None, tags=None, identity=None, actions=
     footer = u"{}".format(group.qualified_short_id)
 
     if rules:
-        footer += u" via {}".format(rules[0].label)
+        rule_url = build_rule_url(rules[0], group, project)
+        footer += u" via <{}|{}>".format(rule_url, rules[0].label)
 
         if len(rules) > 1:
             footer += u" (+{} other)".format(len(rules) - 1)
@@ -287,7 +321,14 @@ def build_group_attachment(group, event=None, tags=None, identity=None, actions=
     }
 
 
-def build_incident_attachment(incident):
+def build_incident_attachment(incident, metric_value=None):
+    """
+    Builds an incident attachment for slack unfurling
+    :param incident: The `Incident` to build the attachment for
+    :param metric_value: The value of the metric that triggered this alert to fire. If
+    not provided we'll attempt to calculate this ourselves.
+    :return:
+    """
     logo_url = absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
     alert_rule = incident.alert_rule
 
@@ -318,10 +359,13 @@ def build_incident_attachment(incident):
     agg_text = QUERY_AGGREGATION_DISPLAY.get(
         alert_rule.snuba_query.aggregate, alert_rule.snuba_query.aggregate
     )
-    agg_value = get_incident_aggregates(incident, start, end, use_alert_aggregate=True)["count"]
+    if metric_value is None:
+        metric_value = get_incident_aggregates(incident, start, end, use_alert_aggregate=True)[
+            "count"
+        ]
     time_window = alert_rule.snuba_query.time_window / 60
 
-    text = "{} {} in the last {} minutes".format(agg_value, agg_text, time_window)
+    text = "{} {} in the last {} minutes".format(metric_value, agg_text, time_window)
 
     if alert_rule.snuba_query.query != "":
         text = text + "\nFilter: {}".format(alert_rule.snuba_query.query)
@@ -355,11 +399,12 @@ def build_incident_attachment(incident):
 
 # Different list types in slack that we'll use to resolve a channel name. Format is
 # (<list_name>, <result_name>, <prefix>).
-LIST_TYPES = [
+LEGACY_LIST_TYPES = [
     ("channels", "channels", CHANNEL_PREFIX),
     ("groups", "groups", CHANNEL_PREFIX),
     ("users", "members", MEMBER_PREFIX),
 ]
+LIST_TYPES = [("conversations", "channels", CHANNEL_PREFIX), ("users", "members", MEMBER_PREFIX)]
 
 
 def strip_channel_name(name):
@@ -367,13 +412,24 @@ def strip_channel_name(name):
 
 
 def get_channel_id(organization, integration_id, name):
+    """
+   Fetches the internal slack id of a channel.
+   :param organization: The organization that is using this integration
+   :param integration_id: The integration id of this slack integration
+   :param name: The name of the channel
+   :return: a tuple of three values
+       1. prefix: string (`"#"` or `"@"`)
+       2. channel_id: string or `None`
+       3. timed_out: boolean (whether we hit our self-imposed time limit)
+   """
+
     name = strip_channel_name(name)
     try:
         integration = Integration.objects.get(
             provider="slack", organizations=organization, id=integration_id
         )
     except Integration.DoesNotExist:
-        return None
+        return None, None, False
 
     # XXX(meredith): For large accounts that have many, many channels it's
     # possible for us to timeout while attempting to paginate through to find the channel id
@@ -386,9 +442,9 @@ def get_channel_id(organization, integration_id, name):
 def get_channel_id_with_timeout(integration, name, timeout):
     """
     Fetches the internal slack id of a channel.
-    :param organization: The organization that is using this integration
-    :param integration_id: The integration id of this slack integration
+    :param integration: The slack integration
     :param name: The name of the channel
+    :param timeout: Our self-imposed time limit.
     :return: a tuple of three values
         1. prefix: string (`"#"` or `"@"`)
         2. channel_id: string or `None`
@@ -400,10 +456,20 @@ def get_channel_id_with_timeout(integration, name, timeout):
     # Look for channel ID
     payload = dict(token_payload, **{"exclude_archived": False, "exclude_members": True})
 
+    # workspace tokens are the only tokens that don't works with the conversations.list endpoint,
+    # once eveyone is migrated we can remove this check and usages of channels.list
+    if get_integration_type(integration) == "workspace_app":
+        list_types = LEGACY_LIST_TYPES
+    else:
+        list_types = LIST_TYPES
+        payload = dict(payload, **{"types": "public_channel,private_channel"})
+
     time_to_quit = time.time() + timeout
 
     client = SlackClient()
-    for list_type, result_name, prefix in LIST_TYPES:
+    id_data = None
+    found_duplicate = False
+    for list_type, result_name, prefix in list_types:
         cursor = ""
         while True:
             endpoint = "/%s.list" % list_type
@@ -416,9 +482,20 @@ def get_channel_id_with_timeout(integration, name, timeout):
                 )
                 return (prefix, None, False)
 
-            item_id = {c["name"]: c["id"] for c in items[result_name]}.get(name)
-            if item_id:
-                return (prefix, item_id, False)
+            for c in items[result_name]:
+                # The "name" field is unique (this is the username for users)
+                # so we return immediately if we find a match.
+                if c["name"] == name:
+                    return (prefix, c["id"], False)
+                # If we don't get a match on a unique identifier, we look through
+                # the users' display names, and error if there is a repeat.
+                if list_type == "users":
+                    profile = c.get("profile")
+                    if profile and profile.get("display_name") == name:
+                        if id_data:
+                            found_duplicate = True
+                        else:
+                            id_data = (prefix, c["id"], False)
 
             cursor = items.get("response_metadata", {}).get("next_cursor", None)
             if time.time() > time_to_quit:
@@ -426,14 +503,18 @@ def get_channel_id_with_timeout(integration, name, timeout):
 
             if not cursor:
                 break
+        if found_duplicate:
+            raise DuplicateDisplayNameError(name)
+        elif id_data:
+            return id_data
 
     return (prefix, None, False)
 
 
-def send_incident_alert_notification(action, incident):
+def send_incident_alert_notification(action, incident, metric_value):
     channel = action.target_identifier
     integration = action.integration
-    attachment = build_incident_attachment(incident)
+    attachment = build_incident_attachment(incident, metric_value)
     payload = {
         "token": integration.metadata["access_token"],
         "channel": channel,
@@ -445,3 +526,22 @@ def send_incident_alert_notification(action, incident):
         client.post("/chat.postMessage", data=payload, timeout=5)
     except ApiError as e:
         logger.info("rule.fail.slack_post", extra={"error": six.text_type(e)})
+
+
+def get_identity(user, organization_id, integration_id):
+    try:
+        organization = Organization.objects.get(id__in=user.get_orgs(), id=organization_id)
+    except Organization.DoesNotExist:
+        raise Http404
+
+    try:
+        integration = Integration.objects.get(id=integration_id, organizations=organization)
+    except Integration.DoesNotExist:
+        raise Http404
+
+    try:
+        idp = IdentityProvider.objects.get(external_id=integration.external_id, type="slack")
+    except IdentityProvider.DoesNotExist:
+        raise Http404
+
+    return organization, integration, idp

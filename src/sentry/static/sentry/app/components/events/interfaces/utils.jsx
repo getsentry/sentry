@@ -1,7 +1,7 @@
 import isEmpty from 'lodash/isEmpty';
 import isString from 'lodash/isString';
-import * as Sentry from '@sentry/browser';
-import queryString from 'query-string';
+import * as queryString from 'query-string';
+import * as Sentry from '@sentry/react';
 
 import {FILTER_MASK} from 'app/constants';
 import {defined} from 'app/utils';

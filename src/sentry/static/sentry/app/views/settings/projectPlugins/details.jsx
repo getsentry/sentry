@@ -76,7 +76,7 @@ class ProjectPluginDetails extends AsyncView {
   handleReset = () => {
     const {projectId, orgId, pluginId} = this.props.params;
 
-    addLoadingMessage(t('Saving changes..'));
+    addLoadingMessage(t('Saving changes\u2026'));
     trackIntegrationEvent(
       {
         eventKey: 'integrations.uninstall_clicked',

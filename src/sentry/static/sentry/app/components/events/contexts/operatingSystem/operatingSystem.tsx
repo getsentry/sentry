@@ -22,6 +22,4 @@ const OperatingSystem = ({data}: Props) => (
   />
 );
 
-OperatingSystem.getTitle = () => 'Operating System';
-
 export default OperatingSystem;

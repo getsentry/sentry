@@ -13,7 +13,7 @@ function OnboardingPanel({className, image, children}: Props) {
   return (
     <Panel className={className}>
       <Container>
-        <IllustrationContainer>{image}</IllustrationContainer>
+        <IlloBox>{image}</IlloBox>
         <StyledBox>{children}</StyledBox>
       </Container>
     </Panel>
@@ -21,23 +21,44 @@ function OnboardingPanel({className, image, children}: Props) {
 }
 
 const Container = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  min-height: 450px;
-  padding: ${space(1)} ${space(4)};
+  padding: ${space(3)};
+  position: relative;
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    display: flex;
+    align-items: center;
+    flex-direction: row;
+    justify-content: center;
+    flex-wrap: wrap;
+    min-height: 300px;
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    min-height: 350px;
+  }
 `;
 
 const StyledBox = styled('div')`
-  flex: 1;
-  padding: ${space(3)};
+  z-index: 1;
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    flex: 2;
+  }
 `;
 
-const IllustrationContainer = styled(StyledBox)`
-  display: flex;
-  align-items: center;
-  justify-content: center;
+const IlloBox = styled(StyledBox)`
+  position: relative;
+  min-height: 100px;
+  max-width: 300px;
+  margin: ${space(2)} auto;
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    flex: 1;
+    margin: ${space(3)};
+    max-width: auto;
+  }
 `;
 
 export default OnboardingPanel;

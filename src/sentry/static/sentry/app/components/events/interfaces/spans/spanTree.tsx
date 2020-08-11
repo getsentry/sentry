@@ -1,10 +1,9 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {SentryTransactionEvent} from 'app/types';
+import {SentryTransactionEvent, Organization} from 'app/types';
 import {t} from 'app/locale';
-import EventView from 'app/utils/discover/eventView';
-import {TableData} from 'app/views/eventsV2/table/types';
+import {TableData} from 'app/utils/discover/discoverQuery';
 
 import {
   ProcessedSpanType,
@@ -26,6 +25,7 @@ import {
   getSpanTraceID,
   isGapSpan,
   isOrphanSpan,
+  isEventFromBrowserJavaScriptSDK,
 } from './utils';
 import {DragManagerChildrenProps} from './dragManager';
 import SpanGroup from './spanGroup';
@@ -42,7 +42,7 @@ type RenderedSpanTree = {
 
 type PropType = {
   orgId: string;
-  eventView: EventView;
+  organization: Organization;
   trace: ParsedTraceType;
   dragProps: DragManagerChildrenProps;
   filterSpans: FilterSpans | undefined;
@@ -137,14 +137,21 @@ class SpanTree extends React.Component<PropType> {
     numOfSpansOutOfViewAbove: number;
     numOfFilteredSpansAbove: number;
     span: Readonly<ProcessedSpanType>;
-    childSpans: Readonly<SpanChildrenLookupType>;
+    childSpans: SpanChildrenLookupType;
     generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
     previousSiblingEndTimestamp: undefined | number;
   }): RenderedSpanTree => {
-    const {orgId, eventView, event, spansWithErrors} = this.props;
+    const {orgId, event, spansWithErrors, organization} = this.props;
 
     const spanBarColour: string = pickSpanBarColour(getSpanOperation(span));
     const spanChildren: Array<RawSpanType> = childSpans?.[getSpanID(span)] ?? [];
+
+    // Mark descendents as being rendered. This is to address potential recursion issues due to malformed data.
+    // For example if a span has a span_id that's identical to its parent_span_id.
+    childSpans = {
+      ...childSpans,
+    };
+    delete childSpans[getSpanID(span)];
 
     const bounds = generateBounds({
       startTimestamp: span.start_timestamp,
@@ -160,7 +167,7 @@ class SpanTree extends React.Component<PropType> {
 
     // hide gap spans (i.e. "missing instrumentation" spans) for browser js transactions,
     // since they're not useful to indicate
-    const shouldIncludeGap = !isJavaScriptSDK(event.sdk?.name);
+    const shouldIncludeGap = !isEventFromBrowserJavaScriptSDK(event);
 
     const isValidGap =
       typeof previousSiblingEndTimestamp === 'number' &&
@@ -248,8 +255,9 @@ class SpanTree extends React.Component<PropType> {
     const spanGapComponent =
       isValidGap && isSpanDisplayed ? (
         <SpanGroup
-          eventView={eventView}
           orgId={orgId}
+          organization={organization}
+          event={event}
           spanNumber={spanNumber}
           isLast={false}
           continuingTreeDepths={continuingTreeDepths}
@@ -275,8 +283,9 @@ class SpanTree extends React.Component<PropType> {
           {infoMessage}
           {spanGapComponent}
           <SpanGroup
-            eventView={eventView}
             orgId={orgId}
+            organization={organization}
+            event={event}
             spanNumber={spanGroupNumber}
             isLast={isLast}
             continuingTreeDepths={continuingTreeDepths}
@@ -354,13 +363,5 @@ const TraceViewContainer = styled('div')`
   border-bottom-left-radius: 3px;
   border-bottom-right-radius: 3px;
 `;
-
-function isJavaScriptSDK(sdkName?: string): boolean {
-  if (!sdkName) {
-    return false;
-  }
-  // based on https://github.com/getsentry/sentry-javascript/blob/master/packages/browser/src/version.ts
-  return sdkName.toLowerCase() === 'sentry.javascript.browser';
-}
 
 export default SpanTree;

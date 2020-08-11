@@ -178,7 +178,7 @@ exports[`IssueListActions Bulk Total results < bulk limit bulk resolves 1`] = `
                 <Component
                   aria-disabled={false}
                   aria-label="Cancel"
-                  className="css-1c2phb1-StyledButton edwq9my0"
+                  className="css-1ili4om-StyledButton edwq9my0"
                   forwardRef={null}
                   onClick={[Function]}
                   role="button"
@@ -191,7 +191,7 @@ exports[`IssueListActions Bulk Total results < bulk limit bulk resolves 1`] = `
                   <button
                     aria-disabled={false}
                     aria-label="Cancel"
-                    className="css-1c2phb1-StyledButton edwq9my0"
+                    className="css-1ili4om-StyledButton edwq9my0"
                     onClick={[Function]}
                     role="button"
                     style={
@@ -492,7 +492,7 @@ exports[`IssueListActions Bulk Total results > bulk limit bulk resolves 1`] = `
                 <Component
                   aria-disabled={false}
                   aria-label="Cancel"
-                  className="css-1c2phb1-StyledButton edwq9my0"
+                  className="css-1ili4om-StyledButton edwq9my0"
                   forwardRef={null}
                   onClick={[Function]}
                   role="button"
@@ -505,7 +505,7 @@ exports[`IssueListActions Bulk Total results > bulk limit bulk resolves 1`] = `
                   <button
                     aria-disabled={false}
                     aria-label="Cancel"
-                    className="css-1c2phb1-StyledButton edwq9my0"
+                    className="css-1ili4om-StyledButton edwq9my0"
                     onClick={[Function]}
                     role="button"
                     style={

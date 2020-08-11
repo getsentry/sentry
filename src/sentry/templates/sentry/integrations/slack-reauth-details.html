@@ -57,8 +57,8 @@
             {% endfor %}
             <p class="section-info">
                 {% blocktrans %}
-                We can't even remember the name of that show everyone's been recommending, so we couldn't possibly
-                expect you to remember these channel names. We'll send you another reminder in your private Slack channels.
+                No need to waste time committing these to memory. After you authenticate the app,
+                we'll give you one last nudge via your private channels.
                 {% endblocktrans %}
             </p>
         </div>
@@ -91,7 +91,7 @@
                 {% endblocktrans %}
             </div>
             <div class="pull-right">
-                <a class="btn btn-primary" onclick="loading()" href="{{ next_url }}">{% trans "Upgrade" %}</a>
+                <a class="btn btn-primary" href="{{ next_url }}">{% trans "Upgrade" %}</a>
             </div>
         </div>
     </div>

@@ -253,12 +253,14 @@ def create_sample_time_series(event, release=None):
         tsdb.incr_multi(
             (
                 (tsdb.models.organization_total_received, project.organization_id),
-                (tsdb.models.project_total_forwarded, project.id),
                 (tsdb.models.project_total_received, project.id),
                 (tsdb.models.key_total_received, key.id),
             ),
             now,
             int(count * 1.1),
+        )
+        tsdb.incr(
+            tsdb.models.project_total_forwarded, project.id, now, int(count * 1.1),
         )
         tsdb.incr_multi(
             (
@@ -341,7 +343,7 @@ def main(num_events=1, extra_events=False):
     Broadcast.objects.create(
         title="Learn about Source Maps",
         message="Source maps are JSON files that contain information on how to map your transpiled source code back to their original source.",
-        link="https://docs.sentry.io/hosted/clients/javascript/sourcemaps/#uploading-source-maps-to-sentry",
+        link="https://docs.sentry.io/platforms/javascript/#source-maps",
     )
 
     if settings.SENTRY_SINGLE_ORGANIZATION:
@@ -663,9 +665,16 @@ def main(num_events=1, extra_events=False):
             try:
                 # Metric alerts
                 alert_rule = create_alert_rule(
-                    org, [project], "My Alert Rule", "level:error", "count()", 10, 1
+                    org,
+                    [project],
+                    "My Alert Rule",
+                    "level:error",
+                    "count()",
+                    10,
+                    AlertRuleThresholdType.ABOVE,
+                    1,
                 )
-                create_alert_rule_trigger(alert_rule, "critical", AlertRuleThresholdType.ABOVE, 10)
+                create_alert_rule_trigger(alert_rule, "critical", 10)
                 create_incident(
                     org,
                     type_=IncidentType.DETECTED,

@@ -9,6 +9,7 @@ import sentry_sdk
 from datetime import datetime, timedelta
 from django.conf import settings
 from django.utils.http import urlquote
+from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from enum import Enum
 from pytz import utc
@@ -16,18 +17,16 @@ from rest_framework.authentication import SessionAuthentication
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from simplejson import JSONDecodeError
 
 from sentry import tsdb
 from sentry.auth import access
 from sentry.models import Environment
 from sentry.utils.cursors import Cursor
 from sentry.utils.dates import to_datetime
-from sentry.utils.http import absolute_uri, is_valid_origin
+from sentry.utils.http import absolute_uri, is_valid_origin, origin_from_request
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.sdk import capture_exception
 from sentry.utils import json
-from sentry.web.api import allow_cors_options
 
 
 from .authentication import ApiKeyAuthentication, TokenAuthentication
@@ -47,6 +46,51 @@ DEFAULT_AUTHENTICATION = (TokenAuthentication, ApiKeyAuthentication, SessionAuth
 
 logger = logging.getLogger(__name__)
 audit_logger = logging.getLogger("sentry.audit.api")
+
+
+def allow_cors_options(func):
+    """
+    Decorator that adds automatic handling of OPTIONS requests for CORS
+
+    If the request is OPTIONS (i.e. pre flight CORS) construct a OK (200) response
+    in which we explicitly enable the caller and add the custom headers that we support
+    For other requests just add the appropriate CORS headers
+
+    :param func: the original request handler
+    :return: a request handler that shortcuts OPTIONS requests and just returns an OK (CORS allowed)
+    """
+
+    @functools.wraps(func)
+    def allow_cors_options_wrapper(self, request, *args, **kwargs):
+
+        if request.method == "OPTIONS":
+            response = HttpResponse(status=200)
+            response["Access-Control-Max-Age"] = "3600"  # don't ask for options again for 1 hour
+        else:
+            response = func(self, request, *args, **kwargs)
+
+        allow = ", ".join(self._allowed_methods())
+        response["Allow"] = allow
+        response["Access-Control-Allow-Methods"] = allow
+        response["Access-Control-Allow-Headers"] = (
+            "X-Sentry-Auth, X-Requested-With, Origin, Accept, "
+            "Content-Type, Authentication, Authorization, Content-Encoding"
+        )
+        response["Access-Control-Expose-Headers"] = "X-Sentry-Error, Retry-After"
+
+        if request.META.get("HTTP_ORIGIN") == "null":
+            origin = "null"  # if ORIGIN header is explicitly specified as 'null' leave it alone
+        else:
+            origin = origin_from_request(request)
+
+        if origin is None or origin == "null":
+            response["Access-Control-Allow-Origin"] = "*"
+        else:
+            response["Access-Control-Allow-Origin"] = origin
+
+        return response
+
+    return allow_cors_options_wrapper
 
 
 class DocSection(Enum):
@@ -122,7 +166,7 @@ class Endpoint(APIView):
 
         try:
             request.json_body = json.loads(request.body)
-        except JSONDecodeError:
+        except json.JSONDecodeError:
             return
 
     def initialize_request(self, request, *args, **kwargs):

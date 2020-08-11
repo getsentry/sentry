@@ -4,59 +4,52 @@ import {
   Trigger,
   Dataset,
 } from 'app/views/settings/incidentRules/types';
+import EventView from 'app/utils/discover/eventView';
+import {AggregationKey, LooseFieldKey} from 'app/utils/discover/fields';
 
 export const DEFAULT_AGGREGATE = 'count()';
-
-export const PRESET_AGGREGATES = [
-  {
-    match: /^count\(\)/,
-    name: 'Number of errors',
-    validDataset: [Dataset.ERRORS],
-    default: 'count()',
-  },
-  {
-    match: /^count_unique\(tags\[sentry:user\]\)/,
-    name: 'Users affected',
-    validDataset: [Dataset.ERRORS],
-    default: 'count_unique(tags[sentry:user])',
-  },
-  {
-    match: /^(p[0-9]{2,3}|percentile\(transaction\.duration,[^)]+\))/,
-    name: 'Latency',
-    validDataset: [Dataset.TRANSACTIONS],
-    default: 'percentile(transaction.duration, 0.95)',
-  },
-  {
-    match: /^apdex\([0-9.]+\)/,
-    name: 'Apdex',
-    validDataset: [Dataset.TRANSACTIONS],
-    default: 'apdex(300)',
-  },
-  {
-    match: /^count\(\)/,
-    name: 'Throughput',
-    validDataset: [Dataset.TRANSACTIONS],
-    default: 'count()',
-  },
-  {
-    match: /^error_rate\(\)/,
-    name: 'Error rate',
-    validDataset: [Dataset.TRANSACTIONS],
-    default: 'error_rate()',
-  },
-];
 
 export const DATASET_EVENT_TYPE_FILTERS = {
   [Dataset.ERRORS]: 'event.type:error',
   [Dataset.TRANSACTIONS]: 'event.type:transaction',
 } as const;
 
-export function createDefaultTrigger(): Trigger {
+type OptionConfig = {
+  aggregations: AggregationKey[];
+  fields: LooseFieldKey[];
+};
+
+/**
+ * Allowed error aggregations for alerts
+ */
+export const errorFieldConfig: OptionConfig = {
+  aggregations: ['count', 'count_unique'],
+  fields: ['user'],
+};
+
+/**
+ * Allowed transaction aggregations for alerts
+ */
+export const transactionFieldConfig: OptionConfig = {
+  aggregations: [
+    'avg',
+    'percentile',
+    'failure_rate',
+    'apdex',
+    'count',
+    'p50',
+    'p75',
+    'p95',
+    'p99',
+    'p100',
+  ],
+  fields: ['transaction.duration'],
+};
+
+export function createDefaultTrigger(label: 'critical' | 'warning'): Trigger {
   return {
-    label: 'critical',
+    label,
     alertThreshold: '',
-    resolveThreshold: '',
-    thresholdType: AlertRuleThresholdType.ABOVE,
     actions: [],
   };
 }
@@ -67,8 +60,28 @@ export function createDefaultRule(): UnsavedIncidentRule {
     aggregate: DEFAULT_AGGREGATE,
     query: '',
     timeWindow: 1,
-    triggers: [createDefaultTrigger()],
+    triggers: [createDefaultTrigger('critical'), createDefaultTrigger('warning')],
     projects: [],
     environment: null,
+    resolveThreshold: '',
+    thresholdType: AlertRuleThresholdType.ABOVE,
+  };
+}
+
+/**
+ * Create an unsaved alert from a discover EventView object
+ */
+export function createRuleFromEventView(eventView: EventView): UnsavedIncidentRule {
+  return {
+    ...createDefaultRule(),
+    dataset: eventView.query.includes(DATASET_EVENT_TYPE_FILTERS[Dataset.TRANSACTIONS])
+      ? Dataset.TRANSACTIONS
+      : Dataset.ERRORS,
+    query: eventView.query
+      .slice()
+      .replace(/event\.type:(transaction|error)/, '')
+      .trim(),
+    aggregate: eventView.getYAxis(),
+    environment: eventView.environment.length ? eventView.environment[0] : null,
   };
 }

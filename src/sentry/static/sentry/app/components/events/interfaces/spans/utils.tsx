@@ -250,7 +250,7 @@ export const getHumanDuration = (duration: number): string => {
   // note: duration is assumed to be in seconds
 
   const durationMS = duration * 1000;
-  return `${durationMS.toFixed(2)}ms`;
+  return `${Number(durationMS.toFixed(2)).toLocaleString()}ms`;
 };
 
 const getLetterIndex = (letter: string): number => {
@@ -292,6 +292,7 @@ export type UserSelectValues = {
   userSelect: string | null;
   MozUserSelect: string | null;
   msUserSelect: string | null;
+  webkitUserSelect: string | null;
 };
 
 export const setBodyUserSelect = (nextValues: UserSelectValues): UserSelectValues => {
@@ -304,13 +305,15 @@ export const setBodyUserSelect = (nextValues: UserSelectValues): UserSelectValue
     // @ts-ignore
     MozUserSelect: document.body.style.MozUserSelect,
     msUserSelect: document.body.style.msUserSelect,
+    webkitUserSelect: document.body.style.webkitUserSelect,
   };
 
   document.body.style.userSelect = nextValues.userSelect || '';
   // MozUserSelect is not typed in TS
   // @ts-ignore
-  document.body.style.MozUserSelect = nextValues.MozUserSelect;
-  document.body.style.msUserSelect = nextValues.msUserSelect;
+  document.body.style.MozUserSelect = nextValues.MozUserSelect || '';
+  document.body.style.msUserSelect = nextValues.msUserSelect || '';
+  document.body.style.webkitUserSelect = nextValues.webkitUserSelect || '';
 
   return previousValues;
 };
@@ -579,3 +582,21 @@ export function unwrapTreeDepth(treeDepth: TreeDepthType): number {
 
   return treeDepth;
 }
+
+export function isEventFromBrowserJavaScriptSDK(event: SentryTransactionEvent): boolean {
+  const sdkName = event.sdk?.name;
+  if (!sdkName) {
+    return false;
+  }
+  // based on https://github.com/getsentry/sentry-javascript/blob/master/packages/browser/src/version.ts
+  return [
+    'sentry.javascript.browser',
+    'sentry.javascript.react',
+    'sentry.javascript.gatsby',
+  ].includes(sdkName.toLowerCase());
+}
+
+// Durationless ops from: https://github.com/getsentry/sentry-javascript/blob/0defcdcc2dfe719343efc359d58c3f90743da2cd/packages/apm/src/integrations/tracing.ts#L629-L688
+// PerformanceMark: Duration is 0 as per https://developer.mozilla.org/en-US/docs/Web/API/PerformanceMark
+// PerformancePaintTiming: Duration is 0 as per https://developer.mozilla.org/en-US/docs/Web/API/PerformancePaintTiming
+export const durationlessBrowserOps = ['mark', 'paint'];

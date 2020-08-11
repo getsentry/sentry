@@ -20,7 +20,7 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import EventSerializer, serialize, SimpleEventSerializer
 from sentry import eventstore, features
 from sentry.snuba import discover
-from sentry.utils import snuba
+from sentry.utils.snuba import MAX_FIELDS
 from sentry.utils.http import absolute_uri
 from sentry.models.project import Project
 
@@ -73,16 +73,15 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
         )
 
     def handle_results(self, request, organization, project_ids, results):
-        projects = {
-            p["id"]: p["slug"]
-            for p in Project.objects.filter(organization=organization, id__in=project_ids).values(
-                "id", "slug"
-            )
-        }
-
         fields = request.GET.getlist("field")
 
         if "project.name" in fields:
+            projects = {
+                p["id"]: p["slug"]
+                for p in Project.objects.filter(
+                    organization=organization, id__in=project_ids
+                ).values("id", "slug")
+            }
             for result in results:
                 result["project.name"] = projects[result["project.id"]]
                 if "project.id" not in fields:
@@ -116,7 +115,7 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
         )
 
     def get(self, request, organization):
-        if not features.has("organizations:discover-basic", organization, actor=request.user):
+        if not self.has_feature(organization, request):
             return Response(status=404)
 
         with sentry_sdk.start_span(op="discover.endpoint", description="filter_params") as span:
@@ -132,6 +131,13 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
             )
             if not has_global_views and len(params.get("project_id", [])) > 1:
                 raise ParseError(detail="You cannot view events from multiple projects.")
+
+            if len(request.GET.getlist("field")) > MAX_FIELDS:
+                raise ParseError(
+                    detail="You can view up to {0} fields at a time. Please delete some and try again.".format(
+                        MAX_FIELDS
+                    )
+                )
 
         def data_fn(offset, limit):
             return discover.query(
@@ -149,7 +155,7 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
                 use_aggregate_conditions=True,
             )
 
-        try:
+        with self.handle_query_errors():
             return self.paginate(
                 request=request,
                 paginator=GenericOffsetPaginator(data_fn=data_fn),
@@ -157,30 +163,3 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
                     request, organization, params["project_id"], results
                 ),
             )
-        except (discover.InvalidSearchQuery, snuba.QueryOutsideRetentionError) as error:
-            raise ParseError(detail=six.text_type(error))
-        except snuba.QueryIllegalTypeOfArgument:
-            raise ParseError(detail="Invalid query. Argument to function is wrong type.")
-        except snuba.SnubaError as error:
-            message = "Internal error. Please try again."
-            if isinstance(
-                error,
-                (
-                    snuba.RateLimitExceeded,
-                    snuba.QueryMemoryLimitExceeded,
-                    snuba.QueryTooManySimultaneous,
-                ),
-            ):
-                message = "Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects."
-            elif isinstance(
-                error,
-                (
-                    snuba.UnqualifiedQueryError,
-                    snuba.QueryExecutionError,
-                    snuba.SchemaValidationError,
-                ),
-            ):
-                sentry_sdk.capture_exception(error)
-                message = "Internal error. Your query failed to run."
-
-            raise ParseError(detail=message)

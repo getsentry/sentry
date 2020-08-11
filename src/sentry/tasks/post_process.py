@@ -5,7 +5,6 @@ import time
 import sentry_sdk
 
 from django.conf import settings
-from sentry_sdk.tracing import Span
 
 from sentry import features
 from sentry.utils.cache import cache
@@ -15,7 +14,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.redis import redis_clusters
 from sentry.utils.safe import safe_execute
-from sentry.utils.sdk import set_current_project
+from sentry.utils.sdk import set_current_project, bind_organization_context
 
 logger = logging.getLogger("sentry")
 
@@ -161,6 +160,7 @@ def post_process_group(event, is_new, is_regression, is_new_group_environment, *
         event.project._organization_cache = Organization.objects.get_from_cache(
             id=event.project.organization_id
         )
+        bind_organization_context(event.project.organization)
 
         _capture_stats(event, is_new)
 
@@ -179,8 +179,8 @@ def post_process_group(event, is_new, is_regression, is_new_group_environment, *
             # objects back and forth isn't super efficient
             for callback, futures in rp.apply():
                 has_alert = True
-                with sentry_sdk.start_span(
-                    Span(op="post_process_group", transaction="rule_processor_apply", sampled=True)
+                with sentry_sdk.start_transaction(
+                    op="post_process_group", name="rule_processor_apply", sampled=True
                 ):
                     safe_execute(callback, event, futures)
 

@@ -40,7 +40,8 @@ class GitHubClientMixin(ApiClient):
 
     def get_repositories(self):
         repositories = self.get("/installation/repositories", params={"per_page": 100})
-        return repositories["repositories"]
+        repos = repositories["repositories"]
+        return [repo for repo in repos if not repo.get("archived")]
 
     def search_repositories(self, query):
         return self.get("/search/repositories", params={"q": query})
@@ -103,7 +104,7 @@ class GitHubClientMixin(ApiClient):
 
     def create_token(self):
         return self.post(
-            u"/installations/{}/access_tokens".format(self.integration.external_id),
+            u"/app/installations/{}/access_tokens".format(self.integration.external_id),
             headers={
                 "Authorization": "Bearer %s" % self.get_jwt(),
                 # TODO(jess): remove this whenever it's out of preview

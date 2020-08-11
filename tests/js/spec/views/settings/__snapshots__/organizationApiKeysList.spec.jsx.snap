@@ -47,7 +47,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
       action={
         <ForwardRef
           icon={
-            <ForwardRef
+            <ForwardRef(IconAdd)
               isCircled={true}
               size="xs"
             />
@@ -65,7 +65,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
         action={
           <ForwardRef
             icon={
-              <ForwardRef
+              <ForwardRef(IconAdd)
                 isCircled={true}
                 size="xs"
               />
@@ -91,7 +91,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
                 styled={false}
               >
                 <div
-                  className="css-120v9s3-Title e1uay4fd1"
+                  className="css-u2ls9d-Title e1uay4fd1"
                 >
                   <HeaderTitle>
                     <h4
@@ -108,7 +108,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
                 >
                   <forwardRef<Button>
                     icon={
-                      <ForwardRef
+                      <ForwardRef(IconAdd)
                         isCircled={true}
                         size="xs"
                       />
@@ -121,7 +121,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
                       disabled={false}
                       forwardRef={null}
                       icon={
-                        <ForwardRef
+                        <ForwardRef(IconAdd)
                           isCircled={true}
                           size="xs"
                         />
@@ -172,7 +172,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
                                     className="css-1hbuack-Icon edwq9my2"
                                     size="small"
                                   >
-                                    <ForwardRef
+                                    <IconAdd
                                       isCircled={true}
                                       size="xs"
                                     >
@@ -196,7 +196,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
                                           />
                                         </svg>
                                       </ForwardRef(SvgIcon)>
-                                    </ForwardRef>
+                                    </IconAdd>
                                   </span>
                                 </Icon>
                                 New API Key
@@ -227,11 +227,11 @@ exports[`OrganizationApiKeysList renders 1`] = `
             API keys grant access to the 
           </span>
           <ForwardRef(ExternalLink)
-            href="https://docs.sentry.io/hosted/api/"
+            href="https://docs.sentry.io/api/"
             key="2"
           >
             <a
-              href="https://docs.sentry.io/hosted/api/"
+              href="https://docs.sentry.io/api/"
               rel="noreferrer noopener"
               target="_blank"
             >
@@ -293,16 +293,16 @@ exports[`OrganizationApiKeysList renders 1`] = `
     </div>
     <Panel>
       <Component
-        className="css-15hwgrz-Panel e119nu470"
+        className="css-ietoyz-Panel e119nu470"
       >
         <div
-          className="css-15hwgrz-Panel e119nu470"
+          className="css-ietoyz-Panel e119nu470"
         >
           <PanelHeader
             disablePadding={true}
           >
             <div
-              className="css-1swm9xr-PanelHeader en8g1d30"
+              className="css-lv9x73-PanelHeader en8g1d30"
             >
               <Styled(div)
                 alignItems="center"
@@ -353,7 +353,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
               withPadding={false}
             >
               <div
-                className="css-1ehogmz-FlexBox e1vnwt6f0"
+                className="css-1nto0rx-FlexBox e1vnwt6f0"
               >
                 <PanelItem
                   alignItems="center"
@@ -362,7 +362,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
                   py={1}
                 >
                   <div
-                    className="css-1bv2mk-PanelItem ej5ox20"
+                    className="css-gf486z-PanelItem ej5ox20"
                   >
                     <Styled(div)
                       alignItems="center"
@@ -448,9 +448,58 @@ exports[`OrganizationApiKeysList renders 1`] = `
                               onClick={[Function]}
                               title="Remove API Key?"
                             >
-                              <span
-                                className="icon-trash"
-                              />
+                              <EmotionCssPropInternal
+                                __EMOTION_TYPE_PLEASE_DO_NOT_USE__={
+                                  Object {
+                                    "$$typeof": Symbol(react.forward_ref),
+                                    "render": [Function],
+                                  }
+                                }
+                                css={
+                                  Object {
+                                    "name": "17ls4qs-OrganizationApiKeysList",
+                                    "styles": "position:relative;top:2px;;label:OrganizationApiKeysList;",
+                                  }
+                                }
+                                size="xs"
+                              >
+                                <ForwardRef(IconDelete)
+                                  className="css-17ls4qs-OrganizationApiKeysList"
+                                  size="xs"
+                                >
+                                  <ForwardRef(SvgIcon)
+                                    className="css-17ls4qs-OrganizationApiKeysList"
+                                    size="xs"
+                                  >
+                                    <svg
+                                      className="css-17ls4qs-OrganizationApiKeysList"
+                                      fill="currentColor"
+                                      height="12px"
+                                      viewBox="0 0 16 16"
+                                      width="12px"
+                                    >
+                                      <path
+                                        d="M14.71,3.94H1.29a.75.75,0,0,1,0-1.5H14.71a.75.75,0,0,1,0,1.5Z"
+                                      />
+                                      <path
+                                        d="M12.69,15.94H3.31a1.75,1.75,0,0,1-1.75-1.75v-11h1.5v11a.25.25,0,0,0,.25.25h9.38a.25.25,0,0,0,.25-.25v-11h1.5v11A1.75,1.75,0,0,1,12.69,15.94Z"
+                                      />
+                                      <path
+                                        d="M5,13a.74.74,0,0,1-.75-.75V6.14a.75.75,0,0,1,1.5,0v6.1A.75.75,0,0,1,5,13Z"
+                                      />
+                                      <path
+                                        d="M8,13a.75.75,0,0,1-.75-.75V6.14a.75.75,0,0,1,1.5,0v6.1A.75.75,0,0,1,8,13Z"
+                                      />
+                                      <path
+                                        d="M11.05,13a.75.75,0,0,1-.75-.75V6.14a.75.75,0,0,1,1.5,0v6.1A.74.74,0,0,1,11.05,13Z"
+                                      />
+                                      <path
+                                        d="M10.51,3.47l-.81-2H6.3l-.81,2L4.1,2.91,5,.77A1.26,1.26,0,0,1,6.13,0H9.87A1.26,1.26,0,0,1,11,.77l.87,2.14Z"
+                                      />
+                                    </svg>
+                                  </ForwardRef(SvgIcon)>
+                                </ForwardRef(IconDelete)>
+                              </EmotionCssPropInternal>
                             </a>
                             <Modal
                               animation={false}

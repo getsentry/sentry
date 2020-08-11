@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import sentry_sdk
-import six
 
 from collections import defaultdict
 from rest_framework.response import Response
@@ -9,7 +8,6 @@ from rest_framework.exceptions import ParseError
 
 from sentry.api.bases import OrganizationEventsEndpointBase, NoProjects
 from sentry.snuba import discover
-from sentry.utils import snuba
 from sentry import features, tagstore
 
 
@@ -17,7 +15,7 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsEndpointBase):
     def get(self, request, organization):
         with sentry_sdk.start_span(op="discover.endpoint", description="filter_params") as span:
             span.set_data("organization", organization)
-            if not features.has("organizations:discover-basic", organization, actor=request.user):
+            if not self.has_feature(organization, request):
                 return Response(status=404)
             try:
                 params = self.get_filter_params(request, organization)
@@ -27,14 +25,12 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsEndpointBase):
             self._validate_project_ids(request, organization, params)
 
         with sentry_sdk.start_span(op="discover.endpoint", description="discover_query"):
-            try:
+            with self.handle_query_errors():
                 facets = discover.get_facets(
                     query=request.GET.get("query"),
                     params=params,
                     referrer="api.organization-events-facets.top-tags",
                 )
-            except (discover.InvalidSearchQuery, snuba.QueryOutsideRetentionError) as error:
-                raise ParseError(detail=six.text_type(error))
 
         with sentry_sdk.start_span(op="discover.endpoint", description="populate_results") as span:
             span.set_data("facet_count", len(facets or []))

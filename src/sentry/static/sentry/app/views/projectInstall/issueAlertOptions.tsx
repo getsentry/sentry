@@ -1,7 +1,7 @@
 import React, {ReactElement} from 'react';
-import * as Sentry from '@sentry/browser';
 import isEqual from 'lodash/isEqual';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
@@ -105,7 +105,7 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
       ...super.getDefaultState(),
       conditions: [],
       intervalChoices: [],
-      alertSetting: `${Actions.CREATE_ALERT_LATER}`,
+      alertSetting: Actions.CREATE_ALERT_LATER.toString(),
       metric: MetricValues.ERRORS,
       interval: '',
       threshold: '',
@@ -128,13 +128,24 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
     hasProperlyLoadedConditions: boolean
   ): [string, string | ReactElement][] {
     const options: [string, React.ReactNode][] = [
-      [`${Actions.CREATE_ALERT_LATER}`, t("I'll create my own alerts later")],
-      [`${Actions.ALERT_ON_EVERY_ISSUE}`, t('Alert me on every new issue')],
+      [Actions.CREATE_ALERT_LATER.toString(), t("I'll create my own alerts later")],
+      [Actions.ALERT_ON_EVERY_ISSUE.toString(), t('Alert me on every new issue')],
     ];
+
     if (hasProperlyLoadedConditions) {
       options.push([
-        `${Actions.CUSTOMIZED_ALERTS}`,
-        <CustomizeAlertsGrid key={Actions.CUSTOMIZED_ALERTS}>
+        Actions.CUSTOMIZED_ALERTS.toString(),
+        <CustomizeAlertsGrid
+          key={Actions.CUSTOMIZED_ALERTS}
+          onClick={e => {
+            // XXX(epurkhiser): The `e.preventDefault` here is needed to stop
+            // propegation of the click up to the label, causing it to focus
+            // the radio input and lose focus on the select.
+            e.preventDefault();
+            const alertSetting = Actions.CUSTOMIZED_ALERTS.toString();
+            this.setStateAndUpdateParents({alertSetting});
+          }}
+        >
           {t('When there are more than')}
           <InlineInput
             type="number"

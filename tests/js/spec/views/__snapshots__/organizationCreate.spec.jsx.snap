@@ -32,7 +32,7 @@ exports[`OrganizationCreate render() renders with terms 1`] = `
       submitDisabled={false}
       submitErrorMessage="There was an error saving your changes."
       submitLabel="Create Organization"
-      submitLoadingMessage="Saving changes.."
+      submitLoadingMessage="Saving changes…"
     >
       <TextField
         disabled={false}
@@ -46,28 +46,30 @@ exports[`OrganizationCreate render() renders with terms 1`] = `
         disabled={false}
         hideErrorMessage={false}
         label={
-          <span>
+          <React.Fragment>
             <span>
-              I agree to the 
-            </span>
-            <a
-              href="https://example.com/terms"
-            >
               <span>
-                Terms of Service
+                I agree to the 
               </span>
-            </a>
-            <span>
-               and the 
-            </span>
-            <a
-              href="https://example.com/privacy"
-            >
+              <a
+                href="https://example.com/terms"
+              >
+                <span>
+                  Terms of Service
+                </span>
+              </a>
               <span>
-                Privacy Policy
+                 and the 
               </span>
-            </a>
-          </span>
+              <a
+                href="https://example.com/privacy"
+              >
+                <span>
+                  Privacy Policy
+                </span>
+              </a>
+            </span>
+          </React.Fragment>
         }
         name="agreeTerms"
         required={true}
@@ -109,7 +111,7 @@ exports[`OrganizationCreate render() renders without terms 1`] = `
       submitDisabled={false}
       submitErrorMessage="There was an error saving your changes."
       submitLabel="Create Organization"
-      submitLoadingMessage="Saving changes.."
+      submitLoadingMessage="Saving changes…"
     >
       <TextField
         disabled={false}

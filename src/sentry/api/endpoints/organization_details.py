@@ -3,6 +3,9 @@ from __future__ import absolute_import
 import logging
 import six
 
+from datetime import datetime
+
+from pytz import UTC
 from rest_framework import serializers, status
 from uuid import uuid4
 
@@ -14,8 +17,12 @@ from sentry.api.fields import AvatarField
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import organization as org_serializers
+from sentry.api.serializers.models.organization import TrustedRelaySerializer
 from sentry.api.serializers.rest_framework import ListField
-from sentry.constants import LEGACY_RATE_LIMIT_OPTIONS, RESERVED_ORGANIZATION_SLUGS
+from sentry.constants import (
+    LEGACY_RATE_LIMIT_OPTIONS,
+    RESERVED_ORGANIZATION_SLUGS,
+)
 from sentry.datascrubbing import validate_pii_config_update
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_DEFAULT, convert_crashreport_count
 from sentry.models import (
@@ -90,8 +97,8 @@ ORG_OPTIONS = (
         org_serializers.REQUIRE_SCRUB_IP_ADDRESS_DEFAULT,
     ),
     ("relayPiiConfig", "sentry:relay_pii_config", six.text_type, None),
-    ("trustedRelays", "sentry:trusted-relays", list, org_serializers.TRUSTED_RELAYS_DEFAULT),
     ("allowJoinRequests", "sentry:join_requests", bool, org_serializers.JOIN_REQUESTS_DEFAULT),
+    ("apdexThreshold", "sentry:apdex_threshold", int, None),
 )
 
 delete_logger = logging.getLogger("sentry.deletions.api")
@@ -146,9 +153,10 @@ class OrganizationSerializer(serializers.Serializer):
     scrapeJavaScript = serializers.BooleanField(required=False)
     isEarlyAdopter = serializers.BooleanField(required=False)
     require2FA = serializers.BooleanField(required=False)
-    trustedRelays = ListField(child=serializers.CharField(), required=False)
+    trustedRelays = ListField(child=TrustedRelaySerializer(), required=False)
     allowJoinRequests = serializers.BooleanField(required=False)
     relayPiiConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    apdexThreshold = serializers.IntegerField(min_value=1, required=False)
 
     @memoize
     def _has_legacy_rate_limits(self):
@@ -220,6 +228,18 @@ class OrganizationSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 "Organization does not have the relay feature enabled"
             )
+
+        # make sure we don't have multiple instances of one public key
+        public_keys = set()
+        if value is not None:
+            for key_info in value:
+                key = key_info.get("public_key")
+                if key in public_keys:
+                    raise serializers.ValidationError(
+                        "Duplicated key in Trusted Relays: '{}'".format(key)
+                    )
+                public_keys.add(key)
+
         return value
 
     def validate_accountRateLimit(self, value):
@@ -248,6 +268,57 @@ class OrganizationSerializer(serializers.Serializer):
                 )
         return attrs
 
+    def save_trusted_relays(self, incoming, changed_data, organization):
+        timestamp_now = datetime.utcnow().replace(tzinfo=UTC).isoformat()
+        option_key = "sentry:trusted-relays"
+        try:
+            # get what we already have
+            existing = OrganizationOption.objects.get(organization=organization, key=option_key)
+
+            key_dict = {val.get("public_key"): val for val in existing.value}
+            original_number_of_keys = len(existing.value)
+        except OrganizationOption.DoesNotExist:
+            key_dict = {}  # we don't have anything set
+            original_number_of_keys = 0
+            existing = None
+
+        modified = False
+        for option in incoming:
+            public_key = option.get("public_key")
+            existing_info = key_dict.get(public_key, {})
+
+            option["created"] = existing_info.get("created", timestamp_now)
+            option["last_modified"] = existing_info.get("last_modified")
+
+            # check if we modified the current public_key info and update last_modified if we did
+            if (
+                not existing_info
+                or existing_info.get("name") != option.get("name")
+                or existing_info.get("description") != option.get("description")
+            ):
+                option["last_modified"] = timestamp_now
+                modified = True
+
+        # check to see if the only modifications were some deletions (which are not captured in the loop above)
+        if len(incoming) != original_number_of_keys:
+            modified = True
+
+        if modified:
+            # we have some modifications create a log message
+            if existing is not None:
+                # generate an update log message
+                changed_data["trustedRelays"] = u"from {} to {}".format(existing, incoming)
+                existing.value = incoming
+                existing.save()
+            else:
+                # first time we set trusted relays, generate a create log message
+                changed_data["trustedRelays"] = u"to {}".format(incoming)
+                OrganizationOption.objects.set_value(
+                    organization=organization, key=option_key, value=incoming
+                )
+
+        return incoming
+
     def save(self):
         org = self.context["organization"]
         changed_data = {}
@@ -271,6 +342,10 @@ class OrganizationSerializer(serializers.Serializer):
                     old_val = option_inst.old_value("value")
                     changed_data[key] = u"from {} to {}".format(old_val, option_inst.value)
                 option_inst.save()
+
+        trusted_realy_info = self.validated_data.get("trustedRelays")
+        if trusted_realy_info is not None:
+            self.save_trusted_relays(trusted_realy_info, changed_data, org)
 
         if "openMembership" in self.initial_data:
             org.flags.allow_joinleave = self.initial_data["openMembership"]
@@ -364,6 +439,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             else org_serializers.DetailedOrganizationSerializer
         )
         context = serialize(organization, request.user, serializer(), access=request.access)
+
         return self.respond(context)
 
     @attach_scenarios([update_organization_scenario])
@@ -418,14 +494,14 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                     data=changed_data,
                 )
 
-            return self.respond(
-                serialize(
-                    organization,
-                    request.user,
-                    org_serializers.DetailedOrganizationSerializerWithProjectsAndTeams(),
-                    access=request.access,
-                )
+            context = serialize(
+                organization,
+                request.user,
+                org_serializers.DetailedOrganizationSerializerWithProjectsAndTeams(),
+                access=request.access,
             )
+
+            return self.respond(context)
         return self.respond(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def handle_delete(self, request, organization):

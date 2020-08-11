@@ -89,6 +89,8 @@ type Props = {
   visible?: boolean | ((props: Props) => boolean);
   formatMessageValue?: boolean | Function; //used in prettyFormString
   defaultValue?: any; //TODO(TS): Do we need this?
+  resetOnError?: boolean;
+  transformInput?: (value: any) => any;
 } & Omit<FieldControl['props'], typeof propsToObserver[number]> &
   Omit<Field['props'], 'inline'>;
 
@@ -279,6 +281,7 @@ class FormField extends React.Component<Props> {
       saveMessage,
       saveMessageAlertType,
       selectionInfoFunction,
+      hideControlState,
 
       // Don't pass `defaultValue` down to input fields, will be handled in form model
       defaultValue: _defaultValue,
@@ -306,6 +309,7 @@ class FormField extends React.Component<Props> {
               inline={inline}
               alignRight={alignRight}
               flexibleControlStateSize={flexibleControlStateSize}
+              hideControlState={hideControlState}
               controlState={<FormFieldControlState model={model} name={name} />}
               errorState={
                 <Observer>

@@ -123,7 +123,7 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
                 }
               >
                 <div
-                  className="css-aqgf1z-Title e1uay4fd1"
+                  className="css-inoj98-Title e1uay4fd1"
                 >
                   <HeaderTitle>
                     <h4
@@ -304,14 +304,14 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
     </PermissionAlert>
     <Panel>
       <Component
-        className="css-15hwgrz-Panel e119nu470"
+        className="css-ietoyz-Panel e119nu470"
       >
         <div
-          className="css-15hwgrz-Panel e119nu470"
+          className="css-ietoyz-Panel e119nu470"
         >
           <PanelHeader>
             <div
-              className="css-1es1m70-PanelHeader en8g1d30"
+              className="css-pi486d-PanelHeader en8g1d30"
             >
               Active Environments
             </div>
@@ -324,14 +324,14 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
               withPadding={false}
             >
               <div
-                className="css-1ehogmz-FlexBox e1vnwt6f0"
+                className="css-1nto0rx-FlexBox e1vnwt6f0"
               >
                 <EmptyMessage>
                   <Component
-                    className="css-1scmenn-EmptyMessage e1h3yfdx0"
+                    className="css-1qddu1g-EmptyMessage-EmptyMessage e1h3yfdx0"
                   >
                     <div
-                      className="css-1scmenn-EmptyMessage e1h3yfdx0"
+                      className="css-1qddu1g-EmptyMessage-EmptyMessage e1h3yfdx0"
                       data-test-id="empty-message"
                     >
                       <Description
@@ -479,7 +479,7 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
                 }
               >
                 <div
-                  className="css-aqgf1z-Title e1uay4fd1"
+                  className="css-inoj98-Title e1uay4fd1"
                 >
                   <HeaderTitle>
                     <h4
@@ -660,14 +660,14 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
     </PermissionAlert>
     <Panel>
       <Component
-        className="css-15hwgrz-Panel e119nu470"
+        className="css-ietoyz-Panel e119nu470"
       >
         <div
-          className="css-15hwgrz-Panel e119nu470"
+          className="css-ietoyz-Panel e119nu470"
         >
           <PanelHeader>
             <div
-              className="css-1es1m70-PanelHeader en8g1d30"
+              className="css-pi486d-PanelHeader en8g1d30"
             >
               Hidden
             </div>
@@ -680,14 +680,14 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
               withPadding={false}
             >
               <div
-                className="css-1ehogmz-FlexBox e1vnwt6f0"
+                className="css-1nto0rx-FlexBox e1vnwt6f0"
               >
                 <EmptyMessage>
                   <Component
-                    className="css-1scmenn-EmptyMessage e1h3yfdx0"
+                    className="css-1qddu1g-EmptyMessage-EmptyMessage e1h3yfdx0"
                   >
                     <div
-                      className="css-1scmenn-EmptyMessage e1h3yfdx0"
+                      className="css-1qddu1g-EmptyMessage-EmptyMessage e1h3yfdx0"
                       data-test-id="empty-message"
                     >
                       <Description
@@ -835,7 +835,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                 }
               >
                 <div
-                  className="css-aqgf1z-Title e1uay4fd1"
+                  className="css-inoj98-Title e1uay4fd1"
                 >
                   <HeaderTitle>
                     <h4
@@ -1016,14 +1016,14 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
     </PermissionAlert>
     <Panel>
       <Component
-        className="css-15hwgrz-Panel e119nu470"
+        className="css-ietoyz-Panel e119nu470"
       >
         <div
-          className="css-15hwgrz-Panel e119nu470"
+          className="css-ietoyz-Panel e119nu470"
         >
           <PanelHeader>
             <div
-              className="css-1es1m70-PanelHeader en8g1d30"
+              className="css-pi486d-PanelHeader en8g1d30"
             >
               Hidden
             </div>
@@ -1036,7 +1036,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
               withPadding={false}
             >
               <div
-                className="css-1ehogmz-FlexBox e1vnwt6f0"
+                className="css-1nto0rx-FlexBox e1vnwt6f0"
               >
                 <EnvironmentRow
                   actionText="Show"
@@ -1057,7 +1057,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                     p={2}
                   >
                     <div
-                      className="css-1es7aj-PanelItem-EnvironmentItem e1pnz46f0"
+                      className="css-1op0klu-PanelItem-EnvironmentItem e1pnz46f0"
                     >
                       <Name>
                         <div
@@ -1202,7 +1202,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                                       <Component
                                         aria-disabled={false}
                                         aria-label="Show"
-                                        className="e1pnz46f2 css-kzdej5-StyledButton-EnvironmentButton edwq9my0"
+                                        className="e1pnz46f2 css-tqh1t8-StyledButton-EnvironmentButton edwq9my0"
                                         forwardRef={null}
                                         onClick={[Function]}
                                         role="button"
@@ -1211,7 +1211,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                                         <button
                                           aria-disabled={false}
                                           aria-label="Show"
-                                          className="e1pnz46f2 css-kzdej5-StyledButton-EnvironmentButton edwq9my0"
+                                          className="e1pnz46f2 css-tqh1t8-StyledButton-EnvironmentButton edwq9my0"
                                           onClick={[Function]}
                                           role="button"
                                           size="xsmall"

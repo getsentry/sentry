@@ -2,20 +2,25 @@ import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/browser';
+import * as Sentry from '@sentry/react';
 
 import {t} from 'app/locale';
 import Alert from 'app/components/alert';
 import DetailedError from 'app/components/errors/detailedError';
+import {IconFlag} from 'app/icons';
 
 type DefaultProps = {
   mini: boolean;
 };
 
 type Props = DefaultProps & {
-  message?: React.ReactNode;
-  customComponent?: React.ReactNode;
+  // To add context for better UX
   className?: string;
+  customComponent?: React.ReactNode;
+  message?: React.ReactNode;
+
+  // To add context for better error reporting
+  errorTag?: Record<string, string>;
 };
 
 type State = {
@@ -51,8 +56,14 @@ class ErrorBoundary extends React.Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    const {errorTag} = this.props;
+
     this.setState({error});
     Sentry.withScope(scope => {
+      if (errorTag) {
+        Object.keys(errorTag).forEach(tag => scope.setTag(tag, errorTag[tag]));
+      }
+
       scope.setExtra('errorInfo', errorInfo);
       Sentry.captureException(error);
     });
@@ -71,7 +82,7 @@ class ErrorBoundary extends React.Component<Props, State> {
     const {error} = this.state;
 
     if (!error) {
-      //when there's not an error, render children untouched
+      // when there's not an error, render children untouched
       return this.props.children;
     }
 
@@ -83,7 +94,7 @@ class ErrorBoundary extends React.Component<Props, State> {
 
     if (mini) {
       return (
-        <Alert type="error" icon="icon-circle-exclamation" className={className}>
+        <Alert type="error" icon={<IconFlag size="md" />} className={className}>
           {message || t('There was a problem rendering this component')}
         </Alert>
       );

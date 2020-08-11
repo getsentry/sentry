@@ -5,7 +5,8 @@ import styled from '@emotion/styled';
 import {fetchRecentSearches} from 'app/actionCreators/savedSearches';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
-import SmartSearchBar, {SearchType} from 'app/components/smartSearchBar';
+import {SavedSearchType} from 'app/types';
+import SmartSearchBar from 'app/components/smartSearchBar';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
@@ -73,7 +74,6 @@ class IssueListSearchBar extends React.Component {
           ? resp.map(query => ({
               desc: query,
               value: query,
-              className: 'icon-clock',
               type: 'recent-search',
             }))
           : [],
@@ -102,7 +102,7 @@ class IssueListSearchBar extends React.Component {
     const recent = await fetchRecentSearches(
       api,
       organization.slug,
-      SearchType.ISSUE,
+      SavedSearchType.ISSUE,
       fullQuery
     );
     return (recent && recent.map(({query}) => query)) || [];
@@ -123,7 +123,7 @@ class IssueListSearchBar extends React.Component {
         hasSearchBuilder
         canCreateSavedSearch
         maxSearchItems={5}
-        savedSearchType={SearchType.ISSUE}
+        savedSearchType={SavedSearchType.ISSUE}
         onGetTagValues={this.getTagValues}
         defaultSearchItems={this.state.defaultSearchItems}
         onSavedRecentSearch={this.handleSavedRecentSearch}

@@ -1,5 +1,4 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import {RouteComponentProps} from 'react-router/lib/Router';
 
 import {t} from 'app/locale';
@@ -7,11 +6,11 @@ import AsyncView from 'app/views/asyncView';
 import withOrganization from 'app/utils/withOrganization';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import {Organization, GlobalSelection} from 'app/types';
-import space from 'app/styles/space';
 import {Client} from 'app/api';
 import withApi from 'app/utils/withApi';
 import {formatVersion} from 'app/utils/formatters';
 import routeTitleGen from 'app/utils/routeTitle';
+import {Main, Side} from 'app/components/layouts/thirds';
 
 import ReleaseChart from './chart/';
 import Issues from './issues';
@@ -23,7 +22,6 @@ import Deploys from './deploys';
 import ReleaseStatsRequest from './releaseStatsRequest';
 import {YAxis} from './chart/releaseChartControls';
 import SwitchReleasesButton from '../../utils/switchReleasesButton';
-
 import {ReleaseContext} from '..';
 
 type RouteParams = {
@@ -94,7 +92,7 @@ class ReleaseOverview extends AsyncView<Props> {
               hasDiscover={hasDiscover}
             >
               {({crashFreeTimeBreakdown, ...releaseStatsProps}) => (
-                <ContentBox>
+                <React.Fragment>
                   <Main>
                     {(hasDiscover || hasHealthData) && (
                       <ReleaseChart
@@ -119,7 +117,7 @@ class ReleaseOverview extends AsyncView<Props> {
                       location={location}
                     />
                   </Main>
-                  <Sidebar>
+                  <Side>
                     <ProjectReleaseDetails
                       release={release}
                       releaseMeta={releaseMeta}
@@ -153,10 +151,10 @@ class ReleaseOverview extends AsyncView<Props> {
                         deploys={deploys}
                       />
                     )}
-                  </Sidebar>
+                  </Side>
 
                   <SwitchReleasesButton version="1" orgId={organization.id} />
-                </ContentBox>
+                </React.Fragment>
               )}
             </ReleaseStatsRequest>
           );
@@ -165,20 +163,5 @@ class ReleaseOverview extends AsyncView<Props> {
     );
   }
 }
-
-const ContentBox = styled('div')`
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    display: grid;
-    grid-column-gap: ${space(3)};
-    grid-template-columns: minmax(470px, 1fr) minmax(220px, 280px);
-  }
-`;
-
-const Main = styled('div')`
-  grid-column: 1 / 2;
-`;
-const Sidebar = styled('div')`
-  grid-column: 2 / 3;
-`;
 
 export default withApi(withGlobalSelection(withOrganization(ReleaseOverview)));

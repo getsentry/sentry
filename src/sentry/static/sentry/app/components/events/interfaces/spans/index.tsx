@@ -6,11 +6,10 @@ import styled from '@emotion/styled';
 import {IconWarning} from 'app/icons';
 import {Panel} from 'app/components/panels';
 import {SentryTransactionEvent, Organization} from 'app/types';
-import {TableData} from 'app/views/eventsV2/table/types';
 import {stringifyQueryObject, QueryResults} from 'app/utils/tokenizeSearch';
 import {t, tn} from 'app/locale';
 import Alert from 'app/components/alert';
-import DiscoverQuery from 'app/utils/discover/discoverQuery';
+import DiscoverQuery, {TableData} from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
 import SearchBar from 'app/components/searchBar';
 import SentryTypes from 'app/sentryTypes';
@@ -24,7 +23,6 @@ import TraceView from './traceView';
 type Props = {
   orgId: string;
   event: SentryTransactionEvent;
-  eventView: EventView;
   organization: Organization;
 } & ReactRouter.WithRouterProps;
 
@@ -88,7 +86,7 @@ class SpansInterface extends React.Component<Props, State> {
   }
 
   render() {
-    const {event, orgId, eventView, location, organization} = this.props;
+    const {event, orgId, location, organization} = this.props;
     const {parsedTrace} = this.state;
 
     // construct discover query to fetch error events associated with this transaction
@@ -98,14 +96,13 @@ class SpansInterface extends React.Component<Props, State> {
       end: parsedTrace.traceEndTimestamp,
     });
 
-    const conditions: QueryResults = {
-      query: [],
-      'event.type': ['error'],
-      trace: [parsedTrace.traceID],
-    };
+    const conditions = new QueryResults([
+      'event.type:error',
+      `trace:${parsedTrace.traceID}`,
+    ]);
 
     if (typeof event.title === 'string') {
-      conditions.transaction = [event.title];
+      conditions.setTag('transaction', [event.title]);
     }
 
     const orgFeatures = new Set(organization.features);
@@ -160,7 +157,7 @@ class SpansInterface extends React.Component<Props, State> {
                     event={event}
                     searchQuery={this.state.searchQuery}
                     orgId={orgId}
-                    eventView={eventView}
+                    organization={organization}
                     parsedTrace={parsedTrace}
                     spansWithErrors={spansWithErrors}
                   />

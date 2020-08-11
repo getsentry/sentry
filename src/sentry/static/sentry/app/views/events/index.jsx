@@ -16,6 +16,7 @@ import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import {PageContent, PageHeader} from 'app/styles/organization';
+import space from 'app/styles/space';
 
 import SearchBar from './searchBar';
 
@@ -70,6 +71,8 @@ class EventsContainer extends React.Component {
                   <HeaderTitle>
                     {t('Events')} <FeatureBadge type="beta" />
                   </HeaderTitle>
+                </PageHeader>
+                <div>
                   <StyledSearchBar
                     organization={organization}
                     projectIds={selection.projects}
@@ -79,7 +82,7 @@ class EventsContainer extends React.Component {
                     )}
                     onSearch={this.handleSearch}
                   />
-                </PageHeader>
+                </div>
                 {children}
               </Body>
             </LightWeightNoProjectMessage>
@@ -104,4 +107,5 @@ const HeaderTitle = styled(PageHeading)`
 
 const StyledSearchBar = styled(SearchBar)`
   flex: 1;
+  margin-bottom: ${space(2)};
 `;

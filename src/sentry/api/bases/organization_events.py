@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from contextlib import contextmanager
 import sentry_sdk
 import six
 from rest_framework.exceptions import PermissionDenied
@@ -25,6 +26,11 @@ from sentry.utils import snuba
 
 
 class OrganizationEventsEndpointBase(OrganizationEndpoint):
+    def has_feature(self, organization, request):
+        return features.has(
+            "organizations:discover-basic", organization, actor=request.user
+        ) or features.has("organizations:performance-view", organization, actor=request.user)
+
     def get_snuba_filter(self, request, organization, params=None):
         if params is None:
             params = self.get_filter_params(request, organization)
@@ -102,6 +108,38 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 )
         return results
 
+    @contextmanager
+    def handle_query_errors(self):
+        try:
+            yield
+        except (discover.InvalidSearchQuery, snuba.QueryOutsideRetentionError) as error:
+            raise ParseError(detail=six.text_type(error))
+        except snuba.QueryIllegalTypeOfArgument:
+            raise ParseError(detail="Invalid query. Argument to function is wrong type.")
+        except snuba.SnubaError as error:
+            message = "Internal error. Please try again."
+            if isinstance(
+                error,
+                (
+                    snuba.RateLimitExceeded,
+                    snuba.QueryMemoryLimitExceeded,
+                    snuba.QueryTooManySimultaneous,
+                ),
+            ):
+                message = "Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects."
+            elif isinstance(
+                error,
+                (
+                    snuba.UnqualifiedQueryError,
+                    snuba.QueryExecutionError,
+                    snuba.SchemaValidationError,
+                ),
+            ):
+                sentry_sdk.capture_exception(error)
+                message = "Internal error. Your query failed to run."
+
+            raise ParseError(detail=message)
+
 
 class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
     def handle_results_with_meta(self, request, organization, project_ids, results):
@@ -152,7 +190,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         return results
 
     def get_event_stats_data(self, request, organization, get_event_stats, top_events=False):
-        try:
+        with self.handle_query_errors():
             with sentry_sdk.start_span(
                 op="discover.endpoint", description="base.stats_query_creation"
             ):
@@ -189,8 +227,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 
             with sentry_sdk.start_span(op="discover.endpoint", description="base.stats_query"):
                 result = get_event_stats(query_columns, query, params, rollup, reference_event)
-        except (discover.InvalidSearchQuery, snuba.QueryOutsideRetentionError) as error:
-            raise ParseError(detail=six.text_type(error))
+
         serializer = SnubaTSResultSerializer(organization, None, request.user)
 
         with sentry_sdk.start_span(op="discover.endpoint", description="base.stats_serialization"):

@@ -1,34 +1,15 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
-import posed from 'react-pose';
 import styled from '@emotion/styled';
+import {motion} from 'framer-motion';
 
 import {t} from 'app/locale';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconCheckmark, IconClose} from 'app/icons';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import testablePose from 'app/utils/testablePose';
+import testableTransition from 'app/utils/testableTransition';
 
-const transition = {
-  type: 'spring',
-  stiffness: 450,
-  damping: 25,
-};
-
-const toastAnimation = testablePose({
-  exit: {
-    transition,
-    opacity: 0,
-    y: 70,
-  },
-  enter: {
-    transition,
-    opacity: 1,
-    y: 0,
-  },
-});
-
-const Toast = styled(posed.div(toastAnimation))`
+const Toast = styled(motion.div)`
   display: flex;
   align-items: center;
   height: 40px;
@@ -41,13 +22,33 @@ const Toast = styled(posed.div(toastAnimation))`
   position: relative;
 `;
 
+Toast.defaultProps = {
+  initial: {
+    opacity: 0,
+    y: 70,
+  },
+  animate: {
+    opacity: 1,
+    y: 0,
+  },
+  exit: {
+    opacity: 0,
+    y: 70,
+  },
+  transition: testableTransition({
+    type: 'spring',
+    stiffness: 450,
+    damping: 25,
+  }),
+};
+
 const Icon = styled('div')`
   margin-right: 6px;
   svg {
     display: block;
   }
 
-  color: ${p => (p.type === 'success' ? p.theme.green400 : p.theme.red)};
+  color: ${p => (p.type === 'success' ? p.theme.green400 : p.theme.red400)};
 `;
 
 const Message = styled('div')`
@@ -70,7 +71,7 @@ const Undo = styled('div')`
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   .loading-indicator {
     border-color: ${p => p.theme.gray700};
-    border-left-color: ${p => p.theme.purple};
+    border-left-color: ${p => p.theme.purple400};
   }
 `;
 
@@ -89,9 +90,9 @@ function ToastIndicator({indicator, onDismiss, className, ...props}) {
   };
 
   if (type === 'success') {
-    icon = <InlineSvg src="icon-circle-check" size="24px" />;
+    icon = <IconCheckmark size="lg" isCircled />;
   } else if (type === 'error') {
-    icon = <InlineSvg src="icon-circle-close" size="24px" />;
+    icon = <IconClose size="lg" isCircled />;
   }
 
   // TODO(billy): Remove ref- className after removing usage from getsentry

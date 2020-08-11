@@ -9,7 +9,7 @@ export type ItemType =
 export type SearchGroup = {
   type: ItemType | 'header';
   title: string;
-  icon: string;
+  icon: React.ReactNode;
   value?: string;
   desc?: string;
   children: SearchItem[];
@@ -30,8 +30,3 @@ export type Tag = {
   desc: string;
   values: string[];
 };
-
-export enum SearchType {
-  ISSUE = 0,
-  EVENT = 1,
-}

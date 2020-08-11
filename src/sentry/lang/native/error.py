@@ -4,8 +4,7 @@ import logging
 import six
 
 from sentry.utils.compat import implements_to_string
-from sentry.lang.native.minidump import is_minidump_event
-from sentry.lang.native.utils import image_name
+from sentry.lang.native.utils import image_name, is_minidump_event
 from sentry.models import EventError
 from sentry.reprocessing import report_processing_issue
 
@@ -88,7 +87,7 @@ class SymbolicationFailed(Exception):
         return u"".join(rv)
 
 
-def write_error(e, data, errors=None):
+def write_error(e, data):
     # User fixable but fatal errors are reported as processing
     # issues. We skip this for minidumps, as reprocessing is not
     # possible without persisting minidumps.
@@ -106,8 +105,13 @@ def write_error(e, data, errors=None):
     # do not want to report some processing issues (eg:
     # optional difs)
     if e.is_user_fixable or e.is_sdk_failure:
-        if errors is None:
-            errors = data.setdefault("errors", [])
+        errors = data.setdefault("errors", [])
         errors.append(e.get_data())
     else:
         logger.debug("Failed to symbolicate with native backend", exc_info=True)
+
+    if not e.is_user_fixable:
+        data.setdefault("_metrics", {})["flag.processing.error"] = True
+
+    if e.is_fatal:
+        data.setdefault("_metrics", {})["flag.processing.fatal"] = True

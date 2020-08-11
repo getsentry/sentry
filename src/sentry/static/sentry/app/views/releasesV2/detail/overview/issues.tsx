@@ -6,20 +6,19 @@ import {Location} from 'history';
 import {t, tct} from 'app/locale';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import Button from 'app/components/button';
+import DiscoverButton from 'app/components/discoverButton';
 import GroupList from 'app/components/issues/groupList';
 import space from 'app/styles/space';
 import {Panel, PanelBody} from 'app/components/panels';
-import EventView from 'app/utils/discover/eventView';
-import {formatVersion} from 'app/utils/formatters';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import {DEFAULT_RELATIVE_PERIODS} from 'app/constants';
 import {GlobalSelection} from 'app/types';
 import Feature from 'app/components/acl/feature';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
-import {getUtcDateString} from 'app/utils/dates';
-import DropdownButton from 'app/components/dropdownButton';
 import ButtonBar from 'app/components/buttonBar';
 import {stringifyQueryObject, QueryResults} from 'app/utils/tokenizeSearch';
+
+import {getReleaseEventView} from './chart/utils';
 
 enum IssuesType {
   NEW = 'new',
@@ -51,24 +50,8 @@ class Issues extends React.Component<Props, State> {
 
   getDiscoverUrl() {
     const {version, orgId, selection} = this.props;
-    const {projects, environments, datetime} = selection;
-    const {start, end, period} = datetime;
+    const discoverView = getReleaseEventView(selection, version);
 
-    const discoverQuery = {
-      id: undefined,
-      version: 2,
-      name: `${t('Release')} ${formatVersion(version)}`,
-      fields: ['title', 'count()', 'event.type', 'issue', 'last_seen()'],
-      query: `release:${version} !event.type:transaction`,
-      orderby: '-last_seen',
-      range: period,
-      environment: environments,
-      projects,
-      start: start ? getUtcDateString(start) : undefined,
-      end: end ? getUtcDateString(end) : undefined,
-    } as const;
-
-    const discoverView = EventView.fromSavedQuery(discoverQuery);
     return discoverView.getResultsViewUrlTarget(orgId);
   }
 
@@ -76,12 +59,12 @@ class Issues extends React.Component<Props, State> {
     const {version, orgId} = this.props;
     const {issuesType} = this.state;
     const {queryParams} = this.getIssuesEndpoint();
-    const query: QueryResults = {query: []};
+    const query = new QueryResults([]);
 
     if (issuesType === IssuesType.NEW) {
-      query.firstRelease = [version];
+      query.setTag('firstRelease', [version]);
     } else {
-      query.release = [version];
+      query.setTag('release', [version]);
     }
 
     return {
@@ -169,36 +152,34 @@ class Issues extends React.Component<Props, State> {
       <React.Fragment>
         <ControlsWrapper>
           <DropdownControl
-            button={({getActorProps}) => (
-              <FilterButton prefix={t('Filter')} {...getActorProps()} isOpen={false}>
-                {issuesTypes.find(i => i.value === issuesType)?.label}
-              </FilterButton>
-            )}
+            buttonProps={{prefix: t('Filter'), size: 'small'}}
+            label={issuesTypes.find(i => i.value === issuesType)?.label}
           >
             {issuesTypes.map(({value, label}) => (
-              <DropdownItem
+              <StyledDropdownItem
                 key={value}
                 onSelect={this.handleIssuesTypeSelection}
                 eventKey={value}
                 isActive={value === issuesType}
               >
                 {label}
-              </DropdownItem>
+              </StyledDropdownItem>
             ))}
           </DropdownControl>
 
-          <ButtonBar gap={1}>
+          <OpenInButtonBar gap={1}>
             <Feature features={['discover-basic']}>
-              <OpenInButton to={this.getDiscoverUrl()}>
+              <DiscoverButton to={this.getDiscoverUrl()} size="small">
                 {t('Open in Discover')}
-              </OpenInButton>
+              </DiscoverButton>
             </Feature>
 
-            <OpenInButton to={this.getIssuesUrl()}>{t('Open in Issues')}</OpenInButton>
-          </ButtonBar>
+            <Button to={this.getIssuesUrl()} size="small">
+              {t('Open in Issues')}
+            </Button>
+          </OpenInButtonBar>
         </ControlsWrapper>
-
-        <TableWrapper>
+        <TableWrapper data-test-id="release-wrapper">
           <GroupList
             orgId={orgId}
             endpointPath={path}
@@ -214,27 +195,24 @@ class Issues extends React.Component<Props, State> {
   }
 }
 
-// used in media query
-const FilterButton = styled(DropdownButton)``;
-const OpenInButton = styled(Button)``;
-
 const ControlsWrapper = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: ${space(1)};
-  @media (max-width: ${p => p.theme.breakpoints[2]}) {
-    ${FilterButton}, ${OpenInButton} {
-      font-size: ${p => p.theme.fontSizeSmall};
-    }
-  }
-
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     display: block;
-    ${FilterButton} {
-      margin-bottom: ${space(1)};
-    }
   }
+`;
+
+const OpenInButtonBar = styled(ButtonBar)`
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    margin-top: ${space(1)};
+  }
+`;
+
+const StyledDropdownItem = styled(DropdownItem)`
+  white-space: nowrap;
 `;
 
 const TableWrapper = styled('div')`

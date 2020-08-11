@@ -24,7 +24,7 @@ export const Header = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin: 0 ${space(1)} ${space(1)} 0;
+  margin-bottom: ${space(1)};
 `;
 
 export const HeaderTitle = styled('h4')`
@@ -35,7 +35,7 @@ export const HeaderTitle = styled('h4')`
 
 export const HeaderButtonContainer = styled('div')`
   display: grid;
-  grid-gap: ${space(2)};
+  grid-gap: ${space(1)};
   grid-auto-flow: column;
   grid-auto-columns: auto;
   justify-items: end;
@@ -275,7 +275,7 @@ export const GridResizer = styled('div')<{dataRows: number}>`
   }
 
   &:hover::after {
-    background-color: ${p => p.theme.borderDark};
+    background-color: ${p => p.theme.gray400};
   }
 
   /**
@@ -284,7 +284,7 @@ export const GridResizer = styled('div')<{dataRows: number}>`
    */
   &:active::after,
   &:focus::after {
-    background-color: ${p => p.theme.purple};
+    background-color: ${p => p.theme.purple400};
   }
 
   /**
@@ -298,7 +298,7 @@ export const GridResizer = styled('div')<{dataRows: number}>`
     display: block;
     width: 7px;
     height: ${GRID_HEAD_ROW_HEIGHT}px;
-    background-color: ${p => p.theme.purple};
+    background-color: ${p => p.theme.purple400};
     opacity: 0.4;
   }
 `;

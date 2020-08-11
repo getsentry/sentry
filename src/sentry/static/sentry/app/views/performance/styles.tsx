@@ -1,19 +1,12 @@
 import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
 
-export const GridBodyCell = styled('div')`
+export const GridCell = styled('div')`
   font-size: 14px;
-  padding: ${space(1)} ${space(2)};
-  ${overflowEllipsis};
 `;
 
-export const GridHeadCell = styled('div')`
-  padding: ${space(2)};
-`;
-
-export const GridBodyCellNumber = styled(GridBodyCell)`
+export const GridCellNumber = styled(GridCell)`
   text-align: right;
 `;
 
@@ -31,14 +24,13 @@ export const HeaderContainer = styled('div')`
 export const HeaderTitle = styled('h3')`
   display: inline-grid;
   grid-auto-flow: column;
-  grid-gap: ${space(1.5)};
-  align-items: center;
-
+  grid-gap: ${space(1)};
   font-size: ${p => p.theme.fontSizeLarge};
   font-weight: normal;
-  line-height: 1.2;
   color: ${p => p.theme.gray700};
-  padding: 0 ${space(1)};
+  padding-left: ${space(1)};
+  line-height: 1.1;
+  margin-bottom: 0;
 `;
 
 export const HeaderTitleLegend = styled(HeaderTitle)`

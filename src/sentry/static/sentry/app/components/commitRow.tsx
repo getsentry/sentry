@@ -9,7 +9,7 @@ import {t, tct} from 'app/locale';
 import UserAvatar from 'app/components/avatar/userAvatar';
 import CommitLink from 'app/components/commitLink';
 import Hovercard from 'app/components/hovercard';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconFlag} from 'app/icons';
 import Link from 'app/components/links/link';
 import TextOverflow from 'app/components/textOverflow';
 import TimeSince from 'app/components/timeSince';
@@ -78,7 +78,7 @@ class CommitRow extends React.Component<Props> {
           <AvatarWrapper>
             <Hovercard body={this.renderHovercardBody(author)}>
               <UserAvatar size={36} user={author} />
-              <EmailWarningIcon src="icon-circle-exclamation" />
+              <EmailWarningIcon />
             </Hovercard>
           </AvatarWrapper>
         ) : (
@@ -125,13 +125,13 @@ const StyledLink = styled(Link)`
   }
 `;
 
-const EmailWarningIcon = styled(InlineSvg)`
+const EmailWarningIcon = styled(IconFlag)`
   position: relative;
   margin-left: -11px;
   border-radius: 11px;
   margin-bottom: -25px;
   border: 1px solid ${p => p.theme.white};
-  background: ${p => p.theme.yellowLight};
+  background: ${p => p.theme.yellow300};
 `;
 
 const CommitMessage = styled('div')`

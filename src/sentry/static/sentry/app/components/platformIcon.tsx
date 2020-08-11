@@ -1,5 +1,7 @@
-import PropTypes from 'prop-types';
 import React from 'react';
+import styled from '@emotion/styled';
+
+import PlatformIconTile from './platformIconTile';
 
 const PLATFORM_TO_ICON = {
   apple: 'apple',
@@ -43,10 +45,10 @@ const PLATFORM_TO_ICON = {
   'python-rq': 'python',
   'python-tornado': 'python',
   'python-pythonawslambda': 'python',
-  'react-native': 'apple',
   ruby: 'ruby',
   'ruby-rack': 'ruby',
   'ruby-rails': 'rails',
+  'react-native': 'react-native',
   rust: 'rust',
   swift: 'swift',
   // TODO: AWS used to be python-awslambda but the displayed generic icon
@@ -70,24 +72,47 @@ type Props = {
   height?: string;
 };
 
-const PlatformIcon = ({platform, size, width, height, ...props}: Props) => {
+const PlatformIcon = ({platform, size, ...props}: Props) => {
+  const width = props.width || size || '1em';
+  const height = props.height || size || '1em';
+
+  if (platform === 'react-native') {
+    // TODO(Priscila): find a better way to do it, maybe by removing the react svg path fill attributes
+    return (
+      <StyledPlatformIconTile
+        platform={platform}
+        width={width}
+        height={height}
+        {...props}
+      />
+    );
+  }
+
   const icon = getIcon(platform);
 
   return (
     <img
       src={require(`platformicons/svg/${icon}.svg`)}
-      width={width || size || '1em'}
-      height={height || size || '1em'}
+      width={width}
+      height={height}
       {...props}
     />
   );
 };
 
-PlatformIcon.propTypes = {
-  platform: PropTypes.string.isRequired,
-  size: PropTypes.string,
-  width: PropTypes.string,
-  height: PropTypes.string,
-};
-
 export default PlatformIcon;
+
+// TODO(color): theme doesn't have the color #625471
+const StyledPlatformIconTile = styled(PlatformIconTile, {
+  shouldForwardProp: prop => prop !== 'width' && prop !== 'height',
+})<{width: string; height: string}>`
+  width: ${p => p.width};
+  height: ${p => p.height};
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  :before {
+    position: absolute;
+  }
+`;

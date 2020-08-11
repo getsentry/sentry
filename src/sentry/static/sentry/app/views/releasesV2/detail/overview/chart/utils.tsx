@@ -4,6 +4,7 @@ import {GlobalSelection} from 'app/types';
 import {formatVersion} from 'app/utils/formatters';
 import {getUtcDateString} from 'app/utils/dates';
 import {t} from 'app/locale';
+import {stringifyQueryObject, QueryResults} from 'app/utils/tokenizeSearch';
 
 // In minutes
 const FOURTEEN_DAYS = 20160;
@@ -30,7 +31,9 @@ export function getReleaseEventView(
     version: 2,
     name: `${t('Release')} ${formatVersion(version)}`,
     fields: ['title', 'count()', 'event.type', 'issue', 'last_seen()'],
-    query: `release:${version} !event.type:transaction`,
+    query: stringifyQueryObject(
+      new QueryResults([`release:${version}`, '!event.type:transaction'])
+    ),
     orderby: '-last_seen',
     range: period,
     environment: environments,

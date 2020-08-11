@@ -395,12 +395,12 @@ function routes() {
         component={errorHandler(LazyLoad)}
       />
       <Route
-        name={t('Data Privacy')}
-        path="data-privacy/"
+        name={t('Security & Privacy')}
+        path="security-and-privacy/"
         component={errorHandler(LazyLoad)}
         componentPromise={() =>
           import(
-            /* webpackChunkName: "ProjectDataPrivacy" */ 'app/views/settings/projectDataPrivacy/projectDataPrivacy'
+            /* webpackChunkName: "ProjectSecurityAndPrivacy" */ 'app/views/settings/projectSecurityAndPrivacy'
           )
         }
       />
@@ -415,11 +415,11 @@ function routes() {
         component={errorHandler(LazyLoad)}
       />
       <Route
-        path="android-mappings/"
-        name={t('Android Mappings')}
+        path="proguard/"
+        name={t('ProGuard Mappings')}
         componentPromise={() =>
           import(
-            /* webpackChunkName: "ProjectAndroidMappings" */ 'app/views/settings/projectAndroidMappings'
+            /* webpackChunkName: "ProjectProguard" */ 'app/views/settings/projectProguard'
           )
         }
         component={errorHandler(LazyLoad)}
@@ -433,7 +433,26 @@ function routes() {
           )
         }
         component={errorHandler(LazyLoad)}
-      />
+      >
+        <IndexRoute
+          componentPromise={() =>
+            import(
+              /* webpackChunkName: "ProjectSourceMapsList" */ 'app/views/settings/projectSourceMaps/list'
+            )
+          }
+          component={errorHandler(LazyLoad)}
+        />
+        <Route
+          path=":name/"
+          name={t('Archive')}
+          componentPromise={() =>
+            import(
+              /* webpackChunkName: "ProjectSourceMapsDetail" */ 'app/views/settings/projectSourceMaps/detail'
+            )
+          }
+          component={errorHandler(LazyLoad)}
+        />
+      </Route>
       <Route
         path="processing-issues/"
         name="Processing Issues"
@@ -736,11 +755,33 @@ function routes() {
       />
 
       <Route
+        name={t('Relays')}
+        path="relays/"
+        componentPromise={() =>
+          import(
+            /* webpackChunkName: "OrganizationRelays" */ 'app/views/settings/organizationRelays'
+          )
+        }
+        component={errorHandler(LazyLoad)}
+      />
+
+      <Route
         path="repos/"
         name="Repositories"
         componentPromise={() =>
           import(
             /* webpackChunkName: "OrganizationRepositories" */ 'app/views/settings/organizationRepositories'
+          )
+        }
+        component={errorHandler(LazyLoad)}
+      />
+
+      <Route
+        path="performance/"
+        name={t('Performance')}
+        componentPromise={() =>
+          import(
+            /* webpackChunkName: "OrganizationPerformance" */ 'app/views/settings/organizationPerformance'
           )
         }
         component={errorHandler(LazyLoad)}
@@ -761,7 +802,7 @@ function routes() {
         path="security-and-privacy/"
         componentPromise={() =>
           import(
-            /* webpackChunkName: "OrganizationSecurityAndPrivacy" */ 'app/views/settings/organizationSecurityAndPrivacy/organizationSecurityAndPrivacy'
+            /* webpackChunkName: "OrganizationSecurityAndPrivacy" */ 'app/views/settings/organizationSecurityAndPrivacy'
           )
         }
         component={errorHandler(LazyLoad)}
@@ -960,6 +1001,13 @@ function routes() {
       )}
 
       <Route path="/" component={errorHandler(App)}>
+        <IndexRoute
+          componentPromise={() =>
+            import(/* webpackChunkName: "AppRoot" */ 'app/views/app/root')
+          }
+          component={errorHandler(LazyLoad)}
+        />
+
         <Route
           path="/accept/:memberId/:token/"
           componentPromise={() =>
@@ -989,10 +1037,10 @@ function routes() {
         />
 
         <Route
-          path="/extensions/vsts/link/"
+          path="/extensions/:integrationSlug/link/"
           getComponent={(_loc, cb) =>
             import(
-              /* webpackChunkName: "VSTSOrganizationLink" */ 'app/views/vstsOrganizationLink'
+              /* webpackChunkName: "IntegrationOrganizationLink" */ 'app/views/integrationOrganizationLink'
             ).then(lazyLoad(cb))
           }
         />
@@ -1606,6 +1654,24 @@ function routes() {
               componentPromise={() =>
                 import(
                   /* webpackChunkName: "PerformanceTransactionSummary" */ 'app/views/performance/transactionSummary'
+                )
+              }
+              component={errorHandler(LazyLoad)}
+            />
+          </Route>
+          <Route
+            path="/organizations/:orgId/performance/:eventSlug/"
+            componentPromise={() =>
+              import(
+                /* webpackChunkName: "PerformanceContainer" */ 'app/views/performance'
+              )
+            }
+            component={errorHandler(LazyLoad)}
+          >
+            <IndexRoute
+              componentPromise={() =>
+                import(
+                  /* webpackChunkName: "PerformanceTransactionDetails" */ 'app/views/performance/transactionDetails'
                 )
               }
               component={errorHandler(LazyLoad)}

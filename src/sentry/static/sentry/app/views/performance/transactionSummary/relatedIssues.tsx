@@ -13,7 +13,8 @@ import {Panel, PanelBody} from 'app/components/panels';
 import space from 'app/styles/space';
 import {OrganizationSummary} from 'app/types';
 import GroupList from 'app/components/issues/groupList';
-import {stringifyQueryObject} from 'app/utils/tokenizeSearch';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
+import {stringifyQueryObject, QueryResults} from 'app/utils/tokenizeSearch';
 
 type Props = {
   organization: OrganizationSummary;
@@ -39,14 +40,21 @@ class RelatedIssues extends React.Component<Props> {
       path: `/organizations/${organization.slug}/issues/`,
       queryParams: {
         ...queryParams,
-        query: stringifyQueryObject({
-          query: [],
-          is: ['unresolved'],
-          transaction: [transaction],
-        }),
+        query: stringifyQueryObject(
+          new QueryResults(['is:unresolved', `transaction:${transaction}`])
+        ),
       },
     };
   }
+
+  handleOpenClick = () => {
+    const {organization} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.summary.open_issues',
+      eventName: 'Performance Views: Open issues from transaction summary',
+      organization_id: parseInt(organization.id, 10),
+    });
+  };
 
   renderEmptyMessage = () => {
     const {statsPeriod} = this.props;
@@ -81,7 +89,12 @@ class RelatedIssues extends React.Component<Props> {
       <React.Fragment>
         <ControlsWrapper>
           <SectionHeading>{t('Related Issues')}</SectionHeading>
-          <Button data-test-id="issues-open" size="small" to={issueSearch}>
+          <Button
+            data-test-id="issues-open"
+            size="small"
+            to={issueSearch}
+            onClick={this.handleOpenClick}
+          >
             {t('Open in Issues')}
           </Button>
         </ControlsWrapper>

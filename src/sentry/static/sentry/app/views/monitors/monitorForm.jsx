@@ -179,7 +179,7 @@ class MonitorForm extends Component {
                               name="config.schedule"
                               label={t('Schedule')}
                               disabled={!hasAccess}
-                              placeholder="*/5 * * *"
+                              placeholder="*/5 * * * *"
                               required
                               help={tct(
                                 'Changes to the schedule will apply on the next check-in. See [link:Wikipedia] for crontab syntax.',

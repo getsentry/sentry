@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import pick from 'lodash/pick';
+import {withProfiler} from '@sentry/react';
 
 import {PageContent} from 'app/styles/organization';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
@@ -8,15 +9,13 @@ import {tn} from 'app/locale';
 import Alert from 'app/components/alert';
 import AsyncView from 'app/views/asyncView';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
+import {IconFlag} from 'app/icons';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import SentryTypes from 'app/sentryTypes';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
-import withProfiler from 'app/utils/withProfiler';
 import withProjects from 'app/utils/withProjects';
-import Feature from 'app/components/acl/feature';
-import SwitchReleasesButton from 'app/views/releasesV2/utils/switchReleasesButton';
 
 import ReleaseHeader from './releaseHeader';
 
@@ -94,7 +93,7 @@ class OrganizationReleaseDetails extends AsyncView {
 
       return (
         <PageContent>
-          <Alert type="error" icon="icon-circle-exclamation">
+          <Alert type="error" icon={<IconFlag size="md" />}>
             {tn(
               'This release may not be in your selected project',
               'This release may not be in your selected projects',
@@ -111,11 +110,7 @@ class OrganizationReleaseDetails extends AsyncView {
   }
 
   renderBody() {
-    const {
-      location,
-      params: {orgId},
-      organization,
-    } = this.props;
+    const {location, organization} = this.props;
     const {release} = this.state;
 
     const query = pick(location.query, Object.values(URL_PARAM));
@@ -129,14 +124,11 @@ class OrganizationReleaseDetails extends AsyncView {
 
     return (
       <PageContent>
-        <ReleaseHeader release={release} orgId={orgId} />
+        <ReleaseHeader release={release} organization={organization} />
         {React.cloneElement(this.props.children, {
           release,
           query,
         })}
-        <Feature features={['releases-v2']} organization={organization}>
-          <SwitchReleasesButton version="2" orgId={organization.id} />
-        </Feature>
       </PageContent>
     );
   }

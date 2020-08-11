@@ -5,19 +5,19 @@ import {Location} from 'history';
 
 import {Client} from 'app/api';
 import {t} from 'app/locale';
-import {OrganizationSummary} from 'app/types';
+import {LightWeightOrganization} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import ChartZoom from 'app/components/charts/chartZoom';
 import LineChart from 'app/components/charts/lineChart';
 import ErrorPanel from 'app/components/charts/errorPanel';
+import EventsRequest from 'app/components/charts/eventsRequest';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {SectionHeading} from 'app/components/charts/styles';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import TransitionChart from 'app/components/charts/transitionChart';
 import {getInterval} from 'app/components/charts/utils';
 import {IconWarning} from 'app/icons';
-import EventsRequest from 'app/views/events/utils/eventsRequest';
-import {PERFORMANCE_TERMS} from 'app/views/performance/constants';
+import {getTermHelp} from 'app/views/performance/data';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 import {
   formatAbbreviatedNumber,
@@ -31,7 +31,7 @@ import withApi from 'app/utils/withApi';
 
 type Props = ReactRouter.WithRouterProps & {
   api: Client;
-  organization: OrganizationSummary;
+  organization: LightWeightOrganization;
   location: Location;
   eventView: EventView;
 };
@@ -91,7 +91,7 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
         // apdex
         gridIndex: 0,
         axisLabel: {
-          formatter: (value: number) => formatFloat(value, 2),
+          formatter: (value: number) => formatFloat(value, 1),
           color: theme.gray400,
         },
         ...axisLineConfig,
@@ -106,10 +106,10 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
         ...axisLineConfig,
       },
       {
-        // error rate
+        // failure rate
         gridIndex: 2,
         axisLabel: {
-          formatter: (value: number) => formatPercentage(value, 2),
+          formatter: (value: number) => formatPercentage(value, 0),
           color: theme.gray400,
         },
         ...axisLineConfig,
@@ -125,7 +125,7 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
         if (seriesName.includes('apdex')) {
           return formatFloat(value, 2);
         }
-        if (seriesName.includes('error_rate')) {
+        if (seriesName.includes('failure_rate')) {
           return formatPercentage(value, 2);
         }
         if (typeof value === 'number') {
@@ -151,17 +151,29 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
     <RelativeBox>
       <ChartTitle top="0px" key="apdex">
         {t('Apdex')}
-        <QuestionTooltip position="top" title={PERFORMANCE_TERMS.apdex} size="sm" />
+        <QuestionTooltip
+          position="top"
+          title={getTermHelp(organization, 'apdex')}
+          size="sm"
+        />
       </ChartTitle>
 
       <ChartTitle top="190px" key="throughput">
         {t('TPM')}
-        <QuestionTooltip position="top" title={PERFORMANCE_TERMS.tpm} size="sm" />
+        <QuestionTooltip
+          position="top"
+          title={getTermHelp(organization, 'tpm')}
+          size="sm"
+        />
       </ChartTitle>
 
-      <ChartTitle top="410px" key="error-rate">
-        {t('Error Rate')}
-        <QuestionTooltip position="top" title={PERFORMANCE_TERMS.errorRate} size="sm" />
+      <ChartTitle top="410px" key="failure-rate">
+        {t('Failure Rate')}
+        <QuestionTooltip
+          position="top"
+          title={getTermHelp(organization, 'failureRate')}
+          size="sm"
+        />
       </ChartTitle>
 
       <ChartZoom
@@ -184,13 +196,13 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
             showLoading={false}
             query={eventView.query}
             includePrevious={false}
-            yAxis={['apdex(300)', 'epm()', 'error_rate()']}
+            yAxis={[`apdex(${organization.apdexThreshold})`, 'epm()', 'failure_rate()']}
           >
             {({results, errored, loading, reloading}) => {
               if (errored) {
                 return (
                   <ErrorPanel>
-                    <IconWarning color={theme.gray500} size="lg" />
+                    <IconWarning color="gray500" size="lg" />
                   </ErrorPanel>
                 );
               }
@@ -218,7 +230,7 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
 
 const RelativeBox = styled('div')`
   position: relative;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${space(1)};
 `;
 
 const ChartTitle = styled(SectionHeading)<{top: string}>`

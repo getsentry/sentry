@@ -14,7 +14,7 @@ const ONE_HOUR = 60;
 
 export type DateTimeObject = Partial<GlobalSelection['datetime']>;
 
-export function truncationFormatter(value: string, truncate: number): string {
+export function truncationFormatter(value: string, truncate: number | undefined): string {
   if (!truncate) {
     return escape(value);
   }
@@ -82,4 +82,23 @@ export function getDiffInMinutes(datetimeObj: DateTimeObject): number {
   return (
     parsePeriodToHours(typeof period === 'string' ? period : DEFAULT_STATS_PERIOD) * 60
   );
+}
+
+// Max period (in hours) before we can no long include previous period
+const MAX_PERIOD_HOURS_INCLUDE_PREVIOUS = 45 * 24;
+
+export function canIncludePreviousPeriod(
+  includePrevious: boolean | undefined,
+  period: string | undefined
+) {
+  if (!includePrevious) {
+    return false;
+  }
+
+  if (period && parsePeriodToHours(period) > MAX_PERIOD_HOURS_INCLUDE_PREVIOUS) {
+    return false;
+  }
+
+  // otherwise true
+  return !!includePrevious;
 }

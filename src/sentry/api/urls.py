@@ -22,6 +22,7 @@ from .endpoints.data_scrubbing_selector_suggestions import DataScrubbingSelector
 from .endpoints.debug_files import (
     AssociateDSymFilesEndpoint,
     DebugFilesEndpoint,
+    SourceMapsEndpoint,
     DifAssembleEndpoint,
     UnknownDebugFilesEndpoint,
 )
@@ -94,6 +95,7 @@ from .endpoints.organization_events import OrganizationEventsEndpoint, Organizat
 from .endpoints.organization_events_facets import OrganizationEventsFacetsEndpoint
 from .endpoints.organization_events_meta import (
     OrganizationEventsMetaEndpoint,
+    OrganizationEventBaseline,
     OrganizationEventsRelatedIssuesEndpoint,
 )
 from .endpoints.organization_events_stats import OrganizationEventsStatsEndpoint
@@ -126,10 +128,16 @@ from .endpoints.organization_pinned_searches import OrganizationPinnedSearchEndp
 from .endpoints.organization_plugins import OrganizationPluginsEndpoint
 from .endpoints.organization_plugins_configs import OrganizationPluginsConfigsEndpoint
 from .endpoints.organization_processingissues import OrganizationProcessingIssuesEndpoint
-from .endpoints.organization_projects import OrganizationProjectsEndpoint
+from .endpoints.organization_projects import (
+    OrganizationProjectsEndpoint,
+    OrganizationProjectsCountEndpoint,
+)
 from .endpoints.organization_recent_searches import OrganizationRecentSearchesEndpoint
 from .endpoints.organization_release_assemble import OrganizationReleaseAssembleEndpoint
 from .endpoints.organization_release_commits import OrganizationReleaseCommitsEndpoint
+from .endpoints.organization_release_previous_commits import (
+    OrganizationReleasePreviousCommitsEndpoint,
+)
 from .endpoints.organization_release_details import OrganizationReleaseDetailsEndpoint
 from .endpoints.organization_release_meta import OrganizationReleaseMetaEndpoint
 from .endpoints.organization_release_file_details import OrganizationReleaseFileDetailsEndpoint
@@ -293,6 +301,7 @@ from sentry.incidents.endpoints.organization_alert_rule_details import (
 )
 from sentry.incidents.endpoints.organization_alert_rule_index import (
     OrganizationAlertRuleIndexEndpoint,
+    OrganizationCombinedRuleIndexEndpoint,
 )
 from sentry.incidents.endpoints.project_alert_rule_details import ProjectAlertRuleDetailsEndpoint
 from sentry.incidents.endpoints.project_alert_rule_index import (
@@ -591,6 +600,11 @@ urlpatterns = [
                     OrganizationAlertRuleIndexEndpoint.as_view(),
                     name="sentry-api-0-organization-alert-rules",
                 ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/combined-rules/$",
+                    OrganizationCombinedRuleIndexEndpoint.as_view(),
+                    name="sentry-api-0-organization-combined-rules",
+                ),
                 # Data Export
                 url(
                     r"^(?P<organization_slug>[^\/]+)/data-export/$",
@@ -817,6 +831,11 @@ urlpatterns = [
                     name="sentry-api-0-organization-events-meta",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/event-baseline/$",
+                    OrganizationEventBaseline.as_view(),
+                    name="sentry-api-0-organization-event-baseline",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/issues/new/$",
                     OrganizationIssuesNewEndpoint.as_view(),
                 ),
@@ -939,6 +958,11 @@ urlpatterns = [
                     name="sentry-api-0-organization-projects",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/projects-count/$",
+                    OrganizationProjectsCountEndpoint.as_view(),
+                    name="sentry-api-0-organization-projects",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/sent-first-event/$",
                     OrganizationProjectsSentFirstEventEndpoint.as_view(),
                     name="sentry-api-0-organization-sent-first-event",
@@ -1012,6 +1036,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]+)/commits/$",
                     OrganizationReleaseCommitsEndpoint.as_view(),
                     name="sentry-api-0-organization-release-commits",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]+)/previous-with-commits/$",
+                    OrganizationReleasePreviousCommitsEndpoint.as_view(),
+                    name="sentry-api-0-organization-release-previous-with-commits",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/user-feedback/$",
@@ -1255,6 +1284,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/files/dsyms/$",
                     DebugFilesEndpoint.as_view(),
                     name="sentry-api-0-dsym-files",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/files/source-maps/$",
+                    SourceMapsEndpoint.as_view(),
+                    name="sentry-api-0-source-maps",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/files/difs/assemble/$",

@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {extractMultilineFields} from 'app/utils';
+import {extractMultilineFields, convertMultilineFieldValue} from 'app/utils';
 import {t, tct, tn} from 'app/locale';
 import HintPanelItem from 'app/components/panels/hintPanelItem';
 import PlatformIcon from 'app/components/platformIcon';
@@ -218,8 +218,7 @@ export const fields: {[key: string]: Field} = {
       </React.Fragment>
     ),
     validate: () => [],
-    visible: ({features}) =>
-      features.has('set-grouping-config') || features.has('tweak-grouping-config'),
+    visible: true,
   },
   fingerprintingRules: {
     name: 'fingerprintingRules',
@@ -256,8 +255,7 @@ export const fields: {[key: string]: Field} = {
         </pre>
       </React.Fragment>
     ),
-    visible: ({features}) =>
-      features.has('set-grouping-config') || features.has('tweak-grouping-config'),
+    visible: true,
   },
 
   dataScrubber: {
@@ -316,7 +314,7 @@ export const fields: {[key: string]: Field} = {
       'Additional field names to match against when scrubbing data. Separate multiple entries with a newline'
     ),
     getValue: val => extractMultilineFields(val),
-    setValue: val => (val && typeof val.join === 'function' && val.join('\n')) || '',
+    setValue: val => convertMultilineFieldValue(val),
   },
   safeFields: {
     name: 'safeFields',
@@ -330,49 +328,18 @@ export const fields: {[key: string]: Field} = {
       'Field names which data scrubbers should ignore. Separate multiple entries with a newline'
     ),
     getValue: val => extractMultilineFields(val),
-    setValue: val => (val && typeof val.join === 'function' && val.join('\n')) || '',
+    setValue: val => convertMultilineFieldValue(val),
   },
   storeCrashReports: {
     name: 'storeCrashReports',
     type: 'range',
     label: t('Store Native Crash Reports'),
     help: t(
-      'Store native crash reports such as Minidumps for improved processing and download in issue details.  Overrides organization settings when enabled.'
+      'Store native crash reports such as Minidumps for improved processing and download in issue details. Overrides organization settings.'
     ),
     visible: ({features}) => features.has('event-attachments'),
-    formatLabel: formatStoreCrashReports,
+    formatLabel: value => formatStoreCrashReports(value, {inProjectSettings: true}),
     allowedValues: STORE_CRASH_REPORTS_VALUES,
-  },
-  relayPiiConfig: {
-    name: 'relayPiiConfig',
-    type: 'string',
-    label: t('Advanced datascrubber configuration'),
-    placeholder: t('Paste a JSON configuration here.'),
-    multiline: true,
-    monospace: true,
-    autosize: true,
-    inline: false,
-    maxRows: 20,
-    help: tct(
-      'Advanced JSON-based configuration for datascrubbing. Applied in addition to the settings above. [learn_more:Learn more]',
-      {
-        learn_more: (
-          <a href="https://docs.sentry.io/data-management/advanced-datascrubbing/" />
-        ),
-      }
-    ),
-    visible: ({features}) => features.has('datascrubbers-v2'),
-    validate: ({id, form}) => {
-      if (form[id] === '') {
-        return [];
-      }
-      try {
-        JSON.parse(form[id]);
-      } catch (e) {
-        return [[id, e.toString().replace(/^SyntaxError: JSON.parse: /, '')]];
-      }
-      return [];
-    },
   },
   allowedDomains: {
     name: 'allowedDomains',
@@ -384,7 +351,7 @@ export const fields: {[key: string]: Field} = {
     label: t('Allowed Domains'),
     help: t('Separate multiple entries with a newline'),
     getValue: val => extractMultilineFields(val),
-    setValue: val => (val && typeof val.join === 'function' && val.join('\n')) || '',
+    setValue: val => convertMultilineFieldValue(val),
   },
   scrapeJavaScript: {
     name: 'scrapeJavaScript',

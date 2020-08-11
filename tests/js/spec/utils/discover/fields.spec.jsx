@@ -2,6 +2,8 @@ import {
   getAggregateAlias,
   isAggregateField,
   explodeField,
+  aggregateOutputType,
+  aggregateMultiPlotType,
 } from 'app/utils/discover/fields';
 
 describe('getAggregateAlias', function() {
@@ -85,5 +87,61 @@ describe('explodeField', function() {
       kind: 'function',
       function: ['count', 'foo.bar.is-Enterprise_42', undefined],
     });
+  });
+});
+
+describe('aggregateOutputType', function() {
+  it('handles unknown fields', function() {
+    expect(aggregateOutputType('')).toEqual('number');
+    expect(aggregateOutputType('blerg')).toEqual('number');
+  });
+
+  it('handles duration functions', function() {
+    expect(aggregateOutputType('p50()')).toEqual('duration');
+    expect(aggregateOutputType('p75()')).toEqual('duration');
+    expect(aggregateOutputType('p95()')).toEqual('duration');
+    expect(aggregateOutputType('p99()')).toEqual('duration');
+    expect(aggregateOutputType('p100()')).toEqual('duration');
+    expect(aggregateOutputType('percentile(transaction.duration, 0.51)')).toEqual(
+      'duration'
+    );
+    expect(aggregateOutputType('percentile(transaction.duration,0.99)')).toEqual(
+      'duration'
+    );
+  });
+
+  it('handles percentage functions', function() {
+    expect(aggregateOutputType('failure_rate()')).toEqual('percentage');
+  });
+
+  it('handles number functions', function() {
+    expect(aggregateOutputType('apdex()')).toEqual('number');
+    expect(aggregateOutputType('apdex(500)')).toEqual('number');
+    expect(aggregateOutputType('user_misery(500)')).toEqual('number');
+    expect(aggregateOutputType('impact()')).toEqual('number');
+    expect(aggregateOutputType('eps()')).toEqual('number');
+    expect(aggregateOutputType('epm()')).toEqual('number');
+  });
+
+  it('handles inherit functions', function() {
+    expect(aggregateOutputType('sum(transaction.duration)')).toEqual('duration');
+    expect(aggregateOutputType('sum(stack.colno)')).toEqual('number');
+
+    expect(aggregateOutputType('min(stack.colno)')).toEqual('number');
+    expect(aggregateOutputType('min(timestamp)')).toEqual('date');
+
+    expect(aggregateOutputType('max(stack.colno)')).toEqual('number');
+    expect(aggregateOutputType('max(timestamp)')).toEqual('date');
+  });
+});
+
+describe('aggregateMultiPlotType', function() {
+  it('handles unknown functions', function() {
+    expect(aggregateMultiPlotType('blerg')).toBe('area');
+    expect(aggregateMultiPlotType('blerg(uhoh)')).toBe('area');
+  });
+  it('handles known functions', function() {
+    expect(aggregateMultiPlotType('sum(transaction.duration)')).toBe('area');
+    expect(aggregateMultiPlotType('p95()')).toBe('line');
   });
 });

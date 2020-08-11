@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import posed, {PoseGroup} from 'react-pose';
+import {motion, AnimatePresence} from 'framer-motion';
 
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
@@ -13,6 +13,7 @@ import {IconLightning, IconLock, IconCheckmark} from 'app/icons';
 import Tooltip from 'app/components/tooltip';
 import SidebarPanel from 'app/components/sidebar/sidebarPanel';
 import {CommonSidebarProps} from 'app/components/sidebar/types';
+import testableTransition from 'app/utils/testableTransition';
 
 import {findUpcomingTasks, findCompleteTasks, findActiveTasks, taskIsDone} from './utils';
 import {getMergedTasks} from './taskConfig';
@@ -38,7 +39,7 @@ const COMPLETION_SEEN_TIMEOUT = 800;
 const doTimeout = (timeout: number) =>
   new Promise(resolve => setTimeout(resolve, timeout));
 
-const Heading = styled(posed.h4())`
+const Heading = styled(motion.div)`
   display: grid;
   grid-template-columns: max-content 1fr;
   grid-gap: ${space(0.75)};
@@ -46,10 +47,15 @@ const Heading = styled(posed.h4())`
   font-size: ${p => p.theme.fontSizeMedium};
   margin: 0;
   font-weight: normal;
-  border-bottom: 1px solid ${p => p.theme.gray300};
+  border-bottom: 1px solid ${p => p.theme.borderLight};
   color: ${p => p.theme.gray600};
   padding-bottom: ${space(1)};
 `;
+
+Heading.defaultProps = {
+  positionTransition: true,
+  transition: testableTransition(),
+};
 
 const completeNowHeading = (
   <Heading key="now">
@@ -118,7 +124,7 @@ class OnboardingWizardSidebar extends React.Component<Props> {
   };
 
   renderItem = (task: OnboardingTask) => (
-    <PosedTaskItem
+    <AnimatedTaskItem
       task={task}
       key={`${task.task}`}
       onSkip={this.makeTaskUpdater('skipped')}
@@ -132,9 +138,7 @@ class OnboardingWizardSidebar extends React.Component<Props> {
 
     const completeList = (
       <CompleteList key="complete-group">
-        <PoseGroup flipMove={false} preEnterPose="completeInit" enterPose="complete">
-          {complete.map(this.renderItem)}
-        </PoseGroup>
+        <AnimatePresence initial={false}>{complete.map(this.renderItem)}</AnimatePresence>
       </CompleteList>
     );
 
@@ -155,7 +159,7 @@ class OnboardingWizardSidebar extends React.Component<Props> {
       >
         <ProgressHeader allTasks={all} completedTasks={complete} />
         <TaskList>
-          <PoseGroup exitPose="markComplete">{items}</PoseGroup>
+          <AnimatePresence initial={false}>{items}</AnimatePresence>
         </TaskList>
       </TaskSidebarPanel>
     );
@@ -165,24 +169,35 @@ const TaskSidebarPanel = styled(SidebarPanel)`
   width: 450px;
 `;
 
-const PosedTaskItem = posed(Task)({
-  markComplete: {
-    y: 20,
-    z: -10,
-    opacity: 0,
-    transition: {duration: 200},
+const AnimatedTaskItem = motion.custom(Task);
+
+AnimatedTaskItem.defaultProps = {
+  initial: 'initial',
+  animate: 'animate',
+  exit: 'exit',
+  positionTransition: true,
+  variants: {
+    initial: {
+      opacity: 0,
+      y: 40,
+    },
+    animate: {
+      opacity: 1,
+      y: 0,
+      transition: testableTransition({
+        delay: 0.8,
+        when: 'beforeChildren',
+        staggerChildren: 0.3,
+      }),
+    },
+    exit: {
+      y: 20,
+      z: -10,
+      opacity: 0,
+      transition: {duration: 0.2},
+    },
   },
-  completeInit: {
-    opacity: 0,
-    y: 40,
-  },
-  complete: {
-    beforeChildren: true,
-    transition: {delay: 800},
-    opacity: 1,
-    y: 0,
-  },
-});
+};
 
 const TaskList = styled('div')`
   display: grid;

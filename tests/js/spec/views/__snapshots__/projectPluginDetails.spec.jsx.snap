@@ -428,7 +428,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                               styled={false}
                             >
                               <div
-                                className="css-120v9s3-Title e1uay4fd1"
+                                className="css-u2ls9d-Title e1uay4fd1"
                               >
                                 <HeaderTitle>
                                   <h4
@@ -485,7 +485,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                                         <Component
                                           aria-disabled={false}
                                           aria-label="Enable Plugin"
-                                          className="css-12ogwys-StyledButton edwq9my0"
+                                          className="css-8od3q1-StyledButton edwq9my0"
                                           forwardRef={null}
                                           onClick={[Function]}
                                           role="button"
@@ -499,7 +499,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                                           <button
                                             aria-disabled={false}
                                             aria-label="Enable Plugin"
-                                            className="css-12ogwys-StyledButton edwq9my0"
+                                            className="css-8od3q1-StyledButton edwq9my0"
                                             onClick={[Function]}
                                             role="button"
                                             size="small"
@@ -547,7 +547,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                                         <Component
                                           aria-disabled={false}
                                           aria-label="Reset Configuration"
-                                          className="css-12ogwys-StyledButton edwq9my0"
+                                          className="css-8od3q1-StyledButton edwq9my0"
                                           forwardRef={null}
                                           onClick={[Function]}
                                           role="button"
@@ -556,7 +556,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                                           <button
                                             aria-disabled={false}
                                             aria-label="Reset Configuration"
-                                            className="css-12ogwys-StyledButton edwq9my0"
+                                            className="css-8od3q1-StyledButton edwq9my0"
                                             onClick={[Function]}
                                             role="button"
                                             size="small"
@@ -727,16 +727,16 @@ exports[`ProjectPluginDetails renders 1`] = `
                             className="plugin-config ref-plugin-config-amazon-sqs"
                           >
                             <Component
-                              className="plugin-config ref-plugin-config-amazon-sqs css-15hwgrz-Panel e119nu470"
+                              className="plugin-config ref-plugin-config-amazon-sqs css-ietoyz-Panel e119nu470"
                             >
                               <div
-                                className="plugin-config ref-plugin-config-amazon-sqs css-15hwgrz-Panel e119nu470"
+                                className="plugin-config ref-plugin-config-amazon-sqs css-ietoyz-Panel e119nu470"
                               >
                                 <PanelHeader
                                   hasButtons={true}
                                 >
                                   <div
-                                    className="css-yhsu7n-PanelHeader en8g1d30"
+                                    className="css-13it3e1-PanelHeader en8g1d30"
                                   >
                                     <PluginName>
                                       <div
@@ -747,7 +747,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                                           size={20}
                                         >
                                           <div
-                                            className="css-10inpvs-PluginIcon-StyledPluginIcon e1ueudyh1"
+                                            className="css-7jhc8m-PluginIcon-StyledPluginIcon e1ueudyh1"
                                             size={20}
                                           />
                                         </StyledPluginIcon>
@@ -772,7 +772,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                                       withPadding={false}
                                     >
                                       <div
-                                        className="e1ueudyh4 css-orfn1j-FlexBox-StyledPanelBody e1vnwt6f0"
+                                        className="e1ueudyh4 css-1nbu7cr-FlexBox-StyledPanelBody e1vnwt6f0"
                                       >
                                         <div
                                           dangerouslySetInnerHTML={

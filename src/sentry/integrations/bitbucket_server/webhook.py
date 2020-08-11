@@ -11,7 +11,6 @@ from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.base import View
-from simplejson import JSONDecodeError
 from sentry.models import Commit, CommitAuthor, Organization, Repository
 from sentry.plugins.providers import IntegrationRepositoryProvider
 from sentry.utils import json
@@ -31,15 +30,7 @@ class Webhook(object):
         """
 
         name_from_event = event["repository"]["project"]["key"] + "/" + event["repository"]["slug"]
-        # build the URL manually since it doesn't come back from the API in
-        # the form that we need
-        url_from_event = event["repository"]["links"]["self"][0]["href"]
-
-        if (
-            repo.name != name_from_event
-            or repo.config.get("name") != name_from_event
-            or repo.url != url_from_event
-        ):
+        if repo.name != name_from_event or repo.config.get("name") != name_from_event:
             repo.update(name=name_from_event, config=dict(repo.config, name=name_from_event))
 
 
@@ -67,7 +58,7 @@ class PushEventWebhook(Webhook):
             from_hash = None if change.get("fromHash") == "0" * 40 else change.get("fromHash")
             for commit in client.get_commits(
                 project_name, repo_name, from_hash, change.get("toHash")
-            )["values"]:
+            ):
 
                 if IntegrationRepositoryProvider.should_ignore_commit(commit["message"]):
                     continue
@@ -147,7 +138,7 @@ class BitbucketServerWebhookEndpoint(View):
 
         try:
             event = json.loads(body.decode("utf-8"))
-        except JSONDecodeError:
+        except json.JSONDecodeError:
             logger.error(
                 PROVIDER_NAME + ".webhook.invalid-json",
                 extra={"organization_id": organization.id, "integration_id": integration_id},

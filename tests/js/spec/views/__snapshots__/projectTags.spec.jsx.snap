@@ -35,7 +35,7 @@ exports[`ProjectTags renders 1`] = `
                   styled={false}
                 >
                   <div
-                    className="css-120v9s3-Title e1uay4fd1"
+                    className="css-u2ls9d-Title e1uay4fd1"
                   >
                     <HeaderTitle>
                       <h4
@@ -172,11 +172,11 @@ exports[`ProjectTags renders 1`] = `
                  Learn how to 
             </span>
             <ForwardRef(ExternalLink)
-              href="https://docs.sentry.io/hosted/learn/context/"
+              href="https://docs.sentry.io/enriching-error-data/additional-data/"
               key="2"
             >
               <a
-                href="https://docs.sentry.io/hosted/learn/context/"
+                href="https://docs.sentry.io/enriching-error-data/additional-data/"
                 rel="noreferrer noopener"
                 target="_blank"
               >
@@ -197,14 +197,14 @@ exports[`ProjectTags renders 1`] = `
       </TextBlock>
       <Panel>
         <Component
-          className="css-15hwgrz-Panel e119nu470"
+          className="css-ietoyz-Panel e119nu470"
         >
           <div
-            className="css-15hwgrz-Panel e119nu470"
+            className="css-ietoyz-Panel e119nu470"
           >
             <PanelHeader>
               <div
-                className="css-1es1m70-PanelHeader en8g1d30"
+                className="css-pi486d-PanelHeader en8g1d30"
               >
                 Tags
               </div>
@@ -217,7 +217,7 @@ exports[`ProjectTags renders 1`] = `
                 withPadding={false}
               >
                 <div
-                  className="css-1ehogmz-FlexBox e1vnwt6f0"
+                  className="css-1nto0rx-FlexBox e1vnwt6f0"
                 >
                   <WithOrganizationMockWrapper
                     access={
@@ -328,7 +328,7 @@ exports[`ProjectTags renders 1`] = `
                           p={2}
                         >
                           <div
-                            className="css-maiyp9-PanelItem-TagPanelItem e1s2odbs0"
+                            className="css-1roxijg-PanelItem-TagPanelItem e1s2odbs0"
                             data-test-id="tag-row"
                           >
                             <TagName>
@@ -375,7 +375,7 @@ exports[`ProjectTags renders 1`] = `
                                           data-test-id="delete"
                                           disabled={false}
                                           icon={
-                                            <ForwardRef
+                                            <ForwardRef(IconDelete)
                                               size="xs"
                                             />
                                           }
@@ -387,7 +387,7 @@ exports[`ProjectTags renders 1`] = `
                                             disabled={false}
                                             forwardRef={null}
                                             icon={
-                                              <ForwardRef
+                                              <ForwardRef(IconDelete)
                                                 size="xs"
                                               />
                                             }
@@ -404,7 +404,7 @@ exports[`ProjectTags renders 1`] = `
                                             >
                                               <Component
                                                 aria-disabled={false}
-                                                className="css-12ogwys-StyledButton edwq9my0"
+                                                className="css-8od3q1-StyledButton edwq9my0"
                                                 data-test-id="delete"
                                                 forwardRef={null}
                                                 onClick={[Function]}
@@ -413,7 +413,7 @@ exports[`ProjectTags renders 1`] = `
                                               >
                                                 <button
                                                   aria-disabled={false}
-                                                  className="css-12ogwys-StyledButton edwq9my0"
+                                                  className="css-8od3q1-StyledButton edwq9my0"
                                                   data-test-id="delete"
                                                   onClick={[Function]}
                                                   role="button"
@@ -434,7 +434,7 @@ exports[`ProjectTags renders 1`] = `
                                                           className="css-dm7gfi-Icon edwq9my2"
                                                           size="xsmall"
                                                         >
-                                                          <ForwardRef
+                                                          <ForwardRef(IconDelete)
                                                             size="xs"
                                                           >
                                                             <ForwardRef(SvgIcon)
@@ -466,7 +466,7 @@ exports[`ProjectTags renders 1`] = `
                                                                 />
                                                               </svg>
                                                             </ForwardRef(SvgIcon)>
-                                                          </ForwardRef>
+                                                          </ForwardRef(IconDelete)>
                                                         </span>
                                                       </Icon>
                                                     </span>
@@ -542,7 +542,7 @@ exports[`ProjectTags renders 1`] = `
                           p={2}
                         >
                           <div
-                            className="css-maiyp9-PanelItem-TagPanelItem e1s2odbs0"
+                            className="css-1roxijg-PanelItem-TagPanelItem e1s2odbs0"
                             data-test-id="tag-row"
                           >
                             <TagName>
@@ -589,7 +589,7 @@ exports[`ProjectTags renders 1`] = `
                                           data-test-id="delete"
                                           disabled={false}
                                           icon={
-                                            <ForwardRef
+                                            <ForwardRef(IconDelete)
                                               size="xs"
                                             />
                                           }
@@ -601,7 +601,7 @@ exports[`ProjectTags renders 1`] = `
                                             disabled={false}
                                             forwardRef={null}
                                             icon={
-                                              <ForwardRef
+                                              <ForwardRef(IconDelete)
                                                 size="xs"
                                               />
                                             }
@@ -618,7 +618,7 @@ exports[`ProjectTags renders 1`] = `
                                             >
                                               <Component
                                                 aria-disabled={false}
-                                                className="css-12ogwys-StyledButton edwq9my0"
+                                                className="css-8od3q1-StyledButton edwq9my0"
                                                 data-test-id="delete"
                                                 forwardRef={null}
                                                 onClick={[Function]}
@@ -627,7 +627,7 @@ exports[`ProjectTags renders 1`] = `
                                               >
                                                 <button
                                                   aria-disabled={false}
-                                                  className="css-12ogwys-StyledButton edwq9my0"
+                                                  className="css-8od3q1-StyledButton edwq9my0"
                                                   data-test-id="delete"
                                                   onClick={[Function]}
                                                   role="button"
@@ -648,7 +648,7 @@ exports[`ProjectTags renders 1`] = `
                                                           className="css-dm7gfi-Icon edwq9my2"
                                                           size="xsmall"
                                                         >
-                                                          <ForwardRef
+                                                          <ForwardRef(IconDelete)
                                                             size="xs"
                                                           >
                                                             <ForwardRef(SvgIcon)
@@ -680,7 +680,7 @@ exports[`ProjectTags renders 1`] = `
                                                                 />
                                                               </svg>
                                                             </ForwardRef(SvgIcon)>
-                                                          </ForwardRef>
+                                                          </ForwardRef(IconDelete)>
                                                         </span>
                                                       </Icon>
                                                     </span>
@@ -756,7 +756,7 @@ exports[`ProjectTags renders 1`] = `
                           p={2}
                         >
                           <div
-                            className="css-maiyp9-PanelItem-TagPanelItem e1s2odbs0"
+                            className="css-1roxijg-PanelItem-TagPanelItem e1s2odbs0"
                             data-test-id="tag-row"
                           >
                             <TagName>
@@ -803,7 +803,7 @@ exports[`ProjectTags renders 1`] = `
                                           data-test-id="delete"
                                           disabled={false}
                                           icon={
-                                            <ForwardRef
+                                            <ForwardRef(IconDelete)
                                               size="xs"
                                             />
                                           }
@@ -815,7 +815,7 @@ exports[`ProjectTags renders 1`] = `
                                             disabled={false}
                                             forwardRef={null}
                                             icon={
-                                              <ForwardRef
+                                              <ForwardRef(IconDelete)
                                                 size="xs"
                                               />
                                             }
@@ -832,7 +832,7 @@ exports[`ProjectTags renders 1`] = `
                                             >
                                               <Component
                                                 aria-disabled={false}
-                                                className="css-12ogwys-StyledButton edwq9my0"
+                                                className="css-8od3q1-StyledButton edwq9my0"
                                                 data-test-id="delete"
                                                 forwardRef={null}
                                                 onClick={[Function]}
@@ -841,7 +841,7 @@ exports[`ProjectTags renders 1`] = `
                                               >
                                                 <button
                                                   aria-disabled={false}
-                                                  className="css-12ogwys-StyledButton edwq9my0"
+                                                  className="css-8od3q1-StyledButton edwq9my0"
                                                   data-test-id="delete"
                                                   onClick={[Function]}
                                                   role="button"
@@ -862,7 +862,7 @@ exports[`ProjectTags renders 1`] = `
                                                           className="css-dm7gfi-Icon edwq9my2"
                                                           size="xsmall"
                                                         >
-                                                          <ForwardRef
+                                                          <ForwardRef(IconDelete)
                                                             size="xs"
                                                           >
                                                             <ForwardRef(SvgIcon)
@@ -894,7 +894,7 @@ exports[`ProjectTags renders 1`] = `
                                                                 />
                                                               </svg>
                                                             </ForwardRef(SvgIcon)>
-                                                          </ForwardRef>
+                                                          </ForwardRef(IconDelete)>
                                                         </span>
                                                       </Icon>
                                                     </span>
@@ -970,7 +970,7 @@ exports[`ProjectTags renders 1`] = `
                           p={2}
                         >
                           <div
-                            className="css-maiyp9-PanelItem-TagPanelItem e1s2odbs0"
+                            className="css-1roxijg-PanelItem-TagPanelItem e1s2odbs0"
                             data-test-id="tag-row"
                           >
                             <TagName>
@@ -1038,7 +1038,7 @@ exports[`ProjectTags renders 1`] = `
                                                     data-test-id="delete"
                                                     disabled={true}
                                                     icon={
-                                                      <ForwardRef
+                                                      <ForwardRef(IconDelete)
                                                         size="xs"
                                                       />
                                                     }
@@ -1050,7 +1050,7 @@ exports[`ProjectTags renders 1`] = `
                                                       disabled={true}
                                                       forwardRef={null}
                                                       icon={
-                                                        <ForwardRef
+                                                        <ForwardRef(IconDelete)
                                                           size="xs"
                                                         />
                                                       }
@@ -1097,7 +1097,7 @@ exports[`ProjectTags renders 1`] = `
                                                                     className="css-dm7gfi-Icon edwq9my2"
                                                                     size="xsmall"
                                                                   >
-                                                                    <ForwardRef
+                                                                    <ForwardRef(IconDelete)
                                                                       size="xs"
                                                                     >
                                                                       <ForwardRef(SvgIcon)
@@ -1129,7 +1129,7 @@ exports[`ProjectTags renders 1`] = `
                                                                           />
                                                                         </svg>
                                                                       </ForwardRef(SvgIcon)>
-                                                                    </ForwardRef>
+                                                                    </ForwardRef(IconDelete)>
                                                                   </span>
                                                                 </Icon>
                                                               </span>
@@ -1210,7 +1210,7 @@ exports[`ProjectTags renders 1`] = `
                           p={2}
                         >
                           <div
-                            className="css-maiyp9-PanelItem-TagPanelItem e1s2odbs0"
+                            className="css-1roxijg-PanelItem-TagPanelItem e1s2odbs0"
                             data-test-id="tag-row"
                           >
                             <TagName>
@@ -1277,7 +1277,7 @@ exports[`ProjectTags renders 1`] = `
                                                     data-test-id="delete"
                                                     disabled={true}
                                                     icon={
-                                                      <ForwardRef
+                                                      <ForwardRef(IconDelete)
                                                         size="xs"
                                                       />
                                                     }
@@ -1289,7 +1289,7 @@ exports[`ProjectTags renders 1`] = `
                                                       disabled={true}
                                                       forwardRef={null}
                                                       icon={
-                                                        <ForwardRef
+                                                        <ForwardRef(IconDelete)
                                                           size="xs"
                                                         />
                                                       }
@@ -1336,7 +1336,7 @@ exports[`ProjectTags renders 1`] = `
                                                                     className="css-dm7gfi-Icon edwq9my2"
                                                                     size="xsmall"
                                                                   >
-                                                                    <ForwardRef
+                                                                    <ForwardRef(IconDelete)
                                                                       size="xs"
                                                                     >
                                                                       <ForwardRef(SvgIcon)
@@ -1368,7 +1368,7 @@ exports[`ProjectTags renders 1`] = `
                                                                           />
                                                                         </svg>
                                                                       </ForwardRef(SvgIcon)>
-                                                                    </ForwardRef>
+                                                                    </ForwardRef(IconDelete)>
                                                                   </span>
                                                                 </Icon>
                                                               </span>

@@ -146,6 +146,50 @@ class OrganizationTagKeyValuesTest(OrganizationTagKeyTestCase):
         self.store_event(data={"timestamp": iso_format(self.day_ago)}, project_id=other_project.id)
         self.run_test("project.id", expected=[])
 
+    def test_project_name(self):
+        other_org = self.create_organization()
+        other_project = self.create_project(organization=other_org)
+        self.store_event(data={"timestamp": iso_format(self.day_ago)}, project_id=self.project.id)
+        self.store_event(data={"timestamp": iso_format(self.min_ago)}, project_id=self.project.id)
+        self.store_event(data={"timestamp": iso_format(self.day_ago)}, project_id=other_project.id)
+
+        # without the includeTransactions flag, this will continue to search the Events Dataset for the
+        # projects tag, which doesn't exist here
+        self.run_test("project", expected=[])
+
+        # with the includeTransactions flag, this will search in the Discover Dataset where project
+        # has special meaning to refer to the sentry project rather than the project tag
+        self.run_test(
+            "project", qs_params={"includeTransactions": "1"}, expected=[(self.project.slug, 2)]
+        )
+
+    def test_project_name_with_query(self):
+        other_project = self.create_project(organization=self.org, name="test1")
+        other_project2 = self.create_project(organization=self.org, name="test2")
+        self.create_project(organization=self.org, name="test3")
+        self.store_event(data={"timestamp": iso_format(self.day_ago)}, project_id=other_project.id)
+        self.store_event(data={"timestamp": iso_format(self.min_ago)}, project_id=other_project.id)
+        self.store_event(data={"timestamp": iso_format(self.day_ago)}, project_id=other_project2.id)
+
+        # without the includeTransactions flag, this will continue to search the Events Dataset for the
+        # projects tag, which doesn't exist here
+        self.run_test("project", qs_params={"query": "test"}, expected=[])
+
+        # with the includeTransactions flag, this will search in the Discover Dataset where project
+        # has special meaning to refer to the sentry project rather than the project tag
+        self.run_test(
+            "project",
+            qs_params={"includeTransactions": "1", "query": "test"},
+            expected=[("test1", 2), ("test2", 1)],
+        )
+        self.run_test(
+            "project", qs_params={"includeTransactions": "1", "query": "1"}, expected=[("test1", 2)]
+        )
+        self.run_test(
+            "project", qs_params={"includeTransactions": "1", "query": "test3"}, expected=[]
+        )
+        self.run_test("project", qs_params={"includeTransactions": "1", "query": "z"}, expected=[])
+
     def test_array_column(self):
         for i in range(3):
             self.store_event(
@@ -160,12 +204,8 @@ class OrganizationTagKeyValuesTest(OrganizationTagKeyTestCase):
 class TransactionTagKeyValues(OrganizationTagKeyTestCase):
     def setUp(self):
         super(TransactionTagKeyValues, self).setUp()
-        data = load_data("transaction")
-        data["timestamp"] = iso_format(before_now(minutes=1))
-        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
-        self.store_event(
-            data, project_id=self.project.id,
-        )
+        data = load_data("transaction", timestamp=before_now(minutes=1))
+        self.store_event(data, project_id=self.project.id)
         self.transaction = data.copy()
         self.transaction.update(
             {
@@ -181,29 +221,32 @@ class TransactionTagKeyValues(OrganizationTagKeyTestCase):
             self.transaction, project_id=self.project.id,
         )
 
+    def run_test(self, key, expected, **kwargs):
+        # all tests here require that we search in transactions so make that the default here
+        qs_params = kwargs.get("qs_params", {})
+        qs_params["includeTransactions"] = "1"
+        kwargs["qs_params"] = qs_params
+        super(TransactionTagKeyValues, self).run_test(key, expected, **kwargs)
+
     def test_status(self):
-        self.run_test("transaction.status", expected=[("unknown_error", 1), ("ok", 1)])
+        self.run_test("transaction.status", expected=[("unknown", 1), ("ok", 1)])
         self.run_test(
-            "transaction.status",
-            qs_params={"query": "o"},
-            expected=[("unknown_error", 1), ("ok", 1)],
+            "transaction.status", qs_params={"query": "o"}, expected=[("unknown", 1), ("ok", 1)],
         )
-        self.run_test(
-            "transaction.status", qs_params={"query": "ow"}, expected=[("unknown_error", 1)]
-        )
+        self.run_test("transaction.status", qs_params={"query": "ow"}, expected=[("unknown", 1)])
 
     def test_op(self):
-        self.run_test("transaction.op", expected=[("bar.server", 1), ("foobar", 1)])
+        self.run_test("transaction.op", expected=[("bar.server", 1), ("http.server", 1)])
         self.run_test(
             "transaction.op",
-            qs_params={"query": "bar"},
-            expected=[("bar.server", 1), ("foobar", 1)],
+            qs_params={"query": "server"},
+            expected=[("bar.server", 1), ("http.server", 1)],
         )
-        self.run_test("transaction.op", qs_params={"query": "server"}, expected=[("bar.server", 1)])
+        self.run_test("transaction.op", qs_params={"query": "bar"}, expected=[("bar.server", 1)])
 
     def test_duration(self):
-        self.run_test("transaction.duration", expected=[("5000", 2)])
-        self.run_test("transaction.duration", qs_params={"query": "5001"}, expected=[("5000", 2)])
+        self.run_test("transaction.duration", expected=[("5000", 1), ("2000", 1)])
+        self.run_test("transaction.duration", qs_params={"query": "5001"}, expected=[("5000", 1)])
         self.run_test("transaction.duration", qs_params={"query": "50"}, expected=[])
 
     def test_transaction_title(self):

@@ -37,6 +37,10 @@ describe('EventsV2 > Results', function() {
       body: [],
     });
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/projects-count/',
+      body: {myProjects: 10, allProjects: 300},
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
       body: [],
     });
@@ -282,15 +286,175 @@ describe('EventsV2 > Results', function() {
     // Open the selector
     selector.find('StyledDropdownButton button').simulate('click');
 
-    // Click the 'none' option.
+    // Click the 'default' option.
     selector
-      .find('DropdownMenu MenuItem span')
+      .find('DropdownMenu MenuItem [data-test-id="option-default"]')
       .first()
       .simulate('click');
     wrapper.update();
 
     const eventsRequest = wrapper.find('EventsChart').props();
-    expect(eventsRequest.disableReleases).toEqual(true);
+    expect(eventsRequest.disableReleases).toEqual(false);
     expect(eventsRequest.disablePrevious).toEqual(true);
+  });
+
+  it('excludes top5 options when plan does not include discover-query', function() {
+    const organization = TestStubs.Organization({
+      features: ['discover-basic'],
+      projects: [TestStubs.Project()],
+    });
+
+    const initialData = initializeOrg({
+      organization,
+      router: {
+        location: {query: {...generateFields(), display: 'previoux'}},
+      },
+    });
+
+    const wrapper = mountWithTheme(
+      <Results
+        organization={organization}
+        location={initialData.router.location}
+        router={initialData.router}
+      />,
+      initialData.routerContext
+    );
+    // display selector is first.
+    const selector = wrapper.find('OptionSelector').first();
+
+    // Open the selector
+    selector.find('StyledDropdownButton button').simulate('click');
+
+    // Make sure the top5 option isn't present
+    const options = selector
+      .find('DropdownMenu MenuItem')
+      .map(item => item.prop('data-test-id'));
+    expect(options).not.toContain('option-top5');
+    expect(options).not.toContain('option-dailytop5');
+    expect(options).toContain('option-default');
+  });
+
+  it('needs confirmation on long queries', async function() {
+    const organization = TestStubs.Organization({
+      features: ['discover-basic'],
+      projects: [TestStubs.Project()],
+    });
+
+    const initialData = initializeOrg({
+      organization,
+      router: {
+        location: {query: {...generateFields(), statsPeriod: '60d', project: '-1'}},
+      },
+    });
+
+    const wrapper = mountWithTheme(
+      <Results
+        organization={organization}
+        location={initialData.router.location}
+        router={initialData.router}
+      />,
+      initialData.routerContext
+    );
+
+    await tick();
+
+    const results = wrapper.find('Results');
+
+    expect(results.state('needConfirmation')).toEqual(true);
+  });
+
+  it('needs confirmation on long query with explicit projects', async function() {
+    const organization = TestStubs.Organization({
+      features: ['discover-basic'],
+      projects: [TestStubs.Project()],
+    });
+
+    const initialData = initializeOrg({
+      organization,
+      router: {
+        location: {
+          query: {
+            ...generateFields(),
+            statsPeriod: '60d',
+            project: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+          },
+        },
+      },
+    });
+
+    const wrapper = mountWithTheme(
+      <Results
+        organization={organization}
+        location={initialData.router.location}
+        router={initialData.router}
+      />,
+      initialData.routerContext
+    );
+
+    await tick();
+
+    const results = wrapper.find('Results');
+
+    expect(results.state('needConfirmation')).toEqual(true);
+  });
+
+  it('does not need confirmation on short queries', async function() {
+    const organization = TestStubs.Organization({
+      features: ['discover-basic'],
+      projects: [TestStubs.Project()],
+    });
+
+    const initialData = initializeOrg({
+      organization,
+      router: {
+        location: {query: {...generateFields(), statsPeriod: '30d', project: '-1'}},
+      },
+    });
+
+    const wrapper = mountWithTheme(
+      <Results
+        organization={organization}
+        location={initialData.router.location}
+        router={initialData.router}
+      />,
+      initialData.routerContext
+    );
+
+    await tick();
+
+    const results = wrapper.find('Results');
+
+    expect(results.state('needConfirmation')).toEqual(false);
+  });
+
+  it('does not need confirmation with to few projects', async function() {
+    const organization = TestStubs.Organization({
+      features: ['discover-basic'],
+      projects: [TestStubs.Project()],
+    });
+
+    const initialData = initializeOrg({
+      organization,
+      router: {
+        location: {
+          query: {...generateFields(), statsPeriod: '90d', project: [1, 2, 3, 4]},
+        },
+      },
+    });
+
+    const wrapper = mountWithTheme(
+      <Results
+        organization={organization}
+        location={initialData.router.location}
+        router={initialData.router}
+      />,
+      initialData.routerContext
+    );
+
+    await tick();
+
+    const results = wrapper.find('Results');
+
+    expect(results.state('needConfirmation')).toEqual(false);
   });
 });

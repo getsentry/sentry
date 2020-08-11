@@ -18,6 +18,7 @@ from sentry.models import (
     Group,
     GroupSubscription,
     GroupSubscriptionReason,
+    Integration,
     ProjectOption,
     ProjectOwnership,
     Release,
@@ -25,6 +26,7 @@ from sentry.models import (
     User,
 )
 from sentry.plugins.base.structs import Notification
+from sentry.plugins.base import plugins
 from sentry.tasks.digests import deliver_digest
 from sentry.utils import metrics
 from sentry.utils.cache import cache
@@ -57,6 +59,8 @@ class MailAdapter(object):
             "event_id": event.event_id,
             "group_id": event.group_id,
             "is_from_mail_action_adapter": True,
+            "target_type": target_type.value,
+            "target_identifier": target_identifier,
         }
         log_event = "dispatched"
         for future in futures:
@@ -274,12 +278,19 @@ class MailAdapter(object):
     def notify(self, notification, target_type, target_identifier=None, **kwargs):
         metrics.incr("mail_adapter.notify")
         event = notification.event
-
         environment = event.get_tag("environment")
-
         group = event.group
         project = group.project
         org = group.organization
+        logger.info(
+            "mail.adapter.notify",
+            extra={
+                "target_type": target_type.value,
+                "target_identifier": target_identifier,
+                "group": group.id,
+                "project_id": project.id,
+            },
+        )
 
         subject = event.get_email_subject()
 
@@ -321,12 +332,17 @@ class MailAdapter(object):
                         commit_data["subject"] = commit_data["message"].split("\n", 1)[0]
                         commits[commit["id"]] = commit_data
 
+        project_plugins = plugins.for_project(project, version=1)
+        organization_integrations = Integration.objects.filter(organizations=org).first()
+        has_integrations = bool(project_plugins or organization_integrations)
+
         context = {
             "project_label": project.get_full_name(),
             "group": group,
             "event": event,
             "link": link,
             "rules": rules,
+            "has_integrations": has_integrations,
             "enhanced_privacy": enhanced_privacy,
             "commits": sorted(commits.values(), key=lambda x: x["score"], reverse=True),
             "environment": environment,
@@ -358,8 +374,18 @@ class MailAdapter(object):
             target_identifier=target_identifier,
             event=event,
         ):
-            self.add_unsubscribe_link(context, user_id, project, "alert_email")
+            logger.info(
+                "mail.adapter.notify.mail_user",
+                extra={
+                    "target_type": target_type,
+                    "target_identifier": target_identifier,
+                    "group": group.id,
+                    "project_id": project.id,
+                    "user_id": user_id,
+                },
+            )
 
+            self.add_unsubscribe_link(context, user_id, project, "alert_email")
             self._send_mail(
                 subject=subject,
                 template=template,
@@ -383,7 +409,16 @@ class MailAdapter(object):
     def notify_digest(self, project, digest, target_type, target_identifier=None):
         metrics.incr("mail_adapter.notify_digest")
         user_ids = self.get_send_to(project, target_type, target_identifier)
-        for user_id, digest in get_personalized_digests(project.id, digest, user_ids):
+        logger.info(
+            "mail.adapter.notify_digest",
+            extra={
+                "project_id": project.id,
+                "target_type": target_type.value,
+                "target_identifier": target_identifier,
+                "user_ids": user_ids,
+            },
+        )
+        for user_id, digest in get_personalized_digests(target_type, project.id, digest, user_ids):
             start, end, counts = get_digest_metadata(digest)
 
             # If there is only one group in this digest (regardless of how many

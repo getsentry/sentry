@@ -2,6 +2,7 @@ import React from 'react';
 
 import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlider';
 import Alert from 'app/components/alert';
+import {AvatarProject} from 'app/types';
 
 export const FieldType = [
   'array',
@@ -20,6 +21,7 @@ export const FieldType = [
   'text',
   'url',
   'table',
+  'project_mapper',
 ] as const;
 
 export type FieldValue = any;
@@ -113,17 +115,31 @@ export type TableType = {
   /**
    * An object with of column labels (headers) for the table.
    */
-  columnLabels?: object;
+  columnLabels: object;
   /**
    * A list of column keys for the table, in the order that you want
    * the columns to appear - order doesn't matter in columnLabels
    */
-  columnKeys?: string[];
+  columnKeys: string[];
   /**
    * The confirmation message before a a row is deleted
    */
   confirmDeleteMessage?: string;
   //TODO(TS): Should we have addButtonText and allowEmpty here as well?
+};
+
+export type ProjectMapperType = {
+  type: 'project_mapper';
+  mappedDropdown: {
+    items: Array<{value: string | number; label: string; url: string}>;
+    placeholder: string;
+  };
+  sentryProjects: Array<AvatarProject & {id: number; name: string}>;
+  nextButton: {
+    url: string | null;
+    text: string;
+  };
+  iconType: string;
 };
 
 export type Field = (
@@ -134,6 +150,7 @@ export type Field = (
   | RangeType
   | {type: typeof FieldType[number]}
   | TableType
+  | ProjectMapperType
 ) &
   BaseField;
 

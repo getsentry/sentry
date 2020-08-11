@@ -1,26 +1,26 @@
 import React from 'react';
 import {Location} from 'history';
 import partial from 'lodash/partial';
+import styled from '@emotion/styled';
 
 import {Organization} from 'app/types';
-import {t, tct} from 'app/locale';
+import {t} from 'app/locale';
 import Count from 'app/components/count';
 import Duration from 'app/components/duration';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
-import ScoreBar from 'app/components/scoreBar';
-import Tooltip from 'app/components/tooltip';
 import UserBadge from 'app/components/idBadge/userBadge';
+import UserMisery from 'app/components/userMisery';
 import Version from 'app/components/version';
+import {defined} from 'app/utils';
 import getDynamicText from 'app/utils/getDynamicText';
 import {formatFloat, formatPercentage} from 'app/utils/formatters';
 import {getAggregateAlias, AGGREGATIONS} from 'app/utils/discover/fields';
 import Projects from 'app/utils/projects';
-import theme from 'app/utils/theme';
 
 import {
+  BarContainer,
   Container,
   EventId,
-  BarContainer,
   NumberContainer,
   OverflowLink,
   StyledDateTime,
@@ -65,7 +65,10 @@ type FieldFormatters = {
 
 export type FieldTypes = keyof FieldFormatters;
 
-const emptyValue = <span>{t('n/a')}</span>;
+const EmptyValueContainer = styled('span')`
+  color: ${p => p.theme.gray500};
+`;
+const emptyValue = <EmptyValueContainer>{t('n/a')}</EmptyValueContainer>;
 
 /**
  * A mapping of field types to their rendering function.
@@ -135,7 +138,11 @@ const FIELD_FORMATTERS: FieldFormatters = {
     isSortable: true,
     renderFunc: (field, data) => {
       // Some fields have long arrays in them, only show the tail of the data.
-      const value = Array.isArray(data[field]) ? data[field].slice(-1) : data[field];
+      const value = Array.isArray(data[field])
+        ? data[field].slice(-1)
+        : defined(data[field])
+        ? data[field]
+        : emptyValue;
       return <Container>{value}</Container>;
     },
   },
@@ -246,18 +253,23 @@ const SPECIAL_FIELDS: SpecialFields = {
         ip_address: '',
       };
 
-      const badge = <UserBadge user={userObj} hideEmail avatarSize={16} />;
+      if (data.user) {
+        const badge = <UserBadge user={userObj} hideEmail avatarSize={16} />;
+        return <Container>{badge}</Container>;
+      }
 
-      return <Container>{badge}</Container>;
+      return <Container>{emptyValue}</Container>;
     },
   },
   release: {
     sortField: 'release',
     renderFunc: data =>
-      data.release && (
+      data.release ? (
         <VersionContainer>
           <Version version={data.release} anchor={false} tooltipRawVersion truncate />
         </VersionContainer>
+      ) : (
+        <Container>{emptyValue}</Container>
       ),
   },
 };
@@ -292,22 +304,17 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
       );
     }
 
-    const palette = new Array(10).fill(theme.purpleDarkest);
-    const score = Math.floor((userMisery / Math.max(uniqueUsers, 1)) * palette.length);
     const miseryLimit = parseInt(userMiseryField.split('_').pop() || '', 10);
-    const title = tct(
-      '[affectedUsers] out of [totalUsers] unique users waited more than [duration]ms',
-      {
-        affectedUsers: userMisery,
-        totalUsers: uniqueUsers,
-        duration: 4 * miseryLimit,
-      }
-    );
+
     return (
       <BarContainer>
-        <Tooltip title={title} disabled={false} containerDisplayMode="block">
-          <ScoreBar size={20} score={score} palette={palette} radius={0} />
-        </Tooltip>
+        <UserMisery
+          bars={10}
+          barHeight={20}
+          miseryLimit={miseryLimit}
+          totalUsers={uniqueUsers}
+          miserableUsers={userMisery}
+        />
       </BarContainer>
     );
   },

@@ -5,4 +5,4 @@ source: tests/sentry/grouping/test_variants.py
 ---
 custom-fingerprint:
   hash: "f30afa00b85f5cac5ee0bce01b31f08d"
-  values: ["celery", "SoftTimeLimitExceeded", "sentry.tasks.store.process_event"]
+  values: ["celery","SoftTimeLimitExceeded","sentry.tasks.store.process_event"]
