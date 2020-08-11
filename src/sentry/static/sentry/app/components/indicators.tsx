@@ -6,7 +6,7 @@ import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import styled from '@emotion/styled';
 
-import {removeIndicator} from 'app/actionCreators/indicator';
+import {removeIndicator, Indicator} from 'app/actionCreators/indicator';
 import IndicatorStore from 'app/stores/indicatorStore';
 import ToastIndicator from 'app/components/alerts/toastIndicator';
 import theme from 'app/utils/theme';
@@ -18,8 +18,14 @@ const Toasts = styled('div')`
   z-index: ${p => p.theme.zIndex.toast};
 `;
 
-class Indicators extends React.Component {
+type Props = {
+  items: Indicator[];
+  className?: string;
+};
+
+class Indicators extends React.Component<Props> {
   static propTypes = {
+    className: PropTypes.string,
     items: PropTypes.arrayOf(
       PropTypes.shape({
         type: PropTypes.oneOf(['error', 'success', 'loading', 'undo', '']),
@@ -34,7 +40,7 @@ class Indicators extends React.Component {
     items: [],
   };
 
-  handleDismiss = indicator => {
+  handleDismiss = (indicator: Indicator) => {
     removeIndicator(indicator);
   };
 
@@ -61,9 +67,9 @@ class Indicators extends React.Component {
   }
 }
 
-const IndicatorsContainer = createReactClass({
+const IndicatorsContainer = createReactClass<Omit<Props, 'items'>>({
   displayName: 'IndicatorsContainer',
-  mixins: [Reflux.connect(IndicatorStore, 'items')],
+  mixins: [Reflux.connect(IndicatorStore, 'items') as any],
 
   getInitialState() {
     return {
