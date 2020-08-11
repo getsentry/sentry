@@ -268,7 +268,7 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
       }));
       const options = this.state.optionsByField.get(field.name) || defaultOptions;
       //filter by what the user is typing
-      const filterOption = createFilter();
+      const filterOption = createFilter({});
       fieldToPass = {
         ...fieldToPass,
         options,
