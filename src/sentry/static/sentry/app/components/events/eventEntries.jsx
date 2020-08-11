@@ -1,5 +1,5 @@
-import PropTypes from 'prop-types';
 import React from 'react';
+import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
 
 import {analytics} from 'app/utils/analytics';
@@ -193,7 +193,11 @@ class EventEntries extends React.Component {
 
     return (
       <div className={className} data-test-id="event-entries">
-        {!objectIsEmpty(event.errors) && <EventErrors event={event} />}{' '}
+        {!objectIsEmpty(event.errors) && (
+          <ErrorContainer>
+            <EventErrors event={event} />
+          </ErrorContainer>
+        )}
         {!isShare &&
           (showExampleCommit ? (
             <EventCauseEmpty organization={organization} project={project} />
@@ -257,6 +261,8 @@ class EventEntries extends React.Component {
   }
 }
 
+const ErrorContainer = styled('div')``;
+
 const BorderlessEventEntries = styled(EventEntries)`
   & ${/* sc-selector */ DataSection} {
     padding: ${space(3)} 0 0 0;
@@ -264,6 +270,9 @@ const BorderlessEventEntries = styled(EventEntries)`
   & ${/* sc-selector */ DataSection}:first-child {
     padding-top: 0;
     border-top: 0;
+  }
+  & ${/* sc-selector */ ErrorContainer} {
+    margin-bottom: ${space(2)};
   }
 `;
 
