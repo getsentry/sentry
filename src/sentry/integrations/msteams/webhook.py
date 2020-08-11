@@ -35,9 +35,6 @@ from .utils import build_welcome_card, build_linking_card
 
 logger = logging.getLogger("sentry.integrations.msteams.webhooks")
 
-# 24 hours to finish installation
-INSTALL_EXPIRATION_TIME = 60 * 60 * 24
-
 
 def verify_signature(request):
     # docs for jwt authentication here: https://docs.microsoft.com/en-us/azure/bot-service/rest-api/bot-framework-rest-connector-authentication?view=azure-bot-service-4.0#bot-to-connector
@@ -147,7 +144,6 @@ class MsTeamsWebhookEndpoint(Endpoint):
             "team_id": team["id"],
             "team_name": team["name"],
             "service_url": data["serviceUrl"],
-            "expiration_time": int(time.time()) + INSTALL_EXPIRATION_TIME,
         }
 
         # sign the params so this can't be forged
