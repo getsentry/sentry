@@ -3,6 +3,8 @@ from __future__ import absolute_import
 import responses
 import time
 
+from django.http import HttpResponse
+
 from sentry.utils.compat.mock import patch
 
 from sentry.models import (
@@ -84,8 +86,8 @@ class BaseEventTest(APITestCase):
 
 
 class StatusActionTest(BaseEventTest):
-    @patch("sentry.integrations.msteams.link_identity.sign")
     @patch("sentry.integrations.msteams.webhook.verify_signature")
+    @patch("sentry.integrations.msteams.link_identity.sign")
     @responses.activate
     def test_ask_linking(self, sign, verify):
         sign.return_value = "signed_parameters"
@@ -145,6 +147,17 @@ class StatusActionTest(BaseEventTest):
         assert resp.status_code == 200, resp.content
         assert self.group1.get_status() == GroupStatus.IGNORED
 
+    @patch("sentry.api.client.put")
+    @patch("sentry.integrations.msteams.webhook.verify_signature")
+    def test_ignore_with_params(self, verify, client_put):
+        verify.return_value = True
+        client_put.return_value = HttpResponse(status=200)
+        self.post_webhook(action_type=ACTION_TYPE.IGNORE, ignore_input="100")
+
+        expected_data = {"status": "ignored", "statusDetails": {"ignoreCount": 100}}
+
+        assert client_put.mock_calls[0].kwargs["data"] == expected_data
+
     @patch("sentry.integrations.msteams.webhook.verify_signature")
     def test_assign_to_team(self, verify):
         verify.return_value = True
@@ -202,6 +215,19 @@ class StatusActionTest(BaseEventTest):
 
         assert resp.status_code == 200, resp.content
         assert self.group1.get_status() == GroupStatus.RESOLVED
+
+    @patch("sentry.api.client.put")
+    @patch("sentry.integrations.msteams.webhook.verify_signature")
+    def test_resolve_with_params(self, verify, client_put):
+        verify.return_value = True
+        client_put.return_value = HttpResponse(status=200)
+        self.post_webhook(
+            action_type=ACTION_TYPE.RESOLVE, resolve_input="resolved:inCurrentRelease"
+        )
+
+        expected_data = {"status": "resolved", "statusDetails": {"inRelease": "latest"}}
+
+        assert client_put.mock_calls[0].kwargs["data"] == expected_data
 
     @patch("sentry.integrations.msteams.webhook.verify_signature")
     def test_no_integration(self, verify):
