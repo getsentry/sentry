@@ -65,7 +65,7 @@ class ColumnEditModal extends React.Component<Props, State> {
               'To stack events, add [functionLink: functions] f(x) that may take in additional parameters. [tagFieldLink: Tag and field] columns will help you view more details about the events (i.e. title).',
               {
                 functionLink: (
-                  <ExternalLink href="https://docs.sentry.io/performance-monitoring/discover-queries/query-builder/#filter-by-table-columns" />
+                  <ExternalLink href="https://docs.sentry.io/product/discover-queries/query-builder/#filter-by-table-columns" />
                 ),
                 tagFieldLink: (
                   <ExternalLink href="https://docs.sentry.io/workflow/search/?platform=javascript#event-properties" />

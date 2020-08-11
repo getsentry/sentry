@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import simplejson
 import six
 
 from django.core.exceptions import ValidationError
@@ -8,6 +7,7 @@ from django.db.models import TextField
 from django.utils.encoding import smart_text
 
 from sentry.db.models.utils import Creator
+from sentry.utils import json
 
 
 class JSONField(TextField):
@@ -32,7 +32,7 @@ class JSONField(TextField):
             return None
         if isinstance(value, six.string_types):
             try:
-                return simplejson.loads(value)
+                return json.loads(value)
             except Exception as e:
                 raise ValidationError(six.text_type(e))
         else:
@@ -44,14 +44,14 @@ class JSONField(TextField):
         if isinstance(value, six.string_types):
             super(JSONField, self).validate(value, model_instance)
             try:
-                simplejson.loads(value)
+                json.loads(value)
             except Exception as e:
                 raise ValidationError(six.text_type(e))
 
     def get_prep_value(self, value):
         """Convert value to JSON string before save"""
         try:
-            return simplejson.dumps(value)
+            return json.dumps(value)
         except Exception as e:
             raise ValidationError(six.text_type(e))
 

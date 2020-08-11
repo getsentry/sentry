@@ -1,16 +1,15 @@
 from __future__ import absolute_import
 
 import copy
+import responses
+import six
 
 from sentry.integrations.bitbucket.issues import ISSUE_TYPES, PRIORITIES
 from sentry.models import ExternalIssue, Integration
 from sentry.testutils import APITestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import iso_format, before_now
-
-import json
-import responses
-import six
+from sentry.utils import json
 
 
 class BitbucketIssueTest(APITestCase):
