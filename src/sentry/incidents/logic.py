@@ -1073,7 +1073,7 @@ def create_alert_rule_trigger_action(
                 target_display = service.service_name
                 target_identifier = service.id
             except PagerDutyService.DoesNotExist:
-                pass
+                raise InvalidTriggerActionError("No PagerDuty service found.")
 
     return AlertRuleTriggerAction.objects.create(
         alert_rule_trigger=trigger,
@@ -1123,7 +1123,7 @@ def update_alert_rule_trigger_action(
                     updated_fields["target_display"] = service.service_name
                     updated_fields["target_identifier"] = service.id
                 except PagerDutyService.DoesNotExist:
-                    pass
+                    raise InvalidTriggerActionError("No PagerDuty service found.")
         else:
             updated_fields["target_identifier"] = target_identifier
     trigger_action.update(**updated_fields)
