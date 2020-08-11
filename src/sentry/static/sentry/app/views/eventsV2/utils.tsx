@@ -11,6 +11,7 @@ import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {disableMacros} from 'app/views/discover/result/utils';
 import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
 import EventView from 'app/utils/discover/eventView';
+import {TableDataRow} from 'app/utils/discover/discoverQuery';
 import {
   Field,
   Column,
@@ -24,7 +25,7 @@ import {
 } from 'app/utils/discover/fields';
 
 import {ALL_VIEWS, TRANSACTION_VIEWS} from './data';
-import {TableColumn, TableDataRow, FieldValue, FieldValueKind} from './table/types';
+import {TableColumn, FieldValue, FieldValueKind} from './table/types';
 
 export type QueryWithColumnState =
   | Query
