@@ -72,13 +72,6 @@ class DetailedAlertRuleSerializer(AlertRuleSerializer):
     def get_attrs(self, item_list, user, **kwargs):
         result = super(DetailedAlertRuleSerializer, self).get_attrs(item_list, user, **kwargs)
         alert_rules = {item.id: item for item in item_list}
-        # alert_rule_projects = AlertRule.objects.filter(
-        #     id__in=[item.id for item in item_list]
-        # ).values_list("id", "snuba_query__subscriptions__project__slug")
-        # for alert_rule_id, project_slug in alert_rule_projects:
-        #     rule_result = result[alert_rules[alert_rule_id]].setdefault("projects", [])
-        #     rule_result.append(project_slug)
-
         for alert_rule_id, project_slug in AlertRuleExcludedProjects.objects.filter(
             alert_rule__in=item_list
         ).values_list("alert_rule_id", "project__slug"):
@@ -88,7 +81,6 @@ class DetailedAlertRuleSerializer(AlertRuleSerializer):
 
     def serialize(self, obj, attrs, user):
         data = super(DetailedAlertRuleSerializer, self).serialize(obj, attrs, user)
-        # data["projects"] = sorted(attrs["projects"])
         data["excludedProjects"] = sorted(attrs.get("excludedProjects", []))
         return data
 
