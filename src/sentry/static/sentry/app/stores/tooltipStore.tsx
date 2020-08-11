@@ -7,7 +7,7 @@ type TooltipStoreInterface = {
   init: () => TooltipStoreInterface;
 };
 
-const MAX_TOOLTIPS_TO_OPEN = 100;
+const MAX_TOOLTIPS_TO_OPEN = 200;
 
 const TooltipStore: TooltipStoreInterface = {
   tooltips: [],
@@ -38,6 +38,7 @@ const TooltipStore: TooltipStoreInterface = {
     this.tooltips.forEach(tooltip => {
       tooltip.setState({
         isOpen: false,
+        usesGlobalPortal: true,
       });
     });
   },
