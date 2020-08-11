@@ -126,6 +126,7 @@ class DetailedAlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
         alert_rule = self.create_alert_rule(projects=projects, include_all_projects=False)
         result = serialize(alert_rule, serializer=DetailedAlertRuleSerializer())
         self.assert_alert_rule_serialized(alert_rule, result)
+        assert result["projects"] == [p.slug for p in projects]
         assert result["excludedProjects"] == []
 
     def test_triggers(self):
