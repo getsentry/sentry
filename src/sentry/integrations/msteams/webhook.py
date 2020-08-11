@@ -41,28 +41,24 @@ logger = logging.getLogger("sentry.integrations.msteams.webhooks")
 INSTALL_EXPIRATION_TIME = 60 * 60 * 24
 
 
-class MsTeamsIntegrationAssign(analytics.Event):
+class MsTeamsIntegrationAnalytics(analytics.Event):
+    attributes = (analytics.Attribute("actor_id"), analytics.Attribute("organization_id"))
+
+
+class MsTeamsIntegrationAssign(MsTeamsIntegrationAnalytics):
     type = "integrations.msteams.assign"
 
-    attributes = (analytics.Attribute("actor_id"), analytics.Attribute("organization_id"))
 
-
-class MsTeamsIntegrationResolve(analytics.Event):
+class MsTeamsIntegrationResolve(MsTeamsIntegrationAnalytics):
     type = "integrations.msteams.resolve"
 
-    attributes = (analytics.Attribute("actor_id"), analytics.Attribute("organization_id"))
 
-
-class MsTeamsIntegrationIgnore(analytics.Event):
+class MsTeamsIntegrationIgnore(MsTeamsIntegrationAnalytics):
     type = "integrations.msteams.ignore"
 
-    attributes = (analytics.Attribute("actor_id"), analytics.Attribute("organization_id"))
 
-
-class MsTeamsIntegrationUnresolve(analytics.Event):
+class MsTeamsIntegrationUnresolve(MsTeamsIntegrationAnalytics):
     type = "integrations.msteams.unresolve"
-
-    attributes = (analytics.Attribute("actor_id"), analytics.Attribute("organization_id"))
 
 
 analytics.register(MsTeamsIntegrationAssign)
@@ -266,7 +262,12 @@ class MsTeamsWebhookEndpoint(Endpoint):
 
         # undoing the enum structure of ACTION_TYPE to
         # get a more sensible analytics_event
-        action_types = {"1": "resolve", "2": "ignore", "3": "assign", "4": "unresolve"}
+        action_types = {
+            ACTION_TYPE.RESOLVE: "resolve",
+            ACTION_TYPE.IGNORE: "ignore",
+            ACTION_TYPE.ASSIGN: "assign",
+            ACTION_TYPE.UNRESOLVE: "unresolve",
+        }
         action_data = self.make_action_data(data, identity.user_id)
         status = action_types[data["actionType"]]
         analytics_event = "integrations.msteams.%s" % status
