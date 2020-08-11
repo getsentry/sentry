@@ -372,9 +372,11 @@ class TransactionTable extends React.PureComponent<Props> {
 
         resultsRow.push(
           <BodyCellContainer key={`${rowIndex}-baseline`} style={{textAlign: 'right'}}>
-            <Link to={target} onClick={this.handleViewDetailsClick}>
-              {`${getHumanDuration(delta / 1000)} ${relativeSpeed}`}
-            </Link>
+            <GridCell>
+              <Link to={target} onClick={this.handleViewDetailsClick}>
+                {`${getHumanDuration(delta / 1000)} ${relativeSpeed}`}
+              </Link>
+            </GridCell>
           </BodyCellContainer>
         );
       } else {
