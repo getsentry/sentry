@@ -87,8 +87,6 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
             "target_identifier": {"required": True},
             "target_display": {"required": False},
             "integration": {"required": False, "allow_null": True},
-            # "input_type": {"required": False, "allow_null": True},
-            # "options": {"required": False, "allow_null": True},
         }
 
     def validate_type(self, type):

@@ -61,13 +61,10 @@ const getPlaceholderForType = (type: ActionType) => {
     case ActionType.MSTEAMS:
       //no prefixes for msteams
       return 'username or channel';
-    case ActionType.PAGERDUTY:
-      return 'service';
     default:
       throw Error('Not implemented');
   }
 };
-
 /**
  * Lists saved actions as well as control to add a new action
  */
@@ -322,11 +319,11 @@ class ActionsPanel extends React.PureComponent<Props> {
                           i
                         )}
                       />
-                    ) : action.inputType === 'select' && action.options ? (
+                    ) : availableAction?.inputType === 'select' ? (
                       <SelectControl
                         isDisabled={disabled || loading}
                         value={action.targetIdentifier}
-                        options={action.options}
+                        options={availableAction?.options || []}
                         onChange={this.handleChangeTargetIdentifier.bind(
                           this,
                           triggerIndex,

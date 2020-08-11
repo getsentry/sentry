@@ -26,6 +26,11 @@ class AlertRuleTriggerActionSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         from sentry.incidents.endpoints.serializers import action_target_type_to_string
 
+        target_identifier = (
+            obj.target_display if obj.target_display is not None else obj.target_identifier
+        )
+        if obj.type == 1:  # PagerDuty
+            target_identifier = int(obj.target_identifier)
         return {
             "id": six.text_type(obj.id),
             "alertRuleTriggerId": six.text_type(obj.alert_rule_trigger_id),
@@ -35,9 +40,7 @@ class AlertRuleTriggerActionSerializer(Serializer):
             "targetType": action_target_type_to_string[
                 AlertRuleTriggerAction.TargetType(obj.target_type)
             ],
-            "targetIdentifier": obj.target_display
-            if obj.target_display is not None
-            else obj.target_identifier,
+            "targetIdentifier": target_identifier,
             "integrationId": obj.integration_id,
             "dateCreated": obj.date_added,
             "desc": self.human_desc(obj),

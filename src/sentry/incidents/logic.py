@@ -1065,15 +1065,15 @@ def create_alert_rule_trigger_action(
 
         # Use the channel name for display
         target_display = target_identifier
+        target_identifier = channel_id
 
         if type == AlertRuleTriggerAction.Type.PAGERDUTY:
             try:
                 service = PagerDutyService.objects.get(id=target_display)
                 target_display = service.service_name
+                target_identifier = service.id
             except PagerDutyService.DoesNotExist:
                 pass
-
-        target_identifier = channel_id
 
     return AlertRuleTriggerAction.objects.create(
         alert_rule_trigger=trigger,
@@ -1117,9 +1117,15 @@ def update_alert_rule_trigger_action(
             # Use the target identifier for display
             updated_fields["target_display"] = target_identifier
             updated_fields["target_identifier"] = channel_id
+            if type == 1:  # PagerDuty
+                try:
+                    service = PagerDutyService.objects.get(id=target_identifier)
+                    updated_fields["target_display"] = service.service_name
+                    updated_fields["target_identifier"] = service.id
+                except PagerDutyService.DoesNotExist:
+                    pass
         else:
             updated_fields["target_identifier"] = target_identifier
-
     trigger_action.update(**updated_fields)
     return trigger_action
 
