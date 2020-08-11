@@ -1,18 +1,18 @@
 ---
-created: '2020-07-23T16:57:26.803389Z'
+created: '2020-08-11T11:59:10.794459Z'
 creator: sentry
 source: tests/sentry/grouping/similarity/test_features.py
 ---
-similarity:2020-07-23:stacktrace:frames-pairs: [[["function", "___rust_maybe_catch_panic"]], [["function", "log_demo::main"]]]
-similarity:2020-07-23:stacktrace:frames-pairs: [[["function", "___rust_maybe_catch_panic"]], [["function", "std::panicking::try::do_call"]]]
-similarity:2020-07-23:stacktrace:frames-pairs: [[["function", "_main"]], [["function", "___rust_maybe_catch_panic"]]]
-similarity:2020-07-23:stacktrace:frames-pairs: [[["function", "_main"]], [["function", "std::rt::lang_start"]]]
-similarity:2020-07-23:stacktrace:frames-pairs: [[["function", "log::__private_api_log"]], [["function", "sentry::integrations::log::Logger::log"]]]
-similarity:2020-07-23:stacktrace:frames-pairs: [[["function", "log_demo::main"]], [["function", "log::__private_api_log"]]]
-similarity:2020-07-23:stacktrace:frames-pairs: [[["function", "sentry::hub::Hub::with"]], [["function", "sentry::hub::Hub::with_active::{{closure}}"]]]
-similarity:2020-07-23:stacktrace:frames-pairs: [[["function", "sentry::hub::Hub::with_active"]], [["function", "sentry::hub::Hub::with"]]]
-similarity:2020-07-23:stacktrace:frames-pairs: [[["function", "sentry::integrations::log::Logger::log"]], [["function", "sentry::hub::Hub::with_active"]]]
-similarity:2020-07-23:stacktrace:frames-pairs: [[["function", "std::panicking::try::do_call"]], [["function", "std::rt::lang_start::{{closure}}"]]]
-similarity:2020-07-23:stacktrace:frames-pairs: [[["function", "std::rt::lang_start"]], [["function", "std::rt::lang_start_internal"]]]
-similarity:2020-07-23:stacktrace:frames-pairs: [[["function", "std::rt::lang_start::{{closure}}"]], [["function", "log_demo::main"]]]
-similarity:2020-07-23:stacktrace:frames-pairs: [[["function", "std::rt::lang_start_internal"]], [["function", "___rust_maybe_catch_panic"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","___rust_maybe_catch_panic"]],[["function","log_demo::main"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","___rust_maybe_catch_panic"]],[["function","std::panicking::try::do_call"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","_main"]],[["function","___rust_maybe_catch_panic"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","_main"]],[["function","std::rt::lang_start"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","log::__private_api_log"]],[["function","sentry::integrations::log::Logger::log"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","log_demo::main"]],[["function","log::__private_api_log"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","sentry::hub::Hub::with"]],[["function","sentry::hub::Hub::with_active::{{closure}}"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","sentry::hub::Hub::with_active"]],[["function","sentry::hub::Hub::with"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","sentry::integrations::log::Logger::log"]],[["function","sentry::hub::Hub::with_active"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","std::panicking::try::do_call"]],[["function","std::rt::lang_start::{{closure}}"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","std::rt::lang_start"]],[["function","std::rt::lang_start_internal"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","std::rt::lang_start::{{closure}}"]],[["function","log_demo::main"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","std::rt::lang_start_internal"]],[["function","___rust_maybe_catch_panic"]]]

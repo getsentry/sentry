@@ -1,8 +1,8 @@
 ---
-created: '2020-07-23T16:57:26.396852Z'
+created: '2020-08-11T11:59:10.362832Z'
 creator: sentry
 source: tests/sentry/grouping/similarity/test_features.py
 ---
-similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line", "resp.raise_for_status()"], ["function", "send_notification"], ["module", "sentry.integrations.slack.notify_action"]], [["context-line", "raise HTTPError(http_error_msg, response=self)"], ["function", "raise_for_status"], ["module", "requests.models"]]]
-similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line", "result = func(*args, **kwargs)"], ["function", "safe_execute"], ["module", "sentry.utils.safe"]], [["context-line", "resp.raise_for_status()"], ["function", "send_notification"], ["module", "sentry.integrations.slack.notify_action"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","resp.raise_for_status()"],["function","send_notification"],["module","sentry.integrations.slack.notify_action"]],[["context-line","raise HTTPError(http_error_msg, response=self)"],["function","raise_for_status"],["module","requests.models"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","result = func(*args, **kwargs)"],["function","safe_execute"],["module","sentry.utils.safe"]],[["context-line","resp.raise_for_status()"],["function","send_notification"],["module","sentry.integrations.slack.notify_action"]]]
 similarity:2020-07-23:type:ident-shingle: "HTTPError"

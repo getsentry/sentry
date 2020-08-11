@@ -1,29 +1,29 @@
 ---
-created: '2020-07-23T16:57:26.185105Z'
+created: '2020-08-11T11:59:10.113863Z'
 creator: sentry
 source: tests/sentry/grouping/similarity/test_features.py
 ---
-similarity:2020-07-23:stacktrace:frames-pairs: [[["function", "addConnector"], ["module", "org.apache.catalina.core.StandardService"]], [["function", "start"], ["module", "org.apache.catalina.util.LifecycleBase"]]]
-similarity:2020-07-23:stacktrace:frames-pairs: [[["function", "addPreviouslyRemovedConnectors"], ["module", "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"]], [["function", "addConnector"], ["module", "org.apache.catalina.core.StandardService"]]]
-similarity:2020-07-23:stacktrace:frames-pairs: [[["function", "bind"], ["module", "org.apache.tomcat.util.net.NioEndpoint"]], [["function", "bind"], ["module", "sun.nio.ch.ServerSocketAdaptor"]]]
-similarity:2020-07-23:stacktrace:frames-pairs: [[["function", "bind"], ["module", "sun.nio.ch.Net"]], [["function", "bind"], ["module", "sun.nio.ch.Net"]]]
-similarity:2020-07-23:stacktrace:frames-pairs: [[["function", "bind"], ["module", "sun.nio.ch.Net"]], [["function", "bind0"], ["module", "sun.nio.ch.Net"]]]
-similarity:2020-07-23:stacktrace:frames-pairs: [[["function", "bind"], ["module", "sun.nio.ch.ServerSocketAdaptor"]], [["function", "bind"], ["module", "sun.nio.ch.ServerSocketChannelImpl"]]]
-similarity:2020-07-23:stacktrace:frames-pairs: [[["function", "bind"], ["module", "sun.nio.ch.ServerSocketChannelImpl"]], [["function", "bind"], ["module", "sun.nio.ch.Net"]]]
-similarity:2020-07-23:stacktrace:frames-pairs: [[["function", "finishRefresh"], ["module", "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"]], [["function", "startEmbeddedServletContainer"], ["module", "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"]]]
-similarity:2020-07-23:stacktrace:frames-pairs: [[["function", "main"], ["module", "io.sentry.example.Application"]], [["function", "run"], ["module", "org.springframework.boot.SpringApplication"]]]
-similarity:2020-07-23:stacktrace:frames-pairs: [[["function", "refresh"], ["module", "org.springframework.boot.SpringApplication"]], [["function", "refresh"], ["module", "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"]]]
-similarity:2020-07-23:stacktrace:frames-pairs: [[["function", "refresh"], ["module", "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"]], [["function", "refresh"], ["module", "org.springframework.context.support.AbstractApplicationContext"]]]
-similarity:2020-07-23:stacktrace:frames-pairs: [[["function", "refresh"], ["module", "org.springframework.context.support.AbstractApplicationContext"]], [["function", "finishRefresh"], ["module", "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"]]]
-similarity:2020-07-23:stacktrace:frames-pairs: [[["function", "refreshContext"], ["module", "org.springframework.boot.SpringApplication"]], [["function", "refresh"], ["module", "org.springframework.boot.SpringApplication"]]]
-similarity:2020-07-23:stacktrace:frames-pairs: [[["function", "run"], ["module", "org.springframework.boot.SpringApplication"]], [["function", "refreshContext"], ["module", "org.springframework.boot.SpringApplication"]]]
-similarity:2020-07-23:stacktrace:frames-pairs: [[["function", "run"], ["module", "org.springframework.boot.SpringApplication"]], [["function", "run"], ["module", "org.springframework.boot.SpringApplication"]]]
-similarity:2020-07-23:stacktrace:frames-pairs: [[["function", "start"], ["module", "org.apache.catalina.util.LifecycleBase"]], [["function", "startInternal"], ["module", "org.apache.catalina.connector.Connector"]]]
-similarity:2020-07-23:stacktrace:frames-pairs: [[["function", "start"], ["module", "org.apache.coyote.AbstractProtocol"]], [["function", "start"], ["module", "org.apache.tomcat.util.net.AbstractEndpoint"]]]
-similarity:2020-07-23:stacktrace:frames-pairs: [[["function", "start"], ["module", "org.apache.tomcat.util.net.AbstractEndpoint"]], [["function", "bind"], ["module", "org.apache.tomcat.util.net.NioEndpoint"]]]
-similarity:2020-07-23:stacktrace:frames-pairs: [[["function", "start"], ["module", "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"]], [["function", "addPreviouslyRemovedConnectors"], ["module", "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"]]]
-similarity:2020-07-23:stacktrace:frames-pairs: [[["function", "startEmbeddedServletContainer"], ["module", "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"]], [["function", "start"], ["module", "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"]]]
-similarity:2020-07-23:stacktrace:frames-pairs: [[["function", "startInternal"], ["module", "org.apache.catalina.connector.Connector"]], [["function", "start"], ["module", "org.apache.coyote.AbstractProtocol"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","addConnector"],["module","org.apache.catalina.core.StandardService"]],[["function","start"],["module","org.apache.catalina.util.LifecycleBase"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","addPreviouslyRemovedConnectors"],["module","org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"]],[["function","addConnector"],["module","org.apache.catalina.core.StandardService"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","bind"],["module","org.apache.tomcat.util.net.NioEndpoint"]],[["function","bind"],["module","sun.nio.ch.ServerSocketAdaptor"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","bind"],["module","sun.nio.ch.Net"]],[["function","bind"],["module","sun.nio.ch.Net"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","bind"],["module","sun.nio.ch.Net"]],[["function","bind0"],["module","sun.nio.ch.Net"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","bind"],["module","sun.nio.ch.ServerSocketAdaptor"]],[["function","bind"],["module","sun.nio.ch.ServerSocketChannelImpl"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","bind"],["module","sun.nio.ch.ServerSocketChannelImpl"]],[["function","bind"],["module","sun.nio.ch.Net"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","finishRefresh"],["module","org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"]],[["function","startEmbeddedServletContainer"],["module","org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","main"],["module","io.sentry.example.Application"]],[["function","run"],["module","org.springframework.boot.SpringApplication"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","refresh"],["module","org.springframework.boot.SpringApplication"]],[["function","refresh"],["module","org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","refresh"],["module","org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"]],[["function","refresh"],["module","org.springframework.context.support.AbstractApplicationContext"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","refresh"],["module","org.springframework.context.support.AbstractApplicationContext"]],[["function","finishRefresh"],["module","org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","refreshContext"],["module","org.springframework.boot.SpringApplication"]],[["function","refresh"],["module","org.springframework.boot.SpringApplication"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","run"],["module","org.springframework.boot.SpringApplication"]],[["function","refreshContext"],["module","org.springframework.boot.SpringApplication"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","run"],["module","org.springframework.boot.SpringApplication"]],[["function","run"],["module","org.springframework.boot.SpringApplication"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","start"],["module","org.apache.catalina.util.LifecycleBase"]],[["function","startInternal"],["module","org.apache.catalina.connector.Connector"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","start"],["module","org.apache.coyote.AbstractProtocol"]],[["function","start"],["module","org.apache.tomcat.util.net.AbstractEndpoint"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","start"],["module","org.apache.tomcat.util.net.AbstractEndpoint"]],[["function","bind"],["module","org.apache.tomcat.util.net.NioEndpoint"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","start"],["module","org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"]],[["function","addPreviouslyRemovedConnectors"],["module","org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","startEmbeddedServletContainer"],["module","org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"]],[["function","start"],["module","org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","startInternal"],["module","org.apache.catalina.connector.Connector"]],[["function","start"],["module","org.apache.coyote.AbstractProtocol"]]]
 similarity:2020-07-23:value:character-5-shingle: "  Pro"
 similarity:2020-07-23:value:character-5-shingle: " \"Tom"
 similarity:2020-07-23:value:character-5-shingle: " Prot"
@@ -97,6 +97,6 @@ similarity:2020-07-23:value:character-5-shingle: "tart "
 similarity:2020-07-23:value:character-5-shingle: "tocol"
 similarity:2020-07-23:value:character-5-shingle: "vice."
 similarity:2020-07-23:value:character-5-shingle: "y in "
-similarity:2020-07-23:stacktrace:frames-ident: [["function", "main"], ["module", "io.sentry.example.Application"]]
+similarity:2020-07-23:stacktrace:frames-ident: [["function","main"],["module","io.sentry.example.Application"]]
 similarity:2020-07-23:type:ident-shingle: "BindException"
 similarity:2020-07-23:type:ident-shingle: "LifecycleException"

@@ -1,7 +1,7 @@
 ---
-created: '2020-07-23T16:57:25.306137Z'
+created: '2020-08-11T11:59:09.346799Z'
 creator: sentry
 source: tests/sentry/grouping/similarity/test_features.py
 ---
-similarity:2020-07-23:stacktrace:frames-pairs: [[["function", "Scaleform::GFx::AS3::IMEManager::DispatchEvent"]], [["function", "<lambda>::operator()"]]]
-similarity:2020-07-23:stacktrace:frames-pairs: [[["function", "Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated"]], [["function", "Scaleform::GFx::AS3::IMEManager::DispatchEvent"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","Scaleform::GFx::AS3::IMEManager::DispatchEvent"]],[["function","<lambda>::operator()"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated"]],[["function","Scaleform::GFx::AS3::IMEManager::DispatchEvent"]]]

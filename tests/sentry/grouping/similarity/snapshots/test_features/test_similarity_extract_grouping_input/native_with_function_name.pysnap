@@ -1,8 +1,8 @@
 ---
-created: '2020-07-23T16:57:26.482265Z'
+created: '2020-08-11T11:59:10.448932Z'
 creator: sentry
 source: tests/sentry/grouping/similarity/test_features.py
 ---
-similarity:2020-07-23:stacktrace:frames-pairs: [[["filename", "main.cpp"], ["function", "(anonymous namespace)::crash"]], [["filename", "main.cpp"], ["function", "(anonymous namespace)::something::nested::Foo<T>::crash"]]]
-similarity:2020-07-23:stacktrace:frames-pairs: [[["filename", "main.cpp"], ["function", "(anonymous namespace)::start"]], [["filename", "main.cpp"], ["function", "(anonymous namespace)::crash"]]]
-similarity:2020-07-23:stacktrace:frames-pairs: [[["filename", "main.cpp"], ["function", "main"]], [["filename", "main.cpp"], ["function", "(anonymous namespace)::start"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","main.cpp"],["function","(anonymous namespace)::crash"]],[["filename","main.cpp"],["function","(anonymous namespace)::something::nested::Foo<T>::crash"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","main.cpp"],["function","(anonymous namespace)::start"]],[["filename","main.cpp"],["function","(anonymous namespace)::crash"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","main.cpp"],["function","main"]],[["filename","main.cpp"],["function","(anonymous namespace)::start"]]]
