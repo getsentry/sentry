@@ -1,7 +1,7 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
-import {selectByValue} from 'sentry-test/select-new';
+import {selectByValue, changeInputValue} from 'sentry-test/select-new';
 
 import {Client} from 'app/api';
 import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
@@ -189,8 +189,7 @@ describe('SentryAppExternalIssueForm Async Field', () => {
       );
 
       const thisInput = wrapper.find('input').at(0);
-      thisInput.instance().value = 'I';
-      thisInput.simulate('change', {target: {value: 'I'}});
+      changeInputValue(thisInput, 'I');
 
       await tick();
       wrapper.update();
@@ -277,8 +276,7 @@ describe('SentryAppExternalIssueForm Dependent fields', () => {
       );
 
       const projectInput = wrapper.find('[data-test-id="project_id"] input').at(0);
-      projectInput.instance().value = 'p';
-      projectInput.simulate('change', {target: {value: 'p'}});
+      changeInputValue(projectInput, 'p');
       await tick();
       wrapper.update();
 
@@ -298,8 +296,7 @@ describe('SentryAppExternalIssueForm Dependent fields', () => {
       expect(wrapper.find('SelectControl#board_id').prop('disabled')).toBe(false);
 
       const boardInput = wrapper.find('[data-test-id="board_id"] input').at(0);
-      boardInput.instance().value = 'b';
-      boardInput.simulate('change', {target: {value: 'b'}});
+      changeInputValue(boardInput, 'b');
 
       await tick();
       wrapper.update();
