@@ -36,6 +36,7 @@ type Props = {
 
 type State = {
   environments: Environment[];
+  currentRelease?: object | null;
   participants: Group['participants'];
   allEnvironmentsGroupData?: Group;
   tagsWithTopValues?: Record<string, TagWithTopValues>;
@@ -53,6 +54,44 @@ class GroupSidebar extends React.Component<Props, State> {
   }
 
   componentDidMount() {
+    this.fetchAllEnvironmentsGroupData();
+    this.fetchCurrentRelease();
+    this.fetchParticipants();
+    this.fetchTagData();
+  }
+
+  UNSAFE_componentWillReceiveProps(nextProps) {
+    if (!isEqual(nextProps.environments, this.props.environments)) {
+      this.setState({environments: nextProps.environments}, this.fetchTagData);
+    }
+  }
+
+  fetchAllEnvironmentsGroupData() {
+    const {group, api} = this.props;
+
+    // Fetch group data for all environments since the one passed in props is filtered for the selected environment
+    // The charts rely on having all environment data as well as the data for the selected env
+    api.request(`/issues/${group.id}/`, {
+      success: data => {
+        this.setState({allEnvironmentsGroupData: data});
+      },
+      error: () => this.setState({error: true}),
+    });
+  }
+
+  fetchCurrentRelease() {
+    const {group, api} = this.props;
+
+    api.request(`/issues/${group.id}/current-release/`, {
+      success: data => {
+        const {currentRelease} = data;
+        this.setState({currentRelease});
+      },
+      error: () => this.setState({error: true}),
+    });
+  }
+
+  fetchParticipants() {
     const {group, api} = this.props;
 
     api.request(`/issues/${group.id}/participants/`, {
@@ -62,35 +101,8 @@ class GroupSidebar extends React.Component<Props, State> {
           error: false,
         });
       },
-      error: () => {
-        this.setState({
-          error: true,
-        });
-      },
+      error: () => this.setState({error: true}),
     });
-
-    // Fetch group data for all environments since the one passed in props is filtered for the selected environment
-    // The charts rely on having all environment data as well as the data for the selected env
-    this.props.api.request(`/issues/${group.id}/`, {
-      success: data => {
-        this.setState({
-          allEnvironmentsGroupData: data,
-        });
-      },
-      error: () => {
-        this.setState({
-          error: true,
-        });
-      },
-    });
-
-    this.fetchTagData();
-  }
-
-  UNSAFE_componentWillReceiveProps(nextProps) {
-    if (!isEqual(nextProps.environments, this.props.environments)) {
-      this.setState({environments: nextProps.environments}, this.fetchTagData);
-    }
   }
 
   fetchTagData() {
@@ -105,11 +117,7 @@ class GroupSidebar extends React.Component<Props, State> {
       success: data => {
         this.setState({tagsWithTopValues: keyBy(data, 'key')});
       },
-      error: () => {
-        this.setState({
-          error: true,
-        });
-      },
+      error: () => this.setState({error: true}),
     });
   }
 
@@ -199,8 +207,8 @@ class GroupSidebar extends React.Component<Props, State> {
   }
 
   render() {
-    const {event, group, organization, project, environments} = this.props;
-    const {allEnvironmentsGroupData, tagsWithTopValues} = this.state;
+    const {organization, project, environments, group, event} = this.props;
+    const {allEnvironmentsGroupData, currentRelease, tagsWithTopValues} = this.state;
     const projectId = project.slug;
 
     return (
@@ -212,6 +220,7 @@ class GroupSidebar extends React.Component<Props, State> {
           environments={environments}
           allEnvironments={allEnvironmentsGroupData}
           group={group}
+          currentRelease={currentRelease}
         />
 
         {event && (
