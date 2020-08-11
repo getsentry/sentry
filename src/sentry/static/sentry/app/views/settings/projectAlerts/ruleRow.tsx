@@ -5,6 +5,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
+import {Environment} from 'app/types';
 import {IssueAlertRule} from 'app/types/alerts';
 import {
   SavedIncidentRule,
@@ -52,7 +53,7 @@ class RuleRow extends React.Component<Props, State> {
     });
 
     const environmentName = data.environment
-      ? getDisplayName({name: data.environment})
+      ? getDisplayName({name: data.environment} as Environment)
       : t('All Environments');
 
     return (

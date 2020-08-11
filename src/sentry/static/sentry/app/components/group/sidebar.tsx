@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import isEqual from 'lodash/isEqual';
 import isObject from 'lodash/isObject';
@@ -15,10 +14,16 @@ import GroupReleaseStats from 'app/components/group/releaseStats';
 import GroupTagDistributionMeter from 'app/components/group/tagDistributionMeter';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import LoadingError from 'app/components/loadingError';
-import SentryTypes from 'app/sentryTypes';
 import SuggestedOwners from 'app/components/group/suggestedOwners/suggestedOwners';
 import withApi from 'app/utils/withApi';
-import {Event, Environment, Group, Organization, Project} from 'app/types';
+import {
+  Event,
+  Environment,
+  Group,
+  Organization,
+  Project,
+  TagWithTopValues,
+} from 'app/types';
 
 type Props = {
   api: Client;
@@ -30,21 +35,14 @@ type Props = {
 };
 
 type State = {
-  participants: Group['participants'];
   environments: Environment[];
-  error: boolean;
+  participants: Group['participants'];
+  allEnvironmentsGroupData?: Group;
+  tagsWithTopValues?: Record<string, TagWithTopValues>;
+  error?: boolean;
 };
 
 class GroupSidebar extends React.Component<Props, State> {
-  static propTypes = {
-    api: PropTypes.object,
-    organization: SentryTypes.Organization,
-    project: SentryTypes.Project,
-    group: SentryTypes.Group,
-    event: SentryTypes.Event,
-    environments: PropTypes.arrayOf(SentryTypes.Environment),
-  };
-
   constructor(props) {
     super(props);
 
@@ -54,8 +52,9 @@ class GroupSidebar extends React.Component<Props, State> {
     };
   }
 
-  UNSAFE_componentWillMount() {
+  componentDidMount() {
     const {group, api} = this.props;
+
     api.request(`/issues/${group.id}/participants/`, {
       success: data => {
         this.setState({
@@ -69,6 +68,7 @@ class GroupSidebar extends React.Component<Props, State> {
         });
       },
     });
+
     // Fetch group data for all environments since the one passed in props is filtered for the selected environment
     // The charts rely on having all environment data as well as the data for the selected env
     this.props.api.request(`/issues/${group.id}/`, {
@@ -103,9 +103,7 @@ class GroupSidebar extends React.Component<Props, State> {
         environment: this.state.environments.map(env => env.name),
       }),
       success: data => {
-        this.setState({
-          tagsWithTopValues: keyBy(data, 'key'),
-        });
+        this.setState({tagsWithTopValues: keyBy(data, 'key')});
       },
       error: () => {
         this.setState({
@@ -118,13 +116,19 @@ class GroupSidebar extends React.Component<Props, State> {
   toggleSubscription() {
     const {api, group, project, organization} = this.props;
     addLoadingMessage(t('Saving changes\u2026'));
-    console.log(group);
+
+    // Typecasting to make TS happy
+    const groupId = Number(group.id);
+    if (isNaN(groupId)) {
+      this.setState({error: true});
+      return;
+    }
 
     api.bulkUpdate(
       {
         orgId: organization.slug,
         projectId: project.slug,
-        itemIds: [group.id],
+        itemIds: [groupId],
         data: {
           isSubscribed: !group.isSubscribed,
         },
@@ -140,9 +144,7 @@ class GroupSidebar extends React.Component<Props, State> {
               clearIndicators();
             },
             error: () => {
-              this.setState({
-                error: true,
-              });
+              this.setState({error: true});
               clearIndicators();
             },
           });
@@ -200,28 +202,23 @@ class GroupSidebar extends React.Component<Props, State> {
   }
 
   render() {
-    const {group, organization, project, environments} = this.props;
+    const {event, group, organization, project, environments} = this.props;
+    const {allEnvironmentsGroupData, tagsWithTopValues} = this.state;
     const projectId = project.slug;
 
     return (
       <div className="group-stats">
-        {this.props.event && (
-          <SuggestedOwners project={project} group={group} event={this.props.event} />
-        )}
+        {event && <SuggestedOwners project={project} group={group} event={event} />}
         <GroupReleaseStats
-          group={this.props.group}
+          organization={organization}
           project={project}
           environments={environments}
-          organization={organization}
-          allEnvironments={this.state.allEnvironmentsGroupData}
+          allEnvironments={allEnvironmentsGroupData}
+          group={group}
         />
 
         <ErrorBoundary mini>
-          <ExternalIssueList
-            event={this.props.event}
-            group={this.props.group}
-            project={project}
-          />
+          <ExternalIssueList event={event} group={group} project={project} />
         </ErrorBoundary>
 
         {this.renderPluginIssue()}
@@ -231,9 +228,9 @@ class GroupSidebar extends React.Component<Props, State> {
             <span>{t('Tags')}</span>
           </GuideAnchor>
         </h6>
-        {this.state.tagsWithTopValues &&
+        {tagsWithTopValues &&
           group.tags.map(tag => {
-            const tagWithTopValues = this.state.tagsWithTopValues[tag.key];
+            const tagWithTopValues = tagsWithTopValues[tag.key];
             const topValues = tagWithTopValues ? tagWithTopValues.topValues : [];
             const topValuesTotal = tagWithTopValues ? tagWithTopValues.totalValues : 0;
 
@@ -253,7 +250,7 @@ class GroupSidebar extends React.Component<Props, State> {
           })}
         {group.tags.length === 0 && (
           <p data-test-id="no-tags">
-            {this.props.environments.length
+            {environments.length
               ? t('No tags found in the selected environments')
               : t('No tags found')}
           </p>
