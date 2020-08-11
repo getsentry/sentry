@@ -192,7 +192,6 @@ describe('SentryAppExternalIssueForm Async Field', () => {
       thisInput.instance().value = 'I';
       thisInput.simulate('change', {target: {value: 'I'}});
 
-      wrapper.update();
       await tick();
       wrapper.update();
       expect(mockGetOptions).toHaveBeenCalled();
