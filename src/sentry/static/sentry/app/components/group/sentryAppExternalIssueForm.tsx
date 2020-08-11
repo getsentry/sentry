@@ -272,11 +272,11 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
 
     if (fieldToPass.type === 'select') {
       // find the option from state
-      const options = this.state.optionsByField.get(field.name) || [];
       const defaultOptions = (field.choices || []).map(([value, label]) => ({
         value,
         label,
       }));
+      const options = this.state.optionsByField.get(field.name) || defaultOptions;
       fieldToPass = {...fieldToPass, options, defaultOptions};
     } else if (['text', 'textarea'].includes(fieldToPass.type || '') && field.default) {
       fieldToPass = {...fieldToPass, defaultValue: this.getFieldDefault(field)};
@@ -292,12 +292,12 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
       }
     }
 
-    //Note that upgrading this to work with the new react select will be quite a challenge!
     return (
       <FieldFromConfig
         deprecatedSelectControl={false}
         key={field.name}
         field={fieldToPass}
+        data-test-id={field.name}
         {...this.fieldProps(field)}
       />
     );

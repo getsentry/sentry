@@ -29,7 +29,6 @@ export function clearValue(wrapper) {
 export function findOption(wrapper, {value, label} = {}, options) {
   const selector = getSelector(options);
   const valueSelector = !!value ? 'value' : 'label';
-
   return wrapper.find(`${selector} Option[${valueSelector}="${value || label}"]`);
 }
 
