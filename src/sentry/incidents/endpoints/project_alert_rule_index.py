@@ -75,7 +75,12 @@ class ProjectAlertRuleIndexEndpoint(ProjectEndpoint):
         data["projects"] = [project.slug]
 
         serializer = AlertRuleSerializer(
-            context={"organization": project.organization, "access": request.access}, data=data
+            context={
+                "organization": project.organization,
+                "access": request.access,
+                "user": request.user,
+            },
+            data=data,
         )
 
         if serializer.is_valid():

@@ -22,7 +22,11 @@ class ProjectAlertRuleDetailsEndpoint(ProjectAlertRuleEndpoint):
 
     def put(self, request, project, alert_rule):
         serializer = DrfAlertRuleSerializer(
-            context={"organization": project.organization, "access": request.access},
+            context={
+                "organization": project.organization,
+                "access": request.access,
+                "user": request.user,
+            },
             instance=alert_rule,
             data=request.data,
             partial=True,
@@ -36,7 +40,7 @@ class ProjectAlertRuleDetailsEndpoint(ProjectAlertRuleEndpoint):
 
     def delete(self, request, project, alert_rule):
         try:
-            delete_alert_rule(alert_rule)
+            delete_alert_rule(alert_rule, request.user)
             return Response(status=status.HTTP_204_NO_CONTENT)
         except AlreadyDeletedError:
             return Response(

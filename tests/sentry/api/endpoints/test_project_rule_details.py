@@ -4,7 +4,7 @@ import six
 
 from django.core.urlresolvers import reverse
 
-from sentry.models import Environment, Rule, RuleStatus
+from sentry.models import Environment, Rule, RuleActivity, RuleActivityType, RuleStatus
 from sentry.testutils import APITestCase
 
 
@@ -129,6 +129,8 @@ class UpdateProjectRuleTest(APITestCase):
         ]
         assert rule.data["conditions"] == conditions
 
+        assert RuleActivity.objects.filter(rule=rule, type=RuleActivityType.UPDATED.value).exists()
+
     def test_update_name(self):
         self.login_as(user=self.user)
 
@@ -176,6 +178,8 @@ class UpdateProjectRuleTest(APITestCase):
         assert (
             response.data["conditions"][0]["name"] == "An issue is seen more than 666 times in 1h"
         )
+
+        assert RuleActivity.objects.filter(rule=rule, type=RuleActivityType.UPDATED.value).exists()
 
     def test_with_environment(self):
         self.login_as(user=self.user)
@@ -422,3 +426,5 @@ class DeleteProjectRuleTest(APITestCase):
 
         rule = Rule.objects.get(id=rule.id)
         assert rule.status == RuleStatus.PENDING_DELETION
+
+        assert RuleActivity.objects.filter(rule=rule, type=RuleActivityType.DELETED.value).exists()
