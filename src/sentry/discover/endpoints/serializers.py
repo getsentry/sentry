@@ -176,8 +176,8 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
         if projects == ALL_ACCESS_PROJECTS or len(projects) == 0:
             return projects
 
-        # Params will have project_ids that have been validated
-        if projects != set(self.context["params"]["project_id"]):
+        # Check that there aren't projects in the query the user doesn't have access to
+        if len(projects - set(self.context["params"]["project_id"])) > 0:
             raise PermissionDenied
 
         return projects
