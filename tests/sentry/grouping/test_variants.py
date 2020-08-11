@@ -1,11 +1,11 @@
 from __future__ import absolute_import, print_function
 
-import json
 import pytest
 
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
 from sentry.grouping.api import get_default_grouping_config_dict
+from sentry.utils import json
 
 from tests.sentry.grouping import with_grouping_input
 

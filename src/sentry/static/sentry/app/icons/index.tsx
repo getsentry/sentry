@@ -96,3 +96,4 @@ export {IconWindow} from './iconWindow';
 export {IconTerminal} from './iconTerminal';
 export {IconSwitch} from './iconSwitch';
 export {IconMobile} from './iconMobile';
+export {IconBell} from './iconBell';

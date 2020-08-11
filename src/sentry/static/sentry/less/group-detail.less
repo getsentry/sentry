@@ -313,6 +313,7 @@
   margin: -20px -40px;
   background: #fff;
   flex-direction: column;
+  flex: 1;
 
   @media (min-width: 1200px) {
     flex-direction: row;
@@ -1391,6 +1392,8 @@ span.val {
 }
 
 .val-dict {
+  display: inline;
+
   .val-dict-items {
     display: block;
     padding: 0 0 0 15px;
@@ -1414,56 +1417,8 @@ span.val {
     padding: 0 0 0 15px;
 
     .val-array-item {
-      display: flex;
-      flex-direction: row;
-    }
-  }
-}
-
-.val-toggle {
-  > a.val-toggle-link:before {
-    content: '+';
-  }
-
-  > .val-array-items,
-  > .val-dict-items {
-    display: none;
-  }
-
-  &.val-toggle-open {
-    > a.val-toggle-link:before {
-      content: '-';
-    }
-
-    > .val-array-items,
-    > .val-dict-items {
       display: block;
     }
-  }
-
-  a.val-toggle-link {
-    background: @link-color;
-    border-radius: 2px;
-    color: white;
-    font-weight: bold;
-    font-size: 10px;
-    line-height: 11px;
-    text-align: center;
-    height: 11px;
-    width: 11px;
-    display: inline-block;
-
-    &:hover {
-      background: @link-color-hover;
-    }
-  }
-
-  &.val-toggle-open > a.val-toggle-link {
-    background: @gray-light;
-  }
-
-  &.val-toggle-open > a.val-toggle-link:hover {
-    background: @gray;
   }
 }
 

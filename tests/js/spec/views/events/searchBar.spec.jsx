@@ -78,7 +78,9 @@ describe('SearchBar', function() {
 
     expect(tagValuesMock).toHaveBeenCalledWith(
       '/organizations/org-slug/tags/gpu/values/',
-      expect.objectContaining({query: {project: ['1', '2'], statsPeriod: '14d'}})
+      expect.objectContaining({
+        query: {project: ['1', '2'], statsPeriod: '14d', includeTransactions: '1'},
+      })
     );
 
     await tick();
@@ -113,7 +115,9 @@ describe('SearchBar', function() {
 
     expect(tagValuesMock).toHaveBeenCalledWith(
       '/organizations/org-slug/tags/gpu/values/',
-      expect.objectContaining({query: {project: ['1', '2'], statsPeriod: '14d'}})
+      expect.objectContaining({
+        query: {project: ['1', '2'], statsPeriod: '14d', includeTransactions: '1'},
+      })
     );
 
     expect(wrapper.find('SearchDropdown').prop('searchSubstring')).toEqual('');
@@ -194,10 +198,12 @@ describe('SearchBar', function() {
 
     expect(tagValuesMock).toHaveBeenCalledWith(
       '/organizations/org-slug/tags/gpu/values/',
-      expect.objectContaining({query: {project: ['1', '2'], statsPeriod: '14d'}})
+      expect.objectContaining({
+        query: {project: ['1', '2'], statsPeriod: '14d', includeTransactions: '1'},
+      })
     );
     selectFirstAutocompleteItem(wrapper);
-    expect(wrapper.find('input').prop('value')).toBe('!gpu:*"Nvidia 1080ti" ');
+    expect(wrapper.find('input').prop('value')).toBe('!gpu:"Nvidia 1080ti" ');
   });
 
   it('stops searching after no values are returned', async function() {

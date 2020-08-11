@@ -117,10 +117,6 @@ RELAY_CONFIG_DIR = os.path.normpath(
     os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "config", "relay")
 )
 
-REVERSE_PROXY_CONFIG = os.path.normpath(
-    os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "config", "reverse_proxy", "nginx.conf")
-)
-
 sys.path.insert(0, os.path.normpath(os.path.join(PROJECT_ROOT, os.pardir)))
 
 DATABASES = {
@@ -262,7 +258,6 @@ USE_TZ = True
 # response modifying middleware reset the Content-Length header.
 # This is because CommonMiddleware Sets the Content-Length header for non-streaming responses.
 MIDDLEWARE_CLASSES = (
-    "sentry.middleware.proxy.ChunkedMiddleware",
     "sentry.middleware.proxy.DecompressBodyMiddleware",
     "sentry.middleware.security.SecurityHeadersMiddleware",
     "sentry.middleware.maintenance.ServicesUnavailableMiddleware",
@@ -489,6 +484,11 @@ BROKER_TRANSPORT_OPTIONS = {}
 # though it would cause timeouts/recursions in some cases
 CELERY_ALWAYS_EAGER = False
 
+# We use the old task protocol because during benchmarking we noticed that it's faster
+# than the new protocol. If we ever need to bump this it should be fine, there were no
+# compatibility issues, just need to run benchmarks and do some tests to make sure
+# things run ok.
+CELERY_TASK_PROTOCOL = 1
 CELERY_EAGER_PROPAGATES_EXCEPTIONS = True
 CELERY_IGNORE_RESULT = True
 CELERY_SEND_EVENTS = False
@@ -787,10 +787,6 @@ REST_FRAMEWORK = {
 
 CRISPY_TEMPLATE_PACK = "bootstrap3"
 
-# Percy config for visual regression testing.
-
-PERCY_DEFAULT_TESTING_WIDTHS = (1280, 375)
-
 # Sentry and internal client configuration
 
 SENTRY_FEATURES = {
@@ -809,8 +805,6 @@ SENTRY_FEATURES = {
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
     # is not enabled).
     "organizations:create": True,
-    # Enable the 'data-export' interface.
-    "organizations:data-export": False,
     # Enable the 'discover' interface.
     "organizations:discover": False,
     # Enable attaching arbitrary files to events.
@@ -825,16 +819,10 @@ SENTRY_FEATURES = {
     "organizations:discover-basic": True,
     # Enable discover 2 custom queries and saved queries
     "organizations:discover-query": True,
-    # Enable create alert rule on the discover page
-    "organizations:create-from-discover": False,
     # Enable Performance view
     "organizations:performance-view": False,
     # Enable multi project selection
     "organizations:global-views": False,
-    # Turns on grouping info.
-    "organizations:grouping-info": True,
-    # Lets organizations upgrade grouping configs and tweak them
-    "organizations:tweak-grouping-config": True,
     # Lets organizations manage grouping configs
     "organizations:set-grouping-config": False,
     # Enable Releases v2 feature
@@ -858,10 +846,10 @@ SENTRY_FEATURES = {
     # Enable integration functionality to work with alert rules (specifically indicdent)
     # management integrations)
     "organizations:integrations-incident-management": True,
-    # Enable the Vercel integration
-    "organizations:integrations-vercel": False,
     # Enable the MsTeams integration
     "organizations:integrations-msteams": False,
+    # Allow orgs to install AzureDevops with limited scopes
+    "organizations:integrations-vsts-limited-scopes": False,
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
     # Enable experimental performance improvements.
@@ -876,8 +864,6 @@ SENTRY_FEATURES = {
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
-    # Enable access to more advanced (alpha) datascrubbing settings.
-    "organizations:datascrubbers-v2": True,
     # Enable the new version of interface/breadcrumbs
     "organizations:breadcrumbs-v2": False,
     # Enable usage of external relays, for use with Relay. See
@@ -892,6 +878,9 @@ SENTRY_FEATURES = {
     "organizations:sso-saml2": True,
     # Enable Rippling SSO functionality.
     "organizations:sso-rippling": False,
+    # Enable graph for subscription quota for errors, transactions and
+    # attachments
+    "organizations:usage-stats-graph": False,
     # Enable functionality to specify custom inbound filters on events.
     "projects:custom-inbound-filters": False,
     # Enable data forwarding functionality for projects.
@@ -1408,8 +1397,6 @@ SENTRY_WATCHERS = (
 # rest will be forwarded to Sentry)
 SENTRY_USE_RELAY = True
 SENTRY_RELAY_PORT = 3000
-SENTRY_REVERSE_PROXY_PORT = 8000
-
 
 # The chunk size for attachments in blob store. Should be a power of two.
 SENTRY_ATTACHMENT_BLOB_SIZE = 8 * 1024 * 1024  # 8MB
@@ -1480,6 +1467,8 @@ SENTRY_DEVSERVICES = {
             "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP": "INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT",
             "KAFKA_INTER_BROKER_LISTENER_NAME": "INTERNAL",
             "KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR": "1",
+            "KAFKA_MESSAGE_MAX_BYTES": "50000000",
+            "KAFKA_MAX_REQUEST_SIZE": "50000000",
         },
         "volumes": {"kafka": {"bind": "/var/lib/kafka"}},
         "only_if": lambda settings, options: (
@@ -1533,16 +1522,6 @@ SENTRY_DEVSERVICES = {
         "ports": {"3021/tcp": 3021},
         "command": ["run"],
         "only_if": lambda settings, options: options.get("symbolicator.enabled"),
-    },
-    "proxy": {
-        "image": "nginx:1.16.1",
-        "ports": {"80/tcp": SENTRY_REVERSE_PROXY_PORT},
-        "volumes": {REVERSE_PROXY_CONFIG: {"bind": "/etc/nginx/nginx.conf"}},
-        "only_if": lambda settings, options: settings.SENTRY_USE_RELAY,
-        # This directive tells `devservices up` that the reverse_proxy is not to be
-        # started up, only pulled and made available for `devserver` which will start
-        # it with `devservices attach --is-devserver reverse_proxy`.
-        "with_devserver": True,
     },
     "relay": {
         "image": "us.gcr.io/sentryio/relay:latest",
@@ -1770,7 +1749,7 @@ SENTRY_BUILTIN_SOURCES = {
         "id": "sentry:electron",
         "name": "Electron",
         "layout": {"type": "native"},
-        "url": "https://electron-symbols.githubapp.com/",
+        "url": "https://symbols.electronjs.org/",
         "filters": {"filetypes": ["pdb", "breakpad", "sourcebundle"]},
         "is_public": True,
     },
@@ -1954,3 +1933,5 @@ SENTRY_SIMILARITY_INDEX_REDIS_CLUSTER = "default"
 SENTRY_SIMILARITY_GROUPING_CONFIGURATIONS_TO_INDEX = {
     "similarity:2020-07-23": "a",
 }
+
+SENTRY_USE_UWSGI = True

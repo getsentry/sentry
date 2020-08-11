@@ -2502,6 +2502,29 @@ describe('EventView.getDisplayMode()', function() {
     const displayMode = eventView.getDisplayMode();
     expect(displayMode).toEqual(DisplayModes.DAILY);
   });
+
+  it('daily mode should fall back to default when disabled', function() {
+    const eventView = new EventView({
+      ...state,
+      // the period being less than 24h will disable the DAILY mode
+      statsPeriod: '1h',
+      display: DisplayModes.DAILY,
+    });
+    const displayMode = eventView.getDisplayMode();
+    expect(displayMode).toEqual(DisplayModes.DEFAULT);
+  });
+
+  it('top 5 daily mode should fall back to default when daily is disabled', function() {
+    const eventView = new EventView({
+      ...state,
+      // the period being less than 24h will disable the DAILY mode
+      start: '2020-04-01T12:13:14',
+      end: '2020-04-02T12:10:14',
+      display: DisplayModes.TOP5DAILY,
+    });
+    const displayMode = eventView.getDisplayMode();
+    expect(displayMode).toEqual(DisplayModes.DEFAULT);
+  });
 });
 
 describe('EventView.getAggregateFields()', function() {

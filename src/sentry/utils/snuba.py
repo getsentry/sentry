@@ -61,6 +61,9 @@ OVERRIDE_OPTIONS = {
     "consistent": os.environ.get("SENTRY_SNUBA_CONSISTENT", "false").lower() in ("true", "1")
 }
 
+# Show the snuba query params and the corresponding sql or errors in the server logs
+SNUBA_INFO = os.environ.get("SENTRY_SNUBA_INFO", "false").lower() in ("true", "1")
+
 # There are several cases here where we support both a top level column name and
 # a tag with the same name. Existing search patterns expect to refer to the tag,
 # so we support <real_column_name>.name to refer to the top level column name.
@@ -99,6 +102,18 @@ DATASET_FIELDS = {
     Dataset.Transactions: list(TRANSACTIONS_SNUBA_MAP.values()),
     Dataset.Discover: list(DISCOVER_COLUMN_MAP.values()),
 }
+
+SNUBA_OR = "or"
+SNUBA_AND = "and"
+OPERATOR_TO_FUNCTION = {
+    "=": "equals",
+    "!=": "notEquals",
+    ">": "greater",
+    "<": "less",
+    ">=": "greaterOrEquals",
+    "<=": "lessOrEquals",
+}
+FUNCTION_TO_OPERATOR = {v: k for k, v in OPERATOR_TO_FUNCTION.items()}
 
 
 def parse_snuba_datetime(value):
@@ -580,6 +595,8 @@ def bulk_raw_query(snuba_param_list, referrer=None):
         query_params, forward, reverse, thread_hub = params
         try:
             with timer("snuba_query"):
+                if SNUBA_INFO:
+                    query_params["debug"] = True
                 body = json.dumps(query_params)
                 referrer = headers.get("referer", "<unknown>")
                 with thread_hub.start_span(
@@ -616,6 +633,15 @@ def bulk_raw_query(snuba_param_list, referrer=None):
     for response, _, reverse in query_results:
         try:
             body = json.loads(response.data)
+            if SNUBA_INFO:
+                if "sql" in body:
+                    logger.info(
+                        "{}.sql: {}".format(headers.get("referer", "<unknown>"), body["sql"])
+                    )
+                if "error" in body:
+                    logger.info(
+                        "{}.err: {}".format(headers.get("referer", "<unknown>"), body["error"])
+                    )
         except ValueError:
             if response.status != 200:
                 logger.error("snuba.query.invalid-json")
@@ -765,6 +791,19 @@ def resolve_condition(cond, column_resolver):
         # IN conditions are detected as a function but aren't really.
         if cond[index] == "IN":
             cond[0] = column_resolver(cond[0])
+            return cond
+        elif cond[index] in FUNCTION_TO_OPERATOR:
+            func_args = cond[index + 1]
+            for i, arg in enumerate(func_args):
+                if i == 0:
+                    if isinstance(arg, (list, tuple)):
+                        func_args[i] = resolve_condition(arg, column_resolver)
+                    else:
+                        func_args[i] = column_resolver(arg)
+                else:
+                    func_args[i] = u"'{}'".format(arg) if isinstance(arg, six.string_types) else arg
+
+            cond[index + 1] = func_args
             return cond
 
         func_args = cond[index + 1]

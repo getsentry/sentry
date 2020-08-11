@@ -25,7 +25,7 @@ import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import {Client} from 'app/api';
-import {LightWeightOrganization, SavedSearch, Tag} from 'app/types';
+import {LightWeightOrganization, SavedSearch, Tag, SavedSearchType} from 'app/types';
 import {
   fetchRecentSearches,
   pinSearch,
@@ -36,11 +36,10 @@ import {
   DEFAULT_DEBOUNCE_DURATION,
   MAX_AUTOCOMPLETE_RELEASES,
   NEGATION_OPERATOR,
-  SEARCH_WILDCARD,
 } from 'app/constants';
 
 import SearchDropdown from './searchDropdown';
-import {SearchItem, SearchType, SearchGroup, ItemType} from './types';
+import {SearchItem, SearchGroup, ItemType} from './types';
 import {
   addSpace,
   removeSpace,
@@ -167,7 +166,7 @@ type Props = {
    * If this is defined, attempt to save search term scoped to the user and
    * the current org
    */
-  savedSearchType?: SearchType;
+  savedSearchType?: SavedSearchType;
   /**
    * Has pinned search feature
    */
@@ -282,6 +281,7 @@ class SmartSearchBar extends React.Component<Props, State> {
     defaultSearchItems: [[], []],
     hasPinnedSearch: false,
     useFormWrapper: true,
+    savedSearchType: SavedSearchType.ISSUE,
   };
 
   state: State = {
@@ -607,9 +607,10 @@ class SmartSearchBar extends React.Component<Props, State> {
 
       return values.map(value => {
         // Wrap in quotes if there is a space
-        const escapedValue = value.includes(' ')
-          ? `"${value.replace('"', '\\"')}"`
-          : value;
+        const escapedValue =
+          value.includes(' ') || value.includes('"')
+            ? `"${value.replace(/"/g, '\\"')}"`
+            : value;
 
         return {value: escapedValue, desc: escapedValue, type: 'tag-value' as ItemType};
       });
@@ -651,6 +652,9 @@ class SmartSearchBar extends React.Component<Props, State> {
 
   fetchRecentSearches = async (fullQuery: string): Promise<SearchItem[]> => {
     const {api, organization, savedSearchType} = this.props;
+    if (savedSearchType === undefined) {
+      return [];
+    }
 
     try {
       const recentSearches: any[] = await fetchRecentSearches(
@@ -905,7 +909,7 @@ class SmartSearchBar extends React.Component<Props, State> {
     evt.preventDefault();
     evt.stopPropagation();
 
-    if (!defined(savedSearchType) || !hasPinnedSearch) {
+    if (savedSearchType === undefined || !hasPinnedSearch) {
       return;
     }
 
@@ -993,12 +997,11 @@ class SmartSearchBar extends React.Component<Props, State> {
       newQuery = query.slice(0, lastTermIndex); // get text preceding last term
 
       const prefix = last.startsWith(NEGATION_OPERATOR) ? NEGATION_OPERATOR : '';
-      const valuePrefix = newQuery.endsWith(SEARCH_WILDCARD) ? SEARCH_WILDCARD : '';
 
       // newQuery is all the terms up to the current term: "... <term>:"
       // replaceText should be the selected value
       if (last.indexOf(':') > -1) {
-        let replacement = `:${valuePrefix}${replaceText}`;
+        let replacement = `:${replaceText}`;
 
         // NOTE: The user tag is a special case here as it store values like
         // `id:1` or `ip:127.0.0.1`. To handle autocompletion for it correctly,
@@ -1008,7 +1011,7 @@ class SmartSearchBar extends React.Component<Props, State> {
           if (colonIndex > -1) {
             const tagEnding = replaceText.substring(0, colonIndex);
             const tagValue = replaceText.substring(colonIndex + 1);
-            replacement = `.${tagEnding}:${valuePrefix}` + tagValue;
+            replacement = `.${tagEnding}:${tagValue}`;
           }
         }
 
@@ -1247,7 +1250,7 @@ const SmartSearchBarContainer = createReactClass<Props>({
 });
 
 export default withApi(withOrganization(SmartSearchBarContainer));
-export {SmartSearchBar, SearchType};
+export {SmartSearchBar};
 
 const Container = styled('div')<{isOpen: boolean}>`
   border: 1px solid ${p => (p.isOpen ? p.theme.borderDark : p.theme.borderLight)};
