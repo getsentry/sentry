@@ -232,6 +232,7 @@ class EventEntries extends React.Component {
             event={event}
             orgId={organization.slug}
             projectId={project.slug}
+            location={location}
           />
         )}
         {!objectIsEmpty(event.sdk) && <EventSdk event={event} />}
