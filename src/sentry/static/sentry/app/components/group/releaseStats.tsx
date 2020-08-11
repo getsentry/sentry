@@ -13,10 +13,18 @@ type Props = {
   environments: Environment[];
   allEnvironments: Group | undefined;
   group: Group | undefined;
+  currentRelease: any | null | undefined; // TODO(ts)
 };
 
 const GroupReleaseStats = (props: Props) => {
-  const {group, organization, project, environments, allEnvironments} = props;
+  const {
+    organization,
+    project,
+    environments,
+    allEnvironments,
+    group,
+    currentRelease,
+  } = props;
 
   const environmentLabel =
     environments.length > 0
@@ -50,8 +58,8 @@ const GroupReleaseStats = (props: Props) => {
               group={allEnvironments}
               environment={environmentLabel}
               environmentStats={group.stats}
-              release={group.currentRelease ? group.currentRelease.release : null}
-              releaseStats={group.currentRelease ? group.currentRelease.stats : null}
+              release={currentRelease?.release ?? null}
+              releaseStats={currentRelease?.stats ?? null}
               statsPeriod="24h"
               title={t('Last 24 Hours')}
               firstSeen={group.firstSeen}
@@ -61,8 +69,8 @@ const GroupReleaseStats = (props: Props) => {
               group={allEnvironments}
               environment={environmentLabel}
               environmentStats={group.stats}
-              release={group.currentRelease ? group.currentRelease.release : null}
-              releaseStats={group.currentRelease ? group.currentRelease.stats : null}
+              release={currentRelease?.release ?? null}
+              releaseStats={currentRelease?.stats ?? null}
               statsPeriod="30d"
               title={t('Last 30 Days')}
               className="bar-chart-small"

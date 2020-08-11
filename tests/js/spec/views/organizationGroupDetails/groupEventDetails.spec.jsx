@@ -65,6 +65,11 @@ describe('groupEventDetails', () => {
     });
 
     MockApiClient.addMockResponse({
+      url: `/issues/${group.id}/current-release/`,
+      body: {currentRelease: null},
+    });
+
+    MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/releases/completion/`,
       body: [],
     });

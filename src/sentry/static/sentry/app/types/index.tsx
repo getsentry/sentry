@@ -614,7 +614,6 @@ export type Group = {
   assignedTo: User;
   count: string;
   culprit: string;
-  currentRelease: any; // TODO(ts)
   firstRelease: any; // TODO(ts)
   firstSeen: string;
   hasSeen: boolean;
