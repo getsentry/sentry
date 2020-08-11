@@ -26,7 +26,6 @@ class MsTeamsIntegrationTest(IntegrationTestCase):
             "team_id": team_id,
             "service_url": "https://smba.trafficmanager.net/amer/",
             "team_name": "my_team",
-            "expiration_time": self.start_time + 60 * 60 * 24,
         }
 
     def assert_setup_flow(self):
@@ -76,15 +75,3 @@ class MsTeamsIntegrationTest(IntegrationTestCase):
     @responses.activate
     def test_installation(self):
         self.assert_setup_flow()
-
-    def test_expired(self):
-        with patch("time.time") as mock_time:
-            mock_time.return_value = self.start_time
-            self.pipeline_state["expiration_time"] = self.start_time - 1
-            params = {"signed_params": sign(**self.pipeline_state)}
-
-            self.pipeline.bind_state(self.provider.key, self.pipeline_state)
-            resp = self.client.get(self.setup_path, params)
-
-            assert resp.status_code == 200
-            assert "Installation link expired" in resp.content

@@ -1,10 +1,13 @@
 from __future__ import absolute_import
 
-
 from sentry import features
 from sentry.utils.signing import unsign
 
 from .integration_extension_configuration import IntegrationExtensionConfigurationView
+
+
+# 24 hours to finish installation
+INSTALL_EXPIRATION_TIME = 60 * 60 * 24
 
 
 class MsTeamsExtensionConfigurationView(IntegrationExtensionConfigurationView):
@@ -19,5 +22,7 @@ class MsTeamsExtensionConfigurationView(IntegrationExtensionConfigurationView):
         params = params.copy()
         signed_params = params["signed_params"]
         del params["signed_params"]
-        params.update(unsign(signed_params.encode("ascii", errors="ignore")))
+        params.update(
+            unsign(signed_params.encode("ascii", errors="ignore"), max_age=INSTALL_EXPIRATION_TIME)
+        )
         return params

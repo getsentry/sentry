@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import logging
-import time
 
 from django.utils.translation import ugettext_lazy as _
 
@@ -14,7 +13,6 @@ from sentry.integrations import (
     FeatureDescription,
 )
 from sentry.pipeline import PipelineView
-from sentry.shared_integrations.exceptions import IntegrationError
 from .client import get_token_data
 
 logger = logging.getLogger("sentry.integrations.msteams")
@@ -100,8 +98,4 @@ class MsTeamsIntegrationProvider(IntegrationProvider):
 
 class MsTeamsPipelineView(PipelineView):
     def dispatch(self, request, pipeline):
-        data = pipeline.fetch_state("msteams")
-        # check the expiration time of the link
-        if int(time.time()) > data["expiration_time"]:
-            return pipeline.error(IntegrationError("Installation link expired"))
         return pipeline.next_step()
