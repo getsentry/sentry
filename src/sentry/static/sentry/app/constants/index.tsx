@@ -248,8 +248,7 @@ export const ORGANIZATION_FETCH_ERROR_TYPES = {
 };
 
 export const CONFIG_DOCS_URL = 'https://docs.sentry.io/server/config/';
-export const DISCOVER2_DOCS_URL =
-  'https://docs.sentry.io/performance-monitoring/discover-queries/';
+export const DISCOVER2_DOCS_URL = 'https://docs.sentry.io/product/discover-queries/';
 
 export const IS_CI = !!process.env.IS_CI;
 export const NODE_ENV = process.env.NODE_ENV;

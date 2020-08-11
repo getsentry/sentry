@@ -218,7 +218,7 @@ class DataDownload extends AsyncView<Props, State> {
             {tct('Need help verifying? [link].', {
               link: (
                 <a
-                  href="https://docs.sentry.io/performance-monitoring/discover-queries/query-builder/#filter-by-table-columns"
+                  href="https://docs.sentry.io/product/discover-queries/query-builder/#filter-by-table-columns"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
