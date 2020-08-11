@@ -190,27 +190,33 @@ def get_grouping_variants_for_event(event, config=None):
     fingerprint = event.data.get("fingerprint") or ["{{ default }}"]
     defaults_referenced = sum(1 if d in DEFAULT_FINGERPRINT_VALUES else 0 for d in fingerprint)
 
-    # If no defaults are referenced we produce a single completely custom
-    # fingerprint.
-    if defaults_referenced == 0:
-        fingerprint = resolve_fingerprint_values(fingerprint, event)
-        return {"custom-fingerprint": CustomFingerprintVariant(fingerprint)}
-
     if config is None:
         config = load_default_grouping_config()
 
     # At this point we need to calculate the default event values.  If the
     # fingerprint is salted we will wrap it.
     components = _get_calculated_grouping_variants_for_event(event, config)
-    rv = {}
+
+    # If no defaults are referenced we produce a single completely custom
+    # fingerprint and mark all other variants as non-contributing
+    if defaults_referenced == 0:
+        rv = {}
+        for (key, component) in six.iteritems(components):
+            component.update(contributes=False, hint="custom fingerprint takes precedence")
+            rv[key] = ComponentVariant(component, config)
+
+        fingerprint = resolve_fingerprint_values(fingerprint, event)
+        rv["custom-fingerprint"] = CustomFingerprintVariant(fingerprint)
 
     # If the fingerprints are unsalted, we can return them right away.
-    if defaults_referenced == 1 and len(fingerprint) == 1:
+    elif defaults_referenced == 1 and len(fingerprint) == 1:
+        rv = {}
         for (key, component) in six.iteritems(components):
             rv[key] = ComponentVariant(component, config)
 
     # Otherwise we need to salt each of the components.
     else:
+        rv = {}
         fingerprint = resolve_fingerprint_values(fingerprint, event)
         for (key, component) in six.iteritems(components):
             rv[key] = SaltedComponentVariant(fingerprint, component, config)
