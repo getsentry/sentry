@@ -177,7 +177,7 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
             return projects
 
         # Params will have project_ids that have been validated
-        if projects != set(self.context["params"]["project_id"]):
+        if not projects.intersection(set(self.context["params"]["project_id"])):
             raise PermissionDenied
 
         return projects
