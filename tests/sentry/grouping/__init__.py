@@ -4,12 +4,12 @@ from __future__ import absolute_import
 
 from django.utils.functional import cached_property
 
-import json
 import os
 
 import pytest
 
 from sentry import eventstore
+from sentry.utils import json
 from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 from sentry.event_manager import EventManager
 from sentry.grouping.enhancer import Enhancements
