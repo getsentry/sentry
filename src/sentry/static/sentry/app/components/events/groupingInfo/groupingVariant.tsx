@@ -45,6 +45,10 @@ class GroupVariant extends React.Component<Props, State> {
     const data: VariantData = [];
     let component: EventGroupComponent | undefined;
 
+    if (!this.state.showNonContributing && variant.hash === null) {
+      return [data, component];
+    }
+
     if (variant.hash !== null) {
       data.push([
         t('Hash'),
@@ -147,10 +151,20 @@ class GroupVariant extends React.Component<Props, State> {
     const {variant} = this.props;
     const isContributing = variant.hash !== null;
 
+    let title;
+    if (isContributing) {
+      title = t('Contributing variant');
+    } else {
+      const hint = variant.component?.hint;
+      if (hint) {
+        title = t('Non-contributing variant: %s', hint);
+      } else {
+        title = t('Non-contributing variant');
+      }
+    }
+
     return (
-      <Tooltip
-        title={isContributing ? t('Contributing variant') : t('Non-contributing variant')}
-      >
+      <Tooltip title={title}>
         <VariantTitle>
           <ContributionIcon isContributing={isContributing} />
           {t('By')}{' '}

@@ -1,5 +1,5 @@
 ---
-created: '2019-08-05T12:11:53.473003Z'
+created: '2020-07-24T14:06:58.510565Z'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
@@ -14,7 +14,17 @@ config:
 fingerprint:
 - '{{ package }}'
 variants:
+  app:
+    component:
+      contributes: false
+      hint: custom fingerprint takes precedence
+    type: component
   custom-fingerprint:
     type: custom-fingerprint
     values:
     - foo.dylib
+  system:
+    component:
+      contributes: false
+      hint: custom fingerprint takes precedence
+    type: component

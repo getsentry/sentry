@@ -77,8 +77,14 @@ def test_event_hash_variant(insta_snapshot, testcase):
 
     def dump_variant(v):
         rv = v.as_dict()
-        for key in "component", "description", "hash", "config":
+
+        for key in "hash", "description", "config":
             rv.pop(key, None)
+
+        if "component" in rv:
+            for key in "id", "name", "values":
+                rv["component"].pop(key, None)
+
         return rv
 
     insta_snapshot(
