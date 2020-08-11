@@ -22,10 +22,16 @@ def _fix_label(label):
 
 class GroupSimilarIssuesEndpoint(GroupEndpoint):
     def get(self, request, group):
-        if feature_flags.has("projects:similarity-view-v2", group.project):
+        version = request.GET.get("version", None)
+        if version == "2":
+            if not feature_flags.has("projects:similarity-view-v2", group.project):
+                return Response({"error": "Project does not have Similarity V2 feature."})
+
             features = similarity.features2
-        else:
+        elif version in ("1", None):
             features = similarity.features
+        else:
+            return Response({"error": "Invalid value for version parameter."})
 
         limit = request.GET.get("limit", None)
         if limit is not None:
