@@ -18,9 +18,11 @@ type Options = {
     id: string;
     undo: () => void;
   };
+  disableDismiss?: boolean;
+  undo?: () => void;
 };
 
-type Indicator = {
+export type Indicator = {
   type: IndicatorType;
   id: string | number;
   message: React.ReactNode;
