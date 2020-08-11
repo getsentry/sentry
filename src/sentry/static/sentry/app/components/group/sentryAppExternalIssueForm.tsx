@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import debounce from 'lodash/debounce';
+import {createFilter} from 'react-select';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
@@ -266,7 +267,14 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
         label,
       }));
       const options = this.state.optionsByField.get(field.name) || defaultOptions;
-      fieldToPass = {...fieldToPass, options, defaultOptions};
+      //filter by what the user is typing
+      const filterOption = createFilter();
+      fieldToPass = {
+        ...fieldToPass,
+        options,
+        defaultOptions,
+        filterOption,
+      };
     } else if (['text', 'textarea'].includes(fieldToPass.type || '') && field.default) {
       fieldToPass = {...fieldToPass, defaultValue: this.getFieldDefault(field)};
     }
