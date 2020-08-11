@@ -15,9 +15,9 @@ jobs:
         if: ${{ !github.event.client_payload.version }}
         run: |
           DATE_PART=$(date +'%y.%-m')
-          PATCH_VERSION=0
+          declare -i PATCH_VERSION=0
           while curl -sf -o /dev/null "https://api.github.com/repos/$GITHUB_REPOSITORY/git/ref/tags/$DATE_PART.$PATCH_VERSION"; do
-            (( PATCH_VERSION++ ))
+            PATCH_VERSION+=1
           done
           echo "::set-output name=version::$DATE_PART.$PATCH_VERSION"
       - uses: actions/checkout@v2
