@@ -20,6 +20,7 @@ from sentry.models import (
     GroupStatus,
 )
 from sentry.testutils import APITestCase
+from sentry.testutils.asserts import assert_mock_called_once_with_partial
 from sentry.utils import json
 from sentry.integrations.msteams.utils import build_linking_card, ACTION_TYPE
 from sentry.integrations.msteams.link_identity import build_linking_url
@@ -156,7 +157,7 @@ class StatusActionTest(BaseEventTest):
 
         expected_data = {"status": "ignored", "statusDetails": {"ignoreCount": 100}}
 
-        assert client_put.mock_calls[0].kwargs["data"] == expected_data
+        assert_mock_called_once_with_partial(client_put, data=expected_data)
 
     @patch("sentry.integrations.msteams.webhook.verify_signature")
     def test_assign_to_team(self, verify):
@@ -227,7 +228,7 @@ class StatusActionTest(BaseEventTest):
 
         expected_data = {"status": "resolved", "statusDetails": {"inRelease": "latest"}}
 
-        assert client_put.mock_calls[0].kwargs["data"] == expected_data
+        assert_mock_called_once_with_partial(client_put, data=expected_data)
 
     @patch("sentry.integrations.msteams.webhook.verify_signature")
     def test_no_integration(self, verify):
