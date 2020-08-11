@@ -151,19 +151,6 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
     return choices || [];
   };
 
-  fieldProps = (field: FieldFromSchema) =>
-    field.uri
-      ? {
-          loadOptions: (input: string) => this.getOptions(field, input),
-          async: true,
-          cache: false,
-          onSelectResetsInput: false,
-          onCloseResetsInput: false,
-          onBlurResetsInput: false,
-          autoload: false,
-        }
-      : {};
-
   getStacktrace() {
     const evt = this.props.event;
     const contentArr = getStacktraceBody(evt);
@@ -262,6 +249,8 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
   };
 
   renderField = (field: FieldFromSchema, required: boolean) => {
+    //This function converts the field we get from the backend into
+    //the field we need to pass down
     let fieldToPass: Field = {
       ...field,
       inline: false,
@@ -271,7 +260,7 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
     };
 
     if (fieldToPass.type === 'select') {
-      // find the option from state
+      // find the options from state to ass down
       const defaultOptions = (field.choices || []).map(([value, label]) => ({
         value,
         label,
@@ -292,13 +281,26 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
       }
     }
 
+    //if we have a uri, we need to set extra parameters
+    const extraProps = field.uri
+      ? {
+          loadOptions: (input: string) => this.getOptions(field, input),
+          async: true, //TODO: make configuragble
+          cache: false,
+          onSelectResetsInput: false,
+          onCloseResetsInput: false,
+          onBlurResetsInput: false,
+          autoload: false,
+        }
+      : {};
+
     return (
       <FieldFromConfig
         deprecatedSelectControl={false}
         key={field.name}
         field={fieldToPass}
         data-test-id={field.name}
-        {...this.fieldProps(field)}
+        {...extraProps}
       />
     );
   };
