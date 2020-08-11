@@ -261,7 +261,15 @@ class EventEntries extends React.Component {
   }
 }
 
-const ErrorContainer = styled('div')``;
+const ErrorContainer = styled('div')`
+  /*
+  Remove border on adjacent context summary box.
+  Once that component uses emotion this will be harder.
+  */
+  & + .context-summary {
+    border-top: none;
+  }
+`;
 
 const BorderlessEventEntries = styled(EventEntries)`
   & ${/* sc-selector */ DataSection} {
