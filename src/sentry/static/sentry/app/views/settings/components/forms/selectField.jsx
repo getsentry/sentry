@@ -17,7 +17,7 @@ const getChoices = props => {
 export default class SelectField extends React.Component {
   static propTypes = {
     ...InputField.propTypes,
-    choices: PropTypes.oneOfType([PropTypes.array, PropTypes.func]).isRequired,
+    choices: PropTypes.oneOfType([PropTypes.array, PropTypes.func]),
     allowClear: PropTypes.bool,
     allowEmpty: PropTypes.bool,
     multiple: PropTypes.bool,

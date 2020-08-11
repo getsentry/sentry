@@ -1,7 +1,6 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
-import {selectByValue} from 'sentry-test/select';
 
 import SentryAppExternalIssueActions from 'app/components/group/sentryAppExternalIssueActions';
 
@@ -23,6 +22,8 @@ describe('SentryAppExternalIssueActions', () => {
         name: sentryApp.name,
       },
     });
+    //unable to use the selectByValue here so remove the select option
+    component.schema.create.required_fields.pop();
     install = TestStubs.SentryAppInstallation({sentryApp});
     externalIssue = TestStubs.PlatformExternalIssue({
       groupId: group.id,
@@ -138,7 +139,6 @@ describe('SentryAppExternalIssueActions', () => {
 
       wrapper.find('Input#title').simulate('change', {target: {value: 'foo'}});
       wrapper.find('TextArea#description').simulate('change', {target: {value: 'bar'}});
-      selectByValue(wrapper, 1, {name: 'numbers'});
 
       wrapper.find('Form form').simulate('submit');
 

@@ -223,6 +223,7 @@ const SelectControl = props => {
       backspaceRemovesValue={clearable}
       value={mappedValue}
       isMulti={props.multiple || props.multi}
+      isDisabled={props.isDisabled || props.disabled}
       options={choicesOrOptions}
       {...rest}
     />
