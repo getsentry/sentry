@@ -513,6 +513,7 @@ exports[`SharedGroupDetails renders 1`] = `
                                 "title": "ApiException",
                               }
                             }
+                            hasQueryFeature={false}
                             orgId="test-org"
                             projectId="project-slug"
                           />

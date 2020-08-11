@@ -1,13 +1,13 @@
 from __future__ import absolute_import
 
 import six
-import json
 import requests
 import pytz
 
 from exam import fixture
 from freezegun import freeze_time
 
+from sentry.utils import json
 from sentry.api.serializers import serialize
 from sentry.incidents.models import AlertRule
 from sentry.testutils.helpers.datetime import before_now
@@ -90,12 +90,12 @@ class AlertRuleCreateEndpointTest(APITestCase):
             "aggregate": "count()",
             "query": "",
             "timeWindow": "300",
+            "resolveThreshold": 100,
+            "thresholdType": 0,
             "triggers": [
                 {
                     "label": "critical",
                     "alertThreshold": 200,
-                    "resolveThreshold": 100,
-                    "thresholdType": 0,
                     "actions": [
                         {"type": "email", "targetType": "team", "targetIdentifier": self.team.id}
                     ],
@@ -103,8 +103,6 @@ class AlertRuleCreateEndpointTest(APITestCase):
                 {
                     "label": "warning",
                     "alertThreshold": 150,
-                    "resolveThreshold": 100,
-                    "thresholdType": 0,
                     "actions": [
                         {"type": "email", "targetType": "team", "targetIdentifier": self.team.id},
                         {"type": "email", "targetType": "user", "targetIdentifier": self.user.id},

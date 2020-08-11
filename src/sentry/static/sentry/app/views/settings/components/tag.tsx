@@ -1,7 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import InlineSvg from 'app/components/inlineSvg';
 import {Theme} from 'app/utils/theme';
 import space from 'app/styles/space';
 
@@ -45,11 +44,7 @@ const Tag = styled(
     <div {...props}>
       {icon && (
         <IconWrapper>
-          {React.isValidElement(icon) ? (
-            React.cloneElement(icon, {size: 'xs'})
-          ) : typeof icon === 'string' ? (
-            <InlineSvg src={icon} size="12px" />
-          ) : null}
+          {React.isValidElement(icon) && React.cloneElement(icon, {size: 'xs'})}
         </IconWrapper>
       )}
       {children}

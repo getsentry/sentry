@@ -43,63 +43,6 @@ jobs:
 
         VISUAL_SNAPSHOT_ENABLE: 1
 
-      services:
-        clickhouse:
-          image: yandex/clickhouse-server:19.11
-          options: --ulimit nofile=262144:262144
-          ports:
-            - 9000:9000
-
-        snuba:
-          image: getsentry/snuba
-          env:
-            SNUBA_SETTINGS: test
-            REDIS_HOST: redis
-            CLICKHOUSE_HOST: clickhouse
-            CLICKHOUSE_PORT: 9000
-          ports:
-            - 1218:1218
-
-        redis:
-          image: redis:5.0-alpine
-          ports:
-            - 6379:6379
-
-        memcached:
-          image: memcached:1.5-alpine
-          ports:
-            - 11211:11211
-
-        postgres:
-          image: postgres:9.6
-          env:
-            POSTGRES_USER: postgres
-            POSTGRES_PASSWORD: postgres
-          ports:
-            # Maps tcp port 5432 on service container to the host
-            - 5432:5432
-          # needed because the postgres container does not provide a healthcheck
-          options: >-
-            --health-cmd pg_isready
-            --health-interval 10s
-            --health-timeout 5s
-            --health-retries 5
-
-        zookeeper:
-          image: confluentinc/cp-zookeeper:4.1.0
-          env:
-            ZOOKEEPER_CLIENT_PORT: 2181
-
-        kafka:
-          image: confluentinc/cp-kafka:5.1.2
-          env:
-            KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-            KAFKA_LISTENERS: INTERNAL://0.0.0.0:9093,EXTERNAL://0.0.0.0:9092
-            KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:9093,EXTERNAL://kafka:9092
-            KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
-            KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
-            KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-
       steps:
         # Checkout codebase
         - uses: actions/checkout@v2
@@ -176,8 +119,11 @@ jobs:
             python setup.py install_egg_info
             pip install wheel # GitHub Actions does not have this installed by default (unlike Travis)
             pip install -U -e ".[dev]"
-            psql -c 'create database sentry;' -h localhost -U postgres
+
+        - name: Start devservices
+          run: |
             sentry init
+            sentry devservices up postgres redis clickhouse snuba
 
         - name: webpack
           run: |
@@ -218,6 +164,7 @@ jobs:
           id: visual-snapshots-diff
           uses: getsentry/action-visual-snapshot@v2
           with:
-            githubToken: ${{ secrets.GITHUB_TOKEN }}
+            api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
+            github-token: ${{ secrets.GITHUB_TOKEN }}
             gcs-bucket: 'sentry-visual-snapshots'
             gcp-service-account-key: ${{ secrets.SNAPSHOT_GOOGLE_SERVICE_ACCOUNT_KEY }}

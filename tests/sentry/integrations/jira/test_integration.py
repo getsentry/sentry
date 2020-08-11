@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import json
 from sentry.utils.compat import mock
 import responses
 import six
@@ -20,6 +19,7 @@ from sentry.models import (
     OrganizationIntegration,
 )
 from sentry.testutils import APITestCase
+from sentry.utils import json
 from sentry.utils.http import absolute_uri
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import iso_format, before_now

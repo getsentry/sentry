@@ -1,9 +1,9 @@
 from __future__ import absolute_import
 
-import json
 
 from exam import fixture
 
+from sentry.utils import json
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
 

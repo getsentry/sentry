@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {SentryTransactionEvent, Organization} from 'app/types';
 import {t} from 'app/locale';
-import {TableData} from 'app/views/eventsV2/table/types';
+import {TableData} from 'app/utils/discover/discoverQuery';
 
 import {
   ProcessedSpanType,
