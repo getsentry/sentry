@@ -14,6 +14,8 @@ from sentry.api.event_search import get_filter, resolve_field
 from sentry.incidents import tasks
 from sentry.incidents.models import (
     AlertRule,
+    AlertRuleActivity,
+    AlertRuleActivityType,
     AlertRuleExcludedProjects,
     AlertRuleStatus,
     AlertRuleTrigger,
@@ -557,6 +559,7 @@ def create_alert_rule(
     include_all_projects=False,
     excluded_projects=None,
     dataset=QueryDatasets.EVENTS,
+    user=None,
 ):
     """
     Creates an alert rule for an organization.
@@ -619,10 +622,14 @@ def create_alert_rule(
 
         subscribe_projects_to_alert_rule(alert_rule, projects)
 
+        AlertRuleActivity.objects.create(
+            alert_rule=alert_rule, user=user, type=AlertRuleActivityType.CREATED.value
+        )
+
     return alert_rule
 
 
-def snapshot_alert_rule(alert_rule):
+def snapshot_alert_rule(alert_rule, user=None):
     # Creates an archived alert_rule using the same properties as the passed rule
     # It will also resolve any incidents attached to this rule.
     with transaction.atomic():
@@ -636,6 +643,12 @@ def snapshot_alert_rule(alert_rule):
         alert_rule_snapshot.status = AlertRuleStatus.SNAPSHOT.value
         alert_rule_snapshot.snuba_query = snuba_query_snapshot
         alert_rule_snapshot.save()
+        AlertRuleActivity.objects.create(
+            alert_rule=alert_rule_snapshot,
+            previous_alert_rule=alert_rule,
+            user=user,
+            type=AlertRuleActivityType.SNAPSHOT.value,
+        )
 
         incidents.update(alert_rule=alert_rule_snapshot)
 
@@ -669,6 +682,7 @@ def update_alert_rule(
     resolve_threshold=NOT_SET,
     include_all_projects=None,
     excluded_projects=None,
+    user=None,
 ):
     """
     Updates an alert rule.
@@ -725,8 +739,11 @@ def update_alert_rule(
     with transaction.atomic():
         incidents = Incident.objects.filter(alert_rule=alert_rule).exists()
         if incidents:
-            snapshot_alert_rule(alert_rule)
+            snapshot_alert_rule(alert_rule, user)
         alert_rule.update(**updated_fields)
+        AlertRuleActivity.objects.create(
+            alert_rule=alert_rule, user=user, type=AlertRuleActivityType.UPDATED.value
+        )
 
         if updated_query_fields or environment != alert_rule.snuba_query.environment:
             snuba_query = alert_rule.snuba_query
@@ -835,7 +852,7 @@ def disable_alert_rule(alert_rule):
         bulk_disable_snuba_subscriptions(alert_rule.snuba_query.subscriptions.all())
 
 
-def delete_alert_rule(alert_rule):
+def delete_alert_rule(alert_rule, user=None):
     """
     Marks an alert rule as deleted and fires off a task to actually delete it.
     :param alert_rule:
@@ -848,6 +865,9 @@ def delete_alert_rule(alert_rule):
         bulk_delete_snuba_subscriptions(list(alert_rule.snuba_query.subscriptions.all()))
         if incidents:
             alert_rule.update(status=AlertRuleStatus.SNAPSHOT.value)
+            AlertRuleActivity.objects.create(
+                alert_rule=alert_rule, user=user, type=AlertRuleActivityType.DELETED.value,
+            )
         else:
             alert_rule.delete()
 

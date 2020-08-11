@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import json
 import hmac
 import time
 import six
@@ -8,9 +7,9 @@ from datetime import datetime
 from hashlib import sha256
 from six.moves.urllib.parse import urlencode
 
-from sentry.utils.compat import mock
-
 from sentry import options
+from sentry.utils import json
+from sentry.utils.compat import mock
 from sentry.utils.cache import memoize
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import override_options

@@ -2,6 +2,7 @@ from __future__ import absolute_import, print_function
 
 from django.db import models
 from django.utils import timezone
+from enum import Enum
 
 from sentry.db.models import (
     BoundedPositiveIntegerField,
@@ -25,7 +26,8 @@ class RuleStatus(object):
 class Rule(Model):
     __core__ = True
 
-    DEFAULT_ACTION_MATCH = "all"  # any, all
+    DEFAULT_CONDITION_MATCH = "all"  # any, all
+    DEFAULT_FILTER_MATCH = "all"  # match to apply on filters
     DEFAULT_FREQUENCY = 30  # minutes
 
     project = FlexibleForeignKey("sentry.Project")
@@ -71,3 +73,24 @@ class Rule(Model):
 
     def get_audit_log_data(self):
         return {"label": self.label, "data": self.data, "status": self.status}
+
+
+class RuleActivityType(Enum):
+    CREATED = 1
+    DELETED = 2
+    UPDATED = 3
+    ENABLED = 4
+    DISABLED = 5
+
+
+class RuleActivity(Model):
+    __core__ = True
+
+    rule = FlexibleForeignKey("sentry.Rule")
+    user = FlexibleForeignKey("sentry.User", null=True)
+    type = models.IntegerField()
+    date_added = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_ruleactivity"
