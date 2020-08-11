@@ -1,10 +1,5 @@
 name: getsentry
-on:
-  push:
-    branches:
-      - master
-  pull_request:
-
+on: pull_request
 
 jobs:
   ensure_docker:
