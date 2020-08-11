@@ -11,6 +11,10 @@ import {unarySuggestions, binarySuggestions} from '../../utils';
 import SourceSuggestionExamples from './sourceSuggestionExamples';
 import {SourceSuggestion, SourceSuggestionType} from '../../types';
 
+const defaultHelp = t(
+  'Where to look. In the simplest case this can be an attribute name.'
+);
+
 type Props = {
   value: string;
   onChange: (value: string) => void;
@@ -26,7 +30,7 @@ type State = {
   activeSuggestion: number;
   showSuggestions: boolean;
   hideCaret: boolean;
-  help?: string;
+  help: string;
 };
 
 class SourceField extends React.Component<Props, State> {
@@ -36,7 +40,7 @@ class SourceField extends React.Component<Props, State> {
     activeSuggestion: 0,
     showSuggestions: false,
     hideCaret: false,
-    help: t('Where to look. In the simplest case this can be an attribute name.'),
+    help: defaultHelp,
   };
 
   componentDidMount() {
@@ -289,7 +293,7 @@ class SourceField extends React.Component<Props, State> {
     if (help) {
       if (!isMaybeRegExp) {
         this.setState({
-          help: t('Where to look. In the simplest case this can be an attribute name.'),
+          help: defaultHelp,
         });
       }
       return;
@@ -306,10 +310,9 @@ class SourceField extends React.Component<Props, State> {
     this.setState({showSuggestions});
   }
 
-  handleChange = (_value: string, event: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = event.target.value;
-    this.loadFieldValues(newValue);
-    this.props.onChange(newValue);
+  handleChange = (value: string) => {
+    this.loadFieldValues(value);
+    this.props.onChange(value);
   };
 
   handleClickOutside = () => {
@@ -389,7 +392,7 @@ class SourceField extends React.Component<Props, State> {
           autoComplete="off"
           value={value}
           error={error}
-          help={error ? undefined : help}
+          help={help}
           onKeyDown={this.handleKeyDown}
           onBlur={onBlur}
           onFocus={this.handleFocus}
@@ -401,7 +404,11 @@ class SourceField extends React.Component<Props, State> {
         />
         {showSuggestions && suggestions.length > 0 && (
           <React.Fragment>
-            <Suggestions ref={this.suggestionList} data-test-id="source-suggestions">
+            <Suggestions
+              ref={this.suggestionList}
+              error={error}
+              data-test-id="source-suggestions"
+            >
               {suggestions.slice(0, 50).map((suggestion, index) => (
                 <Suggestion
                   key={suggestion.value}
@@ -447,9 +454,9 @@ const StyledInput = styled(InputField)`
   }
 `;
 
-const Suggestions = styled('ul')`
+const Suggestions = styled('ul')<{error: string | undefined}>`
   position: absolute;
-  width: 100%;
+  width: ${p => (p.error ? 'calc(100% - 34px)' : '100%')};
   padding-left: 0;
   list-style: none;
   margin-bottom: 0;
@@ -458,7 +465,7 @@ const Suggestions = styled('ul')`
   border-radius: 0 0 ${space(0.5)} ${space(0.5)};
   background: ${p => p.theme.white};
   top: 63px;
-  right: 0;
+  left: 0;
   z-index: 1002;
   overflow: hidden;
   max-height: 200px;
