@@ -4,7 +4,6 @@ import logging
 import posixpath
 import six
 
-from sentry.event_manager import validate_and_set_timestamp
 from sentry.lang.native.error import write_error, SymbolicationFailed
 from sentry.lang.native.symbolicator import Symbolicator
 from sentry.lang.native.utils import (
@@ -173,8 +172,6 @@ def _merge_full_response(data, response):
     data["platform"] = "native"
     if response.get("crashed") is not None:
         data["level"] = "fatal" if response["crashed"] else "info"
-
-    validate_and_set_timestamp(data, response.get("timestamp"))
 
     if response.get("system_info"):
         _merge_system_info(data, response["system_info"])

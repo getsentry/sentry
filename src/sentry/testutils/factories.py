@@ -895,19 +895,11 @@ class Factories(object):
         return alert_rule
 
     @staticmethod
-    def create_alert_rule_trigger(
-        alert_rule,
-        label=None,
-        threshold_type=AlertRuleThresholdType.ABOVE,
-        alert_threshold=100,
-        resolve_threshold=10,
-    ):
+    def create_alert_rule_trigger(alert_rule, label=None, alert_threshold=100):
         if not label:
             label = petname.Generate(2, " ", letters=10).title()
 
-        return create_alert_rule_trigger(
-            alert_rule, label, threshold_type, alert_threshold, resolve_threshold
-        )
+        return create_alert_rule_trigger(alert_rule, label, alert_threshold)
 
     @staticmethod
     def create_incident_trigger(incident, alert_rule_trigger, status=None):
@@ -915,7 +907,7 @@ class Factories(object):
             status = TriggerStatus.ACTIVE.value
 
         return IncidentTrigger.objects.create(
-            alert_rule_trigger=alert_rule_trigger, incident=incident, status=status,
+            alert_rule_trigger=alert_rule_trigger, incident=incident, status=status
         )
 
     @staticmethod

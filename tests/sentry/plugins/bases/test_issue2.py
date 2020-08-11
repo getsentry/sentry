@@ -2,8 +2,6 @@
 
 from __future__ import absolute_import
 
-import json
-from sentry.utils.compat import mock
 
 from social_auth.models import UserSocialAuth
 
@@ -12,6 +10,8 @@ from sentry.plugins.base import plugins
 from sentry.plugins.bases import IssueTrackingPlugin2
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.utils import json
+from sentry.utils.compat import mock
 
 
 class PluginWithFields(IssueTrackingPlugin2):
