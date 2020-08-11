@@ -118,12 +118,12 @@ class OrganizationMembersWrapper extends AsyncView<Props, State> {
               {t('Invite new members by email to join your organization')}
             </SubText>
           </TextContainer>
-          <Button
+          <StyledButton
             priority="primary"
             onClick={() => openInviteMembersModal({source: 'members_settings'})}
           >
             {t('Invite Members')}
-          </Button>
+          </StyledButton>
         </StyledPanel>
 
         {this.showNavTabs && (
@@ -186,6 +186,7 @@ const TextContainer = styled('div')`
 const Heading = styled('h1')`
   margin: 0;
   font-weight: 400;
+  line-height: 1;
   font-size: ${p => p.theme.fontSizeExtraLarge};
 `;
 
@@ -193,6 +194,11 @@ const SubText = styled('p')`
   margin: 0;
   color: ${p => p.theme.gray600};
   font-size: 15px;
+  line-height: 1;
+`;
+
+const StyledButton = styled(Button)`
+  height: max-content;
 `;
 
 const StyledBadge = styled(Badge)`
