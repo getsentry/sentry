@@ -15,7 +15,7 @@ import SearchBar from 'app/components/searchBar';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
-import {ALL_PROJECTS} from 'app/constants';
+import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 
 import {ParsedTraceType} from './types';
 import {parseTrace, getTraceDateTimeRange} from './utils';
@@ -124,7 +124,7 @@ class SpansInterface extends React.Component<Props, State> {
       // if an org has no global-views, we make an assumption that errors are collected in the same
       // project as the current transaction event where spans are collected into
       projects: orgFeatures.has('global-views')
-        ? [ALL_PROJECTS]
+        ? [ALL_ACCESS_PROJECTS]
         : [Number(event.projectID)],
       version: 2,
       start,

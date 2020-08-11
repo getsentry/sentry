@@ -254,6 +254,3 @@ export const IS_CI = !!process.env.IS_CI;
 export const NODE_ENV = process.env.NODE_ENV;
 export const DISABLE_RR_WEB = !!process.env.DISABLE_RR_WEB;
 export const SPA_DSN = process.env.SPA_DSN;
-
-// If an organization has global views, this constant refers to an all project selection.
-export const ALL_PROJECTS = -1;

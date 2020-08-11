@@ -22,7 +22,7 @@ import space from 'app/styles/space';
 import getDynamicText from 'app/utils/getDynamicText';
 import {TableDataRow} from 'app/utils/discover/discoverQuery';
 import withApi from 'app/utils/withApi';
-import {ALL_PROJECTS} from 'app/constants';
+import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 
 import {ProcessedSpanType, RawSpanType, ParsedTraceType, rawSpanKeys} from './types';
 import {isGapSpan, isOrphanSpan, getTraceDateTimeRange} from './utils';
@@ -102,7 +102,7 @@ class SpanDetail extends React.Component<Props, State> {
       sort: ['-id'],
       query: `event.type:transaction trace:${traceID} trace.parent_span:${spanID}`,
       project: organization.features.includes('global-views')
-        ? [ALL_PROJECTS]
+        ? [ALL_ACCESS_PROJECTS]
         : [Number(event.projectID)],
       start,
       end,
@@ -166,7 +166,7 @@ class SpanDetail extends React.Component<Props, State> {
       orderby: '-timestamp',
       query: `event.type:transaction trace:${span.trace_id} trace.parent_span:${span.span_id}`,
       projects: orgFeatures.has('global-views')
-        ? [ALL_PROJECTS]
+        ? [ALL_ACCESS_PROJECTS]
         : [Number(event.projectID)],
       version: 2,
       start,
@@ -252,7 +252,7 @@ class SpanDetail extends React.Component<Props, State> {
       orderby: '-timestamp',
       query: `event.type:transaction trace:${span.trace_id}`,
       projects: orgFeatures.has('global-views')
-        ? [ALL_PROJECTS]
+        ? [ALL_ACCESS_PROJECTS]
         : [Number(event.projectID)],
       version: 2,
       start,
@@ -318,7 +318,7 @@ class SpanDetail extends React.Component<Props, State> {
       orderby: '-timestamp',
       query: `event.type:error trace:${span.trace_id} trace.span:${span.span_id}`,
       projects: orgFeatures.has('global-views')
-        ? [ALL_PROJECTS]
+        ? [ALL_ACCESS_PROJECTS]
         : [Number(event.projectID)],
       version: 2,
       start,
