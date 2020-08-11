@@ -1190,46 +1190,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["transaction"] == event1.transaction
         assert data[0]["percentile_transaction_duration_0_95"] == 5000
 
-    def test_rpm_function(self):
-        self.login_as(user=self.user)
-        project = self.create_project()
-
-        data = load_data(
-            "transaction",
-            timestamp=before_now(minutes=1),
-            start_timestamp=before_now(minutes=1, seconds=5),
-        )
-        data["transaction"] = "/aggregates/1"
-        event1 = self.store_event(data, project_id=project.id)
-
-        data = load_data(
-            "transaction",
-            timestamp=before_now(minutes=1),
-            start_timestamp=before_now(minutes=1, seconds=3),
-        )
-        data["transaction"] = "/aggregates/2"
-        event2 = self.store_event(data, project_id=project.id)
-
-        with self.feature("organizations:discover-basic"):
-            response = self.client.get(
-                self.url,
-                format="json",
-                data={
-                    "field": ["transaction", "rpm()"],
-                    "query": "event.type:transaction",
-                    "orderby": ["transaction"],
-                    "statsPeriod": "2m",
-                },
-            )
-
-        assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 2
-        data = response.data["data"]
-        assert data[0]["transaction"] == event1.transaction
-        assert data[0]["rpm"] == 0.5
-        assert data[1]["transaction"] == event2.transaction
-        assert data[1]["rpm"] == 0.5
-
     def test_epm_function(self):
         self.login_as(user=self.user)
         project = self.create_project()
@@ -1994,7 +1954,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 self.url,
                 format="json",
                 data={
-                    "field": ["event.type", "last_seen", "latest_event()"],
+                    "field": ["event.type", "last_seen()", "latest_event()"],
                     "query": "event.type:transaction",
                 },
             )
@@ -2093,16 +2053,16 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 self.url,
                 format="json",
                 data={
-                    "field": ["event.type", "apdex()", "impact()", "failure_rate()"],
-                    "query": "event.type:transaction apdex:>-1.0 impact():>0.5 failure_rate():>0.25",
+                    "field": ["event.type", "apdex(300)", "impact(300)", "failure_rate()"],
+                    "query": "event.type:transaction apdex(300):>-1.0 impact(300):>0.5 failure_rate():>0.25",
                 },
             )
 
             assert response.status_code == 200, response.content
             data = response.data["data"]
             assert len(data) == 1
-            assert data[0]["apdex"] == 0.0
-            assert data[0]["impact"] == 1.0
+            assert data[0]["apdex_300"] == 0.0
+            assert data[0]["impact_300"] == 1.0
             assert data[0]["failure_rate"] == 0.5
 
         with self.feature(
@@ -2112,8 +2072,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 self.url,
                 format="json",
                 data={
-                    "field": ["event.type", "last_seen", "latest_event()"],
-                    "query": u"event.type:transaction last_seen:>1990-12-01T00:00:00",
+                    "field": ["event.type", "last_seen()", "latest_event()"],
+                    "query": u"event.type:transaction last_seen():>1990-12-01T00:00:00",
                 },
             )
 
@@ -2211,7 +2171,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 self.url,
                 format="json",
                 data={
-                    "field": ["event.type", "p75"],
+                    "field": ["event.type", "p75()"],
                     "sort": "-p75",
                     "query": "event.type:transaction",
                 },
