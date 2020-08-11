@@ -8,9 +8,10 @@ import {TeamCreate} from 'app/views/teamCreate';
 describe('TeamCreate', function() {
   describe('render()', function() {
     it('renders correctly', function() {
-      const {routerContext} = initializeOrg();
+      const {organization, routerContext} = initializeOrg();
       const wrapper = mountWithTheme(
         <TeamCreate
+          organization={organization}
           params={{
             orgId: 'org',
           }}
