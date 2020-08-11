@@ -22,7 +22,7 @@ from sentry.models.group import Group
 from sentry.snuba import discover
 from sentry.utils.compat import map
 from sentry.utils.dates import get_rollup_from_request
-from sentry.utils import snuba
+from sentry.utils import snuba, json
 
 
 class OrganizationEventsEndpointBase(OrganizationEndpoint):
@@ -156,6 +156,8 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             for key in data[0]:
                 if key not in meta:
                     meta[key] = "string"
+            # Remove any potential NaN or Inf
+            data = json.loads(json.dumps(data, ignore_nan=True))
             return {"meta": meta, "data": data}
 
     def handle_data(self, request, organization, project_ids, results):
