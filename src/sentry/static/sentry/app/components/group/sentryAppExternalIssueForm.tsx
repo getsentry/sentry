@@ -292,7 +292,7 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
     const extraProps = field.uri
       ? {
           loadOptions: (input: string) => this.getOptions(field, input),
-          async: true, //TODO: make configuragble
+          async: true, //TODO: make configurable
           cache: false,
           onSelectResetsInput: false,
           onCloseResetsInput: false,
