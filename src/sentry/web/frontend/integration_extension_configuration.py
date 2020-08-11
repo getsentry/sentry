@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+
+from django.core.signing import SignatureExpired
 from django.core.urlresolvers import reverse
 from django.utils.http import urlencode
 from django.http import HttpResponseRedirect
@@ -57,8 +59,13 @@ class IntegrationExtensionConfigurationView(BaseView):
                 return self.redirect("/")
 
             # TODO(steve): we probably should check the user has permissions and show an error page if not
-            pipeline = self.init_pipeline(request, organization, request.GET.dict())
-            return pipeline.current_step()
+            try:
+                pipeline = self.init_pipeline(request, organization, request.GET.dict())
+                return pipeline.current_step()
+            except SignatureExpired:
+                return self.respond(
+                    "sentry/pipeline-error.html", {"error": "Installation link expired"},
+                )
         return self.redirect(
             u"/extensions/{}/link/?{}".format(self.provider, urlencode(request.GET.dict()))
         )
@@ -71,7 +78,6 @@ class IntegrationExtensionConfigurationView(BaseView):
         pipeline.initialize()
         pipeline.bind_state(self.provider, self.map_params_to_state(params))
         pipeline.bind_state("user_id", request.user.id)
-
         return pipeline
 
     def map_params_to_state(self, params):
