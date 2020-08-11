@@ -17,6 +17,7 @@ import {
 import space from 'app/styles/space';
 import {GroupingConfigItem} from 'app/components/events/groupingInfo';
 import {Field} from 'app/views/settings/components/forms/type';
+import Link from 'app/components/links/link';
 
 // Export route to make these forms searchable by label/help
 export const route = '/settings/:orgId/projects/:projectId/';
@@ -335,9 +336,15 @@ export const fields: Record<string, Field> = {
     name: 'storeCrashReports',
     type: 'array',
     label: t('Store Native Crash Reports'),
-    help: t(
-      'Store native crash reports such as Minidumps for improved processing and download in issue details. Overrides organization settings.'
-    ),
+    help: ({organization}) =>
+      tct(
+        'Store native crash reports such as Minidumps for improved processing and download in issue details. Overrides [organizationSettingsLink: organization settings].',
+        {
+          organizationSettingsLink: (
+            <Link to={`/settings/${organization.slug}/security-and-privacy/`} />
+          ),
+        }
+      ),
     visible: ({features}) => features.has('event-attachments'),
     choices: ({organization}) =>
       getStoreCrashReportsValues(SettingScope.Project).map(value => [
