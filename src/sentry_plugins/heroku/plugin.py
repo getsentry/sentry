@@ -36,7 +36,9 @@ class HerokuReleaseHook(ReleaseHook):
                     "email": email,
                 },
             )
-        self.finish_release(version=request.POST["head_long"], url=request.POST["url"], owner=user)
+        self.finish_release(
+            version=request.POST.get("head_long"), url=request.POST.get("url"), owner=user
+        )
 
     def set_refs(self, release, **values):
         if not values.get("owner", None):
