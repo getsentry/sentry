@@ -404,8 +404,7 @@ class AlertRule(Model):
             created_activity = AlertRuleActivity.objects.get(
                 alert_rule=self, type=AlertRuleActivityType.CREATED.value
             )
-            if created_activity:
-                return created_activity.user
+            return created_activity.user
         except AlertRuleActivity.DoesNotExist:
             pass
         return None

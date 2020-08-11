@@ -65,8 +65,7 @@ class Rule(Model):
             created_activity = RuleActivity.objects.get(
                 rule=self, type=RuleActivityType.CREATED.value
             )
-            if created_activity:
-                return created_activity.user
+            return created_activity.user
         except RuleActivity.DoesNotExist:
             pass
 

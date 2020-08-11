@@ -34,19 +34,17 @@ class AlertRuleSerializer(Serializer):
             )
             alert_rule_triggers.append(serialized)
 
-        for rule, user in AlertRuleActivity.objects.filter(
+        for alert_rule_id, user_id in AlertRuleActivity.objects.filter(
             alert_rule__in=item_list, type=AlertRuleActivityType.CREATED.value
-        ).values_list("rule", "user"):
-            result[rule].update({"created_by": user})
+        ).values_list("alert_rule", "user"):
+            result[alert_rules[alert_rule_id]].update({"created_by": user_id})
 
         return result
 
     def serialize(self, obj, attrs, user):
         env = obj.snuba_query.environment
         # Temporary: Translate aggregate back here from `tags[sentry:user]` to `user` for the frontend.
-
         aggregate = translate_aggregate_field(obj.snuba_query.aggregate, reverse=True)
-
         return {
             "id": six.text_type(obj.id),
             "name": obj.name,
