@@ -113,7 +113,6 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
     async (field: FieldFromSchema, input, resolve) => {
       const choices = await this.makeExternalRequest(field, input);
       const options = choices.map(([value, label]) => ({value, label}));
-      // const options = choices;
       const optionsByField = new Map(this.state.optionsByField);
       optionsByField.set(field.name, options);
       this.setState({
@@ -261,7 +260,7 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
     };
 
     if (fieldToPass.type === 'select') {
-      // find the options from state to ass down
+      // find the options from state to pass down
       const defaultOptions = (field.choices || []).map(([value, label]) => ({
         value,
         label,

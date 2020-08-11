@@ -106,7 +106,7 @@ type SelectControlType = {type: 'choice' | 'select'} & {
 
   options?: Array<{label: string; value: any}>; //for new select
   defaultOptions?: Array<{label: string; value: any}> | boolean;
-  filterOption?: ReturnType<createFilter>;
+  filterOption?: ReturnType<typeof createFilter>;
 };
 
 type TextareaType = {type: 'textarea'} & {
