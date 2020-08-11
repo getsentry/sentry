@@ -1,5 +1,8 @@
 from __future__ import absolute_import
 
+import enum
+import six
+
 from django.http import Http404
 
 from sentry.models import Integration, Project, GroupStatus, Organization, IdentityProvider
@@ -9,6 +12,18 @@ from .client import MsTeamsClient
 
 MSTEAMS_MAX_ITERS = 100
 ME = "ME"
+
+
+# MS Teams will convert integers into strings
+# in value inputs sent in adaptive cards,
+# may as well just do that here first.
+# Subclasses six.binary_type to appease
+# json loader for testing.
+class ACTION_TYPE(six.binary_type, enum.Enum):
+    RESOLVE = "1"
+    IGNORE = "2"
+    ASSIGN = "3"
+    UNRESOLVE = "4"
 
 
 def channel_filter(channel, name):
@@ -244,7 +259,7 @@ def build_group_actions(group):
         resolve_action = {
             "type": "Action.Submit",
             "title": "Unresolve",
-            "data": {"actionType": "unresolve", "groupId": group.id},
+            "data": {"actionType": ACTION_TYPE.UNRESOLVE, "groupId": group.id},
         }
     else:
         resolve_action = {
@@ -257,7 +272,7 @@ def build_group_actions(group):
         ignore_action = {
             "type": "Action.Submit",
             "title": "Stop Ignoring",
-            "data": {"actionType": "unignore", "groupId": group.id},
+            "data": {"actionType": ACTION_TYPE.UNRESOLVE, "groupId": group.id},
         }
     else:
         ignore_action = {
@@ -325,7 +340,7 @@ def build_group_resolve_card(group):
             {
                 "type": "Action.Submit",
                 "title": "Resolve",
-                "data": {"actionType": "resolve", "groupId": group.id},
+                "data": {"actionType": ACTION_TYPE.RESOLVE, "groupId": group.id},
             }
         ],
     }
@@ -366,7 +381,7 @@ def build_group_ignore_card(group):
             {
                 "type": "Action.Submit",
                 "title": "Ignore",
-                "data": {"actionType": "ignore", "groupId": group.id},
+                "data": {"actionType": ACTION_TYPE.IGNORE, "groupId": group.id},
             }
         ],
     }
@@ -406,7 +421,7 @@ def build_group_assign_card(group):
             {
                 "type": "Action.Submit",
                 "title": "Assign",
-                "data": {"actionType": "assign", "groupId": group.id},
+                "data": {"actionType": ACTION_TYPE.ASSIGN, "groupId": group.id},
             }
         ],
     }

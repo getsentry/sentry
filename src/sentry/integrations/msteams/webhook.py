@@ -33,12 +33,42 @@ from .client import (
     CLOCK_SKEW,
 )
 from .link_identity import build_linking_url
-from .utils import build_welcome_card, build_linking_card
+from .utils import build_welcome_card, build_linking_card, ACTION_TYPE
 
 logger = logging.getLogger("sentry.integrations.msteams.webhooks")
 
 # 24 hours to finish installation
 INSTALL_EXPIRATION_TIME = 60 * 60 * 24
+
+
+class MsTeamsIntegrationAssign(analytics.Event):
+    type = "integrations.msteams.assign"
+
+    attributes = (analytics.Attribute("actor_id"), analytics.Attribute("organization_id"))
+
+
+class MsTeamsIntegrationResolve(analytics.Event):
+    type = "integrations.msteams.resolve"
+
+    attributes = (analytics.Attribute("actor_id"), analytics.Attribute("organization_id"))
+
+
+class MsTeamsIntegrationIgnore(analytics.Event):
+    type = "integrations.msteams.ignore"
+
+    attributes = (analytics.Attribute("actor_id"), analytics.Attribute("organization_id"))
+
+
+class MsTeamsIntegrationUnresolve(analytics.Event):
+    type = "integrations.msteams.unresolve"
+
+    attributes = (analytics.Attribute("actor_id"), analytics.Attribute("organization_id"))
+
+
+analytics.register(MsTeamsIntegrationAssign)
+analytics.register(MsTeamsIntegrationResolve)
+analytics.register(MsTeamsIntegrationIgnore)
+analytics.register(MsTeamsIntegrationUnresolve)
 
 
 def verify_signature(request):
@@ -204,9 +234,9 @@ class MsTeamsWebhookEndpoint(Endpoint):
 
     def make_action_data(self, data, user_id):
         action_data = {}
-        if data["actionType"] == "unresolve" or data["actionType"] == "unignore":
+        if data["actionType"] == ACTION_TYPE.UNRESOLVE:
             action_data = {"status": "unresolved"}
-        elif data["actionType"] == "resolve":
+        elif data["actionType"] == ACTION_TYPE.RESOLVE:
             status = data["resolveInput"]
             # status might look something like "resolved:inCurrentRelease" or just "resolved"
             status_data = status.split(":", 1)
@@ -217,12 +247,12 @@ class MsTeamsWebhookEndpoint(Endpoint):
                 action_data.update({"statusDetails": {"inNextRelease": True}})
             elif resolve_type == "inCurrentRelease":
                 action_data.update({"statusDetails": {"inRelease": "latest"}})
-        elif data["actionType"] == "ignore":
+        elif data["actionType"] == ACTION_TYPE.IGNORE:
             action_data = {"status": "ignored"}
             ignore_count = int(data["ignoreInput"])
             if ignore_count > 0:
                 action_data.update({"statusDetails": {"ignoreCount": ignore_count}})
-        elif data["actionType"] == "assign":
+        elif data["actionType"] == ACTION_TYPE.ASSIGN:
             assignee = data["assignInput"]
             if assignee == "ME":
                 assignee = u"user:{}".format(user_id)
@@ -234,8 +264,11 @@ class MsTeamsWebhookEndpoint(Endpoint):
             organization=group.project.organization, scope_list=["event:write"]
         )
 
+        # undoing the enum structure of ACTION_TYPE to
+        # get a more sensible analytics_event
+        action_types = {"1": "resolve", "2": "ignore", "3": "assign", "4": "unresolve"}
         action_data = self.make_action_data(data, identity.user_id)
-        status = "unresolve" if data["actionType"] == "unignore" else data["actionType"]
+        status = action_types[data["actionType"]]
         analytics_event = "integrations.msteams.%s" % status
         analytics.record(
             analytics_event,

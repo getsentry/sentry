@@ -19,7 +19,7 @@ from sentry.models import (
 )
 from sentry.testutils import APITestCase
 from sentry.utils import json
-from sentry.integrations.msteams.utils import build_linking_card
+from sentry.integrations.msteams.utils import build_linking_card, ACTION_TYPE
 from sentry.integrations.msteams.link_identity import build_linking_url
 
 
@@ -127,7 +127,7 @@ class StatusActionTest(BaseEventTest):
     @patch("sentry.integrations.msteams.webhook.verify_signature")
     def test_ignore_issue(self, verify):
         verify.return_value = True
-        resp = self.post_webhook(action_type="ignore", ignore_input="-1")
+        resp = self.post_webhook(action_type=ACTION_TYPE.IGNORE, ignore_input="-1")
         self.group1 = Group.objects.get(id=self.group1.id)
 
         assert resp.status_code == 200, resp.content
@@ -139,7 +139,7 @@ class StatusActionTest(BaseEventTest):
         auth_idp = AuthProvider.objects.create(organization=self.org, provider="nobody")
         AuthIdentity.objects.create(auth_provider=auth_idp, user=self.user)
 
-        resp = self.post_webhook(action_type="ignore", ignore_input="-1")
+        resp = self.post_webhook(action_type=ACTION_TYPE.IGNORE, ignore_input="-1")
         self.group1 = Group.objects.get(id=self.group1.id)
 
         assert resp.status_code == 200, resp.content
@@ -148,7 +148,9 @@ class StatusActionTest(BaseEventTest):
     @patch("sentry.integrations.msteams.webhook.verify_signature")
     def test_assign_to_team(self, verify):
         verify.return_value = True
-        resp = self.post_webhook(action_type="assign", assign_input=u"team:{}".format(self.team.id))
+        resp = self.post_webhook(
+            action_type=ACTION_TYPE.ASSIGN, assign_input=u"team:{}".format(self.team.id)
+        )
 
         assert resp.status_code == 200, resp.content
         assert GroupAssignee.objects.filter(group=self.group1, team=self.team).exists()
@@ -156,7 +158,7 @@ class StatusActionTest(BaseEventTest):
     @patch("sentry.integrations.msteams.webhook.verify_signature")
     def test_assign_to_me(self, verify):
         verify.return_value = True
-        resp = self.post_webhook(action_type="assign", assign_input="ME")
+        resp = self.post_webhook(action_type=ACTION_TYPE.ASSIGN, assign_input="ME")
 
         assert resp.status_code == 200, resp.content
         assert GroupAssignee.objects.filter(group=self.group1, user=self.user).exists()
@@ -187,7 +189,7 @@ class StatusActionTest(BaseEventTest):
             scopes=[],
         )
 
-        resp = self.post_webhook(action_type="assign", assign_input="ME")
+        resp = self.post_webhook(action_type=ACTION_TYPE.ASSIGN, assign_input="ME")
 
         assert resp.status_code == 200, resp.content
         assert GroupAssignee.objects.filter(group=self.group1, user=self.user).exists()
@@ -195,7 +197,7 @@ class StatusActionTest(BaseEventTest):
     @patch("sentry.integrations.msteams.webhook.verify_signature")
     def test_resolve_issue(self, verify):
         verify.return_value = True
-        resp = self.post_webhook(action_type="resolve", resolve_input="resolved")
+        resp = self.post_webhook(action_type=ACTION_TYPE.RESOLVE, resolve_input="resolved")
         self.group1 = Group.objects.get(id=self.group1.id)
 
         assert resp.status_code == 200, resp.content
