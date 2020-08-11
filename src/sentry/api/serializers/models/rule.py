@@ -44,5 +44,6 @@ class RuleSerializer(Serializer):
             "name": obj.label,
             "dateCreated": obj.date_added,
             "environment": environment.name if environment is not None else None,
+            "projects": [obj.project.slug],
         }
         return d
