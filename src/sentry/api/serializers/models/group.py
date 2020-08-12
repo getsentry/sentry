@@ -639,20 +639,17 @@ class GroupSerializerSnuba(GroupSerializerBase):
             project_ids, group_ids, self.environment_ids, start=self.start, end=self.end
         )
         last_seen = {item_id: value["last_seen"] for item_id, value in seen_data.items()}
-        if not self.environment_ids:
-            first_seen = {item.id: item.first_seen for item in item_list}
-            times_seen = {item.id: item.times_seen for item in item_list}
-        else:
-            first_seen = {
-                ge["group_id"]: ge["first_seen__min"]
-                for ge in GroupEnvironment.objects.filter(
-                    group_id__in=[item.id for item in item_list],
-                    environment_id__in=self.environment_ids,
-                )
-                .values("group_id")
-                .annotate(Min("first_seen"))
-            }
-            times_seen = {item_id: value["times_seen"] for item_id, value in seen_data.items()}
+
+        first_seen = {
+            ge["group_id"]: ge["first_seen__min"]
+            for ge in GroupEnvironment.objects.filter(
+                group_id__in=[item.id for item in item_list],
+                environment_id__in=self.environment_ids,
+            )
+            .values("group_id")
+            .annotate(Min("first_seen"))
+        }
+        times_seen = {item_id: value["times_seen"] for item_id, value in seen_data.items()}
 
         attrs = {}
         for item in item_list:
@@ -667,8 +664,10 @@ class GroupSerializerSnuba(GroupSerializerBase):
 
 
 class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
-    def __init__(self, environment_ids=None, stats_period=None, matching_event_id=None):
-        super(StreamGroupSerializerSnuba, self).__init__(environment_ids)
+    def __init__(
+        self, environment_ids=None, stats_period=None, matching_event_id=None, start=None, end=None
+    ):
+        super(StreamGroupSerializerSnuba, self).__init__(environment_ids, start, end)
 
         if stats_period is not None:
             assert stats_period in self.STATS_PERIOD_CHOICES
