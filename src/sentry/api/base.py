@@ -207,11 +207,7 @@ class Endpoint(APIView):
         request._metric_tags = {}
 
         if settings.SENTRY_API_RESPONSE_DELAY:
-            with sentry_sdk.start_span(
-                op="base.dispatch.sleep", description=type(self).__name__,
-            ) as span:
-                span.set_data("SENTRY_API_RESPONSE_DELAY", settings.SENTRY_API_RESPONSE_DELAY)
-                time.sleep(settings.SENTRY_API_RESPONSE_DELAY / 1000.0)
+            start_time = time.time()
 
         origin = request.META.get("HTTP_ORIGIN", "null")
         # A "null" value should be treated as no Origin for us.
@@ -257,6 +253,16 @@ class Endpoint(APIView):
             self.add_cors_headers(request, response)
 
         self.response = self.finalize_response(request, response, *args, **kwargs)
+
+        if settings.SENTRY_API_RESPONSE_DELAY:
+            duration = time.time() - start_time
+
+            if duration < (settings.SENTRY_API_RESPONSE_DELAY / 1000.0):
+                with sentry_sdk.start_span(
+                    op="base.dispatch.sleep", description=type(self).__name__,
+                ) as span:
+                    span.set_data("SENTRY_API_RESPONSE_DELAY", settings.SENTRY_API_RESPONSE_DELAY)
+                    time.sleep(settings.SENTRY_API_RESPONSE_DELAY / 1000.0 - duration)
 
         return self.response
 
