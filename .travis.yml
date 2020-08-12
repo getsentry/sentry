@@ -83,7 +83,7 @@ start_snuba: &start_snuba |-
     --name sentry_clickhouse \
     -d --network host \
     --ulimit nofile=262144:262144 \
-    yandex/clickhouse-server:19.11 \
+    yandex/clickhouse-server:20.3.9.70 \
 
   docker run \
     --name sentry_snuba \
