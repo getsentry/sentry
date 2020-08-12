@@ -985,7 +985,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             event = self.store_event(
                 data={
                     "fingerprint": ["put-me-in-group-1"],
-                    "user": {"id": six.binary_type(i)},
+                    "user": {"id": six.text_type(i).encode("utf-8")},
                     "timestamp": iso_format(self.min_ago + timedelta(seconds=i)),
                 },
                 project_id=self.project.id,
@@ -1384,7 +1384,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
             groups.append(
                 self.create_group(
                     project=self.project,
-                    checksum=six.binary_type(i) * 16,
+                    checksum=six.text_type(i).encode("utf-8") * 16,
                     status=GroupStatus.RESOLVED,
                 )
             )
