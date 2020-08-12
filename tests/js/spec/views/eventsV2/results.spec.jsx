@@ -138,7 +138,7 @@ describe('EventsV2 > Results', function() {
     const initialData = initializeOrg({
       organization,
       router: {
-        location: {query: {}},
+        location: {query: {query: 'tag:value'}},
       },
     });
 
@@ -157,8 +157,15 @@ describe('EventsV2 > Results', function() {
     // No request as eventview was invalid.
     expect(eventResultsMock).not.toHaveBeenCalled();
 
-    // Should redirect.
-    expect(browserHistory.replace).toHaveBeenCalled();
+    // Should redirect and retain the old query value..
+    expect(browserHistory.replace).toHaveBeenCalledWith(
+      expect.objectContaining({
+        pathname: '/organizations/org-slug/discover/results/',
+        query: expect.objectContaining({
+          query: 'tag:value',
+        }),
+      })
+    );
 
     // Update location simulating a redirect.
     wrapper.setProps({location: {query: {...generateFields()}}});
