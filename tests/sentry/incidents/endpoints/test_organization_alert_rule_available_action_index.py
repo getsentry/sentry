@@ -17,6 +17,7 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
             "allowedTargetTypes": ["user", "team"] if type == "email" else ["specific"],
             "integrationName": integration.name if integration else None,
             "integrationId": integration.id if integration else None,
+            "inputType": "select" if type in ["pagerduty", "email"] else "text"
         }
 
     def test_no_integrations(self):
