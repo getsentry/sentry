@@ -227,28 +227,24 @@ class NoteInput extends React.Component {
               style={mentionStyle({minHeight})}
               placeholder={placeholder}
               onChange={this.handleChange}
-              onBlur={this.handleBlur}
               onKeyDown={this.handleKeyDown}
               value={value}
               required
               autoFocus
-              displayTransform={(_id, display, type) =>
-                `${type === 'member' ? '@' : ''}${display}`
-              }
-              markup="**[sentry.strip:__type__]__display__**"
             >
               <Mention
-                type="member"
                 trigger="@"
                 data={memberList}
                 onAdd={this.handleAddMember}
+                displayTransform={(_id, display) => `@${display}`}
+                markup="**[sentry.strip:member]__display__**"
                 appendSpaceOnAdd
               />
               <Mention
-                type="team"
                 trigger="#"
                 data={teams}
                 onAdd={this.handleAddTeam}
+                markup="**[sentry.strip:team]__display__**"
                 appendSpaceOnAdd
               />
             </MentionsInput>
