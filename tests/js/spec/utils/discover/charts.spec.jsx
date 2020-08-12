@@ -25,9 +25,13 @@ describe('axisLabelFormatter()', function() {
       ['count()', 0.1, '0.1'],
       ['avg(thing)', 0.125126, '0.125'],
       ['failure_rate()', 0.66123, '66%'],
-      ['p50()', 100, '100ms'],
+      ['p50()', 100, '0.1s'],
+      ['p50()', 541, '0.5s'],
       ['p50()', 1200, '1s'],
-      ['p50()', 86400000, '24hr'],
+      ['p50()', 60000, '1min'],
+      ['p50()', 120000, '2min'],
+      ['p50()', 3600000, '1hr'],
+      ['p50()', 86400000, '1d'],
     ];
     for (const scenario of cases) {
       expect(axisLabelFormatter(scenario[1], scenario[0])).toEqual(scenario[2]);
