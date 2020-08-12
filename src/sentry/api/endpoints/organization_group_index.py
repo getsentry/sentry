@@ -99,12 +99,19 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
             # disable stats
             stats_period = None
 
+        try:
+            start, end = get_date_range_from_params(request.GET)
+        except InvalidParams as e:
+            return Response({"detail": six.text_type(e)}, status=400)
+
         environments = self.get_environments(request, organization)
 
         serializer = functools.partial(
             StreamGroupSerializerSnuba,
             environment_ids=[env.id for env in environments],
             stats_period=stats_period,
+            start=start,
+            end=end,
         )
 
         projects = self.get_projects(request, organization)
@@ -164,11 +171,6 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
             if any(g for g in groups if not request.access.has_project_access(g.project)):
                 raise PermissionDenied
             return Response(serialize(groups, request.user, serializer()))
-
-        try:
-            start, end = get_date_range_from_params(request.GET)
-        except InvalidParams as e:
-            return Response({"detail": six.text_type(e)}, status=400)
 
         try:
             cursor_result, query_kwargs = self._search(
