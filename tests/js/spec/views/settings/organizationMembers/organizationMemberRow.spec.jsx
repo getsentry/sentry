@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {shallow, mountWithTheme} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import OrganizationMemberRow from 'app/views/settings/organizationMembers/organizationMemberRow';
 
@@ -51,7 +51,7 @@ describe('OrganizationMemberRow', function() {
   beforeEach(function() {});
 
   it('does not have 2fa warning if user has 2fa', function() {
-    const wrapper = shallow(
+    const wrapper = mountWithTheme(
       <OrganizationMemberRow
         {...defaultProps}
         member={{
@@ -68,7 +68,7 @@ describe('OrganizationMemberRow', function() {
   });
 
   it('has 2fa warning if user does not have 2fa enabled', function() {
-    const wrapper = shallow(
+    const wrapper = mountWithTheme(
       <OrganizationMemberRow
         {...defaultProps}
         member={{
@@ -214,7 +214,7 @@ describe('OrganizationMemberRow', function() {
     });
 
     it('has 2fa warning if user is linked does not have 2fa enabled', function() {
-      const wrapper = shallow(
+      const wrapper = mountWithTheme(
         <OrganizationMemberRow
           {...defaultProps}
           member={{

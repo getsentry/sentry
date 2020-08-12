@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {shallow} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import StackedBarChart from 'app/components/stackedBarChart';
 import ConfigStore from 'app/stores/configStore';
@@ -14,7 +14,7 @@ describe('StackedBarChart', function() {
         {x: 1439773200, y: [30]},
       ];
 
-      const wrapper = shallow(<StackedBarChart points={points} />);
+      const wrapper = mountWithTheme(<StackedBarChart points={points} />);
       const columns = wrapper.find('[data-test-id="chart-column"]');
 
       expect(columns).toHaveProperty('length', 3);
@@ -34,7 +34,9 @@ describe('StackedBarChart', function() {
         {x: 1439776800, className: 'last-seen', label: 'last seen'}, // matches last point
       ];
 
-      const wrapper = shallow(<StackedBarChart points={points} markers={markers} />);
+      const wrapper = mountWithTheme(
+        <StackedBarChart points={points} markers={markers} />
+      );
       const columns = wrapper.find('[data-test-id="chart-column"]');
 
       expect(columns).toHaveProperty('length', 5);
@@ -53,7 +55,9 @@ describe('StackedBarChart', function() {
         {x: 1439776800, className: 'last-seen', label: 'last seen'},
       ];
 
-      const wrapper = shallow(<StackedBarChart points={points} markers={markers} />);
+      const wrapper = mountWithTheme(
+        <StackedBarChart points={points} markers={markers} />
+      );
       const columns = wrapper.find('[data-test-id="chart-column"]');
 
       expect(columns).toHaveProperty('length', 3);
@@ -70,7 +74,7 @@ describe('StackedBarChart', function() {
       user.options.clock24Hours = false;
       ConfigStore.set('user', user);
 
-      const wrapper = shallow(<StackedBarChart />);
+      const wrapper = mountWithTheme(<StackedBarChart />);
       expect(wrapper.instance().timeLabelAsFull(marker)).toMatch(/[A|P]M/);
     });
 
@@ -81,7 +85,7 @@ describe('StackedBarChart', function() {
       user.options.clock24Hours = true;
       ConfigStore.set('user', user);
 
-      const wrapper = shallow(<StackedBarChart />);
+      const wrapper = mountWithTheme(<StackedBarChart />);
 
       expect(wrapper.instance().timeLabelAsFull(marker)).not.toMatch(/[A|P]M/);
     });
