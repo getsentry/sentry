@@ -93,6 +93,50 @@ class SlackEventEndpoint(Endpoint):
     def on_url_verification(self, request, data):
         return self.respond({"challenge": data["challenge"]})
 
+    def on_message(self, request, integration, token, data):
+        channel = data["channel"]
+        # if it's a message posted by our bot, we don't want to respond since
+        # that will cause an infinite loop of messages
+        if data.get("bot_id"):
+            return self.respond()
+
+        access_token = integration.metadata.get("user_access_token")
+        if not access_token:
+            access_token = integration.metadata["access_token"]
+
+        headers = {"Authorization": "Bearer %s" % access_token}
+        payload = {
+            "channel": channel,
+            "blocks": [
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "Want to set up or edit an alert rule? Check out our documentation.",
+                    },
+                },
+                {
+                    "type": "actions",
+                    "elements": [
+                        {
+                            "type": "button",
+                            "text": {"type": "plain_text", "text": "Sentry Docs"},
+                            "url": "https://docs.sentry.io/product/alerts-notifications/alerts/",
+                            "value": "sentry_docs_link_clicked",
+                        }
+                    ],
+                },
+            ],
+        }
+
+        client = SlackClient()
+        try:
+            client.post("/chat.postMessage", headers=headers, data=payload, json=True)
+        except ApiError as e:
+            logger.error("slack.event.on-message-error", extra={"error": six.text_type(e)})
+
+        return self.respond()
+
     def on_link_shared(self, request, integration, token, data):
         parsed_events = defaultdict(dict)
         for item in data["links"]:
@@ -147,6 +191,17 @@ class SlackEventEndpoint(Endpoint):
 
         if slack_request.type == "link_shared":
             resp = self.on_link_shared(
+                request,
+                slack_request.integration,
+                slack_request.data.get("token"),
+                slack_request.data.get("event"),
+            )
+
+            if resp:
+                return resp
+
+        if slack_request.type == "message":
+            resp = self.on_message(
                 request,
                 slack_request.integration,
                 slack_request.data.get("token"),
