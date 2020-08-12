@@ -283,7 +283,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
 
         with self.tasks():
             eventstream_state = eventstream.start_unmerge(
-                project.id, [events.keys()[0]], source.id, destination.id
+                project.id, [list(events.keys())[0]], source.id, destination.id
             )
             unmerge.delay(
                 project.id, source.id, destination.id, [events.keys()[0]], None, batch_size=5
@@ -320,7 +320,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
 
         assert set(
             GroupHash.objects.filter(group_id=source.id).values_list("hash", flat=True)
-        ) == set([events.keys()[0], events.keys()[1]])
+        ) == set([list(events.keys())[0], list(events.keys())[1]])
 
         assert set(
             GroupRelease.objects.filter(group_id=source.id).values_list(
@@ -347,7 +347,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
 
         assert set(
             GroupHash.objects.filter(group_id=destination.id).values_list("hash", flat=True)
-        ) == set([events.keys()[2]])
+        ) == set([list(events.keys())[2]])
 
         assert set(
             GroupRelease.objects.filter(group_id=destination.id).values_list(
