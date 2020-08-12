@@ -11,7 +11,7 @@ describe('Tooltip', function() {
         <span>My Button</span>
       </Tooltip>
     );
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
   it('updates title', function() {

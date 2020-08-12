@@ -42,7 +42,7 @@ describe('OrganizationProjects', function() {
       <OrganizationProjectsContainer params={{orgId: org.slug}} location={{query: {}}} />,
       routerContext
     );
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
 
     expect(wrapper.find('.project-name').text()).toBe('project-slug');
 

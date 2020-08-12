@@ -89,7 +89,7 @@ describe('OrganizationTeamProjects', function() {
     await tick();
     wrapper.update();
 
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
     expect(
       wrapper
         .find('.project-name')

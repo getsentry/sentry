@@ -42,6 +42,6 @@ describe('OrganizationApiKeyDetails', function() {
       }
     );
     expect(wrapper.state('loading')).toBe(false);
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 });

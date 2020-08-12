@@ -13,7 +13,7 @@ describe('Confirm', function() {
       </Confirm>,
       TestStubs.routerContext()
     );
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
   it('clicking action button opens Modal', function() {
@@ -78,7 +78,7 @@ describe('Confirm', function() {
 
   it('can stop propagation on the event', function() {
     const mock = jest.fn();
-    const wrapper = mountWithTheme(
+    const wrapper = shallow(
       <Confirm message="Are you sure?" onConfirm={mock} stopPropagation>
         <button>Confirm?</button>
       </Confirm>,

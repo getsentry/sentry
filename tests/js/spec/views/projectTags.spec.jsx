@@ -59,7 +59,7 @@ describe('ProjectTags', function() {
   });
 
   it('renders', function() {
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
   it('deletes tag', function() {

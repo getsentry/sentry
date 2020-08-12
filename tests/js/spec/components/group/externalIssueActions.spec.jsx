@@ -14,7 +14,7 @@ describe('ExternalIssueActions', function() {
       TestStubs.routerContext()
     );
     it('renders', function() {
-      expect(wrapper).toMatchSnapshot();
+      expect(wrapper).toSnapshot();
     });
 
     it('renders Link GitHub Issue when no issues currently linked', function() {
@@ -63,7 +63,7 @@ describe('ExternalIssueActions', function() {
       TestStubs.routerContext()
     );
     it('renders', function() {
-      expect(wrapper.find('IssueSyncElement')).toMatchSnapshot();
+      expect(wrapper.find('IssueSyncElement')).toHaveLength(0);
     });
 
     it('renders Link GitHub Issue when no issues currently linked', function() {

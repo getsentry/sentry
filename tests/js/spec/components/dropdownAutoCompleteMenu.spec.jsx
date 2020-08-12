@@ -27,7 +27,7 @@ describe('DropdownAutoCompleteMenu', function() {
       </DropdownAutoCompleteMenu>,
       routerContext
     );
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
   it('renders with a group', function() {
@@ -56,7 +56,7 @@ describe('DropdownAutoCompleteMenu', function() {
       </DropdownAutoCompleteMenu>,
       routerContext
     );
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
   it('selects', function() {

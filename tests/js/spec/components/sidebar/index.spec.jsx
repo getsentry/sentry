@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {mountWithTheme, shallow} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ConfigStore from 'app/stores/configStore';
 import SidebarContainer, {Sidebar} from 'app/components/sidebar';
@@ -43,7 +43,7 @@ describe('Sidebar', function() {
   });
 
   it('renders', function() {
-    wrapper = shallow(
+    wrapper = mountWithTheme(
       <Sidebar organization={organization} user={user} router={router} />,
       TestStubs.routerContext()
     );
@@ -62,7 +62,7 @@ describe('Sidebar', function() {
     expect(wrapper.find('UserNameOrEmail').text()).toContain(user.email);
 
     wrapper.find('SidebarDropdownActor').simulate('click');
-    expect(wrapper.find('OrgAndUserMenu')).toMatchSnapshot();
+    expect(wrapper.find('OrgAndUserMenu')).toSnapshot();
   });
 
   it('can toggle collapsed state', async function() {
@@ -147,7 +147,7 @@ describe('Sidebar', function() {
       wrapper.find('HelpActor').simulate('click');
       const menu = wrapper.find('HelpMenu');
       expect(menu).toHaveLength(1);
-      expect(menu).toMatchSnapshot();
+      expect(menu).toSnapshot();
       expect(menu.find('SidebarMenuItem')).toHaveLength(3);
       wrapper.find('HelpActor').simulate('click');
       expect(wrapper.find('HelpMenu')).toHaveLength(0);
@@ -159,7 +159,7 @@ describe('Sidebar', function() {
       wrapper = createWrapper();
       wrapper.find('SidebarDropdownActor').simulate('click');
       expect(wrapper.find('OrgAndUserMenu')).toHaveLength(1);
-      expect(wrapper.find('OrgAndUserMenu')).toMatchSnapshot();
+      expect(wrapper.find('OrgAndUserMenu')).toSnapshot();
     });
 
     it('has link to Members settings with `member:write`', function() {
@@ -188,7 +188,7 @@ describe('Sidebar', function() {
       jest.advanceTimersByTime(500);
       wrapper.update();
       expect(wrapper.find('SwitchOrganizationMenu')).toHaveLength(1);
-      expect(wrapper.find('SwitchOrganizationMenu')).toMatchSnapshot();
+      expect(wrapper.find('SwitchOrganizationMenu')).toSnapshot();
       jest.useRealTimers();
     });
 
@@ -249,7 +249,7 @@ describe('Sidebar', function() {
       expect(wrapper.find('SidebarPanelItem')).toHaveLength(1);
       expect(wrapper.find('SidebarPanelItem').prop('hasSeen')).toBe(false);
 
-      expect(wrapper.find('SidebarPanelItem')).toMatchSnapshot();
+      expect(wrapper.find('SidebarPanelItem')).toSnapshot();
 
       // Should mark as seen after a delay
       jest.advanceTimersByTime(2000);
@@ -317,7 +317,7 @@ describe('Sidebar', function() {
       wrapper.update();
       expect(wrapper.find('SidebarPanel')).toHaveLength(1);
 
-      expect(wrapper.find('IncidentList')).toMatchSnapshot();
+      expect(wrapper.find('IncidentList')).toSnapshot();
     });
 
     it('hides when path changes', async function() {

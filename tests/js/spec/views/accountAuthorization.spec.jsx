@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {shallow} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
 import AccountAuthorizations from 'app/views/settings/account/accountAuthorizations';
@@ -18,7 +18,7 @@ describe('AccountAuthorizations', function() {
       body: [],
     });
 
-    const wrapper = shallow(<AccountAuthorizations />, {
+    const wrapper = mountWithTheme(<AccountAuthorizations />, {
       context: {
         location: TestStubs.location(),
         router: TestStubs.router(),
@@ -29,6 +29,6 @@ describe('AccountAuthorizations', function() {
       },
     });
 
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 });

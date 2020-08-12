@@ -168,8 +168,6 @@ describe('Grouping Store', function() {
         ],
         unmergeState: new Map(),
       });
-
-      expect(arg).toMatchSnapshot();
     });
 
     it('unsuccessfully fetches list of similar items', function() {

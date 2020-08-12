@@ -29,7 +29,7 @@ describe('InstallWizard', function() {
 
   it('renders', function() {
     const wrapper = mountWithTheme(<InstallWizard onConfigured={jest.fn()} />);
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
   it('has no option selected when beacon.anonymous is unset', function() {

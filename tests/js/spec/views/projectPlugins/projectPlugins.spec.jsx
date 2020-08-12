@@ -21,7 +21,7 @@ describe('ProjectPlugins', function() {
       routerContext
     );
 
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
   it('has loading state', function() {

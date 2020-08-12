@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {shallow} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ProjectSecurityHeaders from 'app/views/settings/projectSecurityHeaders';
 
@@ -19,7 +19,7 @@ describe('ProjectSecurityHeaders', function() {
   });
 
   it('renders', function() {
-    const wrapper = shallow(
+    const wrapper = mountWithTheme(
       <ProjectSecurityHeaders
         organization={org}
         project={project}
@@ -30,6 +30,6 @@ describe('ProjectSecurityHeaders', function() {
       />,
       TestStubs.routerContext()
     );
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 });

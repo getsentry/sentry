@@ -39,7 +39,7 @@ describe('Organization Developer Settings', function() {
     );
 
     it('displays empty state', () => {
-      expect(wrapper).toMatchSnapshot();
+      expect(wrapper).toSnapshot();
       expect(wrapper.exists('EmptyMessage')).toBe(true);
       expect(wrapper.text()).toMatch('No internal integrations have been created yet');
       expect(wrapper.text()).toMatch('No public integrations have been created yet');

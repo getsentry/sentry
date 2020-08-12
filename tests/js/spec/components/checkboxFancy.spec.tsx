@@ -1,13 +1,13 @@
 import React from 'react';
 
-import {shallow, mountWithTheme} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import CheckboxFancy from 'app/components/checkboxFancy/checkboxFancy';
 
 describe('CheckboxFancy', function() {
   it('renders', function() {
-    const wrapper = shallow(<CheckboxFancy />);
-    expect(wrapper).toMatchSnapshot();
+    const wrapper = mountWithTheme(<CheckboxFancy />);
+    expect(wrapper).toSnapshot();
   });
 
   it('isChecked', function() {

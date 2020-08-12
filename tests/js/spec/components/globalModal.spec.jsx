@@ -1,14 +1,15 @@
 import React from 'react';
 
-import {shallow, mount} from 'sentry-test/enzyme';
+import {mountWithTheme, mount} from 'sentry-test/enzyme';
 
 import GlobalModal from 'app/components/globalModal';
 import {openModal, closeModal} from 'app/actionCreators/modal';
 
 describe('GlobalModal', function() {
   it('renders', function() {
-    const wrapper = shallow(<GlobalModal />);
-    expect(wrapper).toMatchSnapshot();
+    const wrapper = mountWithTheme(<GlobalModal />);
+    expect(wrapper).toSnapshot();
+    wrapper.unmount();
   });
 
   it('uses actionCreators to open and close Modal', function(done) {

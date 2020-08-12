@@ -1,7 +1,7 @@
 import React from 'react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme, shallow} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {selectByLabel} from 'sentry-test/select';
 
 import {IssueListActions} from 'app/views/issueList/actions';
@@ -47,13 +47,13 @@ describe('IssueListActions', function() {
 
       it('after checking "Select all" checkbox, displays bulk select message', async function() {
         wrapper.find('ActionsCheckbox Checkbox').simulate('change');
-        expect(wrapper.find('.stream-select-all-notice')).toMatchSnapshot();
+        expect(wrapper.find('.stream-select-all-notice')).toSnapshot();
       });
 
       it('can bulk select', function() {
         wrapper.find('.stream-select-all-notice a').simulate('click');
 
-        expect(wrapper.find('.stream-select-all-notice')).toMatchSnapshot();
+        expect(wrapper.find('.stream-select-all-notice')).toSnapshot();
       });
 
       it('bulk resolves', async function() {
@@ -66,7 +66,7 @@ describe('IssueListActions', function() {
           .first()
           .simulate('click');
 
-        expect(wrapper.find('ModalDialog')).toMatchSnapshot();
+        expect(wrapper.find('ModalDialog')).toSnapshot();
         wrapper.find('Button[priority="primary"]').simulate('click');
         expect(apiMock).toHaveBeenCalledWith(
           expect.anything(),
@@ -112,13 +112,13 @@ describe('IssueListActions', function() {
 
       it('after checking "Select all" checkbox, displays bulk select message', async function() {
         wrapper.find('ActionsCheckbox Checkbox').simulate('change');
-        expect(wrapper.find('.stream-select-all-notice')).toMatchSnapshot();
+        expect(wrapper.find('.stream-select-all-notice')).toSnapshot();
       });
 
       it('can bulk select', function() {
         wrapper.find('.stream-select-all-notice a').simulate('click');
 
-        expect(wrapper.find('.stream-select-all-notice')).toMatchSnapshot();
+        expect(wrapper.find('.stream-select-all-notice')).toSnapshot();
       });
 
       it('bulk resolves', async function() {
@@ -131,7 +131,7 @@ describe('IssueListActions', function() {
           .first()
           .simulate('click');
 
-        expect(wrapper.find('ModalDialog')).toMatchSnapshot();
+        expect(wrapper.find('ModalDialog')).toSnapshot();
         wrapper.find('Button[priority="primary"]').simulate('click');
         expect(apiMock).toHaveBeenCalledWith(
           expect.anything(),
@@ -255,7 +255,7 @@ describe('IssueListActions', function() {
 
     beforeEach(function() {
       SelectedGroupStore.deselectAll.mockReset();
-      actions = shallow(
+      actions = mountWithTheme(
         <IssueListActions
           api={new MockApiClient()}
           query=""

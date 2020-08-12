@@ -11,6 +11,6 @@ describe('Tag', function() {
         Text to Copy
       </Tag>
     );
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 });

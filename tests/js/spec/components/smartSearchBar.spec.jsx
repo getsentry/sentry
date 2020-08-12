@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {shallow, mountWithTheme} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
 import {SmartSearchBar} from 'app/components/smartSearchBar';
@@ -224,7 +224,7 @@ describe('SmartSearchBar', function() {
 
   describe('componentWillReceiveProps()', function() {
     it('should add a space when setting state.query', function() {
-      const searchBar = shallow(
+      const searchBar = mountWithTheme(
         <SmartSearchBar
           organization={organization}
           supportedTags={supportedTags}
@@ -237,7 +237,7 @@ describe('SmartSearchBar', function() {
     });
 
     it('should update state.query if props.query is updated from outside', function() {
-      const searchBar = shallow(
+      const searchBar = mountWithTheme(
         <SmartSearchBar
           organization={organization}
           supportedTags={supportedTags}
@@ -252,7 +252,7 @@ describe('SmartSearchBar', function() {
     });
 
     it('should not reset user input if a noop props change happens', function() {
-      const searchBar = shallow(
+      const searchBar = mountWithTheme(
         <SmartSearchBar
           organization={organization}
           supportedTags={supportedTags}
@@ -268,7 +268,7 @@ describe('SmartSearchBar', function() {
     });
 
     it('should reset user input if a meaningful props change happens', function() {
-      const searchBar = shallow(
+      const searchBar = mountWithTheme(
         <SmartSearchBar
           organization={organization}
           supportedTags={supportedTags}
@@ -323,7 +323,7 @@ describe('SmartSearchBar', function() {
         defaultQuery: 'is:unresolved',
         supportedTags,
       };
-      const searchBar = shallow(<SmartSearchBar {...props} />, options).instance();
+      const searchBar = mountWithTheme(<SmartSearchBar {...props} />, options).instance();
 
       searchBar.clearSearch();
 
@@ -338,7 +338,7 @@ describe('SmartSearchBar', function() {
         supportedTags,
         onSearch: jest.fn(),
       };
-      const searchBar = shallow(<SmartSearchBar {...props} />, options).instance();
+      const searchBar = mountWithTheme(<SmartSearchBar {...props} />, options).instance();
 
       await searchBar.clearSearch();
       expect(props.onSearch).toHaveBeenCalledWith('');
@@ -347,7 +347,7 @@ describe('SmartSearchBar', function() {
 
   describe('onQueryFocus()', function() {
     it('displays the drop down', function() {
-      const searchBar = shallow(
+      const searchBar = mountWithTheme(
         <SmartSearchBar
           organization={organization}
           supportedTags={supportedTags}
@@ -363,7 +363,7 @@ describe('SmartSearchBar', function() {
     });
 
     it('displays dropdown in hasPinnedSearch mode', function() {
-      const searchBar = shallow(
+      const searchBar = mountWithTheme(
         <SmartSearchBar
           organization={organization}
           supportedTags={supportedTags}
@@ -382,7 +382,7 @@ describe('SmartSearchBar', function() {
 
   describe('onQueryBlur()', function() {
     it('hides the drop down', function() {
-      const searchBar = shallow(
+      const searchBar = mountWithTheme(
         <SmartSearchBar organization={organization} supportedTags={supportedTags} />,
         options
       ).instance();

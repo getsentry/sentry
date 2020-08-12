@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {shallow} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import GlobalSelectionLink from 'app/components/globalSelectionLink';
 
@@ -13,7 +13,7 @@ describe('GlobalSelectionLink', function() {
       environment: 'staging',
     };
 
-    const wrapper = shallow(
+    const wrapper = mountWithTheme(
       <GlobalSelectionLink to={path}>Go somewhere!</GlobalSelectionLink>,
       {
         context: {
@@ -28,11 +28,11 @@ describe('GlobalSelectionLink', function() {
 
     expect(updatedToProp).toEqual({pathname: path, query});
 
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
   it('does not have global selection values in query', function() {
-    const wrapper = shallow(
+    const wrapper = mountWithTheme(
       <GlobalSelectionLink to={path}>Go somewhere!</GlobalSelectionLink>,
       {
         context: {
@@ -47,7 +47,7 @@ describe('GlobalSelectionLink', function() {
 
     expect(updatedToProp).toEqual(path);
 
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
   it('combines query parameters with custom query', function() {
@@ -56,7 +56,7 @@ describe('GlobalSelectionLink', function() {
       environment: 'staging',
     };
     const customQuery = {query: 'something'};
-    const wrapper = shallow(
+    const wrapper = mountWithTheme(
       <GlobalSelectionLink to={{pathname: path, query: customQuery}}>
         Go somewhere!
       </GlobalSelectionLink>,
@@ -82,7 +82,7 @@ describe('GlobalSelectionLink', function() {
       project: ['foo', 'bar'],
       environment: 'staging',
     };
-    const wrapper = shallow(
+    const wrapper = mountWithTheme(
       <GlobalSelectionLink to={{pathname: path}}>Go somewhere!</GlobalSelectionLink>,
       {
         context: {

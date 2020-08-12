@@ -31,7 +31,7 @@ describe('ReleaseCommits', function() {
       />
     );
 
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
     expect(projectMockResponse).toHaveBeenCalled();
     expect(organizationMockResponse).not.toHaveBeenCalled();
   });
@@ -41,7 +41,7 @@ describe('ReleaseCommits', function() {
       <ReleaseCommits params={{orgId: '123', release: '10.0'}} location={{}} />
     );
 
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
     expect(projectMockResponse).not.toHaveBeenCalled();
     expect(organizationMockResponse).toHaveBeenCalled();
   });

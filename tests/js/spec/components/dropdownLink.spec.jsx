@@ -27,7 +27,7 @@ describe('DropdownLink', function() {
         </DropdownLink>
       );
 
-      expect(component).toMatchSnapshot();
+      expect(component).toSnapshot();
     });
 
     it('and anchors to right', function() {
@@ -38,7 +38,7 @@ describe('DropdownLink', function() {
         </DropdownLink>
       );
 
-      expect(component).toMatchSnapshot();
+      expect(component).toSnapshot();
     });
   });
 

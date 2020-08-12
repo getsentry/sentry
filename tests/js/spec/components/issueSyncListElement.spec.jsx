@@ -1,13 +1,13 @@
 import React from 'react';
 
-import {shallow, mount} from 'sentry-test/enzyme';
+import {mountWithTheme, mount} from 'sentry-test/enzyme';
 
 import IssueSyncListElement from 'app/components/issueSyncListElement';
 
 describe('AlertLink', function() {
   it('renders', function() {
-    const wrapper = shallow(<IssueSyncListElement integrationType="github" />);
-    expect(wrapper).toMatchSnapshot();
+    const wrapper = mountWithTheme(<IssueSyncListElement integrationType="github" />);
+    expect(wrapper).toSnapshot();
   });
 
   it('can open', function() {

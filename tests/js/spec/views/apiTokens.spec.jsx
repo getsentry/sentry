@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {shallow, mountWithTheme} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
 import {ApiTokens} from 'app/views/settings/account/apiTokens';
@@ -19,10 +19,13 @@ describe('ApiTokens', function() {
       url: '/api-tokens/',
     });
 
-    const wrapper = shallow(<ApiTokens organization={organization} />, routerContext);
+    const wrapper = mountWithTheme(
+      <ApiTokens organization={organization} />,
+      routerContext
+    );
 
     // Should be loading
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
   it('renders with result', function() {
@@ -31,10 +34,13 @@ describe('ApiTokens', function() {
       body: [TestStubs.ApiToken()],
     });
 
-    const wrapper = shallow(<ApiTokens organization={organization} />, routerContext);
+    const wrapper = mountWithTheme(
+      <ApiTokens organization={organization} />,
+      routerContext
+    );
 
     // Should be loading
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
   it('can delete token', function() {

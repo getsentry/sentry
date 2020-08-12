@@ -27,7 +27,7 @@ describe('DropdownMenu', function() {
   });
 
   it('renders', function() {
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
   it('can toggle dropdown menu with actor', function() {
@@ -162,7 +162,7 @@ describe('DropdownMenu', function() {
     expect(menuClick).toHaveBeenCalled();
 
     // breaks in jest22
-    // expect(wrapper).toMatchSnapshot();
+    // expect(wrapper).toSnapshot();
     expect(wrapper.find('ul')).toHaveLength(1);
     expect(document.addEventListener).toHaveBeenCalled();
 

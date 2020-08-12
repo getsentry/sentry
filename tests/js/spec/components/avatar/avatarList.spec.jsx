@@ -11,7 +11,7 @@ describe('AvatarList', function() {
     const wrapper = mount(<AvatarList users={users} />);
     expect(wrapper.find('UserAvatar')).toHaveLength(2);
     expect(wrapper.find('CollapsedUsers')).toHaveLength(0);
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
   it('renders with collapsed avatar count if > 5 users', function() {
@@ -27,6 +27,6 @@ describe('AvatarList', function() {
     const wrapper = mount(<AvatarList users={users} />);
     expect(wrapper.find('UserAvatar')).toHaveLength(5);
     expect(wrapper.find('CollapsedUsers')).toHaveLength(1);
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 });

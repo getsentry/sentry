@@ -25,7 +25,7 @@ describe('OrganizationApiKeysList', function() {
       />,
       TestStubs.routerContext()
     );
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
   it('opens a modal when trying to delete a key', function() {
