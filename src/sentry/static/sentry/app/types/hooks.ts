@@ -129,7 +129,6 @@ export type OnboardingHooks = {
 export type SettingsHooks = {
   'settings:organization-navigation': OrganizationSettingsHook;
   'settings:organization-navigation-config': SettingsConfigHook;
-  'settings:organization-general-settings': GeneralSettingsHook;
 };
 
 /**
@@ -274,11 +273,6 @@ type OrganizationSettingsHook = (organization: Organization) => React.ReactEleme
  * Provides additional setting configurations
  */
 type SettingsConfigHook = (organization: Organization) => NavigationSection;
-
-/**
- * Provides additional general setting components
- */
-type GeneralSettingsHook = () => React.ReactElement;
 
 /**
  * Each sidebar label is wrapped with this hook, to allow sidebar item
