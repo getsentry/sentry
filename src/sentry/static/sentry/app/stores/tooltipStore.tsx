@@ -7,7 +7,7 @@ type TooltipStoreInterface = {
   init: () => TooltipStoreInterface;
 };
 
-const MAX_TOOLTIPS_TO_OPEN = 200;
+const MAX_TOOLTIPS_TO_OPEN = 100;
 
 const TooltipStore: TooltipStoreInterface = {
   tooltips: [],
