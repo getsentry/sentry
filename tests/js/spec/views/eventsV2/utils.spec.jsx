@@ -242,7 +242,6 @@ describe('getExpandedResults()', function() {
         {field: 'title'}, // not expected to be dropped
         {field: 'unique_count(id)'},
         {field: 'apdex(300)'}, // should be dropped
-        {field: 'impact(300)'}, // should be dropped
         {field: 'user_misery(300)'}, // should be dropped
       ],
     });

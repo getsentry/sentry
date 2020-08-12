@@ -50,7 +50,6 @@ def test_get_json_meta_type():
     assert get_json_meta_type("p100", "Float32") == "duration"
     assert get_json_meta_type("apdex_transaction_duration_300", "Float32") == "number"
     assert get_json_meta_type("failure_rate", "Float32") == "percentage"
-    assert get_json_meta_type("impact_300", "Float32") == "number"
     assert get_json_meta_type("user_misery_300", "Float32") == "number"
     assert get_json_meta_type("percentile_transaction_duration_0_95", "Float32") == "duration"
     assert get_json_meta_type("count_thing", "UInt64") == "integer"
@@ -2127,7 +2126,6 @@ class ResolveFieldListTest(unittest.TestCase):
             "latest_event()",
             "last_seen()",
             "apdex(300)",
-            "impact(300)",
             "user_misery(300)",
             "percentile(transaction.duration, 0.75)",
             "percentile(transaction.duration, 0.95)",
@@ -2144,11 +2142,6 @@ class ResolveFieldListTest(unittest.TestCase):
             ["argMax", ["id", "timestamp"], "latest_event"],
             ["max", "timestamp", "last_seen"],
             ["apdex(duration, 300)", None, "apdex_300"],
-            [
-                "plus(minus(1, divide(plus(countIf(less(duration, 300)),divide(countIf(and(greater(duration, 300),less(duration, 1200))),2)),count())),multiply(minus(1,divide(1,sqrt(uniq(user)))),3))",
-                None,
-                "impact_300",
-            ],
             ["uniqIf(user, greater(duration, 1200))", None, "user_misery_300"],
             ["quantile(0.75)", "transaction.duration", "percentile_transaction_duration_0_75"],
             ["quantile(0.95)", "transaction.duration", "percentile_transaction_duration_0_95"],

@@ -1912,7 +1912,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                         "p100()",
                         "percentile(transaction.duration, 0.99)",
                         "apdex(300)",
-                        "impact(300)",
                         "user_misery(300)",
                         "failure_rate()",
                     ],
@@ -1930,7 +1929,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             assert meta["percentile_transaction_duration_0_99"] == "duration"
             assert meta["apdex_300"] == "number"
             assert meta["failure_rate"] == "percentage"
-            assert meta["impact_300"] == "number"
             assert meta["user_misery_300"] == "number"
 
             data = response.data["data"]
@@ -1942,7 +1940,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             assert data[0]["p100"] == 5000
             assert data[0]["percentile_transaction_duration_0_99"] == 5000
             assert data[0]["apdex_300"] == 0.0
-            assert data[0]["impact_300"] == 1.0
             assert data[0]["user_misery_300"] == 1
             assert data[0]["failure_rate"] == 0.5
 
@@ -2052,8 +2049,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 self.url,
                 format="json",
                 data={
-                    "field": ["event.type", "apdex(300)", "impact(300)", "failure_rate()"],
-                    "query": "event.type:transaction apdex(300):>-1.0 impact(300):>0.5 failure_rate():>0.25",
+                    "field": ["event.type", "apdex(300)", "user_misery(300)", "failure_rate()"],
+                    "query": "event.type:transaction apdex(300):>-1.0 failure_rate():>0.25",
                 },
             )
 
@@ -2061,7 +2058,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             data = response.data["data"]
             assert len(data) == 1
             assert data[0]["apdex_300"] == 0.0
-            assert data[0]["impact_300"] == 1.0
+            assert data[0]["user_misery_300"] == 1
             assert data[0]["failure_rate"] == 0.5
 
         with self.feature(
