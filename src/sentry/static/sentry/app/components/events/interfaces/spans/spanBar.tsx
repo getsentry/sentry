@@ -146,7 +146,7 @@ const INTERSECTION_THRESHOLDS: Array<number> = [
 
 const TOGGLE_BUTTON_MARGIN_RIGHT = 16;
 const TOGGLE_BUTTON_MAX_WIDTH = 30;
-const TOGGLE_BORDER_BOX = TOGGLE_BUTTON_MAX_WIDTH + TOGGLE_BUTTON_MARGIN_RIGHT;
+export const TOGGLE_BORDER_BOX = TOGGLE_BUTTON_MAX_WIDTH + TOGGLE_BUTTON_MARGIN_RIGHT;
 const MARGIN_LEFT = 0;
 
 type DurationDisplay = 'left' | 'right' | 'inset';
@@ -172,7 +172,7 @@ const getDurationDisplay = ({
   return 'inset';
 };
 
-const getBackgroundColor = ({
+export const getBackgroundColor = ({
   showStriping,
   showDetail,
   theme,
@@ -859,7 +859,7 @@ type SpanRowCellProps = OmitHtmlDivProps<{
   showDetail?: boolean;
 }>;
 
-const SpanRowCell = styled('div')<SpanRowCellProps>`
+export const SpanRowCell = styled('div')<SpanRowCellProps>`
   position: relative;
   padding: ${space(0.5)} 1px;
   height: 100%;
@@ -869,7 +869,7 @@ const SpanRowCell = styled('div')<SpanRowCellProps>`
   color: ${p => (p.showDetail ? p.theme.white : 'inherit')};
 `;
 
-const SpanRowCellContainer = styled('div')<SpanRowCellProps>`
+export const SpanRowCellContainer = styled('div')<SpanRowCellProps>`
   display: flex;
   position: relative;
   height: ${SPAN_ROW_HEIGHT}px;
@@ -890,7 +890,7 @@ const CursorGuide = styled('div')`
   height: 100%;
 `;
 
-const DividerLine = styled('div')`
+export const DividerLine = styled('div')`
   background-color: ${p => p.theme.gray400};
   position: absolute;
   height: 100%;
@@ -924,13 +924,13 @@ const DividerLine = styled('div')`
   }
 `;
 
-const DividerLineGhostContainer = styled('div')`
+export const DividerLineGhostContainer = styled('div')`
   position: absolute;
   width: 100%;
   height: 100%;
 `;
 
-const SpanBarTitleContainer = styled('div')`
+export const SpanBarTitleContainer = styled('div')`
   display: flex;
   align-items: center;
   height: 100%;
@@ -941,7 +941,7 @@ const SpanBarTitleContainer = styled('div')`
   user-select: none;
 `;
 
-const SpanBarTitle = styled('div')`
+export const SpanBarTitle = styled('div')`
   position: relative;
   height: 100%;
   font-size: ${p => p.theme.fontSizeSmall};
@@ -956,7 +956,7 @@ type TogglerTypes = OmitHtmlDivProps<{
   isLast?: boolean;
 }>;
 
-const SpanTreeTogglerContainer = styled('div')<TogglerTypes>`
+export const SpanTreeTogglerContainer = styled('div')<TogglerTypes>`
   position: relative;
   height: ${SPAN_ROW_HEIGHT}px;
   width: ${p => (p.hasToggler ? '40px' : '12px')};
@@ -968,7 +968,7 @@ const SpanTreeTogglerContainer = styled('div')<TogglerTypes>`
   align-items: center;
 `;
 
-const SpanTreeConnector = styled('div')<TogglerTypes & {orphanBranch: boolean}>`
+export const SpanTreeConnector = styled('div')<TogglerTypes & {orphanBranch: boolean}>`
   height: ${p => (p.isLast ? SPAN_ROW_HEIGHT / 2 : SPAN_ROW_HEIGHT)}px;
   width: 100%;
   border-left: 1px ${p => (p.orphanBranch ? 'dashed' : 'solid')}
@@ -999,7 +999,7 @@ const SpanTreeConnector = styled('div')<TogglerTypes & {orphanBranch: boolean}>`
   }
 `;
 
-const ConnectorBar = styled('div')<{orphanBranch: boolean}>`
+export const ConnectorBar = styled('div')<{orphanBranch: boolean}>`
   height: 250%;
 
   border-left: 1px ${p => (p.orphanBranch ? 'dashed' : 'solid')}
@@ -1040,7 +1040,7 @@ type SpanTreeTogglerAndDivProps = OmitHtmlDivProps<{
   disabled: boolean;
 }>;
 
-const SpanTreeToggler = styled('div')<SpanTreeTogglerAndDivProps>`
+export const SpanTreeToggler = styled('div')<SpanTreeTogglerAndDivProps>`
   height: 16px;
   white-space: nowrap;
   min-width: 30px;
@@ -1110,7 +1110,7 @@ const getHatchPattern = ({spanBarHatch}) => {
   return null;
 };
 
-const SpanBarRectangle = styled('div')<{spanBarHatch: boolean}>`
+export const SpanBarRectangle = styled('div')<{spanBarHatch: boolean}>`
   position: relative;
   height: 100%;
   min-width: 1px;
@@ -1125,12 +1125,12 @@ const StyledIconWarning = styled(IconWarning)`
   margin-bottom: ${space(0.25)};
 `;
 
-const StyledIconChevron = styled(IconChevron)`
+export const StyledIconChevron = styled(IconChevron)`
   width: 7px;
   margin-left: ${space(0.25)};
 `;
 
-const OperationName = styled('span')<{spanErrors: TableDataRow[]}>`
+export const OperationName = styled('span')<{spanErrors: TableDataRow[]}>`
   color: ${p => (p.spanErrors.length ? p.theme.error : 'inherit')};
 `;
 

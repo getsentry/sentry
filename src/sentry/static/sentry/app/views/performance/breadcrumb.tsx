@@ -14,12 +14,19 @@ type Props = {
   location: Location;
   transactionName?: string;
   eventSlug?: string;
+  transactionComparison?: boolean;
 };
 
 class Breadcrumb extends React.Component<Props> {
   getCrumbs() {
     const crumbs: Crumb[] = [];
-    const {organization, location, transactionName, eventSlug} = this.props;
+    const {
+      organization,
+      location,
+      transactionName,
+      eventSlug,
+      transactionComparison,
+    } = this.props;
 
     const performanceTarget: LocationDescriptor = {
       pathname: getPerformanceLandingUrl(organization),
@@ -55,6 +62,11 @@ class Breadcrumb extends React.Component<Props> {
       crumbs.push({
         to: '',
         label: t('Event Details'),
+      });
+    } else if (transactionComparison) {
+      crumbs.push({
+        to: '',
+        label: t('Compare to Baseline'),
       });
     }
 

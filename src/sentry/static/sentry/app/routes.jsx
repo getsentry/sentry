@@ -1677,6 +1677,24 @@ function routes() {
               component={errorHandler(LazyLoad)}
             />
           </Route>
+          <Route
+            path="/organizations/:orgId/performance/compare/:baselineEventSlug/:regressionEventSlug/"
+            componentPromise={() =>
+              import(
+                /* webpackChunkName: "PerformanceContainer" */ 'app/views/performance'
+              )
+            }
+            component={errorHandler(LazyLoad)}
+          >
+            <IndexRoute
+              componentPromise={() =>
+                import(
+                  /* webpackChunkName: "PerformanceCompareTransactions" */ 'app/views/performance/compare'
+                )
+              }
+              component={errorHandler(LazyLoad)}
+            />
+          </Route>
 
           {/* Admin/manage routes */}
           <Route
