@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import six
-import pytest
 import random
 import mock
 
@@ -2517,24 +2516,26 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         data = response.data["data"]
         assert len(data) == 0
 
-    def test_context_fields(self):
+    def test_context_fields_between_datasets(self):
         self.login_as(user=self.user)
         project = self.create_project()
-        data = load_data("android")
+        event_data = load_data("android")
         transaction_data = load_data("transaction")
-        data["spans"] = transaction_data["spans"]
-        data["contexts"]["trace"] = transaction_data["contexts"]["trace"]
-        data["type"] = "transaction"
-        data["transaction"] = "/failure_rate/1"
-        data["timestamp"] = iso_format(before_now(minutes=1))
-        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
-        data["user"]["geo"] = {"country_code": "US", "region": "CA", "city": "San Francisco"}
-        data["contexts"]["http"] = {
+        event_data["spans"] = transaction_data["spans"]
+        event_data["contexts"]["trace"] = transaction_data["contexts"]["trace"]
+        event_data["type"] = "transaction"
+        event_data["transaction"] = "/failure_rate/1"
+        event_data["timestamp"] = iso_format(before_now(minutes=1))
+        event_data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
+        event_data["user"]["geo"] = {"country_code": "US", "region": "CA", "city": "San Francisco"}
+        event_data["contexts"]["http"] = {
             "method": "GET",
             "referer": "something.something",
             "url": "https://areyouasimulation.com",
         }
-        self.store_event(data, project_id=project.id)
+        self.store_event(event_data, project_id=project.id)
+        event_data["type"] = "error"
+        self.store_event(event_data, project_id=project.id)
 
         fields = [
             "http.method",
@@ -2555,99 +2556,24 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             "device.uuid",
         ]
 
-        with self.feature("organizations:discover-basic"):
-            response = self.client.get(
-                self.url,
-                format="json",
-                data={"field": fields + ["count()"], "query": "event.type:transaction"},
-            )
-
-        assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 1
-        results = response.data["data"]
-
-        for field in fields:
-            key, value = field.split(".", 1)
-            expected = data["contexts"][key][value]
-
-            # TODO (evanh) There is a bug in snuba right now where if a promoted column is used for a boolean
-            # value, it returns "1" or "0" instead of "True" and "False" (not that those make more sense)
-            if expected in (True, False):
-                expected = six.text_type(expected)
-            # All context columns are treated as strings, regardless of the type of data they stored.
-            elif isinstance(expected, six.integer_types):
-                expected = "{:g}".format(expected)
-
-            assert results[0][field] == expected
-        assert results[0]["count"] == 1
-
-    @pytest.mark.xfail(reason="these fields behave differently between the types of events")
-    def test_context_fields_in_errors(self):
-        self.login_as(user=self.user)
-        project = self.create_project()
-        data = load_data("android")
-        transaction_data = load_data(
-            "transaction",
-            timestamp=before_now(minutes=1),
-            start_timestamp=before_now(minutes=1, seconds=5),
-        )
-        data["spans"] = transaction_data["spans"]
-        data["contexts"]["trace"] = transaction_data["contexts"]["trace"]
-        data["type"] = "error"
-        data["transaction"] = "/failure_rate/1"
-        data["user"]["geo"] = {"country_code": "US", "region": "CA", "city": "San Francisco"}
-        data["contexts"]["http"] = {
-            "method": "GET",
-            "referer": "something.something",
-            "url": "https://areyouasimulation.com",
-        }
-        self.store_event(data, project_id=project.id)
-
-        fields = [
-            "http.method",
-            "http.referer",
-            "http.url",
-            "os.build",
-            "os.kernel_version",
-            "device.arch",
-            "device.battery_level",
-            "device.brand",
-            "device.charging",
-            "device.locale",
-            "device.model_id",
-            "device.name",
-            "device.online",
-            "device.orientation",
-            "device.simulator",
-            "device.uuid",
+        data = [
+            {"field": fields + ["location", "count()"], "query": "event.type:error"},
+            {"field": fields + ["duration", "count()"], "query": "event.type:transaction"},
         ]
 
-        with self.feature("organizations:discover-basic"):
-            response = self.client.get(
-                self.url,
-                format="json",
-                data={"field": fields + ["count()"], "query": "event.type:error"},
-            )
+        for datum in data:
+            with self.feature("organizations:discover-basic"):
+                response = self.client.get(self.url, format="json", data=datum)
 
-        assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 1
-        results = response.data["data"]
+            assert response.status_code == 200, response.content
+            assert len(response.data["data"]) == 1, datum
+            results = response.data["data"]
+            assert results[0]["count"] == 1, datum
 
-        for field in fields:
-            key, value = field.split(".", 1)
-            expected = data["contexts"][key][value]
-
-            # TODO (evanh) There is a bug in snuba right now where if a promoted column is used for a boolean
-            # value, it returns "1" or "0" instead of "True" and "False" (not that those make more sense)
-            if expected in (True, False):
-                expected = six.text_type(expected)
-            # All context columns are treated as strings, regardless of the type of data they stored.
-            elif isinstance(expected, six.integer_types):
-                expected = "{:.1f}".format(expected)
-
-            assert results[0][field] == expected
-
-        assert results[0]["count"] == 1
+            for field in fields:
+                key, value = field.split(".", 1)
+                expected = six.text_type(event_data["contexts"][key][value])
+                assert results[0][field] == expected, field + six.text_type(datum)
 
     def test_histogram_function(self):
         self.login_as(user=self.user)
