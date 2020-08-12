@@ -78,12 +78,12 @@ def regress_spans(original_spans):
         if index % 2 == 0:
             # for every even indexed span, increase its duration.
             # this implies the span was slower.
-            regression_time = timedelta(milliseconds=10)
+            regression_time = timedelta(milliseconds=10 + index)
             span["timestamp"] = timestamp_format(end_datetime + regression_time)
         else:
             # for every odd indexed span, decrease its duration.
             # this implies the span was faster
-            regression_time = timedelta(milliseconds=5)
+            regression_time = timedelta(milliseconds=5 + index)
             span["timestamp"] = timestamp_format(end_datetime - regression_time)
 
         if index == last_index:
