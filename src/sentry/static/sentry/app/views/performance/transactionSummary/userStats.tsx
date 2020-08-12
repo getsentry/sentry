@@ -22,7 +22,7 @@ type Props = {
 class UserStats extends React.Component<Props> {
   generateUserStatsEventView(eventView: EventView): EventView {
     // narrow the search conditions of the Performance Summary event view
-    // by modifying the columns to only show user impact and apdex scores
+    // by modifying the columns to only show user misery and apdex scores
     const {organization} = this.props;
     const threshold = organization.apdexThreshold.toString();
 

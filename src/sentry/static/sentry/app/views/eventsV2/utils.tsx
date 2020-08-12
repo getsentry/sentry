@@ -177,7 +177,6 @@ const TRANSFORM_AGGREGATES = {
   last_seen: 'timestamp',
   latest_event: '',
   apdex: '',
-  impact: '',
   user_misery: '',
   failure_rate: '',
 } as const;

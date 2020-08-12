@@ -61,6 +61,7 @@ class CreateProjectRuleTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response.data["id"]
+        assert response.data["createdBy"] == self.user.id
 
         rule = Rule.objects.get(id=response.data["id"])
         assert rule.label == "hello world"
@@ -68,6 +69,7 @@ class CreateProjectRuleTest(APITestCase):
         assert rule.data["actions"] == actions
         assert rule.data["conditions"] == conditions
         assert rule.data["frequency"] == 30
+        assert rule.created_by == self.user
 
         assert RuleActivity.objects.filter(rule=rule, type=RuleActivityType.CREATED.value).exists()
 

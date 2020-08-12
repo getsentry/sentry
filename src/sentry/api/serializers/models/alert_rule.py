@@ -5,7 +5,13 @@ from collections import defaultdict
 import six
 
 from sentry.api.serializers import register, serialize, Serializer
-from sentry.incidents.models import AlertRule, AlertRuleExcludedProjects, AlertRuleTrigger
+from sentry.incidents.models import (
+    AlertRule,
+    AlertRuleActivity,
+    AlertRuleActivityType,
+    AlertRuleExcludedProjects,
+    AlertRuleTrigger,
+)
 from sentry.incidents.logic import translate_aggregate_field
 
 from sentry.models import Rule
@@ -35,15 +41,17 @@ class AlertRuleSerializer(Serializer):
         for alert_rule_id, project_slug in alert_rule_projects:
             rule_result = result[alert_rules[alert_rule_id]].setdefault("projects", [])
             rule_result.append(project_slug)
+        for alert_rule_id, user_id in AlertRuleActivity.objects.filter(
+            alert_rule__in=item_list, type=AlertRuleActivityType.CREATED.value
+        ).values_list("alert_rule", "user"):
+            result[alert_rules[alert_rule_id]].update({"created_by": user_id})
 
         return result
 
     def serialize(self, obj, attrs, user):
         env = obj.snuba_query.environment
         # Temporary: Translate aggregate back here from `tags[sentry:user]` to `user` for the frontend.
-
         aggregate = translate_aggregate_field(obj.snuba_query.aggregate, reverse=True)
-
         return {
             "id": six.text_type(obj.id),
             "name": obj.name,
@@ -65,6 +73,7 @@ class AlertRuleSerializer(Serializer):
             "includeAllProjects": obj.include_all_projects,
             "dateModified": obj.date_modified,
             "dateCreated": obj.date_added,
+            "createdBy": attrs.get("created_by", None),
         }
 
 

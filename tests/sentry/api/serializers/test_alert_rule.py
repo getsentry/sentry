@@ -35,6 +35,10 @@ class BaseAlertRuleSerializerTest(object):
         assert result["thresholdPeriod"] == alert_rule.threshold_period
         assert result["projects"] == alert_rule_projects
         assert result["includeAllProjects"] == alert_rule.include_all_projects
+        if alert_rule.created_by:
+            assert result["createdBy"] == alert_rule.created_by.id
+        else:
+            assert result["createdBy"] is None
         if not skip_dates:
             assert result["dateModified"] == alert_rule.date_modified
             assert result["dateCreated"] == alert_rule.date_added
@@ -101,6 +105,13 @@ class AlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
         alert_rule = self.create_alert_rule(environment=self.environment)
         result = serialize(alert_rule)
         self.assert_alert_rule_serialized(alert_rule, result)
+
+    def test_created_by(self):
+        user = self.create_user("foo@example.com")
+        alert_rule = self.create_alert_rule(environment=self.environment, user=user)
+        result = serialize(alert_rule)
+        self.assert_alert_rule_serialized(alert_rule, result)
+        assert alert_rule.created_by == user
 
 
 class DetailedAlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
