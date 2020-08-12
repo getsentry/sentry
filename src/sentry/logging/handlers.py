@@ -5,13 +5,12 @@ import re
 import six
 
 from django.utils.timezone import now
-from simplejson import JSONEncoder
 from structlog import get_logger
 from structlog.processors import _json_fallback_handler
 
-from sentry.utils import metrics
+from sentry.utils import metrics, json
 
-_default_encoder = JSONEncoder(
+_default_encoder = json.JSONEncoder(
     separators=(",", ":"),
     ignore_nan=True,
     skipkeys=False,

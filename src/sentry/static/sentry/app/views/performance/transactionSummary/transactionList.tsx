@@ -13,7 +13,7 @@ import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import CellAction, {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
-import {TableData, TableDataRow, TableColumn} from 'app/views/eventsV2/table/types';
+import {TableColumn} from 'app/views/eventsV2/table/types';
 import HeaderCell from 'app/views/eventsV2/table/headerCell';
 import EventView, {MetaType} from 'app/utils/discover/eventView';
 import SortLink from 'app/components/gridEditable/sortLink';
@@ -22,7 +22,7 @@ import {getAggregateAlias} from 'app/utils/discover/fields';
 import {generateEventSlug} from 'app/utils/discover/urls';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {decodeScalar} from 'app/utils/queryString';
-import DiscoverQuery from 'app/utils/discover/discoverQuery';
+import DiscoverQuery, {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
 import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import {
   TOP_TRANSACTION_LIMIT,

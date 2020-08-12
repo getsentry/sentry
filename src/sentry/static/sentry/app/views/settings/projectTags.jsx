@@ -61,7 +61,9 @@ export default class ProjectTags extends AsyncView {
             `Each event in Sentry may be annotated with various tags (key and value pairs).
                  Learn how to [link:add custom tags].`,
             {
-              link: <ExternalLink href="https://docs.sentry.io/hosted/learn/context/" />,
+              link: (
+                <ExternalLink href="https://docs.sentry.io/enriching-error-data/additional-data/" />
+              ),
             }
           )}
         </TextBlock>
@@ -74,7 +76,7 @@ export default class ProjectTags extends AsyncView {
               <EmptyMessage>
                 {tct('There are no tags, [link:learn how to add tags]', {
                   link: (
-                    <ExternalLink href="https://docs.sentry.io/hosted/learn/context/" />
+                    <ExternalLink href="https://docs.sentry.io/enriching-error-data/additional-data/" />
                   ),
                 })}
               </EmptyMessage>

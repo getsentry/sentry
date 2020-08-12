@@ -12,14 +12,14 @@ field, check OAuthBackend class for details on how to extend it.
 """
 from __future__ import absolute_import
 
-import simplejson
-
 from django.conf import settings
 from six.moves.urllib.error import HTTPError
 from six.moves.urllib.request import Request
 from social_auth.utils import dsa_urlopen
 from social_auth.backends import BaseOAuth2, OAuthBackend
 from social_auth.exceptions import AuthFailed
+
+from sentry.utils import json
 
 
 # GitHub configuration
@@ -47,7 +47,7 @@ class GithubBackend(OAuthBackend):
         )
 
         try:
-            data = simplejson.load(dsa_urlopen(req))
+            data = json.load(dsa_urlopen(req))
         except (ValueError, HTTPError):
             data = []
         return data
@@ -94,7 +94,7 @@ class GithubAuth(BaseOAuth2):
         req = Request(GITHUB_USER_DATA_URL, headers={"Authorization": "token %s" % access_token})
 
         try:
-            data = simplejson.load(dsa_urlopen(req))
+            data = json.load(dsa_urlopen(req))
         except ValueError:
             data = None
 

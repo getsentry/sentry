@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 import logging
-from json import loads
 
 import jsonschema
 import pytz
@@ -13,7 +12,7 @@ from django.conf import settings
 from sentry.snuba.json_schemas import SUBSCRIPTION_PAYLOAD_VERSIONS, SUBSCRIPTION_WRAPPER_SCHEMA
 from sentry.snuba.models import QueryDatasets, QuerySubscription
 from sentry.snuba.tasks import _delete_from_snuba
-from sentry.utils import metrics
+from sentry.utils import metrics, json
 
 logger = logging.getLogger(__name__)
 
@@ -262,7 +261,7 @@ class QuerySubscriptionConsumer(object):
         :return: A dict with the parsed message
         """
         with metrics.timer("snuba_query_subscriber.parse_message_value.json_parse"):
-            wrapper = loads(value)
+            wrapper = json.loads(value)
 
         with metrics.timer("snuba_query_subscriber.parse_message_value.json_validate_wrapper"):
             try:

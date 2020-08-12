@@ -13,8 +13,12 @@ logger = logging.getLogger(__name__)
 
 class RetryException(Exception):
     def __init__(self, message, exception):
+        super(RetryException, self).__init__(message)
         self.message = message
         self.exception = exception
+
+    def __reduce__(self):
+        return RetryException, (self.message, self.exception)
 
     def __str__(self):
         return force_bytes(self.message, errors="replace")

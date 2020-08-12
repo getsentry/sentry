@@ -181,8 +181,6 @@ matrix:
     - python: 3.7
       name: 'pre-commit hooks (includes python linting + format check)'
       install:
-        # XXX: this must be synced with requirements-dev.txt
-        - pip install 'sentry-flake8==0.3.0'
         - SENTRY_NO_VIRTUALENV_CREATION=1 make setup-git
       script:
         # Run pre-commit to lint and format check files that were changed (but not deleted) compared to master.

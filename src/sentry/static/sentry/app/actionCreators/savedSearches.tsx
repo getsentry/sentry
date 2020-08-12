@@ -1,17 +1,20 @@
+import {Query} from 'history';
+
+import {Client} from 'app/api';
 import {MAX_AUTOCOMPLETE_RECENT_SEARCHES} from 'app/constants';
-import {SearchType} from 'app/components/smartSearchBar';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 import SavedSearchesActions from 'app/actions/savedSearchesActions';
 import handleXhrErrorResponse from 'app/utils/handleXhrErrorResponse';
+import {SavedSearch, RecentSearch, SavedSearchType} from 'app/types';
 
 export function resetSavedSearches() {
   SavedSearchesActions.resetSavedSearches();
 }
 
-export function fetchSavedSearches(api, orgId) {
-  const url = `/organizations/${orgId}/searches/`;
-  const data = {use_org_level: 1};
+export function fetchSavedSearches(api: Client, orgSlug: string): Promise<SavedSearch[]> {
+  const url = `/organizations/${orgSlug}/searches/`;
+  const data: Query = {use_org_level: '1'};
 
   SavedSearchesActions.startFetchSavedSearches();
 
@@ -32,25 +35,35 @@ export function fetchSavedSearches(api, orgId) {
   return promise;
 }
 
-export function fetchProjectSavedSearches(api, orgId, projectId) {
-  const url = `/projects/${orgId}/${projectId}/searches/`;
+export function fetchProjectSavedSearches(
+  api: Client,
+  orgSlug: string,
+  projectId: string
+): Promise<SavedSearch[]> {
+  const url = `/projects/${orgSlug}/${projectId}/searches/`;
   return api.requestPromise(url, {
     method: 'GET',
   });
 }
 
-const getRecentSearchUrl = orgId => `/organizations/${orgId}/recent-searches/`;
+const getRecentSearchUrl = (orgSlug: string): string =>
+  `/organizations/${orgSlug}/recent-searches/`;
 
 /**
- * Saves search term for `user` + `orgId`
+ * Saves search term for `user` + `orgSlug`
  *
- * @param {Object} api API client
- * @param {String} orgId Organization slug
- * @param {Number} type Context for where search happened, 0 for issue, 1 for event
- * @param {String} query The search term that was used
+ * @param api API client
+ * @param orgSlug Organization slug
+ * @param type Context for where search happened, 0 for issue, 1 for event
+ * @param query The search term that was used
  */
-export function saveRecentSearch(api, orgId, type, query) {
-  const url = getRecentSearchUrl(orgId);
+export function saveRecentSearch(
+  api: Client,
+  orgSlug: string,
+  type: SavedSearchType,
+  query: string
+): Promise<SavedSearch> {
+  const url = getRecentSearchUrl(orgSlug);
   const promise = api.requestPromise(url, {
     method: 'POST',
     data: {
@@ -67,19 +80,21 @@ export function saveRecentSearch(api, orgId, type, query) {
 /**
  * Creates a saved search
  *
- * @param {Object} api API client
- * @param {String} orgId Organization slug
- * @param {String} name Saved search name
- * @param {String} query Query to save
- *
- * @returns {Promise<Object>}
+ * @param api API client
+ * @param orgSlug Organization slug
+ * @param name Saved search name
+ * @param query Query to save
  */
-
-export function createSavedSearch(api, orgId, name, query) {
-  const promise = api.requestPromise(`/organizations/${orgId}/searches/`, {
+export function createSavedSearch(
+  api: Client,
+  orgSlug: string,
+  name: string,
+  query: string
+): Promise<SavedSearch> {
+  const promise = api.requestPromise(`/organizations/${orgSlug}/searches/`, {
     method: 'POST',
     data: {
-      type: SearchType.ISSUE,
+      type: SavedSearchType.ISSUE,
       query,
       name,
     },
@@ -95,17 +110,22 @@ export function createSavedSearch(api, orgId, name, query) {
 }
 
 /**
- * Fetches a list of recent search terms conducted by `user` for `orgId`
+ * Fetches a list of recent search terms conducted by `user` for `orgSlug`
  *
- * @param {Object} api API client
- * @param {String} orgId Organization slug
- * @param {Number} type Context for where search happened, 0 for issue, 1 for event
- * @param {String} query A query term used to filter results
+ * @param api API client
+ * @param orgSlug Organization slug
+ * @param type Context for where search happened, 0 for issue, 1 for event
+ * @param query A query term used to filter results
  *
- * @return {Object[]} Returns a list of objects of recent search queries performed by user
+ * @return Returns a list of objects of recent search queries performed by user
  */
-export function fetchRecentSearches(api, orgId, type, query) {
-  const url = getRecentSearchUrl(orgId);
+export function fetchRecentSearches(
+  api: Client,
+  orgSlug: string,
+  type: SavedSearchType,
+  query: string
+): Promise<RecentSearch[]> {
+  const url = getRecentSearchUrl(orgSlug);
   const promise = api.requestPromise(url, {
     query: {
       query,
@@ -123,10 +143,16 @@ export function fetchRecentSearches(api, orgId, type, query) {
   return promise;
 }
 
-const getPinSearchUrl = orgId => `/organizations/${orgId}/pinned-searches/`;
+const getPinSearchUrl = (orgSlug: string): string =>
+  `/organizations/${orgSlug}/pinned-searches/`;
 
-export function pinSearch(api, orgId, type, query) {
-  const url = getPinSearchUrl(orgId);
+export function pinSearch(
+  api: Client,
+  orgSlug: string,
+  type: SavedSearchType,
+  query: string
+): Promise<SavedSearch> {
+  const url = getPinSearchUrl(orgSlug);
 
   // Optimistically update store
   SavedSearchesActions.pinSearch(type, query);
@@ -150,8 +176,13 @@ export function pinSearch(api, orgId, type, query) {
   return promise;
 }
 
-export function unpinSearch(api, orgId, type, pinnedSearch) {
-  const url = getPinSearchUrl(orgId);
+export function unpinSearch(
+  api: Client,
+  orgSlug: string,
+  type: SavedSearchType,
+  pinnedSearch: SavedSearch
+) {
+  const url = getPinSearchUrl(orgSlug);
 
   // Optimistically update store
   SavedSearchesActions.unpinSearch(type);
@@ -166,8 +197,8 @@ export function unpinSearch(api, orgId, type, pinnedSearch) {
   promise.catch(handleXhrErrorResponse('Unable to un-pin search'));
 
   promise.catch(() => {
-    const {type: pinnedType, query, ...rest} = pinnedSearch;
-    SavedSearchesActions.pinSearch(pinnedType, query, ...rest);
+    const {type: pinnedType, query} = pinnedSearch;
+    SavedSearchesActions.pinSearch(pinnedType, query);
   });
 
   return promise;
@@ -176,12 +207,16 @@ export function unpinSearch(api, orgId, type, pinnedSearch) {
 /**
  * Send a DELETE request to remove a saved search
  *
- * @param {Object} api API client
- * @param {String} orgId Organization slug
- * @param {Object} search The search to remove.
+ * @param api API client
+ * @param orgSlug Organization slug
+ * @param search The search to remove.
  */
-export function deleteSavedSearch(api, orgId, search) {
-  const url = `/organizations/${orgId}/searches/${search.id}/`;
+export function deleteSavedSearch(
+  api: Client,
+  orgSlug: string,
+  search: SavedSearch
+): Promise<void> {
+  const url = `/organizations/${orgSlug}/searches/${search.id}/`;
 
   const promise = api
     .requestPromise(url, {

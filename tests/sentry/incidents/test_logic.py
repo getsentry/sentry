@@ -1,5 +1,5 @@
 from __future__ import absolute_import
-import json
+
 import pytest
 from uuid import uuid4
 import responses
@@ -79,6 +79,7 @@ from sentry.snuba.models import QueryDatasets, QuerySubscription
 from sentry.models.integration import Integration
 from sentry.testutils import TestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.utils import json
 from sentry.utils.compat.mock import patch
 from sentry.utils.samples import load_data
 
