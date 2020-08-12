@@ -1305,6 +1305,13 @@
     core-js "^2.6.5"
     regenerator-runtime "^0.13.2"
 
+"@babel/runtime@7.4.5":
+  version "7.4.5"
+  resolved "https://registry.yarnpkg.com/@babel/runtime/-/runtime-7.4.5.tgz#582bb531f5f9dc67d2fcb682979894f75e253f12"
+  integrity sha512-TuI4qpWZP6lGOGIuGWtp9sPluqYICmbk8T/1vpSysqJxRPkudh/ofFWyqdcMsDf2s7KvDL4/YHgKyvcS3g9CJQ==
+  dependencies:
+    regenerator-runtime "^0.13.2"
+
 "@babel/runtime@^7.0.0", "@babel/runtime@^7.1.2", "@babel/runtime@^7.3.1", "@babel/runtime@^7.3.4", "@babel/runtime@^7.4.4", "@babel/runtime@^7.5.0", "@babel/runtime@^7.5.5", "@babel/runtime@^7.6.3", "@babel/runtime@^7.7.2", "@babel/runtime@^7.7.4", "@babel/runtime@^7.7.6":
   version "7.8.3"
   resolved "https://registry.yarnpkg.com/@babel/runtime/-/runtime-7.8.3.tgz#0811944f73a6c926bb2ad35e918dcc1bfab279f1"
@@ -2939,6 +2946,13 @@
   dependencies:
     "@types/react" "*"
 
+"@types/react-mentions@3.3.0":
+  version "3.3.0"
+  resolved "https://registry.yarnpkg.com/@types/react-mentions/-/react-mentions-3.3.0.tgz#b446362a1ae20d0c71661c22abd523e8e033220a"
+  integrity sha512-sySDvqX9N5jyOSITd/aylm2b95ALc7zw3grqShqKw7oe0SR0yR+p3O7JoIQjRfVyqYqoOC4WSGyUtoSfnBuiWw==
+  dependencies:
+    "@types/react" "*"
+
 "@types/react-router@^3.0.22":
   version "3.0.22"
   resolved "https://registry.yarnpkg.com/@types/react-router/-/react-router-3.0.22.tgz#047e971f2a5ff69aef981b4ffb69fa1150674e80"
@@ -4418,7 +4432,7 @@ babel-preset-jest@^24.9.0:
     babel-plugin-transform-undefined-to-void "^6.9.4"
     lodash "^4.17.11"
 
-babel-runtime@^6.22.0, babel-runtime@^6.26.0:
+babel-runtime@^6.26.0:
   version "6.26.0"
   resolved "https://registry.yarnpkg.com/babel-runtime/-/babel-runtime-6.26.0.tgz#965c7058668e82b55d7bfe04ff2337bc8b5647fe"
   integrity sha1-llxwWGaOgrVde/4E/yM3vItWR/4=
@@ -8148,7 +8162,7 @@ hoist-non-react-statics@^1.2.0:
   resolved "https://registry.yarnpkg.com/hoist-non-react-statics/-/hoist-non-react-statics-1.2.0.tgz#aa448cf0986d55cc40773b17174b7dd066cb7cfb"
   integrity sha1-qkSM8JhtVcxAdzsXF0t90GbLfPs=
 
-hoist-non-react-statics@^3.0.0, hoist-non-react-statics@^3.1.0, hoist-non-react-statics@^3.3.0, hoist-non-react-statics@^3.3.2:
+hoist-non-react-statics@^3.0.0, hoist-non-react-statics@^3.3.0, hoist-non-react-statics@^3.3.2:
   version "3.3.2"
   resolved "https://registry.yarnpkg.com/hoist-non-react-statics/-/hoist-non-react-statics-3.3.2.tgz#ece0acaf71d62c2969c2ec59feff42a4b1a85b45"
   integrity sha512-/gGivxi8JPKWNm/W0jSmzcMPpfpPLc3dY/6GxhX2hQ9iGj3aDfklV4ET7NjKpSinLpJ5vafa9iiGIEZg10SfBw==
@@ -8600,7 +8614,7 @@ intersection-observer@^0.7.0:
   resolved "https://registry.yarnpkg.com/intersection-observer/-/intersection-observer-0.7.0.tgz#ee16bee978db53516ead2f0a8154b09b400bbdc9"
   integrity sha512-Id0Fij0HsB/vKWGeBe9PxeY45ttRiBmhFyyt/geBdDHBYNctMRTE3dC1U3ujzz3lap+hVXlEcVaB56kZP/eEUg==
 
-invariant@^2.2.0, invariant@^2.2.1, invariant@^2.2.2, invariant@^2.2.3, invariant@^2.2.4:
+invariant@^2.2.1, invariant@^2.2.2, invariant@^2.2.3, invariant@^2.2.4:
   version "2.2.4"
   resolved "https://registry.yarnpkg.com/invariant/-/invariant-2.2.4.tgz#610f3c92c9359ce1db616e538008d23ff35158e6"
   integrity sha512-phJfQVBuaJM5raOpJjSfkiD6BpbCE4Ns//LaXl6wGYtUBY83nWS6Rf9tXm2e8VaK60JEjYldbPif/A2B1C2gNA==
@@ -10085,7 +10099,7 @@ lodash.uniq@4.5.0, lodash.uniq@^4.5.0:
   resolved "https://registry.yarnpkg.com/lodash.uniq/-/lodash.uniq-4.5.0.tgz#d0225373aeb652adc1bc82e4945339a842754773"
   integrity sha1-0CJTc662Uq3BvILklFM5qEJ1R3M=
 
-lodash@^4.0.1, lodash@^4.15.0, lodash@^4.17.11, lodash@^4.17.12, lodash@^4.17.13, lodash@^4.17.14, lodash@^4.17.15, lodash@^4.17.19, lodash@^4.17.4, lodash@^4.17.5, lodash@^4.5.1:
+lodash@^4.0.1, lodash@^4.15.0, lodash@^4.17.11, lodash@^4.17.12, lodash@^4.17.13, lodash@^4.17.14, lodash@^4.17.15, lodash@^4.17.19, lodash@^4.17.4, lodash@^4.17.5:
   version "4.17.19"
   resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.17.19.tgz#e48ddedbe30b3321783c5b4301fbd353bc1e4a4b"
   integrity sha512-JNvd8XER9GQX0v2qJgsaN/mzFCNA5BRe/j8JN9d+tWyGLSodKQHKFicdwNYzWwI3wjRnaKPsGj1XkBjx/F96DQ==
@@ -12915,15 +12929,15 @@ react-list@^0.8.8:
   dependencies:
     prop-types "15"
 
-react-mentions@^1.2.0:
-  version "1.2.2"
-  resolved "https://registry.yarnpkg.com/react-mentions/-/react-mentions-1.2.2.tgz#db09e5ec84f3cf40d5a56bbc9fcc0f81c4c8c60b"
-  integrity sha512-5Gdfbv9qovyjqoTYkSOEguo3idv4GfHkvoOUTBvrrfKT5y2XlpDsL1EC1tkQzBP9XqzY5IpH8aclvFaBg2ud2w==
+react-mentions@4.0.1:
+  version "4.0.1"
+  resolved "https://registry.yarnpkg.com/react-mentions/-/react-mentions-4.0.1.tgz#454850eb549ca19f0199a5490e8efb38cd1f56d6"
+  integrity sha512-AsHwGulJ6wpkWPn2ymryTK/ghozgDC1wg1avzFW6V5cP4zPD7fq603ygPJlTZRUXy3RLmn+NoamMrLYBuSHhHg==
   dependencies:
-    babel-runtime "^6.22.0"
-    lodash "^4.5.1"
+    "@babel/runtime" "7.4.5"
+    invariant "^2.2.4"
     prop-types "^15.5.8"
-    substyle "^6.0.0"
+    substyle "^9.1.0"
 
 react-overlays@^0.8.0:
   version "0.8.3"
@@ -14904,15 +14918,13 @@ stylelint@13.3.1:
     v8-compile-cache "^2.1.0"
     write-file-atomic "^3.0.3"
 
-substyle@^6.0.0:
-  version "6.3.1"
-  resolved "https://registry.yarnpkg.com/substyle/-/substyle-6.3.1.tgz#29801f06e016dda8df91b531a69338d6e096fa58"
-  integrity sha512-S25YRgVQB25cLXgGAJ7AXTYewkIB/9Fa1Y7jxkN48U4N6rbK9YhVEiF7vtPGLlJl8ebSOJ3N4t8cd6jL8MH7Uw==
+substyle@^9.1.0:
+  version "9.2.0"
+  resolved "https://registry.yarnpkg.com/substyle/-/substyle-9.2.0.tgz#71144955058f8f19509187bb9466a13ffbb41710"
+  integrity sha512-iPvumr9jSEKrCBik3UOYJfvtw2T6Ki7mzx3tMTA6Xtl7mpjLOgPfnImt6kjrdOvvFe05aWxUEgB9jWLm/IBJBQ==
   dependencies:
-    hoist-non-react-statics "^3.1.0"
-    invariant "^2.2.0"
-    prop-types "^15.5.8"
-    warning "^2.1.0"
+    "@babel/runtime" "^7.3.4"
+    invariant "^2.2.4"
 
 sugarss@^2.0.0:
   version "2.0.0"
@@ -16032,13 +16044,6 @@ walker@^1.0.7, walker@~1.0.5:
   integrity sha1-L3+bj9ENZ3JisYqITijRlhjgKPs=
   dependencies:
     makeerror "1.0.x"
-
-warning@^2.1.0:
-  version "2.1.0"
-  resolved "https://registry.yarnpkg.com/warning/-/warning-2.1.0.tgz#21220d9c63afc77a8c92111e011af705ce0c6901"
-  integrity sha1-ISINnGOvx3qMkhEeARr3Bc4MaQE=
-  dependencies:
-    loose-envify "^1.0.0"
 
 warning@^3.0.0:
   version "3.0.0"
