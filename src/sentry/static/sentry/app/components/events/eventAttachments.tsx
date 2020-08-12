@@ -138,7 +138,7 @@ class EventAttachments extends React.Component<Props, State> {
           </Panel>
         )}
 
-        {attachmentList.length && (
+        {attachmentList.length > 0 && (
           <Panel>
             <PanelBody>
               {attachmentList.map(attachment => (
