@@ -3,7 +3,6 @@ from __future__ import absolute_import
 import logging
 import time
 import six
-from datetime import timedelta
 
 from django.core.cache import cache
 from django.core.urlresolvers import reverse
@@ -11,8 +10,6 @@ from django.http import Http404
 
 from sentry import tagstore
 from sentry.api.fields.actor import Actor
-from sentry.incidents.logic import get_incident_aggregates
-from sentry.incidents.models import IncidentStatus, IncidentTrigger
 from sentry.utils import json
 from sentry.utils.assets import get_asset_url
 from sentry.utils.dates import to_timestamp
@@ -30,8 +27,9 @@ from sentry.models import (
     Team,
     ReleaseProject,
 )
-
 from sentry.shared_integrations.exceptions import ApiError, DuplicateDisplayNameError
+from sentry.integrations.metric_alerts import incident_attatchment_info
+
 from .client import SlackClient
 
 logger = logging.getLogger("sentry.integrations.slack")
@@ -50,10 +48,6 @@ MEMBER_PREFIX = "@"
 CHANNEL_PREFIX = "#"
 strip_channel_chars = "".join([MEMBER_PREFIX, CHANNEL_PREFIX])
 SLACK_DEFAULT_TIMEOUT = 10
-QUERY_AGGREGATION_DISPLAY = {
-    "count()": "events",
-    "count_unique(tags[sentry:user])": "users affected",
-}
 
 
 def get_integration_type(integration):
@@ -313,50 +307,14 @@ def build_incident_attachment(incident, metric_value=None):
     not provided we'll attempt to calculate this ourselves.
     :return:
     """
-    logo_url = absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
-    alert_rule = incident.alert_rule
 
-    incident_trigger = (
-        IncidentTrigger.objects.filter(incident=incident).order_by("-date_modified").first()
-    )
-    if incident_trigger:
-        alert_rule_trigger = incident_trigger.alert_rule_trigger
-        # TODO: If we're relying on this and expecting possible delays between a trigger fired and this function running,
-        # then this could actually be incorrect if they changed the trigger's time window in this time period. Should we store it?
-        start = incident_trigger.date_modified - timedelta(
-            seconds=alert_rule_trigger.alert_rule.snuba_query.time_window
-        )
-        end = incident_trigger.date_modified
-    else:
-        start, end = None, None
+    title, text, logo_url, status, ts = incident_attatchment_info(incident, metric_value)
 
-    if incident.status == IncidentStatus.CLOSED.value:
-        status = "Resolved"
-        color = RESOLVED_COLOR
-    elif incident.status == IncidentStatus.WARNING.value:
-        status = "Warning"
-        color = LEVEL_TO_COLOR["warning"]
-    elif incident.status == IncidentStatus.CRITICAL.value:
-        status = "Critical"
-        color = LEVEL_TO_COLOR["fatal"]
-
-    agg_text = QUERY_AGGREGATION_DISPLAY.get(
-        alert_rule.snuba_query.aggregate, alert_rule.snuba_query.aggregate
-    )
-    if metric_value is None:
-        metric_value = get_incident_aggregates(incident, start, end, use_alert_aggregate=True)[
-            "count"
-        ]
-    time_window = alert_rule.snuba_query.time_window / 60
-
-    text = "{} {} in the last {} minutes".format(metric_value, agg_text, time_window)
-
-    if alert_rule.snuba_query.query != "":
-        text = text + "\nFilter: {}".format(alert_rule.snuba_query.query)
-
-    ts = incident.date_started
-
-    title = u"{}: {}".format(status, alert_rule.name)
+    colors = {
+        "Resolved": RESOLVED_COLOR,
+        "Warning": LEVEL_TO_COLOR["warning"],
+        "Critical": LEVEL_TO_COLOR["fatal"],
+    }
 
     return {
         "fallback": title,
@@ -376,7 +334,7 @@ def build_incident_attachment(incident, metric_value=None):
         "footer_icon": logo_url,
         "footer": "Sentry Incident",
         "ts": to_timestamp(ts),
-        "color": color,
+        "color": colors[status],
         "actions": [],
     }
 
