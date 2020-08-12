@@ -324,7 +324,7 @@ def build_incident_attachment(incident, metric_value=None):
     :return:
     """
 
-    title, text, logo_url, status, ts = incident_attatchment_info(incident, metric_value)
+    data = incident_attatchment_info(incident, metric_value)
 
     colors = {
         "Resolved": RESOLVED_COLOR,
@@ -333,8 +333,8 @@ def build_incident_attachment(incident, metric_value=None):
     }
 
     return {
-        "fallback": title,
-        "title": title,
+        "fallback": data["title"],
+        "title": data["title"],
         "title_link": absolute_uri(
             reverse(
                 "sentry-metric-alert",
@@ -344,13 +344,13 @@ def build_incident_attachment(incident, metric_value=None):
                 },
             )
         ),
-        "text": text,
+        "text": data["text"],
         "fields": [],
         "mrkdwn_in": ["text"],
-        "footer_icon": logo_url,
+        "footer_icon": data["logo_url"],
         "footer": "Sentry Incident",
-        "ts": to_timestamp(ts),
-        "color": colors[status],
+        "ts": to_timestamp(data["ts"]),
+        "color": colors[data["status"]],
         "actions": [],
     }
 

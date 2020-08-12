@@ -56,4 +56,4 @@ def incident_attatchment_info(incident, metric_value=None):
 
     title = u"{}: {}".format(status, alert_rule.name)
 
-    return title, text, logo_url, status, ts
+    return {"title": title, "text": text, "logo_url": logo_url, "status": status, "ts": ts}
