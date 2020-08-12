@@ -6,7 +6,11 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.paginator import OffsetPaginator, CombinedQuerysetPaginator
+from sentry.api.paginator import (
+    OffsetPaginator,
+    CombinedQuerysetPaginator,
+    CombinedQuerysetIntermediary,
+)
 from sentry.api.serializers import serialize, CombinedRuleSerializer
 from sentry.incidents.models import AlertRule
 from sentry.incidents.endpoints.serializers import AlertRuleSerializer
@@ -34,13 +38,20 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
         issue_rules = Rule.objects.filter(
             status__in=[RuleStatus.ACTIVE, RuleStatus.INACTIVE], project__in=project_ids
         )
+
+        sort_key = request.GET.get("sort", "date_added")
+        rule_sort_key = (
+            sort_key if sort_key != "name" else "label"
+        )  # Rule's don't share the same field name for their title/label/name...so we account for that here.
+        alert_rule_intermediary = CombinedQuerysetIntermediary(alert_rules, sort_key)
+        rule_intermediary = CombinedQuerysetIntermediary(issue_rules, rule_sort_key)
         return self.paginate(
             request,
             paginator_cls=CombinedQuerysetPaginator,
             on_results=lambda x: serialize(x, request.user, CombinedRuleSerializer()),
             default_per_page=25,
-            order_by="-date_added",
-            querysets=[alert_rules, issue_rules],
+            intermediaries=[alert_rule_intermediary, rule_intermediary],
+            desc=True,
         )
 
 

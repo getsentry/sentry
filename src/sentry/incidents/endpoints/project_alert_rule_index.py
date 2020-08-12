@@ -8,7 +8,11 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.paginator import OffsetPaginator, CombinedQuerysetPaginator
+from sentry.api.paginator import (
+    OffsetPaginator,
+    CombinedQuerysetPaginator,
+    CombinedQuerysetIntermediary,
+)
 from sentry.api.serializers import serialize, CombinedRuleSerializer
 from sentry.incidents.endpoints.serializers import AlertRuleSerializer
 from sentry.incidents.models import AlertRule
@@ -27,18 +31,21 @@ class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
             # Filter to only error alert rules
             alert_rules = alert_rules.filter(snuba_query__dataset=Dataset.Events.value)
 
+        alert_rule_intermediary = CombinedQuerysetIntermediary(alert_rules, "date_added")
+        rule_intermediary = CombinedQuerysetIntermediary(
+            Rule.objects.filter(
+                project=project, status__in=[RuleStatus.ACTIVE, RuleStatus.INACTIVE]
+            ),
+            "date_added",
+        )
+
         return self.paginate(
             request,
             paginator_cls=CombinedQuerysetPaginator,
             on_results=lambda x: serialize(x, request.user, CombinedRuleSerializer()),
             default_per_page=25,
-            order_by="-date_added",
-            querysets=[
-                alert_rules,
-                Rule.objects.filter(
-                    project=project, status__in=[RuleStatus.ACTIVE, RuleStatus.INACTIVE]
-                ),
-            ],
+            intermediaries=[alert_rule_intermediary, rule_intermediary],
+            desc=True,
         )
 
 
