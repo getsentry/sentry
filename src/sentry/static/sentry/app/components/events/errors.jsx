@@ -80,14 +80,6 @@ const StyledBanner = styled(BannerContainer)`
       color: ${p => p.theme.gray700};
     }
   }
-
-  /*
-  Remove border on adjacent context summary box.
-  Once that component uses emotion this will be harder.
-  */
-  & + .context-summary {
-    border-top: none;
-  }
 `;
 
 const StyledIconWarning = styled(IconWarning)`
