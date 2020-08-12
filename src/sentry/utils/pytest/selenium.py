@@ -323,7 +323,9 @@ class Browser(object):
                                 slugify(name)
                             )
                         )
-                    self.driver.execute("window.__closeAllTooltips && window.__closeAllTooltips()")
+                        self.driver.execute(
+                            "window.__closeAllTooltips && window.__closeAllTooltips()"
+                        )
 
             with self.mobile_viewport():
                 # switch to a mobile sized viewport
