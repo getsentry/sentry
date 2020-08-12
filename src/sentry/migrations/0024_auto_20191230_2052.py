@@ -87,6 +87,7 @@ def backfill_eventstream(apps, schema_editor):
                 is_new_group_environment=False,
                 primary_hash=primary_hash,
                 received_timestamp=event.data.get("received")
+                or event.data.get("timestamp")
                 or float(event.datetime.strftime("%s")),
                 skip_consume=True,
             )
