@@ -54,7 +54,7 @@ class Preparer(Mediator):
             field.update({"choices": field["options"]})
 
         if "uri" in field:
-            if "async" not in field:
+            if not field.get("skip_load_on_open"):
                 field.update(self._request(field["uri"]))
 
     def _request(self, uri):
