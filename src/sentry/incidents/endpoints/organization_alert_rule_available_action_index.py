@@ -31,9 +31,8 @@ class OrganizationAlertRuleAvailableActionIndexEndpoint(OrganizationEndpoint):
             action_target_type_to_string[target_type]
             for target_type in registered_type.supported_target_types
         ]
-        input_type = ""
-        if "specific" in allowed_target_types:
-            input_type = "select" if registered_type.slug == "pagerduty" else "text"
+
+        input_type = "select" if registered_type.slug in ["pagerduty", "email"] else "text"
 
         action_response = {
             "type": registered_type.slug,
@@ -43,11 +42,8 @@ class OrganizationAlertRuleAvailableActionIndexEndpoint(OrganizationEndpoint):
             "inputType": input_type,
         }
 
-        if input_type == "select":
-            if integration and registered_type.slug == "pagerduty":
-                action_response["options"] = self.fetch_pagerduty_services(
-                    organization, integration.id
-                )
+        if integration and registered_type.slug == "pagerduty":
+            action_response["options"] = self.fetch_pagerduty_services(organization, integration.id)
         return action_response
 
     def get(self, request, organization):

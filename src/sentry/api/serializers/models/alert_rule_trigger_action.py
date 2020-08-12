@@ -27,7 +27,6 @@ class AlertRuleTriggerActionSerializer(Serializer):
         target_identifier = (
             action.target_display if action.target_display is not None else action.target_identifier
         )
-        # import pdb; pdb.set_trace()
         if action.type == action.Type.PAGERDUTY.value:
             target_identifier = int(action.target_identifier)
 

@@ -183,7 +183,7 @@ class ActionsPanel extends React.PureComponent<Props> {
           : null,
       targetIdentifier: '',
       integrationId: actionConfig.integrationId,
-      inputType: actionConfig.inputType || null,
+      inputType: actionConfig.inputType,
       options: actionConfig.options || null,
     };
     onChange(triggerIndex, triggers, replaceAtArrayIndex(actions, index, newAction));
