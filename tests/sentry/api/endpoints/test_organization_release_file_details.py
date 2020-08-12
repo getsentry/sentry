@@ -49,7 +49,7 @@ class ReleaseFileDetailsTest(APITestCase):
         from six import BytesIO
 
         f = File.objects.create(name="applicatiosn.js", type="release.file")
-        f.putfile(BytesIO("File contents here"))
+        f.putfile(BytesIO(b"File contents here"))
 
         releasefile = ReleaseFile.objects.create(
             organization_id=project.organization_id,
