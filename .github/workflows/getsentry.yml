@@ -47,7 +47,6 @@ jobs:
   frontend:
     name: frontend
     runs-on: ubuntu-latest
-    continue-on-error: true
     needs: [ensure_docker]
 
     steps:
