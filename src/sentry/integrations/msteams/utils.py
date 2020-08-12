@@ -3,6 +3,8 @@ from __future__ import absolute_import
 import six
 import logging
 
+from django.core.urlresolvers import reverse
+
 from sentry.models import Integration, Project, GroupStatus
 from sentry.utils.compat import filter
 from sentry.utils.http import absolute_uri
@@ -443,6 +445,16 @@ def build_incident_attachment(incident, metric_value=None):
 
     footer_text = "Sentry Incident | {}".format(ts.strftime("%b %d"))
 
+    title_link = absolute_uri(
+        reverse(
+            "sentry-metric-alert",
+            kwargs={
+                "organization_slug": incident.organization.slug,
+                "incident_id": incident.identifier,
+            },
+        )
+    )
+
     return {
         "type": "AdaptiveCard",
         "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
@@ -460,7 +472,7 @@ def build_incident_attachment(incident, metric_value=None):
                                 "items": [
                                     {
                                         "type": "TextBlock",
-                                        "text": title,
+                                        "text": "[{}]({})".format(title, title_link),
                                         "fontType": "Default",
                                         "weight": "Bolder",
                                     },
