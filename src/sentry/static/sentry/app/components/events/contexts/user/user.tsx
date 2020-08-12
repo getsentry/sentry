@@ -10,6 +10,7 @@ import {defined} from 'app/utils';
 
 import getUserKnownData from './getUserKnownData';
 import {UserKnownDataType} from './types';
+import getUnknownData from '../getUnknownData';
 
 type Props = {
   data: Data;
@@ -35,7 +36,8 @@ const User = ({data}: Props) => {
       <div className="pull-left">
         <UserAvatar user={removeFilterMaskedEntries(data)} size={48} gravatar={false} />
       </div>
-      <ContextBlock knownData={getUserKnownData(data, userKnownDataValues)} />
+      <ContextBlock data={getUserKnownData(data, userKnownDataValues)} />
+      <ContextBlock data={getUnknownData(data, userKnownDataValues)} />
       {defined(data?.data) && (
         <ErrorBoundary mini>
           <KeyValueList data={getKeyValueData(data.data)} isContextData />

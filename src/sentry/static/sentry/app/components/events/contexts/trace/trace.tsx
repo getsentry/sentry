@@ -7,6 +7,7 @@ import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValue
 
 import {TraceKnownData, TraceKnownDataType} from './types';
 import getTraceKnownData from './getTraceKnownData';
+import getUnknownData from '../getUnknownData';
 
 const traceKnownDataValues = [
   TraceKnownDataType.STATUS,
@@ -28,6 +29,11 @@ const InnerTrace = withOrganization(function({organization, event, data}: Props)
     <ErrorBoundary mini>
       <KeyValueList
         data={getTraceKnownData(data, traceKnownDataValues, event, organization)}
+        isSorted={false}
+        raw={false}
+      />
+      <KeyValueList
+        data={getUnknownData(data, traceKnownDataValues)}
         isSorted={false}
         raw={false}
       />

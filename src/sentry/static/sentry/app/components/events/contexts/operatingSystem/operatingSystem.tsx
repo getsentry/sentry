@@ -4,6 +4,7 @@ import ContextBlock from 'app/components/events/contexts/contextBlock';
 
 import getOperatingSystemKnownData from './getOperatingSystemKnownData';
 import {OperatingSystemKnownData, OperatingSystemKnownDataType} from './types';
+import getUnknownData from '../getUnknownData';
 
 type Props = {
   data: OperatingSystemKnownData;
@@ -17,9 +18,12 @@ const operatingSystemKnownDataValues = [
 ];
 
 const OperatingSystem = ({data}: Props) => (
-  <ContextBlock
-    knownData={getOperatingSystemKnownData(data, operatingSystemKnownDataValues)}
-  />
+  <React.Fragment>
+    <ContextBlock
+      data={getOperatingSystemKnownData(data, operatingSystemKnownDataValues)}
+    />
+    <ContextBlock data={getUnknownData(data, operatingSystemKnownDataValues)} />
+  </React.Fragment>
 );
 
 export default OperatingSystem;

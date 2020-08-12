@@ -4,6 +4,7 @@ import ContextBlock from 'app/components/events/contexts/contextBlock';
 
 import getOperatingSystemKnownData from './getGPUKnownData';
 import {GPUData, GPUKnownDataType} from './types';
+import getUnknownData from '../getUnknownData';
 
 type Props = {
   data: GPUData;
@@ -28,7 +29,10 @@ const GPU = ({data}: Props) => {
   }
 
   return (
-    <ContextBlock knownData={getOperatingSystemKnownData(data, gpuKnownDataValues)} />
+    <React.Fragment>
+      <ContextBlock data={getOperatingSystemKnownData(data, gpuKnownDataValues)} />;
+      <ContextBlock data={getUnknownData(data, gpuKnownDataValues)} />;
+    </React.Fragment>
   );
 };
 
