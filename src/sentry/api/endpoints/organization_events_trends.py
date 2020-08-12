@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-import math
-import six
 import sentry_sdk
 
 from datetime import datetime, timedelta
@@ -113,14 +111,6 @@ class OrganizationEventsTrendsEndpoint(OrganizationEventsV2EndpointBase):
         stats_results = self.get_event_stats_data(
             request, organization, get_event_stats, top_events=True, query_column=trend_function
         )
-        # Convert nan and inf to Nones, this is cause python supports serializing them but nobody else
-        for result in events_results["data"]:
-            result = {
-                key: None
-                if isinstance(value, float) and (math.isnan(value) or math.isinf(value))
-                else value
-                for key, value in six.iteritems(result)
-            }
 
         return Response(
             {
