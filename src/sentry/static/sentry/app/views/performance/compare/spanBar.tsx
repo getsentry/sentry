@@ -501,7 +501,7 @@ class SpanBar extends React.Component<Props, State> {
 
   render() {
     return (
-      <SpanRow visible>
+      <SpanRow visible data-test-id="span-row">
         <DividerHandlerManager.Consumer>
           {(
             dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
