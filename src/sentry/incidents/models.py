@@ -633,7 +633,7 @@ class AlertRuleTriggerAction(Model):
 
     @classmethod
     def get_registered_types(cls):
-        return cls._type_registrations.values()
+        return list(cls._type_registrations.values())
 
 
 class AlertRuleActivityType(Enum):

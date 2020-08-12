@@ -50,7 +50,7 @@ class AssistantActivityTest(APITestCase):
 
     def test_validate_guides(self):
         # Steps in different guides should not have the same target.
-        guides = self.guides.values()
+        guides = list(self.guides.values())
         for i in range(len(guides)):
             for j in range(0, i):
                 steps_i = set(s["target"] for s in guides[i]["steps"])
