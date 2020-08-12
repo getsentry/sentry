@@ -23,14 +23,19 @@ class AlertRuleTriggerActionSerializer(Serializer):
         elif action.type == action.Type.MSTEAMS.value:
             return "Send a Microsoft Teams notification to " + action.target_display
 
+    def format_target_identifier(self, action):
+        target_identifier = (
+            action.target_display if action.target_display is not None else action.target_identifier
+        )
+        # import pdb; pdb.set_trace()
+        if action.type == action.Type.PAGERDUTY.value:
+            target_identifier = int(action.target_identifier)
+
+        return target_identifier
+
     def serialize(self, obj, attrs, user):
         from sentry.incidents.endpoints.serializers import action_target_type_to_string
 
-        target_identifier = (
-            obj.target_display if obj.target_display is not None else obj.target_identifier
-        )
-        if obj.type == 1:  # PagerDuty
-            target_identifier = int(obj.target_identifier)
         return {
             "id": six.text_type(obj.id),
             "alertRuleTriggerId": six.text_type(obj.alert_rule_trigger_id),
@@ -40,7 +45,7 @@ class AlertRuleTriggerActionSerializer(Serializer):
             "targetType": action_target_type_to_string[
                 AlertRuleTriggerAction.TargetType(obj.target_type)
             ],
-            "targetIdentifier": target_identifier,
+            "targetIdentifier": self.format_target_identifier(obj),
             "integrationId": obj.integration_id,
             "dateCreated": obj.date_added,
             "desc": self.human_desc(obj),

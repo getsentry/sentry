@@ -15,7 +15,7 @@ from sentry.models import OrganizationIntegration, PagerDutyService
 
 
 class OrganizationAlertRuleAvailableActionIndexEndpoint(OrganizationEndpoint):
-    def fetch_services(self, organization, integration_id):
+    def fetch_pagerduty_services(self, organization, integration_id):
         services = PagerDutyService.objects.filter(
             organization_integration=OrganizationIntegration.objects.get(
                 organization=organization, integration=integration_id
@@ -45,7 +45,9 @@ class OrganizationAlertRuleAvailableActionIndexEndpoint(OrganizationEndpoint):
 
         if input_type == "select":
             if integration and registered_type.slug == "pagerduty":
-                action_response["options"] = self.fetch_services(organization, integration.id)
+                action_response["options"] = self.fetch_pagerduty_services(
+                    organization, integration.id
+                )
         return action_response
 
     def get(self, request, organization):

@@ -61,6 +61,8 @@ const getPlaceholderForType = (type: ActionType) => {
     case ActionType.MSTEAMS:
       //no prefixes for msteams
       return 'username or channel';
+    case ActionType.PAGERDUTY:
+      return 'service';
     default:
       throw Error('Not implemented');
   }

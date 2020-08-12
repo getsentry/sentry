@@ -85,7 +85,7 @@ export enum ActionType {
 }
 
 export enum TargetType {
-  // The name can be customized for each integration. Email for email, channel for slack). We probably won't support this for email at first, since we need to be careful not to enable spam
+  // The name can be customized for each integration. Email for email, channel for Slack, service for PagerDuty). We probably won't support this for email at first, since we need to be careful not to enable spam
   SPECIFIC = 'specific',
 
   // Just works with email for now, grabs given user's email address
@@ -121,7 +121,7 @@ export type MetricActionTemplate = {
   /**
    * The input type on the front end, e.g. text for Slack, select for PagerDuty
    */
-  inputType: string | null;
+  inputType?: string;
   /**
    * If the inputType is select, these are the options to select from
    */
