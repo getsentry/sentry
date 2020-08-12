@@ -1,8 +1,404 @@
 ---
-created: '2020-02-26T19:52:18.027754Z'
+created: '2020-08-11T09:14:47.264741Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
+app:
+  hash: null
+  component:
+    app (custom fingerprint takes precedence)
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "sentry.tasks.base"
+            filename (module takes precedence)
+              "sentry/tasks/base.py"
+            context-line*
+              "                result = func(*args, **kwargs)"
+            function (function name is not used if context-line is available)
+              "_wrapped"
+            lineno (line number is not used if context-line is available)
+              54
+          frame*
+            module*
+              "sentry.tasks.store"
+            filename (module takes precedence)
+              "sentry/tasks/store.py"
+            context-line*
+              "    return _do_process_event(cache_key, start_time, event_id, process_event)"
+            function (function name is not used if context-line is available)
+              "process_event"
+            lineno (line number is not used if context-line is available)
+              206
+          frame*
+            module*
+              "sentry.tasks.store"
+            filename (module takes precedence)
+              "sentry/tasks/store.py"
+            context-line*
+              "    new_data = process_stacktraces(data)"
+            function (function name is not used if context-line is available)
+              "_do_process_event"
+            lineno (line number is not used if context-line is available)
+              151
+          frame*
+            module*
+              "sentry.stacktraces"
+            filename (module takes precedence)
+              "sentry/stacktraces.py"
+            context-line*
+              "            if processor.preprocess_step(processing_task):"
+            function (function name is not used if context-line is available)
+              "process_stacktraces"
+            lineno (line number is not used if context-line is available)
+              375
+          frame*
+            module*
+              "sentry.lang.native.plugin"
+            filename (module takes precedence)
+              "sentry/lang/native/plugin.py"
+            context-line*
+              "            referenced_images=referenced_images,"
+            function (function name is not used if context-line is available)
+              "preprocess_step"
+            lineno (line number is not used if context-line is available)
+              146
+          frame*
+            module*
+              "sentry.lang.native.symbolizer"
+            filename (module takes precedence)
+              "sentry/lang/native/symbolizer.py"
+            context-line*
+              "                with_conversion_errors=True)"
+            function (function name is not used if context-line is available)
+              "__init__"
+            lineno (line number is not used if context-line is available)
+              128
+          frame*
+            module*
+              "sentry.models.debugfile"
+            filename (module takes precedence)
+              "sentry/models/debugfile.py"
+            context-line*
+              "        symcaches = self._load_cachefiles_via_fs(project, cachefiles, SymCache)"
+            function (function name is not used if context-line is available)
+              "get_symcaches"
+            lineno (line number is not used if context-line is available)
+              580
+          frame*
+            module*
+              "sentry.models.debugfile"
+            filename (module takes precedence)
+              "sentry/models/debugfile.py"
+            context-line*
+              "                model.cache_file.save_to(cachefile_path)"
+            function (function name is not used if context-line is available)
+              "_load_cachefiles_via_fs"
+            lineno (line number is not used if context-line is available)
+              821
+          frame*
+            module*
+              "sentry.models.file"
+            filename (module takes precedence)
+              "sentry/models/file.py"
+            context-line*
+              "                                       delete=False).detach_tempfile()"
+            function (function name is not used if context-line is available)
+              "save_to"
+            lineno (line number is not used if context-line is available)
+              398
+          frame*
+            module*
+              "sentry.models.file"
+            filename (module takes precedence)
+              "sentry/models/file.py"
+            context-line*
+              "            delete=delete"
+            function (function name is not used if context-line is available)
+              "_get_chunked_blob"
+            lineno (line number is not used if context-line is available)
+              363
+          frame*
+            module*
+              "sentry.models.file"
+            filename (module takes precedence)
+              "sentry/models/file.py"
+            context-line*
+              "            self._prefetch(prefetch_to, delete)"
+            function (function name is not used if context-line is available)
+              "__init__"
+            lineno (line number is not used if context-line is available)
+              504
+          frame*
+            module*
+              "sentry.models.file"
+            filename (module takes precedence)
+              "sentry/models/file.py"
+            context-line*
+              "                exe.submit(fetch_file, idx.offset, idx.blob.getfile)"
+            function (function name is not used if context-line is available)
+              "_prefetch"
+            lineno (line number is not used if context-line is available)
+              574
+          frame (non app frame)
+            module*
+              "concurrent.futures._base"
+            filename (module takes precedence)
+              "concurrent/futures/_base.py"
+            context-line*
+              "        self.shutdown(wait=True)"
+            function (function name is not used if context-line is available)
+              "__exit__"
+            lineno (line number is not used if context-line is available)
+              666
+          frame (non app frame)
+            module*
+              "concurrent.futures.thread"
+            filename (module takes precedence)
+              "concurrent/futures/thread.py"
+            context-line*
+              "                t.join(sys.maxint)"
+            function (function name is not used if context-line is available)
+              "shutdown"
+            lineno (line number is not used if context-line is available)
+              159
+          frame (non app frame)
+            module*
+              "threading"
+            filename (module takes precedence)
+              "threading.py"
+            context-line*
+              "                    self.__block.wait(delay)"
+            function (function name is not used if context-line is available)
+              "join"
+            lineno (line number is not used if context-line is available)
+              951
+          frame (non app frame)
+            module*
+              "threading"
+            filename (module takes precedence)
+              "threading.py"
+            context-line*
+              "                    _sleep(delay)"
+            function (function name is not used if context-line is available)
+              "wait"
+            lineno (line number is not used if context-line is available)
+              359
+          frame (non app frame)
+            module*
+              "billiard.pool"
+            filename (module takes precedence)
+              "billiard/pool.py"
+            context-line*
+              "    raise SoftTimeLimitExceeded()"
+            function (function name is not used if context-line is available)
+              "soft_timeout_sighandler"
+            lineno (line number is not used if context-line is available)
+              231
+        type*
+          "SoftTimeLimitExceeded"
+        value (stacktrace and type take precedence)
+          "SoftTimeLimitExceeded()"
+--------------------------------------------------------------------------
 custom-fingerprint:
   hash: "f30afa00b85f5cac5ee0bce01b31f08d"
-  values: ["celery", "SoftTimeLimitExceeded", "sentry.tasks.store.process_event"]
+  values: ["celery","SoftTimeLimitExceeded","sentry.tasks.store.process_event"]
+--------------------------------------------------------------------------
+system:
+  hash: null
+  component:
+    system (custom fingerprint takes precedence)
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "sentry.tasks.base"
+            filename (module takes precedence)
+              "sentry/tasks/base.py"
+            context-line*
+              "                result = func(*args, **kwargs)"
+            function (function name is not used if context-line is available)
+              "_wrapped"
+            lineno (line number is not used if context-line is available)
+              54
+          frame*
+            module*
+              "sentry.tasks.store"
+            filename (module takes precedence)
+              "sentry/tasks/store.py"
+            context-line*
+              "    return _do_process_event(cache_key, start_time, event_id, process_event)"
+            function (function name is not used if context-line is available)
+              "process_event"
+            lineno (line number is not used if context-line is available)
+              206
+          frame*
+            module*
+              "sentry.tasks.store"
+            filename (module takes precedence)
+              "sentry/tasks/store.py"
+            context-line*
+              "    new_data = process_stacktraces(data)"
+            function (function name is not used if context-line is available)
+              "_do_process_event"
+            lineno (line number is not used if context-line is available)
+              151
+          frame*
+            module*
+              "sentry.stacktraces"
+            filename (module takes precedence)
+              "sentry/stacktraces.py"
+            context-line*
+              "            if processor.preprocess_step(processing_task):"
+            function (function name is not used if context-line is available)
+              "process_stacktraces"
+            lineno (line number is not used if context-line is available)
+              375
+          frame*
+            module*
+              "sentry.lang.native.plugin"
+            filename (module takes precedence)
+              "sentry/lang/native/plugin.py"
+            context-line*
+              "            referenced_images=referenced_images,"
+            function (function name is not used if context-line is available)
+              "preprocess_step"
+            lineno (line number is not used if context-line is available)
+              146
+          frame*
+            module*
+              "sentry.lang.native.symbolizer"
+            filename (module takes precedence)
+              "sentry/lang/native/symbolizer.py"
+            context-line*
+              "                with_conversion_errors=True)"
+            function (function name is not used if context-line is available)
+              "__init__"
+            lineno (line number is not used if context-line is available)
+              128
+          frame*
+            module*
+              "sentry.models.debugfile"
+            filename (module takes precedence)
+              "sentry/models/debugfile.py"
+            context-line*
+              "        symcaches = self._load_cachefiles_via_fs(project, cachefiles, SymCache)"
+            function (function name is not used if context-line is available)
+              "get_symcaches"
+            lineno (line number is not used if context-line is available)
+              580
+          frame*
+            module*
+              "sentry.models.debugfile"
+            filename (module takes precedence)
+              "sentry/models/debugfile.py"
+            context-line*
+              "                model.cache_file.save_to(cachefile_path)"
+            function (function name is not used if context-line is available)
+              "_load_cachefiles_via_fs"
+            lineno (line number is not used if context-line is available)
+              821
+          frame*
+            module*
+              "sentry.models.file"
+            filename (module takes precedence)
+              "sentry/models/file.py"
+            context-line*
+              "                                       delete=False).detach_tempfile()"
+            function (function name is not used if context-line is available)
+              "save_to"
+            lineno (line number is not used if context-line is available)
+              398
+          frame*
+            module*
+              "sentry.models.file"
+            filename (module takes precedence)
+              "sentry/models/file.py"
+            context-line*
+              "            delete=delete"
+            function (function name is not used if context-line is available)
+              "_get_chunked_blob"
+            lineno (line number is not used if context-line is available)
+              363
+          frame*
+            module*
+              "sentry.models.file"
+            filename (module takes precedence)
+              "sentry/models/file.py"
+            context-line*
+              "            self._prefetch(prefetch_to, delete)"
+            function (function name is not used if context-line is available)
+              "__init__"
+            lineno (line number is not used if context-line is available)
+              504
+          frame*
+            module*
+              "sentry.models.file"
+            filename (module takes precedence)
+              "sentry/models/file.py"
+            context-line*
+              "                exe.submit(fetch_file, idx.offset, idx.blob.getfile)"
+            function (function name is not used if context-line is available)
+              "_prefetch"
+            lineno (line number is not used if context-line is available)
+              574
+          frame*
+            module*
+              "concurrent.futures._base"
+            filename (module takes precedence)
+              "concurrent/futures/_base.py"
+            context-line*
+              "        self.shutdown(wait=True)"
+            function (function name is not used if context-line is available)
+              "__exit__"
+            lineno (line number is not used if context-line is available)
+              666
+          frame*
+            module*
+              "concurrent.futures.thread"
+            filename (module takes precedence)
+              "concurrent/futures/thread.py"
+            context-line*
+              "                t.join(sys.maxint)"
+            function (function name is not used if context-line is available)
+              "shutdown"
+            lineno (line number is not used if context-line is available)
+              159
+          frame*
+            module*
+              "threading"
+            filename (module takes precedence)
+              "threading.py"
+            context-line*
+              "                    self.__block.wait(delay)"
+            function (function name is not used if context-line is available)
+              "join"
+            lineno (line number is not used if context-line is available)
+              951
+          frame*
+            module*
+              "threading"
+            filename (module takes precedence)
+              "threading.py"
+            context-line*
+              "                    _sleep(delay)"
+            function (function name is not used if context-line is available)
+              "wait"
+            lineno (line number is not used if context-line is available)
+              359
+          frame*
+            module*
+              "billiard.pool"
+            filename (module takes precedence)
+              "billiard/pool.py"
+            context-line*
+              "    raise SoftTimeLimitExceeded()"
+            function (function name is not used if context-line is available)
+              "soft_timeout_sighandler"
+            lineno (line number is not used if context-line is available)
+              231
+        type*
+          "SoftTimeLimitExceeded"
+        value (stacktrace and type take precedence)
+          "SoftTimeLimitExceeded()"

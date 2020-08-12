@@ -96,7 +96,7 @@ export class ApiTokens extends AsyncView {
           {tct(
             'For more information on how to use the web API, see our [link:documentation].',
             {
-              link: <a href="https://docs.sentry.io/hosted/api/" />,
+              link: <a href="https://docs.sentry.io/api/" />,
             }
           )}
         </TextBlock>

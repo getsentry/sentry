@@ -398,6 +398,17 @@ class AlertRule(Model):
 
     __repr__ = sane_repr("id", "name", "date_added")
 
+    @property
+    def created_by(self):
+        try:
+            created_activity = AlertRuleActivity.objects.get(
+                alert_rule=self, type=AlertRuleActivityType.CREATED.value
+            )
+            return created_activity.user
+        except AlertRuleActivity.DoesNotExist:
+            pass
+        return None
+
 
 class TriggerStatus(Enum):
     ACTIVE = 0
@@ -631,6 +642,7 @@ class AlertRuleActivityType(Enum):
     UPDATED = 3
     ENABLED = 4
     DISABLED = 5
+    SNAPSHOT = 6
 
 
 class AlertRuleActivity(Model):

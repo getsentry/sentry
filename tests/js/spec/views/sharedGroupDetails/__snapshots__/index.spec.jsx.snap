@@ -347,7 +347,7 @@ exports[`SharedGroupDetails renders 1`] = `
                       showTagSummary={true}
                     >
                       <EventEntries
-                        className="css-1pvkuk1-BorderlessEventEntries enep45q0"
+                        className="css-u7sqso-BorderlessEventEntries enep45q1"
                         event={
                           Object {
                             "dateCreated": "2019-05-21T18:01:48.762Z",
@@ -488,10 +488,9 @@ exports[`SharedGroupDetails renders 1`] = `
                         showTagSummary={true}
                       >
                         <div
-                          className="css-1pvkuk1-BorderlessEventEntries enep45q0"
+                          className="css-u7sqso-BorderlessEventEntries enep45q1"
                           data-test-id="event-entries"
                         >
-                           
                           <EventTags
                             event={
                               Object {
@@ -588,7 +587,7 @@ exports[`SharedGroupDetails renders 1`] = `
                                     isCentered={false}
                                   >
                                     <div
-                                      className="css-8d8cxx-SectionHeader e1fbjd862"
+                                      className="css-52rdwg-SectionHeader e1fbjd862"
                                       id="message"
                                     >
                                       <Permalink

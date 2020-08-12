@@ -1,12 +1,12 @@
 from __future__ import absolute_import
 
-import json
 import six
 
 from uuid import uuid4
 
 from django.core.urlresolvers import reverse
 
+from sentry.utils import json
 from sentry.models import Relay
 from sentry.testutils import APITestCase
 

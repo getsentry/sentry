@@ -1,11 +1,14 @@
 from __future__ import absolute_import
 
-import json
 import datetime
 import os
 import os.path
 import sys
 import traceback
+
+# Import the stdlib json instead of sentry.utils.json, since this command is
+# run in setup.py
+import json  # NOQA
 
 from distutils import log
 

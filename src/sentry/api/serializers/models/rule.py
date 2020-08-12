@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import six
 
 from sentry.api.serializers import Serializer, register
-from sentry.models import Environment, Rule
+from sentry.models import Environment, Rule, RuleActivity, RuleActivityType
 
 
 def _generate_rule_label(project, rule, data):
@@ -23,7 +23,14 @@ class RuleSerializer(Serializer):
         environments = Environment.objects.in_bulk(
             [_f for _f in [i.environment_id for i in item_list] if _f]
         )
-        return {i: {"environment": environments.get(i.environment_id)} for i in item_list}
+
+        result = {i: {"environment": environments.get(i.environment_id)} for i in item_list}
+        for rule_activity in RuleActivity.objects.filter(
+            rule__in=item_list, type=RuleActivityType.CREATED.value
+        ).select_related("rule", "user"):
+            result[rule_activity.rule].update({"created_by": rule_activity.user.id})
+
+        return result
 
     def serialize(self, obj, attrs, user):
         environment = attrs["environment"]
@@ -39,10 +46,11 @@ class RuleSerializer(Serializer):
                 dict(o.items() + [("name", _generate_rule_label(obj.project, obj, o))])
                 for o in obj.data.get("actions", [])
             ],
-            "actionMatch": obj.data.get("action_match") or Rule.DEFAULT_ACTION_MATCH,
+            "actionMatch": obj.data.get("action_match") or Rule.DEFAULT_CONDITION_MATCH,
             "frequency": obj.data.get("frequency") or Rule.DEFAULT_FREQUENCY,
             "name": obj.label,
             "dateCreated": obj.date_added,
+            "createdBy": attrs.get("created_by", None),
             "environment": environment.name if environment is not None else None,
         }
         return d

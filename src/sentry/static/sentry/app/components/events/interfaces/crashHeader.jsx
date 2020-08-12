@@ -102,16 +102,16 @@ class CrashHeader extends React.Component {
       >
         <GuideAnchor target="exception" disabled={hideGuide} position="bottom">
           {title}
+        </GuideAnchor>
+        <Tooltip title={t('Toggle stacktrace order')}>
           <small>
             (
-            <Tooltip title={t('Toggle stacktrace order')}>
-              <a onClick={this.handleToggleOrder}>
-                {newestFirst ? t('most recent call first') : t('most recent call last')}
-              </a>
-            </Tooltip>
+            <span onClick={this.handleToggleOrder}>
+              {newestFirst ? t('most recent call first') : t('most recent call last')}
+            </span>
             )
           </small>
-        </GuideAnchor>
+        </Tooltip>
       </h3>
     );
 

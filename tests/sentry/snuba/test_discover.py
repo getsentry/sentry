@@ -723,37 +723,6 @@ class QueryTransformTest(TestCase):
             "data": [{"transaction": "api.do_things", "p95": 200}],
         }
         discover.query(
-            selected_columns=["transaction", "p95", "count_unique(transaction)"],
-            query="",
-            params={"project_id": [self.project.id]},
-            auto_fields=True,
-        )
-        mock_query.assert_called_with(
-            selected_columns=["transaction"],
-            aggregations=[
-                ["quantile(0.95)", "duration", "p95"],
-                ["uniq", "transaction", "count_unique_transaction"],
-            ],
-            filter_keys={"project_id": [self.project.id]},
-            dataset=Dataset.Discover,
-            groupby=["transaction"],
-            conditions=[],
-            end=None,
-            start=None,
-            orderby=None,
-            having=[],
-            limit=50,
-            offset=None,
-            referrer=None,
-        )
-
-    @patch("sentry.snuba.discover.raw_query")
-    def test_selected_columns_aggregate_alias_with_brackets(self, mock_query):
-        mock_query.return_value = {
-            "meta": [{"name": "transaction"}, {"name": "p95"}],
-            "data": [{"transaction": "api.do_things", "p95": 200}],
-        }
-        discover.query(
             selected_columns=["transaction", "p95()", "count_unique(transaction)"],
             query="",
             params={"project_id": [self.project.id]},
@@ -1152,8 +1121,8 @@ class QueryTransformTest(TestCase):
         start_time = before_now(minutes=10)
         end_time = before_now(seconds=1)
         discover.query(
-            selected_columns=["transaction", "p95"],
-            query="http.method:GET p95:>5",
+            selected_columns=["transaction", "p95()"],
+            query="http.method:GET p95():>5",
             params={"project_id": [self.project.id], "start": start_time, "end": end_time},
             use_aggregate_conditions=True,
         )
@@ -1194,8 +1163,8 @@ class QueryTransformTest(TestCase):
         ]
         for query_string, value in test_cases:
             discover.query(
-                selected_columns=["transaction", "p95"],
-                query="http.method:GET p95:>{}".format(query_string),
+                selected_columns=["transaction", "p95()"],
+                query="http.method:GET p95():>{}".format(query_string),
                 params={"project_id": [self.project.id], "start": start_time, "end": end_time},
                 use_aggregate_conditions=True,
             )
@@ -1798,19 +1767,6 @@ class TimeseriesQueryTest(SnubaTestCase, TestCase):
 
     def test_field_alias(self):
         result = discover.timeseries_query(
-            selected_columns=["p95"],
-            query="event.type:transaction transaction:api.issue.delete",
-            params={
-                "start": self.day_ago,
-                "end": self.day_ago + timedelta(hours=2),
-                "project_id": [self.project.id],
-            },
-            rollup=3600,
-        )
-        assert len(result.data["data"]) == 3
-
-    def test_field_alias_with_brackets(self):
-        result = discover.timeseries_query(
             selected_columns=["p95()"],
             query="event.type:transaction transaction:api.issue.delete",
             params={
@@ -1907,8 +1863,10 @@ class TimeseriesQueryTest(SnubaTestCase, TestCase):
         )
 
         data = result.data["data"]
-        assert len(data) == 1
-        assert data[0]["count"] == 1
+        assert len([d for d in data if "count" in d]) == 1
+        for d in data:
+            if "count" in d:
+                assert d["count"] == 1
 
     def test_nested_conditional_filter(self):
         project2 = self.create_project(organization=self.organization)
@@ -1943,8 +1901,11 @@ class TimeseriesQueryTest(SnubaTestCase, TestCase):
         )
 
         data = result.data["data"]
-        assert len(data) == 1
-        assert data[0]["count"] == 2
+        data = result.data["data"]
+        assert len([d for d in data if "count" in d]) == 1
+        for d in data:
+            if "count" in d:
+                assert d["count"] == 2
 
     def test_reference_event(self):
         ref = discover.ReferenceEvent(
@@ -2309,7 +2270,7 @@ class GetFacetsTest(SnubaTestCase, TestCase):
         assert "color" in keys
         assert "toy" not in keys
 
-        result = discover.get_facets("color:red p95:>1", params)
+        result = discover.get_facets("color:red p95():>1", params)
         keys = {r.key for r in result}
         assert "color" in keys
         assert "toy" not in keys

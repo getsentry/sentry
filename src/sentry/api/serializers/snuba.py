@@ -129,6 +129,13 @@ def zerofill(data, start, end, rollup):
     end = int(to_timestamp(end))
     rollup_start = (int(to_timestamp(start)) // rollup) * rollup
     rollup_end = (end // rollup) * rollup
+
+    # Fudge the end value when we're only getting a single window.
+    # This ensure that we get both values for a single large window that
+    # straddles two buckets. An example of this is a 1d window that starts
+    # mid day.
+    if rollup_end - rollup_start == rollup:
+        rollup_end += 1
     i = 0
     for key in six.moves.xrange(rollup_start, rollup_end, rollup):
         try:

@@ -89,7 +89,12 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
             return self.respond(status=404)
 
         serializer = DiscoverSavedQuerySerializer(
-            data=request.data, context={"organization": organization}
+            data=request.data,
+            context={
+                "params": self.get_filter_params(
+                    request, organization, project_ids=request.data.get("projects")
+                )
+            },
         )
 
         if not serializer.is_valid():
