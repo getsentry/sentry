@@ -40,35 +40,6 @@ class TransactionComparison(AcceptanceTestCase, SnubaTestCase):
         regression_event_data = generate_transaction()
         regression_event_data.update({"event_id": "b" * 32})
 
-        def regress_spans(original_spans):
-            spans = []
-            last_index = len(original_spans) - 1
-            for index, reference_span in enumerate(original_spans):
-                end_datetime = datetime.utcfromtimestamp(reference_span["timestamp"]).replace(
-                    tzinfo=pytz.utc
-                )
-                span = copy.deepcopy(reference_span)
-                if index % 2 == 0:
-                    # for every even indexed span, increase its duration.
-                    # this implies the span was slower.
-                    regression_time = timedelta(milliseconds=10)
-                    span["timestamp"] = timestamp_format(end_datetime + regression_time)
-                else:
-                    # for every odd indexed span, decrease its duration.
-                    # this implies the span was faster
-                    regression_time = timedelta(milliseconds=5)
-                    span["timestamp"] = timestamp_format(end_datetime - regression_time)
-
-                if index == last_index:
-                    # change the op name of the last span.
-                    # the last span would be removed from the baseline transaction;
-                    # and the last span of the baseline transaction would be missing from
-                    # the regression transaction
-                    span["op"] = "resource"
-
-                spans.append(span)
-            return spans
-
         regression_event_data["spans"] = regress_spans(regression_event_data["spans"])
 
         regression_event = self.store_event(
@@ -94,3 +65,33 @@ class TransactionComparison(AcceptanceTestCase, SnubaTestCase):
             self.browser.elements('[data-test-id="span-row"]')[10].click()
 
             self.browser.snapshot("transaction comparison page - expanded span details")
+
+
+def regress_spans(original_spans):
+    spans = []
+    last_index = len(original_spans) - 1
+    for index, reference_span in enumerate(original_spans):
+        end_datetime = datetime.utcfromtimestamp(reference_span["timestamp"]).replace(
+            tzinfo=pytz.utc
+        )
+        span = copy.deepcopy(reference_span)
+        if index % 2 == 0:
+            # for every even indexed span, increase its duration.
+            # this implies the span was slower.
+            regression_time = timedelta(milliseconds=10)
+            span["timestamp"] = timestamp_format(end_datetime + regression_time)
+        else:
+            # for every odd indexed span, decrease its duration.
+            # this implies the span was faster
+            regression_time = timedelta(milliseconds=5)
+            span["timestamp"] = timestamp_format(end_datetime - regression_time)
+
+        if index == last_index:
+            # change the op name of the last span.
+            # the last span would be removed from the baseline transaction;
+            # and the last span of the baseline transaction would be missing from
+            # the regression transaction
+            span["op"] = "resource"
+
+        spans.append(span)
+    return spans
