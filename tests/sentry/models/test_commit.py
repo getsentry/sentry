@@ -15,7 +15,7 @@ class FindReferencedGroupsTest(TestCase):
         repo = Repository.objects.create(name="example", organization_id=self.group.organization.id)
 
         commit = Commit.objects.create(
-            key=sha1(uuid4().hex).hexdigest(),
+            key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
             repository_id=repo.id,
             organization_id=group.organization.id,
             message=u"Foo Biz\n\nFixes {} {}".format(
@@ -29,7 +29,7 @@ class FindReferencedGroupsTest(TestCase):
         assert group2 in groups
 
         commit = Commit.objects.create(
-            key=sha1(uuid4().hex).hexdigest(),
+            key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
             repository_id=repo.id,
             organization_id=group.organization.id,
             message=u"Foo Biz\n\Resolved {} {}".format(
@@ -43,7 +43,7 @@ class FindReferencedGroupsTest(TestCase):
         assert group2 in groups
 
         commit = Commit.objects.create(
-            key=sha1(uuid4().hex).hexdigest(),
+            key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
             repository_id=repo.id,
             organization_id=group.organization.id,
             message=u"Foo Biz\n\Close {} {}".format(
@@ -57,7 +57,7 @@ class FindReferencedGroupsTest(TestCase):
         assert group2 in groups
 
         commit = Commit.objects.create(
-            key=sha1(uuid4().hex).hexdigest(),
+            key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
             repository_id=repo.id,
             organization_id=group.organization.id,
             message=u"Foo Biz\n\nFixes: {}".format(group.qualified_short_id),
@@ -74,7 +74,7 @@ class FindReferencedGroupsTest(TestCase):
         repo = Repository.objects.create(name="example", organization_id=self.group.organization.id)
 
         commit = Commit.objects.create(
-            key=sha1(uuid4().hex).hexdigest(),
+            key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
             repository_id=repo.id,
             organization_id=group.organization.id,
             message=u"Foo Biz\n\nFixes {}, {}".format(
