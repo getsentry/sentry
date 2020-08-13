@@ -57,7 +57,7 @@ class RoleManager(object):
         return self._roles[id]
 
     def get_all(self):
-        return self._roles.values()
+        return list(self._roles.values())
 
     def get_choices(self):
         return self._choices
