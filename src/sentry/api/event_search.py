@@ -192,7 +192,6 @@ PROJECT_NAME_ALIAS = "project.name"
 PROJECT_ALIAS = "project"
 ISSUE_ALIAS = "issue"
 ISSUE_ID_ALIAS = "issue.id"
-USER_ALIAS = "user"
 RELEASE_ALIAS = "release"
 
 
@@ -864,16 +863,6 @@ def format_search_filter(term, params):
         term = SearchFilter(SearchKey("issue.id"), term.operator, SearchValue(value))
         converted_filter = convert_search_filter_to_snuba_query(term)
         conditions.append(converted_filter)
-    elif name == USER_ALIAS:
-        # If the key is user, do an OR across all the different possible user fields
-        user_conditions = [
-            convert_search_filter_to_snuba_query(term, key=field)
-            for field in FIELD_ALIASES[USER_ALIAS]["fields"]
-        ]
-        if term.operator == "!=" and value != "":
-            conditions.extend(user_conditions)
-        else:
-            conditions.append(user_conditions)
     elif name == RELEASE_ALIAS and params and value == "latest":
         converted_filter = convert_search_filter_to_snuba_query(
             SearchFilter(
@@ -1145,7 +1134,6 @@ def get_filter(query=None, params=None):
 FIELD_ALIASES = {
     "project": {"fields": ["project.id"], "column_alias": "project.id"},
     "issue": {"fields": ["issue.id"], "column_alias": "issue.id"},
-    "user": {"fields": ["user.email", "user.username", "user.ip", "user.id"]},
 }
 
 
