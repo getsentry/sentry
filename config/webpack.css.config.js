@@ -3,7 +3,7 @@
 const config = require('../webpack.config');
 
 config.entry = {
-  sentry: config.entry.sentry,
+  sentry: 'less/jest-ci.less',
 };
 
 module.exports = config;
