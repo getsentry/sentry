@@ -23,8 +23,8 @@ ME = "ME"
 
 
 def generate_action_payload(action_type, event, rules):
-    # we need nested data or else Teams won't handle the payload correctly
     rule_ids = map(lambda x: x.id, rules)
+    # we need nested data or else Teams won't handle the payload correctly
     return {
         "payload": {
             "actionType": action_type,
@@ -55,11 +55,6 @@ def get_assignee_string(group):
         return six.text_type(assigned_actor)
 
 
-# MS Teams will convert integers into strings
-# in value inputs sent in adaptive cards,
-# may as well just do that here first.
-# Subclasses six.text_type to appease
-# json loader for testing.
 # MS Teams will convert integers into strings in value inputs sent in adaptive
 # cards, may as well just do that here first.
 class ACTION_TYPE(six.text_type, enum.Enum):
