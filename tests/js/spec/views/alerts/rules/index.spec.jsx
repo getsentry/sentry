@@ -10,8 +10,6 @@ describe('OrganizationRuleList', () => {
   const {routerContext, organization} = initializeOrg();
   let rulesMock;
   let projectMock;
-  let projects;
-  const projects1 = ['earth'];
 
   const createWrapper = async props => {
     const wrapper = mountWithTheme(
@@ -22,7 +20,6 @@ describe('OrganizationRuleList', () => {
       />,
       routerContext
     );
-    // Wait for sparklines library
     await tick();
     wrapper.update();
     return wrapper;
@@ -35,19 +32,17 @@ describe('OrganizationRuleList', () => {
         TestStubs.ProjectAlertRule({
           id: '123',
           name: 'First Issue Alert',
-          projects: projects1,
+          projects: ['earth'],
         }),
       ],
     });
 
-    projects = [TestStubs.Project({slug: 'earth', platform: 'javascript'})];
-
     projectMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
-      body: projects,
+      body: [TestStubs.Project({slug: 'earth', platform: 'javascript'})],
     });
 
-    ProjectsStore.loadInitialData(projects);
+    ProjectsStore.loadInitialData([]);
   });
 
   afterEach(() => {
@@ -65,15 +60,14 @@ describe('OrganizationRuleList', () => {
 
     // GlobalSelectionHeader loads projects + the Projects render-prop
     // component to load projects for all rows.
-    expect(projectMock).toHaveBeenCalledTimes(1);
+    expect(projectMock).toHaveBeenCalledTimes(2);
 
-    // TODO(scttcper): After enabling projects
-    // expect(projectMock).toHaveBeenLastCalledWith(
-    //   expect.anything(),
-    //   expect.objectContaining({
-    //     query: {query: 'slug:earth'},
-    //   })
-    // );
+    expect(projectMock).toHaveBeenLastCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: {query: 'slug:earth'},
+      })
+    );
     expect(
       items
         .at(0)
@@ -107,7 +101,7 @@ describe('OrganizationRuleList', () => {
     expect(wrapper.find('IconArrow').prop('direction')).toBe('down');
 
     wrapper.setProps({
-      location: {query: {sort: 'date_added'}, search: '?sort=date_added`'},
+      location: {query: {asc: '1'}, search: '?asc=1`'},
     });
 
     expect(wrapper.find('IconArrow').prop('direction')).toBe('up');
@@ -116,7 +110,7 @@ describe('OrganizationRuleList', () => {
 
     expect(rulesMock).toHaveBeenCalledWith(
       '/organizations/org-slug/combined-rules/',
-      expect.objectContaining({query: expect.objectContaining({sort: 'date_added'})})
+      expect.objectContaining({query: expect.objectContaining({asc: '1'})})
     );
   });
 

@@ -39,7 +39,7 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
             status__in=[RuleStatus.ACTIVE, RuleStatus.INACTIVE], project__in=project_ids
         )
 
-        is_asc = request.GET.get("asc", False)
+        is_asc = request.GET.get("asc", False) == "1"
         sort_key = request.GET.get("sort", "date_added")
         rule_sort_key = (
             sort_key if sort_key != "name" else "label"

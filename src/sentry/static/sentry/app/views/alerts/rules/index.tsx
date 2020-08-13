@@ -2,6 +2,7 @@ import {RouteComponentProps} from 'react-router/lib/Router';
 import DocumentTitle from 'react-document-title';
 import React from 'react';
 import styled from '@emotion/styled';
+import flatten from 'lodash/flatten';
 
 import {t, tct} from 'app/locale';
 import {IconCheckmark, IconArrow} from 'app/icons';
@@ -26,7 +27,10 @@ import {isIssueAlert} from '../utils';
 import {TableLayout} from './styles';
 import RuleListRow from './row';
 
-const DEFAULT_SORT = {kind: 'desc', field: 'date_added'};
+const DEFAULT_SORT: {asc: boolean; field: 'date_added'} = {
+  asc: false,
+  field: 'date_added',
+};
 const DOCS_URL =
   'https://docs.sentry.io/workflow/alerts-notifications/alerts/?_ga=2.21848383.580096147.1592364314-1444595810.1582160976';
 
@@ -47,7 +51,9 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
       [
         'ruleList',
         `/organizations/${params && params.orgId}/combined-rules/`,
-        {query: {...query}},
+        {
+          query,
+        },
       ],
     ];
   }
@@ -96,26 +102,15 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     const {orgId} = this.props.params;
     const {query} = this.props.location;
 
-    // TODO(scttcper)
-    // const allProjectsFromIncidents = new Set(
-    //   flatten(ruleList?.map(({projects}) => projects))
-    // );
-    const allProjectsFromIncidents = new Set(['earth']);
+    const allProjectsFromIncidents = new Set(
+      flatten(ruleList?.map(({projects}) => projects))
+    );
 
-    let sort = DEFAULT_SORT;
-    if (query.sort) {
-      if (query.sort.startsWith('-')) {
-        sort = {
-          kind: 'desc',
-          field: query.sort.substring(1),
-        };
-      } else {
-        sort = {
-          kind: 'asc',
-          field: query.sort,
-        };
-      }
-    }
+    const sort = {
+      ...DEFAULT_SORT,
+      asc: query.asc === '1',
+      // Currently only supported sorting field is 'date_added'
+    };
 
     return (
       <React.Fragment>
@@ -131,46 +126,44 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
                   to={{
                     pathname: `/organizations/${orgId}/alerts/rules/`,
                     query: {
-                      sort:
-                        sort.field === 'date_added' && sort.kind === 'desc'
-                          ? 'date_added'
-                          : '-date_added',
+                      asc: sort.asc ? undefined : '1',
                     },
                   }}
                 >
                   {t('Created')}{' '}
-                  {sort.field === 'date_added' && (
-                    <IconArrow
-                      color="gray500"
-                      size="xs"
-                      direction={sort.kind === 'desc' ? 'down' : 'up'}
-                    />
-                  )}
+                  <IconArrow
+                    color="gray500"
+                    size="xs"
+                    direction={sort.asc ? 'up' : 'down'}
+                  />
                 </StyledSortLink>
               </div>
               <div>{t('Actions')}</div>
             </TableLayout>
           </PanelHeader>
 
-          {loading && <LoadingIndicator />}
-          {(!loading && this.tryRenderEmpty()) ?? (
-            <PanelBody>
-              <Projects orgId={orgId} slugs={Array.from(allProjectsFromIncidents)}>
-                {({initiallyLoaded, projects}) =>
-                  ruleList.map(rule => (
-                    <RuleListRow
-                      // Metric and issue alerts can have the same id
-                      key={`${isIssueAlert(rule) ? 'metric' : 'issue'}-${rule.id}`}
-                      projectsLoaded={initiallyLoaded}
-                      projects={projects as Project[]}
-                      rule={rule}
-                      orgId={orgId}
-                      onDelete={this.handleDeleteRule}
-                    />
-                  ))
-                }
-              </Projects>
-            </PanelBody>
+          {loading ? (
+            <LoadingIndicator />
+          ) : (
+            this.tryRenderEmpty() ?? (
+              <PanelBody>
+                <Projects orgId={orgId} slugs={Array.from(allProjectsFromIncidents)}>
+                  {({initiallyLoaded, projects}) =>
+                    ruleList.map(rule => (
+                      <RuleListRow
+                        // Metric and issue alerts can have the same id
+                        key={`${isIssueAlert(rule) ? 'metric' : 'issue'}-${rule.id}`}
+                        projectsLoaded={initiallyLoaded}
+                        projects={projects as Project[]}
+                        rule={rule}
+                        orgId={orgId}
+                        onDelete={this.handleDeleteRule}
+                      />
+                    ))
+                  }
+                </Projects>
+              </PanelBody>
+            )
           )}
         </Panel>
 

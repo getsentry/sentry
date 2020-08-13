@@ -9,7 +9,6 @@ import {PanelItem} from 'app/components/panels';
 import {Project} from 'app/types';
 import {IssueAlertRule} from 'app/types/alerts';
 import Access from 'app/components/acl/access';
-import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import Confirm from 'app/components/confirm';
@@ -19,7 +18,6 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 
 import {isIssueAlert} from '../utils';
-import {IncidentStats} from '../types';
 import {TableLayout} from './styles';
 
 type Props = {
@@ -28,11 +26,9 @@ type Props = {
   projectsLoaded: boolean;
   orgId: string;
   onDelete: (projectId: string, ruleId: string) => void;
-} & AsyncComponent['props'];
+};
 
-type State = {
-  stats: IncidentStats;
-} & AsyncComponent['state'];
+type State = {};
 
 class RuleListRow extends React.Component<Props, State> {
   /**
@@ -44,11 +40,8 @@ class RuleListRow extends React.Component<Props, State> {
 
   render() {
     const {rule, projectsLoaded, projects, orgId, onDelete} = this.props;
-    // const {error, stats} = this.state;
     const created = moment(rule.dateCreated).format('ll');
-    // TODO(scttcper):
-    // const slug = incident.projects[0];
-    const slug = 'earth';
+    const slug = rule.projects[0];
 
     return (
       <ErrorBoundary>
