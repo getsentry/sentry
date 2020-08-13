@@ -10,8 +10,6 @@ export enum GPUKnownDataType {
   API_TYPE = 'api_type',
 }
 
-export enum GPUIgnoredDataType {}
-
 export type GPUData = {
   id: number;
   vendor_id: number;
