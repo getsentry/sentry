@@ -1062,19 +1062,14 @@ def create_alert_rule_trigger_action(
         # Use the channel name for display
         target_display = target_identifier
 
-        if type == AlertRuleTriggerAction.Type.PAGERDUTY:
-            try:
-                service = PagerDutyService.objects.get(id=target_display)
-                target_display = service.service_name
-                target_identifier = service.id
-            except PagerDutyService.DoesNotExist:
-                raise InvalidTriggerActionError("No PagerDuty service found.")
-        else:
-            channel_id = get_alert_rule_trigger_action_integration_object_id(
-                type.value, trigger.alert_rule.organization, integration.id, target_identifier
-            )
+        channel_id = get_alert_rule_trigger_action_integration_object_id(
+            type.value, trigger.alert_rule.organization, integration.id, target_identifier
+        )
+        target_identifier = channel_id
 
-            target_identifier = channel_id
+        if type == AlertRuleTriggerAction.Type.PAGERDUTY:
+            target_display = channel_id.service_name
+            target_identifier = channel_id.id
 
     return AlertRuleTriggerAction.objects.create(
         alert_rule_trigger=trigger,
@@ -1112,22 +1107,20 @@ def update_alert_rule_trigger_action(
         if type in AlertRuleTriggerAction.INTEGRATION_TYPES:
             integration = updated_fields.get("integration", trigger_action.integration)
             organization = trigger_action.alert_rule_trigger.alert_rule.organization
+
+            channel_id = get_alert_rule_trigger_action_integration_object_id(
+                type, organization, integration.id, target_identifier,
+            )
+            # Use the target identifier for display
+            updated_fields["target_display"] = target_identifier
+            updated_fields["target_identifier"] = channel_id
+
             if type == trigger_action.Type.PAGERDUTY.value:
-                try:
-                    service = PagerDutyService.objects.get(id=target_identifier)
-                    updated_fields["target_display"] = service.service_name
-                    updated_fields["target_identifier"] = service.id
-                except PagerDutyService.DoesNotExist:
-                    raise InvalidTriggerActionError("No PagerDuty service found.")
-            else:
-                channel_id = get_alert_rule_trigger_action_integration_object_id(
-                    type, organization, integration.id, target_identifier,
-                )
-                # Use the target identifier for display
-                updated_fields["target_display"] = target_identifier
-                updated_fields["target_identifier"] = channel_id
+                updated_fields["target_display"] = channel_id.service_name
+                updated_fields["target_identifier"] = channel_id.id
         else:
             updated_fields["target_identifier"] = target_identifier
+
     trigger_action.update(**updated_fields)
     return trigger_action
 
@@ -1137,6 +1130,8 @@ def get_alert_rule_trigger_action_integration_object_id(type, *args, **kwargs):
         return get_alert_rule_trigger_action_slack_channel_id(*args, **kwargs)
     elif type == AlertRuleTriggerAction.Type.MSTEAMS.value:
         return get_alert_rule_trigger_action_msteams_channel_id(*args, **kwargs)
+    elif type == AlertRuleTriggerAction.Type.PAGERDUTY.value:
+        return get_alert_rule_trigger_action_pagerduty_service(*args, **kwargs)
     else:
         raise Exception("Not implemented")
 
@@ -1179,6 +1174,18 @@ def get_alert_rule_trigger_action_msteams_channel_id(organization, integration_i
         raise InvalidTriggerActionError("Could not find channel %s." % name)
 
     return channel_id
+
+
+def get_alert_rule_trigger_action_pagerduty_service(
+    organization, integration_id, target_identifier
+):
+    try:
+        service = PagerDutyService.objects.get(id=target_identifier)
+
+    except PagerDutyService.DoesNotExist:
+        raise InvalidTriggerActionError("No PagerDuty service found.")
+
+    return service
 
 
 def delete_alert_rule_trigger_action(trigger_action):

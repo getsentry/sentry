@@ -23,7 +23,7 @@ class AlertRuleTriggerActionSerializer(Serializer):
         elif action.type == action.Type.MSTEAMS.value:
             return "Send a Microsoft Teams notification to " + action.target_display
 
-    def format_target_identifier(self, action):
+    def get_identifier_from_action(self, action):
         target_identifier = (
             action.target_display if action.target_display is not None else action.target_identifier
         )
@@ -44,7 +44,7 @@ class AlertRuleTriggerActionSerializer(Serializer):
             "targetType": action_target_type_to_string[
                 AlertRuleTriggerAction.TargetType(obj.target_type)
             ],
-            "targetIdentifier": self.format_target_identifier(obj),
+            "targetIdentifier": self.get_identifier_from_action(obj),
             "integrationId": obj.integration_id,
             "dateCreated": obj.date_added,
             "desc": self.human_desc(obj),

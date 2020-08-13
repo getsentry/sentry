@@ -32,7 +32,15 @@ class OrganizationAlertRuleAvailableActionIndexEndpoint(OrganizationEndpoint):
             for target_type in registered_type.supported_target_types
         ]
 
-        input_type = "select" if registered_type.slug in ["pagerduty", "email"] else "text"
+        input_type = (
+            "select"
+            if registered_type.type.value
+            in [
+                AlertRuleTriggerAction.Type.PAGERDUTY.value,
+                AlertRuleTriggerAction.Type.EMAIL.value,
+            ]
+            else "text"
+        )
 
         action_response = {
             "type": registered_type.slug,
