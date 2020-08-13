@@ -90,6 +90,12 @@ class SlackEventEndpoint(Endpoint):
         except (TypeError, ValueError):
             return None, None
 
+    def _get_access_token(self, integration):
+        # the classic bot tokens must use the user auth token for URL unfurling
+        # we stored the user_access_token there
+        # but for workspace apps and new slack bot tokens, we can just use access_token
+        return integration.metadata.get("user_access_token") or integration.metadata["access_token"]
+
     def on_url_verification(self, request, data):
         return self.respond({"challenge": data["challenge"]})
 
@@ -100,9 +106,7 @@ class SlackEventEndpoint(Endpoint):
         if data.get("bot_id"):
             return self.respond()
 
-        access_token = integration.metadata.get("user_access_token")
-        if not access_token:
-            access_token = integration.metadata["access_token"]
+        access_token = self._get_access_token(integration)
 
         headers = {"Authorization": "Bearer %s" % access_token}
         payload = {
@@ -112,7 +116,7 @@ class SlackEventEndpoint(Endpoint):
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": "Want to set up or edit an alert rule? Check out our documentation.",
+                        "text": "Want to learn more about configuring alerts in Sentry? Check out our documentation.",
                     },
                 },
                 {
@@ -155,12 +159,7 @@ class SlackEventEndpoint(Endpoint):
         if not results:
             return
 
-        # the classic bot tokens must use the user auth token for URL unfurling
-        # we stored the user_access_token there
-        # but for workspace apps and new slack bot tokens, we can just use access_token
-        access_token = integration.metadata.get("user_access_token")
-        if not access_token:
-            access_token = integration.metadata["access_token"]
+        access_token = self._get_access_token(integration)
 
         payload = {
             "token": access_token,
