@@ -332,7 +332,13 @@ function jaroSimilarity(thisString: string, otherString: string): number {
 
   let jaroDistance: number = jaro(thisString, otherString).distance;
 
+  // Constant scaling factor for how much the score is adjusted upwards for having common prefixes.
+  // This is only used for the Jaro–Winkler Similarity procedure.
   const scalingFactor = 0.1;
+
+  // boostThreshold is the upper bound threshold of which if the Jaro score was less-than or equal
+  // to boostThreshold, then the Jaro–Winkler Similarity procedure is applied. Otherwise,
+  // 1 - jaroDistance is returned.
   const boostThreshold = 0.3;
 
   if (jaroDistance > boostThreshold) {
