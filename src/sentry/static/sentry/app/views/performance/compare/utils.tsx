@@ -9,6 +9,9 @@ import {
   toPercent,
 } from 'app/components/events/interfaces/spans/utils';
 
+// Minimum threshold score for descriptions that are similar.
+const COMMON_SIMILARITY_DESCRIPTION_THRESHOLD = 0.8;
+
 export function isTransactionEvent(event: any): event is SentryTransactionEvent {
   if (!event) {
     return false;
@@ -384,7 +387,7 @@ function matchableSpans({
 
   const score = jaroSimilarity(baselineDescription, regressionDescription);
 
-  return score >= 0.8 ? score : 0;
+  return score >= COMMON_SIMILARITY_DESCRIPTION_THRESHOLD ? score : 0;
 }
 
 function generateMergedSpanId({
