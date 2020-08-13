@@ -50,7 +50,7 @@ const ExceptionStacktraceContent = ({
   }
 
   /**
-   * Armin:
+   * Armin, Markus:
    * If all frames are in app, then no frame is in app.
    * This normally does not matter for the UI but when chained exceptions
    * are used this causes weird behavior where one exception appears to not have a stacktrace.
