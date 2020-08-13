@@ -1,3 +1,5 @@
+import {distance} from 'fastest-levenshtein';
+
 import {SentryTransactionEvent} from 'app/types';
 import {RawSpanType, SpanType} from 'app/components/events/interfaces/spans/types';
 import {
@@ -318,6 +320,23 @@ function createChildPairs({
   };
 }
 
+function stringSimilarity(thisString: string, otherString: string): number {
+  // This is based on the textdistance.levenshtein.normalized_similarity() implementation
+  // within the textdistance library.
+  // See: https://pypi.org/project/textdistance and https://github.com/life4/textdistance
+
+  const maxLength = Math.max(thisString.length, otherString.length);
+
+  if (maxLength === 0) {
+    return 1;
+  }
+
+  const editDistance: number = distance(thisString, otherString);
+  const normalizedDistance = editDistance / maxLength;
+
+  return 1 - normalizedDistance;
+}
+
 function matchableSpans({
   baselineSpan,
   regressionSpan,
@@ -326,9 +345,15 @@ function matchableSpans({
   regressionSpan: SpanType;
 }): boolean {
   const opNamesEqual = baselineSpan.op === regressionSpan.op;
-  const descriptionsEqual = baselineSpan.description === regressionSpan.description;
 
-  return opNamesEqual && descriptionsEqual;
+  const baselineDescription = (baselineSpan.description || '').replace(/\s+/g, '');
+  const regressionDescription = (regressionSpan.description || '').replace(/\s+/g, '');
+
+  const score = stringSimilarity(baselineDescription, regressionDescription);
+
+  const descriptionsSimilar = score >= 0.5;
+
+  return opNamesEqual && descriptionsSimilar;
 }
 
 function generateMergedSpanId({
