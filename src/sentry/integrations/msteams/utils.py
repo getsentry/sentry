@@ -5,8 +5,16 @@ import six
 
 from django.http import Http404
 
-from sentry.models import Integration, Project, GroupStatus, Organization, IdentityProvider
-from sentry.utils.compat import filter
+from sentry.models import (
+    Integration,
+    Project,
+    GroupStatus,
+    Organization,
+    IdentityProvider,
+    GroupAssignee,
+    Team,
+)
+from sentry.utils.compat import filter, map
 from sentry.utils.http import absolute_uri
 from .client import MsTeamsClient
 
@@ -14,16 +22,50 @@ MSTEAMS_MAX_ITERS = 100
 ME = "ME"
 
 
+def generate_action_payload(action_type, event, rules):
+    # we need nested data or else Teams won't handle the payload correctly
+    rule_ids = map(lambda x: x.id, rules)
+    return {
+        "payload": {
+            "actionType": action_type,
+            "groupId": event.group.id,
+            "eventId": event.event_id,
+            "rules": rule_ids,
+        }
+    }
+
+
+# get the string of the assignee
+# if a user, show the email address
+# if a team, show the team slug prepended with a #
+def get_assignee_string(group):
+    try:
+        actor = GroupAssignee.objects.get(group=group).assigned_actor()
+    except GroupAssignee.DoesNotExist:
+        return None
+
+    try:
+        assigned_actor = actor.resolve()
+    except assigned_actor.type.DoesNotExist:
+        return None
+
+    if actor.type == Team:
+        return u"#{}".format(assigned_actor.slug)
+    else:
+        return six.text_type(assigned_actor)
+
+
 # MS Teams will convert integers into strings
 # in value inputs sent in adaptive cards,
 # may as well just do that here first.
-# Subclasses six.binary_type to appease
+# Subclasses six.text_type to appease
 # json loader for testing.
-class ACTION_TYPE(six.binary_type, enum.Enum):
+class ACTION_TYPE(six.text_type, enum.Enum):
     RESOLVE = "1"
     IGNORE = "2"
     ASSIGN = "3"
     UNRESOLVE = "4"
+    UNASSIGN = "5"
 
 
 def channel_filter(channel, name):
@@ -211,7 +253,7 @@ def build_group_footer(group, rules, project):
     return {"type": "ColumnSet", "columns": [image_column, text_column, date_column]}
 
 
-def build_group_actions(group):
+def build_group_actions(group, event, rules):
     status = group.get_status()
 
     # These targets are made so that the button will toggle its element
@@ -259,7 +301,7 @@ def build_group_actions(group):
         resolve_action = {
             "type": "Action.Submit",
             "title": "Unresolve",
-            "data": {"actionType": ACTION_TYPE.UNRESOLVE, "groupId": group.id},
+            "data": generate_action_payload(ACTION_TYPE.UNRESOLVE, event, rules),
         }
     else:
         resolve_action = {
@@ -272,7 +314,7 @@ def build_group_actions(group):
         ignore_action = {
             "type": "Action.Submit",
             "title": "Stop Ignoring",
-            "data": {"actionType": ACTION_TYPE.UNRESOLVE, "groupId": group.id},
+            "data": generate_action_payload(ACTION_TYPE.UNRESOLVE, event, rules),
         }
     else:
         ignore_action = {
@@ -281,12 +323,19 @@ def build_group_actions(group):
             "targetElements": ignore_targets,
         }
 
-    assign_text = "Assign"
-    assign_action = {
-        "type": "Action.ToggleVisibility",
-        "title": assign_text,
-        "targetElements": assign_targets,
-    }
+    if get_assignee_string(group):
+        assign_action = {
+            "type": "Action.Submit",
+            "title": "Unassign",
+            "data": generate_action_payload(ACTION_TYPE.UNASSIGN, event, rules),
+        }
+    else:
+        assign_text = "Assign"
+        assign_action = {
+            "type": "Action.ToggleVisibility",
+            "title": assign_text,
+            "targetElements": assign_targets,
+        }
 
     return {
         "type": "ColumnSet",
@@ -294,23 +343,23 @@ def build_group_actions(group):
             {
                 "type": "Column",
                 "items": [{"type": "ActionSet", "actions": [resolve_action]}],
-                "width": "stretch",
+                "width": "auto",
             },
             {
                 "type": "Column",
                 "items": [{"type": "ActionSet", "actions": [ignore_action]}],
-                "width": "stretch",
+                "width": "auto",
             },
             {
                 "type": "Column",
                 "items": [{"type": "ActionSet", "actions": [assign_action]}],
-                "width": "stretch",
+                "width": "auto",
             },
         ],
     }
 
 
-def build_group_resolve_card(group):
+def build_group_resolve_card(group, event, rules):
     title_card = {
         "type": "TextBlock",
         "size": "Large",
@@ -340,7 +389,7 @@ def build_group_resolve_card(group):
             {
                 "type": "Action.Submit",
                 "title": "Resolve",
-                "data": {"actionType": ACTION_TYPE.RESOLVE, "groupId": group.id},
+                "data": generate_action_payload(ACTION_TYPE.RESOLVE, event, rules),
             }
         ],
     }
@@ -348,7 +397,7 @@ def build_group_resolve_card(group):
     return [title_card, input_card, submit_card]
 
 
-def build_group_ignore_card(group):
+def build_group_ignore_card(group, event, rules):
     title_card = {
         "type": "TextBlock",
         "size": "Large",
@@ -381,7 +430,7 @@ def build_group_ignore_card(group):
             {
                 "type": "Action.Submit",
                 "title": "Ignore",
-                "data": {"actionType": ACTION_TYPE.IGNORE, "groupId": group.id},
+                "data": generate_action_payload(ACTION_TYPE.IGNORE, event, rules),
             }
         ],
     }
@@ -389,7 +438,7 @@ def build_group_ignore_card(group):
     return [title_card, input_card, submit_card]
 
 
-def build_group_assign_card(group):
+def build_group_assign_card(group, event, rules):
     teams = [
         {"title": u"#{}".format(u.slug), "value": u"team:{}".format(u.id)}
         for u in group.project.teams.all()
@@ -421,7 +470,7 @@ def build_group_assign_card(group):
             {
                 "type": "Action.Submit",
                 "title": "Assign",
-                "data": {"actionType": ACTION_TYPE.ASSIGN, "groupId": group.id},
+                "data": generate_action_payload(ACTION_TYPE.ASSIGN, event, rules),
             }
         ],
     }
@@ -429,16 +478,23 @@ def build_group_assign_card(group):
     return [title_card, input_card, submit_card]
 
 
-def build_group_action_cards(group):
+def build_group_action_cards(group, event, rules):
     status = group.get_status()
     action_cards = []
     if status != GroupStatus.RESOLVED:
-        action_cards += build_group_resolve_card(group)
+        action_cards += build_group_resolve_card(group, event, rules)
     if status != GroupStatus.IGNORED:
-        action_cards += build_group_ignore_card(group)
-    action_cards += build_group_assign_card(group)
+        action_cards += build_group_ignore_card(group, event, rules)
+    action_cards += build_group_assign_card(group, event, rules)
 
     return {"type": "ColumnSet", "columns": [{"type": "Column", "items": action_cards}]}
+
+
+def build_assignee_note(group):
+    assignee = get_assignee_string(group)
+    if not assignee:
+        return None
+    return {"type": "TextBlock", "size": "Small", "text": "**Assigned to %s**" % (assignee)}
 
 
 def build_group_card(group, event, rules):
@@ -454,10 +510,14 @@ def build_group_card(group, event, rules):
     footer = build_group_footer(group, rules, project)
     body.append(footer)
 
-    actions = build_group_actions(group)
+    assignee_note = build_assignee_note(group)
+    if assignee_note:
+        body.append(assignee_note)
+
+    actions = build_group_actions(group, event, rules)
     body.append(actions)
 
-    action_cards = build_group_action_cards(group)
+    action_cards = build_group_action_cards(group, event, rules)
     body.append(action_cards)
 
     return {"type": "AdaptiveCard", "body": body}
