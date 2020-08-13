@@ -40,7 +40,7 @@ ONE_MINUTE = 60
 ONE_HOUR = ONE_MINUTE * 60
 ONE_DAY = ONE_HOUR * 24
 
-LINK_HEADER = '<{uri}&cursor={cursor}>; rel="{name}"; results="{has_results}"; cursor="{cursor}"'
+LINK_HEADER = u'<{uri}&cursor={cursor}>; rel="{name}"; results="{has_results}"; cursor="{cursor}"'
 
 DEFAULT_AUTHENTICATION = (TokenAuthentication, ApiKeyAuthentication, SessionAuthentication)
 
