@@ -71,7 +71,6 @@
     "echarts-for-react": "2.0.16",
     "emotion": "10.0.27",
     "emotion-theming": "10.0.27",
-    "fastest-levenshtein": "^1.0.12",
     "file-loader": "^3.0.1",
     "focus-visible": "^5.0.2",
     "fork-ts-checker-webpack-plugin": "^1.5.1",

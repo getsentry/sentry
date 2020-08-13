@@ -1,4 +1,3 @@
-import {distance} from 'fastest-levenshtein';
 import jaro from 'wink-jaro-distance';
 
 import {SentryTransactionEvent} from 'app/types';
@@ -324,23 +323,6 @@ function createChildPairs({
   };
 }
 
-function stringSimilarity(thisString: string, otherString: string): number {
-  // This is based on the textdistance.levenshtein.normalized_similarity() implementation
-  // within the textdistance library.
-  // See: https://pypi.org/project/textdistance and https://github.com/life4/textdistance
-
-  const maxLength = Math.max(thisString.length, otherString.length);
-
-  if (maxLength === 0) {
-    return 1;
-  }
-
-  const editDistance: number = distance(thisString, otherString);
-  const normalizedDistance = editDistance / maxLength;
-
-  return 1 - normalizedDistance;
-}
-
 function jaroSimilarity(thisString: string, otherString: string): number {
   // based on https://winkjs.org/wink-distance/string-jaro-winkler.js.html
   // and https://en.wikipedia.org/wiki/Jaro%E2%80%93Winkler_distance
@@ -394,7 +376,6 @@ function matchableSpans({
     .replace(/\s+/g, '')
     .toLowerCase();
 
-  // const score = stringSimilarity(baselineDescription, regressionDescription);
   const score = jaroSimilarity(baselineDescription, regressionDescription);
 
   return score >= 0.8 ? score : 0;
