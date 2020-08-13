@@ -39,6 +39,7 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
             status__in=[RuleStatus.ACTIVE, RuleStatus.INACTIVE], project__in=project_ids
         )
 
+        is_asc = request.GET.get("asc", False)
         sort_key = request.GET.get("sort", "date_added")
         rule_sort_key = (
             sort_key if sort_key != "name" else "label"
@@ -51,7 +52,7 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
             on_results=lambda x: serialize(x, request.user, CombinedRuleSerializer()),
             default_per_page=25,
             intermediaries=[alert_rule_intermediary, rule_intermediary],
-            desc=True,
+            desc=not is_asc,
         )
 
 
