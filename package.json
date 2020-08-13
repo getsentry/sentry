@@ -129,6 +129,7 @@
     "webpack": "4.42.1",
     "webpack-cli": "3.3.11",
     "webpack-fix-style-only-entries": "^0.2.0",
+    "wink-jaro-distance": "^2.0.0",
     "zxcvbn": "^4.4.2"
   },
   "devDependencies": {
