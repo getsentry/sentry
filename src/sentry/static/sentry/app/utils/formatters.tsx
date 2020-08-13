@@ -47,11 +47,11 @@ function roundWithFixed(
 }
 
 // in milliseconds
-const WEEK = 604800000;
-const DAY = 86400000;
-const HOUR = 3600000;
-const MINUTE = 60000;
-const SECOND = 1000;
+export const WEEK = 604800000;
+export const DAY = 86400000;
+export const HOUR = 3600000;
+export const MINUTE = 60000;
+export const SECOND = 1000;
 
 export function getDuration(
   seconds: number,

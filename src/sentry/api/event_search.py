@@ -159,8 +159,8 @@ duration_format      = ~r"([0-9\.]+)(ms|s|min|m|hr|h|day|d|wk|w)(?=\s|$)"
 # NOTE: the order in which these operators are listed matters
 # because for example, if < comes before <= it will match that
 # even if the operator is <=
-or_operator          = ~r"OR"i
-and_operator         = ~r"AND"i
+or_operator          = ~r"OR(?![^\s])"i
+and_operator         = ~r"AND(?![^\s])"i
 operator             = ">=" / "<=" / ">" / "<" / "=" / "!="
 open_paren           = "("
 closed_paren         = ")"
@@ -275,7 +275,6 @@ class SearchVisitor(NodeVisitor):
             "stack.stack_level",
             "transaction.duration",
             "apdex",
-            "impact",
             "p75",
             "p95",
             "p99",
@@ -1279,7 +1278,7 @@ FUNCTIONS = {
     "percentile": {
         "name": "percentile",
         "args": [DurationColumnNoLookup("column"), NumberRange("percentile", 0, 1)],
-        "aggregate": [u"quantile({percentile:.2f})", u"{column}", None],
+        "aggregate": [u"quantile({percentile:g})", u"{column}", None],
         "result_type": "duration",
     },
     "p50": {
@@ -1340,17 +1339,6 @@ FUNCTIONS = {
         "name": "apdex",
         "args": [NumberRange("satisfaction", 0, None)],
         "transform": u"apdex(duration, {satisfaction:g})",
-        "result_type": "number",
-    },
-    "impact": {
-        "name": "impact",
-        "args": [NumberRange("satisfaction", 0, None)],
-        "calculated_args": [{"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0}],
-        # Snuba is not able to parse Clickhouse infix expressions. We should pass aggregations
-        # in a format Snuba can parse so query optimizations can be applied.
-        # It has a minimal prefix parser though to bridge the gap between the current state
-        # and when we will have an easier syntax.
-        "transform": u"plus(minus(1, divide(plus(countIf(less(duration, {satisfaction:g})),divide(countIf(and(greater(duration, {satisfaction:g}),less(duration, {tolerated:g}))),2)),count())),multiply(minus(1,divide(1,sqrt(uniq(user)))),3))",
         "result_type": "number",
     },
     "user_misery": {

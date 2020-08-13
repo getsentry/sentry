@@ -1,13 +1,13 @@
 import React from 'react';
 
-import {mount, shallow} from 'sentry-test/enzyme';
+import {mount, mountWithTheme} from 'sentry-test/enzyme';
 
 import RadioGroup from 'app/views/settings/components/forms/controls/radioGroup';
 
 describe('RadioGroup', function() {
   it('renders', function() {
     const mock = jest.fn();
-    const wrapper = shallow(
+    const wrapper = mountWithTheme(
       <RadioGroup
         name="radio"
         label="test"
@@ -20,7 +20,7 @@ describe('RadioGroup', function() {
         onChange={mock}
       />
     );
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
   it('renders disabled', function() {
@@ -35,7 +35,7 @@ describe('RadioGroup', function() {
         onChange={mock}
       />
     );
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
 
     expect(wrapper.find('RadioLineText').props().disabled).toBe(true);
     expect(wrapper.find('Radio').props().disabled).toBe(true);
@@ -43,7 +43,7 @@ describe('RadioGroup', function() {
 
   it('can select a different item', function() {
     const mock = jest.fn();
-    const wrapper = shallow(
+    const wrapper = mountWithTheme(
       <RadioGroup
         name="radio"
         label="test"
@@ -56,7 +56,7 @@ describe('RadioGroup', function() {
         onChange={mock}
       />
     );
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
   it('calls onChange when clicked', function() {

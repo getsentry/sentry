@@ -21,6 +21,7 @@ import EventView, {
 } from 'app/utils/discover/eventView';
 import {Column} from 'app/utils/discover/fields';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
+import {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
 import {generateEventSlug, eventDetailsRouteWithEventView} from 'app/utils/discover/urls';
 import {TOP_N, DisplayModes} from 'app/utils/discover/types';
 import withProjects from 'app/utils/withProjects';
@@ -29,9 +30,9 @@ import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactio
 
 import {getExpandedResults, pushEventViewToLocation} from '../utils';
 import ColumnEditModal, {modalCss} from './columnEditModal';
-import {TableColumn, TableData, TableDataRow} from './types';
+import {TableColumn} from './types';
 import HeaderCell from './headerCell';
-import CellAction, {Actions} from './cellAction';
+import CellAction, {Actions, updateQuery} from './cellAction';
 import TableActions from './tableActions';
 
 export type TableViewProps = {
@@ -259,54 +260,6 @@ class TableView extends React.Component<TableViewProps> {
       });
 
       switch (action) {
-        case Actions.ADD:
-          // If the value is null/undefined create a has !has condition.
-          if (value === null || value === undefined) {
-            // Adding a null value is the same as excluding truthy values.
-            // Remove inclusion if it exists.
-            const has = query.getTags('has');
-            if (Array.isArray(has) && has.length) {
-              query.setTag(
-                'has',
-                has.filter(item => item !== column.name)
-              );
-            }
-            query.addTag('!has', [column.name]);
-          } else {
-            // Remove exclusion if it exists.
-            query.removeTag(`!${column.name}`).setTag(column.name, [`${value}`]);
-          }
-          break;
-        case Actions.EXCLUDE:
-          if (value === null || value === undefined) {
-            // Excluding a null value is the same as including truthy values.
-            // Remove exclusion if it exists.
-            const notHas = query.getTags('!has');
-            if (Array.isArray(notHas) && notHas.length) {
-              query.setTag(
-                '!has',
-                notHas.filter(item => item !== column.name)
-              );
-            }
-            query.addTag('has', [column.name]);
-          } else {
-            // Remove positive if it exists.
-            query.removeTag(column.name);
-            // Negations should stack up.
-            const negation = `!${column.name}`;
-            query.addTag(negation, [`${value}`]);
-          }
-          break;
-        case Actions.SHOW_GREATER_THAN: {
-          // Remove query token if it already exists
-          query.setTag(column.name, [`>${value}`]);
-          break;
-        }
-        case Actions.SHOW_LESS_THAN: {
-          // Remove query token if it already exists
-          query.setTag(column.name, [`<${value}`]);
-          break;
-        }
         case Actions.TRANSACTION: {
           const maybeProject = projects.find(project => project.slug === dataRow.project);
 
@@ -360,7 +313,7 @@ class TableView extends React.Component<TableViewProps> {
           return;
         }
         default:
-          throw new Error(`Unknown action type. ${action}`);
+          updateQuery(query, action, column.name, value);
       }
       nextView.query = stringifyQueryObject(query);
 

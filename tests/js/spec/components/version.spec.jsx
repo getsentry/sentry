@@ -11,7 +11,7 @@ describe('Version', () => {
 
   it('renders', () => {
     const wrapper = mount(<Version version={VERSION} />, routerContext);
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
   it('shows correct parsed version', () => {

@@ -1,5 +1,5 @@
 from __future__ import absolute_import
-import json
+
 import pytest
 from uuid import uuid4
 import responses
@@ -9,6 +9,7 @@ from freezegun import freeze_time
 
 import six
 from django.conf import settings
+from django.core import mail
 from django.utils import timezone
 from django.utils.functional import cached_property
 
@@ -69,13 +70,16 @@ from sentry.incidents.models import (
     IncidentStatus,
     IncidentStatusMethod,
     IncidentSubscription,
+    IncidentTrigger,
     IncidentType,
     TimeSeriesSnapshot,
+    TriggerStatus,
 )
 from sentry.snuba.models import QueryDatasets, QuerySubscription
 from sentry.models.integration import Integration
 from sentry.testutils import TestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.utils import json
 from sentry.utils.compat.mock import patch
 from sentry.utils.samples import load_data
 
@@ -1508,3 +1512,79 @@ class MetricTranslationTest(TestCase):
         # Make sure it doesn't do anything wonky running twice:
         translated_2 = translate_aggregate_field(translated, reverse=True)
         assert translated_2 == "count_unique(user)"
+
+
+class TriggerActionTest(TestCase):
+    @fixture
+    def user(self):
+        return self.create_user("test@test.com")
+
+    @fixture
+    def team(self):
+        team = self.create_team()
+        self.create_team_membership(team, user=self.user)
+        return team
+
+    @fixture
+    def project(self):
+        return self.create_project(teams=[self.team], name="foo")
+
+    @fixture
+    def other_project(self):
+        return self.create_project(teams=[self.team], name="other")
+
+    @fixture
+    def rule(self):
+        rule = self.create_alert_rule(
+            projects=[self.project, self.other_project],
+            name="some rule",
+            query="",
+            aggregate="count()",
+            time_window=1,
+            threshold_type=AlertRuleThresholdType.ABOVE,
+            resolve_threshold=10,
+            threshold_period=1,
+        )
+        # Make sure the trigger exists
+        trigger = create_alert_rule_trigger(rule, "hi", 100)
+        create_alert_rule_trigger_action(
+            trigger=trigger,
+            type=AlertRuleTriggerAction.Type.EMAIL,
+            target_type=AlertRuleTriggerAction.TargetType.USER,
+            target_identifier=six.text_type(self.user.id),
+        )
+        return rule
+
+    @fixture
+    def trigger(self):
+        return self.rule.alertruletrigger_set.get()
+
+    def test_rule_updated(self):
+        incident = self.create_incident(alert_rule=self.rule)
+        IncidentTrigger.objects.create(
+            incident=incident, alert_rule_trigger=self.trigger, status=TriggerStatus.ACTIVE.value,
+        )
+
+        with self.tasks(), self.capture_on_commit_callbacks(execute=True):
+            update_alert_rule(self.rule, name="some rule updated")
+
+        out = mail.outbox[0]
+        assert out.to == [self.user.email]
+        assert out.subject == u"[Resolved] {} - {}".format(incident.title, self.project.slug)
+
+    def test_manual_resolve(self):
+        incident = self.create_incident(alert_rule=self.rule)
+        IncidentTrigger.objects.create(
+            incident=incident, alert_rule_trigger=self.trigger, status=TriggerStatus.ACTIVE.value,
+        )
+
+        with self.tasks(), self.capture_on_commit_callbacks(execute=True):
+            update_incident_status(
+                incident=incident,
+                status=IncidentStatus.CLOSED,
+                status_method=IncidentStatusMethod.MANUAL,
+            )
+
+        out = mail.outbox[0]
+        assert out.to == [self.user.email]
+        assert out.subject == u"[Resolved] {} - {}".format(incident.title, self.project.slug)

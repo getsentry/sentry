@@ -31,6 +31,6 @@ describe('SharedGroupDetails', function() {
       <SharedGroupDetails {...props} />,
       TestStubs.routerContext()
     );
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 });

@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from django.core.cache import cache
+from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
 from django.utils import timezone
 
@@ -38,11 +39,22 @@ class EventAttachment(Model):
     __repr__ = sane_repr("event_id", "name", "file_id")
 
     def delete(self, *args, **kwargs):
-        super(EventAttachment, self).delete(*args, **kwargs)
+        rv = super(EventAttachment, self).delete(*args, **kwargs)
 
         # Always prune the group cache. Even if there are more crash reports
         # stored than the now configured limit, the cache will be repopulated
         # with the next incoming crash report.
         cache.delete(get_crashreport_key(self.group_id))
 
-        self.file.delete()
+        try:
+            file = self.file
+        except ObjectDoesNotExist:
+            # It's possible that the File itself was deleted
+            # before we were deleted when the object is in memory
+            # This seems to be a case that happens during deletion
+            # code.
+            pass
+        else:
+            file.delete()
+
+        return rv

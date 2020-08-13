@@ -11,7 +11,9 @@ import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import PanelTable from 'app/components/panels/panelTable';
 import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import {TableData, TableDataRow, TableColumn} from 'app/views/eventsV2/table/types';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
+import CellAction, {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
+import {TableColumn} from 'app/views/eventsV2/table/types';
 import HeaderCell from 'app/views/eventsV2/table/headerCell';
 import EventView, {MetaType} from 'app/utils/discover/eventView';
 import SortLink from 'app/components/gridEditable/sortLink';
@@ -20,14 +22,17 @@ import {getAggregateAlias} from 'app/utils/discover/fields';
 import {generateEventSlug} from 'app/utils/discover/urls';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {decodeScalar} from 'app/utils/queryString';
-import DiscoverQuery from 'app/utils/discover/discoverQuery';
+import DiscoverQuery, {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
+import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import {
   TOP_TRANSACTION_LIMIT,
   TOP_TRANSACTION_FILTERS,
 } from 'app/views/performance/constants';
+import {getHumanDuration} from 'app/components/events/interfaces/spans/utils';
 
-import {GridBodyCell, GridBodyCellNumber, GridHeadCell} from '../styles';
-import {getTransactionDetailsUrl} from '../utils';
+import {GridCell, GridCellNumber} from '../styles';
+import {getTransactionDetailsUrl, getTransactionComparisonUrl} from '../utils';
+import BaselineQuery, {BaselineQueryResults} from './baselineQuery';
 
 type WrapperProps = {
   eventView: EventView;
@@ -69,8 +74,64 @@ class TransactionList extends React.Component<WrapperProps> {
     });
   };
 
-  render() {
+  renderTable(sortedEventView: EventView) {
     const {eventView, location, organization, transactionName} = this.props;
+
+    if (!organization.features.includes('internal-catchall')) {
+      return (
+        <DiscoverQuery
+          location={location}
+          eventView={sortedEventView}
+          orgSlug={organization.slug}
+          limit={TOP_TRANSACTION_LIMIT}
+        >
+          {({isLoading, tableData}) => (
+            <TransactionTable
+              organization={organization}
+              location={location}
+              transactionName={transactionName}
+              eventView={eventView}
+              tableData={tableData}
+              isLoading={isLoading}
+              baselineTransaction={null}
+            />
+          )}
+        </DiscoverQuery>
+      );
+    }
+
+    return (
+      <DiscoverQuery
+        location={location}
+        eventView={sortedEventView}
+        orgSlug={organization.slug}
+        limit={TOP_TRANSACTION_LIMIT}
+      >
+        {({isLoading, tableData}) => (
+          <React.Fragment>
+            <BaselineQuery eventView={sortedEventView} orgSlug={organization.slug}>
+              {baselineQueryProps => {
+                return (
+                  <TransactionTable
+                    organization={organization}
+                    location={location}
+                    transactionName={transactionName}
+                    eventView={eventView}
+                    tableData={tableData}
+                    isLoading={isLoading || baselineQueryProps.isLoading}
+                    baselineTransaction={baselineQueryProps.results}
+                  />
+                );
+              }}
+            </BaselineQuery>
+          </React.Fragment>
+        )}
+      </DiscoverQuery>
+    );
+  }
+
+  render() {
+    const {eventView, location, organization} = this.props;
     const activeFilter = this.getTransactionSort(location);
     const sortedEventView = eventView.withSorts([activeFilter.sort]);
 
@@ -104,23 +165,7 @@ class TransactionList extends React.Component<WrapperProps> {
             </DiscoverButton>
           </HeaderButtonContainer>
         </Header>
-        <DiscoverQuery
-          location={location}
-          eventView={sortedEventView}
-          orgSlug={organization.slug}
-          limit={TOP_TRANSACTION_LIMIT}
-        >
-          {({isLoading, tableData}) => (
-            <TransactionTable
-              organization={organization}
-              location={location}
-              transactionName={transactionName}
-              eventView={eventView}
-              tableData={tableData}
-              isLoading={isLoading}
-            />
-          )}
-        </DiscoverQuery>
+        {this.renderTable(sortedEventView)}
       </React.Fragment>
     );
   }
@@ -131,6 +176,7 @@ type Props = {
   location: Location;
   organization: Organization;
   transactionName: string;
+  baselineTransaction: BaselineQueryResults | null;
 
   isLoading: boolean;
   tableData: TableData | null | undefined;
@@ -146,18 +192,43 @@ class TransactionTable extends React.PureComponent<Props> {
     });
   };
 
+  handleCellAction = (column: TableColumn<React.ReactText>) => {
+    return (action: Actions, value: React.ReactText) => {
+      const {eventView, location} = this.props;
+
+      const searchConditions = tokenizeSearch(eventView.query);
+
+      // remove any event.type queries since it is implied to apply to only transactions
+      searchConditions.removeTag('event.type');
+
+      // no need to include transaction as its already in the query params
+      searchConditions.removeTag('transaction');
+
+      updateQuery(searchConditions, action, column.name, value);
+
+      browserHistory.push({
+        pathname: location.pathname,
+        query: {
+          ...location.query,
+          cursor: undefined,
+          query: stringifyQueryObject(searchConditions),
+        },
+      });
+    };
+  };
+
   renderHeader() {
-    const {eventView, tableData} = this.props;
+    const {eventView, tableData, organization} = this.props;
 
     const tableMeta = tableData?.meta;
     const columnOrder = eventView.getColumns();
     const generateSortLink = () => undefined;
 
-    return columnOrder.map((column, index) => (
+    const headerColumns = columnOrder.map((column, index) => (
       <HeaderCell column={column} tableMeta={tableMeta} key={index}>
         {({align}) => {
           return (
-            <GridHeadCell>
+            <HeadCellContainer>
               <SortLink
                 align={align}
                 title={column.name}
@@ -165,11 +236,29 @@ class TransactionTable extends React.PureComponent<Props> {
                 canSort={false}
                 generateSortLink={generateSortLink}
               />
-            </GridHeadCell>
+            </HeadCellContainer>
           );
         }}
       </HeaderCell>
     ));
+
+    // add baseline transaction column
+
+    if (organization.features.includes('internal-catchall')) {
+      headerColumns.push(
+        <HeadCellContainer key="baseline">
+          <SortLink
+            align="right"
+            title={t('Compared to Baseline')}
+            direction={undefined}
+            canSort={false}
+            generateSortLink={generateSortLink}
+          />
+        </HeadCellContainer>
+      );
+    }
+
+    return headerColumns;
   }
 
   renderResults() {
@@ -201,9 +290,9 @@ class TransactionTable extends React.PureComponent<Props> {
     columnOrder: TableColumn<React.ReactText>[],
     tableMeta: MetaType
   ) {
-    const {organization, location, transactionName} = this.props;
+    const {organization, location, transactionName, baselineTransaction} = this.props;
 
-    return columnOrder.map((column, index) => {
+    const resultsRow = columnOrder.map((column, index) => {
       const field = String(column.key);
       // TODO add a better abstraction for this in fieldRenderers.
       const fieldName = getAggregateAlias(field);
@@ -237,12 +326,67 @@ class TransactionTable extends React.PureComponent<Props> {
 
       const isNumeric = ['integer', 'number', 'duration'].includes(fieldType);
       const key = `${rowIndex}:${column.key}:${index}`;
-      if (isNumeric) {
-        return <GridBodyCellNumber key={key}>{rendered}</GridBodyCellNumber>;
-      }
 
-      return <GridBodyCell key={key}>{rendered}</GridBodyCell>;
+      return (
+        <BodyCellContainer key={key}>
+          <CellAction
+            column={column}
+            dataRow={row}
+            handleCellAction={this.handleCellAction(column)}
+          >
+            {isNumeric ? (
+              <GridCellNumber>{rendered}</GridCellNumber>
+            ) : (
+              <GridCell>{rendered}</GridCell>
+            )}
+          </CellAction>
+        </BodyCellContainer>
+      );
     });
+
+    // add baseline transaction column
+
+    if (organization.features.includes('internal-catchall')) {
+      if (baselineTransaction) {
+        const currentTransactionDuration: number =
+          Number(row['transaction.duration']) || 0;
+
+        const delta = Math.abs(
+          currentTransactionDuration - baselineTransaction['transaction.duration']
+        );
+
+        const relativeSpeed =
+          currentTransactionDuration < baselineTransaction['transaction.duration']
+            ? t('faster')
+            : currentTransactionDuration > baselineTransaction['transaction.duration']
+            ? t('slower')
+            : '';
+
+        const target = getTransactionComparisonUrl({
+          organization,
+          baselineEventSlug: generateEventSlug(baselineTransaction),
+          regressionEventSlug: generateEventSlug(row),
+          transaction: transactionName,
+          query: location.query,
+        });
+
+        resultsRow.push(
+          <BodyCellContainer key={`${rowIndex}-baseline`} style={{textAlign: 'right'}}>
+            <GridCell>
+              <Link to={target} onClick={this.handleViewDetailsClick}>
+                {`${getHumanDuration(delta / 1000)} ${relativeSpeed}`}
+              </Link>
+            </GridCell>
+          </BodyCellContainer>
+        );
+      } else {
+        resultsRow.push(
+          <BodyCellContainer key={`${rowIndex}-baseline`}>-</BodyCellContainer>
+        );
+      }
+    }
+
+    return resultsRow;
   }
 
   render() {
@@ -281,6 +425,15 @@ const Header = styled('div')`
 const HeaderButtonContainer = styled('div')`
   display: flex;
   flex-direction: row;
+`;
+
+const HeadCellContainer = styled('div')`
+  padding: ${space(2)};
+`;
+
+const BodyCellContainer = styled('div')`
+  padding: ${space(1)} ${space(2)};
+  ${overflowEllipsis};
 `;
 
 export default TransactionList;

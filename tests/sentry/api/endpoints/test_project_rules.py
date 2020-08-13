@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
 
-from sentry.models import Environment, Rule
+from sentry.models import Environment, Rule, RuleActivity, RuleActivityType
 from sentry.testutils import APITestCase
 
 
@@ -61,6 +61,7 @@ class CreateProjectRuleTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response.data["id"]
+        assert response.data["createdBy"] == self.user.id
 
         rule = Rule.objects.get(id=response.data["id"])
         assert rule.label == "hello world"
@@ -68,6 +69,9 @@ class CreateProjectRuleTest(APITestCase):
         assert rule.data["actions"] == actions
         assert rule.data["conditions"] == conditions
         assert rule.data["frequency"] == 30
+        assert rule.created_by == self.user
+
+        assert RuleActivity.objects.filter(rule=rule, type=RuleActivityType.CREATED.value).exists()
 
     def test_with_environment(self):
         self.login_as(user=self.user)
@@ -111,6 +115,8 @@ class CreateProjectRuleTest(APITestCase):
         rule = Rule.objects.get(id=response.data["id"])
         assert rule.label == "hello world"
         assert rule.environment_id == Environment.get_or_create(rule.project, "production").id
+
+        assert RuleActivity.objects.filter(rule=rule, type=RuleActivityType.CREATED.value).exists()
 
     def test_with_null_environment(self):
         self.login_as(user=self.user)

@@ -193,6 +193,7 @@ class Results extends React.Component<Props, State> {
     if (eventView.isValid()) {
       return;
     }
+
     // If the view is not valid, redirect to a known valid state.
     const {location, organization, selection} = this.props;
     const nextEventView = EventView.fromNewQueryWithLocation(
@@ -201,6 +202,9 @@ class Results extends React.Component<Props, State> {
     );
     if (nextEventView.project.length === 0 && selection.projects) {
       nextEventView.project = selection.projects;
+    }
+    if (location.query?.query) {
+      nextEventView.query = decodeScalar(location.query.query) || '';
     }
 
     ReactRouter.browserHistory.replace(

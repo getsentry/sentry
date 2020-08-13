@@ -265,7 +265,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
         </StarterButton>
         <StarterButton
           size={this.state.isSmallBanner ? 'xsmall' : undefined}
-          href="https://docs.sentry.io/performance-monitoring/discover-queries/"
+          href="https://docs.sentry.io/product/discover-queries/"
         >
           {t('Read the docs')}
         </StarterButton>

@@ -777,6 +777,17 @@ function routes() {
       />
 
       <Route
+        path="performance/"
+        name={t('Performance')}
+        componentPromise={() =>
+          import(
+            /* webpackChunkName: "OrganizationPerformance" */ 'app/views/settings/organizationPerformance'
+          )
+        }
+        component={errorHandler(LazyLoad)}
+      />
+
+      <Route
         path="settings/"
         componentPromise={() =>
           import(
@@ -1661,6 +1672,24 @@ function routes() {
               componentPromise={() =>
                 import(
                   /* webpackChunkName: "PerformanceTransactionDetails" */ 'app/views/performance/transactionDetails'
+                )
+              }
+              component={errorHandler(LazyLoad)}
+            />
+          </Route>
+          <Route
+            path="/organizations/:orgId/performance/compare/:baselineEventSlug/:regressionEventSlug/"
+            componentPromise={() =>
+              import(
+                /* webpackChunkName: "PerformanceContainer" */ 'app/views/performance'
+              )
+            }
+            component={errorHandler(LazyLoad)}
+          >
+            <IndexRoute
+              componentPromise={() =>
+                import(
+                  /* webpackChunkName: "PerformanceCompareTransactions" */ 'app/views/performance/compare'
                 )
               }
               component={errorHandler(LazyLoad)}

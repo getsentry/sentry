@@ -86,7 +86,7 @@ describe('ExceptionStacktraceContent', () => {
 
   it('default behaviour', () => {
     const wrapper = mount(<ExceptionStacktraceContent {...props} />);
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
   it('should return an emptyRender', () => {

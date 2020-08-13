@@ -1,12 +1,26 @@
 from __future__ import absolute_import
 
-from sentry.models import Integration, Project, GroupStatus
+import enum
+import six
+
+from django.http import Http404
+
+from sentry.models import Integration, Project, GroupStatus, Organization, IdentityProvider
 from sentry.utils.compat import filter
 from sentry.utils.http import absolute_uri
 from .client import MsTeamsClient
 
 MSTEAMS_MAX_ITERS = 100
 ME = "ME"
+
+
+# MS Teams will convert integers into strings in value inputs sent in adaptive
+# cards, may as well just do that here first.
+class ACTION_TYPE(six.text_type, enum.Enum):
+    RESOLVE = "1"
+    IGNORE = "2"
+    ASSIGN = "3"
+    UNRESOLVE = "4"
 
 
 def channel_filter(channel, name):
@@ -242,7 +256,7 @@ def build_group_actions(group):
         resolve_action = {
             "type": "Action.Submit",
             "title": "Unresolve",
-            "data": {"actionType": "unresolve"},
+            "data": {"actionType": ACTION_TYPE.UNRESOLVE, "groupId": group.id},
         }
     else:
         resolve_action = {
@@ -255,7 +269,7 @@ def build_group_actions(group):
         ignore_action = {
             "type": "Action.Submit",
             "title": "Stop Ignoring",
-            "data": {"actionType": "unignore"},
+            "data": {"actionType": ACTION_TYPE.UNRESOLVE, "groupId": group.id},
         }
     else:
         ignore_action = {
@@ -293,7 +307,7 @@ def build_group_actions(group):
     }
 
 
-def build_group_resolve_card():
+def build_group_resolve_card(group):
     title_card = {
         "type": "TextBlock",
         "size": "Large",
@@ -305,7 +319,7 @@ def build_group_resolve_card():
 
     input_card = {
         "type": "Input.ChoiceSet",
-        "value": "0",
+        "value": "resolved",
         "id": "resolveInput",
         "isVisible": False,
         "choices": [
@@ -320,14 +334,18 @@ def build_group_resolve_card():
         "id": "resolveSubmit",
         "isVisible": False,
         "actions": [
-            {"type": "Action.Submit", "title": "Resolve", "data": {"actionType": "resolve"}}
+            {
+                "type": "Action.Submit",
+                "title": "Resolve",
+                "data": {"actionType": ACTION_TYPE.RESOLVE, "groupId": group.id},
+            }
         ],
     }
 
     return [title_card, input_card, submit_card]
 
 
-def build_group_ignore_card():
+def build_group_ignore_card(group):
     title_card = {
         "type": "TextBlock",
         "size": "Large",
@@ -339,7 +357,7 @@ def build_group_ignore_card():
 
     input_card = {
         "type": "Input.ChoiceSet",
-        "value": "0",
+        "value": -1,
         "id": "ignoreInput",
         "isVisible": False,
         "choices": [
@@ -356,7 +374,13 @@ def build_group_ignore_card():
         "type": "ActionSet",
         "id": "ignoreSubmit",
         "isVisible": False,
-        "actions": [{"type": "Action.Submit", "title": "Ignore", "data": {"actionType": "ignore"}}],
+        "actions": [
+            {
+                "type": "Action.Submit",
+                "title": "Ignore",
+                "data": {"actionType": ACTION_TYPE.IGNORE, "groupId": group.id},
+            }
+        ],
     }
 
     return [title_card, input_card, submit_card]
@@ -381,6 +405,7 @@ def build_group_assign_card(group):
     input_card = {
         "type": "Input.ChoiceSet",
         "id": "assignInput",
+        "value": ME,
         "isVisible": False,
         "choices": teams,
     }
@@ -389,7 +414,13 @@ def build_group_assign_card(group):
         "type": "ActionSet",
         "id": "assignSubmit",
         "isVisible": False,
-        "actions": [{"type": "Action.Submit", "title": "Assign", "data": {"actionType": "assign"}}],
+        "actions": [
+            {
+                "type": "Action.Submit",
+                "title": "Assign",
+                "data": {"actionType": ACTION_TYPE.ASSIGN, "groupId": group.id},
+            }
+        ],
     }
 
     return [title_card, input_card, submit_card]
@@ -399,9 +430,9 @@ def build_group_action_cards(group):
     status = group.get_status()
     action_cards = []
     if status != GroupStatus.RESOLVED:
-        action_cards += build_group_resolve_card()
+        action_cards += build_group_resolve_card(group)
     if status != GroupStatus.IGNORED:
-        action_cards += build_group_ignore_card()
+        action_cards += build_group_ignore_card(group)
     action_cards += build_group_assign_card(group)
 
     return {"type": "ColumnSet", "columns": [{"type": "Column", "items": action_cards}]}
@@ -427,3 +458,66 @@ def build_group_card(group, event, rules):
     body.append(action_cards)
 
     return {"type": "AdaptiveCard", "body": body}
+
+
+def build_linking_card(url):
+    desc = {
+        "type": "TextBlock",
+        "size": "Medium",
+        "text": "You need to link your Microsoft Teams account to your Sentry account before you can take action through Teams messages. Please click here to do so.",
+        "wrap": True,
+    }
+    button = {
+        "type": "Action.OpenUrl",
+        "title": "Link Identities",
+        "url": url,
+    }
+    return {
+        "type": "AdaptiveCard",
+        "body": [desc],
+        "actions": [button],
+    }
+
+
+def build_linked_card():
+    image = {
+        "type": "Image",
+        "url": "https://sentry-brand.storage.googleapis.com/sentry-glyph-black.png",
+        "size": "Large",
+    }
+    desc = {
+        "type": "TextBlock",
+        "text": "Your Microsoft Teams identity has been linked to your Sentry account. You're good to go.",
+        "size": "Large",
+        "wrap": True,
+    }
+    body = {
+        "type": "ColumnSet",
+        "columns": [
+            {"type": "Column", "items": [image], "width": "auto"},
+            {"type": "Column", "items": [desc]},
+        ],
+    }
+    return {
+        "type": "AdaptiveCard",
+        "body": [body],
+    }
+
+
+def get_identity(user, organization_id, integration_id):
+    try:
+        organization = Organization.objects.get(id__in=user.get_orgs(), id=organization_id)
+    except Organization.DoesNotExist:
+        raise Http404
+
+    try:
+        integration = Integration.objects.get(id=integration_id, organizations=organization)
+    except Integration.DoesNotExist:
+        raise Http404
+
+    try:
+        idp = IdentityProvider.objects.get(external_id=integration.external_id, type="msteams")
+    except IdentityProvider.DoesNotExist:
+        raise Http404
+
+    return organization, integration, idp

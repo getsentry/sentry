@@ -1,4 +1,5 @@
 import React from 'react';
+import {createFilter} from 'react-select';
 
 import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlider';
 import Alert from 'app/components/alert';
@@ -84,6 +85,9 @@ type BaseField = {
   meta?: string;
 
   selectionInfoFunction?: (props: any) => React.ReactNode;
+
+  stacked?: boolean;
+  flexibleControlStateSize?: boolean;
 };
 
 // TODO(ts): These are field specific props. May not be needed as we convert
@@ -99,6 +103,10 @@ type InputType = {type: 'string' | 'secret'} & {
 
 type SelectControlType = {type: 'choice' | 'select'} & {
   multiple?: boolean;
+
+  options?: Array<{label: string; value: any}>; //for new select
+  defaultOptions?: Array<{label: string; value: any}> | boolean;
+  filterOption?: ReturnType<typeof createFilter>;
 };
 
 type TextareaType = {type: 'textarea'} & {

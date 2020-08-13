@@ -99,7 +99,7 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase):
         }
         self.store_event(data=data, project_id=self.project.id)
         response = self.client.get(
-            self.url, {"query": "event.type:transaction last_seen:>2012-12-31"}, format="json"
+            self.url, {"query": "event.type:transaction last_seen():>2012-12-31"}, format="json"
         )
 
         assert response.status_code == 200, response.content

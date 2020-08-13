@@ -5,7 +5,13 @@ from collections import defaultdict
 import six
 
 from sentry.api.serializers import register, serialize, Serializer
-from sentry.incidents.models import AlertRule, AlertRuleExcludedProjects, AlertRuleTrigger
+from sentry.incidents.models import (
+    AlertRule,
+    AlertRuleActivity,
+    AlertRuleActivityType,
+    AlertRuleExcludedProjects,
+    AlertRuleTrigger,
+)
 from sentry.incidents.logic import translate_aggregate_field
 
 from sentry.models import Rule
@@ -28,14 +34,24 @@ class AlertRuleSerializer(Serializer):
             )
             alert_rule_triggers.append(serialized)
 
+        alert_rule_projects = AlertRule.objects.filter(
+            id__in=[item.id for item in item_list]
+        ).values_list("id", "snuba_query__subscriptions__project__slug")
+        alert_rules = {item.id: item for item in item_list}
+        for alert_rule_id, project_slug in alert_rule_projects:
+            rule_result = result[alert_rules[alert_rule_id]].setdefault("projects", [])
+            rule_result.append(project_slug)
+        for alert_rule_id, user_id in AlertRuleActivity.objects.filter(
+            alert_rule__in=item_list, type=AlertRuleActivityType.CREATED.value
+        ).values_list("alert_rule", "user"):
+            result[alert_rules[alert_rule_id]].update({"created_by": user_id})
+
         return result
 
     def serialize(self, obj, attrs, user):
         env = obj.snuba_query.environment
         # Temporary: Translate aggregate back here from `tags[sentry:user]` to `user` for the frontend.
-
         aggregate = translate_aggregate_field(obj.snuba_query.aggregate, reverse=True)
-
         return {
             "id": six.text_type(obj.id),
             "name": obj.name,
@@ -53,23 +69,18 @@ class AlertRuleSerializer(Serializer):
             "resolution": obj.snuba_query.resolution / 60,
             "thresholdPeriod": obj.threshold_period,
             "triggers": attrs.get("triggers", []),
+            "projects": sorted(attrs["projects"]),
             "includeAllProjects": obj.include_all_projects,
             "dateModified": obj.date_modified,
             "dateCreated": obj.date_added,
+            "createdBy": attrs.get("created_by", None),
         }
 
 
 class DetailedAlertRuleSerializer(AlertRuleSerializer):
     def get_attrs(self, item_list, user, **kwargs):
         result = super(DetailedAlertRuleSerializer, self).get_attrs(item_list, user, **kwargs)
-        alert_rule_projects = AlertRule.objects.filter(
-            id__in=[item.id for item in item_list]
-        ).values_list("id", "snuba_query__subscriptions__project__slug")
         alert_rules = {item.id: item for item in item_list}
-        for alert_rule_id, project_slug in alert_rule_projects:
-            rule_result = result[alert_rules[alert_rule_id]].setdefault("projects", [])
-            rule_result.append(project_slug)
-
         for alert_rule_id, project_slug in AlertRuleExcludedProjects.objects.filter(
             alert_rule__in=item_list
         ).values_list("alert_rule_id", "project__slug"):
@@ -79,7 +90,6 @@ class DetailedAlertRuleSerializer(AlertRuleSerializer):
 
     def serialize(self, obj, attrs, user):
         data = super(DetailedAlertRuleSerializer, self).serialize(obj, attrs, user)
-        data["projects"] = sorted(attrs["projects"])
         data["excludedProjects"] = sorted(attrs.get("excludedProjects", []))
         return data
 
