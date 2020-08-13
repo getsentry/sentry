@@ -227,7 +227,8 @@ def find_histogram_buckets(field, params, conditions):
 
 def zerofill_histogram(results, column_meta, orderby, sentry_function_alias, snuba_function_alias):
     parts = snuba_function_alias.split("_")
-    if len(parts) < 2:
+    # the histogram alias looks like `histogram_column_numbuckets_bucketsize_bucketoffest`
+    if len(parts) < 5 or parts[0] != "histogram":
         raise Exception(u"{} is not a valid histogram alias".format(snuba_function_alias))
 
     bucket_offset, bucket_size, num_buckets = int(parts[-1]), int(parts[-2]), int(parts[-3])
