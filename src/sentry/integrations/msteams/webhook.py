@@ -146,7 +146,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
             # the only message events we care about are those which
             # are from a user submitting an option on a card, which
             # will always contain an "payload.actionType" in the data.
-            if not data["value"].get("payload", {}).get("actionType"):
+            if not data.get("value", {}).get("payload", {}).get("actionType"):
                 return self.respond(status=204)
             return self.handle_action_submitted(request)
         elif data["type"] == "conversationUpdate":
