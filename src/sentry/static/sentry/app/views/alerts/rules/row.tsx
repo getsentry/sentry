@@ -53,7 +53,7 @@ class RuleListRow extends React.Component<Props, State> {
               avatarSize={18}
               project={!projectsLoaded ? {slug} : this.getProject(slug, projects)}
             />
-            <div>Marshawn Lynch</div>
+            {/* <div>TODO(scttcper): created by</div> */}
             <div>{created}</div>
             <Access access={['project:write']}>
               {({hasAccess}) => (
