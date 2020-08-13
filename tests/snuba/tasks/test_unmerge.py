@@ -320,7 +320,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
 
         assert set(
             GroupHash.objects.filter(group_id=source.id).values_list("hash", flat=True)
-        ) == set([list(events.keys())[0], list(events.keys())[1]])
+        ) == set(itertools.islice(events.keys(), 2))
 
         assert set(
             GroupRelease.objects.filter(group_id=source.id).values_list(
