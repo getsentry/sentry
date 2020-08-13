@@ -12,7 +12,9 @@ SALT = "sentry-generic-signing"
 
 
 def sign(**kwargs):
-    return base64.urlsafe_b64encode(TimestampSigner(salt=SALT).sign(dumps(kwargs))).rstrip("=")
+    return base64.urlsafe_b64encode(
+        TimestampSigner(salt=SALT).sign(dumps(kwargs)).encode("utf-8")
+    ).rstrip(b"=")
 
 
 def unsign(data, max_age=60 * 60 * 24 * 2):
@@ -20,5 +22,5 @@ def unsign(data, max_age=60 * 60 * 24 * 2):
 
 
 def urlsafe_b64decode(b64string):
-    padded = b64string + b"=" * (4 - len(b64string) % 4)
+    padded = b64string + "=" * (4 - len(b64string) % 4)
     return base64.urlsafe_b64decode(padded)
