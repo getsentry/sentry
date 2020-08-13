@@ -30,7 +30,7 @@ class TestRateLimited(APITestCase):
         resp = self.get_response()
         assert resp.status_code == 429
 
-        # DRF ceils our configured wait time, this produces a dufferent number
+        # DRF ceils our configured wait time, this produces a different number
         # type between 2 and 3. In 2 this produces a float, in 3 this produces
         # an integer.
         assert resp.data[
