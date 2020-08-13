@@ -1499,7 +1499,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
                 integration=integration,
             )
 
-    def test_pagerduty_2(self):
+    def test_pagerduty(self):
         SERVICES = [
             {
                 "type": "service",
@@ -1538,7 +1538,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
         assert action.target_display == "hellboi"
         assert action.integration == integration
 
-    def test_pagerduty_not_existing_2(self):
+    def test_pagerduty_not_existing(self):
         integration = Integration.objects.create(
             provider="pagerduty", name="Example PagerDuty", external_id="example-pagerduty",
         )

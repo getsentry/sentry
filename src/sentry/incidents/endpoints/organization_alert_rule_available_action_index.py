@@ -11,18 +11,17 @@ from sentry.incidents.endpoints.bases import OrganizationEndpoint
 from sentry.incidents.endpoints.serializers import action_target_type_to_string
 from sentry.incidents.logic import get_available_action_integrations_for_org
 from sentry.incidents.models import AlertRuleTriggerAction
-from sentry.models import OrganizationIntegration, PagerDutyService
+from sentry.models import PagerDutyService
 
 
 class OrganizationAlertRuleAvailableActionIndexEndpoint(OrganizationEndpoint):
     def fetch_pagerduty_services(self, organization, integration_id):
         services = PagerDutyService.objects.filter(
-            organization_integration=OrganizationIntegration.objects.get(
-                organization=organization, integration=integration_id
-            )
-        )
+            organization_integration__organization=organization,
+            organization_integration__integration_id=integration_id,
+        ).values("id", "service_name")
         formatted_services = [
-            {"value": service.id, "label": service.service_name} for service in services
+            {"value": service["id"], "label": service["service_name"]} for service in services
         ]
         return formatted_services
 
@@ -50,7 +49,10 @@ class OrganizationAlertRuleAvailableActionIndexEndpoint(OrganizationEndpoint):
             "inputType": input_type,
         }
 
-        if integration and registered_type.slug == "pagerduty":
+        if (
+            integration
+            and registered_type.type.value == AlertRuleTriggerAction.Type.PAGERDUTY.value
+        ):
             action_response["options"] = self.fetch_pagerduty_services(organization, integration.id)
         return action_response
 

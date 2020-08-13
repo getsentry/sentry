@@ -125,7 +125,7 @@ export type MetricActionTemplate = {
   /**
    * If the inputType is select, these are the options to select from
    */
-  options: Array<Object> | null;
+  options: Array<{label: string; value: any}> | null;
 };
 
 /**
@@ -178,5 +178,5 @@ export type UnsavedAction = {
   /**
    * If the inputType is select, these are the options to select from
    */
-  options: Array<Object> | null;
+  options: Array<{label: string; value: any}> | null;
 };
