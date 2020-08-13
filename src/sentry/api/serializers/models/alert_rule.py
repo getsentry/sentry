@@ -41,6 +41,7 @@ class AlertRuleSerializer(Serializer):
         for alert_rule_id, project_slug in alert_rule_projects:
             rule_result = result[alert_rules[alert_rule_id]].setdefault("projects", [])
             rule_result.append(project_slug)
+
         for alert_rule_id, user_id in AlertRuleActivity.objects.filter(
             alert_rule__in=item_list, type=AlertRuleActivityType.CREATED.value
         ).values_list("alert_rule", "user"):
@@ -69,7 +70,7 @@ class AlertRuleSerializer(Serializer):
             "resolution": obj.snuba_query.resolution / 60,
             "thresholdPeriod": obj.threshold_period,
             "triggers": attrs.get("triggers", []),
-            "projects": sorted(attrs["projects"]),
+            "projects": sorted(attrs.get("projects", [])),
             "includeAllProjects": obj.include_all_projects,
             "dateModified": obj.date_modified,
             "dateCreated": obj.date_added,
