@@ -60,6 +60,8 @@ def get_assignee_string(group):
 # may as well just do that here first.
 # Subclasses six.text_type to appease
 # json loader for testing.
+# MS Teams will convert integers into strings in value inputs sent in adaptive
+# cards, may as well just do that here first.
 class ACTION_TYPE(six.text_type, enum.Enum):
     RESOLVE = "1"
     IGNORE = "2"

@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {shallow, mountWithTheme} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import * as OrgActions from 'app/actionCreators/organizations';
 import {SettingsIndex} from 'app/views/settings/settingsIndex';
@@ -10,13 +10,13 @@ describe('SettingsIndex', function() {
   let wrapper;
 
   it('renders', function() {
-    wrapper = shallow(
+    wrapper = mountWithTheme(
       <SettingsIndex
         router={TestStubs.router()}
         organization={TestStubs.Organization()}
       />
     );
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
   it('has loading when there is no organization', function() {
@@ -30,7 +30,7 @@ describe('SettingsIndex', function() {
   it('has different links for on premise users', function() {
     ConfigStore.set('isOnPremise', true);
 
-    wrapper = shallow(
+    wrapper = mountWithTheme(
       <SettingsIndex
         router={TestStubs.router()}
         organization={TestStubs.Organization()}
