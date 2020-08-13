@@ -1059,8 +1059,6 @@ def create_alert_rule_trigger_action(
         if target_type != AlertRuleTriggerAction.TargetType.SPECIFIC:
             raise InvalidTriggerActionError("Must specify specific target type")
 
-        # Use the channel name for display
-        target_display = target_identifier
         target_identifier, target_display = get_target_identifier_display_for_integration(
             type.value, target_identifier, trigger.alert_rule.organization, integration.id
         )
@@ -1113,16 +1111,19 @@ def update_alert_rule_trigger_action(
 
 
 def get_target_identifier_display_for_integration(type, target_value, *args, **kwargs):
+    # target_value is the Slack username or channel name
     if type == AlertRuleTriggerAction.Type.SLACK.value:
         target_identifier = get_alert_rule_trigger_action_slack_channel_id(
             target_value, *args, **kwargs
         )
+    # target_value is the MSTeams username or channel name
     elif type == AlertRuleTriggerAction.Type.MSTEAMS.value:
         target_identifier = get_alert_rule_trigger_action_msteams_channel_id(
             target_value, *args, **kwargs
         )
+    # target_value is the ID of the PagerDuty service
     elif type == AlertRuleTriggerAction.Type.PAGERDUTY.value:
-        target_value, target_identifier = get_alert_rule_trigger_action_pagerduty_service(
+        target_identifier, target_value = get_alert_rule_trigger_action_pagerduty_service(
             target_value, *args, **kwargs
         )
     else:
@@ -1177,7 +1178,7 @@ def get_alert_rule_trigger_action_pagerduty_service(target_value, organization, 
     except PagerDutyService.DoesNotExist:
         raise InvalidTriggerActionError("No PagerDuty service found.")
 
-    return (service.service_name, service.id)
+    return (service.id, service.service_name)
 
 
 def delete_alert_rule_trigger_action(trigger_action):
