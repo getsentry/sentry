@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import json
 
 import responses
 import six
@@ -28,6 +27,7 @@ from sentry.incidents.models import (
 from sentry.integrations.slack.utils import build_incident_attachment
 from sentry.models import Integration, UserOption
 from sentry.testutils import TestCase
+from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
 

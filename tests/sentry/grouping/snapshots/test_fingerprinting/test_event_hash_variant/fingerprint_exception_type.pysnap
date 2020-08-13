@@ -1,5 +1,5 @@
 ---
-created: '2019-11-01T11:48:29.596222Z'
+created: '2020-07-24T14:06:57.306914Z'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
@@ -14,7 +14,17 @@ config:
 fingerprint:
 - database-unavailable
 variants:
+  app:
+    component:
+      contributes: false
+      hint: custom fingerprint takes precedence
+    type: component
   custom-fingerprint:
     type: custom-fingerprint
     values:
     - database-unavailable
+  system:
+    component:
+      contributes: false
+      hint: custom fingerprint takes precedence
+    type: component

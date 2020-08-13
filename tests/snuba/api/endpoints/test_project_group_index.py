@@ -1,10 +1,11 @@
 from __future__ import absolute_import
 
-import json
 from datetime import timedelta
 from uuid import uuid4
 
 import six
+from six.moves.urllib.parse import quote
+
 from django.conf import settings
 from django.utils import timezone
 from exam import fixture
@@ -34,7 +35,7 @@ from sentry.models import (
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import iso_format, before_now
-from six.moves.urllib.parse import quote
+from sentry.utils import json
 
 
 class GroupListTest(APITestCase, SnubaTestCase):
@@ -984,7 +985,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             event = self.store_event(
                 data={
                     "fingerprint": ["put-me-in-group-1"],
-                    "user": {"id": six.binary_type(i)},
+                    "user": {"id": six.text_type(i).encode("utf-8")},
                     "timestamp": iso_format(self.min_ago + timedelta(seconds=i)),
                 },
                 project_id=self.project.id,
@@ -1383,7 +1384,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
             groups.append(
                 self.create_group(
                     project=self.project,
-                    checksum=six.binary_type(i) * 16,
+                    checksum=six.text_type(i).encode("utf-8") * 16,
                     status=GroupStatus.RESOLVED,
                 )
             )

@@ -159,7 +159,7 @@ class SubscriptionProcessor(object):
                     "result": subscription_update,
                 },
             )
-        aggregation_value = subscription_update["values"]["data"][0].values()[0]
+        aggregation_value = list(subscription_update["values"]["data"][0].values())[0]
         alert_operator, resolve_operator = self.THRESHOLD_TYPE_OPERATORS[
             AlertRuleThresholdType(self.alert_rule.threshold_type)
         ]

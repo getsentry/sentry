@@ -3,17 +3,17 @@ from __future__ import absolute_import
 from datetime import datetime
 
 import dateutil
-from pytz import UTC
 import six
-
+from pytz import UTC
 from base64 import b64encode
-from django.core.urlresolvers import reverse
-from django.core import mail
-from sentry.utils.compat.mock import patch
 from exam import fixture
 from pprint import pprint
-import json
 
+from django.core.urlresolvers import reverse
+from django.core import mail
+
+from sentry.utils import json
+from sentry.utils.compat.mock import patch
 from sentry.api.endpoints.organization_details import ERR_NO_2FA, ERR_SSO_ENABLED
 from sentry.constants import APDEX_THRESHOLD_DEFAULT, RESERVED_ORGANIZATION_SLUGS
 from sentry.models import (

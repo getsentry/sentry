@@ -22,6 +22,7 @@ import space from 'app/styles/space';
 import getDynamicText from 'app/utils/getDynamicText';
 import {TableDataRow} from 'app/utils/discover/discoverQuery';
 import withApi from 'app/utils/withApi';
+import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 
 import {ProcessedSpanType, RawSpanType, ParsedTraceType, rawSpanKeys} from './types';
 import {isGapSpan, isOrphanSpan, getTraceDateTimeRange} from './utils';
@@ -101,7 +102,7 @@ class SpanDetail extends React.Component<Props, State> {
       sort: ['-id'],
       query: `event.type:transaction trace:${traceID} trace.parent_span:${spanID}`,
       project: organization.features.includes('global-views')
-        ? []
+        ? [ALL_ACCESS_PROJECTS]
         : [Number(event.projectID)],
       start,
       end,
@@ -164,7 +165,9 @@ class SpanDetail extends React.Component<Props, State> {
       ],
       orderby: '-timestamp',
       query: `event.type:transaction trace:${span.trace_id} trace.parent_span:${span.span_id}`,
-      projects: orgFeatures.has('global-views') ? [] : [Number(event.projectID)],
+      projects: orgFeatures.has('global-views')
+        ? [ALL_ACCESS_PROJECTS]
+        : [Number(event.projectID)],
       version: 2,
       start,
       end,
@@ -248,7 +251,9 @@ class SpanDetail extends React.Component<Props, State> {
       ],
       orderby: '-timestamp',
       query: `event.type:transaction trace:${span.trace_id}`,
-      projects: orgFeatures.has('global-views') ? [] : [Number(event.projectID)],
+      projects: orgFeatures.has('global-views')
+        ? [ALL_ACCESS_PROJECTS]
+        : [Number(event.projectID)],
       version: 2,
       start,
       end,
@@ -312,7 +317,9 @@ class SpanDetail extends React.Component<Props, State> {
       fields: ['title', 'project', 'issue', 'timestamp'],
       orderby: '-timestamp',
       query: `event.type:error trace:${span.trace_id} trace.span:${span.span_id}`,
-      projects: orgFeatures.has('global-views') ? [] : [Number(event.projectID)],
+      projects: orgFeatures.has('global-views')
+        ? [ALL_ACCESS_PROJECTS]
+        : [Number(event.projectID)],
       version: 2,
       start,
       end,
@@ -474,12 +481,12 @@ const StyledDiscoverButton = styled(DiscoverButton)`
   right: ${space(0.5)};
 `;
 
-const SpanDetailContainer = styled('div')`
+export const SpanDetailContainer = styled('div')`
   border-bottom: 1px solid ${p => p.theme.borderDark};
   cursor: auto;
 `;
 
-const SpanDetails = styled('div')`
+export const SpanDetails = styled('div')`
   padding: ${space(2)};
 `;
 
@@ -494,7 +501,7 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
   margin: 0;
 `;
 
-const Row = ({
+export const Row = ({
   title,
   keep,
   children,
@@ -522,7 +529,7 @@ const Row = ({
   );
 };
 
-const Tags = ({span}: {span: RawSpanType}) => {
+export const Tags = ({span}: {span: RawSpanType}) => {
   const tags: {[tag_name: string]: string} | undefined = span?.tags;
 
   if (!tags) {

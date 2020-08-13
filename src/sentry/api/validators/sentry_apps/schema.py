@@ -1,11 +1,12 @@
 from __future__ import absolute_import
 
 import logging
-import json
 
 from jsonschema import Draft7Validator
 from jsonschema.exceptions import best_match
 from jsonschema.exceptions import ValidationError as SchemaValidationError
+
+from sentry.utils import json
 
 
 logger = logging.getLogger(__name__)
@@ -43,6 +44,8 @@ SCHEMA = {
                 "type": {"type": "string", "enum": ["select"]},
                 "label": {"type": "string"},
                 "name": {"type": "string"},
+                "async": {"type": "boolean"},
+                "skip_load_on_open": {"type": "boolean"},
                 "uri": {"$ref": "#/definitions/uri"},
                 "options": {"$ref": "#/definitions/options"},
                 "depends_on": {"type": "array", "minItems": 1, "items": {"type": "string"}},

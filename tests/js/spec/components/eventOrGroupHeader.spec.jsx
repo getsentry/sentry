@@ -1,6 +1,7 @@
 import React from 'react';
 
-import {shallow} from 'sentry-test/enzyme';
+import {initializeOrg} from 'sentry-test/initializeOrg';
+import {mountWithTheme, shallow} from 'sentry-test/enzyme';
 
 import EventOrGroupHeader from 'app/components/eventOrGroupHeader';
 
@@ -17,6 +18,7 @@ const data = {
 };
 
 describe('EventOrGroupHeader', function() {
+  const {routerContext} = initializeOrg();
   describe('Group', function() {
     const groupData = {
       ...data,
@@ -24,7 +26,7 @@ describe('EventOrGroupHeader', function() {
       id: 'id',
     };
     it('renders with `type = error`', function() {
-      const component = shallow(
+      const component = mountWithTheme(
         <EventOrGroupHeader
           orgId="orgId"
           data={{
@@ -33,14 +35,15 @@ describe('EventOrGroupHeader', function() {
               type: 'error',
             },
           }}
-        />
+        />,
+        routerContext
       );
 
-      expect(component).toMatchSnapshot();
+      expect(component).toSnapshot();
     });
 
     it('renders with `type = csp`', function() {
-      const component = shallow(
+      const component = mountWithTheme(
         <EventOrGroupHeader
           params={{orgId: 'orgId'}}
           data={{
@@ -49,14 +52,15 @@ describe('EventOrGroupHeader', function() {
               type: 'csp',
             },
           }}
-        />
+        />,
+        routerContext
       );
 
-      expect(component).toMatchSnapshot();
+      expect(component).toSnapshot();
     });
 
     it('renders with `type = default`', function() {
-      const component = shallow(
+      const component = mountWithTheme(
         <EventOrGroupHeader
           params={{orgId: 'orgId'}}
           data={{
@@ -65,10 +69,11 @@ describe('EventOrGroupHeader', function() {
               type: 'default',
             },
           }}
-        />
+        />,
+        routerContext
       );
 
-      expect(component).toMatchSnapshot();
+      expect(component).toSnapshot();
     });
   });
 
@@ -82,7 +87,7 @@ describe('EventOrGroupHeader', function() {
     };
 
     it('renders with `type = error`', function() {
-      const component = shallow(
+      const component = mountWithTheme(
         <EventOrGroupHeader
           params={{orgId: 'orgId'}}
           data={{
@@ -91,14 +96,15 @@ describe('EventOrGroupHeader', function() {
               type: 'error',
             },
           }}
-        />
+        />,
+        routerContext
       );
 
-      expect(component).toMatchSnapshot();
+      expect(component).toSnapshot();
     });
 
     it('renders with `type = csp`', function() {
-      const component = shallow(
+      const component = mountWithTheme(
         <EventOrGroupHeader
           params={{orgId: 'orgId'}}
           data={{
@@ -107,14 +113,15 @@ describe('EventOrGroupHeader', function() {
               type: 'csp',
             },
           }}
-        />
+        />,
+        routerContext
       );
 
-      expect(component).toMatchSnapshot();
+      expect(component).toSnapshot();
     });
 
     it('renders with `type = default`', function() {
-      const component = shallow(
+      const component = mountWithTheme(
         <EventOrGroupHeader
           params={{orgId: 'orgId'}}
           data={{
@@ -123,14 +130,15 @@ describe('EventOrGroupHeader', function() {
               type: 'default',
             },
           }}
-        />
+        />,
+        routerContext
       );
 
-      expect(component).toMatchSnapshot();
+      expect(component).toSnapshot();
     });
 
     it('hides level tag', function() {
-      const component = shallow(
+      const component = mountWithTheme(
         <EventOrGroupHeader
           projectId="projectId"
           hideLevel
@@ -140,10 +148,11 @@ describe('EventOrGroupHeader', function() {
               type: 'default',
             },
           }}
-        />
+        />,
+        routerContext
       );
 
-      expect(component).toMatchSnapshot();
+      expect(component).toSnapshot();
     });
 
     it('keeps sort in link when query has sort', function() {

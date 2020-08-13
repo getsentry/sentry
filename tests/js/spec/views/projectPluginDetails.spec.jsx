@@ -65,7 +65,7 @@ describe('ProjectPluginDetails', function() {
   });
 
   it('renders', function() {
-    expect(component).toMatchSnapshot();
+    expect(component).toSnapshot();
   });
 
   it('resets plugin', function() {
