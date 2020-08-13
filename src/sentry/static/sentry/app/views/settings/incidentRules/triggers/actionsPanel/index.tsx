@@ -2,6 +2,23 @@ import React from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
+import {addErrorMessage} from 'app/actionCreators/indicator';
+import Button from 'app/components/button';
+import SelectControl from 'app/components/forms/selectControl';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
+import SelectMembers from 'app/components/selectMembers';
+import {IconAdd} from 'app/icons';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
+import {Organization, Project, SelectValue} from 'app/types';
+import {removeAtArrayIndex} from 'app/utils/removeAtArrayIndex';
+import {replaceAtArrayIndex} from 'app/utils/replaceAtArrayIndex';
+import withOrganization from 'app/utils/withOrganization';
+import Input from 'app/views/settings/components/forms/controls/input';
+import FieldHelp from 'app/views/settings/components/forms/field/fieldHelp';
+import FieldLabel from 'app/views/settings/components/forms/field/fieldLabel';
+import DeleteActionButton from 'app/views/settings/incidentRules/triggers/actionsPanel/deleteActionButton';
 import {
   Action,
   ActionType,
@@ -9,23 +26,6 @@ import {
   TargetType,
   Trigger,
 } from 'app/views/settings/incidentRules/types';
-import {Organization, Project, SelectValue} from 'app/types';
-import {IconAdd} from 'app/icons';
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import {removeAtArrayIndex} from 'app/utils/removeAtArrayIndex';
-import {replaceAtArrayIndex} from 'app/utils/replaceAtArrayIndex';
-import {t} from 'app/locale';
-import DeleteActionButton from 'app/views/settings/incidentRules/triggers/actionsPanel/deleteActionButton';
-import Input from 'app/views/settings/components/forms/controls/input';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import SelectControl from 'app/components/forms/selectControl';
-import SelectMembers from 'app/components/selectMembers';
-import space from 'app/styles/space';
-import withOrganization from 'app/utils/withOrganization';
-import FieldLabel from 'app/views/settings/components/forms/field/fieldLabel';
-import FieldHelp from 'app/views/settings/components/forms/field/fieldHelp';
-import Button from 'app/components/button';
 
 const ActionLabel = {
   [ActionType.EMAIL]: t('E-mail'),
