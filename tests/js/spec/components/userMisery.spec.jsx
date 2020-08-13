@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {shallow} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ScoreBar from 'app/components/scoreBar';
 import UserMisery from 'app/components/userMisery';
@@ -11,7 +11,7 @@ describe('UserMisery', function() {
   afterEach(function() {});
 
   it('renders no bars when miserable users is zero', function() {
-    const wrapper = shallow(
+    const wrapper = mountWithTheme(
       <UserMisery
         bars={10}
         barHeight={20}
@@ -24,7 +24,7 @@ describe('UserMisery', function() {
   });
 
   it('renders one bar when miserable users are close to zero', function() {
-    const wrapper = shallow(
+    const wrapper = mountWithTheme(
       <UserMisery
         bars={10}
         barHeight={20}

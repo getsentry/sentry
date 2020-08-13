@@ -39,6 +39,7 @@ import Tags from './tags';
 import ResultsHeader from './resultsHeader';
 import ResultsChart from './resultsChart';
 import {generateTitle} from './utils';
+import {addRoutePerformanceContext} from '../performance/utils';
 
 type Props = {
   api: Client;
@@ -85,6 +86,7 @@ class Results extends React.Component<Props, State> {
   componentDidMount() {
     const {api, organization, selection} = this.props;
     loadOrganizationTags(api, organization.slug, selection);
+    addRoutePerformanceContext(selection);
     this.checkEventView();
     this.canLoadEvents();
   }
@@ -105,6 +107,7 @@ class Results extends React.Component<Props, State> {
       !isEqual(prevProps.selection.projects, selection.projects)
     ) {
       loadOrganizationTags(api, organization.slug, selection);
+      addRoutePerformanceContext(selection);
     }
 
     if (prevState.confirmedQuery !== confirmedQuery) this.fetchTotalCount();
@@ -193,6 +196,7 @@ class Results extends React.Component<Props, State> {
     if (eventView.isValid()) {
       return;
     }
+
     // If the view is not valid, redirect to a known valid state.
     const {location, organization, selection} = this.props;
     const nextEventView = EventView.fromNewQueryWithLocation(
@@ -201,6 +205,9 @@ class Results extends React.Component<Props, State> {
     );
     if (nextEventView.project.length === 0 && selection.projects) {
       nextEventView.project = selection.projects;
+    }
+    if (location.query?.query) {
+      nextEventView.query = decodeScalar(location.query.query) || '';
     }
 
     ReactRouter.browserHistory.replace(

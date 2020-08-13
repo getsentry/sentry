@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {mountWithTheme, shallow} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import GuideActions from 'app/actions/guideActions';
@@ -107,7 +107,7 @@ describe('GuideAnchor', function() {
   });
 
   it('renders no container when inactive', function() {
-    wrapper = shallow(
+    wrapper = mountWithTheme(
       <GuideAnchor target="target 1">
         <span>A child</span>
       </GuideAnchor>

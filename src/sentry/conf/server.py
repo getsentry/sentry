@@ -1369,6 +1369,14 @@ SENTRY_ENCRYPTION_SCHEMES = (
 )
 
 # Delay (in ms) to induce on API responses
+#
+# Simulates a small amount of lag which helps uncover more obvious race
+# conditions in UI interactions. It's also needed to test (or implement) any
+# kind of loading scenarios. Without this we will just implicitly lower the
+# overall quality of software we ship because we will not experience it in the
+# same way we would in production.
+#
+# See discussion on https://github.com/getsentry/sentry/pull/20187
 SENTRY_API_RESPONSE_DELAY = 150 if IS_DEV else None
 
 # Watchers for various application purposes (such as compiling static media)
@@ -1572,6 +1580,7 @@ def get_sentry_sdk_config():
         "release": sentry.__build__,
         "environment": ENVIRONMENT,
         "in_app_include": ["sentry", "sentry_plugins"],
+        "_experiments": {"smart_transaction_trimming": True},
         "debug": True,
         "send_default_pii": True,
     }

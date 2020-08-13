@@ -347,14 +347,14 @@ describe('EventView.fromSavedQuery()', function() {
 
     const eventView2 = EventView.fromSavedQuery({
       ...saved,
-      start: 'invalid',
+      start: '',
     });
 
     expect(eventView.isEqualTo(eventView2)).toBe(false);
 
     const eventView3 = EventView.fromSavedQuery({
       ...saved,
-      end: 'invalid',
+      end: '',
     });
 
     expect(eventView.isEqualTo(eventView3)).toBe(false);
@@ -692,8 +692,8 @@ describe('EventView.getEventsAPIPayload()', function() {
 
     const location = {
       query: {
-        start: 'start',
-        end: 'end',
+        start: '2020-08-12 12:13:14',
+        end: '2020-08-26 12:13:14',
         utc: 'true',
         statsPeriod: '14d',
         cursor: 'some cursor',
@@ -731,8 +731,8 @@ describe('EventView.getEventsAPIPayload()', function() {
 
     const location = {
       query: {
-        start: 'start',
-        end: 'end',
+        start: '',
+        end: '',
         utc: 'true',
         // invalid statsPeriod string
         statsPeriod: 'invalid',
@@ -755,8 +755,8 @@ describe('EventView.getEventsAPIPayload()', function() {
 
     const location2 = {
       query: {
-        start: 'start',
-        end: 'end',
+        start: '',
+        end: '',
         utc: 'true',
         // statsPeriod is omitted here
         cursor: 'some cursor',
@@ -788,7 +788,7 @@ describe('EventView.getEventsAPIPayload()', function() {
 
     const location = {
       query: {
-        start: 'start',
+        start: '',
         utc: 'true',
         statsPeriod: 'invalid',
         cursor: 'some cursor',
@@ -810,7 +810,7 @@ describe('EventView.getEventsAPIPayload()', function() {
 
     const location2 = {
       query: {
-        end: 'end',
+        end: '',
         utc: 'true',
         statsPeriod: 'invalid',
         cursor: 'some cursor',
@@ -984,8 +984,8 @@ describe('EventView.getFacetsAPIPayload()', function() {
 
     const location = {
       query: {
-        start: 'start',
-        end: 'end',
+        start: '',
+        end: '',
         utc: 'true',
         statsPeriod: '14d',
 

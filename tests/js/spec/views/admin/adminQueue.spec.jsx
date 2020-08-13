@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {shallow} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
 import AdminQueue from 'app/views/admin/adminQueue';
@@ -58,12 +58,12 @@ describe('AdminQueue', function() {
     });
 
     it('renders', function() {
-      const wrapper = shallow(<AdminQueue params={{}} />, {
+      const wrapper = mountWithTheme(<AdminQueue params={{}} />, {
         context: {
           router: TestStubs.router(),
         },
       });
-      expect(wrapper).toMatchSnapshot();
+      expect(wrapper).toSnapshot();
     });
   });
 });

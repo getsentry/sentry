@@ -28,7 +28,7 @@ describe('BookmarkStar', function() {
   });
 
   it('renders', function() {
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
   it('can star', async function() {

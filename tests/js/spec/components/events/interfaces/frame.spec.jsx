@@ -38,7 +38,7 @@ describe('Frame', function() {
       };
 
       const frame = mountWithTheme(<Frame data={data} components={[]} isExpanded />);
-      expect(frame.find('ContextLine')).toMatchSnapshot();
+      expect(frame.find('ContextLine')).toSnapshot();
     });
 
     it('should render register values', () => {
