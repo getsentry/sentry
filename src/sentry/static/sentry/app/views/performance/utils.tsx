@@ -1,6 +1,8 @@
 import {LocationDescriptor, Query} from 'history';
 
-import {OrganizationSummary} from 'app/types';
+import {OrganizationSummary, GlobalSelection} from 'app/types';
+import getCurrentSentryReactTransaction from 'app/utils/getCurrentSentryReactTransaction';
+import {statsPeriodToDays} from 'app/utils/dates';
 
 export function getPerformanceLandingUrl(organization: OrganizationSummary): string {
   return `/organizations/${organization.slug}/performance/`;
@@ -41,4 +43,16 @@ export function getTransactionComparisonUrl({
       transaction,
     },
   };
+}
+
+export function addRoutePerformanceContext(selection: GlobalSelection) {
+  const transaction = getCurrentSentryReactTransaction();
+  const days = statsPeriodToDays(
+    selection.datetime.period,
+    selection.datetime.start,
+    selection.datetime.end
+  );
+  const seconds = days * 86400;
+
+  transaction?.setTag('statsPeriod', seconds.toString());
 }

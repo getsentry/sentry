@@ -32,6 +32,7 @@ import {generatePerformanceEventView, DEFAULT_STATS_PERIOD} from './data';
 import Table from './table';
 import Charts from './charts/index';
 import Onboarding from './onboarding';
+import {addRoutePerformanceContext} from './utils';
 
 enum FilterViews {
   ALL_TRANSACTIONS = 'ALL_TRANSACTIONS',
@@ -72,6 +73,7 @@ class PerformanceLanding extends React.Component<Props, State> {
   componentDidMount() {
     const {api, organization, selection} = this.props;
     loadOrganizationTags(api, organization.slug, selection);
+    addRoutePerformanceContext(selection);
     trackAnalyticsEvent({
       eventKey: 'performance_views.overview.view',
       eventName: 'Performance Views: Transaction overview view',
@@ -86,6 +88,7 @@ class PerformanceLanding extends React.Component<Props, State> {
       !isEqual(prevProps.selection.datetime, selection.datetime)
     ) {
       loadOrganizationTags(api, organization.slug, selection);
+      addRoutePerformanceContext(selection);
     }
   }
 
