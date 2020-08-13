@@ -363,7 +363,7 @@ def build_incident_attachment(incident, metric_value=None):
         metric_value = get_incident_aggregates(incident, start, end, use_alert_aggregate=True)[
             "count"
         ]
-    time_window = alert_rule.snuba_query.time_window / 60
+    time_window = alert_rule.snuba_query.time_window // 60
 
     text = "{} {} in the last {} minutes".format(metric_value, agg_text, time_window)
 
