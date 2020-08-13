@@ -1,4 +1,5 @@
 import {distance} from 'fastest-levenshtein';
+import jaro from 'wink-jaro-distance';
 
 import {SentryTransactionEvent} from 'app/types';
 import {RawSpanType, SpanType} from 'app/components/events/interfaces/spans/types';
@@ -126,7 +127,7 @@ export function diffTransactions({
     //
     // baselineSpan and regressionSpan have equivalent depth levels due to the nature of the tree traversal algorithm.
 
-    if (!matchableSpans({baselineSpan, regressionSpan})) {
+    if (matchableSpans({baselineSpan, regressionSpan}) === 0) {
       if (currentSpans.type === 'root') {
         const spanComparisonResults: [DiffSpanType, DiffSpanType] = [
           {
@@ -211,14 +212,16 @@ function createChildPairs({
 
     const candidates = remainingRegressionChildren.reduce(
       (
-        acc: Array<{regressionSpan: SpanType; index: number}>,
+        acc: Array<{regressionSpan: SpanType; index: number; matchScore: number}>,
         regressionSpan: SpanType,
         index: number
       ) => {
-        if (matchableSpans({baselineSpan, regressionSpan})) {
+        const matchScore = matchableSpans({baselineSpan, regressionSpan});
+        if (matchScore !== 0) {
           acc.push({
             regressionSpan,
             index,
+            matchScore,
           });
         }
 
@@ -243,8 +246,8 @@ function createChildPairs({
     );
 
     const {regressionSpan, index} = candidates.reduce((bestCandidate, nextCandidate) => {
-      const {regressionSpan: thisSpan} = bestCandidate;
-      const {regressionSpan: otherSpan} = nextCandidate;
+      const {regressionSpan: thisSpan, matchScore: thisSpanMatchScore} = bestCandidate;
+      const {regressionSpan: otherSpan, matchScore: otherSpanMatchScore} = nextCandidate;
 
       // calculate the deltas of the start timestamps relative to baselineSpan's
       // start timestamp
@@ -266,16 +269,17 @@ function createChildPairs({
       const deltaDurationThisSpan = Math.abs(thisSpanDuration - baselineSpanDuration);
       const deltaDurationOtherSpan = Math.abs(otherSpanDuration - baselineSpanDuration);
 
-      const thisSpanScore = deltaDurationThisSpan + deltaStartTimestampThisSpan;
-      const otherSpanScore = deltaDurationOtherSpan + deltaStartTimestampOtherSpan;
+      const thisSpanScore =
+        deltaDurationThisSpan + deltaStartTimestampThisSpan + (1 - thisSpanMatchScore);
+
+      const otherSpanScore =
+        deltaDurationOtherSpan + deltaStartTimestampOtherSpan + (1 - otherSpanMatchScore);
 
       if (thisSpanScore < otherSpanScore) {
-        // sort thisSpan before otherSpan
         return bestCandidate;
       }
 
       if (thisSpanScore > otherSpanScore) {
-        // sort thisSpan after otherSpan
         return nextCandidate;
       }
 
@@ -337,23 +341,63 @@ function stringSimilarity(thisString: string, otherString: string): number {
   return 1 - normalizedDistance;
 }
 
+function jaroSimilarity(thisString: string, otherString: string): number {
+  // based on https://winkjs.org/wink-distance/string-jaro-winkler.js.html
+  // and https://en.wikipedia.org/wiki/Jaro%E2%80%93Winkler_distance
+  if (thisString === otherString) {
+    return 1;
+  }
+
+  let jaroDistance: number = jaro(thisString, otherString).distance;
+
+  const scalingFactor = 0.1;
+  const boostThreshold = 0.3;
+
+  if (jaroDistance > boostThreshold) {
+    return 1 - jaroDistance;
+  }
+
+  const pLimit = Math.min(thisString.length, otherString.length, 4);
+  let l = 0;
+
+  for (let i = 0; i < pLimit; i += 1) {
+    if (thisString[i] === otherString[i]) {
+      l += 1;
+    } else {
+      break;
+    }
+  }
+
+  jaroDistance -= l * scalingFactor * jaroDistance;
+  return 1 - jaroDistance;
+}
+
 function matchableSpans({
   baselineSpan,
   regressionSpan,
 }: {
   baselineSpan: SpanType;
   regressionSpan: SpanType;
-}): boolean {
+}): number {
   const opNamesEqual = baselineSpan.op === regressionSpan.op;
 
-  const baselineDescription = (baselineSpan.description || '').replace(/\s+/g, '');
-  const regressionDescription = (regressionSpan.description || '').replace(/\s+/g, '');
+  if (!opNamesEqual) {
+    return 0;
+  }
 
-  const score = stringSimilarity(baselineDescription, regressionDescription);
+  // remove whitespace and convert string to lower case as the individual characters
+  // adds noise to the edit distance function
+  const baselineDescription = (baselineSpan.description || '')
+    .replace(/\s+/g, '')
+    .toLowerCase();
+  const regressionDescription = (regressionSpan.description || '')
+    .replace(/\s+/g, '')
+    .toLowerCase();
 
-  const descriptionsSimilar = score >= 0.5;
+  // const score = stringSimilarity(baselineDescription, regressionDescription);
+  const score = jaroSimilarity(baselineDescription, regressionDescription);
 
-  return opNamesEqual && descriptionsSimilar;
+  return score >= 0.8 ? score : 0;
 }
 
 function generateMergedSpanId({
