@@ -1,6 +1,8 @@
 import isEmpty from 'lodash/isEmpty';
 import isNull from 'lodash/isNull';
 
+import {Meta} from 'app/types';
+
 const GET_META = Symbol('GET_META');
 const IS_PROXY = Symbol('IS_PROXY');
 
@@ -11,12 +13,16 @@ function isAnnotated(meta) {
   return !isEmpty(meta.rem) || !isEmpty(meta.err);
 }
 
+type Local = Record<string, any> | undefined;
+
 export class MetaProxy {
-  constructor(local) {
+  private local: Local;
+
+  constructor(local: Local) {
     this.local = local;
   }
 
-  get(obj, prop, receiver) {
+  get<T extends {}>(obj: T | Array<T>, prop: Extract<keyof T, string>, receiver: T) {
     // trap calls to `getMeta` to return meta object
     if (prop === GET_META) {
       return key => {
@@ -24,9 +30,9 @@ export class MetaProxy {
           // TODO: Error checks
           const meta = this.local[key][''];
 
-          return isAnnotated(meta) ? meta : null;
+          return isAnnotated(meta) ? meta : undefined;
         }
-        return null;
+        return undefined;
       };
     }
 
@@ -36,7 +42,7 @@ export class MetaProxy {
     }
 
     const value = Reflect.get(obj, prop, receiver);
-    if (!Reflect.has(obj, prop, receiver) || typeof value !== 'object' || isNull(value)) {
+    if (!Reflect.has(obj, prop) || typeof value !== 'object' || isNull(value)) {
       return value;
     }
 
@@ -52,9 +58,9 @@ export class MetaProxy {
   }
 }
 
-export function withMeta(event) {
+export function withMeta<T>(event: T): T {
   if (!event) {
-    return null;
+    return event;
   }
 
   // Return unproxied `event` if browser does not support `Proxy`
@@ -62,13 +68,20 @@ export function withMeta(event) {
     return event;
   }
 
-  const _meta = event._meta;
-  return new Proxy(event, new MetaProxy(_meta));
+  // withMeta returns a type that is supposed to be 100% compatible with its
+  // input type. Proxy typing on typescript is not really functional enough to
+  // make this work without casting.
+  //
+  // https://github.com/microsoft/TypeScript/issues/20846
+  return new Proxy(event, new MetaProxy((event as any)._meta)) as T;
 }
 
-export function getMeta(obj, prop) {
-  if (typeof obj[GET_META] !== 'function') {
-    return null;
+export function getMeta<T extends {}>(
+  obj: T | undefined,
+  prop: Extract<keyof T, string>
+): Meta | undefined {
+  if (!obj || typeof obj[GET_META] !== 'function') {
+    return undefined;
   }
 
   return obj[GET_META](prop);
