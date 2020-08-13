@@ -88,7 +88,7 @@ class ReleaseActivityEmail(ActivityEmail):
                     (commit, users.get(commit.author.email) if commit.author_id else None)
                 )
 
-            self.repos = repos.values()
+            self.repos = list(repos.values())
 
             self.environment = (
                 Environment.objects.get(id=self.deploy.environment_id).name or "Default Environment"

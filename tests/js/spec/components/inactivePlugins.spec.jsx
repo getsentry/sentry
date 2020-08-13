@@ -1,26 +1,28 @@
 import React from 'react';
 
-import {mount, shallow} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import InactivePlugins from 'app/components/inactivePlugins';
 
 describe('InactivePlugins', function() {
   it('renders null when no plugins', function() {
-    const wrapper = shallow(<InactivePlugins plugins={[]} onEnablePlugin={() => {}} />);
-    expect(wrapper).toMatchSnapshot();
+    const wrapper = mountWithTheme(
+      <InactivePlugins plugins={[]} onEnablePlugin={() => {}} />
+    );
+    expect(wrapper).toSnapshot();
   });
 
   it('renders plugins list', function() {
-    const wrapper = shallow(
+    const wrapper = mountWithTheme(
       <InactivePlugins onEnablePlugin={() => {}} plugins={TestStubs.Plugins()} />
     );
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
   it('enables a plugin', function() {
     const enableFn = jest.fn();
     const plugins = TestStubs.Plugins();
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <InactivePlugins onEnablePlugin={enableFn} plugins={plugins} />
     );
     wrapper

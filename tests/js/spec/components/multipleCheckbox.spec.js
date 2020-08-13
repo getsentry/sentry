@@ -1,12 +1,12 @@
 import React from 'react';
 
-import {shallow, mount} from 'sentry-test/enzyme';
+import {mountWithTheme, mount} from 'sentry-test/enzyme';
 
 import MultipleCheckbox from 'app/views/settings/components/forms/controls/multipleCheckbox';
 
 describe('MultipleCheckbox', function() {
   it('renders', function() {
-    const wrapper = shallow(
+    const wrapper = mountWithTheme(
       <MultipleCheckbox
         choices={[
           [0, 'Choice A'],
@@ -17,7 +17,7 @@ describe('MultipleCheckbox', function() {
       />
     );
 
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
   it('unselects a checked input', function() {

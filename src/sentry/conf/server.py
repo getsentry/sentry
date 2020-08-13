@@ -1369,6 +1369,14 @@ SENTRY_ENCRYPTION_SCHEMES = (
 )
 
 # Delay (in ms) to induce on API responses
+#
+# Simulates a small amount of lag which helps uncover more obvious race
+# conditions in UI interactions. It's also needed to test (or implement) any
+# kind of loading scenarios. Without this we will just implicitly lower the
+# overall quality of software we ship because we will not experience it in the
+# same way we would in production.
+#
+# See discussion on https://github.com/getsentry/sentry/pull/20187
 SENTRY_API_RESPONSE_DELAY = 150 if IS_DEV else None
 
 # Watchers for various application purposes (such as compiling static media)
@@ -1476,7 +1484,7 @@ SENTRY_DEVSERVICES = {
         ),
     },
     "clickhouse": {
-        "image": "yandex/clickhouse-server:19.17.4.11",
+        "image": "yandex/clickhouse-server:20.3.9.70",
         "ports": {"9000/tcp": 9000, "9009/tcp": 9009, "8123/tcp": 8123},
         "ulimits": [{"name": "nofile", "soft": 262144, "hard": 262144}],
         "volumes": {"clickhouse": {"bind": "/var/lib/clickhouse"}},

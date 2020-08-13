@@ -20,3 +20,25 @@ export function getTransactionDetailsUrl(
     },
   };
 }
+
+export function getTransactionComparisonUrl({
+  organization,
+  baselineEventSlug,
+  regressionEventSlug,
+  transaction,
+  query,
+}: {
+  organization: OrganizationSummary;
+  baselineEventSlug: string;
+  regressionEventSlug: string;
+  transaction: string;
+  query: Query;
+}): LocationDescriptor {
+  return {
+    pathname: `/organizations/${organization.slug}/performance/compare/${baselineEventSlug}/${regressionEventSlug}/`,
+    query: {
+      ...query,
+      transaction,
+    },
+  };
+}

@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {shallow} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
 
@@ -16,7 +16,7 @@ describe('EventOrGroupTitle', function() {
   };
 
   it('renders with subtitle when `type = error`', function() {
-    const component = shallow(
+    const component = mountWithTheme(
       <EventOrGroupTitle
         data={{
           ...data,
@@ -27,11 +27,11 @@ describe('EventOrGroupTitle', function() {
       />
     );
 
-    expect(component).toMatchSnapshot();
+    expect(component).toSnapshot();
   });
 
   it('renders with subtitle when `type = csp`', function() {
-    const component = shallow(
+    const component = mountWithTheme(
       <EventOrGroupTitle
         data={{
           ...data,
@@ -42,11 +42,11 @@ describe('EventOrGroupTitle', function() {
       />
     );
 
-    expect(component).toMatchSnapshot();
+    expect(component).toSnapshot();
   });
 
   it('renders with no subtitle when `type = default`', function() {
-    const component = shallow(
+    const component = mountWithTheme(
       <EventOrGroupTitle
         data={{
           ...data,
@@ -57,6 +57,6 @@ describe('EventOrGroupTitle', function() {
       />
     );
 
-    expect(component).toMatchSnapshot();
+    expect(component).toSnapshot();
   });
 });

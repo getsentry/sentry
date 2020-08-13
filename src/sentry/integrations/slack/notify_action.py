@@ -22,8 +22,8 @@ from .utils import (
     get_integration_type,
 )
 
-# 5% of messages for workspace apps will get the upgrade CTA
-UPGRADE_MESSAGE_FREQUENCY = 0.05
+# 15% of messages for workspace apps will get the upgrade CTA
+UPGRADE_MESSAGE_FREQUENCY = 0.15
 
 
 class SlackNotifyServiceForm(forms.Form):

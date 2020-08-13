@@ -19,7 +19,6 @@ export default function mentionStyle({minHeight} = {minHeight: 140}) {
     '&singleLine': {
       control: {
         display: 'inline-block',
-
         width: 130,
       },
 
@@ -37,10 +36,12 @@ export default function mentionStyle({minHeight} = {minHeight: 140}) {
     '&multiLine': {
       control: {
         fontFamily: 'Rubik, Avenir Next, Helvetica Neue, sans-serif',
+        minHeight,
       },
 
       highlighter: {
         padding: 20,
+        minHeight,
       },
 
       input: {

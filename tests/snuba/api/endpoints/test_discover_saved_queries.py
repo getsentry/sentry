@@ -366,9 +366,46 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
         assert response.status_code == 201, response.content
         assert DiscoverSavedQuery.objects.filter(name="project query").exists()
 
+    def test_save_with_org_projects(self):
+        project = self.create_project(organization=self.org)
+        with self.feature(self.feature_name):
+            url = reverse("sentry-api-0-discover-saved-queries", args=[self.org.slug])
+            response = self.client.post(
+                url,
+                {
+                    "name": "project query",
+                    "projects": [project.id],
+                    "fields": ["title", "count()"],
+                    "range": "24h",
+                    "version": 2,
+                },
+            )
+        assert response.status_code == 201, response.content
+        assert DiscoverSavedQuery.objects.filter(name="project query").exists()
+
+    def test_save_with_team_project(self):
+        team = self.create_team(organization=self.org, members=[self.user])
+        project = self.create_project(organization=self.org, teams=[team])
+        self.create_project(organization=self.org, teams=[team])
+        with self.feature(self.feature_name):
+            url = reverse("sentry-api-0-discover-saved-queries", args=[self.org.slug])
+            response = self.client.post(
+                url,
+                {
+                    "name": "project query",
+                    "projects": [project.id],
+                    "fields": ["title", "count()"],
+                    "range": "24h",
+                    "version": 2,
+                },
+            )
+        assert response.status_code == 201, response.content
+        assert DiscoverSavedQuery.objects.filter(name="project query").exists()
+
     def test_save_with_wrong_projects(self):
         other_org = self.create_organization(owner=self.user)
         project = self.create_project(organization=other_org)
+        project2 = self.create_project(organization=self.org)
         with self.feature(self.feature_name):
             url = reverse("sentry-api-0-discover-saved-queries", args=[self.org.slug])
             response = self.client.post(
@@ -391,10 +428,27 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
                 url,
                 {
                     "name": "project query",
+                    "projects": [project.id, project2.id],
+                    "fields": ["title", "count()"],
+                    "range": "24h",
+                    "query": "project:{} project:{}".format(project.slug, project2.slug),
+                    "version": 2,
+                },
+            )
+        assert response.status_code == 403, response.content
+        assert not DiscoverSavedQuery.objects.filter(name="project query").exists()
+
+        # Mix of wrong + valid
+        with self.feature(self.feature_name):
+            url = reverse("sentry-api-0-discover-saved-queries", args=[self.org.slug])
+            response = self.client.post(
+                url,
+                {
+                    "name": "project query",
                     "projects": [-1],
                     "fields": ["title", "count()"],
                     "range": "24h",
-                    "query": "project:{}".format(project.slug),
+                    "query": "project:{} project:{}".format(project.slug, project2.slug),
                     "version": 2,
                 },
             )
