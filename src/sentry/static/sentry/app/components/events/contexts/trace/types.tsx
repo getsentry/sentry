@@ -7,6 +7,8 @@ export enum TraceKnownDataType {
   TRANSACTION_NAME = 'transaction_name',
 }
 
+export enum TraceIgnoredDataType {}
+
 export type TraceKnownData = {
   trace_id?: string;
   span_id?: string;

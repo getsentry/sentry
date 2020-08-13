@@ -38,6 +38,8 @@ export enum DeviceKnownDataType {
   USABLE_MEMORY = 'usable_memory',
 }
 
+export enum DeviceIgnoredDataType {}
+
 // TODO(ts): add correct types
 export type DeviceData = {
   name: string;

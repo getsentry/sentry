@@ -50,10 +50,14 @@ const deviceKnownDataValues = [
   DeviceKnownDataType.RENDERED_MODEL,
 ];
 
+const deviceIgnoredDataValues = [];
+
 const Device = ({data}: Props) => (
   <React.Fragment>
     <ContextBlock data={getDeviceKnownData(data, deviceKnownDataValues)} />
-    <ContextBlock data={getUnknownData(data, deviceKnownDataValues)} />
+    <ContextBlock
+      data={getUnknownData(data, [...deviceKnownDataValues, ...deviceIgnoredDataValues])}
+    />
   </React.Fragment>
 );
 

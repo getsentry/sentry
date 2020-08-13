@@ -9,6 +9,8 @@ export enum AppKnownDataType {
   BUILD = 'app_build',
 }
 
+export enum AppIgnoredDataType {}
+
 export type AppData = {
   type: string;
   app_name?: string;

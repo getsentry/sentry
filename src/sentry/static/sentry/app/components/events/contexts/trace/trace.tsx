@@ -18,6 +18,8 @@ const traceKnownDataValues = [
   TraceKnownDataType.OP_NAME,
 ];
 
+const traceIgnoredDataValues = [];
+
 type Props = {
   organization: Organization;
   event: Event;
@@ -33,7 +35,7 @@ const InnerTrace = withOrganization(function({organization, event, data}: Props)
         raw={false}
       />
       <KeyValueList
-        data={getUnknownData(data, traceKnownDataValues)}
+        data={getUnknownData(data, [...traceKnownDataValues, ...traceIgnoredDataValues])}
         isSorted={false}
         raw={false}
       />

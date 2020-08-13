@@ -20,10 +20,14 @@ const appKnownDataValues = [
   AppKnownDataType.BUILD,
 ];
 
+const appIgnoredDataValues = [];
+
 const App = ({data}: Props) => (
   <React.Fragment>
     <ContextBlock data={getAppKnownData(data, appKnownDataValues)} />
-    <ContextBlock data={getUnknownData(data, appKnownDataValues)} />
+    <ContextBlock
+      data={getUnknownData(data, [...appKnownDataValues, ...appIgnoredDataValues])}
+    />
   </React.Fragment>
 );
 

@@ -5,3 +5,5 @@ export enum UserKnownDataType {
   IP_ADDRESS = 'ip_address',
   NAME = 'name',
 }
+
+export enum UserIgnoredDataType {}
