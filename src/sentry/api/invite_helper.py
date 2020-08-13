@@ -190,13 +190,12 @@ class ApiInviteHelper(object):
         except AuthProvider.DoesNotExist:
             provider = None
 
-        # AuthIdentity has a unique constraint on provider and user
-        auth_identities = AuthIdentity.objects.filter(auth_provider=provider, user=user)
-
         # If SSO is required, check for valid AuthIdentity
-        if provider and not provider.flags.allow_unlinked and len(auth_identities) == 0:
-            self.handle_member_has_no_SSO()
-            return
+        if provider and not provider.flags.allow_unlinked:
+            # AuthIdentity has a unique constraint on provider and user
+            if not AuthIdentity.objects.filter(auth_provider=provider, user=user).exists():
+                self.handle_member_has_no_SSO()
+                return
 
         om.set_user(user)
         om.save()
