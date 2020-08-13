@@ -1580,6 +1580,7 @@ def get_sentry_sdk_config():
         "release": sentry.__build__,
         "environment": ENVIRONMENT,
         "in_app_include": ["sentry", "sentry_plugins"],
+        "_experiments": {"smart_transaction_trimming": True},
         "debug": True,
         "send_default_pii": True,
     }
