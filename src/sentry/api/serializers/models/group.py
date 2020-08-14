@@ -640,16 +640,24 @@ class GroupSerializerSnuba(GroupSerializerBase):
         )
         last_seen = {item_id: value["last_seen"] for item_id, value in seen_data.items()}
 
-        first_seen = {
-            ge["group_id"]: ge["first_seen__min"]
-            for ge in GroupEnvironment.objects.filter(
-                group_id__in=[item.id for item in item_list],
-                environment_id__in=self.environment_ids,
+        if not self.environment_ids:
+            first_seen = {item.id: item.first_seen for item in item_list}
+        else:
+            first_seen = {
+                ge["group_id"]: ge["first_seen__min"]
+                for ge in GroupEnvironment.objects.filter(
+                    group_id__in=[item.id for item in item_list],
+                    environment_id__in=self.environment_ids,
+                )
+                .values("group_id")
+                .annotate(Min("first_seen"))
+            }
+
+        times_seen = {}
+        for item in item_list:
+            times_seen[item.id] = (
+                seen_data[item.id]["times_seen"] if seen_data[item.id] else item.times_seen
             )
-            .values("group_id")
-            .annotate(Min("first_seen"))
-        }
-        times_seen = {item_id: value["times_seen"] for item_id, value in seen_data.items()}
 
         attrs = {}
         for item in item_list:
