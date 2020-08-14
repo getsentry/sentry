@@ -447,7 +447,7 @@ class Factories(object):
         commit = Commit.objects.get_or_create(
             organization_id=repo.organization_id,
             repository_id=repo.id,
-            key=key or sha1(uuid4().hex).hexdigest(),
+            key=key or sha1(uuid4().hex.encode("utf-8")).hexdigest(),
             defaults={
                 "message": message or make_sentence(),
                 "author": author
