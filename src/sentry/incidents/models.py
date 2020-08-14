@@ -558,6 +558,7 @@ class AlertRuleTriggerAction(Model):
 
     alert_rule_trigger = FlexibleForeignKey("sentry.AlertRuleTrigger")
     integration = FlexibleForeignKey("sentry.Integration", null=True)
+    sentry_app = FlexibleForeignKey("sentry.SentryApp", null=True)
     type = models.SmallIntegerField()
     target_type = models.SmallIntegerField()
     # Identifier used to perform the action on a given target
