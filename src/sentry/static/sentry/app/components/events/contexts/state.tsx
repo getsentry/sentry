@@ -23,6 +23,10 @@ class StateContextType extends React.Component<Props> {
   getKnownData(): KeyValueListData[] {
     const primaryState = this.props.data.state;
 
+    if (!primaryState) {
+      return [];
+    }
+
     return [
       {
         key: 'state',
