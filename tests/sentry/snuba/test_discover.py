@@ -812,7 +812,7 @@ class QueryTransformTest(TestCase):
         discover.query(
             selected_columns=[
                 "transaction",
-                "percentileRange(transaction.duration, 0.5, 2020-05-02T13:45:01, 2020-05-02T14:45:01, firstPercentile)",
+                "percentile_range(transaction.duration, 0.5, 2020-05-02T13:45:01, 2020-05-02T14:45:01, 1)",
             ],
             query="",
             params={"project_id": [self.project.id]},
@@ -824,7 +824,7 @@ class QueryTransformTest(TestCase):
                 [
                     "quantileIf(0.50)(duration,and(greaterOrEquals(timestamp,toDateTime('2020-05-02T13:45:01')),less(timestamp,toDateTime('2020-05-02T14:45:01'))))",
                     None,
-                    "firstPercentile",
+                    "percentile_range_1",
                 ]
             ],
             filter_keys={"project_id": [self.project.id]},
@@ -849,7 +849,7 @@ class QueryTransformTest(TestCase):
         discover.query(
             selected_columns=[
                 "transaction",
-                "avgRange(transaction.duration, 2020-05-02T13:45:01, 2020-05-02T14:45:01, firstAverage)",
+                "avg_range(transaction.duration, 2020-05-02T13:45:01, 2020-05-02T14:45:01, 1)",
             ],
             query="",
             params={"project_id": [self.project.id]},
@@ -861,7 +861,7 @@ class QueryTransformTest(TestCase):
                 [
                     "avgIf(duration,and(greaterOrEquals(timestamp,toDateTime('2020-05-02T13:45:01')),less(timestamp,toDateTime('2020-05-02T14:45:01'))))",
                     None,
-                    "firstAverage",
+                    "avg_range_1",
                 ]
             ],
             filter_keys={"project_id": [self.project.id]},
@@ -886,7 +886,7 @@ class QueryTransformTest(TestCase):
         discover.query(
             selected_columns=[
                 "transaction",
-                "user_miseryRange(300, 2020-05-02T13:45:01, 2020-05-02T14:45:01, firstUserMisery)",
+                "user_misery_range(300, 2020-05-02T13:45:01, 2020-05-02T14:45:01, 1)",
             ],
             query="",
             params={"project_id": [self.project.id]},
@@ -896,9 +896,9 @@ class QueryTransformTest(TestCase):
             selected_columns=["transaction"],
             aggregations=[
                 [
-                    "uniqIf(user,and(greaterOrEquals(timestamp,toDateTime('2020-05-02T13:45:01')),less(timestamp,toDateTime('2020-05-02T14:45:01')),greater(duration,1200)))",
+                    "uniqIf(user,and(greater(duration,1200),and(greaterOrEquals(timestamp,toDateTime('2020-05-02T13:45:01')),less(timestamp,toDateTime('2020-05-02T14:45:01')))))",
                     None,
-                    "firstUserMisery",
+                    "user_misery_range_1",
                 ]
             ],
             filter_keys={"project_id": [self.project.id]},
