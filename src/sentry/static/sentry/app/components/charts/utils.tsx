@@ -9,8 +9,8 @@ const DEFAULT_TRUNCATE_LENGTH = 80;
 
 // In minutes
 export const THIRTY_DAYS = 43200;
-export const ONE_WEEK = 10080;
 export const TWO_WEEKS = 20160;
+export const ONE_WEEK = 10080;
 export const TWENTY_FOUR_HOURS = 1440;
 export const ONE_HOUR = 60;
 
