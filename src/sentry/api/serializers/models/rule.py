@@ -28,7 +28,15 @@ class RuleSerializer(Serializer):
         for rule_activity in RuleActivity.objects.filter(
             rule__in=item_list, type=RuleActivityType.CREATED.value
         ).select_related("rule", "user"):
-            result[rule_activity.rule].update({"created_by": rule_activity.user.id})
+            result[rule_activity.rule].update(
+                {
+                    "created_by": {
+                        "id": rule_activity.user.id,
+                        "name": rule_activity.user.get_display_name(),
+                        "email": rule_activity.user.email,
+                    }
+                }
+            )
 
         return result
 
