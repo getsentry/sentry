@@ -9,7 +9,7 @@ import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValue
 import {defined} from 'app/utils';
 
 import getUserKnownData from './getUserKnownData';
-import {UserKnownDataType} from './types';
+import {UserKnownDataType, UserIgnoredDataType} from './types';
 import getUnknownData from '../getUnknownData';
 
 type Props = {
@@ -28,7 +28,7 @@ const userKnownDataValues = [
   UserKnownDataType.NAME,
 ];
 
-const userIgnoredDataValues = [];
+const userIgnoredDataValues = [UserIgnoredDataType.DATA];
 
 const User = ({data}: Props) => {
   const getKeyValueData = (val: object) => Object.keys(val).map(key => [key, val[key]]);
