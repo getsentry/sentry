@@ -5,7 +5,6 @@ import time
 import six
 
 from django.core.cache import cache
-from django.core.urlresolvers import reverse
 from django.http import Http404
 
 from sentry import tagstore
@@ -28,7 +27,7 @@ from sentry.models import (
     ReleaseProject,
 )
 from sentry.shared_integrations.exceptions import ApiError, DuplicateDisplayNameError
-from sentry.integrations.metric_alerts import incident_attatchment_info
+from sentry.integrations.metric_alerts import incident_attachment_info
 
 from .client import SlackClient
 
@@ -324,7 +323,16 @@ def build_incident_attachment(incident, metric_value=None):
     :return:
     """
 
-    data = incident_attatchment_info(incident, metric_value)
+    data = incident_attachment_info(incident, metric_value)
+
+    title, text, logo_url, status, ts, title_link = (
+        data["title"],
+        data["text"],
+        data["logo_url"],
+        data["status"],
+        data["ts"],
+        data["title_link"],
+    )
 
     colors = {
         "Resolved": RESOLVED_COLOR,
@@ -333,24 +341,16 @@ def build_incident_attachment(incident, metric_value=None):
     }
 
     return {
-        "fallback": data["title"],
-        "title": data["title"],
-        "title_link": absolute_uri(
-            reverse(
-                "sentry-metric-alert",
-                kwargs={
-                    "organization_slug": incident.organization.slug,
-                    "incident_id": incident.identifier,
-                },
-            )
-        ),
-        "text": data["text"],
+        "fallback": title,
+        "title": title,
+        "title_link": title_link,
+        "text": text,
         "fields": [],
         "mrkdwn_in": ["text"],
-        "footer_icon": data["logo_url"],
+        "footer_icon": logo_url,
         "footer": "Sentry Incident",
-        "ts": to_timestamp(data["ts"]),
-        "color": colors[data["status"]],
+        "ts": to_timestamp(ts),
+        "color": colors[status],
         "actions": [],
     }
 

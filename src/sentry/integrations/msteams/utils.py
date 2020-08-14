@@ -4,14 +4,13 @@ import six
 import logging
 import enum
 
-from django.core.urlresolvers import reverse
 from django.http import Http404
 
 from sentry.models import Integration, Project, GroupStatus, Organization, IdentityProvider
 from sentry.utils.compat import filter
 from sentry.utils.http import absolute_uri
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.integrations.metric_alerts import incident_attatchment_info
+from sentry.integrations.metric_alerts import incident_attachment_info
 
 from .client import MsTeamsClient
 
@@ -470,21 +469,20 @@ def build_group_card(group, event, rules):
 
 
 def build_incident_attachment(incident, metric_value=None):
-    data = incident_attatchment_info(incident, metric_value)
+    data = incident_attachment_info(incident, metric_value)
+
+    title, text, logo_url, status, ts, title_link = (
+        data["title"],
+        data["text"],
+        data["logo_url"],
+        data["status"],
+        data["ts"],
+        data["title_link"],
+    )
 
     colors = {"Resolved": "good", "Warning": "warning", "Critical": "attention"}
 
-    footer_text = "Sentry Incident | {}".format(data["ts"].strftime("%b %d"))
-
-    title_link = absolute_uri(
-        reverse(
-            "sentry-metric-alert",
-            kwargs={
-                "organization_slug": incident.organization.slug,
-                "incident_id": incident.identifier,
-            },
-        )
-    )
+    footer_text = "Sentry Incident | {}".format(ts.strftime("%b %d"))
 
     return {
         "type": "AdaptiveCard",
@@ -494,12 +492,7 @@ def build_incident_attachment(incident, metric_value=None):
             {
                 "type": "ColumnSet",
                 "columns": [
-                    {
-                        "type": "Column",
-                        "style": colors[data["status"]],
-                        "items": [],
-                        "width": "20px",
-                    },
+                    {"type": "Column", "style": colors[status], "items": [], "width": "20px",},
                     {
                         "type": "Column",
                         "items": [
@@ -508,11 +501,11 @@ def build_incident_attachment(incident, metric_value=None):
                                 "items": [
                                     {
                                         "type": "TextBlock",
-                                        "text": "[{}]({})".format(data["title"], title_link),
+                                        "text": "[{}]({})".format(title, title_link),
                                         "fontType": "Default",
                                         "weight": "Bolder",
                                     },
-                                    {"type": "TextBlock", "text": data["text"], "isSubtle": True},
+                                    {"type": "TextBlock", "text": text, "isSubtle": True},
                                     {
                                         "type": "ColumnSet",
                                         "columns": [
@@ -521,7 +514,7 @@ def build_incident_attachment(incident, metric_value=None):
                                                 "items": [
                                                     {
                                                         "type": "Image",
-                                                        "url": data["logo_url"],
+                                                        "url": logo_url,
                                                         "size": "Small",
                                                         "width": "20px",
                                                     }

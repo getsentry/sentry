@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from datetime import timedelta
+from django.core.urlresolvers import reverse
 
 from sentry.incidents.logic import get_incident_aggregates
 from sentry.incidents.models import IncidentStatus, IncidentTrigger
@@ -13,7 +14,7 @@ QUERY_AGGREGATION_DISPLAY = {
 }
 
 
-def incident_attatchment_info(incident, metric_value=None):
+def incident_attachment_info(incident, metric_value=None):
     logo_url = absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
     alert_rule = incident.alert_rule
 
@@ -56,4 +57,21 @@ def incident_attatchment_info(incident, metric_value=None):
 
     title = u"{}: {}".format(status, alert_rule.name)
 
-    return {"title": title, "text": text, "logo_url": logo_url, "status": status, "ts": ts}
+    title_link = absolute_uri(
+        reverse(
+            "sentry-metric-alert",
+            kwargs={
+                "organization_slug": incident.organization.slug,
+                "incident_id": incident.identifier,
+            },
+        )
+    )
+
+    return {
+        "title": title,
+        "text": text,
+        "logo_url": logo_url,
+        "status": status,
+        "ts": ts,
+        "title_link": title_link,
+    }
