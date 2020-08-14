@@ -61,7 +61,11 @@ class CreateProjectRuleTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response.data["id"]
-        assert response.data["createdBy"] == self.user.id
+        assert response.data["createdBy"] == {
+            "id": self.user.id,
+            "name": self.user.get_display_name(),
+            "email": self.user.email,
+        }
 
         rule = Rule.objects.get(id=response.data["id"])
         assert rule.label == "hello world"
