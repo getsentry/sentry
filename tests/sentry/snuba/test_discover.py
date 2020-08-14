@@ -143,14 +143,14 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         data = result["data"]
         assert len(data) == 1
         assert data[0]["project.id"] == self.project.id
-        assert data[0]["user"] == "bruce@example.com", "user tag prefers email"
+        assert data[0]["user"] == "id:99"
         assert data[0]["release"] == "first-release"
 
         assert len(result["meta"]) == 3
         assert result["meta"] == [
             {"name": "project.id", "type": "UInt64"},
-            {"name": "release", "type": "Nullable(String)"},
             {"name": "user", "type": "Nullable(String)"},
+            {"name": "release", "type": "Nullable(String)"},
         ]
 
     def test_field_alias_with_component(self):
@@ -162,14 +162,14 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         data = result["data"]
         assert len(data) == 1
         assert data[0]["project.id"] == self.project.id
-        assert data[0]["user"] == "bruce@example.com", "user tag prefers email"
+        assert data[0]["user"] == "id:99"
         assert data[0]["user.email"] == "bruce@example.com"
 
         assert len(result["meta"]) == 3
         assert result["meta"] == [
             {"name": "project.id", "type": "UInt64"},
-            {"name": "user.email", "type": "Nullable(String)"},
             {"name": "user", "type": "Nullable(String)"},
+            {"name": "user.email", "type": "Nullable(String)"},
         ]
 
     def test_field_aliasing_in_aggregate_functions_and_groupby(self):
@@ -530,7 +530,8 @@ class QueryTransformTest(TestCase):
         )
         mock_query.assert_called_with(
             selected_columns=[
-                "user" "project_id",
+                "user",
+                "project_id",
                 [
                     "transform",
                     [

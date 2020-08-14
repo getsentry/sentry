@@ -1837,10 +1837,7 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["selected_columns"] == [
             "title",
             "issue.id",
-            "user.email",
-            "user.username",
-            "user.ip",
-            "user.id",
+            "user",
             "message",
             "project.id",
             [
@@ -1856,10 +1853,7 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["groupby"] == [
             "title",
             "issue.id",
-            "user.email",
-            "user.username",
-            "user.ip",
-            "user.id",
+            "user",
             "message",
             "project.id",
         ]

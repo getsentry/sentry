@@ -324,6 +324,13 @@ def transform_results(result, translated_columns, snuba_filter, selected_columns
     if selected_columns is None:
         selected_columns = []
 
+    meta = []
+    for col in result["meta"]:
+        # Translate back column names that were converted to snuba format
+        col["name"] = translated_columns.get(col["name"], col["name"])
+        # Remove user fields as they will be replaced by the alias.
+        meta.append(col)
+
     def get_row(row):
         transformed = {}
         for key, value in row.items():
