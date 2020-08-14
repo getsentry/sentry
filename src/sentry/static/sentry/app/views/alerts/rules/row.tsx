@@ -40,7 +40,7 @@ class RuleListRow extends React.Component<Props, State> {
 
   render() {
     const {rule, projectsLoaded, projects, orgId, onDelete} = this.props;
-    const created = moment(rule.dateCreated).format('ll');
+    const dateCreated = moment(rule.dateCreated).format('ll');
     const slug = rule.projects[0];
 
     return (
@@ -53,8 +53,8 @@ class RuleListRow extends React.Component<Props, State> {
               avatarSize={18}
               project={!projectsLoaded ? {slug} : this.getProject(slug, projects)}
             />
-            {/* <div>TODO(scttcper): created by</div> */}
-            <div>{created}</div>
+            <CreatedBy>{rule?.createdBy?.name}</CreatedBy>
+            <div>{dateCreated}</div>
             <Access access={['project:write']}>
               {({hasAccess}) => (
                 <ButtonBar gap={1}>
@@ -104,6 +104,10 @@ const RuleType = styled('div')`
 `;
 
 const Title = styled('div')`
+  ${overflowEllipsis}
+`;
+
+const CreatedBy = styled('div')`
   ${overflowEllipsis}
 `;
 

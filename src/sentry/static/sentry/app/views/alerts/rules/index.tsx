@@ -120,8 +120,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
               <div>{t('Type')}</div>
               <div>{t('Alert Name')}</div>
               <div>{t('Project')}</div>
-              {/* TODO(scttcper): Setup created by */}
-              {/* <div>{t('Created By')}</div> */}
+              <div>{t('Created By')}</div>
               <div>
                 <StyledSortLink
                   to={{

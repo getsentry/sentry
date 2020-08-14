@@ -33,6 +33,7 @@ describe('OrganizationRuleList', () => {
           id: '123',
           name: 'First Issue Alert',
           projects: ['earth'],
+          createdBy: {name: 'Samwise', id: 1, email: ''},
         }),
       ],
     });
@@ -57,6 +58,7 @@ describe('OrganizationRuleList', () => {
     expect(items).toHaveLength(1);
     expect(items.find('RuleType').text()).toBe('Issue');
     expect(items.find('Title').text()).toBe('First Issue Alert');
+    expect(items.find('CreatedBy').text()).toBe('Samwise');
 
     // GlobalSelectionHeader loads projects + the Projects render-prop
     // component to load projects for all rows.

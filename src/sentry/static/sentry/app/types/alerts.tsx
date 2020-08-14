@@ -62,6 +62,7 @@ export type UnsavedIssueAlertRule = {
 // Issue-based alert rule
 export type IssueAlertRule = UnsavedIssueAlertRule & {
   dateCreated: string;
+  createdBy: {id: number; email: string; name: string} | null;
   projects: string[];
   id: string;
 };
