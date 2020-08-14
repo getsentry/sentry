@@ -61,11 +61,10 @@ class NewerOlderFilter(EventFilter):
 
         _, delta_time = timeranges[time]
 
+        first_seen = event.group.first_seen
         if older_newer == AgeComparisonType.OLDER:
-            first_seen = event.group.first_seen
             return first_seen + (value * delta_time) < timezone.now()
         elif older_newer == AgeComparisonType.NEWER:
-            last_seen = event.group.last_seen
-            return last_seen + (value * delta_time) > timezone.now()
+            return first_seen + (value * delta_time) > timezone.now()
         else:
             return False

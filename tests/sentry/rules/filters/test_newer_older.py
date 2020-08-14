@@ -40,10 +40,10 @@ class NewerOlderFilterTest(RuleTestCase):
 
         rule = self.get_rule(data=data)
 
-        event.group.last_seen = timezone.now() - timedelta(hours=3)
+        event.group.first_seen = timezone.now() - timedelta(hours=3)
         self.assertPasses(rule, event)
 
-        event.group.last_seen = timezone.now() - timedelta(hours=11)
+        event.group.first_seen = timezone.now() - timedelta(hours=11)
         self.assertDoesNotPass(rule, event)
 
     def test_fails_on_insufficient_data(self):
