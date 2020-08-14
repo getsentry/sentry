@@ -36,7 +36,11 @@ class BaseAlertRuleSerializerTest(object):
         assert result["projects"] == alert_rule_projects
         assert result["includeAllProjects"] == alert_rule.include_all_projects
         if alert_rule.created_by:
-            assert result["createdBy"] == alert_rule.created_by.id
+            assert result["createdBy"] == {
+                "id": alert_rule.created_by.id,
+                "name": alert_rule.created_by.get_display_name(),
+                "email": alert_rule.created_by.email,
+            }
         else:
             assert result["createdBy"] is None
         if not skip_dates:
