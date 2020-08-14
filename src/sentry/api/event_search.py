@@ -1212,7 +1212,7 @@ class DateArg(FunctionArg):
         try:
             datetime.strptime(value, self.date_format)
         except ValueError:
-            raise InvalidFunctionArgument("{} is not a date in the valid format".format(value))
+            raise InvalidFunctionArgument(u"{} is not a date in the valid format".format(value))
         return value
 
 

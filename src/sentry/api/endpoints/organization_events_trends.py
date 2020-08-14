@@ -26,6 +26,7 @@ class OrganizationEventsTrendsEndpoint(OrganizationEventsV2EndpointBase):
             "format": "user_misery_range({}, {start}, {end}, {index})",
             "alias": "user_misery_range_",
         },
+        "count_range": {"format": "count_range({start}, {end}, {index})", "alias": "count_range_"},
     }
 
     def has_feature(self, organization, request):
@@ -64,10 +65,11 @@ class OrganizationEventsTrendsEndpoint(OrganizationEventsV2EndpointBase):
         trend_column = self.trend_columns.get(function)
         if trend_column is None:
             return Response(
-                {"detail": "{} is not a supported trend function".format(trend_function)},
+                {"detail": u"{} is not a supported trend function".format(trend_function)},
                 status=400,
             )
 
+        count_column = self.trend_columns.get("count_range")
         selected_columns = request.GET.getlist("field")[:]
         query = request.GET.get("query")
         orderby = self.get_orderby(request)
@@ -80,9 +82,9 @@ class OrganizationEventsTrendsEndpoint(OrganizationEventsV2EndpointBase):
                     trend_column["format"].format(*columns, start=middle, end=end, index="2"),
                     "divide({alias}2,{alias}1)".format(alias=trend_column["alias"]),
                     "minus({alias}2,{alias}1)".format(alias=trend_column["alias"]),
-                    "count_range({start},{end},1)".format(start=start, end=middle),
-                    "count_range({start},{end},2)".format(start=middle, end=end),
-                    "divide(count_range_2,count_range_1)",
+                    count_column["format"].format(start=start, end=middle, index="1"),
+                    count_column["format"].format(start=middle, end=end, index="2"),
+                    "divide({alias}2,{alias}1)".format(alias=count_column["alias"]),
                 ],
                 query=query,
                 params=params,
@@ -114,7 +116,7 @@ class OrganizationEventsTrendsEndpoint(OrganizationEventsV2EndpointBase):
         return Response(
             {
                 "events": self.handle_results_with_meta(
-                    request, organization, params["project_id"], events_results
+                    request, organization, params["project_id"], events_results, omit_nan=True
                 ),
                 "stats": stats_results,
             }
