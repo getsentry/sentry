@@ -45,7 +45,7 @@ class ExportedDataTest(TestCase):
 
     def test_payload_property(self):
         assert isinstance(self.data_export.payload, dict)
-        keys = self.data_export.query_info.keys() + ["export_type"]
+        keys = list(self.data_export.query_info.keys()) + ["export_type"]
         assert sorted(self.data_export.payload.keys()) == sorted(keys)
 
     def test_file_name_property(self):
