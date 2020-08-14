@@ -22,7 +22,7 @@ type Props = {
   location: Location;
   orgId: string;
   projectId: string;
-  meta: Meta;
+  meta?: Meta;
   hasQueryFeature: boolean;
 };
 
