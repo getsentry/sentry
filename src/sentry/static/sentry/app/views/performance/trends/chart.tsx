@@ -12,7 +12,6 @@ import withApi from 'app/utils/withApi';
 import {Client} from 'app/api';
 import EventView from 'app/utils/discover/eventView';
 import {OrganizationSummary, EventsStatsData} from 'app/types';
-import QuestionTooltip from 'app/components/questionTooltip';
 import LineChart from 'app/components/charts/lineChart';
 import {t} from 'app/locale';
 import ChartZoom from 'app/components/charts/chartZoom';
@@ -54,10 +53,6 @@ function getChartTitle(trendChangeType: TrendChangeType): string {
     default:
       throw new Error('No trend type passed');
   }
-}
-
-function getChartTooltip(trendChangeType: TrendChangeType): string {
-  return t('TODO: ' + trendChangeType);
 }
 
 function transformEventStats(data: EventsStatsData, seriesName?: string): Series[] {
@@ -128,7 +123,6 @@ class Chart extends React.Component<Props> {
       isLoading,
     } = props;
     const chartTitle = getChartTitle(trendChangeType);
-    const tooltip = getChartTooltip(trendChangeType);
     const lineColor = trendToColor[trendChangeType];
 
     const events = statsData && statsData[transaction || ''];
@@ -148,10 +142,7 @@ class Chart extends React.Component<Props> {
 
     return (
       <React.Fragment>
-        <HeaderTitleLegend>
-          {chartTitle}
-          <QuestionTooltip size="sm" position="top" title={tooltip} />
-        </HeaderTitleLegend>
+        <HeaderTitleLegend>{chartTitle}</HeaderTitleLegend>
         <ChartZoom
           router={router}
           period={statsPeriod}
@@ -194,7 +185,6 @@ class Chart extends React.Component<Props> {
                           seriesOptions={{
                             showSymbol: false,
                           }}
-                          tooltip={tooltip}
                           toolBox={{
                             show: false,
                           }}
