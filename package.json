@@ -20,11 +20,11 @@
     "@emotion/babel-preset-css-prop": "^10.0.27",
     "@emotion/core": "^10.0.27",
     "@emotion/styled": "^10.0.27",
-    "@sentry/tracing": "5.20.1",
     "@sentry/integrations": "5.20.1",
     "@sentry/react": "5.20.1",
     "@sentry/release-parser": "^0.6.0",
     "@sentry/rrweb": "^0.1.1",
+    "@sentry/tracing": "5.20.1",
     "@sentry/utils": "5.20.1",
     "@types/classnames": "^2.2.0",
     "@types/clipboard": "^2.0.1",
@@ -128,6 +128,7 @@
     "webpack": "4.42.1",
     "webpack-cli": "3.3.11",
     "webpack-fix-style-only-entries": "^0.2.0",
+    "wink-jaro-distance": "^2.0.0",
     "zxcvbn": "^4.4.2"
   },
   "devDependencies": {
