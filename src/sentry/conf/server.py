@@ -814,23 +814,23 @@ SENTRY_FEATURES = {
     # Allow organizations to configure custom external symbol sources.
     "organizations:custom-symbol-sources": True,
     # Enable the events stream interface.
-    "organizations:events": False,
+    "organizations:events": True,
     # Enable discover 2 basic functions
     "organizations:discover-basic": True,
     # Enable discover 2 custom queries and saved queries
     "organizations:discover-query": True,
     # Enable Performance view
-    "organizations:performance-view": False,
+    "organizations:performance-view": True,
     # Enable multi project selection
-    "organizations:global-views": False,
+    "organizations:global-views": True,
     # Lets organizations manage grouping configs
     "organizations:set-grouping-config": False,
     # Enable Releases v2 feature
     "organizations:releases-v2": True,
     # Enable rule page.
-    "organizations:rule-page": False,
+    "organizations:rule-page": True,
     # Enable incidents feature
-    "organizations:incidents": False,
+    "organizations:incidents": True,
     # Enable integration functionality to create and link groups to issues on
     # external services.
     "organizations:integrations-issue-basic": True,
@@ -954,7 +954,7 @@ SENTRY_FRONTEND_WHITELIST_URLS = None
 # ----
 
 # sample rate for transactions initiated from the frontend
-SENTRY_APM_SAMPLING = 0
+SENTRY_APM_SAMPLING = 1
 
 # Sample rate for symbolicate_event task transactions
 SENTRY_SYMBOLICATE_EVENT_APM_SAMPLING = 0

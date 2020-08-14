@@ -198,9 +198,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       status: 'complete',
     });
 
-    // When editing, there is an extra route to move back from
-    const stepBack = isNew ? -1 : -2;
-    browserHistory.replace(recreateRoute('', {...this.props, stepBack}));
+    browserHistory.replace(recreateRoute('', {...this.props, stepBack: -2}));
     addSuccessMessage(isNew ? t('Created alert rule') : t('Updated alert rule'));
   };
 
@@ -275,7 +273,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   handleCancel = () => {
     const {router} = this.props;
 
-    router.push(recreateRoute('', {...this.props, stepBack: -1}));
+    router.push(recreateRoute('', {...this.props, stepBack: -2}));
   };
 
   hasError = (field: string) => {

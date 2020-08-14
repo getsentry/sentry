@@ -31,7 +31,7 @@ class IncidentRulesCreate extends React.Component<Props> {
   handleSubmitSuccess = () => {
     const {params, routes, router, location} = this.props;
 
-    router.push(recreateRoute('', {params, routes, location, stepBack: -1}));
+    router.push(recreateRoute('', {params, routes, location, stepBack: -2}));
   };
 
   render() {
@@ -45,6 +45,7 @@ class IncidentRulesCreate extends React.Component<Props> {
         onSubmitSuccess={this.handleSubmitSuccess}
         rule={{...defaultRule, projects: [project.slug]}}
         sessionId={sessionId}
+        project={project}
         {...props}
       />
     );

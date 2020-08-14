@@ -6,11 +6,11 @@ import {Organization, Project} from 'app/types';
 import {PageContent, PageHeader} from 'app/styles/organization';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import BuilderBreadCrumbs from 'app/views/alerts/builder/builderBreadCrumbs';
 import IncidentRulesDetails from 'app/views/settings/incidentRules/details';
 import IssueEditor from 'app/views/settings/projectAlerts/issueEditor';
 import PageHeading from 'app/components/pageHeading';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
+import BuilderBreadCrumbs from 'app/views/alerts/builder/builderBreadCrumbs';
 
 type RouteParams = {
   orgId: string;
