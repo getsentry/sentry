@@ -22,7 +22,7 @@ type Props = {
 
 class StateContextType extends React.Component<Props> {
   getStateTitle(name: string, type?: string) {
-    return name + (type ? ` (${upperFirst(type)})` : '');
+    return `${name}${type ? ` (${upperFirst(type)})` : ''}`;
   }
 
   getKnownData(): KeyValueListData[] {
