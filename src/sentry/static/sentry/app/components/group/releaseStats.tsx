@@ -45,7 +45,7 @@ const GroupReleaseStats = (props: Props) => {
         {!group || !allEnvironments ? (
           <LoadingIndicator />
         ) : (
-          <div>
+          <React.Fragment>
             <GroupReleaseChart
               group={allEnvironments}
               environment={environmentLabel}
@@ -107,7 +107,7 @@ const GroupReleaseStats = (props: Props) => {
               release={group.lastRelease || null}
               title={t('Last seen')}
             />
-          </div>
+          </React.Fragment>
         )}
       </div>
     </div>
