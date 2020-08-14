@@ -3,6 +3,7 @@ import xor from 'lodash/xor';
 import uniq from 'lodash/uniq';
 
 export type RenderProps = {
+  allIds: string[];
   allIdsSelected: boolean;
   pageIdsSelected: boolean;
   onIdToggle: (id: string) => void;
@@ -58,6 +59,7 @@ class BulkController extends React.Component<Props, State> {
 
     const renderProps = {
       selectedIds,
+      allIds,
       allIdsSelected: allIds.length > 0 && allIds.every(id => selectedIds.includes(id)),
       pageIdsSelected:
         pageIds.length > 0 && pageIds.every(id => selectedIds.includes(id)),
