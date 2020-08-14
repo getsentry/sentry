@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import math
+
 from django.conf.urls import url
 from django.test import override_settings
 from rest_framework.permissions import AllowAny
@@ -27,4 +29,10 @@ class TestRateLimited(APITestCase):
         self.login_as(self.user)
         resp = self.get_response()
         assert resp.status_code == 429
-        assert resp.data["detail"] == "Request was throttled. Expected available in 1.0 second."
+
+        # DRF ceils our configured wait time, this produces a different number
+        # type between 2 and 3. In 2 this produces a float, in 3 this produces
+        # an integer.
+        assert resp.data[
+            "detail"
+        ] == u"Request was throttled. Expected available in {} second.".format(math.ceil(1))
