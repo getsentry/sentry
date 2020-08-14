@@ -1104,8 +1104,7 @@ def update_alert_rule_trigger_action(
                 type, target_identifier, organization, integration.id,
             )
             updated_fields["target_display"] = target_display
-            updated_fields["target_identifier"] = target_identifier
-
+        updated_fields["target_identifier"] = target_identifier
     trigger_action.update(**updated_fields)
     return trigger_action
 
