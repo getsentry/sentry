@@ -355,16 +355,9 @@ class MsTeamsWebhookEndpoint(Endpoint):
         issue_change_response = self.issue_state_change(group, identity, data["value"])
 
         # get the rules from the payload
-        rules = []
-        for rule_id in payload["rules"]:
-            try:
-                rule = Rule.objects.get(id=rule_id)
-                rules.append(rule)
-            except Rule.DoesNotExist:
-                # if the rule doesn't exist anymore, we can still update the issue
-                pass
+        rules = Rule.objects.filter(id__in=payload["rules"])
 
-        # pull the event based off our paload
+        # pull the event based off our payload
         event = eventstore.get_event_by_id(group.project_id, payload["eventId"])
         if event is None:
             logger.info(
