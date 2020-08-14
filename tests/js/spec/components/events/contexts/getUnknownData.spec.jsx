@@ -1,7 +1,7 @@
 import getUnknownData from 'app/components/events/contexts/getUnknownData';
 
 describe('getUnknownData', function() {
-  it('filters out known data and transforms into the right way', function() {
+  it.only('filters out known data and transforms into the right way', function() {
     const allData = {
       id: 1,
       email: 'a@a.com',
@@ -15,8 +15,8 @@ describe('getUnknownData', function() {
     const unknownData = getUnknownData(allData, knownKeys);
 
     expect(unknownData).toEqual([
-      {key: 'username', value: 'a', subject: 'username', meta: null},
-      {key: 'count', value: 1000, subject: 'count', meta: null},
+      {key: 'username', value: 'a', subject: 'username', meta: undefined},
+      {key: 'count', value: 1000, subject: 'count', meta: undefined},
     ]);
   });
 });
