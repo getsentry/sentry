@@ -15,7 +15,13 @@ type Props = {
   group: Group | undefined;
 };
 
-const GroupReleaseStats = ({group, organization, project, environments, allEnvironments}: Props) => {
+const GroupReleaseStats = ({
+  group,
+  organization,
+  project,
+  environments,
+  allEnvironments,
+}: Props) => {
   const {group, organization, project, environments, allEnvironments} = props;
 
   const environmentLabel =
