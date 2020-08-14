@@ -48,11 +48,11 @@ class RuleSerializer(Serializer):
             # as part of the rule editor
             "id": six.text_type(obj.id) if obj.id else None,
             "conditions": [
-                dict(o.items() + [("name", _generate_rule_label(obj.project, obj, o))])
+                dict(list(o.items()) + [("name", _generate_rule_label(obj.project, obj, o))])
                 for o in obj.data.get("conditions", [])
             ],
             "actions": [
-                dict(o.items() + [("name", _generate_rule_label(obj.project, obj, o))])
+                dict(list(o.items()) + [("name", _generate_rule_label(obj.project, obj, o))])
                 for o in obj.data.get("actions", [])
             ],
             "actionMatch": obj.data.get("action_match") or Rule.DEFAULT_CONDITION_MATCH,
