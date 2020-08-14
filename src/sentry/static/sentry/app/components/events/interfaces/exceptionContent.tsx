@@ -85,6 +85,7 @@ const ExceptionContent = ({
         platform={platform}
         newestFirst={newestFirst}
         event={event}
+        chainedException={values.length > 1}
       />
     </div>
   ));
