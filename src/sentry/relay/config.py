@@ -22,6 +22,7 @@ from sentry.utils.http import get_origins
 from sentry.utils.sdk import configure_scope
 from sentry.relay.utils import to_camel_case_name
 from sentry.datascrubbing import get_pii_config, get_datascrubbing_settings
+from sentry import features
 
 
 def get_project_key_config(project_key):
@@ -54,17 +55,18 @@ def get_filter_settings(project):
         settings = _load_filter_settings(flt, project)
         filter_settings[filter_id] = settings
 
-    invalid_releases = project.get_option(u"sentry:{}".format(FilterTypes.RELEASES))
-    if invalid_releases:
-        filter_settings["releases"] = {"releases": invalid_releases}
+    if features.has("projects:custom-inbound-filters", project):
+        invalid_releases = project.get_option(u"sentry:{}".format(FilterTypes.RELEASES))
+        if invalid_releases:
+            filter_settings["releases"] = {"releases": invalid_releases}
+
+        error_messages = project.get_option(u"sentry:{}".format(FilterTypes.ERROR_MESSAGES))
+        if error_messages:
+            filter_settings["errorMessages"] = {"patterns": error_messages}
 
     blacklisted_ips = project.get_option("sentry:blacklisted_ips")
     if blacklisted_ips:
         filter_settings["clientIps"] = {"blacklistedIps": blacklisted_ips}
-
-    error_messages = project.get_option(u"sentry:{}".format(FilterTypes.ERROR_MESSAGES))
-    if error_messages:
-        filter_settings["errorMessages"] = {"patterns": error_messages}
 
     csp_disallowed_sources = []
     if bool(project.get_option("sentry:csp_ignored_sources_defaults", True)):
