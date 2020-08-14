@@ -121,7 +121,7 @@ export type MetricActionTemplate = {
   /**
    * The input type on the front end, e.g. text for Slack, select for PagerDuty
    */
-  inputType?: string;
+  inputType?: 'select' | 'text';
   /**
    * If the inputType is select, these are the options to select from
    */
@@ -174,7 +174,7 @@ export type UnsavedAction = {
   /**
    * The input type on the front end, e.g. text for Slack, select for PagerDuty
    */
-  inputType?: string;
+  inputType?: 'select' | 'text';
   /**
    * If the inputType is select, these are the options to select from
    */
