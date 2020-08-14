@@ -1612,6 +1612,47 @@ class GetSnubaQueryArgsTest(TestCase):
         assert _filter.filter_keys == {}
         assert _filter.group_ids == []
 
+    def test_user_display_filter(self):
+        _filter = get_filter(
+            "user.display:bill@example.com", {"organization_id": self.organization.id}
+        )
+        assert _filter.conditions == [
+            [["coalesce", ["user.email", "user.username", "user.ip"]], "=", "bill@example.com"]
+        ]
+        assert _filter.filter_keys == {}
+        assert _filter.group_ids == []
+
+    def test_user_display_wildcard(self):
+        _filter = get_filter("user.display:jill*", {"organization_id": self.organization.id})
+        assert _filter.conditions == [
+            [
+                [
+                    "match",
+                    [["coalesce", ["user.email", "user.username", "user.ip"]], "'(?i)^jill.*$'"],
+                ],
+                "=",
+                1,
+            ]
+        ]
+        assert _filter.filter_keys == {}
+        assert _filter.group_ids == []
+
+    def test_has_user_display(self):
+        _filter = get_filter("has:user.display", {"organization_id": self.organization.id})
+        assert _filter.conditions == [
+            [["isNull", [["coalesce", ["user.email", "user.username", "user.ip"]]]], "!=", 1]
+        ]
+        assert _filter.filter_keys == {}
+        assert _filter.group_ids == []
+
+    def test_not_has_user_display(self):
+        _filter = get_filter("!has:user.display", {"organization_id": self.organization.id})
+        assert _filter.conditions == [
+            [["isNull", [["coalesce", ["user.email", "user.username", "user.ip"]]]], "=", 1]
+        ]
+        assert _filter.filter_keys == {}
+        assert _filter.group_ids == []
+
     def test_environment_param(self):
         params = {"environment": ["", "prod"]}
         _filter = get_filter("", params)
@@ -1832,12 +1873,20 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["groupby"] == []
 
     def test_field_alias_expansion(self):
-        fields = ["title", "last_seen()", "latest_event()", "project", "issue", "user", "message"]
+        fields = [
+            "title",
+            "last_seen()",
+            "latest_event()",
+            "project",
+            "issue",
+            "user.display",
+            "message",
+        ]
         result = resolve_field_list(fields, eventstore.Filter())
         assert result["selected_columns"] == [
             "title",
             "issue.id",
-            "user",
+            ["coalesce", ["user.email", "user.username", "user.ip"], "user.display"],
             "message",
             "project.id",
             [
@@ -1853,7 +1902,7 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["groupby"] == [
             "title",
             "issue.id",
-            "user",
+            "user.display",
             "message",
             "project.id",
         ]
@@ -1867,6 +1916,16 @@ class ResolveFieldListTest(unittest.TestCase):
             ["uniq", "user", "count_unique_user"],
             ["count", None, "count_id"],
             ["min", "timestamp", "min_timestamp"],
+        ]
+        assert result["groupby"] == []
+
+    def test_aggregate_function_complex_field_expansion(self):
+        fields = ["count_unique(user.display)"]
+        result = resolve_field_list(fields, eventstore.Filter())
+        # Automatic fields should be inserted, count() should have its column dropped.
+        assert result["selected_columns"] == []
+        assert result["aggregations"] == [
+            ["uniq", ["coalesce", ["user.email", "user.username", "user.ip"]], "count_unique_user"],
         ]
         assert result["groupby"] == []
 
@@ -2161,5 +2220,22 @@ class ResolveFieldListTest(unittest.TestCase):
             ],
         ]
         assert result["orderby"] == ["-project"]
+        assert result["aggregations"] == []
+        assert result["groupby"] == []
+
+    def test_orderby_user_display_alias(self):
+        fields = ["user.display"]
+        result = resolve_field_list(fields, eventstore.Filter(orderby="-user.display"))
+        assert result["selected_columns"] == [
+            ["coalesce", ["user.email", "user.username", "user.ip"], "user.display"],
+            "id",
+            "project.id",
+            [
+                "transform",
+                [["toString", ["project_id"]], ["array", []], ["array", []], "''"],
+                "`project.name`",
+            ],
+        ]
+        assert result["orderby"] == ["-user.display"]
         assert result["aggregations"] == []
         assert result["groupby"] == []

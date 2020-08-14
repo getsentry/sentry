@@ -193,6 +193,7 @@ PROJECT_ALIAS = "project"
 ISSUE_ALIAS = "issue"
 ISSUE_ID_ALIAS = "issue.id"
 RELEASE_ALIAS = "release"
+USER_DISPLAY_ALIAS = "user.display"
 
 
 class InvalidSearchQuery(Exception):
@@ -773,6 +774,20 @@ def convert_search_filter_to_snuba_query(search_filter, key=None):
         # Skip isNull check on group_id value as we want to
         # allow snuba's prewhere optimizer to find this condition.
         return [name, search_filter.operator, value]
+    elif name == USER_DISPLAY_ALIAS:
+        # Slice off the function without an alias.
+        user_display_expr = FIELD_ALIASES["user.display"]["fields"][0][0:2]
+
+        # Handle 'has' condition
+        if search_filter.value.raw_value == "":
+            return [["isNull", [user_display_expr]], search_filter.operator, 1]
+        if search_filter.value.is_wildcard():
+            return [
+                ["match", [user_display_expr, u"'(?i){}'".format(value)]],
+                search_filter.operator,
+                1,
+            ]
+        return [user_display_expr, search_filter.operator, value]
     else:
         value = (
             int(to_timestamp(value)) * 1000
@@ -878,6 +893,12 @@ def format_search_filter(term, params):
                 ),
             )
         )
+        if converted_filter:
+            conditions.append(converted_filter)
+    elif name == USER_DISPLAY_ALIAS:
+        user_display = FIELD_ALIASES["user.display"]["fields"]
+        term = SearchFilter(SearchKey(user_display), term.operator, term.value)
+        converted_filter = convert_search_filter_to_snuba_query(term, key=USER_DISPLAY_ALIAS)
         if converted_filter:
             conditions.append(converted_filter)
     elif name in FIELD_ALIASES and name != PROJECT_ALIAS:
@@ -1134,6 +1155,15 @@ def get_filter(query=None, params=None):
 FIELD_ALIASES = {
     "project": {"fields": ["project.id"], "column_alias": "project.id"},
     "issue": {"fields": ["issue.id"], "column_alias": "issue.id"},
+    # TODO(mark) This alias doesn't work inside count_unique().
+    # The column resolution code is really convoluted and expanding
+    # it to support functions that need columns resolved inside of
+    # aggregations is risky right now. Until that gets sorted user.display
+    # should not be added to the public field list/docs.
+    "user.display": {
+        "fields": [["coalesce", ["user.email", "user.username", "user.ip"], "user.display"]],
+        "column_alias": "user.display",
+    },
 }
 
 
@@ -1596,7 +1626,8 @@ def resolve_field(field, params=None):
 
     if field in FIELD_ALIASES:
         special_field = deepcopy(FIELD_ALIASES[field])
-        return (special_field.get("fields", []), None)
+        if "fields" in special_field:
+            return (special_field.get("fields", []), None)
     return ([field], None)
 
 

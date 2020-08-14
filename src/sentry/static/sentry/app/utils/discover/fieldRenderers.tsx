@@ -162,6 +162,7 @@ type SpecialFields = {
   id: SpecialField;
   project: SpecialField;
   user: SpecialField;
+  'user.display': SpecialField;
   'issue.id': SpecialField;
   issue: SpecialField;
   release: SpecialField;
@@ -255,6 +256,25 @@ const SPECIAL_FIELDS: SpecialFields = {
           ip_address: '',
         };
         userObj[key] = value;
+
+        const badge = <UserBadge user={userObj} hideEmail avatarSize={16} />;
+        return <Container>{badge}</Container>;
+      }
+
+      return <Container>{emptyValue}</Container>;
+    },
+  },
+  'user.display': {
+    sortField: 'user.display',
+    renderFunc: data => {
+      if (data['user.display']) {
+        const userObj = {
+          id: '',
+          name: data['user.display'],
+          email: '',
+          username: '',
+          ip_address: '',
+        };
 
         const badge = <UserBadge user={userObj} hideEmail avatarSize={16} />;
         return <Container>{badge}</Container>;

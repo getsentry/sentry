@@ -1757,6 +1757,52 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             assert data[0]["count_unique_project_id"] == 2
             assert data[0]["count_unique_project"] == 2
 
+    def test_user_display(self):
+        self.login_as(user=self.user)
+
+        project1 = self.create_project()
+        project2 = self.create_project()
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "transaction": "/example",
+                "message": "how to make fast",
+                "timestamp": self.two_min_ago,
+                "user": {"email": "cathy@example.com"},
+            },
+            project_id=project1.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "transaction": "/example",
+                "message": "how to make fast",
+                "timestamp": self.two_min_ago,
+                "user": {"username": "catherine"},
+            },
+            project_id=project2.id,
+        )
+
+        with self.feature(
+            {"organizations:discover-basic": True, "organizations:global-views": True}
+        ):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "field": ["event.type", "user.display"],
+                    "query": "user.display:cath*",
+                    "statsPeriod": "24h",
+                    "order": "-user.display",
+                },
+            )
+
+            assert response.status_code == 200, response.content
+            data = response.data["data"]
+            assert len(data) == 2
+            assert data[0]["user.display"] == "catherine"
+            assert data[1]["user.display"] == "cathy@example.com"
+
     def test_has_transaction_status(self):
         self.login_as(user=self.user)
 
