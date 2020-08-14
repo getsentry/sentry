@@ -1,5 +1,4 @@
 import {RouteComponentProps} from 'react-router/lib/Router';
-import DocumentTitle from 'react-document-title';
 import React from 'react';
 import styled from '@emotion/styled';
 import flatten from 'lodash/flatten';
@@ -14,6 +13,7 @@ import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import AsyncComponent from 'app/components/asyncComponent';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import ExternalLink from 'app/components/links/externalLink';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
@@ -177,14 +177,14 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     const {orgId} = params;
 
     return (
-      <DocumentTitle title={`Alerts - ${orgId} - Sentry`}>
+      <SentryDocumentTitle title="Alerts" objSlug={orgId}>
         <GlobalSelectionHeader organization={organization} showDateSelector={false}>
           <PageContent>
             <AlertHeader organization={organization} router={router} activeTab="rules" />
             {this.renderList()}
           </PageContent>
         </GlobalSelectionHeader>
-      </DocumentTitle>
+      </SentryDocumentTitle>
     );
   }
 }

@@ -1,5 +1,4 @@
 import {RouteComponentProps} from 'react-router/lib/Router';
-import DocumentTitle from 'react-document-title';
 import React from 'react';
 import flatten from 'lodash/flatten';
 import omit from 'lodash/omit';
@@ -19,6 +18,7 @@ import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import ExternalLink from 'app/components/links/externalLink';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import Projects from 'app/utils/projects';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
@@ -255,7 +255,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
     const status = getQueryStatus(query.status);
 
     return (
-      <DocumentTitle title={`Alerts - ${orgId} - Sentry`}>
+      <SentryDocumentTitle title="Alerts" objSlug={orgId}>
         <GlobalSelectionHeader organization={organization} showDateSelector={false}>
           <PageContent>
             <AlertHeader organization={organization} router={router} activeTab="stream" />
@@ -280,7 +280,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
             {this.renderList()}
           </PageContent>
         </GlobalSelectionHeader>
-      </DocumentTitle>
+      </SentryDocumentTitle>
     );
   }
 }

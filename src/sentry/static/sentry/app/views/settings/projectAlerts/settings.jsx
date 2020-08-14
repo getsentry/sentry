@@ -82,7 +82,7 @@ class ProjectAlertSettings extends AsyncView {
         <SettingsPageHeader
           title={t('Alerts Settings')}
           action={
-            <Button to="/organizations/sentry/alerts/rules/" size="small">
+            <Button to={`/organizations/${orgId}/alerts/rules/`} size="small">
               {t('View Alert Rules')}
             </Button>
           }
