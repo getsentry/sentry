@@ -1486,7 +1486,7 @@ FUNCTIONS = {
         ],
         "calculated_args": [{"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0}],
         "aggregate": [
-            u"uniqIf(user,and(greaterOrEquals(timestamp,toDateTime('{start}')),less(timestamp,toDateTime('{end}')),greater(duration,{tolerated:g})))",
+            u"uniqIf(user,and(greater(duration,{tolerated:g}),and(greaterOrEquals(timestamp,toDateTime('{start}')),less(timestamp,toDateTime('{end}')))))",
             None,
             u"user_misery_range_{index:g}",
         ],

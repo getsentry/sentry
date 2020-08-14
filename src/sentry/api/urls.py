@@ -834,7 +834,7 @@ urlpatterns = [
                 url(
                     r"^(?P<organization_slug>[^\/]+)/events-trends/$",
                     OrganizationEventsTrendsEndpoint.as_view(),
-                    name="sentry-api-0-organization-events-meta",
+                    name="sentry-api-0-organization-events-trends",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/event-baseline/$",

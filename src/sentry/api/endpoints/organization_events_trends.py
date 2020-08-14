@@ -63,8 +63,10 @@ class OrganizationEventsTrendsEndpoint(OrganizationEventsV2EndpointBase):
         function, columns = parse_function(trend_function)
         trend_column = self.trend_columns.get(function)
         if trend_column is None:
-            # TODO: error?
-            pass
+            return Response(
+                {"detail": "{} is not a supported trend function".format(trend_function)},
+                status=400,
+            )
 
         selected_columns = request.GET.getlist("field")[:]
         query = request.GET.get("query")
@@ -84,9 +86,6 @@ class OrganizationEventsTrendsEndpoint(OrganizationEventsV2EndpointBase):
                 ],
                 query=query,
                 params=params,
-                reference_event=self.reference_event(
-                    request, organization, params.get("start"), params.get("end")
-                ),
                 orderby=orderby,
                 limit=5,
                 referrer="api.trends.get-percentage-change",
