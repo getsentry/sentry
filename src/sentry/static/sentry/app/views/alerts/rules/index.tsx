@@ -76,13 +76,14 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     );
   }
 
-  handleDeleteRule = async (projectId: string, ruleId: string) => {
+  handleDeleteRule = async (projectId: string, rule: IssueAlertRule) => {
     const {params} = this.props;
     const {orgId} = params;
+    const alertPath = isIssueAlert(rule) ? 'rules' : 'alert-rules';
 
     try {
       await this.api.requestPromise(
-        `/projects/${orgId}/${projectId}/alert-rules/${ruleId}/`,
+        `/projects/${orgId}/${projectId}/${alertPath}/${rule.id}/`,
         {
           method: 'DELETE',
         }

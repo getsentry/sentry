@@ -25,7 +25,7 @@ type Props = {
   projects: Project[];
   projectsLoaded: boolean;
   orgId: string;
-  onDelete: (projectId: string, ruleId: string) => void;
+  onDelete: (projectId: string, rule: IssueAlertRule) => void;
 };
 
 type State = {};
@@ -69,7 +69,7 @@ class RuleListRow extends React.Component<Props, State> {
                     header={t('Delete Alert Rule?')}
                     priority="danger"
                     confirmText={t('Delete Rule')}
-                    onConfirm={() => onDelete(slug, rule.id)}
+                    onConfirm={() => onDelete(slug, rule)}
                   >
                     <Button
                       type="button"
