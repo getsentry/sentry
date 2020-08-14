@@ -105,10 +105,6 @@ export function transformDeltaSpread(from: number, to: number) {
   );
 }
 
-export function transformPercentage(ratio: number) {
-  return `${(ratio * 100).toFixed(0)}%`;
-}
-
 export function modifyTrendView(
   trendView: TrendView,
   location: Location,

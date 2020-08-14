@@ -14,6 +14,7 @@ import Link from 'app/components/links/link';
 import Radio from 'app/components/radio';
 import Tooltip from 'app/components/tooltip';
 import Count from 'app/components/count';
+import {formatPercentage} from 'app/utils/formatters';
 
 import Chart from './chart';
 import {
@@ -25,7 +26,6 @@ import {
 import {
   trendToColor,
   transformDurationDelta,
-  transformPercentage,
   transformDeltaSpread,
   modifyTrendView,
   normalizeTrendsTransactions,
@@ -216,7 +216,7 @@ function TrendsListItem(props: TrendsListItemProps) {
           }
         >
           <ItemTransactionPercent>
-            {transformPercentage(transaction.divide_aggregate_range_2_aggregate_range_1)}
+            {formatPercentage(transaction.divide_aggregate_range_2_aggregate_range_1, 0)}
           </ItemTransactionPercent>
         </Tooltip>
         <ItemTransactionPercentFaster color={color}>
