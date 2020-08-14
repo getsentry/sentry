@@ -10,18 +10,18 @@ type Props = {
   data: RuntimeData;
 };
 
-const runTimerKnownDataValues = [RuntimeKnownDataType.NAME, RuntimeKnownDataType.VERSION];
+const runtimeKnownDataValues = [RuntimeKnownDataType.NAME, RuntimeKnownDataType.VERSION];
 
-const runTimerIgnoredDataValues = [RuntimeIgnoredDataType.BUILD];
+const runtimeIgnoredDataValues = [RuntimeIgnoredDataType.BUILD];
 
 const Runtime = ({data}: Props) => {
   return (
     <React.Fragment>
-      <ContextBlock data={getRuntimeKnownData(data, runTimerKnownDataValues)} />
+      <ContextBlock data={getRuntimeKnownData(data, runtimeKnownDataValues)} />
       <ContextBlock
         data={getUnknownData(data, [
-          ...runTimerKnownDataValues,
-          ...runTimerIgnoredDataValues,
+          ...runtimeKnownDataValues,
+          ...runtimeIgnoredDataValues,
         ])}
       />
     </React.Fragment>
