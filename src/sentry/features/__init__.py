@@ -59,6 +59,7 @@ default_manager.add("organizations:api-keys", OrganizationFeature)  # NOQA
 default_manager.add("organizations:artifacts-in-settings", OrganizationFeature)  # NOQA
 default_manager.add("organizations:boolean-search", OrganizationFeature)  # NOQA
 default_manager.add("organizations:breadcrumbs-v2", OrganizationFeature)  # NOQA
+default_manager.add("organizations:related-events", OrganizationFeature)  # NOQA
 default_manager.add("organizations:custom-symbol-sources", OrganizationFeature)  # NOQA
 default_manager.add("organizations:data-forwarding", OrganizationFeature)  # NOQA
 default_manager.add("organizations:discover", OrganizationFeature)  # NOQA
@@ -74,6 +75,9 @@ default_manager.add("organizations:integrations-issue-basic", OrganizationFeatur
 default_manager.add("organizations:integrations-issue-sync", OrganizationFeature)  # NOQA
 default_manager.add("organizations:integrations-alert-rule", OrganizationFeature)  # NOQA
 default_manager.add("organizations:integrations-chat-unfurl", OrganizationFeature)  # NOQA
+default_manager.add(
+    "organizations:integrations-pagerduty-metric-alerts", OrganizationFeature  # NOQA
+)
 default_manager.add("organizations:integrations-incident-management", OrganizationFeature)  # NOQA
 default_manager.add("organizations:integrations-msteams", OrganizationFeature)  # NOQA
 default_manager.add("organizations:integrations-vsts-limited-scopes", OrganizationFeature)  # NOQA

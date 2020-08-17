@@ -41,8 +41,8 @@ def has_shape(data, shape, allow_empty=False):
     if isinstance(data, dict):
         return (
             (allow_empty or len(data) > 0)
-            and all(has_shape(k, shape.keys()[0]) for k in data.keys())
-            and all(has_shape(v, shape.values()[0]) for v in data.values())
+            and all(has_shape(k, list(shape.keys())[0]) for k in data.keys())
+            and all(has_shape(v, list(shape.values())[0]) for v in data.values())
         )
     elif isinstance(data, list):
         return (allow_empty or len(data) > 0) and all(has_shape(v, shape[0]) for v in data)

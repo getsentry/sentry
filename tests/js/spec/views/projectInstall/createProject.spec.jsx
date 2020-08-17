@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {shallow, mountWithTheme} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {MOCK_RESP_VERBOSE} from 'sentry-test/fixtures/ruleConditions';
 
 import {CreateProject} from 'app/views/projectInstall/createProject';
@@ -25,7 +25,7 @@ describe('CreateProject', function() {
       ...baseProps,
     };
 
-    const wrapper = shallow(
+    const wrapper = mountWithTheme(
       <CreateProject {...props} />,
       TestStubs.routerContext([
         {
@@ -39,7 +39,7 @@ describe('CreateProject', function() {
       ])
     );
 
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
   it('can create a new team', function() {
@@ -98,7 +98,7 @@ describe('CreateProject', function() {
     node.simulate('click');
     expect(wrapper.find('ProjectNameInput input').props().value).toBe('another');
 
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
   it('should fill in platform name if its provided by url', function() {
@@ -122,7 +122,7 @@ describe('CreateProject', function() {
 
     expect(wrapper.find('ProjectNameInput input').props().value).toBe('Ruby');
 
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
   it('should deal with incorrect platform name if its provided by url', function() {
@@ -146,7 +146,7 @@ describe('CreateProject', function() {
 
     expect(wrapper.find('ProjectNameInput input').props().value).toBe('');
 
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
   describe('Issue Alerts Options', () => {

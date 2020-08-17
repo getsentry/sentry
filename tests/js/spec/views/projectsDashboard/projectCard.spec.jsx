@@ -32,7 +32,7 @@ describe('ProjectCard', function() {
   });
 
   it('renders', function() {
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
   it('renders latest 2 deploys', function() {

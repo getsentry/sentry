@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {mountWithTheme, shallow} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {IssueDiff} from 'app/components/issueDiff';
 
@@ -32,7 +32,7 @@ describe('IssueDiff', function() {
   });
 
   it('is loading when initially rendering', function() {
-    const wrapper = shallow(
+    const wrapper = mountWithTheme(
       <IssueDiff
         api={api}
         baseIssueId="base"
@@ -42,7 +42,7 @@ describe('IssueDiff', function() {
       />
     );
     expect(wrapper.find('SplitDiff')).toHaveLength(0);
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
   it('can dynamically import SplitDiff', async function() {
@@ -62,7 +62,7 @@ describe('IssueDiff', function() {
     wrapper.update();
 
     expect(wrapper.find('SplitDiff')).toHaveLength(1);
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
   it('can diff message', async function() {
@@ -96,6 +96,6 @@ describe('IssueDiff', function() {
     wrapper.update();
 
     expect(wrapper.find('SplitDiff')).toHaveLength(1);
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 });
