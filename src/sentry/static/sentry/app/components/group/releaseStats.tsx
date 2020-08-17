@@ -22,7 +22,6 @@ const GroupReleaseStats = ({
   environments,
   allEnvironments,
 }: Props) => {
-  const {group, organization, project, environments, allEnvironments} = props;
 
   const environmentLabel =
     environments.length > 0
