@@ -797,7 +797,11 @@ def time_synthetic_monitoring_event(data, project_id, start_time):
         return False
 
     now = time()
-    tags = {"target": extra["target"], "region": extra["region"], "source": extra["source"]}
+    tags = {
+        "target": extra["target"],
+        "source_region": extra["source_region"],
+        "source": extra["source"],
+    }
 
     metrics.timing(
         "events.synthetic-monitoring.time-to-ingest-total",
