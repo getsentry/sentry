@@ -273,7 +273,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   handleCancel = () => {
     const {router} = this.props;
 
-    router.push(recreateRoute('', {...this.props, stepBack: -2}));
+    router.push(recreateRoute('rules/', {...this.props, stepBack: -2}));
   };
 
   hasError = (field: string) => {

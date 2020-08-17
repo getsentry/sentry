@@ -1290,16 +1290,6 @@ function routes() {
               >
                 <IndexRedirect to="/organizations/:orgId/alerts/rules/" />
                 <Route
-                  path="new/"
-                  name="New Alert Rule"
-                  component={errorHandler(LazyLoad)}
-                  componentPromise={() =>
-                    import(
-                      /* webpackChunkName: "ProjectAlertsCreate" */ 'app/views/settings/projectAlerts/create'
-                    )
-                  }
-                />
-                <Route
                   path=":ruleId/"
                   name="Edit Alert Rule"
                   componentPromise={() =>
@@ -1324,16 +1314,6 @@ function routes() {
                 component={errorHandler(LazyLoad)}
               >
                 <IndexRedirect to="/organizations/:orgId/alerts/rules/" />
-                <Route
-                  path="new/"
-                  name="New Alert Rule"
-                  component={errorHandler(LazyLoad)}
-                  componentPromise={() =>
-                    import(
-                      /* webpackChunkName: "ProjectAlertsCreate" */ 'app/views/settings/projectAlerts/create'
-                    )
-                  }
-                />
                 <Route
                   path=":ruleId/"
                   name="Edit Alert Rule"
