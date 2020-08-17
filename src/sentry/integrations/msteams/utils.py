@@ -489,7 +489,7 @@ def build_incident_attachment(incident, metric_value=None):
             {
                 "type": "ColumnSet",
                 "columns": [
-                    {"type": "Column", "style": colors[status], "items": [], "width": "20px",},
+                    {"type": "Column", "style": colors[status], "items": [], "width": "20px"},
                     {
                         "type": "Column",
                         "items": [
