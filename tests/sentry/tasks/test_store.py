@@ -7,11 +7,9 @@ from django.test.utils import override_settings
 from sentry.utils.compat import mock
 from time import time
 
-from sentry import quotas, eventstore
+from sentry import quotas
 from sentry.event_manager import EventManager, HashDiscarded
-from sentry.eventstore.processing import event_processing_store
 from sentry.plugins.base.v2 import Plugin2
-from sentry.reprocessing2 import reprocess_event
 from sentry.tasks.store import (
     preprocess_event,
     process_event,
@@ -19,8 +17,6 @@ from sentry.tasks.store import (
     symbolicate_event,
     time_synthetic_monitoring_event,
 )
-
-from sentry.testutils.helpers import Feature
 
 EVENT_ID = "cc3e6c2bb6b6498097f336d1e6979f4b"
 
@@ -48,18 +44,6 @@ class BasicPreprocessorPlugin(Plugin2):
 
     def is_enabled(self, project=None):
         return True
-
-
-@pytest.fixture
-def register_plugin(request, monkeypatch):
-    def inner(cls):
-        from sentry.plugins.base import plugins
-
-        monkeypatch.setitem(globals(), cls.__name__, cls)
-        plugins.register(cls)
-        request.addfinalizer(lambda: plugins.unregister(cls))
-
-    return inner
 
 
 @pytest.fixture
@@ -108,7 +92,7 @@ def mock_metrics_timing():
 def test_move_to_process_event(
     default_project, mock_process_event, mock_save_event, mock_symbolicate_event, register_plugin
 ):
-    register_plugin(BasicPreprocessorPlugin)
+    register_plugin(globals(), BasicPreprocessorPlugin)
     data = {
         "project": default_project.id,
         "platform": "mattlang",
@@ -128,7 +112,7 @@ def test_move_to_process_event(
 def test_move_to_symbolicate_event(
     default_project, mock_process_event, mock_save_event, mock_symbolicate_event, register_plugin
 ):
-    register_plugin(BasicPreprocessorPlugin)
+    register_plugin(globals(), BasicPreprocessorPlugin)
     data = {
         "project": default_project.id,
         "platform": "native",
@@ -153,7 +137,7 @@ def test_symbolicate_event_call_process_inline(
     mock_get_symbolication_function,
     register_plugin,
 ):
-    register_plugin(BasicPreprocessorPlugin)
+    register_plugin(globals(), BasicPreprocessorPlugin)
     data = {
         "project": default_project.id,
         "platform": "native",
@@ -192,7 +176,7 @@ def test_symbolicate_event_call_process_inline(
 def test_move_to_save_event(
     default_project, mock_process_event, mock_save_event, mock_symbolicate_event, register_plugin
 ):
-    register_plugin(BasicPreprocessorPlugin)
+    register_plugin(globals(), BasicPreprocessorPlugin)
     data = {
         "project": default_project.id,
         "platform": "NOTMATTLANG",
@@ -212,7 +196,7 @@ def test_move_to_save_event(
 def test_process_event_mutate_and_save(
     default_project, mock_event_processing_store, mock_save_event, register_plugin
 ):
-    register_plugin(BasicPreprocessorPlugin)
+    register_plugin(globals(), BasicPreprocessorPlugin)
 
     data = {
         "project": default_project.id,
@@ -241,7 +225,7 @@ def test_process_event_mutate_and_save(
 def test_process_event_no_mutate_and_save(
     default_project, mock_event_processing_store, mock_save_event, register_plugin
 ):
-    register_plugin(BasicPreprocessorPlugin)
+    register_plugin(globals(), BasicPreprocessorPlugin)
 
     data = {
         "project": default_project.id,
@@ -267,7 +251,7 @@ def test_process_event_no_mutate_and_save(
 def test_process_event_unprocessed(
     default_project, mock_event_processing_store, mock_save_event, register_plugin
 ):
-    register_plugin(BasicPreprocessorPlugin)
+    register_plugin(globals(), BasicPreprocessorPlugin)
 
     data = {
         "project": default_project.id,
@@ -292,7 +276,7 @@ def test_process_event_unprocessed(
 
 @pytest.mark.django_db
 def test_hash_discarded_raised(default_project, mock_refund, register_plugin):
-    register_plugin(BasicPreprocessorPlugin)
+    register_plugin(globals(), BasicPreprocessorPlugin)
 
     data = {
         "project": default_project.id,
@@ -331,7 +315,6 @@ def test_scrubbing_after_processing(
     setting_method,
     options_model,
 ):
-    @register_plugin
     class TestPlugin(Plugin2):
         def get_event_preprocessors(self, data):
             # Right now we do not scrub data from event preprocessors
@@ -343,6 +326,8 @@ def test_scrubbing_after_processing(
 
         def is_enabled(self, project=None):
             return True
+
+    register_plugin(globals(), TestPlugin)
 
     if setting_method == "datascrubbers":
         options_model.update_option("sentry:sensitive_fields", ["a"])
@@ -421,49 +406,3 @@ def test_time_synthetic_monitoring_event_in_save_event(mock_metrics_timing):
 
     assert to_process.args == ("events.synthetic-monitoring.time-to-process", mock.ANY,)
     assert to_process.kwargs == {"tags": tags, "sample_rate": 1.0}
-
-
-@pytest.mark.django_db
-def test_basic_reprocessing2(task_runner, default_project, register_plugin):
-    def event_preprocessor(data):
-        data.setdefault("test_processed", 0)
-        data["test_processed"] += 1
-        return data
-
-    class ReprocessingTestPlugin(Plugin2):
-        def get_event_preprocessors(self, data):
-            return [event_preprocessor]
-
-        def is_enabled(self, project=None):
-            return True
-
-    register_plugin(ReprocessingTestPlugin)
-
-    mgr = EventManager(data={}, project=default_project)
-    mgr.normalize()
-    data = mgr.get_data()
-    event_id = data["event_id"]
-    cache_key = event_processing_store.store(data)
-
-    with task_runner(), Feature({"projects:reprocessing-v2": True}):
-        preprocess_event(start_time=time(), cache_key=cache_key, data=data)
-
-    event = eventstore.get_event_by_id(default_project.id, event_id)
-
-    assert event
-    assert event.data["test_processed"] == 1
-    assert not event.data.get("errors")
-
-    with task_runner(), Feature({"projects:reprocessing-v2": True}):
-        new_event_id = reprocess_event(default_project.id, event_id)
-
-    assert new_event_id != event_id
-
-    event = eventstore.get_event_by_id(default_project.id, event_id)
-
-    assert event
-    # Assert original data is used
-    assert event.data["test_processed"] == 1
-    assert not event.data.get("errors")
-
-    # TODO: Assert old event is deleted
