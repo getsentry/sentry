@@ -11,6 +11,7 @@ import {loadPreferencesState} from 'app/actionCreators/preferences';
 
 class Main extends React.Component {
   componentDidMount() {
+    /* test */
     loadPreferencesState();
   }
 
