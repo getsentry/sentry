@@ -5,6 +5,7 @@ import time
 import logging
 import msgpack
 import pytest
+import random
 
 from django.conf import settings
 
@@ -69,11 +70,38 @@ def get_test_message(request, default_project):
     return inner
 
 
+def _wait_for_topic(admin_client, topic_name, timeout=5):
+    from confluent_kafka import KafkaError
+
+    start = time.time()
+    last_error = None
+
+    while True:
+        if time.time() > start + timeout:
+            raise Exception(
+                "Timeout when waiting for Kafka topic to become available, last error: {}".format(
+                    last_error
+                )
+            )
+
+        result = admin_client.list_topics(topic=topic_name)
+        topic_metadata = result.topics[topic_name]
+        if topic_metadata.error in {
+            KafkaError.UNKNOWN_TOPIC_OR_PART,
+            KafkaError.LEADER_NOT_AVAILABLE,
+        }:
+            last_error = topic_metadata.error
+            time.sleep(0.1)
+            continue
+        else:
+            break
+
+
 @pytest.mark.django_db(transaction=True)
 def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
     task_runner, kafka_producer, kafka_admin, requires_kafka, default_project, get_test_message,
 ):
-    group_id = "test-consumer"
+    group_id = "test-consumer-{}".format(random.randint(0, 2 ** 16))
     topic_event_name = ConsumerType.get_topic_name(ConsumerType.Events)
 
     admin = kafka_admin(settings)
@@ -85,6 +113,8 @@ def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
         message, event_id = get_test_message()
         producer.produce(topic_event_name, message)
         event_ids.add(event_id)
+
+    _wait_for_topic(admin.admin_client, topic_event_name)
 
     consumer = get_ingest_consumer(
         max_batch_size=2,
