@@ -5,6 +5,10 @@ export enum OperatingSystemKnownDataType {
   ROOTED = 'rooted',
 }
 
+export enum OperatingSystemIgnoredDataType {
+  BUILD = 'build',
+}
+
 export type OperatingSystemKnownData = {
   name: string;
   type: string;

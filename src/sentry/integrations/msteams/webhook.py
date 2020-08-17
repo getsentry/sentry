@@ -7,9 +7,11 @@ import time
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.exceptions import AuthenticationFailed, NotAuthenticated
 
-from sentry import options
+from sentry import options, analytics
+from sentry.api import client
 from sentry.api.base import Endpoint
 from sentry.models import (
+    ApiKey,
     AuditLogEntryEvent,
     Integration,
     IdentityProvider,
@@ -31,12 +33,35 @@ from .client import (
     CLOCK_SKEW,
 )
 from .link_identity import build_linking_url
-from .utils import build_welcome_card, build_linking_card
+from .utils import build_welcome_card, build_linking_card, ACTION_TYPE
 
 logger = logging.getLogger("sentry.integrations.msteams.webhooks")
 
-# 24 hours to finish installation
-INSTALL_EXPIRATION_TIME = 60 * 60 * 24
+
+class MsTeamsIntegrationAnalytics(analytics.Event):
+    attributes = (analytics.Attribute("actor_id"), analytics.Attribute("organization_id"))
+
+
+class MsTeamsIntegrationAssign(MsTeamsIntegrationAnalytics):
+    type = "integrations.msteams.assign"
+
+
+class MsTeamsIntegrationResolve(MsTeamsIntegrationAnalytics):
+    type = "integrations.msteams.resolve"
+
+
+class MsTeamsIntegrationIgnore(MsTeamsIntegrationAnalytics):
+    type = "integrations.msteams.ignore"
+
+
+class MsTeamsIntegrationUnresolve(MsTeamsIntegrationAnalytics):
+    type = "integrations.msteams.unresolve"
+
+
+analytics.register(MsTeamsIntegrationAssign)
+analytics.register(MsTeamsIntegrationResolve)
+analytics.register(MsTeamsIntegrationIgnore)
+analytics.register(MsTeamsIntegrationUnresolve)
 
 
 def verify_signature(request):
@@ -147,7 +172,6 @@ class MsTeamsWebhookEndpoint(Endpoint):
             "team_id": team["id"],
             "team_name": team["name"],
             "service_url": data["serviceUrl"],
-            "expiration_time": int(time.time()) + INSTALL_EXPIRATION_TIME,
         }
 
         # sign the params so this can't be forged
@@ -200,6 +224,65 @@ class MsTeamsWebhookEndpoint(Endpoint):
         integration.delete()
         return self.respond(status=204)
 
+    def make_action_data(self, data, user_id):
+        action_data = {}
+        if data["actionType"] == ACTION_TYPE.UNRESOLVE:
+            action_data = {"status": "unresolved"}
+        elif data["actionType"] == ACTION_TYPE.RESOLVE:
+            status = data["resolveInput"]
+            # status might look something like "resolved:inCurrentRelease" or just "resolved"
+            status_data = status.split(":", 1)
+            resolve_type = status_data[-1]
+
+            action_data = {"status": "resolved"}
+            if resolve_type == "inNextRelease":
+                action_data.update({"statusDetails": {"inNextRelease": True}})
+            elif resolve_type == "inCurrentRelease":
+                action_data.update({"statusDetails": {"inRelease": "latest"}})
+        elif data["actionType"] == ACTION_TYPE.IGNORE:
+            action_data = {"status": "ignored"}
+            ignore_count = int(data["ignoreInput"])
+            if ignore_count > 0:
+                action_data.update({"statusDetails": {"ignoreCount": ignore_count}})
+        elif data["actionType"] == ACTION_TYPE.ASSIGN:
+            assignee = data["assignInput"]
+            if assignee == "ME":
+                assignee = u"user:{}".format(user_id)
+            action_data = {"assignedTo": assignee}
+        return action_data
+
+    def issue_state_change(self, group, identity, data):
+        event_write_key = ApiKey(
+            organization=group.project.organization, scope_list=["event:write"]
+        )
+
+        # undoing the enum structure of ACTION_TYPE to
+        # get a more sensible analytics_event
+        action_types = {
+            ACTION_TYPE.RESOLVE: "resolve",
+            ACTION_TYPE.IGNORE: "ignore",
+            ACTION_TYPE.ASSIGN: "assign",
+            ACTION_TYPE.UNRESOLVE: "unresolve",
+        }
+        action_data = self.make_action_data(data, identity.user_id)
+        status = action_types[data["actionType"]]
+        analytics_event = "integrations.msteams.%s" % status
+        analytics.record(
+            analytics_event,
+            actor_id=identity.user_id,
+            organization_id=group.project.organization.id,
+        )
+
+        return client.put(
+            path=u"/projects/{}/{}/issues/".format(
+                group.project.organization.slug, group.project.slug
+            ),
+            params={"id": group.id},
+            data=action_data,
+            user=identity.user,
+            auth=event_write_key,
+        )
+
     def handle_action_submitted(self, request):
         data = request.data
         channel_data = data["channelData"]
@@ -242,8 +325,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
             return self.respond(status=404)
 
         try:
-            # appease linter, we will use the result of this call in a later feature
-            Identity.objects.get(idp=idp, external_id=user_id)
+            identity = Identity.objects.get(idp=idp, external_id=user_id)
         except Identity.DoesNotExist:
             associate_url = build_linking_url(
                 integration, group.organization, user_id, team_id, tenant_id
@@ -256,4 +338,4 @@ class MsTeamsWebhookEndpoint(Endpoint):
             client.send_card(user_conversation_id, card)
             return self.respond(status=201)
 
-        return self.respond(status=204)
+        return self.issue_state_change(group, identity, data["value"])
