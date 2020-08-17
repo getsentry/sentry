@@ -24,7 +24,7 @@ class ReduxContextType extends React.Component<Props> {
   render() {
     return (
       <ClippedBox clipHeight={250}>
-        <ContextBlock knownData={this.getKnownData()} />
+        <ContextBlock data={this.getKnownData()} />
       </ClippedBox>
     );
   }

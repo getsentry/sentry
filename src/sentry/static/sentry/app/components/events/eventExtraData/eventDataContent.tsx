@@ -15,7 +15,7 @@ const EventDataContent = ({data, raw}: Props) => {
     return null;
   }
 
-  return <ContextBlock knownData={getEventExtraDataKnownData(data)} raw={raw} />;
+  return <ContextBlock data={getEventExtraDataKnownData(data)} raw={raw} />;
 };
 
 export default EventDataContent;

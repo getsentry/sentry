@@ -3,6 +3,10 @@ export enum RuntimeKnownDataType {
   VERSION = 'version',
 }
 
+export enum RuntimeIgnoredDataType {
+  BUILD = 'build',
+}
+
 export type RuntimeData = {
   name: string;
   type: string;
