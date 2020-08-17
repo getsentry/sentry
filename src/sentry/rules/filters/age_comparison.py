@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import operator
 from datetime import timedelta
 from django import forms
 from django.utils import timezone
@@ -21,6 +22,8 @@ timeranges = {
 
 age_comparison_choices = [(AgeComparisonType.OLDER, "older"), (AgeComparisonType.NEWER, "newer")]
 
+age_comparison_map = {AgeComparisonType.OLDER: operator.lt, AgeComparisonType.NEWER: operator.gt}
+
 
 def get_timerange_choices():
     return [
@@ -31,40 +34,45 @@ def get_timerange_choices():
     ]
 
 
-class NewerOlderForm(forms.Form):
-    older_newer = forms.ChoiceField(choices=age_comparison_choices)
+class AgeComparisonForm(forms.Form):
+    comparison_type = forms.ChoiceField(choices=age_comparison_choices)
     value = forms.IntegerField()
     time = forms.ChoiceField(choices=get_timerange_choices)
 
 
-class NewerOlderFilter(EventFilter):
-    form_cls = NewerOlderForm
+class AgeComparisonFilter(EventFilter):
+    form_cls = AgeComparisonForm
     form_fields = {
-        "older_newer": {"type": "choice", "choices": age_comparison_choices},
+        "comparison_type": {"type": "choice", "choices": age_comparison_choices},
         "value": {"type": "number", "placeholder": 10},
         "time": {"type": "choice", "choices": get_timerange_choices()},
     }
 
     # An issue is newer/older than X minutes/hours/days/weeks
-    label = "An issue is {older_newer} than {value} {time}"
+    label = "An issue is {comparison_type} than {value} {time}"
 
     def passes(self, event, state):
-        older_newer = self.get_option("older_newer")
+        comparison_type = self.get_option("comparison_type")
         time = self.get_option("time")
         try:
             value = int(self.get_option("value"))
         except (TypeError, ValueError):
             return False
 
-        if not older_newer or not time or time not in timeranges:
+        if (
+            not comparison_type
+            or not time
+            or time not in timeranges
+            or (
+                comparison_type != AgeComparisonType.OLDER
+                and comparison_type != AgeComparisonType.NEWER
+            )
+        ):
             return False
 
         _, delta_time = timeranges[time]
 
         first_seen = event.group.first_seen
-        if older_newer == AgeComparisonType.OLDER:
-            return first_seen + (value * delta_time) < timezone.now()
-        elif older_newer == AgeComparisonType.NEWER:
-            return first_seen + (value * delta_time) > timezone.now()
-        else:
-            return False
+        return age_comparison_map[comparison_type](
+            first_seen + (value * delta_time), timezone.now()
+        )

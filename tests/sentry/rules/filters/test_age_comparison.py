@@ -6,13 +6,13 @@ from datetime import datetime, timedelta
 
 from django.utils import timezone
 
-from sentry.rules.filters.newer_older import NewerOlderFilter
+from sentry.rules.filters.age_comparison import AgeComparisonFilter
 from sentry.testutils.cases import RuleTestCase
 from sentry.utils.compat import mock
 
 
-class NewerOlderFilterTest(RuleTestCase):
-    rule_cls = NewerOlderFilter
+class AgeComparisonFilterTest(RuleTestCase):
+    rule_cls = AgeComparisonFilter
 
     @mock.patch("django.utils.timezone.now")
     def test_older_applies_correctly(self, now):
@@ -20,7 +20,7 @@ class NewerOlderFilterTest(RuleTestCase):
 
         event = self.get_event()
         value = 10
-        data = {"older_newer": "older", "value": six.text_type(value), "time": "hour"}
+        data = {"comparison_type": "older", "value": six.text_type(value), "time": "hour"}
 
         rule = self.get_rule(data=data)
 
@@ -36,7 +36,7 @@ class NewerOlderFilterTest(RuleTestCase):
 
         event = self.get_event()
         value = 10
-        data = {"older_newer": "newer", "value": six.text_type(value), "time": "hour"}
+        data = {"comparison_type": "newer", "value": six.text_type(value), "time": "hour"}
 
         rule = self.get_rule(data=data)
 
@@ -59,7 +59,7 @@ class NewerOlderFilterTest(RuleTestCase):
 
         self.assertDoesNotPass(rule, event)
 
-        data = {"older_newer": "bad_value"}
+        data = {"comparison_type": "bad_value"}
         rule = self.get_rule(data=data)
 
         self.assertDoesNotPass(rule, event)

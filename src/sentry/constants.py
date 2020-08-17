@@ -227,7 +227,7 @@ SENTRY_RULES = (
     "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition",
     "sentry.rules.conditions.event_attribute.EventAttributeCondition",
     "sentry.rules.conditions.level.LevelCondition",
-    "sentry.rules.filters.newer_older.NewerOlderFilter",
+    "sentry.rules.filters.age_comparison.AgeComparisonFilter",
 )
 
 # methods as defined by http://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html + PATCH
