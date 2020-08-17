@@ -26,6 +26,7 @@ from sentry.utils.compat import filter
 from sentry.utils.signing import sign
 from sentry.web.decorators import transaction_start
 
+from .card_builder import build_welcome_card, build_linking_card, build_group_card
 from .client import (
     MsTeamsPreInstallClient,
     MsTeamsJwtClient,
@@ -34,7 +35,7 @@ from .client import (
     CLOCK_SKEW,
 )
 from .link_identity import build_linking_url
-from .utils import build_welcome_card, build_linking_card, ACTION_TYPE, build_group_card
+from .utils import ACTION_TYPE
 
 
 logger = logging.getLogger("sentry.integrations.msteams.webhooks")
