@@ -325,15 +325,6 @@ def build_incident_attachment(incident, metric_value=None):
 
     data = incident_attachment_info(incident, metric_value)
 
-    title, text, logo_url, status, ts, title_link = (
-        data["title"],
-        data["text"],
-        data["logo_url"],
-        data["status"],
-        data["ts"],
-        data["title_link"],
-    )
-
     colors = {
         "Resolved": RESOLVED_COLOR,
         "Warning": LEVEL_TO_COLOR["warning"],
@@ -341,16 +332,16 @@ def build_incident_attachment(incident, metric_value=None):
     }
 
     return {
-        "fallback": title,
-        "title": title,
-        "title_link": title_link,
-        "text": text,
+        "fallback": data["title"],
+        "title": data["title"],
+        "title_link": data["title_link"],
+        "text": data["text"],
         "fields": [],
         "mrkdwn_in": ["text"],
-        "footer_icon": logo_url,
+        "footer_icon": data["logo_url"],
         "footer": "Sentry Incident",
-        "ts": to_timestamp(ts),
-        "color": colors[status],
+        "ts": to_timestamp(data["ts"]),
+        "color": colors[data["status"]],
         "actions": [],
     }
 

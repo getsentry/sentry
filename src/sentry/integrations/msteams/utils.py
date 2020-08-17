@@ -468,18 +468,9 @@ def build_group_card(group, event, rules):
 def build_incident_attachment(incident, metric_value=None):
     data = incident_attachment_info(incident, metric_value)
 
-    title, text, logo_url, status, ts, title_link = (
-        data["title"],
-        data["text"],
-        data["logo_url"],
-        data["status"],
-        data["ts"],
-        data["title_link"],
-    )
-
     colors = {"Resolved": "good", "Warning": "warning", "Critical": "attention"}
 
-    footer_text = "Sentry Incident | {}".format(ts.strftime("%b %d"))
+    footer_text = "Sentry Incident | {}".format(data["ts"].strftime("%b %d"))
 
     return {
         "type": "AdaptiveCard",
@@ -489,7 +480,12 @@ def build_incident_attachment(incident, metric_value=None):
             {
                 "type": "ColumnSet",
                 "columns": [
-                    {"type": "Column", "style": colors[status], "items": [], "width": "20px"},
+                    {
+                        "type": "Column",
+                        "style": colors[data["status"]],
+                        "items": [],
+                        "width": "20px",
+                    },
                     {
                         "type": "Column",
                         "items": [
@@ -498,11 +494,13 @@ def build_incident_attachment(incident, metric_value=None):
                                 "items": [
                                     {
                                         "type": "TextBlock",
-                                        "text": "[{}]({})".format(title, title_link),
+                                        "text": "[{}]({})".format(
+                                            data["title"], data["title_link"]
+                                        ),
                                         "fontType": "Default",
                                         "weight": "Bolder",
                                     },
-                                    {"type": "TextBlock", "text": text, "isSubtle": True},
+                                    {"type": "TextBlock", "text": data["text"], "isSubtle": True},
                                     {
                                         "type": "ColumnSet",
                                         "columns": [
@@ -511,7 +509,7 @@ def build_incident_attachment(incident, metric_value=None):
                                                 "items": [
                                                     {
                                                         "type": "Image",
-                                                        "url": logo_url,
+                                                        "url": data["logo_url"],
                                                         "size": "Small",
                                                         "width": "20px",
                                                     }
