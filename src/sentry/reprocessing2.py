@@ -26,9 +26,11 @@ def backup_unprocessed_event(project, event_id, data):
     nodestore.set(node_id, data)
 
 
-def delete_unprocessed_event(project_id, event_id):
-    node_id = _generate_unprocessed_event_node_id(project_id=project_id, event_id=event_id)
-    nodestore.delete(node_id)
+def delete_unprocessed_events(events):
+    node_ids = [
+        _generate_unprocessed_event_node_id(event.project_id, event.event_id) for event in events
+    ]
+    nodestore.delete_multi(node_ids)
 
 
 def reprocess_event(project_id, event_id):
