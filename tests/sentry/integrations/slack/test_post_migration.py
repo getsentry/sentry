@@ -69,7 +69,7 @@ class SlackPostMigrationTest(TestCase):
                 "good_channels": [{"name": "#good_channel", "id": "good_channel_id"}],
                 "failing_channels": [{"name": "#bad_channel", "id": "bad_channel_id"}],
                 "missing_channels": [{"name": "#missing_channel", "id": "missing_channel_id"}],
-                "doc_link": "https://docs.sentry.io/workflow/integrations/global-integrations/#upgrading-slack",
+                "doc_link": "https://docs.sentry.io/product/integrations/slack/#upgrading-slack",
                 "integration": self.integration,
                 "organization": self.org,
             },
