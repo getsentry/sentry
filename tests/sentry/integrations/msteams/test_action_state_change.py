@@ -22,7 +22,8 @@ from sentry.models import (
 from sentry.testutils import APITestCase
 from sentry.testutils.asserts import assert_mock_called_once_with_partial
 from sentry.utils import json
-from sentry.integrations.msteams.utils import build_linking_card, ACTION_TYPE
+from sentry.integrations.msteams.card_builder import build_linking_card
+from sentry.integrations.msteams.utils import ACTION_TYPE
 from sentry.integrations.msteams.link_identity import build_linking_url
 
 
