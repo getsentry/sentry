@@ -103,7 +103,6 @@ class SelectMembers extends React.Component<Props, State> {
   selectRef = React.createRef<typeof SelectControl>();
 
   unlisteners = [
-    // See comments in `handleAddTeamToProject` for why we close the menu this way
     MemberListStore.listen(() => {
       this.setState({
         memberListLoading: !MemberListStore.isLoaded(),
