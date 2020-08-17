@@ -11,7 +11,7 @@ from django.conf import settings
 import sentry_sdk
 from sentry_relay.processing import StoreNormalizer
 
-from sentry import reprocessing, options
+from sentry import reprocessing, options, reprocessing2
 from sentry.datascrubbing import scrub_data
 from sentry.constants import DEFAULT_STORE_NORMALIZER_ARGS
 from sentry.attachments import attachment_cache
@@ -67,7 +67,7 @@ def should_process(data):
 
 
 def submit_process(
-    project, from_reprocessing, cache_key, event_id, start_time, data, data_has_changed=None,
+    project, from_reprocessing, cache_key, event_id, start_time, data_has_changed=None,
 ):
     task = process_event_from_reprocessing if from_reprocessing else process_event
     task.delay(
@@ -128,20 +128,20 @@ def _do_preprocess_event(cache_key, data, start_time, event_id, process_task, pr
     from_reprocessing = process_task is process_event_from_reprocessing
 
     if should_process_with_symbolicator(data):
+        reprocessing2.backup_unprocessed_event(
+            project=project, event_id=event_id, data=original_data
+        )
         submit_symbolicate(
             project, from_reprocessing, cache_key, event_id, start_time, original_data
         )
         return
 
     if should_process(data):
+        reprocessing2.backup_unprocessed_event(
+            project=project, event_id=event_id, data=original_data
+        )
         submit_process(
-            project,
-            from_reprocessing,
-            cache_key,
-            event_id,
-            start_time,
-            original_data,
-            data_has_changed=False,
+            project, from_reprocessing, cache_key, event_id, start_time, data_has_changed=False,
         )
         return
 
