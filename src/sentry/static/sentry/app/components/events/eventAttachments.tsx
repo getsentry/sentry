@@ -14,10 +14,8 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import AttachmentUrl from 'app/utils/attachmentUrl';
 import withApi from 'app/utils/withApi';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import ButtonBar from 'app/components/buttonBar';
-import {IconAttachment} from 'app/icons';
-import Button from 'app/components/button';
+
+import EventAttachmentsCrashReportsNotice from './eventAttachmentsCrashReportsNotice';
 
 type Props = {
   api: Client;
@@ -109,33 +107,12 @@ class EventAttachments extends React.Component<Props, State> {
     return (
       <EventDataSection type="attachments" title={title}>
         {strippedAttachments && (
-          <Panel>
-            <EmptyMessage
-              icon={<IconAttachment size="xl" />}
-              title={t('Some attachments got stripped away!')}
-              description={t(
-                'Your currently set limit of stored attachments per group has been reached.'
-              )}
-              action={
-                <ButtonBar gap={1}>
-                  <Button
-                    priority="primary"
-                    to={{
-                      pathname: `/organizations/${orgId}/issues/${event.groupID}/attachments/`,
-                      query: location.query,
-                    }}
-                  >
-                    {t('Group Attachments')}
-                  </Button>
-                  <Button
-                    to={`/settings/${orgId}/projects/${projectId}/security-and-privacy/`}
-                  >
-                    {t('Change Settings')}
-                  </Button>
-                </ButtonBar>
-              }
-            />
-          </Panel>
+          <EventAttachmentsCrashReportsNotice
+            orgSlug={orgId}
+            projectSlug={projectId}
+            groupId={event.groupID!}
+            location={location}
+          />
         )}
 
         {attachmentList.length > 0 && (
