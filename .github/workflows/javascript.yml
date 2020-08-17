@@ -45,7 +45,7 @@ jobs:
             echo "::add-matcher::.github/tsc.json"
             yarn tsc -p config/tsconfig.build.json
 
-        - uses: andresz1/size-limit-action@v1.4.0
+        - uses: getsentry/size-limit-action@v1-dev
           env:
             NODE_ENV: production
           with:
