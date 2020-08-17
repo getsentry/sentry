@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from sentry import eventstore
+from sentry.models import Group
 
 from sentry.tasks.base import instrumented_task
 
@@ -23,7 +24,9 @@ def reprocess_group(project_id, group_id, offset=0):
     )
 
     if not events:
-        # XXX: Delete group
+        from sentry.groupdeletion import delete_group
+
+        delete_group(Group.objects.get_from_cache(id=group_id))
         return
 
     from sentry.reprocessing2 import reprocess_events

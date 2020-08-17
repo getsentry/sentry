@@ -39,7 +39,7 @@ def test_basic(task_runner, default_project, register_plugin):
 
     event = eventstore.get_event_by_id(default_project.id, event_id)
 
-    assert event
+    assert event is not None
     assert event.data["test_processed"] == 1
     assert not event.data.get("errors")
 
@@ -48,9 +48,10 @@ def test_basic(task_runner, default_project, register_plugin):
 
     assert new_event_id != event_id
 
-    event = eventstore.get_event_by_id(default_project.id, event_id)
+    assert not eventstore.get_event_by_id(default_project.id, event_id)
+    event = eventstore.get_event_by_id(default_project.id, new_event_id)
 
-    assert event
+    assert event is not None
     # Assert original data is used
     assert event.data["test_processed"] == 1
     assert not event.data.get("errors")
