@@ -1,17 +1,22 @@
 from __future__ import absolute_import
 
-import enum
 import six
+import logging
+import enum
 
 from django.http import Http404
 
 from sentry.models import Integration, Project, GroupStatus, Organization, IdentityProvider
 from sentry.utils.compat import filter
 from sentry.utils.http import absolute_uri
+from sentry.shared_integrations.exceptions import ApiError
+from sentry.integrations.metric_alerts import incident_attachment_info
+
 from .client import MsTeamsClient
 
 MSTEAMS_MAX_ITERS = 100
 ME = "ME"
+logger = logging.getLogger("sentry.integrations.msteams")
 
 
 # MS Teams will convert integers into strings in value inputs sent in adaptive
@@ -458,6 +463,95 @@ def build_group_card(group, event, rules):
     body.append(action_cards)
 
     return {"type": "AdaptiveCard", "body": body}
+
+
+def build_incident_attachment(incident, metric_value=None):
+    data = incident_attachment_info(incident, metric_value)
+
+    colors = {"Resolved": "good", "Warning": "warning", "Critical": "attention"}
+
+    footer_text = "Sentry Incident | {}".format(data["ts"].strftime("%b %d"))
+
+    return {
+        "type": "AdaptiveCard",
+        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+        "version": "1.3",
+        "body": [
+            {
+                "type": "ColumnSet",
+                "columns": [
+                    {
+                        "type": "Column",
+                        "style": colors[data["status"]],
+                        "items": [],
+                        "width": "20px",
+                    },
+                    {
+                        "type": "Column",
+                        "items": [
+                            {
+                                "type": "Container",
+                                "items": [
+                                    {
+                                        "type": "TextBlock",
+                                        "text": "[{}]({})".format(
+                                            data["title"], data["title_link"]
+                                        ),
+                                        "fontType": "Default",
+                                        "weight": "Bolder",
+                                    },
+                                    {"type": "TextBlock", "text": data["text"], "isSubtle": True},
+                                    {
+                                        "type": "ColumnSet",
+                                        "columns": [
+                                            {
+                                                "type": "Column",
+                                                "items": [
+                                                    {
+                                                        "type": "Image",
+                                                        "url": data["logo_url"],
+                                                        "size": "Small",
+                                                        "width": "20px",
+                                                    }
+                                                ],
+                                                "width": "auto",
+                                            },
+                                            {
+                                                "type": "Column",
+                                                "items": [
+                                                    {
+                                                        "type": "TextBlock",
+                                                        "spacing": "None",
+                                                        "text": footer_text,
+                                                        "isSubtle": True,
+                                                        "wrap": True,
+                                                        "height": "stretch",
+                                                    }
+                                                ],
+                                                "width": "stretch",
+                                            },
+                                        ],
+                                    },
+                                ],
+                            }
+                        ],
+                        "width": "stretch",
+                    },
+                ],
+            }
+        ],
+    }
+
+
+def send_incident_alert_notification(action, incident, metric_value):
+    channel = action.target_identifier
+    integration = action.integration
+    attachment = build_incident_attachment(incident, metric_value)
+    client = MsTeamsClient(integration)
+    try:
+        client.send_card(channel, attachment)
+    except ApiError as e:
+        logger.info("rule.fail.msteams_post", extra={"error": six.text_type(e)})
 
 
 def build_linking_card(url):
