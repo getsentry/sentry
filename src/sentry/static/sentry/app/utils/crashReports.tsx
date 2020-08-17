@@ -3,10 +3,10 @@ import React from 'react';
 import {t, tct} from 'app/locale';
 
 export function formatStoreCrashReports(
-  value: number | '',
+  value: number | null | '',
   organizationValue?: number
 ): React.ReactNode {
-  if (value === -2 && organizationValue) {
+  if (value === null && organizationValue) {
     return tct('Inherit organization settings ([organizationValue])', {
       organizationValue: formatStoreCrashReports(organizationValue),
     });
@@ -29,15 +29,19 @@ export enum SettingScope {
 }
 export function getStoreCrashReportsValues(settingScope: SettingScope) {
   // "Disabled" option at the beginning
-  const values = [0];
+  const values: Array<number | null> = [0];
 
-  // "Inherit" option if we are in a project settings
   if (settingScope === SettingScope.Project) {
-    values.push(-2);
+    // "Inherit" option
+    values.push(null);
+
+    values.push(...[1, 5, 10, 20]);
   }
 
-  // generate a range from 1 to 20 inclusive
-  values.push(...Array.from(new Array(20), (_, i) => i + 1));
+  if (settingScope === SettingScope.Organization) {
+    // generate a range from 1 to 20 inclusive
+    values.push(...Array.from(new Array(20), (_, i) => i + 1));
+  }
 
   // "Unlimited" option at the end
   values.push(-1);

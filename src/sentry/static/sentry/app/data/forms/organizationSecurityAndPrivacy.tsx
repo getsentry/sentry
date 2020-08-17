@@ -70,7 +70,7 @@ const organizationSecurityAndPrivacy: JsonFormObject[] = [
           'Store native crash reports such as Minidumps for improved processing and download in issue details'
         ),
         visible: ({features}) => features.has('event-attachments'),
-        allowedValues: getStoreCrashReportsValues(SettingScope.Organization),
+        allowedValues: getStoreCrashReportsValues(SettingScope.Organization) as number[],
         formatLabel: formatStoreCrashReports,
       },
       {
