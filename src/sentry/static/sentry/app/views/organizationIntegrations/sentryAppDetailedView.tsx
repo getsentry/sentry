@@ -216,7 +216,7 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
               {tct('[read] and [write] access to [resources] resources', {
                 read: <strong>Read</strong>,
                 write: <strong>Write</strong>,
-                resources: permissions.read.join(', '),
+                resources: permissions.write.join(', '),
               })}
             </Text>
           </Permission>
@@ -227,7 +227,7 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
             <Text key="admin">
               {tct('[admin] access to [resources] resources', {
                 admin: <strong>Admin</strong>,
-                resources: permissions.read.join(', '),
+                resources: permissions.admin.join(', '),
               })}
             </Text>
           </Permission>
@@ -299,7 +299,7 @@ const Title = styled('p')`
 `;
 
 const Indicator = styled(p => <CircleIndicator size={7} {...p} />)`
-  margin-top: 7px;
+  margin-top: 3px;
   color: ${p => p.theme.success};
 `;
 

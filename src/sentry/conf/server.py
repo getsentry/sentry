@@ -843,13 +843,15 @@ SENTRY_FEATURES = {
     "organizations:integrations-alert-rule": True,
     # Enable integration functionality to work with alert rules (specifically chat integrations)
     "organizations:integrations-chat-unfurl": True,
-    # Enable integration functionality to work with alert rules (specifically indicdent)
+    # Enable integration functionality to work with alert rules (specifically incident
     # management integrations)
     "organizations:integrations-incident-management": True,
     # Enable the MsTeams integration
     "organizations:integrations-msteams": False,
     # Allow orgs to install AzureDevops with limited scopes
     "organizations:integrations-vsts-limited-scopes": False,
+    # Enable PagerDuty metric alerts
+    "organizations:integrations-pagerduty-metric-alerts": False,
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
     # Enable experimental performance improvements.
@@ -866,6 +868,8 @@ SENTRY_FEATURES = {
     "organizations:org-subdomains": False,
     # Enable the new version of interface/breadcrumbs
     "organizations:breadcrumbs-v2": False,
+    # Enable the new Related Events feature
+    "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
     # https://github.com/getsentry/relay.
     "organizations:relay": False,
@@ -1582,6 +1586,7 @@ def get_sentry_sdk_config():
         "release": sentry.__build__,
         "environment": ENVIRONMENT,
         "in_app_include": ["sentry", "sentry_plugins"],
+        "_experiments": {"smart_transaction_trimming": True},
         "debug": True,
         "send_default_pii": True,
     }
