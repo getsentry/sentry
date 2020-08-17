@@ -129,6 +129,24 @@ class MsTeamsActionHandler(ActionHandler):
         send_incident_alert_notification(self.action, self.incident, metric_value)
 
 
+@AlertRuleTriggerAction.register_type(
+    "pagerduty",
+    AlertRuleTriggerAction.Type.PAGERDUTY,
+    [AlertRuleTriggerAction.TargetType.SPECIFIC],
+    integration_provider="pagerduty",
+)
+class PagerDutyActionHandler(ActionHandler):
+    def fire(self, metric_value):
+        self.send_alert(metric_value)
+
+    def resolve(self, metric_value):
+        self.send_alert(metric_value)
+
+    def send_alert(self, metric_value):
+        # TODO: finish
+        pass
+
+
 def format_duration(minutes):
     """
     Format minutes into a duration string
