@@ -71,6 +71,9 @@ def get_test_message(request, default_project):
 
 
 def _wait_for_topic(admin_client, topic_name, timeout=5):
+    """
+    Wait until the given topic is in operable state
+    """
     from confluent_kafka import KafkaError
 
     start = time.time()
