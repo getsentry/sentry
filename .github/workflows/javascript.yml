@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - '**.[tj]sx?'
+      - yarn.lock
 
 jobs:
     build:
@@ -32,7 +33,7 @@ jobs:
           run: yarn install --frozen-lockfile
 
         - name: eslint + fix
-          uses: getsentry/action-eslint-fix@master
+          uses: getsentry/action-eslint-fix@v2-dev
           with:
             GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -43,3 +44,9 @@ jobs:
             echo "::remove-matcher owner=tsc::"
             echo "::add-matcher::.github/tsc.json"
             yarn tsc -p config/tsconfig.build.json
+
+        - uses: andresz1/size-limit-action@v1.4.0
+          env:
+            NODE_ENV: production
+          with:
+            github_token: ${{ secrets.GITHUB_TOKEN }}
