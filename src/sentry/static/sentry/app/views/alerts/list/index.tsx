@@ -255,7 +255,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
     const status = getQueryStatus(query.status);
 
     return (
-      <SentryDocumentTitle title="Alerts" objSlug={orgId}>
+      <SentryDocumentTitle title={t('Alerts')} objSlug={orgId}>
         <GlobalSelectionHeader organization={organization} showDateSelector={false}>
           <PageContent>
             <AlertHeader organization={organization} router={router} activeTab="stream" />
