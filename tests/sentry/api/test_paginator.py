@@ -11,6 +11,7 @@ from sentry.api.paginator import (
     OffsetPaginator,
     SequencePaginator,
     GenericOffsetPaginator,
+    CombinedQuerysetIntermediary,
     CombinedQuerysetPaginator,
     reverse_bisect_left,
 )
@@ -546,8 +547,12 @@ class CombinedQuerysetPaginatorTest(APITestCase):
         rule2 = Rule.objects.create(label="rule2", project=self.project)
         rule3 = Rule.objects.create(label="rule3", project=self.project)
 
+        alert_rule_intermediary = CombinedQuerysetIntermediary(
+            AlertRule.objects.all(), "date_added"
+        )
+        rule_intermediary = CombinedQuerysetIntermediary(Rule.objects.all(), "date_added")
         paginator = CombinedQuerysetPaginator(
-            querysets=[AlertRule.objects.all(), Rule.objects.all()], order_by="-date_added",
+            intermediaries=[alert_rule_intermediary, rule_intermediary], desc=True,
         )
 
         result = paginator.get_result(limit=3, cursor=None)
@@ -569,7 +574,6 @@ class CombinedQuerysetPaginatorTest(APITestCase):
         prev_cursor = result.prev
         result = paginator.get_result(limit=3, cursor=next_cursor)
         page3_results = list(result)
-        print(page3_results)
         assert len(result) == 2
         assert page3_results[0].id == alert_rule0.id
 
@@ -578,7 +582,7 @@ class CombinedQuerysetPaginatorTest(APITestCase):
 
         # Test reverse sorting:
         paginator = CombinedQuerysetPaginator(
-            querysets=[AlertRule.objects.all(), Rule.objects.all()], order_by="date_added"
+            intermediaries=[alert_rule_intermediary, rule_intermediary],
         )
         result = paginator.get_result(limit=3, cursor=None)
         assert len(result) == 3
@@ -599,10 +603,20 @@ class CombinedQuerysetPaginatorTest(APITestCase):
         prev_cursor = result.prev
         result = paginator.get_result(limit=3, cursor=next_cursor)
         page3_results = list(result)
-        print(page3_results)
         assert len(result) == 2
         assert page3_results[0].id == rule2.id
         assert page3_results[1].id == rule3.id
 
         result = paginator.get_result(limit=3, cursor=prev_cursor)
         assert list(result) == page1_results
+
+    def test_order_by_invalid_key(self):
+        with self.assertRaises(AssertionError):
+            rule_intermediary = CombinedQuerysetIntermediary(Rule.objects.all(), "dontexist")
+            CombinedQuerysetPaginator(intermediaries=[rule_intermediary],)
+
+    def test_mix_date_and_not_date(self):
+        with self.assertRaises(AssertionError):
+            rule_intermediary = CombinedQuerysetIntermediary(Rule.objects.all(), "date_added")
+            rule_intermediary2 = CombinedQuerysetIntermediary(Rule.objects.all(), "label")
+            CombinedQuerysetPaginator(intermediaries=[rule_intermediary, rule_intermediary2],)

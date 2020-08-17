@@ -398,6 +398,17 @@ class AlertRule(Model):
 
     __repr__ = sane_repr("id", "name", "date_added")
 
+    @property
+    def created_by(self):
+        try:
+            created_activity = AlertRuleActivity.objects.get(
+                alert_rule=self, type=AlertRuleActivityType.CREATED.value
+            )
+            return created_activity.user
+        except AlertRuleActivity.DoesNotExist:
+            pass
+        return None
+
 
 class TriggerStatus(Enum):
     ACTIVE = 0
@@ -547,6 +558,7 @@ class AlertRuleTriggerAction(Model):
 
     alert_rule_trigger = FlexibleForeignKey("sentry.AlertRuleTrigger")
     integration = FlexibleForeignKey("sentry.Integration", null=True)
+    sentry_app = FlexibleForeignKey("sentry.SentryApp", null=True)
     type = models.SmallIntegerField()
     target_type = models.SmallIntegerField()
     # Identifier used to perform the action on a given target
@@ -622,7 +634,7 @@ class AlertRuleTriggerAction(Model):
 
     @classmethod
     def get_registered_types(cls):
-        return cls._type_registrations.values()
+        return list(cls._type_registrations.values())
 
 
 class AlertRuleActivityType(Enum):

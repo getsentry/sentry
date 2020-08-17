@@ -19,12 +19,9 @@ ME = "ME"
 logger = logging.getLogger("sentry.integrations.msteams")
 
 
-# MS Teams will convert integers into strings
-# in value inputs sent in adaptive cards,
-# may as well just do that here first.
-# Subclasses six.binary_type to appease
-# json loader for testing.
-class ACTION_TYPE(six.binary_type, enum.Enum):
+# MS Teams will convert integers into strings in value inputs sent in adaptive
+# cards, may as well just do that here first.
+class ACTION_TYPE(six.text_type, enum.Enum):
     RESOLVE = "1"
     IGNORE = "2"
     ASSIGN = "3"

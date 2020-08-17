@@ -58,7 +58,7 @@ class SlackNotifyActionTest(RuleTestCase):
         assert attachments[0]["title"] == event.title
 
     @responses.activate
-    @patch("random.uniform", return_value=0.049)
+    @patch("random.uniform", return_value=0.01)
     def test_upgrade_notice_within_threshold(self, mock_uniform):
         event = self.get_event()
         rule = self.get_rule(data={"workspace": self.integration.id, "channel": "#my-channel"})
@@ -87,7 +87,7 @@ class SlackNotifyActionTest(RuleTestCase):
         mock_uniform.assert_called_with(0, 1)
 
     @responses.activate
-    @patch("random.uniform", return_value=0.051)
+    @patch("random.uniform", return_value=0.99)
     def test_upgrade_notice_over_threshold(self, mock_uniform):
         event = self.get_event()
 

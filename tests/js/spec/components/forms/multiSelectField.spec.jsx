@@ -1,13 +1,13 @@
 import React from 'react';
 
-import {shallow} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {MultiSelectField} from 'app/components/forms';
 
 describe('MultiSelectField', function() {
   describe('render()', function() {
     it('renders without form context', function() {
-      const wrapper = shallow(
+      const wrapper = mountWithTheme(
         <MultiSelectField
           options={[
             {label: 'a', value: 'a'},
@@ -16,11 +16,11 @@ describe('MultiSelectField', function() {
           name="fieldName"
         />
       );
-      expect(wrapper).toMatchSnapshot();
+      expect(wrapper).toSnapshot();
     });
 
     it('has the right value from props', function() {
-      const wrapper = shallow(
+      const wrapper = mountWithTheme(
         <MultiSelectField
           options={[
             {label: 'a', value: 'a'},
@@ -34,7 +34,7 @@ describe('MultiSelectField', function() {
     });
 
     it('renders with form context', function() {
-      const wrapper = shallow(
+      const wrapper = mountWithTheme(
         <MultiSelectField
           options={[
             {label: 'a', value: 'a'},

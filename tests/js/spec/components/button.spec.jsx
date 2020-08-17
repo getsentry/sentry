@@ -9,7 +9,7 @@ describe('Button', function() {
 
   it('renders', function() {
     const component = mountWithTheme(<Button priority="primary">Button</Button>);
-    expect(component).toMatchSnapshot();
+    expect(component).toSnapshot();
   });
 
   it('renders react-router link', function() {
@@ -17,7 +17,7 @@ describe('Button', function() {
       <Button to="/some/route">Router Link</Button>,
       routerContext
     );
-    expect(component).toMatchSnapshot();
+    expect(component).toSnapshot();
   });
 
   it('renders normal link', function() {
@@ -25,7 +25,7 @@ describe('Button', function() {
       <Button href="/some/relative/url">Normal Link</Button>,
       routerContext
     );
-    expect(component).toMatchSnapshot();
+    expect(component).toSnapshot();
   });
 
   it('renders disabled normal link', function() {
@@ -33,7 +33,7 @@ describe('Button', function() {
       <Button href="/some/relative/url">Normal Link</Button>,
       routerContext
     );
-    expect(component).toMatchSnapshot();
+    expect(component).toSnapshot();
   });
 
   it('calls `onClick` callback', function() {
