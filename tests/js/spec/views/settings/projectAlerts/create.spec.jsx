@@ -281,7 +281,7 @@ describe('ProjectAlertsCreate', function() {
 
         await tick();
         expect(browserHistory.replace).toHaveBeenCalledWith(
-          '/organizations/org-slug/alerts/'
+          '/organizations/org-slug/alerts/rules/'
         );
       });
     });
