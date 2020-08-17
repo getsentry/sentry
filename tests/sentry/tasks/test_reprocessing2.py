@@ -35,7 +35,7 @@ def test_basic(task_runner, default_project, register_plugin):
     cache_key = event_processing_store.store(data)
 
     with task_runner(), Feature({"projects:reprocessing-v2": True}):
-        preprocess_event.delay(start_time=time(), cache_key=cache_key, data=data)
+        preprocess_event(start_time=time(), cache_key=cache_key, data=data)
 
     event = eventstore.get_event_by_id(default_project.id, event_id)
 
@@ -44,7 +44,7 @@ def test_basic(task_runner, default_project, register_plugin):
     assert not event.data.get("errors")
 
     with task_runner(), Feature({"projects:reprocessing-v2": True}):
-        new_event_id = reprocess_group.delay(default_project.id, event.group_id)
+        new_event_id = reprocess_group(default_project.id, event.group_id)
 
     assert new_event_id != event_id
 
