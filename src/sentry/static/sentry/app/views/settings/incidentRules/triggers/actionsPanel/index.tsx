@@ -30,7 +30,7 @@ import Button from 'app/components/button';
 const ActionLabel = {
   [ActionType.EMAIL]: t('E-mail'),
   [ActionType.SLACK]: t('Slack'),
-  [ActionType.PAGER_DUTY]: t('Pagerduty'),
+  [ActionType.PAGERDUTY]: t('Pagerduty'),
   [ActionType.MSTEAMS]: t('Microsoft Teams'),
 };
 
@@ -61,11 +61,12 @@ const getPlaceholderForType = (type: ActionType) => {
     case ActionType.MSTEAMS:
       //no prefixes for msteams
       return 'username or channel';
+    case ActionType.PAGERDUTY:
+      return 'service';
     default:
       throw Error('Not implemented');
   }
 };
-
 /**
  * Lists saved actions as well as control to add a new action
  */
@@ -106,7 +107,6 @@ class ActionsPanel extends React.PureComponent<Props> {
 
   handleAddAction = () => {
     const {availableActions, onAdd} = this.props;
-
     const actionConfig = availableActions?.[0];
 
     if (!actionConfig) {
@@ -125,6 +125,8 @@ class ActionsPanel extends React.PureComponent<Props> {
           : null,
       targetIdentifier: '',
       integrationId: actionConfig.integrationId,
+      inputType: actionConfig.inputType,
+      options: actionConfig.options || null,
     };
 
     // Add new actions to critical by default
@@ -147,7 +149,7 @@ class ActionsPanel extends React.PureComponent<Props> {
     const {triggers, onChange} = this.props;
     const action = triggers[triggerIndex].actions[index];
 
-    // Because we're moving it beween two different triggers the position of the
+    // Because we're moving it between two different triggers the position of the
     // action could change, try to change it less by pushing or unshifting
     const position = value.value === 1 ? 'unshift' : 'push';
     triggers[value.value].actions[position](action);
@@ -165,7 +167,6 @@ class ActionsPanel extends React.PureComponent<Props> {
     const actionConfig = availableActions?.find(
       availableAction => this.getActionUniqueKey(availableAction) === value.value
     );
-
     if (!actionConfig) {
       addErrorMessage(t('There was a problem changing an action'));
       Sentry.captureException(new Error('Unable to change an action type'));
@@ -182,6 +183,8 @@ class ActionsPanel extends React.PureComponent<Props> {
           : null,
       targetIdentifier: '',
       integrationId: actionConfig.integrationId,
+      inputType: actionConfig.inputType,
+      options: actionConfig.options || null,
     };
     onChange(triggerIndex, triggers, replaceAtArrayIndex(actions, index, newAction));
   };
@@ -261,6 +264,7 @@ class ActionsPanel extends React.PureComponent<Props> {
               actions.map((action: Action, i: number) => {
                 const isUser = action.targetType === TargetType.USER;
                 const isTeam = action.targetType === TargetType.TEAM;
+
                 const availableAction = availableActions?.find(
                   a => this.getActionUniqueKey(a) === this.getActionUniqueKey(action)
                 );
@@ -311,6 +315,17 @@ class ActionsPanel extends React.PureComponent<Props> {
                         project={projects.find(({slug}) => slug === currentProject)}
                         organization={organization}
                         value={action.targetIdentifier}
+                        onChange={this.handleChangeTargetIdentifier.bind(
+                          this,
+                          triggerIndex,
+                          i
+                        )}
+                      />
+                    ) : availableAction?.inputType === 'select' ? (
+                      <SelectControl
+                        isDisabled={disabled || loading}
+                        value={action.targetIdentifier}
+                        options={availableAction?.options || []}
                         onChange={this.handleChangeTargetIdentifier.bind(
                           this,
                           triggerIndex,
