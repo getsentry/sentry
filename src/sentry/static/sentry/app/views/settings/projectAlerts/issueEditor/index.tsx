@@ -198,7 +198,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       status: 'complete',
     });
 
-    browserHistory.replace(recreateRoute('', {...this.props, stepBack: -2}));
+    browserHistory.replace(recreateRoute('rules/', {...this.props, stepBack: -2}));
     addSuccessMessage(isNew ? t('Created alert rule') : t('Updated alert rule'));
   };
 

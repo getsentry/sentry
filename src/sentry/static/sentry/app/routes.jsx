@@ -1295,7 +1295,7 @@ function routes() {
                   component={errorHandler(LazyLoad)}
                   componentPromise={() =>
                     import(
-                      /* webpackChunkName: "ProjectAlertsEdit" */ 'app/views/settings/projectAlerts/create'
+                      /* webpackChunkName: "ProjectAlertsCreate" */ 'app/views/settings/projectAlerts/create'
                     )
                   }
                 />
@@ -1304,7 +1304,7 @@ function routes() {
                   name="Edit Alert Rule"
                   componentPromise={() =>
                     import(
-                      /* webpackChunkName: "ProjectAlertsCreate" */ 'app/views/settings/projectAlerts/edit'
+                      /* webpackChunkName: "ProjectAlertsEdit" */ 'app/views/settings/projectAlerts/edit'
                     )
                   }
                   component={errorHandler(LazyLoad)}
@@ -1330,7 +1330,7 @@ function routes() {
                   component={errorHandler(LazyLoad)}
                   componentPromise={() =>
                     import(
-                      /* webpackChunkName: "ProjectAlertsCreate" */ 'app/views/alerts/builder/create'
+                      /* webpackChunkName: "ProjectAlertsCreate" */ 'app/views/settings/projectAlerts/create'
                     )
                   }
                 />
@@ -1339,7 +1339,7 @@ function routes() {
                   name="Edit Alert Rule"
                   componentPromise={() =>
                     import(
-                      /* webpackChunkName: "ProjectAlertsCreate" */ 'app/views/alerts/builder/edit'
+                      /* webpackChunkName: "ProjectAlertsEdit" */ 'app/views/settings/projectAlerts/edit'
                     )
                   }
                   component={errorHandler(LazyLoad)}
@@ -1370,7 +1370,7 @@ function routes() {
                 component={errorHandler(LazyLoad)}
                 componentPromise={() =>
                   import(
-                    /* webpackChunkName: "ProjectAlertsCreate" */ 'app/views/alerts/builder/create'
+                    /* webpackChunkName: "ProjectAlertsCreate" */ 'app/views/settings/projectAlerts/create'
                   )
                 }
               />

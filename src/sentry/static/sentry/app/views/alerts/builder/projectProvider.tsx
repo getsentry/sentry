@@ -18,7 +18,7 @@ type RouteParams = {
 };
 
 function AlertBuilderProjectProvider(props: Props) {
-  const {children, params, organization, hasMetricAlerts} = props;
+  const {children, params, organization, ...other} = props;
   const {projectId} = params;
   return (
     <Projects orgId={organization.slug} slugs={[projectId]}>
@@ -39,9 +39,10 @@ function AlertBuilderProjectProvider(props: Props) {
           <React.Fragment>
             {children && React.isValidElement(children)
               ? React.cloneElement(children, {
+                  ...other,
+                  ...children.props,
                   project,
                   organization,
-                  hasMetricAlerts,
                 })
               : children}
           </React.Fragment>
