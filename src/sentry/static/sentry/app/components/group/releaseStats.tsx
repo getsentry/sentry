@@ -22,7 +22,6 @@ const GroupReleaseStats = ({
   environments,
   allEnvironments,
 }: Props) => {
-
   const environmentLabel =
     environments.length > 0
       ? environments.map(env => env.displayName).join(', ')
