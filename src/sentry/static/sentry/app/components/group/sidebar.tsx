@@ -30,7 +30,7 @@ type Props = {
   organization: Organization;
   project: Project;
   group: Group;
-  event: Event;
+  event: Event | null;
   environments: Environment[];
 };
 
@@ -217,9 +217,11 @@ class GroupSidebar extends React.Component<Props, State> {
           group={group}
         />
 
-        <ErrorBoundary mini>
-          <ExternalIssueList event={event} group={group} project={project} />
-        </ErrorBoundary>
+        {event && (
+          <ErrorBoundary mini>
+            <ExternalIssueList project={project} group={group} event={event} />
+          </ErrorBoundary>
+        )}
 
         {this.renderPluginIssue()}
 
