@@ -72,7 +72,7 @@ class OrganizationReleasePreviousCommitsTest(APITestCase):
         )
         response = self.client.get(url)
         assert response.status_code == 200, response.content
-        assert response.content == "{}"
+        assert response.content == b"{}"
 
     def test_wrong_release_version(self):
         self.login_as(user=self.user)
