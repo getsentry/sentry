@@ -10,6 +10,7 @@ import withApi from 'app/utils/withApi';
 import Button from 'app/components/button';
 import DropdownButton from 'app/components/dropdownButton';
 import DropdownControl from 'app/components/dropdownControl';
+import Feature from 'app/components/acl/feature';
 import Input from 'app/components/forms/input';
 import space from 'app/styles/space';
 import {IconBookmark, IconDelete} from 'app/icons';
@@ -323,9 +324,12 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
   }
 
   render() {
+    const {organization} = this.props;
     return (
       <ButtonGroup>
-        {this.renderButtonCreateAlert()}
+        <Feature organization={organization} features={['incidents']}>
+          {({hasFeature}) => hasFeature && this.renderButtonCreateAlert()}
+        </Feature>
         {this.renderButtonDelete()}
         {this.renderButtonSaveAs()}
         {this.renderButtonUpdate()}
