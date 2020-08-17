@@ -52,7 +52,7 @@ export function addRoutePerformanceContext(selection: GlobalSelection) {
     selection.datetime.start,
     selection.datetime.end
   );
-  const seconds = days * 86400;
+  const seconds = Math.floor(days * 86400);
 
   transaction?.setTag('statsPeriod', seconds.toString());
 }

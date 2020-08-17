@@ -774,7 +774,7 @@ def colorize(spectrum, values):
     for i, color in enumerate(spectrum, 1):
         legend[color] = calculate_percentile(i * width)
 
-    find_index = functools.partial(bisect.bisect_left, legend.values())
+    find_index = functools.partial(bisect.bisect_left, list(legend.values()))
 
     results = []
     for value in values:
