@@ -247,10 +247,6 @@ class SelectMembers extends React.Component<Props, State> {
 
     try {
       // Try to add team to project
-      // Note: we can't close select menu here because we have to wait for ProjectsStore to update first
-      // The reason for this is because we have little control over `react-select`'s `AsyncSelect`
-      // We can't control when `handleLoadOptions` gets called, but it gets called when select closes, so
-      // wait for store to update before closing the menu. Otherwise, we'll have stale items in the select menu
       if (project) {
         await addTeamToProject(api, organization.slug, project.slug, team);
 
