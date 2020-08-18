@@ -1283,7 +1283,7 @@ function routes() {
                 path=":projectId/"
                 componentPromise={() =>
                   import(
-                    /* webpackChunkName: "AlertsContainer" */ 'app/views/alerts/builder/projectProvider'
+                    /* webpackChunkName: "AlertsProjectProvider" */ 'app/views/alerts/builder/projectProvider'
                   )
                 }
                 component={errorHandler(LazyLoad)}
@@ -1308,7 +1308,7 @@ function routes() {
                 path=":projectId/"
                 componentPromise={() =>
                   import(
-                    /* webpackChunkName: "AlertsContainer" */ 'app/views/alerts/builder/projectProvider'
+                    /* webpackChunkName: "AlertsProjectProvider" */ 'app/views/alerts/builder/projectProvider'
                   )
                 }
                 component={errorHandler(LazyLoad)}
@@ -1339,7 +1339,7 @@ function routes() {
               path=":projectId/"
               componentPromise={() =>
                 import(
-                  /* webpackChunkName: "AlertsContainer" */ 'app/views/alerts/builder/projectProvider'
+                  /* webpackChunkName: "AlertsProjectProvider" */ 'app/views/alerts/builder/projectProvider'
                 )
               }
               component={errorHandler(LazyLoad)}
