@@ -19,6 +19,9 @@ class IssueOccurrencesTest(RuleTestCase):
         event.group.times_seen = 11
         self.assertPasses(rule, event)
 
+        event.group.times_seen = 10
+        self.assertPasses(rule, event)
+
         event.group.times_seen = 8
         self.assertDoesNotPass(rule, event)
 
