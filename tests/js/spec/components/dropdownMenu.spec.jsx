@@ -218,4 +218,27 @@ describe('DropdownMenu', function() {
     addSpy.mockRestore();
     removeSpy.mockRestore();
   });
+
+  it('does not close nested dropdown on actor clicks', function() {
+    wrapper = mount(
+      <DropdownMenu isNestedDropdown>
+        {({getRootProps, getActorProps, getMenuProps}) => (
+          <span {...getRootProps({})}>
+            <button {...getActorProps({})}>Open Dropdown</button>
+            {
+              <ul {...getMenuProps({})}>
+                <li data-test-id="menu-item">Dropdown Menu Item 1</li>
+              </ul>
+            }
+          </span>
+        )}
+      </DropdownMenu>
+    );
+    wrapper.find('button').simulate('mouseEnter');
+    expect(wrapper.find('[data-test-id="menu-item"]')).toHaveLength(1);
+
+    wrapper.find('button').simulate('click');
+    //Should still be visible.
+    expect(wrapper.find('[data-test-id="menu-item"]')).toHaveLength(1);
+  });
 });
