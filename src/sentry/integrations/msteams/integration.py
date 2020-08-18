@@ -5,6 +5,7 @@ import logging
 from django.utils.translation import ugettext_lazy as _
 
 
+from sentry import options
 from sentry.integrations import (
     IntegrationInstallation,
     IntegrationFeatures,
@@ -38,10 +39,13 @@ FEATURES = [
 ]
 
 
-INSTALL_NOTICE_TEXT = "INSTALL TEXT"
+INSTALL_NOTICE_TEXT = (
+    "Visit the Teams Marketplace to install this integration. After adding the integration"
+    " to your team, you will get a message in the General channel to complete installation."
+)
 
 external_install = {
-    "url": u"https://google.com",  # TODO: set correct URL
+    "url": u"https://teams.microsoft.com/l/app/%s" % options.get("msteams.app-id"),
     "buttonText": _("Teams Marketplace"),
     "noticeText": _(INSTALL_NOTICE_TEXT),
 }
@@ -52,7 +56,7 @@ metadata = IntegrationMetadata(
     features=FEATURES,
     author="The Sentry Team",
     noun=_("Installation"),
-    issue_url="https://github.com/getsentry/sentry/issues/new",
+    issue_url="https://github.com/getsentry/sentry/issues/new?title=Microsoft%20Teams%20Integration:%20&labels=Component%3A%20Integrations",
     source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/msteams",
     aspects={"externalInstall": external_install},
 )
