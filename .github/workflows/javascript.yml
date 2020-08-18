@@ -1,5 +1,9 @@
 name: javascript
+
 on:
+  push:
+    branches:
+      - master
   pull_request:
     paths:
       - '**.[tj]sx?'
@@ -7,7 +11,8 @@ on:
 
 jobs:
     build:
-      runs-on: ubuntu-latest
+      if: ${{ github.ref != 'refs/heads/master' }}
+      runs-on: ubuntu-16.04
       steps:
         # Checkout codebase
         - uses: actions/checkout@v2
@@ -46,7 +51,7 @@ jobs:
             yarn tsc -p config/tsconfig.build.json
 
     webpack:
-      runs-on: ubuntu-latest
+      runs-on: ubuntu-16.04
       steps:
         # Checkout codebase
         - uses: actions/checkout@v2
@@ -73,6 +78,7 @@ jobs:
 
         - uses: getsentry/size-limit-action@v1-dev
           with:
+            main_branch: master
             skip_step: install
             build_script: build-prod
             windows_verbatim_arguments: false
