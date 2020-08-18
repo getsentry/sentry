@@ -249,7 +249,7 @@ class SlackActionHandlerResolveTest(SlackActionHandlerBaseTest, TestCase):
 class MsTeamsActionHandlerBaseTest(object):
     @responses.activate
     def run_test(self, incident, method):
-        from sentry.integrations.msteams.utils import build_incident_attachment
+        from sentry.integrations.msteams.card_builder import build_incident_attachment
 
         integration = Integration.objects.create(
             provider="msteams",
