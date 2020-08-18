@@ -260,6 +260,9 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
       required,
     };
 
+    //async only used for select components
+    const isAsync = typeof field.async === 'undefined' ? true : !!field.async; //default to true
+
     if (fieldToPass.type === 'select') {
       // find the options from state to pass down
       const defaultOptions = (field.choices || []).map(([value, label]) => ({
@@ -275,6 +278,10 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
         defaultOptions,
         filterOption,
       };
+      //default message for async select fields
+      if (isAsync) {
+        fieldToPass.noOptionsMessage = () => 'Type to search';
+      }
     } else if (['text', 'textarea'].includes(fieldToPass.type || '') && field.default) {
       fieldToPass = {...fieldToPass, defaultValue: this.getFieldDefault(field)};
     }
@@ -293,7 +300,7 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
     const extraProps = field.uri
       ? {
           loadOptions: (input: string) => this.getOptions(field, input),
-          async: typeof field.async === 'undefined' ? true : field.async, //default to true
+          async: isAsync,
           cache: false,
           onSelectResetsInput: false,
           onCloseResetsInput: false,
