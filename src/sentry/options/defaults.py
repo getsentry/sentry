@@ -155,6 +155,7 @@ register("vercel.integration-slug", default="sentry")
 # MsTeams Integration
 register("msteams.client-id", flags=FLAG_PRIORITIZE_DISK)
 register("msteams.client-secret", flags=FLAG_PRIORITIZE_DISK)
+register("msteams.app-id")
 
 # Snuba
 register("snuba.search.pre-snuba-candidates-optimizer", type=Bool, default=False)
