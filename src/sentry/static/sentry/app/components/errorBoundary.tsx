@@ -63,9 +63,7 @@ class ErrorBoundary extends React.Component<Props, State> {
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     const {errorTag} = this.props;
 
-    if (this._isMounted) {
-      this.setState({error});
-    }
+    this.setState({error});
     Sentry.withScope(scope => {
       if (errorTag) {
         Object.keys(errorTag).forEach(tag => scope.setTag(tag, errorTag[tag]));
@@ -83,8 +81,8 @@ class ErrorBoundary extends React.Component<Props, State> {
     }
   }
 
-  unlistenBrowserHistory: ReturnType<typeof browserHistory.listen> | undefined;
-  _isMounted: boolean | undefined;
+  private unlistenBrowserHistory?: ReturnType<typeof browserHistory.listen>;
+  private _isMounted: boolean = false;
 
   render() {
     const {error} = this.state;
