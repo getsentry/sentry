@@ -18,6 +18,7 @@ import NotFound from 'app/components/errors/notFound';
 import AsyncComponent from 'app/components/asyncComponent';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import OpsBreakdown from 'app/components/events/opsBreakdown';
+import SpanStatusBreakdown from 'app/components/events/spanStatusBreakdown';
 import TagsTable from 'app/components/tagsTable';
 import Projects from 'app/utils/projects';
 import * as Layout from 'app/components/layouts/thirds';
@@ -175,6 +176,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                 projectId={this.projectId}
               />
               <OpsBreakdown event={event} />
+              <SpanStatusBreakdown event={event} />
               <TagsTable event={event} query={query} generateUrl={this.generateTagUrl} />
             </Layout.Side>
           )}
