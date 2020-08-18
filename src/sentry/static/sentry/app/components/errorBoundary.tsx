@@ -81,8 +81,8 @@ class ErrorBoundary extends React.Component<Props, State> {
     }
   }
 
-  private unlistenBrowserHistory?: ReturnType<typeof browserHistory.listen>;
-  private _isMounted = false;
+  unlistenBrowserHistory?: ReturnType<typeof browserHistory.listen>;
+  _isMounted = false;
 
   render() {
     const {error} = this.state;
