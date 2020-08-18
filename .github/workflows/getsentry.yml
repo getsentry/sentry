@@ -46,7 +46,7 @@ jobs:
 
   acceptance:
     name: acceptance
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-16.04
     continue-on-error: true
     needs: [ensure_docker]
 
