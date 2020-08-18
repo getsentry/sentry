@@ -78,6 +78,7 @@ export type TraceContextType = {
   trace_id?: string;
   parent_span_id?: string;
   description?: string;
+  status?: string;
 };
 
 type SpanTreeDepth = number;
