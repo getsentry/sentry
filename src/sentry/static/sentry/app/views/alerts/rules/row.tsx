@@ -53,7 +53,7 @@ class RuleListRow extends React.Component<Props, State> {
               avatarSize={18}
               project={!projectsLoaded ? {slug} : this.getProject(slug, projects)}
             />
-            <CreatedBy>{rule?.createdBy?.name}</CreatedBy>
+            <CreatedBy>{rule?.createdBy?.name ?? '-'}</CreatedBy>
             <div>{dateCreated}</div>
             <Access access={['project:write']}>
               {({hasAccess}) => (

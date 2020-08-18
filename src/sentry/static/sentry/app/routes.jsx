@@ -1328,6 +1328,14 @@ function routes() {
             </Route>
 
             <Route
+              path="rules/"
+              componentPromise={() =>
+                import(/* webpackChunkName: "AlertsDetails" */ 'app/views/alerts/rules')
+              }
+              component={errorHandler(LazyLoad)}
+            />
+
+            <Route
               path=":alertId/"
               componentPromise={() =>
                 import(/* webpackChunkName: "AlertsDetails" */ 'app/views/alerts/details')
