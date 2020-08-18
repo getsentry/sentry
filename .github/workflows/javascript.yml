@@ -72,9 +72,7 @@ jobs:
           run: yarn install --frozen-lockfile
 
         - uses: getsentry/size-limit-action@v1-dev
-          env:
-            NODE_ENV: production
           with:
-            skip_step: install
+            build_script: build-prod
             windows_verbatim_arguments: false
             github_token: ${{ secrets.GITHUB_TOKEN }}
