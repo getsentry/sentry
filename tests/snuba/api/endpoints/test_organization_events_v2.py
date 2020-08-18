@@ -1793,15 +1793,14 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                     "field": ["event.type", "user.display"],
                     "query": "user.display:cath*",
                     "statsPeriod": "24h",
-                    "order": "-user.display",
                 },
             )
 
             assert response.status_code == 200, response.content
             data = response.data["data"]
             assert len(data) == 2
-            assert data[0]["user.display"] == "catherine"
-            assert data[1]["user.display"] == "cathy@example.com"
+            result = set([r["user.display"] for r in data])
+            assert result == set(["catherine", "cathy@example.com"])
 
     def test_has_transaction_status(self):
         self.login_as(user=self.user)

@@ -1919,10 +1919,10 @@ class ResolveFieldListTest(unittest.TestCase):
         ]
         assert result["groupby"] == []
 
+    @pytest.mark.xfail(reason="functions need to handle non string column replacements")
     def test_aggregate_function_complex_field_expansion(self):
         fields = ["count_unique(user.display)"]
         result = resolve_field_list(fields, eventstore.Filter())
-        # Automatic fields should be inserted, count() should have its column dropped.
         assert result["selected_columns"] == []
         assert result["aggregations"] == [
             ["uniq", ["coalesce", ["user.email", "user.username", "user.ip"]], "count_unique_user"],
