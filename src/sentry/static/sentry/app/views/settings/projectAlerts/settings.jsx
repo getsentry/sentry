@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {IconAdd, IconMail} from 'app/icons';
+import {IconMail} from 'app/icons';
 import {PanelAlert} from 'app/components/panels';
 import {fields} from 'app/data/forms/projectAlerts';
 import {t} from 'app/locale';
@@ -77,30 +77,18 @@ class ProjectAlertSettings extends AsyncView {
       params: {orgId, projectId},
     } = this.props;
 
-    const basePath = `/settings/${orgId}/projects/${projectId}/alerts/`;
-
     return (
       <React.Fragment>
         <SettingsPageHeader
           title={t('Alerts Settings')}
           action={
-            <Button
-              to={`${basePath}new/`}
-              disabled={!canEditRule}
-              title={
-                !canEditRule
-                  ? t('You do not have permission to edit alert rules.')
-                  : undefined
-              }
-              priority="primary"
-              size="small"
-              icon={<IconAdd size="xs" isCircled />}
-            >
-              {t('New Alert Rule')}
+            <Button to={`/organizations/${orgId}/alerts/rules/`} size="small">
+              {t('View Alert Rules')}
             </Button>
           }
         />
         <PermissionAlert />
+
         <AlertLink to="/settings/account/notifications/" icon={<IconMail />}>
           {t(
             'Looking to fine-tune your personal notification preferences? Visit your Account Settings'
