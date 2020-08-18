@@ -136,7 +136,12 @@ def merge_sequences(target, other, function=operator.add):
     sequences must be equal.
     """
     assert len(target) == len(other), "sequence lengths must match"
-    return type(target)([function(x, y) for x, y in zip(target, other)])
+
+    rt_type = type(target)
+    if rt_type == range:
+        rt_type = list
+
+    return rt_type([function(x, y) for x, y in zip(target, other)])
 
 
 def merge_mappings(target, other, function=lambda x, y: x + y):
