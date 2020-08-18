@@ -79,6 +79,7 @@ class RuleListRow extends React.Component<Props, State> {
                     />
                   </Confirm>
                   <Button
+                    disabled={!hasAccess}
                     size="small"
                     icon={<IconSettings />}
                     title={t('Edit')}
