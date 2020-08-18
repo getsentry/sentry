@@ -46,17 +46,13 @@ class Create extends React.Component<Props, State> {
   };
 
   componentDidMount() {
-    const {
-      organization,
-      location,
-      params: {projectId},
-    } = this.props;
+    const {organization, location, project} = this.props;
 
     trackAnalyticsEvent({
       eventKey: 'new_alert_rule.viewed',
       eventName: 'New Alert Rule: Viewed',
       organization_id: organization.id,
-      project_id: projectId,
+      project_id: project.id,
       session_id: this.sessionId,
     });
 
