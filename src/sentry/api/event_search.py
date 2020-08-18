@@ -776,7 +776,7 @@ def convert_search_filter_to_snuba_query(search_filter, key=None):
         return [name, search_filter.operator, value]
     elif name == USER_DISPLAY_ALIAS:
         # Slice off the function without an alias.
-        user_display_expr = FIELD_ALIASES["user.display"]["fields"][0][0:2]
+        user_display_expr = FIELD_ALIASES[USER_DISPLAY_ALIAS]["fields"][0][0:2]
 
         # Handle 'has' condition
         if search_filter.value.raw_value == "":
