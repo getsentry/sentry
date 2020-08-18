@@ -26,7 +26,8 @@ def reprocess_group(project_id, group_id, offset=0, start_time=None):
             eventstore.Filter(
                 project_ids=[project_id],
                 group_ids=[group_id],
-                conditions=[["received", "<=", start_time]],
+                # XXX: received?
+                end=to_datetime(start_time),
             ),
             limit=GROUP_REPROCESSING_CHUNK_SIZE,
             offset=offset,
@@ -43,9 +44,7 @@ def reprocess_group(project_id, group_id, offset=0, start_time=None):
     from sentry.reprocessing2 import reprocess_events
 
     reprocess_events(
-        project_id=project_id,
-        event_ids=[e.event_id for e in events],
-        start_time=to_datetime(start_time),
+        project_id=project_id, event_ids=[e.event_id for e in events], start_time=start_time,
     )
 
     reprocess_group.delay(

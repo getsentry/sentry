@@ -10,6 +10,7 @@ from sentry.plugins.base.v2 import Plugin2
 from sentry.tasks.reprocessing2 import reprocess_group
 from sentry.tasks.store import preprocess_event
 from sentry.testutils.helpers import Feature
+from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
 @pytest.mark.django_db
@@ -28,13 +29,17 @@ def test_basic(task_runner, default_project, register_plugin):
 
     register_plugin(globals(), ReprocessingTestPlugin)
 
-    mgr = EventManager(data={}, project=default_project)
+    mgr = EventManager(
+        data={"timestamp": iso_format(before_now(seconds=1))}, project=default_project
+    )
     mgr.normalize()
     data = mgr.get_data()
     event_id = data["event_id"]
     cache_key = event_processing_store.store(data)
 
     with task_runner(), Feature({"projects:reprocessing-v2": True}):
+        # factories.store_event would almost be suitable for this, but let's
+        # actually run through stacktrace processing once
         preprocess_event(start_time=time(), cache_key=cache_key, data=data)
 
     event = eventstore.get_event_by_id(default_project.id, event_id)

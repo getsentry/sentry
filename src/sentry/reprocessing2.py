@@ -6,6 +6,7 @@ import hashlib
 import six
 
 from sentry import nodestore, features
+from sentry.utils.cache import cache_key_for_event
 from sentry.eventstore.processing import event_processing_store
 
 
@@ -15,16 +16,34 @@ def _generate_unprocessed_event_node_id(project_id, event_id):
     ).hexdigest()
 
 
-def backup_unprocessed_event(project, event_id, data):
+def save_unprocessed_event(project, event_id):
     """
-    Save normalized event from Relay as backup in nodestore. Only call if
-    processing or symbolication applies to this event.
+    Move event from event_processing_store into nodestore. Only call if event
+    has outcome=accepted.
     """
     if not features.has("projects:reprocessing-v2", project, actor=None):
         return
 
+    data = event_processing_store.get(
+        cache_key_for_event({"project": project.id, "event_id": event_id}), unprocessed=True
+    )
+    if data is None:
+        return
+
     node_id = _generate_unprocessed_event_node_id(project_id=project.id, event_id=event_id)
     nodestore.set(node_id, data)
+
+
+def backup_unprocessed_event(project, data):
+    """
+    Backup unprocessed event payload into redis. Only call if event should be
+    able to be reprocessed.
+    """
+
+    if not features.has("projects:reprocessing-v2", project, actor=None):
+        return
+
+    event_processing_store.store(data, unprocessed=True)
 
 
 def delete_unprocessed_events(events):

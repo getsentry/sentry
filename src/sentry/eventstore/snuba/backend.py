@@ -194,8 +194,6 @@ class SnubaEventStorage(EventStorage):
         if event.get_event_type() != "transaction":
             result = snuba.raw_query(
                 selected_columns=["group_id"],
-                start=event.datetime,
-                end=event.datetime + timedelta(seconds=1),
                 filter_keys={"project_id": [project_id], "event_id": [event_id]},
                 limit=1,
                 referrer="eventstore.get_event_by_id_nodestore",
