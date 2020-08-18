@@ -64,11 +64,21 @@ const AlertHeader = ({router, organization, activeTab}: Props) => {
       </StyledLayoutHeaderContent>
       <Layout.HeaderActions>
         <Actions gap={1}>
-          <Button onClick={handleNavigateToSettings} href="#" icon={<IconSettings />}>
+          <Button
+            size="small"
+            onClick={handleNavigateToSettings}
+            href="#"
+            icon={<IconSettings size="xs" />}
+          >
             {t('Settings')}
           </Button>
 
-          <CreateRuleButton organization={organization} router={router} />
+          <CreateRuleButton
+            organization={organization}
+            router={router}
+            iconProps={{size: 'xs'}}
+            buttonProps={{size: 'small'}}
+          />
         </Actions>
       </Layout.HeaderActions>
     </Layout.Header>
