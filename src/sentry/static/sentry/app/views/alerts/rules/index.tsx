@@ -127,6 +127,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
                   to={{
                     pathname: `/organizations/${orgId}/alerts/rules/`,
                     query: {
+                      ...query,
                       asc: sort.asc ? undefined : '1',
                     },
                   }}
