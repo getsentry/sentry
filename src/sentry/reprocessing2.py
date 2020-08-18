@@ -39,13 +39,15 @@ def reprocess_event(project_id, event_id):
     return rv and rv[0] or None
 
 
-def reprocess_events(project_id, event_ids):
+def reprocess_events(project_id, event_ids, start_time):
     node_ids = list(
         _generate_unprocessed_event_node_id(project_id=project_id, event_id=event_id)
         for event_id in event_ids
     )
 
     node_results = nodestore.get_multi(node_ids)
+
+    # TODO: Passthrough non-reprocessable events
 
     new_event_ids = []
 
@@ -56,12 +58,13 @@ def reprocess_events(project_id, event_ids):
         # nodestore, but doing it this way makes the logic slightly simpler.
 
         event_id = data["event_id"] = uuid.uuid4().hex
+        data["received"] = start_time
         cache_key = event_processing_store.store(data)
         start_time = time.time()
 
         from sentry.tasks.store import preprocess_event_from_reprocessing
 
-        preprocess_event_from_reprocessing.delay(
+        preprocess_event_from_reprocessing(
             cache_key=cache_key, start_time=start_time, event_id=event_id
         )
 

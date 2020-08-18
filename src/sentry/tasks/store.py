@@ -87,9 +87,11 @@ def submit_symbolicate(project, from_reprocessing, cache_key, event_id, start_ti
     task.delay(cache_key=cache_key, start_time=start_time, event_id=event_id)
 
 
-def submit_save_event(project, cache_key, event_id, start_time, data):
+def submit_save_event(project, from_reprocessing, cache_key, event_id, start_time, data):
     if cache_key:
         data = None
+
+    # XXX: honor from_reprocessing
 
     save_event.delay(
         cache_key=cache_key,
@@ -145,7 +147,7 @@ def _do_preprocess_event(cache_key, data, start_time, event_id, process_task, pr
         )
         return
 
-    submit_save_event(project, cache_key, event_id, start_time, original_data)
+    submit_save_event(project, from_reprocessing, cache_key, event_id, start_time, original_data)
 
 
 @instrumented_task(
@@ -526,7 +528,8 @@ def _do_process_event(
 
         cache_key = event_processing_store.store(data)
 
-    submit_save_event(project, cache_key, event_id, start_time, data)
+    from_reprocessing = process_task is process_event_from_reprocessing
+    submit_save_event(project, from_reprocessing, cache_key, event_id, start_time, data)
 
 
 @instrumented_task(

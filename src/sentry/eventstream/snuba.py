@@ -147,9 +147,11 @@ class SnubaProtocolEventStream(EventStream):
 
         return state
 
-    def end_delete_groups(self, state):
+    def end_delete_groups(self, state, cutoff_datetime=None):
         state = state.copy()
-        state["datetime"] = datetime.now(tz=pytz.utc)
+        if cutoff_datetime is None:
+            cutoff_datetime = datetime.now(tz=pytz.utc)
+        state["datetime"] = cutoff_datetime
         self._send(
             state["project_id"], "end_delete_groups", extra_data=(state,), asynchronous=False
         )
