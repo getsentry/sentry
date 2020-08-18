@@ -49,4 +49,5 @@ jobs:
           env:
             NODE_ENV: production
           with:
+            windows_verbatim_arguments: false
             github_token: ${{ secrets.GITHUB_TOKEN }}
