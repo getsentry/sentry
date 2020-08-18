@@ -9,7 +9,6 @@ import {markIncidentAsSeen} from 'app/actionCreators/incident';
 import {t} from 'app/locale';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import withApi from 'app/utils/withApi';
-import withOrganization from 'app/utils/withOrganization';
 
 import {Incident, IncidentStats, IncidentStatus} from '../types';
 import {
@@ -154,4 +153,4 @@ class IncidentDetails extends React.Component<Props, State> {
   }
 }
 
-export default withApi(withOrganization(IncidentDetails));
+export default withApi(IncidentDetails);

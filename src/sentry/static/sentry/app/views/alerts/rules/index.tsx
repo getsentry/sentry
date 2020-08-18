@@ -18,7 +18,6 @@ import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
 import Projects from 'app/utils/projects';
-import withOrganization from 'app/utils/withOrganization';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 
@@ -218,7 +217,7 @@ class AlertRulesListContainer extends React.Component<Props> {
   }
 }
 
-export default withOrganization(AlertRulesListContainer);
+export default AlertRulesListContainer;
 
 const StyledSortLink = styled(Link)`
   color: inherit;

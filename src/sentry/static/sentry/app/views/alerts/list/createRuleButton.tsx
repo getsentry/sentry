@@ -27,7 +27,7 @@ const CreateRuleButton = ({router, organization}: Props) => (
           e.preventDefault();
 
           navigateTo(
-            `/settings/${organization.slug}/projects/:projectId/alerts/new/?referrer=alert_stream`,
+            `/organizations/${organization.slug}/alerts/:projectId/new/?referrer=alert_stream`,
             router
           );
         }}

@@ -14,6 +14,7 @@ describe('OrganizationRuleList', () => {
   const createWrapper = async props => {
     const wrapper = mountWithTheme(
       <AlertRulesList
+        organization={organization}
         params={{orgId: organization.slug}}
         location={{query: {}, search: ''}}
         {...props}

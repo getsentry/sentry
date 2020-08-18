@@ -82,9 +82,9 @@ class RuleListRow extends React.Component<Props, State> {
                     size="small"
                     icon={<IconSettings />}
                     title={t('Edit')}
-                    to={`/settings/${orgId}/projects/${slug}/alerts/${
+                    to={`/organizations/${orgId}/alerts/${
                       isIssueAlert(rule) ? 'rules' : 'metric-rules'
-                    }/${rule.id}/`}
+                    }/${slug}/${rule.id}/`}
                   />
                 </ButtonBar>
               )}
