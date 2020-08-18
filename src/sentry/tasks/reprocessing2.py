@@ -4,7 +4,7 @@ import time
 
 
 from sentry import eventstore, eventstream
-from sentry.utils.datetime import to_datetime
+from sentry.utils.dates import to_datetime
 
 from sentry.tasks.base import instrumented_task
 
