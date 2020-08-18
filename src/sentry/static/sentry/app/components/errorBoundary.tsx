@@ -49,16 +49,23 @@ class ErrorBoundary extends React.Component<Props, State> {
   };
 
   componentDidMount() {
+    this._isMounted = true;
     // Listen for route changes so we can clear error
-    this.unlistenBrowserHistory = browserHistory.listen(() =>
-      this.setState({error: null})
-    );
+    this.unlistenBrowserHistory = browserHistory.listen(() => {
+      // Prevent race between component unmount and browserHistory change
+      // Setting state on a component that is being unmounted throws an error
+      if (this._isMounted) {
+        this.setState({error: null});
+      }
+    });
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     const {errorTag} = this.props;
 
-    this.setState({error});
+    if (this._isMounted) {
+      this.setState({error});
+    }
     Sentry.withScope(scope => {
       if (errorTag) {
         Object.keys(errorTag).forEach(tag => scope.setTag(tag, errorTag[tag]));
@@ -70,13 +77,14 @@ class ErrorBoundary extends React.Component<Props, State> {
   }
 
   componentWillUnmount() {
+    this._isMounted = false;
     if (this.unlistenBrowserHistory) {
       this.unlistenBrowserHistory();
     }
   }
 
-  // XXX: browserHistory.listen does not have a correct return type.
-  unlistenBrowserHistory: any;
+  unlistenBrowserHistory: ReturnType<typeof browserHistory.listen> | undefined;
+  _isMounted: boolean | undefined;
 
   render() {
     const {error} = this.state;
