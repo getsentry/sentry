@@ -732,7 +732,8 @@ class OrganizationReleaseCreateTest(APITestCase):
         response = self.client.post(
             url,
             data={"version": "1.2.1", "projects": [project1.slug]},
-            HTTP_AUTHORIZATION="Basic " + b64encode(u"{}:".format(bad_api_key.key)),
+            HTTP_AUTHORIZATION=b"Basic "
+            + b64encode(u"{}:".format(bad_api_key.key).encode("utf-8")),
         )
         assert response.status_code == 403
 
@@ -741,7 +742,8 @@ class OrganizationReleaseCreateTest(APITestCase):
         response = self.client.post(
             url,
             data={"version": "1.2.1", "projects": [project1.slug]},
-            HTTP_AUTHORIZATION="Basic " + b64encode(u"{}:".format(wrong_org_api_key.key)),
+            HTTP_AUTHORIZATION=b"Basic "
+            + b64encode(u"{}:".format(wrong_org_api_key.key).encode("utf-8")),
         )
         assert response.status_code == 403
 
@@ -750,7 +752,8 @@ class OrganizationReleaseCreateTest(APITestCase):
         response = self.client.post(
             url,
             data={"version": "1.2.1", "projects": [project1.slug]},
-            HTTP_AUTHORIZATION="Basic " + b64encode(u"{}:".format(good_api_key.key)),
+            HTTP_AUTHORIZATION=b"Basic "
+            + b64encode(u"{}:".format(good_api_key.key).encode("utf-8")),
         )
         assert response.status_code == 201, response.content
 

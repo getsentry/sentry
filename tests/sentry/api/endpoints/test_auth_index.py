@@ -28,9 +28,8 @@ class AuthLoginEndpointTest(APITestCase):
         user = self.create_user("foo@example.com")
         response = self.client.post(
             self.path,
-            HTTP_AUTHORIZATION=u"Basic {}".format(
-                b64encode(u"{}:{}".format(user.username, "admin"))
-            ),
+            HTTP_AUTHORIZATION=b"Basic "
+            + b64encode(u"{}:{}".format(user.username, "admin").encode("utf-8")),
         )
         assert response.status_code == 200
         assert response.data["id"] == six.text_type(user.id)
@@ -39,9 +38,8 @@ class AuthLoginEndpointTest(APITestCase):
         user = self.create_user("foo@example.com")
         response = self.client.post(
             self.path,
-            HTTP_AUTHORIZATION=u"Basic {}".format(
-                b64encode(u"{}:{}".format(user.username, "foobar"))
-            ),
+            HTTP_AUTHORIZATION=b"Basic "
+            + b64encode(u"{}:{}".format(user.username, "foobar").encode("utf-8")),
         )
         assert response.status_code == 401
 

@@ -138,7 +138,8 @@ class OrganizationProjectsTest(APITestCase):
         project = self.create_project(teams=[self.team])
 
         response = self.client.get(
-            self.path, HTTP_AUTHORIZATION="Basic " + b64encode(u"{}:".format(key.key))
+            self.path,
+            HTTP_AUTHORIZATION=b"Basic " + b64encode(u"{}:".format(key.key).encode("utf-8")),
         )
         self.check_valid_response(response, [project])
 

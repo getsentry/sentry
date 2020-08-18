@@ -46,8 +46,8 @@ class EndpointTest(APITestCase):
         request = HttpRequest()
         request.method = "GET"
         request.META["HTTP_ORIGIN"] = "http://example.com"
-        request.META["HTTP_AUTHORIZATION"] = u"Basic {}".format(
-            base64.b64encode(apikey.key).decode("utf-8")
+        request.META["HTTP_AUTHORIZATION"] = b"Basic " + base64.b64encode(
+            apikey.key.encode("utf-8")
         )
 
         response = _dummy_endpoint(request)
