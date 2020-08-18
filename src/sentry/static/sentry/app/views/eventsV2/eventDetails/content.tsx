@@ -18,6 +18,7 @@ import SentryTypes from 'app/sentryTypes';
 import Button from 'app/components/button';
 import Feature from 'app/components/acl/feature';
 import OpsBreakdown from 'app/components/events/opsBreakdown';
+import SpanStatusBreakdown from 'app/components/events/spanStatusBreakdown';
 import EventMetadata from 'app/components/events/eventMetadata';
 import LoadingError from 'app/components/loadingError';
 import NotFound from 'app/components/errors/notFound';
@@ -238,6 +239,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                 projectId={this.projectId}
               />
               <OpsBreakdown event={event} />
+              <SpanStatusBreakdown event={event} />
               {event.groupID && (
                 <LinkedIssue groupId={event.groupID} eventId={event.eventID} />
               )}
