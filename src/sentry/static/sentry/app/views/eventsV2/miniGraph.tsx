@@ -8,7 +8,6 @@ import {Client} from 'app/api';
 import {Organization} from 'app/types';
 import EventsRequest from 'app/components/charts/eventsRequest';
 import AreaChart from 'app/components/charts/areaChart';
-import MarkPoint from 'app/components/charts/components/markPoint';
 import {getInterval} from 'app/components/charts/utils';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -103,47 +102,17 @@ class MiniGraph extends React.Component<Props> {
             );
           }
 
-          const data = (timeseriesData || []).map(series => {
-            const newSeries = {
-              ...series,
-              areaStyle: {
-                color: colors[0],
-                opacity: 1,
-              },
-              lineStyle: {
-                opacity: 0,
-              },
-              smooth: true,
-              markPoint: undefined,
-            };
-
-            if (!series?.data?.length) {
-              delete newSeries.markPoint;
-            } else {
-              const max = series.data.reduce(
-                (maxValue, point) => (maxValue > point.value ? maxValue : point.value),
-                series.data[0].value
-              );
-
-              newSeries.markPoint = MarkPoint({
-                silent: true,
-                // make the symbol invisible here,
-                // `symbol: 'none'` seems to make the whole thing disappear
-                symbolSize: 0,
-                data: [{x: 10, y: 22}],
-                label: {
-                  show: true,
-                  position: 'right',
-                  formatter: formatAbbreviatedNumber(max),
-                  color: theme.gray500,
-                  fontFamily: theme.text.familyMono,
-                  fontSize: 12,
-                },
-              });
-            }
-
-            return newSeries;
-          });
+          const data = (timeseriesData || []).map(series => ({
+            ...series,
+            areaStyle: {
+              color: colors[0],
+              opacity: 1,
+            },
+            lineStyle: {
+              opacity: 0,
+            },
+            smooth: true,
+          }));
 
           return (
             <AreaChart
@@ -156,7 +125,24 @@ class MiniGraph extends React.Component<Props> {
                 },
               }}
               yAxis={{
-                show: false,
+                show: true,
+                axisLine: {
+                  show: false,
+                },
+                axisLabel: {
+                  color: theme.gray400,
+                  fontFamily: theme.text.familyMono,
+                  fontSize: 12,
+                  formatter: formatAbbreviatedNumber,
+                  inside: true,
+                  showMinLabel: false,
+                  showMaxLabel: false,
+                },
+                splitNumber: 3,
+                splitLine: {
+                  show: false,
+                },
+                zlevel: 2147483647,
               }}
               tooltip={{
                 show: false,
