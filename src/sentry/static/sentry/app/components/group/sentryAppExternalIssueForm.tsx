@@ -261,7 +261,7 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
     };
 
     //async only used for select components
-    const isAsync = typeof field.async === 'undefined' ? true : field.async; //default to true
+    const isAsync = typeof field.async === 'undefined' ? true : !!field.async; //default to true
 
     if (fieldToPass.type === 'select') {
       // find the options from state to pass down
