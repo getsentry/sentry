@@ -28,7 +28,16 @@ class RuleSerializer(Serializer):
         for rule_activity in RuleActivity.objects.filter(
             rule__in=item_list, type=RuleActivityType.CREATED.value
         ).select_related("rule", "user"):
-            result[rule_activity.rule].update({"created_by": rule_activity.user.id})
+            if rule_activity.user:
+                user = {
+                    "id": rule_activity.user.id,
+                    "name": rule_activity.user.get_display_name(),
+                    "email": rule_activity.user.email,
+                }
+            else:
+                user = None
+
+            result[rule_activity.rule].update({"created_by": user})
 
         return result
 
@@ -39,11 +48,11 @@ class RuleSerializer(Serializer):
             # as part of the rule editor
             "id": six.text_type(obj.id) if obj.id else None,
             "conditions": [
-                dict(o.items() + [("name", _generate_rule_label(obj.project, obj, o))])
+                dict(list(o.items()) + [("name", _generate_rule_label(obj.project, obj, o))])
                 for o in obj.data.get("conditions", [])
             ],
             "actions": [
-                dict(o.items() + [("name", _generate_rule_label(obj.project, obj, o))])
+                dict(list(o.items()) + [("name", _generate_rule_label(obj.project, obj, o))])
                 for o in obj.data.get("actions", [])
             ],
             "actionMatch": obj.data.get("action_match") or Rule.DEFAULT_CONDITION_MATCH,

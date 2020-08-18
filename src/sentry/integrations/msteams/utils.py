@@ -1,7 +1,8 @@
 from __future__ import absolute_import
 
-import enum
 import six
+import logging
+import enum
 
 from django.http import Http404
 
@@ -10,10 +11,14 @@ from sentry.models import (
     Organization,
     IdentityProvider,
 )
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.compat import filter
+
 from .client import MsTeamsClient
 
 MSTEAMS_MAX_ITERS = 100
+
+logger = logging.getLogger("sentry.integrations.msteams")
 
 
 # MS Teams will convert integers into strings in value inputs sent in adaptive
@@ -73,6 +78,19 @@ def get_channel_id(organization, integration_id, name):
         members = client.get_member_list(team_id, continuation_token)
 
     return None
+
+
+def send_incident_alert_notification(action, incident, metric_value):
+    from .card_builder import build_incident_attachment
+
+    channel = action.target_identifier
+    integration = action.integration
+    attachment = build_incident_attachment(incident, metric_value)
+    client = MsTeamsClient(integration)
+    try:
+        client.send_card(channel, attachment)
+    except ApiError as e:
+        logger.info("rule.fail.msteams_post", extra={"error": six.text_type(e)})
 
 
 def get_identity(user, organization_id, integration_id):

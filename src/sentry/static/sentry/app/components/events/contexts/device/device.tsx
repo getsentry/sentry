@@ -4,6 +4,7 @@ import ContextBlock from 'app/components/events/contexts/contextBlock';
 
 import {DeviceData, DeviceKnownDataType} from './types';
 import getDeviceKnownData from './getDeviceKnownData';
+import getUnknownData from '../getUnknownData';
 
 type Props = {
   data: DeviceData;
@@ -49,8 +50,15 @@ const deviceKnownDataValues = [
   DeviceKnownDataType.RENDERED_MODEL,
 ];
 
+const deviceIgnoredDataValues = [];
+
 const Device = ({data}: Props) => (
-  <ContextBlock knownData={getDeviceKnownData(data, deviceKnownDataValues)} />
+  <React.Fragment>
+    <ContextBlock data={getDeviceKnownData(data, deviceKnownDataValues)} />
+    <ContextBlock
+      data={getUnknownData(data, [...deviceKnownDataValues, ...deviceIgnoredDataValues])}
+    />
+  </React.Fragment>
 );
 
 export default Device;

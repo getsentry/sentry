@@ -1,7 +1,14 @@
 import React from 'react';
 
 import {SentryAppComponent} from 'app/types';
-import {IconClickup, IconClubhouse, IconRookout, IconGeneric} from 'app/icons';
+import {
+  IconClickup,
+  IconClubhouse,
+  IconRookout,
+  IconTeamwork,
+  IconLinear,
+  IconGeneric,
+} from 'app/icons';
 
 type Props = {
   slug: SentryAppComponent['sentryApp']['slug'];
@@ -15,6 +22,10 @@ const SentryAppIcon = ({slug}: Props) => {
       return <IconClubhouse size="md" />;
     case 'rookout':
       return <IconRookout size="md" />;
+    case 'teamwork':
+      return <IconTeamwork size="md" />;
+    case 'linear':
+      return <IconLinear size="md" />;
     default:
       return <IconGeneric size="md" />;
   }
