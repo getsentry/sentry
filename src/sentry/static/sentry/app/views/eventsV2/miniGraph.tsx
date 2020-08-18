@@ -142,7 +142,7 @@ class MiniGraph extends React.Component<Props> {
                 splitLine: {
                   show: false,
                 },
-                zlevel: 2147483647,
+                zlevel: theme.zIndex.header,
               }}
               tooltip={{
                 show: false,
