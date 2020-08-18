@@ -250,12 +250,12 @@ describe('DropdownLink', function() {
       expect(wrapper.find('.dropdown-menu')).toHaveLength(0);
     });
 
-    it('closes when second level nested actor is clicked', function() {
+    it('does not close when second level nested actor is clicked', function() {
       wrapper.find('a.nested-menu').simulate('mouseEnter');
       jest.runAllTimers();
       wrapper.update();
       wrapper.find('a.nested-menu-2 span').simulate('click');
-      expect(wrapper.find('.dropdown-menu')).toHaveLength(0);
+      expect(wrapper.find('.dropdown-menu')).toHaveLength(2);
     });
 
     it('closes when third level nested actor is clicked', function() {
