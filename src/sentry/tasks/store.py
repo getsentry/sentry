@@ -685,8 +685,6 @@ def create_failed_event(
             data=issue["data"],
         )
 
-    event_processing_store.delete_by_key(cache_key)
-
     return True
 
 
@@ -758,9 +756,6 @@ def _do_save_event(
 
         finally:
             if cache_key:
-                with metrics.timer("tasks.store.do_save_event.delete_cache"):
-                    event_processing_store.delete_by_key(cache_key)
-
                 with metrics.timer("tasks.store.do_save_event.delete_attachment_cache"):
                     attachment_cache.delete(cache_key)
 

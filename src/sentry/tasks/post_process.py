@@ -116,16 +116,35 @@ def handle_owner_assignment(project, group, event):
 
 
 @instrumented_task(name="sentry.tasks.post_process.post_process_group")
-def post_process_group(event, is_new, is_regression, is_new_group_environment, **kwargs):
+def post_process_group(
+    event, is_new, is_regression, is_new_group_environment, cache_key=None, group_id=None, **kwargs
+):
     """
     Fires post processing hooks for a group.
     """
-    set_current_project(event.project_id)
-
+    from sentry.eventstore.models import Event
+    from sentry.eventstore.processing import event_processing_store
     from sentry.utils import snuba
 
+    # The event parameter will be removed after transitioning to
+    # event_processing_store is complete.
+    if cache_key is not None and event is None:
+        data = event_processing_store.get(cache_key)
+        if not data:
+            logger.info(
+                "post_process.skipped", extra={"cache_key": cache_key, "reason": "missing_cache"}
+            )
+            return
+        event = Event(
+            project_id=data["project"], event_id=data["event_id"], group_id=group_id, data=data
+        )
+
+    set_current_project(event.project_id)
+
     with snuba.options_override({"consistent": True}):
-        if check_event_already_post_processed(event):
+        # Once we've transitioned entirely to the cache_key this can
+        # be removed as the eventprocessing_store data will help de-duplicate.
+        if not cache_key and check_event_already_post_processed(event):
             logger.info(
                 "post_process.skipped",
                 extra={
@@ -149,13 +168,13 @@ def post_process_group(event, is_new, is_regression, is_new_group_environment, *
         event.data = EventDict(event.data, skip_renormalization=True)
 
         if event.group_id:
-            # Re-bind Group since we're pickling the whole Event object
-            # which may contain a stale Project.
+            # Re-bind Group since we're reading the Event object
+            # from cache, which may contain a stale group and project
             event.group, _ = get_group_with_redirect(event.group_id)
             event.group_id = event.group.id
 
-        # Re-bind Project and Org since we're pickling the whole Event object
-        # which may contain stale parent models.
+        # Re-bind Project and Org since we're reading the Event object
+        # from cache which may contain stale parent models.
         event.project = Project.objects.get_from_cache(id=event.project_id)
         event.project._organization_cache = Organization.objects.get_from_cache(
             id=event.project.organization_id
@@ -220,6 +239,9 @@ def post_process_group(event, is_new, is_regression, is_new_group_environment, *
             event=event,
             primary_hash=kwargs.get("primary_hash"),
         )
+        if cache_key:
+            with metrics.timer("tasks.post_process.delete_event_cache"):
+                event_processing_store.delete_by_key(cache_key)
 
 
 def process_snoozes(group):
