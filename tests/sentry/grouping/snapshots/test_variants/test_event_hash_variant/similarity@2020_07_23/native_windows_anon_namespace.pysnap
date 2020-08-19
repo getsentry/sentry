@@ -1,0 +1,76 @@
+---
+created: '2020-07-23T17:38:23.434684Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        stacktrace
+          frame (non app frame)
+            filename*
+              "exe_common.inl"
+            function*
+              "__scrt_common_main_seh"
+          frame (non app frame)
+            filename*
+              "exe_common.inl"
+            function*
+              "invoke_main"
+          frame (non app frame)
+            filename*
+              "main.cpp"
+            function*
+              "main"
+          frame (non app frame)
+            filename*
+              "main.cpp"
+            function*
+              "`anonymous namespace'::start"
+          frame (non app frame)
+            filename*
+              "main.cpp"
+            function*
+              "`anonymous namespace'::crash"
+        type (ignored because exception is synthetic)
+          "EXCEPTION_ACCESS_VIOLATION_WRITE"
+        value*
+          "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
+--------------------------------------------------------------------------
+system:
+  hash: "15d397771f229af8dc42783542f81dd4"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "exe_common.inl"
+            function*
+              "__scrt_common_main_seh"
+          frame*
+            filename*
+              "exe_common.inl"
+            function*
+              "invoke_main"
+          frame*
+            filename*
+              "main.cpp"
+            function*
+              "main"
+          frame*
+            filename*
+              "main.cpp"
+            function*
+              "`anonymous namespace'::start"
+          frame*
+            filename*
+              "main.cpp"
+            function*
+              "`anonymous namespace'::crash"
+        type (ignored because exception is synthetic)
+          "EXCEPTION_ACCESS_VIOLATION_WRITE"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"

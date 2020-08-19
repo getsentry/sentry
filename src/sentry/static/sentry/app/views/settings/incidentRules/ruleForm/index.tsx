@@ -123,8 +123,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
   goBack() {
     const {router, routes, params, location} = this.props;
-
-    router.replace(recreateRoute('', {routes, params, location, stepBack: -2}));
+    router.replace(recreateRoute('rules/', {routes, params, location, stepBack: -2}));
   }
 
   /**

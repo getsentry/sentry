@@ -32,7 +32,15 @@ class GroupingComponent(object):
     into components to make a hash for grouping purposes.
     """
 
-    def __init__(self, id, hint=None, contributes=None, values=None):
+    def __init__(
+        self,
+        id,
+        hint=None,
+        contributes=None,
+        values=None,
+        similarity_encoder=None,
+        similarity_self_encoder=None,
+    ):
         self.id = id
         if hint is None:
             hint = DEFAULT_HINTS.get(id)
@@ -43,6 +51,8 @@ class GroupingComponent(object):
         if values is None:
             values = []
         self.values = values
+        self.similarity_encoder = similarity_encoder
+        self.similarity_self_encoder = similarity_self_encoder
 
     @property
     def name(self):
@@ -111,6 +121,28 @@ class GroupingComponent(object):
         """Returns the hash of the values if it contributes."""
         if self.contributes:
             return hash_from_values(self.iter_values())
+
+    def encode_for_similarity(self):
+        if not self.contributes:
+            return
+
+        id = self.id
+
+        if self.similarity_self_encoder is not None:
+            for x in self.similarity_self_encoder(id, self):
+                yield x
+
+            return
+
+        encoder = self.similarity_encoder
+
+        for i, value in enumerate(self.values):
+            if encoder is not None:
+                for x in encoder(id, value):
+                    yield x
+            elif isinstance(value, GroupingComponent):
+                for x in value.encode_for_similarity():
+                    yield x
 
     def as_dict(self):
         """Converts the component tree into a dictionary."""

@@ -263,6 +263,14 @@ class Browser(object):
 
         return self
 
+    def wait_for_fonts_loaded(self, timeout=10):
+        wait = WebDriverWait(self.driver, timeout)
+        wait.until(
+            lambda driver: driver.execute_script("""return document.fonts.status === 'loaded'""")
+        )
+
+        return self
+
     def blur(self):
         """
         Find focused elements and call blur. Useful for snapshot testing that can potentially capture
@@ -303,8 +311,9 @@ class Browser(object):
                 time.sleep(1)
 
         if os.environ.get("VISUAL_SNAPSHOT_ENABLE") == "1":
-            # wait for images to be loaded
+            # wait for external assets to be loaded
             self.wait_for_images_loaded()
+            self.wait_for_fonts_loaded()
 
             # Note: below will fail if these directories do not exist
 
