@@ -2,6 +2,7 @@ import React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import pick from 'lodash/pick';
 import * as ReactRouter from 'react-router';
+import styled from '@emotion/styled';
 
 import {PanelTable, PanelTableHeader} from 'app/components/panels';
 import {t} from 'app/locale';
@@ -12,7 +13,6 @@ import Checkbox from 'app/components/checkbox';
 import {IconDelete} from 'app/icons';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
-import styled from 'app/styled';
 import BulkController from 'app/utils/bulkController';
 
 import GroupEventAttachmentsFilter from './groupEventAttachmentsFilter';
@@ -88,7 +88,7 @@ class GroupEventAttachments extends AsyncComponent<Props, State> {
           pageIds={eventAttachments.map(a => a.id)}
           // TODO(matej): receive from API, X-Hits
           allIdsCount={64}
-          summaryColumns={5}
+          noticeColumns={5}
         >
           {({
             selectedIds,

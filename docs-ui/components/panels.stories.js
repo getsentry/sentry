@@ -90,6 +90,8 @@ export const _PanelTable = withInfo({
       <div>Panel Item</div>
       <div>Panel Item</div>
     </PanelTable>
+
+    <h3>For selectable table rows see BulkController</h3>
   </React.Fragment>
 ));
 

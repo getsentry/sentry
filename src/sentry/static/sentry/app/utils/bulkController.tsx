@@ -52,7 +52,7 @@ type Props = {
   /**
    * Number of grid columns to stretch the selection summary (used in TableNotice)
    */
-  summaryColumns: number;
+  noticeColumns: number;
   children: (props: RenderProps) => React.ReactNode;
 };
 
@@ -93,7 +93,7 @@ class BulkController extends React.Component<Props, State> {
   };
 
   render() {
-    const {pageIds, children, summaryColumns, allIdsCount} = this.props;
+    const {pageIds, children, noticeColumns, allIdsCount} = this.props;
     const {selectedIds, isEverythingSelected} = this.state;
 
     const isPageSelected =
@@ -112,7 +112,7 @@ class BulkController extends React.Component<Props, State> {
           selectedRowsCount={selectedIds.length}
           onCancelAllRows={() => this.handleAllIdsToggle(false)}
           onSelectAllRows={() => this.handleAllIdsToggle(true)}
-          columnsCount={summaryColumns}
+          columnsCount={noticeColumns}
           isPageSelected={isPageSelected}
           isEverythingSelected={isEverythingSelected}
         />
