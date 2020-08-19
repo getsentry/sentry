@@ -54,7 +54,7 @@ class ModalContents extends React.Component<ContentsProps, ContentsState> {
 
   handleAdvance = () => {
     const {onAdvance} = this.props;
-    this.setState({current: this.state.current + 1}, () => {
+    this.setState(prevState => ({current: prevState.current + 1}, () => {
       const duration = Date.now() - this.state.openedAt;
       callIfFunction(onAdvance, this.state.current, duration);
     });
