@@ -304,11 +304,7 @@ class MailAdapter(object):
 
         rules = []
         for rule in notification.rules:
-            rule_link = "/settings/%s/projects/%s/alerts/rules/%s/" % (
-                org.slug,
-                project.slug,
-                rule.id,
-            )
+            rule_link = "/organizations/%s/alerts/rules/%s/%s/" % (org.slug, project.slug, rule.id,)
 
             rules.append((rule.label, rule_link))
 
