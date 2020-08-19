@@ -96,11 +96,19 @@ class ModalContents extends React.Component<ContentsProps, ContentsState> {
           <ButtonBar gap={1}>
             {step.actions && step.actions}
             {hasNext && (
-              <Button priority="primary" onClick={this.handleAdvance}>
+              <Button
+                data-test-id="next-step"
+                priority="primary"
+                onClick={this.handleAdvance}
+              >
                 {t('Next')}
               </Button>
             )}
-            {!hasNext && <Button onClick={this.handleClose}>{t('All Done')}</Button>}
+            {!hasNext && (
+              <Button data-test-id="complete-tour" onClick={this.handleClose}>
+                {t('All Done')}
+              </Button>
+            )}
           </ButtonBar>
         </TourContent>
         <StepCounter>{t('%s of %s', current + 1, steps.length)}</StepCounter>
