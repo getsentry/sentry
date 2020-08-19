@@ -11,9 +11,11 @@ import {navigateTo} from 'app/actionCreators/navigation';
 type Props = {
   router: InjectedRouter;
   organization: Organization;
+  buttonProps?: React.ComponentProps<typeof Button>;
+  iconProps?: React.ComponentProps<typeof IconSiren>;
 };
 
-const CreateRuleButton = ({router, organization}: Props) => (
+const CreateRuleButton = ({router, organization, buttonProps, iconProps}: Props) => (
   <Access organization={organization} access={['project:write']}>
     {({hasAccess}) => (
       <Button
@@ -33,8 +35,8 @@ const CreateRuleButton = ({router, organization}: Props) => (
         }}
         priority="primary"
         href="#"
-        size="small"
-        icon={<IconSiren size="xs" />}
+        icon={<IconSiren {...iconProps} />}
+        {...buttonProps}
       >
         {t('Create Alert Rule')}
       </Button>
