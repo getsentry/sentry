@@ -270,19 +270,19 @@ function routes() {
             )
           }
         />
-        <Redirect from="new/" to="/organizations/:orgId/alerts/:projectId/new" />
-        <Redirect from="rules/new/" to="/organizations/:orgId/alerts/:projectId/new" />
+        <Redirect from="new/" to="/organizations/:orgId/alerts/:projectId/new/" />
+        <Redirect from="rules/new/" to="/organizations/:orgId/alerts/:projectId/new/" />
         <Redirect
           from="metric-rules/new/"
-          to="/organizations/:orgId/alerts/:projectId/new"
+          to="/organizations/:orgId/alerts/:projectId/new/"
         />
         <Redirect
           from="rules/:ruleId/"
-          to="/organizations/:orgId/alerts/rules/:projectId/:ruleId"
+          to="/organizations/:orgId/alerts/rules/:projectId/:ruleId/"
         />
         <Redirect
           from="metric-rules/:ruleId/"
-          to="/organizations/:orgId/alerts/metric-rules/:projectId/:ruleId"
+          to="/organizations/:orgId/alerts/metric-rules/:projectId/:ruleId/"
         />
       </Route>
 
