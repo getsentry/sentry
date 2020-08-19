@@ -11,9 +11,9 @@ import space from 'app/styles/space';
 
 export type TourStep = {
   title: string;
-  body: any;
-  actions?: React.ReactNode | undefined | null;
-  image?: React.ReactNode | undefined | null;
+  body: React.ReactNode;
+  actions?: React.ReactNode;
+  image?: React.ReactNode;
 };
 
 const defaultProps = {

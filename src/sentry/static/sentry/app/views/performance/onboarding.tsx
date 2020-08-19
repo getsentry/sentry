@@ -60,6 +60,7 @@ const TOUR_STEPS: TourStep[] = [
         )}
       </TourText>
     ),
+    actions: docsLink,
   },
   {
     title: t('Trace Across Systems'),
