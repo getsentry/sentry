@@ -17,6 +17,7 @@ import LoadingError from 'app/components/loadingError';
 import NotFound from 'app/components/errors/notFound';
 import AsyncComponent from 'app/components/asyncComponent';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
+import RootSpanStatus from 'app/components/events/rootSpanStatus';
 import OpsBreakdown from 'app/components/events/opsBreakdown';
 import TagsTable from 'app/components/tagsTable';
 import Projects from 'app/utils/projects';
@@ -174,6 +175,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                 organization={organization}
                 projectId={this.projectId}
               />
+              <RootSpanStatus event={event} />
               <OpsBreakdown event={event} />
               <TagsTable event={event} query={query} generateUrl={this.generateTagUrl} />
             </Layout.Side>
