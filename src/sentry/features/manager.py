@@ -15,6 +15,8 @@ class FeatureManager(object):
     def __init__(self):
         self._feature_registry = {}
         self._handler_registry = defaultdict(list)
+        self._default_handler = None
+        self._backup_handler = None
 
     def all(self, feature_type=Feature):
         """
@@ -48,6 +50,15 @@ class FeatureManager(object):
         """
         cls = self._get_feature_class(name)
         return cls(name, *args, **kwargs)
+
+    def add_default_handler(self, handler, backup_handler=None):
+        """
+        Registers a handler that doesn't require a feature name match
+
+        The default handler can also include a backup handler if the primary goes down
+        """
+        self._default_handler = handler
+        self._backup_handler = backup_handler
 
     def add_handler(self, handler):
         """
@@ -85,10 +96,20 @@ class FeatureManager(object):
         actor = kwargs.pop("actor", None)
         feature = self.get(name, *args, **kwargs)
 
+        if self._default_handler:
+            rv = self._default_handler(feature, actor)
+            if rv is not None:
+                return rv
+
         # Check registered feature handlers
         rv = self._get_handler(feature, actor)
         if rv is not None:
             return rv
+
+        if self._backup_handler:
+            rv = self._backup_handler(feature, actor)
+            if rv is not None:
+                return rv
 
         rv = settings.SENTRY_FEATURES.get(feature.name, False)
         if rv is not None:

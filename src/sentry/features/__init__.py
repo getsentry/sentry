@@ -127,10 +127,13 @@ requires_snuba = (
     "organizations:incidents",
 )
 
+default_manager.add("organizations:trends", OrganizationFeature)  # NOQA
+
 # expose public api
 add = default_manager.add
 get = default_manager.get
 has = default_manager.has
 all = default_manager.all
 add_handler = default_manager.add_handler
+add_default_handler = default_manager.add_default_handler
 has_for_batch = default_manager.has_for_batch
