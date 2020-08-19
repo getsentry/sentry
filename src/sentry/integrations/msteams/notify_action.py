@@ -84,7 +84,7 @@ class MsTeamsNotifyServiceAction(EventAction):
 
         def send_notification(event, futures):
             rules = [f.rule for f in futures]
-            card = build_group_card(event.group, event=event, rules=rules)
+            card = build_group_card(event.group, event, rules, integration)
 
             client = MsTeamsClient(integration)
             client.send_card(channel, card)

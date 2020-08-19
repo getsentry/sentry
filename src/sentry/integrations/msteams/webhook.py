@@ -296,21 +296,30 @@ class MsTeamsWebhookEndpoint(Endpoint):
         )
 
     def handle_action_submitted(self, request):
+        # pull out parameters
         data = request.data
         channel_data = data["channelData"]
-        team_id = channel_data["team"]["id"]
         tenant_id = channel_data["tenant"]["id"]
         payload = data["value"]["payload"]
         group_id = payload["groupId"]
+        integration_id = payload["integrationId"]
         user_id = data["from"]["id"]
         activity_id = data["replyToId"]
+        conversation = data["conversation"]
+        if conversation["conversationType"] == "personal":
+            conversation_id = conversation["id"]
+        else:
+            conversation_id = channel_data["channel"]["id"]
 
         try:
-            integration = Integration.objects.get(provider=self.provider, external_id=team_id)
+            integration = Integration.objects.get(id=integration_id)
         except Integration.DoesNotExist:
-            logger.info("msteams.action.missing-integration", extra={"team_id": team_id})
+            logger.info(
+                "msteams.action.missing-integration", extra={"integration_id": integration_id}
+            )
             return self.respond(status=404)
 
+        team_id = integration.external_id
         client = MsTeamsClient(integration)
 
         try:
@@ -375,7 +384,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
 
         # refresh issue and update card
         group.refresh_from_db()
-        card = build_group_card(group, event, rules)
-        client.update_card(team_id, activity_id, card)
+        card = build_group_card(group, event, rules, integration)
+        client.update_card(conversation_id, activity_id, card)
 
         return issue_change_response
