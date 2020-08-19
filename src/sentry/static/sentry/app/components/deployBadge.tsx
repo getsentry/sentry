@@ -12,13 +12,14 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 
 type Props = {
   deploy: Deploy;
+  projectId?: number;
   orgSlug?: string;
   version?: string;
   className?: string;
 };
 
-const DeployBadge = ({deploy, orgSlug, version, className}: Props) => {
-  const shouldLinkToIssues = !!orgSlug && !!version;
+const DeployBadge = ({deploy, orgSlug, projectId, version, className}: Props) => {
+  const shouldLinkToIssues = !!orgSlug && !!version && projectId !== undefined;
 
   const badge = (
     <Badge className={className}>
@@ -36,7 +37,7 @@ const DeployBadge = ({deploy, orgSlug, version, className}: Props) => {
       to={{
         pathname: `/organizations/${orgSlug}/issues/`,
         query: {
-          project: null,
+          project: projectId,
           environment: deploy.environment,
           query: stringifyQueryObject(new QueryResults([`release:${version!}`])),
         },
