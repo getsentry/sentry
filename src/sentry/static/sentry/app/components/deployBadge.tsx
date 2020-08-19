@@ -19,7 +19,7 @@ type Props = {
 };
 
 const DeployBadge = ({deploy, orgSlug, projectId, version, className}: Props) => {
-  const shouldLinkToIssues = !!orgSlug && !!version && projectId !== undefined;
+  const shouldLinkToIssues = !!orgSlug && !!version;
 
   const badge = (
     <Badge className={className}>
@@ -37,7 +37,7 @@ const DeployBadge = ({deploy, orgSlug, projectId, version, className}: Props) =>
       to={{
         pathname: `/organizations/${orgSlug}/issues/`,
         query: {
-          project: projectId,
+          project: projectId ?? null,
           environment: deploy.environment,
           query: stringifyQueryObject(new QueryResults([`release:${version!}`])),
         },
