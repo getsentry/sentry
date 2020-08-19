@@ -250,7 +250,7 @@ export const getHumanDuration = (duration: number): string => {
   // note: duration is assumed to be in seconds
 
   const durationMS = duration * 1000;
-  return `${Number(durationMS.toFixed(2)).toLocaleString(undefined, {
+  return `${durationMS.toLocaleString(undefined, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}ms`;
