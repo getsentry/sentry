@@ -13,7 +13,7 @@ import space from 'app/styles/space';
 type TourStep = {
   title: string;
   body: React.ReactNode;
-  actions: React.ReactElement;
+  actions?: React.ReactElement;
   image?: React.ReactElement;
 };
 
