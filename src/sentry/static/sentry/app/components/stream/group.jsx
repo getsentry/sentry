@@ -47,6 +47,7 @@ const StreamGroup = createReactClass({
   getInitialState() {
     return {
       data: GroupStore.get(this.props.id),
+      showLifetimeStats: false,
     };
   },
 
@@ -92,9 +93,19 @@ const StreamGroup = createReactClass({
 
     SelectedGroupStore.toggleSelect(this.state.data.id);
   },
+  toggleShowLifetimeStats(showLifetimeStats) {
+    if (this.hoverWait) {
+      clearTimeout(this.hoverWait);
+    }
+
+    this.hoverWait = setTimeout(() => this.setState({showLifetimeStats}), 100);
+
+    this.setState({showLifetimeStats});
+    this.forceUpdate();
+  },
 
   render() {
-    const {data} = this.state;
+    const {data, showLifetimeStats} = this.state;
     const {
       query,
       hasGuideAnchor,
@@ -104,8 +115,23 @@ const StreamGroup = createReactClass({
       statsPeriod,
     } = this.props;
 
+    console.log('Group 1', {
+      GroupStore,
+      'GroupStore.getAllItems()': GroupStore.getAllItems(),
+      'this.state.data': this.state.data,
+      'GroupStore.get(this.props.id)': GroupStore.get(this.props.id),
+    });
+    console.log('this.state.showLifetimeStats', showLifetimeStats);
+
+    console.log('---------------------------------------------------------------\n\n\n');
+
     return (
-      <Group data-test-id="group" onClick={this.toggleSelect}>
+      <Group
+        data-test-id="group"
+        nClick={this.toggleSelect}
+        onMouseEnter={() => this.toggleShowLifetimeStats(true)}
+        onMouseLeave={() => this.toggleShowLifetimeStats(false)}
+      >
         {canSelect && (
           <GroupCheckbox ml={2}>
             <GroupCheckBox id={data.id} />
@@ -127,10 +153,22 @@ const StreamGroup = createReactClass({
           </Box>
         )}
         <Flex width={[40, 60, 80, 80]} mx={2} justifyContent="flex-end">
-          <StyledCount value={data.count} />
+          <StyledPrimaryCount value={data.count} />
+          {showLifetimeStats && (
+            <React.Fragment>
+              {'/'}
+              <StyledSecondaryCount value={data.lifetime.count} />
+            </React.Fragment>
+          )}
         </Flex>
         <Flex width={[40, 60, 80, 80]} mx={2} justifyContent="flex-end">
-          <StyledCount value={data.userCount} />
+          <StyledPrimaryCount value={data.userCount} />
+          {showLifetimeStats && (
+            <React.Fragment>
+              {'/'}
+              <StyledSecondaryCount value={data.lifetime.userCount} />
+            </React.Fragment>
+          )}
         </Flex>
         <Box width={80} mx={2} className="hidden-xs hidden-sm">
           <AssigneeSelector id={data.id} memberList={memberList} />
@@ -158,9 +196,14 @@ const GroupCheckbox = styled(Box)`
   }
 `;
 
-const StyledCount = styled(Count)`
+const StyledPrimaryCount = styled(Count)`
   font-size: 18px;
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.gray700};
+`;
+
+const StyledSecondaryCount = styled(Count)`
+  font-size: 18px;
+  color: ${p => p.theme.gray500};
 `;
 
 export default StreamGroup;

@@ -408,10 +408,36 @@ class SnubaTagStorage(TagStorage):
         }
 
     def get_group_seen_values_for_environments(
-        self, project_ids, group_id_list, environment_ids, start=None, end=None
+        self, project_ids, group_id_list, environment_ids, query_filters, start=None, end=None
     ):
+        from pprint import pprint
+
+        print(
+            "\n\n\n\n--------------------------------\n--------------------------------\n--------------------------------"
+        )
+        print("\nget_group_seen_values_for_environments")
+        print("\nquery_filters")
+        pprint(query_filters)
+
         # Get the total times seen, first seen, and last seen across multiple environments
         filters = {"project_id": project_ids, "group_id": group_id_list}
+
+        if query_filters is not None:
+            for filterx in query_filters:
+                print("\nfilterx")
+                pprint(filterx)
+                # filters[filterx.key] = filterx.value # this didn't work
+                filters[filterx.key.name] = filterx.value.raw_value
+
+        print("\nfilters 1")
+        pprint(filters)
+
+        if "project_id" not in filters:
+            filters["project_id"] = project_ids
+
+        if "group_id" not in filters:
+            filters["group_id"] = group_id_list
+
         conditions = None
         if environment_ids:
             filters["environment"] = environment_ids
@@ -422,6 +448,9 @@ class SnubaTagStorage(TagStorage):
             ["max", SEEN_COLUMN, "last_seen"],
         ]
 
+        print("\nfilters 2")
+        pprint(filters)
+
         result = snuba.query(
             start=start,
             end=end,
@@ -430,6 +459,10 @@ class SnubaTagStorage(TagStorage):
             filter_keys=filters,
             aggregations=aggregations,
             referrer="tagstore.get_group_seen_values_for_environments",
+        )
+
+        print(
+            "\nxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n\n\n"
         )
 
         return {issue: fix_tag_value_data(data) for issue, data in six.iteritems(result)}
