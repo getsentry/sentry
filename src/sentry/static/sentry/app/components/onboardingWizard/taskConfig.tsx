@@ -70,6 +70,7 @@ export function getOnboardingTasks(
               api={api}
               organization={organization}
               project={projects[0]}
+              eventType="error"
               onIssueReceived={() => !taskIsDone(task) && onCompleteTask()}
             >
               {() => <EventWaitingIndicator />}
@@ -102,6 +103,37 @@ export function getOnboardingTasks(
       actionType: 'app',
       location: `/organizations/${organization.slug}/projects/new/`,
       display: true,
+    },
+    {
+      task: OnboardingTaskKey.FIRST_TRANSACTION,
+      title: t('Enable Performance'),
+      description: t(`See what's slow.`),
+      detailedDescription: t(
+        `Add Performance to track latency and bottlenecks within your application.
+        Monitor mission-critical endpoints and set metric alerts to proactively address the worst-performing areas.`
+      ),
+      skippable: true,
+      requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
+      actionType: 'external',
+      location: 'https://docs.sentry.io/product/performance/getting-started/',
+      display: true,
+      SupplementComponent: withProjects(
+        withApi(({api, task, projects, onCompleteTask}: FirstEventWaiterProps) =>
+          projects.length > 0 &&
+          task.requisiteTasks.length === 0 &&
+          !task.completionSeen ? (
+            <EventWaiter
+              api={api}
+              organization={organization}
+              project={projects[0]}
+              eventType="transaction"
+              onIssueReceived={() => !taskIsDone(task) && onCompleteTask()}
+            >
+              {() => <EventWaitingIndicator />}
+            </EventWaiter>
+          ) : null
+        )
+      ),
     },
     {
       task: OnboardingTaskKey.USER_CONTEXT,
