@@ -14,7 +14,6 @@ import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import styled from 'app/styled';
 import BulkController from 'app/utils/bulkController';
-import TableNotice from 'app/components/tableNotice';
 
 import GroupEventAttachmentsFilter from './groupEventAttachmentsFilter';
 import GroupEventAttachmentsRow from './groupEventAttachmentsRow';
@@ -85,14 +84,19 @@ class GroupEventAttachments extends AsyncComponent<Props, State> {
     return (
       <React.Fragment>
         <GroupEventAttachmentsFilter location={location} />
-        <BulkController pageIds={eventAttachments.map(a => a.id)}>
+        <BulkController
+          pageIds={eventAttachments.map(a => a.id)}
+          // TODO(matej): receive from API, X-Hits
+          allIdsCount={64}
+          summaryColumns={5}
+        >
           {({
             selectedIds,
             onPageIdsToggle,
-            onAllIdsToggle,
             onIdToggle,
             isPageSelected,
             isEverythingSelected,
+            tableNotice,
           }) => (
             <StyledPanelTable
               headers={[
@@ -134,15 +138,7 @@ class GroupEventAttachments extends AsyncComponent<Props, State> {
               isEmpty={eventAttachments.length === 0}
               isLoading={loading}
             >
-              <TableNotice
-                allRowsCount={64} /// TODO(matej): receive from API, X-Hits
-                selectedRowsCount={selectedIds.length}
-                onCancelAllRows={() => onAllIdsToggle(false)}
-                onSelectAllRows={() => onAllIdsToggle(true)}
-                columnsCount={5}
-                isPageSelected={isPageSelected}
-                isEverythingSelected={isEverythingSelected}
-              />
+              {tableNotice}
               {eventAttachments.map(attachment => (
                 <GroupEventAttachmentsRow
                   key={attachment.id}

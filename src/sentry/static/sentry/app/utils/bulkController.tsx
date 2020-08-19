@@ -3,7 +3,9 @@ import xor from 'lodash/xor';
 import uniq from 'lodash/uniq';
 import intersection from 'lodash/intersection';
 
-export type RenderProps = {
+import TableNotice from 'app/components/tableNotice';
+
+type RenderProps = {
   /**
    * Are all rows on current page selected?
    */
@@ -20,6 +22,11 @@ export type RenderProps = {
    * Callback for toggling all rows on current page
    */
   onPageIdsToggle: (select: boolean) => void;
+  /**
+   * Ready to be rendered summary component showing how many items are selected,
+   * with buttons to select everything, cancel everything, etc...
+   */
+  tableNotice: React.ReactNode;
 } & Pick<State, 'selectedIds' | 'isEverythingSelected'>;
 
 type State = {
@@ -38,6 +45,14 @@ type Props = {
    * Array of ids on current page
    */
   pageIds: string[];
+  /**
+   * Number of all rows across all pages
+   */
+  allIdsCount: number;
+  /**
+   * Number of grid columns to stretch the selection summary (used in TableNotice)
+   */
+  summaryColumns: number;
   children: (props: RenderProps) => React.ReactNode;
 };
 
@@ -78,16 +93,30 @@ class BulkController extends React.Component<Props, State> {
   };
 
   render() {
-    const {pageIds, children} = this.props;
+    const {pageIds, children, summaryColumns, allIdsCount} = this.props;
     const {selectedIds, isEverythingSelected} = this.state;
 
-    const renderProps = {
+    const isPageSelected =
+      pageIds.length > 0 && pageIds.every(id => selectedIds.includes(id));
+
+    const renderProps: RenderProps = {
       selectedIds,
       isEverythingSelected,
-      isPageSelected: pageIds.length > 0 && pageIds.every(id => selectedIds.includes(id)),
+      isPageSelected,
       onIdToggle: this.handleIdToggle,
       onAllIdsToggle: this.handleAllIdsToggle,
       onPageIdsToggle: this.handlePageIdsToggle,
+      tableNotice: (
+        <TableNotice
+          allRowsCount={allIdsCount}
+          selectedRowsCount={selectedIds.length}
+          onCancelAllRows={() => this.handleAllIdsToggle(false)}
+          onSelectAllRows={() => this.handleAllIdsToggle(true)}
+          columnsCount={summaryColumns}
+          isPageSelected={isPageSelected}
+          isEverythingSelected={isEverythingSelected}
+        />
+      ),
     };
 
     return children(renderProps);
