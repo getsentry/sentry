@@ -255,7 +255,7 @@ class PerformanceLanding extends React.Component<Props, State> {
               </StyledPageHeader>
               {this.renderError()}
               {showOnboarding ? (
-                <Onboarding />
+                <Onboarding organization={organization} />
               ) : (
                 <div>
                   <StyledSearchBar
