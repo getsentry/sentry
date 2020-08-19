@@ -10,6 +10,7 @@ import AttachmentUrl from 'app/utils/attachmentUrl';
 import EventAttachmentActions from 'app/components/events/eventAttachmentActions';
 import {types} from 'app/views/organizationGroupDetails/groupEventAttachments/types';
 import space from 'app/styles/space';
+import Checkbox from 'app/components/checkbox';
 
 type Props = {
   orgSlug: string;
@@ -17,7 +18,8 @@ type Props = {
   groupId: string;
   attachment: EventAttachment;
   onDelete: (attachmentId: string) => void;
-  isDeleted: boolean;
+  isSelected: boolean;
+  onSelectToggle: (id: string) => void;
 };
 
 const GroupEventAttachmentsRow = ({
@@ -26,46 +28,54 @@ const GroupEventAttachmentsRow = ({
   groupId,
   attachment,
   onDelete,
-  isDeleted,
-}: Props) => (
-  <React.Fragment>
-    <NameColumn>
-      <Name>{attachment.name}</Name>
-      <Meta>
-        <DateTime date={attachment.dateCreated} /> &middot;{' '}
-        <Link
-          to={`/organizations/${orgSlug}/issues/${groupId}/events/${attachment.event_id}/`}
+  isSelected,
+  onSelectToggle,
+}: Props) => {
+  const toggleRow = () => onSelectToggle(attachment.id);
+
+  return (
+    <React.Fragment>
+      <Column onClick={toggleRow}>
+        <StyledCheckbox checked={isSelected} />
+      </Column>
+
+      <NameColumn onClick={toggleRow}>
+        <Name>{attachment.name}</Name>
+        <div>{attachment.id}</div>
+        <Meta>
+          <DateTime date={attachment.dateCreated} /> &middot;{' '}
+          <Link
+            to={`/organizations/${orgSlug}/issues/${groupId}/events/${attachment.event_id}/`}
+          >
+            {attachment.event_id}
+          </Link>
+        </Meta>
+      </NameColumn>
+
+      <Column onClick={toggleRow}>{types[attachment.type] || t('Other')}</Column>
+
+      <Column onClick={toggleRow}>
+        <FileSize bytes={attachment.size} />
+      </Column>
+
+      <ActionsColumn>
+        <AttachmentUrl
+          projectId={projectSlug}
+          eventId={attachment.event_id}
+          attachment={attachment}
         >
-          {attachment.event_id}
-        </Link>
-      </Meta>
-    </NameColumn>
-
-    <Column>{types[attachment.type] || t('Other')}</Column>
-
-    <Column>
-      <FileSize bytes={attachment.size} />
-    </Column>
-
-    <Column>
-      <AttachmentUrl
-        projectId={projectSlug}
-        eventId={attachment.event_id}
-        attachment={attachment}
-      >
-        {url =>
-          !isDeleted && (
+          {url => (
             <EventAttachmentActions
               url={url}
               onDelete={onDelete}
               attachmentId={attachment.id}
             />
-          )
-        }
-      </AttachmentUrl>
-    </Column>
-  </React.Fragment>
-);
+          )}
+        </AttachmentUrl>
+      </ActionsColumn>
+    </React.Fragment>
+  );
+};
 
 const Column = styled('div')`
   display: flex;
@@ -77,6 +87,14 @@ const NameColumn = styled(Column)`
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
+`;
+
+const ActionsColumn = styled(Column)`
+  justify-content: flex-end;
+`;
+
+const StyledCheckbox = styled(Checkbox)`
+  margin: 0 !important; /* override less files */
 `;
 
 const Name = styled('h5')`
