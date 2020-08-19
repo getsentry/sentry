@@ -65,7 +65,7 @@ class EventWaiter extends React.Component<Props, State> {
   pollHandler = async () => {
     const {api, organization, project, eventType, onIssueReceived} = this.props;
     let firstEvent = null;
-    let firstIssue = null;
+    let firstIssue: Group | boolean | null = null;
 
     try {
       const resp = await api.requestPromise(
