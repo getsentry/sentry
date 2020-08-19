@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-import six
-
 from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.models import (
     Project,
@@ -17,7 +15,7 @@ from .utils import ACTION_TYPE
 ME = "ME"
 
 
-def generate_action_payload(action_type, event, rules):
+def generate_action_payload(action_type, event, rules, integration):
     rule_ids = map(lambda x: x.id, rules)
     # we need nested data or else Teams won't handle the payload correctly
     return {
@@ -26,6 +24,7 @@ def generate_action_payload(action_type, event, rules):
             "groupId": event.group.id,
             "eventId": event.event_id,
             "rules": rule_ids,
+            "integrationId": integration.id,
         }
     }
 
@@ -47,7 +46,7 @@ def get_assignee_string(group):
     if actor.type == Team:
         return u"#{}".format(assigned_actor.slug)
     else:
-        return six.text_type(assigned_actor)
+        return assigned_actor.email
 
 
 def build_welcome_card(signed_params):
@@ -186,7 +185,7 @@ def build_group_footer(group, rules, project):
     return {"type": "ColumnSet", "columns": [image_column, text_column, date_column]}
 
 
-def build_group_actions(group, event, rules):
+def build_group_actions(group, event, rules, integration):
     status = group.get_status()
 
     # These targets are made so that the button will toggle its element
@@ -234,7 +233,7 @@ def build_group_actions(group, event, rules):
         resolve_action = {
             "type": "Action.Submit",
             "title": "Unresolve",
-            "data": generate_action_payload(ACTION_TYPE.UNRESOLVE, event, rules),
+            "data": generate_action_payload(ACTION_TYPE.UNRESOLVE, event, rules, integration),
         }
     else:
         resolve_action = {
@@ -247,7 +246,7 @@ def build_group_actions(group, event, rules):
         ignore_action = {
             "type": "Action.Submit",
             "title": "Stop Ignoring",
-            "data": generate_action_payload(ACTION_TYPE.UNRESOLVE, event, rules),
+            "data": generate_action_payload(ACTION_TYPE.UNRESOLVE, event, rules, integration),
         }
     else:
         ignore_action = {
@@ -260,7 +259,7 @@ def build_group_actions(group, event, rules):
         assign_action = {
             "type": "Action.Submit",
             "title": "Unassign",
-            "data": generate_action_payload(ACTION_TYPE.UNASSIGN, event, rules),
+            "data": generate_action_payload(ACTION_TYPE.UNASSIGN, event, rules, integration),
         }
     else:
         assign_text = "Assign"
@@ -292,7 +291,7 @@ def build_group_actions(group, event, rules):
     }
 
 
-def build_group_resolve_card(group, event, rules):
+def build_group_resolve_card(group, event, rules, integration):
     title_card = {
         "type": "TextBlock",
         "size": "Large",
@@ -322,7 +321,7 @@ def build_group_resolve_card(group, event, rules):
             {
                 "type": "Action.Submit",
                 "title": "Resolve",
-                "data": generate_action_payload(ACTION_TYPE.RESOLVE, event, rules),
+                "data": generate_action_payload(ACTION_TYPE.RESOLVE, event, rules, integration),
             }
         ],
     }
@@ -330,7 +329,7 @@ def build_group_resolve_card(group, event, rules):
     return [title_card, input_card, submit_card]
 
 
-def build_group_ignore_card(group, event, rules):
+def build_group_ignore_card(group, event, rules, integration):
     title_card = {
         "type": "TextBlock",
         "size": "Large",
@@ -363,7 +362,7 @@ def build_group_ignore_card(group, event, rules):
             {
                 "type": "Action.Submit",
                 "title": "Ignore",
-                "data": generate_action_payload(ACTION_TYPE.IGNORE, event, rules),
+                "data": generate_action_payload(ACTION_TYPE.IGNORE, event, rules, integration),
             }
         ],
     }
@@ -371,7 +370,7 @@ def build_group_ignore_card(group, event, rules):
     return [title_card, input_card, submit_card]
 
 
-def build_group_assign_card(group, event, rules):
+def build_group_assign_card(group, event, rules, integration):
     teams = [
         {"title": u"#{}".format(u.slug), "value": u"team:{}".format(u.id)}
         for u in group.project.teams.all()
@@ -403,7 +402,7 @@ def build_group_assign_card(group, event, rules):
             {
                 "type": "Action.Submit",
                 "title": "Assign",
-                "data": generate_action_payload(ACTION_TYPE.ASSIGN, event, rules),
+                "data": generate_action_payload(ACTION_TYPE.ASSIGN, event, rules, integration),
             }
         ],
     }
@@ -411,14 +410,14 @@ def build_group_assign_card(group, event, rules):
     return [title_card, input_card, submit_card]
 
 
-def build_group_action_cards(group, event, rules):
+def build_group_action_cards(group, event, rules, integration):
     status = group.get_status()
     action_cards = []
     if status != GroupStatus.RESOLVED:
-        action_cards += build_group_resolve_card(group, event, rules)
+        action_cards += build_group_resolve_card(group, event, rules, integration)
     if status != GroupStatus.IGNORED:
-        action_cards += build_group_ignore_card(group, event, rules)
-    action_cards += build_group_assign_card(group, event, rules)
+        action_cards += build_group_ignore_card(group, event, rules, integration)
+    action_cards += build_group_assign_card(group, event, rules, integration)
 
     return {"type": "ColumnSet", "columns": [{"type": "Column", "items": action_cards}]}
 
@@ -430,7 +429,7 @@ def build_assignee_note(group):
     return {"type": "TextBlock", "size": "Small", "text": "**Assigned to %s**" % (assignee)}
 
 
-def build_group_card(group, event, rules):
+def build_group_card(group, event, rules, integration):
     project = Project.objects.get_from_cache(id=group.project_id)
 
     title = build_group_title(group)
@@ -447,10 +446,10 @@ def build_group_card(group, event, rules):
     if assignee_note:
         body.append(assignee_note)
 
-    actions = build_group_actions(group, event, rules)
+    actions = build_group_actions(group, event, rules, integration)
     body.append(actions)
 
-    action_cards = build_group_action_cards(group, event, rules)
+    action_cards = build_group_action_cards(group, event, rules, integration)
     body.append(action_cards)
 
     return {"type": "AdaptiveCard", "body": body}
