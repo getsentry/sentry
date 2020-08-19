@@ -14,16 +14,22 @@ type Props = {
   version: string;
   orgSlug: string;
   deploys: Deploy[];
+  projectId: number;
 };
 
-const Deploys = ({version, orgSlug, deploys}: Props) => {
+const Deploys = ({version, orgSlug, projectId, deploys}: Props) => {
   return (
     <Wrapper>
       <SectionHeading>{t('Deploys')}</SectionHeading>
 
       {deploys.map(deploy => (
         <Row key={deploy.id}>
-          <StyledDeployBadge deploy={deploy} orgSlug={orgSlug} version={version} />
+          <StyledDeployBadge
+            deploy={deploy}
+            orgSlug={orgSlug}
+            version={version}
+            projectId={projectId}
+          />
           <TextOverflow>
             <TimeSince date={deploy.dateFinished} />
           </TextOverflow>
