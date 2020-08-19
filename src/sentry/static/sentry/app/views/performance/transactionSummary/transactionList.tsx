@@ -223,15 +223,16 @@ class TransactionTable extends React.PureComponent<Props> {
     const tableMeta = tableData?.meta;
     const columnOrder = eventView.getColumns();
     const generateSortLink = () => undefined;
+    const titles = [t('id'), t('user'), t('duration'), t('timestamp')];
 
-    const headerColumns = columnOrder.map((column, index) => (
-      <HeaderCell column={column} tableMeta={tableMeta} key={index}>
+    const headerColumns = titles.map((title, index) => (
+      <HeaderCell column={columnOrder[index]} tableMeta={tableMeta} key={index}>
         {({align}) => {
           return (
             <HeadCellContainer>
               <SortLink
                 align={align}
-                title={column.name}
+                title={title}
                 direction={undefined}
                 canSort={false}
                 generateSortLink={generateSortLink}

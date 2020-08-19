@@ -364,17 +364,23 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             "username": "foo",
         }
         self.store_event(data, project_id=project.id)
-
+        fields = {
+            "email": "user.email",
+            "id": "user.id",
+            "ip_address": "user.ip",
+            "username": "user.username",
+        }
         with self.feature(
             {"organizations:discover-basic": True, "organizations:global-views": True}
         ):
-            for value in data["user"].values():
+            for key, value in data["user"].items():
+                field = fields[key]
                 response = self.client.get(
                     self.url,
                     format="json",
                     data={
                         "field": ["project", "user"],
-                        "query": "user:{}".format(value),
+                        "query": "{}:{}".format(field, value),
                         "statsPeriod": "14d",
                     },
                 )
@@ -382,7 +388,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 assert response.status_code == 200, response.content
                 assert len(response.data["data"]) == 1
                 assert response.data["data"][0]["project"] == project.slug
-                assert response.data["data"][0]["user"] == data["user"]["email"]
+                assert response.data["data"][0]["user"] == "id:123"
 
     def test_has_user(self):
         self.login_as(user=self.user)
@@ -403,7 +409,9 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
                 assert response.status_code == 200, response.content
                 assert len(response.data["data"]) == 1
-                assert response.data["data"][0]["user"] == data["user"]["ip_address"]
+                assert response.data["data"][0]["user"] == "ip:{}".format(
+                    data["user"]["ip_address"]
+                )
 
     def test_has_issue(self):
         self.login_as(user=self.user)
@@ -448,14 +456,13 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         project = self.create_project()
         user_data = {"email": "foo@example.com", "id": "123", "username": "foo"}
 
-        # Load events with data that shouldn't match
-        for key in user_data:
-            data = load_data("transaction", timestamp=before_now(minutes=1))
-            data["transaction"] = "/transactions/{}".format(key)
-            event_data = user_data.copy()
-            event_data[key] = "undefined"
-            data["user"] = event_data
-            self.store_event(data, project_id=project.id)
+        # Load an event with data that shouldn't match
+        data = load_data("transaction", timestamp=before_now(minutes=1))
+        data["transaction"] = "/transactions/nomatch"
+        event_user = user_data.copy()
+        event_user["id"] = "undefined"
+        data["user"] = event_user
+        self.store_event(data, project_id=project.id)
 
         # Load a matching event
         data = load_data("transaction", timestamp=before_now(minutes=1))
@@ -471,15 +478,16 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 format="json",
                 data={
                     "field": ["project", "user"],
-                    "query": "!user:undefined",
+                    "query": '!user:"id:undefined"',
                     "statsPeriod": "14d",
                 },
             )
 
             assert response.status_code == 200, response.content
             assert len(response.data["data"]) == 1
-            assert response.data["data"][0]["user"] == user_data["email"]
+            assert response.data["data"][0]["user"] == "id:{}".format(user_data["id"])
             assert "user.email" not in response.data["data"][0]
+            assert "user.id" not in response.data["data"][0]
 
     def test_not_project_in_query(self):
         self.login_as(user=self.user)
@@ -1748,6 +1756,51 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             assert data[0]["count_id"] == 2
             assert data[0]["count_unique_project_id"] == 2
             assert data[0]["count_unique_project"] == 2
+
+    def test_user_display(self):
+        self.login_as(user=self.user)
+
+        project1 = self.create_project()
+        project2 = self.create_project()
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "transaction": "/example",
+                "message": "how to make fast",
+                "timestamp": self.two_min_ago,
+                "user": {"email": "cathy@example.com"},
+            },
+            project_id=project1.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "transaction": "/example",
+                "message": "how to make fast",
+                "timestamp": self.two_min_ago,
+                "user": {"username": "catherine"},
+            },
+            project_id=project2.id,
+        )
+
+        with self.feature(
+            {"organizations:discover-basic": True, "organizations:global-views": True}
+        ):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "field": ["event.type", "user.display"],
+                    "query": "user.display:cath*",
+                    "statsPeriod": "24h",
+                },
+            )
+
+            assert response.status_code == 200, response.content
+            data = response.data["data"]
+            assert len(data) == 2
+            result = set([r["user.display"] for r in data])
+            assert result == set(["catherine", "cathy@example.com"])
 
     def test_has_transaction_status(self):
         self.login_as(user=self.user)

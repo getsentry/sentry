@@ -54,6 +54,20 @@ describe('UserBadge', function() {
     expect(wrapper.find('StyledEmail').prop('children')).toBe(null);
   });
 
+  it('can coalesce using id', function() {
+    const idUser = TestStubs.User({
+      id: '99',
+      name: null,
+      email: null,
+      username: null,
+      ipAddress: null,
+    });
+    const wrapper = mountWithTheme(<UserBadge user={idUser} />);
+
+    expect(wrapper.find('StyledName').prop('children')).toBe(idUser.id);
+    expect(wrapper.find('StyledEmail').prop('children')).toBe(null);
+  });
+
   it('can hide email address', function() {
     const wrapper = mountWithTheme(<UserBadge user={user} hideEmail />);
 

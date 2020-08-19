@@ -34,7 +34,8 @@ const UserBadge = ({
         user.ipAddress ||
         // Because this can be used to render EventUser models, or User *interface*
         // objects from serialized Event models. we try both ipAddress and ip_address.
-        user.ip_address));
+        user.ip_address ||
+        user.id));
 
   return (
     <StyledUserBadge className={className}>
