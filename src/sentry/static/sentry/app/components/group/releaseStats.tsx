@@ -95,7 +95,7 @@ const GroupReleaseStats = ({
 
             <h6>
               <span>{t('Last seen')}</span>
-              {environments.length ? <small>({environmentLabel})</small> : null}
+              {environments.length && <small>({environmentLabel})</small>}
             </h6>
             <SeenInfo
               orgSlug={orgSlug}
