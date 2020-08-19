@@ -1,4 +1,5 @@
 import {browserHistory} from 'react-router';
+import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
@@ -7,10 +8,13 @@ import * as queryString from 'query-string';
 
 import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
+import space from 'app/styles/space';
 import GroupingActions from 'app/actions/groupingActions';
 import GroupingStore from 'app/stores/groupingStore';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import Switch from 'app/components/switch';
+import Tooltip from 'app/components/tooltip';
 
 import SimilarList from './similarList';
 
@@ -31,6 +35,7 @@ const GroupGroupingView = createReactClass({
       similarLinks: [],
       loading: true,
       error: false,
+      v2: false,
     };
   },
 
@@ -77,6 +82,7 @@ const GroupGroupingView = createReactClass({
     const queryParams = {
       ...this.props.location.query,
       limit: 50,
+      version: this.state.v2 ? '2' : '1',
     };
 
     return `/issues/${params.groupId}/${type}/?${queryString.stringify(queryParams)}`;
@@ -84,6 +90,10 @@ const GroupGroupingView = createReactClass({
 
   hasSimilarityFeature() {
     return new Set(this.props.project.features).has('similarity-view');
+  },
+
+  hasSimilarityV2Feature() {
+    return new Set(this.props.project.features).has('similarity-view-v2');
   },
 
   fetchData() {
@@ -98,11 +108,19 @@ const GroupGroupingView = createReactClass({
       reqs.push({
         endpoint: this.getEndpoint('similar'),
         dataKey: 'similar',
-        queryParams: this.props.location.query,
       });
     }
 
     GroupingActions.fetch(reqs);
+  },
+
+  toggleSimilarityVersion() {
+    this.setState(
+      {
+        v2: !this.state.v2,
+      },
+      this.fetchData
+    );
   },
 
   handleMerge() {
@@ -129,6 +147,7 @@ const GroupGroupingView = createReactClass({
 
   render() {
     const {orgId, groupId} = this.props.params;
+    const hasV2 = this.hasSimilarityV2Feature();
     const isLoading = this.state.loading;
     const isError = this.state.error && !isLoading;
     const isLoadedSuccessfully = !isError && !isLoading;
@@ -146,6 +165,26 @@ const GroupGroupingView = createReactClass({
             'This is an experimental feature. Data may not be immediately available while we process merges.'
           )}
         </div>
+
+        {hasV2 && (
+          <SwitchContainer>
+            💩
+            <Tooltip
+              title={
+                this.state.v2
+                  ? t('Using new algorithm, click to go back')
+                  : t('Using old algorithm, click to try new')
+              }
+            >
+              <Switch
+                size="lg"
+                isActive={this.state.v2}
+                toggle={this.toggleSimilarityVersion}
+              />
+            </Tooltip>
+            ✨
+          </SwitchContainer>
+        )}
 
         {isLoading && <LoadingIndicator />}
         {isError && (
@@ -171,3 +210,14 @@ const GroupGroupingView = createReactClass({
 });
 
 export default GroupGroupingView;
+
+const SwitchContainer = styled('div')`
+  text-align: center;
+  line-height: 0;
+  font-size: 24px;
+
+  > * {
+    vertical-align: middle;
+    margin: ${space(1)};
+  }
+`;
