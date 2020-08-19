@@ -157,7 +157,11 @@ class ProjectDocs extends React.Component<Props, State> {
           </Description>
           <Footer>
             {project && (
-              <FirstEventIndicator organization={organization} project={project} />
+              <FirstEventIndicator
+                organization={organization}
+                project={project}
+                eventType="error"
+              />
             )}
             <div>
               <Button
