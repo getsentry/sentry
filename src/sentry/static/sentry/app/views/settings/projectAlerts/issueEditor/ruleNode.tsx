@@ -112,7 +112,7 @@ class RuleNode extends React.Component<Props> {
   };
 
   getNumberField = (name: string, fieldConfig: FormField) => {
-    const {data, index, onPropertyChange} = this.props;
+    const {data, index, onPropertyChange, disabled} = this.props;
 
     return (
       <InlineInput
@@ -120,6 +120,7 @@ class RuleNode extends React.Component<Props> {
         name={name}
         value={(data && data[name]) ?? ''}
         placeholder={`${fieldConfig.placeholder}`}
+        disabled={disabled}
         onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
           onPropertyChange(index, name, e.target.value)
         }
