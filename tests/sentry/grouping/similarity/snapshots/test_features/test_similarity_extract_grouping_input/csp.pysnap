@@ -1,0 +1,28 @@
+---
+created: '2020-08-19T12:18:48.828692Z'
+creator: sentry
+source: tests/sentry/grouping/similarity/test_features.py
+---
+similarity:2020-07-23:message:character-5-shingle: " 'YYY"
+similarity:2020-07-23:message:character-5-shingle: " 'scr"
+similarity:2020-07-23:message:character-5-shingle: " from"
+similarity:2020-07-23:message:character-5-shingle: "' fro"
+similarity:2020-07-23:message:character-5-shingle: "'YYY'"
+similarity:2020-07-23:message:character-5-shingle: "'scri"
+similarity:2020-07-23:message:character-5-shingle: "Block"
+similarity:2020-07-23:message:character-5-shingle: "cked "
+similarity:2020-07-23:message:character-5-shingle: "cript"
+similarity:2020-07-23:message:character-5-shingle: "d 'sc"
+similarity:2020-07-23:message:character-5-shingle: "ed 's"
+similarity:2020-07-23:message:character-5-shingle: "from "
+similarity:2020-07-23:message:character-5-shingle: "ipt' "
+similarity:2020-07-23:message:character-5-shingle: "ked '"
+similarity:2020-07-23:message:character-5-shingle: "locke"
+similarity:2020-07-23:message:character-5-shingle: "m 'YY"
+similarity:2020-07-23:message:character-5-shingle: "ocked"
+similarity:2020-07-23:message:character-5-shingle: "om 'Y"
+similarity:2020-07-23:message:character-5-shingle: "pt' f"
+similarity:2020-07-23:message:character-5-shingle: "ript'"
+similarity:2020-07-23:message:character-5-shingle: "rom '"
+similarity:2020-07-23:message:character-5-shingle: "scrip"
+similarity:2020-07-23:message:character-5-shingle: "t' fr"
