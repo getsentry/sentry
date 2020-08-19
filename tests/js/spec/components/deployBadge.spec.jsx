@@ -13,17 +13,17 @@ const deploy = {
   id: '6348842',
 };
 
-const projectId = 1;
-
 describe('DeployBadge', function() {
   it('renders', function() {
-    const wrapper = mountWithTheme(<DeployBadge deploy={deploy} projectId={projectId} />);
+    const wrapper = mountWithTheme(<DeployBadge deploy={deploy} />);
 
     expect(wrapper.find('Badge').text()).toEqual('production');
     expect(wrapper.find('Icon').length).toEqual(0);
   });
 
   it('renders with icon and link', function() {
+    const projectId = 1;
+
     const wrapper = mountWithTheme(
       <DeployBadge
         deploy={deploy}
