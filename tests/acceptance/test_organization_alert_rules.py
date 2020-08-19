@@ -23,7 +23,7 @@ class OrganizationAlertRulesListTest(AcceptanceTestCase, SnubaTestCase):
             self.browser.snapshot("alert rules - empty state")
 
     def test_alert_rules_list(self):
-        self.create_alert_rule()
+        self.create_alert_rule(name="My Alert Rule")
 
         with self.feature(FEATURE_NAME):
             self.browser.get(self.path)
