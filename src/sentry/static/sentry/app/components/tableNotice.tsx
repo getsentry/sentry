@@ -85,7 +85,10 @@ function TableNotice({
   );
 }
 
-const Wrapper = styled(Alert)<{columnsCount: number}>`
+type WrapperProps = {columnsCount: number} & React.ComponentProps<typeof Alert>;
+const Wrapper = styled(({columnsCount: _columnsCount, ...props}: WrapperProps) => (
+  <Alert {...props} />
+))`
   grid-column: span ${p => p.columnsCount};
   border-radius: 0;
   margin-bottom: 0;
