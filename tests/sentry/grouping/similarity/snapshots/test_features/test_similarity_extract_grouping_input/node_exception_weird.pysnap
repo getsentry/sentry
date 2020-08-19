@@ -1,0 +1,16 @@
+---
+created: '2020-08-11T11:59:10.591952Z'
+creator: sentry
+source: tests/sentry/grouping/similarity/test_features.py
+---
+similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","* @returns Scope, the new cloned scope"],["function","invokeClient"],["module","hub"]],[["context-line","promisedEvent"],["function","captureException"],["module","baseclient.ts"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","*/"],["function","withScope"],["module","hub"]],[["module","onunhandledrejection.ts"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","if (maxBreadcrumbs <= 0) {"],["function","captureException"],["module","hub.ts"]],[["context-line","* @returns Scope, the new cloned scope"],["function","invokeClient"],["module","hub"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","promisedEvent"],["function","captureException"],["module","baseclient.ts"]],[["function","eventFromException"],["module","backend.ts"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","return fn.apply(this, arguments);"],["function","mockConstructor [as captureException]"],["module","jest-mock.build:index"]],[["context-line","})();"],["module","jest-mock.build:index"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","return original.apply(this, arguments);"],["module","jest-mock.build:index"]],[["context-line","if (maxBreadcrumbs <= 0) {"],["function","captureException"],["module","hub.ts"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","return specificMockImpl.apply(this, arguments);"],["function","finalReturnValue"],["module","jest-mock.build:index"]],[["context-line","return original.apply(this, arguments);"],["module","jest-mock.build:index"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","})();"],["module","jest-mock.build:index"]],[["context-line","return specificMockImpl.apply(this, arguments);"],["function","finalReturnValue"],["module","jest-mock.build:index"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["module","onunhandledrejection.ts"]],[["context-line","if (maxBreadcrumbs <= 0) {"],["function","captureException"],["module","hub.ts"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["module","onunhandledrejection.ts"]],[["context-line","return fn.apply(this, arguments);"],["function","mockConstructor [as captureException]"],["module","jest-mock.build:index"]]]
+similarity:2020-07-23:type:ident-shingle: "Error"

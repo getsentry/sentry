@@ -1,0 +1,26 @@
+---
+created: '2020-07-23T17:38:23.171441Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (stacktrace of system takes precedence)
+      stacktrace
+        frame (non app frame)
+          module*
+            "foo.bar.Baz"
+          function (ignored lambda function)
+            "lambda$work$1"
+--------------------------------------------------------------------------
+system:
+  hash: "be7f1b8b4014de623c533a8218dba5bd"
+  component:
+    system*
+      stacktrace*
+        frame*
+          module*
+            "foo.bar.Baz"
+          function (ignored lambda function)
+            "lambda$work$1"

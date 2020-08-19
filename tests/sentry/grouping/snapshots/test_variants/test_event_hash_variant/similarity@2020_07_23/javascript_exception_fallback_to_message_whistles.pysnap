@@ -1,0 +1,24 @@
+---
+created: '2020-07-23T17:38:23.555865Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because hash matches system variant)
+        type*
+          "Error"
+        value* (stripped common values)
+          "<date>: <email> logged in (error <int>) time spent <float> --- correlation id <uuid>, checksum <sha1> (md5 <md5>); payload timestamp <date> (submitted from <ip> via <ip> via <ip>) at offset <hex>"
+--------------------------------------------------------------------------
+system:
+  hash: "b8e2a347e75266ca7bb565e2b3c0722e"
+  component:
+    system*
+      exception*
+        type*
+          "Error"
+        value* (stripped common values)
+          "<date>: <email> logged in (error <int>) time spent <float> --- correlation id <uuid>, checksum <sha1> (md5 <md5>); payload timestamp <date> (submitted from <ip> via <ip> via <ip>) at offset <hex>"

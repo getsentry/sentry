@@ -1,0 +1,16 @@
+---
+created: '2020-07-23T16:57:27.199209Z'
+creator: sentry
+source: tests/sentry/grouping/similarity/test_features.py
+---
+similarity:2020-07-23:message:character-5-shingle: " ther"
+similarity:2020-07-23:message:character-5-shingle: "Hello"
+similarity:2020-07-23:message:character-5-shingle: "e %s!"
+similarity:2020-07-23:message:character-5-shingle: "ello "
+similarity:2020-07-23:message:character-5-shingle: "ere %"
+similarity:2020-07-23:message:character-5-shingle: "here "
+similarity:2020-07-23:message:character-5-shingle: "llo t"
+similarity:2020-07-23:message:character-5-shingle: "lo th"
+similarity:2020-07-23:message:character-5-shingle: "o the"
+similarity:2020-07-23:message:character-5-shingle: "re %s"
+similarity:2020-07-23:message:character-5-shingle: "there"

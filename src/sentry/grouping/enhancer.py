@@ -346,7 +346,7 @@ class Enhancements(object):
 
         return stacktrace_state
 
-    def assemble_stacktrace_component(self, components, frames, platform):
+    def assemble_stacktrace_component(self, components, frames, platform, **kw):
         """This assembles a stacktrace grouping component out of the given
         frame components and source frames.  Internally this invokes the
         `update_frame_components_contributions` method but also handles cases
@@ -369,7 +369,7 @@ class Enhancements(object):
                 contributes = False
 
         return GroupingComponent(
-            id="stacktrace", values=components, hint=hint, contributes=contributes
+            id="stacktrace", values=components, hint=hint, contributes=contributes, **kw
         )
 
     def as_dict(self, with_rules=False):
