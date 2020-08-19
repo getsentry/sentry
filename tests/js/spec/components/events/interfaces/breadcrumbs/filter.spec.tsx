@@ -107,7 +107,7 @@ describe('Filter', () => {
         .at(1)
         .find('ListItem')
     ).toHaveLength(2);
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
   it('Without Options', () => {

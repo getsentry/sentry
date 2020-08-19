@@ -76,7 +76,13 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
 
     class Meta:
         model = AlertRuleTriggerAction
-        fields = ["id", "type", "target_type", "target_identifier", "integration"]
+        fields = [
+            "id",
+            "type",
+            "target_type",
+            "target_identifier",
+            "integration",
+        ]
         extra_kwargs = {
             "target_identifier": {"required": True},
             "target_display": {"required": False},
@@ -443,7 +449,9 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             with transaction.atomic():
                 triggers = validated_data.pop("triggers")
                 alert_rule = create_alert_rule(
-                    organization=self.context["organization"], **validated_data
+                    user=self.context.get("user", None),
+                    organization=self.context["organization"],
+                    **validated_data
                 )
                 self._handle_triggers(alert_rule, triggers)
                 return alert_rule

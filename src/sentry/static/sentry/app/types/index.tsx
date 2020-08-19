@@ -45,6 +45,11 @@ declare global {
      */
     SentryRenderApp: () => void;
     sentryEmbedCallback?: ((embed: any) => void) | null;
+    /**
+     * Set to true if adblock could be installed.
+     * See sentry/js/ads.js for how this global is disabled.
+     */
+    adblockSuspected?: boolean;
   }
 }
 
@@ -169,6 +174,7 @@ export type Project = {
   relayPiiConfig: string;
   builtinSymbolSources?: string[];
   stats?: Array<[number, number]>;
+  latestDeploys: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
 } & AvatarProject;
 
 export type MinimalProject = Pick<Project, 'id' | 'slug'>;
@@ -392,10 +398,31 @@ export type Environment = {
   id: string;
 };
 
-// TODO(ts): This type is incomplete
-export type SavedSearch = {
-  query?: string;
+export type RecentSearch = {
+  id: string;
+  organizationId: string;
+  type: SavedSearchType;
+  query: string;
+  lastSeen: string;
+  dateCreated: string;
 };
+
+// XXX: Deprecated Sentry 9 attributes are not included here.
+export type SavedSearch = {
+  id: string;
+  type: SavedSearchType;
+  name: string;
+  query: string;
+  isGlobal: boolean;
+  isPinned: boolean;
+  isOrgCustom: boolean;
+  dateCreated: string;
+};
+
+export enum SavedSearchType {
+  ISSUE = 0,
+  EVENT = 1,
+}
 
 export type PluginNoProject = {
   id: string;
@@ -964,6 +991,7 @@ export type Deploy = {
   environment: string;
   dateStarted: string;
   dateFinished: string;
+  version: string;
 };
 
 export type Commit = {
@@ -999,7 +1027,7 @@ export type SentryAppComponent = {
   schema: SentryAppSchemaStacktraceLink;
   sentryApp: {
     uuid: string;
-    slug: 'clickup' | 'clubhouse' | 'rookout';
+    slug: 'clickup' | 'clubhouse' | 'rookout' | 'teamwork' | 'linear';
     name: string;
   };
 };

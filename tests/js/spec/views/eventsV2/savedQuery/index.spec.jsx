@@ -302,16 +302,31 @@ describe('EventsV2 > SaveQueryButtonGroup', function() {
     });
   });
   describe('create alert from discover', () => {
-    it('renders create alert when org has create-from-discover', () => {
+    it('renders create alert button when metrics alerts is enabled', () => {
+      const metricAlertOrg = {
+        ...organization,
+        features: ['incidents'],
+      };
       const wrapper = generateWrappedComponent(
         location,
-        {...organization, features: ['create-from-discover']},
+        metricAlertOrg,
         errorsViewModified,
         savedQuery
       );
       const buttonCreateAlert = wrapper.find(SELECTOR_BUTTON_CREATE_ALERT);
 
       expect(buttonCreateAlert.exists()).toBe(true);
+    });
+    it('does not render create alert button without metric alerts', () => {
+      const wrapper = generateWrappedComponent(
+        location,
+        organization,
+        errorsViewModified,
+        savedQuery
+      );
+      const buttonCreateAlert = wrapper.find(SELECTOR_BUTTON_CREATE_ALERT);
+
+      expect(buttonCreateAlert.exists()).toBe(false);
     });
   });
 });

@@ -227,7 +227,8 @@ def find_histogram_buckets(field, params, conditions):
 
 def zerofill_histogram(results, column_meta, orderby, sentry_function_alias, snuba_function_alias):
     parts = snuba_function_alias.split("_")
-    if len(parts) < 2:
+    # the histogram alias looks like `histogram_column_numbuckets_bucketsize_bucketoffest`
+    if len(parts) < 5 or parts[0] != "histogram":
         raise Exception(u"{} is not a valid histogram alias".format(snuba_function_alias))
 
     bucket_offset, bucket_size, num_buckets = int(parts[-1]), int(parts[-2]), int(parts[-3])
@@ -393,54 +394,6 @@ def transform_results(result, translated_columns, snuba_filter, selected_columns
     return result
 
 
-# TODO(evanh) This is only here for backwards compatibilty with old queries using these deprecated
-# aliases. Once we migrate the queries these can go away.
-OLD_FUNCTIONS_TO_NEW = {
-    "p75": "p75()",
-    "p95": "p95()",
-    "p99": "p99()",
-    "last_seen": "last_seen()",
-    "latest_event": "latest_event()",
-    "apdex": "apdex(300)",
-    "impact": "impact(300)",
-    "rpm": "epm()",
-    "rps": "eps()",
-}
-
-
-def transform_deprecated_functions_in_columns(columns):
-    new_list = []
-    translations = {}
-    for column in columns:
-        if column in OLD_FUNCTIONS_TO_NEW:
-            new_column = OLD_FUNCTIONS_TO_NEW[column]
-            translations[get_function_alias(new_column)] = column
-            new_list.append(new_column)
-        elif column.replace("()", "") in OLD_FUNCTIONS_TO_NEW:
-            new_column = OLD_FUNCTIONS_TO_NEW[column.replace("()", "")]
-            translations[get_function_alias(new_column)] = column.replace("()", "")
-            new_list.append(new_column)
-        else:
-            new_list.append(column)
-
-    return new_list, translations
-
-
-def transform_deprecated_functions_in_query(query):
-    if query is None:
-        return query
-
-    for old_function in OLD_FUNCTIONS_TO_NEW:
-        if old_function + "()" in query:
-            replacement = OLD_FUNCTIONS_TO_NEW[old_function]
-            query = query.replace(old_function + "()", replacement)
-        elif old_function + ":" in query:
-            replacement = OLD_FUNCTIONS_TO_NEW[old_function]
-            query = query.replace(old_function, replacement)
-
-    return query
-
-
 def query(
     selected_columns,
     query,
@@ -479,17 +432,14 @@ def query(
     """
     if not selected_columns:
         raise InvalidSearchQuery("No columns selected")
+    else:
+        # We clobber this value throughout this code, so copy the value
+        selected_columns = selected_columns[:]
 
     with sentry_sdk.start_span(
         op="discover.discover", description="query.filter_transform"
     ) as span:
         span.set_data("query", query)
-        # TODO(evanh): These can be removed once we migrate the frontend / saved queries
-        # to use the new function values
-        selected_columns, function_translations = transform_deprecated_functions_in_columns(
-            selected_columns
-        )
-        query = transform_deprecated_functions_in_query(query)
 
         snuba_filter = get_filter(query, params)
         if not use_aggregate_conditions:
@@ -499,6 +449,7 @@ def query(
     # Do that here, and format the bucket number in to the columns before passing it through
     # to event search.
     idx = 0
+    function_translations = {}
     for col in selected_columns:
         if col.startswith("histogram("):
             with sentry_sdk.start_span(
@@ -507,31 +458,28 @@ def query(
                 span.set_data("histogram", col)
                 histogram_column = find_histogram_buckets(col, params, snuba_filter.conditions)
                 selected_columns[idx] = histogram_column
-                function_translations[get_function_alias(histogram_column)] = get_function_alias(
-                    col
-                )
+                snuba_name = get_function_alias(histogram_column)
+                sentry_name = get_function_alias(col)
+                function_translations[snuba_name] = sentry_name
+                # Since we're completely renaming the histogram function, we need to also check if we are
+                # ordering by the histogram values, and change that.
+                if orderby is not None:
+                    orderby = list(orderby) if isinstance(orderby, (list, tuple)) else [orderby]
+                    for i, ordering in enumerate(orderby):
+                        if sentry_name == ordering.lstrip("-"):
+                            ordering = "{}{}".format(
+                                "-" if ordering.startswith("-") else "", snuba_name
+                            )
+                            orderby[i] = ordering
 
             break
 
         idx += 1
 
     with sentry_sdk.start_span(op="discover.discover", description="query.field_translations"):
-        # Check to see if we are ordering by any functions and convert the orderby to be the correct alias.
-        if orderby:
-            orderby = orderby if isinstance(orderby, (list, tuple)) else [orderby]
-            new_orderby = []
-            for ordering in orderby:
-                is_reversed = ordering.startswith("-")
-                ordering = ordering.lstrip("-")
-                for snuba_name, sentry_name in six.iteritems(function_translations):
-                    if sentry_name == ordering:
-                        ordering = snuba_name
-                        break
-
-                ordering = "{}{}".format("-" if is_reversed else "", ordering)
-                new_orderby.append(ordering)
-
-            snuba_filter.orderby = new_orderby
+        if orderby is not None:
+            orderby = list(orderby) if isinstance(orderby, (list, tuple)) else [orderby]
+            snuba_filter.orderby = [get_function_alias(o) for o in orderby]
 
         snuba_filter.update_with(
             resolve_field_list(selected_columns, snuba_filter, auto_fields=auto_fields)
@@ -658,11 +606,6 @@ def key_transaction_query(selected_columns, user_query, params, orderby, referre
 
 
 def get_timeseries_snuba_filter(selected_columns, query, params, rollup, reference_event=None):
-    # TODO(evanh): These can be removed once we migrate the frontend / saved queries
-    # to use the new function values
-    selected_columns, _ = transform_deprecated_functions_in_columns(selected_columns)
-    query = transform_deprecated_functions_in_query(query)
-
     snuba_filter = get_filter(query, params)
     if not snuba_filter.start and not snuba_filter.end:
         raise InvalidSearchQuery("Cannot get timeseries result without a start and end.")
@@ -989,10 +932,6 @@ def get_facets(query, params, limit=10, referrer=None):
         op="discover.discover", description="facets.filter_transform"
     ) as span:
         span.set_data("query", query)
-        # TODO(evanh): This can be removed once we migrate the frontend / saved queries
-        # to use the new function values
-        query = transform_deprecated_functions_in_query(query)
-
         snuba_filter = get_filter(query, params)
 
         # Resolve the public aliases into the discover dataset names.

@@ -32,27 +32,24 @@ describe('ProjectCard', function() {
   });
 
   it('renders', function() {
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
   it('renders latest 2 deploys', function() {
-    const latestDeploys = [
-      {
-        environment: 'beta',
+    const latestDeploys = {
+      beta: {
         dateFinished: '2018-05-10T20:56:40.092Z',
         version: '123456',
       },
-      {
-        environment: 'staging',
+      staging: {
         dateFinished: '2018-05-08T20:56:40.092Z',
         version: '789789',
       },
-      {
-        environment: 'production',
+      production: {
         dateFinished: '2018-05-09T20:56:40.092Z',
         version: '123123',
       },
-    ];
+    };
 
     wrapper = mountWithTheme(
       <ProjectCard

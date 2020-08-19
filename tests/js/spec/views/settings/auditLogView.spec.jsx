@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {shallow, mountWithTheme} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
 import OrganizationAuditLog from 'app/views/settings/organizationAuditLog';
@@ -20,7 +20,7 @@ describe('OrganizationAuditLog', function() {
   });
 
   it('renders', function(done) {
-    const wrapper = shallow(
+    const wrapper = mountWithTheme(
       <OrganizationAuditLog location={{query: ''}} params={{orgId: org.slug}} />,
       TestStubs.routerContext()
     );
@@ -28,7 +28,7 @@ describe('OrganizationAuditLog', function() {
     wrapper.update();
     setTimeout(() => {
       wrapper.update();
-      expect(wrapper).toMatchSnapshot();
+      expect(wrapper).toSnapshot();
       done();
     });
   });

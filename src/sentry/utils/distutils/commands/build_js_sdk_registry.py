@@ -2,10 +2,13 @@
 # process.  Thus we do not want to import non stdlib things here.
 from __future__ import absolute_import
 
+# Import the stdlib json instead of sentry.utils.json, since this command is
+# run in setup.py
+import json  # NOQA
+
 import io
 import os
 import sys
-import json
 from distutils import log
 
 import sentry

@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {mountWithTheme, shallow} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {selectByValue} from 'sentry-test/select';
 
 import {Form, SelectField} from 'app/components/forms';
@@ -19,11 +19,11 @@ describe('SelectField', function() {
           value="a"
         />
       );
-      expect(wrapper).toMatchSnapshot();
+      expect(wrapper).toSnapshot();
     });
 
     it('renders with flat choices', function() {
-      const wrapper = shallow(
+      const wrapper = mountWithTheme(
         <SelectField
           deprecatedSelectControl
           choices={['a', 'b', 'c']}
@@ -40,11 +40,11 @@ describe('SelectField', function() {
           },
         }
       );
-      expect(wrapper).toMatchSnapshot();
+      expect(wrapper).toSnapshot();
     });
 
     it('renders with paired choices', function() {
-      const wrapper = shallow(
+      const wrapper = mountWithTheme(
         <SelectField
           deprecatedSelectControl
           choices={[
@@ -65,7 +65,7 @@ describe('SelectField', function() {
           },
         }
       );
-      expect(wrapper).toMatchSnapshot();
+      expect(wrapper).toSnapshot();
     });
 
     it('can change value and submit', function() {

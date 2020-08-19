@@ -14,6 +14,8 @@ from sentry.api.event_search import get_filter, resolve_field
 from sentry.incidents import tasks
 from sentry.incidents.models import (
     AlertRule,
+    AlertRuleActivity,
+    AlertRuleActivityType,
     AlertRuleExcludedProjects,
     AlertRuleStatus,
     AlertRuleTrigger,
@@ -33,7 +35,7 @@ from sentry.incidents.models import (
     TimeSeriesSnapshot,
     TriggerStatus,
 )
-from sentry.models import Integration, Project
+from sentry.models import Integration, Project, PagerDutyService
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QueryDatasets
 from sentry.snuba.subscriptions import (
@@ -557,6 +559,7 @@ def create_alert_rule(
     include_all_projects=False,
     excluded_projects=None,
     dataset=QueryDatasets.EVENTS,
+    user=None,
 ):
     """
     Creates an alert rule for an organization.
@@ -619,10 +622,14 @@ def create_alert_rule(
 
         subscribe_projects_to_alert_rule(alert_rule, projects)
 
+        AlertRuleActivity.objects.create(
+            alert_rule=alert_rule, user=user, type=AlertRuleActivityType.CREATED.value
+        )
+
     return alert_rule
 
 
-def snapshot_alert_rule(alert_rule):
+def snapshot_alert_rule(alert_rule, user=None):
     # Creates an archived alert_rule using the same properties as the passed rule
     # It will also resolve any incidents attached to this rule.
     with transaction.atomic():
@@ -636,6 +643,12 @@ def snapshot_alert_rule(alert_rule):
         alert_rule_snapshot.status = AlertRuleStatus.SNAPSHOT.value
         alert_rule_snapshot.snuba_query = snuba_query_snapshot
         alert_rule_snapshot.save()
+        AlertRuleActivity.objects.create(
+            alert_rule=alert_rule_snapshot,
+            previous_alert_rule=alert_rule,
+            user=user,
+            type=AlertRuleActivityType.SNAPSHOT.value,
+        )
 
         incidents.update(alert_rule=alert_rule_snapshot)
 
@@ -669,6 +682,7 @@ def update_alert_rule(
     resolve_threshold=NOT_SET,
     include_all_projects=None,
     excluded_projects=None,
+    user=None,
 ):
     """
     Updates an alert rule.
@@ -725,8 +739,11 @@ def update_alert_rule(
     with transaction.atomic():
         incidents = Incident.objects.filter(alert_rule=alert_rule).exists()
         if incidents:
-            snapshot_alert_rule(alert_rule)
+            snapshot_alert_rule(alert_rule, user)
         alert_rule.update(**updated_fields)
+        AlertRuleActivity.objects.create(
+            alert_rule=alert_rule, user=user, type=AlertRuleActivityType.UPDATED.value
+        )
 
         if updated_query_fields or environment != alert_rule.snuba_query.environment:
             snuba_query = alert_rule.snuba_query
@@ -835,7 +852,7 @@ def disable_alert_rule(alert_rule):
         bulk_disable_snuba_subscriptions(alert_rule.snuba_query.subscriptions.all())
 
 
-def delete_alert_rule(alert_rule):
+def delete_alert_rule(alert_rule, user=None):
     """
     Marks an alert rule as deleted and fires off a task to actually delete it.
     :param alert_rule:
@@ -848,6 +865,9 @@ def delete_alert_rule(alert_rule):
         bulk_delete_snuba_subscriptions(list(alert_rule.snuba_query.subscriptions.all()))
         if incidents:
             alert_rule.update(status=AlertRuleStatus.SNAPSHOT.value)
+            AlertRuleActivity.objects.create(
+                alert_rule=alert_rule, user=user, type=AlertRuleActivityType.DELETED.value,
+            )
         else:
             alert_rule.delete()
 
@@ -1039,13 +1059,9 @@ def create_alert_rule_trigger_action(
         if target_type != AlertRuleTriggerAction.TargetType.SPECIFIC:
             raise InvalidTriggerActionError("Must specify specific target type")
 
-        channel_id = get_alert_rule_trigger_action_integration_object_id(
-            type.value, trigger.alert_rule.organization, integration.id, target_identifier
+        target_identifier, target_display = get_target_identifier_display_for_integration(
+            type.value, target_identifier, trigger.alert_rule.organization, integration.id
         )
-
-        # Use the channel name for display
-        target_display = target_identifier
-        target_identifier = channel_id
 
     return AlertRuleTriggerAction.objects.create(
         alert_rule_trigger=trigger,
@@ -1083,29 +1099,39 @@ def update_alert_rule_trigger_action(
         if type in AlertRuleTriggerAction.INTEGRATION_TYPES:
             integration = updated_fields.get("integration", trigger_action.integration)
             organization = trigger_action.alert_rule_trigger.alert_rule.organization
-            channel_id = get_alert_rule_trigger_action_integration_object_id(
-                type, organization, integration.id, target_identifier,
-            )
-            # Use the target identifier for display
-            updated_fields["target_display"] = target_identifier
-            updated_fields["target_identifier"] = channel_id
-        else:
-            updated_fields["target_identifier"] = target_identifier
 
+            target_identifier, target_display = get_target_identifier_display_for_integration(
+                type, target_identifier, organization, integration.id,
+            )
+            updated_fields["target_display"] = target_display
+        updated_fields["target_identifier"] = target_identifier
     trigger_action.update(**updated_fields)
     return trigger_action
 
 
-def get_alert_rule_trigger_action_integration_object_id(type, *args, **kwargs):
+def get_target_identifier_display_for_integration(type, target_value, *args, **kwargs):
+    # target_value is the Slack username or channel name
     if type == AlertRuleTriggerAction.Type.SLACK.value:
-        return get_alert_rule_trigger_action_slack_channel_id(*args, **kwargs)
+        target_identifier = get_alert_rule_trigger_action_slack_channel_id(
+            target_value, *args, **kwargs
+        )
+    # target_value is the MSTeams username or channel name
     elif type == AlertRuleTriggerAction.Type.MSTEAMS.value:
-        return get_alert_rule_trigger_action_msteams_channel_id(*args, **kwargs)
+        target_identifier = get_alert_rule_trigger_action_msteams_channel_id(
+            target_value, *args, **kwargs
+        )
+    # target_value is the ID of the PagerDuty service
+    elif type == AlertRuleTriggerAction.Type.PAGERDUTY.value:
+        target_identifier, target_value = get_alert_rule_trigger_action_pagerduty_service(
+            target_value, *args, **kwargs
+        )
     else:
         raise Exception("Not implemented")
 
+    return target_identifier, target_value
 
-def get_alert_rule_trigger_action_slack_channel_id(organization, integration_id, name):
+
+def get_alert_rule_trigger_action_slack_channel_id(name, organization, integration_id):
     from sentry.integrations.slack.utils import get_channel_id
 
     try:
@@ -1133,7 +1159,7 @@ def get_alert_rule_trigger_action_slack_channel_id(organization, integration_id,
     return channel_id
 
 
-def get_alert_rule_trigger_action_msteams_channel_id(organization, integration_id, name):
+def get_alert_rule_trigger_action_msteams_channel_id(name, organization, integration_id):
     from sentry.integrations.msteams.utils import get_channel_id
 
     channel_id = get_channel_id(organization, integration_id, name)
@@ -1143,6 +1169,15 @@ def get_alert_rule_trigger_action_msteams_channel_id(organization, integration_i
         raise InvalidTriggerActionError("Could not find channel %s." % name)
 
     return channel_id
+
+
+def get_alert_rule_trigger_action_pagerduty_service(target_value, organization, integration_id):
+    try:
+        service = PagerDutyService.objects.get(id=target_value)
+    except PagerDutyService.DoesNotExist:
+        raise InvalidTriggerActionError("No PagerDuty service found.")
+
+    return (service.id, service.service_name)
 
 
 def delete_alert_rule_trigger_action(trigger_action):

@@ -10,10 +10,10 @@ import withApi from 'app/utils/withApi';
 import Button from 'app/components/button';
 import DropdownButton from 'app/components/dropdownButton';
 import DropdownControl from 'app/components/dropdownControl';
+import Feature from 'app/components/acl/feature';
 import Input from 'app/components/forms/input';
 import space from 'app/styles/space';
 import {IconBookmark, IconDelete} from 'app/icons';
-import Feature from 'app/components/acl/feature';
 import EventView from 'app/utils/discover/eventView';
 import withProjects from 'app/utils/withProjects';
 import {getDiscoverLandingUrl} from 'app/utils/discover/urls';
@@ -311,24 +311,25 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     const {eventView, organization, projects, onIncompatibleAlertQuery} = this.props;
 
     return (
-      <Feature features={['create-from-discover']} organization={organization}>
-        <CreateAlertButton
-          eventView={eventView}
-          organization={organization}
-          projects={projects}
-          onIncompatibleQuery={onIncompatibleAlertQuery}
-          onSuccess={this.handleCreateAlertSuccess}
-          referrer="discover"
-          data-test-id="discover2-create-from-discover"
-        />
-      </Feature>
+      <CreateAlertButton
+        eventView={eventView}
+        organization={organization}
+        projects={projects}
+        onIncompatibleQuery={onIncompatibleAlertQuery}
+        onSuccess={this.handleCreateAlertSuccess}
+        referrer="discover"
+        data-test-id="discover2-create-from-discover"
+      />
     );
   }
 
   render() {
+    const {organization} = this.props;
     return (
       <ButtonGroup>
-        {this.renderButtonCreateAlert()}
+        <Feature organization={organization} features={['incidents']}>
+          {({hasFeature}) => hasFeature && this.renderButtonCreateAlert()}
+        </Feature>
         {this.renderButtonDelete()}
         {this.renderButtonSaveAs()}
         {this.renderButtonUpdate()}

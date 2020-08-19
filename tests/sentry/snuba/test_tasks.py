@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import abc
-import json
 from uuid import uuid4
 
 import responses
@@ -16,6 +15,7 @@ from sentry.snuba.tasks import (
     update_subscription_in_snuba,
     delete_subscription_from_snuba,
 )
+from sentry.utils import json
 from sentry.testutils import TestCase
 
 

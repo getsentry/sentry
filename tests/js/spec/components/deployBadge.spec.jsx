@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {shallow} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import DeployBadge from 'app/components/deployBadge';
 
@@ -15,14 +15,14 @@ const deploy = {
 
 describe('DeployBadge', function() {
   it('renders', function() {
-    const wrapper = shallow(<DeployBadge deploy={deploy} />);
+    const wrapper = mountWithTheme(<DeployBadge deploy={deploy} />);
 
     expect(wrapper.find('Badge').text()).toEqual('production');
     expect(wrapper.find('Icon').length).toEqual(0);
   });
 
   it('renders with icon and link', function() {
-    const wrapper = shallow(
+    const wrapper = mountWithTheme(
       <DeployBadge deploy={deploy} orgSlug="sentry" version="1.2.3" />
     );
 

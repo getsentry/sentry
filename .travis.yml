@@ -83,7 +83,7 @@ start_snuba: &start_snuba |-
     --name sentry_clickhouse \
     -d --network host \
     --ulimit nofile=262144:262144 \
-    yandex/clickhouse-server:19.11 \
+    yandex/clickhouse-server:20.3.9.70 \
 
   docker run \
     --name sentry_snuba \
@@ -92,6 +92,8 @@ start_snuba: &start_snuba |-
     -e CLICKHOUSE_HOST=127.0.0.1 \
     -e CLICKHOUSE_PORT=9000 \
     getsentry/snuba
+
+  docker exec sentry_snuba snuba migrate
 
 script:
   # certain commands require sentry init to be run, but this is only true for
