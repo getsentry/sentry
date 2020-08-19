@@ -88,6 +88,7 @@ const IssueListOverview = createReactClass({
       // Will only be set if selected issues all belong
       // to one project.
       selectedProject: null,
+      hoveringGroupId: null,
     };
   },
 
@@ -291,11 +292,20 @@ const IssueListOverview = createReactClass({
       error: false,
     });
 
+    const {period, start, end, utc} = this.props.selection.datetime || {};
+
+    console.log({period, start, end, utc});
+    console.log('this.props.selection.datetime:', this.props.selection.datetime);
+
     const requestParams = {
       ...this.getEndpointParams(),
       limit: MAX_ITEMS,
       shortIdLookup: 1,
+      // start,
+      // end,
     };
+
+    console.log('requestParams', requestParams);
 
     const currentQuery = this.props.location.query || {};
     if ('cursor' in currentQuery) {

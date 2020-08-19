@@ -122,6 +122,17 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                                      belong to.
         :auth: required
         """
+        import pprint
+
+        print("\n\n\n\n--------------------------------")
+        pprint.pprint("ProjectGroupIndexEndpoint get")
+        pprint.pprint("querystring")
+        pprint.pprint(request.GET.get("querystring"))
+        pprint.pprint("groupStatsPeriod")
+        pprint.pprint(request.GET.get("groupStatsPeriod"))
+        pprint.pprint("shortIdLookup")
+        pprint.pprint(request.GET.get("shortIdLookup"))
+
         stats_period = request.GET.get("statsPeriod")
         if stats_period not in (None, "", "24h", "14d"):
             return Response({"detail": ERR_INVALID_STATS_PERIOD}, status=400)
@@ -215,6 +226,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                 query=query,
             )
 
+        print("--------------------------------\n\n\n")
         return response
 
     @attach_scenarios([bulk_update_issues_scenario])

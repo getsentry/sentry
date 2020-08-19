@@ -24,6 +24,12 @@ class GroupChart extends React.Component {
   }
 
   render() {
+    console.log('Group chart 1', {
+      'this.props.data': this.props.data,
+      'this.props.data.stats': this.props.data.stats,
+      'this.props.statsPeriod': this.props.statsPeriod,
+    });
+
     const stats = this.props.statsPeriod
       ? this.props.data.stats[this.props.statsPeriod]
       : null;
@@ -32,6 +38,11 @@ class GroupChart extends React.Component {
     }
     const {height} = this.props;
     const chartData = stats.map(point => ({x: point[0], y: point[1]}));
+
+    console.log('Group chart 2', {
+      stats,
+    });
+    console.log('---------------------------------------------------------------\n\n\n');
 
     return (
       <LazyLoad debounce={50} height={height}>

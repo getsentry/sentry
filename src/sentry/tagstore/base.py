@@ -314,6 +314,6 @@ class TagStorage(Service):
         return tag_keys
 
     def get_group_seen_values_for_environments(
-        self, project_ids, group_id_list, environment_ids, start=None, end=None
+        self, project_ids, group_id_list, environment_ids, filters, start=None, end=None
     ):
         raise NotImplementedError
