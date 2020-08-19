@@ -258,4 +258,4 @@ def get_serialized_event_file_committers(project, event, frame_limit=25):
 
 
 def dedupe_commits(commits):
-    return {c["id"]: c for c in commits}.values()
+    return list({c["id"]: c for c in commits}.values())
