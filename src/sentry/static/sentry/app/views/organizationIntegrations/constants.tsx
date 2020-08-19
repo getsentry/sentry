@@ -38,6 +38,8 @@ export const POPULARITY_WEIGHT: {
   clickup: 9,
   amixr: 9,
   split: 9,
+  linear: 9,
+  teamwork: 9,
 
   // Plugins
   webhooks: 10,
@@ -50,7 +52,6 @@ export const POPULARITY_WEIGHT: {
   redmine: 5,
   phabricator: 5,
   opsgenie: 5,
-  teamwork: 5,
   victorops: 5,
   sessionstack: 5,
   segment: 2,

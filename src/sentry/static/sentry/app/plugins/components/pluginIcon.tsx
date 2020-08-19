@@ -23,6 +23,7 @@ import heroku from 'app/../images/logos/logo-heroku.svg';
 import jira from 'app/../images/logos/logo-jira.svg';
 import jiraserver from 'app/../images/logos/logo-jira-server.svg';
 import lighthouse from 'app/../images/logos/logo-lighthouse.svg';
+import linear from 'app/../images/logos/logo-linear.svg';
 import msteams from 'app/../images/logos/logo-msteams.svg';
 import netlify from 'app/../images/logos/logo-netlify.svg';
 import opsgenie from 'app/../images/logos/logo-opsgenie.svg';
@@ -82,6 +83,7 @@ export const ICON_PATHS = {
   'jira-ac': jira,
   jira_server: jiraserver,
   lighthouse,
+  linear,
   msteams,
   netlify,
   opsgenie,
