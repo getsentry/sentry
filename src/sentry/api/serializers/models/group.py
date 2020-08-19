@@ -15,6 +15,7 @@ import sentry_sdk
 
 from sentry import tagstore, tsdb
 from sentry.app import env
+from sentry.api.event_search import convert_search_filter_to_snuba_query
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer
 from sentry.api.fields.actor import Actor
@@ -659,10 +660,17 @@ class GroupSerializerSnuba(GroupSerializerBase):
         print("\nself.filters")
         pprint(self.filters)
 
+        snuba_filters={}
+        if self.filters is not None:
+            snuba_filters = [convert_search_filter_to_snuba_query(search_filter) for search_filter in self.filters]
+        print("converted filters:", snuba_filters)
+
         seen_data = tagstore.get_group_seen_values_for_environments(
-            # TODO: @taylangocmen filter here
             project_ids,
-            group_id,
+            group_ids,
+            self.environment_ids, 
+            query_filters=snuba_filters,
+            start=self.start, end=self.end,
         )
         print("\nseen_data")
         pprint(seen_data)

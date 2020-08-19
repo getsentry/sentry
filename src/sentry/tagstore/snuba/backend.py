@@ -422,12 +422,12 @@ class SnubaTagStorage(TagStorage):
         # Get the total times seen, first seen, and last seen across multiple environments
         filters = {"project_id": project_ids, "group_id": group_id_list}
 
-        if query_filters is not None:
-            for filterx in query_filters:
-                print("\nfilterx")
-                pprint(filterx)
-                # filters[filterx.key] = filterx.value # this didn't work
-                filters[filterx.key.name] = filterx.value.raw_value
+        # if query_filters is not None:
+        #     for filterx in query_filters:
+        #         print("\nfilterx")
+        #         pprint(filterx)
+        #         # filters[filterx.key] = filterx.value # this didn't work
+        #         filters[filterx.key.name] = filterx.value.raw_value
 
         print("\nfilters 1")
         pprint(filters)
