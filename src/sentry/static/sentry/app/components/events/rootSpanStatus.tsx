@@ -36,6 +36,24 @@ class RootSpanStatus extends React.Component<Props> {
     return traceContext?.status ?? DEFAULT;
   }
 
+  getHttpStatusCode(): string {
+    const {event} = this.props;
+
+    const {tags} = event;
+
+    if (!Array.isArray(tags)) {
+      return '';
+    }
+
+    const tag = tags.find(tagObject => tagObject.key === 'http.status_code');
+
+    if (!tag) {
+      return '';
+    }
+
+    return tag.value;
+  }
+
   render() {
     const event = this.getTransactionEvent();
 
@@ -43,12 +61,14 @@ class RootSpanStatus extends React.Component<Props> {
       return null;
     }
 
+    const label = `${this.getHttpStatusCode()} ${this.getRootSpanStatus()}`.trim();
+
     return (
       <Container>
         <Header>
           <SectionHeading>{t('Status')}</SectionHeading>
         </Header>
-        <div>{this.getRootSpanStatus()}</div>
+        <div>{label}</div>
       </Container>
     );
   }
