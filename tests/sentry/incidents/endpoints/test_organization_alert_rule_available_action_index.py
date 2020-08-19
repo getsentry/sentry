@@ -5,6 +5,7 @@ from sentry.incidents.endpoints.organization_alert_rule_available_action_index i
 )
 from sentry.incidents.models import AlertRuleTriggerAction
 from sentry.models.integration import Integration, PagerDutyService
+from sentry.constants import SentryAppStatus
 from sentry.testutils import APITestCase
 
 SERVICES = [
@@ -110,3 +111,24 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
         self.create_team(organization=self.organization, members=[self.user])
         resp = self.get_response(self.organization.slug)
         assert resp.status_code == 404
+
+    def test_sentry_apps(self):
+        sentry_app = self.create_sentry_app(
+            name="foo", organization=self.organization, is_alertable=True, verify_install=False
+        )
+        self.create_sentry_app_installation(
+            slug=sentry_app.slug, organization=self.organization, user=self.user
+        )
+
+        with self.feature(
+            ["organizations:incidents", "organizations:integrations-sentry-app-metric-alerts"]
+        ):
+            resp = self.get_valid_response(self.organization.slug)
+
+        assert resp.data == [
+            build_action_response(
+                AlertRuleTriggerAction.get_registered_type(AlertRuleTriggerAction.Type.SENTRY_APP),
+                sentry_app=sentry_app
+            ),
+            build_action_response(self.email),
+        ]
