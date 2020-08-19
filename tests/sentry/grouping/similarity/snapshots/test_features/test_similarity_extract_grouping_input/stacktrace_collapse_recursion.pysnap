@@ -1,9 +1,9 @@
 ---
-created: '2020-08-11T11:59:11.150453Z'
+created: '2020-08-19T12:18:49.874388Z'
 creator: sentry
 source: tests/sentry/grouping/similarity/test_features.py
 ---
-similarity:2020-07-23:stacktrace:frames-pairs: [[["function","main"],["module","io.sentry.example.Application"]],[["function","normalFunc"],["module","io.sentry.example.Application"]]]
-similarity:2020-07-23:stacktrace:frames-pairs: [[["function","normalFunc"],["module","io.sentry.example.Application"]],[["function","recurFunc"],["module","io.sentry.example.Application"]]]
-similarity:2020-07-23:stacktrace:frames-pairs: [[["function","recurFunc"],["module","io.sentry.example.Application"]],[["function","recurFunc"],["module","io.sentry.example.Application"]]]
-similarity:2020-07-23:stacktrace:frames-pairs: [[["function","recurFunc"],["module","io.sentry.example.Application"]],[["function","throwError"],["module","io.sentry.example.Application"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","application.java"],["function","main"],["module","io.sentry.example.Application"]],[["filename","application.java"],["function","normalFunc"],["module","io.sentry.example.Application"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","application.java"],["function","normalFunc"],["module","io.sentry.example.Application"]],[["filename","application.java"],["function","recurFunc"],["module","io.sentry.example.Application"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","application.java"],["function","recurFunc"],["module","io.sentry.example.Application"]],[["filename","application.java"],["function","recurFunc"],["module","io.sentry.example.Application"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","application.java"],["function","recurFunc"],["module","io.sentry.example.Application"]],[["filename","application.java"],["function","throwError"],["module","io.sentry.example.Application"]]]

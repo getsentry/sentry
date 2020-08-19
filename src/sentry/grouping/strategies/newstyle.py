@@ -213,7 +213,9 @@ def get_function_component(
         # bad indicator for grouping.
         if sourcemap_used and context_line_available:
             function_component.update(
-                contributes=False, hint="ignored because sourcemap used and context line available"
+                contributes=False,
+                contributes_to_similarity=True,
+                hint="ignored because sourcemap used and context line available",
             )
 
     return function_component
@@ -311,7 +313,9 @@ def get_frame_component(
     # take precedence over the filename if it contributes
     module_component = get_module_component(frame.abs_path, frame.module, platform)
     if module_component.contributes and filename_component.contributes:
-        filename_component.update(contributes=False, hint="module takes precedence")
+        filename_component.update(
+            contributes=False, contributes_to_similarity=True, hint="module takes precedence"
+        )
 
     context_line_component = None
 
@@ -479,7 +483,9 @@ def single_exception_common(exception, config, meta, with_value):
 
         if stacktrace_component.contributes and value_component.contributes:
             value_component.update(
-                contributes=False, hint="ignored because stacktrace takes precedence"
+                contributes=False,
+                contributes_to_similarity=True,
+                hint="ignored because stacktrace takes precedence",
             )
 
         values.append(value_component)
