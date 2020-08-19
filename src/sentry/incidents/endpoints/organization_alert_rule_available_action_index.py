@@ -27,7 +27,7 @@ class OrganizationAlertRuleAvailableActionIndexEndpoint(OrganizationEndpoint):
 
     def build_action_response(self, organization, registered_type, integration=None):
         allowed_target_types = [
-            action_target_type_to_string[target_type]
+            action_target_type_to_string.get(target_type)
             for target_type in registered_type.supported_target_types
         ]
 

@@ -11,14 +11,22 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
         super(OrganizationAlertRuleAvailableActionIndexEndpointTest, self).setUp()
         self.login_as(self.user)
 
-    def create_integration_response(self, type, integration=None):
-        return {
+    def create_integration_response(self, type, integration=None, sentry_app=None):
+        if type == "email":
+            allowed_target_types = ["user", "team"]
+        else:
+            allowed_target_types = ["specific"]
+
+        response = {
             "type": type,
-            "allowedTargetTypes": ["user", "team"] if type == "email" else ["specific"],
-            "integrationName": integration.name if integration else None,
-            "integrationId": integration.id if integration else None,
-            "inputType": "select" if type in ["pagerduty", "email"] else "text",
+            "allowedTargetTypes": allowed_target_types,
         }
+
+        if integration:
+            response["integrationName"] = integration.name
+            response["integrationId"] = integration.id
+
+        return response
 
     def test_no_integrations(self):
         with self.feature("organizations:incidents"):
