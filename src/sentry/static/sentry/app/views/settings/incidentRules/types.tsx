@@ -80,12 +80,12 @@ export type ProjectSelectOption = {
 export enum ActionType {
   EMAIL = 'email',
   SLACK = 'slack',
-  PAGER_DUTY = 'pagerduty',
+  PAGERDUTY = 'pagerduty',
   MSTEAMS = 'msteams',
 }
 
 export enum TargetType {
-  // The name can be customized for each integration. Email for email, channel for slack, service for Pagerduty). We probably won't support this for email at first, since we need to be careful not to enable spam
+  // The name can be customized for each integration. Email for email, channel for Slack, service for PagerDuty). We probably won't support this for email at first, since we need to be careful not to enable spam
   SPECIFIC = 'specific',
 
   // Just works with email for now, grabs given user's email address
@@ -118,6 +118,14 @@ export type MetricActionTemplate = {
    * Integration id for this `type`, should be passed to backend as `integrationId` when creating an action
    */
   integrationId: number;
+  /**
+   * The input type on the front end, e.g. text for Slack, select for PagerDuty
+   */
+  inputType?: 'select' | 'text';
+  /**
+   * If the inputType is select, these are the options to select from
+   */
+  options: Array<{label: string; value: any}> | null;
 };
 
 /**
@@ -163,4 +171,12 @@ export type UnsavedAction = {
    * The id of the integration, can be null (e.g. email) or undefined (server errors when posting w/ null value)
    */
   integrationId?: number | null;
+  /**
+   * The input type on the front end, e.g. text for Slack, select for PagerDuty
+   */
+  inputType?: 'select' | 'text';
+  /**
+   * If the inputType is select, these are the options to select from
+   */
+  options: Array<{label: string; value: any}> | null;
 };

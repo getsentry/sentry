@@ -25,7 +25,7 @@ FEATURE_NAMES = [
 def all_events_query(**kwargs):
     options = {
         "sort": ["-timestamp"],
-        "field": ["title", "event.type", "project", "user", "timestamp"],
+        "field": ["title", "event.type", "project", "user.display", "timestamp"],
         "name": ["All Events"],
     }
     options.update(kwargs)
