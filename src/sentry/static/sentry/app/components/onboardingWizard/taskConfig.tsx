@@ -107,7 +107,7 @@ export function getOnboardingTasks(
     {
       task: OnboardingTaskKey.FIRST_TRANSACTION,
       title: t('Enable Performance'),
-      description: t(`See what's slow.`),
+      description: t(`See what's slow`),
       detailedDescription: t(
         `Add Performance to track latency and bottlenecks within your application.
         Monitor mission-critical endpoints and set metric alerts to proactively address the worst-performing areas.`
