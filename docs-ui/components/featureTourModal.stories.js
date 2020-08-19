@@ -14,11 +14,7 @@ export default {
 const steps = [
   {
     title: 'How to draw an owl',
-    body: (
-      <React.Fragment>
-        <p>First get all your sketchbook and pencil.</p>
-      </React.Fragment>
-    ),
+    body: <p>First get all your sketchbook and pencil.</p>,
   },
   {
     title: 'Draw two circles',

@@ -12,9 +12,9 @@ import space from 'app/styles/space';
 
 type TourStep = {
   title: string;
-  image?: React.ReactNode;
   body: React.ReactNode;
-  actions: React.ReactNode;
+  actions: React.ReactElement;
+  image?: React.ReactElement;
 };
 
 type ContentsProps = ModalRenderProps & {
@@ -54,10 +54,13 @@ class ModalContents extends React.Component<ContentsProps, ContentsState> {
 
   handleAdvance = () => {
     const {onAdvance} = this.props;
-    this.setState(prevState => ({current: prevState.current + 1}, () => {
-      const duration = Date.now() - this.state.openedAt;
-      callIfFunction(onAdvance, this.state.current, duration);
-    });
+    this.setState(
+      prevState => ({current: prevState.current + 1}),
+      () => {
+        const duration = Date.now() - this.state.openedAt;
+        callIfFunction(onAdvance, this.state.current, duration);
+      }
+    );
   };
 
   handleClose = () => {
