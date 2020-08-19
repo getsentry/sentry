@@ -4,15 +4,14 @@ import {InjectedRouter} from 'react-router/lib/Router';
 
 import {IconSettings} from 'app/icons';
 import {Organization} from 'app/types';
-import {PageHeader} from 'app/styles/organization';
 import {navigateTo} from 'app/actionCreators/navigation';
 import {t} from 'app/locale';
 import Feature from 'app/components/acl/feature';
 import FeatureBadge from 'app/components/featureBadge';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
-import PageHeading from 'app/components/pageHeading';
 import NavTabs from 'app/components/navTabs';
+import * as Layout from 'app/components/layouts/thirds';
 import space from 'app/styles/space';
 import Link from 'app/components/links/link';
 
@@ -35,9 +34,9 @@ const AlertHeader = ({router, organization, activeTab}: Props) => {
   };
 
   return (
-    <React.Fragment>
-      <PageHeader>
-        <StyledPageHeading>
+    <Layout.Header>
+      <StyledLayoutHeaderContent>
+        <StyledLayoutTitle>
           {t('Alerts')}{' '}
           <FeatureBadge
             title={
@@ -47,45 +46,59 @@ const AlertHeader = ({router, organization, activeTab}: Props) => {
             }
             type="beta"
           />
-        </StyledPageHeading>
-
+        </StyledLayoutTitle>
+        <StyledNavTabs underlined>
+          <Feature features={['incidents']} organization={organization}>
+            <li className={activeTab === 'stream' ? 'active' : ''}>
+              <Link to={`/organizations/${organization.slug}/alerts/`}>
+                {t('Stream')}
+              </Link>
+            </li>
+          </Feature>
+          <li className={activeTab === 'rules' ? 'active' : ''}>
+            <Link to={`/organizations/${organization.slug}/alerts/rules/`}>
+              {t('Rules')}
+            </Link>
+          </li>
+        </StyledNavTabs>
+      </StyledLayoutHeaderContent>
+      <Layout.HeaderActions>
         <Actions gap={1}>
           <Button
+            size="small"
             onClick={handleNavigateToSettings}
             href="#"
-            size="small"
             icon={<IconSettings size="xs" />}
           >
             {t('Settings')}
           </Button>
 
-          <CreateRuleButton organization={organization} router={router} />
+          <CreateRuleButton
+            organization={organization}
+            router={router}
+            iconProps={{size: 'xs'}}
+            buttonProps={{size: 'small'}}
+          />
         </Actions>
-      </PageHeader>
-      <StyledNavTabs underlined>
-        <Feature features={['incidents']} organization={organization}>
-          <li className={activeTab === 'stream' ? 'active' : ''}>
-            <Link to={`/organizations/${organization.slug}/alerts/`}>{t('Stream')}</Link>
-          </li>
-        </Feature>
-        <li className={activeTab === 'rules' ? 'active' : ''}>
-          <Link to={`/organizations/${organization.slug}/alerts/rules/`}>
-            {t('Rules')}
-          </Link>
-        </li>
-      </StyledNavTabs>
-    </React.Fragment>
+      </Layout.HeaderActions>
+    </Layout.Header>
   );
 };
 
 export default AlertHeader;
 
-const StyledPageHeading = styled(PageHeading)`
-  display: flex;
-  align-items: center;
+const StyledLayoutHeaderContent = styled(Layout.HeaderContent)`
+  margin-bottom: 0;
+`;
+
+const StyledLayoutTitle = styled(Layout.Title)`
+  margin-top: 0;
 `;
 
 const StyledNavTabs = styled(NavTabs)`
+  margin-top: 15px;
+  margin-bottom: 0;
+  border-bottom: 0 !important;
   li {
     margin-right: ${space(0.5)};
   }

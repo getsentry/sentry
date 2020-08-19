@@ -6,7 +6,6 @@ import styled from '@emotion/styled';
 
 import {IconCheckmark} from 'app/icons';
 import {Organization, Project} from 'app/types';
-import {PageContent} from 'app/styles/organization';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t, tct} from 'app/locale';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
@@ -18,6 +17,7 @@ import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import ExternalLink from 'app/components/links/externalLink';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
+import * as Layout from 'app/components/layouts/thirds';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import Projects from 'app/utils/projects';
 import space from 'app/styles/space';
@@ -144,7 +144,11 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
         <Button size="small" external href={DOCS_URL}>
           {t('View Features')}
         </Button>
-        <CreateRuleButton {...this.props} />
+        <CreateRuleButton
+          {...this.props}
+          iconProps={{size: 'xs'}}
+          buttonProps={{size: 'small'}}
+        />
       </React.Fragment>
     );
 
@@ -257,28 +261,30 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
     return (
       <SentryDocumentTitle title={t('Alerts')} objSlug={orgId}>
         <GlobalSelectionHeader organization={organization} showDateSelector={false}>
-          <PageContent>
-            <AlertHeader organization={organization} router={router} activeTab="stream" />
-            {!this.tryRenderOnboarding() && (
-              <StyledButtonBar merged active={status}>
-                <Button
-                  to={{pathname, query: openIncidentsQuery}}
-                  barId="open"
-                  size="small"
-                >
-                  {t('Active')}
-                </Button>
-                <Button
-                  to={{pathname, query: closedIncidentsQuery}}
-                  barId="closed"
-                  size="small"
-                >
-                  {t('Resolved')}
-                </Button>
-              </StyledButtonBar>
-            )}
-            {this.renderList()}
-          </PageContent>
+          <AlertHeader organization={organization} router={router} activeTab="stream" />
+          <Layout.Body>
+            <Layout.Main fullWidth>
+              {!this.tryRenderOnboarding() && (
+                <StyledButtonBar merged active={status}>
+                  <Button
+                    to={{pathname, query: openIncidentsQuery}}
+                    barId="open"
+                    size="small"
+                  >
+                    {t('Active')}
+                  </Button>
+                  <Button
+                    to={{pathname, query: closedIncidentsQuery}}
+                    barId="closed"
+                    size="small"
+                  >
+                    {t('Resolved')}
+                  </Button>
+                </StyledButtonBar>
+              )}
+              {this.renderList()}
+            </Layout.Main>
+          </Layout.Body>
         </GlobalSelectionHeader>
       </SentryDocumentTitle>
     );
@@ -310,9 +316,11 @@ class IncidentsListContainer extends React.Component<Props> {
 
   renderNoAccess() {
     return (
-      <PageContent>
-        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
-      </PageContent>
+      <Layout.Body>
+        <Layout.Main fullWidth>
+          <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+        </Layout.Main>
+      </Layout.Body>
     );
   }
 
