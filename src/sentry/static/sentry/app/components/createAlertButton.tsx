@@ -209,7 +209,7 @@ function CreateAlertButton({
   const to = hasErrors
     ? undefined
     : {
-        pathname: `/settings/${organization.slug}/projects/${project?.slug}/alerts/new/`,
+        pathname: `/organizations/${organization.slug}/alerts/${project?.slug}/new/`,
         query: {
           ...eventView.generateQueryStringObject(),
           createFromDiscover: true,

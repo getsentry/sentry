@@ -39,6 +39,7 @@ import Tags from './tags';
 import ResultsHeader from './resultsHeader';
 import ResultsChart from './resultsChart';
 import {generateTitle} from './utils';
+import {addRoutePerformanceContext} from '../performance/utils';
 
 type Props = {
   api: Client;
@@ -85,6 +86,7 @@ class Results extends React.Component<Props, State> {
   componentDidMount() {
     const {api, organization, selection} = this.props;
     loadOrganizationTags(api, organization.slug, selection);
+    addRoutePerformanceContext(selection);
     this.checkEventView();
     this.canLoadEvents();
   }
@@ -105,6 +107,7 @@ class Results extends React.Component<Props, State> {
       !isEqual(prevProps.selection.projects, selection.projects)
     ) {
       loadOrganizationTags(api, organization.slug, selection);
+      addRoutePerformanceContext(selection);
     }
 
     if (prevState.confirmedQuery !== confirmedQuery) this.fetchTotalCount();

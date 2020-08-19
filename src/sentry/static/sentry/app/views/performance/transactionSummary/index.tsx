@@ -25,6 +25,7 @@ import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
 
 import SummaryContent from './content';
+import {addRoutePerformanceContext} from '../utils';
 
 type Props = {
   api: Client;
@@ -64,6 +65,7 @@ class TransactionSummary extends React.Component<Props, State> {
     const {api, organization, selection} = this.props;
     this.fetchTotalCount();
     loadOrganizationTags(api, organization.slug, selection);
+    addRoutePerformanceContext(selection);
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
@@ -83,6 +85,7 @@ class TransactionSummary extends React.Component<Props, State> {
       !isEqual(prevProps.selection.datetime, selection.datetime)
     ) {
       loadOrganizationTags(api, organization.slug, selection);
+      addRoutePerformanceContext(selection);
     }
   }
 
@@ -202,7 +205,7 @@ function generateSummaryEventView(
       id: undefined,
       version: 2,
       name: transactionName,
-      fields: ['id', 'user', 'transaction.duration', 'timestamp'],
+      fields: ['id', 'user.display', 'transaction.duration', 'timestamp'],
       query: stringifyQueryObject(conditions),
       projects: [],
     },

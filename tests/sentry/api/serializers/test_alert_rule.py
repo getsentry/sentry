@@ -11,12 +11,17 @@ from sentry.api.serializers.models.alert_rule import (
 )
 from sentry.models import Rule
 from sentry.incidents.logic import create_alert_rule_trigger
-from sentry.incidents.models import AlertRuleThresholdType
+from sentry.incidents.models import AlertRuleThresholdType, AlertRule
 from sentry.testutils import TestCase, APITestCase
 
 
 class BaseAlertRuleSerializerTest(object):
     def assert_alert_rule_serialized(self, alert_rule, result, skip_dates=False):
+        alert_rule_projects = sorted(
+            AlertRule.objects.filter(id=alert_rule.id).values_list(
+                "snuba_query__subscriptions__project__slug", flat=True
+            )
+        )
         assert result["id"] == six.text_type(alert_rule.id)
         assert result["organizationId"] == six.text_type(alert_rule.organization_id)
         assert result["name"] == alert_rule.name
@@ -28,9 +33,14 @@ class BaseAlertRuleSerializerTest(object):
         assert result["timeWindow"] == alert_rule.snuba_query.time_window / 60
         assert result["resolution"] == alert_rule.snuba_query.resolution / 60
         assert result["thresholdPeriod"] == alert_rule.threshold_period
+        assert result["projects"] == alert_rule_projects
         assert result["includeAllProjects"] == alert_rule.include_all_projects
         if alert_rule.created_by:
-            assert result["createdBy"] == alert_rule.created_by.id
+            assert result["createdBy"] == {
+                "id": alert_rule.created_by.id,
+                "name": alert_rule.created_by.get_display_name(),
+                "email": alert_rule.created_by.email,
+            }
         else:
             assert result["createdBy"] is None
         if not skip_dates:
