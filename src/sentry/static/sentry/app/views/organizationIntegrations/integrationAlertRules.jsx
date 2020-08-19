@@ -36,7 +36,7 @@ class IntegrationAlertRules extends React.Component {
             <ProjectItem key={project.slug}>
               <ProjectBadge project={project} avatarSize={16} />
               <Button
-                to={`/settings/${orgId}/projects/${project.slug}/alerts/rules/new/`}
+                to={`/organizations/${orgId}/alerts/${project.slug}/new/`}
                 size="xsmall"
               >
                 {t('Add Alert Rule')}
