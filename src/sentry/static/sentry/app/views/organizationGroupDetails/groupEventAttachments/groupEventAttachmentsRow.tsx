@@ -31,17 +31,24 @@ const GroupEventAttachmentsRow = ({
   isSelected,
   onSelectToggle,
 }: Props) => {
-  const toggleRow = () => onSelectToggle(attachment.id);
+  const toggleRow = (
+    e: React.MouseEvent<HTMLDivElement> | React.FormEvent<HTMLInputElement>
+  ) => {
+    if (e.currentTarget.tagName === 'INPUT') {
+      return;
+    }
+
+    onSelectToggle(attachment.id);
+  };
 
   return (
     <React.Fragment>
       <Column onClick={toggleRow}>
-        <StyledCheckbox checked={isSelected} />
+        <StyledCheckbox checked={isSelected} onChange={toggleRow} />
       </Column>
 
       <NameColumn onClick={toggleRow}>
         <Name>{attachment.name}</Name>
-        <div>{attachment.id}</div>
         <Meta>
           <DateTime date={attachment.dateCreated} /> &middot;{' '}
           <Link
