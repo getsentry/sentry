@@ -68,6 +68,8 @@ class BaseEventTest(APITestCase):
         user_id="g4nd4lf",
         team_id="f3ll0wsh1p",
         tenant_id="m17hr4nd1r",
+        conversation_type="channel",
+        channel_id=None,
         group_id=None,
         resolve_input=None,
         ignore_input=None,
@@ -76,23 +78,33 @@ class BaseEventTest(APITestCase):
 
         replyToId = "12345"
 
+        channel_data = {"tenant": {"id": tenant_id}}
+        if conversation_type == "channel":
+            conversation_id = channel_id if channel_id else team_id
+            channel_data["team"] = {"id": team_id}
+            channel_data["channel"] = {"id": conversation_id}
+        else:
+            conversation_id = "user_conversation_id"
+
         responses.add(
             method=responses.PUT,
             url="https://smba.trafficmanager.net/amer/v3/conversations/%s/activities/%s"
-            % (team_id, replyToId),
+            % (conversation_id, replyToId),
             json={},
         )
 
         payload = {
             "type": "message",
             "from": {"id": user_id},
-            "channelData": {"team": {"id": team_id}, "tenant": {"id": tenant_id}},
+            "channelData": channel_data,
+            "conversation": {"conversationType": conversation_type, "id": conversation_id},
             "value": {
                 "payload": {
                     "groupId": group_id or self.group1.id,
                     "eventId": self.event1.event_id,
                     "actionType": action_type,
                     "rules": [],
+                    "integrationId": self.integration.id,
                 },
                 "resolveInput": resolve_input,
                 "ignoreInput": ignore_input,
@@ -195,6 +207,34 @@ class StatusActionTest(BaseEventTest):
         assert GroupAssignee.objects.filter(group=self.group1, user=self.user).exists()
 
         assert u"Unassign" in responses.calls[0].request.body
+        assert u"Assigned to %s" % self.user.email in responses.calls[0].request.body
+
+    @responses.activate
+    @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
+    def test_assign_to_me_personal_message(self, verify):
+        resp = self.post_webhook(
+            action_type=ACTION_TYPE.ASSIGN, assign_input="ME", conversation_type="personal"
+        )
+
+        assert resp.status_code == 200, resp.content
+        assert GroupAssignee.objects.filter(group=self.group1, user=self.user).exists()
+
+        assert u"Unassign" in responses.calls[0].request.body
+        assert u"user_conversation_id" in responses.calls[0].request.url
+        assert u"Assigned to %s" % self.user.email in responses.calls[0].request.body
+
+    @responses.activate
+    @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
+    def test_assign_to_me_channel_message(self, verify):
+        resp = self.post_webhook(
+            action_type=ACTION_TYPE.ASSIGN, assign_input="ME", channel_id="some_channel_id"
+        )
+
+        assert resp.status_code == 200, resp.content
+        assert GroupAssignee.objects.filter(group=self.group1, user=self.user).exists()
+
+        assert u"Unassign" in responses.calls[0].request.body
+        assert u"some_channel_id" in responses.calls[0].request.url
         assert u"Assigned to %s" % self.user.email in responses.calls[0].request.body
 
     @responses.activate
