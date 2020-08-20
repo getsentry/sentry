@@ -53,7 +53,7 @@ jobs:
 
         - name: Save snapshots
           if: always()
-          uses: getsentry/action-visual-snapshot@v2-dev
+          uses: getsentry/action-visual-snapshot@v2
           with:
             save-only: true
             snapshot-path: .artifacts/visual-snapshots
