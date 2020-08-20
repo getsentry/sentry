@@ -1,5 +1,4 @@
 import React from 'react';
-import omit from 'lodash/omit';
 import styled from '@emotion/styled';
 
 import {openModal, ModalRenderProps} from 'app/actionCreators/modal';
@@ -17,7 +16,12 @@ type TourStep = {
   image?: React.ReactElement;
 };
 
-type ContentsProps = ModalRenderProps & {
+type ChildProps = {
+  showModal: () => void;
+};
+
+type Props = {
+  children: (props: ChildProps) => React.ReactNode;
   /**
    * The list of tour steps.
    * The FeatureTourModal will manage state on the active step.
@@ -41,66 +45,121 @@ type ContentsProps = ModalRenderProps & {
   doneUrl?: string;
 };
 
+type State = {
+  /**
+   * The timestamp when the modal was shown.
+   * Used to calculate how long the modal was open
+   */
+  openedAt: number;
+
+  /**
+   * The last known step
+   */
+  current: number;
+};
+
 const defaultProps = {
   doneText: t('Done'),
 };
 
-type ContentsState = {
-  /**
-   * The current step offset to show
-   */
-  current: number;
+/**
+ * Provide a showModal action to the child function that lets
+ * a tour be triggered.
+ *
+ * Once active this component will track when the tour was started and keep
+ * a last known step state. Ideally the state would live entirely in this component.
+ * However, once the modal has been opened state changes in this component don't
+ * trigger re-renders in the modal contents. This requires a bit of duplicate state
+ * to be managed around the current step.
+ */
+class FeatureTourModal extends React.Component<Props, State> {
+  static defaultProps = defaultProps;
 
-  /**
-   * The timestamp with ms the tour was opened,
-   * used to track duration on each step.
-   */
+  state: State = {
+    openedAt: 0,
+    current: 0,
+  };
+
+  // Record the step change and call the callback this component was given.
+  handleAdvance = (current: number, duration: number) => {
+    this.setState({current});
+    callIfFunction(this.props.onAdvance, current, duration);
+  };
+
+  handleShow = () => {
+    this.setState({openedAt: Date.now()}, () => {
+      const modalProps = {
+        steps: this.props.steps,
+        onAdvance: this.handleAdvance,
+        openedAt: this.state.openedAt,
+        doneText: this.props.doneText,
+        doneUrl: this.props.doneUrl,
+      };
+      openModal(deps => <ModalContents {...deps} {...modalProps} />, {
+        onClose: this.handleClose,
+      });
+    });
+  };
+
+  handleClose = () => {
+    // The bootstrap modal and modal store both call this callback.
+    // We use the state flag to deduplicate actions to upstream components.
+    if (this.state.openedAt === 0) {
+      return;
+    }
+    const {onCloseModal} = this.props;
+
+    const duration = Date.now() - this.state.openedAt;
+    callIfFunction(onCloseModal, this.state.current, duration);
+
+    // Reset the state now that the modal is closed, used to deduplicate close actions.
+    this.setState({openedAt: 0, current: 0});
+  };
+
+  render() {
+    const {children} = this.props;
+    return <React.Fragment>{children({showModal: this.handleShow})}</React.Fragment>;
+  }
+}
+
+export default FeatureTourModal;
+
+type ContentsProps = ModalRenderProps &
+  Pick<Props, 'steps' | 'doneText' | 'doneUrl' | 'onAdvance'> &
+  Pick<State, 'openedAt'>;
+
+type ContentsState = {
+  current: number;
   openedAt: number;
 };
 
 class ModalContents extends React.Component<ContentsProps, ContentsState> {
-  static defaultProps = defaultProps;
-
   state: ContentsState = {
-    openedAt: Date.now(),
     current: 0,
+    openedAt: Date.now(),
   };
 
   handleAdvance = () => {
-    const {onAdvance} = this.props;
+    const {onAdvance, openedAt} = this.props;
     this.setState(
       prevState => ({current: prevState.current + 1}),
       () => {
-        const duration = Date.now() - this.state.openedAt;
+        const duration = Date.now() - openedAt;
         callIfFunction(onAdvance, this.state.current, duration);
       }
     );
   };
 
-  handleClose = () => {
-    const {closeModal, onCloseModal} = this.props;
-
-    const duration = Date.now() - this.state.openedAt;
-    callIfFunction(onCloseModal, this.state.current, duration);
-
-    // Call the modal close.
-    closeModal();
-  };
-
   render() {
-    const {Body, steps, doneText, doneUrl} = this.props;
+    const {Body, steps, doneText, doneUrl, closeModal} = this.props;
     const {current} = this.state;
+
     const step = steps[current] !== undefined ? steps[current] : steps[steps.length - 1];
     const hasNext = steps[current + 1] !== undefined;
 
     return (
       <Body>
-        <CloseButton
-          borderless
-          size="zero"
-          onClick={this.handleClose}
-          icon={<IconClose />}
-        />
+        <CloseButton borderless size="zero" onClick={closeModal} icon={<IconClose />} />
         {step.image && <TourContent>{step.image}</TourContent>}
         <TourContent>
           <h3>{step.title}</h3>
@@ -123,7 +182,7 @@ class ModalContents extends React.Component<ContentsProps, ContentsState> {
                 external
                 href={doneUrl}
                 data-test-id="complete-tour"
-                onClick={this.handleClose}
+                onClick={closeModal}
               >
                 {doneText}
               </Button>
@@ -135,24 +194,6 @@ class ModalContents extends React.Component<ContentsProps, ContentsState> {
     );
   }
 }
-
-type ChildProps = {
-  handleShow: () => void;
-};
-
-type Props = {
-  children: (props: ChildProps) => React.ReactNode;
-} & Pick<ContentsProps, 'steps' | 'onCloseModal' | 'onAdvance' | 'doneText' | 'doneUrl'>;
-
-function FeatureTourModal(props: Props) {
-  const handleShow = () => {
-    const modalProps = omit(props, ['children']);
-    openModal(deps => <ModalContents {...deps} {...modalProps} />);
-  };
-  return <React.Fragment>{props.children({handleShow})}</React.Fragment>;
-}
-
-export default FeatureTourModal;
 
 const CloseButton = styled(Button)`
   position: absolute;

@@ -32,8 +32,8 @@ describe('FeatureTourModal', function() {
           onCloseModal={onCloseModal}
           {...props}
         >
-          {({handleShow}) => (
-            <a href="#" onClick={handleShow} data-test-id="reveal">
+          {({showModal}) => (
+            <a href="#" onClick={showModal} data-test-id="reveal">
               Open
             </a>
           )}
@@ -101,6 +101,9 @@ describe('FeatureTourModal', function() {
 
     // Click the done
     wrapper.find('Button[data-test-id="complete-tour"]').simulate('click');
+
+    // Wait for the ModalStore action to propagate.
+    await tick();
     expect(onAdvance).toHaveBeenCalledTimes(1);
     expect(onCloseModal).toHaveBeenCalledTimes(1);
   });
@@ -126,6 +129,9 @@ describe('FeatureTourModal', function() {
     await showModal(wrapper);
 
     wrapper.find('CloseButton').simulate('click');
+
+    // Wait for the ModalStore action to propagate.
+    await tick();
     expect(onCloseModal).toHaveBeenCalled();
   });
 });
