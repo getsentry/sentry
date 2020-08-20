@@ -189,6 +189,7 @@ class ModalContents extends React.Component<ContentsProps, ContentsState> {
                 href={doneUrl}
                 data-test-id="complete-tour"
                 onClick={closeModal}
+                priority="primary"
               >
                 {doneText}
               </Button>

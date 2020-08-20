@@ -19,8 +19,11 @@ import tourCorrelate from '../../../images/spot/performance-tour-correlate.svg';
 import tourTrace from '../../../images/spot/performance-tour-trace.svg';
 import tourAlert from '../../../images/spot/performance-tour-alert.svg';
 
+const performanceSetupUrl =
+  'https://docs.sentry.io/performance-monitoring/getting-started/';
+
 const docsLink = (
-  <Button external href="https://docs.sentry.io/performance-monitoring/getting-started/">
+  <Button external href={performanceSetupUrl}>
     {t('Setup')}
   </Button>
 );
@@ -113,6 +116,8 @@ function Onboarding({organization}: Props) {
           steps={TOUR_STEPS}
           onAdvance={handleAdvance}
           onCloseModal={handleClose}
+          doneUrl={performanceSetupUrl}
+          doneText={t('Start Setup')}
         >
           {({handleShow}) => (
             <Button
