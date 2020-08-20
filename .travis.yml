@@ -300,7 +300,7 @@ matrix:
         - python setup.py install_egg_info
         - pip install -U -e ".[dev]"
         - pip uninstall -y rb
-        - pip install -e git+https://github.com/joshuarli/rb.git@505ad7665baba66c7c492b01b0e83d433ed2eb8e#egg=rb
+        - pip install -e git+https://github.com/getsentry/rb.git@master#egg=rb
       before_script:
         - psql -c 'create database sentry;' -U postgres
 
