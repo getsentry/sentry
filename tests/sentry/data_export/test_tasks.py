@@ -76,12 +76,12 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert de.file.size is not None
         assert de.file.checksum is not None
         # Convert raw csv to list of line-strings
-        header, raw1, raw2 = de.file.getfile().read().strip().split("\r\n")
-        assert header == "value,times_seen,last_seen,first_seen"
+        header, raw1, raw2 = de.file.getfile().read().strip().split(b"\r\n")
+        assert header == b"value,times_seen,last_seen,first_seen"
 
         raw1, raw2 = sorted([raw1, raw2])
-        assert raw1.startswith("bar,1,")
-        assert raw2.startswith("bar2,2,")
+        assert raw1.startswith(b"bar,1,")
+        assert raw2.startswith(b"bar2,2,")
 
         assert emailer.called
 
@@ -152,7 +152,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert de.file.checksum is not None
         # Convert raw csv to list of line-strings
         header = de.file.getfile().read().strip()
-        assert header == "value,times_seen,last_seen,first_seen"
+        assert header == b"value,times_seen,last_seen,first_seen"
 
     @patch("sentry.data_export.models.ExportedData.email_success")
     def test_discover_batched(self, emailer):
@@ -173,12 +173,12 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert de.file.size is not None
         assert de.file.checksum is not None
         # Convert raw csv to list of line-strings
-        header, raw1, raw2, raw3 = de.file.getfile().read().strip().split("\r\n")
-        assert header == "title"
+        header, raw1, raw2, raw3 = de.file.getfile().read().strip().split(b"\r\n")
+        assert header == b"title"
 
-        assert raw1.startswith("<unlabeled event>")
-        assert raw2.startswith("<unlabeled event>")
-        assert raw3.startswith("<unlabeled event>")
+        assert raw1.startswith(b"<unlabeled event>")
+        assert raw2.startswith(b"<unlabeled event>")
+        assert raw3.startswith(b"<unlabeled event>")
 
         assert emailer.called
 
@@ -217,11 +217,11 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert de.file.checksum is not None
         # Convert raw csv to list of line-strings
         # capping MAX_FILE_SIZE forces the last batch to be dropped, leaving 2 rows
-        header, raw1, raw2 = de.file.getfile().read().strip().split("\r\n")
-        assert header == "title"
+        header, raw1, raw2 = de.file.getfile().read().strip().split(b"\r\n")
+        assert header == b"title"
 
-        assert raw1.startswith("<unlabeled event>")
-        assert raw2.startswith("<unlabeled event>")
+        assert raw1.startswith(b"<unlabeled event>")
+        assert raw2.startswith(b"<unlabeled event>")
 
         assert emailer.called
 
@@ -245,11 +245,11 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert de.file.checksum is not None
         # Convert raw csv to list of line-strings
         # capping MAX_FILE_SIZE forces the last batch to be dropped, leaving 2 rows
-        header, raw1, raw2 = de.file.getfile().read().strip().split("\r\n")
-        assert header == "title"
+        header, raw1, raw2 = de.file.getfile().read().strip().split(b"\r\n")
+        assert header == b"title"
 
-        assert raw1.startswith("<unlabeled event>")
-        assert raw2.startswith("<unlabeled event>")
+        assert raw1.startswith(b"<unlabeled event>")
+        assert raw2.startswith(b"<unlabeled event>")
 
         assert emailer.called
 
