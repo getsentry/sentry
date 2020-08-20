@@ -9,6 +9,9 @@ jobs:
   backend-py3:
     runs-on: ubuntu-16.04
     continue-on-error: true
+    strategy:
+      matrix:
+        instance: [0, 1, 2, 3]
 
     env:
       SENTRY_PYTHON3: 1
@@ -34,14 +37,20 @@ jobs:
       SENTRY_REDIS_HOST: redis
       DATABASE_URL: postgresql://postgres:postgres@localhost/sentry
 
+      # Number of matrix instances
+      TOTAL_TEST_GROUPS: ${{ strategy.job-total }}
+
     steps:
       - uses: actions/checkout@v2
 
       - name: Set up outputs
         id: config
+        env:
+          MATRIX_INSTANCE: ${{ matrix.instance }}
         run: |
           # XXX(py3): Minors that aren't latest seem to not be available.
           echo "::set-output name=python-version::3.6.11"
+          echo "::set-output name=matrix-instance-number::$(($MATRIX_INSTANCE+1))"
 
       - name: Set up Python ${{ steps.config.outputs.python-version }}
         uses: actions/setup-python@v1
@@ -88,13 +97,10 @@ jobs:
           sentry init
           sentry devservices up postgres redis clickhouse snuba
 
-      # TODO: Shard tests, scrollback would be nicer.
-      - name: 'Python 3.6 backend without migrations [Postgres] (ALL)'
+      - name: Python 3.6 backend w/o migrations (#${{ steps.config.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
         if: always()
         run: |
           make travis-test-postgres
         env:
           USE_SNUBA: 1  # not sure if necessary
-
-# DB=postgres
-# psql -c 'create database sentry;' -U postgres
+          TEST_GROUP: ${{ matrix.instance }}
