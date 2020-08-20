@@ -16,7 +16,6 @@ jobs:
     env:
       SENTRY_PYTHON3: 1
       PIP_DISABLE_PIP_VERSION_CHECK: on
-      # PIP_QUIET: 1
 
       SENTRY_LIGHT_BUILD: 1
       SENTRY_SKIP_BACKEND_VALIDATION: 1
@@ -59,7 +58,8 @@ jobs:
 
       - name: Install pip
         run: |
-          # TODO: pin below pip with new resolver since I believe it'll break things
+          # TODO(joshuarli): pin below pip with new resolver since I believe it'll break things
+          # and also mirror to others
           pip install --no-cache-dir --upgrade "pip>=20.0.2"
 
       - name: Get pip cache dir
@@ -78,6 +78,7 @@ jobs:
       - name: Install System Dependencies
         run: |
           sudo apt-get update
+          # TODO(joshuarli): mirror this to others
           sudo apt-get install -y --no-install-recommends \
             libxmlsec1-dev \
             libmaxminddb-dev
@@ -97,10 +98,9 @@ jobs:
           sentry init
           sentry devservices up postgres redis clickhouse snuba
 
-      - name: Python 3.6 backend w/o migrations (#${{ steps.config.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
+      - name: Python 3.6 backend w/o migrations (${{ steps.config.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
         if: always()
         run: |
           make travis-test-postgres
         env:
-          USE_SNUBA: 1  # not sure if necessary
           TEST_GROUP: ${{ matrix.instance }}
