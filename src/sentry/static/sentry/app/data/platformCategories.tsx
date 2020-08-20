@@ -1,4 +1,4 @@
-import {t} from 'app/locale';
+import { t } from 'app/locale';
 
 const popular = [
   'javascript',
@@ -36,6 +36,7 @@ const mobile = [
   'java-android',
   'cordova',
   'react-native',
+  'flutter',
 ] as const;
 
 const backend = [
@@ -78,11 +79,11 @@ const backend = [
 const desktop = ['cocoa', 'csharp', 'java', 'electron', 'minidump', 'native'] as const;
 
 const categoryList = [
-  {id: 'popular', name: t('Popular'), platforms: popular},
-  {id: 'browser', name: t('Browser'), platforms: frontend},
-  {id: 'server', name: t('Server'), platforms: backend},
-  {id: 'mobile', name: t('Mobile'), platforms: mobile},
-  {id: 'desktop', name: t('Desktop'), platforms: desktop},
+  { id: 'popular', name: t('Popular'), platforms: popular },
+  { id: 'browser', name: t('Browser'), platforms: frontend },
+  { id: 'server', name: t('Server'), platforms: backend },
+  { id: 'mobile', name: t('Mobile'), platforms: mobile },
+  { id: 'desktop', name: t('Desktop'), platforms: desktop },
 ] as const;
 
 export const sourceMaps: PlatformKey[] = [
