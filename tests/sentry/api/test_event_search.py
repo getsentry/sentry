@@ -2428,16 +2428,12 @@ class ResolveFieldListTest(unittest.TestCase):
                 "percentile_range(transaction.duration, 0.5, 2020-05-01T01:12:34, tomorrow, 1)"
             ]
             resolve_field_list(fields, eventstore.Filter())
-        assert "end argument invalid: tomorrow is not a date in the valid format" in six.text_type(
-            err
-        )
+        assert "end argument invalid: tomorrow is in the wrong format" in six.text_type(err)
 
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["percentile_range(transaction.duration, 0.5, today, 2020-05-03T06:48:57, 1)"]
             resolve_field_list(fields, eventstore.Filter())
-        assert "start argument invalid: today is not a date in the valid format" in six.text_type(
-            err
-        )
+        assert "start argument invalid: today is in the wrong format" in six.text_type(err)
 
     def test_average_range(self):
         fields = ["avg_range(transaction.duration, 2020-05-01T01:12:34, 2020-05-03T06:48:57, 1)"]
@@ -2453,16 +2449,12 @@ class ResolveFieldListTest(unittest.TestCase):
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["avg_range(transaction.duration, 2020-05-01T01:12:34, tomorrow, 1)"]
             resolve_field_list(fields, eventstore.Filter())
-        assert "end argument invalid: tomorrow is not a date in the valid format" in six.text_type(
-            err
-        )
+        assert "end argument invalid: tomorrow is in the wrong format" in six.text_type(err)
 
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["avg_range(transaction.duration, today, 2020-05-03T06:48:57, 1)"]
             resolve_field_list(fields, eventstore.Filter())
-        assert "start argument invalid: today is not a date in the valid format" in six.text_type(
-            err
-        )
+        assert "start argument invalid: today is in the wrong format" in six.text_type(err)
 
     def test_user_misery_range(self):
         fields = ["user_misery_range(300, 2020-05-01T01:12:34, 2020-05-03T06:48:57, 1)"]
@@ -2478,16 +2470,12 @@ class ResolveFieldListTest(unittest.TestCase):
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["user_misery_range(300, 2020-05-01T01:12:34, tomorrow, 1)"]
             resolve_field_list(fields, eventstore.Filter())
-        assert "end argument invalid: tomorrow is not a date in the valid format" in six.text_type(
-            err
-        )
+        assert "end argument invalid: tomorrow is in the wrong format" in six.text_type(err)
 
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["user_misery_range(300, today, 2020-05-03T06:48:57, 1)"]
             resolve_field_list(fields, eventstore.Filter())
-        assert "start argument invalid: today is not a date in the valid format" in six.text_type(
-            err
-        )
+        assert "start argument invalid: today is in the wrong format" in six.text_type(err)
 
     def test_divide(self):
         fields = [
@@ -2508,9 +2496,34 @@ class ResolveFieldListTest(unittest.TestCase):
                 "user_misery_range_2",
             ],
             [
-                "divide(user_misery_range_1,user_misery_range_2)",
-                None,
+                "divide",
+                ["user_misery_range_1", "user_misery_range_2"],
                 "divide_user_misery_range_1_user_misery_range_2",
+            ],
+        ]
+
+    def test_minus(self):
+        fields = [
+            "user_misery_range(300, 2020-05-01T01:12:34, 2020-05-03T06:48:57, 1)",
+            "user_misery_range(300, 2020-05-03T06:48:57, 2020-05-05T01:12:34, 2)",
+            "minus(user_misery_range_1, user_misery_range_2)",
+        ]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["aggregations"] == [
+            [
+                "uniqIf(user,and(greater(duration,1200),and(greaterOrEquals(timestamp,toDateTime('2020-05-01T01:12:34')),less(timestamp,toDateTime('2020-05-03T06:48:57')))))",
+                None,
+                "user_misery_range_1",
+            ],
+            [
+                "uniqIf(user,and(greater(duration,1200),and(greaterOrEquals(timestamp,toDateTime('2020-05-03T06:48:57')),less(timestamp,toDateTime('2020-05-05T01:12:34')))))",
+                None,
+                "user_misery_range_2",
+            ],
+            [
+                "minus",
+                ["user_misery_range_1", "user_misery_range_2"],
+                "minus_user_misery_range_1_user_misery_range_2",
             ],
         ]
 

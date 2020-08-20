@@ -51,8 +51,7 @@ class OrganizationEventsTrendsEndpoint(OrganizationEventsV2EndpointBase):
                 raise ParseError(detail="You cannot view events from multiple projects.")
 
             middle = params["start"] + timedelta(
-                seconds=(params["end"] - params["start"]).total_seconds()
-                / (1 / float(request.GET.get("intervalRatio", 0.5)))
+                seconds=(params["end"] - params["start"]).total_seconds() * 0.5
             )
             start, middle, end = (
                 datetime.strftime(params["start"], DateArg.date_format),
@@ -64,10 +63,7 @@ class OrganizationEventsTrendsEndpoint(OrganizationEventsV2EndpointBase):
         function, columns = parse_function(trend_function)
         trend_column = self.trend_columns.get(function)
         if trend_column is None:
-            return Response(
-                {"detail": u"{} is not a supported trend function".format(trend_function)},
-                status=400,
-            )
+            raise ParseError(detail=u"{} is not a supported trend function".format(trend_function))
 
         count_column = self.trend_columns.get("count_range")
         selected_columns = request.GET.getlist("field")[:]

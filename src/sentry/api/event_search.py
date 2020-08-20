@@ -1212,7 +1212,9 @@ class DateArg(FunctionArg):
         try:
             datetime.strptime(value, self.date_format)
         except ValueError:
-            raise InvalidFunctionArgument(u"{} is not a date in the valid format".format(value))
+            raise InvalidFunctionArgument(
+                u"{} is in the wrong format, expected a date like 2020-03-14T15:14:15".format(value)
+            )
         return value
 
 
@@ -1505,13 +1507,13 @@ FUNCTIONS = {
     "divide": {
         "name": "divide",
         "args": [FunctionArg("numerator"), FunctionArg("denominator")],
-        "transform": u"divide({numerator},{denominator})",
+        "aggregate": [u"divide", [u"{numerator}", u"{denominator}"], None],
         "result_type": "percentage",
     },
     "minus": {
         "name": "minus",
         "args": [FunctionArg("minuend"), FunctionArg("subtrahend")],
-        "transform": u"minus({minuend}, {subtrahend})",
+        "aggregate": [u"minus", [u"{minuend}", u"{subtrahend}"], None],
         "result_type": "duration",
     },
 }
@@ -1620,6 +1622,10 @@ def resolve_function(field, match=None, params=None):
         aggregate[0] = aggregate[0].format(**arguments)
         if isinstance(aggregate[1], six.string_types):
             aggregate[1] = aggregate[1].format(**arguments)
+        elif isinstance(aggregate[1], (list, tuple)):
+            aggregate[1] = [
+                aggregate_column.format(**arguments) for aggregate_column in aggregate[1]
+            ]
 
         if aggregate[2] is None:
             aggregate[2] = get_function_alias_with_columns(
