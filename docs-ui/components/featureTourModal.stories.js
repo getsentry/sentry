@@ -41,7 +41,7 @@ export const FeatureTourModalBasics = withInfo('A feature tour with multiple ste
         onAdvance={action('onAdvance')}
         onCloseModal={action('onCloseModal')}
       >
-        {({handleShow}) => <Button onClick={handleShow}>Show tour</Button>}
+        {({showModal}) => <Button onClick={showModal}>Show tour</Button>}
       </FeatureTourModal>
     </div>
   )
