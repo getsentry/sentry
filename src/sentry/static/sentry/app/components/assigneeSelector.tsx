@@ -14,7 +14,7 @@ import ActorAvatar from 'app/components/avatar/actorAvatar';
 import UserAvatar from 'app/components/avatar/userAvatar';
 import TeamAvatar from 'app/components/avatar/teamAvatar';
 import ConfigStore from 'app/stores/configStore';
-import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
+import DropdownAutoComplete from 'app/components/dropdownAutoCompleteV2';
 import DropdownBubble from 'app/components/dropdownBubble';
 import GroupStore from 'app/stores/groupStore';
 import Highlight from 'app/components/highlight';
@@ -246,7 +246,6 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
         {!loading && (
           <DropdownAutoComplete
             maxHeight={400}
-            zIndex={2}
             onOpen={e => {
               // This can be called multiple times and does not always have `event`
               if (!e) {
@@ -260,8 +259,6 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
             onSelect={this.handleAssign}
             itemSize="small"
             searchPlaceholder={t('Filter teams and people')}
-            menuWithArrow
-            emptyHidesInput
             menuHeader={
               assignedTo && (
                 <MenuItemWrapper
@@ -291,6 +288,8 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
                 </MenuItemWrapper>
               </InviteMemberLink>
             }
+            menuWithArrow
+            emptyHidesInput
           >
             {({getActorProps}) => (
               <DropdownButton {...getActorProps({})}>

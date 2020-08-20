@@ -4,7 +4,7 @@ import partition from 'lodash/partition';
 
 import {Thread} from 'app/types/events';
 import {Event, EntryTypeData} from 'app/types';
-import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
+import DropdownAutoComplete from 'app/components/dropdownAutoCompleteV2';
 import DropdownButton from 'app/components/dropdownButton';
 import theme from 'app/utils/theme';
 import {t} from 'app/locale';
@@ -28,7 +28,7 @@ const ThreadSelector = ({threads, event, activeThread, onChange}: Props) => {
   const getDropDownItem = (thread: Thread) => {
     const threadInfo = filterThreadInfo(thread, event);
 
-    const dropDownValue = `#${thread.id}: ${thread.name} ${threadInfo.label} ${threadInfo.filename}`;
+    // const dropDownValue = `#${thread.id}: ${thread.name} ${threadInfo.label} ${threadInfo.filename}`;
     let crashedInfo: undefined | EntryTypeData;
 
     if (thread.crashed) {
@@ -36,9 +36,8 @@ const ThreadSelector = ({threads, event, activeThread, onChange}: Props) => {
     }
 
     return {
-      value: dropDownValue,
+      value: thread.id,
       threadInfo,
-      thread,
       label: (
         <Option
           id={thread.id}
@@ -56,33 +55,37 @@ const ThreadSelector = ({threads, event, activeThread, onChange}: Props) => {
     return [...crashed, ...notCrashed].map(getDropDownItem);
   };
 
-  const handleOnChange = ({thread}: {thread: Thread}) => {
+  const handleChange = (thread: Thread) => {
     if (onChange) {
       onChange(thread);
     }
   };
 
+  const items = getItems();
+
   return (
     <StyledDropdownAutoComplete
-      items={getItems()}
-      onSelect={handleOnChange}
-      align="left"
+      items={items}
+      onSelect={item => {
+        const selectedThread = threads.find(thread => thread.id === item.value);
+        if (selectedThread) {
+          handleChange(selectedThread);
+        }
+      }}
       alignMenu="left"
       maxHeight={DROPDOWN_MAX_HEIGHT}
-      placeholder={t('Filter Threads')}
+      searchPlaceholder={t('Filter Threads')}
       emptyMessage={t('You have no threads')}
       noResultsMessage={t('No threads found')}
-      zIndex={theme.zIndex.dropdown}
       menuHeader={<Header />}
-      closeOnSelect
       emptyHidesInput
     >
-      {({isOpen, selectedItem}) => (
+      {({isOpen, selectedItemIndex}) => (
         <StyledDropdownButton size="small" isOpen={isOpen} align="left">
-          {selectedItem ? (
+          {selectedItemIndex !== undefined ? (
             <SelectedOption
-              id={selectedItem.thread.id}
-              details={selectedItem.threadInfo}
+              id={items[selectedItemIndex].value}
+              details={items[selectedItemIndex].threadInfo}
             />
           ) : (
             <SelectedOption

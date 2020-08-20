@@ -2,7 +2,7 @@ import React from 'react';
 import {withInfo} from '@storybook/addon-info';
 
 import Button from 'app/components/button';
-import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
+import DropdownAutoComplete from 'app/components/dropdownAutoCompleteV2';
 import DropdownButton from 'app/components/dropdownButton';
 
 const items = [

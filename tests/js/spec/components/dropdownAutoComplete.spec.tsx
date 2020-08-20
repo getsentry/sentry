@@ -2,9 +2,10 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
+import DropdownAutoComplete from 'app/components/dropdownAutoCompleteV2';
 
-describe('DropdownAutoComplete', function() {
+describe('DropdownAutoComplete', () => {
+  // @ts-ignore Cannot find name 'TestStubs'.
   const routerContext = TestStubs.routerContext();
   const items = [
     {
@@ -21,7 +22,7 @@ describe('DropdownAutoComplete', function() {
     },
   ];
 
-  it('has actor wrapper', function() {
+  it('has actor wrapper', () => {
     const wrapper = mountWithTheme(
       <DropdownAutoComplete items={items}>{() => 'Click Me!'}</DropdownAutoComplete>,
       routerContext
@@ -30,7 +31,7 @@ describe('DropdownAutoComplete', function() {
     expect(wrapper.find('div[role="button"]').text()).toBe('Click Me!');
   });
 
-  it('opens dropdown menu when actor is clicked', function() {
+  it('opens dropdown menu when actor is clicked', () => {
     const wrapper = mountWithTheme(
       <DropdownAutoComplete items={items}>{() => 'Click Me!'}</DropdownAutoComplete>,
       routerContext
@@ -42,7 +43,7 @@ describe('DropdownAutoComplete', function() {
     expect(wrapper.find('BubbleWithMinWidth')).toHaveLength(1);
   });
 
-  it('toggles dropdown menu when actor is clicked', function() {
+  it('toggles dropdown menu when actor is clicked', () => {
     const wrapper = mountWithTheme(
       <DropdownAutoComplete allowActorToggle items={items}>
         {() => 'Click Me!'}

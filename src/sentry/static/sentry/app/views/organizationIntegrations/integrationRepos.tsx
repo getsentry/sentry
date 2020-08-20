@@ -8,7 +8,7 @@ import RepositoryActions from 'app/actions/repositoryActions';
 import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
-import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
+import DropdownAutoComplete from 'app/components/dropdownAutoCompleteV2';
 import DropdownButton from 'app/components/dropdownButton';
 import {IconCommit, IconFlag} from 'app/icons';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
@@ -171,7 +171,7 @@ export default class IntegrationRepos extends AsyncComponent<Props, State> {
     const menuHeader = <StyledReposLabel>{t('Repositories')}</StyledReposLabel>;
     const onChange = this.state.integrationRepos.searchable
       ? this.handleSearchRepositories
-      : null;
+      : undefined;
 
     return (
       <DropdownAutoComplete

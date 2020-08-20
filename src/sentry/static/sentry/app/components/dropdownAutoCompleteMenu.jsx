@@ -368,6 +368,7 @@ class DropdownAutoCompleteMenu extends React.Component {
           // This is the value to use to filter (default to value in filter input)
           const filterValueOrInput =
             typeof filterValue !== 'undefined' ? filterValue : inputValue;
+
           // Only filter results if menu is open and there are items
           const autoCompleteResults =
             (isOpen &&
@@ -444,7 +445,6 @@ class DropdownAutoCompleteMenu extends React.Component {
                   )}
                   <div>
                     {menuHeader && <LabelWithPadding>{menuHeader}</LabelWithPadding>}
-
                     <StyledItemList
                       data-test-id="autocomplete-list"
                       maxHeight={maxHeight}

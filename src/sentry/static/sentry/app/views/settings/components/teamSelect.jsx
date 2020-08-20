@@ -9,7 +9,7 @@ import {IconSubtract} from 'app/icons';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
-import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
+import DropdownAutoComplete from 'app/components/dropdownAutoCompleteV2';
 import DropdownButton from 'app/components/dropdownButton';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import Link from 'app/components/links/link';

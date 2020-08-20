@@ -13,7 +13,7 @@ import {
 import {t} from 'app/locale';
 import UserAvatar from 'app/components/avatar/userAvatar';
 import Button from 'app/components/button';
-import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
+import DropdownAutoComplete from 'app/components/dropdownAutoCompleteV2';
 import DropdownButton from 'app/components/dropdownButton';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import IdBadge from 'app/components/idBadge';
@@ -247,7 +247,9 @@ class TeamMembers extends React.Component {
         emptyMessage={t('No members')}
         onChange={this.handleMemberFilterChange}
         busy={this.state.dropdownBusy}
-        onClose={() => this.debouncedFetchMembersRequest('')}
+        onClose={() => {
+          this.debouncedFetchMembersRequest('');
+        }}
       >
         {({isOpen}) => (
           <DropdownButton isOpen={isOpen} size="xsmall" data-test-id="add-member">

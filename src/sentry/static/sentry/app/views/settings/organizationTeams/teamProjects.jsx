@@ -8,7 +8,7 @@ import {sortProjects} from 'app/utils';
 import {IconFlag, IconSubtract} from 'app/icons';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
-import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
+import DropdownAutoComplete from 'app/components/dropdownAutoCompleteV2';
 import DropdownButton from 'app/components/dropdownButton';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import LoadingError from 'app/components/loadingError';
@@ -123,7 +123,7 @@ class TeamProjects extends React.Component {
   };
 
   handleProjectSelected = selection => {
-    const project = this.state.unlinkedProjects.find(p => p.id === selection.value);
+    const project = this.state.unlinkedProjects.find(p => p.id === selection.id);
 
     this.handleLinkProject(project, 'add');
   };
@@ -179,6 +179,7 @@ class TeamProjects extends React.Component {
     const access = new Set(this.props.organization.access);
 
     const otherProjects = unlinkedProjects.map(p => ({
+      id: p.id,
       value: p.id,
       searchKey: p.slug,
       label: <ProjectListElement>{p.slug}</ProjectListElement>,
