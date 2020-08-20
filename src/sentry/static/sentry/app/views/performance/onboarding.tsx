@@ -119,7 +119,7 @@ function Onboarding({organization}: Props) {
           doneUrl={performanceSetupUrl}
           doneText={t('Start Setup')}
         >
-          {({handleShow}) => (
+          {({showModal}) => (
             <Button
               priority="default"
               onClick={() => {
@@ -128,7 +128,7 @@ function Onboarding({organization}: Props) {
                   eventName: 'Performance Views: Tour Start',
                   organization_id: parseInt(organization.id, 10),
                 });
-                handleShow();
+                showModal();
               }}
             >
               {t('Learn More')}
