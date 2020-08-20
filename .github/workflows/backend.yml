@@ -39,8 +39,8 @@ jobs:
       - name: Set up outputs
         id: config
         run: |
-          # TODO: read from .python-version
-          echo "::set-output name=python-version::3.6.10"
+          # XXX(py3): Minors that aren't latest seem to not be available.
+          echo "::set-output name=python-version::3.6.11"
 
       - name: Set up Python ${{ steps.config.outputs.python-version }}
         uses: actions/setup-python@v1
