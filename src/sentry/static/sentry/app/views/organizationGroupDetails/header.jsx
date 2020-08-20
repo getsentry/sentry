@@ -207,7 +207,7 @@ class GroupHeader extends React.Component {
             to={`${baseUrl}${groupId}/activity/${location.search}`}
             isActive={() => location.pathname.includes('/activity/')}
           >
-            {t('Comments')} <Badge text={group.numComments} />
+            {t('Activity')} <Badge text={group.numComments} />
           </ListLink>
           <ListLink
             to={`${baseUrl}${groupId}/feedback/${location.search}`}
