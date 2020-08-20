@@ -5,6 +5,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {selectByValue} from 'sentry-test/select-new';
 
+import * as memberActionCreators from 'app/actionCreators/members';
 import ProjectAlertsCreate from 'app/views/settings/projectAlerts/create';
 import AlertsContainer from 'app/views/alerts';
 import AlertBuilderProjectProvider from 'app/views/alerts/builder/projectProvider';
@@ -73,6 +74,7 @@ describe('ProjectAlertsCreate', function() {
 
   beforeEach(async function() {
     browserHistory.replace = jest.fn();
+    memberActionCreators.fetchOrgMembers = jest.fn();
     MockApiClient.addMockResponse({
       url:
         '/projects/org-slug/project-slug/rules/configuration/?issue_alerts_targeting=0',
@@ -85,6 +87,10 @@ describe('ProjectAlertsCreate', function() {
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/environments/',
       body: TestStubs.Environments(),
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/users/',
+      body: [TestStubs.User()],
     });
   });
 
@@ -137,10 +143,6 @@ describe('ProjectAlertsCreate', function() {
           ],
         });
         MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/users/',
-          body: [TestStubs.User()],
-        });
-        MockApiClient.addMockResponse({
           url: '/organizations/org-slug/events-stats/',
           body: TestStubs.EventsStats(),
         });
@@ -149,6 +151,7 @@ describe('ProjectAlertsCreate', function() {
         const {wrapper} = createWrapper({
           organization: {features: ['incidents']},
         });
+        expect(memberActionCreators.fetchOrgMembers).toHaveBeenCalled();
         expect(wrapper.find('IssueEditor')).toHaveLength(0);
         expect(wrapper.find('IncidentRulesCreate')).toHaveLength(0);
 
@@ -172,6 +175,7 @@ describe('ProjectAlertsCreate', function() {
     describe('Without Metric Alerts', function() {
       it('loads default values', function() {
         const {wrapper} = createWrapper();
+        expect(memberActionCreators.fetchOrgMembers).toHaveBeenCalled();
         expect(wrapper.find('SelectControl[name="environment"]').prop('value')).toBe(
           '__all_environments__'
         );
@@ -189,6 +193,7 @@ describe('ProjectAlertsCreate', function() {
           body: TestStubs.ProjectAlertRule(),
         });
 
+        expect(memberActionCreators.fetchOrgMembers).toHaveBeenCalled();
         selectByValue(wrapper, 'production', {control: true, name: 'environment'});
         selectByValue(wrapper, 'any', {name: 'actionMatch'});
 
