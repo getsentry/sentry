@@ -12170,10 +12170,10 @@ pkg-up@2.0.0, pkg-up@^2.0.0:
   dependencies:
     find-up "^2.1.0"
 
-platformicons@2.0.3:
-  version "2.0.3"
-  resolved "https://registry.yarnpkg.com/platformicons/-/platformicons-2.0.3.tgz#a7cf8074059639373061a4c00cf69d49800e7d01"
-  integrity sha512-x89ncc/HFL4reW0+2qHOxd9b/qHtUSWq54qBXYBScFO7kE5wGhSadsfRq9AmZweMPSnO4qbxKM432EorA5EtKA==
+platformicons@2.1.1:
+  version "2.1.1"
+  resolved "https://registry.yarnpkg.com/platformicons/-/platformicons-2.1.1.tgz#ab8c04c465ec3fbbcd0d5485d0c543e014a7f8a4"
+  integrity sha512-zfAgpUzIdbrXgHdhyO5ld2gvgS+HA5E/KrVavPRnYRNBeCDnX6DBprHXs6ipeyo/0+OKKoGeMejjXnoFApGdtA==
 
 pluralize@^7.0.0:
   version "7.0.0"
