@@ -248,7 +248,9 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         context = serialize(results, request.user, serializer(start=start, end=end))
         lifetime_stats = serialize(results, request.user, serializer())
         filtered_stats = serialize(
-            results, request.user, serializer(filters=query_kwargs["search_filters"])
+            results,
+            request.user,
+            serializer(start=start, end=end, filters=query_kwargs["search_filters"]),
         )
 
         # context = [(lambda c,l: c["lifetime"] = l; c )(c,l) for c,l in zip(context, lifetime_stats)]
