@@ -45,6 +45,8 @@ def pytest_configure(config):
         else:
             raise RuntimeError("oops, wrong database: %r" % test_db)
 
+    settings.SENTRY_METRICS_SKIP_ALL_INTERNAL = True
+
     # Disable static compiling in tests
     settings.STATIC_BUNDLES = {}
 
