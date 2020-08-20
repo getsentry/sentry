@@ -55,12 +55,12 @@ class GroupEventAttachments extends AsyncComponent<Props, State> {
     this.fetchData();
   };
 
-  handleBatchDelete = (ids: string[], isEverythingSelected: boolean) => {
+  handleBatchDelete = (_ids: string[], isEverythingSelected: boolean) => {
     // TODO(matej): call bulk endpoint once it's finished
     if (isEverythingSelected) {
-      console.log('batch delete all ids');
+      // console.log('batch delete all ids');
     } else {
-      console.log('batch delete these ids: ', ids);
+      // console.log('batch delete these ids: ', ids);
     }
     this.fetchData();
   };

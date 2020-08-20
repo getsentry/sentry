@@ -2,7 +2,7 @@ import React from 'react';
 
 import {shallow} from 'sentry-test/enzyme';
 
-import TableNotice from 'app/components/tableNotice';
+import BulkNotice from 'app/components/bulkNotice';
 
 const props = {
   allRowsCount: 64,
@@ -14,14 +14,14 @@ const props = {
   isEverythingSelected: false,
 };
 
-describe('TableNotice', function() {
+describe('BulkNotice', function() {
   it('does not render if the whole page is not selected', function() {
-    const wrapper = shallow(<TableNotice {...props} />);
+    const wrapper = shallow(<BulkNotice {...props} />);
     expect(wrapper.isEmptyRender()).toBe(true);
   });
 
   it('shows the right page summary', function() {
-    const wrapper = shallow(<TableNotice {...props} isPageSelected />);
+    const wrapper = shallow(<BulkNotice {...props} isPageSelected />);
     expect(wrapper.text()).toBe(
       `${props.selectedRowsCount} items on this page selected. Select all ${props.allRowsCount} items.`
     );
@@ -30,7 +30,7 @@ describe('TableNotice', function() {
   it('can select all rows across all pages', function() {
     const onSelectAllRows = jest.fn();
     const wrapper = shallow(
-      <TableNotice {...props} isPageSelected onSelectAllRows={onSelectAllRows} />
+      <BulkNotice {...props} isPageSelected onSelectAllRows={onSelectAllRows} />
     );
     wrapper.find('a').simulate('click');
     expect(onSelectAllRows).toHaveBeenCalled();
@@ -39,7 +39,7 @@ describe('TableNotice', function() {
   it('can deselect all once everything is selected', function() {
     const onCancelAllRows = jest.fn();
     const wrapper = shallow(
-      <TableNotice
+      <BulkNotice
         {...props}
         isPageSelected
         isEverythingSelected

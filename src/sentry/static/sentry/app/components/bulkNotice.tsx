@@ -4,8 +4,6 @@ import styled from '@emotion/styled';
 import Alert from 'app/components/alert';
 import {tn, tct, t} from 'app/locale';
 
-const BULK_LIMIT = 1000;
-
 type Props = {
   /**
    * Number of all rows across all pages
@@ -35,9 +33,14 @@ type Props = {
    * Number of columns to stretch the notice (used in grid-column)
    */
   columnsCount: number;
+  /**
+   * Number of max items we can perform bulk operations on, defaults to 1000
+   */
+  bulkLimit?: number;
+  className?: string;
 };
 
-function TableNotice({
+function BulkNotice({
   allRowsCount,
   selectedRowsCount,
   isPageSelected,
@@ -45,18 +48,20 @@ function TableNotice({
   onSelectAllRows,
   onCancelAllRows,
   columnsCount,
+  bulkLimit = 1000,
+  className,
 }: Props) {
   if (allRowsCount <= selectedRowsCount || !isPageSelected) {
     return null;
   }
 
   return (
-    <Wrapper columnsCount={columnsCount}>
+    <Wrapper columnsCount={columnsCount} className={className}>
       {isEverythingSelected ? (
         <React.Fragment>
-          {allRowsCount >= BULK_LIMIT
+          {allRowsCount >= bulkLimit
             ? tct('Selected up to the first [count] items.', {
-                count: BULK_LIMIT,
+                count: bulkLimit,
               })
             : tct('Selected all [count] items.', {
                 count: allRowsCount,
@@ -71,9 +76,9 @@ function TableNotice({
             selectedRowsCount
           )}{' '}
           <a onClick={onSelectAllRows}>
-            {allRowsCount >= BULK_LIMIT
+            {allRowsCount >= bulkLimit
               ? tct('Select the first [count] items.', {
-                  count: BULK_LIMIT,
+                  count: bulkLimit,
                 })
               : tct('Select all [count] items.', {
                   count: allRowsCount,
@@ -96,4 +101,4 @@ const Wrapper = styled(({columnsCount: _columnsCount, ...props}: WrapperProps) =
   text-align: center;
 `;
 
-export default TableNotice;
+export default BulkNotice;
