@@ -1,0 +1,410 @@
+---
+created: '2020-07-23T17:38:22.847171Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: "73470e545e51eea9cff8a6c006f68f57"
+  component:
+    app*
+      exception*
+        stacktrace*
+          frame (non app frame)
+            module*
+              "react-native/Libraries/BatchedBridge/MessageQueue"
+            filename (module takes precedence)
+              "messagequeue.js"
+            function (ignored because sourcemap used and context line available)
+              "value"
+            context-line*
+              "return this.flushedQueue();"
+          frame (non app frame)
+            module*
+              "react-native/Libraries/BatchedBridge/MessageQueue"
+            filename (module takes precedence)
+              "messagequeue.js"
+            function (ignored because sourcemap used and context line available)
+              "flushedQueue"
+            context-line*
+              "this._inCall--;"
+          frame (non app frame)
+            module*
+              "react-native/Libraries/BatchedBridge/MessageQueue"
+            filename (module takes precedence)
+              "messagequeue.js"
+            function (ignored because sourcemap used and context line available)
+              "_inCall"
+            context-line*
+              "return this.flushedQueue();"
+          frame (non app frame)
+            module*
+              "react-native/Libraries/BatchedBridge/MessageQueue"
+            filename (module takes precedence)
+              "messagequeue.js"
+            function (ignored because sourcemap used and context line available)
+              "flushedQueue"
+            context-line*
+              "this._lastFlush = new Date().getTime();"
+          frame (non app frame)
+            module*
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+            filename (module takes precedence)
+              "reactnativerenderer-prod.js"
+            function (ignored because sourcemap used and context line available)
+              "_lastFlush"
+            context-line*
+              "_receiveRootNodeIDEvent(index, eventTopLevelType, i);"
+          frame (non app frame)
+            module*
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+            filename (module takes precedence)
+              "reactnativerenderer-prod.js"
+            function (ignored because sourcemap used and context line available)
+              "_receiveRootNodeIDEvent"
+            context-line*
+              "batchedUpdates(function() {"
+          frame (non app frame)
+            module*
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+            filename (module takes precedence)
+              "reactnativerenderer-prod.js"
+            function (ignored because sourcemap used and context line available)
+              "batchedUpdates"
+            context-line*
+              "return _batchedUpdates(fn, bookkeeping);"
+          frame (non app frame)
+            module*
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+            filename (module takes precedence)
+              "reactnativerenderer-prod.js"
+            function (ignored because sourcemap used and context line available)
+              "_batchedUpdates"
+            context-line*
+              "return fn(a);"
+          frame (non app frame)
+            module*
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+            filename (module takes precedence)
+              "reactnativerenderer-prod.js"
+            function (ignored because sourcemap used and context line available)
+              "fn"
+            context-line*
+              "(forEachAccumulated(events, executeDispatchesAndReleaseTopLevel),"
+          frame (non app frame)
+            module*
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+            filename (module takes precedence)
+              "reactnativerenderer-prod.js"
+            function (ignored because sourcemap used and context line available)
+              "forEachAccumulated"
+            context-line*
+              "Array.isArray(arr) ? arr.forEach(cb, scope) : arr && cb.call(scope, arr);"
+          frame (non app frame)
+            function*
+              "[native code] forEach"
+          frame (non app frame)
+            module*
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+            filename (module takes precedence)
+              "reactnativerenderer-prod.js"
+            function (ignored because sourcemap used and context line available)
+              "D"
+            context-line*
+              "executeDispatch(e, !1, dispatchListeners, dispatchInstances);"
+          frame (non app frame)
+            module*
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+            filename (module takes precedence)
+              "reactnativerenderer-prod.js"
+            function (ignored because sourcemap used and context line available)
+              "executeDispatch"
+            context-line*
+              "ReactErrorUtils.invokeGuardedCallbackAndCatchFirstError("
+          frame (non app frame)
+            module*
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+            filename (module takes precedence)
+              "reactnativerenderer-prod.js"
+            function (ignored because sourcemap used and context line available)
+              "invokeGuardedCallbackAndCatchFirstError"
+            context-line*
+              "ReactErrorUtils.invokeGuardedCallback.apply(this, arguments);"
+          frame (non app frame)
+            module*
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+            filename (module takes precedence)
+              "reactnativerenderer-prod.js"
+            function (ignored because sourcemap used and context line available)
+              "apply"
+            context-line*
+              "invokeGuardedCallback.apply(ReactErrorUtils, arguments);"
+          frame (non app frame)
+            module*
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+            filename (module takes precedence)
+              "reactnativerenderer-prod.js"
+            function (ignored because sourcemap used and context line available)
+              "apply"
+            context-line*
+              "var funcArgs = Array.prototype.slice.call(arguments, 3);"
+          frame (non app frame)
+            module*
+              "react-native/Libraries/Components/Touchable/Touchable"
+            filename (module takes precedence)
+              "touchable.js"
+            function (ignored because sourcemap used and context line available)
+              "arguments"
+            context-line*
+              "touchableHandleResponderRelease: function(e) {"
+          frame (non app frame)
+            module*
+              "react-native/Libraries/Components/Touchable/Touchable"
+            filename (module takes precedence)
+              "touchable.js"
+            function (ignored because sourcemap used and context line available)
+              "_receiveSignal"
+            context-line*
+              "this._performSideEffectsForTransition(curState, nextState, signal, e);"
+          frame (non app frame)
+            module*
+              "react-native/Libraries/Components/Touchable/Touchable"
+            filename (module takes precedence)
+              "touchable.js"
+            function (ignored because sourcemap used and context line available)
+              "_performSideEffectsForTransition"
+            context-line*
+              "this.touchableHandlePress(e);"
+          frame (non app frame)
+            module*
+              "react-native/Libraries/Components/Touchable/TouchableNativeFeedback.android"
+            filename (module takes precedence)
+              "touchablenativefeedback.android.js"
+            function (ignored because sourcemap used and context line available)
+              "this"
+            context-line*
+              "this.props.onPress && this.props.onPress(e);"
+          frame*
+            module*
+              "App"
+            filename (module takes precedence)
+              "app.js"
+            function (ignored because sourcemap used and context line available)
+              "onPress"
+            context-line*
+              "<Button"
+          frame*
+            module*
+              "App"
+            filename (module takes precedence)
+              "app.js"
+            function (ignored because sourcemap used and context line available)
+              "Button"
+            context-line*
+              "<Button"
+        type*
+          "TypeError"
+        value (ignored because stacktrace takes precedence)
+          "undefined is not a function (evaluating '({}).invalidFunction()')"
+--------------------------------------------------------------------------
+system:
+  hash: "ecd413627f0d90a5a25cb28d1ba9c39f"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "react-native/Libraries/BatchedBridge/MessageQueue"
+            filename (module takes precedence)
+              "messagequeue.js"
+            function (ignored because sourcemap used and context line available)
+              "value"
+            context-line*
+              "return this.flushedQueue();"
+          frame*
+            module*
+              "react-native/Libraries/BatchedBridge/MessageQueue"
+            filename (module takes precedence)
+              "messagequeue.js"
+            function (ignored because sourcemap used and context line available)
+              "flushedQueue"
+            context-line*
+              "this._inCall--;"
+          frame*
+            module*
+              "react-native/Libraries/BatchedBridge/MessageQueue"
+            filename (module takes precedence)
+              "messagequeue.js"
+            function (ignored because sourcemap used and context line available)
+              "_inCall"
+            context-line*
+              "return this.flushedQueue();"
+          frame*
+            module*
+              "react-native/Libraries/BatchedBridge/MessageQueue"
+            filename (module takes precedence)
+              "messagequeue.js"
+            function (ignored because sourcemap used and context line available)
+              "flushedQueue"
+            context-line*
+              "this._lastFlush = new Date().getTime();"
+          frame*
+            module*
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+            filename (module takes precedence)
+              "reactnativerenderer-prod.js"
+            function (ignored because sourcemap used and context line available)
+              "_lastFlush"
+            context-line*
+              "_receiveRootNodeIDEvent(index, eventTopLevelType, i);"
+          frame*
+            module*
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+            filename (module takes precedence)
+              "reactnativerenderer-prod.js"
+            function (ignored because sourcemap used and context line available)
+              "_receiveRootNodeIDEvent"
+            context-line*
+              "batchedUpdates(function() {"
+          frame*
+            module*
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+            filename (module takes precedence)
+              "reactnativerenderer-prod.js"
+            function (ignored because sourcemap used and context line available)
+              "batchedUpdates"
+            context-line*
+              "return _batchedUpdates(fn, bookkeeping);"
+          frame*
+            module*
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+            filename (module takes precedence)
+              "reactnativerenderer-prod.js"
+            function (ignored because sourcemap used and context line available)
+              "_batchedUpdates"
+            context-line*
+              "return fn(a);"
+          frame*
+            module*
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+            filename (module takes precedence)
+              "reactnativerenderer-prod.js"
+            function (ignored because sourcemap used and context line available)
+              "fn"
+            context-line*
+              "(forEachAccumulated(events, executeDispatchesAndReleaseTopLevel),"
+          frame*
+            module*
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+            filename (module takes precedence)
+              "reactnativerenderer-prod.js"
+            function (ignored because sourcemap used and context line available)
+              "forEachAccumulated"
+            context-line*
+              "Array.isArray(arr) ? arr.forEach(cb, scope) : arr && cb.call(scope, arr);"
+          frame*
+            function*
+              "[native code] forEach"
+          frame*
+            module*
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+            filename (module takes precedence)
+              "reactnativerenderer-prod.js"
+            function (ignored because sourcemap used and context line available)
+              "D"
+            context-line*
+              "executeDispatch(e, !1, dispatchListeners, dispatchInstances);"
+          frame*
+            module*
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+            filename (module takes precedence)
+              "reactnativerenderer-prod.js"
+            function (ignored because sourcemap used and context line available)
+              "executeDispatch"
+            context-line*
+              "ReactErrorUtils.invokeGuardedCallbackAndCatchFirstError("
+          frame*
+            module*
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+            filename (module takes precedence)
+              "reactnativerenderer-prod.js"
+            function (ignored because sourcemap used and context line available)
+              "invokeGuardedCallbackAndCatchFirstError"
+            context-line*
+              "ReactErrorUtils.invokeGuardedCallback.apply(this, arguments);"
+          frame*
+            module*
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+            filename (module takes precedence)
+              "reactnativerenderer-prod.js"
+            function (ignored because sourcemap used and context line available)
+              "apply"
+            context-line*
+              "invokeGuardedCallback.apply(ReactErrorUtils, arguments);"
+          frame*
+            module*
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
+            filename (module takes precedence)
+              "reactnativerenderer-prod.js"
+            function (ignored because sourcemap used and context line available)
+              "apply"
+            context-line*
+              "var funcArgs = Array.prototype.slice.call(arguments, 3);"
+          frame*
+            module*
+              "react-native/Libraries/Components/Touchable/Touchable"
+            filename (module takes precedence)
+              "touchable.js"
+            function (ignored because sourcemap used and context line available)
+              "arguments"
+            context-line*
+              "touchableHandleResponderRelease: function(e) {"
+          frame*
+            module*
+              "react-native/Libraries/Components/Touchable/Touchable"
+            filename (module takes precedence)
+              "touchable.js"
+            function (ignored because sourcemap used and context line available)
+              "_receiveSignal"
+            context-line*
+              "this._performSideEffectsForTransition(curState, nextState, signal, e);"
+          frame*
+            module*
+              "react-native/Libraries/Components/Touchable/Touchable"
+            filename (module takes precedence)
+              "touchable.js"
+            function (ignored because sourcemap used and context line available)
+              "_performSideEffectsForTransition"
+            context-line*
+              "this.touchableHandlePress(e);"
+          frame*
+            module*
+              "react-native/Libraries/Components/Touchable/TouchableNativeFeedback.android"
+            filename (module takes precedence)
+              "touchablenativefeedback.android.js"
+            function (ignored because sourcemap used and context line available)
+              "this"
+            context-line*
+              "this.props.onPress && this.props.onPress(e);"
+          frame*
+            module*
+              "App"
+            filename (module takes precedence)
+              "app.js"
+            function (ignored because sourcemap used and context line available)
+              "onPress"
+            context-line*
+              "<Button"
+          frame*
+            module*
+              "App"
+            filename (module takes precedence)
+              "app.js"
+            function (ignored because sourcemap used and context line available)
+              "Button"
+            context-line*
+              "<Button"
+        type*
+          "TypeError"
+        value (ignored because stacktrace takes precedence)
+          "undefined is not a function (evaluating '({}).invalidFunction()')"
