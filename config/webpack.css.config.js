@@ -17,6 +17,10 @@ config.module = {
       use: [
         {
           loader: 'url-loader',
+          options: {
+            esModule: false,
+            limit: true,
+          },
         },
       ],
     },
