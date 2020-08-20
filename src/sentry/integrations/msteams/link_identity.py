@@ -12,7 +12,8 @@ from sentry.web.decorators import transaction_start
 from sentry.web.frontend.base import BaseView
 from sentry.web.helpers import render_to_response
 
-from .utils import get_identity, build_linked_card
+from .card_builder import build_linked_card
+from .utils import get_identity
 from .client import MsTeamsClient
 
 

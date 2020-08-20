@@ -1003,15 +1003,11 @@ class SmartSearchBar extends React.Component<Props, State> {
       if (last.indexOf(':') > -1) {
         let replacement = `:${replaceText}`;
 
-        // NOTE: The user tag is a special case here as it store values like
-        // `id:1` or `ip:127.0.0.1`. To handle autocompletion for it correctly,
-        // and efficiently, we convert the tag to be `user.id` or `user.ip` etc.
+        // The user tag often contains : within its value and we need to quote it.
         if (last.startsWith('user:')) {
           const colonIndex = replaceText.indexOf(':');
           if (colonIndex > -1) {
-            const tagEnding = replaceText.substring(0, colonIndex);
-            const tagValue = replaceText.substring(colonIndex + 1);
-            replacement = `.${tagEnding}:${tagValue}`;
+            replacement = `:"${replaceText.trim()}"`;
           }
         }
 

@@ -18,6 +18,7 @@ class MsTeamsAbstractClient(ApiClient):
     TEAM_URL = "/v3/teams/%s"
     CHANNEL_URL = "/v3/teams/%s/conversations"
     ACTIVITY_URL = "/v3/conversations/%s/activities"
+    MESSAGE_URL = "/v3/conversations/%s/activities/%s"
     CONVERSATION_URL = "/v3/conversations"
     MEMBER_URL = "/v3/conversations/%s/pagedmembers"
 
@@ -47,6 +48,9 @@ class MsTeamsAbstractClient(ApiClient):
     def send_message(self, conversation_id, data):
         return self.post(self.ACTIVITY_URL % conversation_id, data=data)
 
+    def update_message(self, conversation_id, activity_id, data):
+        return self.put(self.MESSAGE_URL % (conversation_id, activity_id), data=data)
+
     def send_card(self, conversation_id, card):
         payload = {
             "type": "message",
@@ -54,7 +58,16 @@ class MsTeamsAbstractClient(ApiClient):
                 {"contentType": "application/vnd.microsoft.card.adaptive", "content": card}
             ],
         }
-        self.send_message(conversation_id, payload)
+        return self.send_message(conversation_id, payload)
+
+    def update_card(self, conversation_id, activity_id, card):
+        payload = {
+            "type": "message",
+            "attachments": [
+                {"contentType": "application/vnd.microsoft.card.adaptive", "content": card}
+            ],
+        }
+        return self.update_message(conversation_id, activity_id, payload)
 
 
 # MsTeamsPreInstallClient is used with the access token and service url as arguments to the constructor
