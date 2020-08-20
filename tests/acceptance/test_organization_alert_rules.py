@@ -21,7 +21,7 @@ class OrganizationAlertRulesListTest(AcceptanceTestCase, SnubaTestCase):
             self.browser.snapshot("alert rules - empty state")
 
     def test_alert_rules_list(self):
-        Rule.objects.all().update(date_added=timezone.now())
+        Rule.objects.filter(project=self.project).update(date_added=timezone.now())
         self.create_alert_rule(
             name="My Alert Rule", date_added=timezone.now(), user=self.user,
         )
