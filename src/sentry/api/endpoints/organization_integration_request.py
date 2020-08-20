@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
+from django.utils.encoding import force_text
 
 from rest_framework.response import Response
 
@@ -50,7 +51,7 @@ def get_provider_name(provider_type, provider_slug):
     :return: The display name for the provider.
 
     :raises: ValueError if provider_type is not one of the three from above.
-    :raises: Exception if the provider is not found.
+    :raises: RuntimeError if the provider is not found.
     """
     try:
         if provider_type == "first_party":
@@ -62,7 +63,7 @@ def get_provider_name(provider_type, provider_slug):
         else:
             raise ValueError(u"Invalid providerType {}".format(provider_type))
     except (KeyError, SentryApp.DoesNotExist):
-        raise Exception(u"Provider {} not found".format(provider_slug))
+        raise RuntimeError(u"Provider {} not found".format(provider_slug))
 
 
 class OrganizationIntegrationRequestEndpoint(OrganizationEndpoint):
@@ -87,8 +88,8 @@ class OrganizationIntegrationRequestEndpoint(OrganizationEndpoint):
 
         try:
             provider_name = get_provider_name(provider_type, provider_slug)
-        except Exception as error:
-            return Response({"detail": error.message}, status=400)
+        except RuntimeError as error:
+            return Response({"detail": force_text(error)}, status=400)
 
         requester = request.user
         owners_list = organization.get_owners()
