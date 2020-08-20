@@ -96,7 +96,7 @@ class GroupEventAttachments extends AsyncComponent<Props, State> {
             onIdToggle,
             isPageSelected,
             isEverythingSelected,
-            tableNotice,
+            bulkNotice,
           }) => (
             <StyledPanelTable
               headers={[
@@ -138,7 +138,7 @@ class GroupEventAttachments extends AsyncComponent<Props, State> {
               isEmpty={eventAttachments.length === 0}
               isLoading={loading}
             >
-              {tableNotice}
+              {bulkNotice}
               {eventAttachments.map(attachment => (
                 <GroupEventAttachmentsRow
                   key={attachment.id}

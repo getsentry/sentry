@@ -2,7 +2,8 @@ import React from 'react';
 import xor from 'lodash/xor';
 import uniq from 'lodash/uniq';
 import intersection from 'lodash/intersection';
-import TableNotice from 'app/components/tableNotice';
+
+import BulkNotice from 'app/components/bulkNotice';
 
 type RenderProps = {
   /**
@@ -25,7 +26,7 @@ type RenderProps = {
    * Ready to be rendered summary component showing how many items are selected,
    * with buttons to select everything, cancel everything, etc...
    */
-  tableNotice: React.ReactNode;
+  bulkNotice: React.ReactNode;
 } & Pick<State, 'selectedIds' | 'isEverythingSelected'>;
 
 type State = {
@@ -49,7 +50,7 @@ type Props = {
    */
   allIdsCount: number;
   /**
-   * Number of grid columns to stretch the selection summary (used in TableNotice)
+   * Number of grid columns to stretch the selection summary (used in BulkNotice)
    */
   noticeColumns: number;
   children: (props: RenderProps) => React.ReactNode;
@@ -105,8 +106,8 @@ class BulkController extends React.Component<Props, State> {
       onIdToggle: this.handleIdToggle,
       onAllIdsToggle: this.handleAllIdsToggle,
       onPageIdsToggle: this.handlePageIdsToggle,
-      tableNotice: (
-        <TableNotice
+      bulkNotice: (
+        <BulkNotice
           allRowsCount={allIdsCount}
           selectedRowsCount={selectedIds.length}
           onCancelAllRows={() => this.handleAllIdsToggle(false)}

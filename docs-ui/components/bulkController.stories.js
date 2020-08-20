@@ -47,7 +47,7 @@ export const BulkControllerStory = withInfo({
       onIdToggle,
       isPageSelected,
       // isEverythingSelected,
-      tableNotice,
+      bulkNotice,
     }) => (
       <PanelTable
         headers={[
@@ -60,7 +60,7 @@ export const BulkControllerStory = withInfo({
           'Text',
         ]}
       >
-        {tableNotice}
+        {bulkNotice}
 
         {dummy.map(d => (
           <React.Fragment key={d.id}>
