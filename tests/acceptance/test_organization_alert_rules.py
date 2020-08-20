@@ -1,9 +1,9 @@
 from __future__ import absolute_import
 
-from datetime import datetime
 from django.utils import timezone
 
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
+from sentry.models import Rule
 
 FEATURE_NAME = ["organizations:incidents"]
 
@@ -21,8 +21,9 @@ class OrganizationAlertRulesListTest(AcceptanceTestCase, SnubaTestCase):
             self.browser.snapshot("alert rules - empty state")
 
     def test_alert_rules_list(self):
+        Rule.objects.all().update(date_added=timezone.now())
         self.create_alert_rule(
-            name="My Alert Rule", date_added=datetime(2018, 1, 12, 3, 8, 25, tzinfo=timezone.utc),
+            name="My Alert Rule", date_added=timezone.now(), user=self.user,
         )
 
         with self.feature(FEATURE_NAME):
