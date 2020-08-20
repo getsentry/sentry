@@ -11,6 +11,7 @@ jobs:
     continue-on-error: true
 
     env:
+      SENTRY_PYTHON3: 1
       PIP_DISABLE_PIP_VERSION_CHECK: on
       # PIP_QUIET: 1
 
@@ -68,7 +69,9 @@ jobs:
       - name: Install System Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install libxmlsec1-dev libmaxminddb-dev
+          sudo apt-get install -y --no-install-recommends \
+            libxmlsec1-dev \
+            libmaxminddb-dev
 
       - name: Install Python Dependencies
         env:
@@ -92,7 +95,6 @@ jobs:
           make travis-test-postgres
         env:
           USE_SNUBA: 1  # not sure if necessary
-          SENTRY_PYTHON3: 1
 
 # DB=postgres
 # psql -c 'create database sentry;' -U postgres
