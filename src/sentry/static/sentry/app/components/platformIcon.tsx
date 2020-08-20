@@ -51,6 +51,8 @@ const PLATFORM_TO_ICON = {
   'react-native': 'react-native',
   rust: 'rust',
   swift: 'swift',
+  flutter: 'flutter',
+  dart: 'dart',
   // TODO: AWS used to be python-awslambda but the displayed generic icon
   // We need to figure out what is causing it to be python-pythonawslambda
 };
@@ -72,7 +74,7 @@ type Props = {
   height?: string;
 };
 
-const PlatformIcon = ({platform, size, ...props}: Props) => {
+const PlatformIcon = ({ platform, size, ...props }: Props) => {
   const width = props.width || size || '1em';
   const height = props.height || size || '1em';
 
@@ -105,7 +107,7 @@ export default PlatformIcon;
 // TODO(color): theme doesn't have the color #625471
 const StyledPlatformIconTile = styled(PlatformIconTile, {
   shouldForwardProp: prop => prop !== 'width' && prop !== 'height',
-})<{width: string; height: string}>`
+}) <{ width: string; height: string }>`
   width: ${p => p.width};
   height: ${p => p.height};
   position: relative;
