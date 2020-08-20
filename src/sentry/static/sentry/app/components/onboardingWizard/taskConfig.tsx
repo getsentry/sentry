@@ -113,7 +113,7 @@ export function getOnboardingTasks(
         Monitor mission-critical endpoints and set metric alerts to proactively address the worst-performing areas.`
       ),
       skippable: true,
-      requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
+      requisites: [OnboardingTaskKey.FIRST_PROJECT],
       actionType: 'external',
       location: 'https://docs.sentry.io/product/performance/getting-started/',
       display: true,
