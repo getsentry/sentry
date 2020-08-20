@@ -104,3 +104,9 @@ jobs:
           make travis-test-postgres
         env:
           TEST_GROUP: ${{ matrix.instance }}
+          # TODO: Without USE_SNUBA, we get an absolutely staggering volume of stacktrace
+          #       from src/sentry/tsdb/redis.py, line 198, in get_model_key
+          #       TypeError: Unicode-objects must be encoded before hashing
+          #       [ERROR] sentry.errors: Unable to incr internal metric
+          # So, we should also be testing without USE_SNUBA in the future.
+          USE_SNUBA: 1
