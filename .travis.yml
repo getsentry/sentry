@@ -299,6 +299,8 @@ matrix:
       install:
         - python setup.py install_egg_info
         - pip install -U -e ".[dev]"
+        # XXX: Travis cache needs to be manually purged.
+        # I think can do a python_version > 3 for this though, will try in GHA.
         - pip uninstall -y rb
         - pip install -e git+https://github.com/getsentry/rb.git@master#egg=rb
       before_script:

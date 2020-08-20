@@ -1,0 +1,98 @@
+name: backend-py3
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+jobs:
+  backend-py3:
+   runs-on: ubuntu-16.04
+      continue-on-error: true
+
+      env:
+        PIP_DISABLE_PIP_VERSION_CHECK: on
+        # PIP_QUIET: 1
+
+        SENTRY_LIGHT_BUILD: 1
+        SENTRY_SKIP_BACKEND_VALIDATION: 1
+        # XXX(py3): Migrations are disabled until further notice, just to unblock for now.
+        # MIGRATIONS_TEST_MIGRATE: 0
+
+        # Use this to override the django version in the requirements file.
+        DJANGO_VERSION: ">=1.11,<1.12"
+
+        PYTEST_SENTRY_DSN: https://6fd5cfea2d4d46b182ad214ac7810508@sentry.io/2423079
+        # XXX(py3): Reruns are disabled for until all tests are passing.
+        PYTEST_ADDOPTS: ""
+        PYTEST_SENTRY_ALWAYS_REPORT: no
+
+        # services configuration
+        SENTRY_KAFKA_HOSTS: kafka:9093
+        SENTRY_ZOOKEEPER_HOSTS: zookeeper:2182
+        SENTRY_REDIS_HOST: redis
+        DATABASE_URL: postgresql://postgres:postgres@localhost/sentry
+
+      steps:
+        - uses: actions/checkout@v2
+
+        - name: Set up outputs
+          id: config
+          run: |
+            # TODO: read from .python-version
+            echo "::set-output name=python-version::3.6.10"
+
+        - name: Set up Python ${{ steps.config.outputs.python-version }}
+          uses: actions/setup-python@v1
+          with:
+            python-version: ${{ steps.config.outputs.python-version}}
+
+        - name: Install pip
+          run: |
+            # TODO: pin below pip with new resolver since I believe it'll break things
+            pip install --no-cache-dir --upgrade "pip>=20.0.2"
+
+        - name: Get pip cache dir
+          id: pip-cache
+          run: |
+            echo "::set-output name=dir::$(pip cache dir)"
+
+        - name: pip cache
+          uses: actions/cache@v1
+          with:
+            path: ${{ steps.pip-cache.outputs.dir }}
+            key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements-*.txt') }}
+            restore-keys: |
+              ${{ runner.os }}-pip-
+
+        - name: Install System Dependencies
+          run: |
+            sudo apt-get update
+            sudo apt-get install libxmlsec1-dev libmaxminddb-dev
+
+        - name: Install Python Dependencies
+          env:
+            PGPASSWORD: postgres
+          run: |
+            python setup.py install_egg_info
+            pip install wheel # GitHub Actions does not have this installed by default (unlike Travis)
+            pip install -U -e ".[dev]"
+            pip uninstall -y rb
+            pip install -e git+https://github.com/getsentry/rb.git@master#egg=rb
+
+        - name: Start devservices
+          run: |
+            sentry init
+            sentry devservices up postgres redis clickhouse snuba
+
+        # TODO: Shard tests, scrollback would be nicer.
+        - name: 'Python 3.6 backend without migrations [Postgres] (ALL)'
+          if: always()
+          run: |
+            make travis-test-postgres
+          env:
+            USE_SNUBA: 1  # not sure if necessary
+            SENTRY_PYTHON3: 1
+
+# DB=postgres
+# psql -c 'create database sentry;' -U postgres
