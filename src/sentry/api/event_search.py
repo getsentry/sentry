@@ -1706,6 +1706,10 @@ def resolve_field_list(fields, snuba_filter, auto_fields=True):
                 if column[0] == "transform":
                     # When there's a project transform, we already group by project_id
                     continue
+                if column[2] == USER_DISPLAY_ALIAS:
+                    # user.display needs to be grouped by its coalesce function
+                    groupby.append(column)
+                    continue
                 groupby.append(column[2])
             else:
                 groupby.append(column)

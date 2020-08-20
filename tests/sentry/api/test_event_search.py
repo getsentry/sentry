@@ -1902,9 +1902,22 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["groupby"] == [
             "title",
             "issue.id",
-            "user.display",
+            ["coalesce", ["user.email", "user.username", "user.ip"], "user.display"],
             "message",
             "project.id",
+        ]
+
+    def test_field_alias_with_aggregates(self):
+        fields = ["event.type", "user.display", "count_unique(title)"]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["selected_columns"] == [
+            "event.type",
+            ["coalesce", ["user.email", "user.username", "user.ip"], "user.display"],
+        ]
+        assert result["aggregations"] == [["uniq", "title", "count_unique_title"]]
+        assert result["groupby"] == [
+            "event.type",
+            ["coalesce", ["user.email", "user.username", "user.ip"], "user.display"],
         ]
 
     def test_aggregate_function_expansion(self):
