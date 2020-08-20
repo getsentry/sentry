@@ -28,9 +28,21 @@ type ContentsProps = ModalRenderProps & {
    */
   onAdvance?: (currentIndex: number, durationOpen: number) => void;
   /**
-   * Triggered when the tour is closed by completion or x
+   * Triggered when the tour is closed by completion or IconClose
    */
   onCloseModal?: (currentIndex: number, durationOpen: number) => void;
+  /**
+   * Customize the text shown on the done button.
+   */
+  doneText?: string;
+  /**
+   * Provide a URL for the done state to open in a new tab.
+   */
+  doneUrl?: string;
+};
+
+const defaultProps = {
+  doneText: t('Done'),
 };
 
 type ContentsState = {
@@ -47,6 +59,8 @@ type ContentsState = {
 };
 
 class ModalContents extends React.Component<ContentsProps, ContentsState> {
+  static defaultProps = defaultProps;
+
   state: ContentsState = {
     openedAt: Date.now(),
     current: 0,
@@ -74,7 +88,7 @@ class ModalContents extends React.Component<ContentsProps, ContentsState> {
   };
 
   render() {
-    const {Body, steps} = this.props;
+    const {Body, steps, doneText, doneUrl} = this.props;
     const {current} = this.state;
     const step = steps[current] !== undefined ? steps[current] : steps[steps.length - 1];
     const hasNext = steps[current + 1] !== undefined;
@@ -105,8 +119,13 @@ class ModalContents extends React.Component<ContentsProps, ContentsState> {
               </Button>
             )}
             {!hasNext && (
-              <Button data-test-id="complete-tour" onClick={this.handleClose}>
-                {t('All Done')}
+              <Button
+                external
+                href={doneUrl}
+                data-test-id="complete-tour"
+                onClick={this.handleClose}
+              >
+                {doneText}
               </Button>
             )}
           </ButtonBar>
@@ -122,15 +141,15 @@ type ChildProps = {
 };
 
 type Props = {
-  children: (childProps: ChildProps) => React.ReactNode;
-} & Pick<ContentsProps, 'steps' | 'onCloseModal' | 'onAdvance'>;
+  children: (props: ChildProps) => React.ReactNode;
+} & Pick<ContentsProps, 'steps' | 'onCloseModal' | 'onAdvance' | 'doneText' | 'doneUrl'>;
 
 function FeatureTourModal(props: Props) {
   const handleShow = () => {
     const modalProps = omit(props, ['children']);
     openModal(deps => <ModalContents {...deps} {...modalProps} />);
   };
-  return props.children({handleShow});
+  return <React.Fragment>{props.children({handleShow})}</React.Fragment>;
 }
 
 export default FeatureTourModal;
@@ -153,4 +172,18 @@ const StepCounter = styled(TourContent)`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.gray400};
   margin-bottom: 0;
+`;
+
+// Styled components that can be used to build tour content.
+export const TourText = styled('p')`
+  text-align: center;
+  margin: 0 ${space(3)};
+`;
+
+export const TourImage = styled('img')`
+  margin-top: ${space(4)};
+  /** override styles in less files */
+  box-shadow: none !important;
+  border: 0 !important;
+  border-radius: 0 !important;
 `;

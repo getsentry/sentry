@@ -22,11 +22,16 @@ const steps = [
 describe('FeatureTourModal', function() {
   let onAdvance, onCloseModal;
 
-  const createWrapper = () =>
+  const createWrapper = (props = {}) =>
     mountWithTheme(
       <React.Fragment>
         <GlobalModal />
-        <FeatureTourModal steps={steps} onAdvance={onAdvance} onCloseModal={onCloseModal}>
+        <FeatureTourModal
+          steps={steps}
+          onAdvance={onAdvance}
+          onCloseModal={onCloseModal}
+          {...props}
+        >
           {({handleShow}) => (
             <a href="#" onClick={handleShow} data-test-id="reveal">
               Open
@@ -39,7 +44,7 @@ describe('FeatureTourModal', function() {
   const showModal = async wrapper => {
     wrapper.find('[data-test-id="reveal"]').simulate('click');
     await tick();
-    await wrapper.update();
+    wrapper.update();
   };
 
   beforeEach(function() {
@@ -98,6 +103,21 @@ describe('FeatureTourModal', function() {
     wrapper.find('Button[data-test-id="complete-tour"]').simulate('click');
     expect(onAdvance).toHaveBeenCalledTimes(1);
     expect(onCloseModal).toHaveBeenCalledTimes(1);
+  });
+
+  it('last step shows doneText and uses doneUrl', async function() {
+    const props = {doneText: 'Finished', doneUrl: 'http://example.org'};
+    const wrapper = createWrapper(props);
+
+    await showModal(wrapper);
+
+    // Advance to the the last step.
+    wrapper.find('Button[data-test-id="next-step"]').simulate('click');
+
+    // Ensure button looks right
+    const button = wrapper.find('Button[data-test-id="complete-tour"]');
+    expect(button.text()).toEqual(props.doneText);
+    expect(button.props().href).toEqual(props.doneUrl);
   });
 
   it('close button dismisses modal', async function() {
