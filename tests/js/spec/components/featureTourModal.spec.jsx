@@ -121,6 +121,12 @@ describe('FeatureTourModal', function() {
     const button = wrapper.find('Button[data-test-id="complete-tour"]');
     expect(button.text()).toEqual(props.doneText);
     expect(button.props().href).toEqual(props.doneUrl);
+
+    // Click the done
+    button.simulate('click');
+    // Wait for the ModalStore action to propagate.
+    await tick();
+    expect(onCloseModal).toHaveBeenCalledTimes(1);
   });
 
   it('close button dismisses modal', async function() {
