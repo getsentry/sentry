@@ -174,6 +174,12 @@ class AbstractQueryExecutor:
                 "group_id",
             ]  # ensure stable sort within the same score
             referrer = "search"
+        print("meeowwwwwwwwwwwwmeeowwwwwwwwwwwwmeeowwwwwwwwwwwwmeeowwwwwwwwwwww")
+        print("conditions:", conditions)
+        print("filters:", filters)
+        print("aggregations:", aggregations)
+        print("selected_columns:", selected_columns)
+        print("meeowwwwwwwwwwwwmeeowwwwwwwwwwwwmeeowwwwwwwwwwwwmeeowwwwwwwwwwww")
 
         snuba_results = snuba.aliased_query(
             dataset=self.dataset,

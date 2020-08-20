@@ -660,27 +660,67 @@ class GroupSerializerSnuba(GroupSerializerBase):
         print("\nself.filters")
         pprint(self.filters)
 
-        snuba_filters={}
+        skip_snuba_fields = set(
+            [
+                "query",
+                "status",
+                "bookmarked_by",
+                "assigned_to",
+                "unassigned",
+                "subscribed_by",
+                "active_at",
+                "first_release",
+                "first_seen",
+            ]
+        )
+        snuba_filters = []
         if self.filters is not None:
-            snuba_filters = [convert_search_filter_to_snuba_query(search_filter) for search_filter in self.filters]
+            snuba_filters = [
+                convert_search_filter_to_snuba_query(search_filter)
+                for search_filter in self.filters
+                if search_filter.key.name not in skip_snuba_fields
+            ]
         print("converted filters:", snuba_filters)
 
         seen_data = tagstore.get_group_seen_values_for_environments(
             project_ids,
             group_ids,
-            self.environment_ids, 
+            self.environment_ids,
             query_filters=snuba_filters,
-            start=self.start, end=self.end,
+            start=self.start,
+            end=self.end,
         )
         print("\nseen_data")
         pprint(seen_data)
-        # print("\nseen_data.items()")
+        # pprint(seen_data)
+        print("\nseen_data.items()")
         # pprint(seen_data.items())
+        pprint(seen_data["data"])
+        # pprint(seen_data["data"][0])
+        # pprint(seen_data["data"][0]["last_seen"])
+        last_seen = {}
 
-        last_seen = {item_id: value["last_seen"] for item_id, value in seen_data.items()}
+        # for data in seen_data["data"]:
+        # last_seen.update({data["group_id"]:data["last_seen"]})
+        #     if type(value) is list and value["last_seen"]:
+        #         last_seen.update({item_id: value["last_seen"]})
+        #         print("itemid:",item_id)
+        #         print("value:",value)
+        #         print("value[last_seen]:",value["last_seen"])
 
-        # print("\nlast_seen")
-        # pprint(last_seen)
+        last_seen = {data["group_id"]: data["last_seen"] for data in seen_data["data"]}
+        seen_data = {
+            data["group_id"]: {
+                "last_seen": data["last_seen"],
+                "times_seen": data["times_seen"],
+                "first_seen": data["first_seen"],
+            }
+            for data in seen_data["data"]
+        }
+        # {item_id: value["last_seen"] for item_id, value in seen_data.items()}
+
+        print("\nlast_seen")
+        pprint(last_seen)
 
         # psql stuff here is all global we wanna fetch from snuba instead
         # print("\nitem_list")

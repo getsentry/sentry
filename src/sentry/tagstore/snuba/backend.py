@@ -451,7 +451,14 @@ class SnubaTagStorage(TagStorage):
         print("\nfilters 2")
         pprint(filters)
 
-        result = snuba.query(
+        conditions = query_filters
+
+        print("conditions:", conditions)
+        print("filters:", filters)
+
+        result = snuba.aliased_query(
+            dataset=snuba.Dataset.Events,
+            # result = snuba.query(
             start=start,
             end=end,
             groupby=["group_id"],
