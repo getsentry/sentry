@@ -50,7 +50,6 @@ def test_get_json_meta_type():
     assert get_json_meta_type("p100", "Float32") == "duration"
     assert get_json_meta_type("apdex_transaction_duration_300", "Float32") == "number"
     assert get_json_meta_type("failure_rate", "Float32") == "percentage"
-    assert get_json_meta_type("impact_300", "Float32") == "number"
     assert get_json_meta_type("user_misery_300", "Float32") == "number"
     assert get_json_meta_type("percentile_transaction_duration_0_95", "Float32") == "duration"
     assert get_json_meta_type("count_thing", "UInt64") == "integer"
@@ -1142,173 +1141,6 @@ class ParseBooleanSearchQueryTest(TestCase):
             == "Having an OR between aggregate filters and normal filters is invalid."
         )
 
-    def test_user_alias_in_conditions(self):
-        def _ueq(k, v):
-            return ["equals", ["user.{}".format(k), "{}@example.com".format(v)]]
-
-        def _uneq(k, v):
-            return _or(
-                ["equals", [["isNull", ["user.{}".format(k)]], 1]],
-                ["notEquals", ["user.{}".format(k), "{}@example.com".format(v)]],
-            )
-
-        tests = [
-            (
-                "user:foo@example.com OR user:bar@example.com",
-                [
-                    [
-                        _or(
-                            _or(
-                                _ueq("email", "foo"),
-                                _or(
-                                    _ueq("username", "foo"),
-                                    _or(_ueq("ip", "foo"), _ueq("id", "foo")),
-                                ),
-                            ),
-                            _or(
-                                _ueq("email", "bar"),
-                                _or(
-                                    _ueq("username", "bar"),
-                                    _or(_ueq("ip", "bar"), _ueq("id", "bar")),
-                                ),
-                            ),
-                        ),
-                        "=",
-                        1,
-                    ]
-                ],
-            ),
-            (
-                "user:foo@example.com AND user:bar@example.com",
-                [
-                    [
-                        _or(
-                            _ueq("email", "foo"),
-                            _or(
-                                _ueq("username", "foo"), _or(_ueq("ip", "foo"), _ueq("id", "foo")),
-                            ),
-                        ),
-                        "=",
-                        1,
-                    ],
-                    [
-                        _or(
-                            _ueq("email", "bar"),
-                            _or(
-                                _ueq("username", "bar"), _or(_ueq("ip", "bar"), _ueq("id", "bar")),
-                            ),
-                        ),
-                        "=",
-                        1,
-                    ],
-                ],
-            ),
-            (
-                "(user:foo@example.com OR user:bar@example.com) a:b",
-                [
-                    [
-                        _or(
-                            _or(
-                                _ueq("email", "foo"),
-                                _or(
-                                    _ueq("username", "foo"),
-                                    _or(_ueq("ip", "foo"), _ueq("id", "foo")),
-                                ),
-                            ),
-                            _or(
-                                _ueq("email", "bar"),
-                                _or(
-                                    _ueq("username", "bar"),
-                                    _or(_ueq("ip", "bar"), _ueq("id", "bar")),
-                                ),
-                            ),
-                        ),
-                        "=",
-                        1,
-                    ],
-                    _oeq("ab"),
-                ],
-            ),
-            (
-                "!user:foo@example.com OR !user:bar@example.com",
-                [
-                    [
-                        _or(
-                            _and(
-                                _uneq("email", "foo"),
-                                _and(
-                                    _uneq("username", "foo"),
-                                    _and(_uneq("ip", "foo"), _uneq("id", "foo")),
-                                ),
-                            ),
-                            _and(
-                                _uneq("email", "bar"),
-                                _and(
-                                    _uneq("username", "bar"),
-                                    _and(_uneq("ip", "bar"), _uneq("id", "bar")),
-                                ),
-                            ),
-                        ),
-                        "=",
-                        1,
-                    ]
-                ],
-            ),
-            (
-                "!user:foo@example.com AND !user:bar@example.com",
-                [
-                    [_uneq("email", "foo"), "=", 1],
-                    [_uneq("email", "bar"), "=", 1],
-                    [_uneq("username", "foo"), "=", 1],
-                    [_uneq("username", "bar"), "=", 1],
-                    [_uneq("ip", "foo"), "=", 1],
-                    [_uneq("id", "foo"), "=", 1],
-                    [_uneq("ip", "bar"), "=", 1],
-                    [_uneq("id", "bar"), "=", 1],
-                ],
-            ),
-            (
-                "(user:foo@example.com OR !user:bar@example.com) AND user:foobar@example.com ",
-                [
-                    [
-                        _or(
-                            _or(
-                                _ueq("email", "foo"),
-                                _or(
-                                    _ueq("username", "foo"),
-                                    _or(_ueq("ip", "foo"), _ueq("id", "foo")),
-                                ),
-                            ),
-                            _and(
-                                _uneq("email", "bar"),
-                                _and(
-                                    _uneq("username", "bar"),
-                                    _and(_uneq("ip", "bar"), _uneq("id", "bar"),),
-                                ),
-                            ),
-                        ),
-                        "=",
-                        1,
-                    ],
-                    [
-                        _or(
-                            _ueq("email", "foobar"),
-                            _or(
-                                _ueq("username", "foobar"),
-                                _or(_ueq("ip", "foobar"), _ueq("id", "foobar")),
-                            ),
-                        ),
-                        "=",
-                        1,
-                    ],
-                ],
-            ),
-        ]
-
-        for test in tests:
-            result = get_filter(test[0])
-            assert test[1] == result.conditions, "cond: " + test[0]
-
     def test_project_in_condition_filters(self):
         project1 = self.create_project()
         project2 = self.create_project()
@@ -1694,6 +1526,47 @@ class GetSnubaQueryArgsTest(TestCase):
         assert _filter.filter_keys == {}
         assert _filter.group_ids == []
 
+    def test_user_display_filter(self):
+        _filter = get_filter(
+            "user.display:bill@example.com", {"organization_id": self.organization.id}
+        )
+        assert _filter.conditions == [
+            [["coalesce", ["user.email", "user.username", "user.ip"]], "=", "bill@example.com"]
+        ]
+        assert _filter.filter_keys == {}
+        assert _filter.group_ids == []
+
+    def test_user_display_wildcard(self):
+        _filter = get_filter("user.display:jill*", {"organization_id": self.organization.id})
+        assert _filter.conditions == [
+            [
+                [
+                    "match",
+                    [["coalesce", ["user.email", "user.username", "user.ip"]], "'(?i)^jill.*$'"],
+                ],
+                "=",
+                1,
+            ]
+        ]
+        assert _filter.filter_keys == {}
+        assert _filter.group_ids == []
+
+    def test_has_user_display(self):
+        _filter = get_filter("has:user.display", {"organization_id": self.organization.id})
+        assert _filter.conditions == [
+            [["isNull", [["coalesce", ["user.email", "user.username", "user.ip"]]]], "!=", 1]
+        ]
+        assert _filter.filter_keys == {}
+        assert _filter.group_ids == []
+
+    def test_not_has_user_display(self):
+        _filter = get_filter("!has:user.display", {"organization_id": self.organization.id})
+        assert _filter.conditions == [
+            [["isNull", [["coalesce", ["user.email", "user.username", "user.ip"]]]], "=", 1]
+        ]
+        assert _filter.filter_keys == {}
+        assert _filter.group_ids == []
+
     def test_environment_param(self):
         params = {"environment": ["", "prod"]}
         _filter = get_filter("", params)
@@ -1776,25 +1649,6 @@ class GetSnubaQueryArgsTest(TestCase):
             get_filter("transaction.status:lol")
         assert "Invalid value" in six.text_type(err)
         assert "cancelled," in six.text_type(err)
-
-    def test_general_user_field(self):
-        conditions = get_filter("user:123").conditions
-        assert len(conditions) == 1
-        assert ["user.id", "=", "123"] in conditions[0]
-        assert ["user.username", "=", "123"] in conditions[0]
-        assert ["user.email", "=", "123"] in conditions[0]
-        assert ["user.ip", "=", "123"] in conditions[0]
-
-    def test_general_negative_user_field(self):
-        conditions = get_filter("!user:123").conditions
-        assert len(conditions) == 4
-        assert [[["isNull", ["user.email"]], "=", 1], ["user.email", "!=", "123"]] == conditions[0]
-        assert [
-            [["isNull", ["user.username"]], "=", 1],
-            ["user.username", "!=", "123"],
-        ] == conditions[1]
-        assert [[["isNull", ["user.ip"]], "=", 1], ["user.ip", "!=", "123"]] == conditions[2]
-        assert [[["isNull", ["user.id"]], "=", 1], ["user.id", "!=", "123"]] == conditions[3]
 
     def test_function_negation(self):
         result = get_filter("!p95():5s")
@@ -1902,7 +1756,6 @@ class ResolveFieldListTest(unittest.TestCase):
             "latest_event()",
             "last_seen()",
             "apdex(300)",
-            "impact(300)",
             "user_misery(300)",
             "percentile(transaction.duration, 0.75)",
             "percentile(transaction.duration, 0.95)",
@@ -1919,11 +1772,6 @@ class ResolveFieldListTest(unittest.TestCase):
             ["argMax", ["id", "timestamp"], "latest_event"],
             ["max", "timestamp", "last_seen"],
             ["apdex(duration, 300)", None, "apdex_300"],
-            [
-                "plus(minus(1, divide(plus(countIf(less(duration, 300)),divide(countIf(and(greater(duration, 300),less(duration, 1200))),2)),count())),multiply(minus(1,divide(1,sqrt(uniq(user)))),3))",
-                None,
-                "impact_300",
-            ],
             ["uniqIf(user, greater(duration, 1200))", None, "user_misery_300"],
             ["quantile(0.75)", "transaction.duration", "percentile_transaction_duration_0_75"],
             ["quantile(0.95)", "transaction.duration", "percentile_transaction_duration_0_95"],
@@ -1939,15 +1787,20 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["groupby"] == []
 
     def test_field_alias_expansion(self):
-        fields = ["title", "last_seen()", "latest_event()", "project", "issue", "user", "message"]
+        fields = [
+            "title",
+            "last_seen()",
+            "latest_event()",
+            "project",
+            "issue",
+            "user.display",
+            "message",
+        ]
         result = resolve_field_list(fields, eventstore.Filter())
         assert result["selected_columns"] == [
             "title",
             "issue.id",
-            "user.email",
-            "user.username",
-            "user.ip",
-            "user.id",
+            ["coalesce", ["user.email", "user.username", "user.ip"], "user.display"],
             "message",
             "project.id",
             [
@@ -1963,10 +1816,7 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["groupby"] == [
             "title",
             "issue.id",
-            "user.email",
-            "user.username",
-            "user.ip",
-            "user.id",
+            "user.display",
             "message",
             "project.id",
         ]
@@ -1980,6 +1830,16 @@ class ResolveFieldListTest(unittest.TestCase):
             ["uniq", "user", "count_unique_user"],
             ["count", None, "count_id"],
             ["min", "timestamp", "min_timestamp"],
+        ]
+        assert result["groupby"] == []
+
+    @pytest.mark.xfail(reason="functions need to handle non string column replacements")
+    def test_aggregate_function_complex_field_expansion(self):
+        fields = ["count_unique(user.display)"]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["selected_columns"] == []
+        assert result["aggregations"] == [
+            ["uniq", ["coalesce", ["user.email", "user.username", "user.ip"]], "count_unique_user"],
         ]
         assert result["groupby"] == []
 
@@ -2274,5 +2134,22 @@ class ResolveFieldListTest(unittest.TestCase):
             ],
         ]
         assert result["orderby"] == ["-project"]
+        assert result["aggregations"] == []
+        assert result["groupby"] == []
+
+    def test_orderby_user_display_alias(self):
+        fields = ["user.display"]
+        result = resolve_field_list(fields, eventstore.Filter(orderby="-user.display"))
+        assert result["selected_columns"] == [
+            ["coalesce", ["user.email", "user.username", "user.ip"], "user.display"],
+            "id",
+            "project.id",
+            [
+                "transform",
+                [["toString", ["project_id"]], ["array", []], ["array", []], "''"],
+                "`project.name`",
+            ],
+        ]
+        assert result["orderby"] == ["-user.display"]
         assert result["aggregations"] == []
         assert result["groupby"] == []

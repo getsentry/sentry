@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {shallow, mountWithTheme} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import App from 'app/views/app';
 import ProjectTeams from 'app/views/settings/project/projectTeams';
@@ -48,7 +48,7 @@ describe('ProjectTeams', function() {
   });
 
   it('renders', async function() {
-    const wrapper = shallow(
+    const wrapper = mountWithTheme(
       <ProjectTeams
         params={{orgId: org.slug, projectId: project.slug}}
         organization={org}
@@ -58,7 +58,7 @@ describe('ProjectTeams', function() {
     // Wait for team list to fetch.
     await wrapper.update();
 
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
   it('can remove a team from project', async function() {

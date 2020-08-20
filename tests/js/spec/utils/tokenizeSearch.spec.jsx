@@ -328,6 +328,11 @@ describe('utils/tokenizeSearch', function() {
         string: 'bad things repository_id:"UUID(\'long-value\')"',
       },
       {
+        name: 'should quote tags with colon',
+        object: new QueryResults(['bad', 'things', 'user:"id:123"']),
+        string: 'bad things user:"id:123"',
+      },
+      {
         name: 'should escape quote tags with double quotes',
         object: new QueryResults(['bad', 'things', 'name:"Ernest \\"Papa\\" Hemingway"']),
         string: 'bad things name:"Ernest \\"Papa\\" Hemingway"',

@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import json
 import logging
 
 from django.http import HttpResponse
@@ -11,6 +10,7 @@ from six.moves.urllib.parse import urlencode
 from sentry.api.base import Endpoint, allow_cors_options
 from sentry.constants import ObjectStatus
 from sentry.models import Integration, Organization, OrganizationIntegration, OrganizationStatus
+from sentry.utils import json
 from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
 
@@ -73,7 +73,7 @@ class VercelUIHook(Endpoint):
         connect_projects_link = absolute_uri(
             u"/settings/%s/integrations/vercel/%s/" % (organization.slug, integration.id)
         )
-        doc_link = "https://docs.sentry.io/workflow/integrations/global-integrations/#vercel"
+        doc_link = "https://docs.sentry.io/product/integrations/vercel/"
         source_code_link = absolute_uri(
             u"/settings/%s/integrations/?%s"
             % (organization.slug, urlencode({"category": "source code management"}))

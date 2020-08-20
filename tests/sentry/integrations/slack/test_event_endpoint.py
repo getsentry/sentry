@@ -1,11 +1,10 @@
 from __future__ import absolute_import
 
-import json
-
 import responses
 from six.moves.urllib.parse import parse_qsl
 
 from sentry import options
+from sentry.utils import json
 from sentry.integrations.slack.utils import build_group_attachment, build_incident_attachment
 from sentry.models import Integration, OrganizationIntegration
 from sentry.testutils import APITestCase

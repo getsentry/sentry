@@ -42,9 +42,13 @@ class CanonicalKeyViewTests(unittest.TestCase):
         assert len(CanonicalKeyView(self.mixed_data)) == 3
 
     def test_iter(self):
-        assert CanonicalKeyView(self.canonical_data).keys() == ["release", "exception", "user"]
-        assert CanonicalKeyView(self.legacy_data).keys() == ["release", "exception", "user"]
-        assert CanonicalKeyView(self.mixed_data).keys() == ["release", "exception", "user"]
+        assert list(CanonicalKeyView(self.canonical_data).keys()) == [
+            "release",
+            "exception",
+            "user",
+        ]
+        assert list(CanonicalKeyView(self.legacy_data).keys()) == ["release", "exception", "user"]
+        assert list(CanonicalKeyView(self.mixed_data).keys()) == ["release", "exception", "user"]
 
     def test_contains(self):
         assert "user" in CanonicalKeyView(self.canonical_data)
@@ -216,7 +220,7 @@ class DoubleAliasingTests(unittest.TestCase):
     def test_canonical(self):
         view = CanonicalKeyView({"logentry": "foo"})
         assert len(view) == 1
-        assert view.keys() == ["logentry"]
+        assert list(view.keys()) == ["logentry"]
 
         assert "logentry" in view
         assert "sentry.interfaces.Message" in view
@@ -229,7 +233,7 @@ class DoubleAliasingTests(unittest.TestCase):
     def test_legacy_first(self):
         view = CanonicalKeyView({"sentry.interfaces.Message": "foo"})
         assert len(view) == 1
-        assert view.keys() == ["logentry"]
+        assert list(view.keys()) == ["logentry"]
 
         assert "logentry" in view
         assert "sentry.interfaces.Message" in view
@@ -242,7 +246,7 @@ class DoubleAliasingTests(unittest.TestCase):
     def test_legacy_second(self):
         view = CanonicalKeyView({"message": "foo"})
         assert len(view) == 1
-        assert view.keys() == ["logentry"]
+        assert list(view.keys()) == ["logentry"]
 
         assert "logentry" in view
         assert "sentry.interfaces.Message" in view
@@ -255,7 +259,7 @@ class DoubleAliasingTests(unittest.TestCase):
     def test_override(self):
         view = CanonicalKeyView({"logentry": "foo", "sentry.interfaces.Message": "bar"})
         assert len(view) == 1
-        assert view.keys() == ["logentry"]
+        assert list(view.keys()) == ["logentry"]
 
         assert "logentry" in view
         assert "sentry.interfaces.Message" in view
@@ -268,7 +272,7 @@ class DoubleAliasingTests(unittest.TestCase):
     def test_two_legacy(self):
         view = CanonicalKeyView({"message": "bar", "sentry.interfaces.Message": "foo"})
         assert len(view) == 1
-        assert view.keys() == ["logentry"]
+        assert list(view.keys()) == ["logentry"]
 
         assert "logentry" in view
         assert "sentry.interfaces.Message" in view

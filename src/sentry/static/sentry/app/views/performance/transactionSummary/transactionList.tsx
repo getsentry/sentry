@@ -28,9 +28,11 @@ import {
   TOP_TRANSACTION_LIMIT,
   TOP_TRANSACTION_FILTERS,
 } from 'app/views/performance/constants';
+import {getHumanDuration} from 'app/components/events/interfaces/spans/utils';
 
 import {GridCell, GridCellNumber} from '../styles';
-import {getTransactionDetailsUrl} from '../utils';
+import {getTransactionDetailsUrl, getTransactionComparisonUrl} from '../utils';
+import BaselineQuery, {BaselineQueryResults} from './baselineQuery';
 
 type WrapperProps = {
   eventView: EventView;
@@ -72,8 +74,64 @@ class TransactionList extends React.Component<WrapperProps> {
     });
   };
 
-  render() {
+  renderTable(sortedEventView: EventView) {
     const {eventView, location, organization, transactionName} = this.props;
+
+    if (!organization.features.includes('internal-catchall')) {
+      return (
+        <DiscoverQuery
+          location={location}
+          eventView={sortedEventView}
+          orgSlug={organization.slug}
+          limit={TOP_TRANSACTION_LIMIT}
+        >
+          {({isLoading, tableData}) => (
+            <TransactionTable
+              organization={organization}
+              location={location}
+              transactionName={transactionName}
+              eventView={eventView}
+              tableData={tableData}
+              isLoading={isLoading}
+              baselineTransaction={null}
+            />
+          )}
+        </DiscoverQuery>
+      );
+    }
+
+    return (
+      <DiscoverQuery
+        location={location}
+        eventView={sortedEventView}
+        orgSlug={organization.slug}
+        limit={TOP_TRANSACTION_LIMIT}
+      >
+        {({isLoading, tableData}) => (
+          <React.Fragment>
+            <BaselineQuery eventView={sortedEventView} orgSlug={organization.slug}>
+              {baselineQueryProps => {
+                return (
+                  <TransactionTable
+                    organization={organization}
+                    location={location}
+                    transactionName={transactionName}
+                    eventView={eventView}
+                    tableData={tableData}
+                    isLoading={isLoading || baselineQueryProps.isLoading}
+                    baselineTransaction={baselineQueryProps.results}
+                  />
+                );
+              }}
+            </BaselineQuery>
+          </React.Fragment>
+        )}
+      </DiscoverQuery>
+    );
+  }
+
+  render() {
+    const {eventView, location, organization} = this.props;
     const activeFilter = this.getTransactionSort(location);
     const sortedEventView = eventView.withSorts([activeFilter.sort]);
 
@@ -107,23 +165,7 @@ class TransactionList extends React.Component<WrapperProps> {
             </DiscoverButton>
           </HeaderButtonContainer>
         </Header>
-        <DiscoverQuery
-          location={location}
-          eventView={sortedEventView}
-          orgSlug={organization.slug}
-          limit={TOP_TRANSACTION_LIMIT}
-        >
-          {({isLoading, tableData}) => (
-            <TransactionTable
-              organization={organization}
-              location={location}
-              transactionName={transactionName}
-              eventView={eventView}
-              tableData={tableData}
-              isLoading={isLoading}
-            />
-          )}
-        </DiscoverQuery>
+        {this.renderTable(sortedEventView)}
       </React.Fragment>
     );
   }
@@ -134,6 +176,7 @@ type Props = {
   location: Location;
   organization: Organization;
   transactionName: string;
+  baselineTransaction: BaselineQueryResults | null;
 
   isLoading: boolean;
   tableData: TableData | null | undefined;
@@ -175,20 +218,21 @@ class TransactionTable extends React.PureComponent<Props> {
   };
 
   renderHeader() {
-    const {eventView, tableData} = this.props;
+    const {eventView, tableData, organization} = this.props;
 
     const tableMeta = tableData?.meta;
     const columnOrder = eventView.getColumns();
     const generateSortLink = () => undefined;
+    const titles = [t('id'), t('user'), t('duration'), t('timestamp')];
 
-    return columnOrder.map((column, index) => (
-      <HeaderCell column={column} tableMeta={tableMeta} key={index}>
+    const headerColumns = titles.map((title, index) => (
+      <HeaderCell column={columnOrder[index]} tableMeta={tableMeta} key={index}>
         {({align}) => {
           return (
             <HeadCellContainer>
               <SortLink
                 align={align}
-                title={column.name}
+                title={title}
                 direction={undefined}
                 canSort={false}
                 generateSortLink={generateSortLink}
@@ -198,6 +242,24 @@ class TransactionTable extends React.PureComponent<Props> {
         }}
       </HeaderCell>
     ));
+
+    // add baseline transaction column
+
+    if (organization.features.includes('internal-catchall')) {
+      headerColumns.push(
+        <HeadCellContainer key="baseline">
+          <SortLink
+            align="right"
+            title={t('Compared to Baseline')}
+            direction={undefined}
+            canSort={false}
+            generateSortLink={generateSortLink}
+          />
+        </HeadCellContainer>
+      );
+    }
+
+    return headerColumns;
   }
 
   renderResults() {
@@ -229,9 +291,9 @@ class TransactionTable extends React.PureComponent<Props> {
     columnOrder: TableColumn<React.ReactText>[],
     tableMeta: MetaType
   ) {
-    const {organization, location, transactionName} = this.props;
+    const {organization, location, transactionName, baselineTransaction} = this.props;
 
-    return columnOrder.map((column, index) => {
+    const resultsRow = columnOrder.map((column, index) => {
       const field = String(column.key);
       // TODO add a better abstraction for this in fieldRenderers.
       const fieldName = getAggregateAlias(field);
@@ -282,6 +344,50 @@ class TransactionTable extends React.PureComponent<Props> {
         </BodyCellContainer>
       );
     });
+
+    // add baseline transaction column
+
+    if (organization.features.includes('internal-catchall')) {
+      if (baselineTransaction) {
+        const currentTransactionDuration: number =
+          Number(row['transaction.duration']) || 0;
+
+        const delta = Math.abs(
+          currentTransactionDuration - baselineTransaction['transaction.duration']
+        );
+
+        const relativeSpeed =
+          currentTransactionDuration < baselineTransaction['transaction.duration']
+            ? t('faster')
+            : currentTransactionDuration > baselineTransaction['transaction.duration']
+            ? t('slower')
+            : '';
+
+        const target = getTransactionComparisonUrl({
+          organization,
+          baselineEventSlug: generateEventSlug(baselineTransaction),
+          regressionEventSlug: generateEventSlug(row),
+          transaction: transactionName,
+          query: location.query,
+        });
+
+        resultsRow.push(
+          <BodyCellContainer key={`${rowIndex}-baseline`} style={{textAlign: 'right'}}>
+            <GridCell>
+              <Link to={target} onClick={this.handleViewDetailsClick}>
+                {`${getHumanDuration(delta / 1000)} ${relativeSpeed}`}
+              </Link>
+            </GridCell>
+          </BodyCellContainer>
+        );
+      } else {
+        resultsRow.push(
+          <BodyCellContainer key={`${rowIndex}-baseline`}>-</BodyCellContainer>
+        );
+      }
+    }
+
+    return resultsRow;
   }
 
   render() {

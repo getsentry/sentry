@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import six
-import pytest
 import random
 import mock
 
@@ -365,17 +364,23 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             "username": "foo",
         }
         self.store_event(data, project_id=project.id)
-
+        fields = {
+            "email": "user.email",
+            "id": "user.id",
+            "ip_address": "user.ip",
+            "username": "user.username",
+        }
         with self.feature(
             {"organizations:discover-basic": True, "organizations:global-views": True}
         ):
-            for value in data["user"].values():
+            for key, value in data["user"].items():
+                field = fields[key]
                 response = self.client.get(
                     self.url,
                     format="json",
                     data={
                         "field": ["project", "user"],
-                        "query": "user:{}".format(value),
+                        "query": "{}:{}".format(field, value),
                         "statsPeriod": "14d",
                     },
                 )
@@ -383,7 +388,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 assert response.status_code == 200, response.content
                 assert len(response.data["data"]) == 1
                 assert response.data["data"][0]["project"] == project.slug
-                assert response.data["data"][0]["user"] == data["user"]["email"]
+                assert response.data["data"][0]["user"] == "id:123"
 
     def test_has_user(self):
         self.login_as(user=self.user)
@@ -404,7 +409,9 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
                 assert response.status_code == 200, response.content
                 assert len(response.data["data"]) == 1
-                assert response.data["data"][0]["user"] == data["user"]["ip_address"]
+                assert response.data["data"][0]["user"] == "ip:{}".format(
+                    data["user"]["ip_address"]
+                )
 
     def test_has_issue(self):
         self.login_as(user=self.user)
@@ -449,14 +456,13 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         project = self.create_project()
         user_data = {"email": "foo@example.com", "id": "123", "username": "foo"}
 
-        # Load events with data that shouldn't match
-        for key in user_data:
-            data = load_data("transaction", timestamp=before_now(minutes=1))
-            data["transaction"] = "/transactions/{}".format(key)
-            event_data = user_data.copy()
-            event_data[key] = "undefined"
-            data["user"] = event_data
-            self.store_event(data, project_id=project.id)
+        # Load an event with data that shouldn't match
+        data = load_data("transaction", timestamp=before_now(minutes=1))
+        data["transaction"] = "/transactions/nomatch"
+        event_user = user_data.copy()
+        event_user["id"] = "undefined"
+        data["user"] = event_user
+        self.store_event(data, project_id=project.id)
 
         # Load a matching event
         data = load_data("transaction", timestamp=before_now(minutes=1))
@@ -472,15 +478,16 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 format="json",
                 data={
                     "field": ["project", "user"],
-                    "query": "!user:undefined",
+                    "query": '!user:"id:undefined"',
                     "statsPeriod": "14d",
                 },
             )
 
             assert response.status_code == 200, response.content
             assert len(response.data["data"]) == 1
-            assert response.data["data"][0]["user"] == user_data["email"]
+            assert response.data["data"][0]["user"] == "id:{}".format(user_data["id"])
             assert "user.email" not in response.data["data"][0]
+            assert "user.id" not in response.data["data"][0]
 
     def test_not_project_in_query(self):
         self.login_as(user=self.user)
@@ -1190,46 +1197,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["transaction"] == event1.transaction
         assert data[0]["percentile_transaction_duration_0_95"] == 5000
 
-    def test_rpm_function(self):
-        self.login_as(user=self.user)
-        project = self.create_project()
-
-        data = load_data(
-            "transaction",
-            timestamp=before_now(minutes=1),
-            start_timestamp=before_now(minutes=1, seconds=5),
-        )
-        data["transaction"] = "/aggregates/1"
-        event1 = self.store_event(data, project_id=project.id)
-
-        data = load_data(
-            "transaction",
-            timestamp=before_now(minutes=1),
-            start_timestamp=before_now(minutes=1, seconds=3),
-        )
-        data["transaction"] = "/aggregates/2"
-        event2 = self.store_event(data, project_id=project.id)
-
-        with self.feature("organizations:discover-basic"):
-            response = self.client.get(
-                self.url,
-                format="json",
-                data={
-                    "field": ["transaction", "rpm()"],
-                    "query": "event.type:transaction",
-                    "orderby": ["transaction"],
-                    "statsPeriod": "2m",
-                },
-            )
-
-        assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 2
-        data = response.data["data"]
-        assert data[0]["transaction"] == event1.transaction
-        assert data[0]["rpm"] == 0.5
-        assert data[1]["transaction"] == event2.transaction
-        assert data[1]["rpm"] == 0.5
-
     def test_epm_function(self):
         self.login_as(user=self.user)
         project = self.create_project()
@@ -1790,6 +1757,51 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             assert data[0]["count_unique_project_id"] == 2
             assert data[0]["count_unique_project"] == 2
 
+    def test_user_display(self):
+        self.login_as(user=self.user)
+
+        project1 = self.create_project()
+        project2 = self.create_project()
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "transaction": "/example",
+                "message": "how to make fast",
+                "timestamp": self.two_min_ago,
+                "user": {"email": "cathy@example.com"},
+            },
+            project_id=project1.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "transaction": "/example",
+                "message": "how to make fast",
+                "timestamp": self.two_min_ago,
+                "user": {"username": "catherine"},
+            },
+            project_id=project2.id,
+        )
+
+        with self.feature(
+            {"organizations:discover-basic": True, "organizations:global-views": True}
+        ):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "field": ["event.type", "user.display"],
+                    "query": "user.display:cath*",
+                    "statsPeriod": "24h",
+                },
+            )
+
+            assert response.status_code == 200, response.content
+            data = response.data["data"]
+            assert len(data) == 2
+            result = set([r["user.display"] for r in data])
+            assert result == set(["catherine", "cathy@example.com"])
+
     def test_has_transaction_status(self):
         self.login_as(user=self.user)
 
@@ -1953,7 +1965,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                         "p100()",
                         "percentile(transaction.duration, 0.99)",
                         "apdex(300)",
-                        "impact(300)",
                         "user_misery(300)",
                         "failure_rate()",
                     ],
@@ -1971,7 +1982,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             assert meta["percentile_transaction_duration_0_99"] == "duration"
             assert meta["apdex_300"] == "number"
             assert meta["failure_rate"] == "percentage"
-            assert meta["impact_300"] == "number"
             assert meta["user_misery_300"] == "number"
 
             data = response.data["data"]
@@ -1983,7 +1993,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             assert data[0]["p100"] == 5000
             assert data[0]["percentile_transaction_duration_0_99"] == 5000
             assert data[0]["apdex_300"] == 0.0
-            assert data[0]["impact_300"] == 1.0
             assert data[0]["user_misery_300"] == 1
             assert data[0]["failure_rate"] == 0.5
 
@@ -1994,7 +2003,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 self.url,
                 format="json",
                 data={
-                    "field": ["event.type", "last_seen", "latest_event()"],
+                    "field": ["event.type", "last_seen()", "latest_event()"],
                     "query": "event.type:transaction",
                 },
             )
@@ -2093,16 +2102,16 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 self.url,
                 format="json",
                 data={
-                    "field": ["event.type", "apdex()", "impact()", "failure_rate()"],
-                    "query": "event.type:transaction apdex:>-1.0 impact():>0.5 failure_rate():>0.25",
+                    "field": ["event.type", "apdex(300)", "user_misery(300)", "failure_rate()"],
+                    "query": "event.type:transaction apdex(300):>-1.0 failure_rate():>0.25",
                 },
             )
 
             assert response.status_code == 200, response.content
             data = response.data["data"]
             assert len(data) == 1
-            assert data[0]["apdex"] == 0.0
-            assert data[0]["impact"] == 1.0
+            assert data[0]["apdex_300"] == 0.0
+            assert data[0]["user_misery_300"] == 1
             assert data[0]["failure_rate"] == 0.5
 
         with self.feature(
@@ -2112,8 +2121,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 self.url,
                 format="json",
                 data={
-                    "field": ["event.type", "last_seen", "latest_event()"],
-                    "query": u"event.type:transaction last_seen:>1990-12-01T00:00:00",
+                    "field": ["event.type", "last_seen()", "latest_event()"],
+                    "query": u"event.type:transaction last_seen():>1990-12-01T00:00:00",
                 },
             )
 
@@ -2211,7 +2220,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 self.url,
                 format="json",
                 data={
-                    "field": ["event.type", "p75"],
+                    "field": ["event.type", "p75()"],
                     "sort": "-p75",
                     "query": "event.type:transaction",
                 },
@@ -2557,24 +2566,26 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         data = response.data["data"]
         assert len(data) == 0
 
-    def test_context_fields(self):
+    def test_context_fields_between_datasets(self):
         self.login_as(user=self.user)
         project = self.create_project()
-        data = load_data("android")
+        event_data = load_data("android")
         transaction_data = load_data("transaction")
-        data["spans"] = transaction_data["spans"]
-        data["contexts"]["trace"] = transaction_data["contexts"]["trace"]
-        data["type"] = "transaction"
-        data["transaction"] = "/failure_rate/1"
-        data["timestamp"] = iso_format(before_now(minutes=1))
-        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
-        data["user"]["geo"] = {"country_code": "US", "region": "CA", "city": "San Francisco"}
-        data["contexts"]["http"] = {
+        event_data["spans"] = transaction_data["spans"]
+        event_data["contexts"]["trace"] = transaction_data["contexts"]["trace"]
+        event_data["type"] = "transaction"
+        event_data["transaction"] = "/failure_rate/1"
+        event_data["timestamp"] = iso_format(before_now(minutes=1))
+        event_data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
+        event_data["user"]["geo"] = {"country_code": "US", "region": "CA", "city": "San Francisco"}
+        event_data["contexts"]["http"] = {
             "method": "GET",
             "referer": "something.something",
             "url": "https://areyouasimulation.com",
         }
-        self.store_event(data, project_id=project.id)
+        self.store_event(event_data, project_id=project.id)
+        event_data["type"] = "error"
+        self.store_event(event_data, project_id=project.id)
 
         fields = [
             "http.method",
@@ -2595,99 +2606,24 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             "device.uuid",
         ]
 
-        with self.feature("organizations:discover-basic"):
-            response = self.client.get(
-                self.url,
-                format="json",
-                data={"field": fields + ["count()"], "query": "event.type:transaction"},
-            )
-
-        assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 1
-        results = response.data["data"]
-
-        for field in fields:
-            key, value = field.split(".", 1)
-            expected = data["contexts"][key][value]
-
-            # TODO (evanh) There is a bug in snuba right now where if a promoted column is used for a boolean
-            # value, it returns "1" or "0" instead of "True" and "False" (not that those make more sense)
-            if expected in (True, False):
-                expected = six.text_type(expected)
-            # All context columns are treated as strings, regardless of the type of data they stored.
-            elif isinstance(expected, six.integer_types):
-                expected = "{:.1f}".format(expected)
-
-            assert results[0][field] == expected
-        assert results[0]["count"] == 1
-
-    @pytest.mark.xfail(reason="these fields behave differently between the types of events")
-    def test_context_fields_in_errors(self):
-        self.login_as(user=self.user)
-        project = self.create_project()
-        data = load_data("android")
-        transaction_data = load_data(
-            "transaction",
-            timestamp=before_now(minutes=1),
-            start_timestamp=before_now(minutes=1, seconds=5),
-        )
-        data["spans"] = transaction_data["spans"]
-        data["contexts"]["trace"] = transaction_data["contexts"]["trace"]
-        data["type"] = "error"
-        data["transaction"] = "/failure_rate/1"
-        data["user"]["geo"] = {"country_code": "US", "region": "CA", "city": "San Francisco"}
-        data["contexts"]["http"] = {
-            "method": "GET",
-            "referer": "something.something",
-            "url": "https://areyouasimulation.com",
-        }
-        self.store_event(data, project_id=project.id)
-
-        fields = [
-            "http.method",
-            "http.referer",
-            "http.url",
-            "os.build",
-            "os.kernel_version",
-            "device.arch",
-            "device.battery_level",
-            "device.brand",
-            "device.charging",
-            "device.locale",
-            "device.model_id",
-            "device.name",
-            "device.online",
-            "device.orientation",
-            "device.simulator",
-            "device.uuid",
+        data = [
+            {"field": fields + ["location", "count()"], "query": "event.type:error"},
+            {"field": fields + ["duration", "count()"], "query": "event.type:transaction"},
         ]
 
-        with self.feature("organizations:discover-basic"):
-            response = self.client.get(
-                self.url,
-                format="json",
-                data={"field": fields + ["count()"], "query": "event.type:error"},
-            )
+        for datum in data:
+            with self.feature("organizations:discover-basic"):
+                response = self.client.get(self.url, format="json", data=datum)
 
-        assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 1
-        results = response.data["data"]
+            assert response.status_code == 200, response.content
+            assert len(response.data["data"]) == 1, datum
+            results = response.data["data"]
+            assert results[0]["count"] == 1, datum
 
-        for field in fields:
-            key, value = field.split(".", 1)
-            expected = data["contexts"][key][value]
-
-            # TODO (evanh) There is a bug in snuba right now where if a promoted column is used for a boolean
-            # value, it returns "1" or "0" instead of "True" and "False" (not that those make more sense)
-            if expected in (True, False):
-                expected = six.text_type(expected)
-            # All context columns are treated as strings, regardless of the type of data they stored.
-            elif isinstance(expected, six.integer_types):
-                expected = "{:.1f}".format(expected)
-
-            assert results[0][field] == expected
-
-        assert results[0]["count"] == 1
+            for field in fields:
+                key, value = field.split(".", 1)
+                expected = six.text_type(event_data["contexts"][key][value])
+                assert results[0][field] == expected, field + six.text_type(datum)
 
     def test_histogram_function(self):
         self.login_as(user=self.user)

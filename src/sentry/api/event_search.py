@@ -199,8 +199,8 @@ PROJECT_NAME_ALIAS = "project.name"
 PROJECT_ALIAS = "project"
 ISSUE_ALIAS = "issue"
 ISSUE_ID_ALIAS = "issue.id"
-USER_ALIAS = "user"
 RELEASE_ALIAS = "release"
+USER_DISPLAY_ALIAS = "user.display"
 
 
 class InvalidSearchQuery(Exception):
@@ -282,7 +282,6 @@ class SearchVisitor(NodeVisitor):
             "stack.stack_level",
             "transaction.duration",
             "apdex",
-            "impact",
             "p75",
             "p95",
             "p99",
@@ -782,6 +781,20 @@ def convert_search_filter_to_snuba_query(search_filter, key=None):
         # Skip isNull check on group_id value as we want to
         # allow snuba's prewhere optimizer to find this condition.
         return [name, search_filter.operator, value]
+    elif name == USER_DISPLAY_ALIAS:
+        # Slice off the function without an alias.
+        user_display_expr = FIELD_ALIASES[USER_DISPLAY_ALIAS]["fields"][0][0:2]
+
+        # Handle 'has' condition
+        if search_filter.value.raw_value == "":
+            return [["isNull", [user_display_expr]], search_filter.operator, 1]
+        if search_filter.value.is_wildcard():
+            return [
+                ["match", [user_display_expr, u"'(?i){}'".format(value)]],
+                search_filter.operator,
+                1,
+            ]
+        return [user_display_expr, search_filter.operator, value]
     else:
         value = (
             int(to_timestamp(value)) * 1000
@@ -872,16 +885,6 @@ def format_search_filter(term, params):
         term = SearchFilter(SearchKey("issue.id"), term.operator, SearchValue(value))
         converted_filter = convert_search_filter_to_snuba_query(term)
         conditions.append(converted_filter)
-    elif name == USER_ALIAS:
-        # If the key is user, do an OR across all the different possible user fields
-        user_conditions = [
-            convert_search_filter_to_snuba_query(term, key=field)
-            for field in FIELD_ALIASES[USER_ALIAS]["fields"]
-        ]
-        if term.operator == "!=" and value != "":
-            conditions.extend(user_conditions)
-        else:
-            conditions.append(user_conditions)
     elif name == RELEASE_ALIAS and params and value == "latest":
         converted_filter = convert_search_filter_to_snuba_query(
             SearchFilter(
@@ -897,14 +900,6 @@ def format_search_filter(term, params):
                 ),
             )
         )
-        if converted_filter:
-            conditions.append(converted_filter)
-    elif name in FIELD_ALIASES and name != PROJECT_ALIAS:
-        if "column_alias" in FIELD_ALIASES[name]:
-            term = SearchFilter(
-                SearchKey(FIELD_ALIASES[name]["column_alias"]), term.operator, term.value
-            )
-        converted_filter = convert_aggregate_filter_to_snuba_query(term, params)
         if converted_filter:
             conditions.append(converted_filter)
     else:
@@ -1184,7 +1179,15 @@ def get_filter(query=None, params=None):
 FIELD_ALIASES = {
     "project": {"fields": ["project.id"], "column_alias": "project.id"},
     "issue": {"fields": ["issue.id"], "column_alias": "issue.id"},
-    "user": {"fields": ["user.email", "user.username", "user.ip", "user.id"]},
+    # TODO(mark) This alias doesn't work inside count_unique().
+    # The column resolution code is really convoluted and expanding
+    # it to support functions that need columns resolved inside of
+    # aggregations is complicated. Until that gets sorted user.display
+    # should not be added to the public field list/docs.
+    "user.display": {
+        "fields": [["coalesce", ["user.email", "user.username", "user.ip"], "user.display"]],
+        "column_alias": "user.display",
+    },
 }
 
 
@@ -1378,17 +1381,6 @@ FUNCTIONS = {
         "name": "apdex",
         "args": [NumberRange("satisfaction", 0, None)],
         "transform": u"apdex(duration, {satisfaction:g})",
-        "result_type": "number",
-    },
-    "impact": {
-        "name": "impact",
-        "args": [NumberRange("satisfaction", 0, None)],
-        "calculated_args": [{"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0}],
-        # Snuba is not able to parse Clickhouse infix expressions. We should pass aggregations
-        # in a format Snuba can parse so query optimizations can be applied.
-        # It has a minimal prefix parser though to bridge the gap between the current state
-        # and when we will have an easier syntax.
-        "transform": u"plus(minus(1, divide(plus(countIf(less(duration, {satisfaction:g})),divide(countIf(and(greater(duration, {satisfaction:g}),less(duration, {tolerated:g}))),2)),count())),multiply(minus(1,divide(1,sqrt(uniq(user)))),3))",
         "result_type": "number",
     },
     "user_misery": {

@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from django.contrib.auth.models import AnonymousUser
 from django.utils.crypto import constant_time_compare
+from django.utils.encoding import force_text
 from rest_framework.authentication import BasicAuthentication, get_authorization_header
 from rest_framework.exceptions import AuthenticationFailed
 
@@ -34,7 +35,7 @@ class StandardAuthentication(QuietBasicAuthentication):
             msg = "Invalid token header. Token string should not contain spaces."
             raise AuthenticationFailed(msg)
 
-        return self.authenticate_credentials(request, auth[1])
+        return self.authenticate_credentials(request, force_text(auth[1]))
 
 
 class RelayAuthentication(BasicAuthentication):

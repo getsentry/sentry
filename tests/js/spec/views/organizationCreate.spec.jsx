@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {shallow} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ConfigStore from 'app/stores/configStore';
 import OrganizationCreate from 'app/views/organizationCreate';
@@ -22,19 +22,19 @@ describe('OrganizationCreate', function() {
     it('renders without terms', function() {
       ConfigStore.set('termsUrl', null);
       ConfigStore.set('privacyUrl', null);
-      const wrapper = shallow(<OrganizationCreate />, {
+      const wrapper = mountWithTheme(<OrganizationCreate />, {
         context: {router: TestStubs.router()},
       });
-      expect(wrapper).toMatchSnapshot();
+      expect(wrapper).toSnapshot();
     });
 
     it('renders with terms', function() {
       ConfigStore.set('termsUrl', 'https://example.com/terms');
       ConfigStore.set('privacyUrl', 'https://example.com/privacy');
-      const wrapper = shallow(<OrganizationCreate />, {
+      const wrapper = mountWithTheme(<OrganizationCreate />, {
         context: {router: TestStubs.router()},
       });
-      expect(wrapper).toMatchSnapshot();
+      expect(wrapper).toSnapshot();
     });
   });
 });

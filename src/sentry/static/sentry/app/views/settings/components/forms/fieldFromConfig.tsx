@@ -29,6 +29,8 @@ type Props = {
   inline?: boolean;
   onBlur?: (value, event) => void;
   access?: Set<Scope>;
+  deprecatedSelectControl?: boolean;
+  noOptionsMessage?: () => string;
 };
 
 export default class FieldFromConfig extends React.Component<Props> {

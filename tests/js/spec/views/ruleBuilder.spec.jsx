@@ -101,7 +101,7 @@ describe('RuleBuilder', function() {
     // This is because after selecting, react-select (async) reloads
     await tick();
     wrapper.update();
-    expect(wrapper.find(RuleBuilder)).toMatchSnapshot();
+    expect(wrapper.find(RuleBuilder)).toSnapshot();
   });
 
   it('renders with suggestions', async function() {
@@ -155,7 +155,7 @@ describe('RuleBuilder', function() {
     // This is because after selecting, react-select (async) reloads
     await tick();
     wrapper.update();
-    expect(wrapper.find(RuleBuilder)).toMatchSnapshot();
+    expect(wrapper.find(RuleBuilder)).toSnapshot();
 
     wrapper.find('Button').simulate('click');
     expect(handleAdd).toHaveBeenCalled();

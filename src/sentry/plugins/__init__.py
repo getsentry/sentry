@@ -14,4 +14,5 @@ HIDDEN_PLUGINS = (
     "youtrack",
     "clubhouse",
     "pagerduty",
+    "teamwork",
 )
