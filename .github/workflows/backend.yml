@@ -85,6 +85,7 @@ jobs:
 
       - name: Start devservices
         run: |
+          sentry init
           sentry devservices up postgres redis clickhouse snuba
 
       # TODO: Shard tests, scrollback would be nicer.

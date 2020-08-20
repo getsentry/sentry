@@ -171,7 +171,7 @@ else
 endif
 
 test-python-ci:
-	sentry init
+	[ ! -f "${HOME}/.sentry/config.yml" ] && sentry init
 	make build-platform-assets
 	@echo "--> Running CI Python tests"
 ifndef TEST_GROUP
