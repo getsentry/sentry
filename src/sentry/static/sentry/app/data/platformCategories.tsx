@@ -36,6 +36,7 @@ const mobile = [
   'java-android',
   'cordova',
   'react-native',
+  'flutter',
 ] as const;
 
 const backend = [
