@@ -194,7 +194,6 @@ describe('ProjectAlertsCreate', function() {
         });
 
         expect(memberActionCreators.fetchOrgMembers).toHaveBeenCalled();
-
         selectByValue(wrapper, 'production', {control: true, name: 'environment'});
         selectByValue(wrapper, 'any', {name: 'actionMatch'});
 
