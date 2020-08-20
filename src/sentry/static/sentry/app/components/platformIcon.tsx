@@ -51,6 +51,8 @@ const PLATFORM_TO_ICON = {
   'react-native': 'react-native',
   rust: 'rust',
   swift: 'swift',
+  flutter: 'flutter',
+  dart: 'dart',
   // TODO: AWS used to be python-awslambda but the displayed generic icon
   // We need to figure out what is causing it to be python-pythonawslambda
 };
