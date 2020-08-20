@@ -40,42 +40,41 @@ const dummy = [
 export const BulkControllerStory = withInfo({
   text: 'RenderProps component for working with table bulk actions',
 })(() => (
-  <React.Fragment>
-    <BulkController pageIds={dummy.map(d => d.id)} allIdsCount={23} noticeColumns={3}>
-      {({
-        selectedIds,
-        onPageIdsToggle,
-        onIdToggle,
-        isPageSelected,
-        // isEverythingSelected,
-        tableNotice,
-      }) => (
-        <PanelTable
-          headers={[
-            <Checkbox
-              key="bulk-checkbox"
-              checked={isPageSelected}
-              onChange={e => onPageIdsToggle(e.target.checked)}
-            />,
-            'Id',
-            'Text',
-          ]}
-        >
-          {tableNotice}
-          {dummy.map(d => (
-            <React.Fragment key={d.id}>
-              <div>
-                <Checkbox
-                  checked={selectedIds.includes(d.id)}
-                  onChange={() => onIdToggle(d.id)}
-                />
-              </div>
-              <div>{d.id}</div>
-              <div>{d.text}</div>
-            </React.Fragment>
-          ))}
-        </PanelTable>
-      )}
-    </BulkController>
-  </React.Fragment>
+  <BulkController pageIds={dummy.map(d => d.id)} allIdsCount={23} noticeColumns={3}>
+    {({
+      selectedIds,
+      onPageIdsToggle,
+      onIdToggle,
+      isPageSelected,
+      // isEverythingSelected,
+      tableNotice,
+    }) => (
+      <PanelTable
+        headers={[
+          <Checkbox
+            key="bulk-checkbox"
+            checked={isPageSelected}
+            onChange={e => onPageIdsToggle(e.target.checked)}
+          />,
+          'Id',
+          'Text',
+        ]}
+      >
+        {tableNotice}
+
+        {dummy.map(d => (
+          <React.Fragment key={d.id}>
+            <div>
+              <Checkbox
+                checked={selectedIds.includes(d.id)}
+                onChange={() => onIdToggle(d.id)}
+              />
+            </div>
+            <div>{d.id}</div>
+            <div>{d.text}</div>
+          </React.Fragment>
+        ))}
+      </PanelTable>
+    )}
+  </BulkController>
 ));
