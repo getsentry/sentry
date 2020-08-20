@@ -14,7 +14,11 @@ config.module = {
 
     {
       test: /\.(jpe?g|png|gif|ttf|eot|svg|woff(2)?)(\?[a-z0-9=&.]+)?$/,
-      use: 'base64-inline-loader?limit=10000&name=[name].[ext]',
+      use: [
+        {
+          loader: 'url-loader',
+        },
+      ],
     },
   ],
 };
