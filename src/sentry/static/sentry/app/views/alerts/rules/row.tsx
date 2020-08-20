@@ -14,6 +14,7 @@ import ButtonBar from 'app/components/buttonBar';
 import Confirm from 'app/components/confirm';
 import ErrorBoundary from 'app/components/errorBoundary';
 import IdBadge from 'app/components/idBadge';
+import Link from 'app/components/links/link';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 
@@ -42,13 +43,18 @@ class RuleListRow extends React.Component<Props, State> {
     const {rule, projectsLoaded, projects, orgId, onDelete} = this.props;
     const dateCreated = moment(rule.dateCreated).format('ll');
     const slug = rule.projects[0];
+    const link = `/organizations/${orgId}/alerts/${
+      isIssueAlert(rule) ? 'rules' : 'metric-rules'
+    }/${slug}/${rule.id}/`;
 
     return (
       <ErrorBoundary>
         <AlertRulesPanelItem>
           <TableLayout>
             <RuleType>{isIssueAlert(rule) ? t('Issue') : t('Metric')}</RuleType>
-            <Title>{rule.name}</Title>
+            <Title>
+              <Link to={link}>{rule.name}</Link>
+            </Title>
             <ProjectBadge
               avatarSize={18}
               project={!projectsLoaded ? {slug} : this.getProject(slug, projects)}
@@ -79,13 +85,10 @@ class RuleListRow extends React.Component<Props, State> {
                     />
                   </Confirm>
                   <Button
-                    disabled={!hasAccess}
                     size="small"
                     icon={<IconSettings />}
                     title={t('Edit')}
-                    to={`/organizations/${orgId}/alerts/${
-                      isIssueAlert(rule) ? 'rules' : 'metric-rules'
-                    }/${slug}/${rule.id}/`}
+                    to={link}
                   />
                 </ButtonBar>
               )}

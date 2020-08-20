@@ -28,6 +28,7 @@ type Props = {
    * Placeholder for select control
    */
   placeholder: string;
+  disabled: boolean;
   onPropertyChange: (ruleIndex: number, prop: string, val: string) => void;
   onAddRow: (value: string) => void;
   onDeleteRow: (ruleIndex: number) => void;
@@ -55,6 +56,7 @@ class RuleNodeList extends React.Component<Props> {
       items,
       organization,
       project,
+      disabled,
     } = this.props;
 
     const shouldUsePrompt = project.features?.includes?.('issue-alerts-targeting');
@@ -81,6 +83,7 @@ class RuleNodeList extends React.Component<Props> {
                 onPropertyChange={onPropertyChange}
                 organization={organization}
                 project={project}
+                disabled={disabled}
               />
             ))}
           </RuleNodes>
@@ -90,6 +93,7 @@ class RuleNodeList extends React.Component<Props> {
           value={null}
           onChange={obj => onAddRow(obj ? obj.value : obj)}
           options={options}
+          disabled={disabled}
         />
       </React.Fragment>
     );
