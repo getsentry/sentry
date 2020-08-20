@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import {t} from 'app/locale';
 import Button from 'app/components/button';
@@ -29,7 +30,15 @@ class ServiceIncidents extends React.Component<Props, State> {
   }
 
   async fetchData() {
-    this.setState({status: await loadIncidents()});
+    try {
+      const status = await loadIncidents();
+      this.setState({status});
+    } catch (e) {
+      Sentry.withScope(scope => {
+        scope.setLevel(Sentry.Severity.Warning);
+        Sentry.captureException(e);
+      });
+    }
   }
 
   render() {
