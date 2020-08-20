@@ -2,7 +2,6 @@ import React from 'react';
 import xor from 'lodash/xor';
 import uniq from 'lodash/uniq';
 import intersection from 'lodash/intersection';
-
 import TableNotice from 'app/components/tableNotice';
 
 type RenderProps = {
