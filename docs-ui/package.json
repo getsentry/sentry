@@ -10,14 +10,14 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@storybook/addon-a11y": "^6.0.16",
-    "@storybook/addon-actions": "^6.0.16",
-    "@storybook/addon-docs": "^6.0.16",
-    "@storybook/addon-info": "^5.3.19",
-    "@storybook/addon-knobs": "^6.0.16",
-    "@storybook/addon-options": "^5.3.19",
-    "@storybook/addon-storysource": "^6.0.16",
-    "@storybook/addons": "^6.0.16",
-    "@storybook/react": "^6.0.16"
+    "@storybook/addon-a11y": "^5.3.0",
+    "@storybook/addon-actions": "^5.3.0",
+    "@storybook/addon-docs": "^5.3.0",
+    "@storybook/addon-info": "^5.3.0",
+    "@storybook/addon-knobs": "^5.3.0",
+    "@storybook/addon-options": "^5.3.0",
+    "@storybook/addon-storysource": "^5.3.0",
+    "@storybook/addons": "^5.3.0",
+    "@storybook/react": "^5.3.0"
   }
 }
