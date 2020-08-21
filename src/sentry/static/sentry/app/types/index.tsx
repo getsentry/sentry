@@ -392,13 +392,10 @@ export type CommitAuthor = {
   name?: string;
 };
 
+// TODO(ts): This type is incomplete
 export type Environment = {
-  id: string;
-  displayName: string;
   name: string;
-
-  // XXX: Provided by the backend but unused due to `getUrlRoutingName()`
-  // urlRoutingName: string;
+  id: string;
 };
 
 export type RecentSearch = {
@@ -640,7 +637,6 @@ export type Group = {
   stats: any; // TODO(ts)
   status: string;
   statusDetails: ResolutionStatusDetails;
-  tags: Pick<Tag, 'key' | 'name' | 'totalValues'>[];
   title: string;
   type: EventOrGroupType;
   userCount: number;
@@ -1195,20 +1191,6 @@ export type TagValue = {
   identifier?: string;
   ipAddress?: string;
 } & AvatarUser;
-
-export type TagWithTopValues = {
-  key: string;
-  name: string;
-  topValues: Array<{
-    count: number;
-    firstSeen: string;
-    key: string;
-    lastSeen: string;
-    name: string;
-    value: string;
-  }>;
-  totalValues: number;
-};
 
 export type Level = 'error' | 'fatal' | 'info' | 'warning' | 'sample';
 
