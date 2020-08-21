@@ -1188,18 +1188,6 @@ class FunctionArg(object):
         return False
 
 
-class NoColumn(FunctionArg):
-    """
-    Passthrough argument subclass for count()
-    """
-
-    def has_default(self, params):
-        return None
-
-    def normalize(self, value):
-        return value
-
-
 class CountColumn(FunctionArg):
     def has_default(self, params):
         return None
@@ -1400,7 +1388,7 @@ FUNCTIONS = {
     },
     "count": {
         "name": "count",
-        "args": [NoColumn("column")],
+        "args": [CountColumn("column")],
         "aggregate": ["count", None, None],
         "result_type": "integer",
     },
