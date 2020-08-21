@@ -1802,7 +1802,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             result = set([r["user.display"] for r in data])
             assert result == set(["catherine", "cathy@example.com"])
 
-    def test_user_display_with_aggregate(self):
+    def test_user_display_with_aggregates(self):
         self.login_as(user=self.user)
 
         project1 = self.create_project()
@@ -1834,6 +1834,20 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             assert len(data) == 1
             result = set([r["user.display"] for r in data])
             assert result == set(["cathy@example.com"])
+
+        with self.feature(
+            {"organizations:discover-basic": True, "organizations:global-views": True}
+        ):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={"field": ["event.type", "count_unique(user.display)"], "statsPeriod": "24h"},
+            )
+
+            assert response.status_code == 200, response.content
+            data = response.data["data"]
+            assert len(data) == 1
+            assert data[0]["count_unique_user_display"] == 1
 
     def test_has_transaction_status(self):
         self.login_as(user=self.user)
