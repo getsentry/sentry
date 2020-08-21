@@ -1532,7 +1532,7 @@ def resolve_function(field, match=None, params=None):
         aggregate[0] = aggregate[0].format(**arguments)
         if isinstance(aggregate[1], six.string_types):
             aggregate[1] = aggregate[1].format(**arguments)
-        if isinstance(aggregate[1], ArgValue):
+        elif isinstance(aggregate[1], ArgValue):
             arg = aggregate[1].arg
             aggregate[1] = arguments[arg]
         if aggregate[2] is None:
