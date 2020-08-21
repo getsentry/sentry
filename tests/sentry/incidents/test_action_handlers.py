@@ -305,6 +305,32 @@ class MsTeamsActionHandlerFireTest(MsTeamsActionHandlerBaseTest, TestCase):
 
 @freeze_time()
 class PagerDutyActionHandlerBaseTest(object):
+    def test_build_incident_attachment(self):
+        from sentry.integrations.pagerduty.utils import build_incident_attachment
+
+        alert_rule = self.create_alert_rule()
+        incident = self.create_incident(alert_rule=alert_rule)
+        update_incident_status(
+            incident, IncidentStatus.CRITICAL, status_method=IncidentStatusMethod.RULE_TRIGGERED
+        )
+        integration_key = "pfc73e8cb4s44d519f3d63d45b5q77g9"
+        metric_value = 1000
+        data = build_incident_attachment(incident, integration_key, metric_value)
+
+        assert data["routing_key"] == "pfc73e8cb4s44d519f3d63d45b5q77g9"
+        assert data["event_action"] == "trigger"
+        assert data["dedup_key"] == "incident_{}_{}".format(
+            incident.organization_id, incident.identifier
+        )
+        assert (
+            data["payload"]["summary"] == "1000 events in the last 10 minutes\nFilter: level:error"
+        )
+        assert data["payload"]["severity"] == "critical"
+        assert data["payload"]["source"] == incident.identifier
+        assert data["payload"]["custom_details"] == "Sentry Incident | Aug 20"
+        assert data["links"][0]["text"] == "Critical: {}".format(alert_rule.name)
+        assert data["links"][0]["href"] == "http://testserver/organizations/baz/alerts/1/"
+
     @responses.activate
     def run_test(self, incident, method):
         from sentry.integrations.pagerduty.utils import build_incident_attachment
@@ -312,7 +338,7 @@ class PagerDutyActionHandlerBaseTest(object):
         SERVICES = [
             {
                 "type": "service",
-                "integration_key": "PND4F9",
+                "integration_key": "pfc73e8cb4s44d519f3d63d45b5q77g9",
                 "service_id": "123",
                 "service_name": "hellboi",
             }
@@ -350,19 +376,86 @@ class PagerDutyActionHandlerBaseTest(object):
         with self.tasks():
             getattr(handler, method)(metric_value)
         data = responses.calls[0].request.body
+
+        assert json.loads(data) == build_incident_attachment(
+            incident, service.integration_key, metric_value
+        )
+
+    @responses.activate
+    def run_test_multiple(self, incident, method):
+        from sentry.integrations.pagerduty.utils import build_incident_attachment
+
+        SERVICES = [
+            {
+                "type": "service",
+                "integration_key": "pfc73e8cb4s44d519f3d63d45b5q77g9",
+                "service_id": "123",
+                "service_name": "hellboi",
+            },
+            {
+                "type": "service",
+                "integration_key": "afc73e8cb4s44d519f3d63d45b5q77g9",
+                "service_id": "456",
+                "service_name": "meowmeowfuntime",
+            },
+        ]
+        integration = Integration.objects.create(
+            provider="pagerduty",
+            name="Example PagerDuty",
+            external_id="example-pagerduty",
+            metadata={"services": SERVICES},
+        )
+        integration.add_organization(self.organization, self.user)
+
+        service = PagerDutyService.objects.create(
+            service_name=SERVICES[0]["service_name"],
+            integration_key=SERVICES[0]["integration_key"],
+            organization_integration=integration.organizationintegration_set.first(),
+        )
+
+        PagerDutyService.objects.create(
+            service_name=SERVICES[1]["service_name"],
+            integration_key=SERVICES[1]["integration_key"],
+            organization_integration=integration.organizationintegration_set.first(),
+        )
+
+        action = self.create_alert_rule_trigger_action(
+            target_identifier=service.id,
+            type=AlertRuleTriggerAction.Type.PAGERDUTY,
+            target_type=AlertRuleTriggerAction.TargetType.SPECIFIC,
+            integration=integration,
+        )
+
+        responses.add(
+            method=responses.POST,
+            url="https://events.pagerduty.com/v2/enqueue/",
+            body={},
+            status=202,
+            content_type="application/json",
+        )
+        handler = PagerDutyActionHandler(action, incident, self.project)
+        metric_value = 1000
+        with self.tasks():
+            getattr(handler, method)(metric_value)
+        data = responses.calls[0].request.body
+
         assert json.loads(data) == build_incident_attachment(
             incident, service.integration_key, metric_value
         )
 
 
 class PagerDutyActionHandlerFireTest(PagerDutyActionHandlerBaseTest, TestCase):
-    def test(self):
+    def test_fire_metric_alert(self):
         alert_rule = self.create_alert_rule()
         self.run_test(self.create_incident(status=2, alert_rule=alert_rule), "fire")
 
+    def test_fire_metric_alert_multiple_services(self):
+        alert_rule = self.create_alert_rule()
+        self.run_test_multiple(self.create_incident(status=2, alert_rule=alert_rule), "fire")
+
 
 class PagerDutyActionHandlerResolveTest(PagerDutyActionHandlerBaseTest, TestCase):
-    def test(self):
+    def test_resolve_metric_alert(self):
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(alert_rule=alert_rule)
         update_incident_status(

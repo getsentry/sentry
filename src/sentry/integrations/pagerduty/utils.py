@@ -22,14 +22,16 @@ def build_incident_attachment(incident, integration_key, metric_value=None):
     elif incident.status == IncidentStatus.CLOSED.value:
         severity = "info"
 
+    event_action = "resolve"
+    if incident.status in [IncidentStatus.WARNING.value, IncidentStatus.CRITICAL.value]:
+        event_action = "trigger"
+
     footer_text = "Sentry Incident | {}".format(data["ts"].strftime("%b %d"))
 
     return {
         "routing_key": integration_key,
-        "event_action": "trigger"
-        if incident.status in [IncidentStatus.WARNING.value, IncidentStatus.CRITICAL.value]
-        else "resolve",
-        "dedup_key": "incident_{}".format(incident.identifier),
+        "event_action": event_action,
+        "dedup_key": "incident_{}_{}".format(incident.organization_id, incident.identifier),
         "payload": {
             "summary": data["text"],
             "severity": severity,
@@ -42,7 +44,7 @@ def build_incident_attachment(incident, integration_key, metric_value=None):
 
 def send_incident_alert_notification(action, incident, metric_value):
     integration = action.integration
-    service = PagerDutyService.objects.get(organization_integration__integration=integration)
+    service = PagerDutyService.objects.get(id=action.target_identifier)
     integration_key = service.integration_key
     client = PagerDutyClient(integration_key=integration_key)
     attachment = build_incident_attachment(incident, integration_key, metric_value)
@@ -51,11 +53,12 @@ def send_incident_alert_notification(action, incident, metric_value):
         client.send_trigger(attachment)
     except ApiError as e:
         logger.info(
-            "rule.fail.pagerduty_trigger",
+            "rule.fail.pagerduty_metric_alert",
             extra={
                 "error": six.text_type(e),
                 "service_name": service.service_name,
                 "service_id": service.id,
+                "integration_id": integration.id,
             },
         )
         raise e
