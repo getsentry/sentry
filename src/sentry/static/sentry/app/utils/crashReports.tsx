@@ -29,22 +29,19 @@ export enum SettingScope {
 }
 export function getStoreCrashReportsValues(settingScope: SettingScope) {
   // "Disabled" option at the beginning
-  const values: Array<number | null> = [0];
+  const values: Array<number | null> = [
+    0, // disabled
+    1,
+    5,
+    10,
+    20, // limited per issue
+    -1, // unlimited
+  ];
 
   if (settingScope === SettingScope.Project) {
-    // "Inherit" option
-    values.push(null);
-
-    values.push(...[1, 5, 10, 20]);
+    // "Inherit" option after disabled.
+    values.unshift(null);
   }
-
-  if (settingScope === SettingScope.Organization) {
-    // generate a range from 1 to 20 inclusive
-    values.push(...Array.from(new Array(20), (_, i) => i + 1));
-  }
-
-  // "Unlimited" option at the end
-  values.push(-1);
 
   return values;
 }
