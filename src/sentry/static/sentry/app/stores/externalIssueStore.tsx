@@ -34,6 +34,7 @@ const ExternalIssueStore = Reflux.createStore({
 
 type ExternalIssueStoreType = Reflux.Store & {
   load: (items: PlatformExternalIssue[]) => void;
+  add: (issue: PlatformExternalIssue) => void;
   getInitialState: () => PlatformExternalIssue[];
 };
 
