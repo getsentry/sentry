@@ -112,10 +112,10 @@ def record_raven_installed(project, user, **kwargs):
 
 @first_event_received.connect(weak=False)
 def record_first_event(project, event, **kwargs):
-    if event.transaction is None:
-        record_first_error(project, event)
-    else:
+    if event.get_event_type() == "transaction":
         record_first_transaction(project, event)
+    else:
+        record_first_error(project, event)
 
 
 def record_first_error(project, event):
