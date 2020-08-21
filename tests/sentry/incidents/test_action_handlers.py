@@ -305,6 +305,30 @@ class MsTeamsActionHandlerFireTest(MsTeamsActionHandlerBaseTest, TestCase):
 
 @freeze_time()
 class PagerDutyActionHandlerBaseTest(object):
+    def setUp(self):
+
+        SERVICES = [
+            {
+                "type": "service",
+                "integration_key": "pfc73e8cb4s44d519f3d63d45b5q77g9",
+                "service_id": "123",
+                "service_name": "hellboi",
+            }
+        ]
+        self.integration = Integration.objects.create(
+            provider="pagerduty",
+            name="Example PagerDuty",
+            external_id="example-pagerduty",
+            metadata={"services": SERVICES},
+        )
+        self.integration.add_organization(self.organization, self.user)
+
+        self.service = PagerDutyService.objects.create(
+            service_name=SERVICES[0]["service_name"],
+            integration_key=SERVICES[0]["integration_key"],
+            organization_integration=self.integration.organizationintegration_set.first(),
+        )
+
     def test_build_incident_attachment(self):
         from sentry.integrations.pagerduty.utils import build_incident_attachment
 
@@ -327,7 +351,9 @@ class PagerDutyActionHandlerBaseTest(object):
         )
         assert data["payload"]["severity"] == "critical"
         assert data["payload"]["source"] == incident.identifier
-        assert data["payload"]["custom_details"] == "Sentry Incident | Aug 20"
+        assert data["payload"]["custom_details"] == "Sentry Incident | {}".format(
+            incident.date_started.strftime("%b %d")
+        )
         assert data["links"][0]["text"] == "Critical: {}".format(alert_rule.name)
         assert data["links"][0]["href"] == "http://testserver/organizations/baz/alerts/1/"
 
@@ -335,33 +361,11 @@ class PagerDutyActionHandlerBaseTest(object):
     def run_test(self, incident, method):
         from sentry.integrations.pagerduty.utils import build_incident_attachment
 
-        SERVICES = [
-            {
-                "type": "service",
-                "integration_key": "pfc73e8cb4s44d519f3d63d45b5q77g9",
-                "service_id": "123",
-                "service_name": "hellboi",
-            }
-        ]
-        integration = Integration.objects.create(
-            provider="pagerduty",
-            name="Example PagerDuty",
-            external_id="example-pagerduty",
-            metadata={"services": SERVICES},
-        )
-        integration.add_organization(self.organization, self.user)
-
-        service = PagerDutyService.objects.create(
-            service_name=SERVICES[0]["service_name"],
-            integration_key=SERVICES[0]["integration_key"],
-            organization_integration=integration.organizationintegration_set.first(),
-        )
-
         action = self.create_alert_rule_trigger_action(
-            target_identifier=service.id,
+            target_identifier=self.service.id,
             type=AlertRuleTriggerAction.Type.PAGERDUTY,
             target_type=AlertRuleTriggerAction.TargetType.SPECIFIC,
-            integration=integration,
+            integration=self.integration,
         )
 
         responses.add(
@@ -378,69 +382,7 @@ class PagerDutyActionHandlerBaseTest(object):
         data = responses.calls[0].request.body
 
         assert json.loads(data) == build_incident_attachment(
-            incident, service.integration_key, metric_value
-        )
-
-    @responses.activate
-    def run_test_multiple(self, incident, method):
-        from sentry.integrations.pagerduty.utils import build_incident_attachment
-
-        SERVICES = [
-            {
-                "type": "service",
-                "integration_key": "pfc73e8cb4s44d519f3d63d45b5q77g9",
-                "service_id": "123",
-                "service_name": "hellboi",
-            },
-            {
-                "type": "service",
-                "integration_key": "afc73e8cb4s44d519f3d63d45b5q77g9",
-                "service_id": "456",
-                "service_name": "meowmeowfuntime",
-            },
-        ]
-        integration = Integration.objects.create(
-            provider="pagerduty",
-            name="Example PagerDuty",
-            external_id="example-pagerduty",
-            metadata={"services": SERVICES},
-        )
-        integration.add_organization(self.organization, self.user)
-
-        service = PagerDutyService.objects.create(
-            service_name=SERVICES[0]["service_name"],
-            integration_key=SERVICES[0]["integration_key"],
-            organization_integration=integration.organizationintegration_set.first(),
-        )
-
-        PagerDutyService.objects.create(
-            service_name=SERVICES[1]["service_name"],
-            integration_key=SERVICES[1]["integration_key"],
-            organization_integration=integration.organizationintegration_set.first(),
-        )
-
-        action = self.create_alert_rule_trigger_action(
-            target_identifier=service.id,
-            type=AlertRuleTriggerAction.Type.PAGERDUTY,
-            target_type=AlertRuleTriggerAction.TargetType.SPECIFIC,
-            integration=integration,
-        )
-
-        responses.add(
-            method=responses.POST,
-            url="https://events.pagerduty.com/v2/enqueue/",
-            body={},
-            status=202,
-            content_type="application/json",
-        )
-        handler = PagerDutyActionHandler(action, incident, self.project)
-        metric_value = 1000
-        with self.tasks():
-            getattr(handler, method)(metric_value)
-        data = responses.calls[0].request.body
-
-        assert json.loads(data) == build_incident_attachment(
-            incident, service.integration_key, metric_value
+            incident, self.service.integration_key, metric_value
         )
 
 
@@ -450,8 +392,21 @@ class PagerDutyActionHandlerFireTest(PagerDutyActionHandlerBaseTest, TestCase):
         self.run_test(self.create_incident(status=2, alert_rule=alert_rule), "fire")
 
     def test_fire_metric_alert_multiple_services(self):
+        SERVICES = [
+            {
+                "type": "service",
+                "integration_key": "afc73e8cb4s44d519f3d63d45b5q77g9",
+                "service_id": "456",
+                "service_name": "meowmeowfuntime",
+            },
+        ]
+        PagerDutyService.objects.create(
+            service_name=SERVICES[0]["service_name"],
+            integration_key=SERVICES[0]["integration_key"],
+            organization_integration=self.integration.organizationintegration_set.first(),
+        )
         alert_rule = self.create_alert_rule()
-        self.run_test_multiple(self.create_incident(status=2, alert_rule=alert_rule), "fire")
+        self.run_test(self.create_incident(status=2, alert_rule=alert_rule), "fire")
 
 
 class PagerDutyActionHandlerResolveTest(PagerDutyActionHandlerBaseTest, TestCase):
