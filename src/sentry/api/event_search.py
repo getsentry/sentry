@@ -1218,7 +1218,7 @@ class CountColumn(FunctionArg):
         if "expression" in alias:
             return alias["expression"]
 
-        return FIELD_ALIASES[value].get("column_alias", value)
+        return alias.get("column_alias", value)
 
 
 class NumericColumn(FunctionArg):
