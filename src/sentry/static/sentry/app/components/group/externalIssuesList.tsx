@@ -61,7 +61,7 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
     this.state = Object.assign({}, this.state, {
       components: SentryAppComponentsStore.getInitialState(),
       sentryAppInstallations: SentryAppInstallationStore.getInitialState(),
-      externalIssues: [],
+      externalIssues: ExternalIssueStore.getInitialState(),
     });
   }
 
