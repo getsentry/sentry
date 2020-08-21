@@ -20,7 +20,7 @@ logger = logging.getLogger("sentry.integrations.msteams")
 
 DESCRIPTION = (
     "Microsoft Teams is a hub for teamwork in Office 365. Keep all your team's chats, meetings, files, and apps together in one place."
-    "\n\nGet [alerts](https://docs.sentry.io/product/alerts-notifications/alerts/) that let you assign, ignore, and resolve Issues"
+    "\n\nGet [alerts](https://docs.sentry.io/product/alerts-notifications/alerts/) that let you assign, ignore, and resolve issues"
     " right in your Teams channels with the Sentry integration for Microsoft Teams."
 )
 
