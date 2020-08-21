@@ -6,7 +6,7 @@ import {Client} from 'app/api';
 import withApi from 'app/utils/withApi';
 import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
-import Hovercard from 'app/components/hovercard';
+import Hovercard, {Body} from 'app/components/hovercard';
 import {isStacktraceNewestFirst} from 'app/components/events/interfaces/stacktrace';
 import StacktraceContent from 'app/components/events/interfaces/stacktraceContent';
 
@@ -25,14 +25,14 @@ class StacktracePreview extends React.Component<Props, State> {
   };
 
   fetchData = async () => {
+    if (this.state.event) {
+      return;
+    }
+
     const {api, issueId} = this.props;
     const event = await api.requestPromise(`/issues/${issueId}/events/latest/`);
     this.setState({event});
   };
-
-  renderLoading() {
-    return null;
-  }
 
   render() {
     const {event} = this.state;
@@ -40,33 +40,47 @@ class StacktracePreview extends React.Component<Props, State> {
 
     return (
       <span onMouseEnter={this.fetchData}>
-        <Hovercard
+        <StyledHovercard
           body={
-            event &&
-            exception && (
-              <Wrapper ref>
-                <StacktraceContent
-                  data={exception.values[0].stacktrace}
-                  includeSystemFrames={!exception.hasSystemFrames} // (chainedException && stacktrace.frames.every(frame => !frame.inApp))
-                  expandFirstFrame={false}
-                  platform={event.platform}
-                  newestFirst={isStacktraceNewestFirst()}
-                  event={event}
-                />
-              </Wrapper>
-            )
+            event && exception ? (
+              <StacktraceContent
+                data={exception.values[0].stacktrace}
+                includeSystemFrames={!exception.hasSystemFrames} // (chainedException && stacktrace.frames.every(frame => !frame.inApp))
+                expandFirstFrame={false}
+                platform={event.platform}
+                newestFirst={isStacktraceNewestFirst()}
+                event={event}
+              />
+            ) : null
           }
-          header={event && t('Stacktrace preview')}
+          header={event ? t('Stacktrace preview') : null}
           position="left"
         >
           {this.props.children}
-        </Hovercard>
+        </StyledHovercard>
       </span>
     );
   }
 }
 
-const Wrapper = styled('div')`
+const StyledHovercard = styled(Hovercard)`
+  width: 700px;
+  border: none;
+
+  ${Body} {
+    padding: 0;
+    max-height: 300px;
+    overflow: scroll;
+    border-bottom-left-radius: 4px;
+    border-bottom-right-radius: 4px;
+  }
+
+  .traceback {
+    margin-bottom: 0;
+    border: 0;
+    box-shadow: none;
+  }
+
   /* remove platform flag set in less file */
   .frame {
     &.javascript,

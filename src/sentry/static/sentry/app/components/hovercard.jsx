@@ -82,12 +82,8 @@ class Hovercard extends React.Component {
   handleToggleOff = () => this.toggleHovercard(false);
 
   toggleHovercard = visible => {
-    const {header, body, displayTimeout} = this.props;
+    const {displayTimeout} = this.props;
 
-    // Don't toggle hovercard if both of these are null
-    if (!header && !body) {
-      return;
-    }
     if (this.hoverWait) {
       clearTimeout(this.hoverWait);
     }
@@ -142,6 +138,7 @@ class Hovercard extends React.Component {
           )}
         </Reference>
         {visible &&
+          (header || body) &&
           ReactDOM.createPortal(
             <Popper placement={position} modifiers={modifiers}>
               {({ref, style, placement, arrowProps}) => (
@@ -225,8 +222,6 @@ const StyledHovercard = styled('div')`
   ${p => (p.placement === 'bottom' ? `margin-top: ${getOffset(p)}` : '')};
   ${p => (p.placement === 'left' ? `margin-right: ${getOffset(p)}` : '')};
   ${p => (p.placement === 'right' ? `margin-left: ${getOffset(p)}` : '')};
-
-  width: 700px;
 `;
 
 const Header = styled('div')`
@@ -245,9 +240,6 @@ const Header = styled('div')`
 const Body = styled('div')`
   padding: ${space(2)};
   min-height: 30px;
-
-  height: 300px;
-  overflow: scroll;
 `;
 
 const HovercardArrow = styled('span')`
