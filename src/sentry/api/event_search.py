@@ -1188,13 +1188,25 @@ class FunctionArg(object):
         return False
 
 
+class NoColumn(FunctionArg):
+    """
+    Passthrough argument subclass for count()
+    """
+
+    def has_default(self, params):
+        return None
+
+    def normalize(self, value):
+        return value
+
+
 class CountColumn(FunctionArg):
     def has_default(self, params):
         return None
 
     def normalize(self, value):
         if value is None:
-            return value
+            raise InvalidFunctionArgument("a column is required")
 
         if value not in FIELD_ALIASES:
             return value
@@ -1386,12 +1398,9 @@ FUNCTIONS = {
         "aggregate": ["uniq", ArgValue("column"), None],
         "result_type": "integer",
     },
-    # TODO(evanh) Count doesn't accept parameters in the frontend, but we support it here
-    # for backwards compatibility. Once we've migrated existing queries this should get
-    # changed to accept no parameters.
     "count": {
         "name": "count",
-        "args": [CountColumn("column")],
+        "args": [NoColumn("column")],
         "aggregate": ["count", None, None],
         "result_type": "integer",
     },

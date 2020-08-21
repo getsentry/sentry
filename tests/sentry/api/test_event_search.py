@@ -1985,6 +1985,19 @@ class ResolveFieldListTest(unittest.TestCase):
             in six.text_type(err)
         )
 
+    def test_aggregate_function_missing_parameter(self):
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["count_unique()"]
+            resolve_field_list(fields, eventstore.Filter())
+        assert (
+            "InvalidSearchQuery: count_unique(): column argument invalid: a column is required"
+            in six.text_type(err)
+        )
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["count_unique(  )"]
+            resolve_field_list(fields, eventstore.Filter())
+
     def test_percentile_function(self):
         fields = ["percentile(transaction.duration, 0.75)"]
         result = resolve_field_list(fields, eventstore.Filter())
