@@ -4,6 +4,7 @@ import CHART_PALETTE from 'app/constants/chartPalette';
 
 const colors = {
   white: '#FFFFFF',
+  black: '#1D1127',
 
   gray100: '#FAF9FB',
   gray200: '#F2F0F5',
@@ -77,6 +78,105 @@ const colors = {
   dropShadowLightest: '0 1px 2px rgba(0, 0, 0, 0.04)',
   dropShadowLight: '0 2px 0 rgba(37, 11, 54, 0.04)',
   dropShadowHeavy: '0 1px 4px 1px rgba(47,40,55,0.08), 0 4px 16px 0 rgba(47,40,55,0.12)',
+};
+
+const aliases = {
+  /**
+   * Primary text color
+   */
+  textColor: colors.gray500,
+
+  /**
+   * Text that should not have as much emphasis
+   */
+  subText: colors.gray400,
+
+  /**
+   * A color that denotes a "success", or something good
+   */
+  success: colors.green300,
+
+  /**
+   * A color that denotes an error, or something that is wrong
+   */
+  error: colors.red300,
+
+  /**
+   * Primary border color
+   */
+  border: colors.gray200,
+
+  /**
+   * A color that indicates something is disabled where user can not interact or use
+   * it in the usual manner (implies that there is an "enabled" state)
+   */
+  disabled: colors.gray200,
+
+  /**
+   * Background for the header of a page
+   */
+  headerBackground: colors.white,
+
+  /**
+   * Background for the main content area of a page?
+   */
+  bodyBackground: colors.gray100,
+
+  /**
+   * Primary background color
+   */
+  background: colors.white,
+
+  /**
+   * Secondary background color used as a slight contrast against primary background
+   */
+  backgroundSecondary: colors.gray100,
+
+  /**
+   * Indicates that something is "active" or "selected"
+   */
+  active: colors.pink300,
+
+  /**
+   * Link color indicates that something is clickable
+   */
+  linkColor: colors.purple300,
+
+  /**
+   * ...
+   */
+  secondaryButton: colors.purple300,
+
+  /**
+   * Gradient for sidebar
+   */
+  sidebarGradient:
+    'linear-gradient(294.17deg,#2f1937 35.57%,#452650 92.42%,#452650 92.42%)',
+
+  /**
+   * Form placeholder text color
+   */
+  formPlaceholder: colors.gray200,
+
+  /**
+   * Default form text color
+   */
+  formText: colors.gray500,
+
+  /**
+   *
+   */
+  rowBackground: colors.gray100,
+
+  /**
+   * Color of lines that flow across the background of the chart to indicate axes levels
+   */
+  chartLineColor: colors.gray200,
+
+  /**
+   * Color for chart label text
+   */
+  chartLabel: colors.gray300,
 } as const;
 
 const warning = {
@@ -131,14 +231,7 @@ const badge = {
   },
 };
 
-const aliases = {
-  textColor: colors.gray800,
-  success: colors.green400,
-  error: colors.red400,
-  disabled: colors.borderDark,
-} as const;
-
-const button = {
+const generateButtonTheme = alias => ({
   borderRadius: '3px',
 
   default: {
@@ -195,15 +288,15 @@ const button = {
     focusShadow: false,
   },
   disabled: {
-    color: aliases.disabled,
-    colorActive: aliases.disabled,
+    color: alias.disabled,
+    colorActive: alias.disabled,
     border: '#e3e5e6',
     borderActive: '#e3e5e6',
     background: colors.white,
     backgroundActive: colors.white,
     focusShadow: false,
   },
-} as const;
+});
 
 const iconSizes = {
   xs: '12px',
@@ -327,7 +420,7 @@ const theme = {
 
   alert,
   badge,
-  button,
+  button: generateButtonTheme(aliases),
 
   charts: {
     colors: CHART_PALETTE[CHART_PALETTE.length - 1],
@@ -354,10 +447,11 @@ const theme = {
   },
 
   space: [0, 8, 16, 20, 30],
-} as const;
+};
 
 export type Theme = typeof theme;
 export type Color = keyof typeof colors;
 export type IconSize = keyof typeof iconSizes;
+export type Aliases = typeof aliases;
 
 export default theme;
