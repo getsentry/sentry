@@ -106,11 +106,11 @@ export function getOnboardingTasks(
     },
     {
       task: OnboardingTaskKey.FIRST_TRANSACTION,
-      title: t('Enable Performance'),
-      description: t(`See what's slow`),
+      title: t('Monitor Performance'),
+      description: t('See slow faster'),
       detailedDescription: t(
-        `Add Performance to track latency and bottlenecks within your application.
-        Monitor mission-critical endpoints and set metric alerts to proactively address the worst-performing areas.`
+        `Set up Performance Monitoring to see everything from macro-level metrics to micro-level spans.
+        Cross-reference transactions with related issues, customize queries, and monitor mission-critical endpoints using metric alerts.`
       ),
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT],
