@@ -36,9 +36,9 @@ const EventAttachmentsCrashReportsNotice = ({
         <StyledIconAttachment size="lg" color="gray400" />
 
         <Title>
-          {t('Some crash reports did not get stored!')}
+          {t('The crash report did not get stored!')}
           <Reason>
-            {t('Your current limit of stored crash reports per issue has been reached.')}
+            {t('Your limit of stored crash reports has been reached for this issue.')}
           </Reason>
         </Title>
 

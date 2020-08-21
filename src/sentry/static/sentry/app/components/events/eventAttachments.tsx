@@ -96,9 +96,9 @@ class EventAttachments extends React.Component<Props, State> {
   render() {
     const {event, projectId, orgId, location} = this.props;
     const {attachmentList} = this.state;
-    const strippedAttachments = true; // TODO(matej): this will come from API
+    const crashFileStripped = event.metadata.stripped_crash;
 
-    if (!attachmentList.length && !strippedAttachments) {
+    if (!attachmentList.length && !crashFileStripped) {
       return null;
     }
 
@@ -106,7 +106,7 @@ class EventAttachments extends React.Component<Props, State> {
 
     return (
       <EventDataSection type="attachments" title={title}>
-        {strippedAttachments && (
+        {crashFileStripped && (
           <EventAttachmentsCrashReportsNotice
             orgSlug={orgId}
             projectSlug={projectId}
