@@ -59,8 +59,8 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
   constructor(props: Props) {
     super(props, {});
     this.state = Object.assign({}, this.state, {
-      components: [],
-      sentryAppInstallations: [],
+      components: SentryAppComponentsStore.getInitialState(),
+      sentryAppInstallations: SentryAppInstallationStore.getInitialState(),
       externalIssues: [],
     });
   }
@@ -137,7 +137,6 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
   renderSentryAppIssues() {
     const {externalIssues, sentryAppInstallations, components} = this.state;
     const {group} = this.props;
-
     if (components.length === 0) {
       return null;
     }
