@@ -28,19 +28,17 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         super(OrganizationEventsV2EndpointTest, self).setUp()
         self.min_ago = iso_format(before_now(minutes=1))
         self.two_min_ago = iso_format(before_now(minutes=2))
-        self.url = reverse(
+
+    def do_request(self, query, features=None):
+        if features is None:
+            features = {"organizations:discover-basic": True}
+        self.login_as(user=self.user)
+        url = reverse(
             "sentry-api-0-organization-eventsv2",
             kwargs={"organization_slug": self.organization.slug},
         )
-
-    def do_request(self, query, features=None, user=None):
-        if features is None:
-            features = {"organizations:discover-basic": True}
-        if user is None:
-            user = self.user
-        self.login_as(user=user)
         with self.feature(features):
-            return self.client.get(self.url, query, format="json")
+            return self.client.get(url, query, format="json")
 
     def test_no_projects(self):
         response = self.do_request({})
