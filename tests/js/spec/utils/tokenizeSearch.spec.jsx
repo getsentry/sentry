@@ -328,9 +328,12 @@ describe('utils/tokenizeSearch', function() {
         string: 'bad things repository_id:"UUID(\'long-value\')"',
       },
       {
-        name: 'should quote tags with colon',
+        // values with quotes do not need to be quoted
+        // furthermore, timestamps contain colons
+        // but the backend currently does not support quoted date formats
+        name: 'should not quote tags with colon',
         object: new QueryResults(['bad', 'things', 'user:"id:123"']),
-        string: 'bad things user:"id:123"',
+        string: 'bad things user:id:123',
       },
       {
         name: 'should escape quote tags with double quotes',
