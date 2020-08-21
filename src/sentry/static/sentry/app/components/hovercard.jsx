@@ -225,6 +225,8 @@ const StyledHovercard = styled('div')`
   ${p => (p.placement === 'bottom' ? `margin-top: ${getOffset(p)}` : '')};
   ${p => (p.placement === 'left' ? `margin-right: ${getOffset(p)}` : '')};
   ${p => (p.placement === 'right' ? `margin-left: ${getOffset(p)}` : '')};
+
+  width: 700px;
 `;
 
 const Header = styled('div')`
@@ -243,6 +245,9 @@ const Header = styled('div')`
 const Body = styled('div')`
   padding: ${space(2)};
   min-height: 30px;
+
+  height: 300px;
+  overflow: scroll;
 `;
 
 const HovercardArrow = styled('span')`
