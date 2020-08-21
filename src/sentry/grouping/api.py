@@ -1,4 +1,5 @@
 from __future__ import absolute_import
+import collections
 
 import re
 import six
@@ -141,6 +142,8 @@ def _get_calculated_grouping_variants_for_event(event, config):
 
     for strategy in config.iter_strategies():
         rv = strategy.get_grouping_component_variants(event, config=config)
+        rv = collections.OrderedDict(sorted(rv.items()))
+
         for (variant, component) in six.iteritems(rv):
             per_variant_components.setdefault(variant, []).append(component)
 
