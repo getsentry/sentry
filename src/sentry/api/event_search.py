@@ -1188,6 +1188,20 @@ class FunctionArg(object):
         return False
 
 
+class NullColumn(FunctionArg):
+    """
+    Convert the provided column to null so that we
+    can drop it. Used to make count() not have a
+    required argument that we ignore.
+    """
+
+    def has_default(self, params):
+        return None
+
+    def normalize(self, value):
+        return None
+
+
 class CountColumn(FunctionArg):
     def has_default(self, params):
         return None
@@ -1388,7 +1402,7 @@ FUNCTIONS = {
     },
     "count": {
         "name": "count",
-        "args": [CountColumn("column")],
+        "args": [NullColumn("column")],
         "aggregate": ["count", None, None],
         "result_type": "integer",
     },
