@@ -16,10 +16,6 @@ export type TourStep = {
   image?: React.ReactNode;
 };
 
-const defaultProps = {
-  doneText: t('Done'),
-};
-
 type ChildProps = {
   showModal: () => void;
 };
