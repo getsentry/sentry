@@ -1,0 +1,23 @@
+{
+  "name": "@sentry-app/storybook",
+  "version": "1.0.0",
+  "description": "Sentry storybook",
+  "main": "index.js",
+  "scripts": {
+    "start": "SENTRY_UI_HOT_RELOAD='' start-storybook -p 9001 -c ../.storybook",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@storybook/addon-a11y": "^6.0.16",
+    "@storybook/addon-actions": "^6.0.16",
+    "@storybook/addon-docs": "^6.0.16",
+    "@storybook/addon-info": "^5.3.19",
+    "@storybook/addon-knobs": "^6.0.16",
+    "@storybook/addon-options": "^5.3.19",
+    "@storybook/addon-storysource": "^6.0.16",
+    "@storybook/addons": "^6.0.16",
+    "@storybook/react": "^6.0.16"
+  }
+}
