@@ -21,6 +21,7 @@ import {
 } from 'app/actionCreators/indicator';
 import {getDisplayName} from 'app/utils/environment';
 import {t} from 'app/locale';
+import Access from 'app/components/acl/access';
 import Alert from 'app/components/alert';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
@@ -409,161 +410,171 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     // the form with a loading mask on top of it, but force a re-render by using
     // a different key when we have fetched the rule so that form inputs are filled in
     return (
-      <React.Fragment>
-        <StyledForm
-          key={isSavedAlertRule(rule) ? rule.id : undefined}
-          onCancel={this.handleCancel}
-          onSubmit={this.handleSubmit}
-          initialData={{...rule, environment, actionMatch, frequency: `${frequency}`}}
-          submitLabel={t('Save Rule')}
-          extraButton={
-            isSavedAlertRule(rule) ? (
-              <Confirm
-                priority="danger"
-                confirmText={t('Delete Rule')}
-                onConfirm={this.handleDeleteRule}
-                header={t('Delete Rule')}
-                message={t('Are you sure you want to delete this rule?')}
-              >
-                <Button priority="danger" type="button">
-                  {t('Delete Rule')}
-                </Button>
-              </Confirm>
-            ) : null
-          }
-        >
-          {this.state.loading && <SemiTransparentLoadingMask />}
-          <Panel>
-            <PanelHeader>{t('Configure Rule Conditions')}</PanelHeader>
-            <PanelBody>
-              {detailedError && (
-                <PanelAlert type="error">
-                  {t(
-                    'There was an error saving your changes. Make sure all fields are valid and try again.'
-                  )}
-                </PanelAlert>
-              )}
-              <SelectField
-                className={classNames({
-                  error: this.hasError('environment'),
-                })}
-                label={t('Environment')}
-                help={t('Choose an environment for these conditions to apply to')}
-                placeholder={t('Select an Environment')}
-                clearable={false}
-                name="environment"
-                choices={environmentChoices}
-                onChange={val => this.handleEnvironmentChange(val)}
-              />
-
-              <PanelSubHeader>
-                {t(
-                  'Whenever %s of these conditions are met for an issue',
-                  <EmbeddedWrapper>
-                    <EmbeddedSelectField
-                      className={classNames({
-                        error: this.hasError('actionMatch'),
-                      })}
-                      inline={false}
-                      styles={{
-                        control: provided => ({
-                          ...provided,
-                          minHeight: '20px',
-                          height: '20px',
-                        }),
-                      }}
-                      isSearchable={false}
-                      isClearable={false}
-                      name="actionMatch"
-                      required
-                      flexibleControlStateSize
-                      choices={ACTION_MATCH_CHOICES}
-                      onChange={val => this.handleChange('actionMatch', val)}
-                    />
-                  </EmbeddedWrapper>
+      <Access access={['project:write']}>
+        {({hasAccess}) => (
+          <StyledForm
+            key={isSavedAlertRule(rule) ? rule.id : undefined}
+            onCancel={this.handleCancel}
+            onSubmit={this.handleSubmit}
+            initialData={{...rule, environment, actionMatch, frequency: `${frequency}`}}
+            submitDisabled={!hasAccess}
+            submitLabel={t('Save Rule')}
+            extraButton={
+              isSavedAlertRule(rule) ? (
+                <Confirm
+                  disabled={!hasAccess}
+                  priority="danger"
+                  confirmText={t('Delete Rule')}
+                  onConfirm={this.handleDeleteRule}
+                  header={t('Delete Rule')}
+                  message={t('Are you sure you want to delete this rule?')}
+                >
+                  <Button priority="danger" type="button">
+                    {t('Delete Rule')}
+                  </Button>
+                </Confirm>
+              ) : null
+            }
+          >
+            {this.state.loading && <SemiTransparentLoadingMask />}
+            <Panel>
+              <PanelHeader>{t('Configure Rule Conditions')}</PanelHeader>
+              <PanelBody>
+                {detailedError && (
+                  <PanelAlert type="error">
+                    {t(
+                      'There was an error saving your changes. Make sure all fields are valid and try again.'
+                    )}
+                  </PanelAlert>
                 )}
-              </PanelSubHeader>
+                <SelectField
+                  className={classNames({
+                    error: this.hasError('environment'),
+                  })}
+                  label={t('Environment')}
+                  help={t('Choose an environment for these conditions to apply to')}
+                  placeholder={t('Select an Environment')}
+                  clearable={false}
+                  name="environment"
+                  choices={environmentChoices}
+                  onChange={val => this.handleEnvironmentChange(val)}
+                  disabled={!hasAccess}
+                />
 
-              {this.hasError('conditions') && (
-                <PanelAlert type="error">
-                  {this.state.detailedError?.conditions[0]}
-                </PanelAlert>
+                <PanelSubHeader>
+                  {t(
+                    'Whenever %s of these conditions are met for an issue',
+                    <EmbeddedWrapper>
+                      <EmbeddedSelectField
+                        className={classNames({
+                          error: this.hasError('actionMatch'),
+                        })}
+                        inline={false}
+                        styles={{
+                          control: provided => ({
+                            ...provided,
+                            minHeight: '20px',
+                            height: '20px',
+                          }),
+                        }}
+                        isSearchable={false}
+                        isClearable={false}
+                        name="actionMatch"
+                        required
+                        flexibleControlStateSize
+                        choices={ACTION_MATCH_CHOICES}
+                        onChange={val => this.handleChange('actionMatch', val)}
+                        disabled={!hasAccess}
+                      />
+                    </EmbeddedWrapper>
+                  )}
+                </PanelSubHeader>
+
+                {this.hasError('conditions') && (
+                  <PanelAlert type="error">
+                    {this.state.detailedError?.conditions[0]}
+                  </PanelAlert>
+                )}
+
+                <PanelRuleItem>
+                  <RuleNodeList
+                    nodes={this.state.configs?.conditions ?? null}
+                    items={conditions || []}
+                    placeholder={t('Add a condition...')}
+                    onPropertyChange={this.handleChangeConditionProperty}
+                    onAddRow={this.handleAddCondition}
+                    onDeleteRow={this.handleDeleteCondition}
+                    organization={organization}
+                    project={project}
+                    disabled={!hasAccess}
+                  />
+                </PanelRuleItem>
+
+                <PanelSubHeader>{t('Perform these actions')}</PanelSubHeader>
+
+                {this.hasError('actions') && (
+                  <PanelAlert type="error">
+                    {this.state.detailedError?.actions[0]}
+                  </PanelAlert>
+                )}
+
+                <PanelRuleItem>
+                  <RuleNodeList
+                    nodes={this.state.configs?.actions ?? null}
+                    items={actions || []}
+                    placeholder={t('Add an action...')}
+                    onPropertyChange={this.handleChangeActionProperty}
+                    onAddRow={this.handleAddAction}
+                    onDeleteRow={this.handleDeleteAction}
+                    organization={organization}
+                    project={project}
+                    disabled={!hasAccess}
+                  />
+                </PanelRuleItem>
+              </PanelBody>
+            </Panel>
+
+            <Panel>
+              <PanelHeader>{t('Rate Limit')}</PanelHeader>
+              <PanelBody>
+                <SelectField
+                  label={t('Action Interval')}
+                  help={t('Perform these actions once this often for an issue')}
+                  clearable={false}
+                  name="frequency"
+                  className={this.hasError('frequency') ? ' error' : ''}
+                  value={frequency}
+                  required
+                  choices={FREQUENCY_CHOICES}
+                  onChange={val => this.handleChange('frequency', val)}
+                  disabled={!hasAccess}
+                />
+              </PanelBody>
+            </Panel>
+
+            <Panel>
+              <PanelHeader>{t('Give your rule a name')}</PanelHeader>
+
+              {this.hasError('name') && (
+                <PanelAlert type="error">{t('Must enter a rule name')}</PanelAlert>
               )}
 
-              <PanelRuleItem>
-                <RuleNodeList
-                  nodes={this.state.configs?.conditions ?? null}
-                  items={conditions || []}
-                  placeholder={t('Add a condition...')}
-                  onPropertyChange={this.handleChangeConditionProperty}
-                  onAddRow={this.handleAddCondition}
-                  onDeleteRow={this.handleDeleteCondition}
-                  organization={organization}
-                  project={project}
+              <PanelBody>
+                <TextField
+                  label={t('Rule name')}
+                  help={t('Give your rule a name so it is easy to manage later')}
+                  name="name"
+                  defaultValue={name}
+                  required
+                  placeholder={t('My Rule Name')}
+                  onChange={val => this.handleChange('name', val)}
+                  disabled={!hasAccess}
                 />
-              </PanelRuleItem>
-
-              <PanelSubHeader>{t('Perform these actions')}</PanelSubHeader>
-
-              {this.hasError('actions') && (
-                <PanelAlert type="error">
-                  {this.state.detailedError?.actions[0]}
-                </PanelAlert>
-              )}
-
-              <PanelRuleItem>
-                <RuleNodeList
-                  nodes={this.state.configs?.actions ?? null}
-                  items={actions || []}
-                  placeholder={t('Add an action...')}
-                  onPropertyChange={this.handleChangeActionProperty}
-                  onAddRow={this.handleAddAction}
-                  onDeleteRow={this.handleDeleteAction}
-                  organization={organization}
-                  project={project}
-                />
-              </PanelRuleItem>
-            </PanelBody>
-          </Panel>
-
-          <Panel>
-            <PanelHeader>{t('Rate Limit')}</PanelHeader>
-            <PanelBody>
-              <SelectField
-                label={t('Action Interval')}
-                help={t('Perform these actions once this often for an issue')}
-                clearable={false}
-                name="frequency"
-                className={this.hasError('frequency') ? ' error' : ''}
-                value={frequency}
-                required
-                choices={FREQUENCY_CHOICES}
-                onChange={val => this.handleChange('frequency', val)}
-              />
-            </PanelBody>
-          </Panel>
-
-          <Panel>
-            <PanelHeader>{t('Give your rule a name')}</PanelHeader>
-
-            {this.hasError('name') && (
-              <PanelAlert type="error">{t('Must enter a rule name')}</PanelAlert>
-            )}
-
-            <PanelBody>
-              <TextField
-                label={t('Rule name')}
-                help={t('Give your rule a name so it is easy to manage later')}
-                name="name"
-                defaultValue={name}
-                required
-                placeholder={t('My Rule Name')}
-                onChange={val => this.handleChange('name', val)}
-              />
-            </PanelBody>
-          </Panel>
-        </StyledForm>
-      </React.Fragment>
+              </PanelBody>
+            </Panel>
+          </StyledForm>
+        )}
+      </Access>
     );
   }
 }
