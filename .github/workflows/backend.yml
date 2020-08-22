@@ -96,7 +96,17 @@ jobs:
       - name: Start devservices
         run: |
           sentry init
-          sentry devservices up postgres redis clickhouse snuba
+          sentry devservices up postgres redis
+
+      # When we have a full backend test matrix for py3, make a py2 one as well.
+      # TODO:
+      # - kakfa+zookeeper devservices necessary for what test suites?
+      # - USE_SNUBA=1, requires clickhouse, snuba devservices
+      #   - docker exec sentry_snuba snuba migrate?
+      # - MIGRATIONS_TEST_MIGRATE=1
+      # - TEST_SUITE=relay-integration
+      # - TEST_SUITE=symbolicator
+      # - TEST_SUITE=cli
 
       - name: Python 3.6 backend w/o migrations (${{ steps.config.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
         if: always()
@@ -104,5 +114,3 @@ jobs:
           make travis-test-postgres
         env:
           TEST_GROUP: ${{ matrix.instance }}
-          # TODO: We should also be testing without USE_SNUBA.
-          USE_SNUBA: 1
