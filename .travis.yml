@@ -187,10 +187,18 @@ matrix:
 
     - <<: *postgres_default
       name: 'Backend with migrations [Postgres] (1/2)'
+      # why no USE_SNUBA if it needs it?
       env: TEST_SUITE=postgres DB=postgres TOTAL_TEST_GROUPS=2 TEST_GROUP=0 MIGRATIONS_TEST_MIGRATE=1
+      before_script:
+        - *start_snuba
+        - docker ps -a
     - <<: *postgres_default
       name: 'Backend with migrations [Postgres] (2/2)'
+      # why no USE_SNUBA if it needs it?
       env: TEST_SUITE=postgres DB=postgres TOTAL_TEST_GROUPS=2 TEST_GROUP=1 MIGRATIONS_TEST_MIGRATE=1
+      before_script:
+        - *start_snuba
+        - docker ps -a
 
     - <<: *acceptance_default
       name: 'Acceptance (1/3)'
@@ -213,7 +221,11 @@ matrix:
 
     - <<: *acceptance_default
       name: 'Plugins'
+      # why no USE_SNUBA if it needs it?
       env: TEST_SUITE=plugins DB=postgres
+      before_script:
+        - *start_snuba
+        - docker ps -a
 
     - python: 2.7
       name: 'Frontend [test]'
@@ -247,13 +259,16 @@ matrix:
 
     - <<: *postgres_default
       name: 'Symbolicator Integration'
+      # why no USE_SNUBA if it needs it?
       env: TEST_SUITE=symbolicator
       before_script:
+        - *start_snuba
         - docker run -d --network host --name symbolicator us.gcr.io/sentryio/symbolicator:latest run
         - docker ps -a
 
     - <<: *postgres_default
       name: 'Sentry-Relay integration tests'
+      # why no USE_SNUBA if it needs it?
       env: TEST_SUITE=relay-integration DB=postgres
       services:
         - docker
@@ -262,6 +277,7 @@ matrix:
         - postgresql
       before_script:
         - docker pull us.gcr.io/sentryio/relay:latest # pull relay we'll run and kill it for each test
+        - *start_snuba
         - docker ps -a
 
     - python: 2.7
