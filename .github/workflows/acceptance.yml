@@ -183,7 +183,6 @@ jobs:
             mkdir -p .artifacts/visual-snapshots/acceptance-mobile
             make run-acceptance
           env:
-            USE_SNUBA: 1
             TEST_GROUP: ${{ matrix.instance }}
 
         - name: Save snapshots

@@ -101,8 +101,7 @@ jobs:
       # When we have a full backend test matrix for py3, make a py2 one as well.
       # TODO:
       # - kakfa+zookeeper devservices necessary for what test suites?
-      # - USE_SNUBA=1, requires clickhouse, snuba devservices
-      #   - docker exec sentry_snuba snuba migrate?
+      # - is `docker exec sentry_snuba snuba migrate` needed?
       # - MIGRATIONS_TEST_MIGRATE=1
       # - TEST_SUITE=relay-integration
       # - TEST_SUITE=symbolicator
