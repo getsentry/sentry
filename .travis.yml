@@ -96,7 +96,6 @@ start_snuba: &start_snuba |-
   docker exec sentry_snuba snuba migrate
 
 script:
-  - sentry init
   - make travis-test-$TEST_SUITE
 
 after_failure:
@@ -132,6 +131,7 @@ base_postgres: &postgres_default
   install:
     - python setup.py install_egg_info
     - pip install -U -e ".[dev]"
+    - sentry init
   before_script:
     - psql -c 'create database sentry;' -U postgres
 
@@ -151,6 +151,7 @@ base_acceptance: &acceptance_default
     - *install_node_dependencies
     - python setup.py install_egg_info
     - pip install -U -e ".[dev]"
+    - sentry init
     - |
       CHROME_MAJOR_VERSION="$(dpkg -s google-chrome-stable | sed -nr 's/Version: ([0-9]+).*/\1/p')"
       wget -N "https://chromedriver.storage.googleapis.com/$(curl https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${CHROME_MAJOR_VERSION})/chromedriver_linux64.zip" -P ~/
@@ -233,6 +234,7 @@ matrix:
       install:
         - python setup.py install_egg_info
         - pip install -U -e ".[dev]"
+        - sentry init
       before_script:
         - psql -c 'create database sentry;' -U postgres
 
@@ -274,6 +276,7 @@ matrix:
       install:
         - python setup.py install_egg_info
         - pip install -U -e ".[dev]"
+        - sentry init
       before_script:
         - psql -c 'create database sentry;' -U postgres
 
@@ -296,6 +299,7 @@ matrix:
       install:
         - python setup.py install_egg_info
         - pip install -U -e ".[dev]"
+        - sentry init
         # XXX: Travis cache needs to be manually purged.
         # I think can do a python_version > 3 for this though, will try in GHA.
         - pip uninstall -y rb
