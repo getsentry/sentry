@@ -96,7 +96,7 @@ jobs:
       - name: Start devservices
         run: |
           sentry init
-          sentry devservices up postgres redis
+          sentry devservices up postgres redis clickhouse snuba
 
       # When we have a full backend test matrix for py3, make a py2 one as well.
       # TODO:
