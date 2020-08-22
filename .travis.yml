@@ -96,11 +96,8 @@ start_snuba: &start_snuba |-
   docker exec sentry_snuba snuba migrate
 
 script:
-  # certain commands require sentry init to be run, but this is only true for
-  # running things within Travis
+  - sentry init
   - make travis-test-$TEST_SUITE
-  # installing dependencies for after_* steps here ensures they get cached
-  # since those steps execute after travis runs `store build cache`
 
 after_failure:
   - dmesg | tail -n 100
