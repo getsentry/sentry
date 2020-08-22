@@ -19,8 +19,6 @@ jobs:
 
       SENTRY_LIGHT_BUILD: 1
       SENTRY_SKIP_BACKEND_VALIDATION: 1
-      # XXX(py3): Migrations are disabled until further notice, just to unblock for now.
-      # MIGRATIONS_TEST_MIGRATE: 0
 
       # Use this to override the django version in the requirements file.
       DJANGO_VERSION: ">=1.11,<1.12"
@@ -31,8 +29,6 @@ jobs:
       PYTEST_SENTRY_ALWAYS_REPORT: no
 
       # services configuration
-      SENTRY_KAFKA_HOSTS: kafka:9093
-      SENTRY_ZOOKEEPER_HOSTS: zookeeper:2182
       SENTRY_REDIS_HOST: redis
       DATABASE_URL: postgresql://postgres:postgres@localhost/sentry
 
@@ -106,7 +102,6 @@ jobs:
       # - TEST_SUITE=relay-integration
       # - TEST_SUITE=symbolicator
       # - TEST_SUITE=cli
-
       - name: Python 3.6 backend w/o migrations (${{ steps.config.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
         if: always()
         run: |
