@@ -280,33 +280,6 @@ matrix:
       before_script:
         - psql -c 'create database sentry;' -U postgres
 
-    # XXX: this needs to be the same as postgres_default
-    #      (other than python, name, env, and the rb package override)
-    # NOTE: Migrations need to also be ported to py3.6, but the errors just clog up everything.
-    #       So for now, we're unblocking that by not having MIGRATIONS_TEST_MIGRATE=1.
-    # Allowed to fail!
-    - python: 3.6
-      name: 'Python 3.6 Backend without migrations [Postgres] (ALL)'
-      env: TEST_SUITE=postgres DB=postgres SENTRY_PYTHON3=1 PYTEST_ADDOPTS="" PYTEST_SENTRY_ALWAYS_REPORT=no
-      services:
-        - memcached
-        - redis-server
-        - postgresql
-      before_install:
-        - *base_install
-        - *start_snuba
-        - docker ps -a
-      install:
-        - python setup.py install_egg_info
-        - pip install -U -e ".[dev]"
-        - sentry init
-        # XXX: Travis cache needs to be manually purged.
-        # I think can do a python_version > 3 for this though, will try in GHA.
-        - pip uninstall -y rb
-        - pip install -e git+https://github.com/getsentry/rb.git@master#egg=rb
-      before_script:
-        - psql -c 'create database sentry;' -U postgres
-
     # Deploy 'storybook' (component & style guide)
     - name: 'Storybook Deploy'
       language: generic
@@ -321,9 +294,6 @@ matrix:
       script: yarn run storybook-build
       after_success: .travis/deploy-storybook.sh
       after_failure: skip
-
-allow_failures:
-  - name: 'Python 3.6 Backend without migrations [Postgres] (ALL)'
 
 notifications:
   webhooks:
