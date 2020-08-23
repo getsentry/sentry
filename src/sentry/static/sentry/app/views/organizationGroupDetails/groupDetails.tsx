@@ -5,7 +5,7 @@ import * as ReactRouter from 'react-router';
 import * as Sentry from '@sentry/react';
 
 import {Client} from 'app/api';
-import {Group, Organization, Project} from 'app/types';
+import {Group, Organization, Project, Event, AvatarProject} from 'app/types';
 import {PageContent} from 'app/styles/organization';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import {t} from 'app/locale';
@@ -17,9 +17,23 @@ import Projects from 'app/utils/projects';
 import SentryTypes from 'app/sentryTypes';
 import recreateRoute from 'app/utils/recreateRoute';
 import withApi from 'app/utils/withApi';
+import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 
 import {ERROR_TYPES} from './constants';
+import {fetchGroupEventAndMarkSeen} from './utils';
 import GroupHeader from './header';
+
+// TODO(ts): Move this enum to the GroupHeader component as soon as it is converted to ts
+enum TAB {
+  DETAILS = 'details',
+  COMMENTS = 'comments',
+  USER_FEEDBACK = 'user_feedback',
+  ATTACHMENTS = 'attachments',
+  TAGS = 'tags',
+  EVENTS = 'events',
+  MERGED = 'merged',
+  SIMILAR_ISSUES = 'similar_issues',
+}
 
 type Error = typeof ERROR_TYPES[keyof typeof ERROR_TYPES] | null;
 
@@ -29,7 +43,10 @@ type Props = {
   environments: string[];
   children: React.ReactNode;
   isGlobalSelectionReady: boolean;
-} & ReactRouter.RouteComponentProps<{orgId: string; groupId: string}, {}>;
+} & ReactRouter.RouteComponentProps<
+  {orgId: string; groupId: string; eventId?: string},
+  {}
+>;
 
 type State = {
   group: Group | null;
@@ -37,6 +54,7 @@ type State = {
   error: boolean;
   errorType: Error;
   project: null | (Pick<Project, 'id' | 'slug'> & Partial<Pick<Project, 'platform'>>);
+  event?: Event;
 };
 
 class GroupDetails extends React.Component<Props, State> {
@@ -58,13 +76,18 @@ class GroupDetails extends React.Component<Props, State> {
     this.fetchData();
   }
 
-  componentDidUpdate(prevProps: Props) {
+  componentDidUpdate(prevProps: Props, prevState: State) {
     if (prevProps.isGlobalSelectionReady !== this.props.isGlobalSelectionReady) {
       this.fetchData();
+    }
+
+    if (!prevState?.group && this.state.group) {
+      this.getEvent(this.state.group);
     }
   }
 
   componentWillUnmount() {
+    GroupStore.reset();
     callIfFunction(this.listener);
   }
 
@@ -85,6 +108,128 @@ class GroupDetails extends React.Component<Props, State> {
 
   get groupDetailsEndpoint() {
     return `/issues/${this.props.params.groupId}/`;
+  }
+
+  async getEvent(group: Group) {
+    const {params, environments, api, organization} = this.props;
+    const orgSlug = organization.slug;
+    const groupId = group.id;
+    const projSlug = group.project.slug;
+    const eventId = params?.eventId || 'latest';
+
+    try {
+      const event = await fetchGroupEventAndMarkSeen(
+        api,
+        orgSlug,
+        projSlug,
+        groupId,
+        eventId,
+        environments
+      );
+      this.setState({event, loading: false, error: false, errorType: null});
+    } catch (err) {
+      // This is an expected error, capture to Sentry so that it is not considered as an unhandled error
+      Sentry.captureException(err);
+      this.setState({error: true, errorType: null, loading: false});
+    }
+  }
+
+  getRouteInfo() {
+    const {routes} = this.props;
+    const route = getRouteStringFromRoutes(routes);
+
+    switch (route) {
+      case '/organizations/:orgId/issues/:groupId/events/:eventId/feedback/':
+        return {
+          currentTab: TAB.USER_FEEDBACK,
+          isEventRoute: true,
+        };
+      case '/organizations/:orgId/issues/:groupId/feedback/':
+        return {
+          currentTab: TAB.USER_FEEDBACK,
+          isEventRoute: false,
+        };
+      case '/organizations/:orgId/issues/:groupId/events/:eventId/attachments/':
+        return {
+          currentTab: TAB.ATTACHMENTS,
+          isEventRoute: true,
+        };
+      case '/organizations/:orgId/issues/:groupId/attachments/':
+        return {
+          currentTab: TAB.ATTACHMENTS,
+          isEventRoute: false,
+        };
+      case '/organizations/:orgId/issues/:groupId/events/:eventId/similar/':
+        return {
+          currentTab: TAB.SIMILAR_ISSUES,
+          isEventRoute: true,
+        };
+      case '/organizations/:orgId/issues/:groupId/similar/':
+        return {
+          currentTab: TAB.SIMILAR_ISSUES,
+          isEventRoute: false,
+        };
+      case '/organizations/:orgId/issues/:groupId/events/:eventId/merged/':
+        return {
+          currentTab: TAB.MERGED,
+          isEventRoute: true,
+        };
+      case '/organizations/:orgId/issues/:groupId/merged/':
+        return {
+          currentTab: TAB.MERGED,
+          isEventRoute: false,
+        };
+      case '/organizations/:orgId/issues/:groupId/events/:eventId/tags/':
+        return {
+          currentTab: TAB.TAGS,
+          isEventRoute: true,
+        };
+      case '/organizations/:orgId/issues/:groupId/tags/':
+        return {
+          currentTab: TAB.TAGS,
+          isEventRoute: false,
+        };
+      case '/organizations/:orgId/issues/:groupId/events/:eventId/tags/:tagKey/':
+        return {
+          currentTab: TAB.TAGS,
+          isEventRoute: true,
+        };
+      case '/organizations/:orgId/issues/:groupId/tags/:tagKey/':
+        return {
+          currentTab: TAB.TAGS,
+          isEventRoute: false,
+        };
+      case '/organizations/:orgId/issues/:groupId/events/:eventId/activity/':
+        return {
+          currentTab: TAB.COMMENTS,
+          isEventRoute: true,
+        };
+      case '/organizations/:orgId/issues/:groupId/activity/':
+        return {
+          currentTab: TAB.COMMENTS,
+          isEventRoute: false,
+        };
+      case '/organizations/:orgId/issues/:groupId/events/:eventId/events/':
+        return {
+          currentTab: TAB.EVENTS,
+          isEventRoute: true,
+        };
+      case '/organizations/:orgId/issues/:groupId/events/':
+        return {
+          currentTab: TAB.EVENTS,
+          isEventRoute: false,
+        };
+      case '/organizations/:orgId/issues/:groupId/events/:eventId/':
+        return {
+          currentTab: TAB.DETAILS,
+          isEventRoute: true,
+        };
+      default:
+        return {
+          currentTab: TAB.DETAILS,
+          isEventRoute: false,
+        };
+    }
   }
 
   async fetchData() {
@@ -136,12 +281,7 @@ class GroupDetails extends React.Component<Props, State> {
         ReactRouter.browserHistory.replace(locationWithProject);
       }
 
-      this.setState({
-        error: false,
-        loading: false,
-        errorType: null,
-        project,
-      });
+      this.setState({project});
 
       GroupStore.loadInitialData([data]);
     } catch (err) {
@@ -154,9 +294,9 @@ class GroupDetails extends React.Component<Props, State> {
       }
 
       this.setState({
-        loading: false,
         error: true,
         errorType,
+        loading: false,
       });
     }
   }
@@ -207,24 +347,6 @@ class GroupDetails extends React.Component<Props, State> {
     }
   }
 
-  renderContent(project) {
-    const {children, environments} = this.props;
-    const {group} = this.state;
-
-    return (
-      <React.Fragment>
-        <GroupHeader project={project} group={group} />
-        {React.isValidElement(children)
-          ? React.cloneElement(children, {
-              environments,
-              group,
-              project,
-            })
-          : children}
-      </React.Fragment>
-    );
-  }
-
   renderError() {
     if (!this.state.error) {
       return null;
@@ -240,6 +362,42 @@ class GroupDetails extends React.Component<Props, State> {
     }
   }
 
+  renderContent(project: AvatarProject) {
+    const {children, environments} = this.props;
+    const {group, event} = this.state;
+
+    const {currentTab, isEventRoute} = this.getRouteInfo();
+
+    let childProps: Record<string, any> = {
+      environments,
+      group,
+      project,
+    };
+
+    if (currentTab === TAB.DETAILS) {
+      childProps = {...childProps, event};
+    }
+
+    if (currentTab === TAB.SIMILAR_ISSUES) {
+      childProps = {...childProps, event};
+    }
+
+    return (
+      <React.Fragment>
+        <GroupHeader
+          project={project}
+          group={group}
+          currentTab={currentTab}
+          isEventRoute={isEventRoute}
+          event={event}
+        />
+        {React.isValidElement(children)
+          ? React.cloneElement(children, childProps)
+          : children}
+      </React.Fragment>
+    );
+  }
+
   render() {
     const {organization} = this.props;
     const {error, group, project, loading} = this.state;
@@ -249,41 +407,41 @@ class GroupDetails extends React.Component<Props, State> {
 
     return (
       <DocumentTitle title={this.getTitle()}>
-        <React.Fragment>
-          <GlobalSelectionHeader
-            skipLoadLastUsed
-            forceProject={project}
-            showDateSelector={false}
-            shouldForceProject
-            lockedMessageSubject={t('issue')}
-            showIssueStreamLink
-            showProjectSettingsLink
-          >
-            <PageContent>
-              {isLoading ? (
-                <LoadingIndicator />
-              ) : isError ? (
-                this.renderError()
-              ) : (
-                <Projects orgId={organization.slug} slugs={[project!.slug]}>
-                  {({projects, initiallyLoaded, fetchError}) =>
-                    initiallyLoaded ? (
-                      fetchError ? (
-                        <LoadingError
-                          message={t('Error loading the specified project')}
-                        />
-                      ) : (
-                        this.renderContent(projects[0])
-                      )
+        <GlobalSelectionHeader
+          skipLoadLastUsed
+          forceProject={project}
+          showDateSelector={false}
+          shouldForceProject
+          lockedMessageSubject={t('issue')}
+          showIssueStreamLink
+          showProjectSettingsLink
+        >
+          <PageContent>
+            {isLoading ? (
+              <LoadingIndicator />
+            ) : isError ? (
+              this.renderError()
+            ) : (
+              <Projects
+                orgId={organization.slug}
+                slugs={[project!.slug]}
+                data-test-id="group-projects-container"
+              >
+                {({projects, initiallyLoaded, fetchError}) =>
+                  initiallyLoaded ? (
+                    fetchError ? (
+                      <LoadingError message={t('Error loading the specified project')} />
                     ) : (
-                      <LoadingIndicator />
+                      this.renderContent(projects[0])
                     )
-                  }
-                </Projects>
-              )}
-            </PageContent>
-          </GlobalSelectionHeader>
-        </React.Fragment>
+                  ) : (
+                    <LoadingIndicator />
+                  )
+                }
+              </Projects>
+            )}
+          </PageContent>
+        </GlobalSelectionHeader>
       </DocumentTitle>
     );
   }

@@ -15,6 +15,7 @@ jest.unmock('app/utils/recreateRoute');
 describe('groupDetails', function() {
   let wrapper;
   const group = TestStubs.Group();
+  const event = TestStubs.Event();
   const {organization, project, router, routerContext} = initializeOrg({
     project: TestStubs.Project(),
     router: {
@@ -67,6 +68,20 @@ describe('groupDetails', function() {
       body: {...group},
     });
     MockApiClient.addMockResponse({
+      url: `/issues/${group.id}/events/latest/`,
+      statusCode: 200,
+      body: {
+        ...event,
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/org-slug/${project.slug}/issues/`,
+      method: 'PUT',
+      body: {
+        hasSeen: false,
+      },
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [project],
     });
@@ -101,6 +116,7 @@ describe('groupDetails', function() {
 
     ProjectsStore.loadInitialData(organization.projects);
     await tick();
+    await tick();
 
     expect(MockComponent).toHaveBeenLastCalledWith(
       {
@@ -110,6 +126,7 @@ describe('groupDetails', function() {
           id: project.id,
           slug: project.slug,
         }),
+        event,
       },
       {}
     );
@@ -199,6 +216,7 @@ describe('groupDetails', function() {
           id: project.id,
           slug: project.slug,
         }),
+        event,
       },
       {}
     );

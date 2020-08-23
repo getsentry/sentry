@@ -27,9 +27,12 @@ import GroupActions from './actions';
 
 class GroupHeader extends React.Component {
   static propTypes = {
-    api: PropTypes.object,
+    event: SentryTypes.Event.isRequired,
     group: SentryTypes.Group.isRequired,
+    currentTab: PropTypes.string.isRequired,
+    isEventRoute: PropTypes.bool.isRequired,
     project: SentryTypes.Project,
+    api: PropTypes.object,
   };
 
   static contextTypes = {
@@ -63,7 +66,7 @@ class GroupHeader extends React.Component {
   }
 
   render() {
-    const {project, group} = this.props;
+    const {project, group, currentTab, isEventRoute, event} = this.props;
     const {organization, location} = this.context;
     const projectFeatures = new Set(project ? project.features : []);
     const organizationFeatures = new Set(organization ? organization.features : []);
@@ -84,16 +87,19 @@ class GroupHeader extends React.Component {
     const {memberList} = this.state;
     const groupId = group.id;
     const orgId = organization.slug;
+    const eventId = event.id;
     const message = this.getMessage();
 
     const hasSimilarView = projectFeatures.has('similarity-view');
     const hasEventAttachments = organizationFeatures.has('event-attachments');
 
-    const baseUrl = `/organizations/${orgId}/issues/`;
+    const baseUrl = isEventRoute
+      ? `/organizations/${orgId}/issues/${groupId}/events/${eventId}/`
+      : `/organizations/${orgId}/issues/${groupId}/`;
 
     const searchTermWithoutQuery = omit(location.query, 'query');
     const eventRouteToObject = {
-      pathname: `${baseUrl}${groupId}/events/`,
+      pathname: `${baseUrl}events/`,
       query: searchTermWithoutQuery,
     };
 
@@ -114,7 +120,7 @@ class GroupHeader extends React.Component {
                     <EventAnnotationWithSpace>
                       <Link
                         to={{
-                          pathname: baseUrl,
+                          pathname: `/organizations/${orgId}/issues/`,
                           query: {query: 'logger:' + group.logger},
                         }}
                       >
@@ -171,7 +177,7 @@ class GroupHeader extends React.Component {
               <div className="count align-right m-l-1">
                 <h6 className="nav-header">{t('Users')}</h6>
                 {userCount !== 0 ? (
-                  <Link to={`${baseUrl}${groupId}/tags/user/${location.search}`}>
+                  <Link to={`${baseUrl}tags/user/${location.search}`}>
                     <Count className="count" value={userCount} />
                   </Link>
                 ) : (
@@ -192,59 +198,50 @@ class GroupHeader extends React.Component {
         <GroupActions group={group} project={project} />
         <NavTabs>
           <ListLink
-            to={`${baseUrl}${groupId}/${location.search}`}
-            isActive={() => {
-              const rootGroupPath = `${baseUrl}${groupId}/`;
-              const pathname = location.pathname;
-
-              // Because react-router 1.0 removes router.isActive(route)
-              return pathname === rootGroupPath || /events\/\w+\/$/.test(pathname);
-            }}
+            to={`${baseUrl}${location.search}`}
+            isActive={() => currentTab === 'details'}
           >
             {t('Details')}
           </ListLink>
           <ListLink
-            to={`${baseUrl}${groupId}/activity/${location.search}`}
-            isActive={() => location.pathname.includes('/activity/')}
+            to={`${baseUrl}activity/${location.search}`}
+            isActive={() => currentTab === 'comments'}
           >
             {t('Activity')} <Badge text={group.numComments} />
           </ListLink>
           <ListLink
-            to={`${baseUrl}${groupId}/feedback/${location.search}`}
-            isActive={() => location.pathname.includes('/feedback/')}
+            to={`${baseUrl}feedback/${location.search}`}
+            isActive={() => currentTab === 'user_feedback'}
           >
             {t('User Feedback')} <Badge text={group.userReportCount} />
           </ListLink>
           {hasEventAttachments && (
             <ListLink
-              to={`${baseUrl}${groupId}/attachments/${location.search}`}
-              isActive={() => location.pathname.includes('/attachments/')}
+              to={`${baseUrl}attachments/${location.search}`}
+              isActive={() => currentTab === 'attachments'}
             >
               {t('Attachments')}
             </ListLink>
           )}
           <ListLink
-            to={`${baseUrl}${groupId}/tags/${location.search}`}
-            isActive={() => location.pathname.includes('/tags/')}
+            to={`${baseUrl}tags/${location.search}`}
+            isActive={() => currentTab === 'tags'}
           >
             {t('Tags')}
           </ListLink>
-          <ListLink
-            to={eventRouteToObject}
-            isActive={() => location.pathname.endsWith('/events/')}
-          >
+          <ListLink to={eventRouteToObject} isActive={() => currentTab === 'events'}>
             {t('Events')}
           </ListLink>
           <ListLink
-            to={`${baseUrl}${groupId}/merged/${location.search}`}
-            isActive={() => location.pathname.includes('/merged/')}
+            to={`${baseUrl}merged/${location.search}`}
+            isActive={() => currentTab === 'merged'}
           >
             {t('Merged')}
           </ListLink>
           {hasSimilarView && (
             <ListLink
-              to={`${baseUrl}${groupId}/similar/${location.search}`}
-              isActive={() => location.pathname.includes('/similar/')}
+              to={`${baseUrl}similar/${location.search}`}
+              isActive={() => currentTab === 'similar_issues'}
             >
               {t('Similar Issues')}
             </ListLink>

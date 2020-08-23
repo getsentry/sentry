@@ -23,8 +23,8 @@ export type TableDataRow = {
  * A DiscoverQuery result including rows and metadata.
  */
 export type TableData = {
-  meta?: MetaType;
   data: Array<TableDataRow>;
+  meta?: MetaType;
 };
 
 type ChildrenProps = {

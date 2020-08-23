@@ -1176,7 +1176,7 @@ function routes() {
             path="/organizations/:orgId/issues/:groupId/"
             componentPromise={() =>
               import(
-                /* webpackChunkName: "OrganizationGroupDetails" */ 'app/views/organizationGroupDetails'
+                /* webpackChunkName: "GroupDetails" */ 'app/views/organizationGroupDetails'
               )
             }
             component={errorHandler(LazyLoad)}
@@ -1184,7 +1184,7 @@ function routes() {
             <IndexRoute
               componentPromise={() =>
                 import(
-                  /* webpackChunkName: "OrganizationGroupEventDetails" */ 'app/views/organizationGroupDetails/groupEventDetails'
+                  /* webpackChunkName: "GroupEventDetails" */ 'app/views/organizationGroupDetails/groupEventDetails'
                 )
               }
               component={errorHandler(LazyLoad)}
@@ -1198,20 +1198,102 @@ function routes() {
               }
               component={errorHandler(LazyLoad)}
             />
-            <Route
-              path="/organizations/:orgId/issues/:groupId/events/:eventId/"
-              componentPromise={() =>
-                import(
-                  /* webpackChunkName: "OrganizationGroupEventDetails" */ 'app/views/organizationGroupDetails/groupEventDetails'
-                )
-              }
-              component={errorHandler(LazyLoad)}
-            />
+            <Route path="/organizations/:orgId/issues/:groupId/events/:eventId/">
+              <IndexRoute
+                componentPromise={() =>
+                  import(
+                    /* webpackChunkName: "GroupEventDetails" */ 'app/views/organizationGroupDetails/groupEventDetails'
+                  )
+                }
+                component={errorHandler(LazyLoad)}
+              />
+              <Route
+                path="activity/"
+                componentPromise={() =>
+                  import(
+                    /* webpackChunkName: "GroupActivity" */ 'app/views/organizationGroupDetails/groupActivity'
+                  )
+                }
+                component={errorHandler(LazyLoad)}
+              />
+              <Route
+                path="events/"
+                componentPromise={() =>
+                  import(
+                    /* webpackChunkName: "GroupEvents" */ 'app/views/organizationGroupDetails/groupEvents'
+                  )
+                }
+                component={errorHandler(LazyLoad)}
+              />
+              <Route
+                path="similar/"
+                componentPromise={() =>
+                  import(
+                    /* webpackChunkName: "GroupSimilarIssues" */ 'app/views/organizationGroupDetails/groupSimilarIssues'
+                  )
+                }
+                component={errorHandler(LazyLoad)}
+              />
+              <Route
+                path="tags/"
+                componentPromise={() =>
+                  import(
+                    /* webpackChunkName: "GroupTags" */ 'app/views/organizationGroupDetails/groupTags'
+                  )
+                }
+                component={errorHandler(LazyLoad)}
+              />
+              <Route
+                path="tags/:tagKey/"
+                componentPromise={() =>
+                  import(
+                    /* webpackChunkName: "GroupTagsValues" */ 'app/views/organizationGroupDetails/groupTagValues'
+                  )
+                }
+                component={errorHandler(LazyLoad)}
+              />
+              <Route
+                path="feedback/"
+                componentPromise={() =>
+                  import(
+                    /* webpackChunkName: "GroupUserFeedback" */ 'app/views/organizationGroupDetails/groupUserFeedback'
+                  )
+                }
+                component={errorHandler(LazyLoad)}
+              />
+              <Route
+                path="attachments/"
+                componentPromise={() =>
+                  import(
+                    /* webpackChunkName: "GroupEventAttachments" */ 'app/views/organizationGroupDetails/groupEventAttachments'
+                  )
+                }
+                component={errorHandler(LazyLoad)}
+              />
+              <Route
+                path="similar/"
+                componentPromise={() =>
+                  import(
+                    /* webpackChunkName: "GroupSimilarIssues" */ 'app/views/organizationGroupDetails/groupSimilarIssues'
+                  )
+                }
+                component={errorHandler(LazyLoad)}
+              />
+              <Route
+                path="merged/"
+                componentPromise={() =>
+                  import(
+                    /* webpackChunkName: "GroupMerged" */ 'app/views/organizationGroupDetails/groupMerged'
+                  )
+                }
+                component={errorHandler(LazyLoad)}
+              />
+            </Route>
             <Route
               path="/organizations/:orgId/issues/:groupId/events/"
               componentPromise={() =>
                 import(
-                  /* webpackChunkName: "OrganizationGroupEvents" */ 'app/views/organizationGroupDetails/groupEvents'
+                  /* webpackChunkName: "GroupEvents" */ 'app/views/organizationGroupDetails/groupEvents'
                 )
               }
               component={errorHandler(LazyLoad)}
@@ -1220,7 +1302,7 @@ function routes() {
               path="/organizations/:orgId/issues/:groupId/tags/"
               componentPromise={() =>
                 import(
-                  /* webpackChunkName: "OrganizationGroupTags" */ 'app/views/organizationGroupDetails/groupTags'
+                  /* webpackChunkName: "GroupTags" */ 'app/views/organizationGroupDetails/groupTags'
                 )
               }
               component={errorHandler(LazyLoad)}
@@ -1229,7 +1311,7 @@ function routes() {
               path="/organizations/:orgId/issues/:groupId/tags/:tagKey/"
               componentPromise={() =>
                 import(
-                  /* webpackChunkName: "OrganizationGroupTagsValues" */ 'app/views/organizationGroupDetails/groupTagValues'
+                  /* webpackChunkName: "GroupTagsValues" */ 'app/views/organizationGroupDetails/groupTagValues'
                 )
               }
               component={errorHandler(LazyLoad)}
@@ -1238,7 +1320,7 @@ function routes() {
               path="/organizations/:orgId/issues/:groupId/feedback/"
               componentPromise={() =>
                 import(
-                  /* webpackChunkName: "OrganizationGroupUserFeedback" */ 'app/views/organizationGroupDetails/groupUserFeedback'
+                  /* webpackChunkName: "GroupUserFeedback" */ 'app/views/organizationGroupDetails/groupUserFeedback'
                 )
               }
               component={errorHandler(LazyLoad)}
@@ -1256,7 +1338,7 @@ function routes() {
               path="/organizations/:orgId/issues/:groupId/similar/"
               componentPromise={() =>
                 import(
-                  /* webpackChunkName: "GroupSimilarView" */ 'app/views/organizationGroupDetails/groupSimilar'
+                  /* webpackChunkName: "GroupSimilarIssues" */ 'app/views/organizationGroupDetails/groupSimilarIssues'
                 )
               }
               component={errorHandler(LazyLoad)}
@@ -1265,7 +1347,7 @@ function routes() {
               path="/organizations/:orgId/issues/:groupId/merged/"
               componentPromise={() =>
                 import(
-                  /* webpackChunkName: "GroupSimilarView" */ 'app/views/organizationGroupDetails/groupMerged'
+                  /* webpackChunkName: "GroupMerged" */ 'app/views/organizationGroupDetails/groupMerged'
                 )
               }
               component={errorHandler(LazyLoad)}
