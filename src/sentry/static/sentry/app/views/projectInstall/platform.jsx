@@ -17,6 +17,8 @@ import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
+const PrismaTheme = require('prismjs/themes/prism-tomorrow.css').toString();
+
 class ProjectInstallPlatform extends React.Component {
   static propTypes = {
     api: PropTypes.object,
@@ -163,6 +165,21 @@ class ProjectInstallPlatform extends React.Component {
 }
 
 const DocumentationWrapper = styled('div')`
+  .gatsby-highlight {
+    margin-bottom: 20px;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  .alert {
+    margin-bottom: 20px;
+    border-radius: 3px;
+  }
+
+  ${PrismaTheme}
+
   p {
     line-height: 1.5;
   }
