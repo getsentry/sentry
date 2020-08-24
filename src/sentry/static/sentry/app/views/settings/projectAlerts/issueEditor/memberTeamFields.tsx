@@ -65,7 +65,6 @@ class MemberTeamFields extends React.Component<Props> {
       options,
     } = this.props;
 
-    // const isIssueOwners = data.targetType === MailActionTargetType.IssueOwners;
     const teamSelected = ruleData.targetType === teamValue;
     const memberSelected = ruleData.targetType === memberValue;
 
