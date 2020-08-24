@@ -9,6 +9,8 @@ import styled from '@emotion/styled';
 
 import {PanelItem} from 'app/components/panels';
 import {valueIsEqual} from 'app/utils';
+import theme from 'app/utils/theme';
+import {IconTelescope} from 'app/icons';
 import AssigneeSelector from 'app/components/assigneeSelector';
 import Count from 'app/components/count';
 import EventOrGroupExtraDetails from 'app/components/eventOrGroupExtraDetails';
@@ -19,6 +21,10 @@ import GroupStore from 'app/stores/groupStore';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import SelectedGroupStore from 'app/stores/selectedGroupStore';
 import space from 'app/styles/space';
+import Tooltip from 'app/components/tooltip';
+import SentryTypes from 'app/sentryTypes';
+import {getRelativeSummary} from 'app/components/organizations/timeRangeSelector/utils';
+import {DEFAULT_STATS_PERIOD} from 'app/constants';
 
 const StreamGroup = createReactClass({
   displayName: 'StreamGroup',
@@ -31,6 +37,7 @@ const StreamGroup = createReactClass({
     hasGuideAnchor: PropTypes.bool,
     memberList: PropTypes.array,
     withChart: PropTypes.bool,
+    selection: SentryTypes.GlobalSelection,
   },
 
   mixins: [Reflux.listenTo(GroupStore, 'onGroupChange')],
@@ -93,6 +100,7 @@ const StreamGroup = createReactClass({
 
     SelectedGroupStore.toggleSelect(this.state.data.id);
   },
+
   toggleShowLifetimeStats(showLifetimeStats) {
     if (this.hoverWait) {
       clearTimeout(this.hoverWait);
@@ -113,17 +121,15 @@ const StreamGroup = createReactClass({
       memberList,
       withChart,
       statsPeriod,
+      selection,
     } = this.props;
 
-    console.log('Group 1', {
-      GroupStore,
-      'GroupStore.getAllItems()': GroupStore.getAllItems(),
-      'this.state.data': this.state.data,
-      'GroupStore.get(this.props.id)': GroupStore.get(this.props.id),
-    });
-    console.log('this.state.showLifetimeStats', showLifetimeStats);
+    const {period, start, end} = selection.datetime || {};
 
-    console.log('---------------------------------------------------------------\n\n\n');
+    const summary =
+      !!start && !!end
+        ? 'the selected period'
+        : getRelativeSummary(period || DEFAULT_STATS_PERIOD).toLowerCase();
 
     return (
       <Group
@@ -153,22 +159,96 @@ const StreamGroup = createReactClass({
           </Box>
         )}
         <Flex width={[40, 60, 80, 80]} mx={2} justifyContent="flex-end">
-          <StyledPrimaryCount value={data.count} />
-          {showLifetimeStats && (
-            <React.Fragment>
-              {'/'}
-              <StyledSecondaryCount value={data.lifetime.count} />
-            </React.Fragment>
-          )}
+          <Tooltip
+            popperStyle={{background: theme.gray800, maxWidth: 'none'}}
+            tipContent={
+              <table style={{margin: 0}}>
+                <tbody>
+                  <tr style={{padding: '4px 8px', display: 'block'}}>
+                    <td style={{fontWeight: 'normal'}}>Events since issue began</td>
+                    <td style={{paddingLeft: '10px', fontWeight: 'bold'}}>
+                      {data.lifetime.count}
+                    </td>
+                  </tr>
+                  <tr style={{padding: '4px 8px', display: 'block'}}>
+                    <td style={{fontWeight: 'normal'}}>Events within {summary}</td>
+                    <td style={{paddingLeft: '10px', fontWeight: 'bold'}}>
+                      {data.count}
+                    </td>
+                    <td style={{paddingLeft: '10px'}}>
+                      <IconTelescope size="xs" color={theme.blue300} />
+                    </td>
+                  </tr>
+                  <tr style={{padding: '4px 8px', display: 'block'}}>
+                    <td style={{fontWeight: 'normal'}}>Events with filters applied</td>
+                    <td style={{paddingLeft: '10px', fontWeight: 'bold'}}>
+                      {data.filtered.count}
+                    </td>
+                    <td style={{paddingLeft: '10px'}}>
+                      <IconTelescope size="xs" color={theme.blue300} />
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            }
+          >
+            <StyledPrimaryCount value={data.filtered.count} />
+            {showLifetimeStats && (
+              <React.Fragment>
+                {'/'}
+                <StyledSecondaryCount value={data.count} />
+              </React.Fragment>
+            )}
+          </Tooltip>
         </Flex>
         <Flex width={[40, 60, 80, 80]} mx={2} justifyContent="flex-end">
-          <StyledPrimaryCount value={data.userCount} />
-          {showLifetimeStats && (
-            <React.Fragment>
-              {'/'}
-              <StyledSecondaryCount value={data.lifetime.userCount} />
-            </React.Fragment>
-          )}
+          <Tooltip
+            popperStyle={{background: theme.gray800, maxWidth: 'none'}}
+            tipContent={
+              <table style={{margin: 0}}>
+                <tbody>
+                  <tr style={{padding: '4px 8px', display: 'block'}}>
+                    <td style={{fontWeight: 'normal'}}>
+                      Users affected since issue began
+                    </td>
+                    <td style={{paddingLeft: '10px', fontWeight: 'bold'}}>
+                      {data.lifetime.userCount}
+                    </td>
+                  </tr>
+                  <tr style={{padding: '4px 8px', display: 'block'}}>
+                    <td style={{fontWeight: 'normal'}}>
+                      Users affected within {summary}
+                    </td>
+                    <td style={{paddingLeft: '10px', fontWeight: 'bold'}}>
+                      {data.userCount}
+                    </td>
+                    <td style={{paddingLeft: '10px'}}>
+                      <IconTelescope size="xs" color={theme.blue300} />
+                    </td>
+                  </tr>
+                  <tr style={{padding: '4px 8px', display: 'block'}}>
+                    <td style={{fontWeight: 'normal'}}>
+                      Users affected with filters applied
+                    </td>
+                    <td style={{paddingLeft: '10px', fontWeight: 'bold'}}>
+                      {data.filtered.userCount}
+                    </td>
+                    <td style={{paddingLeft: '10px'}}>
+                      <IconTelescope size="xs" color={theme.blue300} />
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            }
+          >
+            <StyledPrimaryCount value={data.filtered.userCount} />
+            {showLifetimeStats && (
+              <React.Fragment>
+                {'/'}
+                <StyledSecondaryCount value={data.userCount} />
+              </React.Fragment>
+            )}
+          </Tooltip>
         </Flex>
         <Box width={80} mx={2} className="hidden-xs hidden-sm">
           <AssigneeSelector id={data.id} memberList={memberList} />

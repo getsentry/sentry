@@ -28,6 +28,11 @@ type Props = DefaultProps & {
   children: React.ReactNode;
 
   /**
+   * The node to render within the Tooltip
+   */
+  tipContent?: React.ReactNode;
+
+  /**
    * Disable the tooltip display entirely
    */
   disabled?: boolean;
@@ -187,7 +192,15 @@ class Tooltip extends React.Component<Props, State> {
   }
 
   render() {
-    const {disabled, children, title, position, popperStyle, isHoverable} = this.props;
+    const {
+      disabled,
+      children,
+      tipContent,
+      title,
+      position,
+      popperStyle,
+      isHoverable,
+    } = this.props;
     const {isOpen} = this.state;
     if (disabled) {
       return children;
@@ -213,17 +226,18 @@ class Tooltip extends React.Component<Props, State> {
               aria-hidden={!isOpen}
               ref={ref}
               style={style}
-              hide={!title}
+              hide={!title && !tipContent}
               data-placement={placement}
               popperStyle={popperStyle}
               onMouseEnter={() => isHoverable && this.handleOpen()}
               onMouseLeave={() => isHoverable && this.handleClose()}
             >
-              {title}
+              {tipContent ? tipContent : title}
               <TooltipArrow
                 ref={arrowProps.ref}
                 data-placement={placement}
                 style={arrowProps.style}
+                background={popperStyle?.background || '#000'}
               />
             </TooltipContent>
           )}
@@ -271,7 +285,7 @@ const TooltipContent = styled('div')<{hide: boolean} & Pick<Props, 'popperStyle'
   ${p => p.hide && `display: none`};
 `;
 
-const TooltipArrow = styled('span')`
+const TooltipArrow = styled('span')<{background: string | number}>`
   position: absolute;
   width: 10px;
   height: 5px;
@@ -282,7 +296,7 @@ const TooltipArrow = styled('span')`
     margin-top: -5px;
     &::before {
       border-width: 0 5px 5px 5px;
-      border-color: transparent transparent #000 transparent;
+      border-color: transparent transparent ${p => p.background} transparent;
     }
   }
 
@@ -292,7 +306,7 @@ const TooltipArrow = styled('span')`
     margin-bottom: -5px;
     &::before {
       border-width: 5px 5px 0 5px;
-      border-color: #000 transparent transparent transparent;
+      border-color: ${p => p.background} transparent transparent transparent;
     }
   }
 
@@ -301,7 +315,7 @@ const TooltipArrow = styled('span')`
     margin-left: -5px;
     &::before {
       border-width: 5px 5px 5px 0;
-      border-color: transparent #000 transparent transparent;
+      border-color: transparent ${p => p.background} transparent transparent;
     }
   }
 
@@ -310,7 +324,7 @@ const TooltipArrow = styled('span')`
     margin-right: -5px;
     &::before {
       border-width: 5px 0 5px 5px;
-      border-color: transparent transparent transparent #000;
+      border-color: transparent transparent transparent ${p => p.background};
     }
   }
 

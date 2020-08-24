@@ -228,9 +228,6 @@ const GroupList = createReactClass<Props, State>({
                   canSelect={canSelectGroups}
                   withChart={withChart}
                   memberList={members}
-                  onMouseEnter={() => console.log('groupList onEnter, id', id)}
-                  onMouseLeave={() => console.log('groupList onLeave, id', id)}
-                  mouseToggleCallback={arg => console.log('mouseToggleCallback - 1', arg)}
                 />
               );
             })}
