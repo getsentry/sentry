@@ -88,6 +88,8 @@ class OrganizationEventBaseline(OrganizationEventsEndpointBase):
                 limit=1,
                 referrer="api.transaction-baseline.get_id",
             )
+            if len(result["data"]) == 0:
+                return Response(status=404)
 
         baseline_data = result["data"][0]
         baseline_data[baseline_alias] = baseline_value
