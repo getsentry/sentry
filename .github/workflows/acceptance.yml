@@ -103,7 +103,7 @@ jobs:
           with:
             github-token: ${{ secrets.GITHUB_TOKEN }}
             script: |
-              octokit.actions.createWorkflowDispatch({
+              github.actions.createWorkflowDispatch({
                 owner: 'getsentry',
                 repo: 'getsentry',
                 workflow_id: 'acceptance.yml',
