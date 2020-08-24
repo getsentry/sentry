@@ -9,11 +9,11 @@ import {IconClose} from 'app/icons';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import space from 'app/styles/space';
 
-type TourStep = {
+export type TourStep = {
   title: string;
   body: React.ReactNode;
-  actions?: React.ReactElement;
-  image?: React.ReactElement;
+  actions?: React.ReactNode;
+  image?: React.ReactNode;
 };
 
 type ChildProps = {
@@ -134,6 +134,8 @@ type ContentsState = {
 };
 
 class ModalContents extends React.Component<ContentsProps, ContentsState> {
+  static defaultProps = defaultProps;
+
   state: ContentsState = {
     current: 0,
     openedAt: Date.now(),
@@ -183,6 +185,7 @@ class ModalContents extends React.Component<ContentsProps, ContentsState> {
                 href={doneUrl}
                 data-test-id="complete-tour"
                 onClick={closeModal}
+                priority="primary"
               >
                 {doneText}
               </Button>
@@ -223,6 +226,7 @@ export const TourText = styled('p')`
 
 export const TourImage = styled('img')`
   margin-top: ${space(4)};
+
   /** override styles in less files */
   box-shadow: none !important;
   border: 0 !important;
