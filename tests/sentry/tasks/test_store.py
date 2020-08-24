@@ -396,7 +396,7 @@ def test_time_synthetic_monitoring_event_in_save_event_missing_extra(mock_metric
 
 def test_time_synthetic_monitoring_event_in_save_event(mock_metrics_timing):
     tags = {
-        "region": "region-1",
+        "source_region": "region-1",
         "target": "target.io",
         "source": "source-1",
     }

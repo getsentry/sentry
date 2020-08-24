@@ -23,6 +23,6 @@ describe('CrashContent', function() {
       />
     );
 
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 });

@@ -201,12 +201,7 @@ class BuildSnubaFilterTest(TestCase):
         )
         assert snuba_filter
         assert snuba_filter.conditions == [
-            [
-                ["email", "=", "anengineer@work.io"],
-                ["username", "=", "anengineer@work.io"],
-                ["ip_address", "=", "anengineer@work.io"],
-                ["user_id", "=", "anengineer@work.io"],
-            ],
+            ["tags[sentry:user]", "=", "anengineer@work.io"],
             ["type", "=", "error"],
         ]
         assert snuba_filter.aggregations == [[u"count", None, u"count"]]
@@ -217,11 +212,6 @@ class BuildSnubaFilterTest(TestCase):
         )
         assert snuba_filter
         assert snuba_filter.conditions == [
-            [
-                ["user_email", "=", "anengineer@work.io"],
-                ["user_name", "=", "anengineer@work.io"],
-                ["ip_address", "=", "anengineer@work.io"],
-                ["user_id", "=", "anengineer@work.io"],
-            ],
+            ["user", "=", "anengineer@work.io"],
         ]
         assert snuba_filter.aggregations == [[u"quantile(0.95)", "duration", u"p95"]]

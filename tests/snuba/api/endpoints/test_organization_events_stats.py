@@ -328,7 +328,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             )
         assert response.status_code == 200, response.content
         data = response.data["data"]
-        assert len(data) == 1
+        assert len(data) == 2
 
         assert data[0][1][0]["count"] == sum(event_counts) / (86400.0 / 60.0)
 
@@ -598,6 +598,35 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
         assert [attrs for time, attrs in response.data["event_count"]["data"]] == [
             [{"count": 1}],
             [{"count": 2}],
+        ]
+
+    def test_large_interval_no_drop_values(self):
+        self.store_event(
+            data={
+                "event_id": "d" * 32,
+                "message": "not good",
+                "timestamp": iso_format(before_now(minutes=10)),
+                "fingerprint": ["group3"],
+            },
+            project_id=self.project.id,
+        )
+
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "end": iso_format(before_now()),
+                    "start": iso_format(before_now(hours=24)),
+                    "query": 'message:"not good"',
+                    "interval": "1d",
+                    "yAxis": "count()",
+                },
+            )
+        assert response.status_code == 200
+        assert [attrs for time, attrs in response.data["data"]] == [
+            [{"count": 0}],
+            [{"count": 1}],
         ]
 
     @mock.patch("sentry.snuba.discover.timeseries_query", return_value={})
@@ -1168,12 +1197,12 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(data) == 5
 
-        assert data["bar@example.com"]["order"] == 0
-        assert [attrs for time, attrs in data["bar@example.com"]["data"]] == [
+        assert data["email:bar@example.com"]["order"] == 0
+        assert [attrs for time, attrs in data["email:bar@example.com"]["data"]] == [
             [{"count": 7}],
             [{"count": 0}],
         ]
-        assert [attrs for time, attrs in data["127.0.0.1"]["data"]] == [
+        assert [attrs for time, attrs in data["ip:127.0.0.1"]["data"]] == [
             [{"count": 3}],
             [{"count": 0}],
         ]
@@ -1198,12 +1227,12 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(data) == 5
 
-        assert data["bar@example.com,bar@example.com"]["order"] == 0
-        assert [attrs for time, attrs in data["bar@example.com,bar@example.com"]["data"]] == [
+        assert data["email:bar@example.com,bar@example.com"]["order"] == 0
+        assert [attrs for time, attrs in data["email:bar@example.com,bar@example.com"]["data"]] == [
             [{"count": 7}],
             [{"count": 0}],
         ]
-        assert [attrs for time, attrs in data["127.0.0.1,None"]["data"]] == [
+        assert [attrs for time, attrs in data["ip:127.0.0.1,None"]["data"]] == [
             [{"count": 3}],
             [{"count": 0}],
         ]

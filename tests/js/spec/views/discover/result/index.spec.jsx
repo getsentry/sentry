@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {mountWithTheme, shallow} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import Result from 'app/views/discover/result';
 import createQueryBuilder from 'app/views/discover/queryBuilder';
@@ -25,7 +25,7 @@ describe('Result', function() {
           data: null,
         },
       };
-      wrapper = shallow(
+      wrapper = mountWithTheme(
         <Result
           data={data}
           organization={organization}

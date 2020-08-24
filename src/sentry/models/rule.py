@@ -26,7 +26,8 @@ class RuleStatus(object):
 class Rule(Model):
     __core__ = True
 
-    DEFAULT_ACTION_MATCH = "all"  # any, all
+    DEFAULT_CONDITION_MATCH = "all"  # any, all
+    DEFAULT_FILTER_MATCH = "all"  # match to apply on filters
     DEFAULT_FREQUENCY = 30  # minutes
 
     project = FlexibleForeignKey("sentry.Project")
@@ -57,6 +58,18 @@ class Rule(Model):
             rules_list = list(cls.objects.filter(project=project_id, status=RuleStatus.ACTIVE))
             cache.set(cache_key, rules_list, 60)
         return rules_list
+
+    @property
+    def created_by(self):
+        try:
+            created_activity = RuleActivity.objects.get(
+                rule=self, type=RuleActivityType.CREATED.value
+            )
+            return created_activity.user
+        except RuleActivity.DoesNotExist:
+            pass
+
+        return None
 
     def delete(self, *args, **kwargs):
         rv = super(Rule, self).delete(*args, **kwargs)

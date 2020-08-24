@@ -1,9 +1,0 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
-
-exports[`DiffModal renders 1`] = `
-<Body>
-  <withApi(IssueDiff)
-    Body={[Function]}
-  />
-</Body>
-`;

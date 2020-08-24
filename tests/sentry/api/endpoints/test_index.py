@@ -32,7 +32,7 @@ class ApiIndexTest(APITestCase):
         key = ApiKey.objects.create(organization=org)
         url = reverse("sentry-api-index")
         response = self.client.get(
-            url, HTTP_AUTHORIZATION="Basic " + b64encode(u"{}:".format(key.key))
+            url, HTTP_AUTHORIZATION=b"Basic " + b64encode(u"{}:".format(key.key).encode("utf-8"))
         )
         assert response.status_code == 200
         assert response.data["version"] == "0"

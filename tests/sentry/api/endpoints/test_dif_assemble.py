@@ -37,7 +37,7 @@ class DifAssembleEndpoint(APITestCase):
         )
         assert response.status_code == 400, response.content
 
-        checksum = sha1("1").hexdigest()
+        checksum = sha1(b"1").hexdigest()
         response = self.client.post(
             self.url,
             data={checksum: "test"},
@@ -120,7 +120,7 @@ class DifAssembleEndpoint(APITestCase):
         assert response.data[checksum]["state"] == ChunkFileState.OK
         assert response.data[checksum]["missingChunks"] == []
 
-        not_found_checksum = sha1("1").hexdigest()
+        not_found_checksum = sha1(b"1").hexdigest()
 
         response = self.client.post(
             self.url,

@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {mountWithTheme, shallow} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {ExportQueryType} from 'app/components/dataExport';
 import DataDownload, {DownloadStatus} from 'app/views/dataExport/dataDownload';
@@ -45,7 +45,7 @@ describe('DataDownload', function() {
   it("should render the 'Early' view when appropriate", function() {
     const status = DownloadStatus.Early;
     getDataExportDetails({status});
-    const wrapper = shallow(<DataDownload params={mockRouteParams} />);
+    const wrapper = mountWithTheme(<DataDownload params={mockRouteParams} />);
     expect(wrapper.state('download')).toEqual({status});
     expect(wrapper.state('download').dateExpired).toBeUndefined();
     expect(wrapper.find('Header').text()).toBe('What are you doing here?');

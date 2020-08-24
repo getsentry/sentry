@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import debounce from 'lodash/debounce';
-import isEqual from 'lodash/isEqual';
+import {createFilter} from 'react-select';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
@@ -21,10 +21,13 @@ import {replaceAtArrayIndex} from 'app/utils/replaceAtArrayIndex';
 //0 is a valid choice but empty string, undefined, and null are not
 const hasValue = value => !!value || value === 0;
 
-type FieldFromSchema = Field & {
+type FieldFromSchema = Omit<Field, 'choices' | 'type'> & {
+  type: 'select' | 'textarea' | 'text';
   default?: string;
   uri?: string;
   depends_on?: string[];
+  choices?: Array<[any, string]>;
+  async?: boolean;
 };
 
 type Config = {
@@ -34,7 +37,9 @@ type Config = {
 };
 
 //only need required_fields and optional_fields
-type State = Omit<Config, 'uri'>;
+type State = Omit<Config, 'uri'> & {
+  optionsByField: Map<string, Array<{label: string; value: any}>>;
+};
 
 type Props = {
   api: Client;
@@ -58,14 +63,10 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
     event: SentryTypes.Event,
     onSubmitSuccess: PropTypes.func,
   };
-  state: State = {};
+  state: State = {optionsByField: new Map()};
 
   componentDidMount() {
     this.resetStateFromProps();
-  }
-
-  shouldComponentUpdate(nextProps: Props, nextState: State) {
-    return !isEqual(this.state, nextState) || !isEqual(this.props, nextProps);
   }
 
   componentDidUpdate(prevProps: Props) {
@@ -102,7 +103,7 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
     addErrorMessage(t('Unable to %s %s issue.', action, appName));
   };
 
-  getOptions = (field: Field, input: string) =>
+  getOptions = (field: FieldFromSchema, input: string) =>
     new Promise(resolve => {
       this.debouncedOptionLoad(field, input, resolve);
     });
@@ -113,7 +114,12 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
     async (field: FieldFromSchema, input, resolve) => {
       const choices = await this.makeExternalRequest(field, input);
       const options = choices.map(([value, label]) => ({value, label}));
-      return resolve({options});
+      const optionsByField = new Map(this.state.optionsByField);
+      optionsByField.set(field.name, options);
+      this.setState({
+        optionsByField,
+      });
+      return resolve(options);
     },
     200,
     {trailing: true}
@@ -145,19 +151,6 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
     );
     return choices || [];
   };
-
-  fieldProps = (field: FieldFromSchema) =>
-    field.uri
-      ? {
-          loadOptions: (input: string) => this.getOptions(field, input),
-          async: true,
-          cache: false,
-          onSelectResetsInput: false,
-          onCloseResetsInput: false,
-          onBlurResetsInput: false,
-          autoload: false,
-        }
-      : {};
 
   getStacktrace() {
     const evt = this.props.event;
@@ -256,9 +249,41 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
     });
   };
 
-  renderField = (field: FieldFromSchema) => {
-    if (['text', 'textarea'].includes(field.type) && field.default) {
-      field = {...field, defaultValue: this.getFieldDefault(field)};
+  renderField = (field: FieldFromSchema, required: boolean) => {
+    //This function converts the field we get from the backend into
+    //the field we need to pass down
+    let fieldToPass: Field = {
+      ...field,
+      inline: false,
+      stacked: true,
+      flexibleControlStateSize: true,
+      required,
+    };
+
+    //async only used for select components
+    const isAsync = typeof field.async === 'undefined' ? true : !!field.async; //default to true
+
+    if (fieldToPass.type === 'select') {
+      // find the options from state to pass down
+      const defaultOptions = (field.choices || []).map(([value, label]) => ({
+        value,
+        label,
+      }));
+      const options = this.state.optionsByField.get(field.name) || defaultOptions;
+      //filter by what the user is typing
+      const filterOption = createFilter({});
+      fieldToPass = {
+        ...fieldToPass,
+        options,
+        defaultOptions,
+        filterOption,
+      };
+      //default message for async select fields
+      if (isAsync) {
+        fieldToPass.noOptionsMessage = () => 'Type to search';
+      }
+    } else if (['text', 'textarea'].includes(fieldToPass.type || '') && field.default) {
+      fieldToPass = {...fieldToPass, defaultValue: this.getFieldDefault(field)};
     }
 
     if (field.depends_on) {
@@ -267,12 +292,32 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
         dependentField => !hasValue(this.model.getValue(dependentField))
       );
       if (shouldDisable) {
-        field = {...field, disabled: true};
+        fieldToPass = {...fieldToPass, disabled: true};
       }
     }
 
-    //Note that upgrading this to work with the new react select will be quite a challenge!
-    return <FieldFromConfig key={field.name} field={field} {...this.fieldProps(field)} />;
+    //if we have a uri, we need to set extra parameters
+    const extraProps = field.uri
+      ? {
+          loadOptions: (input: string) => this.getOptions(field, input),
+          async: isAsync,
+          cache: false,
+          onSelectResetsInput: false,
+          onCloseResetsInput: false,
+          onBlurResetsInput: false,
+          autoload: false,
+        }
+      : {};
+
+    return (
+      <FieldFromConfig
+        deprecatedSelectControl={false}
+        key={field.name}
+        field={fieldToPass}
+        data-test-id={field.name}
+        {...extraProps}
+      />
+    );
   };
 
   render() {
@@ -296,28 +341,11 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
         model={this.model}
       >
         {requiredFields.map((field: FieldFromSchema) => {
-          //TODO(TS): Object.assign causing type checks to not correctly run on the params being passed
-          field = Object.assign({}, field, {
-            choices: field.choices || [],
-            inline: false,
-            stacked: true,
-            flexibleControlStateSize: true,
-            required: true,
-          });
-
-          return this.renderField(field);
+          return this.renderField(field, true);
         })}
 
         {optionalFields.map((field: FieldFromSchema) => {
-          //TODO(TS): Object.assign causing type checks to not correctly run on the params being passed
-          field = Object.assign({}, field, {
-            choices: field.choices || [],
-            inline: false,
-            stacked: true,
-            flexibleControlStateSize: true,
-          });
-
-          return this.renderField(field);
+          return this.renderField(field, false);
         })}
       </Form>
     );

@@ -25,7 +25,7 @@ googleapis-common-protos==1.6.0
 ipaddress>=1.0.16,<1.1.0 ; python_version < "3.3"
 jsonschema==3.2.0
 lxml>=4.3.3,<4.4.0
-maxminddb==1.5.0
+maxminddb==1.5.4
 mistune>0.7,<0.9
 mmh3>=2.3.1,<2.4
 msgpack>=0.6.1,<0.7.0
@@ -52,7 +52,7 @@ rfc3339-validator==0.1.2
 rfc3986-validator==0.1.1
 # [end] jsonschema format validators
 sentry-relay>=0.5.12,<0.6.0
-sentry-sdk>=0.16.0,<0.17.0
+sentry-sdk>=0.16.4,<0.17.0
 simplejson>=3.11.0,<3.12.0
 six>=1.11.0,<1.12.0
 sqlparse>=0.2.0,<0.3.0

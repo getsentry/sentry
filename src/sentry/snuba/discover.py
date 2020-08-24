@@ -227,7 +227,8 @@ def find_histogram_buckets(field, params, conditions):
 
 def zerofill_histogram(results, column_meta, orderby, sentry_function_alias, snuba_function_alias):
     parts = snuba_function_alias.split("_")
-    if len(parts) < 2:
+    # the histogram alias looks like `histogram_column_numbuckets_bucketsize_bucketoffest`
+    if len(parts) < 5 or parts[0] != "histogram":
         raise Exception(u"{} is not a valid histogram alias".format(snuba_function_alias))
 
     bucket_offset, bucket_size, num_buckets = int(parts[-1]), int(parts[-2]), int(parts[-3])
@@ -324,23 +325,12 @@ def transform_results(result, translated_columns, snuba_filter, selected_columns
     if selected_columns is None:
         selected_columns = []
 
-    # Determine user related fields to prune based on what wasn't selected.
-    user_fields = FIELD_ALIASES["user"]["fields"]
-    user_fields_to_remove = [field for field in user_fields if field not in selected_columns]
-
-    # If the user field was selected update the meta data
-    has_user = selected_columns and "user" in selected_columns
     meta = []
     for col in result["meta"]:
         # Translate back column names that were converted to snuba format
         col["name"] = translated_columns.get(col["name"], col["name"])
         # Remove user fields as they will be replaced by the alias.
-        if has_user and col["name"] in user_fields_to_remove:
-            continue
         meta.append(col)
-    if has_user:
-        meta.append({"name": "user", "type": "Nullable(String)"})
-    result["meta"] = meta
 
     def get_row(row):
         transformed = {}
@@ -349,14 +339,6 @@ def transform_results(result, translated_columns, snuba_filter, selected_columns
                 value = 0
             transformed[translated_columns.get(key, key)] = value
 
-        if has_user:
-            for field in user_fields:
-                if field in transformed and transformed[field]:
-                    transformed["user"] = transformed[field]
-                    break
-            # Remove user component fields once the alias is resolved.
-            for field in user_fields_to_remove:
-                del transformed[field]
         return transformed
 
     if len(translated_columns):
@@ -803,7 +785,6 @@ def top_events_timeseries(
             default_count=False,
         )
 
-        user_fields = FIELD_ALIASES["user"]["fields"]
         for field in selected_columns:
             # project is handled by filter_keys already
             if field in ["project", "project.id"]:
@@ -822,14 +803,6 @@ def top_events_timeseries(
                 # timestamp needs special handling, creating a big OR instead
                 if field == "timestamp":
                     snuba_filter.conditions.append([["timestamp", "=", value] for value in values])
-                # A user field can be any of its field aliases, do an OR across all the user fields
-                elif field == "user":
-                    snuba_filter.conditions.append(
-                        [
-                            [resolve_discover_column(user_field), "IN", values]
-                            for user_field in user_fields
-                        ]
-                    )
                 elif None in values:
                     non_none_values = [value for value in values if value is not None]
                     condition = [[["isNull", [resolve_discover_column(field)]], "=", 1]]
@@ -866,12 +839,6 @@ def top_events_timeseries(
             translated_columns.get(groupby, groupby) for groupby in snuba_filter.groupby
         ]
 
-        if "user" in selected_columns:
-            # Determine user related fields to prune based on what wasn't selected, since transform_results does the same
-            for field in user_fields:
-                if field not in selected_columns:
-                    translated_groupby.remove(field)
-            translated_groupby.append("user")
         issues = {}
         if "issue" in selected_columns:
             issues = Group.issues_mapping(

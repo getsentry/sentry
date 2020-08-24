@@ -1,0 +1,206 @@
+---
+created: '2020-07-23T17:38:22.484970Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        stacktrace
+          frame (non app frame)
+            module*
+              "django.core.handlers.base"
+            filename (module takes precedence)
+              "base.py"
+            function*
+              "get_response"
+            context-line*
+              "response = wrapped_callback(request, *callback_args, **callback_kwargs)"
+          frame (non app frame)
+            module*
+              "django.views.generic.base"
+            filename (module takes precedence)
+              "base.py"
+            function*
+              "view"
+            context-line*
+              "return self.dispatch(request, *args, **kwargs)"
+          frame (non app frame)
+            module*
+              "django.utils.decorators"
+            filename (module takes precedence)
+              "decorators.py"
+            function*
+              "_wrapper"
+            context-line*
+              "return bound_func(*args, **kwargs)"
+          frame (non app frame)
+            module*
+              "django.views.decorators.csrf"
+            filename (module takes precedence)
+              "csrf.py"
+            function*
+              "wrapped_view"
+            context-line*
+              "return view_func(*args, **kwargs)"
+          frame (non app frame)
+            module*
+              "django.utils.decorators"
+            filename (module takes precedence)
+              "decorators.py"
+            function*
+              "bound_func"
+            context-line*
+              "return func(self, *args2, **kwargs2)"
+          frame (ignored by grouping enhancement rule (function:wrapped_view ^-group -group))
+            module*
+              "sentry.web.frontend.release_webhook"
+            filename (module takes precedence)
+              "release_webhook.py"
+            function*
+              "dispatch"
+            context-line*
+              "return super(ReleaseWebhookView, self).dispatch(*args, **kwargs)"
+          frame (non app frame)
+            module*
+              "django.views.generic.base"
+            filename (module takes precedence)
+              "base.py"
+            function*
+              "dispatch"
+            context-line*
+              "return handler(request, *args, **kwargs)"
+          frame (ignored by grouping enhancement rule (function:wrapped_view ^-group -group))
+            module*
+              "sentry.web.frontend.release_webhook"
+            filename (module takes precedence)
+              "release_webhook.py"
+            function*
+              "post"
+            context-line*
+              "hook.handle(request)"
+          frame (ignored by grouping enhancement rule (function:wrapped_view ^-group -group))
+            module*
+              "sentry_plugins.heroku.plugin"
+            filename (module takes precedence)
+              "plugin.py"
+            function*
+              "handle"
+            context-line*
+              "email = request.POST['user']"
+          frame (non app frame)
+            module*
+              "django.utils.datastructures"
+            filename (module takes precedence)
+              "datastructures.py"
+            function*
+              "__getitem__"
+            context-line*
+              "raise MultiValueDictKeyError(repr(key))"
+        type*
+          "MultiValueDictKeyError"
+        value*
+          "\"'user'\""
+--------------------------------------------------------------------------
+system:
+  hash: "90888e813b09fa25061af2883c0fb9bd"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "django.core.handlers.base"
+            filename (module takes precedence)
+              "base.py"
+            function*
+              "get_response"
+            context-line*
+              "response = wrapped_callback(request, *callback_args, **callback_kwargs)"
+          frame*
+            module*
+              "django.views.generic.base"
+            filename (module takes precedence)
+              "base.py"
+            function*
+              "view"
+            context-line*
+              "return self.dispatch(request, *args, **kwargs)"
+          frame*
+            module*
+              "django.utils.decorators"
+            filename (module takes precedence)
+              "decorators.py"
+            function*
+              "_wrapper"
+            context-line*
+              "return bound_func(*args, **kwargs)"
+          frame (ignored by grouping enhancement rule (function:wrapped_view ^-group -group))
+            module*
+              "django.views.decorators.csrf"
+            filename (module takes precedence)
+              "csrf.py"
+            function*
+              "wrapped_view"
+            context-line*
+              "return view_func(*args, **kwargs)"
+          frame (ignored by grouping enhancement rule (function:wrapped_view ^-group -group))
+            module*
+              "django.utils.decorators"
+            filename (module takes precedence)
+              "decorators.py"
+            function*
+              "bound_func"
+            context-line*
+              "return func(self, *args2, **kwargs2)"
+          frame (ignored by grouping enhancement rule (function:wrapped_view ^-group -group))
+            module*
+              "sentry.web.frontend.release_webhook"
+            filename (module takes precedence)
+              "release_webhook.py"
+            function*
+              "dispatch"
+            context-line*
+              "return super(ReleaseWebhookView, self).dispatch(*args, **kwargs)"
+          frame (ignored by grouping enhancement rule (function:wrapped_view ^-group -group))
+            module*
+              "django.views.generic.base"
+            filename (module takes precedence)
+              "base.py"
+            function*
+              "dispatch"
+            context-line*
+              "return handler(request, *args, **kwargs)"
+          frame (ignored by grouping enhancement rule (function:wrapped_view ^-group -group))
+            module*
+              "sentry.web.frontend.release_webhook"
+            filename (module takes precedence)
+              "release_webhook.py"
+            function*
+              "post"
+            context-line*
+              "hook.handle(request)"
+          frame (ignored by grouping enhancement rule (function:wrapped_view ^-group -group))
+            module*
+              "sentry_plugins.heroku.plugin"
+            filename (module takes precedence)
+              "plugin.py"
+            function*
+              "handle"
+            context-line*
+              "email = request.POST['user']"
+          frame (ignored by grouping enhancement rule (function:wrapped_view ^-group -group))
+            module*
+              "django.utils.datastructures"
+            filename (module takes precedence)
+              "datastructures.py"
+            function*
+              "__getitem__"
+            context-line*
+              "raise MultiValueDictKeyError(repr(key))"
+        type*
+          "MultiValueDictKeyError"
+        value (ignored because stacktrace takes precedence)
+          "\"'user'\""

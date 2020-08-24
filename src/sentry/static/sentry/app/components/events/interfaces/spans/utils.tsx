@@ -250,7 +250,10 @@ export const getHumanDuration = (duration: number): string => {
   // note: duration is assumed to be in seconds
 
   const durationMS = duration * 1000;
-  return `${Number(durationMS.toFixed(2)).toLocaleString()}ms`;
+  return `${durationMS.toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}ms`;
 };
 
 const getLetterIndex = (letter: string): number => {
@@ -328,6 +331,7 @@ export function generateRootSpan(trace: ParsedTraceType): RawSpanType {
     op: trace.op,
     description: trace.description,
     data: {},
+    status: trace.rootSpanStatus,
   };
 
   return rootSpan;
@@ -427,6 +431,7 @@ export function parseTrace(event: Readonly<SentryTransactionEvent>): ParsedTrace
   const rootSpanOpName = (traceContext && traceContext.op) || 'transaction';
   const description = traceContext && traceContext.description;
   const parentSpanID = traceContext && traceContext.parent_span_id;
+  const rootSpanStatus = traceContext && traceContext.status;
 
   if (!spanEntry || spans.length <= 0) {
     return {
@@ -436,6 +441,7 @@ export function parseTrace(event: Readonly<SentryTransactionEvent>): ParsedTrace
       traceEndTimestamp: event.endTimestamp,
       traceID,
       rootSpanID,
+      rootSpanStatus,
       parentSpanID,
       numOfSpans: 0,
       spans: [],
@@ -462,6 +468,7 @@ export function parseTrace(event: Readonly<SentryTransactionEvent>): ParsedTrace
     traceEndTimestamp: event.endTimestamp,
     traceID,
     rootSpanID,
+    rootSpanStatus,
     parentSpanID,
     numOfSpans: spans.length,
     spans,
@@ -491,7 +498,7 @@ export function parseTrace(event: Readonly<SentryTransactionEvent>): ParsedTrace
 
     // get any span children whose parent_span_id is equal to span.parent_span_id,
     // otherwise start with an empty array
-    const spanChildren: Array<SpanType> = acc.childSpans?.[span.parent_span_id] ?? [];
+    const spanChildren: Array<SpanType> = acc.childSpans[span.parent_span_id] ?? [];
 
     spanChildren.push(span);
 
