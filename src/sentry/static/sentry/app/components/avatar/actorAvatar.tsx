@@ -10,11 +10,11 @@ import {Actor} from 'app/types';
 
 type DefaultProps = {
   hasTooltip: boolean;
+  size: number;
 };
 
 type Props = DefaultProps & {
   actor: Actor;
-  size?: number;
   default?: string;
   title?: string;
   gravatar?: boolean;
@@ -27,6 +27,7 @@ type Props = DefaultProps & {
 
 class ActorAvatar extends React.Component<Props> {
   static defaultProps: DefaultProps = {
+    size: 24,
     hasTooltip: true,
   };
 

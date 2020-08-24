@@ -43,7 +43,7 @@ describe('ActorAvatar', function () {
       expect(avatar).toSnapshot();
     });
 
-    it('should show a gravatar when actor type is a team', function () {
+    it('should not show a gravatar when actor type is a team', function () {
       const avatar = mountWithTheme(
         <ActorAvatar
           actor={{
@@ -53,6 +53,8 @@ describe('ActorAvatar', function () {
           }}
         />
       );
+      expect(avatar.find('LetterAvatar')).toHaveLength(1);
+      expect(avatar.find('Gravatar')).toHaveLength(0);
       expect(avatar).toSnapshot();
     });
 
