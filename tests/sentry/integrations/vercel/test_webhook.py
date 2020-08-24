@@ -242,7 +242,7 @@ class VercelReleasesTest(APITestCase):
         def request_callback(request):
             payload = json.loads(request.body)
             status_code = 400 if payload.get("refs") else 200
-            return (status_code, {}, {})
+            return (status_code, {}, json.dumps({}))
 
         responses.add_callback(
             responses.POST,
