@@ -34,7 +34,6 @@ class CloudflareTokenAuthentication(TokenAuthentication):
         # This technically lets a user brute force a token before we actually
         # verify the signature, HOWEVER, they could do that either way so we
         # are ok with it.
-        request.body = six.text_type(request.body)
         try:
             token = request.data["authentications"]["account"]["token"]["token"]
         except KeyError:
@@ -48,10 +47,7 @@ class CloudflareWebhookEndpoint(Endpoint):
 
     def verify(self, payload, key, signature):
         return constant_time_compare(
-            signature,
-            hmac.new(
-                key=key.encode("utf-8"), msg=payload.encode("utf-8"), digestmod=sha256
-            ).hexdigest(),
+            signature, hmac.new(key=key.encode("utf-8"), msg=payload, digestmod=sha256).hexdigest(),
         )
 
     def organization_from_json(self, request, data, scope="project:write"):
