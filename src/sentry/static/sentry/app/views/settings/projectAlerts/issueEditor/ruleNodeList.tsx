@@ -108,7 +108,7 @@ const StyledSelectControl = styled(SelectControl)`
 
 const RuleNodes = styled('div')`
   display: grid;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${space(1)};
   grid-gap: ${space(1)};
 
   @media (max-width: ${p => p.theme.breakpoints[1]}) {

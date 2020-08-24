@@ -297,9 +297,9 @@ const RuleRow = styled('div')`
 `;
 
 const RuleRowContainer = styled('div')`
-  &:nth-child(odd) {
-    background-color: ${p => p.theme.gray100};
-  }
+  background-color: ${p => p.theme.gray100};
+  border-radius: ${p => p.theme.borderRadius};
+  border: 1px ${p => p.theme.borderLight} solid;
 `;
 
 const Rule = styled('div')`

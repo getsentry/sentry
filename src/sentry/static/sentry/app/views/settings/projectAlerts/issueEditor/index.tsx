@@ -12,7 +12,7 @@ import {
   IssueAlertRuleConditionTemplate,
   UnsavedIssueAlertRule,
 } from 'app/types/alerts';
-import {IconWarning} from 'app/icons';
+import {IconWarning, IconChevron} from 'app/icons';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {
   addErrorMessage,
@@ -20,7 +20,7 @@ import {
   addSuccessMessage,
 } from 'app/actionCreators/indicator';
 import {getDisplayName} from 'app/utils/environment';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import Access from 'app/components/acl/access';
 import Alert from 'app/components/alert';
 import AsyncView from 'app/views/asyncView';
@@ -29,8 +29,6 @@ import Confirm from 'app/components/confirm';
 import Form from 'app/views/settings/components/forms/form';
 import LoadingMask from 'app/components/loadingMask';
 import PanelAlert from 'app/components/panels/panelAlert';
-import PanelItem from 'app/components/panels/panelItem';
-import PanelSubHeader from 'app/views/settings/incidentRules/triggers/panelSubHeader';
 import SelectField from 'app/views/settings/components/forms/selectField';
 import TextField from 'app/views/settings/components/forms/textField';
 import recreateRoute from 'app/utils/recreateRoute';
@@ -482,76 +480,107 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                   </PanelAlert>
                 )}
 
-                <PanelSubHeader>
-                  {t(
-                    'Whenever %s of these conditions are met for an issue',
-                    <EmbeddedWrapper>
-                      <EmbeddedSelectField
-                        className={classNames({
-                          error: this.hasError('actionMatch'),
+                <Step>
+                  <StepConnector />
+
+                  <StepContainer>
+                    <ChevronContainer>
+                      <IconChevron
+                        color="gray400"
+                        isCircled
+                        direction="right"
+                        size="sm"
+                      />
+                    </ChevronContainer>
+
+                    <StepContent>
+                      {this.hasError('conditions') && (
+                        <PanelAlert type="error">
+                          {this.state.detailedError?.conditions[0]}
+                        </PanelAlert>
+                      )}
+                      <StepLead>
+                        {tct('[when:When] an issue matches [selector] of the following', {
+                          when: <Badge />,
+                          selector: (
+                            <EmbeddedWrapper>
+                              <EmbeddedSelectField
+                                className={classNames({
+                                  error: this.hasError('actionMatch'),
+                                })}
+                                inline={false}
+                                styles={{
+                                  control: provided => ({
+                                    ...provided,
+                                    minHeight: '20px',
+                                    height: '20px',
+                                  }),
+                                }}
+                                isSearchable={false}
+                                isClearable={false}
+                                name="actionMatch"
+                                required
+                                flexibleControlStateSize
+                                choices={ACTION_MATCH_CHOICES}
+                                onChange={val => this.handleChange('actionMatch', val)}
+                                disabled={!hasAccess}
+                              />
+                            </EmbeddedWrapper>
+                          ),
                         })}
-                        inline={false}
-                        styles={{
-                          control: provided => ({
-                            ...provided,
-                            minHeight: '20px',
-                            height: '20px',
-                          }),
-                        }}
-                        isSearchable={false}
-                        isClearable={false}
-                        name="actionMatch"
-                        required
-                        flexibleControlStateSize
-                        choices={ACTION_MATCH_CHOICES}
-                        onChange={val => this.handleChange('actionMatch', val)}
+                      </StepLead>
+                      <RuleNodeList
+                        nodes={this.state.configs?.conditions ?? null}
+                        items={conditions || []}
+                        placeholder={t('Add a condition...')}
+                        onPropertyChange={this.handleChangeConditionProperty}
+                        onAddRow={this.handleAddCondition}
+                        onDeleteRow={this.handleDeleteCondition}
+                        organization={organization}
+                        project={project}
                         disabled={!hasAccess}
                       />
-                    </EmbeddedWrapper>
-                  )}
-                </PanelSubHeader>
+                    </StepContent>
+                  </StepContainer>
+                </Step>
 
-                {this.hasError('conditions') && (
-                  <PanelAlert type="error">
-                    {this.state.detailedError?.conditions[0]}
-                  </PanelAlert>
-                )}
+                <Step>
+                  <StepContainer>
+                    <ChevronContainer>
+                      <IconChevron
+                        isCircled
+                        color="gray400"
+                        direction="right"
+                        size="sm"
+                      />
+                    </ChevronContainer>
+                    <StepContent>
+                      <StepLead>
+                        {tct('[then:Then] create an alert and perform these actions', {
+                          then: <Badge />,
+                        })}
+                      </StepLead>
 
-                <PanelRuleItem>
-                  <RuleNodeList
-                    nodes={this.state.configs?.conditions ?? null}
-                    items={conditions || []}
-                    placeholder={t('Add a condition...')}
-                    onPropertyChange={this.handleChangeConditionProperty}
-                    onAddRow={this.handleAddCondition}
-                    onDeleteRow={this.handleDeleteCondition}
-                    organization={organization}
-                    project={project}
-                    disabled={!hasAccess}
-                  />
-                </PanelRuleItem>
+                      {this.hasError('actions') && (
+                        <PanelAlert type="error">
+                          {this.state.detailedError?.actions[0]}
+                        </PanelAlert>
+                      )}
 
-                <PanelSubHeader>{t('Perform these actions')}</PanelSubHeader>
-
-                {this.hasError('actions') && (
-                  <PanelAlert type="error">
-                    {this.state.detailedError?.actions[0]}
-                  </PanelAlert>
-                )}
-
-                <PanelRuleItem>
-                  <RuleNodeList
-                    nodes={this.state.configs?.actions ?? null}
-                    items={actions || []}
-                    placeholder={t('Add an action...')}
-                    onPropertyChange={this.handleChangeActionProperty}
-                    onAddRow={this.handleAddAction}
-                    onDeleteRow={this.handleDeleteAction}
-                    organization={organization}
-                    project={project}
-                    disabled={!hasAccess}
-                  />
-                </PanelRuleItem>
+                      <RuleNodeList
+                        nodes={this.state.configs?.actions ?? null}
+                        items={actions || []}
+                        placeholder={t('Add an action...')}
+                        onPropertyChange={this.handleChangeActionProperty}
+                        onAddRow={this.handleAddAction}
+                        onDeleteRow={this.handleDeleteAction}
+                        organization={organization}
+                        project={project}
+                        disabled={!hasAccess}
+                      />
+                    </StepContent>
+                  </StepContainer>
+                </Step>
               </PanelBody>
             </Panel>
 
@@ -585,12 +614,58 @@ const StyledForm = styled(Form)`
   position: relative;
 `;
 
-const PanelRuleItem = styled(PanelItem)`
-  flex-direction: column;
+const Step = styled('div')`
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  margin: ${space(2)} ${space(2)} ${space(4)} ${space(2)};
+`;
+
+const StepContainer = styled('div')`
+  position: relative;
+  border: 0 solid #d2d6dc;
+  display: flex;
+  align-items: flex-start;
+  flex-grow: 1;
+`;
+
+const StepContent = styled('div')`
+  flex-grow: 1;
+`;
+
+const StepConnector = styled('div')`
+  position: relative;
+  height: 100%;
+  margin-left: -1px;
+  position: absolute;
+  top: 28px;
+  left: 18px;
+  border-right: 1px ${p => p.theme.gray500} dashed;
+`;
+
+const StepLead = styled('div')`
+  margin-bottom: ${space(2)};
+`;
+
+const ChevronContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  padding: 4px 10px;
+`;
+
+const Badge = styled('span')`
+  background-color: ${p => p.theme.purple400};
+  padding: ${space(0.25)} ${space(0.75)};
+  border-radius: ${p => p.theme.borderRadius};
+  color: ${p => p.theme.white};
+  text-transform: uppercase;
+  font-size: ${p => p.theme.fontSizeMedium};
+  font-weight: 500;
 `;
 
 const EmbeddedWrapper = styled('div')`
-  margin: 0 ${space(1)};
+  display: inline-block;
+  margin: 0 ${space(0.5)};
   width: 80px;
 `;
 
