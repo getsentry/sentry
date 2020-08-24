@@ -667,13 +667,11 @@ class GroupSerializerSnuba(GroupSerializerBase):
             start=self.start,
             end=self.end,
         )
-        last_seen = {}
         last_seen = {
             data["group_id"]: parse_datetime(data["last_seen"]).replace(tzinfo=timezone.utc)
             for data in seen_data["data"]
         }
-        times_seen_data = {data["group_id"]: data["times_seen"] for data in seen_data["data"]}
-
+        times_seen = {data["group_id"]: data["times_seen"] for data in seen_data["data"]}
         if not self.environment_ids:
             first_seen = {
                 data["group_id"]: parse_datetime(data["first_seen"]).replace(tzinfo=timezone.utc)
@@ -689,12 +687,6 @@ class GroupSerializerSnuba(GroupSerializerBase):
                 .values("group_id")
                 .annotate(Min("first_seen"))
             }
-        times_seen = {}
-        for item in item_list:
-            times_seen[item.id] = (
-                times_seen_data[item.id] if times_seen_data[item.id] else item.times_seen
-            )
-
         attrs = {}
         for item in item_list:
             attrs[item] = {
