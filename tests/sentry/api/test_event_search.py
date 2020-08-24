@@ -1816,9 +1816,22 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["groupby"] == [
             "title",
             "issue.id",
-            "user.display",
+            ["coalesce", ["user.email", "user.username", "user.ip"], "user.display"],
             "message",
             "project.id",
+        ]
+
+    def test_field_alias_with_aggregates(self):
+        fields = ["event.type", "user.display", "count_unique(title)"]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["selected_columns"] == [
+            "event.type",
+            ["coalesce", ["user.email", "user.username", "user.ip"], "user.display"],
+        ]
+        assert result["aggregations"] == [["uniq", "title", "count_unique_title"]]
+        assert result["groupby"] == [
+            "event.type",
+            ["coalesce", ["user.email", "user.username", "user.ip"], "user.display"],
         ]
 
     def test_aggregate_function_expansion(self):
@@ -1833,13 +1846,16 @@ class ResolveFieldListTest(unittest.TestCase):
         ]
         assert result["groupby"] == []
 
-    @pytest.mark.xfail(reason="functions need to handle non string column replacements")
     def test_aggregate_function_complex_field_expansion(self):
         fields = ["count_unique(user.display)"]
         result = resolve_field_list(fields, eventstore.Filter())
         assert result["selected_columns"] == []
         assert result["aggregations"] == [
-            ["uniq", ["coalesce", ["user.email", "user.username", "user.ip"]], "count_unique_user"],
+            [
+                "uniq",
+                ["coalesce", ["user.email", "user.username", "user.ip"]],
+                "count_unique_user_display",
+            ],
         ]
         assert result["groupby"] == []
 
@@ -1882,6 +1898,19 @@ class ResolveFieldListTest(unittest.TestCase):
             "InvalidSearchQuery: min(message): column argument invalid: message is not a numeric column"
             in six.text_type(err)
         )
+
+    def test_aggregate_function_missing_parameter(self):
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["count_unique()"]
+            resolve_field_list(fields, eventstore.Filter())
+        assert (
+            "InvalidSearchQuery: count_unique(): column argument invalid: a column is required"
+            in six.text_type(err)
+        )
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["count_unique(  )"]
+            resolve_field_list(fields, eventstore.Filter())
 
     def test_percentile_function(self):
         fields = ["percentile(transaction.duration, 0.75)"]

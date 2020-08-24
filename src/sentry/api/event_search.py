@@ -782,8 +782,7 @@ def convert_search_filter_to_snuba_query(search_filter, key=None):
         # allow snuba's prewhere optimizer to find this condition.
         return [name, search_filter.operator, value]
     elif name == USER_DISPLAY_ALIAS:
-        # Slice off the function without an alias.
-        user_display_expr = FIELD_ALIASES[USER_DISPLAY_ALIAS]["fields"][0][0:2]
+        user_display_expr = FIELD_ALIASES[USER_DISPLAY_ALIAS]["expression"]
 
         # Handle 'has' condition
         if search_filter.value.raw_value == "":
@@ -1179,12 +1178,8 @@ def get_filter(query=None, params=None):
 FIELD_ALIASES = {
     "project": {"fields": ["project.id"], "column_alias": "project.id"},
     "issue": {"fields": ["issue.id"], "column_alias": "issue.id"},
-    # TODO(mark) This alias doesn't work inside count_unique().
-    # The column resolution code is really convoluted and expanding
-    # it to support functions that need columns resolved inside of
-    # aggregations is complicated. Until that gets sorted user.display
-    # should not be added to the public field list/docs.
     "user.display": {
+        "expression": ["coalesce", ["user.email", "user.username", "user.ip"]],
         "fields": [["coalesce", ["user.email", "user.username", "user.ip"], "user.display"]],
         "column_alias": "user.display",
     },
@@ -1231,19 +1226,39 @@ class FunctionArg(object):
         return False
 
 
+class NullColumn(FunctionArg):
+    """
+    Convert the provided column to null so that we
+    can drop it. Used to make count() not have a
+    required argument that we ignore.
+    """
+
+    def has_default(self, params):
+        return None
+
+    def normalize(self, value):
+        return None
+
+
 class CountColumn(FunctionArg):
     def has_default(self, params):
         return None
 
     def normalize(self, value):
         if value is None:
+            raise InvalidFunctionArgument("a column is required")
+
+        if value not in FIELD_ALIASES:
             return value
 
-        # If we use an alias inside an aggregate, resolve it here
-        if value in FIELD_ALIASES:
-            value = FIELD_ALIASES[value].get("column_alias", value)
+        alias = FIELD_ALIASES[value]
 
-        return value
+        # If the alias has an expression prefer that over the column alias
+        # This enables user.display to work in aggregates
+        if "expression" in alias:
+            return alias["expression"]
+
+        return alias.get("column_alias", value)
 
 
 class NumericColumn(FunctionArg):
@@ -1410,7 +1425,7 @@ FUNCTIONS = {
         "column": [
             "multiply",
             [
-                ["floor", [["divide", [u"{column}", ArgValue("bucket_size")]]]],
+                ["floor", [["divide", [ArgValue("column"), ArgValue("bucket_size")]]]],
                 ArgValue("bucket_size"),
             ],
             None,
@@ -1420,38 +1435,35 @@ FUNCTIONS = {
     "count_unique": {
         "name": "count_unique",
         "args": [CountColumn("column")],
-        "aggregate": ["uniq", u"{column}", None],
+        "aggregate": ["uniq", ArgValue("column"), None],
         "result_type": "integer",
     },
-    # TODO(evanh) Count doesn't accept parameters in the frontend, but we support it here
-    # for backwards compatibility. Once we've migrated existing queries this should get
-    # changed to accept no parameters.
     "count": {
         "name": "count",
-        "args": [CountColumn("column")],
+        "args": [NullColumn("column")],
         "aggregate": ["count", None, None],
         "result_type": "integer",
     },
     "min": {
         "name": "min",
         "args": [NumericColumnNoLookup("column")],
-        "aggregate": ["min", u"{column}", None],
+        "aggregate": ["min", ArgValue("column"), None],
     },
     "max": {
         "name": "max",
         "args": [NumericColumnNoLookup("column")],
-        "aggregate": ["max", u"{column}", None],
+        "aggregate": ["max", ArgValue("column"), None],
     },
     "avg": {
         "name": "avg",
         "args": [DurationColumnNoLookup("column")],
-        "aggregate": ["avg", u"{column}", None],
+        "aggregate": ["avg", ArgValue("column"), None],
         "result_type": "duration",
     },
     "sum": {
         "name": "sum",
         "args": [DurationColumnNoLookup("column")],
-        "aggregate": ["sum", u"{column}", None],
+        "aggregate": ["sum", ArgValue("column"), None],
         "result_type": "duration",
     },
     # Currently only being used by the baseline PoC
@@ -1560,7 +1572,9 @@ def resolve_function(field, match=None, params=None):
         aggregate[0] = aggregate[0].format(**arguments)
         if isinstance(aggregate[1], six.string_types):
             aggregate[1] = aggregate[1].format(**arguments)
-
+        elif isinstance(aggregate[1], ArgValue):
+            arg = aggregate[1].arg
+            aggregate[1] = arguments[arg]
         if aggregate[2] is None:
             aggregate[2] = get_function_alias_with_columns(
                 function["name"], columns if not used_default else []
@@ -1743,6 +1757,10 @@ def resolve_field_list(fields, snuba_filter, auto_fields=True):
             if isinstance(column, (list, tuple)):
                 if column[0] == "transform":
                     # When there's a project transform, we already group by project_id
+                    continue
+                if column[2] == USER_DISPLAY_ALIAS:
+                    # user.display needs to be grouped by its coalesce function
+                    groupby.append(column)
                     continue
                 groupby.append(column[2])
             else:
