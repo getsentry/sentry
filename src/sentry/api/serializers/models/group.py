@@ -3,6 +3,7 @@ from __future__ import absolute_import, print_function
 import itertools
 from collections import defaultdict
 from datetime import timedelta
+from dateutil.parser import parse as parse_datetime
 
 import six
 import logging
@@ -476,14 +477,6 @@ class GroupSerializer(GroupSerializerBase):
         self.environment_func = environment_func if environment_func is not None else lambda: None
 
     def _get_seen_stats(self, item_list, user):
-        print(
-            "\n\n\n\n--------------------------------\n--------------------------------\n--------------------------------"
-        )
-        print("\n_get_seen_stats other")
-        print(
-            "\nxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n\n\n"
-        )
-
         try:
             environment = self.environment_func()
         except Environment.DoesNotExist:
@@ -637,15 +630,6 @@ class GroupSerializerSnuba(GroupSerializerBase):
     def _get_seen_stats(self, item_list, user):
         project_ids = list(set([item.project_id for item in item_list]))
         group_ids = [item.id for item in item_list]
-        # this sis where we fetc hstats
-        from pprint import pprint
-
-        print("\n\n\n\n--------------------------------\n--------------------------------")
-        print("\n_get_seen_stats")
-        # print("\nself.start")
-        # pprint(self.start)
-        # print("\nself.end")
-        # pprint(self.end)
 
         user_counts = tagstore.get_groups_user_counts(
             project_ids,
@@ -654,11 +638,6 @@ class GroupSerializerSnuba(GroupSerializerBase):
             start=self.start,
             end=self.end,
         )
-        print("\nuser_counts")
-        pprint(user_counts)
-
-        print("\nself.filters")
-        pprint(self.filters)
 
         skip_snuba_fields = set(
             [
@@ -680,8 +659,6 @@ class GroupSerializerSnuba(GroupSerializerBase):
                 for search_filter in self.filters
                 if search_filter.key.name not in skip_snuba_fields
             ]
-        print("converted filters:", snuba_filters)
-
         seen_data = tagstore.get_group_seen_values_for_environments(
             project_ids,
             group_ids,
@@ -690,65 +667,19 @@ class GroupSerializerSnuba(GroupSerializerBase):
             start=self.start,
             end=self.end,
         )
-        print("\nseen_data")
-        pprint(seen_data)
-        # pprint(seen_data)
-        print("\nseen_data.items()")
-        # pprint(seen_data.items())
-        pprint(seen_data["data"])
-        # pprint(seen_data["data"][0])
-        # pprint(seen_data["data"][0]["last_seen"])
         last_seen = {}
-
-        # for data in seen_data["data"]:
-        # last_seen.update({data["group_id"]:data["last_seen"]})
-        #     if type(value) is list and value["last_seen"]:
-        #         last_seen.update({item_id: value["last_seen"]})
-        #         print("itemid:",item_id)
-        #         print("value:",value)
-        #         print("value[last_seen]:",value["last_seen"])
-
-        last_seen = {data["group_id"]: data["last_seen"] for data in seen_data["data"]}
-        seen_data = {
-            data["group_id"]: {
-                "last_seen": data["last_seen"],
-                "times_seen": data["times_seen"],
-                "first_seen": data["first_seen"],
-            }
+        last_seen = {
+            data["group_id"]: parse_datetime(data["last_seen"]).replace(tzinfo=timezone.utc)
             for data in seen_data["data"]
         }
-        # {item_id: value["last_seen"] for item_id, value in seen_data.items()}
-
-        print("\nlast_seen")
-        pprint(last_seen)
-
-        # psql stuff here is all global we wanna fetch from snuba instead
-        # print("\nitem_list")
-        # pprint(item_list)
-        #
-        # print("\nitem_list[0]")
-        # pprint(item_list[0])
-        #
-        # print("\nitem_list[0].first_seen")
-        # pprint(item_list[0].first_seen)
-        #
-        # print("\nitem_list[0].last_seen")
-        # pprint(item_list[0].last_seen)
-        #
-        # print("\nitem_list[0].times_seen")
-        # pprint(item_list[0].times_seen)
-
-        # print("\nself.environment_ids")
-        # pprint(self.environment_ids)
-
-        # self.environment_ids = [1]
+        times_seen_data = {data["group_id"]: data["times_seen"] for data in seen_data["data"]}
 
         if not self.environment_ids:
-            # print("\nself.environment_ids option 1")
-            first_seen = {item.id: item.first_seen for item in item_list}
-            # times_seen = {item.id: item.times_seen for item in item_list}
+            first_seen = {
+                data["group_id"]: parse_datetime(data["first_seen"]).replace(tzinfo=timezone.utc)
+                for data in seen_data["data"]
+            }
         else:
-            # print("\nself.environment_ids option 2")
             first_seen = {
                 ge["group_id"]: ge["first_seen__min"]
                 for ge in GroupEnvironment.objects.filter(
@@ -758,46 +689,11 @@ class GroupSerializerSnuba(GroupSerializerBase):
                 .values("group_id")
                 .annotate(Min("first_seen"))
             }
-            # times_seen = {item_id: value["times_seen"] for item_id, value in seen_data.items()}
-
-        # print("\nself.environment_ids option 2")
-        # first_seen = {
-        #     ge["group_id"]: ge["first_seen__min"]
-        #     for ge in GroupEnvironment.objects.filter(
-        #         group_id__in=[item.id for item in item_list],
-        #         environment_id__in=self.environment_ids,
-        #     )
-        #     .values("group_id")
-        #     .annotate(Min("first_seen"))
-        # }
-        # times_seen = {item_id: value["times_seen"] for item_id, value in seen_data.items()}
-
-        # item_list and seen_data should have the same set of ids
-
-        # times_seen_alternate = {}
-        # for item in item_list:
-        #     print("\n---item")
-        #     pprint(item)
-        #
-        #     print("\n---item.id")
-        #     pprint(item.id)
-        #
-        #     print("\n---seen_data[item.id]")
-        #     pprint(seen_data[item.id])
-        #
-        #     times_seen_alternate[item.id] = {
-        #         'first': item.times_seen,
-        #         'second': seen_data[item.id]["times_seen"],
-        #     }
-
         times_seen = {}
         for item in item_list:
             times_seen[item.id] = (
-                seen_data[item.id]["times_seen"] if seen_data[item.id] else item.times_seen
+                times_seen_data[item.id] if times_seen_data[item.id] else item.times_seen
             )
-
-        # print("\ntimes_seen after change")
-        # pprint(times_seen)
 
         attrs = {}
         for item in item_list:
@@ -807,11 +703,6 @@ class GroupSerializerSnuba(GroupSerializerBase):
                 "last_seen": last_seen.get(item.id),
                 "user_count": user_counts.get(item.id, 0),
             }
-
-        print("\nattrs")
-        pprint(attrs)
-        print("\nxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n\n\n")
-
         return attrs
 
 

@@ -89,22 +89,6 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                                           issues belong to.
         :auth: required
         """
-
-        import pprint
-
-        print("\n\n\n\n--------------------------------")
-        print("OrganizationGroupIndexEndpoint get")
-        # print("\nquerystring")
-        # pprint.pprint(request.GET.get("querystring"))
-        print("\ngroupStatsPeriod")
-        pprint.pprint(request.GET.get("groupStatsPeriod"))
-        print("\nshortIdLookup")
-        pprint.pprint(request.GET.get("shortIdLookup"))
-        # print("\nstart")
-        # pprint.pprint(request.GET.get("start"))
-        # print("\nend")
-        # pprint.pprint(request.GET.get("end"))
-
         stats_period = request.GET.get("groupStatsPeriod")
         if stats_period not in (None, "", "24h", "14d"):
             return Response({"detail": ERR_INVALID_STATS_PERIOD}, status=400)
@@ -120,18 +104,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         except InvalidParams as e:
             return Response({"detail": six.text_type(e)}, status=400)
 
-        print("\nstart")
-        pprint.pprint(start)
-        print("\nend")
-        pprint.pprint(end)
-
-        print("\nstats_period")
-        pprint.pprint(stats_period)
-
         environments = self.get_environments(request, organization)
-
-        print("\nenvironments")
-        pprint.pprint(environments)
 
         serializer = functools.partial(
             StreamGroupSerializerSnuba,
@@ -140,9 +113,6 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
             # start=start,
             # end=end,
         )
-
-        print("\nserializer")
-        pprint.pprint(serializer)
 
         projects = self.get_projects(request, organization)
         project_ids = [p.id for p in projects]
@@ -176,15 +146,11 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                     response = Response(
                         serialize(groups, request.user, serializer(matching_event_id=event_id))
                     )
-                    print("\nresponse 179")
-                    pprint.pprint(response)
                     response["X-Sentry-Direct-Hit"] = "1"
                     return response
 
                 if groups:
                     tempResp = Response(serialize(groups, request.user, serializer()))
-                    print("\ntempResp")
-                    pprint.pprint(tempResp)
                     return tempResp
 
             group = get_by_short_id(organization.id, request.GET.get("shortIdLookup"), query)
@@ -194,8 +160,6 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                     response = Response(serialize([group], request.user, serializer()))
                     response["X-Sentry-Direct-Hit"] = "1"
 
-                    print("\nresponse 197")
-                    pprint.pprint(response)
                     return response
 
         # If group ids specified, just ignore any query components
@@ -209,8 +173,6 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
             if any(g for g in groups if not request.access.has_project_access(g.project)):
                 raise PermissionDenied
             response = Response(serialize(groups, request.user, serializer()))
-            print("\nresponse 212")
-            pprint.pprint(response)
             return response
 
         try:
@@ -226,25 +188,6 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
 
         results = list(cursor_result)
 
-        print("\nquery_kwargs")
-        pprint.pprint(query_kwargs)
-        print("\nquery_kwargs[search_filters]")
-        pprint.pprint(query_kwargs["search_filters"])
-        print("\ncursor_result")
-        pprint.pprint(cursor_result)
-
-        print("\nbefore calling context")
-        print("\nresults")
-        pprint.pprint(results)
-        # print("\nresults[0]")
-        # pprint.pprint(results[0])
-        # print("\nresults[0].first_seen")
-        # pprint.pprint(results[0].first_seen)
-        # print("\nresults[0].last_seen")
-        # pprint.pprint(results[0].last_seen)
-
-        # list of serializers
-        # you call serilize with list of things you wanna serialize and also the serilizer you want it yo use
         context = serialize(results, request.user, serializer(start=start, end=end))
         lifetime_stats = serialize(results, request.user, serializer())
         filtered_stats = serialize(
@@ -254,20 +197,9 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         )
 
         # context = [(lambda c,l: c["lifetime"] = l; c )(c,l) for c,l in zip(context, lifetime_stats)]
-        # pprint.pprint("skipping printing context")
         for idx, ctx in enumerate(context):
             ctx["lifetime"] = lifetime_stats[idx]
             ctx["filtered"] = filtered_stats[idx]
-            # print("\nidx")
-            # pprint.pprint(idx)
-            # print("\nctx")
-            # pprint.pprint(ctx)
-
-        # print("\ncontext")
-        # pprint.pprint(context)
-
-        # print("\nlifetime_stats")
-        # pprint.pprint(lifetime_stats)
 
         # HACK: remove auto resolved entries
         # TODO: We should try to integrate this into the search backend, since
@@ -285,10 +217,6 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         self.add_cursor_headers(request, response, cursor_result)
 
         # TODO(jess): add metrics that are similar to project endpoint here
-
-        # print("\nresponse")
-        # pprint.pprint(response)
-        print("\nxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n\n\n")
         return response
 
     def put(self, request, organization):

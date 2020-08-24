@@ -311,6 +311,8 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
 
         # should use group columns when no environments arg passed
         result = serialize(group, serializer=GroupSerializerSnuba(environment_ids=[]))
+        print("result is:", result)
+
         assert result["count"] == "3"
         assert iso_format(result["lastSeen"]) == iso_format(self.min_ago)
         assert result["firstSeen"] == group.first_seen
