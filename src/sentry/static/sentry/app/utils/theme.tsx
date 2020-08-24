@@ -68,23 +68,13 @@ const colors = {
   get borderDark() {
     return colors.gray400;
   },
-
-  borderRadius: '4px',
-  borderRadiusBottom: '0 0 4px 4px',
-  borderRadiusTop: '4px 4px 0 0',
-  headerSelectorRowHeight: 44,
-  headerSelectorLabelHeight: 28,
-
-  dropShadowLightest: '0 1px 2px rgba(0, 0, 0, 0.04)',
-  dropShadowLight: '0 2px 0 rgba(37, 11, 54, 0.04)',
-  dropShadowHeavy: '0 1px 4px 1px rgba(47,40,55,0.08), 0 4px 16px 0 rgba(47,40,55,0.12)',
-};
+} as const;
 
 const aliases = {
   /**
    * Primary text color
    */
-  textColor: colors.gray500,
+  textColor: colors.gray800, // TODO(dark): colors.gray500
 
   /**
    * Text that should not have as much emphasis
@@ -94,12 +84,12 @@ const aliases = {
   /**
    * A color that denotes a "success", or something good
    */
-  success: colors.green300,
+  success: colors.green400, // TODO(dark): colors.green300,
 
   /**
    * A color that denotes an error, or something that is wrong
    */
-  error: colors.red300,
+  error: colors.red400, // TODO(dark): colors.300,
 
   /**
    * Primary border color
@@ -110,7 +100,7 @@ const aliases = {
    * A color that indicates something is disabled where user can not interact or use
    * it in the usual manner (implies that there is an "enabled" state)
    */
-  disabled: colors.gray200,
+  disabled: colors.gray400, // TODO(dark): colors.gray200,
 
   /**
    * Background for the header of a page
@@ -376,6 +366,16 @@ const theme = {
 
   grid: 8,
 
+  borderRadius: '4px',
+  borderRadiusBottom: '0 0 4px 4px',
+  borderRadiusTop: '4px 4px 0 0',
+  headerSelectorRowHeight: 44,
+  headerSelectorLabelHeight: 28,
+
+  dropShadowLightest: '0 1px 2px rgba(0, 0, 0, 0.04)',
+  dropShadowLight: '0 2px 0 rgba(37, 11, 54, 0.04)',
+  dropShadowHeavy: '0 1px 4px 1px rgba(47,40,55,0.08), 0 4px 16px 0 rgba(47,40,55,0.12)',
+
   // Relative font sizes
   fontSizeRelativeSmall: '0.9em',
 
@@ -447,7 +447,7 @@ const theme = {
   },
 
   space: [0, 8, 16, 20, 30],
-};
+} as const;
 
 export type Theme = typeof theme;
 export type Color = keyof typeof colors;
