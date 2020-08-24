@@ -1,7 +1,6 @@
 import React, {Component} from 'react';
 import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
-import rrwebPlayer from 'rrweb-player';
 
 import theme from 'app/utils/theme';
 
@@ -11,7 +10,10 @@ class RRWebReplayer extends Component {
   };
 
   async componentDidMount() {
-    const resp = await fetch(this.props.url);
+    const [{default: rrwebPlayer}, resp] = await Promise.all([
+      import(/* webpackChunkName: "RrwebPlayer" */ 'rrweb-player'),
+      fetch(this.props.url),
+    ]);
     const payload = await resp.json();
     const _ = new rrwebPlayer({
       target: this.ref.current,
