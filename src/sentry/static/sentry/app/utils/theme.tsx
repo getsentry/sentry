@@ -89,7 +89,7 @@ const aliases = {
   /**
    * A color that denotes an error, or something that is wrong
    */
-  error: colors.red400, // TODO(dark): colors.300,
+  error: colors.red400, // TODO(dark): colors.red300,
 
   /**
    * Primary border color
