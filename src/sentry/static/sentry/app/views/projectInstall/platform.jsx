@@ -2,6 +2,7 @@ import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import 'prismjs/themes/prism-tomorrow.css';
 
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
 import {loadDocs} from 'app/actionCreators/projects';
@@ -16,8 +17,6 @@ import platforms from 'app/data/platforms';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
-
-const PrismaTheme = require('prismjs/themes/prism-tomorrow.css').toString();
 
 class ProjectInstallPlatform extends React.Component {
   static propTypes = {
@@ -166,7 +165,7 @@ class ProjectInstallPlatform extends React.Component {
 
 const DocumentationWrapper = styled('div')`
   .gatsby-highlight {
-    margin-bottom: 20px;
+    margin-bottom: ${space(3)};
 
     &:last-child {
       margin-bottom: 0;
@@ -174,11 +173,9 @@ const DocumentationWrapper = styled('div')`
   }
 
   .alert {
-    margin-bottom: 20px;
-    border-radius: 3px;
+    margin-bottom: ${space(3)};
+    border-radius: ${p => p.theme.borderRadius};
   }
-
-  ${PrismaTheme}
 
   p {
     line-height: 1.5;
