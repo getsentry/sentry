@@ -307,7 +307,7 @@ class MsTeamsActionHandlerFireTest(MsTeamsActionHandlerBaseTest, TestCase):
 class PagerDutyActionHandlerBaseTest(object):
     def setUp(self):
 
-        SERVICES = [
+        service = [
             {
                 "type": "service",
                 "integration_key": "pfc73e8cb4s44d519f3d63d45b5q77g9",
@@ -319,13 +319,13 @@ class PagerDutyActionHandlerBaseTest(object):
             provider="pagerduty",
             name="Example PagerDuty",
             external_id="example-pagerduty",
-            metadata={"services": SERVICES},
+            metadata={"service": service},
         )
         self.integration.add_organization(self.organization, self.user)
 
         self.service = PagerDutyService.objects.create(
-            service_name=SERVICES[0]["service_name"],
-            integration_key=SERVICES[0]["integration_key"],
+            service_name=service[0]["service_name"],
+            integration_key=service[0]["integration_key"],
             organization_integration=self.integration.organizationintegration_set.first(),
         )
 
@@ -392,7 +392,7 @@ class PagerDutyActionHandlerFireTest(PagerDutyActionHandlerBaseTest, TestCase):
         self.run_test(self.create_incident(status=2, alert_rule=alert_rule), "fire")
 
     def test_fire_metric_alert_multiple_services(self):
-        SERVICES = [
+        service = [
             {
                 "type": "service",
                 "integration_key": "afc73e8cb4s44d519f3d63d45b5q77g9",
@@ -401,8 +401,8 @@ class PagerDutyActionHandlerFireTest(PagerDutyActionHandlerBaseTest, TestCase):
             },
         ]
         PagerDutyService.objects.create(
-            service_name=SERVICES[0]["service_name"],
-            integration_key=SERVICES[0]["integration_key"],
+            service_name=service[0]["service_name"],
+            integration_key=service[0]["integration_key"],
             organization_integration=self.integration.organizationintegration_set.first(),
         )
         alert_rule = self.create_alert_rule()

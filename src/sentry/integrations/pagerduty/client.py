@@ -30,7 +30,6 @@ class PagerDutyClient(ApiClient):
 
     def send_trigger(self, data):
         # expected payload: https://v2.developer.pagerduty.com/docs/send-an-event-events-api-v2
-        # for now, only construct the payload if data is an event
         if isinstance(data, Event):
             source = data.transaction or data.culprit or "<unknown>"
             group = data.group
@@ -58,7 +57,7 @@ class PagerDutyClient(ApiClient):
                 ],
             }
         else:
-            # this is a metric alert
+            # the payload is for a metric alert
             payload = data
 
         return self.post("/", data=payload)
