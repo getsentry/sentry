@@ -26,17 +26,15 @@ def build_incident_attachment(incident, integration_key, metric_value=None):
     if incident.status in [IncidentStatus.WARNING.value, IncidentStatus.CRITICAL.value]:
         event_action = "trigger"
 
-    footer_text = "Sentry Incident | {}".format(data["ts"].strftime("%b %d"))
-
     return {
         "routing_key": integration_key,
         "event_action": event_action,
         "dedup_key": "incident_{}_{}".format(incident.organization_id, incident.identifier),
         "payload": {
-            "summary": data["text"],
+            "summary": data["title"],
             "severity": severity,
             "source": incident.identifier,
-            "custom_details": footer_text,
+            "custom_details": {"details": data["text"]},
         },
         "links": [{"href": data["title_link"], "text": data["title"]}],
     }
