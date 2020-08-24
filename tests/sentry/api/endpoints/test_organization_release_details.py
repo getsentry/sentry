@@ -609,3 +609,9 @@ class ReleaseSerializerTest(unittest.TestCase):
             data={"commits": [{"id": "a", "author_email": "email[test]@example.org"}]}
         )
         assert serializer.is_valid()
+
+    def test_author_bad_email(self):
+        serializer = OrganizationReleaseSerializer(
+            data={"commits": [{"id": "a", "author_email": "not-a-valid-email"}]}
+        )
+        assert not serializer.is_valid()

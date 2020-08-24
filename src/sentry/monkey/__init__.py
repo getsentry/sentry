@@ -61,30 +61,10 @@ def patch_celery_imgcat():
     term.imgcat = lambda *a, **kw: b""
 
 
-def patch_django_email_validator():
-    # Django's EmailValidator doesn't allow for emails with [] in the local part.
-    # This causes commits from Github's Dependabot to fail when trying to attach them to a release
-    # e.g. https://github.com/getsentry/sentry/issues/20085
-    try:
-        import re
-        from django.core.validators import _lazy_re_compile, EmailValidator
-    except ImportError:
-        return
-
-    email_regex = _lazy_re_compile(
-        r"(^[-!#$%&'*+/=?^_`{}|~0-9A-Z\[\]]+(\.[-!#$%&'*+/=?^_`{}|~0-9A-Z]+)*\Z"  # dot-atom
-        r'|^"([\001-\010\013\014\016-\037!#-\[\]-\177]|\\[\001-\011\013\014\016-\177])*"\Z)',  # quoted-string
-        re.IGNORECASE,
-    )
-
-    EmailValidator.user_regex = email_regex
-
-
 for patch in (
     patch_httprequest_repr,
     patch_django_views_debug,
     patch_celery_imgcat,
     patch_pickle_loaders,
-    patch_django_email_validator,
 ):
     patch()
