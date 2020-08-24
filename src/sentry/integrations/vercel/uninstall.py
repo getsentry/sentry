@@ -56,7 +56,7 @@ class VercelUninstallEndpoint(Endpoint):
             # if we are uninstalling a primary configuration, and there are
             # multiple orgs connected to this integration we must update
             # the crendentials (access_token, webhook_id etc)
-            next_config_id, next_config = integration.metadata["configurations"].items()[0]
+            next_config_id, next_config = list(integration.metadata["configurations"].items())[0]
 
             integration.metadata["access_token"] = next_config["access_token"]
             integration.metadata["webhook_id"] = next_config["webhook_id"]
