@@ -26,7 +26,14 @@ from sentry.search.utils import (
 )
 from sentry.snuba.dataset import Dataset
 from sentry.utils.dates import to_timestamp
-from sentry.utils.snuba import DATASETS, get_json_type, OPERATOR_TO_FUNCTION, SNUBA_AND, SNUBA_OR
+from sentry.utils.snuba import (
+    DATASETS,
+    get_json_type,
+    FUNCTION_TO_OPERATOR,
+    OPERATOR_TO_FUNCTION,
+    SNUBA_AND,
+    SNUBA_OR,
+)
 from sentry.utils.compat import filter, map, zip
 
 
@@ -912,13 +919,41 @@ def convert_condition_to_function(cond):
     return [function, [cond[0], cond[2]]]
 
 
+def convert_function_to_condition(func):
+    operator = FUNCTION_TO_OPERATOR.get(func[0])
+    if not operator:
+        return [func, "=", 1]
+
+    return [func[1][0], operator, func[1][1]]
+
+
 def convert_array_to_tree(operator, terms):
+    """
+    Convert an array of conditions into a binary tree joined by the operator.
+    """
     if len(terms) == 1:
         return terms[0]
     elif len(terms) == 2:
         return [operator, terms]
 
     return [operator, [terms[0], convert_array_to_tree(operator, terms[1:])]]
+
+
+def flatten_condition_tree(tree, condition_function):
+    """
+    Take a binary tree of conditions, and flatten all of the terms using the condition function.
+    E.g. f( and(and(b, c), and(d, e)), and ) -> [b, c, d, e]
+    """
+    stack = [tree]
+    flattened = []
+    while len(stack) > 0:
+        item = stack.pop(0)
+        if item[0] == condition_function:
+            stack.extend(item[1])
+        else:
+            flattened.append(item)
+
+    return flattened
 
 
 def is_condition(term):
@@ -1080,18 +1115,21 @@ def get_filter(query=None, params=None):
         isinstance(term, ParenExpression) or SearchBoolean.is_operator(term)
         for term in parsed_terms
     ):
-        # TODO evanh: We can remove all top level ANDs and extend the conditions/having to
-        # avoid unnecesary nesting, e.g. [["and", [["and", [a, b]], ["and", [c, d]]]]] -> [a, b, c, d]
         (
             condition,
             having,
             found_projects_to_filter,
             group_ids,
         ) = convert_search_boolean_to_snuba_query(parsed_terms, params)
+
         if condition:
-            kwargs["conditions"].append([condition, "=", 1])
+            and_conditions = flatten_condition_tree(condition, SNUBA_AND)
+            for func in and_conditions:
+                kwargs["conditions"].append(convert_function_to_condition(func))
         if having:
-            kwargs["having"].append([having, "=", 1])
+            and_having = flatten_condition_tree(having, SNUBA_AND)
+            for func in and_having:
+                kwargs["having"].append(convert_function_to_condition(func))
         if found_projects_to_filter:
             projects_to_filter = list(set(found_projects_to_filter))
         if group_ids is not None:
