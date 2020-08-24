@@ -23,7 +23,7 @@ const SearchResultWrapper = styled(props => (
     `};
 
   &:not(:first-child) {
-    border-top: 1px solid ${p => p.theme.borderLight};
+    border-top: 1px solid ${p => p.theme.border};
   }
 `;
 

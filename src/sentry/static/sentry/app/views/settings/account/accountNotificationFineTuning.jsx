@@ -86,7 +86,7 @@ const ACCOUNT_NOTIFICATION_FIELDS = {
 
 const PanelBodyLineItem = styled(PanelBody)`
   font-size: 1.4rem;
-  border-bottom: 1px solid ${p => p.theme.borderLight};
+  border-bottom: 1px solid ${p => p.theme.border};
 `;
 
 // Which fine tuning parts are grouped by project

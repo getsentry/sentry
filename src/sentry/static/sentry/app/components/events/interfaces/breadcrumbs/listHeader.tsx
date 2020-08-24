@@ -41,7 +41,7 @@ const StyledGridCell = styled(GridCell)`
   position: sticky;
   z-index: ${p => p.theme.zIndex.breadcrumbs.header};
   top: 0;
-  border-bottom: 1px solid ${p => p.theme.borderDark};
+  border-bottom: 1px solid ${p => p.theme.border};
   background: ${p => p.theme.gray100};
   color: ${p => p.theme.gray600};
   font-weight: 600;

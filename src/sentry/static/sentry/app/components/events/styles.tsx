@@ -6,7 +6,7 @@ import theme from 'app/utils/theme';
 const COLORS = {
   default: {
     background: theme.gray100,
-    border: theme.borderLight,
+    border: theme.border,
   },
   danger: {
     background: theme.red100,
@@ -17,7 +17,7 @@ const COLORS = {
 
 export const DataSection = styled('div')`
   padding: ${space(2)} 0;
-  border-top: 1px solid ${p => p.theme.borderLight};
+  border-top: 1px solid ${p => p.theme.border};
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     padding: ${space(3)} ${space(4)} 0 40px;

@@ -236,7 +236,7 @@ const StyledHovercard = styled('div')<StyledHovercardProps>`
   z-index: ${p => p.theme.zIndex.hovercard};
   white-space: initial;
   color: ${p => p.theme.gray800};
-  border: 1px solid ${p => p.theme.borderLight};
+  border: 1px solid ${p => p.theme.border};
   background: ${p => p.theme.white};
   background-clip: padding-box;
   box-shadow: 0 0 35px 0 rgba(67, 62, 75, 0.2);
@@ -261,8 +261,13 @@ const StyledHovercard = styled('div')<StyledHovercardProps>`
 const Header = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   background: ${p => p.theme.gray100};
+<<<<<<< HEAD:src/sentry/static/sentry/app/components/hovercard.tsx
   border-bottom: 1px solid ${p => p.theme.borderLight};
   border-radius: ${p => p.theme.borderRadiusTop};
+=======
+  border-bottom: 1px solid ${p => p.theme.border};
+  border-radius: 4px 4px 0 0;
+>>>>>>> 4749b41398... feat(ui): Change border colors to use single color:src/sentry/static/sentry/app/components/hovercard.jsx
   font-weight: 600;
   word-wrap: break-word;
   padding: ${space(1.5)};
@@ -302,7 +307,7 @@ const HovercardArrow = styled('span')<HovercardArrowProps>`
   &::before {
     top: 1px;
     border: 10px solid transparent;
-    border-${getTipDirection}-color: ${p => p.tipColor || p.theme.borderLight};
+    border-${getTipDirection}-color: ${p => p.tipColor || p.theme.border};
 
     ${p => (p.placement === 'bottom' ? 'top: -1px' : '')};
     ${p => (p.placement === 'left' ? 'top: 0; left: 1px;' : '')};

@@ -1,23 +1,17 @@
-import {ClassNames, css} from '@emotion/core';
+import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
-import {ModalBody} from 'react-bootstrap';
+import {ClassNames, css} from '@emotion/core';
 
-import Input from 'app/views/settings/components/forms/controls/input';
-import {analytics} from 'app/utils/analytics';
 import {t} from 'app/locale';
 import Search from 'app/components/search';
+import HelpSource from 'app/components/search/sources/helpSource';
 import theme from 'app/utils/theme';
-import space from 'app/styles/space';
 
-type Props = {
-  Body: typeof ModalBody;
-};
-
-class CommandPalette extends React.Component<Props> {
-  componentDidMount() {
-    analytics('omnisearch.open', {});
-  }
+class HelpSearchModal extends React.Component {
+  static propTypes = {
+    Body: PropTypes.oneOfType([PropTypes.func, PropTypes.node]).isRequired,
+  };
 
   render() {
     const {Body} = this.props;
@@ -27,9 +21,10 @@ class CommandPalette extends React.Component<Props> {
         <ClassNames>
           {({css: injectedCss}) => (
             <Search
-              isOpen
-              entryPoint="command_palette"
-              minSearch={1}
+              {...this.props}
+              sources={[HelpSource]}
+              entryPoint="sidebar_help"
+              minSearch={3}
               maxResults={10}
               dropdownStyle={injectedCss`
                 width: 100%;
@@ -40,13 +35,14 @@ class CommandPalette extends React.Component<Props> {
                 box-shadow: none;
                 border-top: 1px solid ${theme.border};
               `}
+              closeOnSelect={false}
               renderInput={({getInputProps}) => (
                 <InputWrapper>
-                  <StyledInput
+                  <Input
                     autoFocus
                     {...getInputProps({
                       type: 'text',
-                      placeholder: t('Search for projects, teams, settings, etc...'),
+                      placeholder: t('Search for Docs and FAQs...'),
                     })}
                   />
                 </InputWrapper>
@@ -59,7 +55,21 @@ class CommandPalette extends React.Component<Props> {
   }
 }
 
-export default CommandPalette;
+const InputWrapper = styled('div')`
+  padding: 2px;
+`;
+
+const Input = styled('input')`
+  width: 100%;
+  padding: 8px;
+  border: none;
+  border-radius: 8px;
+  outline: none;
+
+  &:focus {
+    outline: none;
+  }
+`;
 
 export const modalCss = css`
   .modal-content {
@@ -67,24 +77,4 @@ export const modalCss = css`
   }
 `;
 
-const InputWrapper = styled('div')`
-  padding: ${space(0.25)};
-`;
-
-const StyledInput = styled(Input)`
-  width: 100%;
-  padding: ${space(1)};
-  border-radius: 8px;
-
-  outline: none;
-  border: none;
-  box-shadow: none;
-
-  :focus,
-  :active,
-  :hover {
-    outline: none;
-    border: none;
-    box-shadow: none;
-  }
-`;
+export default HelpSearchModal;

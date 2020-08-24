@@ -11,11 +11,11 @@ export default function YAxis(props: EChartOption.YAxis = {}): EChartOption.YAxi
       show: false,
     },
     axisLabel: {
-      color: theme.gray400,
+      color: theme.gray400, // TODO(dark): gray400 --> chartLabel
     },
     splitLine: {
       lineStyle: {
-        color: theme.borderLighter,
+        color: theme.gray100, // TODO(dark): borderLighter --> gray100 --> chartLineColor
       },
     },
     ...props,

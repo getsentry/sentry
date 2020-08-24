@@ -184,7 +184,7 @@ const MenuItem = styled('li')<{last: boolean}>`
   display: flex;
 
   position: relative;
-  border-bottom: ${p => (!p.last ? `1px solid ${p.theme.borderLight}` : null)};
+  border-bottom: ${p => (!p.last ? `1px solid ${p.theme.border}` : null)};
   font-size: ${p => p.theme.fontSizeMedium};
   padding: 0;
 

@@ -360,7 +360,7 @@ export default styled(ActivityItem)`
   position: relative;
   margin: 0;
   padding: ${space(1)};
-  border-bottom: 1px solid ${p => p.theme.borderLight};
+  border-bottom: 1px solid ${p => p.theme.border};
   line-height: 1.4;
   font-size: ${p => p.theme.fontSizeMedium};
 `;
@@ -381,7 +381,7 @@ const Bubble = styled('div')<{clipped: boolean}>`
   background: ${p => p.theme.gray100};
   margin: ${space(0.5)} 0;
   padding: ${space(1)} ${space(2)};
-  border: 1px solid ${p => p.theme.borderLight};
+  border: 1px solid ${p => p.theme.border};
   border-radius: 3px;
   box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
   position: relative;

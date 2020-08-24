@@ -194,7 +194,7 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 
 const TableRow = styled(TableLayout)`
   font-size: ${p => p.theme.fontSizeMedium};
-  border-top: 1px solid ${p => (p.first ? 'transparent' : p.theme.borderLight)};
+  border-top: 1px solid ${p => (p.first ? 'transparent' : p.theme.border)};
   align-items: center;
   padding: ${space(1)} ${space(2)};
 `;

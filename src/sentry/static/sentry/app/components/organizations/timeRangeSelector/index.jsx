@@ -409,7 +409,7 @@ const Menu = styled('div')`
 
   display: flex;
   background: #fff;
-  border: 1px solid ${p => p.theme.borderDark};
+  border: 1px solid ${p => p.theme.border};
   position: absolute;
   top: 100%;
   min-width: 100%;
@@ -431,8 +431,8 @@ const SelectorList = styled('div')`
 
 const SubmitRow = styled('div')`
   padding: ${space(0.5)} ${space(1)};
-  border-top: 1px solid ${p => p.theme.borderLight};
-  border-left: 1px solid ${p => p.theme.borderLight};
+  border-top: 1px solid ${p => p.theme.border};
+  border-left: 1px solid ${p => p.theme.border};
 `;
 
 export default TimeRangeSelector;
