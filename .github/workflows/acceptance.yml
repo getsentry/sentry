@@ -27,8 +27,8 @@ jobs:
                 workflow_id: 'acceptance.yml',
                 ref: 'build/gha/add-workflow-dispatch-for-tests',
                 inputs: {
-                  sha: ${{ github.event.pull_request.base.sha }},
-                  pull_request: ${{ github.event.pull_request.id }}
+                  sha: '${{ github.event.pull_request.base.sha }}',
+                  pull_request: '${{ github.event.pull_request.id }}'
                 }
               })
 
