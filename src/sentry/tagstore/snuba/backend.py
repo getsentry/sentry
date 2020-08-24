@@ -458,7 +458,6 @@ class SnubaTagStorage(TagStorage):
 
         result = snuba.aliased_query(
             dataset=snuba.Dataset.Events,
-            # result = snuba.query(
             start=start,
             end=end,
             groupby=["group_id"],
