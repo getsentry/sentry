@@ -131,6 +131,13 @@ const StreamGroup = createReactClass({
         ? 'the selected period'
         : getRelativeSummary(period || DEFAULT_STATS_PERIOD).toLowerCase();
 
+    const popperStyle = {background: theme.gray800, maxWidth: 'none'};
+
+    const primaryCount = data.filtered ? data.filtered.count : data.count;
+    const secondaryCount = data.filtered ? data.count : null;
+    const primaryUserCount = data.filtered ? data.filtered.userCount : data.userCount;
+    const secondaryUserCount = data.filtered ? data.userCount : null;
+
     return (
       <Group
         data-test-id="group"
@@ -160,92 +167,66 @@ const StreamGroup = createReactClass({
         )}
         <Flex width={[40, 60, 80, 80]} mx={2} justifyContent="flex-end">
           <Tooltip
-            popperStyle={{background: theme.gray800, maxWidth: 'none'}}
+            popperStyle={popperStyle}
             tipContent={
-              <table style={{margin: 0}}>
-                <tbody>
-                  <tr style={{padding: '4px 8px', display: 'block'}}>
-                    <td style={{fontWeight: 'normal'}}>Events since issue began</td>
-                    <td style={{paddingLeft: '10px', fontWeight: 'bold'}}>
-                      {data.lifetime.count}
-                    </td>
-                  </tr>
-                  <tr style={{padding: '4px 8px', display: 'block'}}>
-                    <td style={{fontWeight: 'normal'}}>Events within {summary}</td>
-                    <td style={{paddingLeft: '10px', fontWeight: 'bold'}}>
-                      {data.count}
-                    </td>
-                    <td style={{paddingLeft: '10px'}}>
-                      <IconTelescope size="xs" color={theme.blue300} />
-                    </td>
-                  </tr>
-                  <tr style={{padding: '4px 8px', display: 'block'}}>
-                    <td style={{fontWeight: 'normal'}}>Events with filters applied</td>
-                    <td style={{paddingLeft: '10px', fontWeight: 'bold'}}>
-                      {data.filtered.count}
-                    </td>
-                    <td style={{paddingLeft: '10px'}}>
-                      <IconTelescope size="xs" color={theme.blue300} />
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+              <TooltipContent>
+                <TooltipRow>
+                  <TooltipText>Events since issue began</TooltipText>
+                  <TooltipCount>{data.lifetime.count}</TooltipCount>
+                </TooltipRow>
+                <TooltipRow>
+                  <TooltipText>Events within {summary}</TooltipText>
+                  <TooltipCount>{data.count}</TooltipCount>
+                  <StyledIconTelescope color={theme.blue300} />
+                </TooltipRow>
+                {data.filtered && (
+                  <TooltipRow>
+                    <TooltipText>Events with filters applied</TooltipText>
+                    <TooltipCount>{data.filtered.count}</TooltipCount>
+                    <StyledIconTelescope color={theme.blue300} />
+                  </TooltipRow>
+                )}
+              </TooltipContent>
             }
           >
-            <StyledPrimaryCount value={data.filtered.count} />
-            {showLifetimeStats && (
+            <StyledPrimaryCount value={primaryCount} />
+            {showLifetimeStats && secondaryCount && (
               <React.Fragment>
                 {'/'}
-                <StyledSecondaryCount value={data.count} />
+                <StyledSecondaryCount value={secondaryCount} />
               </React.Fragment>
             )}
           </Tooltip>
         </Flex>
         <Flex width={[40, 60, 80, 80]} mx={2} justifyContent="flex-end">
           <Tooltip
-            popperStyle={{background: theme.gray800, maxWidth: 'none'}}
+            popperStyle={popperStyle}
             tipContent={
-              <table style={{margin: 0}}>
-                <tbody>
-                  <tr style={{padding: '4px 8px', display: 'block'}}>
-                    <td style={{fontWeight: 'normal'}}>
-                      Users affected since issue began
-                    </td>
-                    <td style={{paddingLeft: '10px', fontWeight: 'bold'}}>
-                      {data.lifetime.userCount}
-                    </td>
-                  </tr>
-                  <tr style={{padding: '4px 8px', display: 'block'}}>
-                    <td style={{fontWeight: 'normal'}}>
-                      Users affected within {summary}
-                    </td>
-                    <td style={{paddingLeft: '10px', fontWeight: 'bold'}}>
-                      {data.userCount}
-                    </td>
-                    <td style={{paddingLeft: '10px'}}>
-                      <IconTelescope size="xs" color={theme.blue300} />
-                    </td>
-                  </tr>
-                  <tr style={{padding: '4px 8px', display: 'block'}}>
-                    <td style={{fontWeight: 'normal'}}>
-                      Users affected with filters applied
-                    </td>
-                    <td style={{paddingLeft: '10px', fontWeight: 'bold'}}>
-                      {data.filtered.userCount}
-                    </td>
-                    <td style={{paddingLeft: '10px'}}>
-                      <IconTelescope size="xs" color={theme.blue300} />
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+              <TooltipContent>
+                <TooltipRow>
+                  <TooltipText>Users affected since issue began</TooltipText>
+                  <TooltipCount>{data.lifetime.userCount}</TooltipCount>
+                </TooltipRow>
+                <TooltipRow>
+                  <TooltipText>Users affected within {summary}</TooltipText>
+                  <TooltipCount>{data.userCount}</TooltipCount>
+                  <StyledIconTelescope color={theme.blue300} />
+                </TooltipRow>
+                {data.filtered && (
+                  <TooltipRow>
+                    <TooltipText>Users affected with filters applied</TooltipText>
+                    <TooltipCount>{data.filtered.userCount}</TooltipCount>
+                    <StyledIconTelescope color={theme.blue300} />
+                  </TooltipRow>
+                )}
+              </TooltipContent>
             }
           >
-            <StyledPrimaryCount value={data.filtered.userCount} />
-            {showLifetimeStats && (
+            <StyledPrimaryCount value={primaryUserCount} />
+            {showLifetimeStats && secondaryUserCount && (
               <React.Fragment>
                 {'/'}
-                <StyledSecondaryCount value={data.userCount} />
+                <StyledSecondaryCount value={secondaryUserCount} />
               </React.Fragment>
             )}
           </Tooltip>
@@ -284,6 +265,36 @@ const StyledPrimaryCount = styled(Count)`
 const StyledSecondaryCount = styled(Count)`
   font-size: 18px;
   color: ${p => p.theme.gray500};
+`;
+
+const TooltipContent = styled(p => (
+  <table {...p}>
+    <tbody>{p.children}</tbody>
+  </table>
+))`
+  margin: 0;
+`;
+
+const TooltipRow = styled('tr')`
+  padding: 4px 8px;
+  display: block;
+`;
+
+const TooltipText = styled('td')`
+  font-weight: normal;
+`;
+
+const TooltipCount = styled('td')`
+  padding-left: 10px;
+  font-weight: bold;
+`;
+
+const StyledIconTelescope = styled(p => (
+  <td {...p}>
+    <IconTelescope size="xs" color={p.color} />
+  </td>
+))`
+  padding-left: 10px;
 `;
 
 export default StreamGroup;
