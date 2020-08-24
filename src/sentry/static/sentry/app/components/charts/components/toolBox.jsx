@@ -1,5 +1,3 @@
-import 'echarts/lib/component/toolbox';
-
 function getFeatures({dataZoom, ...features} = {}) {
   return {
     ...(dataZoom

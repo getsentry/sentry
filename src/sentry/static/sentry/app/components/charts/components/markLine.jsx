@@ -1,5 +1,3 @@
-import 'echarts/lib/component/markLine';
-
 /**
  * eCharts markLine
  *
