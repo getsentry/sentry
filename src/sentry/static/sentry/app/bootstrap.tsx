@@ -57,9 +57,9 @@ function getSentryIntegrations(hasReplays: boolean = false) {
     }),
     new Integrations.BrowserTracing({
       routingInstrumentation: Sentry.reactRouterV3Instrumentation(
-        Router.browserHistory,
+        Router.browserHistory as any,
         Router.createRoutes(routes()),
-        Router.match
+        Router.match as any
       ),
     }),
   ];
