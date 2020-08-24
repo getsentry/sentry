@@ -6,6 +6,35 @@ on:
   pull_request:
 
 jobs:
+<<<<<<< HEAD
+=======
+    getsentry:
+      runs-on: ubuntu-16.04
+      steps:
+        - name: getsentry token
+          id: getsentry
+          uses: getsentry/action-github-app-token@v1
+          with:
+            private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
+
+        # Notify getsentry
+        - name: Dispatch getsentry tests
+          uses: actions/github-script@v3
+          with:
+            github-token: ${{ steps.getsentry.outputs.token }}
+            script: |
+              github.actions.createWorkflowDispatch({
+                owner: 'getsentry',
+                repo: 'getsentry',
+                workflow_id: 'acceptance.yml',
+                ref: 'build/gha/add-workflow-dispatch-for-tests',
+                inputs: {
+                  sha: ${{ github.event.pull_request.base.sha }},
+                  pull_request: ${{ github.event.pull_request.id }}
+                }
+              })
+
+>>>>>>> a6213ebe80... [skip ci] github token
     jest:
       runs-on: ubuntu-latest
       env:
