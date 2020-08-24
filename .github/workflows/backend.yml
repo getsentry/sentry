@@ -54,8 +54,6 @@ jobs:
 
       - name: Install pip
         run: |
-          # TODO(joshuarli): pin below pip with new resolver since I believe it'll break things
-          # and also mirror to others
           pip install --no-cache-dir --upgrade "pip>=20.0.2"
 
       - name: Get pip cache dir
@@ -86,6 +84,8 @@ jobs:
           python setup.py install_egg_info
           pip install wheel # GitHub Actions does not have this installed by default (unlike Travis)
           pip install -U -e ".[dev]"
+          # XXX: wasn't able to get this working in requirements_base.
+          # It's possible if you're installing via -r but it breaks -e.
           pip uninstall -y rb
           pip install -e git+https://github.com/getsentry/rb.git@master#egg=rb
 
@@ -94,8 +94,8 @@ jobs:
           sentry init
           sentry devservices up postgres redis clickhouse snuba
 
-      # When we have a full backend test matrix for py3, make a py2 one as well.
-      # TODO:
+      # When we have a full backend test matrix for py3, make a py2 one with new rb as well.
+      # TODO(joshuarli):
       # - kakfa+zookeeper devservices necessary for what test suites?
       # - is `docker exec sentry_snuba snuba migrate` needed?
       # - MIGRATIONS_TEST_MIGRATE=1
