@@ -1520,37 +1520,24 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             project_id=project1.id,
         )
 
-        with self.feature(
-            {"organizations:discover-basic": True, "organizations:global-views": True}
-        ):
-            response = self.client.get(
-                self.url,
-                format="json",
-                data={
-                    "field": ["event.type", "user.display", "count_unique(title)"],
-                    "statsPeriod": "24h",
-                },
-            )
+        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        query = {
+            "field": ["event.type", "user.display", "count_unique(title)"],
+            "statsPeriod": "24h",
+        }
+        response = self.do_request(query, features=features)
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        result = set([r["user.display"] for r in data])
+        assert result == set(["cathy@example.com"])
 
-            assert response.status_code == 200, response.content
-            data = response.data["data"]
-            assert len(data) == 1
-            result = set([r["user.display"] for r in data])
-            assert result == set(["cathy@example.com"])
-
-        with self.feature(
-            {"organizations:discover-basic": True, "organizations:global-views": True}
-        ):
-            response = self.client.get(
-                self.url,
-                format="json",
-                data={"field": ["event.type", "count_unique(user.display)"], "statsPeriod": "24h"},
-            )
-
-            assert response.status_code == 200, response.content
-            data = response.data["data"]
-            assert len(data) == 1
-            assert data[0]["count_unique_user_display"] == 1
+        query = {"field": ["event.type", "count_unique(user.display)"], "statsPeriod": "24h"}
+        response = self.do_request(query, features=features)
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["count_unique_user_display"] == 1
 
     def test_has_transaction_status(self):
         project = self.create_project()
