@@ -752,7 +752,11 @@ def nest_groups(data, groups, aggregate_cols):
 
 def resolve_column(dataset):
     def _resolve_column(col):
-        if col is None or col.startswith("tags[") or QUOTED_LITERAL_RE.match(col):
+        if col is None:
+            return col
+        if isinstance(col, six.string_types) and (
+            col.startswith("tags[") or QUOTED_LITERAL_RE.match(col)
+        ):
             return col
 
         # Some dataset specific logic:
@@ -973,7 +977,17 @@ def resolve_snuba_aliases(snuba_filter, resolve_func, function_translations=None
         if isinstance(aggregation[1], six.string_types):
             aggregation[1] = resolve_func(aggregation[1])
         elif isinstance(aggregation[1], (set, tuple, list)):
-            aggregation[1] = [resolve_func(col) for col in aggregation[1]]
+            # The aggregation has another function call as its parameter
+            func_index = get_function_index(aggregation[1])
+            if func_index is not None:
+                # Resolve the columns on the nested function, and add a wrapping
+                # list to become a valid query expression.
+                aggregation[1] = [
+                    [aggregation[1][0], [resolve_func(col) for col in aggregation[1][1]]]
+                ]
+            else:
+                # Parameter is a list of fields.
+                aggregation[1] = [resolve_func(col) for col in aggregation[1]]
     resolved.aggregations = aggregations
 
     conditions = resolved.conditions
