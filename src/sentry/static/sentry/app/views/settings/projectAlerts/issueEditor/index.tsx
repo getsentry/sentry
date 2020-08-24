@@ -418,7 +418,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
             onSubmit={this.handleSubmit}
             initialData={{...rule, environment, actionMatch, frequency: `${frequency}`}}
             submitDisabled={!hasAccess}
-            submitLabel={t('Save Rule')}
+            submitLabel={isSavedAlertRule(rule) ? t('Save Rule') : t('Create Alert Rule')}
             extraButton={
               isSavedAlertRule(rule) ? (
                 <Confirm
@@ -438,15 +438,13 @@ class IssueRuleEditor extends AsyncView<Props, State> {
           >
             {this.state.loading && <SemiTransparentLoadingMask />}
             <Panel>
-              <PanelHeader>{t('Configure Rule Conditions')}</PanelHeader>
+              <PanelHeader>{t('Alert Setup')}</PanelHeader>
+
+              {this.hasError('name') && (
+                <PanelAlert type="error">{t('Must enter a rule name')}</PanelAlert>
+              )}
+
               <PanelBody>
-                {detailedError && (
-                  <PanelAlert type="error">
-                    {t(
-                      'There was an error saving your changes. Make sure all fields are valid and try again.'
-                    )}
-                  </PanelAlert>
-                )}
                 <SelectField
                   className={classNames({
                     error: this.hasError('environment'),
@@ -460,6 +458,29 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                   onChange={val => this.handleEnvironmentChange(val)}
                   disabled={!hasAccess}
                 />
+                <TextField
+                  label={t('Alert name')}
+                  help={t('Add a name for this alert')}
+                  name="name"
+                  defaultValue={name}
+                  required
+                  placeholder={t('My Rule Name')}
+                  onChange={val => this.handleChange('name', val)}
+                  disabled={!hasAccess}
+                />
+              </PanelBody>
+            </Panel>
+
+            <Panel>
+              <PanelHeader>{t('Alert Conditions')}</PanelHeader>
+              <PanelBody>
+                {detailedError && (
+                  <PanelAlert type="error">
+                    {t(
+                      'There was an error saving your changes. Make sure all fields are valid and try again.'
+                    )}
+                  </PanelAlert>
+                )}
 
                 <PanelSubHeader>
                   {t(
@@ -547,27 +568,6 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                   required
                   choices={FREQUENCY_CHOICES}
                   onChange={val => this.handleChange('frequency', val)}
-                  disabled={!hasAccess}
-                />
-              </PanelBody>
-            </Panel>
-
-            <Panel>
-              <PanelHeader>{t('Give your rule a name')}</PanelHeader>
-
-              {this.hasError('name') && (
-                <PanelAlert type="error">{t('Must enter a rule name')}</PanelAlert>
-              )}
-
-              <PanelBody>
-                <TextField
-                  label={t('Rule name')}
-                  help={t('Give your rule a name so it is easy to manage later')}
-                  name="name"
-                  defaultValue={name}
-                  required
-                  placeholder={t('My Rule Name')}
-                  onChange={val => this.handleChange('name', val)}
                   disabled={!hasAccess}
                 />
               </PanelBody>
