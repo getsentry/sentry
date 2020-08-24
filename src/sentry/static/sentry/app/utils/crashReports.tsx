@@ -28,7 +28,6 @@ export enum SettingScope {
   Project,
 }
 export function getStoreCrashReportsValues(settingScope: SettingScope) {
-  // "Disabled" option at the beginning
   const values: Array<number | null> = [
     0, // disabled
     1,
@@ -39,8 +38,7 @@ export function getStoreCrashReportsValues(settingScope: SettingScope) {
   ];
 
   if (settingScope === SettingScope.Project) {
-    // "Inherit" option after disabled.
-    values.unshift(null);
+    values.unshift(null); // inherit option
   }
 
   return values;

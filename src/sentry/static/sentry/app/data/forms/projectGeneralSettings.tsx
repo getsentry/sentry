@@ -346,6 +346,10 @@ export const fields: Record<string, Field> = {
         }
       ),
     visible: ({features}) => features.has('event-attachments'),
+    placeholder: ({organization}) =>
+      tct('Inherit organization settings ([organizationValue])', {
+        organizationValue: formatStoreCrashReports(organization.storeCrashReports),
+      }),
     choices: ({organization}) =>
       getStoreCrashReportsValues(SettingScope.Project).map(value => [
         value,
