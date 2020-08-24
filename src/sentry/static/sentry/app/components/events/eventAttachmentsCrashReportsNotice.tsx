@@ -50,6 +50,7 @@ const EventAttachmentsCrashReportsNotice = ({
             size="xsmall"
             icon={<IconSettings size="xs" />}
             title={t('Change Settings')}
+            label={t('Change Settings')}
             to={settingsUrl}
           />
         </ButtonBar>
