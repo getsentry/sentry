@@ -113,7 +113,7 @@
     "react-select": "^3.0.8",
     "react-select-legacy": "npm:react-select-legacy@1",
     "react-sparklines": "1.7.0",
-    "react-virtualized": "^9.21.2",
+    "react-virtualized": "^9.22.2",
     "reflexbox": "^4.0.6",
     "reflux": "0.4.1",
     "regenerator-runtime": "^0.13.3",
