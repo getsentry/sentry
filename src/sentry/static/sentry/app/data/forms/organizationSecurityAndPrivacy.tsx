@@ -64,14 +64,17 @@ const organizationSecurityAndPrivacy: JsonFormObject[] = [
       },
       {
         name: 'storeCrashReports',
-        type: 'range',
+        type: 'array',
         label: t('Store Native Crash Reports'),
         help: t(
           'Store native crash reports such as Minidumps for improved processing and download in issue details'
         ),
         visible: ({features}) => features.has('event-attachments'),
-        allowedValues: getStoreCrashReportsValues(SettingScope.Organization) as number[],
-        formatLabel: formatStoreCrashReports,
+        choices: () =>
+          getStoreCrashReportsValues(SettingScope.Organization).map(value => [
+            value,
+            formatStoreCrashReports(value),
+          ]),
       },
       {
         name: 'allowJoinRequests',
