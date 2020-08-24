@@ -168,7 +168,7 @@ const alert = {
   muted: {
     background: colors.gray400,
     backgroundLight: colors.gray100,
-    border: colors.border,
+    border: aliases.border,
     iconColor: 'inherit',
   },
   info: {
