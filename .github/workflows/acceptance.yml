@@ -6,8 +6,6 @@ on:
   pull_request:
 
 jobs:
-<<<<<<< HEAD
-=======
     getsentry:
       runs-on: ubuntu-16.04
       steps:
@@ -34,7 +32,6 @@ jobs:
                 }
               })
 
->>>>>>> a6213ebe80... [skip ci] github token
     jest:
       runs-on: ubuntu-latest
       env:
