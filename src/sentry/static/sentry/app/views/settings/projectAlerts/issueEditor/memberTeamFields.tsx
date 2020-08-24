@@ -4,32 +4,35 @@ import styled from '@emotion/styled';
 import SelectMembers from 'app/components/selectMembers';
 import SelectControl from 'app/components/forms/selectControl';
 import {Organization, Project} from 'app/types';
-import {IssueAlertRuleAction, MailActionTargetType} from 'app/types/alerts';
+import {IssueAlertRuleAction, IssueAlertRuleCondition} from 'app/types/alerts';
 import {PanelItem} from 'app/components/panels';
 import space from 'app/styles/space';
-
-type Props = {
-  project: Project;
-  organization: Organization;
-  disabled: boolean;
-  loading: boolean;
-  action: IssueAlertRuleAction;
-  onChange: (action: IssueAlertRuleAction) => void;
-};
 
 interface OptionRecord {
   value: string;
   label: string;
 }
 
-class MailActionFields extends React.Component<Props> {
+type Props = {
+  project: Project;
+  organization: Organization;
+  disabled: boolean;
+  loading: boolean;
+  ruleData: IssueAlertRuleAction | IssueAlertRuleCondition;
+  onChange: (action: IssueAlertRuleAction) => void;
+  options: OptionRecord[];
+  memberValue: string | number;
+  teamValue: string | number;
+};
+
+class MemberTeamFields extends React.Component<Props> {
   handleChange = (attribute: 'targetType' | 'targetIdentifier', newValue: string) => {
-    const {onChange, action} = this.props;
-    if (newValue === action[attribute]) {
+    const {onChange, ruleData} = this.props;
+    if (newValue === ruleData[attribute]) {
       return;
     }
-    const newAction = {
-      ...action,
+    const newData = {
+      ...ruleData,
       [attribute]: newValue,
     };
     /**
@@ -37,9 +40,9 @@ class MailActionFields extends React.Component<Props> {
      * selected. E.g. A member and project can both have the `targetIdentifier`, `'2'`. Hence we clear the identifier.
      **/
     if (attribute === 'targetType') {
-      newAction.targetIdentifier = '';
+      newData.targetIdentifier = '';
     }
-    onChange(newAction);
+    onChange(newData);
   };
 
   handleChangeActorType = (optionRecord: OptionRecord) => {
@@ -51,10 +54,20 @@ class MailActionFields extends React.Component<Props> {
   };
 
   render(): React.ReactElement {
-    const {disabled, loading, project, organization, action} = this.props;
+    const {
+      disabled,
+      loading,
+      project,
+      organization,
+      ruleData,
+      memberValue,
+      teamValue,
+      options,
+    } = this.props;
 
-    const isIssueOwners = action.targetType === MailActionTargetType.IssueOwners;
-    const isTeam = action.targetType === MailActionTargetType.Team;
+    // const isIssueOwners = data.targetType === MailActionTargetType.IssueOwners;
+    const teamSelected = ruleData.targetType === teamValue;
+    const memberSelected = ruleData.targetType === memberValue;
 
     const selectControlStyles = {
       control: provided => ({
@@ -69,24 +82,20 @@ class MailActionFields extends React.Component<Props> {
         <SelectControl
           isClearable={false}
           isDisabled={disabled || loading}
-          value={action.targetType}
+          value={ruleData.targetType}
           styles={selectControlStyles}
-          options={[
-            {value: MailActionTargetType.IssueOwners, label: 'Issue Owners'},
-            {value: MailActionTargetType.Team, label: 'Team'},
-            {value: MailActionTargetType.Member, label: 'Member'},
-          ]}
+          options={options}
           onChange={this.handleChangeActorType}
         />
-        {!isIssueOwners ? (
+        {teamSelected || memberSelected ? (
           <SelectMembers
             disabled={disabled}
-            key={isTeam ? MailActionTargetType.Team : MailActionTargetType.Member}
-            showTeam={isTeam}
+            key={teamSelected ? teamValue : memberValue}
+            showTeam={teamSelected}
             project={project}
             organization={organization}
             // The value from the endpoint is of type `number`, `SelectMembers` require value to be of type `string`
-            value={`${action.targetIdentifier}`}
+            value={`${ruleData.targetIdentifier}`}
             styles={selectControlStyles}
             onChange={this.handleChangeActorId}
           />
@@ -106,4 +115,4 @@ const PanelItemGrid = styled(PanelItem)`
   grid-gap: ${space(2)};
 `;
 
-export default MailActionFields;
+export default MemberTeamFields;
