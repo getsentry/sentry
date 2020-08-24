@@ -1,5 +1,5 @@
 ---
-created: '2020-08-19T12:18:48.044548Z'
+created: '2020-08-21T21:07:51.105494Z'
 creator: sentry
 source: tests/sentry/grouping/similarity/test_features.py
 ---
@@ -28,6 +28,7 @@ similarity:2020-07-23:stacktrace:frames-pairs: [[["function","Throw"],["module",
 similarity:2020-07-23:stacktrace:frames-pairs: [[["function","Throw"],["module","System.Runtime.ExceptionServices.ExceptionDispatchInfo"]],[["function","InvokeNextActionFilterAsync"],["module","Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"]]]
 similarity:2020-07-23:stacktrace:frames-pairs: [[["function","Throw"],["module","System.Runtime.ExceptionServices.ExceptionDispatchInfo"]],[["function","InvokeNextResourceFilter"],["module","Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"]]]
 similarity:2020-07-23:stacktrace:frames-pairs: [[["function","lambda_method"],["module","(unknown)"]],[["filename","valuescontroller.cs"],["function","Get"],["module","SentryTest2.Controllers.ValuesController"]]]
+similarity:2020-07-23:type:ident-shingle: "System.Exception"
 similarity:2020-07-23:value:character-5-shingle: " exce"
 similarity:2020-07-23:value:character-5-shingle: "c exc"
 similarity:2020-07-23:value:character-5-shingle: "cepti"
@@ -38,4 +39,3 @@ similarity:2020-07-23:value:character-5-shingle: "ption"
 similarity:2020-07-23:value:character-5-shingle: "sync "
 similarity:2020-07-23:value:character-5-shingle: "xcept"
 similarity:2020-07-23:value:character-5-shingle: "ync e"
-similarity:2020-07-23:type:ident-shingle: "System.Exception"

@@ -1,5 +1,5 @@
 ---
-created: '2020-08-19T12:18:49.588735Z'
+created: '2020-08-21T21:07:52.479586Z'
 creator: sentry
 source: tests/sentry/grouping/similarity/test_features.py
 ---
@@ -24,6 +24,7 @@ similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","this.touchable
 similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","touchableHandleResponderRelease: function(e) {"],["filename","touchable.js"],["function","arguments"],["module","react-native/Libraries/Components/Touchable/Touchable"]],[["context-line","this._performSideEffectsForTransition(curState, nextState, signal, e);"],["filename","touchable.js"],["function","_receiveSignal"],["module","react-native/Libraries/Components/Touchable/Touchable"]]]
 similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","var funcArgs = Array.prototype.slice.call(arguments, 3);"],["filename","reactnativerenderer-prod.js"],["function","apply"],["module","react-native/Libraries/Renderer/ReactNativeRenderer-prod"]],[["context-line","touchableHandleResponderRelease: function(e) {"],["filename","touchable.js"],["function","arguments"],["module","react-native/Libraries/Components/Touchable/Touchable"]]]
 similarity:2020-07-23:stacktrace:frames-pairs: [[["function","[native code] forEach"]],[["context-line","executeDispatch(e, !1, dispatchListeners, dispatchInstances);"],["filename","reactnativerenderer-prod.js"],["function","D"],["module","react-native/Libraries/Renderer/ReactNativeRenderer-prod"]]]
+similarity:2020-07-23:type:ident-shingle: "TypeError"
 similarity:2020-07-23:value:character-5-shingle: " '({}"
 similarity:2020-07-23:value:character-5-shingle: " (eva"
 similarity:2020-07-23:value:character-5-shingle: " a fu"
@@ -82,4 +83,3 @@ similarity:2020-07-23:value:character-5-shingle: "valid"
 similarity:2020-07-23:value:character-5-shingle: "valua"
 similarity:2020-07-23:value:character-5-shingle: "{}).i"
 similarity:2020-07-23:value:character-5-shingle: "}).in"
-similarity:2020-07-23:type:ident-shingle: "TypeError"

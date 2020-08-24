@@ -1,5 +1,5 @@
 ---
-created: '2020-08-19T12:18:49.234071Z'
+created: '2020-08-21T21:07:52.200107Z'
 creator: sentry
 source: tests/sentry/grouping/similarity/test_features.py
 ---
@@ -40,6 +40,7 @@ similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","return $this->
 similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","return $this->runRoute($request, $this->findRoute($request));"],["filename","router.php"],["function","Illuminate\\Routing\\Router::dispatchToRoute"]],[["context-line","$this->runRouteWithinStack($route, $request)"],["filename","router.php"],["function","Illuminate\\Routing\\Router::runRoute"]]]
 similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","return tap($next($request), function ($response) use ($request) {"],["filename","verifycsrftoken.php"],["function","Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken::handle"]],[["context-line","return $callable($passable);"],["filename","pipeline.php"],["function","Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}"]]]
 similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","});"],["filename","router.php"],["function","Illuminate\\Routing\\Router::runRouteWithinStack"]],[["context-line","return $pipeline($this->passable);"],["filename","pipeline.php"],["function","Illuminate\\Pipeline\\Pipeline::then"]]]
+similarity:2020-07-23:type:ident-shingle: "Exception"
 similarity:2020-07-23:value:character-5-shingle: " TEST"
 similarity:2020-07-23:value:character-5-shingle: "ARAVE"
 similarity:2020-07-23:value:character-5-shingle: "AVEL "
@@ -48,4 +49,3 @@ similarity:2020-07-23:value:character-5-shingle: "L TES"
 similarity:2020-07-23:value:character-5-shingle: "LARAV"
 similarity:2020-07-23:value:character-5-shingle: "RAVEL"
 similarity:2020-07-23:value:character-5-shingle: "VEL T"
-similarity:2020-07-23:type:ident-shingle: "Exception"

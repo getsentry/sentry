@@ -1,9 +1,9 @@
 ---
-created: '2020-07-23T16:57:26.424066Z'
+created: '2020-08-21T21:07:52.099614Z'
 creator: sentry
 source: tests/sentry/grouping/similarity/test_features.py
 ---
-similarity:2020-07-23:value:character-5-shingle: "\n(tim"
+similarity:2020-07-23:type:ident-shingle: "Error"
 similarity:2020-07-23:value:character-5-shingle: " <int"
 similarity:2020-07-23:value:character-5-shingle: " <url"
 similarity:2020-07-23:value:character-5-shingle: " chun"
@@ -15,6 +15,7 @@ similarity:2020-07-23:value:character-5-shingle: "<int>"
 similarity:2020-07-23:value:character-5-shingle: "<url>"
 similarity:2020-07-23:value:character-5-shingle: "> fai"
 similarity:2020-07-23:value:character-5-shingle: "Loadi"
+similarity:2020-07-23:value:character-5-shingle: "\n(tim"
 similarity:2020-07-23:value:character-5-shingle: "ading"
 similarity:2020-07-23:value:character-5-shingle: "ailed"
 similarity:2020-07-23:value:character-5-shingle: "chunk"
@@ -42,4 +43,3 @@ similarity:2020-07-23:value:character-5-shingle: "t> fa"
 similarity:2020-07-23:value:character-5-shingle: "timeo"
 similarity:2020-07-23:value:character-5-shingle: "unk <"
 similarity:2020-07-23:value:character-5-shingle: "ut: <"
-similarity:2020-07-23:type:ident-shingle: "Error"

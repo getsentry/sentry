@@ -1,7 +1,7 @@
 ---
-created: '2020-08-11T11:59:11.341176Z'
+created: '2020-08-21T21:07:52.830567Z'
 creator: sentry
 source: tests/sentry/grouping/similarity/test_features.py
 ---
-similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","foo.py"]],[["filename","bar.py"]]]
 similarity:2020-07-23:stacktrace:frames-ident: [["filename","foo.py"]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","foo.py"]],[["filename","bar.py"]]]
