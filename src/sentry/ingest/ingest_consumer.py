@@ -2,12 +2,8 @@ from __future__ import absolute_import
 
 import random
 import functools
-import atexit
 import logging
 import msgpack
-
-import multiprocessing.dummy
-import multiprocessing as _multiprocessing
 
 from django.conf import settings
 from django.core.cache import cache
@@ -38,10 +34,6 @@ CACHE_TIMEOUT = 3600
 
 
 class IngestConsumerWorker(AbstractBatchWorker):
-    def __init__(self, concurrency):
-        self.pool = _multiprocessing.dummy.Pool(concurrency)
-        atexit.register(self.pool.close)
-
     def process_message(self, message):
         message = msgpack.unpackb(message.value(), use_list=False)
         return message
@@ -85,19 +77,13 @@ class IngestConsumerWorker(AbstractBatchWorker):
         if attachment_chunks:
             # attachment_chunk messages need to be processed before attachment/event messages.
             with metrics.timer("ingest_consumer.process_attachment_chunk_batch"):
-                for _ in self.pool.imap_unordered(
-                    lambda msg: process_attachment_chunk(msg, projects=projects),
-                    attachment_chunks,
-                    chunksize=100,
-                ):
-                    pass
+                for attachment_chunk in attachment_chunks:
+                    process_attachment_chunk(attachment_chunk, projects=projects)
 
         if other_messages:
             with metrics.timer("ingest_consumer.process_other_messages_batch"):
-                for _ in self.pool.imap_unordered(
-                    lambda args: args[0](args[1], projects=projects), other_messages, chunksize=100,
-                ):
-                    pass
+                for processing_func, message in other_messages:
+                    processing_func(message, projects=projects)
 
         if transactions:
             with metrics.timer("ingest_consumer.process_transactions"):
@@ -309,7 +295,7 @@ def process_userreport(message, projects):
         return False
 
 
-def get_ingest_consumer(consumer_types, once=False, concurrency=None, **options):
+def get_ingest_consumer(consumer_types, once=False, **options):
     """
     Handles events coming via a kafka queue.
 
@@ -319,5 +305,5 @@ def get_ingest_consumer(consumer_types, once=False, concurrency=None, **options)
         ConsumerType.get_topic_name(consumer_type) for consumer_type in consumer_types
     )
     return create_batching_kafka_consumer(
-        topic_names=topic_names, worker=IngestConsumerWorker(concurrency=concurrency), **options
+        topic_names=topic_names, worker=IngestConsumerWorker(), **options
     )
