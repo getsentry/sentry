@@ -15,6 +15,7 @@ import {decodeScalar} from 'app/utils/queryString';
 import Duration from 'app/components/duration';
 import {Sort, Field} from 'app/utils/discover/fields';
 import {t} from 'app/locale';
+import Count from 'app/components/count';
 
 import {
   TrendFunction,
@@ -22,22 +23,23 @@ import {
   TrendView,
   TrendsTransaction,
   NormalizedTrendsTransaction,
+  TrendFunctionField,
 } from './types';
 
 export const TRENDS_FUNCTIONS: TrendFunction[] = [
   {
     label: 'Duration (p50)',
-    field: 'p50()',
+    field: TrendFunctionField.P50,
     alias: 'percentile_range',
   },
   {
     label: 'Average',
-    field: 'avg(transaction.duration)',
+    field: TrendFunctionField.AVG,
     alias: 'avg_range',
   },
   {
     label: 'User Misery',
-    field: 'user_misery(300)',
+    field: TrendFunctionField.USER_MISERY,
     alias: 'user_misery_range',
   },
 ];
@@ -91,11 +93,26 @@ export function getIntervalRatio(location: Location): number {
   return intervalFromLocation ? parseFloat(intervalFromLocation) : 0.5;
 }
 
-export function transformDeltaSpread(from: number, to: number) {
+export function transformDeltaSpread(
+  from: number,
+  to: number,
+  trendFunction: TrendFunction
+) {
   const fromSeconds = from / 1000;
   const toSeconds = to / 1000;
   const fromSubSecond = fromSeconds < 1;
   const toSubSecond = toSeconds < 1;
+
+  if (trendFunction.field === TrendFunctionField.USER_MISERY) {
+    return (
+      <span>
+        <Count value={from} />
+        {' → '}
+        <Count value={to} /> {t('miserable users')}
+      </span>
+    );
+  }
+
   return (
     <span>
       <Duration seconds={fromSeconds} fixedDigits={fromSubSecond ? 0 : 1} abbreviation />
@@ -133,16 +150,30 @@ export function modifyTrendView(
   trendView.fields = fields;
 }
 
-export function transformDurationDelta(milliseconds: number, trendType: TrendChangeType) {
-  const suffix = trendType === TrendChangeType.REGRESSION ? t('slower') : t('faster');
+export function transformValueDelta(
+  value: number,
+  trendType: TrendChangeType,
+  trendFunction: TrendFunction
+) {
+  const absoluteValue = Math.abs(value);
+  if (trendFunction.field === TrendFunctionField.USER_MISERY) {
+    const changeLabel = trendType === TrendChangeType.REGRESSION ? t('more') : t('less');
+    return (
+      <span>
+        <Count value={absoluteValue} /> {changeLabel}
+      </span>
+    );
+  }
+  const changeLabel =
+    trendType === TrendChangeType.REGRESSION ? t('slower') : t('faster');
 
-  const seconds = Math.abs(milliseconds) / 1000;
+  const seconds = absoluteValue / 1000;
 
   const isSubSecond = seconds < 1;
   return (
     <span>
       <Duration seconds={seconds} fixedDigits={isSubSecond ? 0 : 1} abbreviation />{' '}
-      {suffix}
+      {changeLabel}
     </span>
   );
 }

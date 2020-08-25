@@ -13,14 +13,12 @@ import {Client} from 'app/api';
 import EventView from 'app/utils/discover/eventView';
 import {OrganizationSummary, EventsStatsData} from 'app/types';
 import LineChart from 'app/components/charts/lineChart';
-import {t} from 'app/locale';
 import ChartZoom from 'app/components/charts/chartZoom';
 import {Series} from 'app/types/echarts';
 import theme from 'app/utils/theme';
 
 import {trendToColor, getIntervalRatio} from './utils';
 import {TrendChangeType, TrendsStats} from './types';
-import {HeaderTitleLegend} from '../styles';
 
 const QUERY_KEYS = [
   'environment',
@@ -43,17 +41,6 @@ type Props = WithRouterProps &
     isLoading: boolean;
     statsData: TrendsStats;
   };
-
-function getChartTitle(trendChangeType: TrendChangeType): string {
-  switch (trendChangeType) {
-    case TrendChangeType.IMPROVED:
-      return t('Most Improved');
-    case TrendChangeType.REGRESSION:
-      return t('Worst Regressions');
-    default:
-      throw new Error('No trend type passed');
-  }
-}
 
 function transformEventStats(data: EventsStatsData, seriesName?: string): Series[] {
   return [
@@ -122,7 +109,6 @@ class Chart extends React.Component<Props> {
       statsData,
       isLoading,
     } = props;
-    const chartTitle = getChartTitle(trendChangeType);
     const lineColor = trendToColor[trendChangeType];
 
     const events = statsData && statsData[transaction || ''];
@@ -142,7 +128,6 @@ class Chart extends React.Component<Props> {
 
     return (
       <React.Fragment>
-        <HeaderTitleLegend>{chartTitle}</HeaderTitleLegend>
         <ChartZoom
           router={router}
           period={statsPeriod}

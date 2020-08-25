@@ -8,13 +8,19 @@ export type TrendView = EventView & {
 
 export type TrendFunction = {
   label: string;
-  field: string;
+  field: TrendFunctionField;
   alias: string;
 };
 
 export enum TrendChangeType {
   IMPROVED = 'improved',
   REGRESSION = 'regression',
+}
+
+export enum TrendFunctionField {
+  P50 = 'p50()',
+  AVG = 'avg(transaction.duration)',
+  USER_MISERY = 'user_misery(300)',
 }
 
 export type TrendStat = {

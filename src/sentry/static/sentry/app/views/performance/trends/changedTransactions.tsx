@@ -15,6 +15,8 @@ import Radio from 'app/components/radio';
 import Tooltip from 'app/components/tooltip';
 import Count from 'app/components/count';
 import {formatPercentage} from 'app/utils/formatters';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
+import {t} from 'app/locale';
 
 import Chart from './chart';
 import {
@@ -25,13 +27,15 @@ import {
 } from './types';
 import {
   trendToColor,
-  transformDurationDelta,
+  transformValueDelta,
   transformDeltaSpread,
   modifyTrendView,
   normalizeTrendsTransactions,
   getSelectedQueryKey,
+  getCurrentTrendFunction,
 } from './utils';
 import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
+import {HeaderTitleLegend} from '../styles';
 
 type Props = {
   organization: Organization;
@@ -39,6 +43,17 @@ type Props = {
   trendView: TrendView;
   location: Location;
 };
+
+function getChartTitle(trendChangeType: TrendChangeType): string {
+  switch (trendChangeType) {
+    case TrendChangeType.IMPROVED:
+      return t('Most Improved');
+    case TrendChangeType.REGRESSION:
+      return t('Worst Regressions');
+    default:
+      throw new Error('No trend type passed');
+  }
+}
 
 function getSelectedTransaction(
   location: Location,
@@ -82,8 +97,8 @@ function handleChangeSelected(
 function ChangedTransactions(props: Props) {
   const {location, trendChangeType, organization} = props;
   const trendView = props.trendView.clone();
+  const chartTitle = getChartTitle(trendChangeType);
   modifyTrendView(trendView, location, trendChangeType);
-
   return (
     <StyledPanel>
       <DiscoverQuery
@@ -111,39 +126,50 @@ function ChangedTransactions(props: Props) {
 
           return (
             <React.Fragment>
-              <ChartContainer>
-                <Chart
-                  statsData={results}
-                  query={trendView.query}
-                  project={trendView.project}
-                  environment={trendView.environment}
-                  start={trendView.start}
-                  end={trendView.end}
-                  statsPeriod={trendView.statsPeriod}
-                  transaction={selectedTransaction}
-                  isLoading={isLoading}
-                  {...props}
-                />
-              </ChartContainer>
-              <TransactionsList>
-                {transactionsList.map((transaction, index) => (
-                  <TrendsListItem
-                    trendView={trendView}
-                    organization={organization}
-                    transaction={transaction}
-                    key={transaction.transaction}
-                    index={index}
-                    trendChangeType={trendChangeType}
-                    transactions={transactionsList}
-                    location={location}
-                    handleSelectTransaction={handleChangeSelected(
-                      location,
-                      trendChangeType,
-                      transactionsList
-                    )}
-                  />
-                ))}
-              </TransactionsList>
+              <ContainerTitle>
+                <HeaderTitleLegend>{chartTitle}</HeaderTitleLegend>
+              </ContainerTitle>
+              {transactionsList.length ? (
+                <React.Fragment>
+                  <ChartContainer>
+                    <Chart
+                      statsData={results}
+                      query={trendView.query}
+                      project={trendView.project}
+                      environment={trendView.environment}
+                      start={trendView.start}
+                      end={trendView.end}
+                      statsPeriod={trendView.statsPeriod}
+                      transaction={selectedTransaction}
+                      isLoading={isLoading}
+                      {...props}
+                    />
+                  </ChartContainer>
+                  <TransactionsList>
+                    {transactionsList.map((transaction, index) => (
+                      <TrendsListItem
+                        trendView={trendView}
+                        organization={organization}
+                        transaction={transaction}
+                        key={transaction.transaction}
+                        index={index}
+                        trendChangeType={trendChangeType}
+                        transactions={transactionsList}
+                        location={location}
+                        handleSelectTransaction={handleChangeSelected(
+                          location,
+                          trendChangeType,
+                          transactionsList
+                        )}
+                      />
+                    ))}
+                  </TransactionsList>
+                </React.Fragment>
+              ) : (
+                <EmptyStateContainer>
+                  <EmptyStateWarning small>{t('No results')}</EmptyStateWarning>
+                </EmptyStateContainer>
+              )}
             </React.Fragment>
           );
         }}
@@ -179,6 +205,7 @@ function TrendsListItem(props: TrendsListItemProps) {
     trendChangeType,
     transactions
   );
+  const trendFunction = getCurrentTrendFunction(location);
   const isSelected = selectedTransaction === transaction.transaction;
 
   return (
@@ -198,7 +225,8 @@ function TrendsListItem(props: TrendsListItemProps) {
         <ItemTransactionAbsoluteFaster>
           {transformDeltaSpread(
             transaction.aggregate_range_1,
-            transaction.aggregate_range_2
+            transaction.aggregate_range_2,
+            trendFunction
           )}
         </ItemTransactionAbsoluteFaster>
       </ItemTransactionNameContainer>
@@ -220,9 +248,10 @@ function TrendsListItem(props: TrendsListItemProps) {
           </ItemTransactionPercent>
         </Tooltip>
         <ItemTransactionPercentFaster color={color}>
-          {transformDurationDelta(
+          {transformValueDelta(
             transaction.minus_aggregate_range_2_aggregate_range_1,
-            trendChangeType
+            trendChangeType,
+            trendFunction
           )}
         </ItemTransactionPercentFaster>
       </ItemTransactionPercentContainer>
@@ -289,8 +318,17 @@ const TooltipContent = styled('div')`
   align-items: center;
 `;
 
+const ContainerTitle = styled('div')`
+  padding-top: ${space(2)};
+  padding-left: ${space(2)};
+`;
+
 const ChartContainer = styled('div')`
   padding: ${space(2)};
+  padding-top: 0;
+`;
+const EmptyStateContainer = styled('div')`
+  padding: ${space(4)} 0;
 `;
 
 const StyledPanel = styled(Panel)``;
