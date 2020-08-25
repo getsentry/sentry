@@ -31,7 +31,7 @@ def build_incident_attachment(incident, integration_key, metric_value=None):
         "event_action": event_action,
         "dedup_key": "incident_{}_{}".format(incident.organization_id, incident.identifier),
         "payload": {
-            "summary": data["title"],
+            "summary": incident.alert_rule.name,
             "severity": severity,
             "source": six.binary_type(incident.identifier),
             "custom_details": {"details": data["text"]},
