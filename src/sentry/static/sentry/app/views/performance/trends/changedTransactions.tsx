@@ -131,7 +131,7 @@ function ChangedTransactions(props: Props) {
                     trendView={trendView}
                     organization={organization}
                     transaction={transaction}
-                    key={index}
+                    key={transaction.transaction}
                     index={index}
                     trendChangeType={trendChangeType}
                     transactions={transactionsList}
