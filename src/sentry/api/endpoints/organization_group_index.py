@@ -10,6 +10,7 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventPermission
+from sentry.api.event_search import convert_search_filter_to_snuba_query
 from sentry.api.helpers.group_index import (
     build_query_params_from_request,
     delete_groups,
@@ -110,8 +111,6 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
             StreamGroupSerializerSnuba,
             environment_ids=[env.id for env in environments],
             stats_period=stats_period,
-            # start=start,
-            # end=end,
         )
 
         projects = self.get_projects(request, organization)
@@ -188,12 +187,29 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
 
         results = list(cursor_result)
 
+        skip_snuba_fields = {
+            "query",
+            "status",
+            "bookmarked_by",
+            "assigned_to",
+            "unassigned",
+            "subscribed_by",
+            "active_at",
+            "first_release",
+            "first_seen",
+        }
+        snuba_filters = []
+        if query_kwargs["search_filters"] is not None:
+            snuba_filters = [
+                convert_search_filter_to_snuba_query(search_filter)
+                for search_filter in query_kwargs["search_filters"]
+                if search_filter.key.name not in skip_snuba_fields
+            ]
+
         context = serialize(results, request.user, serializer(start=start, end=end))
         lifetime_stats = serialize(results, request.user, serializer())
         filtered_stats = serialize(
-            results,
-            request.user,
-            serializer(start=start, end=end, filters=query_kwargs["search_filters"]),
+            results, request.user, serializer(start=start, end=end, snuba_filters=snuba_filters),
         )
 
         # context = [(lambda c,l: c["lifetime"] = l; c )(c,l) for c,l in zip(context, lifetime_stats)]
