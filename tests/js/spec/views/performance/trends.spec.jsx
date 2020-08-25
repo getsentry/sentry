@@ -62,10 +62,6 @@ describe('Performance > Trends', function() {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
-      body: {data: [[123, []]]},
-    });
-    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/recent-searches/',
       body: [],
     });
@@ -77,43 +73,6 @@ describe('Performance > Trends', function() {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
       body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/eventsv2/',
-      body: {
-        meta: {
-          user: 'string',
-          transaction: 'string',
-          'project.id': 'integer',
-          epm: 'number',
-          p50: 'number',
-          p95: 'number',
-          failure_rate: 'number',
-          apdex_300: 'number',
-          count_unique_user: 'number',
-          user_misery_300: 'number',
-        },
-        data: [
-          {
-            transaction: '/apple/cart',
-            'project.id': 1,
-            user: 'uhoh@example.com',
-            epm: 30,
-            p50: 100,
-            p95: 500,
-            failure_rate: 0.1,
-            apdex_300: 0.6,
-            count_unique_user: 1000,
-            user_misery_300: 122,
-          },
-        ],
-      },
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-meta/',
-      body: {
-        count: 2,
-      },
     });
     trendsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-trends/',
