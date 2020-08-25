@@ -16,7 +16,7 @@ describe('IssueListActions', function() {
   afterEach(function() {});
 
   describe('Bulk', function() {
-    describe('Total results > bulk limit', function() {
+    describe('Total results greater than bulk limit', function() {
       beforeAll(function() {
         const {routerContext} = initializeOrg();
 
@@ -83,7 +83,7 @@ describe('IssueListActions', function() {
       });
     });
 
-    describe('Total results < bulk limit', function() {
+    describe('Total results less than bulk limit', function() {
       beforeAll(function() {
         SelectedGroupStore.records = {};
         SelectedGroupStore.add([1, 2, 3]);

@@ -149,6 +149,7 @@ class ReleaseOverview extends AsyncView<Props> {
                         version={version}
                         orgSlug={organization.slug}
                         deploys={deploys}
+                        projectId={project.id}
                       />
                     )}
                   </Side>

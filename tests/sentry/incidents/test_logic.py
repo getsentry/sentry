@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import pytest
-from uuid import uuid4
 import responses
 from datetime import timedelta
 from exam import fixture, patcher
@@ -11,7 +10,6 @@ import six
 from django.conf import settings
 from django.core import mail
 from django.utils import timezone
-from django.utils.functional import cached_property
 
 from sentry.api.event_search import InvalidSearchQuery
 from sentry.incidents.events import (
@@ -77,8 +75,9 @@ from sentry.incidents.models import (
 )
 from sentry.snuba.models import QueryDatasets, QuerySubscription
 from sentry.models.integration import Integration
+from sentry.testutils import TestCase, BaseIncidentsTest
 from sentry.models import PagerDutyService
-from sentry.testutils import TestCase, SnubaTestCase
+
 from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.utils import json
 from sentry.utils.compat.mock import patch
@@ -231,30 +230,6 @@ class UpdateIncidentStatus(TestCase):
         self.run_test(
             incident, IncidentStatus.CLOSED, timezone.now(), user=self.user, comment="lol"
         )
-
-
-class BaseIncidentsTest(SnubaTestCase):
-    def create_event(self, timestamp, fingerprint=None, user=None):
-        event_id = uuid4().hex
-        if fingerprint is None:
-            fingerprint = event_id
-
-        data = {
-            "event_id": event_id,
-            "fingerprint": [fingerprint],
-            "timestamp": iso_format(timestamp),
-            "type": "error",
-            # This is necessary because event type error should not exist without
-            # an exception being in the payload
-            "exception": [{"type": "Foo"}],
-        }
-        if user:
-            data["user"] = user
-        return self.store_event(data=data, project_id=self.project.id)
-
-    @cached_property
-    def now(self):
-        return timezone.now().replace(minute=0, second=0, microsecond=0)
 
 
 class BaseIncidentEventStatsTest(BaseIncidentsTest):
@@ -1346,14 +1321,14 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
             metadata={"services": SERVICES},
         )
         integration.add_organization(self.organization, self.user)
-        PagerDutyService.objects.create(
+        service = PagerDutyService.objects.create(
             service_name=SERVICES[0]["service_name"],
             integration_key=SERVICES[0]["integration_key"],
             organization_integration=integration.organizationintegration_set.first(),
         )
         type = AlertRuleTriggerAction.Type.PAGERDUTY
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
-        target_identifier = 1
+        target_identifier = service.id
         action = create_alert_rule_trigger_action(
             self.trigger,
             type,
@@ -1515,14 +1490,14 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
             metadata={"services": SERVICES},
         )
         integration.add_organization(self.organization, self.user)
-        PagerDutyService.objects.create(
+        service = PagerDutyService.objects.create(
             service_name=SERVICES[0]["service_name"],
             integration_key=SERVICES[0]["integration_key"],
             organization_integration=integration.organizationintegration_set.first(),
         )
         type = AlertRuleTriggerAction.Type.PAGERDUTY
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
-        target_identifier = 2
+        target_identifier = service.id
         action = update_alert_rule_trigger_action(
             self.action,
             type,

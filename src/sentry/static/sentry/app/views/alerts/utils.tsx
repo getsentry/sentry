@@ -4,8 +4,9 @@ import {Project, NewQuery} from 'app/types';
 import {getAggregateAlias} from 'app/utils/discover/fields';
 import {getUtcDateString} from 'app/utils/dates';
 import EventView from 'app/utils/discover/eventView';
-import {Dataset} from 'app/views/settings/incidentRules/types';
+import {Dataset, SavedIncidentRule} from 'app/views/settings/incidentRules/types';
 import {PRESET_AGGREGATES} from 'app/views/settings/incidentRules/presets';
+import {IssueAlertRule} from 'app/types/alerts';
 
 import {Incident, IncidentStats, IncidentStatus} from './types';
 
@@ -60,7 +61,6 @@ export function updateStatus(
  * @param {Object} incident Incident object
  * @returns {Boolean}
  */
-
 export function isOpen(incident: Incident): boolean {
   switch (incident.status) {
     case IncidentStatus.CLOSED:
@@ -145,6 +145,12 @@ export function getIncidentDiscoverUrl(opts: {
     query: {...query, interval: timeWindowString},
     ...toObject,
   };
+}
+
+export function isIssueAlert(
+  data: IssueAlertRule | SavedIncidentRule
+): data is IssueAlertRule {
+  return !data.hasOwnProperty('triggers');
 }
 
 export const DATA_SOURCE_LABELS = {
