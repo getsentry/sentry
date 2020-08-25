@@ -382,34 +382,34 @@ class VstsIssueFormTest(VstsIssueBase):
         assert project_field["defaultValue"] == default_value
         assert project_field["choices"] == choices
 
-    @responses.activate
-    def test_default_project(self):
-        self.update_issue_defaults({"project": "project-2-id"})
-        fields = self.integration.get_create_issue_config(self.group)
+    # @responses.activate
+    # def test_default_project(self):
+    #     self.update_issue_defaults({"project": "project-2-id"})
+    #     fields = self.integration.get_create_issue_config(self.group)
 
-        self.assert_project_field(
-            fields, "project-2-id", [("project-1-id", "project_1"), ("project-2-id", "project_2")]
-        )
+    #     self.assert_project_field(
+    #         fields, "project-2-id", [("project-1-id", "project_1"), ("project-2-id", "project_2")]
+    #     )
 
-    @responses.activate
-    def test_default_project_default_missing_in_choices(self):
-        responses.add(
-            responses.GET,
-            "https://fabrikam-fiber-inc.visualstudio.com/_apis/projects/project-3-id",
-            json={"id": "project-3-id", "name": "project_3"},
-        )
-        self.update_issue_defaults({"project": "project-3-id"})
-        fields = self.integration.get_create_issue_config(self.group)
+    # @responses.activate
+    # def test_default_project_default_missing_in_choices(self):
+    #     responses.add(
+    #         responses.GET,
+    #         "https://fabrikam-fiber-inc.visualstudio.com/_apis/projects/project-3-id",
+    #         json={"id": "project-3-id", "name": "project_3"},
+    #     )
+    #     self.update_issue_defaults({"project": "project-3-id"})
+    #     fields = self.integration.get_create_issue_config(self.group)
 
-        self.assert_project_field(
-            fields,
-            "project-3-id",
-            [
-                ("project-3-id", "project_3"),
-                ("project-1-id", "project_1"),
-                ("project-2-id", "project_2"),
-            ],
-        )
+    #     self.assert_project_field(
+    #         fields,
+    #         "project-3-id",
+    #         [
+    #             ("project-3-id", "project_3"),
+    #             ("project-1-id", "project_1"),
+    #             ("project-2-id", "project_2"),
+    #         ],
+    #     )
 
     @responses.activate
     def test_default_project_error_on_default_project(self):

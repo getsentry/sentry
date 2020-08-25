@@ -5,11 +5,12 @@ from mistune import markdown
 
 
 from django.core.urlresolvers import reverse
+from django.utils.translation import ugettext as _
+
 from sentry.models import IntegrationExternalProject, OrganizationIntegration, User
 from sentry.integrations.issues import IssueSyncMixin
-
 from sentry.shared_integrations.exceptions import ApiUnauthorized, ApiError
-from django.utils.translation import ugettext as _
+from sentry.utils.compat import map
 
 
 class VstsIssueSync(IssueSyncMixin):
@@ -59,12 +60,25 @@ class VstsIssueSync(IssueSyncMixin):
 
         return default_project, project_choices
 
+    def get_work_item_choices(self, project):
+        client = self.get_client()
+        try:
+            item_categories = client.get_work_item_categories(self.instance, project)["value"]
+        except (ApiError, ApiUnauthorized, KeyError) as e:
+            self.raise_error(e)
+        # TODO: dedupe
+        return map(lambda x: [x["defaultWorkItemType"]["url"], x["name"]], item_categories)
+
     def get_create_issue_config(self, group, **kwargs):
         kwargs["link_referrer"] = "vsts_integration"
         fields = super(VstsIssueSync, self).get_create_issue_config(group, **kwargs)
         # Azure/VSTS has BOTH projects and repositories. A project can have many repositories.
         # Workitems (issues) are associated with the project not the repository.
         default_project, project_choices = self.get_project_choices(group, **kwargs)
+
+        work_item_choices = []
+        if default_project:
+            work_item_choices = self.get_work_item_choices(default_project)
 
         return [
             {
@@ -75,7 +89,16 @@ class VstsIssueSync(IssueSyncMixin):
                 "defaultValue": default_project,
                 "label": _("Project"),
                 "placeholder": default_project or _("MyProject"),
-            }
+                "updatesForm": True,
+            },
+            {
+                "name": "workItemType",
+                "required": True,
+                "type": "choice",
+                "choices": work_item_choices,
+                "label": _("WorkItem"),
+                "placeholder": _("MyWorkItem"),
+            },
         ] + fields
 
     def get_link_issue_config(self, group, **kwargs):

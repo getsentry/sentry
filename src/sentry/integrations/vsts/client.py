@@ -36,6 +36,7 @@ class VstsApiPath(object):
     work_item_states = u"{instance}{project}/_apis/wit/workitemtypes/{type}/states"
     # TODO(lb): Fix this url so that the base url is given by vsts rather than built by us
     users = u"https://{account_name}.vssps.visualstudio.com/_apis/graph/users"
+    work_item_categories = u"{instance}{project}/_apis/wit/workitemtypecategories"
 
 
 class VstsApiClient(ApiClient, OAuth2RefreshMixin):
@@ -149,10 +150,10 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
             api_preview=True,
         )
 
-    def get_work_item_types(self, instance, process_id):
+    def get_work_item_categories(self, instance, project):
         return self.get(
-            VstsApiPath.work_item_types.format(instance=instance, process_id=process_id),
-            api_preview=True,
+            VstsApiPath.work_item_categories.format(instance=instance, project=project),
+            params={"api-version": "6.0-preview.2"},
         )
 
     def get_repo(self, instance, name_or_id, project=None):
@@ -256,6 +257,7 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
         )
 
     def search_issues(self, account_name, query=None):
+        # TODO: should have dynaimic types
         return self.post(
             VstsApiPath.work_item_search.format(account_name=account_name),
             data={
