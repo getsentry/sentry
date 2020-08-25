@@ -8,6 +8,7 @@ import {ALL_ENVIRONMENTS_KEY} from 'app/constants';
 import {Environment, Organization, Project, OnboardingTaskKey} from 'app/types';
 import {
   IssueAlertRule,
+  IssueAlertRuleAction,
   IssueAlertRuleActionTemplate,
   IssueAlertRuleConditionTemplate,
   UnsavedIssueAlertRule,
@@ -51,7 +52,7 @@ const FREQUENCY_CHOICES = [
   ['43200', t('30 days')],
 ];
 
-const ACTION_MATCH_CHOICES = [
+const ACTION_MATCH_CHOICES: Array<[IssueAlertRule['actionMatch'], string]> = [
   ['all', t('all')],
   ['any', t('any')],
   ['none', t('none')],
@@ -59,8 +60,8 @@ const ACTION_MATCH_CHOICES = [
 
 const defaultRule: UnsavedIssueAlertRule = {
   actionMatch: 'all',
+  filterMatch: 'all',
   actions: [],
-  filters: [],
   conditions: [],
   name: '',
   frequency: 30,
@@ -295,7 +296,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     }
   };
 
-  handleChange = (prop: string, val: string | null) => {
+  handleChange = <T extends keyof IssueAlertRule>(prop: T, val: IssueAlertRule[T]) => {
     this.setState(state => {
       const rule = {...state.rule} as IssueAlertRule;
       rule[prop] = val;
@@ -303,11 +304,11 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     });
   };
 
-  handlePropertyChange = (
+  handlePropertyChange = <T extends keyof IssueAlertRuleAction>(
     type: ConditionOrAction,
     idx: number,
-    prop: string,
-    val: string
+    prop: T,
+    val: IssueAlertRuleAction[T]
   ) => {
     this.setState(state => {
       const rule = {...state.rule} as IssueAlertRule;
@@ -402,10 +403,15 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     const {rule, detailedError} = this.state;
     const {actionMatch, actions, frequency, name} = rule || {};
     const filterIds = this.state.configs?.filters?.map(filter => filter.id) ?? [];
+    // During edit/delete we need an index to map to conditions
+    const mappedConditions = rule.conditions.map((condition, idx) => ({
+      ...condition,
+      idx,
+    }));
     const filters =
-      rule.conditions?.filter(condition => filterIds.includes(condition.id)) ?? null;
+      mappedConditions?.filter(condition => filterIds.includes(condition.id)) ?? null;
     const conditions =
-      rule.conditions?.filter(condition => !filterIds.includes(condition.id)) ?? null;
+      mappedConditions?.filter(condition => !filterIds.includes(condition.id)) ?? null;
 
     const environment =
       !rule || !rule.environment ? ALL_ENVIRONMENTS_KEY : rule.environment;
@@ -573,7 +579,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                             <EmbeddedWrapper>
                               <EmbeddedSelectField
                                 className={classNames({
-                                  error: this.hasError('actionMatch'),
+                                  error: this.hasError('filterMatch'),
                                 })}
                                 inline={false}
                                 styles={{
@@ -585,11 +591,11 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                                 }}
                                 isSearchable={false}
                                 isClearable={false}
-                                name="actionMatch"
+                                name="filterMatch"
                                 required
                                 flexibleControlStateSize
                                 choices={ACTION_MATCH_CHOICES}
-                                onChange={val => this.handleChange('actionMatch', val)}
+                                onChange={val => this.handleChange('filterMatch', val)}
                                 disabled={!hasAccess}
                               />
                             </EmbeddedWrapper>

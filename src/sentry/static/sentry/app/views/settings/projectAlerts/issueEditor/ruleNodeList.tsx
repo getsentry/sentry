@@ -23,7 +23,7 @@ type Props = {
   /**
    * actions/conditions that have been added to the rule
    */
-  items?: IssueAlertRuleAction[] | IssueAlertRuleCondition[];
+  items: IssueAlertRuleAction[] | IssueAlertRuleCondition[];
   /**
    * Placeholder for select control
    */
@@ -73,24 +73,22 @@ class RuleNodeList extends React.Component<Props> {
 
     return (
       <React.Fragment>
-        {items && !!items.length && (
-          <RuleNodes>
-            {items.map((item, idx) => (
-              <RuleNode
-                key={idx}
-                index={idx}
-                node={this.getNode(item.id)}
-                onDelete={onDeleteRow}
-                data={item}
-                onPropertyChange={onPropertyChange}
-                organization={organization}
-                project={project}
-                disabled={disabled}
-              />
-            ))}
-            {error}
-          </RuleNodes>
-        )}
+        <RuleNodes>
+          {error}
+          {items.map((item, idx) => (
+            <RuleNode
+              key={idx}
+              index={(item as any).idx ?? idx}
+              node={this.getNode(item.id)}
+              onDelete={onDeleteRow}
+              data={item}
+              onPropertyChange={onPropertyChange}
+              organization={organization}
+              project={project}
+              disabled={disabled}
+            />
+          ))}
+        </RuleNodes>
         <StyledSelectControl
           placeholder={placeholder}
           value={null}
