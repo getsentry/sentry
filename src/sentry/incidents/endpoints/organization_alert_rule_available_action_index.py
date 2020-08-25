@@ -11,54 +11,43 @@ from sentry.incidents.endpoints.bases import OrganizationEndpoint
 from sentry.incidents.endpoints.serializers import action_target_type_to_string
 from sentry.incidents.logic import (
     get_available_action_integrations_for_org,
-    get_alertable_sentry_apps,
     get_pagerduty_services,
 )
 from sentry.incidents.models import AlertRuleTriggerAction
 
 
-class OrganizationAlertRuleAvailableActionIndexEndpoint(OrganizationEndpoint):
-    def fetch_pagerduty_services(self, organization, integration_id):
-        services = PagerDutyService.objects.filter(
-            organization_integration__organization=organization,
-            organization_integration__integration_id=integration_id,
-        ).values("id", "service_name")
-        formatted_services = [
-            {"value": service["id"], "label": service["service_name"]} for service in services
-        ]
-        return formatted_services
+def build_action_response(registered_type, integration=None, organization=None):
+    """
+    Build the "available action" objects for the API. Each one can have different fields.
 
-    def build_action_response(self, organization, registered_type, integration=None):
-        allowed_target_types = [
+    :param registered_type: One of the registered AlertRuleTriggerAction types.
+    :param integration: Optional. The Integration if this action uses a one.
+    :param organization: Optional. If this is a PagerDuty action, we need the organization to look up services.
+    :return: The available action object.
+    """
+
+    action_response = {
+        "type": registered_type.slug,
+        "allowedTargetTypes": [
             action_target_type_to_string.get(target_type)
             for target_type in registered_type.supported_target_types
-        ]
+        ],
+    }
 
-        input_type = (
-            "select"
-            if registered_type.type.value
-            in [
-                AlertRuleTriggerAction.Type.PAGERDUTY.value,
-                AlertRuleTriggerAction.Type.EMAIL.value,
+    if integration:
+        action_response["integrationName"] = integration.name
+        action_response["integrationId"] = integration.id
+
+        if registered_type.type == AlertRuleTriggerAction.Type.PAGERDUTY:
+            action_response["options"] = [
+                {"value": service["id"], "label": service["service_name"]}
+                for service in get_pagerduty_services(organization, integration.id)
             ]
-            else "text"
-        )
 
-        action_response = {
-            "type": registered_type.slug,
-            "allowedTargetTypes": allowed_target_types,
-            "integrationName": integration.name if integration else None,
-            "integrationId": integration.id if integration else None,
-            "inputType": input_type,
-        }
+    return action_response
 
-        if (
-            integration
-            and registered_type.type.value == AlertRuleTriggerAction.Type.PAGERDUTY.value
-        ):
-            action_response["options"] = self.fetch_pagerduty_services(organization, integration.id)
-        return action_response
 
+class OrganizationAlertRuleAvailableActionIndexEndpoint(OrganizationEndpoint):
     def get(self, request, organization):
         """
         Fetches actions that an alert rule can perform for an organization
@@ -68,19 +57,21 @@ class OrganizationAlertRuleAvailableActionIndexEndpoint(OrganizationEndpoint):
 
         actions = []
 
-        integrations = get_available_action_integrations_for_org(organization).order_by("id")
+        # Cache Integration objects in this data structure to save DB calls.
         provider_integrations = defaultdict(list)
-        for integration in integrations:
+        for integration in get_available_action_integrations_for_org(organization):
             provider_integrations[integration.provider].append(integration)
-        registered_types = AlertRuleTriggerAction.get_registered_types()
-        registered_types.sort(key=lambda x: x.slug)
 
         for registered_type in AlertRuleTriggerAction.get_registered_types():
+            # Used cached integrations for each `registered_type` instead of making N calls.
             if registered_type.integration_provider:
-                for integration in provider_integrations[registered_type.integration_provider]:
-                    actions.append(
-                        self.build_action_response(organization, registered_type, integration)
+                actions += [
+                    build_action_response(
+                        registered_type, integration=integration, organization=organization
                     )
+                    for integration in provider_integrations[registered_type.integration_provider]
+                ]
+
             else:
-                actions.append(self.build_action_response(organization, registered_type))
+                actions.append(build_action_response(registered_type))
         return Response(actions, status=status.HTTP_200_OK)
