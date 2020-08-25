@@ -46,7 +46,7 @@ class AssignedToFilter(EventFilter):
         targetType = self.get_option("targetType")
 
         if targetType == AssigneeTargetType.UNASSIGNED:
-            return len(self.get_assignees(event.group)) <= 0
+            return len(self.get_assignees(event.group)) == 0
         else:
             targetId = self.get_option("targetIdentifier", None)
 
