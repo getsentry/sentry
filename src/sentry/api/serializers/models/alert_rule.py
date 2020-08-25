@@ -79,7 +79,7 @@ class AlertRuleSerializer(Serializer):
             "resolution": obj.snuba_query.resolution / 60,
             "thresholdPeriod": obj.threshold_period,
             "triggers": attrs.get("triggers", []),
-            "projects": sorted(attrs["projects"]),
+            "projects": sorted(attrs.get("projects", [])),
             "includeAllProjects": obj.include_all_projects,
             "dateModified": obj.date_modified,
             "dateCreated": obj.date_added,

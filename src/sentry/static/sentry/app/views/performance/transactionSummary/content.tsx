@@ -9,6 +9,7 @@ import {getParams} from 'app/components/organizations/globalSelectionHeader/getP
 import space from 'app/styles/space';
 import {generateQueryWithTag} from 'app/utils';
 import EventView from 'app/utils/discover/eventView';
+import Feature from 'app/components/acl/feature';
 import * as Layout from 'app/components/layouts/thirds';
 import Tags from 'app/views/eventsV2/tags';
 import SearchBar from 'app/views/events/searchBar';
@@ -142,7 +143,9 @@ class SummaryContent extends React.Component<Props, State> {
           </Layout.HeaderContent>
           <Layout.HeaderActions>
             <ButtonBar gap={1}>
-              {this.renderCreateAlertButton()}
+              <Feature organization={organization} features={['incidents']}>
+                {({hasFeature}) => hasFeature && this.renderCreateAlertButton()}
+              </Feature>
               {this.renderKeyTransactionButton()}
             </ButtonBar>
           </Layout.HeaderActions>

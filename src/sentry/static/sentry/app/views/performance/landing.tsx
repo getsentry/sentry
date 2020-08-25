@@ -275,7 +275,7 @@ class PerformanceLanding extends React.Component<Props, State> {
               </StyledPageHeader>
               {this.renderError()}
               {showOnboarding ? (
-                <Onboarding />
+                <Onboarding organization={organization} />
               ) : currentView === FilterViews.TRENDS ? (
                 <TrendsContent
                   organization={organization}
