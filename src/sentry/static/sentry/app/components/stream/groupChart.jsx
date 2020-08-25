@@ -25,7 +25,7 @@ class GroupChart extends React.Component {
 
   render() {
     const stats = this.props.statsPeriod
-      ? this.props.data.stats[this.props.statsPeriod]
+      ? this.props.data.filtered.stats[this.props.statsPeriod]
       : null;
     if (!stats || !stats.length) {
       return null;

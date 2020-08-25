@@ -408,18 +408,11 @@ class SnubaTagStorage(TagStorage):
         }
 
     def get_group_seen_values_for_environments(
-        self, project_ids, group_id_list, environment_ids, query_filters, start=None, end=None
+        self, project_ids, group_id_list, environment_ids, snuba_filters, start=None, end=None
     ):
         # Get the total times seen, first seen, and last seen across multiple environments
         filters = {"project_id": project_ids, "group_id": group_id_list}
 
-        if "project_id" not in filters:
-            filters["project_id"] = project_ids
-
-        if "group_id" not in filters:
-            filters["group_id"] = group_id_list
-
-        conditions = None
         if environment_ids:
             filters["environment"] = environment_ids
 
@@ -429,14 +422,12 @@ class SnubaTagStorage(TagStorage):
             ["max", SEEN_COLUMN, "last_seen"],
         ]
 
-        conditions = query_filters
-
         result = snuba.aliased_query(
             dataset=snuba.Dataset.Events,
             start=start,
             end=end,
             groupby=["group_id"],
-            conditions=conditions,
+            conditions=snuba_filters,
             filter_keys=filters,
             aggregations=aggregations,
             referrer="tagstore.get_group_seen_values_for_environments",

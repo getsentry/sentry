@@ -621,11 +621,11 @@ class SharedGroupSerializer(GroupSerializer):
 
 
 class GroupSerializerSnuba(GroupSerializerBase):
-    def __init__(self, environment_ids=None, start=None, end=None, filters=None):
+    def __init__(self, environment_ids=None, start=None, end=None, snuba_filters=None):
         self.environment_ids = environment_ids
         self.start = start
         self.end = end
-        self.filters = filters
+        self.snuba_filters = snuba_filters
 
     def _get_seen_stats(self, item_list, user):
         project_ids = list(set([item.project_id for item in item_list]))
@@ -639,31 +639,11 @@ class GroupSerializerSnuba(GroupSerializerBase):
             end=self.end,
         )
 
-        skip_snuba_fields = set(
-            [
-                "query",
-                "status",
-                "bookmarked_by",
-                "assigned_to",
-                "unassigned",
-                "subscribed_by",
-                "active_at",
-                "first_release",
-                "first_seen",
-            ]
-        )
-        snuba_filters = []
-        if self.filters is not None:
-            snuba_filters = [
-                convert_search_filter_to_snuba_query(search_filter)
-                for search_filter in self.filters
-                if search_filter.key.name not in skip_snuba_fields
-            ]
         seen_data = tagstore.get_group_seen_values_for_environments(
             project_ids,
             group_ids,
             self.environment_ids,
-            query_filters=snuba_filters,
+            snuba_filters=self.snuba_filters,
             start=self.start,
             end=self.end,
         )
@@ -706,11 +686,11 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         matching_event_id=None,
         start=None,
         end=None,
-        filters=None,
+        snuba_filters=None,
     ):
         # add start and end to StreamGroupSerializerSnuba
         super(StreamGroupSerializerSnuba, self).__init__(
-            environment_ids, start, end, filters
+            environment_ids, start, end, snuba_filters
         )  # start and end here
 
         if stats_period is not None:
@@ -724,6 +704,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             model=snuba_tsdb.models.group,
             keys=group_ids,
             environment_ids=self.environment_ids,
+            snuba_filters=self.snuba_filters,
             **query_params
         )
 

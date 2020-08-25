@@ -529,7 +529,6 @@ const IssueListOverview = createReactClass({
           query={this.getQuery()}
           hasGuideAnchor={hasGuideAnchor}
           memberList={members}
-          selection={this.props.selection}
         />
       );
     });

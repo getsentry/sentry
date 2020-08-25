@@ -25,6 +25,7 @@ import Tooltip from 'app/components/tooltip';
 import SentryTypes from 'app/sentryTypes';
 import {getRelativeSummary} from 'app/components/organizations/timeRangeSelector/utils';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
+import withApi from 'app/utils/withApi';
 
 const StreamGroup = createReactClass({
   displayName: 'StreamGroup',
@@ -141,7 +142,7 @@ const StreamGroup = createReactClass({
     return (
       <Group
         data-test-id="group"
-        nClick={this.toggleSelect}
+        onClick={this.toggleSelect}
         onMouseEnter={() => this.toggleShowLifetimeStats(true)}
         onMouseLeave={() => this.toggleShowLifetimeStats(false)}
       >
@@ -297,4 +298,4 @@ const StyledIconTelescope = styled(p => (
   padding-left: 10px;
 `;
 
-export default StreamGroup;
+export default withApi(StreamGroup);
