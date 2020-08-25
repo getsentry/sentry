@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import time
 import uuid
 import hashlib
 import six
@@ -68,8 +67,6 @@ def reprocess_events(project_id, event_ids, start_time):
 
     # TODO: Passthrough non-reprocessable events
 
-    new_event_ids = []
-
     for node_id, data in six.iteritems(node_results):
         # Take unprocessed data from old event and save it as unprocessed data
         # under a new event ID. The second step happens in pre-process. We could
@@ -79,14 +76,9 @@ def reprocess_events(project_id, event_ids, start_time):
         event_id = data["event_id"] = uuid.uuid4().hex
         data["received"] = start_time
         cache_key = event_processing_store.store(data)
-        start_time = time.time()
 
         from sentry.tasks.store import preprocess_event_from_reprocessing
 
         preprocess_event_from_reprocessing(
             cache_key=cache_key, start_time=start_time, event_id=event_id
         )
-
-        new_event_ids.append(event_id)
-
-    return new_event_ids

@@ -2,8 +2,7 @@ from __future__ import absolute_import
 
 import time
 
-
-from sentry import eventstore, eventstream
+from sentry import eventstore
 from sentry.utils.dates import to_datetime
 
 from sentry.tasks.base import instrumented_task
@@ -27,7 +26,7 @@ def reprocess_group(project_id, group_id, offset=0, start_time=None):
                 project_ids=[project_id],
                 group_ids=[group_id],
                 # XXX: received?
-                end=to_datetime(start_time),
+                conditions=[["received", "<", to_datetime(start_time - 10)]],
             ),
             limit=GROUP_REPROCESSING_CHUNK_SIZE,
             offset=offset,
@@ -35,10 +34,6 @@ def reprocess_group(project_id, group_id, offset=0, start_time=None):
     )
 
     if not events:
-        # XXX: wait for reprocessing to be done
-        # XXX: Pass by filippo, is start_delete_groups even doing anything for snuba?
-        eventstream_state = eventstream.start_delete_groups(project_id, [group_id])
-        eventstream.end_delete_groups(eventstream_state, cutoff_datetime=to_datetime(start_time))
         return
 
     from sentry.reprocessing2 import reprocess_events

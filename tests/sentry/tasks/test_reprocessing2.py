@@ -2,6 +2,8 @@ from __future__ import absolute_import
 
 from time import time
 import pytest
+import uuid
+import six
 
 from sentry import eventstore
 from sentry.event_manager import EventManager
@@ -14,10 +16,24 @@ from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
 @pytest.mark.django_db
-def test_basic(task_runner, default_project, register_plugin):
+@pytest.mark.parametrize("change_groups", (True, False))
+def test_basic(task_runner, default_project, register_plugin, change_groups, reset_snuba):
+    # Replace this with an int and nonlocal when we have Python 3
+    abs_count = []
+
     def event_preprocessor(data):
-        data.setdefault("test_processed", 0)
-        data["test_processed"] += 1
+        tags = dict(data.get("tags") or ())
+        assert "processing_counter" not in tags
+        tags["processing_counter"] = "x{}".format(len(abs_count))
+        abs_count.append(None)
+
+        data["tags"] = list(six.iteritems(tags))
+
+        if change_groups:
+            data["fingerprint"] = [uuid.uuid4().hex]
+        else:
+            data["fingerprint"] = ["foo"]
+
         return data
 
     class ReprocessingTestPlugin(Plugin2):
@@ -37,28 +53,49 @@ def test_basic(task_runner, default_project, register_plugin):
     event_id = data["event_id"]
     cache_key = event_processing_store.store(data)
 
+    def get_nodestore_event():
+        return eventstore.get_event_by_id(default_project.id, event_id)
+
+    def get_event_by_processing_counter(n):
+        return list(
+            eventstore.get_events(
+                eventstore.Filter(
+                    project_ids=[default_project.id],
+                    conditions=[["tags[processing_counter]", "=", n]],
+                )
+            )
+        )
+
+    def get_event_by_group(n):
+        return list(
+            eventstore.get_events(
+                eventstore.Filter(project_ids=[default_project.id], group_ids=[n])
+            )
+        )
+
     with task_runner(), Feature({"projects:reprocessing-v2": True}):
         # factories.store_event would almost be suitable for this, but let's
         # actually run through stacktrace processing once
         preprocess_event(start_time=time(), cache_key=cache_key, data=data)
 
-    event = eventstore.get_event_by_id(default_project.id, event_id)
-
-    assert event is not None
-    assert event.data["test_processed"] == 1
+    event = get_nodestore_event()
+    assert dict(event.data["tags"])["processing_counter"] == "x0"
     assert not event.data.get("errors")
+
+    assert get_event_by_processing_counter("x0")
+    assert get_event_by_group(event.group_id)
+
+    old_event = event
 
     with task_runner(), Feature({"projects:reprocessing-v2": True}):
-        new_event_id = reprocess_group(default_project.id, event.group_id)
+        reprocess_group(default_project.id, event.group_id)
 
-    assert new_event_id != event_id
-
-    assert not eventstore.get_event_by_id(default_project.id, event_id)
-    event = eventstore.get_event_by_id(default_project.id, new_event_id)
-
-    assert event is not None
+    (event,) = get_event_by_processing_counter("x1")
     # Assert original data is used
-    assert event.data["test_processed"] == 1
+    assert dict(event.data["tags"])["processing_counter"] == "x1"
     assert not event.data.get("errors")
 
-    # TODO: Assert old event is deleted
+    assert event.group_id != old_event.group_id  # TODO
+    assert get_event_by_group(event.group_id)
+
+    # assert not get_event_by_processing_counter("x0")  # TODO

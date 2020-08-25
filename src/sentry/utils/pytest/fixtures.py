@@ -16,8 +16,10 @@ import difflib
 import sentry
 
 import pytest
+import requests
 import six
 
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 
 
@@ -336,4 +338,27 @@ def _print_insta_diff(reference_file, a, b):
         "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n".format(
             reference_file, "\n".join(difflib.unified_diff(a.splitlines(), b.splitlines()))
         )
+    )
+
+
+@pytest.fixture
+def call_snuba(settings):
+    def inner(endpoint):
+        return requests.post(settings.SENTRY_SNUBA + endpoint)
+
+    return inner
+
+
+@pytest.fixture
+def reset_snuba(call_snuba):
+    init_endpoints = (
+        "/tests/events/drop",
+        "/tests/groupedmessage/drop",
+        "/tests/transactions/drop",
+        "/tests/sessions/drop",
+    )
+
+    assert all(
+        response.status_code == 200
+        for response in ThreadPoolExecutor(4).map(call_snuba, init_endpoints)
     )
