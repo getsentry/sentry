@@ -71,6 +71,7 @@ const SourceMapsArtifactRow = ({artifact, onDelete, downloadUrl}: Props) => {
               size="small"
               icon={<IconDelete size="sm" />}
               title={t('Remove Artifact')}
+              label={t('Remove Artifact')}
             />
           </Confirm>
         </ButtonBar>

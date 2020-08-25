@@ -52,6 +52,7 @@ const SourceMapsArchiveRow = ({archive, orgId, projectId, onDelete}: Props) => {
               size="small"
               icon={<IconDelete size="sm" />}
               title={t('Remove All Artifacts')}
+              label={t('Remove All Artifacts')}
             />
           </Confirm>
         </ButtonBar>
