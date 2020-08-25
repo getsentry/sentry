@@ -123,6 +123,8 @@ export function modifyTrendView(
   if (trendFunction) {
     trendView.trendFunction = trendFunction.field;
   }
+  const limitTrendResult = getLimitTransactionItems(trendFunction, trendsType);
+  trendView.query += ' ' + limitTrendResult;
   if (trendsType === TrendChangeType.REGRESSION) {
     trendSort.kind = 'desc';
   }
@@ -165,9 +167,9 @@ export function normalizeTrendsTransactions(data: TrendsTransaction[]) {
         aliasedFields.aggregate_range_1 = row[`${alias}_1`];
         aliasedFields.aggregate_range_2 = row[`${alias}_2`];
         aliasedFields.divide_aggregate_range_2_aggregate_range_1 =
-          row[`divide_${alias}_2_${alias}_1`];
+          row[getTrendAliasedFieldDivide(alias)];
         aliasedFields.minus_aggregate_range_2_aggregate_range_1 =
-          row[`minus_${alias}_2_${alias}_1`];
+          row[getTrendAliasedMinus(alias)];
       }
     });
 
@@ -183,6 +185,33 @@ export function normalizeTrendsTransactions(data: TrendsTransaction[]) {
   });
 }
 
+export function getTrendAliasedFieldDivide(alias: string) {
+  return `divide_${alias}_2_${alias}_1`;
+}
+
+export function getTrendAliasedQueryDivide(alias: string) {
+  return `divide(${alias}_2,${alias}_1)`;
+}
+
+function getTrendAliasedMinus(alias: string) {
+  return `minus_${alias}_2_${alias}_1`;
+}
+
 export function getSelectedQueryKey(trendChangeType: TrendChangeType) {
   return trendOffsetQueryKeys[trendChangeType];
+}
+
+/**
+ * This function applies a query to limit the results based on the trend type to being greater or less than 100% (depending on the type)
+ */
+function getLimitTransactionItems(
+  trendFunction: TrendFunction,
+  trendChangeType: TrendChangeType
+) {
+  const aliasedDivide = getTrendAliasedQueryDivide(trendFunction.alias);
+  let limitQuery = aliasedDivide + ':<1';
+  if (trendChangeType === TrendChangeType.REGRESSION) {
+    limitQuery = aliasedDivide + ':>1';
+  }
+  return limitQuery;
 }

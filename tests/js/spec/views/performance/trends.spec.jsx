@@ -6,7 +6,11 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import PerformanceLanding from 'app/views/performance/landing';
 import ProjectsStore from 'app/stores/projectsStore';
-import {TRENDS_FUNCTIONS} from 'app/views/performance/trends/utils';
+import {
+  TRENDS_FUNCTIONS,
+  getTrendAliasedFieldDivide,
+  getTrendAliasedQueryDivide,
+} from 'app/views/performance/trends/utils';
 
 const trendsViewQuery = {
   view: 'TRENDS',
@@ -239,17 +243,40 @@ describe('Performance > Trends', function() {
     wrapper.update();
 
     for (const trendFunction of TRENDS_FUNCTIONS) {
+      trendsMock.mockReset();
       wrapper.setProps({
         location: {query: {...trendsViewQuery, trendFunction: trendFunction.field}},
       });
       wrapper.update();
       await tick();
 
-      expect(trendsMock).toHaveBeenLastCalledWith(
+      expect(trendsMock).toHaveBeenCalledTimes(2);
+
+      const aliasedFieldDivide = getTrendAliasedFieldDivide(trendFunction.alias);
+      const aliasedQueryDivide = getTrendAliasedQueryDivide(trendFunction.alias);
+
+      // Improved trends call
+      expect(trendsMock).toHaveBeenNthCalledWith(
+        1,
         expect.anything(),
         expect.objectContaining({
           query: expect.objectContaining({
             trendFunction: trendFunction.field,
+            sort: aliasedFieldDivide,
+            query: expect.stringContaining(aliasedQueryDivide + ':<1'),
+          }),
+        })
+      );
+
+      // Regression trends call
+      expect(trendsMock).toHaveBeenNthCalledWith(
+        2,
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({
+            trendFunction: trendFunction.field,
+            sort: '-' + aliasedFieldDivide,
+            query: expect.stringContaining(aliasedQueryDivide + ':>1'),
           }),
         })
       );
