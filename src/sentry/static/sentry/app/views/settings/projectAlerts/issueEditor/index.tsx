@@ -60,6 +60,7 @@ const ACTION_MATCH_CHOICES = [
 const defaultRule: UnsavedIssueAlertRule = {
   actionMatch: 'all',
   actions: [],
+  filters: [],
   conditions: [],
   name: '',
   frequency: 30,
@@ -68,8 +69,7 @@ const defaultRule: UnsavedIssueAlertRule = {
 
 const POLLING_MAX_TIME_LIMIT = 3 * 60000;
 
-// TODO(ts): I can't get this to work if I'm specific -- should be: 'condition' | 'action';
-type ConditionOrAction = string;
+type ConditionOrAction = 'conditions' | 'actions';
 
 type RuleTaskResponse = {
   status: 'pending' | 'failed' | 'success';
@@ -90,6 +90,7 @@ type State = AsyncView['state'] & {
   environments: Environment[];
   configs: {
     actions: IssueAlertRuleActionTemplate[];
+    filters: IssueAlertRuleActionTemplate[];
     conditions: IssueAlertRuleConditionTemplate[];
   } | null;
   uuid: null | string;
@@ -399,7 +400,12 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     ];
 
     const {rule, detailedError} = this.state;
-    const {actionMatch, actions, conditions, frequency, name} = rule || {};
+    const {actionMatch, actions, frequency, name} = rule || {};
+    const filterIds = this.state.configs?.filters?.map(filter => filter.id) ?? [];
+    const filters =
+      rule.conditions?.filter(condition => filterIds.includes(condition.id)) ?? null;
+    const conditions =
+      rule.conditions?.filter(condition => !filterIds.includes(condition.id)) ?? null;
 
     const environment =
       !rule || !rule.environment ? ALL_ENVIRONMENTS_KEY : rule.environment;
@@ -526,7 +532,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                       </StepLead>
                       <RuleNodeList
                         nodes={this.state.configs?.conditions ?? null}
-                        items={conditions || []}
+                        items={conditions}
                         placeholder={t('Add a condition...')}
                         onPropertyChange={this.handleChangeConditionProperty}
                         onAddRow={this.handleAddCondition}
@@ -547,6 +553,72 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                 </Step>
 
                 <Step>
+                  <StepConnector />
+
+                  <StepContainer>
+                    <ChevronContainer>
+                      <IconChevron
+                        color="gray400"
+                        isCircled
+                        direction="right"
+                        size="sm"
+                      />
+                    </ChevronContainer>
+
+                    <StepContent>
+                      <StepLead>
+                        {tct('[if:If] that issue has [selector] of these properties', {
+                          if: <Badge />,
+                          selector: (
+                            <EmbeddedWrapper>
+                              <EmbeddedSelectField
+                                className={classNames({
+                                  error: this.hasError('actionMatch'),
+                                })}
+                                inline={false}
+                                styles={{
+                                  control: provided => ({
+                                    ...provided,
+                                    minHeight: '20px',
+                                    height: '20px',
+                                  }),
+                                }}
+                                isSearchable={false}
+                                isClearable={false}
+                                name="actionMatch"
+                                required
+                                flexibleControlStateSize
+                                choices={ACTION_MATCH_CHOICES}
+                                onChange={val => this.handleChange('actionMatch', val)}
+                                disabled={!hasAccess}
+                              />
+                            </EmbeddedWrapper>
+                          ),
+                        })}
+                      </StepLead>
+                      <RuleNodeList
+                        nodes={this.state.configs?.filters ?? null}
+                        items={filters}
+                        placeholder={t('Add a filter...')}
+                        onPropertyChange={this.handleChangeConditionProperty}
+                        onAddRow={this.handleAddCondition}
+                        onDeleteRow={this.handleDeleteCondition}
+                        organization={organization}
+                        project={project}
+                        disabled={!hasAccess}
+                        error={
+                          this.hasError('filters') && (
+                            <StyledAlert type="error">
+                              {this.state.detailedError?.filters[0]}
+                            </StyledAlert>
+                          )
+                        }
+                      />
+                    </StepContent>
+                  </StepContainer>
+                </Step>
+
+                <Step>
                   <StepContainer>
                     <ChevronContainer>
                       <IconChevron
@@ -558,7 +630,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                     </ChevronContainer>
                     <StepContent>
                       <StepLead>
-                        {tct('[then:Then] create an alert and perform these actions', {
+                        {tct('[then:Then] perform these actions', {
                           then: <Badge />,
                         })}
                       </StepLead>
@@ -658,13 +730,17 @@ const ChevronContainer = styled('div')`
 `;
 
 const Badge = styled('span')`
+  display: inline-block;
+  min-width: 51px;
   background-color: ${p => p.theme.purple400};
-  padding: ${space(0.25)} ${space(0.75)};
+  padding: 0 ${space(0.75)};
   border-radius: ${p => p.theme.borderRadius};
   color: ${p => p.theme.white};
   text-transform: uppercase;
+  text-align: center;
   font-size: ${p => p.theme.fontSizeMedium};
   font-weight: 500;
+  line-height: 1.5;
 `;
 
 const EmbeddedWrapper = styled('div')`

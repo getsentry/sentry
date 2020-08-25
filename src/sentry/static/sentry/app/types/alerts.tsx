@@ -53,6 +53,7 @@ export type IssueAlertRuleCondition = Omit<
 export type UnsavedIssueAlertRule = {
   actionMatch: 'all' | 'any';
   actions: IssueAlertRuleAction[];
+  filters: IssueAlertRuleAction[];
   conditions: IssueAlertRuleCondition[];
   environment: null | string;
   frequency: number;
