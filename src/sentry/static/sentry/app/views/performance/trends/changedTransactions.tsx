@@ -41,7 +41,7 @@ import {HeaderTitleLegend} from '../styles';
 type Props = {
   organization: Organization;
   trendChangeType: TrendChangeType;
-  previousTrendFunction: TrendFunctionField;
+  previousTrendFunction?: TrendFunctionField;
   trendView: TrendView;
   location: Location;
 };
