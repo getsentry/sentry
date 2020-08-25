@@ -8,8 +8,8 @@ import withApi from 'app/utils/withApi';
 
 const DEFAULT_POLL_INTERVAL = 5000;
 
-const recordAnalyticsFirstEvent = ({organization, project}) =>
-  analytics('onboarding_v2.first_event_recieved', {
+const recordAnalyticsFirstEvent = ({key, organization, project}) =>
+  analytics(`onboarding_v2.${key}`, {
     org_id: parseInt(organization.id, 10),
     project: parseInt(project.id, 10),
   });
@@ -25,9 +25,11 @@ type Props = {
   api: Client;
   organization: Organization;
   project: Project;
+  eventType: 'error' | 'transaction';
   disabled?: boolean;
   pollInterval?: number;
   onIssueReceived?: (props: {firstIssue: FirstIssue}) => void;
+  onTransactionReceived?: (props: {firstIssue: FirstIssue}) => void;
   children: (props: {firstIssue: FirstIssue}) => React.ReactNode;
 };
 
@@ -61,14 +63,15 @@ class EventWaiter extends React.Component<Props, State> {
   intervalId: number | null = null;
 
   pollHandler = async () => {
-    const {api, organization, project, onIssueReceived} = this.props;
+    const {api, organization, project, eventType, onIssueReceived} = this.props;
     let firstEvent = null;
+    let firstIssue: Group | boolean | null = null;
 
     try {
       const resp = await api.requestPromise(
         `/projects/${organization.slug}/${project.slug}/`
       );
-      firstEvent = resp.firstEvent;
+      firstEvent = eventType === 'error' ? resp.firstEvent : resp.firstTransactionEvent;
     } catch (resp) {
       if (!resp) {
         return;
@@ -86,26 +89,38 @@ class EventWaiter extends React.Component<Props, State> {
         status: resp.status,
         detail: resp.responseJSON?.detail,
       });
-      Sentry.captureException(new Error('Error polling for first event'));
+      Sentry.captureException(new Error(`Error polling for first ${eventType} event`));
     }
 
-    if (firstEvent === null) {
+    if (firstEvent === null || firstEvent === false) {
       return;
     }
 
-    // Locate the projects first issue group. The project.firstEvent field will
-    // *not* include sample events, while just looking at the issues list will.
-    // We will wait until the project.firstEvent is set and then locate the
-    // event given that event datetime
-    const issues: Group[] = await api.requestPromise(
-      `/projects/${organization.slug}/${project.slug}/issues/`
-    );
+    if (eventType === 'error') {
+      // Locate the projects first issue group. The project.firstEvent field will
+      // *not* include sample events, while just looking at the issues list will.
+      // We will wait until the project.firstEvent is set and then locate the
+      // event given that event datetime
+      const issues: Group[] = await api.requestPromise(
+        `/projects/${organization.slug}/${project.slug}/issues/`
+      );
 
-    // The event may have expired, default to true
-    const firstIssue =
-      issues.find((issue: Group) => issue.firstSeen === firstEvent) || true;
+      // The event may have expired, default to true
+      firstIssue = issues.find((issue: Group) => issue.firstSeen === firstEvent) || true;
 
-    recordAnalyticsFirstEvent({organization, project});
+      recordAnalyticsFirstEvent({
+        key: 'first_event_recieved',
+        organization,
+        project,
+      });
+    } else {
+      firstIssue = firstEvent;
+      recordAnalyticsFirstEvent({
+        key: 'first_transaction_recieved',
+        organization,
+        project,
+      });
+    }
 
     if (onIssueReceived) {
       onIssueReceived({firstIssue});
