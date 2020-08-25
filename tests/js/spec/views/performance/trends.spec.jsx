@@ -11,6 +11,7 @@ import {
   getTrendAliasedFieldDivide,
   getTrendAliasedQueryDivide,
 } from 'app/views/performance/trends/utils';
+import {TrendFunctionField} from 'app/views/performance/trends/types';
 
 const trendsViewQuery = {
   view: 'TRENDS',
@@ -162,10 +163,32 @@ describe('Performance > Trends', function() {
     expect(wrapper.find('TrendsListItem')).toHaveLength(4);
   });
 
-  it('choosing a trend function changes location', async function() {
+  it('transaction list renders user misery', async function() {
     const projects = [TestStubs.Project()];
     const data = initializeData(projects, {project: ['-1']});
 
+    const location = {
+      query: {...trendsViewQuery, trendFunction: TrendFunctionField.USER_MISERY},
+    };
+    const wrapper = mountWithTheme(
+      <PerformanceLanding organization={data.organization} location={location} />,
+      data.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    const firstTransaction = wrapper.find('TrendsListItem').first();
+    expect(firstTransaction.find('ItemTransactionAbsoluteFaster').text()).toMatch(
+      '863 → 1.6k miserable users'
+    );
+    expect(firstTransaction.find('ItemTransactionPercentFaster').text()).toMatch(
+      '797 less'
+    );
+  });
+
+  it('choosing a trend function changes location', async function() {
+    const projects = [TestStubs.Project()];
+    const data = initializeData(projects, {project: ['-1']});
     const wrapper = mountWithTheme(
       <PerformanceLanding
         organization={data.organization}
