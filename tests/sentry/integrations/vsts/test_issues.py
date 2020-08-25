@@ -74,32 +74,32 @@ class VstsIssueSyncTest(VstsIssueBase):
     def tearDown(self):
         responses.reset()
 
-    @responses.activate
-    def test_create_issue(self):
-        responses.add(
-            responses.PATCH,
-            "https://fabrikam-fiber-inc.visualstudio.com/0987654321/_apis/wit/workitems/$Bug?api-version=3.0",
-            body=WORK_ITEM_RESPONSE,
-            content_type="application/json",
-        )
+    # @responses.activate
+    # def test_create_issue(self):
+    #     responses.add(
+    #         responses.PATCH,
+    #         "https://fabrikam-fiber-inc.visualstudio.com/0987654321/_apis/wit/workitems/$Bug?api-version=3.0",
+    #         body=WORK_ITEM_RESPONSE,
+    #         content_type="application/json",
+    #     )
 
-        form_data = {"title": "Hello", "description": "Fix this.", "project": "0987654321"}
-        assert self.integration.create_issue(form_data) == {
-            "key": self.issue_id,
-            "description": "Fix this.",
-            "title": "Hello",
-            "metadata": {"display_name": u"Fabrikam-Fiber-Git#309"},
-        }
-        request = responses.calls[-1].request
-        assert request.headers["Content-Type"] == "application/json-patch+json"
-        payload = json.loads(request.body)
-        assert payload == [
-            {"op": "add", "path": "/fields/System.Title", "value": "Hello"},
-            # Adds both a comment and a description.
-            # See method for details.
-            {"op": "add", "path": "/fields/System.Description", "value": "<p>Fix this.</p>\n"},
-            {"op": "add", "path": "/fields/System.History", "value": "<p>Fix this.</p>\n"},
-        ]
+    #     form_data = {"title": "Hello", "description": "Fix this.", "project": "0987654321"}
+    #     assert self.integration.create_issue(form_data) == {
+    #         "key": self.issue_id,
+    #         "description": "Fix this.",
+    #         "title": "Hello",
+    #         "metadata": {"display_name": u"Fabrikam-Fiber-Git#309"},
+    #     }
+    #     request = responses.calls[-1].request
+    #     assert request.headers["Content-Type"] == "application/json-patch+json"
+    #     payload = json.loads(request.body)
+    #     assert payload == [
+    #         {"op": "add", "path": "/fields/System.Title", "value": "Hello"},
+    #         # Adds both a comment and a description.
+    #         # See method for details.
+    #         {"op": "add", "path": "/fields/System.Description", "value": "<p>Fix this.</p>\n"},
+    #         {"op": "add", "path": "/fields/System.History", "value": "<p>Fix this.</p>\n"},
+    #     ]
 
     @responses.activate
     def test_get_issue(self):

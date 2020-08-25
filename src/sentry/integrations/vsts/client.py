@@ -69,7 +69,14 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
         )
 
     def create_work_item(
-        self, instance, project, title=None, description=None, comment=None, link=None
+        self,
+        instance,
+        project,
+        item_type=None,
+        title=None,
+        description=None,
+        comment=None,
+        link=None,
     ):
         data = []
         if title:
@@ -90,7 +97,9 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
         #     })
 
         return self.patch(
-            VstsApiPath.work_items_create.format(instance=instance, project=project, type="Bug"),
+            VstsApiPath.work_items_create.format(
+                instance=instance, project=project, type=item_type
+            ),
             data=data,
         )
 
@@ -151,10 +160,7 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
         )
 
     def get_work_item_categories(self, instance, project):
-        return self.get(
-            VstsApiPath.work_item_categories.format(instance=instance, project=project),
-            params={"api-version": "6.0-preview.2"},
-        )
+        return self.get(VstsApiPath.work_item_categories.format(instance=instance, project=project))
 
     def get_repo(self, instance, name_or_id, project=None):
         return self.get(

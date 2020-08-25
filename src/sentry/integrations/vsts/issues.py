@@ -10,7 +10,6 @@ from django.utils.translation import ugettext as _
 from sentry.models import IntegrationExternalProject, OrganizationIntegration, User
 from sentry.integrations.issues import IssueSyncMixin
 from sentry.shared_integrations.exceptions import ApiUnauthorized, ApiError
-from sentry.utils.compat import map
 
 
 class VstsIssueSync(IssueSyncMixin):
@@ -22,7 +21,7 @@ class VstsIssueSync(IssueSyncMixin):
     done_categories = frozenset(["Resolved", "Completed"])
 
     def get_persisted_default_config_fields(self):
-        return ["project"]
+        return ["project", "work_item_type"]
 
     def create_default_repo_choice(self, default_repo):
         # default_repo should be the project_id
@@ -60,14 +59,30 @@ class VstsIssueSync(IssueSyncMixin):
 
         return default_project, project_choices
 
-    def get_work_item_choices(self, project):
+    def get_work_item_choices(self, project, group):
         client = self.get_client()
         try:
             item_categories = client.get_work_item_categories(self.instance, project)["value"]
         except (ApiError, ApiUnauthorized, KeyError) as e:
             self.raise_error(e)
-        # TODO: dedupe
-        return map(lambda x: [x["defaultWorkItemType"]["url"], x["name"]], item_categories)
+        deduped_item_tuples = []
+        for item in item_categories:
+            default_item_type = item["defaultWorkItemType"]
+            # the type is the last part of the url
+            item_type = default_item_type["url"].split(".")[-1]
+            item_tuple = [item_type, default_item_type["name"]]
+            # we can have duplicates so need to dedupe
+            if item_tuple not in deduped_item_tuples:
+                deduped_item_tuples.append(item_tuple)
+
+        # try to get the default from either the last value used or from the first item on the list
+        defaults = self.get_project_defaults(group.project_id)
+        try:
+            default_item_type = defaults.get("work_item_type") or deduped_item_tuples[0][0]
+        except IndexError:
+            return None, deduped_item_tuples
+
+        return default_item_type, deduped_item_tuples
 
     def get_create_issue_config(self, group, **kwargs):
         kwargs["link_referrer"] = "vsts_integration"
@@ -77,8 +92,11 @@ class VstsIssueSync(IssueSyncMixin):
         default_project, project_choices = self.get_project_choices(group, **kwargs)
 
         work_item_choices = []
+        default_work_item = None
         if default_project:
-            work_item_choices = self.get_work_item_choices(default_project)
+            default_work_item, work_item_choices = self.get_work_item_choices(
+                default_project, group
+            )
 
         return [
             {
@@ -92,10 +110,11 @@ class VstsIssueSync(IssueSyncMixin):
                 "updatesForm": True,
             },
             {
-                "name": "workItemType",
+                "name": "work_item_type",
                 "required": True,
                 "type": "choice",
                 "choices": work_item_choices,
+                "defaultValue": default_work_item,
                 "label": _("WorkItem"),
                 "placeholder": _("MyWorkItem"),
             },
@@ -126,11 +145,13 @@ class VstsIssueSync(IssueSyncMixin):
 
         title = data["title"]
         description = data["description"]
+        item_type = data["work_item_type"]
 
         try:
             created_item = client.create_work_item(
                 instance=self.instance,
                 project=project_id,
+                item_type=item_type,
                 title=title,
                 # Descriptions cannot easily be seen. So, a comment will be added as well.
                 description=markdown(description),
