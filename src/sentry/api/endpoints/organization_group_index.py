@@ -149,8 +149,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                     return response
 
                 if groups:
-                    tempResp = Response(serialize(groups, request.user, serializer()))
-                    return tempResp
+                    return Response(serialize(groups, request.user, serializer()))
 
             group = get_by_short_id(organization.id, request.GET.get("shortIdLookup"), query)
             if group is not None:
@@ -171,8 +170,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
             groups = list(Group.objects.filter(id__in=group_ids, project_id__in=project_ids))
             if any(g for g in groups if not request.access.has_project_access(g.project)):
                 raise PermissionDenied
-            response = Response(serialize(groups, request.user, serializer()))
-            return response
+            return Response(serialize(groups, request.user, serializer()))
 
         try:
             cursor_result, query_kwargs = self._search(
