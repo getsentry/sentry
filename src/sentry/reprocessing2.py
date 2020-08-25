@@ -3,10 +3,13 @@ from __future__ import absolute_import
 import uuid
 import hashlib
 import six
+import logging
 
 from sentry import nodestore, features
 from sentry.utils.cache import cache_key_for_event
 from sentry.eventstore.processing import event_processing_store
+
+logger = logging.getLogger("sentry.reprocessing")
 
 
 def _generate_unprocessed_event_node_id(project_id, event_id):
@@ -52,11 +55,6 @@ def delete_unprocessed_events(events):
     nodestore.delete_multi(node_ids)
 
 
-def reprocess_event(project_id, event_id):
-    rv = reprocess_events(project_id, [event_id])
-    return rv and rv[0] or None
-
-
 def reprocess_events(project_id, event_ids, start_time):
     node_ids = list(
         _generate_unprocessed_event_node_id(project_id=project_id, event_id=event_id)
@@ -66,6 +64,8 @@ def reprocess_events(project_id, event_ids, start_time):
     node_results = nodestore.get_multi(node_ids)
 
     # TODO: Passthrough non-reprocessable events
+    
+    new_event_ids = {}
 
     for node_id, data in six.iteritems(node_results):
         # Take unprocessed data from old event and save it as unprocessed data
@@ -73,12 +73,18 @@ def reprocess_events(project_id, event_ids, start_time):
         # save the "original event ID" instead and get away with writing less to
         # nodestore, but doing it this way makes the logic slightly simpler.
 
-        event_id = data["event_id"] = uuid.uuid4().hex
-        data["received"] = start_time
+        new_event_ids[data['event_id']] = event_id = data["event_id"] = uuid.uuid4().hex
+        # XXX: Only reset received
+        data['timestamp'] = data["received"] = start_time
+        data.setdefault("fingerprint", ["{{default}}"]).append("__sentry_reprocessed")
+
         cache_key = event_processing_store.store(data)
 
         from sentry.tasks.store import preprocess_event_from_reprocessing
 
+        print("Spawn reprocess")
         preprocess_event_from_reprocessing(
             cache_key=cache_key, start_time=start_time, event_id=event_id
         )
+
+    return new_event_ids

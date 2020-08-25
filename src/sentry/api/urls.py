@@ -41,6 +41,7 @@ from .endpoints.group_events_oldest import GroupEventsOldestEndpoint
 from .endpoints.group_external_issue_details import GroupExternalIssueDetailsEndpoint
 from .endpoints.group_external_issues import GroupExternalIssuesEndpoint
 from .endpoints.group_hashes import GroupHashesEndpoint
+from .endpoints.group_reprocessing import GroupReprocessingEndpoint
 from .endpoints.group_integration_details import GroupIntegrationDetailsEndpoint
 from .endpoints.group_integrations import GroupIntegrationsEndpoint
 from .endpoints.group_notes import GroupNotesEndpoint
@@ -340,6 +341,7 @@ GROUP_URLS = [
         GroupNotesDetailsEndpoint.as_view(),
     ),
     url(r"^(?P<issue_id>[^\/]+)/hashes/$", GroupHashesEndpoint.as_view()),
+    url(r"^(?P<issue_id>[^\/]+)/reprocessing/$", GroupReprocessingEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/stats/$", GroupStatsEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/tags/$", GroupTagsEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/tags/(?P<key>[^/]+)/$", GroupTagKeyDetailsEndpoint.as_view()),

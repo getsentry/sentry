@@ -743,6 +743,7 @@ LOGGING = {
         "sentry_plugins": {"level": "INFO"},
         "sentry.files": {"level": "WARNING"},
         "sentry.minidumps": {"handlers": ["internal"], "propagate": False},
+        "sentry.reprocessing": {"handlers": ["internal"], "propagate": False},
         "sentry.interfaces": {"handlers": ["internal"], "propagate": False},
         # This only needs to go to Sentry for now.
         "sentry.similarity": {"handlers": ["internal"], "propagate": False},

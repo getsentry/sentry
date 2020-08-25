@@ -26,7 +26,7 @@ def reprocess_group(project_id, group_id, offset=0, start_time=None):
                 project_ids=[project_id],
                 group_ids=[group_id],
                 # XXX: received?
-                conditions=[["received", "<", to_datetime(start_time - 10)]],
+                conditions=[["timestamp", "<", to_datetime(start_time)]],
             ),
             limit=GROUP_REPROCESSING_CHUNK_SIZE,
             offset=offset,
