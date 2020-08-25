@@ -19,6 +19,7 @@ export enum Actions {
   SHOW_GREATER_THAN = 'show_greater_than',
   SHOW_LESS_THAN = 'show_less_than',
   TRANSACTION = 'transaction',
+  TOGGLE_KEY_TRANSACTION = 'toggle_key_transaction',
   RELEASE = 'release',
   DRILLDOWN = 'drilldown',
 }
@@ -85,6 +86,7 @@ type Props = {
 
   // allow list of actions to display on the context menu
   allowActions?: Actions[];
+  actionRenderers?: Partial<Record<Actions, React.ComponentType>>;
 };
 
 type State = {
@@ -159,7 +161,13 @@ class CellAction extends React.Component<Props, State> {
   };
 
   renderMenuButtons() {
-    const {dataRow, column, handleCellAction, allowActions} = this.props;
+    const {
+      dataRow,
+      column,
+      handleCellAction,
+      allowActions,
+      actionRenderers = {},
+    } = this.props;
 
     const fieldAlias = getAggregateAlias(column.name);
     const value = dataRow[fieldAlias];
@@ -240,6 +248,14 @@ class CellAction extends React.Component<Props, State> {
           {t('Go to summary')}
         </ActionItem>
       );
+
+      const KeyTransactionRenderer = actionRenderers[Actions.TOGGLE_KEY_TRANSACTION];
+      if (KeyTransactionRenderer !== undefined) {
+        addMenuItem(
+          Actions.TOGGLE_KEY_TRANSACTION,
+          <KeyTransactionRenderer key="key-transaction" data-test-id="key-transaction" />
+        );
+      }
     }
 
     if (column.column.kind === 'field' && column.column.field === 'release' && value) {
@@ -438,7 +454,7 @@ const MenuArrow = styled('span')`
   }
 `;
 
-const ActionItem = styled('button')`
+export const ActionItem = styled('button')`
   display: block;
   width: 100%;
   padding: ${space(1)} ${space(2)};

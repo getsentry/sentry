@@ -1,8 +1,11 @@
 import React from 'react';
 import {Location, LocationDescriptorObject} from 'history';
+import styled from '@emotion/styled';
 import * as ReactRouter from 'react-router';
 
+import {t} from 'app/locale';
 import {Organization, Project} from 'app/types';
+import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
 import Link from 'app/components/links/link';
 import EventView, {EventData, isFieldSortable} from 'app/utils/discover/eventView';
@@ -10,13 +13,19 @@ import {TableColumn} from 'app/views/eventsV2/table/types';
 import GridEditable, {COL_WIDTH_UNDEFINED, GridColumn} from 'app/components/gridEditable';
 import SortLink from 'app/components/gridEditable/sortLink';
 import HeaderCell from 'app/views/eventsV2/table/headerCell';
-import CellAction, {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
+import CellAction, {
+  ActionItem,
+  Actions,
+  updateQuery,
+} from 'app/views/eventsV2/table/cellAction';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import DiscoverQuery, {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
+import space from 'app/styles/space';
 
 import {transactionSummaryRouteWithQuery} from './transactionSummary/utils';
+import KeyTransactionQuery from './keyTransactionQuery';
 import {COLUMN_TITLES} from './data';
 
 export function getProjectID(
@@ -108,6 +117,7 @@ class Table extends React.Component<Props, State> {
         Actions.EXCLUDE,
         Actions.SHOW_GREATER_THAN,
         Actions.SHOW_LESS_THAN,
+        Actions.TOGGLE_KEY_TRANSACTION,
       ];
 
       if (field === 'transaction') {
@@ -115,12 +125,25 @@ class Table extends React.Component<Props, State> {
         const summaryView = eventView.clone();
         summaryView.query = summaryConditions;
 
+        const transactionName = String(dataRow.transaction) || '';
         const target = transactionSummaryRouteWithQuery({
           orgSlug: organization.slug,
-          transaction: String(dataRow.transaction) || '',
+          transaction: transactionName,
           query: summaryView.generateQueryStringObject(),
           projectID,
         });
+
+        const actionRenderers = {};
+        if (projectID !== undefined) {
+          actionRenderers[Actions.TOGGLE_KEY_TRANSACTION] = props => (
+            <KeyTransactionAction
+              projectID={parseInt(projectID, 10)}
+              organization={organization}
+              transactionName={transactionName}
+              {...props}
+            />
+          );
+        }
 
         return (
           <CellAction
@@ -128,6 +151,7 @@ class Table extends React.Component<Props, State> {
             dataRow={dataRow}
             handleCellAction={this.handleCellAction(column)}
             allowActions={allowActions}
+            actionRenderers={actionRenderers}
           >
             <Link to={target} onClick={this.handleSummaryClick}>
               {rendered}
@@ -254,5 +278,47 @@ class Table extends React.Component<Props, State> {
     );
   }
 }
+
+type KeyTransactionActionProps = {
+  projectID: number;
+  organization: Organization;
+  transactionName: string;
+};
+
+function KeyTransactionAction(props: KeyTransactionActionProps) {
+  const {projectID, organization, transactionName, ...rest} = props;
+  return (
+    <KeyTransactionQuery
+      projectID={projectID}
+      organization={organization}
+      transactionName={transactionName}
+    >
+      {({isLoading, error, isKeyTransaction, toggleKeyTransaction}) => {
+        return (
+          <ActionItem
+            disabled={isLoading || error !== null}
+            onClick={toggleKeyTransaction}
+            {...rest}
+          >
+            {isLoading ? (
+              <StyledLoadingIndicator size={12} />
+            ) : isKeyTransaction ? (
+              t('Unmark as key transaction')
+            ) : (
+              t('Mark as key transaction')
+            )}
+          </ActionItem>
+        );
+      }}
+    </KeyTransactionQuery>
+  );
+}
+
+const StyledLoadingIndicator = styled(LoadingIndicator)`
+  display: flex;
+  align-items: center;
+  height: ${space(2)};
+  margin: 0;
+`;
 
 export default Table;

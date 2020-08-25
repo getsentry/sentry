@@ -211,6 +211,16 @@ class TableView extends React.Component<TableViewProps> {
 
     const count = Math.min(tableData?.data?.length ?? TOP_N, TOP_N);
 
+    const allowActions = [
+      Actions.ADD,
+      Actions.EXCLUDE,
+      Actions.SHOW_GREATER_THAN,
+      Actions.SHOW_LESS_THAN,
+      Actions.TRANSACTION,
+      Actions.RELEASE,
+      Actions.DRILLDOWN,
+    ];
+
     return (
       <React.Fragment>
         {isTopEvents && rowIndex < TOP_N && columnIndex === 0 ? (
@@ -220,6 +230,7 @@ class TableView extends React.Component<TableViewProps> {
           column={column}
           dataRow={dataRow}
           handleCellAction={this.handleCellAction(dataRow, column)}
+          allowActions={allowActions}
         >
           {fieldRenderer(dataRow, {organization, location})}
         </CellAction>

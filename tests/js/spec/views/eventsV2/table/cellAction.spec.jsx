@@ -14,13 +14,20 @@ const defaultData = {
   nullValue: null,
 };
 
-function makeWrapper(eventView, handleCellAction, columnIndex = 0, data = defaultData) {
+function makeWrapper(
+  eventView,
+  handleCellAction,
+  columnIndex = 0,
+  data = defaultData,
+  actionRenderers = {}
+) {
   return mountWithTheme(
     <CellAction
       dataRow={data}
       eventView={eventView}
       column={eventView.getColumns()[columnIndex]}
       handleCellAction={handleCellAction}
+      actionRenderers={actionRenderers}
     >
       <strong>some content</strong>
     </CellAction>
@@ -231,6 +238,20 @@ describe('Discover -> CellAction', function() {
       wrapper.find('Container').simulate('mouseEnter');
       wrapper.find('MenuButton').simulate('click');
       expect(wrapper.find('button[data-test-id="release"]').exists()).toBeFalsy();
+    });
+
+    it('use custom renderer for key transaction', function() {
+      const customText = 'custom key transaction';
+      wrapper = makeWrapper(view, handleCellAction, 0, defaultData, {
+        [Actions.TOGGLE_KEY_TRANSACTION]: props => (
+          <button {...props}>{customText}</button>
+        ),
+      });
+      wrapper.find('Container').simulate('mouseEnter');
+      wrapper.find('MenuButton').simulate('click');
+      const element = wrapper.find('button[data-test-id="key-transaction"]');
+      expect(element.exists()).toBeTruthy();
+      expect(element.text()).toEqual(customText);
     });
   });
 });
