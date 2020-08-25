@@ -121,9 +121,24 @@ export type MetricActionTemplate = {
   integrationId: number;
 
   /**
+   * Name of the SentryApp. Like `integrationName`, this differentiates SentryApps from each other.
+   */
+  sentryAppName: string;
+
+  /**
+   * SentryApp id for this `type`, should be passed to backend as `sentryAppId` when creating an action.
+   */
+  sentryAppId: number;
+
+  /**
    * For some available actions, we pass in the list of available targets.
    */
   options: Array<{label: string; value: any}> | null;
+
+  /**
+   * If this is a `sentry_app` action, this is the Sentry App's status.
+   */
+  status?: 'unpublished' | 'published' | 'internal';
 };
 
 /**
@@ -161,7 +176,7 @@ export type UnsavedAction = {
 
   /**
    * How to identify the target. Can be email, slack channel, pagerduty service,
-   * user_id, team_id, etc
+   * user_id, team_id, SentryApp id, etc
    */
   targetIdentifier: string | null;
 
@@ -171,7 +186,17 @@ export type UnsavedAction = {
   integrationId?: number | null;
 
   /**
+   * The id of the SentryApp, can be null (e.g. email) or undefined (server errors when posting w/ null value)
+   */
+  sentryAppId?: number | null;
+
+  /**
    * For some available actions, we pass in the list of available targets.
    */
   options: Array<{label: string; value: any}> | null;
+
+  /**
+   * If this is a `sentry_app` action, this is the Sentry App's status.
+   */
+  status?: 'unpublished' | 'published' | 'internal';
 };
