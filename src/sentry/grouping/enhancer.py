@@ -421,7 +421,7 @@ class Enhancements(object):
         padded = data + b"=" * (4 - (len(data) % 4))
         try:
             return cls._from_config_structure(
-                msgpack.loads(zlib.decompress(base64.urlsafe_b64decode(padded)))
+                msgpack.loads(zlib.decompress(base64.urlsafe_b64decode(padded)), raw=False)
             )
         except (LookupError, AttributeError, TypeError, ValueError) as e:
             raise ValueError("invalid grouping enhancement config: %s" % e)

@@ -1,5 +1,5 @@
 ---
-created: '2020-07-23T17:38:22.284656Z'
+created: '2020-08-25T09:17:08.273305Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -44,8 +44,8 @@ app:
 default:
   hash: null
   component:
-    default (exception of app takes precedence)
-      message (exception of app takes precedence)
+    default (exception of app/system takes precedence)
+      message (exception of app/system takes precedence)
         "%s.process_error"
 --------------------------------------------------------------------------
 system:

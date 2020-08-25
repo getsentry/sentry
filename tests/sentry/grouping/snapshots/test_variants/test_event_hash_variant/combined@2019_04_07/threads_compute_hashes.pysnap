@@ -1,12 +1,12 @@
 ---
-created: '2020-02-26T19:54:25.931779Z'
+created: '2020-08-25T09:17:18.865561Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
   component:
-    app (threads of system takes precedence)
+    app (threads of system take precedence)
       threads (ignored because hash matches system variant)
         stacktrace*
           frame* (frame considered in-app because no frame is in-app)

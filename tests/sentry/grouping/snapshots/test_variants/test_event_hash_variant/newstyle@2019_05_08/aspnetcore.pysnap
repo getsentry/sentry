@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T19:54:37.424317Z'
+created: '2020-08-25T09:17:19.194245Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -174,8 +174,8 @@ app:
 default:
   hash: null
   component:
-    default (exception of app takes precedence)
-      message (exception of app takes precedence)
+    default (exception of app/system takes precedence)
+      message (exception of app/system takes precedence)
         "An unhandled exception has occurred while executing the request."
 --------------------------------------------------------------------------
 system:
