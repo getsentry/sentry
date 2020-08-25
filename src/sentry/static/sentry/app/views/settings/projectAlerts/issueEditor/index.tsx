@@ -494,11 +494,6 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                     </ChevronContainer>
 
                     <StepContent>
-                      {this.hasError('conditions') && (
-                        <PanelAlert type="error">
-                          {this.state.detailedError?.conditions[0]}
-                        </PanelAlert>
-                      )}
                       <StepLead>
                         {tct('[when:When] an issue matches [selector] of the following', {
                           when: <Badge />,
@@ -539,6 +534,13 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                         organization={organization}
                         project={project}
                         disabled={!hasAccess}
+                        error={
+                          this.hasError('conditions') && (
+                            <StyledAlert type="error">
+                              {this.state.detailedError?.conditions[0]}
+                            </StyledAlert>
+                          )
+                        }
                       />
                     </StepContent>
                   </StepContainer>
@@ -561,12 +563,6 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                         })}
                       </StepLead>
 
-                      {this.hasError('actions') && (
-                        <PanelAlert type="error">
-                          {this.state.detailedError?.actions[0]}
-                        </PanelAlert>
-                      )}
-
                       <RuleNodeList
                         nodes={this.state.configs?.actions ?? null}
                         items={actions || []}
@@ -577,6 +573,13 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                         organization={organization}
                         project={project}
                         disabled={!hasAccess}
+                        error={
+                          this.hasError('actions') && (
+                            <StyledAlert type="error">
+                              {this.state.detailedError?.actions[0]}
+                            </StyledAlert>
+                          )
+                        }
                       />
                     </StepContent>
                   </StepContainer>
@@ -614,16 +617,19 @@ const StyledForm = styled(Form)`
   position: relative;
 `;
 
+const StyledAlert = styled(Alert)`
+  margin-bottom: 0;
+`;
+
 const Step = styled('div')`
   position: relative;
   display: flex;
   align-items: flex-start;
-  margin: ${space(2)} ${space(2)} ${space(4)} ${space(2)};
+  margin: ${space(4)} ${space(4)} ${space(3)} ${space(1)};
 `;
 
 const StepContainer = styled('div')`
   position: relative;
-  border: 0 solid #d2d6dc;
   display: flex;
   align-items: flex-start;
   flex-grow: 1;
@@ -634,12 +640,10 @@ const StepContent = styled('div')`
 `;
 
 const StepConnector = styled('div')`
-  position: relative;
-  height: 100%;
-  margin-left: -1px;
   position: absolute;
+  height: 100%;
   top: 28px;
-  left: 18px;
+  left: 19px;
   border-right: 1px ${p => p.theme.gray500} dashed;
 `;
 
@@ -650,7 +654,7 @@ const StepLead = styled('div')`
 const ChevronContainer = styled('div')`
   display: flex;
   align-items: center;
-  padding: 4px 10px;
+  padding: ${space(0.5)} ${space(1.5)};
 `;
 
 const Badge = styled('span')`

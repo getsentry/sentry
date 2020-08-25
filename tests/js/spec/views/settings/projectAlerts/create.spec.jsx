@@ -234,7 +234,7 @@ describe('ProjectAlertsCreate', function() {
         });
 
         wrapper
-          .find('PanelRuleItem')
+          .find('RuleNodeList')
           .at(1)
           .find('button[aria-label="Delete Node"]')
           .simulate('click');

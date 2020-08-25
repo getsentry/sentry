@@ -29,6 +29,7 @@ type Props = {
    */
   placeholder: string;
   disabled: boolean;
+  error: React.ReactNode;
   onPropertyChange: (ruleIndex: number, prop: string, val: string) => void;
   onAddRow: (value: string) => void;
   onDeleteRow: (ruleIndex: number) => void;
@@ -57,6 +58,7 @@ class RuleNodeList extends React.Component<Props> {
       organization,
       project,
       disabled,
+      error,
     } = this.props;
 
     const shouldUsePrompt = project.features?.includes?.('issue-alerts-targeting');
@@ -86,6 +88,7 @@ class RuleNodeList extends React.Component<Props> {
                 disabled={disabled}
               />
             ))}
+            {error}
           </RuleNodes>
         )}
         <StyledSelectControl
