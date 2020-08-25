@@ -147,13 +147,19 @@ def _get_calculated_grouping_variants_for_event(event, config):
             if winning_strategy is None:
                 if component.contributes:
                     winning_strategy = strategy.name
-                    precedence_hint = "%s takes precedence" % (
-                        "%s of %s" % (strategy.name, variant)
+                    variants_hint = "/".join(
+                        sorted(k for k, v in six.iteritems(rv) if v.contributes)
+                    )
+                    precedence_hint = "%s take%s precedence" % (
+                        "%s of %s" % (strategy.name, variants_hint)
                         if variant != "default"
-                        else strategy.name
+                        else strategy.name,
+                        "" if strategy.name.endswith("s") else "s",
                     )
             elif component.contributes and winning_strategy != strategy.name:
-                component.update(contributes=False, hint=precedence_hint)
+                component.update(
+                    contributes=False, contributes_to_similarity=True, hint=precedence_hint
+                )
 
     rv = {}
     for (variant, components) in six.iteritems(per_variant_components):
@@ -202,7 +208,11 @@ def get_grouping_variants_for_event(event, config=None):
     if defaults_referenced == 0:
         rv = {}
         for (key, component) in six.iteritems(components):
-            component.update(contributes=False, hint="custom fingerprint takes precedence")
+            component.update(
+                contributes=False,
+                contributes_to_similarity=True,
+                hint="custom fingerprint takes precedence",
+            )
             rv[key] = ComponentVariant(component, config)
 
         fingerprint = resolve_fingerprint_values(fingerprint, event)

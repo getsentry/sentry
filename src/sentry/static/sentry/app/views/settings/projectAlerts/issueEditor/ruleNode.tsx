@@ -32,6 +32,7 @@ type Props = {
   data?: IssueAlertRuleAction | IssueAlertRuleCondition;
   project: Project;
   organization: Organization;
+  disabled: boolean;
   onDelete: (rowIndex: number) => void;
   onPropertyChange: (rowIndex: number, name: string, value: string) => void;
 };
@@ -51,7 +52,7 @@ class RuleNode extends React.Component<Props> {
   getChoiceField = (name: string, fieldConfig: FormField) => {
     // Select the first item on this list
     // If it's not yet defined, call onPropertyChange to make sure the value is set on state
-    const {data, index, onPropertyChange} = this.props;
+    const {data, index, onPropertyChange, disabled} = this.props;
     let initialVal;
 
     if (data) {
@@ -86,6 +87,7 @@ class RuleNode extends React.Component<Props> {
             height: '28px',
           }),
         }}
+        disabled={disabled}
         choices={choices}
         onChange={({value}) => onPropertyChange(index, name, value)}
       />
@@ -93,7 +95,7 @@ class RuleNode extends React.Component<Props> {
   };
 
   getTextField = (name: string, fieldConfig: FormField) => {
-    const {data, index, onPropertyChange} = this.props;
+    const {data, index, onPropertyChange, disabled} = this.props;
 
     return (
       <InlineInput
@@ -101,6 +103,7 @@ class RuleNode extends React.Component<Props> {
         name={name}
         value={(data && data[name]) ?? ''}
         placeholder={`${fieldConfig.placeholder}`}
+        disabled={disabled}
         onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
           onPropertyChange(index, name, e.target.value)
         }
@@ -109,7 +112,7 @@ class RuleNode extends React.Component<Props> {
   };
 
   getNumberField = (name: string, fieldConfig: FormField) => {
-    const {data, index, onPropertyChange} = this.props;
+    const {data, index, onPropertyChange, disabled} = this.props;
 
     return (
       <InlineInput
@@ -117,6 +120,7 @@ class RuleNode extends React.Component<Props> {
         name={name}
         value={(data && data[name]) ?? ''}
         placeholder={`${fieldConfig.placeholder}`}
+        disabled={disabled}
         onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
           onPropertyChange(index, name, e.target.value)
         }
@@ -125,12 +129,12 @@ class RuleNode extends React.Component<Props> {
   };
 
   getMailActionFields = (_: string, __: FormField) => {
-    const {data, organization, project} = this.props;
+    const {data, organization, project, disabled} = this.props;
     const isInitialized =
       data?.targetType !== undefined && `${data.targetType}`.length > 0;
     return (
       <MailActionFields
-        disabled={false}
+        disabled={disabled}
         project={project}
         organization={organization}
         loading={!isInitialized}
@@ -247,7 +251,7 @@ class RuleNode extends React.Component<Props> {
   }
 
   render() {
-    const {data} = this.props;
+    const {data, disabled} = this.props;
 
     return (
       <RuleRowContainer>
@@ -255,6 +259,7 @@ class RuleNode extends React.Component<Props> {
           {data && <input type="hidden" name="id" value={data.id} />}
           {this.renderRow()}
           <DeleteButton
+            disabled={disabled}
             label={t('Delete Node')}
             onClick={this.handleDelete}
             type="button"

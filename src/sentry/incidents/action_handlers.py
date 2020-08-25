@@ -124,8 +124,9 @@ class MsTeamsActionHandler(ActionHandler):
         self.send_alert(metric_value)
 
     def send_alert(self, metric_value):
-        # TODO: finish
-        pass
+        from sentry.integrations.msteams.utils import send_incident_alert_notification
+
+        send_incident_alert_notification(self.action, self.incident, metric_value)
 
 
 @AlertRuleTriggerAction.register_type(
@@ -142,8 +143,9 @@ class PagerDutyActionHandler(ActionHandler):
         self.send_alert(metric_value)
 
     def send_alert(self, metric_value):
-        # TODO: finish
-        pass
+        from sentry.integrations.pagerduty.utils import send_incident_alert_notification
+
+        send_incident_alert_notification(self.action, self.incident, metric_value)
 
 
 def format_duration(minutes):

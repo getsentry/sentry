@@ -289,6 +289,18 @@ class OrganizationEventBaselineEndpoint(APITestCase, SnubaTestCase):
         assert data["transaction.duration"] == 120000
         assert data["max_transaction_duration"] == 120000
 
+    def test_get_baseline_with_no_baseline(self):
+        response = self.client.get(
+            self.url,
+            {
+                "query": "event.type:transaction transaction:very_real_transaction",
+                "baselineFunction": "max(transaction.duration)",
+            },
+            format="json",
+        )
+
+        assert response.status_code == 404, response.content
+
 
 class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):
     def setUp(self):

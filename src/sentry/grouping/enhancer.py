@@ -346,7 +346,7 @@ class Enhancements(object):
 
         return stacktrace_state
 
-    def assemble_stacktrace_component(self, components, frames, platform):
+    def assemble_stacktrace_component(self, components, frames, platform, **kw):
         """This assembles a stacktrace grouping component out of the given
         frame components and source frames.  Internally this invokes the
         `update_frame_components_contributions` method but also handles cases
@@ -369,7 +369,7 @@ class Enhancements(object):
                 contributes = False
 
         return GroupingComponent(
-            id="stacktrace", values=components, hint=hint, contributes=contributes
+            id="stacktrace", values=components, hint=hint, contributes=contributes, **kw
         )
 
     def as_dict(self, with_rules=False):
@@ -421,7 +421,7 @@ class Enhancements(object):
         padded = data + b"=" * (4 - (len(data) % 4))
         try:
             return cls._from_config_structure(
-                msgpack.loads(zlib.decompress(base64.urlsafe_b64decode(padded)))
+                msgpack.loads(zlib.decompress(base64.urlsafe_b64decode(padded)), raw=False)
             )
         except (LookupError, AttributeError, TypeError, ValueError) as e:
             raise ValueError("invalid grouping enhancement config: %s" % e)
