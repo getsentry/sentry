@@ -96,14 +96,14 @@ export function getIntervalRatio(location: Location): number {
 export function transformDeltaSpread(
   from: number,
   to: number,
-  trendFunction: TrendFunction
+  trendFunctionField: TrendFunctionField
 ) {
   const fromSeconds = from / 1000;
   const toSeconds = to / 1000;
   const fromSubSecond = fromSeconds < 1;
   const toSubSecond = toSeconds < 1;
 
-  if (trendFunction.field === TrendFunctionField.USER_MISERY) {
+  if (trendFunctionField === TrendFunctionField.USER_MISERY) {
     return (
       <span>
         <Count value={from} />
@@ -153,10 +153,11 @@ export function modifyTrendView(
 export function transformValueDelta(
   value: number,
   trendType: TrendChangeType,
-  trendFunction: TrendFunction
+  trendFunctionField: TrendFunctionField
 ) {
   const absoluteValue = Math.abs(value);
-  if (trendFunction.field === TrendFunctionField.USER_MISERY) {
+
+  if (trendFunctionField === TrendFunctionField.USER_MISERY) {
     const changeLabel = trendType === TrendChangeType.REGRESSION ? t('more') : t('less');
     return (
       <span>

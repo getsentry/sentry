@@ -24,6 +24,7 @@ import {
   TrendView,
   TrendsData,
   NormalizedTrendsTransaction,
+  TrendFunctionField,
 } from './types';
 import {
   trendToColor,
@@ -40,6 +41,7 @@ import {HeaderTitleLegend} from '../styles';
 type Props = {
   organization: Organization;
   trendChangeType: TrendChangeType;
+  previousTrendFunction: TrendFunctionField;
   trendView: TrendView;
   location: Location;
 };
@@ -95,7 +97,7 @@ function handleChangeSelected(
 }
 
 function ChangedTransactions(props: Props) {
-  const {location, trendChangeType, organization} = props;
+  const {location, trendChangeType, previousTrendFunction, organization} = props;
   const trendView = props.trendView.clone();
   const chartTitle = getChartTitle(trendChangeType);
   modifyTrendView(trendView, location, trendChangeType);
@@ -124,6 +126,12 @@ function ChangedTransactions(props: Props) {
           const results = eventsTrendsData && eventsTrendsData.stats;
           const transactionsList = events && events.slice ? events.slice(0, 5) : [];
 
+          const trendFunction = getCurrentTrendFunction(location);
+          const currentTrendFunction =
+            isLoading && previousTrendFunction
+              ? previousTrendFunction
+              : trendFunction.field;
+
           return (
             <React.Fragment>
               <ContainerTitle>
@@ -148,6 +156,7 @@ function ChangedTransactions(props: Props) {
                   <TransactionsList>
                     {transactionsList.map((transaction, index) => (
                       <TrendsListItem
+                        currentTrendFunction={currentTrendFunction}
                         trendView={trendView}
                         organization={organization}
                         transaction={transaction}
@@ -183,6 +192,7 @@ type TrendsListItemProps = {
   organization: Organization;
   transaction: NormalizedTrendsTransaction;
   trendChangeType: TrendChangeType;
+  currentTrendFunction: TrendFunctionField;
   transactions: NormalizedTrendsTransaction[];
   location: Location;
   index: number;
@@ -194,6 +204,7 @@ function TrendsListItem(props: TrendsListItemProps) {
     transaction,
     transactions,
     trendChangeType,
+    currentTrendFunction,
     index,
     location,
     handleSelectTransaction,
@@ -205,7 +216,6 @@ function TrendsListItem(props: TrendsListItemProps) {
     trendChangeType,
     transactions
   );
-  const trendFunction = getCurrentTrendFunction(location);
   const isSelected = selectedTransaction === transaction.transaction;
 
   return (
@@ -226,7 +236,7 @@ function TrendsListItem(props: TrendsListItemProps) {
           {transformDeltaSpread(
             transaction.aggregate_range_1,
             transaction.aggregate_range_2,
-            trendFunction
+            currentTrendFunction
           )}
         </ItemTransactionAbsoluteFaster>
       </ItemTransactionNameContainer>
@@ -251,7 +261,7 @@ function TrendsListItem(props: TrendsListItemProps) {
           {transformValueDelta(
             transaction.minus_aggregate_range_2_aggregate_range_1,
             trendChangeType,
-            trendFunction
+            currentTrendFunction
           )}
         </ItemTransactionPercentFaster>
       </ItemTransactionPercentContainer>

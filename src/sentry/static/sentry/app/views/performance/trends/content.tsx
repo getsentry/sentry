@@ -12,7 +12,7 @@ import SearchBar from 'app/views/events/searchBar';
 import space from 'app/styles/space';
 
 import {getTransactionSearchQuery} from '../utils';
-import {TrendChangeType, TrendView} from './types';
+import {TrendChangeType, TrendView, TrendFunctionField} from './types';
 import {TRENDS_FUNCTIONS, getCurrentTrendFunction, getSelectedQueryKey} from './utils';
 import ChangedTransactions from './changedTransactions';
 
@@ -22,9 +22,12 @@ type Props = {
   eventView: EventView;
 };
 
-type State = {};
+type State = {
+  previousTrendFunction?: TrendFunctionField;
+};
 
 class TrendsContent extends React.Component<Props, State> {
+  state: State = {};
   handleSearch = (searchQuery: string) => {
     const {location} = this.props;
 
@@ -48,6 +51,10 @@ class TrendsContent extends React.Component<Props, State> {
       offsets[queryKey] = 0;
     });
 
+    this.setState({
+      previousTrendFunction: getCurrentTrendFunction(location).field,
+    });
+
     browserHistory.push({
       pathname: location.pathname,
       query: {
@@ -60,6 +67,7 @@ class TrendsContent extends React.Component<Props, State> {
 
   render() {
     const {organization, eventView, location} = this.props;
+    const {previousTrendFunction} = this.state;
     const trendView = eventView.clone() as TrendView;
     const currentTrendFunction = getCurrentTrendFunction(location);
 
@@ -96,11 +104,13 @@ class TrendsContent extends React.Component<Props, State> {
         <ChangedTransactionContainer>
           <ChangedTransactions
             trendChangeType={TrendChangeType.IMPROVED}
+            previousTrendFunction={previousTrendFunction}
             trendView={trendView}
             location={location}
           />
           <ChangedTransactions
             trendChangeType={TrendChangeType.REGRESSION}
+            previousTrendFunction={previousTrendFunction}
             trendView={trendView}
             location={location}
           />
