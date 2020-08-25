@@ -82,6 +82,7 @@ export enum ActionType {
   SLACK = 'slack',
   PAGERDUTY = 'pagerduty',
   MSTEAMS = 'msteams',
+  SENTRY_APP = 'sentry_app',
 }
 
 export enum TargetType {
