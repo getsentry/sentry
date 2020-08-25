@@ -120,6 +120,7 @@ class DiscoverQuery extends React.Component<Props, State> {
       trendChangeType,
     } = this.props;
 
+    // The check for trendChangeType here is due to the fact that the event view will never be valid with trends as they don't send any fields.
     if (!eventView.isValid() && !trendChangeType) {
       return;
     }
