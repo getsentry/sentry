@@ -25,7 +25,8 @@ import Tooltip from 'app/components/tooltip';
 import SentryTypes from 'app/sentryTypes';
 import {getRelativeSummary} from 'app/components/organizations/timeRangeSelector/utils';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
-import withApi from 'app/utils/withApi';
+import withGlobalSelection from 'app/utils/withGlobalSelection';
+import withOrganization from 'app/utils/withOrganization';
 
 const StreamGroup = createReactClass({
   displayName: 'StreamGroup',
@@ -38,7 +39,8 @@ const StreamGroup = createReactClass({
     hasGuideAnchor: PropTypes.bool,
     memberList: PropTypes.array,
     withChart: PropTypes.bool,
-    selection: SentryTypes.GlobalSelection,
+    selection: SentryTypes.GlobalSelection.isRequired,
+    organization: SentryTypes.Organization.isRequired,
   },
 
   mixins: [Reflux.listenTo(GroupStore, 'onGroupChange')],
@@ -123,7 +125,10 @@ const StreamGroup = createReactClass({
       withChart,
       statsPeriod,
       selection,
+      organization,
     } = this.props;
+
+    const hasDynamicIssueCounts = organization.features.includes('dynamic-issue-counts');
 
     const {period, start, end} = selection.datetime || {};
 
@@ -134,18 +139,25 @@ const StreamGroup = createReactClass({
 
     const popperStyle = {background: theme.gray800, maxWidth: 'none'};
 
-    const primaryCount = data.filtered ? data.filtered.count : data.count;
-    const secondaryCount = data.filtered ? data.count : null;
-    const primaryUserCount = data.filtered ? data.filtered.userCount : data.userCount;
-    const secondaryUserCount = data.filtered ? data.userCount : null;
+    const primaryCount =
+      data.filtered && hasDynamicIssueCounts ? data.filtered.count : data.count;
+    const secondaryCount = data.filtered && hasDynamicIssueCounts ? data.count : null;
+    const primaryUserCount =
+      data.filtered && hasDynamicIssueCounts ? data.filtered.userCount : data.userCount;
+    const secondaryUserCount =
+      data.filtered && hasDynamicIssueCounts ? data.userCount : null;
+
+    const mouseEventHandlers = hasDynamicIssueCounts
+      ? {
+          onMouseEnter: () => this.toggleShowLifetimeStats(true),
+          onMouseLeave: () => this.toggleShowLifetimeStats(false),
+        }
+      : {};
+
+    // TODO: @taylangocmen discover links on telescopes
 
     return (
-      <Group
-        data-test-id="group"
-        onClick={this.toggleSelect}
-        onMouseEnter={() => this.toggleShowLifetimeStats(true)}
-        onMouseLeave={() => this.toggleShowLifetimeStats(false)}
-      >
+      <Group data-test-id="group" onClick={this.toggleSelect} {...mouseEventHandlers}>
         {canSelect && (
           <GroupCheckbox ml={2}>
             <GroupCheckBox id={data.id} />
@@ -163,18 +175,26 @@ const StreamGroup = createReactClass({
         {hasGuideAnchor && <GuideAnchor target="issue_stream" />}
         {withChart && (
           <Box width={160} mx={2} className="hidden-xs hidden-sm">
-            <GroupChart id={data.id} statsPeriod={statsPeriod} data={data} />
+            <GroupChart
+              id={data.id}
+              statsPeriod={statsPeriod}
+              data={data}
+              hasDynamicIssueCounts={hasDynamicIssueCounts}
+            />
           </Box>
         )}
         <Flex width={[40, 60, 80, 80]} mx={2} justifyContent="flex-end">
           <Tooltip
+            disabled={!hasDynamicIssueCounts}
             popperStyle={popperStyle}
             tipContent={
               <TooltipContent>
-                <TooltipRow>
-                  <TooltipText>Events since issue began</TooltipText>
-                  <TooltipCount>{data.lifetime.count}</TooltipCount>
-                </TooltipRow>
+                {data.lifetime && (
+                  <TooltipRow>
+                    <TooltipText>Events since issue began</TooltipText>
+                    <TooltipCount>{data.lifetime.count}</TooltipCount>
+                  </TooltipRow>
+                )}
                 <TooltipRow>
                   <TooltipText>Events within {summary}</TooltipText>
                   <TooltipCount>{data.count}</TooltipCount>
@@ -201,13 +221,16 @@ const StreamGroup = createReactClass({
         </Flex>
         <Flex width={[40, 60, 80, 80]} mx={2} justifyContent="flex-end">
           <Tooltip
+            disabled={!hasDynamicIssueCounts}
             popperStyle={popperStyle}
             tipContent={
               <TooltipContent>
-                <TooltipRow>
-                  <TooltipText>Users affected since issue began</TooltipText>
-                  <TooltipCount>{data.lifetime.userCount}</TooltipCount>
-                </TooltipRow>
+                {data.lifetime && (
+                  <TooltipRow>
+                    <TooltipText>Users affected since issue began</TooltipText>
+                    <TooltipCount>{data.lifetime.userCount}</TooltipCount>
+                  </TooltipRow>
+                )}
                 <TooltipRow>
                   <TooltipText>Users affected within {summary}</TooltipText>
                   <TooltipCount>{data.userCount}</TooltipCount>
@@ -224,7 +247,7 @@ const StreamGroup = createReactClass({
             }
           >
             <StyledPrimaryCount value={primaryUserCount} />
-            {showLifetimeStats && secondaryUserCount && (
+            {showLifetimeStats && secondaryUserCount && hasDynamicIssueCounts && (
               <React.Fragment>
                 {'/'}
                 <StyledSecondaryCount value={secondaryUserCount} />
@@ -298,4 +321,4 @@ const StyledIconTelescope = styled(p => (
   padding-left: 10px;
 `;
 
-export default withApi(StreamGroup);
+export default withGlobalSelection(withOrganization(StreamGroup));
