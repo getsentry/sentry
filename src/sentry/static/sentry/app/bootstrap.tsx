@@ -62,22 +62,29 @@ async function getSentryIntegrations(hasReplays: boolean = false) {
       ),
     }),
   ];
-  if (hasReplays) {
-    // eslint-disable-next-line no-console
-    console.log('[sentry] Instrumenting session with rrweb');
 
-    const {default: SentryRRWeb} = await import(
-      /* webpackChunkName: "SentryRRWeb" */ '@sentry/rrweb'
-    );
-    // TODO(ts): The type returned by SentryRRWeb seems to be somewhat
-    // incompatible. It's a newer plugin, so this can be expected, but we
-    // should fix.
-    integrations.push(
-      new SentryRRWeb({
-        checkoutEveryNms: 60 * 1000, // 60 seconds
-      }) as any
-    );
+  if (hasReplays) {
+    try {
+      // eslint-disable-next-line no-console
+      console.log('[sentry] Instrumenting session with rrweb');
+
+      const {default: SentryRRWeb} = await import(
+        /* webpackChunkName: "SentryRRWeb" */ '@sentry/rrweb'
+      );
+      // TODO(ts): The type returned by SentryRRWeb seems to be somewhat
+      // incompatible. It's a newer plugin, so this can be expected, but we
+      // should fix.
+      integrations.push(
+        new SentryRRWeb({
+          checkoutEveryNms: 60 * 1000, // 60 seconds
+        }) as any
+      );
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[sentry] Error loading rrweb integration');
+    }
   }
+
   return integrations;
 }
 
