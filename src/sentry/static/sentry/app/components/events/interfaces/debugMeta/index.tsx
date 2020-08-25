@@ -468,8 +468,7 @@ const StyledEventDataSection = styled(EventDataSection)`
 const DebugImagesPanel = styled(Panel)`
   margin-bottom: ${space(1)};
   max-height: ${PANEL_MAX_HEIGHT}px;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
 `;
 
 const ToolbarWrapper = styled('div')`
