@@ -204,16 +204,20 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                 if search_filter.key.name not in skip_snuba_fields
             ]
 
-        context = serialize(results, request.user, serializer(start=start, end=end))
         lifetime_stats = serialize(results, request.user, serializer())
-        filtered_stats = serialize(
-            results, request.user, serializer(start=start, end=end, snuba_filters=snuba_filters),
-        )
 
-        # context = [(lambda c,l: c["lifetime"] = l; c )(c,l) for c,l in zip(context, lifetime_stats)]
-        for idx, ctx in enumerate(context):
-            ctx["lifetime"] = lifetime_stats[idx]
-            ctx["filtered"] = filtered_stats[idx]
+        if features.has("organizations:dynamic-issue-counts", organization, actor=request.user):
+            context = serialize(results, request.user, serializer(start=start, end=end))
+            filtered_stats = serialize(
+                results,
+                request.user,
+                serializer(start=start, end=end, snuba_filters=snuba_filters),
+            )
+            for idx, ctx in enumerate(context):
+                ctx["lifetime"] = lifetime_stats[idx]
+                ctx["filtered"] = filtered_stats[idx]
+        else:
+            context = lifetime_stats
 
         # HACK: remove auto resolved entries
         # TODO: We should try to integrate this into the search backend, since
