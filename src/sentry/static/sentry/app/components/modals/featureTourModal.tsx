@@ -162,13 +162,11 @@ class ModalContents extends React.Component<ContentsProps, ContentsState> {
     return (
       <Body>
         <CloseButton borderless size="zero" onClick={closeModal} icon={<IconClose />} />
-        {step.image && <TourContent>{step.image}</TourContent>}
         <TourContent>
-          <h3>{step.title}</h3>
+          {step.image}
+          <TourHeader>{step.title}</TourHeader>
           {step.body}
-        </TourContent>
-        <TourContent>
-          <ButtonBar gap={1}>
+          <TourButtonBar gap={1}>
             {step.actions && step.actions}
             {hasNext && (
               <Button
@@ -190,9 +188,9 @@ class ModalContents extends React.Component<ContentsProps, ContentsState> {
                 {doneText}
               </Button>
             )}
-          </ButtonBar>
+          </TourButtonBar>
+          <StepCounter>{t('%s of %s', current + 1, steps.length)}</StepCounter>
         </TourContent>
-        <StepCounter>{t('%s of %s', current + 1, steps.length)}</StepCounter>
       </Body>
     );
   }
@@ -201,31 +199,41 @@ class ModalContents extends React.Component<ContentsProps, ContentsState> {
 const CloseButton = styled(Button)`
   position: absolute;
   top: -${space(2)};
-  right: -${space(2)};
+  right: -${space(1)};
 `;
 
 const TourContent = styled('div')`
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-bottom: ${space(2)};
+  margin: ${space(1)} ${space(4)};
 `;
 
-const StepCounter = styled(TourContent)`
+const TourHeader = styled('h4')`
+  margin-bottom: ${space(1)};
+`;
+
+const TourButtonBar = styled(ButtonBar)`
+  margin-bottom: ${space(3)};
+`;
+
+const StepCounter = styled('div')`
   text-transform: uppercase;
   font-size: ${p => p.theme.fontSizeSmall};
+  font-weight: bold;
   color: ${p => p.theme.gray400};
-  margin-bottom: 0;
 `;
 
 // Styled components that can be used to build tour content.
 export const TourText = styled('p')`
   text-align: center;
-  margin: 0 ${space(3)};
+  margin-bottom: ${space(2)};
 `;
 
 export const TourImage = styled('img')`
-  margin-top: ${space(4)};
+  max-width: 360px;
+  height: 200px;
+  margin-bottom: ${space(4)};
 
   /** override styles in less files */
   box-shadow: none !important;

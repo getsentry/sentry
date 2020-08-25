@@ -131,7 +131,7 @@ function Onboarding({organization}: Props) {
                 showModal();
               }}
             >
-              {t('Learn More')}
+              {t('Take a Tour')}
             </Button>
           )}
         </FeatureTourModal>
