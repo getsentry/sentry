@@ -64,7 +64,7 @@ def reprocess_events(project_id, event_ids, start_time):
     node_results = nodestore.get_multi(node_ids)
 
     # TODO: Passthrough non-reprocessable events
-    
+
     new_event_ids = {}
 
     for node_id, data in six.iteritems(node_results):
@@ -73,16 +73,15 @@ def reprocess_events(project_id, event_ids, start_time):
         # save the "original event ID" instead and get away with writing less to
         # nodestore, but doing it this way makes the logic slightly simpler.
 
-        new_event_ids[data['event_id']] = event_id = data["event_id"] = uuid.uuid4().hex
+        new_event_ids[data["event_id"]] = event_id = data["event_id"] = uuid.uuid4().hex
         # XXX: Only reset received
-        data['timestamp'] = data["received"] = start_time
+        data["timestamp"] = data["received"] = start_time
         data.setdefault("fingerprint", ["{{default}}"]).append("__sentry_reprocessed")
 
         cache_key = event_processing_store.store(data)
 
         from sentry.tasks.store import preprocess_event_from_reprocessing
 
-        print("Spawn reprocess")
         preprocess_event_from_reprocessing(
             cache_key=cache_key, start_time=start_time, event_id=event_id
         )
