@@ -1,1 +1,135 @@
-<svg width="291" height="144" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M82 103.035L291 103v6.965L82 110v-6.965zM82 117.035L291 117v6.965L82 124v-6.965zM82 89.035L291 89v6.965L82 96v-6.965zM82 75.035L291 75v6.965L82 82v-6.965zM82 60.035L291 60v6.965L82 67v-6.965zM82 46.035L291 46v6.965L82 53v-6.965zM82 32.035L291 32v6.965L82 39v-6.965zM82 18.035L291 18v6.965L82 25v-6.965z" fill="#EDE7F5"/><rect x="10" y="21" width="45" height="2" rx="1" fill="#5A4A79"/><rect x="21" y="35" width="17" height="2" rx="1" fill="#5A4A79"/><rect x="21" y="42" width="35" height="2" rx="1" fill="#5A4A79"/><rect x="21" y="49" width="43" height="2" rx="1" fill="#5A4A79"/><rect x="21" y="56" width="30" height="2" rx="1" fill="#5A4A79"/><rect x="21" y="63" width="43" height="2" rx="1" fill="#5A4A79"/><rect x="21" y="28" width="39" height="2" rx="1" fill="#5A4A79"/><rect x="21" y="70" width="34" height="2" rx="1" fill="#5A4A79"/><rect x="33" y="84" width="19" height="2" rx="1" fill="#5A4A79"/><rect x="33" y="91" width="35" height="2" rx="1" fill="#5A4A79"/><rect x="33" y="98" width="39" height="2" rx="1" fill="#5A4A79"/><rect x="33" y="105" width="30" height="2" rx="1" fill="#5A4A79"/><rect x="33" y="112" width="43" height="2" rx="1" fill="#5A4A79"/><rect x="33" y="119" width="30" height="2" rx="1" fill="#5A4A79"/><rect x="21" y="77" width="39" height="2" rx="1" fill="#5A4A79"/><path d="M289 134l-1-124H1.717L1 133.05l288 .95z" stroke="#FF7738" stroke-width="1.5"/><path fill="#5A4A79" d="M82 18h8v7h-8zM90 25h16v7H90z"/><path fill="#FF7738" d="M106 32h33v7h-33zM160 60h42v7h-42z"/><path fill="#5A4A79" d="M139 39h7v7h-7zM146 46h2v7h-2zM148 53h12v7h-12zM202 68h10v7h-10zM212 75h4v7h-4zM216 82h20v7h-20zM236 89h2v7h-2zM238 96h2v7h-2zM240 103h26v7h-26zM266 110h5v7h-5zM271 117h14v7h-14z"/><path d="M3.702 130.885L3 12l283.523.242L287 132 3.702 130.885zM81.375 12v119" stroke="#3E2C73" stroke-width=".75"/><circle cx="179.5" cy="3.5" r="3.5" fill="#3E2C73"/><circle cx="179.5" cy="140.5" r="3.5" fill="#3E2C73"/><path stroke="#3E2C73" d="M179.5 4v137"/></svg>
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+	 viewBox="0 0 291 147" style="enable-background:new 0 0 291 147;" xml:space="preserve">
+	<style type="text/css">
+		.span-orange{fill:#FF7738;}
+		.span-purple{fill:#5A4A79;}
+		.tree{fill:#5A4A79;}
+		.border-purple{fill:none;stroke:#3E2C73;stroke-width:0.75;}
+		.border-orange{fill:none;stroke:#FF7738;stroke-width:1.5;}
+		.row{fill:#EDE7F5;}
+		.row-active {
+			animation: rowDarken 4s infinite ease-in-out;
+		}
+		.tree-active {
+			animation: treeLighten 4s infinite ease-in-out;
+		}
+		.click {
+			transform-origin: bottom center;
+			animation: clicked 4s infinite ease-in-out;
+		}
+		.borders path{
+			animation: borderLengthen 4s infinite ease-in-out;
+		}
+		.divider{
+			fill:none;stroke:#3E2C73;stroke-width:0.75;
+			animation: dividerShorten 4s infinite ease-in-out;
+		}
+		@keyframes rowDarken {
+			0%, 26% {
+				fill:#FFFFFF;
+			}
+			30%, 90% {
+				fill:#302839;
+			}
+			100% {
+				fill:#FFFFFF;
+			}
+		}
+		@keyframes treeLighten {
+			0%, 25% {
+				fill:#5A4A79;
+			}
+			30%, 90% {
+				fill:#FFFFFF;
+			}
+			100% {
+				fill:#5A4A79;
+			}
+		}
+		@keyframes clicked {
+			0%, 24% {
+				transform: scaleY(1);
+			}
+			25%{
+				transform: translateY(-1px) scaleY(0.95);
+			}
+			30%, 85% {
+				transform: translateY(0) scaleY(1);
+			}
+			86% {
+				transform: translateY(-1px) scaleY(0.95);
+			}
+			90%, 100% {
+				transform: translateY(0) scaleY(1);
+			}
+		}
+		@keyframes dividerShorten {
+			26% {
+				transform: scaleY(1);
+			}
+			35%, 86% {
+				transform: scaleY(0.87);
+			}
+			100% {
+				transform: scaleY(1);
+			}
+		}
+		@keyframes borderLengthen {
+			26% {
+				transform: scaleY(1);
+			}
+			40%, 86% {
+				transform: scaleY(1.2);
+			}
+			100% {
+				transform: scaleY(1);
+			}
+		}
+	</style>
+	<g id="row-inactive">
+		<path class="row" d="M81,65h210v8H81V65z"/>
+		<path class="row" d="M81,49h210v8H81V49z"/>
+		<path class="row" d="M81,33h210v8H81V33z"/>
+		<path class="row" d="M81,17h210v8H81V17z"/>
+		<path class="row" d="M81,97h210v8H81V97z"/>
+		<path class="row" d="M81,81h210v8H81V81z"/>
+	</g>
+	<g id="span-inactive">
+		<rect x="81" y="9" class="span-purple" width="8" height="8"/>
+		<rect x="89" y="17" class="span-purple" width="16" height="8"/>
+		<rect x="105" y="25" class="span-orange" width="33" height="8"/>
+		<rect x="159" y="49" class="span-orange" width="18" height="8"/>
+		<rect x="138" y="33" class="span-purple" width="7" height="8"/>
+		<rect x="145" y="41" class="span-purple" width="14" height="8"/>
+		<rect x="177" y="57" class="span-purple" width="3" height="8"/>
+		<rect x="180" y="65" class="span-purple" width="30" height="8"/>
+		<rect x="210" y="73" class="span-purple" width="2" height="8"/>
+		<rect x="212" y="81" class="span-purple" width="2" height="8"/>
+		<rect x="214" y="89" class="span-purple" width="8" height="8"/>
+		<rect x="222" y="97" class="span-purple" width="5" height="8"/>
+	</g>
+	<g id="tree-inactive">
+		<path class="tree" d="M12,12h43c0.6,0,1,0.4,1,1l0,0c0,0.6-0.4,1-1,1H12c-0.6,0-1-0.4-1-1l0,0C11,12.4,11.4,12,12,12z"/>
+		<path class="tree" d="M20,28h26c0.6,0,1,0.4,1,1l0,0c0,0.6-0.4,1-1,1H20c-0.6,0-1-0.4-1-1l0,0C19,28.4,19.4,28,20,28z"/>
+		<path class="tree" d="M20,36h33c0.6,0,1,0.4,1,1l0,0c0,0.6-0.4,1-1,1H20c-0.6,0-1-0.4-1-1l0,0C19,36.4,19.4,36,20,36z"/>
+		<path class="tree" d="M20,44h41c0.6,0,1,0.4,1,1l0,0c0,0.6-0.4,1-1,1H20c-0.6,0-1-0.4-1-1l0,0C19,44.4,19.4,44,20,44z"/>
+		<path class="tree" d="M20,52h28c0.6,0,1,0.4,1,1l0,0c0,0.6-0.4,1-1,1H20c-0.6,0-1-0.4-1-1l0,0C19,52.4,19.4,52,20,52z"/>
+		<path class="tree" d="M20,60h41c0.6,0,1,0.4,1,1l0,0c0,0.6-0.4,1-1,1H20c-0.6,0-1-0.4-1-1l0,0C19,60.4,19.4,60,20,60z"/>
+		<path class="tree" d="M20,20h37c0.6,0,1,0.4,1,1l0,0c0,0.6-0.4,1-1,1H20c-0.6,0-1-0.4-1-1l0,0C19,20.4,19.4,20,20,20z"/>
+		<path class="tree" d="M20,68h32c0.6,0,1,0.4,1,1l0,0c0,0.6-0.4,1-1,1H20c-0.6,0-1-0.4-1-1l0,0C19,68.4,19.4,68,20,68z"/>
+		<path class="tree" d="M29,76h33c0.6,0,1,0.4,1,1l0,0c0,0.6-0.4,1-1,1H29c-0.6,0-1-0.4-1-1l0,0C28,76.4,28.4,76,29,76z"/>
+		<path class="tree" d="M29,84h37c0.6,0,1,0.4,1,1l0,0c0,0.6-0.4,1-1,1H29c-0.6,0-1-0.4-1-1l0,0C28,84.4,28.4,84,29,84z"/>
+		<path class="tree" d="M29,92h28c0.6,0,1,0.4,1,1l0,0c0,0.6-0.4,1-1,1H29c-0.6,0-1-0.4-1-1l0,0C28,92.4,28.4,92,29,92z"/>
+		<path class="tree" d="M29,100h41c0.6,0,1,0.4,1,1l0,0c0,0.6-0.4,1-1,1H29c-0.6,0-1-0.4-1-1l0,0C28,100.4,28.4,100,29,100z"/>
+	</g>
+	<g id="click" class="click">
+		<rect class="row row-active" x="3" y="105" width="287" height="8"/>
+		<path class="tree tree-active" d="M29,108h41c0.6,0,1,0.4,1,1l0,0c0,0.6-0.4,1-1,1H29c-0.6,0-1-0.4-1-1l0,0C28,108.4,28.4,108,29,108z"/>
+		<rect class="span-orange" x="227" y="105" width="60" height="8"/>
+	</g>
+	<line class="divider" x1="81.4" y1="3" x2="81.4" y2="122"/>
+	<g id="borders" class="borders">
+		<path class="border-orange" d="M289,122L288,1H1.7L1,121.1L289,122z"/>
+		<path class="border-purple" d="M3.7,118.9L3,3l283.5,0.2L287,120L3.7,118.9z"/>
+	</g>
+</svg>
