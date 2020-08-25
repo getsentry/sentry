@@ -157,7 +157,7 @@ function ChangedTransactions(props: Props) {
                     {transactionsList.map((transaction, index) => (
                       <TrendsListItem
                         currentTrendFunction={currentTrendFunction}
-                        trendView={trendView}
+                        trendView={props.trendView}
                         organization={organization}
                         transaction={transaction}
                         key={transaction.transaction}
