@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from contextlib import contextmanager
+import math
 import sentry_sdk
 import six
 from rest_framework.exceptions import PermissionDenied
@@ -142,9 +143,11 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
 
 class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
-    def handle_results_with_meta(self, request, organization, project_ids, results):
+    def handle_results_with_meta(self, request, organization, project_ids, results, omit_nan=False):
         with sentry_sdk.start_span(op="discover.endpoint", description="base.handle_results"):
-            data = self.handle_data(request, organization, project_ids, results.get("data"))
+            data = self.handle_data(
+                request, organization, project_ids, results.get("data"), omit_nan
+            )
             if not data:
                 return {"data": [], "meta": {}}
 
@@ -158,7 +161,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     meta[key] = "string"
             return {"meta": meta, "data": data}
 
-    def handle_data(self, request, organization, project_ids, results):
+    def handle_data(self, request, organization, project_ids, results, omit_nan=False):
         if not results:
             return results
 
@@ -171,12 +174,21 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 row["transaction.status"] = SPAN_STATUS_CODE_TO_NAME.get(row["transaction.status"])
 
         fields = request.GET.getlist("field")
-        if "issue" in fields:  # Look up the short ID and return that in the results
-            issue_ids = set(row.get("issue.id") for row in results)
-            issues = Group.issues_mapping(issue_ids, project_ids, organization)
+        has_issues = "issue" in fields
+        if has_issues or omit_nan:  # Look up the short ID and return that in the results
+            if has_issues:
+                issue_ids = set(row.get("issue.id") for row in results)
+                issues = Group.issues_mapping(issue_ids, project_ids, organization)
             for result in results:
-                if "issue.id" in result:
+                if has_issues and "issue.id" in result:
                     result["issue"] = issues.get(result["issue.id"], "unknown")
+                # Remove any potential NaN or Inf cause python json accepts either, but js doesn't
+                if omit_nan:
+                    for key in result.keys():
+                        if isinstance(result[key], float) and (
+                            math.isnan(result[key]) or math.isinf(result[key])
+                        ):
+                            result[key] = None
 
         if not ("project.id" in first_row or "projectid" in first_row):
             return results
@@ -189,12 +201,14 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 
         return results
 
-    def get_event_stats_data(self, request, organization, get_event_stats, top_events=False):
+    def get_event_stats_data(
+        self, request, organization, get_event_stats, top_events=False, query_column="count()"
+    ):
         with self.handle_query_errors():
             with sentry_sdk.start_span(
                 op="discover.endpoint", description="base.stats_query_creation"
             ):
-                columns = request.GET.getlist("yAxis", ["count()"])
+                columns = request.GET.getlist("yAxis", [query_column])
                 query = request.GET.get("query")
                 try:
                     params = self.get_filter_params(request, organization)
@@ -241,7 +255,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     else:
                         # Need to get function alias if count is a field, but not the axis
                         results[key] = serializer.serialize(
-                            event_result, get_function_alias(query_columns[0])
+                            event_result, column=get_function_alias(query_columns[0])
                         )
                 return results
             elif len(query_columns) > 1:

@@ -586,7 +586,9 @@ def key_transaction_query(selected_columns, user_query, params, orderby, referre
     )
 
 
-def get_timeseries_snuba_filter(selected_columns, query, params, rollup, reference_event=None):
+def get_timeseries_snuba_filter(
+    selected_columns, query, params, rollup, reference_event=None, default_count=True
+):
     snuba_filter = get_filter(query, params)
     if not snuba_filter.start and not snuba_filter.end:
         raise InvalidSearchQuery("Cannot get timeseries result without a start and end.")
@@ -604,7 +606,7 @@ def get_timeseries_snuba_filter(selected_columns, query, params, rollup, referen
 
     # Change the alias of the first aggregation to count. This ensures compatibility
     # with other parts of the timeseries endpoint expectations
-    if len(snuba_filter.aggregations) == 1:
+    if len(snuba_filter.aggregations) == 1 and default_count:
         snuba_filter.aggregations[0][2] = "count"
 
     return snuba_filter, translated_columns
@@ -738,6 +740,7 @@ def top_events_timeseries(
     limit,
     organization,
     referrer=None,
+    top_events=None,
 ):
     """
     High-level API for doing arbitrary user timeseries queries for a limited number of top events
@@ -758,23 +761,28 @@ def top_events_timeseries(
     organization (Organization) Used to map group ids to short ids
     referrer (str|None) A referrer string to help locate the origin of this query.
     """
-    with sentry_sdk.start_span(op="discover.discover", description="top_events.fetch_events"):
-        top_events = query(
-            selected_columns,
-            query=user_query,
-            params=params,
-            orderby=orderby,
-            limit=limit,
-            referrer=referrer,
-            use_aggregate_conditions=True,
-        )
+    if top_events is None:
+        with sentry_sdk.start_span(op="discover.discover", description="top_events.fetch_events"):
+            top_events = query(
+                selected_columns,
+                query=user_query,
+                params=params,
+                orderby=orderby,
+                limit=limit,
+                referrer=referrer,
+                use_aggregate_conditions=True,
+            )
 
     with sentry_sdk.start_span(
         op="discover.discover", description="top_events.filter_transform"
     ) as span:
         span.set_data("query", user_query)
         snuba_filter, translated_columns = get_timeseries_snuba_filter(
-            timeseries_columns + selected_columns, user_query, params, rollup
+            list(set(timeseries_columns + selected_columns)),
+            user_query,
+            params,
+            rollup,
+            default_count=False,
         )
 
         for field in selected_columns:
