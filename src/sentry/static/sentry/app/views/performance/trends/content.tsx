@@ -84,6 +84,7 @@ class TrendsContent extends React.Component<Props, State> {
                   key={field}
                   onSelect={this.handleTrendFunctionChange}
                   eventKey={field}
+                  data-test-id={field}
                   isActive={field === currentTrendFunction.field}
                 >
                   {label}
