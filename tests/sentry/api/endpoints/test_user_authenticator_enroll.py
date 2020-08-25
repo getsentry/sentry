@@ -41,6 +41,9 @@ class UserAuthenticatorEnrollTest(APITestCase):
     @mock.patch("sentry.utils.email.logger")
     @mock.patch("sentry.models.TotpInterface.validate_otp", return_value=True)
     def test_totp_can_enroll(self, validate_otp, email_log):
+        # XXX: Pretend an unbound function exists.
+        validate_otp.__func__ = None
+
         url = reverse(
             "sentry-api-0-user-authenticator-enroll",
             kwargs={"user_id": "me", "interface_id": "totp"},
@@ -80,6 +83,9 @@ class UserAuthenticatorEnrollTest(APITestCase):
     @mock.patch("sentry.utils.email.logger")
     @mock.patch("sentry.models.TotpInterface.validate_otp", return_value=False)
     def test_invalid_otp(self, validate_otp, email_log):
+        # XXX: Pretend an unbound function exists.
+        validate_otp.__func__ = None
+
         url = reverse(
             "sentry-api-0-user-authenticator-enroll",
             kwargs={"user_id": "me", "interface_id": "totp"},
@@ -96,6 +102,9 @@ class UserAuthenticatorEnrollTest(APITestCase):
     @mock.patch("sentry.models.SmsInterface.validate_otp", return_value=True)
     @mock.patch("sentry.models.SmsInterface.send_text", return_value=True)
     def test_sms_can_enroll(self, send_text, validate_otp, email_log):
+        # XXX: Pretend an unbound function exists.
+        validate_otp.__func__ = None
+
         new_options = settings.SENTRY_OPTIONS.copy()
         new_options["sms.twilio-account"] = "twilio-account"
 
@@ -265,6 +274,9 @@ class AcceptOrganizationInviteTest(APITestCase):
     @mock.patch("sentry.models.SmsInterface.validate_otp", return_value=True)
     @mock.patch("sentry.models.SmsInterface.send_text", return_value=True)
     def test_accept_pending_invite__sms_enroll(self, send_text, validate_otp):
+        # XXX: Pretend an unbound function exists.
+        validate_otp.__func__ = None
+
         om = self.get_om_and_init_invite()
 
         # setup sms
@@ -300,6 +312,9 @@ class AcceptOrganizationInviteTest(APITestCase):
 
     @mock.patch("sentry.models.TotpInterface.validate_otp", return_value=True)
     def test_accept_pending_invite__totp_enroll(self, validate_otp):
+        # XXX: Pretend an unbound function exists.
+        validate_otp.__func__ = None
+
         om = self.get_om_and_init_invite()
 
         # setup totp
