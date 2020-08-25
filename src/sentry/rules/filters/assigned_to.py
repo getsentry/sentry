@@ -7,13 +7,13 @@ from sentry.mail.actions import MemberTeamForm
 
 
 class AssigneeTargetType:
-    NO_ONE = "NoOne"
+    UNASSIGNED = "Unassigned"
     TEAM = "Team"
     MEMBER = "Member"
 
 
 CHOICES = [
-    (AssigneeTargetType.NO_ONE, "No One"),
+    (AssigneeTargetType.UNASSIGNED, "Unassigned"),
     (AssigneeTargetType.TEAM, "Team"),
     (AssigneeTargetType.MEMBER, "Member"),
 ]
@@ -38,18 +38,18 @@ class AssignedToFilter(EventFilter):
 
         issue_assignees = event.group.assignee_set
 
-        if targetType == AssigneeTargetType.NO_ONE:
-            return issue_assignees.count() <= 0
+        if targetType == AssigneeTargetType.UNASSIGNED:
+            return not issue_assignees.exists()
         else:
             targetId = self.get_option("targetIdentifier", None)
 
             if targetType == AssigneeTargetType.TEAM:
                 for assignee in issue_assignees.all():
-                    if assignee.team and assignee.team.id == targetId:
+                    if assignee.team and assignee.team_id == targetId:
                         return True
             elif targetType == AssigneeTargetType.MEMBER:
                 for assignee in issue_assignees.all():
-                    if assignee.user and assignee.user.id == targetId:
+                    if assignee.user and assignee.user_id == targetId:
                         return True
             return False
 

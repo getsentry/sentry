@@ -74,7 +74,7 @@ export enum MailActionTargetType {
 }
 
 export enum AssigneeTargetType {
-  NoOne = 'NoOne',
+  Unassigned = 'Unassigned',
   Team = 'Team',
   Member = 'Member',
 }

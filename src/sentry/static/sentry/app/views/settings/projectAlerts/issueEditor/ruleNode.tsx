@@ -142,9 +142,9 @@ class RuleNode extends React.Component<Props> {
         ruleData={data as IssueAlertRuleAction}
         onChange={this.handleMemberTeamChange}
         options={[
-          {value: MailActionTargetType.IssueOwners, label: 'Issue Owners'},
-          {value: MailActionTargetType.Team, label: 'Team'},
-          {value: MailActionTargetType.Member, label: 'Member'},
+          {value: MailActionTargetType.IssueOwners, label: t('Issue Owners')},
+          {value: MailActionTargetType.Team, label: t('Team')},
+          {value: MailActionTargetType.Member, label: t('Member')},
         ]}
         memberValue={MailActionTargetType.Member}
         teamValue={MailActionTargetType.Team}
@@ -165,9 +165,9 @@ class RuleNode extends React.Component<Props> {
         ruleData={data as IssueAlertRuleCondition}
         onChange={this.handleMemberTeamChange}
         options={[
-          {value: AssigneeTargetType.NoOne, label: 'No One'},
-          {value: AssigneeTargetType.Team, label: 'Team'},
-          {value: AssigneeTargetType.Member, label: 'Member'},
+          {value: AssigneeTargetType.Unassigned, label: t('No One')},
+          {value: AssigneeTargetType.Team, label: t('Team')},
+          {value: AssigneeTargetType.Member, label: t('Member')},
         ]}
         memberValue={AssigneeTargetType.Member}
         teamValue={AssigneeTargetType.Team}

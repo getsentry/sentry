@@ -58,7 +58,7 @@ class AssignedToFilter(RuleTestCase):
         event = self.get_event()
 
         data = {
-            "targetType": "NoOne",
+            "targetType": "Unassigned",
         }
         rule = self.get_rule(data=data)
         self.assertPasses(rule, event)
@@ -68,7 +68,7 @@ class AssignedToFilter(RuleTestCase):
         GroupAssignee.objects.create(user=self.user, group=event.group, project=self.project)
 
         data = {
-            "targetType": "NoOne",
+            "targetType": "Unassigned",
         }
         rule = self.get_rule(data=data)
         self.assertDoesNotPass(rule, event)
