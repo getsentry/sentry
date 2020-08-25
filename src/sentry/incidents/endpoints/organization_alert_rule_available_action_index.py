@@ -9,9 +9,12 @@ from sentry import features
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.incidents.endpoints.bases import OrganizationEndpoint
 from sentry.incidents.endpoints.serializers import action_target_type_to_string
-from sentry.incidents.logic import get_available_action_integrations_for_org
+from sentry.incidents.logic import (
+    get_available_action_integrations_for_org,
+    get_alertable_sentry_apps,
+    get_pagerduty_services,
+)
 from sentry.incidents.models import AlertRuleTriggerAction
-from sentry.models import PagerDutyService
 
 
 class OrganizationAlertRuleAvailableActionIndexEndpoint(OrganizationEndpoint):

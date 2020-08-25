@@ -53,34 +53,55 @@ type Props = {
   onChange: (triggerIndex: number, triggers: Trigger[], actions: Action[]) => void;
 };
 
+/**
+ * When a new action is added, all of it's settings should be set to their default values.
+ * @param actionConfig
+ */
+const getCleanAction = (actionConfig): Action => {
+  return {
+    type: actionConfig.type,
+    targetType:
+      actionConfig &&
+      actionConfig.allowedTargetTypes &&
+      actionConfig.allowedTargetTypes.length > 0
+        ? actionConfig.allowedTargetTypes[0]
+        : null,
+    targetIdentifier: '',
+    integrationId: actionConfig.integrationId,
+    options: actionConfig.options || null,
+  };
 };
+
+/**
+ * Actions have a type (e.g. email, slack, etc), but only some have
+ * an integrationId (e.g. email is null). This helper creates a unique
+ * id based on the type and integrationId so that we know what action
+ * a user's saved action corresponds to.
+ */
+const getActionUniqueKey = ({
+  type,
+  integrationId,
+}: Pick<Action, 'type' | 'integrationId'>) => {
+  return [type, integrationId].filter(x => !!x).join('-');
+};
+
+/**
+ * Creates a human-friendly display name for the integration based on type and
+ * server provided `integrationName`
+ *
+ * e.g. for slack we show that it is slack and the `integrationName` is the workspace name
+ */
+const getFullActionTitle = ({
+  type,
+  integrationName,
+}: Pick<MetricActionTemplate, 'type' | 'integrationName'>) => {
+  return [ActionLabel[type], integrationName].filter(x => !!x).join(' - ');
+};
+
 /**
  * Lists saved actions as well as control to add a new action
  */
 class ActionsPanel extends React.PureComponent<Props> {
-  /**
-   * Actions have a type (e.g. email, slack, etc), but only some have
-   * an integrationId (e.g. email is null). This helper creates a unique
-   * id based on the type and integrationId so that we know what action
-   * a user's saved action corresponds to.
-   */
-  getActionUniqueKey({type, integrationId}: Pick<Action, 'type' | 'integrationId'>) {
-    return `${type}-${integrationId}`;
-  }
-
-  /**
-   * Creates a human-friendly display name for the integration based on type and
-   * server provided `integrationName`
-   *
-   * e.g. for slack we show that it is slack and the `integrationName` is the workspace name
-   */
-  getFullActionTitle({
-    type,
-    integrationName,
-  }: Pick<MetricActionTemplate, 'type' | 'integrationName'>) {
-    return `${ActionLabel[type]}${integrationName ? ` - ${integrationName}` : ''}`;
-  }
-
   handleChangeTargetIdentifier(triggerIndex: number, index: number, value: string) {
     const {triggers, onChange} = this.props;
     const {actions} = triggers[triggerIndex];
@@ -102,19 +123,7 @@ class ActionsPanel extends React.PureComponent<Props> {
       return;
     }
 
-    const action: Action = {
-      type: actionConfig.type,
-      targetType:
-        actionConfig &&
-        actionConfig.allowedTargetTypes &&
-        actionConfig.allowedTargetTypes.length > 0
-          ? actionConfig.allowedTargetTypes[0]
-          : null,
-      targetIdentifier: '',
-      integrationId: actionConfig.integrationId,
-      inputType: actionConfig.inputType,
-      options: actionConfig.options || null,
-    };
+    const action: Action = getCleanAction(actionConfig);
 
     // Add new actions to critical by default
     const triggerIndex = 0;
@@ -152,7 +161,7 @@ class ActionsPanel extends React.PureComponent<Props> {
     const {triggers, onChange, availableActions} = this.props;
     const {actions} = triggers[triggerIndex];
     const actionConfig = availableActions?.find(
-      availableAction => this.getActionUniqueKey(availableAction) === value.value
+      availableAction => getActionUniqueKey(availableAction) === value.value
     );
     if (!actionConfig) {
       addErrorMessage(t('There was a problem changing an action'));
@@ -160,19 +169,7 @@ class ActionsPanel extends React.PureComponent<Props> {
       return;
     }
 
-    const newAction: Action = {
-      type: actionConfig.type,
-      targetType:
-        actionConfig &&
-        actionConfig.allowedTargetTypes &&
-        actionConfig.allowedTargetTypes.length > 0
-          ? actionConfig.allowedTargetTypes[0]
-          : null,
-      targetIdentifier: '',
-      integrationId: actionConfig.integrationId,
-      inputType: actionConfig.inputType,
-      options: actionConfig.options || null,
-    };
+    const newAction: Action = getCleanAction(actionConfig);
     onChange(triggerIndex, triggers, replaceAtArrayIndex(actions, index, newAction));
   };
 
@@ -207,8 +204,8 @@ class ActionsPanel extends React.PureComponent<Props> {
     const items =
       availableActions &&
       availableActions.map(availableAction => ({
-        value: this.getActionUniqueKey(availableAction),
-        label: this.getFullActionTitle(availableAction),
+        value: getActionUniqueKey(availableAction),
+        label: getFullActionTitle(availableAction),
       }));
 
     const levels = [
@@ -235,7 +232,7 @@ class ActionsPanel extends React.PureComponent<Props> {
               actions &&
               actions.map((action: Action, i: number) => {
                 const availableAction = availableActions?.find(
-                  a => this.getActionUniqueKey(a) === this.getActionUniqueKey(action)
+                  a => getActionUniqueKey(a) === getActionUniqueKey(action)
                 );
 
                 return (
@@ -256,7 +253,7 @@ class ActionsPanel extends React.PureComponent<Props> {
                       isDisabled={disabled || loading}
                       placeholder={t('Select Action')}
                       onChange={this.handleChangeActionType.bind(this, triggerIndex, i)}
-                      value={this.getActionUniqueKey(action)}
+                      value={getActionUniqueKey(action)}
                       options={items ?? []}
                     />
 
