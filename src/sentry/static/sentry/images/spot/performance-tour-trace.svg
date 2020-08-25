@@ -7,84 +7,16 @@
 		.border-purple{fill:none;stroke:#3E2C73;stroke-width:0.75;}
 		.border-orange{fill:none;stroke:#FF7738;stroke-width:1.5;}
 		.row{fill:#EDE7F5;}
-		.row-active {
-			animation: rowDarken 4s infinite ease-in-out;
-		}
-		.tree-active {
-			animation: treeLighten 4s infinite ease-in-out;
-		}
-		.click {
-			transform-origin: bottom center;
-			animation: clicked 4s infinite ease-in-out;
-		}
-		.borders path{
-			animation: borderLengthen 4s infinite ease-in-out;
-		}
-		.divider{
-			fill:none;stroke:#3E2C73;stroke-width:0.75;
-			animation: dividerShorten 4s infinite ease-in-out;
-		}
-		@keyframes rowDarken {
-			0%, 26% {
-				fill:#FFFFFF;
-			}
-			30%, 90% {
-				fill:#302839;
-			}
-			100% {
-				fill:#FFFFFF;
-			}
-		}
-		@keyframes treeLighten {
-			0%, 25% {
-				fill:#5A4A79;
-			}
-			30%, 90% {
-				fill:#FFFFFF;
-			}
-			100% {
-				fill:#5A4A79;
-			}
-		}
-		@keyframes clicked {
-			0%, 24% {
-				transform: scaleY(1);
-			}
-			25%{
-				transform: translateY(-1px) scaleY(0.95);
-			}
-			30%, 85% {
-				transform: translateY(0) scaleY(1);
-			}
-			86% {
-				transform: translateY(-1px) scaleY(0.95);
-			}
-			90%, 100% {
-				transform: translateY(0) scaleY(1);
-			}
-		}
-		@keyframes dividerShorten {
-			26% {
-				transform: scaleY(1);
-			}
-			35%, 86% {
-				transform: scaleY(0.87);
-			}
-			100% {
-				transform: scaleY(1);
-			}
-		}
-		@keyframes borderLengthen {
-			26% {
-				transform: scaleY(1);
-			}
-			40%, 86% {
-				transform: scaleY(1.2);
-			}
-			100% {
-				transform: scaleY(1);
-			}
-		}
+		.row-active {animation: rowDarken 4s infinite ease-in-out;}
+		.tree-active {animation: treeLighten 4s infinite ease-in-out;}
+		.click {transform-origin: bottom center;animation: clicked 4s infinite ease-in-out;}
+		.borders path{animation: borderLengthen 4s infinite ease-in-out;}
+		.divider{fill:none;stroke:#3E2C73;stroke-width:0.75;animation: dividerShorten 4s infinite ease-in-out;}
+		@keyframes rowDarken {0%, 26% {fill:#FFFFFF;}30%, 90% {fill:#302839;}100% {fill:#FFFFFF;}}
+		@keyframes treeLighten {0%, 25% {fill:#5A4A79;}30%, 90% {fill:#FFFFFF;}100% {fill:#5A4A79;}}
+		@keyframes clicked {0%, 24% {transform: scaleY(1);}25%{transform: translateY(-1px) scaleY(0.95);}30%, 85% {transform: translateY(0) scaleY(1);}86% {transform: translateY(-1px) scaleY(0.95);}90%, 100% {transform: translateY(0) scaleY(1);}}
+		@keyframes dividerShorten {26% {transform: scaleY(1);}35%, 86% {transform: scaleY(0.87);}100% {transform: scaleY(1);}}
+		@keyframes borderLengthen {26% {transform: scaleY(1);}40%, 86% {transform: scaleY(1.2);}100% {transform: scaleY(1);}}
 	</style>
 	<g id="row-inactive">
 		<path class="row" d="M81,65h210v8H81V65z"/>
