@@ -44,6 +44,11 @@ def _fetch_registry_url(relative_url):
     soft_time_limit=60,
 )
 def fetch_release_registry_data():
+    """
+    Fetch information about the latest SDK version from the release registry.
+
+    More details about the registry: https://github.com/getsentry/sentry-release-registry/
+    """
     if not settings.SENTRY_RELEASE_REGISTRY_BASEURL:
         logger.warn("Release registry URL is not specified, skipping the task.")
         return
@@ -55,5 +60,3 @@ def fetch_release_registry_data():
     # Apps (e.g. sentry-cli)
     app_data = _fetch_registry_url("/apps")
     cache.set(APP_INDEX_CACHE_KEY, app_data, CACHE_TTL)
-
-    logger.warn("--- Done ---")
