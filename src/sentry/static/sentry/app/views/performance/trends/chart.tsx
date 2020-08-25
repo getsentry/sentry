@@ -126,7 +126,7 @@ class Chart extends React.Component<Props> {
     const lineColor = trendToColor[trendChangeType];
 
     const events = statsData && statsData[transaction || ''];
-    const data = events ? events.data : [];
+    const data = events?.data ?? [];
 
     const results = transformEventStats(data);
 

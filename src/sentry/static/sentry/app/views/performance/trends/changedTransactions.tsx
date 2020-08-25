@@ -238,7 +238,7 @@ const TransactionLink = (props: TransactionLinkProps) => {
   const summaryView = eventView.clone();
   const target = transactionSummaryRouteWithQuery({
     orgSlug: organization.slug,
-    transaction: String(transaction.transaction) || '',
+    transaction: String(transaction.transaction),
     query: summaryView.generateQueryStringObject(),
   });
 
