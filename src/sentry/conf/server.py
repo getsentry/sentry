@@ -539,6 +539,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.unmerge",
     "sentry.tasks.update_user_reports",
     "sentry.tasks.relay",
+    "sentry.tasks.release_registry",
 )
 CELERY_QUEUES = [
     Queue("activity.notify", routing_key="activity.notify"),
@@ -689,6 +690,11 @@ CELERYBEAT_SCHEDULE = {
         "task": "sentry.incidents.tasks.process_pending_incident_snapshots",
         "schedule": timedelta(hours=1),
         "options": {"expires": 3600, "queue": "incidents"},
+    },
+    "fetch-release-registry-data": {
+        "task": "sentry.tasks.release_registry.fetch_release_registry_data",
+        "schedule": timedelta(seconds=10),
+        "options": {"expires": 3600},
     },
 }
 
