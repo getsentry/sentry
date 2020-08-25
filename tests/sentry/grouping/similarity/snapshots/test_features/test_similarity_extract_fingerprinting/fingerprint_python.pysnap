@@ -1,5 +1,5 @@
 ---
-created: '2020-08-19T12:18:50.308155Z'
+created: '2020-08-21T21:07:52.997178Z'
 creator: sentry
 source: tests/sentry/grouping/similarity/test_features.py
 ---
@@ -13,6 +13,7 @@ similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","resp = self.se
 similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","response = _Session.request(self, *args, **kwargs)"],["filename","http.py"],["function","request"],["module","sentry.net.http"]],[["context-line","resp = self.send(prep, **send_kwargs)"],["filename","sessions.py"],["function","request"],["module","requests.sessions"]]]
 similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","result = func(*args, **kwargs)"],["filename","safe.py"],["function","safe_execute"],["module","sentry.utils.safe"]],[["context-line","self.notify(notification)"],["filename","notify.py"],["function","rule_notify"],["module","sentry.plugins.bases.notify"]]]
 similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","self.notify(notification)"],["filename","notify.py"],["function","rule_notify"],["module","sentry.plugins.bases.notify"]],[["context-line","r.label for r in notification.rules])"],["filename","notify.py"],["function","notify"],["module","sentry.plugins.bases.notify"]]]
+similarity:2020-07-23:type:ident-shingle: "ReadTimeout"
 similarity:2020-07-23:value:character-5-shingle: " (rea"
 similarity:2020-07-23:value:character-5-shingle: " Read"
 similarity:2020-07-23:value:character-5-shingle: " out."
@@ -99,4 +100,3 @@ similarity:2020-07-23:value:character-5-shingle: "timeo"
 similarity:2020-07-23:value:character-5-shingle: "tionP"
 similarity:2020-07-23:value:character-5-shingle: "ut. ("
 similarity:2020-07-23:value:character-5-shingle: "ut=<i"
-similarity:2020-07-23:type:ident-shingle: "ReadTimeout"

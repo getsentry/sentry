@@ -1505,6 +1505,40 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         result = set([r["user.display"] for r in data])
         assert result == set(["catherine", "cathy@example.com"])
 
+    def test_user_display_with_aggregates(self):
+        self.login_as(user=self.user)
+
+        project1 = self.create_project()
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "transaction": "/example",
+                "message": "how to make fast",
+                "timestamp": self.two_min_ago,
+                "user": {"email": "cathy@example.com"},
+            },
+            project_id=project1.id,
+        )
+
+        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        query = {
+            "field": ["event.type", "user.display", "count_unique(title)"],
+            "statsPeriod": "24h",
+        }
+        response = self.do_request(query, features=features)
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        result = set([r["user.display"] for r in data])
+        assert result == set(["cathy@example.com"])
+
+        query = {"field": ["event.type", "count_unique(user.display)"], "statsPeriod": "24h"}
+        response = self.do_request(query, features=features)
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["count_unique_user_display"] == 1
+
     def test_has_transaction_status(self):
         project = self.create_project()
         data = load_data("transaction", timestamp=before_now(minutes=1))

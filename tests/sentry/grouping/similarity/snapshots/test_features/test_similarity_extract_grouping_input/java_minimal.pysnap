@@ -1,5 +1,5 @@
 ---
-created: '2020-08-19T12:18:48.294294Z'
+created: '2020-08-21T21:07:51.269604Z'
 creator: sentry
 source: tests/sentry/grouping/similarity/test_features.py
 ---
@@ -49,9 +49,9 @@ similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","thread.java"],["fu
 similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","threadpoolexecutor.java"],["function","run"],["module","java.util.concurrent.ThreadPoolExecutor$Worker"]],[["filename","threadpoolexecutor.java"],["function","runWorker"],["module","java.util.concurrent.ThreadPoolExecutor"]]]
 similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","threadpoolexecutor.java"],["function","runWorker"],["module","java.util.concurrent.ThreadPoolExecutor"]],[["filename","socketprocessorbase.java"],["function","run"],["module","org.apache.tomcat.util.net.SocketProcessorBase"]]]
 similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","wsfilter.java"],["function","doFilter"],["module","org.apache.tomcat.websocket.server.WsFilter"]],[["filename","applicationfilterchain.java"],["function","doFilter"],["module","org.apache.catalina.core.ApplicationFilterChain"]]]
+similarity:2020-07-23:type:ident-shingle: "ArithmeticException"
 similarity:2020-07-23:value:character-5-shingle: " by z"
 similarity:2020-07-23:value:character-5-shingle: " zero"
 similarity:2020-07-23:value:character-5-shingle: "/ by "
 similarity:2020-07-23:value:character-5-shingle: "by ze"
 similarity:2020-07-23:value:character-5-shingle: "y zer"
-similarity:2020-07-23:type:ident-shingle: "ArithmeticException"

@@ -1541,7 +1541,7 @@ class QueryTransformTest(TestCase):
 
     @patch("sentry.snuba.discover.raw_query")
     def test_histogram_zerofill_missing_results_desc_sort(self, mock_query):
-        seed = range(0, 11, 2)
+        seed = list(range(0, 11, 2))
         seed.reverse()
         mock_query.side_effect = [
             {"data": [{"max_transaction.duration": 10000, "min_transaction.duration": 0}]},
