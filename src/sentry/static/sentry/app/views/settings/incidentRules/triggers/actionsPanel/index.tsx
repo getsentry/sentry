@@ -7,7 +7,6 @@ import Button from 'app/components/button';
 import SelectControl from 'app/components/forms/selectControl';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
-import SelectMembers from 'app/components/selectMembers';
 import {IconAdd} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -15,9 +14,9 @@ import {Organization, Project, SelectValue} from 'app/types';
 import {removeAtArrayIndex} from 'app/utils/removeAtArrayIndex';
 import {replaceAtArrayIndex} from 'app/utils/replaceAtArrayIndex';
 import withOrganization from 'app/utils/withOrganization';
-import Input from 'app/views/settings/components/forms/controls/input';
 import FieldHelp from 'app/views/settings/components/forms/field/fieldHelp';
 import FieldLabel from 'app/views/settings/components/forms/field/fieldLabel';
+import ActionTargetSelector from 'app/views/settings/incidentRules/triggers/actionsPanel/actionTargetSelector';
 import DeleteActionButton from 'app/views/settings/incidentRules/triggers/actionsPanel/deleteActionButton';
 import {
   Action,
@@ -54,18 +53,6 @@ type Props = {
   onChange: (triggerIndex: number, triggers: Trigger[], actions: Action[]) => void;
 };
 
-const getPlaceholderForType = (type: ActionType) => {
-  switch (type) {
-    case ActionType.SLACK:
-      return '@username or #channel';
-    case ActionType.MSTEAMS:
-      //no prefixes for msteams
-      return 'username or channel';
-    case ActionType.PAGERDUTY:
-      return 'service';
-    default:
-      throw Error('Not implemented');
-  }
 };
 /**
  * Lists saved actions as well as control to add a new action
@@ -94,7 +81,7 @@ class ActionsPanel extends React.PureComponent<Props> {
     return `${ActionLabel[type]}${integrationName ? ` - ${integrationName}` : ''}`;
   }
 
-  doChangeTargetIdentifier(triggerIndex: number, index: number, value: string) {
+  handleChangeTargetIdentifier(triggerIndex: number, index: number, value: string) {
     const {triggers, onChange} = this.props;
     const {actions} = triggers[triggerIndex];
     const newAction = {
@@ -205,22 +192,6 @@ class ActionsPanel extends React.PureComponent<Props> {
     onChange(triggerIndex, triggers, replaceAtArrayIndex(actions, index, newAction));
   };
 
-  handleChangeTargetIdentifier = (
-    triggerIndex: number,
-    index: number,
-    value: SelectValue<string>
-  ) => {
-    this.doChangeTargetIdentifier(triggerIndex, index, value.value);
-  };
-
-  handleChangeSpecificTargetIdentifier = (
-    triggerIndex: number,
-    index: number,
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    this.doChangeTargetIdentifier(triggerIndex, index, e.target.value);
-  };
-
   render() {
     const {
       availableActions,
@@ -232,6 +203,7 @@ class ActionsPanel extends React.PureComponent<Props> {
       triggers,
     } = this.props;
 
+    const project = projects.find(({slug}) => slug === currentProject);
     const items =
       availableActions &&
       availableActions.map(availableAction => ({
@@ -262,9 +234,6 @@ class ActionsPanel extends React.PureComponent<Props> {
             return (
               actions &&
               actions.map((action: Action, i: number) => {
-                const isUser = action.targetType === TargetType.USER;
-                const isTeam = action.targetType === TargetType.TEAM;
-
                 const availableAction = availableActions?.find(
                   a => this.getActionUniqueKey(a) === this.getActionUniqueKey(action)
                 );
@@ -306,45 +275,19 @@ class ActionsPanel extends React.PureComponent<Props> {
                     ) : (
                       <span />
                     )}
-
-                    {isUser || isTeam ? (
-                      <SelectMembers
-                        disabled={disabled}
-                        key={isTeam ? 'team' : 'member'}
-                        showTeam={isTeam}
-                        project={projects.find(({slug}) => slug === currentProject)}
-                        organization={organization}
-                        value={action.targetIdentifier}
-                        onChange={this.handleChangeTargetIdentifier.bind(
-                          this,
-                          triggerIndex,
-                          i
-                        )}
-                      />
-                    ) : availableAction?.inputType === 'select' ? (
-                      <SelectControl
-                        isDisabled={disabled || loading}
-                        value={action.targetIdentifier}
-                        options={availableAction?.options || []}
-                        onChange={this.handleChangeTargetIdentifier.bind(
-                          this,
-                          triggerIndex,
-                          i
-                        )}
-                      />
-                    ) : (
-                      <Input
-                        disabled={disabled}
-                        key={action.type}
-                        value={action.targetIdentifier}
-                        onChange={this.handleChangeSpecificTargetIdentifier.bind(
-                          this,
-                          triggerIndex,
-                          i
-                        )}
-                        placeholder={getPlaceholderForType(action.type)}
-                      />
-                    )}
+                    <ActionTargetSelector
+                      action={action}
+                      availableAction={availableAction}
+                      disabled={disabled}
+                      loading={loading}
+                      onChange={this.handleChangeTargetIdentifier.bind(
+                        this,
+                        triggerIndex,
+                        i
+                      )}
+                      organization={organization}
+                      project={project}
+                    />
                     <DeleteActionButton
                       triggerIndex={triggerIndex}
                       index={i}

@@ -120,12 +120,7 @@ export type MetricActionTemplate = {
   integrationId: number;
 
   /**
-   * The input type on the front end, e.g. text for Slack, select for PagerDuty
-   */
-  inputType?: 'select' | 'text';
-
-  /**
-   * If the inputType is select, these are the options to select from
+   * For some available actions, we pass in the list of available targets.
    */
   options: Array<{label: string; value: any}> | null;
 };
@@ -175,12 +170,7 @@ export type UnsavedAction = {
   integrationId?: number | null;
 
   /**
-   * The input type on the front end, e.g. text for Slack, select for PagerDuty
-   */
-  inputType?: 'select' | 'text';
-
-  /**
-   * If the inputType is select, these are the options to select from
+   * For some available actions, we pass in the list of available targets.
    */
   options: Array<{label: string; value: any}> | null;
 };
