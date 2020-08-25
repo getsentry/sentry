@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import random
+import logging
 import six
 
 import sentry_sdk
@@ -24,6 +25,7 @@ from .utils import (
 
 # 30% of messages for workspace apps will get the upgrade CTA
 UPGRADE_MESSAGE_FREQUENCY = 0.30
+logger = logging.getLogger("sentry.rules")
 
 
 class SlackNotifyServiceForm(forms.Form):
@@ -53,6 +55,13 @@ class SlackNotifyServiceForm(forms.Form):
     def clean(self):
         channel_id = None
         if self.data.get("channel_id"):
+            logger.info(
+                "rule.slack.provide_channel_id",
+                extra={
+                    "slack_integration_id": self.data.get("workspace"),
+                    "channel_id": self.data.get("channel_id"),
+                },
+            )
             # default to "#" if they have the channel name without the prefix
             channel_prefix = self.data["channel"][0] if self.data["channel"][0] == "@" else "#"
             channel_id = self.data["channel_id"]
