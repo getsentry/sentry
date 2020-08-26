@@ -89,3 +89,7 @@ def reprocess_events(project_id, event_ids, start_time):
         preprocess_event_from_reprocessing(
             cache_key=cache_key, start_time=start_time, event_id=event_id
         )
+
+
+def is_reprocessed_event(event):
+    return bool(dict(event.data.get("tags") or ()).get("original_event_id"))

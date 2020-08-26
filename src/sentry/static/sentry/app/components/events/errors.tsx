@@ -125,13 +125,13 @@ class EventErrors extends React.Component<Props, State> {
       </Body>
       <div className="modal-footer">
         <Button onClick={this.onReprocessGroup}>
-          {t('Reprocess all events in issue ($$$)')}
+          {t('Reprocess all events in issue')}
         </Button>
         <Button style={{marginLeft: space(1)}} onClick={this.onReprocessEvent}>
-          {t('Reprocess single event ($$)')}
+          {t('Reprocess single event')}
         </Button>
         <Button style={{marginLeft: space(1)}} onClick={closeModal}>
-          {t('Cancel ($0)')}
+          {t('Cancel')}
         </Button>
       </div>
     </React.Fragment>

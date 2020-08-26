@@ -95,4 +95,7 @@ def test_basic(task_runner, default_project, register_plugin, change_groups, res
     assert dict(event.data["tags"])["processing_counter"] == "x1"
     assert not event.data.get("errors")
 
-    assert event.group_id != old_event.group_id
+    if change_groups:
+        assert event.group_id != old_event.group_id
+    else:
+        assert event.group_id == old_event.group_id
