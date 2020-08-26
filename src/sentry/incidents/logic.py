@@ -69,16 +69,16 @@ class InvalidTriggerActionError(Exception):
 
 
 def create_incident(
-    organization,
-    type_,
-    title,
-    date_started,
-    date_detected=None,
-    # TODO: Probably remove detection_uuid?
-    detection_uuid=None,
-    projects=None,
-    user=None,
-    alert_rule=None,
+        organization,
+        type_,
+        title,
+        date_started,
+        date_detected=None,
+        # TODO: Probably remove detection_uuid?
+        detection_uuid=None,
+        projects=None,
+        user=None,
+        alert_rule=None,
 ):
     if date_detected is None:
         date_detected = date_started
@@ -120,12 +120,12 @@ def create_incident(
 
 
 def update_incident_status(
-    incident,
-    status,
-    user=None,
-    comment=None,
-    status_method=IncidentStatusMethod.RULE_TRIGGERED,
-    date_closed=None,
+        incident,
+        status,
+        user=None,
+        comment=None,
+        status_method=IncidentStatusMethod.RULE_TRIGGERED,
+        date_closed=None,
 ):
     """
     Updates the status of an Incident and write an IncidentActivity row to log
@@ -175,8 +175,8 @@ def update_incident_status(
         )
 
         if status == IncidentStatus.CLOSED and (
-            status_method == IncidentStatusMethod.MANUAL
-            or status_method == IncidentStatusMethod.RULE_UPDATED
+                status_method == IncidentStatusMethod.MANUAL
+                or status_method == IncidentStatusMethod.RULE_UPDATED
         ):
             trigger_incident_triggers(incident)
 
@@ -193,7 +193,7 @@ def set_incident_seen(incident, user=None):
     if is_org_member:
         is_project_member = False
         for incident_project in IncidentProject.objects.filter(incident=incident).select_related(
-            "project"
+                "project"
         ):
             if incident_project.project.member_set.filter(user=user).exists():
                 is_project_member = True
@@ -210,14 +210,14 @@ def set_incident_seen(incident, user=None):
 
 @transaction.atomic
 def create_incident_activity(
-    incident,
-    activity_type,
-    user=None,
-    value=None,
-    previous_value=None,
-    comment=None,
-    mentioned_user_ids=None,
-    date_added=None,
+        incident,
+        activity_type,
+        user=None,
+        value=None,
+        previous_value=None,
+        comment=None,
+        mentioned_user_ids=None,
+        date_added=None,
 ):
     if activity_type == IncidentActivityType.COMMENT and user:
         subscribe_to_incident(incident, user)
@@ -468,7 +468,7 @@ def get_incident_event_stats(incident, start=None, end=None, windowed_stats=Fals
 
 
 def get_incident_aggregates(
-    incident, start=None, end=None, windowed_stats=False, use_alert_aggregate=False
+        incident, start=None, end=None, windowed_stats=False, use_alert_aggregate=False
 ):
     """
     Calculates aggregate stats across the life of an incident, or the provided range.
@@ -547,20 +547,20 @@ DEFAULT_ALERT_RULE_RESOLUTION = 1
 
 
 def create_alert_rule(
-    organization,
-    projects,
-    name,
-    query,
-    aggregate,
-    time_window,
-    threshold_type,
-    threshold_period,
-    resolve_threshold=None,
-    environment=None,
-    include_all_projects=False,
-    excluded_projects=None,
-    dataset=QueryDatasets.EVENTS,
-    user=None,
+        organization,
+        projects,
+        name,
+        query,
+        aggregate,
+        time_window,
+        threshold_type,
+        threshold_period,
+        resolve_threshold=None,
+        environment=None,
+        include_all_projects=False,
+        excluded_projects=None,
+        dataset=QueryDatasets.EVENTS,
+        user=None,
 ):
     """
     Creates an alert rule for an organization.
@@ -670,20 +670,20 @@ def snapshot_alert_rule(alert_rule, user=None):
 
 
 def update_alert_rule(
-    alert_rule,
-    dataset=None,
-    projects=None,
-    name=None,
-    query=None,
-    aggregate=None,
-    time_window=None,
-    environment=None,
-    threshold_type=None,
-    threshold_period=None,
-    resolve_threshold=NOT_SET,
-    include_all_projects=None,
-    excluded_projects=None,
-    user=None,
+        alert_rule,
+        dataset=None,
+        projects=None,
+        name=None,
+        query=None,
+        aggregate=None,
+        time_window=None,
+        environment=None,
+        threshold_type=None,
+        threshold_period=None,
+        resolve_threshold=NOT_SET,
+        include_all_projects=None,
+        excluded_projects=None,
+        user=None,
 ):
     """
     Updates an alert rule.
@@ -709,9 +709,9 @@ def update_alert_rule(
     :return: The updated `AlertRule`
     """
     if (
-        name
-        and alert_rule.name != name
-        and AlertRule.objects.filter(organization=alert_rule.organization, name=name).exists()
+            name
+            and alert_rule.name != name
+            and AlertRule.objects.filter(organization=alert_rule.organization, name=name).exists()
     ):
         raise AlertRuleNameAlreadyUsedError()
 
@@ -763,12 +763,12 @@ def update_alert_rule(
 
         existing_subs = []
         if (
-            query is not None
-            or aggregate is not None
-            or time_window is not None
-            or projects is not None
-            or include_all_projects is not None
-            or excluded_projects is not None
+                query is not None
+                or aggregate is not None
+                or time_window is not None
+                or projects is not None
+                or include_all_projects is not None
+                or excluded_projects is not None
         ):
             existing_subs = alert_rule.snuba_query.subscriptions.all().select_related("project")
 
@@ -941,9 +941,9 @@ def update_alert_rule_trigger(trigger, label=None, alert_threshold=None, exclude
     """
 
     if (
-        AlertRuleTrigger.objects.filter(alert_rule=trigger.alert_rule, label=label)
-        .exclude(id=trigger.id)
-        .exists()
+            AlertRuleTrigger.objects.filter(alert_rule=trigger.alert_rule, label=label)
+                    .exclude(id=trigger.id)
+                    .exists()
     ):
         raise AlertRuleTriggerLabelAlreadyUsedError()
 
@@ -1008,7 +1008,7 @@ def trigger_incident_triggers(incident):
             with transaction.atomic():
                 method = "resolve"
                 for action in AlertRuleTriggerAction.objects.filter(
-                    alert_rule_trigger=trigger.alert_rule_trigger
+                        alert_rule_trigger=trigger.alert_rule_trigger
                 ):
                     for project in incident.projects.all():
                         transaction.on_commit(
@@ -1042,7 +1042,7 @@ def get_subscriptions_from_alert_rule(alert_rule, projects):
 
 
 def create_alert_rule_trigger_action(
-    trigger, type, target_type, target_identifier=None, integration=None
+        trigger, type, target_type, target_identifier=None, integration=None
 ):
     """
     Creates an AlertRuleTriggerAction
@@ -1075,7 +1075,12 @@ def create_alert_rule_trigger_action(
 
 
 def update_alert_rule_trigger_action(
-    trigger_action, type=None, target_type=None, target_identifier=None, integration=None
+    trigger_action,
+    type=None,
+    target_type=None,
+    target_identifier=None,
+    integration=None,
+    sentry_app=None
 ):
     """
     Updates values on an AlertRuleTriggerAction
@@ -1085,6 +1090,7 @@ def update_alert_rule_trigger_action(
     :param target_identifier: The identifier of the target
     :param target_display: Human readable name for the target
     :param integration: The Integration related to this action.
+    :param sentry_app: The SentryApp related to this action.
     :return:
     """
     updated_fields = {}
@@ -1094,6 +1100,8 @@ def update_alert_rule_trigger_action(
         updated_fields["target_type"] = target_type.value
     if integration is not None:
         updated_fields["integration"] = integration
+    if sentry_app is not None:
+        updated_fields["sentry_app"] = sentry_app
     if target_identifier is not None:
         type = updated_fields.get("type", trigger_action.type)
 
