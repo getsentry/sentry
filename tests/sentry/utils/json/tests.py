@@ -33,12 +33,12 @@ class JSONTest(TestCase):
         res = "<script>alert('&');</script>"
         assert json.dumps(res) == "\"<script>alert('&');</script>\""
         assert (
-            json.dumps(res, escape=True)
-            == '"\\u003cscript\\u003ealert(\\u0027\u0026\\u0027);\\u003c/script\\u003e"'
+            json.dumps(res, escape=True).encode("utf-8")
+            == b'"\\u003cscript\\u003ealert(\\u0027\u0026\\u0027);\\u003c/script\\u003e"'
         )
         assert (
-            json.dumps_htmlsafe(res)
-            == '"\\u003cscript\\u003ealert(\\u0027\u0026\\u0027);\\u003c/script\\u003e"'
+            json.dumps_htmlsafe(res).encode("utf-8")
+            == b'"\\u003cscript\\u003ealert(\\u0027\u0026\\u0027);\\u003c/script\\u003e"'
         )
 
     def test_inf(self):
