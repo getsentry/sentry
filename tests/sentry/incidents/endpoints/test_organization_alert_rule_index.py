@@ -104,6 +104,61 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
         assert resp.data == serialize(alert_rule, self.user)
 
+    def test_sentry_app(self):
+        sentry_app = self.create_sentry_app(
+            name="foo", organization=self.organization, is_alertable=True, verify_install=False
+        )
+        self.create_sentry_app_installation(
+            slug=sentry_app.slug, organization=self.organization, user=self.user
+        )
+
+        valid_alert_rule = deepcopy(self.alert_rule_dict)
+        valid_alert_rule["name"] = "ValidSentryAppTestRule"
+        valid_alert_rule["triggers"][0]["actions"][0] = {
+            "type": "sentry_app",
+            "targetType": "sentry_app",
+            "targetIdentifier": sentry_app.id,
+            "sentryAppId": sentry_app.id,
+        }
+
+        with self.feature(["organizations:incidents", "organizations:integrations-sentry-app-metric-alerts"]):
+            resp = self.get_valid_response(
+                self.organization.slug, status_code=201, **valid_alert_rule
+            )
+        assert "id" in resp.data
+        alert_rule = AlertRule.objects.get(id=resp.data["id"])
+        assert resp.data == serialize(alert_rule, self.user)
+
+    def test_missing_sentry_app(self):
+        valid_alert_rule = deepcopy(self.alert_rule_dict)
+        valid_alert_rule["name"] = "InvalidSentryAppTestRule"
+        valid_alert_rule["triggers"][0]["actions"][0] = {
+            "type": "sentry_app",
+            "targetType": "sentry_app",
+            "targetIdentifier": 1,
+            "sentryAppId": 1,
+        }
+
+        with self.feature(
+            ["organizations:incidents", "organizations:integrations-sentry-app-metric-alerts"]
+        ):
+            self.get_valid_response(self.organization.slug, status_code=400, **valid_alert_rule)
+
+    def test_invalid_sentry_app(self):
+        valid_alert_rule = deepcopy(self.alert_rule_dict)
+        valid_alert_rule["name"] = "InvalidSentryAppTestRule"
+        valid_alert_rule["triggers"][0]["actions"][0] = {
+            "type": "sentry_app",
+            "targetType": "sentry_app",
+            "targetIdentifier": "invalid",
+            "sentryAppId": "invalid",
+        }
+
+        with self.feature(
+            ["organizations:incidents", "organizations:integrations-sentry-app-metric-alerts"]
+        ):
+            self.get_valid_response(self.organization.slug, status_code=400, **valid_alert_rule)
+
     def test_no_label(self):
         rule_one_trigger_no_label = {
             "aggregate": "count()",
