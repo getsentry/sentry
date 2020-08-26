@@ -45,6 +45,7 @@ class Columns(Enum):
     USER_IP_ADDRESS = Column(
         "events.ip_address", "ip_address", "ip_address", "ip_address", "user.ip"
     )
+    USER_DISPLAY = Column(None, None, None, "user.display", "user.display")
     SDK_NAME = Column("events.sdk_name", "sdk_name", "sdk_name", "sdk_name", "sdk.name")
     SDK_VERSION = Column(
         "events.sdk_version", "sdk_version", "sdk_version", "sdk_version", "sdk.version"
