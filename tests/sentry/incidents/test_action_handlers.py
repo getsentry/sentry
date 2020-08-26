@@ -346,7 +346,7 @@ class PagerDutyActionHandlerBaseTest(object):
         assert data["dedup_key"] == "incident_{}_{}".format(
             incident.organization_id, incident.identifier
         )
-        assert data["payload"]["summary"] == "Critical: {}".format(alert_rule.name)
+        assert data["payload"]["summary"] == alert_rule.name
         assert data["payload"]["severity"] == "critical"
         assert data["payload"]["source"] == six.binary_type(incident.identifier)
         assert data["payload"]["custom_details"] == {
@@ -369,7 +369,7 @@ class PagerDutyActionHandlerBaseTest(object):
         responses.add(
             method=responses.POST,
             url="https://events.pagerduty.com/v2/enqueue/",
-            body={},
+            json={},
             status=202,
             content_type="application/json",
         )
