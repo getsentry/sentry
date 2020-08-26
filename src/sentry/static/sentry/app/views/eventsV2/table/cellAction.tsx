@@ -161,13 +161,7 @@ class CellAction extends React.Component<Props, State> {
   };
 
   renderMenuButtons() {
-    const {
-      dataRow,
-      column,
-      handleCellAction,
-      allowActions,
-      actionRenderers = {},
-    } = this.props;
+    const {dataRow, column, handleCellAction, allowActions, actionRenderers} = this.props;
 
     const fieldAlias = getAggregateAlias(column.name);
     const value = dataRow[fieldAlias];
@@ -249,7 +243,7 @@ class CellAction extends React.Component<Props, State> {
         </ActionItem>
       );
 
-      const KeyTransactionRenderer = actionRenderers[Actions.TOGGLE_KEY_TRANSACTION];
+      const KeyTransactionRenderer = actionRenderers?.[Actions.TOGGLE_KEY_TRANSACTION];
       if (KeyTransactionRenderer !== undefined) {
         addMenuItem(
           Actions.TOGGLE_KEY_TRANSACTION,

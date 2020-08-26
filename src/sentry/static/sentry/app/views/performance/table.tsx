@@ -1,11 +1,8 @@
 import React from 'react';
 import {Location, LocationDescriptorObject} from 'history';
-import styled from '@emotion/styled';
 import * as ReactRouter from 'react-router';
 
-import {t} from 'app/locale';
 import {Organization, Project} from 'app/types';
-import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
 import Link from 'app/components/links/link';
 import EventView, {EventData, isFieldSortable} from 'app/utils/discover/eventView';
@@ -13,19 +10,14 @@ import {TableColumn} from 'app/views/eventsV2/table/types';
 import GridEditable, {COL_WIDTH_UNDEFINED, GridColumn} from 'app/components/gridEditable';
 import SortLink from 'app/components/gridEditable/sortLink';
 import HeaderCell from 'app/views/eventsV2/table/headerCell';
-import CellAction, {
-  ActionItem,
-  Actions,
-  updateQuery,
-} from 'app/views/eventsV2/table/cellAction';
+import CellAction, {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import DiscoverQuery, {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
-import space from 'app/styles/space';
 
+import KeyTransactionAction from './keyTransactionAction';
 import {transactionSummaryRouteWithQuery} from './transactionSummary/utils';
-import KeyTransactionQuery from './keyTransactionQuery';
 import {COLUMN_TITLES} from './data';
 
 export function getProjectID(
@@ -278,47 +270,5 @@ class Table extends React.Component<Props, State> {
     );
   }
 }
-
-type KeyTransactionActionProps = {
-  projectID: number;
-  organization: Organization;
-  transactionName: string;
-};
-
-function KeyTransactionAction(props: KeyTransactionActionProps) {
-  const {projectID, organization, transactionName, ...rest} = props;
-  return (
-    <KeyTransactionQuery
-      projectID={projectID}
-      organization={organization}
-      transactionName={transactionName}
-    >
-      {({isLoading, error, isKeyTransaction, toggleKeyTransaction}) => {
-        return (
-          <ActionItem
-            disabled={isLoading || error !== null}
-            onClick={toggleKeyTransaction}
-            {...rest}
-          >
-            {isLoading ? (
-              <StyledLoadingIndicator size={12} />
-            ) : isKeyTransaction ? (
-              t('Unmark as key transaction')
-            ) : (
-              t('Mark as key transaction')
-            )}
-          </ActionItem>
-        );
-      }}
-    </KeyTransactionQuery>
-  );
-}
-
-const StyledLoadingIndicator = styled(LoadingIndicator)`
-  display: flex;
-  align-items: center;
-  height: ${space(2)};
-  margin: 0;
-`;
 
 export default Table;
