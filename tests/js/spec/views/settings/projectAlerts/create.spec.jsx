@@ -186,7 +186,11 @@ describe('ProjectAlertsCreate', function() {
       });
 
       it('updates values and saves', async function() {
-        const {wrapper} = createWrapper();
+        const {wrapper} = createWrapper({
+          organization: {
+            features: ['alert-filters'],
+          },
+        });
         const mock = MockApiClient.addMockResponse({
           url: '/projects/org-slug/project-slug/rules/',
           method: 'POST',
@@ -194,8 +198,16 @@ describe('ProjectAlertsCreate', function() {
         });
 
         expect(memberActionCreators.fetchOrgMembers).toHaveBeenCalled();
+        // Change target environment
         selectByValue(wrapper, 'production', {control: true, name: 'environment'});
+        // Change actionMatch and filterMatch dropdown
         selectByValue(wrapper, 'any', {name: 'actionMatch'});
+        selectByValue(wrapper, 'any', {name: 'filterMatch'});
+
+        // Change name of alert rule
+        wrapper
+          .find('input[name="name"]')
+          .simulate('change', {target: {value: 'My Rule Name'}});
 
         // Add a condition and remove it
         selectByValue(
@@ -210,12 +222,14 @@ describe('ProjectAlertsCreate', function() {
           .find('button[aria-label="Delete Node"]')
           .simulate('click');
 
+        // Add another condition
         selectByValue(
           wrapper,
           'sentry.rules.conditions.tagged_event.TaggedEventCondition',
           {selector: 'Select[placeholder="Add a condition..."]'}
         );
 
+        // Edit new Condition
         const ruleNode = wrapper.find('RuleNode').at(0);
 
         ruleNode
@@ -228,6 +242,32 @@ describe('ProjectAlertsCreate', function() {
 
         selectByValue(wrapper, 'ne', {name: 'match', control: true});
 
+        // Add a filter and remove it
+        selectByValue(
+          wrapper,
+          'sentry.rules.filters.age_comparison.AgeComparisonFilter',
+          {selector: 'Select[placeholder="Add a filter..."]'}
+        );
+
+        wrapper
+          .find('RuleNode')
+          .at(1)
+          .find('button[aria-label="Delete Node"]')
+          .simulate('click');
+
+        // Add a new filter
+        selectByValue(
+          wrapper,
+          'sentry.rules.filters.age_comparison.AgeComparisonFilter',
+          {selector: 'Select[placeholder="Add a filter..."]'}
+        );
+
+        const filterRuleNode = wrapper.find('RuleNode').at(1);
+
+        filterRuleNode
+          .find('input[type="number"]')
+          .simulate('change', {target: {value: '12'}});
+
         // Add an action and remove it
         selectByValue(wrapper, 'sentry.rules.actions.notify_event.NotifyEventAction', {
           selector: 'Select[placeholder="Add an action..."]',
@@ -235,10 +275,11 @@ describe('ProjectAlertsCreate', function() {
 
         wrapper
           .find('RuleNodeList')
-          .at(1)
+          .at(2)
           .find('button[aria-label="Delete Node"]')
           .simulate('click');
 
+        // Add a new action
         selectByValue(
           wrapper,
           'sentry.rules.actions.notify_event_service.NotifyEventServiceAction',
@@ -251,10 +292,6 @@ describe('ProjectAlertsCreate', function() {
           name: 'frequency',
         });
 
-        wrapper
-          .find('input[name="name"]')
-          .simulate('change', {target: {value: 'My Rule Name'}});
-
         wrapper.find('form').simulate('submit');
 
         expect(mock).toHaveBeenCalledWith(
@@ -262,7 +299,7 @@ describe('ProjectAlertsCreate', function() {
           expect.objectContaining({
             data: {
               actionMatch: 'any',
-              filterMatch: 'all',
+              filterMatch: 'any',
               actions: [
                 {
                   id:
@@ -278,7 +315,14 @@ describe('ProjectAlertsCreate', function() {
                   value: 'conditionValue',
                 },
               ],
-              filters: [],
+              filters: [
+                {
+                  id: 'sentry.rules.filters.age_comparison.AgeComparisonFilter',
+                  comparison_type: 'older',
+                  time: 'minute',
+                  value: '12',
+                },
+              ],
               environment: 'production',
               frequency: '60',
               name: 'My Rule Name',
