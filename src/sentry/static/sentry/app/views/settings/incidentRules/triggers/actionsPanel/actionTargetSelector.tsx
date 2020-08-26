@@ -10,7 +10,6 @@ import {
   TargetType,
 } from 'app/views/settings/incidentRules/types';
 import {Organization, Project, SelectValue} from 'app/types';
-import theme from 'app/utils/theme';
 
 const getPlaceholderForType = (type: ActionType) => {
   switch (type) {
@@ -89,7 +88,6 @@ export default function ActionTargetSelector(props: Props) {
           value={action.targetIdentifier || ''}
           onChange={handleChangeSpecificTargetIdentifier}
           placeholder={getPlaceholderForType(action.type)}
-          theme={theme}
         />
       );
 

@@ -141,7 +141,7 @@ export default class TableField extends React.Component<Props> {
               <Row key={fieldKey}>
                 <RowInput>
                   <Input
-                    onChange={v => setValue(rowIndex, fieldKey, v ? v : null)}
+                    onChange={v => setValue(rowIndex, fieldKey, v)}
                     value={!defined(row[fieldKey]) ? '' : row[fieldKey]}
                   />
                 </RowInput>

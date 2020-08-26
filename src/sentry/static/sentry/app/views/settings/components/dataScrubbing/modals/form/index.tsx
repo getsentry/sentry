@@ -170,25 +170,14 @@ class Form extends React.Component<Props<Values, KeysOfUnion<Values>>, State> {
           {displayEventId && (
             <EventIdField onUpdateEventId={onUpdateEventId} eventId={eventId} />
           )}
-          <Field
-            data-test-id="source-field"
-            label={t('Source')}
-            help={t('Where to look. In the simplest case this can be an attribute name.')}
-            inline={false}
+          <SourceField
+            onChange={value => onChange('source', value)}
+            value={source}
             error={errors?.source}
-            flexibleControlStateSize
-            stacked
-            required
-            showHelpInTooltip
-          >
-            <SourceField
-              onChange={value => onChange('source', value)}
-              value={source}
-              onBlur={onValidate('source')}
-              isRegExMatchesSelected={type === RuleType.PATTERN}
-              suggestions={sourceSuggestions}
-            />
-          </Field>
+            onBlur={onValidate('source')}
+            isRegExMatchesSelected={type === RuleType.PATTERN}
+            suggestions={sourceSuggestions}
+          />
         </SourceGroup>
       </React.Fragment>
     );
