@@ -96,7 +96,7 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
     return this.renderBody();
   }
 
-  renderMappings() {
+  renderArchives() {
     const {archives} = this.state;
     const {params} = this.props;
     const {orgId, projectId} = params;
@@ -158,7 +158,7 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
           isEmpty={archives.length === 0}
           isLoading={loading}
         >
-          {this.renderMappings()}
+          {this.renderArchives()}
         </StyledPanelTable>
         <Pagination pageLinks={archivesPageLinks} />
       </React.Fragment>

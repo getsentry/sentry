@@ -16,6 +16,7 @@ from sentry.integrations import (
     FeatureDescription,
 )
 from sentry import options
+from sentry.constants import ObjectStatus
 from sentry.pipeline import NestedPipelineView
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.utils.http import absolute_uri
@@ -147,7 +148,9 @@ class VercelIntegration(IntegrationInstallation):
         sentry_projects = map(
             lambda proj: {key: proj[key] for key in proj_fields},
             (
-                Project.objects.filter(organization_id=self.organization_id)
+                Project.objects.filter(
+                    organization_id=self.organization_id, status=ObjectStatus.VISIBLE
+                )
                 .order_by("slug")
                 .values(*proj_fields)
             ),
