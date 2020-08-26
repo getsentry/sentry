@@ -80,6 +80,45 @@ class ProjectRuleDetailsTest(APITestCase):
         assert response.data["id"] == six.text_type(rule.id)
         assert response.data["environment"] is None
 
+    def test_with_filters(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+
+        conditions = [
+            {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"},
+            {"id": "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter", "value": 10},
+        ]
+        actions = [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}]
+        data = {
+            "conditions": conditions,
+            "actions": actions,
+            "filter_match": "all",
+            "action_match": "all",
+            "frequency": 30,
+        }
+
+        rule = Rule.objects.create(project=project, label="foo", data=data)
+
+        url = reverse(
+            "sentry-api-0-project-rule-details",
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_slug": project.slug,
+                "rule_id": rule.id,
+            },
+        )
+        response = self.client.get(url, format="json")
+
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == six.text_type(rule.id)
+
+        # ensure that conditions and filters are split up correctly
+        assert len(response.data["conditions"]) == 1
+        assert response.data["conditions"][0]["id"] == conditions[0]["id"]
+        assert len(response.data["filters"]) == 1
+        assert response.data["filters"][0]["id"] == conditions[1]["id"]
+
 
 class UpdateProjectRuleTest(APITestCase):
     def test_simple(self):
