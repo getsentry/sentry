@@ -347,7 +347,7 @@ class TestWorkflowNotification(TestCase):
         assert faux(safe_urlopen).kwarg_equals("data.action", "resolved", format="json")
         assert faux(safe_urlopen).kwarg_equals("headers.Sentry-Hook-Resource", "issue")
         assert faux(safe_urlopen).kwarg_equals(
-            "data.data.issue.id", six.text_type(self.issue.id).encode("utf-8"), format="json"
+            "data.data.issue.id", six.text_type(self.issue.id), format="json"
         )
 
     def test_sends_resolved_webhook_as_Sentry_without_user(self, safe_urlopen):

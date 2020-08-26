@@ -263,9 +263,9 @@ describe('getExpandedResults()', function() {
 
     // handles user tag values.
     result = getExpandedResults(view, {user: 'id:12735'}, {});
-    expect(result.query).toEqual('event.type:error user:"id:12735"');
+    expect(result.query).toEqual('event.type:error user:id:12735');
     result = getExpandedResults(view, {user: 'name:uhoh'}, {});
-    expect(result.query).toEqual('event.type:error user:"name:uhoh"');
+    expect(result.query).toEqual('event.type:error user:name:uhoh');
 
     // quotes value
     result = getExpandedResults(view, {extra: 'has space'}, {});
@@ -364,7 +364,7 @@ describe('getExpandedResults()', function() {
       tags: [{key: 'user', value: 'id:1234'}],
     };
     let result = getExpandedResults(view, {}, event);
-    expect(result.query).toEqual('event.type:error user:"id:1234" title:"something bad"');
+    expect(result.query).toEqual('event.type:error user:id:1234 title:"something bad"');
 
     event = {
       title: 'something bad',
@@ -384,7 +384,7 @@ describe('getExpandedResults()', function() {
       user: 'id:1234',
     };
     const result = getExpandedResults(view, {}, event);
-    expect(result.query).toEqual('event.type:error user:"id:1234" title:"something bad"');
+    expect(result.query).toEqual('event.type:error user:id:1234 title:"something bad"');
   });
 
   it('normalizes the timestamp field', () => {
@@ -398,7 +398,7 @@ describe('getExpandedResults()', function() {
       timestamp: '2020-02-13T17:05:46+00:00',
     };
     const result = getExpandedResults(view, {}, event);
-    expect(result.query).toEqual('event.type:error timestamp:"2020-02-13T17:05:46"');
+    expect(result.query).toEqual('event.type:error timestamp:2020-02-13T17:05:46');
   });
 
   it('does not duplicate conditions', () => {

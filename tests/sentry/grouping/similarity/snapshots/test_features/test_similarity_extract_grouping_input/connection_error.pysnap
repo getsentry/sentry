@@ -1,5 +1,5 @@
 ---
-created: '2020-08-19T12:18:49.029504Z'
+created: '2020-08-21T21:07:52.050172Z'
 creator: sentry
 source: tests/sentry/grouping/similarity/test_features.py
 ---
@@ -13,6 +13,7 @@ similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","return script(
 similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","return self.execute_command('EVALSHA', sha, numkeys, *keys_and_args)"],["filename","client.py"],["function","evalsha"],["module","redis.client"]],[["context-line","return self.parse_response(connection, command_name, **options)"],["filename","client.py"],["function","execute_command"],["module","redis.client"]]]
 similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","return self.parse_response(connection, command_name, **options)"],["filename","client.py"],["function","execute_command"],["module","redis.client"]],[["context-line","response = connection.read_response()"],["filename","client.py"],["function","parse_response"],["module","redis.client"]]]
 similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","return super(SubscriptionQuota, self).is_rate_limited(project, key=key)"],["filename","quotas.py"],["function","is_rate_limited"],["module","getsentry.quotas"]],[["context-line","rejections = is_rate_limited(client, keys, args)"],["filename","redis.py"],["function","is_rate_limited"],["module","sentry.quotas.redis"]]]
+similarity:2020-07-23:type:ident-shingle: "ConnectionError"
 similarity:2020-07-23:value:character-5-shingle: " ('Co"
 similarity:2020-07-23:value:character-5-shingle: " by s"
 similarity:2020-07-23:value:character-5-shingle: " clos"
@@ -75,4 +76,3 @@ similarity:2020-07-23:value:character-5-shingle: "tion "
 similarity:2020-07-23:value:character-5-shingle: "ver.'"
 similarity:2020-07-23:value:character-5-shingle: "while"
 similarity:2020-07-23:value:character-5-shingle: "y ser"
-similarity:2020-07-23:type:ident-shingle: "ConnectionError"

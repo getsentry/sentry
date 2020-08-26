@@ -133,11 +133,11 @@ def build_group_descr(group):
 def build_rule_url(rule, group, project):
     org_slug = group.organization.slug
     project_slug = project.slug
-    rule_url = u"/settings/{}/projects/{}/alerts/rules/{}/".format(org_slug, project_slug, rule.id)
+    rule_url = u"/organizations/{}/alerts/rules/{}/{}/".format(org_slug, project_slug, rule.id)
     return absolute_uri(rule_url)
 
 
-def build_group_footer(group, rules, project):
+def build_group_footer(group, rules, project, event):
     # TODO: implement with event as well
     image_column = {
         "type": "Column",
@@ -166,7 +166,12 @@ def build_group_footer(group, rules, project):
         "spacing": "none",
     }
 
-    date = group.last_seen.replace(microsecond=0).isoformat()
+    date_ts = group.last_seen
+    if event:
+        event_ts = event.datetime
+        date_ts = max(date_ts, event_ts)
+
+    date = date_ts.replace(microsecond=0).isoformat()
     date_text = "{{DATE(%s, SHORT)}} at {{TIME(%s)}}" % (date, date)
     date_column = {
         "type": "Column",
@@ -439,7 +444,7 @@ def build_group_card(group, event, rules, integration):
     if desc:
         body.append(desc)
 
-    footer = build_group_footer(group, rules, project)
+    footer = build_group_footer(group, rules, project, event)
     body.append(footer)
 
     assignee_note = build_assignee_note(group)
