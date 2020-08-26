@@ -112,7 +112,7 @@ class OrganizationEventsTrendsEndpoint(OrganizationEventsV2EndpointBase):
         return Response(
             {
                 "events": self.handle_results_with_meta(
-                    request, organization, params["project_id"], events_results, omit_nan=True
+                    request, organization, params["project_id"], events_results
                 ),
                 "stats": stats_results,
             }

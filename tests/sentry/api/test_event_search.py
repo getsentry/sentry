@@ -2145,7 +2145,7 @@ class ResolveFieldListTest(unittest.TestCase):
         fields = [
             "user_misery_range(300, 2020-05-01T01:12:34, 2020-05-03T06:48:57, 1)",
             "user_misery_range(300, 2020-05-03T06:48:57, 2020-05-05T01:12:34, 2)",
-            "divide(user_misery_range_1, user_misery_range_2)",
+            "divide(user_misery_range_2, user_misery_range_1)",
         ]
         result = resolve_field_list(fields, eventstore.Filter())
         assert result["aggregations"] == [
@@ -2160,9 +2160,9 @@ class ResolveFieldListTest(unittest.TestCase):
                 "user_misery_range_2",
             ],
             [
-                "divide",
-                ["user_misery_range_1", "user_misery_range_2"],
-                "divide_user_misery_range_1_user_misery_range_2",
+                "if(greater(user_misery_range_1,0),divide(user_misery_range_2,user_misery_range_1),null)",
+                None,
+                "divide_user_misery_range_2_user_misery_range_1",
             ],
         ]
 

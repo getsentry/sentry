@@ -1549,7 +1549,7 @@ FUNCTIONS = {
     "divide": {
         "name": "divide",
         "args": [FunctionArg("numerator"), FunctionArg("denominator")],
-        "aggregate": [u"divide", [ArgValue("numerator"), ArgValue("denominator")], None],
+        "transform": "if(greater({denominator},0),divide({numerator},{denominator}),null)",
         "result_type": "percentage",
     },
     "minus": {
