@@ -466,7 +466,7 @@ class Group(Model):
         return ""
 
     def get_email_subject(self):
-        return "%s - %s" % (self.qualified_short_id.encode("utf-8"), self.title.encode("utf-8"))
+        return u"{} - {}".format(self.qualified_short_id, self.title)
 
     def count_users_seen(self):
         return tagstore.get_groups_user_counts(
