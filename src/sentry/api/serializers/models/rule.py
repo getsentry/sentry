@@ -22,7 +22,7 @@ def _is_filter(data):
     from sentry.rules import rules
 
     rule_cls = rules.get(data["id"])
-    return rule_cls.rule_type == "event/filter"
+    return rule_cls.rule_type == "filter/event"
 
 
 @register(Rule)
