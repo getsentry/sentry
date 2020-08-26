@@ -89,5 +89,7 @@ def track_outcome(
             "outcome": outcome.name.lower(),
             "reason": reason,
             "category": category.api_name() if category is not None else "null",
+            "organization_id": org_id,
+            "project_id": project_id
         },
     )
