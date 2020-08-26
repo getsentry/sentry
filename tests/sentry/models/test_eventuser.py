@@ -61,7 +61,7 @@ class EventUserTestCase(TestCase):
             assert EventUser.attr_from_keyword(keyword) == attr
 
     def test_hash_from_tag(self):
-        assert EventUser.hash_from_tag("foo:bar:baz") == md5("bar:baz").hexdigest()
+        assert EventUser.hash_from_tag("foo:bar:baz") == md5(b"bar:baz").hexdigest()
 
     def test_for_tags(self):
         eu = EventUser.objects.create(project_id=1, ident="matt")

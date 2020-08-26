@@ -223,7 +223,7 @@ class DifAssembleEndpoint(APITestCase):
         )
 
     def test_dif_error_response(self):
-        sym_file = "fail"
+        sym_file = b"fail"
         blob1 = FileBlob.from_file(ContentFile(sym_file))
         total_checksum = sha1(sym_file).hexdigest()
         chunks = [blob1.checksum]
