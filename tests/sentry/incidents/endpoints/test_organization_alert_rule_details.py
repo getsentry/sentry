@@ -13,51 +13,11 @@ from sentry.auth.access import OrganizationGlobalAccess
 from sentry.incidents.endpoints.serializers import AlertRuleSerializer
 from sentry.incidents.models import AlertRule, AlertRuleStatus, Incident, IncidentStatus
 from sentry.testutils import APITestCase
+from tests.sentry.incidents.endpoints.test_organization_alert_rule_index import AlertRuleBase
 
 
-class AlertRuleDetailsBase(object):
+class AlertRuleDetailsBase(AlertRuleBase):
     endpoint = "sentry-api-0-organization-alert-rule-details"
-
-    @fixture
-    def organization(self):
-        return self.create_organization()
-
-    @fixture
-    def project(self):
-        return self.create_project(organization=self.organization)
-
-    @fixture
-    def user(self):
-        return self.create_user()
-
-    @fixture
-    def alert_rule_dict(self):
-        return {
-            "aggregate": "count()",
-            "query": "",
-            "timeWindow": "300",
-            "projects": [self.project.slug],
-            "name": "JustAValidTestRule",
-            "resolveThreshold": 100,
-            "thresholdType": 0,
-            "triggers": [
-                {
-                    "label": "critical",
-                    "alertThreshold": 200,
-                    "actions": [
-                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id}
-                    ],
-                },
-                {
-                    "label": "warning",
-                    "alertThreshold": 150,
-                    "actions": [
-                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id},
-                        {"type": "email", "targetType": "user", "targetIdentifier": self.user.id},
-                    ],
-                },
-            ],
-        }
 
     def new_alert_rule(self, data=None):
         if data is None:
