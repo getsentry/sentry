@@ -16,7 +16,6 @@ import sentry_sdk
 
 from sentry import tagstore, tsdb
 from sentry.app import env
-from sentry.api.event_search import convert_search_filter_to_snuba_query
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer
 from sentry.api.fields.actor import Actor
@@ -630,7 +629,6 @@ class GroupSerializerSnuba(GroupSerializerBase):
     def _get_seen_stats(self, item_list, user):
         project_ids = list(set([item.project_id for item in item_list]))
         group_ids = [item.id for item in item_list]
-
         user_counts = tagstore.get_groups_user_counts(
             project_ids,
             group_ids,
@@ -688,10 +686,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         end=None,
         snuba_filters=None,
     ):
-        # add start and end to StreamGroupSerializerSnuba
-        super(StreamGroupSerializerSnuba, self).__init__(
-            environment_ids, start, end, snuba_filters
-        )  # start and end here
+        super(StreamGroupSerializerSnuba, self).__init__(environment_ids, start, end, snuba_filters)
 
         if stats_period is not None:
             assert stats_period in self.STATS_PERIOD_CHOICES

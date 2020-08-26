@@ -88,7 +88,6 @@ const IssueListOverview = createReactClass({
       // Will only be set if selected issues all belong
       // to one project.
       selectedProject: null,
-      hoveringGroupId: null,
     };
   },
 

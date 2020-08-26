@@ -155,6 +155,7 @@ const StreamGroup = createReactClass({
       : {};
 
     // TODO: @taylangocmen discover links on telescopes
+    // TODO: @taylangocmen sort rows when clicked on a column
 
     return (
       <Group data-test-id="group" onClick={this.toggleSelect} {...mouseEventHandlers}>
