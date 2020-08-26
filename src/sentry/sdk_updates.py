@@ -413,8 +413,6 @@ def get_suggested_updates(setup_state, index_state=None, parent_suggestions=None
 
     suggestions = list(_get_suggested_updates_step(setup_state, index_state))
 
-    logger.warn(suggestions)
-
     rv = []
     new_setup_states = []
 
