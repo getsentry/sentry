@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import six
 from mistune import markdown
 
-
+from collections import OrderedDict
 from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext as _
 
@@ -65,25 +65,27 @@ class VstsIssueSync(IssueSyncMixin):
             item_categories = client.get_work_item_categories(self.instance, project)["value"]
         except (ApiError, ApiUnauthorized, KeyError) as e:
             self.raise_error(e)
-        deduped_item_tuples = []
+
+        # we want to maintain ordering of the itesm
+        item_type_map = OrderedDict()
         for item in item_categories:
             for item_type_object in item["workItemTypes"]:
                 # the type is the last part of the url
                 item_type = item_type_object["url"].split(".")[-1]
-                item_tuple = (item_type, item_type_object["name"])
                 # we can have duplicates so need to dedupe
-                # TODO: need to dedupe on value
-                if item_tuple not in deduped_item_tuples:
-                    deduped_item_tuples.append(item_tuple)
+                if item_type not in item_type_map:
+                    item_type_map[item_type] = item_type_object["name"]
+
+        item_tuples = item_type_map.items()
 
         # try to get the default from either the last value used or from the first item on the list
         defaults = self.get_project_defaults(group.project_id)
         try:
-            default_item_type = defaults.get("work_item_type") or deduped_item_tuples[0][0]
+            default_item_type = defaults.get("work_item_type") or item_tuples[0][0]
         except IndexError:
-            return None, deduped_item_tuples
+            return None, item_tuples
 
-        return default_item_type, deduped_item_tuples
+        return default_item_type, item_tuples
 
     def get_create_issue_config(self, group, **kwargs):
         kwargs["link_referrer"] = "vsts_integration"
@@ -116,7 +118,7 @@ class VstsIssueSync(IssueSyncMixin):
                 "type": "choice",
                 "choices": work_item_choices,
                 "defaultValue": default_work_item,
-                "label": _("WorkItem"),
+                "label": _("Work Item Type"),
                 "placeholder": _("MyWorkItem"),
             },
         ] + fields

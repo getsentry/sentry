@@ -390,7 +390,6 @@ class VstsIssueFormTest(VstsIssueBase):
                                 "name": "Bug",
                             }
                         ],
-                        "referenceName": "Microsoft.BugCategory",
                     },
                     {
                         "workItemTypes": [
@@ -398,10 +397,15 @@ class VstsIssueFormTest(VstsIssueBase):
                                 "url": u"https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Microsoft.Bug".format(
                                     project
                                 ),
-                                "name": "Bug",
-                            }
+                                "name": "Issue Bug",
+                            },
+                            {
+                                "url": u"https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Microsoft.GIssue".format(
+                                    project
+                                ),
+                                "name": "G Issue",
+                            },
                         ],
-                        "referenceName": "Microsoft.IssueCategory",
                     },
                     {
                         "workItemTypes": [
@@ -412,7 +416,6 @@ class VstsIssueFormTest(VstsIssueBase):
                                 "name": "Task",
                             }
                         ],
-                        "referenceName": "Microsoft.TaskCategory",
                     },
                     {
                         "workItemTypes": [
@@ -423,7 +426,6 @@ class VstsIssueFormTest(VstsIssueBase):
                                 "name": "User Story",
                             }
                         ],
-                        "referenceName": "Microsoft.RequirementCategory",
                     },
                 ]
             },
@@ -469,7 +471,9 @@ class VstsIssueFormTest(VstsIssueBase):
         )
 
         self.assert_work_item_type_field(
-            fields, "Task", [("Bug", "Bug"), ("Task", "Task"), ("UserStory", "User Story")]
+            fields,
+            "Task",
+            [("Bug", "Bug"), ("GIssue", "G Issue"), ("Task", "Task"), ("UserStory", "User Story")],
         )
 
     @responses.activate
