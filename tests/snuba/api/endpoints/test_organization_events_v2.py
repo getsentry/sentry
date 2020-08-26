@@ -1576,7 +1576,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert len(data) == 2
         result = [r["user.display"] for r in data]
         # because we're ordering by `-user.display`, we expect the results in reverse sorted order
-        assert result == list(reversed(sorted(["catherine", "cathy@example.com"])))
+        assert result == ['cathy@example.com', 'catherine']
 
     def test_orderby_user_display_with_aggregates(self):
         project1 = self.create_project()
