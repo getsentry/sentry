@@ -233,7 +233,7 @@ export const TourText = styled('p')`
 export const TourImage = styled('img')`
   max-width: 360px;
   height: 200px;
-  margin-bottom: ${space(3)};
+  margin-bottom: ${space(4)};
 
   /** override styles in less files */
   box-shadow: none !important;
