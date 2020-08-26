@@ -16,14 +16,16 @@ CHOICES = [
 ]
 
 
-class NotifyEmailForm(forms.Form):
-    targetType = forms.ChoiceField(choices=CHOICES)
+class MemberTeamForm(forms.Form):
+    targetType = forms.ChoiceField()
     targetIdentifier = forms.CharField(
         required=False, help_text="Only required if 'Member' or 'Team' is selected"
     )
+    teamValue = None
+    memberValue = None
 
     def __init__(self, project, *args, **kwargs):
-        super(NotifyEmailForm, self).__init__(*args, **kwargs)
+        super(MemberTeamForm, self).__init__(*args, **kwargs)
         self.project = project
 
     def clean_targetIdentifier(self):
@@ -39,7 +41,7 @@ class NotifyEmailForm(forms.Form):
         return targetIdentifier
 
     def clean(self):
-        cleaned_data = super(NotifyEmailForm, self).clean()
+        cleaned_data = super(MemberTeamForm, self).clean()
         try:
             targetType = ActionTargetType(cleaned_data.get("targetType"))
         except ValueError:
@@ -50,16 +52,16 @@ class NotifyEmailForm(forms.Form):
         targetIdentifier = cleaned_data.get("targetIdentifier")
 
         self.cleaned_data["targetType"] = targetType.value
-        if targetType == ActionTargetType.ISSUE_OWNERS:
+        if targetType != self.teamValue and targetType != self.memberValue:
             return
 
         if targetIdentifier is None:
-            msg = forms.ValidationError("You need to specify a Team or Member to send mail to.")
+            msg = forms.ValidationError("You need to specify a Team or Member.")
             self.add_error("targetIdentifier", msg)
             return
 
         if (
-            targetType == ActionTargetType.TEAM
+            targetType == self.teamValue
             and not Project.objects.filter(
                 teams__id=int(targetIdentifier), id=self.project.id
             ).exists()
@@ -69,7 +71,7 @@ class NotifyEmailForm(forms.Form):
             return
 
         if (
-            targetType == ActionTargetType.MEMBER
+            targetType == self.memberValue
             and not User.objects.get_from_projects(self.project.organization.id, [self.project])
             .filter(id=int(targetIdentifier))
             .exists()
@@ -79,6 +81,13 @@ class NotifyEmailForm(forms.Form):
             return
 
         self.cleaned_data["targetIdentifier"] = targetIdentifier
+
+
+class NotifyEmailForm(MemberTeamForm):
+    targetType = forms.ChoiceField(choices=CHOICES)
+
+    teamValue = ActionTargetType.TEAM
+    memberValue = ActionTargetType.MEMBER
 
 
 class NotifyEmailAction(EventAction):
