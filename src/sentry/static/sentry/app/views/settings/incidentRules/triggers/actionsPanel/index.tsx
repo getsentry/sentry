@@ -82,7 +82,10 @@ const getActionUniqueKey = ({
   type,
   integrationId,
 }: Pick<Action, 'type' | 'integrationId'>) => {
-  return [type, integrationId].filter(x => !!x).join('-');
+  if (integrationId) {
+    return `${type}-${integrationId}`;
+  }
+  return type;
 };
 
 /**
@@ -95,7 +98,11 @@ const getFullActionTitle = ({
   type,
   integrationName,
 }: Pick<MetricActionTemplate, 'type' | 'integrationName'>) => {
-  return [ActionLabel[type], integrationName].filter(x => !!x).join(' - ');
+  const label = ActionLabel[type];
+  if (integrationName) {
+    return `${label} - ${integrationName}`;
+  }
+  return label;
 };
 
 /**
