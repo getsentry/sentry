@@ -47,7 +47,11 @@ def send_incident_alert_notification(action, incident, metric_value):
     except PagerDutyService.DoesNotExist:
         logger.info(
             "fetch.fail.pagerduty_metric_alert",
-            extra={"integration_id": integration.id, "organization_id": incident.organization_id},
+            extra={
+                "integration_id": integration.id,
+                "organization_id": incident.organization_id,
+                "target_identifier": action.target_identifier,
+            },
         )
     integration_key = service.integration_key
     client = PagerDutyClient(integration_key=integration_key)
