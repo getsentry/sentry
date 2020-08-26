@@ -280,9 +280,9 @@ class VstsIssueSyncTest(VstsIssueBase):
             == "https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/%d"
             % vsts_work_item_id
         )
-        assert (
-            req.body == '[{"path": "/fields/System.State", "value": "Resolved", "op": "replace"}]'
-        )
+        assert json.loads(req.body) == [
+            {"path": "/fields/System.State", "value": "Resolved", "op": "replace"}
+        ]
         assert responses.calls[2].response.status_code == 200
 
     def test_get_issue_url(self):
