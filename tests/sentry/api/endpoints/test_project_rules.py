@@ -230,6 +230,42 @@ class CreateProjectRuleTest(APITestCase):
 
         assert response.status_code == 400, response.content
 
+    def test_with_filters(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+
+        conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
+        filters = [
+            {"id": "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter", "value": 10}
+        ]
+        actions = [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}]
+
+        url = reverse(
+            "sentry-api-0-project-rules",
+            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+        )
+        response = self.client.post(
+            url,
+            data={
+                "name": "hello world",
+                "conditions": conditions,
+                "filters": filters,
+                "actions": actions,
+                "filterMatch": "any",
+                "actionMatch": "any",
+                "frequency": 30,
+            },
+            format="json",
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["id"]
+
+        rule = Rule.objects.get(id=response.data["id"])
+        assert rule.label == "hello world"
+        assert rule.data["conditions"] == conditions + filters
+
     def test_with_no_filter_match(self):
         self.login_as(user=self.user)
 

@@ -13,9 +13,9 @@ ValidationError = serializers.ValidationError
 
 
 class RuleNodeField(serializers.Field):
-    def __init__(self, types):
+    def __init__(self, type):
         super(RuleNodeField, self).__init__()
-        self.type_names = types
+        self.type_name = type
 
     def to_representation(self, value):
         return value
@@ -28,7 +28,7 @@ class RuleNodeField(serializers.Field):
         if "id" not in data:
             raise ValidationError("Missing attribute 'id'")
 
-        cls = rules.get(data["id"], types=self.type_names)
+        cls = rules.get(data["id"], type=self.type_name)
         if cls is None:
             msg = "Invalid node. Could not find '%s'"
             raise ValidationError(msg % data["id"])
@@ -70,9 +70,9 @@ class RuleSerializer(serializers.Serializer):
     filterMatch = serializers.ChoiceField(
         choices=(("all", "all"), ("any", "any"), ("none", "none")), required=False
     )
-    actions = ListField(child=RuleNodeField(types=["action/event"]))
-    # conditions encapsulate criteria for triggering (condition) and filtering (filter) an alert occurrence
-    conditions = ListField(child=RuleNodeField(types=["condition/event", "filter/event"]))
+    actions = ListField(child=RuleNodeField(type="action/event"))
+    conditions = ListField(child=RuleNodeField(type="condition/event"))
+    filters = ListField(child=RuleNodeField(type="filter/event"), required=False)
     frequency = serializers.IntegerField(min_value=5, max_value=60 * 24 * 30)
 
     def validate_environment(self, environment):
