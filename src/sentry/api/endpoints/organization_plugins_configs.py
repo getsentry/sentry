@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from rest_framework.response import Response
 import six
 
+from sentry.constants import ObjectStatus
 from sentry.plugins.base import plugins
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
@@ -76,7 +77,7 @@ class OrganizationPluginsConfigsEndpoint(OrganizationEndpoint):
 
         # get the IDs of all projects for found project options and grab them from the DB
         project_id_set = set([project_option.project_id for project_option in project_options])
-        projects = Project.objects.filter(id__in=project_id_set)
+        projects = Project.objects.filter(id__in=project_id_set, status=ObjectStatus.VISIBLE)
 
         # create a key/value map of our projects
         project_map = {project.id: project for project in projects}
@@ -92,6 +93,9 @@ class OrganizationPluginsConfigsEndpoint(OrganizationEndpoint):
 
             # iterate through the projects
             for project_id, plugin_info in six.iteritems(info_by_project):
+                # if the project is being deleted
+                if project_id not in project_map:
+                    continue
                 project = project_map[project_id]
 
                 # only include plugins which are configured

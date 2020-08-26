@@ -2,6 +2,7 @@ import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import 'prismjs/themes/prism-tomorrow.css';
 
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
 import {loadDocs} from 'app/actionCreators/projects';
@@ -163,6 +164,19 @@ class ProjectInstallPlatform extends React.Component {
 }
 
 const DocumentationWrapper = styled('div')`
+  .gatsby-highlight {
+    margin-bottom: ${space(3)};
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  .alert {
+    margin-bottom: ${space(3)};
+    border-radius: ${p => p.theme.borderRadius};
+  }
+
   p {
     line-height: 1.5;
   }

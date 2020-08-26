@@ -9,7 +9,7 @@ jobs:
     jest:
       runs-on: ubuntu-latest
       env:
-        VISUAL_SNAPSHOT_ENABLE: 1
+        VISUAL_HTML_ENABLE: 1
       steps:
         # Checkout codebase
         - uses: actions/checkout@v2
@@ -38,6 +38,18 @@ jobs:
           run: |
             NODE_ENV=production yarn build-css
             yarn test-ci --forceExit
+
+        - name: Save HTML artifacts
+          uses: actions/upload-artifact@v2
+          with:
+            name: jest-html
+            path: .artifacts/visual-snapshots/jest
+
+        - name: Create Images from HTML
+          uses: getsentry/action-html-to-image@main
+          with:
+            base-path: .artifacts/visual-snapshots/jest
+            css-path: src/sentry/static/sentry/dist/sentry.css
 
         - name: Save snapshots
           if: always()
@@ -107,6 +119,7 @@ jobs:
             echo "::set-output name=yarn-cache-dir::$(yarn cache dir)"
             echo "::set-output name=python-version::2.7"
             echo "::set-output name=matrix-instance-number::$(($MATRIX_INSTANCE+1))"
+            echo "::set-output name=acceptance-dir::.artifacts/visual-snapshots/acceptance"
 
 
         # yarn cache
@@ -179,10 +192,11 @@ jobs:
         - name: Run acceptance tests (#${{ steps.config.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
           if: always()
           run: |
-            mkdir -p .artifacts/visual-snapshots/acceptance
-            mkdir -p .artifacts/visual-snapshots/acceptance-mobile
+            mkdir -p ${{ steps.config.outputs.acceptance-dir }}
+            mkdir -p ${{ steps.config.outputs.acceptance-dir }}-mobile
             make run-acceptance
           env:
+            PYTEST_SNAPSHOTS_DIR: ${{ steps.config.outputs.acceptance-dir }}
             USE_SNUBA: 1
             TEST_GROUP: ${{ matrix.instance }}
 

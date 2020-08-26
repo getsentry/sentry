@@ -1,13 +1,11 @@
 from __future__ import absolute_import
 
-from sentry.api.bases.project import ProjectEndpoint, StrictProjectPermission
+from sentry.api.bases.project import ProjectEndpoint
 from sentry.rules import rules
 from rest_framework.response import Response
 
 
 class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
-    permission_classes = (StrictProjectPermission,)
-
     def get(self, request, project):
         """
         Retrieve the list of configuration options for a given project.
