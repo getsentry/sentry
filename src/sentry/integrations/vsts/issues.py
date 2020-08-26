@@ -70,7 +70,7 @@ class VstsIssueSync(IssueSyncMixin):
             default_item_type = item["defaultWorkItemType"]
             # the type is the last part of the url
             item_type = default_item_type["url"].split(".")[-1]
-            item_tuple = [item_type, default_item_type["name"]]
+            item_tuple = (item_type, default_item_type["name"])
             # we can have duplicates so need to dedupe
             if item_tuple not in deduped_item_tuples:
                 deduped_item_tuples.append(item_tuple)

@@ -74,32 +74,37 @@ class VstsIssueSyncTest(VstsIssueBase):
     def tearDown(self):
         responses.reset()
 
-    # @responses.activate
-    # def test_create_issue(self):
-    #     responses.add(
-    #         responses.PATCH,
-    #         "https://fabrikam-fiber-inc.visualstudio.com/0987654321/_apis/wit/workitems/$Bug?api-version=3.0",
-    #         body=WORK_ITEM_RESPONSE,
-    #         content_type="application/json",
-    #     )
+    @responses.activate
+    def test_create_issue(self):
+        responses.add(
+            responses.PATCH,
+            "https://fabrikam-fiber-inc.visualstudio.com/0987654321/_apis/wit/workitems/$Task?api-version=3.0",
+            body=WORK_ITEM_RESPONSE,
+            content_type="application/json",
+        )
 
-    #     form_data = {"title": "Hello", "description": "Fix this.", "project": "0987654321"}
-    #     assert self.integration.create_issue(form_data) == {
-    #         "key": self.issue_id,
-    #         "description": "Fix this.",
-    #         "title": "Hello",
-    #         "metadata": {"display_name": u"Fabrikam-Fiber-Git#309"},
-    #     }
-    #     request = responses.calls[-1].request
-    #     assert request.headers["Content-Type"] == "application/json-patch+json"
-    #     payload = json.loads(request.body)
-    #     assert payload == [
-    #         {"op": "add", "path": "/fields/System.Title", "value": "Hello"},
-    #         # Adds both a comment and a description.
-    #         # See method for details.
-    #         {"op": "add", "path": "/fields/System.Description", "value": "<p>Fix this.</p>\n"},
-    #         {"op": "add", "path": "/fields/System.History", "value": "<p>Fix this.</p>\n"},
-    #     ]
+        form_data = {
+            "title": "Hello",
+            "description": "Fix this.",
+            "project": "0987654321",
+            "work_item_type": "Task",
+        }
+        assert self.integration.create_issue(form_data) == {
+            "key": self.issue_id,
+            "description": "Fix this.",
+            "title": "Hello",
+            "metadata": {"display_name": u"Fabrikam-Fiber-Git#309"},
+        }
+        request = responses.calls[-1].request
+        assert request.headers["Content-Type"] == "application/json-patch+json"
+        payload = json.loads(request.body)
+        assert payload == [
+            {"op": "add", "path": "/fields/System.Title", "value": "Hello"},
+            # Adds both a comment and a description.
+            # See method for details.
+            {"op": "add", "path": "/fields/System.Description", "value": "<p>Fix this.</p>\n"},
+            {"op": "add", "path": "/fields/System.History", "value": "<p>Fix this.</p>\n"},
+        ]
 
     @responses.activate
     def test_get_issue(self):
@@ -368,6 +373,54 @@ class VstsIssueFormTest(VstsIssueBase):
         )
         self.group = event.group
 
+    def mock_categories(self, project):
+        responses.add(
+            responses.GET,
+            u"https://fabrikam-fiber-inc.visualstudio.com/{}/_apis/wit/workitemtypecategories".format(
+                project
+            ),
+            json={
+                "value": [
+                    {
+                        "defaultWorkItemType": {
+                            "url": u"https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Microsoft.Bug".format(
+                                project
+                            ),
+                            "name": "Bug",
+                        },
+                        "referenceName": "Microsoft.BugCategory",
+                    },
+                    {
+                        "defaultWorkItemType": {
+                            "url": u"https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Microsoft.Bug".format(
+                                project
+                            ),
+                            "name": "Bug",
+                        },
+                        "referenceName": "Microsoft.IssueCategory",
+                    },
+                    {
+                        "defaultWorkItemType": {
+                            "url": u"https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Microsoft.Task".format(
+                                project
+                            ),
+                            "name": "Task",
+                        },
+                        "referenceName": "Microsoft.TaskCategory",
+                    },
+                    {
+                        "defaultWorkItemType": {
+                            "url": u"https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Microsoft.UserStory".format(
+                                project
+                            ),
+                            "name": "User Story",
+                        },
+                        "referenceName": "Microsoft.RequirementCategory",
+                    },
+                ]
+            },
+        )
+
     def tearDown(self):
         responses.reset()
 
@@ -382,34 +435,55 @@ class VstsIssueFormTest(VstsIssueBase):
         assert project_field["defaultValue"] == default_value
         assert project_field["choices"] == choices
 
-    # @responses.activate
-    # def test_default_project(self):
-    #     self.update_issue_defaults({"project": "project-2-id"})
-    #     fields = self.integration.get_create_issue_config(self.group)
+    def assert_work_item_type_field(self, fields, default_value, choices):
+        project_field = [field for field in fields if field["name"] == "work_item_type"][0]
+        assert project_field["defaultValue"] == default_value
+        assert project_field["choices"] == choices
 
-    #     self.assert_project_field(
-    #         fields, "project-2-id", [("project-1-id", "project_1"), ("project-2-id", "project_2")]
-    #     )
+    @responses.activate
+    def test_default_project(self):
+        self.mock_categories("project-2-id")
+        self.update_issue_defaults({"project": "project-2-id"})
+        fields = self.integration.get_create_issue_config(self.group)
 
-    # @responses.activate
-    # def test_default_project_default_missing_in_choices(self):
-    #     responses.add(
-    #         responses.GET,
-    #         "https://fabrikam-fiber-inc.visualstudio.com/_apis/projects/project-3-id",
-    #         json={"id": "project-3-id", "name": "project_3"},
-    #     )
-    #     self.update_issue_defaults({"project": "project-3-id"})
-    #     fields = self.integration.get_create_issue_config(self.group)
+        self.assert_project_field(
+            fields, "project-2-id", [("project-1-id", "project_1"), ("project-2-id", "project_2")]
+        )
 
-    #     self.assert_project_field(
-    #         fields,
-    #         "project-3-id",
-    #         [
-    #             ("project-3-id", "project_3"),
-    #             ("project-1-id", "project_1"),
-    #             ("project-2-id", "project_2"),
-    #         ],
-    #     )
+    @responses.activate
+    def test_default_project_and_category(self):
+        self.mock_categories("project-2-id")
+        self.update_issue_defaults({"project": "project-2-id", "work_item_type": "Task"})
+        fields = self.integration.get_create_issue_config(self.group)
+
+        self.assert_project_field(
+            fields, "project-2-id", [("project-1-id", "project_1"), ("project-2-id", "project_2")]
+        )
+
+        self.assert_work_item_type_field(
+            fields, "Task", [("Bug", "Bug"), ("Task", "Task"), ("UserStory", "User Story")]
+        )
+
+    @responses.activate
+    def test_default_project_default_missing_in_choices(self):
+        self.mock_categories("project-3-id")
+        responses.add(
+            responses.GET,
+            "https://fabrikam-fiber-inc.visualstudio.com/_apis/projects/project-3-id",
+            json={"id": "project-3-id", "name": "project_3"},
+        )
+        self.update_issue_defaults({"project": "project-3-id"})
+        fields = self.integration.get_create_issue_config(self.group)
+
+        self.assert_project_field(
+            fields,
+            "project-3-id",
+            [
+                ("project-3-id", "project_3"),
+                ("project-1-id", "project_1"),
+                ("project-2-id", "project_2"),
+            ],
+        )
 
     @responses.activate
     def test_default_project_error_on_default_project(self):
