@@ -3,7 +3,8 @@ on:
   pull_request:
     paths:
       # Matches all python files regardless of directory depth.
-      - '**.py'
+      - **.py
+      - requirements*.txt
 
 jobs:
     check-missing-migration:
