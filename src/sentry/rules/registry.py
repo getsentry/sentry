@@ -22,8 +22,13 @@ class RuleRegistry(object):
         self._map[rule.id] = rule
         self._rules[rule.rule_type].append(rule)
 
-    def get(self, rule_id, type=None):
+    def get(self, rule_id, type=None, types=None):
         cls = self._map.get(rule_id)
         if type is not None and cls not in self._rules[type]:
+            return
+        if types is not None:
+            for type in types:
+                if cls in self._rules[type]:
+                    return cls
             return
         return cls
