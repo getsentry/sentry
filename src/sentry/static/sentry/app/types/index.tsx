@@ -277,6 +277,7 @@ type SentryEventBase = {
   dateReceived?: string;
   endTimestamp?: number;
   entries: EntryType[];
+  errors: object[];
 
   previousEventID?: string;
   nextEventID?: string;

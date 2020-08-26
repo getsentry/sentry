@@ -5,7 +5,7 @@ import hashlib
 import six
 import logging
 
-from sentry import nodestore, features
+from sentry import nodestore, features, eventstore
 from sentry.utils.cache import cache_key_for_event
 from sentry.eventstore.processing import event_processing_store
 
@@ -65,18 +65,22 @@ def reprocess_events(project_id, event_ids, start_time):
 
     # TODO: Passthrough non-reprocessable events
 
-    new_event_ids = {}
-
     for node_id, data in six.iteritems(node_results):
         # Take unprocessed data from old event and save it as unprocessed data
         # under a new event ID. The second step happens in pre-process. We could
         # save the "original event ID" instead and get away with writing less to
         # nodestore, but doing it this way makes the logic slightly simpler.
 
-        new_event_ids[data["event_id"]] = event_id = data["event_id"] = uuid.uuid4().hex
+        tags = dict(data.get("tags") or ())
+
+        orig_event_id = tags["original_event_id"] = data["event_id"]
+        event = eventstore.get_event_by_id(project_id, orig_event_id)
+        tags["original_group_id"] = event.group_id
+        data["tags"] = list(tags.items())
+
+        event_id = data["event_id"] = uuid.uuid4().hex
         # XXX: Only reset received
         data["timestamp"] = data["received"] = start_time
-        data.setdefault("fingerprint", ["{{default}}"]).append("__sentry_reprocessed")
 
         cache_key = event_processing_store.store(data)
 
@@ -85,5 +89,3 @@ def reprocess_events(project_id, event_ids, start_time):
         preprocess_event_from_reprocessing(
             cache_key=cache_key, start_time=start_time, event_id=event_id
         )
-
-    return new_event_ids

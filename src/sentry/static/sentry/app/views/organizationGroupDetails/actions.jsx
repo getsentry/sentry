@@ -40,7 +40,6 @@ class DeleteActions extends React.Component {
     project: SentryTypes.Project.isRequired,
     onDelete: PropTypes.func.isRequired,
     onDiscard: PropTypes.func.isRequired,
-    onReprocess: PropTypes.func.isRequired,
   };
 
   renderDiscardDisabled = ({children, ...props}) =>
@@ -48,14 +47,6 @@ class DeleteActions extends React.Component {
       ...props,
       renderDisabled: ({features}) => (
         <FeatureDisabled alert featureName="Discard and Delete" features={features} />
-      ),
-    });
-
-  renderReprocessingDisabled = ({children, ...props}) =>
-    children({
-      ...props,
-      renderDisabled: ({features}) => (
-        <FeatureDisabled alert featureName="Reprocessing v2" features={features} />
       ),
     });
 
@@ -94,22 +85,6 @@ class DeleteActions extends React.Component {
     </Feature>
   );
 
-  renderReprocessModal = ({Body, closeModal}) => (
-    <React.Fragment>
-      <Body>{t('TODO: Reprocessing caveats. Continue?')}</Body>
-      <div className="modal-footer">
-        <Button onClick={closeModal}>{t('Cancel')}</Button>
-        <Button
-          style={{marginLeft: space(1)}}
-          priority="primary"
-          onClick={this.props.onReprocess}
-        >
-          {t('Reprocess entire group')}
-        </Button>
-      </div>
-    </React.Fragment>
-  );
-
   openDiscardModal = () => {
     openModal(this.renderDiscardModal);
     analytics('feature.discard_group.modal_opened', {
@@ -117,16 +92,7 @@ class DeleteActions extends React.Component {
     });
   };
 
-  openReprocessModal = () => {
-    openModal(this.renderReprocessModal);
-    analytics('feature.reprocess_group.modal_opened', {
-      org_id: parseInt(this.props.organization.id, 10),
-    });
-  };
-
   render() {
-    const projectFeatures = new Set(this.props.project.features);
-
     return (
       <div className="btn-group">
         <LinkWithConfirmation
@@ -145,11 +111,6 @@ class DeleteActions extends React.Component {
           <MenuItem onClick={this.openDiscardModal}>
             <span>{t('Delete and discard future events')}</span>
           </MenuItem>
-          {projectFeatures.has('reprocessing-v2') && (
-            <MenuItem onClick={this.openReprocessModal}>
-              <span>{t('Reprocess issue')}</span>
-            </MenuItem>
-          )}
         </DropdownLink>
       </div>
     );
@@ -300,28 +261,6 @@ const GroupDetailsActions = createReactClass({
     });
   },
 
-  onReprocess() {
-    const {group, project, organization} = this.props;
-    const id = uniqueId();
-    addLoadingMessage(t('Reprocessing issue\u2026'));
-
-    GroupActions.reprocess(id, group.id);
-
-    this.props.api.request(`/issues/${group.id}/reprocessing/`, {
-      method: 'PUT',
-      success: response => {
-        GroupActions.reprocessSuccess(id, group.id, response);
-        browserHistory.push(`/${organization.slug}/${project.slug}/`);
-      },
-      error: error => {
-        GroupActions.reprocessError(id, group.id, error);
-      },
-      complete: () => {
-        clearIndicators();
-      },
-    });
-  },
-
   render() {
     const {group, project, organization} = this.props;
     const orgFeatures = new Set(organization.features);
@@ -358,7 +297,6 @@ const GroupDetailsActions = createReactClass({
           project={project}
           onDelete={this.onDelete}
           onDiscard={this.onDiscard}
-          onReprocess={this.onReprocess}
         />
         {orgFeatures.has('shared-issues') && (
           <div className="btn-group">

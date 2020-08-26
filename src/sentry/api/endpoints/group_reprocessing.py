@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.base import DocSection
@@ -33,8 +32,8 @@ class GroupReprocessingEndpoint(GroupEndpoint):
         :auth: required
         """
 
-        if not features.has("projects:reprocessing-v2", group.project):
+        if not features.has("projects:reprocessing-v2", group.project, actor=request.user):
             return self.respond(status=404)
 
         reprocess_group.delay(project_id=group.project_id, group_id=group.id)
-        return Response(status=200)
+        return self.respond(status=200)
