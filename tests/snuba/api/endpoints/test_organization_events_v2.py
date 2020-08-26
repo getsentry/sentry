@@ -1615,7 +1615,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert len(data) == 2
         result = [r["user.display"] for r in data]
         # because we're ordering by `user.display`, we expect the results in sorted order
-        assert result == list(sorted(["catherine", "cathy@example.com"]))
+        assert result == ["catherine", "cathy@example.com"]
 
     def test_has_transaction_status(self):
         project = self.create_project()
