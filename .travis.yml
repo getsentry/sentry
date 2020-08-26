@@ -93,7 +93,7 @@ start_snuba: &start_snuba |-
     -e CLICKHOUSE_PORT=9000 \
     getsentry/snuba
 
-  docker exec sentry_snuba snuba migrate
+  docker exec sentry_snuba snuba migrations migrate --force
 
 script:
   # certain commands require sentry init to be run, but this is only true for
