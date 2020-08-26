@@ -156,6 +156,7 @@ const StreamGroup = createReactClass({
 
     // TODO: @taylangocmen discover links on telescopes
     // TODO: @taylangocmen sort rows when clicked on a column
+    // TODO: @taylangocmen onboarding callouts when for when feature ships
 
     return (
       <Group data-test-id="group" onClick={this.toggleSelect} {...mouseEventHandlers}>

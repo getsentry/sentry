@@ -157,7 +157,6 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                 if request.access.has_project_access(group.project):
                     response = Response(serialize([group], request.user, serializer()))
                     response["X-Sentry-Direct-Hit"] = "1"
-
                     return response
 
         # If group ids specified, just ignore any query components
@@ -217,6 +216,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                 ctx["lifetime"] = lifetime_stats[idx]
                 ctx["filtered"] = filtered_stats[idx]
         else:
+            # context was the lifetime stats previously with no filters/dynamic start-end values
             context = lifetime_stats
 
         # HACK: remove auto resolved entries
