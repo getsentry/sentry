@@ -37,6 +37,7 @@ env:
     - PATH="${HOME}/.volta/bin:${PATH}"
     - NODE_OPTIONS=--max-old-space-size=4096
     - PYTEST_SENTRY_DSN=https://6fd5cfea2d4d46b182ad214ac7810508@sentry.io/2423079
+    - PYTEST_SENTRY_ALWAYS_REPORT=1
     - SENTRY_KAFKA_HOSTS=localhost:9092
     - SENTRY_ZOOKEEPER_HOSTS=localhost:2181
     - PYTEST_ADDOPTS="--reruns 5"

@@ -81,6 +81,7 @@ jobs:
         NODE_ENV: development
 
         PYTEST_SENTRY_DSN: https://6fd5cfea2d4d46b182ad214ac7810508@sentry.io/2423079
+        PYTEST_SENTRY_ALWAYS_REPORT: 1
         PYTEST_ADDOPTS: "--reruns 5"
 
         # services configuration
