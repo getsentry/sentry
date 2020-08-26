@@ -28,7 +28,7 @@ class RuleNodeField(serializers.Field):
         if "id" not in data:
             raise ValidationError("Missing attribute 'id'")
 
-        cls = rules.get(data["id"], type=self.type_name)
+        cls = rules.get(data["id"], self.type_name)
         if cls is None:
             msg = "Invalid node. Could not find '%s'"
             raise ValidationError(msg % data["id"])
