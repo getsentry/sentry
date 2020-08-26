@@ -1539,6 +1539,84 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert len(data) == 1
         assert data[0]["count_unique_user_display"] == 1
 
+    def test_orderby_user_display(self):
+        project1 = self.create_project()
+        project2 = self.create_project()
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "transaction": "/example",
+                "message": "how to make fast",
+                "timestamp": self.two_min_ago,
+                "user": {"email": "cathy@example.com"},
+            },
+            project_id=project1.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "transaction": "/example",
+                "message": "how to make fast",
+                "timestamp": self.two_min_ago,
+                "user": {"username": "catherine"},
+            },
+            project_id=project2.id,
+        )
+
+        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        query = {
+            "field": ["event.type", "user.display"],
+            "query": "user.display:cath*",
+            "statsPeriod": "24h",
+            "orderby": "-user.display",
+        }
+        response = self.do_request(query, features=features)
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 2
+        result = [r["user.display"] for r in data]
+        # because we're ordering by `-user.display`, we expect the results in reverse sorted order
+        assert result == list(reversed(sorted(["catherine", "cathy@example.com"])))
+
+    def test_orderby_user_display_with_aggregates(self):
+        project1 = self.create_project()
+        project2 = self.create_project()
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "transaction": "/example",
+                "message": "how to make fast",
+                "timestamp": self.two_min_ago,
+                "user": {"email": "cathy@example.com"},
+            },
+            project_id=project1.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "transaction": "/example",
+                "message": "how to make fast",
+                "timestamp": self.two_min_ago,
+                "user": {"username": "catherine"},
+            },
+            project_id=project2.id,
+        )
+
+        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        query = {
+            "field": ["event.type", "user.display", "count_unique(title)"],
+            "query": "user.display:cath*",
+            "statsPeriod": "24h",
+            "orderby": "user.display",
+        }
+        response = self.do_request(query, features=features)
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 2
+        result = [r["user.display"] for r in data]
+        # because we're ordering by `user.display`, we expect the results in sorted order
+        assert result == list(sorted(["catherine", "cathy@example.com"]))
+
     def test_has_transaction_status(self):
         project = self.create_project()
         data = load_data("transaction", timestamp=before_now(minutes=1))
