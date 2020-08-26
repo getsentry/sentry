@@ -75,28 +75,24 @@ export default function ActionTargetSelector(props: Props) {
       );
 
     case TargetType.SPECIFIC:
-      // If options is not null or undefined.
-      if (availableAction?.options) {
-        return (
-          <SelectControl
-            isDisabled={disabled || loading}
-            value={action.targetIdentifier}
-            options={availableAction?.options}
-            onChange={handleChangeTargetIdentifier}
-          />
-        );
-      } else {
-        return (
-          <Input
-            disabled={disabled}
-            key={action.type}
-            value={action.targetIdentifier || ''}
-            onChange={handleChangeSpecificTargetIdentifier}
-            placeholder={getPlaceholderForType(action.type)}
-            theme={theme}
-          />
-        );
-      }
+      return availableAction?.options ? (
+        <SelectControl
+          isDisabled={disabled || loading}
+          value={action.targetIdentifier}
+          options={availableAction.options}
+          onChange={handleChangeTargetIdentifier}
+        />
+      ) : (
+        <Input
+          disabled={disabled}
+          key={action.type}
+          value={action.targetIdentifier || ''}
+          onChange={handleChangeSpecificTargetIdentifier}
+          placeholder={getPlaceholderForType(action.type)}
+          theme={theme}
+        />
+      );
+
     default:
       return <span />;
   }
