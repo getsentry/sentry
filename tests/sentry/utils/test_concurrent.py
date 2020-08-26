@@ -8,6 +8,7 @@ from six.moves import _thread
 from concurrent.futures import CancelledError, Future
 from contextlib import contextmanager
 from threading import Event
+from django.utils.encoding import force_text
 
 from sentry.utils.compat import mock
 from sentry.utils.concurrent import (
@@ -166,7 +167,7 @@ def test_synchronous_executor():
     try:
         future.result()
     except Exception as e:
-        assert e.message is mock.sentinel.MESSAGE
+        assert force_text(e) is mock.sentinel.MESSAGE
     else:
         assert False, "expected future to raise"
 
