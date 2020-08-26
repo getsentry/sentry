@@ -25,7 +25,6 @@ import SentryTypes from 'app/sentryTypes';
 import ToolbarHeader from 'app/components/toolbarHeader';
 import Tooltip from 'app/components/tooltip';
 import withApi from 'app/utils/withApi';
-import QuestionTooltip from 'app/components/questionTooltip';
 
 const BULK_LIMIT = 1000;
 const BULK_LIMIT_STR = BULK_LIMIT.toLocaleString();
@@ -566,20 +565,8 @@ const IssueListActions = createReactClass({
               </GraphToggle>
             </GraphHeader>
           </GraphHeaderWrapper>
-          <EventsOrUsersLabel className="align-right">
-            {t('Events')}
-            <StyledQuestionTooltip
-              title={t('Number of events since the issue was created')}
-              size="xs"
-            />
-          </EventsOrUsersLabel>
-          <EventsOrUsersLabel className="align-right">
-            {t('Users')}
-            <StyledQuestionTooltip
-              title={t('Unique users affected since the issue was created')}
-              size="xs"
-            />
-          </EventsOrUsersLabel>
+          <EventsOrUsersLabel className="align-right">{t('Events')}</EventsOrUsersLabel>
+          <EventsOrUsersLabel className="align-right">{t('Users')}</EventsOrUsersLabel>
           <AssigneesLabel className="align-right hidden-xs hidden-sm">
             <ToolbarHeader>{t('Assignee')}</ToolbarHeader>
           </AssigneesLabel>
@@ -697,12 +684,6 @@ const GraphToggle = styled('a')`
   &:focus,
   &:active {
     color: ${p => (p.active ? p.theme.gray700 : p.theme.disabled)};
-  }
-`;
-
-const StyledQuestionTooltip = styled(QuestionTooltip)`
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    display: none;
   }
 `;
 
