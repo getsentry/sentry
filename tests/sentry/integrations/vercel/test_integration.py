@@ -467,7 +467,7 @@ class VercelIntegrationTest(IntegrationTestCase):
             },
         )
 
-        data = b"""{"configurationId":"icfg_Gdv8qI5s0h3T3xeLZvifuhCb", "teamId":{}, "user":{"id":"hIwec0PQ34UDEma7XmhCRQ3x"}}"""
+        data = b'{"configurationId":"icfg_Gdv8qI5s0h3T3xeLZvifuhCb", "teamId":{}, "user":{"id":"hIwec0PQ34UDEma7XmhCRQ3x"}}'
 
         resp = self.client.post(path=uihook_url, data=data, content_type="application/json")
         assert resp.status_code == 200
