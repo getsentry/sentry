@@ -363,10 +363,16 @@ class GroupDetails extends React.Component<Props, State> {
   }
 
   renderContent(project: AvatarProject) {
-    const {children, environments} = this.props;
-    const {group, event} = this.state;
-
+    const {children, environments, organization} = this.props;
     const {currentTab, isEventRoute} = this.getRouteInfo();
+
+    // At this point group and event have to be defined
+    const group = this.state.group!;
+    const event = this.state.event!;
+
+    const baseUrl = isEventRoute
+      ? `/organizations/${organization.slug}/issues/${group.id}/events/${event.id}/`
+      : `/organizations/${organization.slug}/issues/${group.id}/`;
 
     let childProps: Record<string, any> = {
       environments,
@@ -376,6 +382,10 @@ class GroupDetails extends React.Component<Props, State> {
 
     if (currentTab === TAB.DETAILS) {
       childProps = {...childProps, event};
+    }
+
+    if (currentTab === TAB.TAGS) {
+      childProps = {...childProps, event, baseUrl};
     }
 
     if (currentTab === TAB.SIMILAR_ISSUES) {
@@ -388,8 +398,7 @@ class GroupDetails extends React.Component<Props, State> {
           project={project}
           group={group}
           currentTab={currentTab}
-          isEventRoute={isEventRoute}
-          event={event}
+          baseUrl={baseUrl}
         />
         {React.isValidElement(children)
           ? React.cloneElement(children, childProps)

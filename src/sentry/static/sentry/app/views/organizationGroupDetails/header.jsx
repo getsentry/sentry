@@ -27,10 +27,9 @@ import GroupActions from './actions';
 
 class GroupHeader extends React.Component {
   static propTypes = {
-    event: SentryTypes.Event.isRequired,
+    baseUrl: PropTypes.string.isRequired,
     group: SentryTypes.Group.isRequired,
     currentTab: PropTypes.string.isRequired,
-    isEventRoute: PropTypes.bool.isRequired,
     project: SentryTypes.Project,
     api: PropTypes.object,
   };
@@ -66,7 +65,7 @@ class GroupHeader extends React.Component {
   }
 
   render() {
-    const {project, group, currentTab, isEventRoute, event} = this.props;
+    const {project, group, currentTab, baseUrl} = this.props;
     const {organization, location} = this.context;
     const projectFeatures = new Set(project ? project.features : []);
     const organizationFeatures = new Set(organization ? organization.features : []);
@@ -85,17 +84,11 @@ class GroupHeader extends React.Component {
     }
 
     const {memberList} = this.state;
-    const groupId = group.id;
     const orgId = organization.slug;
-    const eventId = event.id;
     const message = this.getMessage();
 
     const hasSimilarView = projectFeatures.has('similarity-view');
     const hasEventAttachments = organizationFeatures.has('event-attachments');
-
-    const baseUrl = isEventRoute
-      ? `/organizations/${orgId}/issues/${groupId}/events/${eventId}/`
-      : `/organizations/${orgId}/issues/${groupId}/`;
 
     const searchTermWithoutQuery = omit(location.query, 'query');
     const eventRouteToObject = {
