@@ -454,7 +454,7 @@ const StyledInput = styled(InputField)`
   }
 `;
 
-const Suggestions = styled('ul')<{error: string | undefined}>`
+const Suggestions = styled('ul')<{error?: string}>`
   position: absolute;
   width: ${p => (p.error ? 'calc(100% - 34px)' : '100%')};
   padding-left: 0;
