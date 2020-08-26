@@ -111,6 +111,7 @@ class UpdateProjectRuleTest(APITestCase):
             data={
                 "name": "hello world",
                 "actionMatch": "any",
+                "filterMatch": "any",
                 "actions": [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
                 "conditions": conditions,
             },
@@ -124,6 +125,7 @@ class UpdateProjectRuleTest(APITestCase):
         assert rule.label == "hello world"
         assert rule.environment_id is None
         assert rule.data["action_match"] == "any"
+        assert rule.data["filter_match"] == "any"
         assert rule.data["actions"] == [
             {"id": "sentry.rules.actions.notify_event.NotifyEventAction"}
         ]
@@ -152,6 +154,7 @@ class UpdateProjectRuleTest(APITestCase):
             data={
                 "environment": None,
                 "actionMatch": "all",
+                "filterMatch": "all",
                 "frequency": 30,
                 "name": "test",
                 "conditions": [
@@ -204,6 +207,7 @@ class UpdateProjectRuleTest(APITestCase):
                 "name": "hello world",
                 "environment": "production",
                 "actionMatch": "any",
+                "filterMatch": "any",
                 "actions": [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
                 "conditions": [
                     {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
@@ -245,6 +249,7 @@ class UpdateProjectRuleTest(APITestCase):
                 "name": "hello world",
                 "environment": None,
                 "actionMatch": "any",
+                "filterMatch": "any",
                 "actions": [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
                 "conditions": [
                     {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
@@ -281,6 +286,7 @@ class UpdateProjectRuleTest(APITestCase):
             data={
                 "name": "hello world",
                 "actionMatch": "any",
+                "filterMatch": "any",
                 "conditions": [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
                 "actions": [],
             },
@@ -309,6 +315,7 @@ class UpdateProjectRuleTest(APITestCase):
             data={
                 "name": "hello world",
                 "actionMatch": "any",
+                "filterMatch": "any",
                 "conditions": [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
                 "actions": [{"id": "foo"}],
             },
@@ -337,6 +344,7 @@ class UpdateProjectRuleTest(APITestCase):
             data={
                 "name": "hello world",
                 "actionMatch": "any",
+                "filterMatch": "any",
                 "conditions": [{"id": "sentry.rules.conditions.tagged_event.TaggedEventCondition"}],
                 "actions": [],
             },
@@ -365,6 +373,7 @@ class UpdateProjectRuleTest(APITestCase):
                 data={
                     "name": "hello world",
                     "actionMatch": "any",
+                    "filterMatch": "any",
                     "conditions": [],
                     "actions": [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
                 },
@@ -393,6 +402,7 @@ class UpdateProjectRuleTest(APITestCase):
                 data={
                     "name": "hello world",
                     "actionMatch": "any",
+                    "filterMatch": "any",
                     "action": [],
                     "conditions": [
                         {"id": "sentry.rules.conditions.tagged_event.TaggedEventCondition"}

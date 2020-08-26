@@ -42,7 +42,8 @@ class ProjectRuleDetailsEndpoint(ProjectEndpoint):
               "name": "My rule name",
               "conditions": [],
               "actions": [],
-              "actionMatch": "all"
+              "actionMatch": "all",
+              "filterMatch": "all"
             }}
 
         """
@@ -57,6 +58,7 @@ class ProjectRuleDetailsEndpoint(ProjectEndpoint):
                 "environment": data.get("environment"),
                 "project": project,
                 "action_match": data["actionMatch"],
+                "filter_match": data.get("filterMatch"),
                 "conditions": data["conditions"],
                 "actions": data["actions"],
                 "frequency": data.get("frequency"),

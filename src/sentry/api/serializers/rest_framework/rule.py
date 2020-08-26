@@ -67,8 +67,11 @@ class RuleSerializer(serializers.Serializer):
     actionMatch = serializers.ChoiceField(
         choices=(("all", "all"), ("any", "any"), ("none", "none"))
     )
+    filterMatch = serializers.ChoiceField(
+        choices=(("all", "all"), ("any", "any"), ("none", "none")), required=False
+    )
     actions = ListField(child=RuleNodeField(type="action/event"))
-    conditions = ListField(child=RuleNodeField(type="condition/event"))
+    conditions = ListField(child=RuleNodeField(type=None))
     frequency = serializers.IntegerField(min_value=5, max_value=60 * 24 * 30)
 
     def validate_environment(self, environment):
@@ -117,6 +120,8 @@ class RuleSerializer(serializers.Serializer):
             rule.label = self.validated_data["name"]
         if self.validated_data.get("actionMatch"):
             rule.data["action_match"] = self.validated_data["actionMatch"]
+        if self.validated_data.get("filterMatch"):
+            rule.data["filter_match"] = self.validated_data["filterMatch"]
         if self.validated_data.get("actions") is not None:
             rule.data["actions"] = self.validated_data["actions"]
         if self.validated_data.get("conditions") is not None:
