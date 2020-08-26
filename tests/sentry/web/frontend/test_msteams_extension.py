@@ -36,7 +36,7 @@ class MsTeamsExtensionConfigurationTest(TestCase):
             resp = self.hit_configure({"signed_params": "test"})
             assert "Installation link expired" in resp.content
 
-    def test_no_feature_flags(self):
+    def test_no_team_plan_feature_flag(self):
         with self.feature({"organizations:integrations-msteams": True}):
             resp = self.hit_configure({"signed_params": "test"})
             assert resp.status_code == 302
