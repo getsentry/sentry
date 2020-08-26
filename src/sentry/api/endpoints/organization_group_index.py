@@ -194,6 +194,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
             "active_at",
             "first_release",
             "first_seen",
+            "message",  # not 100% on this one
         }
         snuba_filters = []
         if query_kwargs["search_filters"] is not None:
@@ -207,14 +208,18 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
 
         if features.has("organizations:dynamic-issue-counts", organization, actor=request.user):
             context = serialize(results, request.user, serializer(start=start, end=end))
-            filtered_stats = serialize(
-                results,
-                request.user,
-                serializer(start=start, end=end, snuba_filters=snuba_filters),
-            )
+            if len(snuba_filters) > 0:
+                filtered_stats = serialize(
+                    results,
+                    request.user,
+                    serializer(start=start, end=end, snuba_filters=snuba_filters),
+                )
+            else:
+                filtered_stats = None
             for idx, ctx in enumerate(context):
                 ctx["lifetime"] = lifetime_stats[idx]
-                ctx["filtered"] = filtered_stats[idx]
+                if len(snuba_filters) > 0:
+                    ctx["filtered"] = filtered_stats[idx]
         else:
             # context was the lifetime stats previously with no filters/dynamic start-end values
             context = lifetime_stats
