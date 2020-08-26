@@ -82,6 +82,7 @@ async function getSentryIntegrations(hasReplays: boolean = false) {
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error('[sentry] Error loading rrweb integration');
+      Sentry.captureException(err);
     }
   }
 
