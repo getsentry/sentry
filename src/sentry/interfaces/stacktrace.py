@@ -17,7 +17,7 @@ def max_addr(cur, addr):
     if addr is None:
         return cur
     length = len(addr) - 2
-    if length > cur:
+    if cur is None or length > cur:
         return length
     return cur
 

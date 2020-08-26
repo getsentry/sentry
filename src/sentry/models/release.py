@@ -388,7 +388,7 @@ class Release(Model):
         """
 
         # Sort commit list in reverse order
-        commit_list.sort(key=lambda commit: commit.get("timestamp"), reverse=True)
+        commit_list.sort(key=lambda commit: commit.get("timestamp", 0), reverse=True)
 
         # TODO(dcramer): this function could use some cleanup/refactoring as it's a bit unwieldy
         from sentry.models import (
