@@ -262,6 +262,7 @@ describe('ProjectAlertsCreate', function() {
           expect.objectContaining({
             data: {
               actionMatch: 'any',
+              filterMatch: 'all',
               actions: [
                 {
                   id:
@@ -277,6 +278,7 @@ describe('ProjectAlertsCreate', function() {
                   value: 'conditionValue',
                 },
               ],
+              filters: [],
               environment: 'production',
               frequency: '60',
               name: 'My Rule Name',

@@ -78,7 +78,7 @@ class RuleNodeList extends React.Component<Props> {
           {items.map((item, idx) => (
             <RuleNode
               key={idx}
-              index={(item as any).idx ?? idx}
+              index={idx}
               node={this.getNode(item.id)}
               onDelete={onDeleteRow}
               data={item}
