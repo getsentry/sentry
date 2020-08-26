@@ -263,7 +263,6 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
         )
 
     def search_issues(self, account_name, query=None):
-        # TODO: should have dynaimic types
         return self.post(
             VstsApiPath.work_item_search.format(account_name=account_name),
             data={
