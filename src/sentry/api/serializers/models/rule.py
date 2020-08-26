@@ -60,7 +60,9 @@ class RuleSerializer(Serializer):
             # XXX(dcramer): we currently serialize unsaved rule objects
             # as part of the rule editor
             "id": six.text_type(obj.id) if obj.id else None,
+            # conditions pertain to criteria that can trigger an alert
             "conditions": filter(lambda condition: not _is_filter(condition), all_conditions),
+            # filters are not new conditions but are the subset of conditions that pertain to event attributes
             "filters": filter(lambda condition: _is_filter(condition), all_conditions),
             "actions": [
                 dict(list(o.items()) + [("name", _generate_rule_label(obj.project, obj, o))])
