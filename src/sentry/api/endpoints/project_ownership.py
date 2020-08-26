@@ -46,6 +46,7 @@ class ProjectOwnershipSerializer(serializers.Serializer):
                     bad_actors.append(u"#{}".format(owner.identifier))
 
         if bad_actors:
+            bad_actors.sort()
             raise serializers.ValidationError(
                 {"raw": u"Invalid rule owners: {}".format(", ".join(bad_actors))}
             )
