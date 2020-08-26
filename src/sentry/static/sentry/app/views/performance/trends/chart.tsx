@@ -17,7 +17,7 @@ import ChartZoom from 'app/components/charts/chartZoom';
 import {Series} from 'app/types/echarts';
 import theme from 'app/utils/theme';
 
-import {trendToColor, getIntervalRatio} from './utils';
+import {trendToColor, getIntervalRatio, getCurrentTrendFunction} from './utils';
 import {TrendChangeType, TrendsStats} from './types';
 
 const QUERY_KEYS = [
@@ -108,13 +108,15 @@ class Chart extends React.Component<Props> {
       transaction,
       statsData,
       isLoading,
+      location,
     } = props;
     const lineColor = trendToColor[trendChangeType];
 
     const events = statsData && statsData[transaction || ''];
     const data = events?.data ?? [];
 
-    const results = transformEventStats(data);
+    const trendFunction = getCurrentTrendFunction(location);
+    const results = transformEventStats(data, trendFunction.label);
 
     const start = props.start ? getUtcToLocalDateObject(props.start) : undefined;
 
