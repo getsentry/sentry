@@ -74,6 +74,9 @@ def static_media(request, **kwargs):
 
     # Make sure we Vary: Accept-Encoding for gzipped responses
     response["Vary"] = "Accept-Encoding"
+    
+    # This allows Sentry to record static timings for itself
+    response["Timing-Allow-Origin"] = "https://sentry.io"
 
     # We need CORS for font files
     if path.endswith((".js", ".ttf", ".ttc", ".otf", ".eot", ".woff", ".woff2")):
