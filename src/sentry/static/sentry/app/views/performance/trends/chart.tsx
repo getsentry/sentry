@@ -54,12 +54,35 @@ function transformEventStats(data: EventsStatsData, seriesName?: string): Series
   ];
 }
 
+function getLegend() {
+  const legend = {
+    right: 10,
+    top: 0,
+    itemGap: 12,
+    align: 'left',
+    textStyle: {
+      verticalAlign: 'top',
+      fontSize: 11,
+      fontFamily: 'Rubik',
+    },
+    data: [
+      {
+        name: 'Previous Period / This Period',
+        icon:
+          'path://M180 1000 l0 -40 200 0 200 0 0 40 0 40 -200 0 -200 0 0 -40z, M810 1000 l0 -40 200 0 200 0 0 40 0 40 -200 0 -200 0 0 -40zm, M1440 1000 l0 -40 200 0 200 0 0 40 0 40 -200 0 -200 0 0 -40z',
+      },
+    ],
+  };
+  return legend;
+}
+
 function getIntervalLine(series: Series[], intervalRatio: number) {
   if (!series.length || !series[0].data || !series[0].data.length) {
     return [];
   }
   const additionalLineSeries = [
     {
+      color: theme.gray700,
       data: [],
       markLine: {
         data: [] as any[],
@@ -76,7 +99,7 @@ function getIntervalLine(series: Series[], intervalRatio: number) {
           show: false,
         },
       },
-      seriesName: 'Split',
+      seriesName: 'Previous Period / This Period',
     },
   ];
   const seriesStart = parseInt(series[0].data[0].name as string, 0);
@@ -124,6 +147,7 @@ class Chart extends React.Component<Props> {
     const utc = decodeScalar(router.location.query.utc);
 
     const intervalRatio = getIntervalRatio(router.location);
+    const legend = getLegend();
 
     const loading = isLoading;
     const reloading = isLoading;
@@ -172,6 +196,7 @@ class Chart extends React.Component<Props> {
                           seriesOptions={{
                             showSymbol: false,
                           }}
+                          legend={legend}
                           toolBox={{
                             show: false,
                           }}
