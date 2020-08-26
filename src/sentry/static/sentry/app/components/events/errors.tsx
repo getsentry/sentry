@@ -117,11 +117,30 @@ class EventErrors extends React.Component<Props, State> {
   renderReprocessModal = ({Body, closeModal}) => (
     <React.Fragment>
       <Body>
-        {t(
-          'You can choose to re-process events to see if ' +
-            'your errors have been resolved. Be warned that Sentry will duplicate ' +
-            'events in your project (for now) and bill you for those new events again.'
-        )}
+        <p>
+          {t(
+            'You can choose to re-process events to see if ' +
+              'your errors have been resolved. Keep the following limitations in mind:'
+          )}
+        </p>
+
+        <ul>
+          <li>
+            {t(
+              'Sentry will duplicate events in your project (for now) and not delete the old versions.'
+            )}
+          </li>
+          <li>
+            {t(
+              'Reprocessing one or multiple events counts against your quota, but bypasses rate limits.'
+            )}
+          </li>
+          <li>
+            {t(
+              'If an event is reprocessed but did not change, we will not create the new version and not bill you for it (for now).'
+            )}
+          </li>
+        </ul>
       </Body>
       <div className="modal-footer">
         <Button onClick={this.onReprocessGroup}>
