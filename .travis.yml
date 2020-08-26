@@ -96,11 +96,7 @@ start_snuba: &start_snuba |-
   docker exec sentry_snuba snuba migrate
 
 script:
-  # certain commands require sentry init to be run, but this is only true for
-  # running things within Travis
   - make travis-test-$TEST_SUITE
-  # installing dependencies for after_* steps here ensures they get cached
-  # since those steps execute after travis runs `store build cache`
 
 after_failure:
   - dmesg | tail -n 100
@@ -135,6 +131,7 @@ base_postgres: &postgres_default
   install:
     - python setup.py install_egg_info
     - pip install -U -e ".[dev]"
+    - sentry init
   before_script:
     - psql -c 'create database sentry;' -U postgres
 
@@ -154,6 +151,7 @@ base_acceptance: &acceptance_default
     - *install_node_dependencies
     - python setup.py install_egg_info
     - pip install -U -e ".[dev]"
+    - sentry init
     - |
       CHROME_MAJOR_VERSION="$(dpkg -s google-chrome-stable | sed -nr 's/Version: ([0-9]+).*/\1/p')"
       wget -N "https://chromedriver.storage.googleapis.com/$(curl https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${CHROME_MAJOR_VERSION})/chromedriver_linux64.zip" -P ~/
@@ -236,6 +234,7 @@ matrix:
       install:
         - python setup.py install_egg_info
         - pip install -U -e ".[dev]"
+        - sentry init
       before_script:
         - psql -c 'create database sentry;' -U postgres
 
@@ -277,31 +276,9 @@ matrix:
       install:
         - python setup.py install_egg_info
         - pip install -U -e ".[dev]"
+        - sentry init
       before_script:
         - psql -c 'create database sentry;' -U postgres
-
-    # XXX: this needs to be the same as postgres_default (other than python, name, env, and the rb package override)
-    # NOTE: Migrations need to also be ported to py3.6, but the errors just clog up everything.
-    #       So for now, we're unblocking that by not having MIGRATIONS_TEST_MIGRATE=1.
-    # Allowed to fail!
-    # - python: 3.6
-    #   name: 'Python 3.6 backend (no migrations) [Postgres]'
-    #   env: TEST_SUITE=postgres DB=postgres SENTRY_PYTHON3=1 PYTEST_ADDOPTS="" PYTEST_SENTRY_ALWAYS_REPORT=no
-    #   services:
-    #     - memcached
-    #     - redis-server
-    #     - postgresql
-    #   before_install:
-    #     - *base_install
-    #     - *start_snuba
-    #     - docker ps -a
-    #   install:
-    #     - python setup.py install_egg_info
-    #     - pip install -U -e ".[dev]"
-    #     - pip uninstall -y rb
-    #     - pip install -e git+https://github.com/joshuarli/rb.git@505ad7665baba66c7c492b01b0e83d433ed2eb8e#egg=rb
-    #   before_script:
-    #     - psql -c 'create database sentry;' -U postgres
 
     # Deploy 'storybook' (component & style guide)
     - name: 'Storybook Deploy'
