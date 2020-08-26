@@ -121,7 +121,9 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
             "sentryAppId": sentry_app.id,
         }
 
-        with self.feature(["organizations:incidents", "organizations:integrations-sentry-app-metric-alerts"]):
+        with self.feature(
+            ["organizations:incidents", "organizations:integrations-sentry-app-metric-alerts"]
+        ):
             resp = self.get_valid_response(
                 self.organization.slug, status_code=201, **valid_alert_rule
             )

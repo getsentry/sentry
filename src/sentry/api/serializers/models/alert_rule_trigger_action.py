@@ -32,7 +32,9 @@ class AlertRuleTriggerActionSerializer(Serializer):
         ]:
             return int(action.target_identifier)
 
-        return action.target_display if action.target_display is not None else action.target_identifier
+        return (
+            action.target_display if action.target_display is not None else action.target_identifier
+        )
 
     def serialize(self, obj, attrs, user):
         from sentry.incidents.endpoints.serializers import action_target_type_to_string

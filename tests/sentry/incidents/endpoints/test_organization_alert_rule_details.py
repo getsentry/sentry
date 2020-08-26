@@ -139,7 +139,9 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
             "sentryAppId": sentry_app.id,
         }
 
-        with self.feature(["organizations:incidents", "organizations:integrations-sentry-app-metric-alerts"]):
+        with self.feature(
+            ["organizations:incidents", "organizations:integrations-sentry-app-metric-alerts"]
+        ):
             resp = self.get_valid_response(
                 self.organization.slug, alert_rule.id, **serialized_alert_rule
             )

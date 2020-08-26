@@ -345,9 +345,12 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             )
 
     def validate(self, data):
-        """Performs validation on an alert rule's data
-        This includes ensuring there is either 1 or 2 triggers, which each have actions, and have proper thresholds set.
-        The critical trigger should both alert and resolve 'after' the warning trigger (whether that means > or < the value depends on threshold type).
+        """
+        Performs validation on an alert rule's data.
+        This includes ensuring there is either 1 or 2 triggers, which each have
+        actions, and have proper thresholds set. The critical trigger should
+        both alert and resolve 'after' the warning trigger (whether that means
+        > or < the value depends on threshold type).
         """
         data.setdefault("dataset", QueryDatasets.EVENTS)
         project_id = data.get("projects")
