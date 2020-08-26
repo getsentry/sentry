@@ -5,6 +5,7 @@ import hmac
 import responses
 import six
 
+from sentry import VERSION
 from sentry.models import (
     Integration,
     OrganizationIntegration,
@@ -92,7 +93,8 @@ class VercelReleasesTest(APITestCase):
             assert response.status_code == 201
 
             assert len(responses.calls) == 2
-            release_body = json.loads(responses.calls[0].request.body)
+            release_request = responses.calls[0].request
+            release_body = json.loads(release_request.body)
             set_refs_body = json.loads(responses.calls[1].request.body)
             assert release_body == {
                 "projects": [self.project.slug],
@@ -108,6 +110,7 @@ class VercelReleasesTest(APITestCase):
                     }
                 ],
             }
+            assert release_request.headers["User-Agent"] == u"sentry_vercel/{}".format(VERSION)
 
     @responses.activate
     def test_no_match(self):

@@ -8,7 +8,7 @@ import six
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.crypto import constant_time_compare
 from requests.exceptions import RequestException
-from sentry import http, options
+from sentry import http, options, VERSION
 from sentry.api.base import Endpoint
 from sentry.models import (
     OrganizationIntegration,
@@ -172,7 +172,8 @@ class VercelWebhookEndpoint(Endpoint):
                 url = absolute_uri("/api/0/organizations/%s/releases/" % organization.slug)
                 headers = {
                     "Accept": "application/json",
-                    "Authorization": "Bearer %s" % token,
+                    "Authorization": u"Bearer %s" % token,
+                    "User-Agent": u"sentry_vercel/{}".format(VERSION),
                 }
                 json_error = None
 
