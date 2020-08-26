@@ -597,7 +597,7 @@ def bulk_raw_query(snuba_param_list, referrer=None):
             with timer("snuba_query"):
                 referrer = headers.get("referer", "<unknown>")
                 if SNUBA_INFO:
-                    logger.info("{}.body: {}".format(referrer, query_params))
+                    logger.info("{}.body: {}".format(referrer, json.dumps(query_params)))
                     query_params["debug"] = True
                 body = json.dumps(query_params)
                 with thread_hub.start_span(
