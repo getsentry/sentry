@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
 
-from sentry.models import Environment, Rule, RuleActivity, RuleActivityType
+from sentry.models import Environment, Integration, Rule, RuleActivity, RuleActivityType
 from sentry.testutils import APITestCase
 
 
@@ -162,6 +162,48 @@ class CreateProjectRuleTest(APITestCase):
         rule = Rule.objects.get(id=response.data["id"])
         assert rule.label == "hello world"
         assert rule.environment_id is None
+
+    def test_slack_channel_id_saved(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        integration = Integration.objects.create(
+            provider="slack",
+            name="Awesome Team",
+            external_id="TXXXXXXX1",
+            metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
+        )
+        integration.add_organization(project.organization, self.user)
+
+        url = reverse(
+            "sentry-api-0-project-rules",
+            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+        )
+        response = self.client.post(
+            url,
+            data={
+                "name": "hello world",
+                "environment": None,
+                "actionMatch": "any",
+                "frequency": 5,
+                "actions": [
+                    {
+                        "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+                        "name": "Send a notification to the funinthesun Slack workspace to #team-team-team and show tags [] in notification",
+                        "workspace": integration.id,
+                        "channel": "#team-team-team",
+                        "channel_id": "CSVK0921",
+                    }
+                ],
+                "conditions": [
+                    {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
+                ],
+            },
+            format="json",
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["actions"][0]["channel_id"] == "CSVK0921"
 
     def test_missing_name(self):
         self.login_as(user=self.user)
