@@ -296,3 +296,37 @@ class CreateProjectRuleTest(APITestCase):
 
         rule = Rule.objects.get(id=response.data["id"])
         assert rule.label == "hello world"
+
+    def test_with_filters_without_match(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+
+        conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
+        filters = [
+            {"id": "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter", "value": 10}
+        ]
+        actions = [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}]
+
+        url = reverse(
+            "sentry-api-0-project-rules",
+            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+        )
+        response = self.client.post(
+            url,
+            data={
+                "name": "hello world",
+                "conditions": conditions,
+                "filters": filters,
+                "actions": actions,
+                "actionMatch": "any",
+                "frequency": 30,
+            },
+            format="json",
+        )
+
+        assert response.status_code == 400
+        assert (
+            response.content
+            == '{"filterMatch":["Must select a filter match (all, any, none) if filters are supplied"]}'
+        )

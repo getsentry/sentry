@@ -110,6 +110,17 @@ class RuleSerializer(serializers.Serializer):
                 attrs["pending_save"] = True
                 break
 
+        # ensure that if filters are passed in that a filterMatch is also supplied
+        filters = attrs.get("filters")
+        if filters:
+            filter_match = attrs.get("filterMatch")
+            if not filter_match:
+                raise serializers.ValidationError(
+                    {
+                        "filterMatch": u"Must select a filter match (all, any, none) if filters are supplied"
+                    }
+                )
+
         return attrs
 
     def save(self, rule):
