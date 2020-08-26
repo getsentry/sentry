@@ -47,10 +47,6 @@ def test_query_string_as_pairlist(make_http_snapshot):
     make_http_snapshot(dict(url="http://example.com", query_string=[["foo", "bar"]]))
 
 
-def test_query_string_as_bytes(make_http_snapshot):
-    make_http_snapshot(dict(url="http://example.com", query_string=b"foo=\x00"))
-
-
 def test_data_as_dict(make_http_snapshot):
     make_http_snapshot(dict(url="http://example.com", data={"foo": "bar"}))
 
