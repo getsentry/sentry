@@ -147,10 +147,14 @@ def _get_calculated_grouping_variants_for_event(event, config):
             if winning_strategy is None:
                 if component.contributes:
                     winning_strategy = strategy.name
-                    precedence_hint = "%s takes precedence" % (
-                        "%s of %s" % (strategy.name, variant)
+                    variants_hint = "/".join(
+                        sorted(k for k, v in six.iteritems(rv) if v.contributes)
+                    )
+                    precedence_hint = "%s take%s precedence" % (
+                        "%s of %s" % (strategy.name, variants_hint)
                         if variant != "default"
-                        else strategy.name
+                        else strategy.name,
+                        "" if strategy.name.endswith("s") else "s",
                     )
             elif component.contributes and winning_strategy != strategy.name:
                 component.update(

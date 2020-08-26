@@ -69,13 +69,13 @@ describe('FeatureTourModal', function() {
     await showModal(wrapper);
 
     // Should start on the first step.
-    expect(wrapper.find('TourContent h3').text()).toEqual(steps[0].title);
+    expect(wrapper.find('TourHeader h4').text()).toEqual(steps[0].title);
 
     // Advance to the next step.
     wrapper.find('Button[data-test-id="next-step"]').simulate('click');
 
     // Should move to next step.
-    expect(wrapper.find('TourContent h3').text()).toEqual(steps[1].title);
+    expect(wrapper.find('TourHeader h4').text()).toEqual(steps[1].title);
     expect(onAdvance).toHaveBeenCalled();
   });
 
@@ -85,7 +85,7 @@ describe('FeatureTourModal', function() {
     await showModal(wrapper);
 
     // Should show title, image and actions
-    expect(wrapper.find('TourContent h3').text()).toEqual(steps[0].title);
+    expect(wrapper.find('TourHeader h4').text()).toEqual(steps[0].title);
     expect(wrapper.find('TourContent em[data-test-id="step-image"]')).toHaveLength(1);
     expect(wrapper.find('TourContent a[data-test-id="step-action"]')).toHaveLength(1);
     expect(wrapper.find('StepCounter').text()).toEqual('1 of 2');

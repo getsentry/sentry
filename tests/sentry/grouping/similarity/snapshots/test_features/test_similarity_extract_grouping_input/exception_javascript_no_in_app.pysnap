@@ -1,9 +1,10 @@
 ---
-created: '2020-08-19T12:18:49.088260Z'
+created: '2020-08-21T21:07:52.090676Z'
 creator: sentry
 source: tests/sentry/grouping/similarity/test_features.py
 ---
 similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","onError(err);"],["filename","createteammodal.jsx"],["module","app/components/modals/createTeamModal"]],[["context-line","this.model.submitError(error);"],["filename","form.jsx"],["function","onError"],["module","app/views/settings/components/forms/form"]]]
+similarity:2020-07-23:type:ident-shingle: "TypeError"
 similarity:2020-07-23:value:character-5-shingle: " 'sub"
 similarity:2020-07-23:value:character-5-shingle: " null"
 similarity:2020-07-23:value:character-5-shingle: " of n"
@@ -42,4 +43,3 @@ similarity:2020-07-23:value:character-5-shingle: "tErro"
 similarity:2020-07-23:value:character-5-shingle: "ty 's"
 similarity:2020-07-23:value:character-5-shingle: "ubmit"
 similarity:2020-07-23:value:character-5-shingle: "y 'su"
-similarity:2020-07-23:type:ident-shingle: "TypeError"

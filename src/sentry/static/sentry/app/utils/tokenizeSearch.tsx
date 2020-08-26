@@ -88,7 +88,7 @@ export class QueryResults {
         case TokenType.TAG:
           if (token.value === '' || token.value === null) {
             formattedTokens.push(`${token.key}:""`);
-          } else if (/[\s:\(\)\\"]/g.test(token.value)) {
+          } else if (/[\s\(\)\\"]/g.test(token.value)) {
             formattedTokens.push(`${token.key}:"${escapeDoubleQuotes(token.value)}"`);
           } else {
             formattedTokens.push(`${token.key}:${token.value}`);
