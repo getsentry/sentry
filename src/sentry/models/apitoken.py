@@ -1,7 +1,6 @@
 from __future__ import absolute_import, print_function
 
-import six
-
+from django.utils.encoding import force_text, python_2_unicode_compatible
 from datetime import timedelta
 from django.db import models, transaction
 from django.utils import timezone
@@ -21,6 +20,7 @@ def generate_token():
     return uuid4().hex + uuid4().hex
 
 
+@python_2_unicode_compatible
 class ApiToken(Model, HasApiScopes):
     __core__ = True
 
@@ -40,8 +40,8 @@ class ApiToken(Model, HasApiScopes):
 
     __repr__ = sane_repr("user_id", "token", "application_id")
 
-    def __unicode__(self):
-        return six.text_type(self.token)
+    def __str__(self):
+        return force_text(self.token)
 
     @classmethod
     def from_grant(cls, grant):
