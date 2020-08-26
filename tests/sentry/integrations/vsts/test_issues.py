@@ -382,39 +382,47 @@ class VstsIssueFormTest(VstsIssueBase):
             json={
                 "value": [
                     {
-                        "defaultWorkItemType": {
-                            "url": u"https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Microsoft.Bug".format(
-                                project
-                            ),
-                            "name": "Bug",
-                        },
+                        "workItemTypes": [
+                            {
+                                "url": u"https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Microsoft.Bug".format(
+                                    project
+                                ),
+                                "name": "Bug",
+                            }
+                        ],
                         "referenceName": "Microsoft.BugCategory",
                     },
                     {
-                        "defaultWorkItemType": {
-                            "url": u"https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Microsoft.Bug".format(
-                                project
-                            ),
-                            "name": "Bug",
-                        },
+                        "workItemTypes": [
+                            {
+                                "url": u"https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Microsoft.Bug".format(
+                                    project
+                                ),
+                                "name": "Bug",
+                            }
+                        ],
                         "referenceName": "Microsoft.IssueCategory",
                     },
                     {
-                        "defaultWorkItemType": {
-                            "url": u"https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Microsoft.Task".format(
-                                project
-                            ),
-                            "name": "Task",
-                        },
+                        "workItemTypes": [
+                            {
+                                "url": u"https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Microsoft.Task".format(
+                                    project
+                                ),
+                                "name": "Task",
+                            }
+                        ],
                         "referenceName": "Microsoft.TaskCategory",
                     },
                     {
-                        "defaultWorkItemType": {
-                            "url": u"https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Microsoft.UserStory".format(
-                                project
-                            ),
-                            "name": "User Story",
-                        },
+                        "workItemTypes": [
+                            {
+                                "url": u"https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Microsoft.UserStory".format(
+                                    project
+                                ),
+                                "name": "User Story",
+                            }
+                        ],
                         "referenceName": "Microsoft.RequirementCategory",
                     },
                 ]

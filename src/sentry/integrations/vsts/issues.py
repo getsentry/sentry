@@ -67,13 +67,14 @@ class VstsIssueSync(IssueSyncMixin):
             self.raise_error(e)
         deduped_item_tuples = []
         for item in item_categories:
-            default_item_type = item["defaultWorkItemType"]
-            # the type is the last part of the url
-            item_type = default_item_type["url"].split(".")[-1]
-            item_tuple = (item_type, default_item_type["name"])
-            # we can have duplicates so need to dedupe
-            if item_tuple not in deduped_item_tuples:
-                deduped_item_tuples.append(item_tuple)
+            for item_type_object in item["workItemTypes"]:
+                # the type is the last part of the url
+                item_type = item_type_object["url"].split(".")[-1]
+                item_tuple = (item_type, item_type_object["name"])
+                # we can have duplicates so need to dedupe
+                # TODO: need to dedupe on value
+                if item_tuple not in deduped_item_tuples:
+                    deduped_item_tuples.append(item_tuple)
 
         # try to get the default from either the last value used or from the first item on the list
         defaults = self.get_project_defaults(group.project_id)
