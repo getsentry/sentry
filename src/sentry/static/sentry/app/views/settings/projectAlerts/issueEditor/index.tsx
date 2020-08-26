@@ -427,7 +427,6 @@ class IssueRuleEditor extends AsyncView<Props, State> {
               environment,
               actionMatch,
               frequency: `${frequency}`,
-              filterMatch: 'all',
             }}
             submitDisabled={!hasAccess}
             submitLabel={isSavedAlertRule(rule) ? t('Save Rule') : t('Create Alert Rule')}

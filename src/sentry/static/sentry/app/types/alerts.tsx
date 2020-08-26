@@ -53,13 +53,11 @@ export type IssueAlertRuleCondition = Omit<
 export type UnsavedIssueAlertRule = {
   /** When an issue matches [actionMatch] of the following */
   actionMatch: 'all' | 'any' | 'none';
-  // TODO(scttcper): Make filterMatch property required after backend changes
   /** If that issue has [filterMatch] of these properties */
-  filterMatch?: 'all' | 'any' | 'none';
+  filterMatch: 'all' | 'any' | 'none';
   actions: IssueAlertRuleAction[];
   conditions: IssueAlertRuleCondition[];
-  // TODO(scttcper): Make filters property required after backend changes
-  filters?: IssueAlertRuleCondition[];
+  filters: IssueAlertRuleCondition[];
   environment: null | string;
   frequency: number;
   name: string;
