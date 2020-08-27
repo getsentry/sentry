@@ -16,6 +16,7 @@ class TestCreator(TestCase):
             name="New Cool Rule",
             project=self.project,
             action_match="all",
+            filter_match="any",
             conditions=[
                 {
                     "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
@@ -55,5 +56,6 @@ class TestCreator(TestCase):
                 }
             ],
             "action_match": "all",
+            "filter_match": "any",
             "frequency": 5,
         }

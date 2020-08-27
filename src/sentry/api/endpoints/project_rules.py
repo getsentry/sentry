@@ -47,8 +47,10 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             {{
               "name": "My rule name",
               "conditions": [],
+              "filters": [],
               "actions": [],
-              "actionMatch": "all"
+              "actionMatch": "all",
+              "filterMatch": "all"
             }}
 
         """
@@ -56,12 +58,19 @@ class ProjectRulesEndpoint(ProjectEndpoint):
 
         if serializer.is_valid():
             data = serializer.validated_data
+
+            # combine filters and conditions into one conditions criteria for the rule object
+            conditions = data["conditions"]
+            if "filters" in data:
+                conditions.extend(data["filters"])
+
             kwargs = {
                 "name": data["name"],
                 "environment": data.get("environment"),
                 "project": project,
                 "action_match": data["actionMatch"],
-                "conditions": data["conditions"],
+                "filter_match": data.get("filterMatch"),
+                "conditions": conditions,
                 "actions": data["actions"],
                 "frequency": data.get("frequency"),
             }

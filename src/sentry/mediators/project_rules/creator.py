@@ -12,6 +12,7 @@ class Creator(Mediator):
     environment = Param(int, required=False)
     project = Param("sentry.models.Project")
     action_match = Param(six.string_types)
+    filter_match = Param(six.string_types, required=False)
     actions = Param(Iterable)
     conditions = Param(Iterable)
     frequency = Param(int)
@@ -28,6 +29,7 @@ class Creator(Mediator):
 
     def _get_kwargs(self):
         data = {
+            "filter_match": self.filter_match,
             "action_match": self.action_match,
             "actions": self.actions,
             "conditions": self.conditions,
