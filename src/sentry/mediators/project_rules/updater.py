@@ -51,7 +51,7 @@ class Updater(Mediator):
     def _update_action_match(self):
         self.rule.data["action_match"] = self.action_match
 
-    @if_param("action_match")
+    @if_param("filter_match")
     def _update_filter_match(self):
         self.rule.data["filter_match"] = self.filter_match
 
