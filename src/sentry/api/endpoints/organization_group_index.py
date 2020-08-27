@@ -36,6 +36,18 @@ search = EventsDatasetSnubaSearchBackend(**settings.SENTRY_SEARCH_OPTIONS)
 
 class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
     permission_classes = (OrganizationEventPermission,)
+    skip_snuba_fields = {
+        "query",
+        "status",
+        "bookmarked_by",
+        "assigned_to",
+        "unassigned",
+        "subscribed_by",
+        "active_at",
+        "first_release",
+        "first_seen",
+        "message",
+    }
 
     def _search(self, request, organization, projects, environments, extra_query_kwargs=None):
         query_kwargs = build_query_params_from_request(
@@ -184,24 +196,12 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
 
         results = list(cursor_result)
 
-        skip_snuba_fields = {
-            "query",
-            "status",
-            "bookmarked_by",
-            "assigned_to",
-            "unassigned",
-            "subscribed_by",
-            "active_at",
-            "first_release",
-            "first_seen",
-            "message",  # not 100% on this one
-        }
         snuba_filters = []
         if query_kwargs["search_filters"] is not None:
             snuba_filters = [
                 convert_search_filter_to_snuba_query(search_filter)
                 for search_filter in query_kwargs["search_filters"]
-                if search_filter.key.name not in skip_snuba_fields
+                if search_filter.key.name not in self.skip_snuba_fields
             ]
 
         lifetime_stats = serialize(results, request.user, serializer())
