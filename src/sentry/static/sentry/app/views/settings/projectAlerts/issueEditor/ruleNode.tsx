@@ -116,7 +116,7 @@ class RuleNode extends React.Component<Props> {
     const {data, index, onPropertyChange, disabled} = this.props;
 
     return (
-      <InlineInput
+      <InlineNumberInput
         type="number"
         name={name}
         value={(data && data[name]) ?? ''}
@@ -266,17 +266,7 @@ class RuleNode extends React.Component<Props> {
       case MailActionTargetType.Team:
         return null;
       case MailActionTargetType.Member:
-        return (
-          <MarginlessAlert type="warning">
-            {tct('Alerts sent directly to a member override their [alertSettings].', {
-              alertSettings: (
-                <ExternalLink href="/settings/account/notifications/">
-                  {t('personal project alert settings')}
-                </ExternalLink>
-              ),
-            })}
-          </MarginlessAlert>
-        );
+        return null;
       default:
         return null;
     }
@@ -312,6 +302,11 @@ const InlineInput = styled(Input)`
   height: 28px;
 `;
 
+const InlineNumberInput = styled(Input)`
+  width: 90px;
+  height: 28px;
+`;
+
 const InlineSelectControl = styled(SelectControl)`
   width: 180px;
 `;
@@ -329,9 +324,9 @@ const RuleRow = styled('div')`
 `;
 
 const RuleRowContainer = styled('div')`
-  &:nth-child(odd) {
-    background-color: ${p => p.theme.gray100};
-  }
+  background-color: ${p => p.theme.gray100};
+  border-radius: ${p => p.theme.borderRadius};
+  border: 1px ${p => p.theme.borderLight} solid;
 `;
 
 const Rule = styled('div')`
