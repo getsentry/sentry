@@ -329,3 +329,16 @@ class SlackNotifyActionTest(RuleTestCase):
 
         assert not form.is_valid()
         assert len(form.errors) == 1
+
+    def test_channel_id_provided(self):
+        rule = self.get_rule(
+            data={
+                "workspace": self.integration.id,
+                "channel": "#my-channel",
+                "channel_id": "C2349874",
+                "tags": "",
+            }
+        )
+
+        form = rule.get_form_instance()
+        assert form.is_valid()
