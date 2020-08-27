@@ -116,7 +116,7 @@ class RuleNode extends React.Component<Props> {
     const {data, index, onPropertyChange, disabled} = this.props;
 
     return (
-      <InlineInput
+      <InlineNumberInput
         type="number"
         name={name}
         value={(data && data[name]) ?? ''}
@@ -299,6 +299,11 @@ export default RuleNode;
 
 const InlineInput = styled(Input)`
   width: auto;
+  height: 28px;
+`;
+
+const InlineNumberInput = styled(Input)`
+  width: 90px;
   height: 28px;
 `;
 
