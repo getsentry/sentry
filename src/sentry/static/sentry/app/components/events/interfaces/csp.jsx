@@ -28,17 +28,7 @@ export default class CspInterface extends React.Component {
     data: PropTypes.object.isRequired,
   };
 
-  constructor(props) {
-    super(props);
-    const {data} = props;
-    // hide the report-uri since this is redundant and silly
-    data.original_policy = data.original_policy.replace(/(;\s+)?report-uri [^;]+/, '');
-
-    this.state = {
-      view: 'report',
-      data,
-    };
-  }
+  state = {view: 'report'};
 
   toggleView = value => {
     this.setState({
@@ -47,8 +37,17 @@ export default class CspInterface extends React.Component {
   };
 
   render() {
-    const {view, data} = this.state;
-    const {event} = this.props;
+    const {view} = this.state;
+    const {event, data} = this.props;
+
+    const cleanData =
+      data.original_policy !== 'string'
+        ? data
+        : {
+            ...data,
+            // Hide the report-uri since this is redundant and silly
+            original_policy: data.original_policy.replace(/(;\s+)?report-uri [^;]+/, ''),
+          };
 
     const actions = (
       <ButtonBar merged active={view}>
@@ -68,7 +67,7 @@ export default class CspInterface extends React.Component {
       </ButtonBar>
     );
 
-    const children = getView(view, data);
+    const children = getView(view, cleanData);
 
     return (
       <EventDataSection
