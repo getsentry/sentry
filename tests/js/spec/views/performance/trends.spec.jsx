@@ -79,7 +79,7 @@ describe('Performance > Trends', function() {
       url: '/organizations/org-slug/events-trends/',
       body: {
         stats: {
-          '/organizations/:orgId/performance/': {
+          'internal,/organizations/:orgId/performance/': {
             data: [[123, []]],
           },
           order: 0,
@@ -97,6 +97,8 @@ describe('Performance > Trends', function() {
           },
           data: [
             {
+              count: 8,
+              project: 'internal',
               count_range_1: 2,
               count_range_2: 6,
               percentage_count_range_2_count_range_1: 3,
@@ -107,6 +109,8 @@ describe('Performance > Trends', function() {
               transaction: '/organizations/:orgId/performance/',
             },
             {
+              count: 60,
+              project: 'internal',
               count_range_1: 20,
               count_range_2: 40,
               percentage_count_range_2_count_range_1: 2,
@@ -161,6 +165,32 @@ describe('Performance > Trends', function() {
     wrapper.update();
 
     expect(wrapper.find('TrendsListItem')).toHaveLength(4);
+  });
+
+  it('clicking transaction link links to the correct view', async function() {
+    const projects = [TestStubs.Project({id: 1, slug: 'internal'}), TestStubs.Project()];
+    const data = initializeData(projects, {project: ['1']});
+
+    const wrapper = mountWithTheme(
+      <PerformanceLanding
+        organization={data.organization}
+        location={data.router.location}
+      />,
+      data.routerContext
+    );
+
+    await tick();
+    wrapper.update();
+
+    const firstTransaction = wrapper.find('TrendsListItem').first();
+    const transactionLink = firstTransaction.find('StyledLink');
+    expect(transactionLink).toHaveLength(1);
+
+    expect(transactionLink.text()).toEqual('/organizations/:orgId/performance/');
+    expect(transactionLink.props().to.pathname).toEqual(
+      '/organizations/org-slug/performance/summary/'
+    );
+    expect(transactionLink.props().to.query.project).toEqual(1);
   });
 
   it('transaction list renders user misery', async function() {

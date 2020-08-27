@@ -44,7 +44,8 @@ export type TrendsData = {
 
 type BaseTrendsTransaction = {
   transaction: string;
-  project?: string; // TODO: Fix allowing project as field
+  project?: string;
+  count: number;
 
   count_range_1: number;
   count_range_2: number;

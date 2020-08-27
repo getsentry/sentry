@@ -413,7 +413,7 @@ class RedisReportBackend(ReportBackend):
         )
 
     def __encode(self, report):
-        return zlib.compress(json.dumps(list(report)))
+        return zlib.compress(json.dumps(list(report)).encode("utf-8"))
 
     def __decode(self, value):
         if value is None:
