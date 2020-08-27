@@ -72,16 +72,16 @@ def parse_timestamp(value):
         return value
     elif isinstance(value, six.integer_types + (float,)):
         return datetime.utcfromtimestamp(value).replace(tzinfo=pytz.utc)
-    value = (value or "").rstrip("Z").encode("ascii", "replace").split(".", 1)
+    value = (value or "").rstrip("Z").encode("ascii", "replace").split(b".", 1)
     if not value:
         return None
     try:
-        rv = datetime.strptime(value[0], "%Y-%m-%dT%H:%M:%S")
+        rv = datetime.strptime(value[0].decode("ascii"), "%Y-%m-%dT%H:%M:%S")
     except Exception:
         return None
     if len(value) == 2:
         try:
-            rv = rv.replace(microsecond=int(value[1].ljust(6, "0")[:6]))
+            rv = rv.replace(microsecond=int(value[1].ljust(6, b"0")[:6]))
         except ValueError:
             rv = None
     return rv.replace(tzinfo=pytz.utc)
