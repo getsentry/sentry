@@ -26,23 +26,23 @@ class RelayPublicKeysConfigTest(APITestCase):
 
         self.internal_relay = Relay.objects.create(
             relay_id=six.text_type(uuid4()),
-            public_key=six.binary_type(self.public_key),
+            public_key=six.text_type(self.public_key),
             is_internal=True,
         )
 
         self.external_relay = Relay.objects.create(
             relay_id=six.text_type(uuid4()),
-            public_key=six.binary_type(self.public_key),
+            public_key=six.text_type(self.public_key),
             is_internal=False,
         )
         self.relay_a = Relay.objects.create(
             relay_id=six.text_type(uuid4()),
-            public_key=six.binary_type(self.public_key),
+            public_key=six.text_type(self.public_key),
             is_internal=False,
         )
         self.relay_b = Relay.objects.create(
             relay_id=six.text_type(uuid4()),
-            public_key=six.binary_type(self.public_key),
+            public_key=six.text_type(self.public_key),
             is_internal=True,
         )
 
@@ -107,7 +107,7 @@ class RelayPublicKeysConfigTest(APITestCase):
             self.path,
             data=raw_json,
             content_type="application/json",
-            HTTP_X_SENTRY_RELAY_ID=calling_relay.relay_id,
+            HTTP_X_SENTRY_RELAY_ID=calling_relay.relay_id.encode("ascii"),
             HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
         )
 
