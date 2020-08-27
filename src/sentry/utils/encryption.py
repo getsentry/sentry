@@ -5,7 +5,7 @@ import six
 from base64 import b64encode, b64decode
 from collections import OrderedDict
 from django.conf import settings
-from django.utils.encoding import smart_bytes
+from django.utils.encoding import smart_bytes, force_text
 
 MARKER = u"\xef\xbb\xbf"
 
@@ -32,13 +32,17 @@ class EncryptionManager(object):
             self.default_scheme = schemes[0][0]
 
     def encrypt(self, value):
+        """Encrypt a text value"""
         if self.default_scheme is None:
             return value
         value = smart_bytes(value)
         scheme = self.schemes[self.default_scheme]
-        return u"{}{}${}".format(MARKER, self.default_scheme, b64encode(scheme.encrypt(value)))
+        return u"{}{}${}".format(
+            MARKER, self.default_scheme, force_text(b64encode(scheme.encrypt(value)))
+        )
 
     def decrypt(self, value):
+        """Decrypts encrypted data into text"""
         # we assume that if encryption is not configured, it was never
         # configured
         if not self.schemes:
@@ -56,7 +60,7 @@ class EncryptionManager(object):
             scheme = self.schemes[enc_method]
         except KeyError:
             raise ValueError(u"Unknown encryption scheme: {!r}".format(enc_method))
-        return scheme.decrypt(enc_data)
+        return force_text(scheme.decrypt(enc_data))
 
 
 default_manager = EncryptionManager(settings.SENTRY_ENCRYPTION_SCHEMES)
