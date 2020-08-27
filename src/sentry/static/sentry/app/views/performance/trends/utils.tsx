@@ -245,5 +245,7 @@ function getLimitTransactionItems(
   if (trendChangeType === TrendChangeType.REGRESSION) {
     limitQuery = aliasedDivide + ':>1';
   }
+  limitQuery +=
+    ' divide(count_range_2,count_range_1):>0.5 divide(count_range_2,count_range_1):<2';
   return limitQuery;
 }
