@@ -16,8 +16,13 @@ from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize("change_groups", (True, False))
-def test_basic(task_runner, default_project, register_plugin, change_groups, reset_snuba):
+@pytest.mark.parametrize("change_groups", (True, False), ids=("new_group", "same_group"))
+@pytest.mark.parametrize(
+    "change_stacktrace", (True, False), ids=("new_stacktrace", "no_stacktrace")
+)
+def test_basic(
+    task_runner, default_project, register_plugin, change_groups, reset_snuba, change_stacktrace
+):
     # Replace this with an int and nonlocal when we have Python 3
     abs_count = []
 
@@ -28,6 +33,13 @@ def test_basic(task_runner, default_project, register_plugin, change_groups, res
         abs_count.append(None)
 
         data["tags"] = list(six.iteritems(tags))
+
+        if change_stacktrace and len(abs_count) > 0:
+            data["exception"] = {
+                "values": [
+                    {"type": "ZeroDivisionError", "stacktrace": {"frames": [{"function": "foo"}]}}
+                ]
+            }
 
         if change_groups:
             data["fingerprint"] = [uuid.uuid4().hex]
@@ -53,9 +65,6 @@ def test_basic(task_runner, default_project, register_plugin, change_groups, res
     event_id = data["event_id"]
     cache_key = event_processing_store.store(data)
 
-    def get_nodestore_event():
-        return eventstore.get_event_by_id(default_project.id, event_id)
-
     def get_event_by_processing_counter(n):
         return list(
             eventstore.get_events(
@@ -66,36 +75,37 @@ def test_basic(task_runner, default_project, register_plugin, change_groups, res
             )
         )
 
-    def get_event_by_group(n):
-        return list(
-            eventstore.get_events(
-                eventstore.Filter(project_ids=[default_project.id], group_ids=[n])
-            )
-        )
-
     with task_runner(), Feature({"projects:reprocessing-v2": True}):
         # factories.store_event would almost be suitable for this, but let's
         # actually run through stacktrace processing once
         preprocess_event(start_time=time(), cache_key=cache_key, data=data)
 
-    event = get_nodestore_event()
+    event = eventstore.get_event_by_id(default_project.id, event_id)
     assert dict(event.data["tags"])["processing_counter"] == "x0"
     assert not event.data.get("errors")
 
     assert get_event_by_processing_counter("x0")[0].event_id == event.event_id
-    assert get_event_by_group(event.group_id)[0].event_id == event.event_id
 
     old_event = event
 
     with task_runner(), Feature({"projects:reprocessing-v2": True}):
         reprocess_group(default_project.id, event.group_id)
 
-    (event,) = get_event_by_processing_counter("x1")
-    # Assert original data is used
-    assert dict(event.data["tags"])["processing_counter"] == "x1"
-    assert not event.data.get("errors")
+    new_events = get_event_by_processing_counter("x1")
 
-    if change_groups:
-        assert event.group_id != old_event.group_id
+    if not change_stacktrace:
+        assert not new_events
     else:
-        assert event.group_id == old_event.group_id
+        (event,) = new_events
+
+        # Assert original data is used
+        assert dict(event.data["tags"])["processing_counter"] == "x1"
+        assert not event.data.get("errors")
+
+        if change_groups:
+            assert event.group_id != old_event.group_id
+        else:
+            assert event.group_id == old_event.group_id
+
+        assert dict(event.data["tags"])["original_event_id"] == old_event.event_id
+        assert int(dict(event.data["tags"])["original_group_id"]) == old_event.group_id

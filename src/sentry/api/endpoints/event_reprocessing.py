@@ -4,7 +4,7 @@ import time
 
 from sentry import features
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.reprocessing2 import reprocess_events
+from sentry.tasks.reprocessing2 import reprocess_event
 
 
 class EventReprocessingEndpoint(ProjectEndpoint):
@@ -28,11 +28,6 @@ class EventReprocessingEndpoint(ProjectEndpoint):
 
         start_time = time.time()
 
-        new_event_ids = reprocess_events(
-            project_id=project.id, event_ids=[event_id], start_time=start_time
-        )
-
-        if event_id not in new_event_ids:
-            return self.respond({"detail": "Event not found or cannot be reprocessed"}, status=404)
+        reprocess_event.delay(project_id=project.id, event_id=event_id, start_time=start_time)
 
         return self.respond(status=200)

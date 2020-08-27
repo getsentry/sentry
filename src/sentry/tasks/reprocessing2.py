@@ -30,18 +30,30 @@ def reprocess_group(project_id, group_id, offset=0, start_time=None):
             ),
             limit=GROUP_REPROCESSING_CHUNK_SIZE,
             offset=offset,
+            referrer="reprocessing2.reprocess_group",
         )
     )
 
     if not events:
         return
 
-    from sentry.reprocessing2 import reprocess_events
-
-    reprocess_events(
-        project_id=project_id, event_ids=[e.event_id for e in events], start_time=start_time,
-    )
+    for event in events:
+        reprocess_event.delay(
+            project_id=project_id, event_id=event.event_id, start_time=start_time,
+        )
 
     reprocess_group.delay(
         project_id=project_id, group_id=group_id, offset=offset + len(events), start_time=start_time
     )
+
+
+@instrumented_task(
+    name="sentry.tasks.reprocessing2.reprocess_event",
+    queue="events.reprocessing.preprocess_event",  # XXX: dedicated queue
+    time_limit=30,
+    soft_time_limit=20,
+)
+def reprocess_event(project_id, event_id, start_time):
+    from sentry.reprocessing2 import reprocess_event
+
+    reprocess_event(project_id=project_id, event_id=event_id, start_time=start_time)
