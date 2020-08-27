@@ -8,8 +8,8 @@ import PerformanceLanding from 'app/views/performance/landing';
 import ProjectsStore from 'app/stores/projectsStore';
 import {
   TRENDS_FUNCTIONS,
-  getTrendAliasedFieldDivide,
-  getTrendAliasedQueryDivide,
+  getTrendAliasedFieldPercentage,
+  getTrendAliasedQueryPercentage,
 } from 'app/views/performance/trends/utils';
 import {TrendFunctionField} from 'app/views/performance/trends/types';
 
@@ -88,8 +88,8 @@ describe('Performance > Trends', function() {
           meta: {
             count_range_1: 'integer',
             count_range_2: 'integer',
-            divide_count_range_2_count_range_1: 'percentage',
-            divide_percentile_range_2_percentile_range_1: 'percentage',
+            percentage_count_range_2_count_range_1: 'percentage',
+            percentage_percentile_range_2_percentile_range_1: 'percentage',
             minus_percentile_range_2_percentile_range_1: 'number',
             percentile_range_1: 'duration',
             percentile_range_2: 'duration',
@@ -99,8 +99,8 @@ describe('Performance > Trends', function() {
             {
               count_range_1: 2,
               count_range_2: 6,
-              divide_count_range_2_count_range_1: 3,
-              divide_percentile_range_2_percentile_range_1: 1.9235225955967554,
+              percentage_count_range_2_count_range_1: 3,
+              percentage_percentile_range_2_percentile_range_1: 1.9235225955967554,
               minus_percentile_range_2_percentile_range_1: 797,
               percentile_range_1: 863,
               percentile_range_2: 1660,
@@ -109,8 +109,8 @@ describe('Performance > Trends', function() {
             {
               count_range_1: 20,
               count_range_2: 40,
-              divide_count_range_2_count_range_1: 2,
-              divide_percentile_range_2_percentile_range_1: 1.204968944099379,
+              percentage_count_range_2_count_range_1: 2,
+              percentage_percentile_range_2_percentile_range_1: 1.204968944099379,
               minus_percentile_range_2_percentile_range_1: 66,
               percentile_range_1: 322,
               percentile_range_2: 388,
@@ -234,8 +234,8 @@ describe('Performance > Trends', function() {
 
       expect(trendsMock).toHaveBeenCalledTimes(2);
 
-      const aliasedFieldDivide = getTrendAliasedFieldDivide(trendFunction.alias);
-      const aliasedQueryDivide = getTrendAliasedQueryDivide(trendFunction.alias);
+      const aliasedFieldDivide = getTrendAliasedFieldPercentage(trendFunction.alias);
+      const aliasedQueryDivide = getTrendAliasedQueryPercentage(trendFunction.alias);
 
       // Improved trends call
       expect(trendsMock).toHaveBeenNthCalledWith(

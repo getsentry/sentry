@@ -1546,10 +1546,14 @@ FUNCTIONS = {
         ],
         "result_type": "integer",
     },
-    "divide": {
-        "name": "divide",
+    "percentage": {
+        "name": "percentage",
         "args": [FunctionArg("numerator"), FunctionArg("denominator")],
-        "transform": "if(greater({denominator},0),divide({numerator},{denominator}),null)",
+        "aggregate": [
+            u"if(greater({denominator},0),divide({numerator},{denominator}),null)",
+            None,
+            None,
+        ],
         "result_type": "percentage",
     },
     "minus": {
