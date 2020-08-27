@@ -49,7 +49,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
               "conditions": [],
               "filters": [],
               "actions": [],
-              "actionMatch": "all"
+              "actionMatch": "all",
               "filterMatch": "all"
             }}
 

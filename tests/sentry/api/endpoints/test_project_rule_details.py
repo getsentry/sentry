@@ -86,7 +86,7 @@ class ProjectRuleDetailsTest(APITestCase):
         project = self.create_project()
 
         conditions = [
-            {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"},
+            {"id": "sentry.rules.conditions.every_event.EveryEventCondition"},
             {"id": "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter", "value": 10},
         ]
         actions = [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}]
