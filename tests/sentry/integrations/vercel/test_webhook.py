@@ -3,7 +3,6 @@ from __future__ import absolute_import
 import hashlib
 import hmac
 import responses
-import six
 
 from sentry import VERSION
 from sentry.models import (
@@ -269,7 +268,7 @@ class VercelReleasesTest(APITestCase):
     def test_manual_vercel_deploy(self):
         local_signature = hmac.new(
             key="vercel-client-secret".encode("utf-8"),
-            msg=six.binary_type(DEPLOYMENT_WEBHOOK_NO_COMMITS),
+            msg=DEPLOYMENT_WEBHOOK_NO_COMMITS.encode("utf-8"),
             digestmod=hashlib.sha1,
         ).hexdigest()
 
