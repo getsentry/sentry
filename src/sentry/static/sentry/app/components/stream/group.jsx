@@ -219,10 +219,7 @@ const StreamGroup = createReactClass({
           >
             <PrimaryCount value={primaryCount} />
             {showLifetimeStats && secondaryCount !== undefined && (
-              <React.Fragment>
-                {'/'}
-                <SecondaryCount value={secondaryCount} />
-              </React.Fragment>
+              <SecondaryCount value={secondaryCount} />
             )}
           </Tooltip>
         </Flex>
@@ -254,14 +251,9 @@ const StreamGroup = createReactClass({
             }
           >
             <PrimaryCount value={primaryUserCount} />
-            {showLifetimeStats &&
-              secondaryUserCount !== undefined &&
-              hasDynamicIssueCounts && (
-                <React.Fragment>
-                  {'/'}
-                  <SecondaryCount value={secondaryUserCount} />
-                </React.Fragment>
-              )}
+            {showLifetimeStats && secondaryUserCount !== undefined && (
+              <SecondaryCount value={secondaryUserCount} />
+            )}
           </Tooltip>
         </Flex>
         <Box width={80} mx={2} className="hidden-xs hidden-sm">
@@ -295,7 +287,12 @@ const PrimaryCount = styled(Count)`
   color: ${p => p.theme.gray700};
 `;
 
-const SecondaryCount = styled(Count)`
+const SecondaryCount = styled(({value, ...p}) => (
+  <React.Fragment>
+    {'/'}
+    <Count {...p} value={value} />
+  </React.Fragment>
+))`
   font-size: 18px;
   color: ${p => p.theme.gray500};
 `;
