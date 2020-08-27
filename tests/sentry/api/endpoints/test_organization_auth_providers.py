@@ -33,5 +33,4 @@ class OrganizationAuthProviders(APITestCase):
             resp = self.client.get(path)
 
         assert resp.status_code == 200
-
-        assert resp.data[0]["key"] == "dummy"
+        assert any(d["key"] == "dummy" for d in resp.data)

@@ -11,7 +11,7 @@ type Props = {
 } & Omit<FormField['props'], 'children'> &
   Omit<
     React.ComponentPropsWithoutRef<'input'>,
-    'value' | 'placeholder' | 'disabled' | 'onBlur'
+    'value' | 'placeholder' | 'disabled' | 'onBlur' | 'onKeyDown' | 'onChange'
   >;
 
 export type onEvent = (value, event?: React.FormEvent<HTMLInputElement>) => void;
@@ -36,7 +36,7 @@ export default class InputField extends React.Component<Props> {
       <Input
         {...props}
         onBlur={e => onBlur(e.target.value, e)}
-        onKeyDown={e => onKeyDown(e.target.value, e)}
+        onKeyDown={e => onKeyDown((e.target as any).value, e)}
         onChange={e => onChange(e.target.value, e)}
       />
     ),

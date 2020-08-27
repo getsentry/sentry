@@ -39,7 +39,7 @@ class CreateProjectServiceHookTest(APITestCase):
         assert hook.url == "http://example.com"
         assert hook.project_id == self.project.id
         assert hook.actor_id == self.user.id
-        assert hook.events == ["event.alert", "event.created"]
+        assert sorted(hook.events) == ["event.alert", "event.created"]
         assert hook.version == 0
 
         hook_project = ServiceHookProject.objects.get(project_id=self.project.id)

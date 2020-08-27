@@ -4,7 +4,7 @@ import six
 
 from django.core.urlresolvers import reverse
 
-from sentry.models import Environment, Rule, RuleActivity, RuleActivityType, RuleStatus
+from sentry.models import Environment, Integration, Rule, RuleActivity, RuleActivityType, RuleStatus
 from sentry.testutils import APITestCase
 
 
@@ -304,6 +304,58 @@ class UpdateProjectRuleTest(APITestCase):
         rule = Rule.objects.get(id=rule.id)
         assert rule.label == "hello world"
         assert rule.environment_id is None
+
+    def test_slack_channel_id_saved(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+
+        rule = Rule.objects.create(
+            project=project,
+            environment_id=Environment.get_or_create(project, "production").id,
+            label="foo",
+        )
+        integration = Integration.objects.create(
+            provider="slack",
+            name="Awesome Team",
+            external_id="TXXXXXXX1",
+            metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
+        )
+        integration.add_organization(project.organization, self.user)
+
+        url = reverse(
+            "sentry-api-0-project-rule-details",
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_slug": project.slug,
+                "rule_id": rule.id,
+            },
+        )
+        response = self.client.put(
+            url,
+            data={
+                "name": "hello world",
+                "environment": None,
+                "actionMatch": "any",
+                "actions": [
+                    {
+                        "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+                        "name": "Send a notification to the funinthesun Slack workspace to #team-team-team and show tags [] in notification",
+                        "workspace": integration.id,
+                        "channel": "#team-team-team",
+                        "channel_id": "CSVK0921",
+                    }
+                ],
+                "conditions": [
+                    {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
+                ],
+            },
+            format="json",
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == six.text_type(rule.id)
+        assert response.data["actions"][0]["channel_id"] == "CSVK0921"
 
     def test_invalid_rule_node_type(self):
         self.login_as(user=self.user)

@@ -154,18 +154,19 @@ def format_duration(minutes):
     """
 
     if minutes >= 1440:
-        days = minutes // 1440
-        return "{} day{}".format(days, pluralize(days))
+        days = int(minutes // 1440)
+        return "{:d} day{}".format(days, pluralize(days))
 
     if minutes >= 60:
-        hours = minutes // 60
-        return "{} hour{}".format(hours, pluralize(hours))
+        hours = int(minutes // 60)
+        return "{:d} hour{}".format(hours, pluralize(hours))
 
     if minutes >= 1:
-        return "{} minute{}".format(minutes, pluralize(minutes))
+        minutes = int(minutes)
+        return "{:d} minute{}".format(minutes, pluralize(minutes))
 
-    seconds = minutes // 60
-    return "{} second{}".format(seconds, pluralize(seconds))
+    seconds = int(minutes // 60)
+    return "{:d} second{}".format(seconds, pluralize(seconds))
 
 
 INCIDENT_STATUS_KEY = {
