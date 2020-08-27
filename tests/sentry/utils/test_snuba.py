@@ -192,7 +192,7 @@ class PrepareQueryParamsTest(TestCase):
     def test_with_some_deleted_projects(self, mock_project):
         other_project = self.create_project(organization=self.organization, slug="a" * 32)
         query_params = SnubaQueryParams(
-            dataset=Dataset.Events, filter_keys={"project_id": [self.project.id]}
+            dataset=Dataset.Events, filter_keys={"project_id": [self.project.id, other_project.id]}
         )
 
         other_project.delete()
