@@ -164,6 +164,14 @@ class SlackActionEndpoint(Endpoint):
             return self.respond(status=e.status)
 
         data = slack_request.data
+
+        # if a user is just clicking our auto response in the messages tab we just return a 200
+        if (
+            data.get("actions")
+            and data["actions"][0].get("value", "") == "sentry_docs_link_clicked"
+        ):
+            return self.respond()
+
         channel_id = data.get("channel", {}).get("id")
         user_id = data.get("user", {}).get("id")
         response_url = data.get("response_url")
