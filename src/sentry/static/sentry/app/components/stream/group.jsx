@@ -217,11 +217,11 @@ const StreamGroup = createReactClass({
               </TooltipContent>
             }
           >
-            <StyledPrimaryCount value={primaryCount} />
+            <PrimaryCount value={primaryCount} />
             {showLifetimeStats && secondaryCount && (
               <React.Fragment>
                 {'/'}
-                <StyledSecondaryCount value={secondaryCount} />
+                <SecondaryCount value={secondaryCount} />
               </React.Fragment>
             )}
           </Tooltip>
@@ -253,11 +253,11 @@ const StreamGroup = createReactClass({
               </TooltipContent>
             }
           >
-            <StyledPrimaryCount value={primaryUserCount} />
+            <PrimaryCount value={primaryUserCount} />
             {showLifetimeStats && secondaryUserCount && hasDynamicIssueCounts && (
               <React.Fragment>
                 {'/'}
-                <StyledSecondaryCount value={secondaryUserCount} />
+                <SecondaryCount value={secondaryUserCount} />
               </React.Fragment>
             )}
           </Tooltip>
@@ -288,12 +288,12 @@ const GroupCheckbox = styled(Box)`
   }
 `;
 
-const StyledPrimaryCount = styled(Count)`
+const PrimaryCount = styled(Count)`
   font-size: 18px;
   color: ${p => p.theme.gray700};
 `;
 
-const StyledSecondaryCount = styled(Count)`
+const SecondaryCount = styled(Count)`
   font-size: 18px;
   color: ${p => p.theme.gray500};
 `;
