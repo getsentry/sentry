@@ -171,9 +171,22 @@ class PerformanceLanding extends React.Component<Props, State> {
   handleViewChange(viewKey: FilterViews) {
     const {location} = this.props;
 
+    const newQuery = {
+      ...location.query,
+    };
+
+    // This is a temporary change for trends to test adding a default count to increase relevancy
+    if (viewKey === FilterViews.TRENDS) {
+      if (!newQuery.query) {
+        newQuery.query = 'count():>1000';
+      } else if (!newQuery.query.includes('count()')) {
+        newQuery.query += 'count():>1000';
+      }
+    }
+
     ReactRouter.browserHistory.push({
       pathname: location.pathname,
-      query: {...location.query, view: viewKey},
+      query: {...newQuery, view: viewKey},
     });
   }
 
