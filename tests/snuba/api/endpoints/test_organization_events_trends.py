@@ -104,16 +104,16 @@ class OrganizationEventsTrendsEndpointTest(APITestCase, SnubaTestCase):
             "count_range_1": 1,
             "transaction": self.prototype["transaction"],
             "project": self.project.slug,
-            "avg_range_1": 1000,
+            "avg_range_1": 2000,
             "avg_range_2": 4000,
             "percentage_count_range_2_count_range_1": 3.0,
-            "minus_avg_range_2_avg_range_1": 3000.0,
-            "percentage_avg_range_2_avg_range_1": 4.0,
+            "minus_avg_range_2_avg_range_1": 2000.0,
+            "percentage_avg_range_2_avg_range_1": 2.0,
         }
 
         stats = result_stats["{},{}".format(self.project.slug, self.prototype["transaction"])]
         assert [attrs for time, attrs in stats["data"]] == [
-            [{"count": 1000}],
+            [{"count": 2000}],
             [{"count": 4000}],
         ]
 
