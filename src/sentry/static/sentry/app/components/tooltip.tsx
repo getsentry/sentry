@@ -28,11 +28,6 @@ type Props = DefaultProps & {
   children: React.ReactNode;
 
   /**
-   * The node to render within the Tooltip
-   */
-  tipContent?: React.ReactNode;
-
-  /**
    * Disable the tooltip display entirely
    */
   disabled?: boolean;
@@ -192,15 +187,7 @@ class Tooltip extends React.Component<Props, State> {
   }
 
   render() {
-    const {
-      disabled,
-      children,
-      tipContent,
-      title,
-      position,
-      popperStyle,
-      isHoverable,
-    } = this.props;
+    const {disabled, children, title, position, popperStyle, isHoverable} = this.props;
     const {isOpen} = this.state;
     if (disabled) {
       return children;
@@ -226,13 +213,13 @@ class Tooltip extends React.Component<Props, State> {
               aria-hidden={!isOpen}
               ref={ref}
               style={style}
-              hide={!title && !tipContent}
+              hide={!title}
               data-placement={placement}
               popperStyle={popperStyle}
               onMouseEnter={() => isHoverable && this.handleOpen()}
               onMouseLeave={() => isHoverable && this.handleClose()}
             >
-              {tipContent ? tipContent : title}
+              {title}
               <TooltipArrow
                 ref={arrowProps.ref}
                 data-placement={placement}

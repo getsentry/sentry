@@ -194,7 +194,7 @@ const StreamGroup = createReactClass({
           <Tooltip
             disabled={!hasDynamicIssueCounts}
             popperStyle={popperStyle}
-            tipContent={
+            title={
               <TooltipContent>
                 {data.lifetime && (
                   <TooltipRow>
@@ -227,7 +227,7 @@ const StreamGroup = createReactClass({
           <Tooltip
             disabled={!hasDynamicIssueCounts}
             popperStyle={popperStyle}
-            tipContent={
+            title={
               <TooltipContent>
                 {data.lifetime && (
                   <TooltipRow>
