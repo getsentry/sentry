@@ -242,7 +242,13 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             with sentry_sdk.start_span(op="discover.endpoint", description="base.stats_query"):
                 result = get_event_stats(query_columns, query, params, rollup, reference_event)
 
-        serializer = SnubaTSResultSerializer(organization, None, request.user)
+        max_buckets = request.GET.get("maxBuckets")
+        if max_buckets is not None:
+            max_buckets = int(max_buckets)
+
+        serializer = SnubaTSResultSerializer(
+            organization, None, request.user, max_buckets=max_buckets
+        )
 
         with sentry_sdk.start_span(op="discover.endpoint", description="base.stats_serialization"):
             if top_events:

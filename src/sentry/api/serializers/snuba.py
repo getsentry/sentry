@@ -3,9 +3,11 @@ from __future__ import absolute_import, division
 import six
 import itertools
 from functools import reduce, partial
+from math import ceil
 from operator import or_
 
 from django.db.models import Q
+from six.moves import xrange
 
 from sentry.models import Release, Project, ProjectStatus, EventUser
 from sentry.utils.dates import to_timestamp
@@ -306,6 +308,10 @@ class SnubaTSResultSerializer(BaseSnubaSerializer):
     Serializer for time-series Snuba data.
     """
 
+    def __init__(self, organization, lookup, user, max_buckets=None):
+        super(SnubaTSResultSerializer, self).__init__(organization, lookup, user)
+        self.max_buckets = max_buckets
+
     def serialize(self, result, column="count", order=None):
         data = [
             (key, list(group))
@@ -326,7 +332,10 @@ class SnubaTSResultSerializer(BaseSnubaSerializer):
                 row.append(item)
             rv.append((k, row))
 
-        res = {"data": zerofill(rv, result.start, result.end, result.rollup)}
+        rv = zerofill(rv, result.start, result.end, result.rollup)
+        if self.max_buckets is not None and len(rv) > self.max_buckets:
+            rv = self.merge_buckets(rv)
+        res = {"data": rv}
 
         if result.data.get("totals"):
             res["totals"] = {"count": result.data["totals"][column]}
@@ -337,3 +346,37 @@ class SnubaTSResultSerializer(BaseSnubaSerializer):
             res["order"] = result.data["order"]
 
         return res
+
+    def merge_buckets(self, results):
+        """
+        Merges buckets together so that the total number of buckets we serialize doesn't
+        exceed `self.max_buckets`. For each merged bucket, we calculate the min/max/avg
+        for all values and return that as the result.
+        :param results:
+        :return:
+        """
+
+        # Determine the size of each bucket. In the case that results is not evenly
+        # divisible by `max_buckets` we'll just round up to the next whole number. This
+        # means that the last bucket will not have as many datapoints, but this
+        # shouldn't really change the result.
+        merged_bucket_size = int(ceil(len(results) / self.max_buckets))
+        merged_results = []
+        for merged_cells in (
+            results[i : i + merged_bucket_size] for i in xrange(0, len(results), merged_bucket_size)
+        ):
+            merged_vals = [merged_cell[1][0]["count"] for merged_cell in merged_cells]
+
+            merged_results.append(
+                (
+                    merged_cells[0][0],
+                    [
+                        {
+                            "min": min(merged_vals),
+                            "max": max(merged_vals),
+                            "avg": sum(merged_vals) / len(merged_vals),
+                        }
+                    ],
+                )
+            )
+        return merged_results
