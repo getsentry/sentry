@@ -8,11 +8,10 @@ import EventView from 'app/utils/discover/eventView';
 import {t} from 'app/locale';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import {getTermHelp} from 'app/views/performance/data';
-import DiscoverQuery from 'app/utils/discover/discoverQuery';
+import DiscoverQuery, {TableDataRow} from 'app/utils/discover/discoverQuery';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {SectionHeading} from 'app/components/charts/styles';
 import UserMisery from 'app/components/userMisery';
-import {TableDataRow} from 'app/views/eventsV2/table/types';
 
 type Props = {
   location: Location;
@@ -23,7 +22,7 @@ type Props = {
 class UserStats extends React.Component<Props> {
   generateUserStatsEventView(eventView: EventView): EventView {
     // narrow the search conditions of the Performance Summary event view
-    // by modifying the columns to only show user impact and apdex scores
+    // by modifying the columns to only show user misery and apdex scores
     const {organization} = this.props;
     const threshold = organization.apdexThreshold.toString();
 

@@ -6,6 +6,58 @@ on:
   pull_request:
 
 jobs:
+    jest:
+      runs-on: ubuntu-latest
+      env:
+        VISUAL_HTML_ENABLE: 1
+      steps:
+        # Checkout codebase
+        - uses: actions/checkout@v2
+
+        # Install/setup node
+        - uses: volta-cli/action@v1
+
+        # See https://github.com/actions/cache/blob/master/examples.md#node---yarn for example
+        - name: Get yarn cache directory path
+          id: yarn-cache-dir-path
+          run: echo "::set-output name=dir::$(yarn cache dir)"
+
+        # yarn cache
+        - uses: actions/cache@v1
+          id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
+          with:
+            path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
+            key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+            restore-keys: |
+              ${{ runner.os }}-yarn-
+
+        - name: Install dependencies
+          run: yarn install --frozen-lockfile
+
+        - name: jest
+          run: |
+            NODE_ENV=production yarn build-css
+            yarn test-ci --forceExit
+
+        - name: Save HTML artifacts
+          uses: actions/upload-artifact@v2
+          with:
+            name: jest-html
+            path: .artifacts/visual-snapshots/jest
+
+        - name: Create Images from HTML
+          uses: getsentry/action-html-to-image@main
+          with:
+            base-path: .artifacts/visual-snapshots/jest
+            css-path: src/sentry/static/sentry/dist/sentry.css
+
+        - name: Save snapshots
+          if: always()
+          uses: getsentry/action-visual-snapshot@v2
+          with:
+            save-only: true
+            snapshot-path: .artifacts/visual-snapshots
+
     acceptance:
       runs-on: ubuntu-16.04
       continue-on-error: true
@@ -44,6 +96,13 @@ jobs:
         VISUAL_SNAPSHOT_ENABLE: 1
 
       steps:
+        - name: Install System Dependencies
+          run: |
+            sudo apt-get update
+            sudo apt-get install -y --no-install-recommends \
+              libxmlsec1-dev \
+              libmaxminddb-dev
+
         # Checkout codebase
         - uses: actions/checkout@v2
 
@@ -67,7 +126,7 @@ jobs:
             echo "::set-output name=yarn-cache-dir::$(yarn cache dir)"
             echo "::set-output name=python-version::2.7"
             echo "::set-output name=matrix-instance-number::$(($MATRIX_INSTANCE+1))"
-
+            echo "::set-output name=acceptance-dir::.artifacts/visual-snapshots/acceptance"
 
         # yarn cache
         - uses: actions/cache@v1
@@ -103,11 +162,6 @@ jobs:
             restore-keys: |
               ${{ runner.os }}-pip-
 
-        - name: Install System Dependencies
-          run: |
-            sudo apt-get update
-            sudo apt-get install libxmlsec1-dev libmaxminddb-dev
-
         - name: Install Javascript Dependencies
           run: |
             yarn install --frozen-lockfile
@@ -139,11 +193,12 @@ jobs:
         - name: Run acceptance tests (#${{ steps.config.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
           if: always()
           run: |
-            mkdir -p .artifacts/visual-snapshots/acceptance
-            mkdir -p .artifacts/visual-snapshots/acceptance-mobile
-            mkdir -p .artifacts/visual-snapshots/acceptance-tooltips
+            mkdir -p ${{ steps.config.outputs.acceptance-dir }}
+            mkdir -p ${{ steps.config.outputs.acceptance-dir }}-mobile
+            mkdir -p ${{ steps.config.outputs.acceptance-dir }}-tooltips
             make run-acceptance
           env:
+            PYTEST_SNAPSHOTS_DIR: ${{ steps.config.outputs.acceptance-dir }}
             USE_SNUBA: 1
             TEST_GROUP: ${{ matrix.instance }}
 
@@ -154,10 +209,9 @@ jobs:
             save-only: true
             snapshot-path: .artifacts/visual-snapshots
 
-
     visual-diff:
       if: ${{ github.ref != 'refs/heads/master' }}
-      needs: acceptance
+      needs: [acceptance, jest]
       runs-on: ubuntu-16.04
 
       steps:

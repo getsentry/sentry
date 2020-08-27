@@ -1,7 +1,7 @@
 import {browserHistory} from 'react-router';
 import React from 'react';
 
-import {mountWithTheme, shallow} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import GroupSimilar from 'app/views/organizationGroupDetails/groupSimilar';
 
@@ -37,13 +37,13 @@ describe('Issues Similar View', function() {
 
   beforeEach(function() {
     mock = MockApiClient.addMockResponse({
-      url: '/issues/group-id/similar/?limit=50',
+      url: '/issues/group-id/similar/?limit=50&version=1',
       body: mockData.similar,
     });
   });
 
   it('renders initially with loading component', function() {
-    const component = shallow(
+    const component = mountWithTheme(
       <GroupSimilar
         project={project}
         params={{orgId: 'org-slug', groupId: 'group-id'}}
@@ -52,7 +52,7 @@ describe('Issues Similar View', function() {
       routerContext
     );
 
-    expect(component).toMatchSnapshot();
+    expect(component).toSnapshot();
   });
 
   it('renders with mocked data', async function() {
@@ -70,7 +70,7 @@ describe('Issues Similar View', function() {
     await tick();
     wrapper.update();
     expect(mock).toHaveBeenCalled();
-    expect(wrapper.find('GroupGroupingView')).toMatchSnapshot();
+    expect(wrapper.find('GroupGroupingView')).toSnapshot();
   });
 
   it('can merge and redirect to new parent', async function() {

@@ -143,14 +143,14 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         data = result["data"]
         assert len(data) == 1
         assert data[0]["project.id"] == self.project.id
-        assert data[0]["user"] == "bruce@example.com", "alias prefers email"
+        assert data[0]["user"] == "id:99"
         assert data[0]["release"] == "first-release"
 
         assert len(result["meta"]) == 3
         assert result["meta"] == [
             {"name": "project.id", "type": "UInt64"},
-            {"name": "release", "type": "Nullable(String)"},
             {"name": "user", "type": "Nullable(String)"},
+            {"name": "release", "type": "Nullable(String)"},
         ]
 
     def test_field_alias_with_component(self):
@@ -162,14 +162,14 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         data = result["data"]
         assert len(data) == 1
         assert data[0]["project.id"] == self.project.id
-        assert data[0]["user"] == "bruce@example.com", "alias prefers email"
+        assert data[0]["user"] == "id:99"
         assert data[0]["user.email"] == "bruce@example.com"
 
         assert len(result["meta"]) == 3
         assert result["meta"] == [
             {"name": "project.id", "type": "UInt64"},
-            {"name": "user.email", "type": "Nullable(String)"},
             {"name": "user", "type": "Nullable(String)"},
+            {"name": "user.email", "type": "Nullable(String)"},
         ]
 
     def test_field_aliasing_in_aggregate_functions_and_groupby(self):
@@ -522,32 +522,15 @@ class QueryTransformTest(TestCase):
     @patch("sentry.snuba.discover.raw_query")
     def test_selected_columns_field_alias_macro(self, mock_query):
         mock_query.return_value = {
-            "meta": [
-                {"name": "user_id"},
-                {"name": "username"},
-                {"name": "email"},
-                {"name": "ip_address"},
-                {"name": "project_id"},
-            ],
-            "data": [
-                {
-                    "user_id": "1",
-                    "username": "",
-                    "email": "a@example.org",
-                    "ip_address": "",
-                    "project_id": self.project.id,
-                }
-            ],
+            "meta": [{"name": "user"}, {"name": "project_id"}],
+            "data": [{"user": "a@example.org", "project_id": self.project.id}],
         }
         discover.query(
             selected_columns=["user", "project"], query="", params={"project_id": [self.project.id]}
         )
         mock_query.assert_called_with(
             selected_columns=[
-                "email",
-                "username",
-                "ip_address",
-                "user_id",
+                "user",
                 "project_id",
                 [
                     "transform",
@@ -659,8 +642,8 @@ class QueryTransformTest(TestCase):
     @patch("sentry.snuba.discover.raw_query")
     def test_selected_columns_no_auto_fields(self, mock_query):
         mock_query.return_value = {
-            "meta": [{"name": "user_id"}, {"name": "email"}],
-            "data": [{"user_id": "1", "email": "a@example.org"}],
+            "meta": [{"name": "count"}],
+            "data": [{"count": 1}],
         }
         discover.query(
             selected_columns=["count()"],
@@ -718,37 +701,6 @@ class QueryTransformTest(TestCase):
 
     @patch("sentry.snuba.discover.raw_query")
     def test_selected_columns_aggregate_alias(self, mock_query):
-        mock_query.return_value = {
-            "meta": [{"name": "transaction"}, {"name": "p95"}],
-            "data": [{"transaction": "api.do_things", "p95": 200}],
-        }
-        discover.query(
-            selected_columns=["transaction", "p95", "count_unique(transaction)"],
-            query="",
-            params={"project_id": [self.project.id]},
-            auto_fields=True,
-        )
-        mock_query.assert_called_with(
-            selected_columns=["transaction"],
-            aggregations=[
-                ["quantile(0.95)", "duration", "p95"],
-                ["uniq", "transaction", "count_unique_transaction"],
-            ],
-            filter_keys={"project_id": [self.project.id]},
-            dataset=Dataset.Discover,
-            groupby=["transaction"],
-            conditions=[],
-            end=None,
-            start=None,
-            orderby=None,
-            having=[],
-            limit=50,
-            offset=None,
-            referrer=None,
-        )
-
-    @patch("sentry.snuba.discover.raw_query")
-    def test_selected_columns_aggregate_alias_with_brackets(self, mock_query):
         mock_query.return_value = {
             "meta": [{"name": "transaction"}, {"name": "p95"}],
             "data": [{"transaction": "api.do_things", "p95": 200}],
@@ -821,6 +773,117 @@ class QueryTransformTest(TestCase):
         mock_query.assert_called_with(
             selected_columns=["transaction"],
             aggregations=[["uniqIf(user, greater(duration, 1200))", None, "user_misery_300"]],
+            filter_keys={"project_id": [self.project.id]},
+            dataset=Dataset.Discover,
+            groupby=["transaction"],
+            conditions=[],
+            end=None,
+            start=None,
+            orderby=None,
+            having=[],
+            limit=50,
+            offset=None,
+            referrer=None,
+        )
+
+    @patch("sentry.snuba.discover.raw_query")
+    def test_selected_columns_percentile_range_function(self, mock_query):
+        mock_query.return_value = {
+            "meta": [{"name": "transaction"}, {"name": "firstPercentile"}],
+            "data": [{"transaction": "api.do_things", "firstPercentile": 15}],
+        }
+        discover.query(
+            selected_columns=[
+                "transaction",
+                "percentile_range(transaction.duration, 0.5, 2020-05-02T13:45:01, 2020-05-02T14:45:01, 1)",
+            ],
+            query="",
+            params={"project_id": [self.project.id]},
+            auto_fields=True,
+        )
+        mock_query.assert_called_with(
+            selected_columns=["transaction"],
+            aggregations=[
+                [
+                    "quantileIf(0.50)(duration,and(greaterOrEquals(timestamp,toDateTime('2020-05-02T13:45:01')),less(timestamp,toDateTime('2020-05-02T14:45:01'))))",
+                    None,
+                    "percentile_range_1",
+                ]
+            ],
+            filter_keys={"project_id": [self.project.id]},
+            dataset=Dataset.Discover,
+            groupby=["transaction"],
+            conditions=[],
+            end=None,
+            start=None,
+            orderby=None,
+            having=[],
+            limit=50,
+            offset=None,
+            referrer=None,
+        )
+
+    @patch("sentry.snuba.discover.raw_query")
+    def test_selected_columns_avg_range_function(self, mock_query):
+        mock_query.return_value = {
+            "meta": [{"name": "transaction"}, {"name": "firstAverage"}],
+            "data": [{"transaction": "api.do_things", "firstAverage": 15}],
+        }
+        discover.query(
+            selected_columns=[
+                "transaction",
+                "avg_range(transaction.duration, 2020-05-02T13:45:01, 2020-05-02T14:45:01, 1)",
+            ],
+            query="",
+            params={"project_id": [self.project.id]},
+            auto_fields=True,
+        )
+        mock_query.assert_called_with(
+            selected_columns=["transaction"],
+            aggregations=[
+                [
+                    "avgIf(duration,and(greaterOrEquals(timestamp,toDateTime('2020-05-02T13:45:01')),less(timestamp,toDateTime('2020-05-02T14:45:01'))))",
+                    None,
+                    "avg_range_1",
+                ]
+            ],
+            filter_keys={"project_id": [self.project.id]},
+            dataset=Dataset.Discover,
+            groupby=["transaction"],
+            conditions=[],
+            end=None,
+            start=None,
+            orderby=None,
+            having=[],
+            limit=50,
+            offset=None,
+            referrer=None,
+        )
+
+    @patch("sentry.snuba.discover.raw_query")
+    def test_selected_columns_user_misery_range_function(self, mock_query):
+        mock_query.return_value = {
+            "meta": [{"name": "transaction"}, {"name": "firstUserMisery"}],
+            "data": [{"transaction": "api.do_things", "firstUserMisery": 15}],
+        }
+        discover.query(
+            selected_columns=[
+                "transaction",
+                "user_misery_range(300, 2020-05-02T13:45:01, 2020-05-02T14:45:01, 1)",
+            ],
+            query="",
+            params={"project_id": [self.project.id]},
+            auto_fields=True,
+        )
+        mock_query.assert_called_with(
+            selected_columns=["transaction"],
+            aggregations=[
+                [
+                    "uniqIf(user,and(greater(duration,1200),and(greaterOrEquals(timestamp,toDateTime('2020-05-02T13:45:01')),less(timestamp,toDateTime('2020-05-02T14:45:01')))))",
+                    None,
+                    "user_misery_range_1",
+                ]
+            ],
             filter_keys={"project_id": [self.project.id]},
             dataset=Dataset.Discover,
             groupby=["transaction"],
@@ -1152,8 +1215,8 @@ class QueryTransformTest(TestCase):
         start_time = before_now(minutes=10)
         end_time = before_now(seconds=1)
         discover.query(
-            selected_columns=["transaction", "p95"],
-            query="http.method:GET p95:>5",
+            selected_columns=["transaction", "p95()"],
+            query="http.method:GET p95():>5",
             params={"project_id": [self.project.id], "start": start_time, "end": end_time},
             use_aggregate_conditions=True,
         )
@@ -1194,8 +1257,8 @@ class QueryTransformTest(TestCase):
         ]
         for query_string, value in test_cases:
             discover.query(
-                selected_columns=["transaction", "p95"],
-                query="http.method:GET p95:>{}".format(query_string),
+                selected_columns=["transaction", "p95()"],
+                query="http.method:GET p95():>{}".format(query_string),
                 params={"project_id": [self.project.id], "start": start_time, "end": end_time},
                 use_aggregate_conditions=True,
             )
@@ -1589,7 +1652,7 @@ class QueryTransformTest(TestCase):
 
     @patch("sentry.snuba.discover.raw_query")
     def test_histogram_zerofill_missing_results_desc_sort(self, mock_query):
-        seed = range(0, 11, 2)
+        seed = list(range(0, 11, 2))
         seed.reverse()
         mock_query.side_effect = [
             {"data": [{"max_transaction.duration": 10000, "min_transaction.duration": 0}]},
@@ -1798,19 +1861,6 @@ class TimeseriesQueryTest(SnubaTestCase, TestCase):
 
     def test_field_alias(self):
         result = discover.timeseries_query(
-            selected_columns=["p95"],
-            query="event.type:transaction transaction:api.issue.delete",
-            params={
-                "start": self.day_ago,
-                "end": self.day_ago + timedelta(hours=2),
-                "project_id": [self.project.id],
-            },
-            rollup=3600,
-        )
-        assert len(result.data["data"]) == 3
-
-    def test_field_alias_with_brackets(self):
-        result = discover.timeseries_query(
             selected_columns=["p95()"],
             query="event.type:transaction transaction:api.issue.delete",
             params={
@@ -1907,8 +1957,10 @@ class TimeseriesQueryTest(SnubaTestCase, TestCase):
         )
 
         data = result.data["data"]
-        assert len(data) == 1
-        assert data[0]["count"] == 1
+        assert len([d for d in data if "count" in d]) == 1
+        for d in data:
+            if "count" in d:
+                assert d["count"] == 1
 
     def test_nested_conditional_filter(self):
         project2 = self.create_project(organization=self.organization)
@@ -1943,8 +1995,11 @@ class TimeseriesQueryTest(SnubaTestCase, TestCase):
         )
 
         data = result.data["data"]
-        assert len(data) == 1
-        assert data[0]["count"] == 2
+        data = result.data["data"]
+        assert len([d for d in data if "count" in d]) == 1
+        for d in data:
+            if "count" in d:
+                assert d["count"] == 2
 
     def test_reference_event(self):
         ref = discover.ReferenceEvent(
@@ -2309,7 +2364,7 @@ class GetFacetsTest(SnubaTestCase, TestCase):
         assert "color" in keys
         assert "toy" not in keys
 
-        result = discover.get_facets("color:red p95:>1", params)
+        result = discover.get_facets("color:red p95():>1", params)
         keys = {r.key for r in result}
         assert "color" in keys
         assert "toy" not in keys

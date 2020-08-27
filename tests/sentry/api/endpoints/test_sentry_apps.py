@@ -407,13 +407,17 @@ class PostSentryAppsTest(SentryAppsTest):
             "schema": ["['#general'] is too short for element of type 'alert-rule-action'"]
         }
 
+        # XXX: Compare schema as an object instead of json to avoid key
+        # ordering issues
+        record.call_args.kwargs["schema"] = json.loads(record.call_args.kwargs["schema"])
+
         record.assert_called_with(
             "sentry_app.schema_validation_error",
+            schema=kwargs["schema"],
             user_id=self.user.id,
-            organization_id=self.org.id,
             sentry_app_name="MyApp",
+            organization_id=self.org.id,
             error_message="['#general'] is too short for element of type 'alert-rule-action'",
-            schema='{"elements":[{"required_fields":[{"label":"Channel","type":"select","options":[["#general"]],"name":"channel"}],"type":"alert-rule-action"}]}',
         )
 
     @with_feature("organizations:integrations-event-hooks")

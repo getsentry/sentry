@@ -53,6 +53,11 @@ declare global {
      */
     SentryRenderApp: () => void;
     sentryEmbedCallback?: ((embed: any) => void) | null;
+    /**
+     * Set to true if adblock could be installed.
+     * See sentry/js/ads.js for how this global is disabled.
+     */
+    adblockSuspected?: boolean;
   }
 }
 
@@ -177,6 +182,7 @@ export type Project = {
   relayPiiConfig: string;
   builtinSymbolSources?: string[];
   stats?: Array<[number, number]>;
+  latestDeploys: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
 } & AvatarProject;
 
 export type MinimalProject = Pick<Project, 'id' | 'slug'>;
@@ -394,16 +400,40 @@ export type CommitAuthor = {
   name?: string;
 };
 
-// TODO(ts): This type is incomplete
 export type Environment = {
-  name: string;
   id: string;
+  displayName: string;
+  name: string;
+
+  // XXX: Provided by the backend but unused due to `getUrlRoutingName()`
+  // urlRoutingName: string;
 };
 
-// TODO(ts): This type is incomplete
-export type SavedSearch = {
-  query?: string;
+export type RecentSearch = {
+  id: string;
+  organizationId: string;
+  type: SavedSearchType;
+  query: string;
+  lastSeen: string;
+  dateCreated: string;
 };
+
+// XXX: Deprecated Sentry 9 attributes are not included here.
+export type SavedSearch = {
+  id: string;
+  type: SavedSearchType;
+  name: string;
+  query: string;
+  isGlobal: boolean;
+  isPinned: boolean;
+  isOrgCustom: boolean;
+  dateCreated: string;
+};
+
+export enum SavedSearchType {
+  ISSUE = 0,
+  EVENT = 1,
+}
 
 export type PluginNoProject = {
   id: string;
@@ -605,7 +635,7 @@ export type Group = {
   logger: string;
   metadata: EventMetadata;
   numComments: number;
-  participants: any[]; // TODO(ts)
+  participants: User[];
   permalink: string;
   platform: PlatformKey;
   pluginActions: any[]; // TODO(ts)
@@ -618,6 +648,7 @@ export type Group = {
   stats: any; // TODO(ts)
   status: string;
   statusDetails: ResolutionStatusDetails;
+  tags: Pick<Tag, 'key' | 'name' | 'totalValues'>[];
   title: string;
   type: EventOrGroupType;
   userCount: number;
@@ -972,6 +1003,7 @@ export type Deploy = {
   environment: string;
   dateStarted: string;
   dateFinished: string;
+  version: string;
 };
 
 export type Commit = {
@@ -1007,7 +1039,7 @@ export type SentryAppComponent = {
   schema: SentryAppSchemaStacktraceLink;
   sentryApp: {
     uuid: string;
-    slug: 'clickup' | 'clubhouse' | 'rookout';
+    slug: 'clickup' | 'clubhouse' | 'rookout' | 'teamwork' | 'linear';
     name: string;
   };
 };
@@ -1090,6 +1122,7 @@ export enum OnboardingTaskKey {
   USER_REPORTS = 'setup_user_reports',
   ISSUE_TRACKER = 'setup_issue_tracker',
   ALERT_RULE = 'setup_alert_rules',
+  FIRST_TRANSACTION = 'setup_transactions',
 }
 
 export type OnboardingSupplementComponentProps = {
@@ -1171,6 +1204,20 @@ export type TagValue = {
   identifier?: string;
   ipAddress?: string;
 } & AvatarUser;
+
+export type TagWithTopValues = {
+  key: string;
+  name: string;
+  topValues: Array<{
+    count: number;
+    firstSeen: string;
+    key: string;
+    lastSeen: string;
+    name: string;
+    value: string;
+  }>;
+  totalValues: number;
+};
 
 export type Level = 'error' | 'fatal' | 'info' | 'warning' | 'sample';
 

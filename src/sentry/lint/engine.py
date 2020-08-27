@@ -9,11 +9,13 @@ python stdlib to prevent the need to install the world just to run eslint.
 """
 from __future__ import absolute_import
 
-
 import os
 import sys
 import subprocess
-import json
+
+# Import the stdlib json instead of sentry.utils.json, since this command is
+# run in setup.py
+import json  # NOQA
 
 from subprocess import check_output, Popen
 

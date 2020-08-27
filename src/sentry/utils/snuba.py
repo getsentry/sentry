@@ -61,6 +61,9 @@ OVERRIDE_OPTIONS = {
     "consistent": os.environ.get("SENTRY_SNUBA_CONSISTENT", "false").lower() in ("true", "1")
 }
 
+# Show the snuba query params and the corresponding sql or errors in the server logs
+SNUBA_INFO = os.environ.get("SENTRY_SNUBA_INFO", "false").lower() in ("true", "1")
+
 # There are several cases here where we support both a top level column name and
 # a tag with the same name. Existing search patterns expect to refer to the tag,
 # so we support <real_column_name>.name to refer to the top level column name.
@@ -592,8 +595,11 @@ def bulk_raw_query(snuba_param_list, referrer=None):
         query_params, forward, reverse, thread_hub = params
         try:
             with timer("snuba_query"):
-                body = json.dumps(query_params)
                 referrer = headers.get("referer", "<unknown>")
+                if SNUBA_INFO:
+                    logger.info("{}.body: {}".format(referrer, json.dumps(query_params)))
+                    query_params["debug"] = True
+                body = json.dumps(query_params)
                 with thread_hub.start_span(
                     op="snuba", description=u"query {}".format(referrer)
                 ) as span:
@@ -628,6 +634,15 @@ def bulk_raw_query(snuba_param_list, referrer=None):
     for response, _, reverse in query_results:
         try:
             body = json.loads(response.data)
+            if SNUBA_INFO:
+                if "sql" in body:
+                    logger.info(
+                        "{}.sql: {}".format(headers.get("referer", "<unknown>"), body["sql"])
+                    )
+                if "error" in body:
+                    logger.info(
+                        "{}.err: {}".format(headers.get("referer", "<unknown>"), body["error"])
+                    )
         except ValueError:
             if response.status != 200:
                 logger.error("snuba.query.invalid-json")
@@ -738,7 +753,11 @@ def nest_groups(data, groups, aggregate_cols):
 
 def resolve_column(dataset):
     def _resolve_column(col):
-        if col is None or col.startswith("tags[") or QUOTED_LITERAL_RE.match(col):
+        if col is None:
+            return col
+        if isinstance(col, six.string_types) and (
+            col.startswith("tags[") or QUOTED_LITERAL_RE.match(col)
+        ):
             return col
 
         # Some dataset specific logic:
@@ -954,12 +973,26 @@ def resolve_snuba_aliases(snuba_filter, resolve_func, function_translations=None
         resolved.groupby = groupby
 
     aggregations = resolved.aggregations
+    # need to get derived_columns first, so that they don't get resolved as functions
+    derived_columns = derived_columns.union([aggregation[2] for aggregation in aggregations])
     for aggregation in aggregations or []:
-        derived_columns.add(aggregation[2])
         if isinstance(aggregation[1], six.string_types):
             aggregation[1] = resolve_func(aggregation[1])
         elif isinstance(aggregation[1], (set, tuple, list)):
-            aggregation[1] = [resolve_func(col) for col in aggregation[1]]
+            # The aggregation has another function call as its parameter
+            func_index = get_function_index(aggregation[1])
+            if func_index is not None:
+                # Resolve the columns on the nested function, and add a wrapping
+                # list to become a valid query expression.
+                aggregation[1] = [
+                    [aggregation[1][0], [resolve_func(col) for col in aggregation[1][1]]]
+                ]
+            else:
+                # Parameter is a list of fields.
+                aggregation[1] = [
+                    resolve_func(col) if col not in derived_columns else col
+                    for col in aggregation[1]
+                ]
     resolved.aggregations = aggregations
 
     conditions = resolved.conditions

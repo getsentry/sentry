@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {shallow, mountWithTheme} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
 import AccountSubscriptions from 'app/views/settings/account/accountSubscriptions';
@@ -18,7 +18,7 @@ describe('AccountSubscriptions', function() {
       url: ENDPOINT,
       body: [],
     });
-    const wrapper = shallow(<AccountSubscriptions />, {
+    const wrapper = mountWithTheme(<AccountSubscriptions />, {
       context: {
         router: TestStubs.router(),
       },
@@ -27,7 +27,7 @@ describe('AccountSubscriptions', function() {
       },
     });
 
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
   it('renders list and can toggle', function() {
@@ -49,7 +49,7 @@ describe('AccountSubscriptions', function() {
       },
     });
 
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
 
     expect(mock).not.toHaveBeenCalled();
 

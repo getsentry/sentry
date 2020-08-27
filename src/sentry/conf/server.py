@@ -484,6 +484,11 @@ BROKER_TRANSPORT_OPTIONS = {}
 # though it would cause timeouts/recursions in some cases
 CELERY_ALWAYS_EAGER = False
 
+# We use the old task protocol because during benchmarking we noticed that it's faster
+# than the new protocol. If we ever need to bump this it should be fine, there were no
+# compatibility issues, just need to run benchmarks and do some tests to make sure
+# things run ok.
+CELERY_TASK_PROTOCOL = 1
 CELERY_EAGER_PROPAGATES_EXCEPTIONS = True
 CELERY_IGNORE_RESULT = True
 CELERY_SEND_EVENTS = False
@@ -534,6 +539,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.unmerge",
     "sentry.tasks.update_user_reports",
     "sentry.tasks.relay",
+    "sentry.tasks.release_registry",
 )
 CELERY_QUEUES = [
     Queue("activity.notify", routing_key="activity.notify"),
@@ -685,6 +691,11 @@ CELERYBEAT_SCHEDULE = {
         "schedule": timedelta(hours=1),
         "options": {"expires": 3600, "queue": "incidents"},
     },
+    "fetch-release-registry-data": {
+        "task": "sentry.tasks.release_registry.fetch_release_registry_data",
+        "schedule": timedelta(minutes=5),
+        "options": {"expires": 3600},
+    },
 }
 
 BGTASKS = {
@@ -814,8 +825,6 @@ SENTRY_FEATURES = {
     "organizations:discover-basic": True,
     # Enable discover 2 custom queries and saved queries
     "organizations:discover-query": True,
-    # Enable create alert rule on the discover page
-    "organizations:create-from-discover": False,
     # Enable Performance view
     "organizations:performance-view": False,
     # Enable multi project selection
@@ -840,7 +849,7 @@ SENTRY_FEATURES = {
     "organizations:integrations-alert-rule": True,
     # Enable integration functionality to work with alert rules (specifically chat integrations)
     "organizations:integrations-chat-unfurl": True,
-    # Enable integration functionality to work with alert rules (specifically indicdent)
+    # Enable integration functionality to work with alert rules (specifically incident
     # management integrations)
     "organizations:integrations-incident-management": True,
     # Enable the MsTeams integration
@@ -856,6 +865,8 @@ SENTRY_FEATURES = {
     "organizations:internal-catchall": False,
     # Enable inviting members to organizations.
     "organizations:invite-members": True,
+    # Enable rate limits for inviting members.
+    "organizations:invite-members-rate-limits": True,
     # Enable org-wide saved searches and user pinned search
     "organizations:org-saved-searches": False,
     # Prefix host with organization ID when giving users DSNs (can be
@@ -863,6 +874,8 @@ SENTRY_FEATURES = {
     "organizations:org-subdomains": False,
     # Enable the new version of interface/breadcrumbs
     "organizations:breadcrumbs-v2": False,
+    # Enable the new Related Events feature
+    "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
     # https://github.com/getsentry/relay.
     "organizations:relay": False,
@@ -1366,6 +1379,14 @@ SENTRY_ENCRYPTION_SCHEMES = (
 )
 
 # Delay (in ms) to induce on API responses
+#
+# Simulates a small amount of lag which helps uncover more obvious race
+# conditions in UI interactions. It's also needed to test (or implement) any
+# kind of loading scenarios. Without this we will just implicitly lower the
+# overall quality of software we ship because we will not experience it in the
+# same way we would in production.
+#
+# See discussion on https://github.com/getsentry/sentry/pull/20187
 SENTRY_API_RESPONSE_DELAY = 150 if IS_DEV else None
 
 # Watchers for various application purposes (such as compiling static media)
@@ -1398,7 +1419,7 @@ SENTRY_RELAY_PORT = 3000
 # The chunk size for attachments in blob store. Should be a power of two.
 SENTRY_ATTACHMENT_BLOB_SIZE = 8 * 1024 * 1024  # 8MB
 
-# The chunk size for files in the chunk uplooad. This is used for native debug
+# The chunk size for files in the chunk upload. This is used for native debug
 # files and source maps, and directly translates to the chunk size in blob
 # store. MUST be a power of two.
 SENTRY_CHUNK_UPLOAD_BLOB_SIZE = 8 * 1024 * 1024  # 8MB
@@ -1473,7 +1494,7 @@ SENTRY_DEVSERVICES = {
         ),
     },
     "clickhouse": {
-        "image": "yandex/clickhouse-server:19.17.4.11",
+        "image": "yandex/clickhouse-server:20.3.9.70",
         "ports": {"9000/tcp": 9000, "9009/tcp": 9009, "8123/tcp": 8123},
         "ulimits": [{"name": "nofile", "soft": 262144, "hard": 262144}],
         "volumes": {"clickhouse": {"bind": "/var/lib/clickhouse"}},
@@ -1569,6 +1590,7 @@ def get_sentry_sdk_config():
         "release": sentry.__build__,
         "environment": ENVIRONMENT,
         "in_app_include": ["sentry", "sentry_plugins"],
+        "_experiments": {"smart_transaction_trimming": True},
         "debug": True,
         "send_default_pii": True,
     }
@@ -1916,5 +1938,19 @@ SENTRY_MAIL_ADAPTER_BACKEND = "sentry.mail.adapter.MailAdapter"
 # attributes, which can be identified through the whole processing pipeline and
 # observed mainly for producing stable metrics.
 SENTRY_SYNTHETIC_MONITORING_PROJECT_ID = None
+
+# Similarity cluster to use
+SENTRY_SIMILARITY_INDEX_REDIS_CLUSTER = "default"
+
+# The grouping strategy to use for driving similarity-v2. You can add multiple
+# strategies here to index them all. This is useful for transitioning a
+# similarity dataset to newer grouping configurations.
+#
+# The dictionary value represents the redis prefix to use.
+#
+# Check out `test_similarity_config_migration` to understand the procedure and risks.
+SENTRY_SIMILARITY_GROUPING_CONFIGURATIONS_TO_INDEX = {
+    "similarity:2020-07-23": "a",
+}
 
 SENTRY_USE_UWSGI = True

@@ -3,8 +3,29 @@ import {Location} from 'history';
 
 import {Client} from 'app/api';
 import withApi from 'app/utils/withApi';
-import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
-import {TableData} from 'app/views/eventsV2/table/types';
+import EventView, {
+  MetaType,
+  isAPIPayloadSimilar,
+  LocationQuery,
+} from 'app/utils/discover/eventView';
+import {EventQuery} from 'app/actionCreators/events';
+import {TrendChangeType} from 'app/views/performance/trends/types';
+import {getCurrentTrendFunction} from 'app/views/performance/trends/utils';
+
+/**
+ * An individual row in a DiscoverQuery result
+ */
+export type TableDataRow = {
+  [key: string]: React.ReactText;
+};
+
+/**
+ * A DiscoverQuery result including rows and metadata.
+ */
+export type TableData = {
+  meta?: MetaType;
+  data: Array<TableDataRow>;
+};
 
 type ChildrenProps = {
   isLoading: boolean;
@@ -19,6 +40,7 @@ type Props = {
   eventView: EventView;
   orgSlug: string;
   keyTransactions?: boolean;
+  trendChangeType?: TrendChangeType;
   limit?: number;
 
   children: (props: ChildrenProps) => React.ReactNode;
@@ -27,6 +49,11 @@ type Props = {
 type State = {
   tableFetchID: symbol | undefined;
 } & ChildrenProps;
+
+type TrendsQuery = {
+  trendFunction?: string;
+  intervalRatio?: number;
+};
 
 class DiscoverQuery extends React.Component<Props, State> {
   static defaultProps = {
@@ -73,18 +100,42 @@ class DiscoverQuery extends React.Component<Props, State> {
     );
   };
 
+  getRoute(keyTransactions, trendsType) {
+    if (keyTransactions) {
+      return 'key-transactions';
+    }
+    if (trendsType) {
+      return 'events-trends';
+    }
+    return 'eventsv2';
+  }
+
   fetchData = () => {
-    const {eventView, orgSlug, location, limit, keyTransactions} = this.props;
+    const {
+      eventView,
+      orgSlug,
+      location,
+      limit,
+      keyTransactions,
+      trendChangeType,
+    } = this.props;
 
     if (!eventView.isValid()) {
       return;
     }
 
-    const route = keyTransactions ? 'key-transactions' : 'eventsv2';
+    const route = this.getRoute(keyTransactions, trendChangeType);
 
     const url = `/organizations/${orgSlug}/${route}/`;
-    const tableFetchID = Symbol('tableFetchID');
-    const apiPayload = eventView.getEventsAPIPayload(location);
+    const tableFetchID = Symbol(`tableFetchID`);
+    const apiPayload: EventQuery &
+      LocationQuery &
+      TrendsQuery = eventView.getEventsAPIPayload(location);
+
+    if (trendChangeType) {
+      const trendFunction = getCurrentTrendFunction(location);
+      apiPayload.trendFunction = trendFunction.field;
+    }
 
     this.setState({isLoading: true, tableFetchID});
 

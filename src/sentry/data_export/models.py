@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import json
 import logging
 from django.conf import settings
 from django.core.urlresolvers import reverse
@@ -15,6 +14,7 @@ from sentry.db.models import (
     Model,
     sane_repr,
 )
+from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
 from .base import ExportQueryType, ExportStatus, DEFAULT_EXPIRATION

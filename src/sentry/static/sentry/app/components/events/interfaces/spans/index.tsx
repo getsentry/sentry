@@ -6,16 +6,16 @@ import styled from '@emotion/styled';
 import {IconWarning} from 'app/icons';
 import {Panel} from 'app/components/panels';
 import {SentryTransactionEvent, Organization} from 'app/types';
-import {TableData} from 'app/views/eventsV2/table/types';
 import {stringifyQueryObject, QueryResults} from 'app/utils/tokenizeSearch';
 import {t, tn} from 'app/locale';
 import Alert from 'app/components/alert';
-import DiscoverQuery from 'app/utils/discover/discoverQuery';
+import DiscoverQuery, {TableData} from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
 import SearchBar from 'app/components/searchBar';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
+import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 
 import {ParsedTraceType} from './types';
 import {parseTrace, getTraceDateTimeRange} from './utils';
@@ -123,7 +123,9 @@ class SpansInterface extends React.Component<Props, State> {
       query: stringifyQueryObject(conditions),
       // if an org has no global-views, we make an assumption that errors are collected in the same
       // project as the current transaction event where spans are collected into
-      projects: orgFeatures.has('global-views') ? [] : [Number(event.projectID)],
+      projects: orgFeatures.has('global-views')
+        ? [ALL_ACCESS_PROJECTS]
+        : [Number(event.projectID)],
       version: 2,
       start,
       end,

@@ -32,6 +32,7 @@ import {
   DISPLAY_MODE_OPTIONS,
   DISPLAY_MODE_FALLBACK_OPTIONS,
 } from './types';
+import {statsPeriodToDays} from '../dates';
 
 // Metadata mapping for discover results.
 export type MetaType = Record<string, ColumnType>;
@@ -39,7 +40,7 @@ export type MetaType = Record<string, ColumnType>;
 // Data in discover results.
 export type EventData = Record<string, any>;
 
-type LocationQuery = {
+export type LocationQuery = {
   start?: string | string[];
   end?: string | string[];
   utc?: string | string[];
@@ -560,18 +561,7 @@ class EventView {
 
   getDays(): number {
     const statsPeriod = decodeScalar(this.statsPeriod);
-
-    if (statsPeriod && statsPeriod.endsWith('d')) {
-      return parseInt(statsPeriod.slice(0, -1), 10);
-    } else if (statsPeriod && statsPeriod.endsWith('h')) {
-      return parseInt(statsPeriod.slice(0, -1), 10) / 24;
-    } else if (this.start && this.end) {
-      return (
-        (new Date(this.end).getTime() - new Date(this.start).getTime()) /
-        (24 * 60 * 60 * 1000)
-      );
-    }
-    return 0;
+    return statsPeriodToDays(statsPeriod, this.start, this.end);
   }
 
   clone(): EventView {

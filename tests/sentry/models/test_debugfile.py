@@ -143,7 +143,7 @@ class CreateDebugFileTest(APITestCase):
         assert ProjectDebugFile.objects.filter(id=dif.id).exists()
 
     def test_create_dif_from_fileobj(self):
-        with open(self.file_path) as f:
+        with open(self.file_path, "rb") as f:
             dif, created = self.create_dif(fileobj=f)
 
         assert created
@@ -208,10 +208,10 @@ class CreateDebugFileTest(APITestCase):
         assert ProjectDebugFile.objects.filter(id=dif3.id).exists()
 
     def test_skip_redundant_dif(self):
-        with open(self.file_path) as f:
+        with open(self.file_path, "rb") as f:
             dif1, created1 = self.create_dif(fileobj=f)
 
-        with open(self.file_path) as f:
+        with open(self.file_path, "rb") as f:
             dif2, created2 = self.create_dif(fileobj=f)
 
         assert created1

@@ -227,6 +227,9 @@ SENTRY_RULES = (
     "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition",
     "sentry.rules.conditions.event_attribute.EventAttributeCondition",
     "sentry.rules.conditions.level.LevelCondition",
+    "sentry.rules.filters.age_comparison.AgeComparisonFilter",
+    "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter",
+    "sentry.rules.filters.assigned_to.AssignedToFilter",
 )
 
 # methods as defined by http://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html + PATCH
@@ -269,7 +272,7 @@ MAX_RELEASE_FILES_OFFSET = 20000
 # to go from an integration id (in _platforms.json) to the platform
 # data, such as documentation url or humanized name.
 # example: java-logback -> {"type": "framework",
-#                           "link": "https://docs.getsentry.com/hosted/clients/java/modules/logback/",
+#                           "link": "https://docs.sentry.io/clients/java/integrations/#logback",
 #                           "id": "java-logback",
 #                           "name": "Logback"}
 INTEGRATION_ID_TO_PLATFORM_DATA = {}

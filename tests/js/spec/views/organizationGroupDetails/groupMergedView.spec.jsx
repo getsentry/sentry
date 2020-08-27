@@ -75,6 +75,6 @@ describe('Issues -> Merged View', function() {
     wrapper.update();
     expect(wrapper.find('LoadingIndicator')).toHaveLength(0);
 
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 });

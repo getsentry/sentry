@@ -99,7 +99,7 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase):
         }
         self.store_event(data=data, project_id=self.project.id)
         response = self.client.get(
-            self.url, {"query": "event.type:transaction last_seen:>2012-12-31"}, format="json"
+            self.url, {"query": "event.type:transaction last_seen():>2012-12-31"}, format="json"
         )
 
         assert response.status_code == 200, response.content
@@ -288,6 +288,18 @@ class OrganizationEventBaselineEndpoint(APITestCase, SnubaTestCase):
         assert data["id"] == "b" * 32
         assert data["transaction.duration"] == 120000
         assert data["max_transaction_duration"] == 120000
+
+    def test_get_baseline_with_no_baseline(self):
+        response = self.client.get(
+            self.url,
+            {
+                "query": "event.type:transaction transaction:very_real_transaction",
+                "baselineFunction": "max(transaction.duration)",
+            },
+            format="json",
+        )
+
+        assert response.status_code == 404, response.content
 
 
 class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):

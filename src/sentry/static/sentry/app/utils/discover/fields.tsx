@@ -206,19 +206,6 @@ export const AGGREGATIONS = {
     isSortable: true,
     multiPlotType: 'line',
   },
-  impact: {
-    parameters: [
-      {
-        kind: 'value',
-        dataType: 'number',
-        defaultValue: '300',
-        required: true,
-      },
-    ],
-    outputType: 'number',
-    isSortable: true,
-    multiPlotType: 'line',
-  },
   user_misery: {
     generateDefaultValue({parameter, organization}: DefaultValueInputs) {
       return organization.apdexThreshold?.toString() ?? parameter.defaultValue;
@@ -343,11 +330,11 @@ enum FieldKey {
   TRANSACTION_DURATION = 'transaction.duration',
   TRANSACTION_OP = 'transaction.op',
   TRANSACTION_STATUS = 'transaction.status',
-  USER = 'user',
   USER_EMAIL = 'user.email',
   USER_ID = 'user.id',
   USER_IP = 'user.ip',
   USER_USERNAME = 'user.username',
+  USER_DISPLAY = 'user.display',
 }
 
 /**
@@ -372,7 +359,6 @@ export const FIELDS: Readonly<Record<FieldKey, ColumnType>> = {
   // tags.key and tags.value are omitted on purpose as well.
 
   [FieldKey.TRANSACTION]: 'string',
-  [FieldKey.USER]: 'string',
   [FieldKey.USER_ID]: 'string',
   [FieldKey.USER_EMAIL]: 'string',
   [FieldKey.USER_USERNAME]: 'string',
@@ -423,6 +409,7 @@ export const FIELDS: Readonly<Record<FieldKey, ColumnType>> = {
   // Field alises defined in src/sentry/api/event_search.py
   [FieldKey.PROJECT]: 'string',
   [FieldKey.ISSUE]: 'string',
+  [FieldKey.USER_DISPLAY]: 'string',
 };
 
 export type FieldTag = {
@@ -452,7 +439,6 @@ export const TRACING_FIELDS = [
   'percentile',
   'failure_rate',
   'apdex',
-  'impact',
   'user_misery',
   'eps',
   'epm',

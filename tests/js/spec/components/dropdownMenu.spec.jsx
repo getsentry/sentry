@@ -27,7 +27,7 @@ describe('DropdownMenu', function() {
   });
 
   it('renders', function() {
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
   it('can toggle dropdown menu with actor', function() {
@@ -162,7 +162,7 @@ describe('DropdownMenu', function() {
     expect(menuClick).toHaveBeenCalled();
 
     // breaks in jest22
-    // expect(wrapper).toMatchSnapshot();
+    // expect(wrapper).toSnapshot();
     expect(wrapper.find('ul')).toHaveLength(1);
     expect(document.addEventListener).toHaveBeenCalled();
 
@@ -217,5 +217,28 @@ describe('DropdownMenu', function() {
 
     addSpy.mockRestore();
     removeSpy.mockRestore();
+  });
+
+  it('does not close nested dropdown on actor clicks', function() {
+    wrapper = mount(
+      <DropdownMenu isNestedDropdown>
+        {({getRootProps, getActorProps, getMenuProps}) => (
+          <span {...getRootProps({})}>
+            <button {...getActorProps({})}>Open Dropdown</button>
+            {
+              <ul {...getMenuProps({})}>
+                <li data-test-id="menu-item">Dropdown Menu Item 1</li>
+              </ul>
+            }
+          </span>
+        )}
+      </DropdownMenu>
+    );
+    wrapper.find('button').simulate('mouseEnter');
+    expect(wrapper.find('[data-test-id="menu-item"]')).toHaveLength(1);
+
+    wrapper.find('button').simulate('click');
+    //Should still be visible.
+    expect(wrapper.find('[data-test-id="menu-item"]')).toHaveLength(1);
   });
 });

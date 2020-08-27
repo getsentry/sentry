@@ -201,7 +201,6 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
         assert trace["trace_id"] == original_trace["trace_id"]
         assert trace["span_id"] == original_trace["span_id"]
         assert trace["parent_span_id"] == original_trace["parent_span_id"]
-        assert trace["description"].endswith("...")
         assert trace["description"][:-3] in original_trace["description"]
 
     def test_blank_fields(self):

@@ -1,0 +1,44 @@
+---
+created: '2020-08-21T21:07:52.067482Z'
+creator: sentry
+source: tests/sentry/grouping/similarity/test_features.py
+---
+similarity:2020-07-23:fingerprint:ident-shingle: "SoftTimeLimitExceeded"
+similarity:2020-07-23:fingerprint:ident-shingle: "celery"
+similarity:2020-07-23:fingerprint:ident-shingle: "sentry.tasks.store.process_event"
+similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","_sleep(delay)"],["filename","threading.py"],["function","wait"],["module","threading"]],[["context-line","raise SoftTimeLimitExceeded()"],["filename","pool.py"],["function","soft_timeout_sighandler"],["module","billiard.pool"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","delete=False).detach_tempfile()"],["filename","file.py"],["function","save_to"],["module","sentry.models.file"]],[["context-line","delete=delete"],["filename","file.py"],["function","_get_chunked_blob"],["module","sentry.models.file"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","delete=delete"],["filename","file.py"],["function","_get_chunked_blob"],["module","sentry.models.file"]],[["context-line","self._prefetch(prefetch_to, delete)"],["filename","file.py"],["function","__init__"],["module","sentry.models.file"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","exe.submit(fetch_file, idx.offset, idx.blob.getfile)"],["filename","file.py"],["function","_prefetch"],["module","sentry.models.file"]],[["context-line","self.shutdown(wait=True)"],["filename","_base.py"],["function","__exit__"],["module","concurrent.futures._base"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","if processor.preprocess_step(processing_task):"],["filename","stacktraces.py"],["function","process_stacktraces"],["module","sentry.stacktraces"]],[["context-line","referenced_images=referenced_images,"],["filename","plugin.py"],["function","preprocess_step"],["module","sentry.lang.native.plugin"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","model.cache_file.save_to(cachefile_path)"],["filename","debugfile.py"],["function","_load_cachefiles_via_fs"],["module","sentry.models.debugfile"]],[["context-line","delete=False).detach_tempfile()"],["filename","file.py"],["function","save_to"],["module","sentry.models.file"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","new_data = process_stacktraces(data)"],["filename","store.py"],["function","_do_process_event"],["module","sentry.tasks.store"]],[["context-line","if processor.preprocess_step(processing_task):"],["filename","stacktraces.py"],["function","process_stacktraces"],["module","sentry.stacktraces"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","referenced_images=referenced_images,"],["filename","plugin.py"],["function","preprocess_step"],["module","sentry.lang.native.plugin"]],[["context-line","with_conversion_errors=True)"],["filename","symbolizer.py"],["function","__init__"],["module","sentry.lang.native.symbolizer"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","result = func(*args, **kwargs)"],["filename","base.py"],["function","_wrapped"],["module","sentry.tasks.base"]],[["context-line","return _do_process_event(cache_key, start_time, event_id, process_event)"],["filename","store.py"],["function","process_event"],["module","sentry.tasks.store"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","return _do_process_event(cache_key, start_time, event_id, process_event)"],["filename","store.py"],["function","process_event"],["module","sentry.tasks.store"]],[["context-line","new_data = process_stacktraces(data)"],["filename","store.py"],["function","_do_process_event"],["module","sentry.tasks.store"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","self.__block.wait(delay)"],["filename","threading.py"],["function","join"],["module","threading"]],[["context-line","_sleep(delay)"],["filename","threading.py"],["function","wait"],["module","threading"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","self._prefetch(prefetch_to, delete)"],["filename","file.py"],["function","__init__"],["module","sentry.models.file"]],[["context-line","exe.submit(fetch_file, idx.offset, idx.blob.getfile)"],["filename","file.py"],["function","_prefetch"],["module","sentry.models.file"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","self.shutdown(wait=True)"],["filename","_base.py"],["function","__exit__"],["module","concurrent.futures._base"]],[["context-line","t.join(sys.maxint)"],["filename","thread.py"],["function","shutdown"],["module","concurrent.futures.thread"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","symcaches = self._load_cachefiles_via_fs(project, cachefiles, SymCache)"],["filename","debugfile.py"],["function","get_symcaches"],["module","sentry.models.debugfile"]],[["context-line","model.cache_file.save_to(cachefile_path)"],["filename","debugfile.py"],["function","_load_cachefiles_via_fs"],["module","sentry.models.debugfile"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","t.join(sys.maxint)"],["filename","thread.py"],["function","shutdown"],["module","concurrent.futures.thread"]],[["context-line","self.__block.wait(delay)"],["filename","threading.py"],["function","join"],["module","threading"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","with_conversion_errors=True)"],["filename","symbolizer.py"],["function","__init__"],["module","sentry.lang.native.symbolizer"]],[["context-line","symcaches = self._load_cachefiles_via_fs(project, cachefiles, SymCache)"],["filename","debugfile.py"],["function","get_symcaches"],["module","sentry.models.debugfile"]]]
+similarity:2020-07-23:type:ident-shingle: "SoftTimeLimitExceeded"
+similarity:2020-07-23:value:character-5-shingle: "Excee"
+similarity:2020-07-23:value:character-5-shingle: "Limit"
+similarity:2020-07-23:value:character-5-shingle: "SoftT"
+similarity:2020-07-23:value:character-5-shingle: "TimeL"
+similarity:2020-07-23:value:character-5-shingle: "ceede"
+similarity:2020-07-23:value:character-5-shingle: "ded()"
+similarity:2020-07-23:value:character-5-shingle: "eLimi"
+similarity:2020-07-23:value:character-5-shingle: "eded("
+similarity:2020-07-23:value:character-5-shingle: "eeded"
+similarity:2020-07-23:value:character-5-shingle: "ftTim"
+similarity:2020-07-23:value:character-5-shingle: "imeLi"
+similarity:2020-07-23:value:character-5-shingle: "imitE"
+similarity:2020-07-23:value:character-5-shingle: "itExc"
+similarity:2020-07-23:value:character-5-shingle: "meLim"
+similarity:2020-07-23:value:character-5-shingle: "mitEx"
+similarity:2020-07-23:value:character-5-shingle: "oftTi"
+similarity:2020-07-23:value:character-5-shingle: "tExce"
+similarity:2020-07-23:value:character-5-shingle: "tTime"
+similarity:2020-07-23:value:character-5-shingle: "xceed"

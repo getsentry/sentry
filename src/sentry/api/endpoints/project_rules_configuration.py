@@ -1,13 +1,11 @@
 from __future__ import absolute_import
 
-from sentry.api.bases.project import ProjectEndpoint, StrictProjectPermission
+from sentry.api.bases.project import ProjectEndpoint
 from sentry.rules import rules
 from rest_framework.response import Response
 
 
 class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
-    permission_classes = (StrictProjectPermission,)
-
     def get(self, request, project):
         """
         Retrieve the list of configuration options for a given project.
@@ -15,6 +13,7 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
 
         action_list = []
         condition_list = []
+        filter_list = []
 
         has_issue_alerts_targeting = (
             project.flags.has_issue_alerts_targeting
@@ -23,7 +22,11 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
         # TODO: conditions need to be based on actions
         for rule_type, rule_cls in rules:
             node = rule_cls(project)
-            context = {"id": node.id, "label": node.label, "enabled": node.is_enabled()}
+            context = {
+                "id": node.id,
+                "label": node.label,
+                "enabled": node.is_enabled(),
+            }
             if hasattr(node, "prompt"):
                 context["prompt"] = node.prompt
 
@@ -47,9 +50,11 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
 
             if rule_type.startswith("condition/"):
                 condition_list.append(context)
+            elif rule_type.startswith("filter/"):
+                filter_list.append(context)
             elif rule_type.startswith("action/"):
                 action_list.append(context)
 
-        context = {"actions": action_list, "conditions": condition_list}
+        context = {"actions": action_list, "conditions": condition_list, "filters": filter_list}
 
         return Response(context)
