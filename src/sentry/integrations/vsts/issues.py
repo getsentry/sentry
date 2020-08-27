@@ -119,7 +119,7 @@ class VstsIssueSync(IssueSyncMixin):
                 "choices": work_item_choices,
                 "defaultValue": default_work_item,
                 "label": _("Work Item Type"),
-                "placeholder": _("MyWorkItem"),
+                "placeholder": _("Bug"),
             },
         ] + fields
 
