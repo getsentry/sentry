@@ -133,7 +133,7 @@ class FetchReleaseFileTest(TestCase):
 
         assert isinstance(foo_result.body, six.binary_type)
         assert foo_result == http.UrlResult(
-            "file.min.js", {"content-type": "application/json; charset=utf-8"}, "foo", 200, "utf-8"
+            "file.min.js", {"content-type": "application/json; charset=utf-8"}, b"foo", 200, "utf-8"
         )
 
         # test that cache pays attention to dist value as well as name
@@ -142,7 +142,7 @@ class FetchReleaseFileTest(TestCase):
         # result is cached, but that's not what we should find
         assert bar_result != foo_result
         assert bar_result == http.UrlResult(
-            "file.min.js", {"content-type": "application/json; charset=utf-8"}, "bar", 200, "utf-8"
+            "file.min.js", {"content-type": "application/json; charset=utf-8"}, b"bar", 200, "utf-8"
         )
 
     def test_tilde(self):
@@ -293,7 +293,7 @@ class FetchFileTest(TestCase):
     @patch("sentry.lang.javascript.processor.fetch_release_file")
     def test_non_url_with_release(self, mock_fetch_release_file):
         mock_fetch_release_file.return_value = http.UrlResult(
-            "/example.js", {"content-type": "application/json"}, "foo", 200, None
+            "/example.js", {"content-type": "application/json"}, b"foo", 200, None
         )
 
         release = Release.objects.create(version="1", organization_id=self.project.organization_id)
@@ -396,23 +396,27 @@ class CacheControlTest(unittest.TestCase):
 class DiscoverSourcemapTest(unittest.TestCase):
     # discover_sourcemap(result)
     def test_simple(self):
-        result = http.UrlResult("http://example.com", {}, "", 200, None)
+        result = http.UrlResult("http://example.com", {}, b"", 200, None)
         assert discover_sourcemap(result) is None
 
         result = http.UrlResult(
-            "http://example.com", {"x-sourcemap": "http://example.com/source.map.js"}, "", 200, None
+            "http://example.com",
+            {"x-sourcemap": "http://example.com/source.map.js"},
+            b"",
+            200,
+            None,
         )
         assert discover_sourcemap(result) == "http://example.com/source.map.js"
 
         result = http.UrlResult(
-            "http://example.com", {"sourcemap": "http://example.com/source.map.js"}, "", 200, None
+            "http://example.com", {"sourcemap": "http://example.com/source.map.js"}, b"", 200, None
         )
         assert discover_sourcemap(result) == "http://example.com/source.map.js"
 
         result = http.UrlResult(
             "http://example.com",
             {},
-            "//@ sourceMappingURL=http://example.com/source.map.js\nconsole.log(true)",
+            b"//@ sourceMappingURL=http://example.com/source.map.js\nconsole.log(true)",
             200,
             None,
         )
@@ -421,7 +425,7 @@ class DiscoverSourcemapTest(unittest.TestCase):
         result = http.UrlResult(
             "http://example.com",
             {},
-            "//# sourceMappingURL=http://example.com/source.map.js\nconsole.log(true)",
+            b"//# sourceMappingURL=http://example.com/source.map.js\nconsole.log(true)",
             200,
             None,
         )
@@ -430,7 +434,7 @@ class DiscoverSourcemapTest(unittest.TestCase):
         result = http.UrlResult(
             "http://example.com",
             {},
-            "console.log(true)\n//@ sourceMappingURL=http://example.com/source.map.js",
+            b"console.log(true)\n//@ sourceMappingURL=http://example.com/source.map.js",
             200,
             None,
         )
@@ -439,7 +443,7 @@ class DiscoverSourcemapTest(unittest.TestCase):
         result = http.UrlResult(
             "http://example.com",
             {},
-            "console.log(true)\n//# sourceMappingURL=http://example.com/source.map.js",
+            b"console.log(true)\n//# sourceMappingURL=http://example.com/source.map.js",
             200,
             None,
         )
@@ -448,7 +452,7 @@ class DiscoverSourcemapTest(unittest.TestCase):
         result = http.UrlResult(
             "http://example.com",
             {},
-            "console.log(true)\n//# sourceMappingURL=http://example.com/source.map.js\n//# sourceMappingURL=http://example.com/source2.map.js",
+            b"console.log(true)\n//# sourceMappingURL=http://example.com/source.map.js\n//# sourceMappingURL=http://example.com/source2.map.js",
             200,
             None,
         )
@@ -458,18 +462,20 @@ class DiscoverSourcemapTest(unittest.TestCase):
         result = http.UrlResult(
             "http://example.com",
             {},
-            "console.log(true);//# sourceMappingURL=http://example.com/source.map.js",
+            b"console.log(true);//# sourceMappingURL=http://example.com/source.map.js",
             200,
             None,
         )
         assert discover_sourcemap(result) == "http://example.com/source.map.js"
 
         result = http.UrlResult(
-            "http://example.com", {}, "//# sourceMappingURL=app.map.js/*ascii:lol*/", 200, None
+            "http://example.com", {}, b"//# sourceMappingURL=app.map.js/*ascii:lol*/", 200, None
         )
         assert discover_sourcemap(result) == "http://example.com/app.map.js"
 
-        result = http.UrlResult("http://example.com", {}, "//# sourceMappingURL=/*lol*/", 200, None)
+        result = http.UrlResult(
+            "http://example.com", {}, b"//# sourceMappingURL=/*lol*/", 200, None
+        )
         with self.assertRaises(AssertionError):
             discover_sourcemap(result)
 

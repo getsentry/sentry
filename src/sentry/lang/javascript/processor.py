@@ -9,6 +9,7 @@ import base64
 import six
 import zlib
 
+from django.utils.encoding import force_bytes
 from django.conf import settings
 from os.path import splitext
 from requests.utils import get_encoding_from_headers
@@ -153,7 +154,7 @@ def discover_sourcemap(result):
     sourcemap = result.headers.get("sourcemap", result.headers.get("x-sourcemap"))
 
     if not sourcemap:
-        parsed_body = result.body.split("\n")
+        parsed_body = result.body.decode(result.encoding or "utf-8").split("\n")
         # Source maps are only going to exist at either the top or bottom of the document.
         # Technically, there isn't anything indicating *where* it should exist, so we
         # are generous and assume it's somewhere either in the first or last 5 lines.
@@ -180,6 +181,7 @@ def discover_sourcemap(result):
             # not very long.
             search_space = possibilities[-1][-300:].rstrip()
             match = SOURCE_MAPPING_URL_RE.search(search_space)
+
             if match:
                 sourcemap = match.group(1)
 
@@ -417,7 +419,8 @@ def fetch_sourcemap(url, project=None, release=None, dist=None, allow_scraping=T
     if is_data_uri(url):
         try:
             body = base64.b64decode(
-                url[BASE64_PREAMBLE_LENGTH:] + (b"=" * (-(len(url) - BASE64_PREAMBLE_LENGTH) % 4))
+                force_bytes(url[BASE64_PREAMBLE_LENGTH:])
+                + (b"=" * (-(len(url) - BASE64_PREAMBLE_LENGTH) % 4))
             )
         except TypeError as e:
             raise UnparseableSourcemap({"url": "<base64>", "reason": six.text_type(e)})
