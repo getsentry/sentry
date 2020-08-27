@@ -1,5 +1,5 @@
 ---
-created: '2020-07-06T21:32:23.619726Z'
+created: '2020-08-27T15:59:42.208300Z'
 creator: sentry
 source: tests/symbolicator/test_unreal_full.py
 ---
@@ -25,6 +25,28 @@ contexts:
     crash_guid: UE4CC-Mac-C4D618F60F46F8E48017259A587AC54E_0000
     crash_reporter_client_version: '1.0'
     crash_type: Crash
+    custom:
+      CommandLine: -installed
+      CrashDumpMode: '0'
+      CrashVersion: '3'
+      DeploymentName: ''
+      EngineModeEx: Unset
+      GameSessionID: ''
+      IsPerforceBuild: 'false'
+      MemoryStats.AvailablePhysical: '0'
+      MemoryStats.AvailableVirtual: '0'
+      MemoryStats.OOMAllocationAlignment: '0'
+      MemoryStats.OOMAllocationSize: '0'
+      MemoryStats.PeakUsedPhysical: '0'
+      MemoryStats.PeakUsedVirtual: '0'
+      MemoryStats.UsedPhysical: '0'
+      MemoryStats.UsedVirtual: '0'
+      MemoryStats.bIsOOM: '0'
+      PlatformFullName: Mac
+      PlatformNameIni: Mac
+      SourceContext: ''
+      Symbols: '**UE4*Release-4.21-CL-4613538-Mac-Development'
+      UserActivityHint: ''
     engine_mode: Game
     engine_version: 4.21.1-4613538+++UE4+Release-4.21
     epic_account_id: 2e7d369327054a448be6c8d3601213cb
