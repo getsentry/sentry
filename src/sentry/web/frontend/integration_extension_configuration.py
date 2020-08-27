@@ -6,6 +6,8 @@ from django.core.urlresolvers import reverse
 from django.utils.http import urlencode
 from django.http import HttpResponseRedirect
 
+from sentry import integrations, features
+from sentry.features.exceptions import FeatureNotRegistered
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.web.frontend.base import BaseView
 from sentry.models import Organization
@@ -54,18 +56,20 @@ class IntegrationExtensionConfigurationView(BaseView):
             organization = Organization.objects.get(slug=request.GET["orgSlug"])
 
         if organization:
-            # if org does not have the feature, redirect
+            # if org does not have the feature flag to show the integration, redirect
             if not self.is_enabled_for_org(organization, request.user):
                 return self.redirect("/")
 
-            # TODO(steve): we probably should check the user has permissions and show an error page if not
-            try:
-                pipeline = self.init_pipeline(request, organization, request.GET.dict())
-                return pipeline.current_step()
-            except SignatureExpired:
-                return self.respond(
-                    "sentry/pipeline-error.html", {"error": "Installation link expired"},
-                )
+            # only continue in the pipeline if there is at least one feature we can get
+            if self.has_one_required_feature(organization, request.user):
+                # TODO(steve): we probably should check the user has permissions and show an error page if not
+                try:
+                    pipeline = self.init_pipeline(request, organization, request.GET.dict())
+                    return pipeline.current_step()
+                except SignatureExpired:
+                    return self.respond(
+                        "sentry/pipeline-error.html", {"error": "Installation link expired"},
+                    )
         return self.redirect(
             u"/extensions/{}/link/?{}".format(self.provider, urlencode(request.GET.dict()))
         )
@@ -85,3 +89,18 @@ class IntegrationExtensionConfigurationView(BaseView):
 
     def is_enabled_for_org(self, _org, _user):
         return True
+
+    def has_one_required_feature(self, org, user):
+        provider = integrations.get(self.provider)
+        integration_features = [
+            u"organizations:integrations-{}".format(f.value) for f in provider.features
+        ]
+        for flag_name in integration_features:
+            try:
+                if features.has(flag_name, org, actor=user):
+                    return True
+            # we have some integration features that are not actually
+            # registered. Those features are unrestricted.
+            except FeatureNotRegistered:
+                return True
+        return False
