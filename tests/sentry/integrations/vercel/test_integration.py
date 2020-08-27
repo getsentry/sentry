@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import responses
-import six
 
 from rest_framework.serializers import ValidationError
 
@@ -472,11 +471,8 @@ class VercelIntegrationTest(IntegrationTestCase):
         resp = self.client.post(path=uihook_url, data=data, content_type="application/json")
         assert resp.status_code == 200
         assert (
-            six.binary_type(
-                absolute_uri(
-                    "/settings/%s/integrations/vercel/%s/"
-                    % (self.organization.slug, integration.id)
-                )
-            )
+            absolute_uri(
+                "/settings/%s/integrations/vercel/%s/" % (self.organization.slug, integration.id)
+            ).encode("utf-8")
             in resp.content
         )
