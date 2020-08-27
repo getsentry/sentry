@@ -66,7 +66,7 @@ class VstsIssueSync(IssueSyncMixin):
         except (ApiError, ApiUnauthorized, KeyError) as e:
             self.raise_error(e)
 
-        # we want to maintain ordering of the itesm
+        # we want to maintain ordering of the items
         item_type_map = OrderedDict()
         for item in item_categories:
             for item_type_object in item["workItemTypes"]:
