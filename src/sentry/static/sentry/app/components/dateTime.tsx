@@ -47,6 +47,10 @@ class DateTime extends React.Component<Props> {
 
     // 4:57 PM
     if (timeOnly) {
+      if (clock24Hours) {
+        return 'HH:mm';
+      }
+
       return 'LT';
     }
 
