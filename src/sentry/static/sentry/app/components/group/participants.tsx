@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
@@ -23,10 +22,6 @@ const GroupParticipants = ({participants}: Props) => (
     </Faces>
   </div>
 );
-
-GroupParticipants.propTypes = {
-  participants: PropTypes.array.isRequired,
-};
 
 export default GroupParticipants;
 
