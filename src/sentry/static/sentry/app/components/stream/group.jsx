@@ -76,6 +76,9 @@ const StreamGroup = createReactClass({
     if (!valueIsEqual(this.state.data, nextState.data)) {
       return true;
     }
+    if (!valueIsEqual(this.state.showLifetimeStats, nextState.showLifetimeStats)) {
+      return true;
+    }
     return false;
   },
 
@@ -112,7 +115,6 @@ const StreamGroup = createReactClass({
     this.hoverWait = setTimeout(() => this.setState({showLifetimeStats}), 100);
 
     this.setState({showLifetimeStats});
-    this.forceUpdate();
   },
 
   render() {
