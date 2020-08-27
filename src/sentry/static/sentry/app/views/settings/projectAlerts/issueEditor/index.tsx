@@ -93,7 +93,7 @@ type State = AsyncView['state'] & {
   environments: Environment[];
   configs: {
     actions: IssueAlertRuleActionTemplate[];
-    filters: IssueAlertRuleActionTemplate[];
+    filters: IssueAlertRuleConditionTemplate[];
     conditions: IssueAlertRuleConditionTemplate[];
   } | null;
   uuid: null | string;
@@ -407,7 +407,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     ];
 
     const {rule, detailedError} = this.state;
-    const {actionMatch, actions, filters, conditions, frequency, name} = rule || {};
+    const {actions, filters, conditions, frequency, name} = rule || {};
 
     const environment =
       !rule || !rule.environment ? ALL_ENVIRONMENTS_KEY : rule.environment;
@@ -425,7 +425,6 @@ class IssueRuleEditor extends AsyncView<Props, State> {
             initialData={{
               ...rule,
               environment,
-              actionMatch,
               frequency: `${frequency}`,
             }}
             submitDisabled={!hasAccess}
