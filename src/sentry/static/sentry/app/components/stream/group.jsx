@@ -24,7 +24,7 @@ import space from 'app/styles/space';
 import Tooltip from 'app/components/tooltip';
 import SentryTypes from 'app/sentryTypes';
 import {getRelativeSummary} from 'app/components/organizations/timeRangeSelector/utils';
-import {DEFAULT_STATS_PERIOD} from 'app/constants';
+import {DEFAULT_STATS_PERIOD, MENU_CLOSE_DELAY} from 'app/constants';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 
@@ -112,7 +112,10 @@ const StreamGroup = createReactClass({
       clearTimeout(this.hoverWait);
     }
 
-    this.hoverWait = setTimeout(() => this.setState({showLifetimeStats}), 100);
+    this.hoverWait = setTimeout(
+      () => this.setState({showLifetimeStats}),
+      MENU_CLOSE_DELAY
+    );
 
     this.setState({showLifetimeStats});
   },
