@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
 import {t} from 'app/locale';
-import Input from 'app/views/settings/components/forms/controls/input';
+import InputField from 'app/views/settings/components/forms/inputField';
 import TextOverflow from 'app/components/textOverflow';
 import {defined} from 'app/utils';
 
@@ -11,13 +11,17 @@ import {unarySuggestions, binarySuggestions} from '../../utils';
 import SourceSuggestionExamples from './sourceSuggestionExamples';
 import {SourceSuggestion, SourceSuggestionType} from '../../types';
 
+const defaultHelp = t(
+  'Where to look. In the simplest case this can be an attribute name.'
+);
+
 type Props = {
   value: string;
   onChange: (value: string) => void;
   isRegExMatchesSelected: boolean;
   suggestions: Array<SourceSuggestion>;
   error?: string;
-  onBlur?: (event: React.KeyboardEvent<HTMLInputElement>) => void;
+  onBlur?: (value: string, event: React.FocusEvent<HTMLInputElement>) => void;
 };
 
 type State = {
@@ -26,7 +30,7 @@ type State = {
   activeSuggestion: number;
   showSuggestions: boolean;
   hideCaret: boolean;
-  help?: string;
+  help: string;
 };
 
 class SourceField extends React.Component<Props, State> {
@@ -36,6 +40,7 @@ class SourceField extends React.Component<Props, State> {
     activeSuggestion: 0,
     showSuggestions: false,
     hideCaret: false,
+    help: defaultHelp,
   };
 
   componentDidMount() {
@@ -288,7 +293,7 @@ class SourceField extends React.Component<Props, State> {
     if (help) {
       if (!isMaybeRegExp) {
         this.setState({
-          help: '',
+          help: defaultHelp,
         });
       }
       return;
@@ -305,10 +310,9 @@ class SourceField extends React.Component<Props, State> {
     this.setState({showSuggestions});
   }
 
-  handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = event.target.value;
-    this.loadFieldValues(newValue);
-    this.props.onChange(newValue);
+  handleChange = (value: string) => {
+    this.loadFieldValues(value);
+    this.props.onChange(value);
   };
 
   handleClickOutside = () => {
@@ -331,7 +335,7 @@ class SourceField extends React.Component<Props, State> {
     );
   };
 
-  handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+  handleKeyDown = (_value: string, event: React.KeyboardEvent<HTMLInputElement>) => {
     event.persist();
 
     const {keyCode} = event;
@@ -379,21 +383,32 @@ class SourceField extends React.Component<Props, State> {
     return (
       <Wrapper ref={this.selectorField} hideCaret={hideCaret}>
         <StyledInput
+          data-test-id="source-field"
           type="text"
+          label={t('Source')}
           name="source"
           placeholder={t('Enter a custom attribute, variable or header name')}
           onChange={this.handleChange}
           autoComplete="off"
           value={value}
-          onKeyDown={this.handleKeyDown}
           error={error}
-          help={error ? undefined : help}
+          help={help}
+          onKeyDown={this.handleKeyDown}
           onBlur={onBlur}
           onFocus={this.handleFocus}
+          inline={false}
+          flexibleControlStateSize
+          stacked
+          required
+          showHelpInTooltip
         />
         {showSuggestions && suggestions.length > 0 && (
           <React.Fragment>
-            <Suggestions ref={this.suggestionList} data-test-id="source-suggestions">
+            <Suggestions
+              ref={this.suggestionList}
+              error={error}
+              data-test-id="source-suggestions"
+            >
               {suggestions.slice(0, 50).map((suggestion, index) => (
                 <Suggestion
                   key={suggestion.value}
@@ -432,16 +447,16 @@ const Wrapper = styled('div')<{hideCaret?: boolean}>`
   ${p => p.hideCaret && `caret-color: transparent;`}
 `;
 
-const StyledInput = styled(Input)`
+const StyledInput = styled(InputField)`
   z-index: 1002;
   :focus {
     outline: none;
   }
 `;
 
-const Suggestions = styled('ul')`
+const Suggestions = styled('ul')<{error?: string}>`
   position: absolute;
-  width: 100%;
+  width: ${p => (p.error ? 'calc(100% - 34px)' : '100%')};
   padding-left: 0;
   list-style: none;
   margin-bottom: 0;
@@ -449,8 +464,8 @@ const Suggestions = styled('ul')`
   border: 1px solid ${p => p.theme.borderDark};
   border-radius: 0 0 ${space(0.5)} ${space(0.5)};
   background: ${p => p.theme.white};
-  top: 35px;
-  right: 0;
+  top: 63px;
+  left: 0;
   z-index: 1002;
   overflow: hidden;
   max-height: 200px;

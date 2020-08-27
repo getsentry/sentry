@@ -323,7 +323,7 @@ class MessageBuilder(object):
         message_id = make_msgid(get_from_email_domain())
         headers.setdefault("Message-Id", message_id)
 
-        subject = self.subject
+        subject = force_text(self.subject)
 
         if self.reply_reference is not None:
             reference = self.reply_reference
