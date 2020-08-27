@@ -35,7 +35,7 @@ export default class CreateTeamForm extends React.Component<Props> {
       <React.Fragment>
         <p>
           {t(
-            "Teams group members' access to a specific focus, e.g. a major product or application that may have sub-projects."
+            'Members of a team have access to specific areas, such as a new release or a new application feature.'
           )}
         </p>
 
