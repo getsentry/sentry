@@ -18,4 +18,4 @@ class SerializeDetailedOrgTest(TestCase):
         result = self.TEMPLATE.render(context={"org": org})
 
         assert "<script>" not in result
-        assert "\u003cscript\u003ealert(1);\u003c/script\u003e" in result
+        assert "\\u003cscript\\u003ealert(1);\\u003c/script\\u003e" in result
