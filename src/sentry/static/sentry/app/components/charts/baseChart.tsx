@@ -4,11 +4,11 @@ import {EChartOption, ECharts} from 'echarts/lib/echarts';
 import styled from '@emotion/styled';
 
 import {IS_CI} from 'app/constants';
-import Placeholder from 'app/components/placeholder';
 import {Series} from 'app/types/echarts';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 
+import LoadingPanel from './loadingPanel';
 import Grid from './components/grid';
 import Legend from './components/legend';
 import LineSeries from './series/lineSeries';
@@ -345,9 +345,8 @@ class BaseChart extends React.Component<Props, State> {
 
     if (typeof chartDeps === 'undefined') {
       return (
-        <Placeholder
-          width={width ? width.toString() : undefined}
-          height={height ? height.toString() : undefined}
+        <LoadingPanel
+          height={height ? `${height}px` : undefined}
           data-test-id="basechart-loading"
         />
       );
