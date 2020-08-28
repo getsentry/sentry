@@ -27,6 +27,7 @@ import {getRelativeSummary} from 'app/components/organizations/timeRangeSelector
 import {DEFAULT_STATS_PERIOD, MENU_CLOSE_DELAY} from 'app/constants';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
+import {t} from 'app/locale';
 
 const StreamGroup = createReactClass({
   displayName: 'StreamGroup',
@@ -76,10 +77,7 @@ const StreamGroup = createReactClass({
     if (!valueIsEqual(this.state.data, nextState.data)) {
       return true;
     }
-    if (!valueIsEqual(this.state.showLifetimeStats, nextState.showLifetimeStats)) {
-      return true;
-    }
-    return false;
+    return this.state.showLifetimeStats !== nextState.showLifetimeStats;
   },
 
   onGroupChange(itemIds) {
@@ -198,18 +196,18 @@ const StreamGroup = createReactClass({
               <TooltipContent>
                 {data.lifetime && (
                   <TooltipRow>
-                    <TooltipText>Events since issue began</TooltipText>
+                    <TooltipText>{t('Events since issue began')}</TooltipText>
                     <TooltipCount>{data.lifetime.count}</TooltipCount>
                   </TooltipRow>
                 )}
                 <TooltipRow>
-                  <TooltipText>Events within {summary}</TooltipText>
+                  <TooltipText>{t(`Events within ${summary}`)}</TooltipText>
                   <TooltipCount>{data.count}</TooltipCount>
                   <StyledIconTelescope color={theme.blue300} />
                 </TooltipRow>
                 {data.filtered && (
                   <TooltipRow>
-                    <TooltipText>Events with filters applied</TooltipText>
+                    <TooltipText>{t('Events with filters applied')}</TooltipText>
                     <TooltipCount>{data.filtered.count}</TooltipCount>
                     <StyledIconTelescope color={theme.blue300} />
                   </TooltipRow>
@@ -231,18 +229,18 @@ const StreamGroup = createReactClass({
               <TooltipContent>
                 {data.lifetime && (
                   <TooltipRow>
-                    <TooltipText>Users affected since issue began</TooltipText>
+                    <TooltipText>{t('Users affected since issue began')}</TooltipText>
                     <TooltipCount>{data.lifetime.userCount}</TooltipCount>
                   </TooltipRow>
                 )}
                 <TooltipRow>
-                  <TooltipText>Users affected within {summary}</TooltipText>
+                  <TooltipText>{t(`Users affected within ${summary}`)}</TooltipText>
                   <TooltipCount>{data.userCount}</TooltipCount>
                   <StyledIconTelescope color={theme.blue300} />
                 </TooltipRow>
                 {data.filtered && (
                   <TooltipRow>
-                    <TooltipText>Users affected with filters applied</TooltipText>
+                    <TooltipText>{t('Users affected with filters applied')}</TooltipText>
                     <TooltipCount>{data.filtered.userCount}</TooltipCount>
                     <StyledIconTelescope color={theme.blue300} />
                   </TooltipRow>
@@ -283,30 +281,29 @@ const GroupCheckbox = styled(Box)`
 `;
 
 const PrimaryCount = styled(Count)`
-  font-size: 18px;
+  font-size: ${p => p.theme.fontSizeExtraLarge};
   color: ${p => p.theme.gray700};
 `;
 
-const SecondaryCount = styled(({value, ...p}) => (
-  <React.Fragment>
-    {'/'}
-    <Count {...p} value={value} />
-  </React.Fragment>
-))`
-  font-size: 18px;
+const SecondaryCount = styled(({value, ...p}) => <Count {...p} value={value} />)`
+  font-size: ${p => p.theme.fontSizeExtraLarge};
   color: ${p => p.theme.gray500};
+
+  :before {
+    content: '/';
+  }
 `;
 
-const TooltipContent = styled(p => (
+const TooltipContent = styled(({children, ...p}) => (
   <table {...p}>
-    <tbody>{p.children}</tbody>
+    <tbody>{children}</tbody>
   </table>
 ))`
   margin: 0;
 `;
 
 const TooltipRow = styled('tr')`
-  padding: 4px 8px;
+  padding: ${space(0.5)} ${space(1)};
   display: block;
 `;
 
@@ -315,7 +312,7 @@ const TooltipText = styled('td')`
 `;
 
 const TooltipCount = styled('td')`
-  padding-left: 10px;
+  padding-left: ${space(1.5)};
   font-weight: bold;
 `;
 
@@ -324,7 +321,7 @@ const StyledIconTelescope = styled(p => (
     <IconTelescope size="xs" color={p.color} />
   </td>
 ))`
-  padding-left: 10px;
+  padding-left: ${space(1.5)};
 `;
 
 export default withGlobalSelection(withOrganization(StreamGroup));
