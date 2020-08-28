@@ -55,7 +55,7 @@ class MemberTeamForm(forms.Form):
         if targetType != self.teamValue and targetType != self.memberValue:
             return
 
-        if targetIdentifier is None:
+        if targetIdentifier is None or targetIdentifier == "":
             msg = forms.ValidationError("You need to specify a Team or Member.")
             self.add_error("targetIdentifier", msg)
             return
