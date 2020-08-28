@@ -79,7 +79,7 @@ def call_endpoint(client, relay, private_key, default_project):
             path,
             data=raw_json,
             content_type="application/json",
-            HTTP_X_SENTRY_RELAY_ID=relay.relay_id.encode("ascii"),
+            HTTP_X_SENTRY_RELAY_ID=relay.relay_id,
             HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
         )
 
