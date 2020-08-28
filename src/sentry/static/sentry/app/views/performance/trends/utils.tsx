@@ -263,6 +263,6 @@ function getLimitTransactionItems(
     limitQuery = aliasedPercentage + ':>1';
   }
   limitQuery +=
-    ' divide(count_range_2,count_range_1):>0.5 divide(count_range_2,count_range_1):<2';
+    ' percentage(count_range_2,count_range_1):>0.5 percentage(count_range_2,count_range_1):<2';
   return limitQuery;
 }
