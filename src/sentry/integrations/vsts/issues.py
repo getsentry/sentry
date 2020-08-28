@@ -76,7 +76,7 @@ class VstsIssueSync(IssueSyncMixin):
                 if item_type not in item_type_map:
                     item_type_map[item_type] = item_type_object["name"]
 
-        item_tuples = item_type_map.items()
+        item_tuples = list(item_type_map.items())
 
         # try to get the default from either the last value used or from the first item on the list
         defaults = self.get_project_defaults(group.project_id)
