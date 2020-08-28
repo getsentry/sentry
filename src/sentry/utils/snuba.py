@@ -595,10 +595,11 @@ def bulk_raw_query(snuba_param_list, referrer=None):
         query_params, forward, reverse, thread_hub = params
         try:
             with timer("snuba_query"):
+                referrer = headers.get("referer", "<unknown>")
                 if SNUBA_INFO:
+                    logger.info("{}.body: {}".format(referrer, json.dumps(query_params)))
                     query_params["debug"] = True
                 body = json.dumps(query_params)
-                referrer = headers.get("referer", "<unknown>")
                 with thread_hub.start_span(
                     op="snuba", description=u"query {}".format(referrer)
                 ) as span:
@@ -972,8 +973,9 @@ def resolve_snuba_aliases(snuba_filter, resolve_func, function_translations=None
         resolved.groupby = groupby
 
     aggregations = resolved.aggregations
+    # need to get derived_columns first, so that they don't get resolved as functions
+    derived_columns = derived_columns.union([aggregation[2] for aggregation in aggregations])
     for aggregation in aggregations or []:
-        derived_columns.add(aggregation[2])
         if isinstance(aggregation[1], six.string_types):
             aggregation[1] = resolve_func(aggregation[1])
         elif isinstance(aggregation[1], (set, tuple, list)):
@@ -987,7 +989,10 @@ def resolve_snuba_aliases(snuba_filter, resolve_func, function_translations=None
                 ]
             else:
                 # Parameter is a list of fields.
-                aggregation[1] = [resolve_func(col) for col in aggregation[1]]
+                aggregation[1] = [
+                    resolve_func(col) if col not in derived_columns else col
+                    for col in aggregation[1]
+                ]
     resolved.aggregations = aggregations
 
     conditions = resolved.conditions

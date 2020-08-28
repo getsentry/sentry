@@ -99,6 +99,7 @@ class SlackIntegrationProvider(IntegrationProvider):
             "links:write",
             "team:read",
             "im:read",
+            "im:history",
             "chat:write.public",
             "chat:write.customize",
         ]

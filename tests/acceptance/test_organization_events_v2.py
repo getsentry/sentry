@@ -8,6 +8,7 @@ from sentry.utils.compat.mock import patch
 from datetime import timedelta
 
 from six.moves.urllib.parse import urlencode
+from selenium.webdriver.common.keys import Keys
 
 from sentry.discover.models import DiscoverSavedQuery
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
@@ -432,7 +433,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
             input = self.browser.element('div[name="discover2-query-name"]')
             input.click()
-            input.send_keys("updated!")
+            input.send_keys(Keys.END + "updated!")
 
             # Move focus somewhere else to trigger a blur and update the query
             self.browser.element("table").click()

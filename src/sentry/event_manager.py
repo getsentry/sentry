@@ -140,7 +140,7 @@ def get_stored_crashreports(cache_key, event, max_crashreports):
         return max_crashreports
 
     cached_reports = cache.get(cache_key, None)
-    if cached_reports >= max_crashreports:
+    if cached_reports is not None and cached_reports >= max_crashreports:
         return cached_reports
 
     # Fall-through if max_crashreports was bumped to get a more accurate number.
@@ -1118,9 +1118,7 @@ def discard_event(job, attachments):
         )
 
     metrics.incr(
-        "events.discarded",
-        skip_internal=True,
-        tags={"organization_id": project.organization_id, "platform": job["platform"]},
+        "events.discarded", skip_internal=True, tags={"platform": job["platform"]},
     )
 
 
