@@ -31,6 +31,17 @@ from sentry.signals import (
 from sentry.utils.javascript import has_sourcemap
 
 
+def try_get_default_owner(organization):
+    try:
+        return organization.get_default_owner()
+    except IndexError:
+        logging.getLogger("sentry").warn(
+            "Cannot initiate onboarding for organization (%s) due to missing owners",
+            organization.id,
+        )
+        return None
+
+
 def try_mark_onboarding_complete(organization_id):
     if OrganizationOption.objects.filter(
         organization_id=organization_id, key="onboarding:complete"
@@ -58,25 +69,18 @@ def try_mark_onboarding_complete(organization_id):
 @project_created.connect(weak=False)
 def record_new_project(project, user, **kwargs):
     if user.is_authenticated():
-        user_id = default_user_id = user.id
+        default_user = user
+        user_id = user.id
     else:
-        user = user_id = None
-        try:
-            default_user_id = (
-                Organization.objects.get(id=project.organization_id).get_default_owner().id
-            )
-        except IndexError:
-            logging.getLogger("sentry").warn(
-                "Cannot initiate onboarding for organization (%s) due to missing owners",
-                project.organization_id,
-            )
-            # XXX(dcramer): we cannot setup onboarding tasks without a user
+        user_id = None
+        default_user = try_get_default_owner(Organization.objects.get(id=project.organization_id))
+        if default_user is None:
             return
 
     analytics.record(
         "project.created",
         user_id=user_id,
-        default_user_id=default_user_id,
+        default_user_id=default_user.id,
         organization_id=project.organization_id,
         project_id=project.id,
         platform=project.platform,
@@ -139,7 +143,9 @@ def record_first_error(project, event):
         },
     )
 
-    user = Organization.objects.get(id=project.organization_id).get_default_owner()
+    user = try_get_default_owner(Organization.objects.get(id=project.organization_id))
+    if user is None:
+        return
 
     if rows_affected or created:
         analytics.record(
@@ -189,7 +195,9 @@ def record_first_transaction(project, event):
         date_completed=event.datetime,
     )
 
-    user = Organization.objects.get(id=project.organization_id).get_default_owner()
+    user = try_get_default_owner(Organization.objects.get(id=project.organization_id))
+    if user is None:
+        return
 
     analytics.record(
         "first_transaction.sent",
@@ -246,7 +254,10 @@ def record_release_received(project, event, **kwargs):
         project_id=project.id,
     )
     if success:
-        user = Organization.objects.get(id=project.organization_id).get_default_owner()
+        user = try_get_default_owner(Organization.objects.get(id=project.organization_id))
+        if user is None:
+            return
+
         analytics.record(
             "first_release_tag.sent",
             user_id=user.id,
@@ -272,7 +283,10 @@ def record_user_context_received(project, event, **kwargs):
             project_id=project.id,
         )
         if success:
-            user = Organization.objects.get(id=project.organization_id).get_default_owner()
+            user = try_get_default_owner(Organization.objects.get(id=project.organization_id))
+            if user is None:
+                return
+
             analytics.record(
                 "first_user_context.sent",
                 user_id=user.id,
@@ -294,7 +308,10 @@ def record_sourcemaps_received(project, event, **kwargs):
         project_id=project.id,
     )
     if success:
-        user = Organization.objects.get(id=project.organization_id).get_default_owner()
+        user = try_get_default_owner(Organization.objects.get(id=project.organization_id))
+        if user is None:
+            return
+
         analytics.record(
             "first_sourcemaps.sent",
             user_id=user.id,
@@ -371,14 +388,18 @@ def record_issue_tracker_used(plugin, project, user, **kwargs):
         try_mark_onboarding_complete(project.organization_id)
 
     if user and user.is_authenticated():
-        user_id = default_user_id = user.id
+        user_id = user.id
+        default_user = user
     else:
         user_id = None
-        default_user_id = project.organization.get_default_owner().id
+        default_user = try_get_default_owner(project.organization)
+        if default_user is None:
+            return
+
     analytics.record(
         "issue_tracker.used",
         user_id=user_id,
-        default_user_id=default_user_id,
+        default_user_id=default_user.id,
         organization_id=project.organization_id,
         project_id=project.id,
         issue_tracker=plugin.slug,
