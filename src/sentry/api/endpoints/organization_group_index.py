@@ -197,7 +197,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         results = list(cursor_result)
 
         snuba_filters = []
-        if query_kwargs["search_filters"] is not None:
+        if "search_filters" in query_kwargs and query_kwargs["search_filters"] is not None:
             snuba_filters = [
                 convert_search_filter_to_snuba_query(search_filter)
                 for search_filter in query_kwargs["search_filters"]

@@ -27,7 +27,9 @@ import {getRelativeSummary} from 'app/components/organizations/timeRangeSelector
 import {DEFAULT_STATS_PERIOD, MENU_CLOSE_DELAY} from 'app/constants';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
+import EventView from 'app/utils/discover/eventView';
 import {t} from 'app/locale';
+import Link from 'app/components/links/link';
 
 const StreamGroup = createReactClass({
   displayName: 'StreamGroup',
@@ -118,6 +120,38 @@ const StreamGroup = createReactClass({
     this.setState({showLifetimeStats});
   },
 
+  getDiscoverUrl(filtered) {
+    const {organization, query, selection} = this.props;
+    const {data} = this.state;
+
+    const {period, start, end} = selection.datetime || {};
+
+    const splitQuery =
+      filtered && query
+        ? query.match(/\S+:"[^"]*"?|\S+/g).filter(term => term.slice(0, 3) !== 'is:')
+        : [];
+
+    const discoverQuery = {
+      id: undefined,
+      name: data.title || data.type,
+      fields: ['title', 'release', 'environment', 'user', 'timestamp'],
+      orderby: '-timestamp',
+      query: `issue.id:${data.id}${splitQuery.length ? ' ' : ''}${splitQuery.join(' ')}`,
+      projects: [data.project.id],
+      version: 2,
+    };
+
+    if (!!start && !!end) {
+      discoverQuery.start = start;
+      discoverQuery.end = end;
+    } else {
+      discoverQuery.range = period || DEFAULT_STATS_PERIOD;
+    }
+
+    const discoverView = EventView.fromSavedQuery(discoverQuery);
+    return discoverView.getResultsViewUrlTarget(organization.slug);
+  },
+
   render() {
     const {data, showLifetimeStats} = this.state;
     const {
@@ -205,13 +239,16 @@ const StreamGroup = createReactClass({
                 <TooltipRow>
                   <TooltipCount>{data.count}</TooltipCount>
                   <TooltipText>{t(`Within ${summary}`)}</TooltipText>
-                  <StyledIconTelescope color={theme.blue300} />
+                  <StyledIconTelescope to={this.getDiscoverUrl()} color={theme.blue300} />
                 </TooltipRow>
                 {data.filtered && (
                   <TooltipRow>
                     <TooltipCount>{data.filtered.count}</TooltipCount>
                     <TooltipText>{t('With filters applied')}</TooltipText>
-                    <StyledIconTelescope color={theme.blue300} />
+                    <StyledIconTelescope
+                      to={this.getDiscoverUrl(true)}
+                      color={theme.blue300}
+                    />
                   </TooltipRow>
                 )}
               </TooltipContent>
@@ -239,13 +276,16 @@ const StreamGroup = createReactClass({
                 <TooltipRow>
                   <TooltipCount>{data.userCount}</TooltipCount>
                   <TooltipText>{t(`Within ${summary}`)}</TooltipText>
-                  <StyledIconTelescope color={theme.blue300} />
+                  <StyledIconTelescope to={this.getDiscoverUrl()} color={theme.blue300} />
                 </TooltipRow>
                 {data.filtered && (
                   <TooltipRow>
                     <TooltipCount>{data.filtered.userCount}</TooltipCount>
                     <TooltipText>{t('With filters applied')}</TooltipText>
-                    <StyledIconTelescope color={theme.blue300} />
+                    <StyledIconTelescope
+                      to={this.getDiscoverUrl(true)}
+                      color={theme.blue300}
+                    />
                   </TooltipRow>
                 )}
               </TooltipContent>
@@ -319,9 +359,11 @@ const TooltipCount = styled('td')`
   font-weight: bold;
 `;
 
-const StyledIconTelescope = styled(p => (
+const StyledIconTelescope = styled(({to, ...p}) => (
   <td {...p}>
-    <IconTelescope size="xs" color={p.color} />
+    <Link title={t('Open in Discover')} to={to}>
+      <IconTelescope size="xs" color={p.color} />
+    </Link>
   </td>
 ))`
   padding-left: ${space(1.5)};
