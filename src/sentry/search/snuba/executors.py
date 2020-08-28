@@ -211,6 +211,9 @@ class AbstractQueryExecutor:
         """
         return converted_filter
 
+    def has_sort_strategy(self, sort_by):
+        return sort_by in self.sort_strategies.keys()
+
 
 class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
     ISSUE_FIELD_NAME = "group_id"

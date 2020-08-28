@@ -181,6 +181,10 @@ class SnubaSearchBackendBase(SearchBackend):
             date_to=date_to,
         )
 
+        # ensure sort strategy is supported by executor
+        if not query_executor.has_sort_strategy(sort_by):
+            raise InvalidSearchQuery(u"Sort key '{}' not supported.".format(sort_by))
+
         return query_executor.query(
             projects=projects,
             retention_window_start=retention_window_start,
