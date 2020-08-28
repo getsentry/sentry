@@ -128,7 +128,9 @@ export function modifyTrendView(
   trendsType: TrendChangeType
 ) {
   const trendFunction = getCurrentTrendFunction(location);
-  const fields = [trendFunction.field, 'transaction', 'project', 'count()'].map(
+
+  const trendFunctionFields = TRENDS_FUNCTIONS.map(({field}) => field);
+  const fields = [...trendFunctionFields, 'transaction', 'project', 'count()'].map(
     field => ({
       field,
     })
