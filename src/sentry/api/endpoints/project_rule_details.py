@@ -25,10 +25,14 @@ class ProjectRuleDetailsEndpoint(ProjectEndpoint):
             {method} {path}
 
         """
-        rule = Rule.objects.get(
-            project=project, id=rule_id, status__in=[RuleStatus.ACTIVE, RuleStatus.INACTIVE]
-        )
-        return Response(serialize(rule, request.user))
+
+        try:
+            rule = Rule.objects.get(
+                project=project, id=rule_id, status__in=[RuleStatus.ACTIVE, RuleStatus.INACTIVE]
+            )
+            return Response(serialize(rule, request.user))
+        except Rule.DoesNotExist:
+            return Response({"detail": "Alert Rule could not be found"}, status=404)
 
     @transaction_start("ProjectRuleDetailsEndpoint")
     def put(self, request, project, rule_id):
