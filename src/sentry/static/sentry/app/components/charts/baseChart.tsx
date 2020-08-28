@@ -173,7 +173,7 @@ type Props = {
    */
   onRestore?: EChartEventHandler<{type: 'restore'}>;
   onFinished?: EChartEventHandler<{}>;
-  onLegendSelectChanged: EChartEventHandler<{}>;
+  onLegendSelectChanged?: EChartEventHandler<{}>;
   /**
    * Forwarded Ref
    */
