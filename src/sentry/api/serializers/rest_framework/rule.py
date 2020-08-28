@@ -49,9 +49,7 @@ class RuleNodeField(serializers.Field):
             if first_error != "This field is required.":
                 raise ValidationError(first_error)
 
-            raise ValidationError(
-                "Ensure at least one action is enabled and all required fields are filled in."
-            )
+            raise ValidationError("Ensure all required fields are filled in.")
 
         # Update data from cleaned form values
         data.update(form.cleaned_data)
@@ -90,12 +88,12 @@ class RuleSerializer(serializers.Serializer):
 
     def validate_conditions(self, value):
         if not value:
-            raise serializers.ValidationError(u"Must select a condition")
+            raise serializers.ValidationError(u"Must select a condition.")
         return value
 
     def validate_actions(self, value):
         if not value:
-            raise serializers.ValidationError(u"Must select an action")
+            raise serializers.ValidationError(u"Must select an action.")
         return value
 
     def validate(self, attrs):
