@@ -19,14 +19,14 @@ describe('EventAttachments', function() {
     const wrapper = mountWithTheme(<EventAttachments {...props} />);
 
     expect(wrapper.find('SectionHeader').text()).toBe('Attachments (0)');
-    expect(wrapper.find('Link[aria-label="View Crashes"]').prop('to')).toEqual({
+    expect(wrapper.find('Link[data-test-id="attachmentsLink"]').prop('to')).toEqual({
       pathname: `/organizations/${props.orgId}/issues/1/attachments/`,
       query: {types: ['event.minidump', 'event.applecrashreport']},
     });
-    expect(wrapper.find('Link[aria-label="Change Settings"]').prop('to')).toBe(
+    expect(wrapper.find('Link[data-test-id="settingsLink"]').prop('to')).toBe(
       `/settings/${props.orgId}/projects/${props.projectId}/security-and-privacy/`
     );
-    expect(wrapper.find('EventAttachmentsCrashReportsNotice Reason').text()).toBe(
+    expect(wrapper.find('Alert').text()).toContain(
       'Your limit of stored crash reports has been reached for this issue.'
     );
   });

@@ -1,15 +1,12 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import {t} from 'app/locale';
-import {Panel, PanelItem} from 'app/components/panels';
-import ButtonBar from 'app/components/buttonBar';
-import {IconAttachment, IconSettings} from 'app/icons';
-import Button from 'app/components/button';
-import space from 'app/styles/space';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
+import {tct} from 'app/locale';
+import {IconInfo} from 'app/icons';
 import {crashReportTypes} from 'app/views/organizationGroupDetails/groupEventAttachments/groupEventAttachmentsFilter';
+
+import Alert from '../alert';
+import Link from '../links/link';
 
 type Props = {
   orgSlug: string;
@@ -31,67 +28,16 @@ const EventAttachmentsCrashReportsNotice = ({
   };
 
   return (
-    <Panel>
-      <StyledPanelItem>
-        <StyledIconAttachment size="lg" color="gray400" />
-
-        <Title>
-          {t('The crash report did not get stored!')}
-          <Reason>
-            {t('Your limit of stored crash reports has been reached for this issue.')}
-          </Reason>
-        </Title>
-
-        <ButtonBar gap={0.5}>
-          <Button size="xsmall" priority="primary" to={attachmentsUrl}>
-            {t('View Crashes')}
-          </Button>
-          <Button
-            size="xsmall"
-            icon={<IconSettings size="xs" />}
-            title={t('Change Settings')}
-            label={t('Change Settings')}
-            to={settingsUrl}
-          />
-        </ButtonBar>
-      </StyledPanelItem>
-    </Panel>
+    <Alert type="info" icon={<IconInfo size="md" />}>
+      {tct(
+        'Your limit of stored crash reports has been reached for this issue. [attachmentsLink: View crashes] or [settingsLink: configure limit].',
+        {
+          attachmentsLink: <Link to={attachmentsUrl} data-test-id="attachmentsLink" />,
+          settingsLink: <Link to={settingsUrl} data-test-id="settingsLink" />,
+        }
+      )}
+    </Alert>
   );
 };
-
-const StyledPanelItem = styled(PanelItem)`
-  align-items: center;
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-`;
-
-const StyledIconAttachment = styled(IconAttachment)`
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    display: none;
-  }
-`;
-
-const Title = styled('div')`
-  margin-bottom: ${space(1)};
-  flex: 1;
-  font-weight: 600;
-  line-height: 1.3;
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    ${overflowEllipsis};
-    margin: 0 ${space(1)} 0 ${space(1.5)};
-  }
-`;
-
-const Reason = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.gray500};
-  margin-top: ${space(1)};
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    ${overflowEllipsis};
-    margin-top: 0;
-  }
-`;
 
 export default EventAttachmentsCrashReportsNotice;
