@@ -32,7 +32,7 @@ class ProjectRuleDetailsEndpoint(ProjectEndpoint):
             )
             return Response(serialize(rule, request.user))
         except Rule.DoesNotExist:
-            return Response({"detail": "Alert Rule could not be found"}, status=404)
+            return Response({"detail": "Rule could not be found"}, status=404)
 
     @transaction_start("ProjectRuleDetailsEndpoint")
     def put(self, request, project, rule_id):
