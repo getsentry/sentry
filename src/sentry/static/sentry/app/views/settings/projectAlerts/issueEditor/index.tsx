@@ -643,7 +643,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
                       <RuleNodeList
                         nodes={this.state.configs?.actions ?? null}
-                        items={actions || []}
+                        items={actions ?? []}
                         placeholder={t('Add an action...')}
                         onPropertyChange={this.handleChangeActionProperty}
                         onAddRow={this.handleAddAction}
