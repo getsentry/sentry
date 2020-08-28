@@ -140,6 +140,11 @@ class EventErrors extends React.Component<Props, State> {
               'If an event is reprocessed but did not change, we will not create the new version and not bill you for it (for now).'
             )}
           </li>
+          <li>
+            {t(
+              'If you have provided missing symbols please wait at least 1 hour before attempting to re-process. This is a limitation we will try to get rid of.'
+            )}
+          </li>
         </ul>
       </Body>
       <div className="modal-footer">
