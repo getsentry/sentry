@@ -72,6 +72,15 @@ def forwards_0019(apps, schema_editor):
         query.save()
 
 def forwards_0020(apps, schema_editor):
+    def backfill_group_ids(model):
+        query = model.objects.filter(group_id__isnull=True)
+
+        for attachment in RangeQuerySetWrapper(query, step=1000):
+            event = eventstore.get_event_by_id(attachment.project_id, attachment.event_id)
+            if event:
+                model.objects.filter(id=attachment.id).update(group_id=event.group_id)
+
+
     EventAttachment = apps.get_model("sentry", "EventAttachment")
     backfill_group_ids(EventAttachment)
 
