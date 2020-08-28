@@ -140,15 +140,16 @@ const StreamGroup = createReactClass({
         ? 'the selected period'
         : getRelativeSummary(period || DEFAULT_STATS_PERIOD).toLowerCase();
 
-    const popperStyle = {background: theme.gray800, maxWidth: 'none'};
+    const popperStyle = {maxWidth: 'none'};
 
     const primaryCount =
       data.filtered && hasDynamicIssueCounts ? data.filtered.count : data.count;
-    const secondaryCount = data.filtered && hasDynamicIssueCounts ? data.count : null;
+    const secondaryCount =
+      data.filtered && hasDynamicIssueCounts ? data.count : undefined;
     const primaryUserCount =
       data.filtered && hasDynamicIssueCounts ? data.filtered.userCount : data.userCount;
     const secondaryUserCount =
-      data.filtered && hasDynamicIssueCounts ? data.userCount : null;
+      data.filtered && hasDynamicIssueCounts ? data.userCount : undefined;
 
     const mouseEventHandlers = hasDynamicIssueCounts
       ? {
@@ -192,23 +193,24 @@ const StreamGroup = createReactClass({
           <Tooltip
             disabled={!hasDynamicIssueCounts}
             popperStyle={popperStyle}
+            isHoverable
             title={
               <TooltipContent>
                 {data.lifetime && (
                   <TooltipRow>
-                    <TooltipText>{t('Events since issue began')}</TooltipText>
                     <TooltipCount>{data.lifetime.count}</TooltipCount>
+                    <TooltipText>{t('Since issue began')}</TooltipText>
                   </TooltipRow>
                 )}
                 <TooltipRow>
-                  <TooltipText>{t(`Events within ${summary}`)}</TooltipText>
                   <TooltipCount>{data.count}</TooltipCount>
+                  <TooltipText>{t(`Within ${summary}`)}</TooltipText>
                   <StyledIconTelescope color={theme.blue300} />
                 </TooltipRow>
                 {data.filtered && (
                   <TooltipRow>
-                    <TooltipText>{t('Events with filters applied')}</TooltipText>
                     <TooltipCount>{data.filtered.count}</TooltipCount>
+                    <TooltipText>{t('With filters applied')}</TooltipText>
                     <StyledIconTelescope color={theme.blue300} />
                   </TooltipRow>
                 )}
@@ -225,23 +227,24 @@ const StreamGroup = createReactClass({
           <Tooltip
             disabled={!hasDynamicIssueCounts}
             popperStyle={popperStyle}
+            isHoverable
             title={
               <TooltipContent>
                 {data.lifetime && (
                   <TooltipRow>
-                    <TooltipText>{t('Users affected since issue began')}</TooltipText>
                     <TooltipCount>{data.lifetime.userCount}</TooltipCount>
+                    <TooltipText>{t('Since issue began')}</TooltipText>
                   </TooltipRow>
                 )}
                 <TooltipRow>
-                  <TooltipText>{t(`Users affected within ${summary}`)}</TooltipText>
                   <TooltipCount>{data.userCount}</TooltipCount>
+                  <TooltipText>{t(`Within ${summary}`)}</TooltipText>
                   <StyledIconTelescope color={theme.blue300} />
                 </TooltipRow>
                 {data.filtered && (
                   <TooltipRow>
-                    <TooltipText>{t('Users affected with filters applied')}</TooltipText>
                     <TooltipCount>{data.filtered.userCount}</TooltipCount>
+                    <TooltipText>{t('With filters applied')}</TooltipText>
                     <StyledIconTelescope color={theme.blue300} />
                   </TooltipRow>
                 )}
@@ -308,11 +311,11 @@ const TooltipRow = styled('tr')`
 `;
 
 const TooltipText = styled('td')`
+  padding-left: ${space(1.5)};
   font-weight: normal;
 `;
 
 const TooltipCount = styled('td')`
-  padding-left: ${space(1.5)};
   font-weight: bold;
 `;
 
