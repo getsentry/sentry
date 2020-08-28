@@ -80,6 +80,45 @@ class ProjectRuleDetailsTest(APITestCase):
         assert response.data["id"] == six.text_type(rule.id)
         assert response.data["environment"] is None
 
+    def test_with_filters(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+
+        conditions = [
+            {"id": "sentry.rules.conditions.every_event.EveryEventCondition"},
+            {"id": "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter", "value": 10},
+        ]
+        actions = [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}]
+        data = {
+            "conditions": conditions,
+            "actions": actions,
+            "filter_match": "all",
+            "action_match": "all",
+            "frequency": 30,
+        }
+
+        rule = Rule.objects.create(project=project, label="foo", data=data)
+
+        url = reverse(
+            "sentry-api-0-project-rule-details",
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_slug": project.slug,
+                "rule_id": rule.id,
+            },
+        )
+        response = self.client.get(url, format="json")
+
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == six.text_type(rule.id)
+
+        # ensure that conditions and filters are split up correctly
+        assert len(response.data["conditions"]) == 1
+        assert response.data["conditions"][0]["id"] == conditions[0]["id"]
+        assert len(response.data["filters"]) == 1
+        assert response.data["filters"][0]["id"] == conditions[1]["id"]
+
 
 class UpdateProjectRuleTest(APITestCase):
     def test_simple(self):
@@ -111,6 +150,7 @@ class UpdateProjectRuleTest(APITestCase):
             data={
                 "name": "hello world",
                 "actionMatch": "any",
+                "filterMatch": "any",
                 "actions": [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
                 "conditions": conditions,
             },
@@ -124,6 +164,7 @@ class UpdateProjectRuleTest(APITestCase):
         assert rule.label == "hello world"
         assert rule.environment_id is None
         assert rule.data["action_match"] == "any"
+        assert rule.data["filter_match"] == "any"
         assert rule.data["actions"] == [
             {"id": "sentry.rules.actions.notify_event.NotifyEventAction"}
         ]
@@ -152,6 +193,7 @@ class UpdateProjectRuleTest(APITestCase):
             data={
                 "environment": None,
                 "actionMatch": "all",
+                "filterMatch": "all",
                 "frequency": 30,
                 "name": "test",
                 "conditions": [
@@ -159,7 +201,7 @@ class UpdateProjectRuleTest(APITestCase):
                         "interval": "1h",
                         "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
                         "value": 666,
-                        "name": "An issue is seen more than 30 times in 1m",
+                        "name": "The issue is seen more than 30 times in 1m",
                     }
                 ],
                 "id": rule.id,
@@ -176,7 +218,7 @@ class UpdateProjectRuleTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert (
-            response.data["conditions"][0]["name"] == "An issue is seen more than 666 times in 1h"
+            response.data["conditions"][0]["name"] == "The issue is seen more than 666 times in 1h"
         )
 
         assert RuleActivity.objects.filter(rule=rule, type=RuleActivityType.UPDATED.value).exists()
@@ -204,6 +246,7 @@ class UpdateProjectRuleTest(APITestCase):
                 "name": "hello world",
                 "environment": "production",
                 "actionMatch": "any",
+                "filterMatch": "any",
                 "actions": [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
                 "conditions": [
                     {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
@@ -245,6 +288,7 @@ class UpdateProjectRuleTest(APITestCase):
                 "name": "hello world",
                 "environment": None,
                 "actionMatch": "any",
+                "filterMatch": "any",
                 "actions": [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
                 "conditions": [
                     {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
@@ -333,6 +377,7 @@ class UpdateProjectRuleTest(APITestCase):
             data={
                 "name": "hello world",
                 "actionMatch": "any",
+                "filterMatch": "any",
                 "conditions": [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
                 "actions": [],
             },
@@ -361,6 +406,7 @@ class UpdateProjectRuleTest(APITestCase):
             data={
                 "name": "hello world",
                 "actionMatch": "any",
+                "filterMatch": "any",
                 "conditions": [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
                 "actions": [{"id": "foo"}],
             },
@@ -389,6 +435,7 @@ class UpdateProjectRuleTest(APITestCase):
             data={
                 "name": "hello world",
                 "actionMatch": "any",
+                "filterMatch": "any",
                 "conditions": [{"id": "sentry.rules.conditions.tagged_event.TaggedEventCondition"}],
                 "actions": [],
             },
@@ -417,6 +464,7 @@ class UpdateProjectRuleTest(APITestCase):
                 data={
                     "name": "hello world",
                     "actionMatch": "any",
+                    "filterMatch": "any",
                     "conditions": [],
                     "actions": [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
                 },
@@ -445,6 +493,7 @@ class UpdateProjectRuleTest(APITestCase):
                 data={
                     "name": "hello world",
                     "actionMatch": "any",
+                    "filterMatch": "any",
                     "action": [],
                     "conditions": [
                         {"id": "sentry.rules.conditions.tagged_event.TaggedEventCondition"}
@@ -454,6 +503,54 @@ class UpdateProjectRuleTest(APITestCase):
             )
 
             assert response.status_code == 400, response.content
+
+    def test_update_filters(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+
+        rule = Rule.objects.create(project=project, label="foo")
+
+        conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
+        filters = [
+            {"id": "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter", "value": 10}
+        ]
+
+        url = reverse(
+            "sentry-api-0-project-rule-details",
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_slug": project.slug,
+                "rule_id": rule.id,
+            },
+        )
+        response = self.client.put(
+            url,
+            data={
+                "name": "hello world",
+                "actionMatch": "any",
+                "filterMatch": "any",
+                "actions": [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
+                "conditions": conditions,
+                "filters": filters,
+            },
+            format="json",
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == six.text_type(rule.id)
+
+        rule = Rule.objects.get(id=rule.id)
+        assert rule.label == "hello world"
+        assert rule.environment_id is None
+        assert rule.data["action_match"] == "any"
+        assert rule.data["filter_match"] == "any"
+        assert rule.data["actions"] == [
+            {"id": "sentry.rules.actions.notify_event.NotifyEventAction"}
+        ]
+        assert rule.data["conditions"] == conditions + filters
+
+        assert RuleActivity.objects.filter(rule=rule, type=RuleActivityType.UPDATED.value).exists()
 
 
 class DeleteProjectRuleTest(APITestCase):

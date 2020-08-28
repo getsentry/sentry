@@ -378,7 +378,15 @@ def get_query_params_to_update_for_projects(query_params, with_org=False):
         )
 
     # any project will do, as they should all be from the same organization
-    organization_id = Project.objects.get_from_cache(pk=project_ids[0]).organization_id
+    try:
+        # Most of the time the project should exist, so get from cache to keep it fast
+        organization_id = Project.objects.get_from_cache(pk=project_ids[0]).organization_id
+    except Project.DoesNotExist:
+        # But in the case the first project doesn't exist, grab the first non deleted project
+        project = Project.objects.filter(pk__in=project_ids).values("organization_id").first()
+        if project is None:
+            raise UnqualifiedQueryError("All project_ids from the filter no longer exist")
+        organization_id = project.get("organization_id")
 
     params = {"project": project_ids}
     if with_org:

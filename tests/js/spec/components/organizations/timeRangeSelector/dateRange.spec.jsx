@@ -31,6 +31,11 @@ const getSelectedRange = wrapper => [
     .text(),
 ];
 
+function getTimeText(element) {
+  const valueRegex = /value="([0-9]{2}:[0-9]{2})"/;
+  return element.html().match(valueRegex)[1];
+}
+
 describe('DateRange', function() {
   let wrapper;
   const onChange = jest.fn();
@@ -134,6 +139,68 @@ describe('DateRange', function() {
 
       expect(onChange).not.toHaveBeenLastCalledWith();
     });
+
+    it('updates start time input only if not focused', async function() {
+      const time = start.getTime() + 60000;
+
+      expect(getTimeText(wrapper.find('input[data-test-id="startTime"]'))).toEqual(
+        '22:38'
+      );
+
+      wrapper.find('input[data-test-id="startTime"]').simulate('focus');
+      await tick();
+      wrapper.update();
+
+      wrapper.setProps({start: new Date(time)});
+      await tick();
+      wrapper.update();
+
+      // because the prop change happened while the component still has focus, no update
+      expect(getTimeText(wrapper.find('input[data-test-id="startTime"]'))).toEqual(
+        '22:38'
+      );
+
+      wrapper.find('input[data-test-id="startTime"]').simulate('blur');
+      await tick();
+      wrapper.update();
+
+      wrapper.setProps({start: new Date(time)});
+      await tick();
+      wrapper.update();
+
+      // because the prop change happened after the component lost focus, it updates
+      expect(getTimeText(wrapper.find('input[data-test-id="startTime"]'))).toEqual(
+        '22:39'
+      );
+    });
+
+    it('updates end time input only if not focused', async function() {
+      const time = end.getTime() + 60000;
+
+      expect(getTimeText(wrapper.find('input[data-test-id="endTime"]'))).toEqual('22:38');
+
+      wrapper.find('input[data-test-id="endTime"]').simulate('focus');
+      await tick();
+      wrapper.update();
+
+      wrapper.setProps({end: new Date(time)});
+      await tick();
+      wrapper.update();
+
+      // because the prop change happened while the component still has focus, no update
+      expect(getTimeText(wrapper.find('input[data-test-id="endTime"]'))).toEqual('22:38');
+
+      wrapper.find('input[data-test-id="endTime"]').simulate('blur');
+      await tick();
+      wrapper.update();
+
+      wrapper.setProps({end: new Date(time)});
+      await tick();
+      wrapper.update();
+
+      // because the prop change happened after the component lost focus, it updates
+      expect(getTimeText(wrapper.find('input[data-test-id="endTime"]'))).toEqual('22:39');
+    });
   });
 
   describe('UTC', function() {
@@ -197,7 +264,7 @@ describe('DateRange', function() {
       });
     });
 
-    it('changes end time for existing date', function() {
+    it('changes utc end time for existing date', function() {
       wrapper
         .find('input[data-test-id="endTime"]')
         .simulate('change', {target: {value: '12:00'}});
@@ -223,6 +290,70 @@ describe('DateRange', function() {
         .simulate('change', {target: {value: null}});
 
       expect(onChange).not.toHaveBeenLastCalledWith();
+    });
+
+    it('updates utc start time input only if not focused', async function() {
+      // NOTE: the DateRange component initializes the time inputs with the local time
+      const time = start.getTime() + 60000;
+
+      expect(getTimeText(wrapper.find('input[data-test-id="startTime"]'))).toEqual(
+        '22:38'
+      );
+
+      wrapper.find('input[data-test-id="startTime"]').simulate('focus');
+      await tick();
+      wrapper.update();
+
+      wrapper.setProps({start: new Date(time)});
+      await tick();
+      wrapper.update();
+
+      // because the prop change happened while the component still has focus, no update
+      expect(getTimeText(wrapper.find('input[data-test-id="startTime"]'))).toEqual(
+        '22:38'
+      );
+
+      wrapper.find('input[data-test-id="startTime"]').simulate('blur');
+      await tick();
+      wrapper.update();
+
+      wrapper.setProps({start: new Date(time)});
+      await tick();
+      wrapper.update();
+
+      // because the prop change happened after the component lost focus, it updates
+      expect(getTimeText(wrapper.find('input[data-test-id="startTime"]'))).toEqual(
+        '22:39'
+      );
+    });
+
+    it('updates utc end time input only if not focused', async function() {
+      // NOTE: the DateRange component initializes the time inputs with the local time
+      const time = end.getTime() + 60000;
+
+      expect(getTimeText(wrapper.find('input[data-test-id="endTime"]'))).toEqual('22:38');
+
+      wrapper.find('input[data-test-id="endTime"]').simulate('focus');
+      await tick();
+      wrapper.update();
+
+      wrapper.setProps({end: new Date(time)});
+      await tick();
+      wrapper.update();
+
+      // because the prop change happened while the component still has focus, no update
+      expect(getTimeText(wrapper.find('input[data-test-id="endTime"]'))).toEqual('22:38');
+
+      wrapper.find('input[data-test-id="endTime"]').simulate('blur');
+      await tick();
+      wrapper.update();
+
+      wrapper.setProps({end: new Date(time)});
+      await tick();
+      wrapper.update();
+
+      // because the prop change happened after the component lost focus, it updates
+      expect(getTimeText(wrapper.find('input[data-test-id="endTime"]'))).toEqual('22:39');
     });
   });
 });

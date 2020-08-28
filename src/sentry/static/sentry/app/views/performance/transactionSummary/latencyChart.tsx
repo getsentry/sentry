@@ -257,12 +257,24 @@ class LatencyChart extends AsyncComponent<Props, State> {
  * Convert a discover response into a barchart compatible series
  */
 function transformData(data: ApiResult[], bucketWidth: number) {
+  let precision;
+  if (bucketWidth < 10) {
+    precision = 4;
+  } else if (bucketWidth < 100) {
+    precision = 3;
+  } else if (bucketWidth < 1000) {
+    precision = 2;
+  } else if (bucketWidth < 10000) {
+    precision = 1;
+  } else {
+    precision = 0;
+  }
   const seriesData = data.map(item => {
     const bucket = item.histogram_transaction_duration_15;
     const midPoint = bucketWidth > 1 ? Math.ceil(bucket + bucketWidth / 2) : bucket;
     return {
       value: item.count,
-      name: getDuration(midPoint / 1000, 2, true),
+      name: getDuration(midPoint / 1000, precision, true),
     };
   });
 

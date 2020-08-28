@@ -23,12 +23,13 @@ type Props = {
   /**
    * actions/conditions that have been added to the rule
    */
-  items?: IssueAlertRuleAction[] | IssueAlertRuleCondition[];
+  items: IssueAlertRuleAction[] | IssueAlertRuleCondition[];
   /**
    * Placeholder for select control
    */
   placeholder: string;
   disabled: boolean;
+  error: React.ReactNode;
   onPropertyChange: (ruleIndex: number, prop: string, val: string) => void;
   onAddRow: (value: string) => void;
   onDeleteRow: (ruleIndex: number) => void;
@@ -57,6 +58,7 @@ class RuleNodeList extends React.Component<Props> {
       organization,
       project,
       disabled,
+      error,
     } = this.props;
 
     const shouldUsePrompt = project.features?.includes?.('issue-alerts-targeting');
@@ -71,23 +73,22 @@ class RuleNodeList extends React.Component<Props> {
 
     return (
       <React.Fragment>
-        {items && !!items.length && (
-          <RuleNodes>
-            {items.map((item, idx) => (
-              <RuleNode
-                key={idx}
-                index={idx}
-                node={this.getNode(item.id)}
-                onDelete={onDeleteRow}
-                data={item}
-                onPropertyChange={onPropertyChange}
-                organization={organization}
-                project={project}
-                disabled={disabled}
-              />
-            ))}
-          </RuleNodes>
-        )}
+        <RuleNodes>
+          {error}
+          {items.map((item, idx) => (
+            <RuleNode
+              key={idx}
+              index={idx}
+              node={this.getNode(item.id)}
+              onDelete={onDeleteRow}
+              data={item}
+              onPropertyChange={onPropertyChange}
+              organization={organization}
+              project={project}
+              disabled={disabled}
+            />
+          ))}
+        </RuleNodes>
         <StyledSelectControl
           placeholder={placeholder}
           value={null}
@@ -108,7 +109,7 @@ const StyledSelectControl = styled(SelectControl)`
 
 const RuleNodes = styled('div')`
   display: grid;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${space(1)};
   grid-gap: ${space(1)};
 
   @media (max-width: ${p => p.theme.breakpoints[1]}) {

@@ -31,7 +31,7 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
         data = build_action_response(self.email)
 
         assert data["type"] == "email"
-        assert data["allowedTargetTypes"] == ["user", "team"]
+        assert sorted(data["allowedTargetTypes"]) == ["team", "user"]
 
     def test_build_action_response_slack(self):
         data = build_action_response(self.slack)

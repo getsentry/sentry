@@ -13,6 +13,7 @@ class Updater(Mediator):
     environment = Param(int, required=False)
     project = Param("sentry.models.Project")
     action_match = Param(six.string_types, required=False)
+    filter_match = Param(six.string_types, required=False)
     actions = Param(Iterable, required=False)
     conditions = Param(Iterable, required=False)
     frequency = Param(int, required=False)
@@ -24,6 +25,7 @@ class Updater(Mediator):
         self._update_project()
         self._update_actions()
         self._update_action_match()
+        self._update_filter_match()
         self._update_conditions()
         self._update_frequency()
         self.rule.save()
@@ -48,6 +50,10 @@ class Updater(Mediator):
     @if_param("action_match")
     def _update_action_match(self):
         self.rule.data["action_match"] = self.action_match
+
+    @if_param("filter_match")
+    def _update_filter_match(self):
+        self.rule.data["filter_match"] = self.filter_match
 
     @if_param("conditions")
     def _update_conditions(self):

@@ -53,6 +53,7 @@ type State = {
 type TrendsQuery = {
   trendFunction?: string;
   intervalRatio?: number;
+  interval?: string;
 };
 
 class DiscoverQuery extends React.Component<Props, State> {
@@ -120,8 +121,7 @@ class DiscoverQuery extends React.Component<Props, State> {
       trendChangeType,
     } = this.props;
 
-    // The check for trendChangeType here is due to the fact that the event view will never be valid with trends as they don't send any fields.
-    if (!eventView.isValid() && !trendChangeType) {
+    if (!eventView.isValid()) {
       return;
     }
 
@@ -133,10 +133,7 @@ class DiscoverQuery extends React.Component<Props, State> {
       LocationQuery &
       TrendsQuery = eventView.getEventsAPIPayload(location);
 
-    if (trendChangeType) {
-      const trendFunction = getCurrentTrendFunction(location);
-      apiPayload.trendFunction = trendFunction.field;
-    }
+    this.modifyTrendsPayload(apiPayload);
 
     this.setState({isLoading: true, tableFetchID});
 
@@ -175,6 +172,15 @@ class DiscoverQuery extends React.Component<Props, State> {
           tableData: null,
         });
       });
+  };
+
+  modifyTrendsPayload = (apiPayload: EventQuery & LocationQuery & TrendsQuery) => {
+    const {trendChangeType, location, eventView} = this.props;
+    if (trendChangeType) {
+      const trendFunction = getCurrentTrendFunction(location);
+      apiPayload.trendFunction = trendFunction.field;
+      apiPayload.interval = eventView.interval;
+    }
   };
 
   render() {

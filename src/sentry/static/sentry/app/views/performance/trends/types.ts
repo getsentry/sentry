@@ -44,31 +44,32 @@ export type TrendsData = {
 
 type BaseTrendsTransaction = {
   transaction: string;
-  project?: string; // TODO: Fix allowing project as field
+  project?: string;
+  count: number;
 
   count_range_1: number;
   count_range_2: number;
-  divide_count_range_2_count_range_1: number;
+  percentage_count_range_2_count_range_1: number;
 };
 
 export type TrendsPercentileTransaction = BaseTrendsTransaction & {
   percentile_range_1: number;
   percentile_range_2: number;
-  divide_percentile_range_2_percentile_range_1: number;
+  percentage_percentile_range_2_percentile_range_1: number;
   minus_percentile_range_2_percentile_range_1: number;
 };
 
 export type TrendsAvgTransaction = BaseTrendsTransaction & {
   avg_range_1: number;
   avg_range_2: number;
-  divide_avg_range_2_avg_range_1: number;
+  percentage_avg_range_2_avg_range_1: number;
   minus_avg_range_2_avg_range_1: number;
 };
 
 export type TrendsUserMiseryTransaction = BaseTrendsTransaction & {
   user_misery_range_1: number;
   user_misery_range_2: number;
-  divide_user_misery_range_2_user_misery_range_1: number;
+  percentage_user_misery_range_2_user_misery_range_1: number;
   minus_user_misery_range_2_user_misery_range_1: number;
 };
 
@@ -80,6 +81,6 @@ export type TrendsTransaction =
 export type NormalizedTrendsTransaction = BaseTrendsTransaction & {
   aggregate_range_1: number;
   aggregate_range_2: number;
-  divide_aggregate_range_2_aggregate_range_1: number;
+  percentage_aggregate_range_2_aggregate_range_1: number;
   minus_aggregate_range_2_aggregate_range_1: number;
 };

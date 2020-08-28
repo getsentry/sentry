@@ -6,7 +6,7 @@ import {browserHistory} from 'react-router';
 import {Panel} from 'app/components/panels';
 import withOrganization from 'app/utils/withOrganization';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
-import {Organization} from 'app/types';
+import {Organization, Project} from 'app/types';
 import {decodeScalar} from 'app/utils/queryString';
 import space from 'app/styles/space';
 import {RadioLineItem} from 'app/views/settings/components/forms/controls/radioGroup';
@@ -17,6 +17,7 @@ import Count from 'app/components/count';
 import {formatPercentage} from 'app/utils/formatters';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import {t} from 'app/locale';
+import withProjects from 'app/utils/withProjects';
 
 import Chart from './chart';
 import {
@@ -44,7 +45,21 @@ type Props = {
   previousTrendFunction?: TrendFunctionField;
   trendView: TrendView;
   location: Location;
+  projects: Project[];
 };
+
+function getTransactionProjectId(
+  transaction: NormalizedTrendsTransaction,
+  projects?: Project[]
+): string | undefined {
+  if (!transaction.project || !projects) {
+    return undefined;
+  }
+  const transactionProject = projects.find(
+    project => project.slug === transaction.project
+  );
+  return transactionProject?.id;
+}
 
 function getChartTitle(trendChangeType: TrendChangeType): string {
   switch (trendChangeType) {
@@ -61,7 +76,7 @@ function getSelectedTransaction(
   location: Location,
   trendChangeType: TrendChangeType,
   transactions?: NormalizedTrendsTransaction[]
-): string | undefined {
+): NormalizedTrendsTransaction | undefined {
   const queryKey = getSelectedQueryKey(trendChangeType);
   const offsetString = decodeScalar(location.query[queryKey]);
   const offset = offsetString ? parseInt(offsetString, 10) : 0;
@@ -69,7 +84,7 @@ function getSelectedTransaction(
     return undefined;
   }
 
-  const transaction = transactions[offset].transaction;
+  const transaction = transactions[offset];
   return transaction;
 }
 
@@ -97,7 +112,13 @@ function handleChangeSelected(
 }
 
 function ChangedTransactions(props: Props) {
-  const {location, trendChangeType, previousTrendFunction, organization} = props;
+  const {
+    location,
+    trendChangeType,
+    previousTrendFunction,
+    organization,
+    projects,
+  } = props;
   const trendView = props.trendView.clone();
   const chartTitle = getChartTitle(trendChangeType);
   modifyTrendView(trendView, location, trendChangeType);
@@ -165,6 +186,7 @@ function ChangedTransactions(props: Props) {
                         trendChangeType={trendChangeType}
                         transactions={transactionsList}
                         location={location}
+                        projects={projects}
                         handleSelectTransaction={handleChangeSelected(
                           location,
                           trendChangeType,
@@ -194,6 +216,7 @@ type TrendsListItemProps = {
   trendChangeType: TrendChangeType;
   currentTrendFunction: TrendFunctionField;
   transactions: NormalizedTrendsTransaction[];
+  projects: Project[];
   location: Location;
   index: number;
   handleSelectTransaction: (transaction: NormalizedTrendsTransaction) => void;
@@ -216,7 +239,7 @@ function TrendsListItem(props: TrendsListItemProps) {
     trendChangeType,
     transactions
   );
-  const isSelected = selectedTransaction === transaction.transaction;
+  const isSelected = selectedTransaction === transaction;
 
   return (
     <ListItemContainer>
@@ -254,7 +277,10 @@ function TrendsListItem(props: TrendsListItemProps) {
           }
         >
           <ItemTransactionPercent>
-            {formatPercentage(transaction.divide_aggregate_range_2_aggregate_range_1, 0)}
+            {formatPercentage(
+              transaction.percentage_aggregate_range_2_aggregate_range_1 - 1,
+              0
+            )}
           </ItemTransactionPercent>
         </Tooltip>
         <ItemTransactionPercentFaster color={color}>
@@ -272,13 +298,15 @@ function TrendsListItem(props: TrendsListItemProps) {
 type TransactionLinkProps = TrendsListItemProps & {};
 
 const TransactionLink = (props: TransactionLinkProps) => {
-  const {organization, trendView: eventView, transaction} = props;
+  const {organization, trendView: eventView, transaction, projects} = props;
 
   const summaryView = eventView.clone();
+  const projectID = getTransactionProjectId(transaction, projects);
   const target = transactionSummaryRouteWithQuery({
     orgSlug: organization.slug,
     transaction: String(transaction.transaction),
     query: summaryView.generateQueryStringObject(),
+    projectID,
   });
 
   return <StyledLink to={target}>{transaction.transaction}</StyledLink>;
@@ -343,4 +371,4 @@ const EmptyStateContainer = styled('div')`
 
 const StyledPanel = styled(Panel)``;
 
-export default withOrganization(ChangedTransactions);
+export default withProjects(withOrganization(ChangedTransactions));

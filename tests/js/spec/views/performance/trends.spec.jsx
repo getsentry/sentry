@@ -8,8 +8,8 @@ import PerformanceLanding from 'app/views/performance/landing';
 import ProjectsStore from 'app/stores/projectsStore';
 import {
   TRENDS_FUNCTIONS,
-  getTrendAliasedFieldDivide,
-  getTrendAliasedQueryDivide,
+  getTrendAliasedFieldPercentage,
+  getTrendAliasedQueryPercentage,
 } from 'app/views/performance/trends/utils';
 import {TrendFunctionField} from 'app/views/performance/trends/types';
 
@@ -79,7 +79,7 @@ describe('Performance > Trends', function() {
       url: '/organizations/org-slug/events-trends/',
       body: {
         stats: {
-          '/organizations/:orgId/performance/': {
+          'internal,/organizations/:orgId/performance/': {
             data: [[123, []]],
           },
           order: 0,
@@ -88,8 +88,8 @@ describe('Performance > Trends', function() {
           meta: {
             count_range_1: 'integer',
             count_range_2: 'integer',
-            divide_count_range_2_count_range_1: 'percentage',
-            divide_percentile_range_2_percentile_range_1: 'percentage',
+            percentage_count_range_2_count_range_1: 'percentage',
+            percentage_percentile_range_2_percentile_range_1: 'percentage',
             minus_percentile_range_2_percentile_range_1: 'number',
             percentile_range_1: 'duration',
             percentile_range_2: 'duration',
@@ -97,20 +97,24 @@ describe('Performance > Trends', function() {
           },
           data: [
             {
+              count: 8,
+              project: 'internal',
               count_range_1: 2,
               count_range_2: 6,
-              divide_count_range_2_count_range_1: 3,
-              divide_percentile_range_2_percentile_range_1: 1.9235225955967554,
+              percentage_count_range_2_count_range_1: 3,
+              percentage_percentile_range_2_percentile_range_1: 1.9235225955967554,
               minus_percentile_range_2_percentile_range_1: 797,
               percentile_range_1: 863,
               percentile_range_2: 1660,
               transaction: '/organizations/:orgId/performance/',
             },
             {
+              count: 60,
+              project: 'internal',
               count_range_1: 20,
               count_range_2: 40,
-              divide_count_range_2_count_range_1: 2,
-              divide_percentile_range_2_percentile_range_1: 1.204968944099379,
+              percentage_count_range_2_count_range_1: 2,
+              percentage_percentile_range_2_percentile_range_1: 1.204968944099379,
               minus_percentile_range_2_percentile_range_1: 66,
               percentile_range_1: 322,
               percentile_range_2: 388,
@@ -161,6 +165,32 @@ describe('Performance > Trends', function() {
     wrapper.update();
 
     expect(wrapper.find('TrendsListItem')).toHaveLength(4);
+  });
+
+  it('clicking transaction link links to the correct view', async function() {
+    const projects = [TestStubs.Project({id: 1, slug: 'internal'}), TestStubs.Project()];
+    const data = initializeData(projects, {project: ['1']});
+
+    const wrapper = mountWithTheme(
+      <PerformanceLanding
+        organization={data.organization}
+        location={data.router.location}
+      />,
+      data.routerContext
+    );
+
+    await tick();
+    wrapper.update();
+
+    const firstTransaction = wrapper.find('TrendsListItem').first();
+    const transactionLink = firstTransaction.find('StyledLink');
+    expect(transactionLink).toHaveLength(1);
+
+    expect(transactionLink.text()).toEqual('/organizations/:orgId/performance/');
+    expect(transactionLink.props().to.pathname).toEqual(
+      '/organizations/org-slug/performance/summary/'
+    );
+    expect(transactionLink.props().to.query.project).toEqual(1);
   });
 
   it('transaction list renders user misery', async function() {
@@ -234,8 +264,8 @@ describe('Performance > Trends', function() {
 
       expect(trendsMock).toHaveBeenCalledTimes(2);
 
-      const aliasedFieldDivide = getTrendAliasedFieldDivide(trendFunction.alias);
-      const aliasedQueryDivide = getTrendAliasedQueryDivide(trendFunction.alias);
+      const aliasedFieldDivide = getTrendAliasedFieldPercentage(trendFunction.alias);
+      const aliasedQueryDivide = getTrendAliasedQueryPercentage(trendFunction.alias);
 
       // Improved trends call
       expect(trendsMock).toHaveBeenNthCalledWith(
@@ -246,6 +276,7 @@ describe('Performance > Trends', function() {
             trendFunction: trendFunction.field,
             sort: aliasedFieldDivide,
             query: expect.stringContaining(aliasedQueryDivide + ':<1'),
+            interval: '1h',
           }),
         })
       );
@@ -259,6 +290,7 @@ describe('Performance > Trends', function() {
             trendFunction: trendFunction.field,
             sort: '-' + aliasedFieldDivide,
             query: expect.stringContaining(aliasedQueryDivide + ':>1'),
+            interval: '1h',
           }),
         })
       );

@@ -18,7 +18,7 @@ import {Series} from 'app/types/echarts';
 import theme from 'app/utils/theme';
 
 import {trendToColor, getIntervalRatio, getCurrentTrendFunction} from './utils';
-import {TrendChangeType, TrendsStats} from './types';
+import {TrendChangeType, TrendsStats, NormalizedTrendsTransaction} from './types';
 
 const QUERY_KEYS = [
   'environment',
@@ -37,7 +37,7 @@ type Props = WithRouterProps &
     location: Location;
     organization: OrganizationSummary;
     trendChangeType: TrendChangeType;
-    transaction?: string;
+    transaction?: NormalizedTrendsTransaction;
     isLoading: boolean;
     statsData: TrendsStats;
   };
@@ -135,7 +135,10 @@ class Chart extends React.Component<Props> {
     } = props;
     const lineColor = trendToColor[trendChangeType];
 
-    const events = statsData && statsData[transaction || ''];
+    const events =
+      statsData && transaction?.project && transaction?.transaction
+        ? statsData[[transaction.project, transaction.transaction].join(',')]
+        : undefined;
     const data = events?.data ?? [];
 
     const trendFunction = getCurrentTrendFunction(location);
