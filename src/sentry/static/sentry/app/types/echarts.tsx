@@ -24,11 +24,11 @@ export type ReactEchartsRef = {
   getEchartsInstance: () => ECharts;
 };
 
-export type EChartsChartReadyHandler = (instance: ECharts) => void;
+export type EChartEventHandler<P> = (params: P, instance: ECharts) => void;
 
-export type EChartsEventHandler<P> = (params: P, instance: ECharts) => void;
+export type EChartChartReadyHandler = (instance: ECharts) => void;
 
-export type EChartsDataZoomHandler = EChartsEventHandler<{
+export type EChartDataZoomHandler = EChartEventHandler<{
   type: 'datazoom';
   /**
    * percentage of zoom start position, 0 - 100

@@ -6,13 +6,13 @@ import {EChartOption} from 'echarts/lib/echarts';
 import DataZoom from 'app/components/charts/components/dataZoom';
 import ToolBox from 'app/components/charts/components/toolBox';
 import {callIfFunction} from 'app/utils/callIfFunction';
-import {EChartsChartReadyHandler, EChartsDataZoomHandler} from 'app/types/echarts';
+import {EChartChartReadyHandler, EChartDataZoomHandler} from 'app/types/echarts';
 
 export type RenderProps = {
   dataZoom: EChartOption['dataZoom'];
   toolBox: EChartOption['toolbox'];
-  onChartReady: EChartsChartReadyHandler;
-  onDataZoom: EChartsDataZoomHandler;
+  onChartReady: EChartChartReadyHandler;
+  onDataZoom: EChartDataZoomHandler;
 };
 
 export type BarChartBucket = {
@@ -57,8 +57,8 @@ type Props = {
    * smaller than that.
    */
   onDataZoomCancelled?: () => void;
-  onChartReady?: EChartsChartReadyHandler;
-  onDataZoom?: EChartsDataZoomHandler;
+  onChartReady?: EChartChartReadyHandler;
+  onDataZoom?: EChartDataZoomHandler;
 };
 
 class BarChartZoom extends React.Component<Props> {
