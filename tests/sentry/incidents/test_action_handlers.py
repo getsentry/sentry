@@ -348,7 +348,7 @@ class PagerDutyActionHandlerBaseTest(object):
         )
         assert data["payload"]["summary"] == alert_rule.name
         assert data["payload"]["severity"] == "critical"
-        assert data["payload"]["source"] == six.binary_type(incident.identifier)
+        assert data["payload"]["source"] == six.text_type(incident.identifier)
         assert data["payload"]["custom_details"] == {
             "details": "1000 events in the last 10 minutes\nFilter: level:error"
         }

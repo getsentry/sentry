@@ -5,7 +5,7 @@ import moment from 'moment';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 import {updateDateTime} from 'app/actionCreators/globalSelection';
-import DataZoom from 'app/components/charts/components/dataZoom';
+import DataZoomInside from 'app/components/charts/components/dataZoomInside';
 import SentryTypes from 'app/sentryTypes';
 import ToolBox from 'app/components/charts/components/toolBox';
 
@@ -19,9 +19,6 @@ const getDate = date =>
  *
  * This also is very tightly coupled with the Global Selection Header. We can make it more
  * generic if need be in the future.
- *
- * TODO(billy): If this sees extended uses, this would be better as a child of LineChart so
- * you can enable it via a prop to `<LineChart>`
  */
 class ChartZoom extends React.Component {
   static propTypes = {
@@ -224,7 +221,7 @@ class ChartZoom extends React.Component {
       isGroupedByDate: true,
       onChartReady: this.handleChartReady,
       utc,
-      dataZoom: DataZoom({xAxisIndex}),
+      dataZoom: DataZoomInside({xAxisIndex}),
       showTimeInTooltip: true,
       toolBox: ToolBox(
         {},
