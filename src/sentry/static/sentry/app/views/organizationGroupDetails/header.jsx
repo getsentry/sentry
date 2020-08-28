@@ -25,6 +25,17 @@ import withApi from 'app/utils/withApi';
 
 import GroupActions from './actions';
 
+const TAB = {
+  DETAILS: 'default',
+  COMMENTS: 'comments',
+  USER_FEEDBACK: 'user_feedback',
+  ATTACHMENTS: 'attachments',
+  TAGS: 'tags',
+  EVENTS: 'events',
+  MERGED: 'merged',
+  SIMILAR_ISSUES: 'similar_issues',
+};
+
 class GroupHeader extends React.Component {
   static propTypes = {
     baseUrl: PropTypes.string.isRequired,
@@ -192,33 +203,33 @@ class GroupHeader extends React.Component {
         <NavTabs>
           <ListLink
             to={`${baseUrl}${location.search}`}
-            isActive={() => currentTab === 'details'}
+            isActive={() => currentTab === TAB.DETAILS}
           >
             {t('Details')}
           </ListLink>
           <ListLink
             to={`${baseUrl}activity/${location.search}`}
-            isActive={() => currentTab === 'comments'}
+            isActive={() => currentTab === TAB.COMMENTS}
           >
             {t('Activity')} <Badge text={group.numComments} />
           </ListLink>
           <ListLink
             to={`${baseUrl}feedback/${location.search}`}
-            isActive={() => currentTab === 'user_feedback'}
+            isActive={() => currentTab === TAB.USER_FEEDBACK}
           >
             {t('User Feedback')} <Badge text={group.userReportCount} />
           </ListLink>
           {hasEventAttachments && (
             <ListLink
               to={`${baseUrl}attachments/${location.search}`}
-              isActive={() => currentTab === 'attachments'}
+              isActive={() => currentTab === TAB.ATTACHMENTS}
             >
               {t('Attachments')}
             </ListLink>
           )}
           <ListLink
             to={`${baseUrl}tags/${location.search}`}
-            isActive={() => currentTab === 'tags'}
+            isActive={() => currentTab === TAB.TAGS}
           >
             {t('Tags')}
           </ListLink>
@@ -227,14 +238,14 @@ class GroupHeader extends React.Component {
           </ListLink>
           <ListLink
             to={`${baseUrl}merged/${location.search}`}
-            isActive={() => currentTab === 'merged'}
+            isActive={() => currentTab === TAB.MERGED}
           >
             {t('Merged')}
           </ListLink>
           {hasSimilarView && (
             <ListLink
               to={`${baseUrl}similar/${location.search}`}
-              isActive={() => currentTab === 'similar_issues'}
+              isActive={() => currentTab === TAB.SIMILAR_ISSUES}
             >
               {t('Similar Issues')}
             </ListLink>
@@ -252,6 +263,7 @@ const StyledProjectBadge = styled(ProjectBadge)`
 const EventAnnotationWithSpace = styled(EventAnnotation)`
   margin-left: ${space(1)};
 `;
-export {GroupHeader};
+
+export {GroupHeader, TAB};
 
 export default withApi(GroupHeader);

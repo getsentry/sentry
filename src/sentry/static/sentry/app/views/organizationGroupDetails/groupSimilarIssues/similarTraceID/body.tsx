@@ -68,7 +68,6 @@ const Body = ({traceID, organization, event, location}: Props) => {
             issues={issues}
             pageLinks={data.pageLinks}
             traceID={traceID}
-            eventID={event.id}
             orgSlug={orgSlug}
             location={location}
             period={{start, end}}

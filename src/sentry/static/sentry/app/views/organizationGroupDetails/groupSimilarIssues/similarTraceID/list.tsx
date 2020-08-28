@@ -7,7 +7,6 @@ import styled from '@emotion/styled';
 
 import {tct} from 'app/locale';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
-import {stringifyQueryObject, QueryResults} from 'app/utils/tokenizeSearch';
 import GroupListHeader from 'app/components/issues/groupListHeader';
 import {Panel, PanelBody} from 'app/components/panels';
 import StreamGroup from 'app/components/stream/group';
@@ -44,7 +43,6 @@ type Props = {
   pageLinks: string | null;
   location: Location;
   traceID: string;
-  eventID: string;
 };
 
 type State = {
@@ -65,7 +63,7 @@ class List extends React.Component<Props, State> {
   }
 
   getGroups = async () => {
-    const {api, orgSlug, location, traceID, eventID, issues} = this.props;
+    const {api, orgSlug, location, issues} = this.props;
 
     if (!issues.length) {
       this.setState({isLoading: false});
@@ -82,9 +80,6 @@ class List extends React.Component<Props, State> {
           data: {
             sort: 'new',
             ...pick(location.query, [...Object.values(URL_PARAM), 'cursor']),
-            query: stringifyQueryObject(
-              new QueryResults([`trace:${traceID}`, `!id:${eventID}`])
-            ),
           },
         }
       );

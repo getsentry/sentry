@@ -21,19 +21,7 @@ import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 
 import {ERROR_TYPES} from './constants';
 import {fetchGroupEventAndMarkSeen} from './utils';
-import GroupHeader from './header';
-
-// TODO(ts): Move this enum to the GroupHeader component as soon as it is converted to ts
-enum TAB {
-  DETAILS = 'details',
-  COMMENTS = 'comments',
-  USER_FEEDBACK = 'user_feedback',
-  ATTACHMENTS = 'attachments',
-  TAGS = 'tags',
-  EVENTS = 'events',
-  MERGED = 'merged',
-  SIMILAR_ISSUES = 'similar_issues',
-}
+import GroupHeader, {TAB} from './header';
 
 type Error = typeof ERROR_TYPES[keyof typeof ERROR_TYPES] | null;
 
