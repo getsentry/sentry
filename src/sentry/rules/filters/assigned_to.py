@@ -1,22 +1,23 @@
 from __future__ import absolute_import
 
 from django import forms
+from enum import Enum
 
 from sentry.rules.filters.base import EventFilter
 from sentry.mail.actions import MemberTeamForm
 from sentry.utils.cache import cache
 
 
-class AssigneeTargetType:
+class AssigneeTargetType(Enum):
     UNASSIGNED = "Unassigned"
     TEAM = "Team"
     MEMBER = "Member"
 
 
 CHOICES = [
-    (AssigneeTargetType.UNASSIGNED, "Unassigned"),
-    (AssigneeTargetType.TEAM, "Team"),
-    (AssigneeTargetType.MEMBER, "Member"),
+    (AssigneeTargetType.UNASSIGNED.value, "Unassigned"),
+    (AssigneeTargetType.TEAM.value, "Team"),
+    (AssigneeTargetType.MEMBER.value, "Member"),
 ]
 
 
@@ -25,6 +26,7 @@ class AssignedToForm(MemberTeamForm):
 
     teamValue = AssigneeTargetType.TEAM
     memberValue = AssigneeTargetType.MEMBER
+    targetTypeEnum = AssigneeTargetType
 
 
 class AssignedToFilter(EventFilter):
@@ -43,7 +45,7 @@ class AssignedToFilter(EventFilter):
         return assignee_list
 
     def passes(self, event, state):
-        targetType = self.get_option("targetType")
+        targetType = AssigneeTargetType(self.get_option("targetType"))
 
         if targetType == AssigneeTargetType.UNASSIGNED:
             return len(self.get_assignees(event.group)) == 0
