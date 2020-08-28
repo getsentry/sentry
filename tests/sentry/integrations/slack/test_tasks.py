@@ -42,6 +42,7 @@ class SlackTasksTest(TestCase):
             "environment": None,
             "project": self.project1,
             "action_match": "all",
+            "filter_match": "all",
             "conditions": [
                 {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
             ],
@@ -90,6 +91,7 @@ class SlackTasksTest(TestCase):
             "environment": None,
             "project": self.project1,
             "action_match": "all",
+            "filter_match": "all",
             "conditions": [condition_data],
             "actions": [
                 {
@@ -149,6 +151,7 @@ class SlackTasksTest(TestCase):
             "environment": None,
             "project": self.project1,
             "action_match": "all",
+            "filter_match": "all",
             "conditions": [{"id": "sentry.rules.conditions.every_event.EveryEventCondition"}],
             "actions": [
                 {
