@@ -38,6 +38,7 @@ class SelectControlLegacy extends React.Component {
       PropTypes.arrayOf(PropTypes.oneOfType([PropTypes.string, PropTypes.array])),
       PropTypes.func,
     ]),
+    placeholder: PropTypes.oneOfType([ReactSelect.propTypes.placeholder, PropTypes.func]),
   };
 
   static defaultProps = {
