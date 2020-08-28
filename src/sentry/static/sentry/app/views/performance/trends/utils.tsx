@@ -146,8 +146,25 @@ export function modifyTrendView(
     trendSort.kind = 'desc';
   }
 
+  trendView.interval = getQueryInterval(location, trendView);
+
   trendView.sorts = [trendSort];
   trendView.fields = fields;
+}
+
+function getQueryInterval(location: Location, eventView: TrendView) {
+  const intervalFromQueryParam = decodeScalar(location?.query?.interval);
+  const {start, end, statsPeriod} = eventView;
+
+  const datetimeSelection = {
+    start: start || null,
+    end: end || null,
+    period: statsPeriod,
+  };
+
+  const intervalFromSmoothing = chartIntervalFunction(datetimeSelection);
+
+  return intervalFromQueryParam || intervalFromSmoothing;
 }
 
 export function transformValueDelta(
@@ -246,6 +263,6 @@ function getLimitTransactionItems(
     limitQuery = aliasedPercentage + ':>1';
   }
   limitQuery +=
-    ' divide(count_range_2,count_range_1):>0.5 divide(count_range_2,count_range_1):<2';
+    ' percentage(count_range_2,count_range_1):>0.5 percentage(count_range_2,count_range_1):<2';
   return limitQuery;
 }
