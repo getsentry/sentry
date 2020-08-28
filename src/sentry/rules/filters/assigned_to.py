@@ -45,7 +45,7 @@ class AssignedToFilter(EventFilter):
         return assignee_list
 
     def passes(self, event, state):
-        targetType = self.get_option("targetType")
+        targetType = AssigneeTargetType(self.get_option("targetType"))
 
         if targetType == AssigneeTargetType.UNASSIGNED:
             return len(self.get_assignees(event.group)) == 0
