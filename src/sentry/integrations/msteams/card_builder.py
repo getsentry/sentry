@@ -72,8 +72,8 @@ def build_welcome_card(signed_params):
     instruction = {
         "type": "TextBlock",
         "text": (
-            "If you already have an account, please click **Complete Setup** to continue."
-            " If you don't have an account, click [Sign Up](https://sentry.io/signup/) and make an account before continuing"
+            "Please click **Complete Setup** to finish the setup process."
+            " Don't have a Sentry account? [Sign Up](https://sentry.io/signup/)."
         ),
         "wrap": True,
     }
@@ -106,7 +106,7 @@ def build_welcome_card(signed_params):
     }
 
 
-def build_installation_confirmation_message(integration, organization):
+def build_installation_confirmation_message(organization):
     logo = {
         "type": "Image",
         "url": absolute_uri(get_asset_url("sentry", "images/sentry-glyph-black.png")),
@@ -121,15 +121,10 @@ def build_installation_confirmation_message(integration, organization):
     }
     alert_rule_instructions = {
         "type": "TextBlock",
-        "text": (
-            "Now that installation is complete, you can proceed with creating alert rules."
-            " Click on the button below to continue."
-        ),
+        "text": "Now that setup is complete, you can continue by configuring alerts.",
         "wrap": True,
     }
-    alert_rule_url = absolute_uri(
-        "settings/{}/integrations/msteams/{}/".format(organization.slug, integration.id)
-    )
+    alert_rule_url = absolute_uri("organizations/{}/rules/".format(organization.slug))
     alert_rule_button = {
         "type": "Action.OpenUrl",
         "title": "Add Alert Rules",

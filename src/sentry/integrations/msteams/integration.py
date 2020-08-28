@@ -103,7 +103,7 @@ class MsTeamsIntegrationProvider(IntegrationProvider):
 
     def post_install(self, integration, organization, extra=None):
         client = MsTeamsClient(integration)
-        card = build_installation_confirmation_message(integration, organization)
+        card = build_installation_confirmation_message(organization)
         conversation_id = integration.external_id
         client.send_card(conversation_id, card)
 

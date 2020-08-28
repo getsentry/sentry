@@ -78,9 +78,7 @@ class MsTeamsIntegrationTest(IntegrationTestCase):
                 integration=integration, organization=self.organization
             )
 
-            integration_url = "settings/{}/integrations/msteams/{}/".format(
-                self.organization.slug, integration.id
-            )
+            integration_url = "organizations/{}/rules/".format(self.organization.slug)
             assert integration_url in responses.calls[1].request.body
             assert self.organization.name in responses.calls[1].request.body
 
