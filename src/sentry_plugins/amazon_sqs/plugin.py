@@ -139,6 +139,14 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
             "region_name": region,
         }
 
+        def log_and_increment(metrics_name):
+            logger.info(
+                metrics_name, extra=logging_params,
+            )
+            metrics.incr(
+                metrics_name, tags=metric_tags,
+            )
+
         def s3_put_object(*args, **kwargs):
             s3_client = boto3.client(service_name="s3", **boto3_args)
             return s3_client.put_object(*args, **kwargs)
@@ -165,6 +173,7 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
                 # we want something like 2020-08-29 so we can store it by the date
                 date = event.datetime.strftime("%Y-%m-%d")
                 key = "{}/{}/{}".format(event.project.slug, date, event.event_id)
+                logger.info("sentry_plugins.amazon_sqs.s3_put_object", extra=logging_params)
                 s3_put_object(Bucket=s3_bucket, Body=json.dumps(payload), Key=key)
 
                 url = u"https://{}.s3-{}.amazonaws.com/{}".format(s3_bucket, region, key)
@@ -185,23 +194,15 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
             ) or six.text_type(e).startswith("An error occurred (AccessDenied)"):
                 # If there's an issue with the user's token then we can't do
                 # anything to recover. Just log and continue.
-                metrics_name = "sentry_plugins.amazon_sqs.access_token_invalid"
-                logger.info(
-                    metrics_name, extra=logging_params,
-                )
-
-                metrics.incr(
-                    metrics_name, tags=metric_tags,
-                )
+                log_and_increment("sentry_plugins.amazon_sqs.access_token_invalid")
                 return False
             elif six.text_type(e).endswith("must contain the parameter MessageGroupId."):
-                metrics_name = "sentry_plugins.amazon_sqs.missing_message_group_id"
-                logger.info(
-                    metrics_name, extra=logging_params,
-                )
-                metrics.incr(
-                    metrics_name, tags=metric_tags,
-                )
+                log_and_increment("sentry_plugins.amazon_sqs.missing_message_group_id")
+                return False
+            elif six.text_type(e).startswith("An error occurred (NoSuchBucket)"):
+                # If there's an issue with the user's s3 bucket then we can't do
+                # anything to recover. Just log and continue.
+                log_and_increment("sentry_plugins.amazon_sqs.s3_bucket_invalid")
                 return False
             raise
         return True
