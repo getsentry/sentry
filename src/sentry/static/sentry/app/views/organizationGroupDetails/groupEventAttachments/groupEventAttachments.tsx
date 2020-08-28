@@ -4,6 +4,7 @@ import pick from 'lodash/pick';
 import * as ReactRouter from 'react-router';
 import styled from '@emotion/styled';
 
+import space from 'app/styles/space';
 import {PanelTable, PanelTableHeader} from 'app/components/panels';
 import {t} from 'app/locale';
 import Pagination from 'app/components/pagination';
@@ -107,10 +108,10 @@ class GroupEventAttachments extends AsyncComponent<Props, State> {
                     onPageIdsToggle(e.target.checked)
                   }
                 />,
-                t('Name'),
-                t('Type'),
-                t('Size'),
-                <BulkActionsWrapper key="bulk-actions">
+
+                selectedIds.length === 0 ? (
+                  t('Name')
+                ) : (
                   <Confirm
                     confirmText={t('Delete')}
                     message={t('Are you sure you wish to delete selected attachments?')}
@@ -118,21 +119,19 @@ class GroupEventAttachments extends AsyncComponent<Props, State> {
                     onConfirm={() =>
                       this.handleBatchDelete(selectedIds, isEverythingSelected)
                     }
-                    disabled={selectedIds.length === 0}
                   >
-                    <Button
+                    <BulkDeleteButton
                       size="xsmall"
                       icon={<IconDelete size="xs" />}
-                      title={
-                        selectedIds.length === 0
-                          ? t('You need to have at least one attachment selected')
-                          : t('Bulk delete attachments')
-                      }
+                      title={t('Bulk delete attachments')}
                     >
                       {t('Delete')}
-                    </Button>
+                    </BulkDeleteButton>
                   </Confirm>
-                </BulkActionsWrapper>,
+                ),
+                t('Type'),
+                t('Size'),
+                t('Actions'),
               ]}
               emptyMessage={this.getEmptyMessage()}
               isEmpty={eventAttachments.length === 0}
@@ -174,9 +173,8 @@ const StyledCheckbox = styled(Checkbox)`
   margin: 0 !important; /* override less files */
 `;
 
-const BulkActionsWrapper = styled('div')`
-  text-align: right;
-  flex: 1;
+const BulkDeleteButton = styled(Button)`
+  margin: -${space(1)} 0;
 `;
 
 export default ReactRouter.withRouter(GroupEventAttachments);
