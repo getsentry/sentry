@@ -167,6 +167,8 @@ def test_has_valid_aggregates(interval):
 def test_percentiles():
     values = [3, 6, 7, 8, 8, 9, 10, 13, 15, 16, 20]
 
+    get_percentile([], 0.25) == 0
+    get_percentile([], 1) == 0
     get_percentile(values, 0.25) == 7
     get_percentile(values, 0.50) == 9
     get_percentile(values, 0.75) == 15
@@ -187,6 +189,9 @@ def test_colorize():
         (4, "red"),
         (0, "green"),
     ]
+
+    legend, results = colorize(colors, [])
+    assert results == []
 
 
 def test_month_indexing():
