@@ -146,8 +146,25 @@ export function modifyTrendView(
     trendSort.kind = 'desc';
   }
 
+  trendView.interval = getQueryInterval(location, trendView);
+
   trendView.sorts = [trendSort];
   trendView.fields = fields;
+}
+
+function getQueryInterval(location: Location, eventView: TrendView) {
+  const intervalFromQueryParam = decodeScalar(location?.query?.interval);
+  const {start, end, statsPeriod} = eventView;
+
+  const datetimeSelection = {
+    start: start || null,
+    end: end || null,
+    period: statsPeriod,
+  };
+
+  const intervalFromSmoothing = chartIntervalFunction(datetimeSelection);
+
+  return intervalFromQueryParam || intervalFromSmoothing;
 }
 
 export function transformValueDelta(

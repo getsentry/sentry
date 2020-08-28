@@ -53,6 +53,7 @@ type State = {
 type TrendsQuery = {
   trendFunction?: string;
   intervalRatio?: number;
+  interval?: string;
 };
 
 class DiscoverQuery extends React.Component<Props, State> {
@@ -132,10 +133,7 @@ class DiscoverQuery extends React.Component<Props, State> {
       LocationQuery &
       TrendsQuery = eventView.getEventsAPIPayload(location);
 
-    if (trendChangeType) {
-      const trendFunction = getCurrentTrendFunction(location);
-      apiPayload.trendFunction = trendFunction.field;
-    }
+    this.modifyTrendsPayload(apiPayload);
 
     this.setState({isLoading: true, tableFetchID});
 
@@ -174,6 +172,15 @@ class DiscoverQuery extends React.Component<Props, State> {
           tableData: null,
         });
       });
+  };
+
+  modifyTrendsPayload = (apiPayload: EventQuery & LocationQuery & TrendsQuery) => {
+    const {trendChangeType, location, eventView} = this.props;
+    if (trendChangeType) {
+      const trendFunction = getCurrentTrendFunction(location);
+      apiPayload.trendFunction = trendFunction.field;
+      apiPayload.interval = eventView.interval;
+    }
   };
 
   render() {
