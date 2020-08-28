@@ -27,6 +27,7 @@ describe('EventWaiter', function() {
         api={new MockApiClient()}
         organization={org}
         project={project}
+        eventType="error"
         pollInterval={10}
       >
         {child}
@@ -101,6 +102,7 @@ describe('EventWaiter', function() {
         api={new MockApiClient()}
         organization={org}
         project={project}
+        eventType="error"
         pollInterval={10}
       >
         {child}
@@ -140,6 +142,7 @@ describe('EventWaiter', function() {
         api={new MockApiClient()}
         organization={org}
         project={project}
+        eventType="error"
         pollInterval={10}
         disabled
       >

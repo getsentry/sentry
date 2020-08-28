@@ -1261,6 +1261,19 @@ class CountColumn(FunctionArg):
         return alias.get("column_alias", value)
 
 
+class DateArg(FunctionArg):
+    date_format = "%Y-%m-%dT%H:%M:%S"
+
+    def normalize(self, value):
+        try:
+            datetime.strptime(value, self.date_format)
+        except ValueError:
+            raise InvalidFunctionArgument(
+                u"{} is in the wrong format, expected a date like 2020-03-14T15:14:15".format(value)
+            )
+        return value
+
+
 class NumericColumn(FunctionArg):
     def normalize(self, value):
         snuba_column = SEARCH_MAP.get(value)
@@ -1335,7 +1348,7 @@ FUNCTIONS = {
     "percentile": {
         "name": "percentile",
         "args": [DurationColumnNoLookup("column"), NumberRange("percentile", 0, 1)],
-        "aggregate": [u"quantile({percentile:g})", u"{column}", None],
+        "aggregate": [u"quantile({percentile:g})", ArgValue("column"), None],
         "result_type": "duration",
     },
     "p50": {
@@ -1473,6 +1486,78 @@ FUNCTIONS = {
         "transform": u"abs(minus({column}, {target:g}))",
         "result_type": "duration",
     },
+    # These range functions for performance trends, these aren't If functions
+    # to avoid allowing arbitrary if statements
+    # Not yet supported in Discover, and shouldn't be added to fields.tsx
+    "percentile_range": {
+        "name": "percentile_range",
+        "args": [
+            DurationColumn("column"),
+            NumberRange("percentile", 0, 1),
+            DateArg("start"),
+            DateArg("end"),
+            NumberRange("index", 1, None),
+        ],
+        "aggregate": [
+            u"quantileIf({percentile:.2f})({column},and(greaterOrEquals(timestamp,toDateTime('{start}')),less(timestamp,toDateTime('{end}'))))",
+            None,
+            "percentile_range_{index:g}",
+        ],
+        "result_type": "duration",
+    },
+    "avg_range": {
+        "name": "avg_range",
+        "args": [
+            DurationColumn("column"),
+            DateArg("start"),
+            DateArg("end"),
+            NumberRange("index", 1, None),
+        ],
+        "aggregate": [
+            u"avgIf({column},and(greaterOrEquals(timestamp,toDateTime('{start}')),less(timestamp,toDateTime('{end}'))))",
+            None,
+            "avg_range_{index:g}",
+        ],
+        "result_type": "duration",
+    },
+    "user_misery_range": {
+        "name": "user_misery_range",
+        "args": [
+            NumberRange("satisfaction", 0, None),
+            DateArg("start"),
+            DateArg("end"),
+            NumberRange("index", 1, None),
+        ],
+        "calculated_args": [{"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0}],
+        "aggregate": [
+            u"uniqIf(user,and(greater(duration,{tolerated:g}),and(greaterOrEquals(timestamp,toDateTime('{start}')),less(timestamp,toDateTime('{end}')))))",
+            None,
+            u"user_misery_range_{index:g}",
+        ],
+        "result_type": "number",
+    },
+    "count_range": {
+        "name": "count_range",
+        "args": [DateArg("start"), DateArg("end"), NumberRange("index", 1, None)],
+        "aggregate": [
+            u"countIf(and(greaterOrEquals(timestamp,toDateTime('{start}')),less(timestamp,toDateTime('{end}'))))",
+            None,
+            "count_range_{index:g}",
+        ],
+        "result_type": "integer",
+    },
+    "divide": {
+        "name": "divide",
+        "args": [FunctionArg("numerator"), FunctionArg("denominator")],
+        "aggregate": [u"divide", [ArgValue("numerator"), ArgValue("denominator")], None],
+        "result_type": "percentage",
+    },
+    "minus": {
+        "name": "minus",
+        "args": [FunctionArg("minuend"), FunctionArg("subtrahend")],
+        "aggregate": [u"minus", [ArgValue("minuend"), ArgValue("subtrahend")], None],
+        "result_type": "duration",
+    },
 }
 
 
@@ -1511,15 +1596,22 @@ def format_column_arguments(column, arguments):
             args[i] = arguments[args[i].arg]
 
 
-def resolve_function(field, match=None, params=None):
+def parse_function(field, match=None):
     if not match:
         match = FUNCTION_PATTERN.search(field)
 
     if not match or match.group("function") not in FUNCTIONS:
         raise InvalidSearchQuery(u"{} is not a valid function".format(field))
 
+    return (
+        match.group("function"),
+        [c.strip() for c in match.group("columns").split(",") if len(c.strip()) > 0],
+    )
+
+
+def resolve_function(field, match=None, params=None):
+    function, columns = parse_function(field, match)
     function = FUNCTIONS[match.group("function")]
-    columns = [c.strip() for c in match.group("columns").split(",") if len(c.strip()) > 0]
 
     # Some functions can optionally take no parameters (epm(), eps()). In that case use the
     # passed in params to create a default argument if necessary.
@@ -1570,8 +1662,10 @@ def resolve_function(field, match=None, params=None):
         aggregate = deepcopy(function["aggregate"])
 
         aggregate[0] = aggregate[0].format(**arguments)
-        if isinstance(aggregate[1], six.string_types):
-            aggregate[1] = aggregate[1].format(**arguments)
+        if isinstance(aggregate[1], (list, tuple)):
+            aggregate[1] = [
+                arguments[agg.arg] if isinstance(agg, ArgValue) else agg for agg in aggregate[1]
+            ]
         elif isinstance(aggregate[1], ArgValue):
             arg = aggregate[1].arg
             aggregate[1] = arguments[arg]
@@ -1579,6 +1673,8 @@ def resolve_function(field, match=None, params=None):
             aggregate[2] = get_function_alias_with_columns(
                 function["name"], columns if not used_default else []
             )
+        else:
+            aggregate[2] = aggregate[2].format(**arguments)
 
         return ([], [aggregate])
     elif "column" in function:

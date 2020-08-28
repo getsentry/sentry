@@ -12,6 +12,7 @@ import {
   getIntegrationFeatureGate,
   SingleIntegrationEvent,
 } from 'app/utils/integrationUtil';
+import {singleLineRenderer} from 'app/utils/marked';
 import Alert from 'app/components/alert';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
@@ -93,6 +94,14 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
     return this.state.organizations.find((org: Organization) => org.slug === orgSlug);
   };
 
+  onLoadAllEndpointsSuccess() {
+    //auto select the org if there is only one
+    const {organizations} = this.state;
+    if (organizations.length === 1) {
+      this.onSelectOrg({value: organizations[0].slug});
+    }
+  }
+
   onSelectOrg = async ({value: orgSlug}: {value: string}) => {
     this.setState({selectedOrgSlug: orgSlug, reloading: true, organization: undefined});
 
@@ -128,17 +137,40 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
   renderAddButton(onClick: React.ComponentProps<typeof Button>['onClick']) {
     const {organization, provider} = this.state;
     // should never happen but we need this check for TS
-    if (!provider) {
+    if (!provider || !organization) {
       return null;
     }
+    const {features} = provider.metadata;
+
+    // Prepare the features list
+    const featuresComponents = features.map(f => ({
+      featureGate: f.featureGate,
+      description: (
+        <FeatureListItem
+          dangerouslySetInnerHTML={{__html: singleLineRenderer(f.description)}}
+        />
+      ),
+    }));
+
+    const {IntegrationDirectoryFeatures} = getIntegrationFeatureGate();
+
     return (
-      <Button
-        priority="primary"
-        disabled={!organization || !this.hasAccess()}
-        onClick={onClick}
+      <IntegrationDirectoryFeatures
+        organization={organization}
+        features={featuresComponents}
       >
-        {t('Install %s', provider.name)}
-      </Button>
+        {({disabled}) => (
+          <ButtonWrapper>
+            <Button
+              priority="primary"
+              disabled={!this.hasAccess() || disabled}
+              onClick={onClick}
+            >
+              {t('Install %s', provider.name)}
+            </Button>
+          </ButtonWrapper>
+        )}
+      </IntegrationDirectoryFeatures>
     );
   }
 
@@ -284,4 +316,16 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
 const InstallLink = styled('pre')`
   margin-bottom: 0;
   background: #fbe3e1;
+`;
+
+const FeatureListItem = styled('span')`
+  line-height: 24px;
+`;
+
+const ButtonWrapper = styled('div')`
+  margin-left: auto;
+  align-self: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 `;
