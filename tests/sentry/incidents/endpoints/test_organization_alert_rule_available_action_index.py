@@ -20,13 +20,14 @@ SERVICES = [
 
 class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-alert-rule-available-actions"
+    email = AlertRuleTriggerAction.get_registered_type(AlertRuleTriggerAction.Type.EMAIL)
+    slack = AlertRuleTriggerAction.get_registered_type(AlertRuleTriggerAction.Type.SLACK)
+    sentry_app = AlertRuleTriggerAction.get_registered_type(AlertRuleTriggerAction.Type.SENTRY_APP)
+    pagerduty = AlertRuleTriggerAction.get_registered_type(AlertRuleTriggerAction.Type.PAGERDUTY)
 
     def setUp(self):
         super(OrganizationAlertRuleAvailableActionIndexEndpointTest, self).setUp()
         self.login_as(self.user)
-
-        self.email = AlertRuleTriggerAction.get_registered_type(AlertRuleTriggerAction.Type.EMAIL)
-        self.slack = AlertRuleTriggerAction.get_registered_type(AlertRuleTriggerAction.Type.SLACK)
 
     def test_build_action_response_email(self):
         data = build_action_response(self.email)
@@ -65,6 +66,19 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
         assert data["type"] == "pagerduty"
         assert data["allowedTargetTypes"] == ["specific"]
         assert data["options"] == [{"value": service.id, "label": service_name}]
+
+    def test_build_action_response_sentry_app(self):
+        sentry_app = self.create_sentry_app(
+            name="foo", organization=self.organization, is_alertable=True, verify_install=False
+        )
+        self.create_sentry_app_installation(
+            slug=sentry_app.slug, organization=self.organization, user=self.user
+        )
+        data = build_action_response(self.sentry_app, sentry_app=sentry_app)
+
+        assert data["type"] == "sentry_app"
+        assert data["allowedTargetTypes"] == ["sentry_app"]
+        assert data["status"] == SentryAppStatus.UNPUBLISHED_STR
 
     def test_no_integrations(self):
         with self.feature("organizations:incidents"):
@@ -128,7 +142,7 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
         assert resp.data == [
             build_action_response(
                 AlertRuleTriggerAction.get_registered_type(AlertRuleTriggerAction.Type.SENTRY_APP),
-                sentry_app=sentry_app
+                sentry_app=sentry_app,
             ),
             build_action_response(self.email),
         ]
