@@ -19,9 +19,6 @@ const getDate = date =>
  *
  * This also is very tightly coupled with the Global Selection Header. We can make it more
  * generic if need be in the future.
- *
- * TODO(billy): If this sees extended uses, this would be better as a child of LineChart so
- * you can enable it via a prop to `<LineChart>`
  */
 class ChartZoom extends React.Component {
   static propTypes = {
