@@ -76,11 +76,11 @@ class OrganizationEventsTrendsEndpoint(OrganizationEventsV2EndpointBase):
                 + [
                     trend_column["format"].format(*columns, start=start, end=middle, index="1"),
                     trend_column["format"].format(*columns, start=middle, end=end, index="2"),
-                    "divide({alias}2,{alias}1)".format(alias=trend_column["alias"]),
+                    "percentage({alias}2,{alias}1)".format(alias=trend_column["alias"]),
                     "minus({alias}2,{alias}1)".format(alias=trend_column["alias"]),
                     count_column["format"].format(start=start, end=middle, index="1"),
                     count_column["format"].format(start=middle, end=end, index="2"),
-                    "divide({alias}2,{alias}1)".format(alias=count_column["alias"]),
+                    "percentage({alias}2,{alias}1)".format(alias=count_column["alias"]),
                 ],
                 query=query,
                 params=params,
@@ -112,7 +112,7 @@ class OrganizationEventsTrendsEndpoint(OrganizationEventsV2EndpointBase):
         return Response(
             {
                 "events": self.handle_results_with_meta(
-                    request, organization, params["project_id"], events_results, omit_nan=True
+                    request, organization, params["project_id"], events_results
                 ),
                 "stats": stats_results,
             }
