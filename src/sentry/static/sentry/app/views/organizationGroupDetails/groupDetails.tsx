@@ -17,7 +17,6 @@ import Projects from 'app/utils/projects';
 import SentryTypes from 'app/sentryTypes';
 import recreateRoute from 'app/utils/recreateRoute';
 import withApi from 'app/utils/withApi';
-import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 
 import {ERROR_TYPES} from './constants';
 import {fetchGroupEventAndMarkSeen} from './utils';
@@ -127,100 +126,42 @@ class GroupDetails extends React.Component<Props, State> {
 
   getRouteInfo() {
     const {routes} = this.props;
-    const route = getRouteStringFromRoutes(routes);
 
-    switch (route) {
-      case '/organizations/:orgId/issues/:groupId/events/:eventId/feedback/':
-        return {
-          currentTab: TAB.USER_FEEDBACK,
-          isEventRoute: true,
-        };
-      case '/organizations/:orgId/issues/:groupId/feedback/':
-        return {
-          currentTab: TAB.USER_FEEDBACK,
-          isEventRoute: false,
-        };
-      case '/organizations/:orgId/issues/:groupId/events/:eventId/attachments/':
-        return {
-          currentTab: TAB.ATTACHMENTS,
-          isEventRoute: true,
-        };
-      case '/organizations/:orgId/issues/:groupId/attachments/':
-        return {
-          currentTab: TAB.ATTACHMENTS,
-          isEventRoute: false,
-        };
-      case '/organizations/:orgId/issues/:groupId/events/:eventId/similar/':
-        return {
-          currentTab: TAB.SIMILAR_ISSUES,
-          isEventRoute: true,
-        };
-      case '/organizations/:orgId/issues/:groupId/similar/':
-        return {
-          currentTab: TAB.SIMILAR_ISSUES,
-          isEventRoute: false,
-        };
-      case '/organizations/:orgId/issues/:groupId/events/:eventId/merged/':
-        return {
-          currentTab: TAB.MERGED,
-          isEventRoute: true,
-        };
-      case '/organizations/:orgId/issues/:groupId/merged/':
-        return {
-          currentTab: TAB.MERGED,
-          isEventRoute: false,
-        };
-      case '/organizations/:orgId/issues/:groupId/events/:eventId/tags/':
-        return {
-          currentTab: TAB.TAGS,
-          isEventRoute: true,
-        };
-      case '/organizations/:orgId/issues/:groupId/tags/':
-        return {
-          currentTab: TAB.TAGS,
-          isEventRoute: false,
-        };
-      case '/organizations/:orgId/issues/:groupId/events/:eventId/tags/:tagKey/':
-        return {
-          currentTab: TAB.TAGS,
-          isEventRoute: true,
-        };
-      case '/organizations/:orgId/issues/:groupId/tags/:tagKey/':
-        return {
-          currentTab: TAB.TAGS,
-          isEventRoute: false,
-        };
-      case '/organizations/:orgId/issues/:groupId/events/:eventId/activity/':
-        return {
-          currentTab: TAB.COMMENTS,
-          isEventRoute: true,
-        };
-      case '/organizations/:orgId/issues/:groupId/activity/':
-        return {
-          currentTab: TAB.COMMENTS,
-          isEventRoute: false,
-        };
-      case '/organizations/:orgId/issues/:groupId/events/:eventId/events/':
-        return {
-          currentTab: TAB.EVENTS,
-          isEventRoute: true,
-        };
-      case '/organizations/:orgId/issues/:groupId/events/':
-        return {
-          currentTab: TAB.EVENTS,
-          isEventRoute: false,
-        };
-      case '/organizations/:orgId/issues/:groupId/events/:eventId/':
-        return {
-          currentTab: TAB.DETAILS,
-          isEventRoute: true,
-        };
+    // all the routes under /organizations/:orgId/issues/:groupId have a defined props
+    const {currentTab: activeTab, isEventRoute} = routes[routes.length - 1].props;
+
+    let currentTab = TAB.DETAILS;
+
+    switch (activeTab) {
+      case 'feedback':
+        currentTab = TAB.USER_FEEDBACK;
+        break;
+      case 'attachments':
+        currentTab = TAB.ATTACHMENTS;
+        break;
+      case 'similar':
+        currentTab = TAB.SIMILAR_ISSUES;
+        break;
+      case 'events':
+        currentTab = TAB.EVENTS;
+        break;
+      case 'tags':
+        currentTab = TAB.TAGS;
+        break;
+      case 'merged':
+        currentTab = TAB.MERGED;
+        break;
+      case 'activity':
+        currentTab = TAB.COMMENTS;
+        break;
       default:
-        return {
-          currentTab: TAB.DETAILS,
-          isEventRoute: false,
-        };
+        currentTab = TAB.DETAILS;
     }
+
+    return {
+      currentTab,
+      isEventRoute,
+    };
   }
 
   async fetchData() {
