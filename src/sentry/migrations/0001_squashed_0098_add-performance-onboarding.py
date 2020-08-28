@@ -106,6 +106,7 @@ def backfill_eventstream(apps, schema_editor):
     If there are no recent events in Postgres, skip the backfill.
     """
     from sentry import eventstore, eventstream
+    from sentry import options
 
     Event = apps.get_model("sentry", "Event")
     Group = apps.get_model("sentry", "Group")
