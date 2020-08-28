@@ -31,6 +31,12 @@ class MsTeamsIntegrationTest(IntegrationTestCase):
     def assert_setup_flow(self):
         responses.reset()
 
+        responses.add(
+            responses.POST,
+            u"https://smba.trafficmanager.net/amer/v3/conversations/%s/activities" % team_id,
+            json={},
+        )
+
         with patch("time.time") as mock_time:
             mock_time.return_value = self.start_time
             # token mock
@@ -71,6 +77,10 @@ class MsTeamsIntegrationTest(IntegrationTestCase):
             assert OrganizationIntegration.objects.get(
                 integration=integration, organization=self.organization
             )
+
+            integration_url = "organizations/{}/rules/".format(self.organization.slug)
+            assert integration_url in responses.calls[1].request.body
+            assert self.organization.name in responses.calls[1].request.body
 
     @responses.activate
     def test_installation(self):

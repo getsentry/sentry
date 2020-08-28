@@ -215,7 +215,7 @@ class SlackIntegrationProvider(IntegrationProvider):
             return
 
     def post_install(self, integration, organization, extra=None):
-        # normal installtions don't have extra, quit immediately
+        # normal installations don't have extra, quit immediately
         if extra is None:
             return
 
