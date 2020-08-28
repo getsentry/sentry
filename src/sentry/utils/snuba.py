@@ -178,7 +178,7 @@ class QueryTooManySimultaneous(QueryExecutionError):
 
 class QuerySizeExceeded(QueryExecutionError):
     """
-    The generated query has excedeed the maximum length allowed by clickhouse
+    The generated query has exceeded the maximum length allowed by clickhouse
     """
 
 
