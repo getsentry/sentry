@@ -86,11 +86,11 @@ type Props = {
 } & RouteComponentProps<{orgId: string; projectId: string; ruleId?: string}, {}>;
 
 type State = AsyncView['state'] & {
-  rule: UnsavedIssueAlertRule | IssueAlertRule;
+  rule: UnsavedIssueAlertRule | IssueAlertRule | null;
   detailedError: null | {
     [key: string]: string[];
   };
-  environments: Environment[];
+  environments: Environment[] | null;
   configs: {
     actions: IssueAlertRuleActionTemplate[];
     filters: IssueAlertRuleConditionTemplate[];
@@ -99,10 +99,8 @@ type State = AsyncView['state'] & {
   uuid: null | string;
 };
 
-function isSavedAlertRule(
-  rule: UnsavedIssueAlertRule | IssueAlertRule
-): rule is IssueAlertRule {
-  return rule?.hasOwnProperty('id');
+function isSavedAlertRule(rule: State['rule']): rule is IssueAlertRule {
+  return rule?.hasOwnProperty('id') ?? false;
 }
 
 class IssueRuleEditor extends AsyncView<Props, State> {
@@ -538,7 +536,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                       </StepLead>
                       <RuleNodeList
                         nodes={this.state.configs?.conditions ?? null}
-                        items={conditions}
+                        items={conditions ?? []}
                         placeholder={t('Add a condition...')}
                         onPropertyChange={this.handleChangeConditionProperty}
                         onAddRow={this.handleAddCondition}
