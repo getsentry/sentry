@@ -1,5 +1,3 @@
-<<<<<<< HEAD:src/sentry/static/sentry/app/components/charts/components/markPoint.jsx
-=======
 import {EChartOption} from 'echarts';
 
 /**
