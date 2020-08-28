@@ -346,10 +346,18 @@ export const fields: Record<string, Field> = {
         }
       ),
     visible: ({features}) => features.has('event-attachments'),
-    placeholder: ({organization}) =>
-      tct('Inherit organization settings ([organizationValue])', {
-        organizationValue: formatStoreCrashReports(organization.storeCrashReports),
-      }),
+    placeholder: ({organization, value}) => {
+      // value null means that this project should inherit organization settings
+      if (value === null) {
+        return tct('Inherit organization settings ([organizationValue])', {
+          organizationValue: formatStoreCrashReports(organization.storeCrashReports),
+        });
+      }
+
+      // HACK: some organization can have limit of stored crash reports a number that's not in the options (legacy reasons),
+      // we therefore display in in a placeholder
+      return formatStoreCrashReports(value);
+    },
     choices: ({organization}) =>
       getStoreCrashReportsValues(SettingScope.Project).map(value => [
         value,
