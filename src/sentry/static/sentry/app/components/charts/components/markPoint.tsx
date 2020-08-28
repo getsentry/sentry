@@ -1,5 +1,3 @@
-import 'echarts/lib/component/markPoint';
-
 import {EChartOption} from 'echarts';
 
 /**

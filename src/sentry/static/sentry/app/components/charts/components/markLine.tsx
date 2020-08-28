@@ -1,5 +1,3 @@
-import 'echarts/lib/component/markLine';
-
 import {EChartOption} from 'echarts';
 
 /**

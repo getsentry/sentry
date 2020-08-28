@@ -1,4 +1,3 @@
-import 'echarts/lib/component/tooltip';
 import {EChartOption} from 'echarts';
 import moment from 'moment';
 
