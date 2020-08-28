@@ -93,6 +93,10 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
             },
         ]
 
+    def get_rate_limit(self):
+        # no rate limit for SQS
+        return (0, 0)
+
     @track_response_metric
     def forward_event(self, event, payload):
         queue_url = self.get_option("queue_url", event.project)
