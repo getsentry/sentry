@@ -113,3 +113,24 @@ class AmazonSQSPluginTest(PluginTestCase):
             MessageGroupId="my_group",
             MessageDeduplicationId="some-uuid",
         )
+
+    @patch("boto3.client")
+    def test_use_s3_bucket(self, mock_client):
+        self.plugin.set_option("s3_bucket", "my_bucket", self.project)
+        event = self.run_test()
+        date = event.datetime.strftime("%Y-%m-%d")
+        key = "{}/{}/{}".format(event.project.slug, date, event.event_id)
+
+        mock_client.return_value.send_message.assert_called_once_with(
+            QueueUrl="https://sqs-us-east-1.amazonaws.com/12345678/myqueue",
+            MessageBody=json.dumps(
+                {
+                    "s3Url": u"https://my_bucket.s3-us-east-1.amazonaws.com/{}".format(key),
+                    "eventID": event.event_id,
+                }
+            ),
+        )
+
+        mock_client.return_value.put_object.assert_called_once_with(
+            Bucket="my_bucket", Body=json.dumps(self.plugin.get_event_payload(event)), Key=key
+        )

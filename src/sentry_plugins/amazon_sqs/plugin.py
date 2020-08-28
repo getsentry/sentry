@@ -29,14 +29,6 @@ def get_regions():
     return public_region_list + cn_region_list
 
 
-def map_reduced_sqs_payload(payload, url):
-    params_to_pass = ["eventID", "projectID", "message", "id", "size"]
-    new_payload = {"s3Url": url}
-    for param in params_to_pass:
-        new_payload[param] = payload[param]
-    return new_payload
-
-
 def track_response_metric(fn):
     # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sqs.html#SQS.Queue.send_message
     # boto3's send_message doesn't return success/fail or http codes
@@ -110,7 +102,7 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
                 "placeholder": "s3-bucket",
                 "help": (
                     "Specify an S3 bucket to avoid events from being rejected because they are over the 256Kb limit for SQS."
-                    " The payload of the SQS item will contain a reference to the item in S3."
+                    ' The payload of the SQS item will contain a reference to the item in S3 ("s3Url" in the payload).'
                 ),
             },
         ]
@@ -169,13 +161,14 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
         try:
             # if we have an S3 bucket, upload to S3
             if s3_bucket:
+                # we want something like 2020-08-29 so we can store it by the date
                 date = event.datetime.strftime("%Y-%m-%d")
                 key = "{}/{}/{}".format(event.project.slug, date, event.event_id)
                 s3_put_object(Bucket=s3_bucket, Body=json.dumps(payload), Key=key)
 
                 url = u"https://{}.s3-{}.amazonaws.com/{}".format(s3_bucket, region, key)
-                # use a reduced payload for SQS now
-                payload = map_reduced_sqs_payload(payload, url)
+                # just include the s3Url and the event ID in the payload
+                payload = {"s3Url": url, "eventID": event.event_id}
 
             message = json.dumps(payload)
 
@@ -183,6 +176,7 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
                 logger.info("sentry_plugins.amazon_sqs.skip_oversized", extra=logging_params)
                 return False
 
+            logger.info("sentry_plugins.amazon_sqs.send_message", extra=logging_params)
             sqs_send_message(message)
         except ClientError as e:
             if six.text_type(e).startswith(
