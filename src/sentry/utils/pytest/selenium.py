@@ -331,7 +331,7 @@ class Browser(object):
                     )
                     if has_tooltips:
                         self.driver.find_element_by_tag_name("body").screenshot(
-                            u"{}/{}-tooltips.png".format(snapshot_dir, slugify(name))
+                            u"{}-tooltips/{}.png".format(snapshot_dir, slugify(name))
                         )
                         self.driver.execute_script(
                             "window.__closeAllTooltips && window.__closeAllTooltips()"
