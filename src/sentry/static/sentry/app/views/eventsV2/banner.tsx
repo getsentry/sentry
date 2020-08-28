@@ -46,7 +46,7 @@ const TOUR_STEPS: TourStep[] = [
     body: (
       <TourText>
         {t(
-          'Drill down on data by any custom tag or field to find noise and hone in on specific areas.'
+          'Drill down on data by any custom tag or field to reduce noise and hone in on specific areas.'
         )}
       </TourText>
     ),
