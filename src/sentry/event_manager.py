@@ -1117,8 +1117,16 @@ def discard_event(job, attachments):
             quantity=attachment_quantity,
         )
 
+    tags = {
+        "platform": job["platform"],
+    }
+
+    if settings.SENTRY_METRICS_SET_ORGANIZATION_AND_PROJECT_ID:
+        tags["organization_id"] = project.organization_id
+        tags["project_id"] = project.project_id
+
     metrics.incr(
-        "events.discarded", skip_internal=True, tags={"platform": job["platform"]},
+        "events.discarded", skip_internal=True, tags=tags,
     )
 
 

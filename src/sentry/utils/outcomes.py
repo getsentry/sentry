@@ -82,12 +82,16 @@ def track_outcome(
         ),
     )
 
+    tags = {
+        "outcome": outcome.name.lower(),
+        "reason": reason,
+        "category": category.api_name() if category is not None else "null",
+    }
+
+    if settings.SENTRY_METRICS_SET_ORGANIZATION_AND_PROJECT_ID:
+        tags["organization_id"] = org_id
+        tags["project_id"] = project_id
+
     metrics.incr(
-        "events.outcomes",
-        skip_internal=True,
-        tags={
-            "outcome": outcome.name.lower(),
-            "reason": reason,
-            "category": category.api_name() if category is not None else "null",
-        },
+        "events.outcomes", skip_internal=True, tags=tags,
     )
