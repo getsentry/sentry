@@ -36,6 +36,7 @@ import sentry.models.servicehook
 import sentry.models.user
 import sentry.models.useremail
 
+from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
 def fix_content_types(apps, schema_editor):
@@ -104,7 +105,6 @@ def backfill_eventstream(apps, schema_editor):
     If there are no recent events in Postgres, skip the backfill.
     """
     from sentry import eventstore, eventstream
-    from sentry.utils.query import RangeQuerySetWrapper
 
     Event = apps.get_model("sentry", "Event")
     Group = apps.get_model("sentry", "Group")
