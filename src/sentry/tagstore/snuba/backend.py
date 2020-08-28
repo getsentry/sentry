@@ -632,22 +632,26 @@ class SnubaTagStorage(TagStorage):
                 )
         return values
 
-    def get_groups_user_counts(self, project_ids, group_ids, environment_ids, start=None, end=None):
+    def get_groups_user_counts(
+        self, project_ids, group_ids, environment_ids, snuba_filters, start=None, end=None
+    ):
         filters = {"project_id": project_ids, "group_id": group_ids}
         if environment_ids:
             filters["environment"] = environment_ids
         aggregations = [["uniq", "tags[sentry:user]", "count"]]
 
-        result = snuba.query(
+        result = snuba.aliased_query(
+            dataset=snuba.Dataset.Events,
             start=start,
             end=end,
             groupby=["group_id"],
-            conditions=None,
+            conditions=snuba_filters,
             filter_keys=filters,
             aggregations=aggregations,
             referrer="tagstore.get_groups_user_counts",
         )
-        return defaultdict(int, {k: v for k, v in result.items() if v})
+
+        return defaultdict(int, {issue["group_id"]: issue["count"] for issue in result["data"]})
 
     def get_tag_value_paginator(
         self,
