@@ -128,7 +128,7 @@ export function modifyTrendView(
   trendsType: TrendChangeType
 ) {
   const trendFunction = getCurrentTrendFunction(location);
-  const fields = ['transaction'].map(field => ({
+  const fields = ['transaction', 'project', 'count()'].map(field => ({
     field,
   })) as Field[];
 
@@ -245,5 +245,7 @@ function getLimitTransactionItems(
   if (trendChangeType === TrendChangeType.REGRESSION) {
     limitQuery = aliasedDivide + ':>1';
   }
+  limitQuery +=
+    ' divide(count_range_2,count_range_1):>0.5 divide(count_range_2,count_range_1):<2';
   return limitQuery;
 }

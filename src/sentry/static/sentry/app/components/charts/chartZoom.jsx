@@ -5,7 +5,7 @@ import moment from 'moment';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 import {updateDateTime} from 'app/actionCreators/globalSelection';
-import DataZoom from 'app/components/charts/components/dataZoom';
+import DataZoomInside from 'app/components/charts/components/dataZoomInside';
 import SentryTypes from 'app/sentryTypes';
 import ToolBox from 'app/components/charts/components/toolBox';
 
@@ -224,7 +224,7 @@ class ChartZoom extends React.Component {
       isGroupedByDate: true,
       onChartReady: this.handleChartReady,
       utc,
-      dataZoom: DataZoom({xAxisIndex}),
+      dataZoom: DataZoomInside({xAxisIndex}),
       showTimeInTooltip: true,
       toolBox: ToolBox(
         {},

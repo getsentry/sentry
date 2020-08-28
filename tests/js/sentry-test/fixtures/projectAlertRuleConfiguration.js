@@ -181,6 +181,46 @@ export function ProjectAlertRuleConfiguration(params = {}) {
         label: 'Send a notification to PagerDuty account {account} and service {service}',
       },
     ],
+    filters: [
+      {
+        formFields: {
+          comparison_type: {
+            type: 'choice',
+            choices: [
+              ['older', 'older'],
+              ['newer', 'newer'],
+            ],
+          },
+          value: {
+            placeholder: 10,
+            type: 'number',
+          },
+          time: {
+            type: 'choice',
+            choices: [
+              ['minute', 'minute(s)'],
+              ['hour', 'hour(s)'],
+              ['day', 'day(s)'],
+              ['week', 'week(s)'],
+            ],
+          },
+        },
+        enabled: true,
+        id: 'sentry.rules.filters.age_comparison.AgeComparisonFilter',
+        label: 'An issue is {comparison_type} than {value} {time}',
+      },
+      {
+        formFields: {
+          value: {
+            placeholder: 10,
+            type: 'number',
+          },
+        },
+        enabled: true,
+        id: 'sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter',
+        label: 'An issue has happened at least {value} times',
+      },
+    ],
     ...params,
   };
 }
