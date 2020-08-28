@@ -276,6 +276,7 @@ describe('Performance > Trends', function() {
             trendFunction: trendFunction.field,
             sort: aliasedFieldDivide,
             query: expect.stringContaining(aliasedQueryDivide + ':<1'),
+            interval: '1h',
           }),
         })
       );
@@ -289,6 +290,7 @@ describe('Performance > Trends', function() {
             trendFunction: trendFunction.field,
             sort: '-' + aliasedFieldDivide,
             query: expect.stringContaining(aliasedQueryDivide + ':>1'),
+            interval: '1h',
           }),
         })
       );
