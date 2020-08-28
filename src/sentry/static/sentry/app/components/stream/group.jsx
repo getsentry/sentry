@@ -82,6 +82,10 @@ const StreamGroup = createReactClass({
     return this.state.showLifetimeStats !== nextState.showLifetimeStats;
   },
 
+  componentWillUnmount() {
+    clearTimeout(this.hoverWait);
+  },
+
   onGroupChange(itemIds) {
     if (!itemIds.has(this.props.id)) {
       return;
