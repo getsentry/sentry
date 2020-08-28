@@ -7,6 +7,7 @@ on:
 
 jobs:
     getsentry:
+      if: ${{ github.ref != 'refs/heads/master' }}
       runs-on: ubuntu-16.04
       steps:
         - name: getsentry token
@@ -121,24 +122,6 @@ jobs:
         VISUAL_SNAPSHOT_ENABLE: 1
 
       steps:
-        # Notify getsentry
-        - name: Start getsentry tests
-          if: ${{ github.ref != 'refs/heads/master' }}
-          uses: actions/github-script@v3
-          with:
-            github-token: ${{ secrets.GITHUB_TOKEN }}
-            script: |
-              github.actions.createWorkflowDispatch({
-                owner: 'getsentry',
-                repo: 'getsentry',
-                workflow_id: 'acceptance.yml',
-                ref: 'master',
-                inputs: {
-                  sha: '${{ github.event.pull_request.base.sha }}',
-                  pull_request: '${{ github.event.pull_request.id }}'
-                }
-              })
-
         - name: Install System Dependencies
           run: |
             sudo apt-get update
