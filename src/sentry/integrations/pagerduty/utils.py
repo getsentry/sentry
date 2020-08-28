@@ -33,7 +33,7 @@ def build_incident_attachment(incident, integration_key, metric_value=None):
         "payload": {
             "summary": incident.alert_rule.name,
             "severity": severity,
-            "source": six.binary_type(incident.identifier),
+            "source": six.text_type(incident.identifier),
             "custom_details": {"details": data["text"]},
         },
         "links": [{"href": data["title_link"], "text": data["title"]}],
