@@ -324,6 +324,9 @@ class Browser(object):
                 # This will make sure we resize viewport height to fit contents
                 with self.full_viewport():
                     self.driver.find_element_by_tag_name("body").screenshot(
+                        u"{}/{}.png".format(snapshot_dir, slugify(name))
+                    )
+                    self.driver.find_element_by_tag_name("body").screenshot(
                         u"{}-tooltips/{}.png".format(snapshot_dir, slugify(name))
                     )
 
