@@ -23,6 +23,7 @@ import withOrganization from 'app/utils/withOrganization';
 import withTeams from 'app/utils/withTeams';
 import IssueAlertOptions from 'app/views/projectInstall/issueAlertOptions';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
+import slugify from 'app/utils/slugify';
 import {IconAdd} from 'app/icons';
 
 class CreateProject extends React.Component {
@@ -75,7 +76,7 @@ class CreateProject extends React.Component {
               placeholder={t('Project name')}
               autoComplete="off"
               value={projectName}
-              onChange={e => this.setState({projectName: e.target.value})}
+              onChange={e => this.setState({projectName: slugify(e.target.value)})}
             />
           </ProjectNameInput>
         </div>
