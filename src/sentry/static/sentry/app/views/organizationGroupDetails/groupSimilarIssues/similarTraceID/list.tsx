@@ -19,11 +19,7 @@ import {Group} from 'app/types';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import LoadingError from 'app/components/loadingError';
 import DateTime from 'app/components/dateTime';
-
-export type Issue = {
-  id: string;
-  ['issue.id']: number;
-};
+import {TableDataRow} from 'app/utils/discover/discoverQuery';
 
 type CustomGroup = Group & {
   eventID: string;
@@ -38,7 +34,7 @@ type Period = {
 type Props = {
   api: Client;
   orgSlug: string;
-  issues: Array<Issue>;
+  issues: Array<TableDataRow>;
   period: Period;
   pageLinks: string | null;
   location: Location;
@@ -85,6 +81,7 @@ class List extends React.Component<Props, State> {
       );
 
       const convertedGroups = this.convertGroupsIntoEventFormat(groups);
+
       // this is necessary, because the AsigneeSelector component fetches the group from the GroupStore
       // @ts-ignore Property 'add' does not exist on type 'Store'
       GroupStore.add(convertedGroups);
@@ -101,6 +98,7 @@ class List extends React.Component<Props, State> {
   // providing a smooth navigation between issues with the same trace ID
   convertGroupsIntoEventFormat = (groups: Array<Group>) => {
     const {issues} = this.props;
+
     return groups
       .map(group => {
         // the issue must always be found

@@ -99,8 +99,4 @@ const Header = styled('div')`
   justify-content: flex-end;
   margin-top: ${space(3)};
   margin-bottom: ${space(1)};
-
-  h2 {
-    margin: 0;
-  }
 `;

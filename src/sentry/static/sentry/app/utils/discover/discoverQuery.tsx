@@ -16,6 +16,7 @@ import {getCurrentTrendFunction} from 'app/views/performance/trends/utils';
  * An individual row in a DiscoverQuery result
  */
 export type TableDataRow = {
+  id: string;
   [key: string]: React.ReactText;
 };
 

@@ -69,7 +69,10 @@ class GroupDetails extends React.Component<Props, State> {
       this.fetchData();
     }
 
-    if (!prevState?.group && this.state.group) {
+    if (
+      (!prevState?.group && this.state.group) ||
+      (prevProps.params?.eventId !== this.props.params?.eventId && this.state.group)
+    ) {
       this.getEvent(this.state.group);
     }
   }

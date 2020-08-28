@@ -12,7 +12,7 @@ import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import {Panel, PanelBody} from 'app/components/panels';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 
-import List, {Issue} from './list';
+import List from './list';
 
 type Props = {
   event: Event;
@@ -40,6 +40,7 @@ const Body = ({traceID, organization, event, location}: Props) => {
   const orgFeatures = organization.features;
   const dateCreated = moment(event.dateCreated).valueOf() / 1000;
   const {start, end} = getTraceDateTimeRange({start: dateCreated, end: dateCreated});
+
   const eventView = EventView.fromSavedQuery({
     id: undefined,
     name: `Issues with Trace ID ${traceID}`,
@@ -61,7 +62,7 @@ const Body = ({traceID, organization, event, location}: Props) => {
           return <LoadingIndicator />;
         }
 
-        const issues = (data?.tableData?.data || []) as Array<Issue>;
+        const issues = data?.tableData?.data || [];
 
         return (
           <List
