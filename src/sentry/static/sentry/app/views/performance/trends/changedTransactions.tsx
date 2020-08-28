@@ -277,7 +277,10 @@ function TrendsListItem(props: TrendsListItemProps) {
           }
         >
           <ItemTransactionPercent>
-            {formatPercentage(transaction.divide_aggregate_range_2_aggregate_range_1, 0)}
+            {formatPercentage(
+              transaction.percentage_aggregate_range_2_aggregate_range_1 - 1,
+              0
+            )}
           </ItemTransactionPercent>
         </Tooltip>
         <ItemTransactionPercentFaster color={color}>

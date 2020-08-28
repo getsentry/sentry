@@ -133,7 +133,7 @@ export function modifyTrendView(
   })) as Field[];
 
   const trendSort = {
-    field: `divide_${trendFunction.alias}_2_${trendFunction.alias}_1`,
+    field: `percentage_${trendFunction.alias}_2_${trendFunction.alias}_1`,
     kind: 'asc',
   } as Sort;
 
@@ -190,7 +190,7 @@ export function normalizeTrendsTransactions(data: TrendsTransaction[]) {
       project,
       count_range_1,
       count_range_2,
-      divide_count_range_2_count_range_1,
+      percentage_count_range_2_count_range_1,
     } = row;
 
     const aliasedFields = {} as NormalizedTrendsTransaction;
@@ -198,8 +198,8 @@ export function normalizeTrendsTransactions(data: TrendsTransaction[]) {
       if (typeof row[`${alias}_1`] !== 'undefined') {
         aliasedFields.aggregate_range_1 = row[`${alias}_1`];
         aliasedFields.aggregate_range_2 = row[`${alias}_2`];
-        aliasedFields.divide_aggregate_range_2_aggregate_range_1 =
-          row[getTrendAliasedFieldDivide(alias)];
+        aliasedFields.percentage_aggregate_range_2_aggregate_range_1 =
+          row[getTrendAliasedFieldPercentage(alias)];
         aliasedFields.minus_aggregate_range_2_aggregate_range_1 =
           row[getTrendAliasedMinus(alias)];
       }
@@ -212,17 +212,17 @@ export function normalizeTrendsTransactions(data: TrendsTransaction[]) {
 
       count_range_1,
       count_range_2,
-      divide_count_range_2_count_range_1,
+      percentage_count_range_2_count_range_1,
     } as NormalizedTrendsTransaction;
   });
 }
 
-export function getTrendAliasedFieldDivide(alias: string) {
-  return `divide_${alias}_2_${alias}_1`;
+export function getTrendAliasedFieldPercentage(alias: string) {
+  return `percentage_${alias}_2_${alias}_1`;
 }
 
-export function getTrendAliasedQueryDivide(alias: string) {
-  return `divide(${alias}_2,${alias}_1)`;
+export function getTrendAliasedQueryPercentage(alias: string) {
+  return `percentage(${alias}_2,${alias}_1)`;
 }
 
 function getTrendAliasedMinus(alias: string) {
@@ -240,10 +240,10 @@ function getLimitTransactionItems(
   trendFunction: TrendFunction,
   trendChangeType: TrendChangeType
 ) {
-  const aliasedDivide = getTrendAliasedQueryDivide(trendFunction.alias);
-  let limitQuery = aliasedDivide + ':<1';
+  const aliasedPercentage = getTrendAliasedQueryPercentage(trendFunction.alias);
+  let limitQuery = aliasedPercentage + ':<1';
   if (trendChangeType === TrendChangeType.REGRESSION) {
-    limitQuery = aliasedDivide + ':>1';
+    limitQuery = aliasedPercentage + ':>1';
   }
   limitQuery +=
     ' divide(count_range_2,count_range_1):>0.5 divide(count_range_2,count_range_1):<2';
