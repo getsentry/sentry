@@ -37,7 +37,7 @@ class RelayRegisterTest(APITestCase):
             self.path,
             data=raw_json,
             content_type="application/json",
-            HTTP_X_SENTRY_RELAY_ID=self.relay_id.encode("ascii"),
+            HTTP_X_SENTRY_RELAY_ID=self.relay_id,
             HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
         )
 
@@ -52,7 +52,7 @@ class RelayRegisterTest(APITestCase):
             self.path,
             data=raw_json,
             content_type="application/json",
-            HTTP_X_SENTRY_RELAY_ID=self.relay_id.encode("ascii"),
+            HTTP_X_SENTRY_RELAY_ID=self.relay_id,
             HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
         )
 
@@ -67,7 +67,7 @@ class RelayRegisterTest(APITestCase):
             self.path,
             data=raw_json,
             content_type="application/json",
-            HTTP_X_SENTRY_RELAY_ID=self.relay_id.encode("ascii"),
+            HTTP_X_SENTRY_RELAY_ID=self.relay_id,
             HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
         )
 
@@ -78,7 +78,7 @@ class RelayRegisterTest(APITestCase):
             self.path,
             data="a",
             content_type="application/json",
-            HTTP_X_SENTRY_RELAY_ID=self.relay_id.encode("ascii"),
+            HTTP_X_SENTRY_RELAY_ID=self.relay_id,
         )
 
         assert resp.status_code == 400, resp.content
@@ -92,7 +92,7 @@ class RelayRegisterTest(APITestCase):
             self.path,
             data=raw_json,
             content_type="application/json",
-            HTTP_X_SENTRY_RELAY_ID=self.relay_id.encode("ascii"),
+            HTTP_X_SENTRY_RELAY_ID=self.relay_id,
         )
 
         assert resp.status_code == 400, resp.content
@@ -120,7 +120,7 @@ class RelayRegisterTest(APITestCase):
             self.path,
             data=raw_json,
             content_type="application/json",
-            HTTP_X_SENTRY_RELAY_ID=self.relay_id.encode("ascii"),
+            HTTP_X_SENTRY_RELAY_ID=self.relay_id,
             HTTP_X_SENTRY_RELAY_SIGNATURE=signature + "a",
         )
 
@@ -135,7 +135,7 @@ class RelayRegisterTest(APITestCase):
             self.path,
             data=raw_json,
             content_type="application/json",
-            HTTP_X_SENTRY_RELAY_ID=self.relay_id.encode("ascii"),
+            HTTP_X_SENTRY_RELAY_ID=self.relay_id,
             HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
         )
 
@@ -148,7 +148,7 @@ class RelayRegisterTest(APITestCase):
             reverse("sentry-api-0-relay-register-response"),
             data=raw_json,
             content_type="application/json",
-            HTTP_X_SENTRY_RELAY_ID=self.relay_id.encode("ascii"),
+            HTTP_X_SENTRY_RELAY_ID=self.relay_id,
             HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
         )
 
@@ -166,7 +166,7 @@ class RelayRegisterTest(APITestCase):
             self.path,
             data=raw_json,
             content_type="application/json",
-            HTTP_X_SENTRY_RELAY_ID=self.relay_id.encode("ascii"),
+            HTTP_X_SENTRY_RELAY_ID=self.relay_id,
             HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
         )
 
@@ -179,7 +179,7 @@ class RelayRegisterTest(APITestCase):
             reverse("sentry-api-0-relay-register-response"),
             data=raw_json,
             content_type="application/json",
-            HTTP_X_SENTRY_RELAY_ID=self.relay_id.encode("ascii"),
+            HTTP_X_SENTRY_RELAY_ID=self.relay_id,
             HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
         )
 
@@ -195,7 +195,7 @@ class RelayRegisterTest(APITestCase):
             self.path,
             data=raw_json,
             content_type="application/json",
-            HTTP_X_SENTRY_RELAY_ID=self.relay_id.encode("ascii"),
+            HTTP_X_SENTRY_RELAY_ID=self.relay_id,
             HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
         )
 
@@ -210,7 +210,7 @@ class RelayRegisterTest(APITestCase):
             self.path,
             data=raw_json,
             content_type="application/json",
-            HTTP_X_SENTRY_RELAY_ID=self.relay_id.encode("ascii"),
+            HTTP_X_SENTRY_RELAY_ID=self.relay_id,
             HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
         )
 
@@ -223,7 +223,7 @@ class RelayRegisterTest(APITestCase):
             reverse("sentry-api-0-relay-register-response"),
             data=raw_json,
             content_type="application/json",
-            HTTP_X_SENTRY_RELAY_ID=self.relay_id.encode("ascii"),
+            HTTP_X_SENTRY_RELAY_ID=self.relay_id,
             HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
         )
 
@@ -237,7 +237,7 @@ class RelayRegisterTest(APITestCase):
             reverse("sentry-api-0-relay-register-response"),
             data=raw_json,
             content_type="application/json",
-            HTTP_X_SENTRY_RELAY_ID=self.relay_id.encode("ascii"),
+            HTTP_X_SENTRY_RELAY_ID=self.relay_id,
             HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
         )
 
@@ -252,7 +252,7 @@ class RelayRegisterTest(APITestCase):
             self.path,
             data=raw_json,
             content_type="application/json",
-            HTTP_X_SENTRY_RELAY_ID=self.relay_id.encode("ascii"),
+            HTTP_X_SENTRY_RELAY_ID=self.relay_id,
             HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
         )
 
@@ -262,7 +262,7 @@ class RelayRegisterTest(APITestCase):
             self.path,
             data=raw_json,
             content_type="application/json",
-            HTTP_X_SENTRY_RELAY_ID=self.relay_id.encode("ascii"),
+            HTTP_X_SENTRY_RELAY_ID=self.relay_id,
             HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
         )
 
@@ -278,7 +278,7 @@ class RelayRegisterTest(APITestCase):
             reverse("sentry-api-0-relay-register-response"),
             data=raw_json,
             content_type="application/json",
-            HTTP_X_SENTRY_RELAY_ID=self.relay_id.encode("ascii"),
+            HTTP_X_SENTRY_RELAY_ID=self.relay_id,
             HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
         )
 
@@ -293,7 +293,7 @@ class RelayRegisterTest(APITestCase):
             self.path,
             data=raw_json,
             content_type="application/json",
-            HTTP_X_SENTRY_RELAY_ID=self.relay_id.encode("ascii"),
+            HTTP_X_SENTRY_RELAY_ID=self.relay_id,
             HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
         )
 
@@ -306,7 +306,7 @@ class RelayRegisterTest(APITestCase):
             reverse("sentry-api-0-relay-register-response"),
             data="a",
             content_type="application/json",
-            HTTP_X_SENTRY_RELAY_ID=self.relay_id.encode("ascii"),
+            HTTP_X_SENTRY_RELAY_ID=self.relay_id,
             HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
         )
 
@@ -321,7 +321,7 @@ class RelayRegisterTest(APITestCase):
             self.path,
             data=raw_json,
             content_type="application/json",
-            HTTP_X_SENTRY_RELAY_ID=self.relay_id.encode("ascii"),
+            HTTP_X_SENTRY_RELAY_ID=self.relay_id,
             HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
         )
 
@@ -336,7 +336,7 @@ class RelayRegisterTest(APITestCase):
             reverse("sentry-api-0-relay-register-response"),
             data=raw_json,
             content_type="application/json",
-            HTTP_X_SENTRY_RELAY_ID=self.relay_id.encode("ascii"),
+            HTTP_X_SENTRY_RELAY_ID=self.relay_id,
             HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
         )
 
@@ -351,7 +351,7 @@ class RelayRegisterTest(APITestCase):
             self.path,
             data=raw_json,
             content_type="application/json",
-            HTTP_X_SENTRY_RELAY_ID=self.relay_id.encode("ascii"),
+            HTTP_X_SENTRY_RELAY_ID=self.relay_id,
             HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
         )
 
@@ -364,7 +364,7 @@ class RelayRegisterTest(APITestCase):
             reverse("sentry-api-0-relay-register-response"),
             data=raw_json,
             content_type="application/json",
-            HTTP_X_SENTRY_RELAY_ID=self.relay_id.encode("ascii"),
+            HTTP_X_SENTRY_RELAY_ID=self.relay_id,
         )
 
         assert resp.status_code == 400, resp.content
@@ -378,7 +378,7 @@ class RelayRegisterTest(APITestCase):
             self.path,
             data=raw_json,
             content_type="application/json",
-            HTTP_X_SENTRY_RELAY_ID=self.relay_id.encode("ascii"),
+            HTTP_X_SENTRY_RELAY_ID=self.relay_id,
             HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
         )
 
@@ -391,7 +391,7 @@ class RelayRegisterTest(APITestCase):
             reverse("sentry-api-0-relay-register-response"),
             data=raw_json,
             content_type="application/json",
-            HTTP_X_SENTRY_RELAY_ID=six.text_type(uuid4()).encode("ascii"),
+            HTTP_X_SENTRY_RELAY_ID=six.text_type(uuid4()),
             HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
         )
 
