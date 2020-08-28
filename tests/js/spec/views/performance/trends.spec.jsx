@@ -267,6 +267,8 @@ describe('Performance > Trends', function() {
       const aliasedFieldDivide = getTrendAliasedFieldPercentage(trendFunction.alias);
       const aliasedQueryDivide = getTrendAliasedQueryPercentage(trendFunction.alias);
 
+      const defaultFields = ['transaction', 'project', 'count()'];
+
       // Improved trends call
       expect(trendsMock).toHaveBeenNthCalledWith(
         1,
@@ -277,6 +279,7 @@ describe('Performance > Trends', function() {
             sort: aliasedFieldDivide,
             query: expect.stringContaining(aliasedQueryDivide + ':<1'),
             interval: '1h',
+            field: [trendFunction.field, ...defaultFields],
           }),
         })
       );
@@ -291,6 +294,7 @@ describe('Performance > Trends', function() {
             sort: '-' + aliasedFieldDivide,
             query: expect.stringContaining(aliasedQueryDivide + ':>1'),
             interval: '1h',
+            field: [trendFunction.field, ...defaultFields],
           }),
         })
       );
