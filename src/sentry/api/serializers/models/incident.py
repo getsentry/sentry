@@ -5,9 +5,10 @@ from collections import defaultdict
 import six
 
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.incidents.models import Incident, IncidentProject, IncidentSeen, IncidentSubscription
+from sentry.incidents.models import Incident, IncidentProject, IncidentSubscription
 from sentry.snuba.models import QueryDatasets
 from sentry.utils.db import attach_foreignkey
+from sentry.models import User
 
 
 @register(Incident)
@@ -68,20 +69,18 @@ class DetailedIncidentSerializer(IncidentSerializer):
 
     def _get_incident_seen_list(self, incident, user):
         incident_seen = list(
-            IncidentSeen.objects.filter(incident=incident)
-            .select_related("user")
-            .order_by("-last_seen")
+            User.objects.filter(incidentseen__incident=incident).order_by(
+                "-incidentseen__last_seen"
+            )
         )
 
-        seen_by_list = []
         has_seen = False
 
         for seen_by in incident_seen:
-            if seen_by.user == user:
+            if seen_by.id == user.id:
                 has_seen = True
-            seen_by_list.append(serialize(seen_by))
 
-        return {"seen_by": seen_by_list, "has_seen": has_seen}
+        return {"seen_by": serialize(incident_seen), "has_seen": has_seen}
 
     def serialize(self, obj, attrs, user):
         context = super(DetailedIncidentSerializer, self).serialize(obj, attrs, user)
