@@ -9,15 +9,15 @@ const popular = [
   'ruby-rails',
   'node-express',
   'php-laravel',
-  'php-symfony2',
   'java',
   'csharp',
-  'elixir',
+  'go',
   'php',
   'ruby',
   'node',
   'react-native',
   'javascript-angular',
+  'javascript-vue',
 ] as const;
 
 const frontend = [
