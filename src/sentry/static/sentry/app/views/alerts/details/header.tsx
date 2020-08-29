@@ -126,8 +126,8 @@ export default class DetailsHeader extends React.Component<Props> {
             <GroupedHeaderItems columns={isErrorDataset ? 5 : 3}>
               <ItemTitle>{t('Environment')}</ItemTitle>
               <ItemTitle>{t('Project')}</ItemTitle>
-              {isErrorDataset && stats && <ItemTitle>{t('Users affected')}</ItemTitle>}
-              {isErrorDataset && stats && <ItemTitle>{t('Total events')}</ItemTitle>}
+              {isErrorDataset && <ItemTitle>{t('Users affected')}</ItemTitle>}
+              {isErrorDataset && <ItemTitle>{t('Total events')}</ItemTitle>}
               <ItemTitle>{t('Active For')}</ItemTitle>
               <ItemValue>{environmentLabel}</ItemValue>
               <ItemValue>
@@ -141,23 +141,23 @@ export default class DetailsHeader extends React.Component<Props> {
                   </Projects>
                 )}
               </ItemValue>
-              {isErrorDataset && stats && (
+              {isErrorDataset && (
                 <ItemValue>
-                  <Count value={stats.uniqueUsers} />
+                  {stats ? <Count value={stats.uniqueUsers} /> : t('Loading')}
                 </ItemValue>
               )}
-              {isErrorDataset && stats && (
+              {isErrorDataset && (
                 <ItemValue>
-                  <Count value={stats.totalEvents} />
+                  {stats ? <Count value={stats.totalEvents} /> : t('Loading')}
                 </ItemValue>
               )}
-              {incident && (
-                <ItemValue>
+              <ItemValue>
+                {incident && (
                   <Duration
                     seconds={getDynamicText({value: duration || 0, fixed: 1200})}
                   />
-                </ItemValue>
-              )}
+                )}
+              </ItemValue>
             </GroupedHeaderItems>
           )}
         </Details>

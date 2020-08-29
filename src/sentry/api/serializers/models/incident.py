@@ -6,9 +6,9 @@ import six
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.incidents.models import Incident, IncidentProject, IncidentSubscription
+from sentry.models import User
 from sentry.snuba.models import QueryDatasets
 from sentry.utils.db import attach_foreignkey
-from sentry.models import User
 
 
 @register(Incident)
