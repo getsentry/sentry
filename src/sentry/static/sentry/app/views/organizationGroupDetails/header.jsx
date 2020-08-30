@@ -38,7 +38,7 @@ const TAB = {
 
 class GroupHeader extends React.Component {
   static propTypes = {
-    currentTab: TAB,
+    currentTab: PropTypes.string.isRequired,
     baseUrl: PropTypes.string.isRequired,
     group: SentryTypes.Group.isRequired,
     project: SentryTypes.Project,

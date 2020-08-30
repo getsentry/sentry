@@ -9,18 +9,30 @@ import GroupDetails from 'app/views/organizationGroupDetails';
 import ProjectsStore from 'app/stores/projectsStore';
 import GroupStore from 'app/stores/groupStore';
 
-jest.mock('app/views/organizationGroupDetails/header', () => ({
-  __esModule: true,
-  TAB: {DETAIL: 'detail'},
-  default: jest.fn(() => null),
-}));
-
 jest.unmock('app/utils/recreateRoute');
 
 describe('groupDetails', function() {
   let wrapper;
   const group = TestStubs.Group();
   const event = TestStubs.Event();
+
+  const routes = [
+    {path: '/', childRoutes: [], component: null},
+    {childRoutes: [], component: null},
+    {
+      path: '/organizations/:orgId/issues/:groupId/',
+      indexRoute: null,
+      childRoutes: [],
+      componentPromise: () => {},
+      component: null,
+    },
+    {
+      componentPromise: null,
+      component: null,
+      props: {currentTab: 'details', isEventRoute: false},
+    },
+  ];
+
   const {organization, project, router, routerContext} = initializeOrg({
     project: TestStubs.Project(),
     router: {
@@ -33,22 +45,7 @@ describe('groupDetails', function() {
       params: {
         groupId: group.id,
       },
-      routes: [
-        {path: '/', childRoutes: [], component: null},
-        {childRoutes: [], component: null},
-        {
-          path: '/organizations/:orgId/issues/:groupId/',
-          indexRoute: null,
-          childRoutes: [],
-          componentPromise: () => {},
-          component: null,
-        },
-        {
-          componentPromise: null,
-          component: null,
-          props: {currentTab: 'details', isEventRoute: false},
-        },
-      ],
+      routes,
     },
   });
   let MockComponent;
@@ -148,6 +145,7 @@ describe('groupDetails', function() {
       url: `/issues/${group.id}/`,
       statusCode: 404,
     });
+
     wrapper = createWrapper();
 
     await tick();
@@ -194,6 +192,7 @@ describe('groupDetails', function() {
         params: {
           groupId: group.id,
         },
+        routes,
       },
     });
 
