@@ -5,6 +5,7 @@ import Clipboard from 'app/components/clipboard';
 import {IconCopy} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {getShortEventId} from 'app/utils/events';
 
 type Props = {
   traceID?: string;
@@ -16,7 +17,7 @@ const Header = ({traceID}: Props) => (
     {traceID ? (
       <Clipboard value={traceID}>
         <ClipboardWrapper>
-          <span>{traceID.slice(0, 7)}</span>
+          <span>{getShortEventId(traceID)}</span>
           <IconCopy />
         </ClipboardWrapper>
       </Clipboard>

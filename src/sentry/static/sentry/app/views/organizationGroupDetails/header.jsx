@@ -25,7 +25,6 @@ import withApi from 'app/utils/withApi';
 
 import GroupActions from './actions';
 
-const TEST = 'okok';
 const TAB = {
   DETAILS: 'details',
   COMMENTS: 'comments',
@@ -265,6 +264,6 @@ const EventAnnotationWithSpace = styled(EventAnnotation)`
   margin-left: ${space(1)};
 `;
 
-export {GroupHeader, TAB, TEST};
+export {GroupHeader, TAB};
 
 export default withApi(GroupHeader);
