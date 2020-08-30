@@ -385,6 +385,7 @@ export function getFieldRenderer(
   field: string,
   meta: MetaType
 ): FieldFormatterRenderFunctionPartial {
+  console.log('field', field);
   if (SPECIAL_FIELDS.hasOwnProperty(field)) {
     return SPECIAL_FIELDS[field].renderFunc;
   }

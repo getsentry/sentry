@@ -20,7 +20,7 @@ import withApi from 'app/utils/withApi';
 
 import {ERROR_TYPES} from './constants';
 import {fetchGroupEventAndMarkSeen} from './utils';
-import GroupHeader, {TAB} from './header';
+import GroupHeader, {TAB, TEST} from './header';
 
 type Error = typeof ERROR_TYPES[keyof typeof ERROR_TYPES] | null;
 
@@ -129,6 +129,8 @@ class GroupDetails extends React.Component<Props, State> {
 
     // all the routes under /organizations/:orgId/issues/:groupId have a defined props
     const {currentTab: activeTab, isEventRoute} = routes[routes.length - 1].props;
+
+    console.log('TAB', TAB, 'test', TEST);
 
     let currentTab = TAB.DETAILS;
 

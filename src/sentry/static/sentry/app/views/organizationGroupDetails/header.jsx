@@ -25,22 +25,23 @@ import withApi from 'app/utils/withApi';
 
 import GroupActions from './actions';
 
+const TEST = 'okok';
 const TAB = {
-  DETAILS: 'default',
+  DETAILS: 'details',
   COMMENTS: 'comments',
-  USER_FEEDBACK: 'user_feedback',
+  USER_FEEDBACK: 'user-feedback',
   ATTACHMENTS: 'attachments',
   TAGS: 'tags',
   EVENTS: 'events',
   MERGED: 'merged',
-  SIMILAR_ISSUES: 'similar_issues',
+  SIMILAR_ISSUES: 'similar-issues',
 };
 
 class GroupHeader extends React.Component {
   static propTypes = {
+    currentTab: TAB,
     baseUrl: PropTypes.string.isRequired,
     group: SentryTypes.Group.isRequired,
-    currentTab: PropTypes.string.isRequired,
     project: SentryTypes.Project,
     api: PropTypes.object,
   };
@@ -264,6 +265,6 @@ const EventAnnotationWithSpace = styled(EventAnnotation)`
   margin-left: ${space(1)};
 `;
 
-export {GroupHeader, TAB};
+export {GroupHeader, TAB, TEST};
 
 export default withApi(GroupHeader);

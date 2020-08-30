@@ -9,7 +9,12 @@ import GroupDetails from 'app/views/organizationGroupDetails';
 import ProjectsStore from 'app/stores/projectsStore';
 import GroupStore from 'app/stores/groupStore';
 
-jest.mock('app/views/organizationGroupDetails/header', () => jest.fn(() => null));
+jest.mock('app/views/organizationGroupDetails/header', () => ({
+  __esModule: true,
+  TAB: {DETAIL: 'detail'},
+  default: jest.fn(() => null),
+}));
+
 jest.unmock('app/utils/recreateRoute');
 
 describe('groupDetails', function() {
@@ -38,7 +43,11 @@ describe('groupDetails', function() {
           componentPromise: () => {},
           component: null,
         },
-        {componentPromise: null, component: null},
+        {
+          componentPromise: null,
+          component: null,
+          props: {currentTab: 'details', isEventRoute: false},
+        },
       ],
     },
   });
