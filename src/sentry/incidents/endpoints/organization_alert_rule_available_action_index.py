@@ -89,7 +89,9 @@ class OrganizationAlertRuleAvailableActionIndexEndpoint(OrganizationEndpoint):
                 ):
                     actions += [
                         build_action_response(registered_type, sentry_app=app)
-                        for app in get_alertable_sentry_apps(organization.id)
+                        for app in get_alertable_sentry_apps(
+                            organization.id, with_metric_alerts=True
+                        )
                     ]
 
             else:
