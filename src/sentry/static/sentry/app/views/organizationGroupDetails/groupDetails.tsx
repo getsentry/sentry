@@ -124,46 +124,6 @@ class GroupDetails extends React.Component<Props, State> {
     }
   }
 
-  getRouteInfo() {
-    const {routes} = this.props;
-
-    // all the routes under /organizations/:orgId/issues/:groupId have a defined props
-    const {currentTab: activeTab, isEventRoute} = routes[routes.length - 1].props;
-
-    let currentTab = TAB.DETAILS;
-
-    switch (activeTab) {
-      case 'feedback':
-        currentTab = TAB.USER_FEEDBACK;
-        break;
-      case 'attachments':
-        currentTab = TAB.ATTACHMENTS;
-        break;
-      case 'similar':
-        currentTab = TAB.SIMILAR_ISSUES;
-        break;
-      case 'events':
-        currentTab = TAB.EVENTS;
-        break;
-      case 'tags':
-        currentTab = TAB.TAGS;
-        break;
-      case 'merged':
-        currentTab = TAB.MERGED;
-        break;
-      case 'activity':
-        currentTab = TAB.COMMENTS;
-        break;
-      default:
-        currentTab = TAB.DETAILS;
-    }
-
-    return {
-      currentTab,
-      isEventRoute,
-    };
-  }
-
   async fetchData() {
     const {environments, api, isGlobalSelectionReady} = this.props;
 
@@ -295,8 +255,13 @@ class GroupDetails extends React.Component<Props, State> {
   }
 
   renderContent(project: AvatarProject) {
-    const {children, environments, organization} = this.props;
-    const {currentTab, isEventRoute} = this.getRouteInfo();
+    const {children, environments, organization, routes} = this.props;
+
+    // all the routes under /organizations/:orgId/issues/:groupId have a defined props
+    const {currentTab, isEventRoute} = routes[routes.length - 1].props as {
+      currentTab: keyof typeof TAB;
+      isEventRoute: boolean;
+    };
 
     // At this point group and event have to be defined
     const group = this.state.group!;

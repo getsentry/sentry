@@ -22,6 +22,7 @@ import errorHandler from 'app/utils/errorHandler';
 import redirectDeprecatedProjectRoute from 'app/views/projects/redirectDeprecatedProjectRoute';
 import {decideReleasesVersion} from 'app/views/releasesV2/utils';
 import RedirectTo from 'app/utils/redirect';
+import {TAB} from 'app/views/organizationGroupDetails/header';
 
 function appendTrailingSlash(nextState, replace) {
   const lastChar = nextState.location.pathname.slice(-1);
@@ -1189,7 +1190,7 @@ function routes() {
               }
               component={errorHandler(LazyLoad)}
               props={{
-                currentTab: 'details',
+                currentTab: TAB.DETAILS,
                 isEventRoute: false,
               }}
             />
@@ -1202,7 +1203,7 @@ function routes() {
               }
               component={errorHandler(LazyLoad)}
               props={{
-                currentTab: 'activity',
+                currentTab: TAB.COMMENTS,
                 isEventRoute: false,
               }}
             />
@@ -1215,7 +1216,7 @@ function routes() {
               }
               component={errorHandler(LazyLoad)}
               props={{
-                currentTab: 'events',
+                currentTab: TAB.EVENTS,
                 isEventRoute: false,
               }}
             />
@@ -1228,7 +1229,7 @@ function routes() {
               }
               component={errorHandler(LazyLoad)}
               props={{
-                currentTab: 'tags',
+                currentTab: TAB.TAGS,
                 isEventRoute: false,
               }}
             />
@@ -1241,7 +1242,7 @@ function routes() {
               }
               component={errorHandler(LazyLoad)}
               props={{
-                currentTab: 'tags',
+                currentTab: TAB.TAGS,
                 isEventRoute: false,
               }}
             />
@@ -1254,7 +1255,7 @@ function routes() {
               }
               component={errorHandler(LazyLoad)}
               props={{
-                currentTab: 'feedback',
+                currentTab: TAB.USER_FEEDBACK,
                 isEventRoute: false,
               }}
             />
@@ -1267,7 +1268,7 @@ function routes() {
               }
               component={errorHandler(LazyLoad)}
               props={{
-                currentTab: 'attachments',
+                currentTab: TAB.ATTACHMENTS,
                 isEventRoute: false,
               }}
             />
@@ -1280,7 +1281,7 @@ function routes() {
               }
               component={errorHandler(LazyLoad)}
               props={{
-                currentTab: 'similar',
+                currentTab: TAB.SIMILAR_ISSUES,
                 isEventRoute: false,
               }}
             />
@@ -1293,7 +1294,7 @@ function routes() {
               }
               component={errorHandler(LazyLoad)}
               props={{
-                currentTab: 'merged',
+                currentTab: TAB.MERGED,
                 isEventRoute: false,
               }}
             />
@@ -1306,7 +1307,7 @@ function routes() {
                 }
                 component={errorHandler(LazyLoad)}
                 props={{
-                  currentTab: 'details',
+                  currentTab: TAB.DETAILS,
                   isEventRoute: true,
                 }}
               />
@@ -1319,7 +1320,7 @@ function routes() {
                 }
                 component={errorHandler(LazyLoad)}
                 props={{
-                  currentTab: 'activity',
+                  currentTab: TAB.COMMENTS,
                   isEventRoute: true,
                 }}
               />
@@ -1332,7 +1333,7 @@ function routes() {
                 }
                 component={errorHandler(LazyLoad)}
                 props={{
-                  currentTab: 'events',
+                  currentTab: TAB.EVENTS,
                   isEventRoute: true,
                 }}
               />
@@ -1345,7 +1346,7 @@ function routes() {
                 }
                 component={errorHandler(LazyLoad)}
                 props={{
-                  currentTab: 'similar',
+                  currentTab: TAB.SIMILAR_ISSUES,
                   isEventRoute: true,
                 }}
               />
@@ -1358,7 +1359,7 @@ function routes() {
                 }
                 component={errorHandler(LazyLoad)}
                 props={{
-                  currentTab: 'tags',
+                  currentTab: TAB.TAGS,
                   isEventRoute: true,
                 }}
               />
@@ -1371,7 +1372,7 @@ function routes() {
                 }
                 component={errorHandler(LazyLoad)}
                 props={{
-                  currentTab: 'tags',
+                  currentTab: TAB.TAGS,
                   isEventRoute: true,
                 }}
               />
@@ -1384,7 +1385,7 @@ function routes() {
                 }
                 component={errorHandler(LazyLoad)}
                 props={{
-                  currentTab: 'feedback',
+                  currentTab: TAB.USER_FEEDBACK,
                   isEventRoute: true,
                 }}
               />
@@ -1397,7 +1398,7 @@ function routes() {
                 }
                 component={errorHandler(LazyLoad)}
                 props={{
-                  currentTab: 'attachments',
+                  currentTab: TAB.ATTACHMENTS,
                   isEventRoute: true,
                 }}
               />
@@ -1410,7 +1411,7 @@ function routes() {
                 }
                 component={errorHandler(LazyLoad)}
                 props={{
-                  currentTab: 'merged',
+                  currentTab: TAB.MERGED,
                   isEventRoute: true,
                 }}
               />
