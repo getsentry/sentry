@@ -11,6 +11,7 @@ import Duration from 'app/components/duration';
 import LoadingError from 'app/components/loadingError';
 import MenuItem from 'app/components/menuItem';
 import PageHeading from 'app/components/pageHeading';
+import Placeholder from 'app/components/placeholder';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
 import Projects from 'app/utils/projects';
 import SubscribeButton from 'app/components/subscribeButton';
@@ -143,12 +144,20 @@ export default class DetailsHeader extends React.Component<Props> {
               </ItemValue>
               {isErrorDataset && (
                 <ItemValue>
-                  {stats ? <Count value={stats.uniqueUsers} /> : t('Loading')}
+                  {stats ? (
+                    <Count value={stats.uniqueUsers} />
+                  ) : (
+                    <Placeholder height="25px" />
+                  )}
                 </ItemValue>
               )}
               {isErrorDataset && (
                 <ItemValue>
-                  {stats ? <Count value={stats.totalEvents} /> : t('Loading')}
+                  {stats ? (
+                    <Count value={stats.totalEvents} />
+                  ) : (
+                    <Placeholder height="25px" />
+                  )}
                 </ItemValue>
               )}
               <ItemValue>
