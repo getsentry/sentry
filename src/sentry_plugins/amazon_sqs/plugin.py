@@ -101,9 +101,9 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
                 "required": False,
                 "placeholder": "s3-bucket",
                 "help": (
-                    "(Optional) Specify an S3 bucket to store events larger than the SQS limit 256KB."
-                    " The SQS message will contain a reference to the payload location in S3."
-                    " If no S3 bucket is provided, events over 256KB will not be forwarded."
+                    "Specify a bucket to store events in S3. The SQS message will contain a reference"
+                    " to the payload location in S3. If no S3 bucket is provided, events over the SQS"
+                    " limit of 256KB will not be forwarded."
                 ),
             },
         ]
