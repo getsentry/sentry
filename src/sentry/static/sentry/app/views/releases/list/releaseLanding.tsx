@@ -67,6 +67,7 @@ const TOUR_STEPS: TourStep[] = [
     ),
   },
 ];
+const setupDocs = 'https://docs.sentry.io/product/releases/';
 
 type ReleaseLandingProps = {
   organization: Organization;
@@ -111,6 +112,9 @@ class ReleaseLanding extends React.Component<ReleaseLandingProps> {
               </Button>
             )}
           </FeatureTourModal>
+          <Button priority="primary" href={setupDocs} external>
+            {t('Start Setup')}
+          </Button>
         </ButtonList>
       </OnboardingPanel>
     );
