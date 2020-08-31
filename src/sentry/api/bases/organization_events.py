@@ -123,6 +123,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 (
                     snuba.RateLimitExceeded,
                     snuba.QueryMemoryLimitExceeded,
+                    snuba.QueryExecutionTimeMaximum,
                     snuba.QueryTooManySimultaneous,
                 ),
             ):
@@ -130,9 +131,12 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             elif isinstance(
                 error,
                 (
-                    snuba.UnqualifiedQueryError,
+                    snuba.DatasetSelectionError,
+                    snuba.QueryConnectionFailed,
                     snuba.QueryExecutionError,
+                    snuba.QuerySizeExceeded,
                     snuba.SchemaValidationError,
+                    snuba.UnqualifiedQueryError,
                 ),
             ):
                 sentry_sdk.capture_exception(error)

@@ -176,10 +176,41 @@ class QueryTooManySimultaneous(QueryExecutionError):
     """
 
 
+class QuerySizeExceeded(QueryExecutionError):
+    """
+    The generated query has exceeded the maximum length allowed by clickhouse
+    """
+
+
+class QueryExecutionTimeMaximum(QueryExecutionError):
+    """
+    The query has or will take over 30 seconds to run, exceeding the limit
+    that has been set
+    """
+
+
+class DatasetSelectionError(QueryExecutionError):
+    """
+    This query has resulted in needing to check multiple datasets in a way
+    that is not currently handled, clickhouse errors with data being compressed
+    by different methods when this happens
+    """
+
+
+class QueryConnectionFailed(QueryExecutionError):
+    """
+    The connection to clickhouse has failed, and so the query cannot be run
+    """
+
+
 clickhouse_error_codes_map = {
     43: QueryIllegalTypeOfArgument,
-    241: QueryMemoryLimitExceeded,
+    62: QuerySizeExceeded,
+    160: QueryExecutionTimeMaximum,
     202: QueryTooManySimultaneous,
+    241: QueryMemoryLimitExceeded,
+    271: DatasetSelectionError,
+    279: QueryConnectionFailed,
 }
 
 
