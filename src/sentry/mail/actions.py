@@ -23,6 +23,7 @@ class MemberTeamForm(forms.Form):
     )
     teamValue = None
     memberValue = None
+    targetTypeEnum = None
 
     def __init__(self, project, *args, **kwargs):
         super(MemberTeamForm, self).__init__(*args, **kwargs)
@@ -43,7 +44,7 @@ class MemberTeamForm(forms.Form):
     def clean(self):
         cleaned_data = super(MemberTeamForm, self).clean()
         try:
-            targetType = ActionTargetType(cleaned_data.get("targetType"))
+            targetType = self.targetTypeEnum(cleaned_data.get("targetType"))
         except ValueError:
             msg = forms.ValidationError("Invalid targetType specified")
             self.add_error("targetType", msg)
@@ -55,7 +56,7 @@ class MemberTeamForm(forms.Form):
         if targetType != self.teamValue and targetType != self.memberValue:
             return
 
-        if targetIdentifier is None or targetIdentifier == "":
+        if not targetIdentifier:
             msg = forms.ValidationError("You need to specify a Team or Member.")
             self.add_error("targetIdentifier", msg)
             return
@@ -88,6 +89,7 @@ class NotifyEmailForm(MemberTeamForm):
 
     teamValue = ActionTargetType.TEAM
     memberValue = ActionTargetType.MEMBER
+    targetTypeEnum = ActionTargetType
 
 
 class NotifyEmailAction(EventAction):
