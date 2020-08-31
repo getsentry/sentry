@@ -330,7 +330,6 @@ class Browser(object):
                         "return window.__openAllTooltips && window.__openAllTooltips()"
                     )
                     if has_tooltips:
-                        time.sleep(1)
                         self.driver.find_element_by_tag_name("body").screenshot(
                             u"{}-tooltips/{}.png".format(snapshot_dir, slugify(name))
                         )
