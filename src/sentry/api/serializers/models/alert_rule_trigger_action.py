@@ -22,6 +22,8 @@ class AlertRuleTriggerActionSerializer(Serializer):
             return "Send a Slack notification to " + action.target_display
         elif action.type == action.Type.MSTEAMS.value:
             return "Send a Microsoft Teams notification to " + action.target_display
+        elif action.type == action.Type.SENTRY_APP.value:
+            return "Send a notification via " + action.target_display
 
     def get_identifier_from_action(self, action):
         target_identifier = (
