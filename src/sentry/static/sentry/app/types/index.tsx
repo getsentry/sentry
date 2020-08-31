@@ -217,6 +217,7 @@ export type EventMetadata = {
   filename?: string;
   origin?: string;
   function?: string;
+  stripped_crash?: boolean;
 };
 
 export type EventAttachment = {
@@ -296,6 +297,8 @@ type SentryEventBase = {
     id: string;
     enhancements: string;
   };
+
+  crashFile: EventAttachment | null;
 };
 
 export type SentryTransactionEvent = {

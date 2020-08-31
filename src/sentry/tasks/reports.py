@@ -764,6 +764,8 @@ def to_context(organization, interval, reports):
 def get_percentile(values, percentile):
     # XXX: ``values`` must be sorted.
     assert 1 >= percentile > 0
+    if len(values) == 0:
+        return 0
     if percentile == 1:
         index = -1
     else:

@@ -3,6 +3,8 @@ from __future__ import absolute_import
 import logging
 import six
 
+from django.http import Http404
+
 from sentry.incidents.models import IncidentStatus
 from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.models import PagerDutyService
@@ -45,6 +47,7 @@ def send_incident_alert_notification(action, incident, metric_value):
     try:
         service = PagerDutyService.objects.get(id=action.target_identifier)
     except PagerDutyService.DoesNotExist:
+        # service has been removed after rule creation
         logger.info(
             "fetch.fail.pagerduty_metric_alert",
             extra={
@@ -53,6 +56,7 @@ def send_incident_alert_notification(action, incident, metric_value):
                 "target_identifier": action.target_identifier,
             },
         )
+        raise Http404
     integration_key = service.integration_key
     client = PagerDutyClient(integration_key=integration_key)
     attachment = build_incident_attachment(incident, integration_key, metric_value)
