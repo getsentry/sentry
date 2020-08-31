@@ -68,7 +68,7 @@ class List extends React.Component {
     }
 
     return (
-      <div className="similar-list-container">
+      <Wrapper className="similar-list-container">
         <Header>
           <SimilarSpectrum />
         </Header>
@@ -87,12 +87,16 @@ class List extends React.Component {
           )}
         </div>
         <Pagination pageLinks={pageLinks} />
-      </div>
+      </Wrapper>
     );
   }
 }
 
 export default List;
+
+const Wrapper = styled('div')`
+  margin-bottom: ${space(2)};
+`;
 
 const Header = styled('div')`
   display: flex;
