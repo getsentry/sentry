@@ -35,6 +35,7 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
             .prefetch_related("projects")
             .extra(select={"lower_name": "lower(name)"})
         )
+
         query = request.query_params.get("query")
         if query:
             tokens = tokenize_query(query)

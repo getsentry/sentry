@@ -4,7 +4,7 @@ from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.models import Release, ReleaseCommit
+from sentry.models import Release, ReleaseCommit, Repository
 
 
 class ProjectReleaseCommitsEndpoint(ProjectEndpoint):
@@ -23,11 +23,17 @@ class ProjectReleaseCommitsEndpoint(ProjectEndpoint):
         :pparam string project_slug: the slug of the project to list the
                                      release files of.
         :pparam string version: the version identifier of the release.
+
+        :pparam string repo_id: the repository ID
+
         :auth: required
         """
+
+        organization_id = project.organization_id
+
         try:
             release = Release.objects.get(
-                organization_id=project.organization_id, projects=project, version=version
+                organization_id=organization_id, projects=project, version=version
             )
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
@@ -35,6 +41,15 @@ class ProjectReleaseCommitsEndpoint(ProjectEndpoint):
         queryset = ReleaseCommit.objects.filter(release=release).select_related(
             "commit", "commit__author"
         )
+
+        repo_name = request.query_params.get("repo_name")
+
+        if repo_name:
+            try:
+                repo = Repository.objects.get(organization_id=organization_id, name=repo_name)
+                queryset = queryset.filter(commit__repository=repo)
+            except Repository.DoesNotExist:
+                raise ResourceDoesNotExist
 
         return self.paginate(
             request=request,

@@ -226,7 +226,7 @@ export default class AsyncComponent<
     this.fetchData({reloading: true});
   }
 
-  fetchData = (extraState?: object) => {
+  fetchData = (extraState?: object, endpointIndex?: number) => {
     const endpoints = this.getEndpoints();
 
     if (!endpoints.length) {
@@ -244,7 +244,10 @@ export default class AsyncComponent<
       ...extraState,
     });
 
-    endpoints.forEach(([stateKey, endpoint, params, options]) => {
+    const fetchEndpoints =
+      endpointIndex !== undefined ? [endpoints[endpointIndex]] : endpoints;
+
+    fetchEndpoints.forEach(([stateKey, endpoint, params, options]) => {
       options = options || {};
       // If you're using nested async components/views make sure to pass the
       // props through so that the child component has access to props.location
