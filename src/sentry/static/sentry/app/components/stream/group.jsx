@@ -178,6 +178,7 @@ const StreamGroup = createReactClass({
     } = this.props;
 
     const hasDynamicIssueCounts = organization.features.includes('dynamic-issue-counts');
+    const hasDiscoverQuery = organization.features.includes('discover-query');
 
     const {period, start, end} = selection.datetime || {};
 
@@ -251,16 +252,23 @@ const StreamGroup = createReactClass({
                 <TooltipRow>
                   <TooltipCount>{data.count}</TooltipCount>
                   <TooltipText>{t(`Within ${summary}`)}</TooltipText>
-                  <StyledIconTelescope to={this.getDiscoverUrl()} color={theme.blue300} />
+                  {hasDiscoverQuery && (
+                    <StyledIconTelescope
+                      to={this.getDiscoverUrl()}
+                      color={theme.blue300}
+                    />
+                  )}
                 </TooltipRow>
                 {data.filtered && (
                   <TooltipRow>
                     <TooltipCount>{data.filtered.count}</TooltipCount>
                     <TooltipText>{t('With filters applied')}</TooltipText>
-                    <StyledIconTelescope
-                      to={this.getDiscoverUrl(true)}
-                      color={theme.blue300}
-                    />
+                    {hasDiscoverQuery && (
+                      <StyledIconTelescope
+                        to={this.getDiscoverUrl(true)}
+                        color={theme.blue300}
+                      />
+                    )}
                   </TooltipRow>
                 )}
               </TooltipContent>
@@ -288,16 +296,23 @@ const StreamGroup = createReactClass({
                 <TooltipRow>
                   <TooltipCount>{data.userCount}</TooltipCount>
                   <TooltipText>{t(`Within ${summary}`)}</TooltipText>
-                  <StyledIconTelescope to={this.getDiscoverUrl()} color={theme.blue300} />
+                  {hasDiscoverQuery && (
+                    <StyledIconTelescope
+                      to={this.getDiscoverUrl()}
+                      color={theme.blue300}
+                    />
+                  )}
                 </TooltipRow>
                 {data.filtered && (
                   <TooltipRow>
                     <TooltipCount>{data.filtered.userCount}</TooltipCount>
                     <TooltipText>{t('With filters applied')}</TooltipText>
-                    <StyledIconTelescope
-                      to={this.getDiscoverUrl(true)}
-                      color={theme.blue300}
-                    />
+                    {hasDiscoverQuery && (
+                      <StyledIconTelescope
+                        to={this.getDiscoverUrl(true)}
+                        color={theme.blue300}
+                      />
+                    )}
                   </TooltipRow>
                 )}
               </TooltipContent>
