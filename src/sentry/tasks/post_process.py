@@ -132,8 +132,8 @@ def post_process_group(event, is_new, is_regression, is_new_group_environment, *
                 extra={
                     "project_id": event.project_id,
                     "event_id": event.event_id,
-                    "reason": "reprocessed"
-                }
+                    "reason": "reprocessed",
+                },
             )
             return
 
