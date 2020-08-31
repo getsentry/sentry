@@ -1,5 +1,3 @@
-import 'echarts/lib/component/dataZoom';
-
 const DEFAULT = {
   type: 'inside',
   zoomOnMouseWheel: 'shift',

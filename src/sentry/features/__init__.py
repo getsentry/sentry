@@ -59,6 +59,8 @@ default_manager.add("organizations:api-keys", OrganizationFeature)  # NOQA
 default_manager.add("organizations:artifacts-in-settings", OrganizationFeature)  # NOQA
 default_manager.add("organizations:boolean-search", OrganizationFeature)  # NOQA
 default_manager.add("organizations:breadcrumbs-v2", OrganizationFeature)  # NOQA
+default_manager.add("organizations:related-events", OrganizationFeature)  # NOQA
+default_manager.add("organizations:alert-filters", OrganizationFeature)  # NOQA
 default_manager.add("organizations:custom-symbol-sources", OrganizationFeature)  # NOQA
 default_manager.add("organizations:data-forwarding", OrganizationFeature)  # NOQA
 default_manager.add("organizations:discover", OrganizationFeature)  # NOQA
@@ -97,6 +99,7 @@ default_manager.add("organizations:symbol-sources", OrganizationFeature)  # NOQA
 default_manager.add("organizations:usage-stats-graph", OrganizationFeature)  # NOQA
 # XXX(mark) Don't use this feature it is going away soon.
 default_manager.add("organizations:transaction-events", OrganizationFeature)  # NOQA
+default_manager.add("organizations:invite-members-rate-limits", OrganizationFeature)  # NOQA
 
 # NOTE: Don't add features down here! Add them to their specific group and sort
 #       them alphabetically! The order features are registered is not important.
@@ -112,6 +115,8 @@ default_manager.add("projects:sample-events", ProjectFeature)  # NOQA
 default_manager.add("projects:servicehooks", ProjectFeature)  # NOQA
 default_manager.add("projects:similarity-view", ProjectFeature)  # NOQA
 default_manager.add("projects:similarity-indexing", ProjectFeature)  # NOQA
+default_manager.add("projects:similarity-view-v2", ProjectFeature)  # NOQA
+default_manager.add("projects:similarity-indexing-v2", ProjectFeature)  # NOQA
 
 # Project plugin features
 default_manager.add("projects:plugins", ProjectPluginFeature)  # NOQA

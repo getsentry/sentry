@@ -1,0 +1,34 @@
+---
+created: '2020-08-21T21:07:52.819355Z'
+creator: sentry
+source: tests/sentry/grouping/similarity/test_features.py
+---
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","index.js"],["function","sentryWrapped"]],[["filename","react-dom.development.js"],["function","callCallback"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","react-dom.development.js"],["function","dispatchInteractiveEvent"]],[["filename","react-dom.development.js"],["function","interactiveUpdates"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","react-dom.development.js"],["function","interactiveUpdates"]],[["filename","react-dom.development.js"],["function","interactiveUpdates$1"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","react-dom.development.js"],["function","interactiveUpdates$1"]],[["filename","react-dom.development.js"],["function","performSyncWork"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","react-dom.development.js"],["function","invokeGuardedCallback"]],[["filename","react-dom.development.js"],["function","invokeGuardedCallbackDev"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","react-dom.development.js"],["function","invokeGuardedCallbackDev"]],[["filename","index.js"],["function","sentryWrapped"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","react-dom.development.js"],["function","performSyncWork"]],[["filename","react-dom.development.js"],["function","performWork"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","react-dom.development.js"],["function","performWork"]],[["filename","react-dom.development.js"],["function","performWorkOnRoot"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","react-dom.development.js"],["function","performWorkOnRoot"]],[["filename","react-dom.development.js"],["function","renderRoot"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","react-dom.development.js"],["function","renderRoot"]],[["filename","react-dom.development.js"],["function","replayUnitOfWork"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","react-dom.development.js"],["function","replayUnitOfWork"]],[["filename","react-dom.development.js"],["function","invokeGuardedCallback"]]]
+similarity:2020-07-23:type:ident-shingle: "ReferenceError"
+similarity:2020-07-23:value:character-5-shingle: " defi"
+similarity:2020-07-23:value:character-5-shingle: " is n"
+similarity:2020-07-23:value:character-5-shingle: " not "
+similarity:2020-07-23:value:character-5-shingle: "ant i"
+similarity:2020-07-23:value:character-5-shingle: "arant"
+similarity:2020-07-23:value:character-5-shingle: "defin"
+similarity:2020-07-23:value:character-5-shingle: "efine"
+similarity:2020-07-23:value:character-5-shingle: "fined"
+similarity:2020-07-23:value:character-5-shingle: "is no"
+similarity:2020-07-23:value:character-5-shingle: "not d"
+similarity:2020-07-23:value:character-5-shingle: "nt is"
+similarity:2020-07-23:value:character-5-shingle: "ot de"
+similarity:2020-07-23:value:character-5-shingle: "rant "
+similarity:2020-07-23:value:character-5-shingle: "s not"
+similarity:2020-07-23:value:character-5-shingle: "t def"
+similarity:2020-07-23:value:character-5-shingle: "t is "
+similarity:2020-07-23:value:character-5-shingle: "varan"

@@ -217,6 +217,7 @@ export type EventMetadata = {
   filename?: string;
   origin?: string;
   function?: string;
+  stripped_crash?: boolean;
 };
 
 export type EventAttachment = {
@@ -296,6 +297,8 @@ type SentryEventBase = {
     id: string;
     enhancements: string;
   };
+
+  crashFile: EventAttachment | null;
 };
 
 export type SentryTransactionEvent = {
@@ -392,10 +395,13 @@ export type CommitAuthor = {
   name?: string;
 };
 
-// TODO(ts): This type is incomplete
 export type Environment = {
-  name: string;
   id: string;
+  displayName: string;
+  name: string;
+
+  // XXX: Provided by the backend but unused due to `getUrlRoutingName()`
+  // urlRoutingName: string;
 };
 
 export type RecentSearch = {
@@ -624,7 +630,7 @@ export type Group = {
   logger: string;
   metadata: EventMetadata;
   numComments: number;
-  participants: any[]; // TODO(ts)
+  participants: User[];
   permalink: string;
   platform: PlatformKey;
   pluginActions: any[]; // TODO(ts)
@@ -637,6 +643,7 @@ export type Group = {
   stats: any; // TODO(ts)
   status: string;
   statusDetails: ResolutionStatusDetails;
+  tags: Pick<Tag, 'key' | 'name' | 'totalValues'>[];
   title: string;
   type: EventOrGroupType;
   userCount: number;
@@ -1027,7 +1034,7 @@ export type SentryAppComponent = {
   schema: SentryAppSchemaStacktraceLink;
   sentryApp: {
     uuid: string;
-    slug: 'clickup' | 'clubhouse' | 'rookout';
+    slug: 'clickup' | 'clubhouse' | 'rookout' | 'teamwork' | 'linear';
     name: string;
   };
 };
@@ -1110,6 +1117,7 @@ export enum OnboardingTaskKey {
   USER_REPORTS = 'setup_user_reports',
   ISSUE_TRACKER = 'setup_issue_tracker',
   ALERT_RULE = 'setup_alert_rules',
+  FIRST_TRANSACTION = 'setup_transactions',
 }
 
 export type OnboardingSupplementComponentProps = {
@@ -1191,6 +1199,20 @@ export type TagValue = {
   identifier?: string;
   ipAddress?: string;
 } & AvatarUser;
+
+export type TagWithTopValues = {
+  key: string;
+  name: string;
+  topValues: Array<{
+    count: number;
+    firstSeen: string;
+    key: string;
+    lastSeen: string;
+    name: string;
+    value: string;
+  }>;
+  totalValues: number;
+};
 
 export type Level = 'error' | 'fatal' | 'info' | 'warning' | 'sample';
 

@@ -15,7 +15,7 @@ from sentry.api.serializers import serialize, CombinedRuleSerializer
 from sentry.incidents.models import AlertRule
 from sentry.incidents.endpoints.serializers import AlertRuleSerializer
 from sentry.snuba.dataset import Dataset
-from sentry.models import Rule, RuleStatus, Project
+from sentry.models import Rule, RuleStatus, Project, OrganizationMemberTeam, Team
 
 
 class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
@@ -24,22 +24,31 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
         Fetches alert rules and legacy rules for an organization
         """
         project_ids = self.get_requested_project_ids(request) or None
+        if project_ids == set([-1]):  # All projects for org:
+            project_ids = Project.objects.filter(organization=organization).values_list(
+                "id", flat=True
+            )
+        elif project_ids is None:  # All projects for user
+            org_team_list = Team.objects.filter(organization=organization).values_list(
+                "id", flat=True
+            )
+            user_team_list = OrganizationMemberTeam.objects.filter(
+                organizationmember__user=request.user, team__in=org_team_list
+            ).values_list("team", flat=True)
+            project_ids = Project.objects.filter(teams__in=user_team_list).values_list(
+                "id", flat=True
+            )
 
         alert_rules = AlertRule.objects.fetch_for_organization(organization, project_ids)
         if not features.has("organizations:performance-view", organization):
             # Filter to only error alert rules
             alert_rules = alert_rules.filter(snuba_query__dataset=Dataset.Events.value)
 
-        if project_ids is None:
-            project_ids = Project.objects.filter(organization=organization).values_list(
-                "id", flat=True
-            )
-
         issue_rules = Rule.objects.filter(
             status__in=[RuleStatus.ACTIVE, RuleStatus.INACTIVE], project__in=project_ids
         )
 
-        is_asc = request.GET.get("asc", False)
+        is_asc = request.GET.get("asc", False) == "1"
         sort_key = request.GET.get("sort", "date_added")
         rule_sort_key = (
             sort_key if sort_key != "name" else "label"

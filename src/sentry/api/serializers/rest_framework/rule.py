@@ -49,9 +49,7 @@ class RuleNodeField(serializers.Field):
             if first_error != "This field is required.":
                 raise ValidationError(first_error)
 
-            raise ValidationError(
-                "Ensure at least one action is enabled and all required fields are filled in."
-            )
+            raise ValidationError("Ensure all required fields are filled in.")
 
         # Update data from cleaned form values
         data.update(form.cleaned_data)
@@ -67,8 +65,12 @@ class RuleSerializer(serializers.Serializer):
     actionMatch = serializers.ChoiceField(
         choices=(("all", "all"), ("any", "any"), ("none", "none"))
     )
+    filterMatch = serializers.ChoiceField(
+        choices=(("all", "all"), ("any", "any"), ("none", "none")), required=False
+    )
     actions = ListField(child=RuleNodeField(type="action/event"))
     conditions = ListField(child=RuleNodeField(type="condition/event"))
+    filters = ListField(child=RuleNodeField(type="filter/event"), required=False)
     frequency = serializers.IntegerField(min_value=5, max_value=60 * 24 * 30)
 
     def validate_environment(self, environment):
@@ -86,12 +88,12 @@ class RuleSerializer(serializers.Serializer):
 
     def validate_conditions(self, value):
         if not value:
-            raise serializers.ValidationError(u"Must select a condition")
+            raise serializers.ValidationError(u"Must select a condition.")
         return value
 
     def validate_actions(self, value):
         if not value:
-            raise serializers.ValidationError(u"Must select an action")
+            raise serializers.ValidationError(u"Must select an action.")
         return value
 
     def validate(self, attrs):
@@ -106,6 +108,17 @@ class RuleSerializer(serializers.Serializer):
                 attrs["pending_save"] = True
                 break
 
+        # ensure that if filters are passed in that a filterMatch is also supplied
+        filters = attrs.get("filters")
+        if filters:
+            filter_match = attrs.get("filterMatch")
+            if not filter_match:
+                raise serializers.ValidationError(
+                    {
+                        "filterMatch": u"Must select a filter match (all, any, none) if filters are supplied"
+                    }
+                )
+
         return attrs
 
     def save(self, rule):
@@ -117,6 +130,8 @@ class RuleSerializer(serializers.Serializer):
             rule.label = self.validated_data["name"]
         if self.validated_data.get("actionMatch"):
             rule.data["action_match"] = self.validated_data["actionMatch"]
+        if self.validated_data.get("filterMatch"):
+            rule.data["filter_match"] = self.validated_data["filterMatch"]
         if self.validated_data.get("actions") is not None:
             rule.data["actions"] = self.validated_data["actions"]
         if self.validated_data.get("conditions") is not None:

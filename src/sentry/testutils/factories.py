@@ -18,6 +18,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.db import transaction
 from django.utils import timezone
 from django.utils.text import slugify
+from django.utils.encoding import force_text
 
 from sentry.event_manager import EventManager
 from sentry.constants import SentryAppStatus, SentryAppInstallationStatus
@@ -320,7 +321,7 @@ class Factories(object):
         condition_data = condition_data or [
             {
                 "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
-                "name": "An issue is first seen",
+                "name": "The issue is first seen",
             },
             {
                 "id": "sentry.rules.conditions.every_event.EveryEventCondition",
@@ -352,7 +353,7 @@ class Factories(object):
     @staticmethod
     def create_release(project, user=None, version=None, date_added=None, additional_projects=None):
         if version is None:
-            version = hexlify(os.urandom(20))
+            version = force_text(hexlify(os.urandom(20)))
 
         if date_added is None:
             date_added = timezone.now()

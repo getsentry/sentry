@@ -1,8 +1,6 @@
-import 'zrender/lib/svg/svg';
-
 import React from 'react';
 import ReactEchartsCore from 'echarts-for-react/lib/core';
-import echarts, {EChartOption, ECharts} from 'echarts/lib/echarts';
+import {EChartOption, ECharts} from 'echarts/lib/echarts';
 import styled from '@emotion/styled';
 
 import {IS_CI} from 'app/constants';
@@ -10,6 +8,7 @@ import {Series} from 'app/types/echarts';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 
+import LoadingPanel from './loadingPanel';
 import Grid from './components/grid';
 import Legend from './components/legend';
 import LineSeries from './series/lineSeries';
@@ -173,7 +172,7 @@ type Props = {
    */
   onRestore?: EChartEventHandler<{type: 'restore'}>;
   onFinished?: EChartEventHandler<{}>;
-  onLegendSelectChanged: EChartEventHandler<{}>;
+  onLegendSelectChanged?: EChartEventHandler<{}>;
   /**
    * Forwarded Ref
    */
@@ -223,7 +222,11 @@ type Props = {
   style?: React.CSSProperties;
 };
 
-class BaseChart extends React.Component<Props> {
+type State = {
+  chartDeps: any;
+};
+
+class BaseChart extends React.Component<Props, State> {
   static defaultProps = {
     height: 200,
     width: 'auto',
@@ -238,6 +241,30 @@ class BaseChart extends React.Component<Props> {
     yAxis: {},
     isGroupedByDate: false,
   };
+
+  state: State = {
+    chartDeps: undefined,
+  };
+
+  componentDidMount() {
+    this.loadEcharts();
+    this._isMounted = true;
+  }
+
+  componentWillUnmount() {
+    this._isMounted = false;
+  }
+
+  async loadEcharts() {
+    const chartDeps = await import(
+      /* webpackChunkName: "echarts" */ 'app/components/charts/libs'
+    );
+    if (this._isMounted) {
+      this.setState({chartDeps});
+    }
+  }
+
+  private _isMounted: boolean = false;
 
   getEventsMap: ReactEchartProps['onEvents'] = {
     click: (props, instance) => {
@@ -314,6 +341,16 @@ class BaseChart extends React.Component<Props> {
       forwardedRef,
       onChartReady,
     } = this.props;
+    const {chartDeps} = this.state;
+
+    if (typeof chartDeps === 'undefined') {
+      return (
+        <LoadingPanel
+          height={height ? `${height}px` : undefined}
+          data-test-id="basechart-loading"
+        />
+      );
+    }
 
     const yAxisOrCustom = !yAxes
       ? yAxis !== null
@@ -351,9 +388,9 @@ class BaseChart extends React.Component<Props> {
 
     return (
       <ChartContainer>
-        <ReactEchartsCore
+        <chartDeps.ReactEchartsCore
           ref={forwardedRef}
-          echarts={echarts}
+          echarts={chartDeps.echarts}
           notMerge={notMerge}
           lazyUpdate={lazyUpdate}
           theme={this.props.theme}

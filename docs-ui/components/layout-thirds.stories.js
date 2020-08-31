@@ -137,7 +137,7 @@ export const SingleColumnMode = withInfo('Single column mode so we can hide the 
           </ButtonBar>
         </Layout.HeaderActions>
       </Layout.Header>
-      <Layout.Body fullWidth>
+      <Layout.Body>
         <Layout.Main fullWidth>
           <h1>Content Region</h1>
           <p>

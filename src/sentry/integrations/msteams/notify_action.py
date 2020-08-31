@@ -7,7 +7,8 @@ from sentry.rules.actions.base import EventAction
 from sentry.models import Integration
 from sentry.utils import metrics
 
-from .utils import get_channel_id, build_group_card
+from .card_builder import build_group_card
+from .utils import get_channel_id
 from .client import MsTeamsClient
 
 
@@ -83,7 +84,7 @@ class MsTeamsNotifyServiceAction(EventAction):
 
         def send_notification(event, futures):
             rules = [f.rule for f in futures]
-            card = build_group_card(event.group, event=event, rules=rules)
+            card = build_group_card(event.group, event, rules, integration)
 
             client = MsTeamsClient(integration)
             client.send_card(channel, card)

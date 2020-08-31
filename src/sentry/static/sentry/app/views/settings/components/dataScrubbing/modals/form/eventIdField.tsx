@@ -144,11 +144,11 @@ class EventIdField extends React.Component<Props, State> {
 }
 export default EventIdField;
 
-const StyledInput = styled(Input)<{showStatus: boolean}>`
+const StyledInput = styled(Input)`
   flex: 1;
   font-weight: 400;
   input {
-    padding-right: ${p => (p.showStatus ? space(4) : space(1.5))};
+    padding-right: ${space(1.5)};
   }
   margin-bottom: 0;
 `;

@@ -49,7 +49,7 @@ class ReleaseFileDetailsTest(APITestCase):
         from six import BytesIO
 
         f = File.objects.create(name="applicatiosn.js", type="release.file")
-        f.putfile(BytesIO("File contents here"))
+        f.putfile(BytesIO(b"File contents here"))
 
         releasefile = ReleaseFile.objects.create(
             organization_id=project.organization_id,
@@ -73,7 +73,7 @@ class ReleaseFileDetailsTest(APITestCase):
         assert response.get("Content-Disposition") == 'attachment; filename="appli catios n.js"'
         assert response.get("Content-Length") == six.text_type(f.size)
         assert response.get("Content-Type") == "application/octet-stream"
-        assert "File contents here" == BytesIO(b"".join(response.streaming_content)).getvalue()
+        assert b"File contents here" == BytesIO(b"".join(response.streaming_content)).getvalue()
 
         user_no_permission = self.create_user("baz@localhost", username="baz")
         self.login_as(user=user_no_permission)
