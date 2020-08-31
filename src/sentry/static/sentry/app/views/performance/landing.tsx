@@ -139,7 +139,7 @@ class PerformanceLanding extends React.Component<Props, State> {
       case FilterViews.KEY_TRANSACTIONS:
         return t('By Key Transaction');
       case FilterViews.TRENDS:
-        return t('Trends');
+        return t('By Trends');
       default:
         throw Error(`Unknown view: ${currentView}`);
     }
