@@ -551,6 +551,10 @@ class EventView {
     return this.fields.some(field => isAggregateField(field.field));
   }
 
+  hasIdField() {
+    return this.fields.some(field => field.field === 'id');
+  }
+
   numOfColumns(): number {
     return this.fields.length;
   }
