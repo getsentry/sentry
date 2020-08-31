@@ -5,6 +5,7 @@ from __future__ import unicode_literals
 import six
 import re
 import os
+from datetime import timedelta
 
 from bitfield.types import BitHandler
 import bitfield.models
