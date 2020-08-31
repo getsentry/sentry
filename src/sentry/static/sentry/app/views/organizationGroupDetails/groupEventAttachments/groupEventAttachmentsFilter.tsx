@@ -10,21 +10,22 @@ import {t} from 'app/locale';
 import ButtonBar from 'app/components/buttonBar';
 import Button from 'app/components/button';
 
+const crashReportTypes = ['event.minidump', 'event.applecrashreport'];
+
 const GroupEventAttachmentsFilter = (props: WithRouterProps) => {
   const {query, pathname} = props.location;
   const {types} = query;
-  const onlyCrashReportTypes = ['event.minidump', 'event.applecrashreport'];
   const allAttachmentsQuery = omit(query, 'types');
   const onlyCrashReportsQuery = {
     ...query,
-    types: onlyCrashReportTypes,
+    types: crashReportTypes,
   };
 
   let activeButton = '';
 
   if (types === undefined) {
     activeButton = 'all';
-  } else if (xor(onlyCrashReportTypes, types).length === 0) {
+  } else if (xor(crashReportTypes, types).length === 0) {
     activeButton = 'onlyCrash';
   }
 
@@ -52,4 +53,5 @@ const FilterWrapper = styled('div')`
   margin-bottom: ${space(3)};
 `;
 
+export {crashReportTypes};
 export default withRouter(GroupEventAttachmentsFilter);
