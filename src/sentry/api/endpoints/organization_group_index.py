@@ -196,17 +196,17 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
 
         results = list(cursor_result)
 
-        snuba_filters = []
-        if "search_filters" in query_kwargs and query_kwargs["search_filters"] is not None:
-            snuba_filters = [
-                convert_search_filter_to_snuba_query(search_filter)
-                for search_filter in query_kwargs["search_filters"]
-                if search_filter.key.name not in self.skip_snuba_fields
-            ]
-
         lifetime_stats = serialize(results, request.user, serializer())
 
         if features.has("organizations:dynamic-issue-counts", organization, actor=request.user):
+            snuba_filters = []
+            if "search_filters" in query_kwargs and query_kwargs["search_filters"] is not None:
+                snuba_filters = [
+                    convert_search_filter_to_snuba_query(search_filter)
+                    for search_filter in query_kwargs["search_filters"]
+                    if search_filter.key.name not in self.skip_snuba_fields
+                ]
+
             context = serialize(results, request.user, serializer(start=start, end=end))
             if snuba_filters:
                 filtered_stats = serialize(
