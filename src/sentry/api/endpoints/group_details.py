@@ -3,13 +3,14 @@ from __future__ import absolute_import
 from datetime import timedelta
 import functools
 import logging
+from uuid import uuid4
 
 from django.utils import timezone
 from rest_framework.response import Response
 
 import sentry_sdk
 
-from sentry import tsdb, tagstore
+from sentry import eventstream, tsdb, tagstore
 from sentry.api import client
 from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases import GroupEndpoint
@@ -20,6 +21,7 @@ from sentry.api.serializers.models.grouprelease import GroupReleaseWithStatsSeri
 from sentry.models import (
     Activity,
     Group,
+    GroupHash,
     GroupRelease,
     GroupSeen,
     GroupStatus,
@@ -31,6 +33,7 @@ from sentry.models import (
 )
 from sentry.plugins.base import plugins
 from sentry.plugins.bases import IssueTrackingPlugin2
+from sentry.signals import issue_deleted
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 from sentry.utils.apidocs import scenario, attach_scenarios
@@ -412,18 +415,52 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         :pparam string issue_id: the ID of the issue to delete.
         :auth: required
         """
-        from sentry.groupdeletion import delete_group
-
         try:
-            transaction_id = delete_group(group, request=request)
-            if transaction_id:
+            from sentry.tasks.deletion import delete_groups
+
+            updated = (
+                Group.objects.filter(id=group.id)
+                .exclude(
+                    status__in=[GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]
+                )
+                .update(status=GroupStatus.PENDING_DELETION)
+            )
+            if updated:
+                project = group.project
+
+                eventstream_state = eventstream.start_delete_groups(group.project_id, [group.id])
+                transaction_id = uuid4().hex
+
+                GroupHash.objects.filter(project_id=group.project_id, group__id=group.id).delete()
+
+                delete_groups.apply_async(
+                    kwargs={
+                        "object_ids": [group.id],
+                        "transaction_id": transaction_id,
+                        "eventstream_state": eventstream_state,
+                    },
+                    countdown=3600,
+                )
+
                 self.create_audit_entry(
                     request=request,
-                    organization_id=group.project.organization_id if group.project else None,
+                    organization_id=project.organization_id if project else None,
                     target_object=group.id,
                     transaction_id=transaction_id,
                 )
 
+                delete_logger.info(
+                    "object.delete.queued",
+                    extra={
+                        "object_id": group.id,
+                        "transaction_id": transaction_id,
+                        "model": type(group).__name__,
+                    },
+                )
+
+                issue_deleted.send_robust(
+                    group=group, user=request.user, delete_type="delete", sender=self.__class__
+                )
             metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 200})
             return Response(status=202)
         except Exception:
