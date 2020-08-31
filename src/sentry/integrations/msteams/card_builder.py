@@ -7,6 +7,7 @@ from sentry.models import (
     GroupAssignee,
     Team,
 )
+from sentry.utils.assets import get_asset_url
 from sentry.utils.compat import map
 from sentry.utils.http import absolute_uri
 
@@ -51,10 +52,9 @@ def get_assignee_string(group):
 
 def build_welcome_card(signed_params):
     url = u"%s?signed_params=%s" % (absolute_uri("/extensions/msteams/configure/"), signed_params,)
-    # TODO: Refactor message creation
     logo = {
         "type": "Image",
-        "url": "https://sentry-brand.storage.googleapis.com/sentry-glyph-black.png",
+        "url": absolute_uri(get_asset_url("sentry", "images/sentry-glyph-black.png")),
         "size": "Medium",
     }
     welcome = {
@@ -66,12 +66,15 @@ def build_welcome_card(signed_params):
     }
     description = {
         "type": "TextBlock",
-        "text": "You can use the Sentry app for Microsoft Teams to get notifications that allow you to assign, ignore, or resolve directly in your chat.",
+        "text": "You can use Sentry for Microsoft Teams to get notifications that allow you to assign, ignore, or resolve directly in your chat.",
         "wrap": True,
     }
     instruction = {
         "type": "TextBlock",
-        "text": "If that sounds good to you, finish the setup process.",
+        "text": (
+            "Please click **Complete Setup** to finish the setup process."
+            " Don't have a Sentry account? [Sign Up](https://sentry.io/signup/)."
+        ),
         "wrap": True,
     }
     button = {
@@ -98,6 +101,53 @@ def build_welcome_card(signed_params):
             instruction,
         ],
         "actions": [button],
+        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+        "version": "1.2",
+    }
+
+
+def build_installation_confirmation_message(organization):
+    logo = {
+        "type": "Image",
+        "url": absolute_uri(get_asset_url("sentry", "images/sentry-glyph-black.png")),
+        "size": "Medium",
+    }
+    welcome = {
+        "type": "TextBlock",
+        "weight": "Bolder",
+        "size": "Large",
+        "text": u"Installation for {} is successful".format(organization.name),
+        "wrap": True,
+    }
+    alert_rule_instructions = {
+        "type": "TextBlock",
+        "text": "Now that setup is complete, you can continue by configuring alerts.",
+        "wrap": True,
+    }
+    alert_rule_url = absolute_uri("organizations/{}/rules/".format(organization.slug))
+    alert_rule_button = {
+        "type": "Action.OpenUrl",
+        "title": "Add Alert Rules",
+        "url": alert_rule_url,
+    }
+    return {
+        "type": "AdaptiveCard",
+        "body": [
+            {
+                "type": "ColumnSet",
+                "columns": [
+                    {"type": "Column", "items": [logo], "width": "auto"},
+                    {
+                        "type": "Column",
+                        "items": [welcome],
+                        "width": "stretch",
+                        "verticalContentAlignment": "Center",
+                    },
+                ],
+            },
+            alert_rule_instructions,
+        ],
+        "actions": [alert_rule_button],
         "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
         "version": "1.2",
     }
@@ -144,7 +194,7 @@ def build_group_footer(group, rules, project, event):
         "items": [
             {
                 "type": "Image",
-                "url": "https://sentry-brand.storage.googleapis.com/sentry-glyph-black.png",
+                "url": absolute_uri(get_asset_url("sentry", "images/sentry-glyph-black.png")),
                 "height": "20px",
             }
         ],
@@ -482,7 +532,7 @@ def build_linking_card(url):
 def build_linked_card():
     image = {
         "type": "Image",
-        "url": "https://sentry-brand.storage.googleapis.com/sentry-glyph-black.png",
+        "url": absolute_uri(get_asset_url("sentry", "images/sentry-glyph-black.png")),
         "size": "Large",
     }
     desc = {

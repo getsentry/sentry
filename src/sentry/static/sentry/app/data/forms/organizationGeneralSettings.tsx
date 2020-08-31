@@ -15,10 +15,9 @@ const formGroups: JsonFormObject[] = [
         name: 'slug',
         type: 'string',
         required: true,
-        label: t('Name'),
+        label: t('Organization Slug'),
         help: t('A unique ID used to identify this organization'),
         transformInput: slugify,
-
         saveOnBlur: false,
         saveMessageAlertType: 'info',
         saveMessage: t(
@@ -29,9 +28,8 @@ const formGroups: JsonFormObject[] = [
         name: 'name',
         type: 'string',
         required: true,
-
         label: t('Display Name'),
-        help: t('This is the name that users will see for the organization'),
+        help: t('A human-friendly name for the organization'),
       },
       {
         name: 'isEarlyAdopter',

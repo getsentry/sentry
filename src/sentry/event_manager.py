@@ -422,11 +422,11 @@ class EventManager(object):
                 group=job["group"], environment=job["environment"]
             )
 
-        # XXX: DO NOT MUTATE THE EVENT PAYLOAD AFTER THIS POINT
-        _materialize_event_metrics(jobs)
-
         with metrics.timer("event_manager.filter_attachments_for_group"):
             attachments = filter_attachments_for_group(attachments, job)
+
+        # XXX: DO NOT MUTATE THE EVENT PAYLOAD AFTER THIS POINT
+        _materialize_event_metrics(jobs)
 
         for attachment in attachments:
             key = "bytes.stored.%s" % (attachment.type,)
@@ -1192,6 +1192,14 @@ def filter_attachments_for_group(attachments, job):
         # has already verified PII and just store the attachment.
         if attachment.type in CRASH_REPORT_TYPES:
             if crashreports_exceeded(stored_reports, max_crashreports):
+                # Indicate that the crash report has been removed due to a limit
+                # on the maximum number of crash reports. If this flag is True,
+                # it indicates that there are *other* events in the same group
+                # that store a crash report. This flag will therefore *not* be
+                # set if storage of crash reports is completely disabled.
+                if max_crashreports > 0:
+                    job["data"]["metadata"]["stripped_crash"] = True
+
                 track_outcome(
                     org_id=event.project.organization_id,
                     project_id=job["project_id"],
