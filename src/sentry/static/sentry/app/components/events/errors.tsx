@@ -14,7 +14,7 @@ import {
 } from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
 import EventErrorItem from 'app/components/events/errorItem';
-import {Event} from 'app/types';
+import {Event, Project} from 'app/types';
 import {IconWarning} from 'app/icons';
 import {t, tn} from 'app/locale';
 import space from 'app/styles/space';
@@ -28,7 +28,7 @@ type Props = {
   api: Client;
   event: Event;
   orgId: string;
-  projectId: string;
+  project: Project;
   issueId: string;
 };
 
@@ -41,7 +41,7 @@ class EventErrors extends React.Component<Props, State> {
     api: PropTypes.object.isRequired,
     event: PropTypes.object.isRequired,
     orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired,
+    project: PropTypes.object.isRequired,
     issueId: PropTypes.string.isRequired,
   };
 
@@ -63,8 +63,8 @@ class EventErrors extends React.Component<Props, State> {
   uniqueErrors = errors => uniqWith(errors, isEqual);
 
   onReprocessEvent = async () => {
-    const {orgId, projectId, event} = this.props;
-    const endpoint = `/projects/${orgId}/${projectId}/events/${event.id}/reprocessing/`;
+    const {orgId, project, event} = this.props;
+    const endpoint = `/projects/${orgId}/${project.slug}/events/${event.id}/reprocessing/`;
 
     addLoadingMessage(t('Reprocessing event\u2026'));
 
@@ -162,7 +162,8 @@ class EventErrors extends React.Component<Props, State> {
   );
 
   render() {
-    const {event} = this.props;
+    const {event, project} = this.props;
+    const features = new Set(project.features);
     // XXX: uniqueErrors is not performant with large datasets
     const errors =
       event.errors.length > MAX_ERRORS ? event.errors : this.uniqueErrors(event.errors);
@@ -191,9 +192,11 @@ class EventErrors extends React.Component<Props, State> {
             <EventErrorItem key={errorIdx} error={error} />
           ))}
 
-          <Button size="xsmall" onClick={this.onReprocessStart}>
-            {t('Try again')}
-          </Button>
+          {features.has('reprocessing-v2') && (
+            <Button size="xsmall" onClick={this.onReprocessStart}>
+              {t('Try again')}
+            </Button>
+          )}
         </ErrorList>
       </StyledBanner>
     );

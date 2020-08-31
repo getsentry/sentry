@@ -198,7 +198,7 @@ class EventEntries extends React.Component {
             <EventErrors
               event={event}
               orgId={organization.slug}
-              projectId={project.slug}
+              project={project}
               issueId={group.id}
             />
           </ErrorContainer>
