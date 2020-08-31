@@ -1,157 +1,128 @@
 import React from 'react';
+import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import {Project, Organization} from 'app/types';
 import {analytics} from 'app/utils/analytics';
-import Placeholder from 'app/components/placeholder';
+import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
+import OnboardingPanel from 'app/components/onboardingPanel';
 import withOrganization from 'app/utils/withOrganization';
 import withProject from 'app/utils/withProject';
+import FeatureTourModal, {
+  TourStep,
+  TourImage,
+  TourText,
+} from 'app/components/modals/featureTourModal';
 
-import ReleaseLandingCard from './releaseLandingCard';
+import emptyStateImg from '../../../../images/spot/releases-empty-state.svg';
+import commitImage from '../../../../images/spot/releases-tour-commits.svg';
+import statsImage from '../../../../images/spot/releases-tour-stats.svg';
+import resolutionImage from '../../../../images/spot/releases-tour-resolution.svg';
+import emailImage from '../../../../images/spot/releases-tour-email.svg';
 
-function Illustration({children}: {children: React.ReactNode}) {
-  return <React.Suspense fallback={<Placeholder />}>{children}</React.Suspense>;
-}
-
-const IllustrationContributors = React.lazy(() =>
-  import(
-    /* webpackChunkName: "IllustrationContributors" */ './illustrations/contributors'
-  )
-);
-const IllustrationSuggestedAssignees = React.lazy(() =>
-  import(
-    /* webpackChunkName: "IllustrationSuggestedAssignees" */ './illustrations/suggestedAssignees'
-  )
-);
-const IllustrationIssues = React.lazy(() =>
-  import(/* webpackChunkName: "IllustrationIssues" */ './illustrations/issues')
-);
-const IllustrationMinified = React.lazy(() =>
-  import(/* webpackChunkName: "IllustrationMinified" */ './illustrations/minified')
-);
-const IllustrationEmails = React.lazy(() =>
-  import(/* webpackChunkName: "IllustrationEmails" */ './illustrations/emails')
-);
-
-const cards = [
-  {
-    title: t("You Haven't Set Up Releases!"),
-    disclaimer: t('(you made no releases in 30 days)'),
-    message: t(
-      'Releases provide additional context, with rich commits, so you know which errors were addressed and which were introduced in a release'
-    ),
-    svg: (
-      <Illustration>
-        <IllustrationContributors />
-      </Illustration>
-    ),
-  },
+const TOUR_STEPS: TourStep[] = [
   {
     title: t('Suspect Commits'),
-    message: t(
-      'Sentry suggests which commit caused an issue and who is likely responsible so you can triage'
-    ),
-    svg: (
-      <Illustration>
-        <IllustrationSuggestedAssignees />
-      </Illustration>
+    image: <TourImage src={commitImage} />,
+    body: (
+      <TourText>
+        {t(
+          'Sentry suggests which commit caused an issue and who is likely responsible so you can triage.'
+        )}
+      </TourText>
     ),
   },
   {
     title: t('Release Stats'),
-    message: t(
-      'See the commits in each release, and which issues were introduced or fixed in the release'
-    ),
-    svg: (
-      <Illustration>
-        <IllustrationIssues />
-      </Illustration>
+    image: <TourImage src={statsImage} />,
+    body: (
+      <TourText>
+        {t(
+          'Get an overview of the commits in each release, and which issues were introduced or fixed.'
+        )}
+      </TourText>
     ),
   },
   {
-    title: t('Easy Resolution'),
-    message: t(
-      'Automatically resolve issues by including the issue number in your commit message'
-    ),
-    svg: (
-      <Illustration>
-        <IllustrationMinified />
-      </Illustration>
+    title: t('Easily Resolve'),
+    image: <TourImage src={resolutionImage} />,
+    body: (
+      <TourText>
+        {t(
+          'Automatically resolve issues by including the issue number in your commit message.'
+        )}
+      </TourText>
     ),
   },
   {
     title: t('Deploy Emails'),
-    message: t('Receive email notifications when your code gets deployed'),
-    svg: (
-      <Illustration>
-        <IllustrationEmails />
-      </Illustration>
+    image: <TourImage src={emailImage} />,
+    body: (
+      <TourText>
+        {t(
+          'Receive email notifications about when your code gets deployed. This can be customized in settings.'
+        )}
+      </TourText>
     ),
   },
 ];
+const setupDocs = 'https://docs.sentry.io/product/releases/';
 
 type ReleaseLandingProps = {
   organization: Organization;
   project: Project;
 };
 
-type State = {
-  stepId: number;
-};
+class ReleaseLanding extends React.Component<ReleaseLandingProps> {
+  componentDidMount() {
+    const {organization, project} = this.props;
 
-const ReleaseLanding = withOrganization(
-  withProject(
-    class ReleaseLanding extends React.Component<ReleaseLandingProps, State> {
-      state = {
-        stepId: 0,
-      };
+    analytics('releases.landing_card_viewed', {
+      org_id: parseInt(organization.id, 10),
+      project_id: project && parseInt(project.id, 10),
+    });
+  }
 
-      componentDidMount() {
-        const {organization, project} = this.props;
+  handleAdvance = (index: number) => {
+    const {organization, project} = this.props;
 
-        analytics('releases.landing_card_viewed', {
-          org_id: parseInt(organization.id, 10),
-          project_id: project && parseInt(project.id, 10),
-        });
-      }
+    analytics('releases.landing_card_clicked', {
+      org_id: parseInt(organization.id, 10),
+      project_id: project && parseInt(project.id, 10),
+      step_id: index,
+      step_title: TOUR_STEPS[index].title,
+    });
+  };
 
-      handleClick = () => {
-        const {stepId} = this.state;
-        const {organization, project} = this.props;
+  render() {
+    return (
+      <OnboardingPanel image={<img src={emptyStateImg} />}>
+        <h3>{t('Demystify Releases')}</h3>
+        <p>
+          {t(
+            'Did you know how many errors your latest release triggered? We do. And more, too.'
+          )}
+        </p>
+        <ButtonList gap={1}>
+          <FeatureTourModal steps={TOUR_STEPS} onAdvance={this.handleAdvance}>
+            {({showModal}) => (
+              <Button priority="default" onClick={showModal}>
+                {t('Take a Tour')}
+              </Button>
+            )}
+          </FeatureTourModal>
+          <Button priority="primary" href={setupDocs} external>
+            {t('Start Setup')}
+          </Button>
+        </ButtonList>
+      </OnboardingPanel>
+    );
+  }
+}
 
-        const title = cards[stepId].title;
-        if (stepId >= cards.length - 1) {
-          return;
-        }
-        this.setState(state => ({
-          stepId: state.stepId + 1,
-        }));
+const ButtonList = styled(ButtonBar)`
+  grid-template-columns: repeat(auto-fit, minmax(130px, max-content));
+`;
 
-        analytics('releases.landing_card_clicked', {
-          org_id: parseInt(organization.id, 10),
-          project_id: project && parseInt(project.id, 10),
-          step_id: stepId,
-          step_title: title,
-        });
-      };
-
-      getCard = stepId => cards[stepId];
-
-      render() {
-        const {stepId} = this.state;
-        const card = this.getCard(stepId);
-
-        return (
-          <ReleaseLandingCard
-            onClick={this.handleClick}
-            card={card}
-            step={stepId}
-            cardsLength={cards.length}
-          />
-        );
-      }
-    }
-  )
-);
-
-export default ReleaseLanding;
+export default withOrganization(withProject(ReleaseLanding));
