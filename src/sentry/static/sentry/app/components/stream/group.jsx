@@ -178,7 +178,7 @@ const StreamGroup = createReactClass({
     } = this.props;
 
     const hasDynamicIssueCounts = organization.features.includes('dynamic-issue-counts');
-    const hasDiscoverQuery = organization.features.includes('discover-query');
+    const hasDiscoverQuery = organization.features.includes('discover-basic');
 
     const {period, start, end} = selection.datetime || {};
 
