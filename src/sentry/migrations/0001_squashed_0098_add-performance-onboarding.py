@@ -11,6 +11,7 @@ from bitfield.types import BitHandler
 import bitfield.models
 from django.conf import settings
 from django.db import migrations, models
+from django.db.models import Q
 from django.utils import timezone
 import django.db.migrations.operations.special
 import django.db.models.deletion
