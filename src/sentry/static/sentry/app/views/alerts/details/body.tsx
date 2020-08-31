@@ -270,16 +270,20 @@ export default class DetailsBody extends React.Component<Props> {
             <Sidebar>
               <SidebarHeading>
                 <span>{t('Alert Rule')}</span>
-                {incident?.projects?.[0] &&
-                  incident?.alertRule?.status !== AlertRuleStatus.SNAPSHOT && (
-                    <SideHeaderLink
-                      to={{
-                        pathname: `/organizations/${params.orgId}/alerts/metric-rules/${incident?.projects[0]}/${incident?.alertRule?.id}/`,
-                      }}
-                    >
-                      {t('View Alert Rule')}
-                    </SideHeaderLink>
-                  )}
+                {incident?.alertRule?.status !== AlertRuleStatus.SNAPSHOT && (
+                  <SideHeaderLink
+                    disabled={!!incident?.id}
+                    to={
+                      incident?.id
+                        ? {
+                            pathname: `/organizations/${params.orgId}/alerts/metric-rules/${incident?.projects[0]}/${incident?.alertRule?.id}/`,
+                          }
+                        : ''
+                    }
+                  >
+                    {t('View Alert Rule')}
+                  </SideHeaderLink>
+                )}
               </SidebarHeading>
               {this.renderRuleDetails()}
             </Sidebar>
