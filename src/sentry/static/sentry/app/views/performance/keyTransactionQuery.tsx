@@ -22,8 +22,8 @@ type Props = {
 
 type State = {
   isLoading: boolean;
-  keyFetchID: symbol | undefined;
-  error: null | string;
+  keyFetchID: symbol | null;
+  error: string | null;
 
   isKeyTransaction: boolean;
 };
@@ -31,7 +31,7 @@ type State = {
 class KeyTransactionQuery extends React.Component<Props, State> {
   state: State = {
     isLoading: true,
-    keyFetchID: undefined,
+    keyFetchID: null,
     error: null,
 
     isKeyTransaction: false,
@@ -53,7 +53,7 @@ class KeyTransactionQuery extends React.Component<Props, State> {
   fetchData = () => {
     const {projectID, organization, transactionName} = this.props;
 
-    const projects = [projectID];
+    const projects = [String(projectID)];
 
     const url = `/organizations/${organization.slug}/is-key-transactions/`;
     const keyFetchID = Symbol('keyFetchID');
@@ -65,7 +65,7 @@ class KeyTransactionQuery extends React.Component<Props, State> {
         method: 'GET',
         includeAllArgs: true,
         query: {
-          project: projects.map(id => String(id)),
+          project: projects,
           transaction: transactionName,
         },
       })
@@ -77,7 +77,7 @@ class KeyTransactionQuery extends React.Component<Props, State> {
 
         this.setState({
           isLoading: false,
-          keyFetchID: undefined,
+          keyFetchID: null,
           error: null,
           isKeyTransaction: !!data?.isKey,
         });
@@ -85,7 +85,7 @@ class KeyTransactionQuery extends React.Component<Props, State> {
       .catch(err => {
         this.setState({
           isLoading: false,
-          keyFetchID: undefined,
+          keyFetchID: null,
           error: err.responseJSON.detail,
           isKeyTransaction: false,
         });
