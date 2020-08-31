@@ -53,7 +53,14 @@ type Props = {
    * Number of grid columns to stretch the selection summary (used in BulkNotice)
    */
   noticeColumns: number;
+  /**
+   * Children with render props
+   */
   children: (props: RenderProps) => React.ReactNode;
+  /**
+   * Maximum number of rows that can be bulk manipulated at once (used in BulkNotice)
+   */
+  maxIdsCount?: number;
 };
 
 class BulkController extends React.Component<Props, State> {
@@ -93,7 +100,7 @@ class BulkController extends React.Component<Props, State> {
   };
 
   render() {
-    const {pageIds, children, noticeColumns, allIdsCount} = this.props;
+    const {pageIds, children, noticeColumns, allIdsCount, maxIdsCount} = this.props;
     const {selectedIds, isEverythingSelected} = this.state;
 
     const isPageSelected =
@@ -115,6 +122,7 @@ class BulkController extends React.Component<Props, State> {
           columnsCount={noticeColumns}
           isPageSelected={isPageSelected}
           isEverythingSelected={isEverythingSelected}
+          bulkLimit={maxIdsCount}
         />
       ),
     };

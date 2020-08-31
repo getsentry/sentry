@@ -2,7 +2,10 @@ import React from 'react';
 
 import {shallow} from 'sentry-test/enzyme';
 
-import BulkNotice from 'app/components/bulkNotice';
+import BulkNotice, {
+  getEverythingSelectedText,
+  getSelectEverythingText,
+} from 'app/components/bulkNotice';
 
 const props = {
   allRowsCount: 64,
@@ -51,5 +54,39 @@ describe('BulkNotice', function() {
     );
     wrapper.find('a').simulate('click');
     expect(onCancelAllRows).toHaveBeenCalled();
+  });
+});
+
+describe('getEverythingSelectedText', () => {
+  it('no allRowsCount, no bulkLimit', () => {
+    expect(getEverythingSelectedText(undefined, undefined)).toBe(
+      'Selected all items across all pages.'
+    );
+    expect(shallow(<div>{getEverythingSelectedText(123, undefined)}</div>).text()).toBe(
+      'Selected all 123 items.'
+    );
+    expect(shallow(<div>{getEverythingSelectedText(123, 1000)}</div>).text()).toBe(
+      'Selected all 123 items.'
+    );
+    expect(shallow(<div>{getEverythingSelectedText(1001, 1000)}</div>).text()).toBe(
+      'Selected up to the first 1000 items.'
+    );
+  });
+});
+
+describe('getSelectEverythingText', () => {
+  it('no allRowsCount, no bulkLimit', () => {
+    expect(getSelectEverythingText(undefined, undefined)).toBe(
+      'Select all items across all pages.'
+    );
+    expect(shallow(<div>{getSelectEverythingText(123, undefined)}</div>).text()).toBe(
+      'Select all 123 items.'
+    );
+    expect(shallow(<div>{getSelectEverythingText(123, 1000)}</div>).text()).toBe(
+      'Select all 123 items.'
+    );
+    expect(shallow(<div>{getSelectEverythingText(1001, 1000)}</div>).text()).toBe(
+      'Select the first 1000 items.'
+    );
   });
 });

@@ -3,12 +3,39 @@ import styled from '@emotion/styled';
 
 import Alert from 'app/components/alert';
 import {tn, tct, t} from 'app/locale';
+import {defined} from 'app/utils';
+
+export function getEverythingSelectedText(allRowsCount?: number, bulkLimit?: number) {
+  if (!defined(allRowsCount)) {
+    return t('Selected all items across all pages.');
+  }
+  if (bulkLimit && allRowsCount > bulkLimit) {
+    return tct('Selected up to the first [count] items.', {
+      count: bulkLimit,
+    });
+  }
+
+  return tct('Selected all [count] items.', {
+    count: allRowsCount,
+  });
+}
+
+export function getSelectEverythingText(allRowsCount?: number, bulkLimit?: number) {
+  if (!defined(allRowsCount)) {
+    return t('Select all items across all pages.');
+  }
+  if (bulkLimit && allRowsCount > bulkLimit) {
+    return tct('Select the first [count] items.', {
+      count: bulkLimit,
+    });
+  }
+
+  return tct('Select all [count] items.', {
+    count: allRowsCount,
+  });
+}
 
 type Props = {
-  /**
-   * Number of all rows across all pages
-   */
-  allRowsCount: number;
   /**
    * Number of selected rows
    */
@@ -37,6 +64,10 @@ type Props = {
    * Number of max items we can perform bulk operations on, defaults to 1000
    */
   bulkLimit?: number;
+  /**
+   * Number of all rows across all pages
+   */
+  allRowsCount?: number;
   className?: string;
 };
 
@@ -48,10 +79,10 @@ function BulkNotice({
   onSelectAllRows,
   onCancelAllRows,
   columnsCount,
-  bulkLimit = 1000,
+  bulkLimit,
   className,
 }: Props) {
-  if (allRowsCount <= selectedRowsCount || !isPageSelected) {
+  if ((allRowsCount && allRowsCount <= selectedRowsCount) || !isPageSelected) {
     return null;
   }
 
@@ -59,13 +90,7 @@ function BulkNotice({
     <Wrapper columnsCount={columnsCount} className={className}>
       {isEverythingSelected ? (
         <React.Fragment>
-          {allRowsCount >= bulkLimit
-            ? tct('Selected up to the first [count] items.', {
-                count: bulkLimit,
-              })
-            : tct('Selected all [count] items.', {
-                count: allRowsCount,
-              })}{' '}
+          {getEverythingSelectedText(allRowsCount, bulkLimit)}{' '}
           <a onClick={onCancelAllRows}>{t('Cancel selection.')}</a>
         </React.Fragment>
       ) : (
@@ -76,13 +101,7 @@ function BulkNotice({
             selectedRowsCount
           )}{' '}
           <a onClick={onSelectAllRows}>
-            {allRowsCount >= bulkLimit
-              ? tct('Select the first [count] items.', {
-                  count: bulkLimit,
-                })
-              : tct('Select all [count] items.', {
-                  count: allRowsCount,
-                })}
+            {getSelectEverythingText(allRowsCount, bulkLimit)}
           </a>
         </React.Fragment>
       )}

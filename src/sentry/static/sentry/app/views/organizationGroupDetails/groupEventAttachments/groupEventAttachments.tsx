@@ -89,6 +89,8 @@ class GroupEventAttachments extends AsyncComponent<Props, State> {
           pageIds={eventAttachments.map(a => a.id)}
           // TODO(matej): receive from API, X-Hits
           allIdsCount={64}
+          // TODO(matej): receive from API, X-Max-Hits
+          maxIdsCount={60}
           noticeColumns={5}
         >
           {({
