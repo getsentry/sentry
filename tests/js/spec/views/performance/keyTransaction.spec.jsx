@@ -77,7 +77,7 @@ describe('KeyTransaction', function() {
     it('should render mark as key transaction', async function() {
       const wrapper = mountWithTheme(
         <KeyTransactionAction
-          projectID={project.id}
+          projectId={project.id}
           organization={organization}
           transactionName="/false"
         />
@@ -93,7 +93,7 @@ describe('KeyTransaction', function() {
     it('should render unmark as key transaction', async function() {
       const wrapper = mountWithTheme(
         <KeyTransactionAction
-          projectID={project.id}
+          projectId={project.id}
           organization={organization}
           transactionName="/true"
         />
@@ -149,7 +149,7 @@ describe('KeyTransaction', function() {
     it('fetches data on mount', async function() {
       const wrapper = mount(
         <KeyTransactionQuery
-          projectID={project.id}
+          projectId={project.id}
           organization={organization}
           transactionName="/true"
         >
@@ -173,7 +173,7 @@ describe('KeyTransaction', function() {
     it('passes errors down', async function() {
       const wrapper = mount(
         <KeyTransactionQuery
-          projectID={project.id}
+          projectId={project.id}
           organization={organization}
           transactionName="/error"
         >
@@ -199,7 +199,7 @@ describe('KeyTransaction', function() {
       });
       const wrapper = mount(
         <KeyTransactionQuery
-          projectID={project.id}
+          projectId={project.id}
           organization={organization}
           transactionName="/false"
         >
@@ -240,7 +240,7 @@ describe('KeyTransaction', function() {
       });
       const wrapper = mount(
         <KeyTransactionQuery
-          projectID={project.id}
+          projectId={project.id}
           organization={organization}
           transactionName="/true"
         >

@@ -14,7 +14,7 @@ type ChildrenProps = {
 
 type Props = {
   api: Client;
-  projectID: number;
+  projectId: number;
   organization: Organization;
   transactionName: string;
   children: (props: ChildrenProps) => React.ReactNode;
@@ -22,7 +22,7 @@ type Props = {
 
 type State = {
   isLoading: boolean;
-  keyFetchID: symbol | null;
+  keyFetchId: symbol | null;
   error: string | null;
 
   isKeyTransaction: boolean;
@@ -31,7 +31,7 @@ type State = {
 class KeyTransactionQuery extends React.Component<Props, State> {
   state: State = {
     isLoading: true,
-    keyFetchID: null,
+    keyFetchId: null,
     error: null,
 
     isKeyTransaction: false,
@@ -43,7 +43,7 @@ class KeyTransactionQuery extends React.Component<Props, State> {
 
   componentDidUpdate(prevProps: Props) {
     const orgSlugChanged = prevProps.organization.slug !== this.props.organization.slug;
-    const projectsChanged = prevProps.projectID !== this.props.projectID;
+    const projectsChanged = prevProps.projectId !== this.props.projectId;
 
     if (orgSlugChanged || projectsChanged) {
       this.fetchData();
@@ -51,14 +51,14 @@ class KeyTransactionQuery extends React.Component<Props, State> {
   }
 
   fetchData = () => {
-    const {projectID, organization, transactionName} = this.props;
+    const {projectId, organization, transactionName} = this.props;
 
-    const projects = [String(projectID)];
+    const projects = [String(projectId)];
 
     const url = `/organizations/${organization.slug}/is-key-transactions/`;
-    const keyFetchID = Symbol('keyFetchID');
+    const keyFetchId = Symbol('keyFetchId');
 
-    this.setState({isLoading: true, keyFetchID});
+    this.setState({isLoading: true, keyFetchId});
 
     this.props.api
       .requestPromise(url, {
@@ -70,14 +70,14 @@ class KeyTransactionQuery extends React.Component<Props, State> {
         },
       })
       .then(([data, _, _jqXHR]) => {
-        if (this.state.keyFetchID !== keyFetchID) {
+        if (this.state.keyFetchId !== keyFetchId) {
           // invariant: a different request was initiated after this request
           return;
         }
 
         this.setState({
           isLoading: false,
-          keyFetchID: null,
+          keyFetchId: null,
           error: null,
           isKeyTransaction: !!data?.isKey,
         });
@@ -85,7 +85,7 @@ class KeyTransactionQuery extends React.Component<Props, State> {
       .catch(err => {
         this.setState({
           isLoading: false,
-          keyFetchID: null,
+          keyFetchId: null,
           error: err.responseJSON.detail,
           isKeyTransaction: false,
         });
@@ -93,8 +93,8 @@ class KeyTransactionQuery extends React.Component<Props, State> {
   };
 
   toggleKeyTransaction = () => {
-    const {api, projectID, organization, transactionName} = this.props;
-    const projects = [projectID];
+    const {api, projectId, organization, transactionName} = this.props;
+    const projects = [projectId];
 
     if (!this.state.isKeyTransaction) {
       this.setState({

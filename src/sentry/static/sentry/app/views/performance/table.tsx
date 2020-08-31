@@ -113,7 +113,7 @@ class Table extends React.Component<Props, State> {
       ];
 
       if (field === 'transaction') {
-        const projectID = getProjectID(dataRow, projects);
+        const projectId = getProjectID(dataRow, projects);
         const summaryView = eventView.clone();
         summaryView.query = summaryConditions;
 
@@ -122,14 +122,14 @@ class Table extends React.Component<Props, State> {
           orgSlug: organization.slug,
           transaction: transactionName,
           query: summaryView.generateQueryStringObject(),
-          projectID,
+          projectID: projectId,
         });
 
         const actionRenderers = {};
-        if (projectID !== undefined) {
+        if (projectId !== undefined) {
           actionRenderers[Actions.TOGGLE_KEY_TRANSACTION] = props => (
             <KeyTransactionAction
-              projectID={parseInt(projectID, 10)}
+              projectId={parseInt(projectId, 10)}
               organization={organization}
               transactionName={transactionName}
               {...props}

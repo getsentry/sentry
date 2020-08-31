@@ -22,11 +22,11 @@ function KeyTransactionButton(props: Props) {
     return null;
   }
 
-  const projectID = projects[0];
+  const projectId = projects[0];
 
   return (
     <KeyTransactionQuery
-      projectID={projectID}
+      projectId={projectId}
       organization={organization}
       transactionName={transactionName}
     >

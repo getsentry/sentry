@@ -10,16 +10,16 @@ import {ActionItem} from 'app/views/eventsV2/table/cellAction';
 import KeyTransactionQuery from './keyTransactionQuery';
 
 type KeyTransactionActionProps = {
-  projectID: number;
+  projectId: number;
   organization: Organization;
   transactionName: string;
 };
 
 function KeyTransactionAction(props: KeyTransactionActionProps) {
-  const {projectID, organization, transactionName, ...rest} = props;
+  const {projectId, organization, transactionName, ...rest} = props;
   return (
     <KeyTransactionQuery
-      projectID={projectID}
+      projectId={projectId}
       organization={organization}
       transactionName={transactionName}
     >
