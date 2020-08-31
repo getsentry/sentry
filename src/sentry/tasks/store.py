@@ -620,6 +620,13 @@ def create_failed_event(
     if not reprocessing.event_supports_reprocessing(data):
         return False
 
+    # If this event has just been reprocessed with reprocessing-v2, we don't
+    # put it through reprocessing-v1 again. The value of reprocessing-v2 is
+    # partially that one sees the entire event even in its failed state, all
+    # the time.
+    if reprocessing2.is_reprocessed_event(data):
+        return False
+
     reprocessing_active = ProjectOption.objects.get_value(
         project_id, "sentry:reprocessing_active", REPROCESSING_DEFAULT
     )
