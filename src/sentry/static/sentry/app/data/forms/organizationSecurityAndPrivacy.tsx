@@ -70,11 +70,9 @@ const organizationSecurityAndPrivacy: JsonFormObject[] = [
           'Store native crash reports such as Minidumps for improved processing and download in issue details'
         ),
         visible: ({features}) => features.has('event-attachments'),
-        placeholder: ({value}) => {
-          // HACK: some organization can have limit of stored crash reports a number that's not in the options (legacy reasons),
-          // we therefore display in in a placeholder
-          return formatStoreCrashReports(value);
-        },
+        // HACK: some organization can have limit of stored crash reports a number that's not in the options (legacy reasons),
+        // we therefore display it in a placeholder
+        placeholder: ({value}) => formatStoreCrashReports(value),
         choices: () =>
           getStoreCrashReportsValues(SettingScope.Organization).map(value => [
             value,

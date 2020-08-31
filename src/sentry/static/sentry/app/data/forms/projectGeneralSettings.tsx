@@ -355,7 +355,7 @@ export const fields: Record<string, Field> = {
       }
 
       // HACK: some organization can have limit of stored crash reports a number that's not in the options (legacy reasons),
-      // we therefore display in in a placeholder
+      // we therefore display it in a placeholder
       return formatStoreCrashReports(value);
     },
     choices: ({organization}) =>
