@@ -21,5 +21,8 @@ describe('crashReportsUtils', () => {
     expect(shallow(<div>{formatStoreCrashReports(null, 5)}</div>).text()).toBe(
       'Inherit organization settings (5 per issue)'
     );
+    expect(shallow(<div>{formatStoreCrashReports(null, 0)}</div>).text()).toBe(
+      'Inherit organization settings (Disabled)'
+    );
   });
 });

@@ -1,12 +1,13 @@
 import React from 'react';
 
 import {t, tct} from 'app/locale';
+import {defined} from 'app/utils';
 
 export function formatStoreCrashReports(
   value: number | null | '',
   organizationValue?: number
 ): React.ReactNode {
-  if (value === null && organizationValue) {
+  if (value === null && defined(organizationValue)) {
     return tct('Inherit organization settings ([organizationValue])', {
       organizationValue: formatStoreCrashReports(organizationValue),
     });
