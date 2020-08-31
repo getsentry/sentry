@@ -15,12 +15,12 @@ import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {PageContent} from 'app/styles/organization';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import Alert from 'app/components/alert';
+import Feature from 'app/components/acl/feature';
 import EventView from 'app/utils/discover/eventView';
 import space from 'app/styles/space';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import {IconFlag} from 'app/icons';
-import {decodeScalar} from 'app/utils/queryString';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
@@ -32,13 +32,17 @@ import {generatePerformanceEventView, DEFAULT_STATS_PERIOD} from './data';
 import Table from './table';
 import Charts from './charts/index';
 import Onboarding from './onboarding';
+import {addRoutePerformanceContext, getTransactionSearchQuery} from './utils';
+import TrendsContent from './trends/content';
 
-enum FilterViews {
+export enum FilterViews {
   ALL_TRANSACTIONS = 'ALL_TRANSACTIONS',
   KEY_TRANSACTIONS = 'KEY_TRANSACTIONS',
+  TRENDS = 'TRENDS',
 }
 
-const VIEWS = Object.values(FilterViews);
+const VIEWS = Object.values(FilterViews).filter(view => view !== 'TRENDS');
+const VIEWS_WITH_TRENDS = Object.values(FilterViews);
 
 type Props = {
   api: Client;
@@ -58,17 +62,21 @@ type State = {
 
 class PerformanceLanding extends React.Component<Props, State> {
   static getDerivedStateFromProps(nextProps: Props, prevState: State): State {
-    return {...prevState, eventView: generatePerformanceEventView(nextProps.location)};
+    return {
+      ...prevState,
+      eventView: generatePerformanceEventView(nextProps.organization, nextProps.location),
+    };
   }
 
   state: State = {
-    eventView: generatePerformanceEventView(this.props.location),
+    eventView: generatePerformanceEventView(this.props.organization, this.props.location),
     error: undefined,
   };
 
   componentDidMount() {
     const {api, organization, selection} = this.props;
     loadOrganizationTags(api, organization.slug, selection);
+    addRoutePerformanceContext(selection);
     trackAnalyticsEvent({
       eventKey: 'performance_views.overview.view',
       eventName: 'Performance Views: Transaction overview view',
@@ -83,6 +91,7 @@ class PerformanceLanding extends React.Component<Props, State> {
       !isEqual(prevProps.selection.datetime, selection.datetime)
     ) {
       loadOrganizationTags(api, organization.slug, selection);
+      addRoutePerformanceContext(selection);
     }
   }
 
@@ -129,15 +138,11 @@ class PerformanceLanding extends React.Component<Props, State> {
         return t('By Transaction');
       case FilterViews.KEY_TRANSACTIONS:
         return t('By Key Transaction');
+      case FilterViews.TRENDS:
+        return t('Trends');
       default:
         throw Error(`Unknown view: ${currentView}`);
     }
-  }
-
-  getTransactionSearchQuery() {
-    const {location} = this.props;
-
-    return String(decodeScalar(location.query.query) || '').trim();
   }
 
   /**
@@ -166,28 +171,62 @@ class PerformanceLanding extends React.Component<Props, State> {
   handleViewChange(viewKey: FilterViews) {
     const {location} = this.props;
 
+    const newQuery = {
+      ...location.query,
+    };
+
+    // This is a temporary change for trends to test adding a default count to increase relevancy
+    if (viewKey === FilterViews.TRENDS) {
+      if (!newQuery.query) {
+        newQuery.query = 'count():>1000';
+      } else if (!newQuery.query.includes('count()')) {
+        newQuery.query += 'count():>1000';
+      }
+    }
+
     ReactRouter.browserHistory.push({
       pathname: location.pathname,
-      query: {...location.query, view: viewKey},
+      query: {...newQuery, view: viewKey},
     });
   }
 
   renderHeaderButtons() {
     return (
-      <ButtonBar merged active={this.getCurrentView()}>
-        {VIEWS.map(viewKey => {
-          return (
-            <Button
-              key={viewKey}
-              barId={viewKey}
-              size="small"
-              onClick={() => this.handleViewChange(viewKey)}
-            >
-              {this.getViewLabel(viewKey)}
-            </Button>
-          );
-        })}
-      </ButtonBar>
+      <Feature features={['internal-catchall']}>
+        {({hasFeature}) =>
+          hasFeature ? (
+            <ButtonBar merged active={this.getCurrentView()}>
+              {VIEWS_WITH_TRENDS.map(viewKey => {
+                return (
+                  <Button
+                    key={viewKey}
+                    barId={viewKey}
+                    size="small"
+                    onClick={() => this.handleViewChange(viewKey)}
+                  >
+                    {this.getViewLabel(viewKey)}
+                  </Button>
+                );
+              })}
+            </ButtonBar>
+          ) : (
+            <ButtonBar merged active={this.getCurrentView()}>
+              {VIEWS.map(viewKey => {
+                return (
+                  <Button
+                    key={viewKey}
+                    barId={viewKey}
+                    size="small"
+                    onClick={() => this.handleViewChange(viewKey)}
+                  >
+                    {this.getViewLabel(viewKey)}
+                  </Button>
+                );
+              })}
+            </ButtonBar>
+          )
+        }
+      </Feature>
     );
   }
 
@@ -225,7 +264,7 @@ class PerformanceLanding extends React.Component<Props, State> {
     const {organization, location, router, projects} = this.props;
     const {eventView} = this.state;
     const showOnboarding = this.shouldShowOnboarding();
-    const filterString = this.getTransactionSearchQuery();
+    const filterString = getTransactionSearchQuery(location);
     const summaryConditions = this.getSummaryConditions(filterString);
     const currentView = this.getCurrentView();
 
@@ -249,7 +288,13 @@ class PerformanceLanding extends React.Component<Props, State> {
               </StyledPageHeader>
               {this.renderError()}
               {showOnboarding ? (
-                <Onboarding />
+                <Onboarding organization={organization} />
+              ) : currentView === FilterViews.TRENDS ? (
+                <TrendsContent
+                  organization={organization}
+                  location={location}
+                  eventView={eventView}
+                />
               ) : (
                 <div>
                   <StyledSearchBar
@@ -264,7 +309,7 @@ class PerformanceLanding extends React.Component<Props, State> {
                     organization={organization}
                     location={location}
                     router={router}
-                    keyTransactions={currentView === 'KEY_TRANSACTIONS'}
+                    keyTransactions={currentView === FilterViews.KEY_TRANSACTIONS}
                   />
                   <Table
                     eventView={eventView}
@@ -272,7 +317,7 @@ class PerformanceLanding extends React.Component<Props, State> {
                     organization={organization}
                     location={location}
                     setError={this.setError}
-                    keyTransactions={currentView === 'KEY_TRANSACTIONS'}
+                    keyTransactions={currentView === FilterViews.KEY_TRANSACTIONS}
                     summaryConditions={summaryConditions}
                   />
                 </div>

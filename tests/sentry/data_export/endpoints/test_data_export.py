@@ -46,7 +46,7 @@ class DataExportTest(APITestCase):
         assert response.data == {
             "id": data_export.id,
             "user": {
-                "id": six.binary_type(self.user.id),
+                "id": six.text_type(self.user.id).encode("utf-8"),
                 "email": self.user.email,
                 "username": self.user.username,
             },
@@ -72,7 +72,7 @@ class DataExportTest(APITestCase):
         assert response2.data == {
             "id": data_export.id,
             "user": {
-                "id": six.binary_type(self.user.id),
+                "id": six.text_type(self.user.id).encode("utf-8"),
                 "email": self.user.email,
                 "username": self.user.username,
             },
@@ -87,6 +87,25 @@ class DataExportTest(APITestCase):
             "checksum": None,
             "fileName": None,
         }
+
+    def test_fields_are_lists(self):
+        """
+        Ensures that if a single field is passed, we convert it to a list before making
+        a snuba query.
+        """
+        payload = {
+            "query_type": ExportQueryType.DISCOVER_STR,
+            "query_info": {"env": "test", "field": "id"},
+        }
+        result_query_info = payload["query_info"].copy()
+        result_query_info["field"] = [result_query_info["field"]]
+        with self.feature("organizations:discover-query"):
+            response = self.get_valid_response(self.organization.slug, status_code=201, **payload)
+        data_export = ExportedData.objects.get(id=response.data["id"])
+        # because we passed a single string as the field, we should convert it into a list
+        # this happens when the user selects only a single field and it results in a string
+        # rather than a list of strings
+        assert data_export.query_info["field"] == ["id"]
 
     def test_export_too_many_fields(self):
         """

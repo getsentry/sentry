@@ -13,6 +13,7 @@ import {getUtcToLocalDateObject} from 'app/utils/dates';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import LoadingContainer from 'app/components/loading/loadingContainer';
 import {IconWarning} from 'app/icons';
+import {formatAbbreviatedNumber} from 'app/utils/formatters';
 import theme from 'app/utils/theme';
 import EventView from 'app/utils/discover/eventView';
 
@@ -124,7 +125,24 @@ class MiniGraph extends React.Component<Props> {
                 },
               }}
               yAxis={{
-                show: false,
+                show: true,
+                axisLine: {
+                  show: false,
+                },
+                axisLabel: {
+                  color: theme.gray400,
+                  fontFamily: theme.text.family,
+                  fontSize: 12,
+                  formatter: formatAbbreviatedNumber,
+                  inside: true,
+                  showMinLabel: false,
+                  showMaxLabel: false,
+                },
+                splitNumber: 3,
+                splitLine: {
+                  show: false,
+                },
+                zlevel: theme.zIndex.header,
               }}
               tooltip={{
                 show: false,

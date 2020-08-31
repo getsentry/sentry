@@ -93,6 +93,10 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
             },
         ]
 
+    def get_rate_limit(self):
+        # no rate limit for SQS
+        return (0, 0)
+
     @track_response_metric
     def forward_event(self, event, payload):
         queue_url = self.get_option("queue_url", event.project)
@@ -101,7 +105,17 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
         region = self.get_option("region", event.project)
         message_group_id = self.get_option("message_group_id", event.project)
 
+        # the metrics tags are a subset of logging params
+        metric_tags = {
+            "project_id": event.project_id,
+            "organization_id": event.project.organization_id,
+        }
+        logging_params = metric_tags.copy()
+        logging_params["event_id"] = event.event_id
+        logging_params["issue_id"] = event.group_id
+
         if not all((queue_url, access_key, secret_key, region)):
+            logger.info("sentry_plugins.amazon_sqs.skip_unconfigured", extra=logging_params)
             return
 
         # TODO(dcramer): Amazon doesnt support payloads larger than 256kb
@@ -109,6 +123,7 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
         # to S3
         message = json.dumps(payload)
         if len(message) > 256 * 1024:
+            logger.info("sentry_plugins.amazon_sqs.skip_oversized", extra=logging_params)
             return False
 
         try:
@@ -129,6 +144,7 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
                 # if content based de-duplication is not enabled, we need to provide a
                 # MessageDeduplicationId
                 message["MessageDeduplicationId"] = uuid4().hex
+            logger.info("sentry_plugins.amazon_sqs.send_message", extra=logging_params)
             client.send_message(**message)
         except ClientError as e:
             if six.text_type(e).startswith(
@@ -138,36 +154,20 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
                 # anything to recover. Just log and continue.
                 metrics_name = "sentry_plugins.amazon_sqs.access_token_invalid"
                 logger.info(
-                    metrics_name,
-                    extra={
-                        "project_id": event.project.id,
-                        "organization_id": event.project.organization_id,
-                    },
+                    metrics_name, extra=logging_params,
                 )
 
                 metrics.incr(
-                    metrics_name,
-                    tags={
-                        "project_id": event.project_id,
-                        "organization_id": event.project.organization_id,
-                    },
+                    metrics_name, tags=metric_tags,
                 )
                 return False
             elif six.text_type(e).endswith("must contain the parameter MessageGroupId."):
                 metrics_name = "sentry_plugins.amazon_sqs.missing_message_group_id"
                 logger.info(
-                    metrics_name,
-                    extra={
-                        "project_id": event.project.id,
-                        "organization_id": event.project.organization_id,
-                    },
+                    metrics_name, extra=logging_params,
                 )
                 metrics.incr(
-                    metrics_name,
-                    tags={
-                        "project_id": event.project_id,
-                        "organization_id": event.project.organization_id,
-                    },
+                    metrics_name, tags=metric_tags,
                 )
                 return False
             raise

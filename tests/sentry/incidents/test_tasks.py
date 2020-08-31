@@ -16,7 +16,6 @@ from sentry.incidents.logic import (
     subscribe_to_incident,
 )
 from sentry.incidents.models import (
-    AlertRuleThresholdType,
     AlertRuleTriggerAction,
     IncidentActivityType,
     IncidentStatus,
@@ -70,7 +69,7 @@ class TestSendSubscriberNotifications(BaseIncidentActivityTest, TestCase):
         ).exists()
 
     def test_invalid_types(self):
-        activity_type = IncidentActivityType.DETECTED
+        activity_type = IncidentActivityType.CREATED
         activity = create_incident_activity(self.incident, activity_type)
         send_subscriber_notifications(activity.id)
         self.send_async.assert_not_called()  # NOQA
@@ -155,7 +154,7 @@ class HandleTriggerActionTest(TestCase):
 
     @fixture
     def trigger(self):
-        return create_alert_rule_trigger(self.alert_rule, "", AlertRuleThresholdType.ABOVE, 100)
+        return create_alert_rule_trigger(self.alert_rule, "", 100)
 
     @fixture
     def action(self):

@@ -70,7 +70,7 @@ const OrganizationRepositories = ({itemList, onRepositoryChange, api, params}: P
       ) : (
         <Panel>
           <EmptyMessage
-            icon={<IconCommit />}
+            icon={<IconCommit size="xl" />}
             title={t('Sentry is better with commit data')}
             description={t(
               'Adding one or more repositories will enable enhanced releases and the ability to resolve Sentry Issues via git message.'

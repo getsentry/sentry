@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {shallow, mountWithTheme} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
 import {SmartSearchBar} from 'app/components/smartSearchBar';
@@ -81,6 +81,74 @@ describe('SmartSearchBar', function() {
     MockApiClient.clearMockResponses();
   });
 
+  it('quotes in values with spaces when autocompleting', async function() {
+    jest.useRealTimers();
+    const getTagValuesMock = jest.fn().mockImplementation(() => {
+      return Promise.resolve(['this is filled with spaces']);
+    });
+    const onSearch = jest.fn();
+    const props = {
+      orgId: 'org-slug',
+      projectId: '0',
+      query: '',
+      organization,
+      supportedTags,
+      onGetTagValues: getTagValuesMock,
+      onSearch,
+    };
+    const searchBar = mountWithTheme(
+      <SmartSearchBar {...props} api={new Client()} />,
+
+      options
+    );
+    searchBar.find('input').simulate('focus');
+    searchBar.find('input').simulate('change', {target: {value: 'device:this'}});
+    await tick();
+
+    const preventDefault = jest.fn();
+    searchBar.find('input').simulate('keyDown', {key: 'ArrowDown'});
+    searchBar.find('input').simulate('keyDown', {key: 'Enter', preventDefault});
+    await tick();
+
+    expect(searchBar.find('input').props().value).toEqual(
+      'device:"this is filled with spaces"'
+    );
+  });
+
+  it('escapes quotes in values properly when autocompleting', async function() {
+    jest.useRealTimers();
+    const getTagValuesMock = jest.fn().mockImplementation(() => {
+      return Promise.resolve(['this " is " filled " with " quotes']);
+    });
+    const onSearch = jest.fn();
+    const props = {
+      orgId: 'org-slug',
+      projectId: '0',
+      query: '',
+      organization,
+      supportedTags,
+      onGetTagValues: getTagValuesMock,
+      onSearch,
+    };
+    const searchBar = mountWithTheme(
+      <SmartSearchBar {...props} api={new Client()} />,
+
+      options
+    );
+    searchBar.find('input').simulate('focus');
+    searchBar.find('input').simulate('change', {target: {value: 'device:this'}});
+    await tick();
+
+    const preventDefault = jest.fn();
+    searchBar.find('input').simulate('keyDown', {key: 'ArrowDown'});
+    searchBar.find('input').simulate('keyDown', {key: 'Enter', preventDefault});
+    await tick();
+
+    expect(searchBar.find('input').props().value).toEqual(
+      'device:"this \\" is \\" filled \\" with \\" quotes"'
+    );
+  });
+
   it('does not preventDefault when there are no search items and is loading and enter is pressed', async function() {
     jest.useRealTimers();
     const getTagValuesMock = jest.fn().mockImplementation(() => {
@@ -156,7 +224,7 @@ describe('SmartSearchBar', function() {
 
   describe('componentWillReceiveProps()', function() {
     it('should add a space when setting state.query', function() {
-      const searchBar = shallow(
+      const searchBar = mountWithTheme(
         <SmartSearchBar
           organization={organization}
           supportedTags={supportedTags}
@@ -169,7 +237,7 @@ describe('SmartSearchBar', function() {
     });
 
     it('should update state.query if props.query is updated from outside', function() {
-      const searchBar = shallow(
+      const searchBar = mountWithTheme(
         <SmartSearchBar
           organization={organization}
           supportedTags={supportedTags}
@@ -184,7 +252,7 @@ describe('SmartSearchBar', function() {
     });
 
     it('should not reset user input if a noop props change happens', function() {
-      const searchBar = shallow(
+      const searchBar = mountWithTheme(
         <SmartSearchBar
           organization={organization}
           supportedTags={supportedTags}
@@ -200,7 +268,7 @@ describe('SmartSearchBar', function() {
     });
 
     it('should reset user input if a meaningful props change happens', function() {
-      const searchBar = shallow(
+      const searchBar = mountWithTheme(
         <SmartSearchBar
           organization={organization}
           supportedTags={supportedTags}
@@ -255,7 +323,7 @@ describe('SmartSearchBar', function() {
         defaultQuery: 'is:unresolved',
         supportedTags,
       };
-      const searchBar = shallow(<SmartSearchBar {...props} />, options).instance();
+      const searchBar = mountWithTheme(<SmartSearchBar {...props} />, options).instance();
 
       searchBar.clearSearch();
 
@@ -270,7 +338,7 @@ describe('SmartSearchBar', function() {
         supportedTags,
         onSearch: jest.fn(),
       };
-      const searchBar = shallow(<SmartSearchBar {...props} />, options).instance();
+      const searchBar = mountWithTheme(<SmartSearchBar {...props} />, options).instance();
 
       await searchBar.clearSearch();
       expect(props.onSearch).toHaveBeenCalledWith('');
@@ -279,7 +347,7 @@ describe('SmartSearchBar', function() {
 
   describe('onQueryFocus()', function() {
     it('displays the drop down', function() {
-      const searchBar = shallow(
+      const searchBar = mountWithTheme(
         <SmartSearchBar
           organization={organization}
           supportedTags={supportedTags}
@@ -295,7 +363,7 @@ describe('SmartSearchBar', function() {
     });
 
     it('displays dropdown in hasPinnedSearch mode', function() {
-      const searchBar = shallow(
+      const searchBar = mountWithTheme(
         <SmartSearchBar
           organization={organization}
           supportedTags={supportedTags}
@@ -314,7 +382,7 @@ describe('SmartSearchBar', function() {
 
   describe('onQueryBlur()', function() {
     it('hides the drop down', function() {
-      const searchBar = shallow(
+      const searchBar = mountWithTheme(
         <SmartSearchBar organization={organization} supportedTags={supportedTags} />,
         options
       ).instance();
@@ -607,6 +675,31 @@ describe('SmartSearchBar', function() {
       expect(searchBar.state.query).toEqual('event.type:error !title:');
     });
 
+    it('removes wildcard', function() {
+      const props = {
+        query: '',
+        organization,
+        supportedTags,
+      };
+      const smartSearchBar = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const searchBar = smartSearchBar.instance();
+      const input = smartSearchBar.find('input');
+
+      // leading wildcard
+      input.simulate('change', {target: {value: 'event.type:*err'}});
+      searchBar.getCursorPosition = jest.fn().mockReturnValueOnce(20);
+      // use autocompletion to do the rest
+      searchBar.onAutoComplete('error', {});
+      expect(searchBar.state.query).toEqual('event.type:error');
+
+      // trailing wildcard
+      input.simulate('change', {target: {value: 'event.type:err*'}});
+      searchBar.getCursorPosition = jest.fn().mockReturnValueOnce(20);
+      // use autocompletion to do the rest
+      searchBar.onAutoComplete('error', {});
+      expect(searchBar.state.query).toEqual('event.type:error');
+    });
+
     it('handles special case for user tag', function() {
       const props = {
         query: '',
@@ -620,13 +713,13 @@ describe('SmartSearchBar', function() {
       input.simulate('change', {target: {value: 'user:'}});
       searchBar.getCursorPosition = jest.fn().mockReturnValueOnce(5);
       searchBar.onAutoComplete('id:1', {});
-      expect(searchBar.state.query).toEqual('user.id:1');
+      expect(searchBar.state.query).toEqual('user:"id:1"');
 
       // try it with the SEARCH_WILDCARD
       input.simulate('change', {target: {value: 'user:1*'}});
       searchBar.getCursorPosition = jest.fn().mockReturnValueOnce(5);
       searchBar.onAutoComplete('ip:127.0.0.1', {});
-      expect(searchBar.state.query).toEqual('user.ip:*127.0.0.1');
+      expect(searchBar.state.query).toEqual('user:"ip:127.0.0.1"');
     });
   });
 

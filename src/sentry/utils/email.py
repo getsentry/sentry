@@ -228,7 +228,7 @@ class ListResolver(object):
         label = ".".join(map(six.text_type, handler(instance)))
         assert is_valid_dot_atom(label)
 
-        return u"{}.{}".format(label, self.__namespace)
+        return u"<{}.{}>".format(label, self.__namespace)
 
 
 default_list_type_handlers = {
@@ -323,7 +323,7 @@ class MessageBuilder(object):
         message_id = make_msgid(get_from_email_domain())
         headers.setdefault("Message-Id", message_id)
 
-        subject = self.subject
+        subject = force_text(self.subject)
 
         if self.reply_reference is not None:
             reference = self.reply_reference

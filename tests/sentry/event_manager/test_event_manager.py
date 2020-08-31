@@ -1091,7 +1091,9 @@ class EventManagerTest(TestCase):
         with mock.patch("sentry.event_manager.track_outcome", mock_track_outcome):
             with self.feature("organizations:event-attachments"):
                 with self.tasks():
-                    manager.save(self.project.id, cache_key=cache_key)
+                    event = manager.save(self.project.id, cache_key=cache_key)
+
+        assert event.data["metadata"]["stripped_crash"] is True
 
         assert mock_track_outcome.call_count == 3
         o = mock_track_outcome.mock_calls[0]

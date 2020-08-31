@@ -7,14 +7,14 @@ from zlib import compress as zlib_compress, decompress as zlib_decompress
 
 from google.cloud import bigtable
 from google.cloud.bigtable.row_set import RowSet
-from simplejson import JSONEncoder, _default_decoder
 from django.utils import timezone
 
+from sentry.utils import json
 from sentry.nodestore.base import NodeStorage
 
 
 # Cache an instance of the encoder we want to use
-json_dumps = JSONEncoder(
+json_dumps = json.JSONEncoder(
     separators=(",", ":"),
     skipkeys=False,
     ensure_ascii=True,
@@ -25,7 +25,7 @@ json_dumps = JSONEncoder(
     default=None,
 ).encode
 
-json_loads = _default_decoder.decode
+json_loads = json._default_decoder.decode
 
 
 _connection_lock = Lock()

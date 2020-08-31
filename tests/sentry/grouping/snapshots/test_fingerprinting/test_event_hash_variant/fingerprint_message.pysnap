@@ -1,5 +1,5 @@
 ---
-created: '2019-07-23T21:55:25.885546Z'
+created: '2020-08-19T12:18:26.314772Z'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
@@ -18,3 +18,9 @@ variants:
     type: custom-fingerprint
     values:
     - what-is-love
+  default:
+    component:
+      contributes: false
+      contributes_to_similarity: true
+      hint: custom fingerprint takes precedence
+    type: component

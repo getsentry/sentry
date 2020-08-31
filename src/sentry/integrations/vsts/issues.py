@@ -3,13 +3,13 @@ from __future__ import absolute_import
 import six
 from mistune import markdown
 
-
+from collections import OrderedDict
 from django.core.urlresolvers import reverse
+from django.utils.translation import ugettext as _
+
 from sentry.models import IntegrationExternalProject, OrganizationIntegration, User
 from sentry.integrations.issues import IssueSyncMixin
-
 from sentry.shared_integrations.exceptions import ApiUnauthorized, ApiError
-from django.utils.translation import ugettext as _
 
 
 class VstsIssueSync(IssueSyncMixin):
@@ -21,7 +21,7 @@ class VstsIssueSync(IssueSyncMixin):
     done_categories = frozenset(["Resolved", "Completed"])
 
     def get_persisted_default_config_fields(self):
-        return ["project"]
+        return ["project", "work_item_type"]
 
     def create_default_repo_choice(self, default_repo):
         # default_repo should be the project_id
@@ -59,12 +59,47 @@ class VstsIssueSync(IssueSyncMixin):
 
         return default_project, project_choices
 
+    def get_work_item_choices(self, project, group):
+        client = self.get_client()
+        try:
+            item_categories = client.get_work_item_categories(self.instance, project)["value"]
+        except (ApiError, ApiUnauthorized, KeyError) as e:
+            self.raise_error(e)
+
+        # we want to maintain ordering of the items
+        item_type_map = OrderedDict()
+        for item in item_categories:
+            for item_type_object in item["workItemTypes"]:
+                # the type is the last part of the url
+                item_type = item_type_object["url"].split("/")[-1]
+                # we can have duplicates so need to dedupe
+                if item_type not in item_type_map:
+                    item_type_map[item_type] = item_type_object["name"]
+
+        item_tuples = list(item_type_map.items())
+
+        # try to get the default from either the last value used or from the first item on the list
+        defaults = self.get_project_defaults(group.project_id)
+        try:
+            default_item_type = defaults.get("work_item_type") or item_tuples[0][0]
+        except IndexError:
+            return None, item_tuples
+
+        return default_item_type, item_tuples
+
     def get_create_issue_config(self, group, **kwargs):
         kwargs["link_referrer"] = "vsts_integration"
         fields = super(VstsIssueSync, self).get_create_issue_config(group, **kwargs)
         # Azure/VSTS has BOTH projects and repositories. A project can have many repositories.
         # Workitems (issues) are associated with the project not the repository.
         default_project, project_choices = self.get_project_choices(group, **kwargs)
+
+        work_item_choices = []
+        default_work_item = None
+        if default_project:
+            default_work_item, work_item_choices = self.get_work_item_choices(
+                default_project, group
+            )
 
         return [
             {
@@ -75,7 +110,17 @@ class VstsIssueSync(IssueSyncMixin):
                 "defaultValue": default_project,
                 "label": _("Project"),
                 "placeholder": default_project or _("MyProject"),
-            }
+                "updatesForm": True,
+            },
+            {
+                "name": "work_item_type",
+                "required": True,
+                "type": "choice",
+                "choices": work_item_choices,
+                "defaultValue": default_work_item,
+                "label": _("Work Item Type"),
+                "placeholder": _("Bug"),
+            },
         ] + fields
 
     def get_link_issue_config(self, group, **kwargs):
@@ -103,11 +148,13 @@ class VstsIssueSync(IssueSyncMixin):
 
         title = data["title"]
         description = data["description"]
+        item_type = data["work_item_type"]
 
         try:
             created_item = client.create_work_item(
                 instance=self.instance,
                 project=project_id,
+                item_type=item_type,
                 title=title,
                 # Descriptions cannot easily be seen. So, a comment will be added as well.
                 description=markdown(description),

@@ -27,7 +27,6 @@ const organizationNavigation: NavigationSection[] = [
           'Configuration related to dealing with sensitive data and other security settings. (Data Scrubbing, Data Privacy, Data Scrubbing)'
         ),
         id: 'security-and-privacy',
-        badge: () => 'new',
       },
       {
         path: `${pathPrefix}/teams/`,
@@ -41,6 +40,13 @@ const organizationNavigation: NavigationSection[] = [
         show: ({access}) => access!.has('member:read'),
         description: t('Manage user membership for an organization'),
         id: 'members',
+      },
+      {
+        path: `${pathPrefix}/performance/`,
+        title: t('Performance'),
+        show: ({features}) => features!.has('performance-view'),
+        description: t('Manage performance settings'),
+        id: 'performance',
       },
       {
         path: `${pathPrefix}/auth/`,

@@ -26,7 +26,7 @@ client = get_docker_client()
 namespace = "apidocs"
 
 # Define our set of containers we want to run
-APIDOC_CONTAINERS = ["postgres", "redis", "clickhouse", "snuba", "relay", "reverse_proxy"]
+APIDOC_CONTAINERS = ["postgres", "redis", "clickhouse", "snuba", "relay"]
 devservices_settings = {
     container_name: SENTRY_DEVSERVICES[container_name] for container_name in APIDOC_CONTAINERS
 }
@@ -47,7 +47,6 @@ apidoc_containers_overrides = {
         "only_if": None,
     },
     "relay": {"pull": None, "volumes": None, "only_if": None, "with_devserver": None},
-    "reverse_proxy": {"volumes": None, "only_if": None, "with_devserver": None},
 }
 
 

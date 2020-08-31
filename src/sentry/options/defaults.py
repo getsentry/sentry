@@ -140,6 +140,9 @@ register("github-app.client-secret", flags=FLAG_PRIORITIZE_DISK)
 # VSTS Integration
 register("vsts.client-id", flags=FLAG_PRIORITIZE_DISK)
 register("vsts.client-secret", flags=FLAG_PRIORITIZE_DISK)
+# VSTS Integration - with limited scopes
+register("vsts-limited.client-id", flags=FLAG_PRIORITIZE_DISK)
+register("vsts-limited.client-secret", flags=FLAG_PRIORITIZE_DISK)
 
 # PagerDuty Integration
 register("pagerduty.app-id", default="")
@@ -152,6 +155,7 @@ register("vercel.integration-slug", default="sentry")
 # MsTeams Integration
 register("msteams.client-id", flags=FLAG_PRIORITIZE_DISK)
 register("msteams.client-secret", flags=FLAG_PRIORITIZE_DISK)
+register("msteams.app-id")
 
 # Snuba
 register("snuba.search.pre-snuba-candidates-optimizer", type=Bool, default=False)
@@ -235,9 +239,6 @@ register("workflow.rollout-rate", default=0, flags=FLAG_PRIORITIZE_DISK)
 # Performance metric alerts incremental rollout rate. Tied to feature handlers
 # in getsentry
 register("incidents-performance.rollout-rate", default=0, flags=FLAG_PRIORITIZE_DISK)
-
-# Async CSV exports incremental rollout rate. Tied to feature handlers in getsentry
-register("data-export.rollout-rate", default=0, flags=FLAG_PRIORITIZE_DISK)
 
 # Max number of tags to combine in a single query in Discover2 tags facet.
 register("discover2.max_tags_to_combine", default=3, flags=FLAG_PRIORITIZE_DISK)

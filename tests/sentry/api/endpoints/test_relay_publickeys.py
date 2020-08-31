@@ -1,12 +1,12 @@
 from __future__ import absolute_import
 
-import json
 import six
 
 from uuid import uuid4
 
 from django.core.urlresolvers import reverse
 
+from sentry.utils import json
 from sentry.models import Relay
 from sentry.testutils import APITestCase
 
@@ -26,23 +26,23 @@ class RelayPublicKeysConfigTest(APITestCase):
 
         self.internal_relay = Relay.objects.create(
             relay_id=six.text_type(uuid4()),
-            public_key=six.binary_type(self.public_key),
+            public_key=six.text_type(self.public_key),
             is_internal=True,
         )
 
         self.external_relay = Relay.objects.create(
             relay_id=six.text_type(uuid4()),
-            public_key=six.binary_type(self.public_key),
+            public_key=six.text_type(self.public_key),
             is_internal=False,
         )
         self.relay_a = Relay.objects.create(
             relay_id=six.text_type(uuid4()),
-            public_key=six.binary_type(self.public_key),
+            public_key=six.text_type(self.public_key),
             is_internal=False,
         )
         self.relay_b = Relay.objects.create(
             relay_id=six.text_type(uuid4()),
-            public_key=six.binary_type(self.public_key),
+            public_key=six.text_type(self.public_key),
             is_internal=True,
         )
 

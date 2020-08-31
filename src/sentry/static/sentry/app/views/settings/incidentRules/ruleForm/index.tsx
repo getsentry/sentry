@@ -17,7 +17,6 @@ import RuleNameForm from 'app/views/settings/incidentRules/ruleNameForm';
 import Triggers from 'app/views/settings/incidentRules/triggers';
 import TriggersChart from 'app/views/settings/incidentRules/triggers/chart';
 import hasThresholdValue from 'app/views/settings/incidentRules/utils/hasThresholdValue';
-import recreateRoute from 'app/utils/recreateRoute';
 import withProject from 'app/utils/withProject';
 import {
   addErrorMessage,
@@ -104,16 +103,13 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
   }
 
   getEndpoints(): [string, string][] {
-    const {params} = this.props;
+    const {orgId} = this.props.params;
 
     // TODO(incidents): This is temporary until new API endpoints
     // We should be able to just fetch the rule if rule.id exists
 
     return [
-      [
-        'availableActions',
-        `/organizations/${params.orgId}/alert-rules/available-actions/`,
-      ],
+      ['availableActions', `/organizations/${orgId}/alert-rules/available-actions/`],
     ];
   }
 
@@ -122,9 +118,10 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
   }
 
   goBack() {
-    const {router, routes, params, location} = this.props;
+    const {router} = this.props;
+    const {orgId} = this.props.params;
 
-    router.replace(recreateRoute('', {routes, params, location, stepBack: -2}));
+    router.push(`/organizations/${orgId}/alerts/rules/`);
   }
 
   /**

@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import pytest
-import json
 import six
 import re
 
@@ -11,7 +10,7 @@ from django.core.urlresolvers import reverse
 
 from sentry import quotas
 from sentry.constants import ObjectStatus
-from sentry.utils import safe
+from sentry.utils import safe, json
 from sentry.models.relay import Relay
 from sentry.models import Project
 
@@ -46,13 +45,13 @@ def private_key(key_pair):
 
 @pytest.fixture
 def relay_id():
-    return six.binary_type(six.text_type(uuid4()).encode("ascii"))
+    return six.text_type(uuid4())
 
 
 @pytest.fixture
 def relay(relay_id, public_key):
     return Relay.objects.create(
-        relay_id=relay_id, public_key=six.binary_type(public_key), is_internal=True
+        relay_id=relay_id, public_key=six.text_type(public_key), is_internal=True
     )
 
 

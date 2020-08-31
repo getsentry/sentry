@@ -12,12 +12,12 @@ from math import ceil, floor
 
 from sentry import options
 from sentry.api.event_search import (
+    FIELD_ALIASES,
     get_filter,
     get_function_alias,
     is_function,
-    resolve_field_list,
     InvalidSearchQuery,
-    FIELD_ALIASES,
+    resolve_field_list,
 )
 
 from sentry import eventstore
@@ -26,12 +26,14 @@ from sentry.models import Project, ProjectStatus, Group
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
 from sentry.utils.snuba import (
     Dataset,
-    SnubaTSResult,
-    raw_query,
-    to_naive_timestamp,
     naiveify_datetime,
+    raw_query,
     resolve_snuba_aliases,
     resolve_column,
+    SNUBA_AND,
+    SNUBA_OR,
+    SnubaTSResult,
+    to_naive_timestamp,
 )
 
 __all__ = (
@@ -225,7 +227,8 @@ def find_histogram_buckets(field, params, conditions):
 
 def zerofill_histogram(results, column_meta, orderby, sentry_function_alias, snuba_function_alias):
     parts = snuba_function_alias.split("_")
-    if len(parts) < 2:
+    # the histogram alias looks like `histogram_column_numbuckets_bucketsize_bucketoffest`
+    if len(parts) < 5 or parts[0] != "histogram":
         raise Exception(u"{} is not a valid histogram alias".format(snuba_function_alias))
 
     bucket_offset, bucket_size, num_buckets = int(parts[-1]), int(parts[-2]), int(parts[-3])
@@ -322,23 +325,12 @@ def transform_results(result, translated_columns, snuba_filter, selected_columns
     if selected_columns is None:
         selected_columns = []
 
-    # Determine user related fields to prune based on what wasn't selected.
-    user_fields = FIELD_ALIASES["user"]["fields"]
-    user_fields_to_remove = [field for field in user_fields if field not in selected_columns]
-
-    # If the user field was selected update the meta data
-    has_user = selected_columns and "user" in selected_columns
     meta = []
     for col in result["meta"]:
         # Translate back column names that were converted to snuba format
         col["name"] = translated_columns.get(col["name"], col["name"])
         # Remove user fields as they will be replaced by the alias.
-        if has_user and col["name"] in user_fields_to_remove:
-            continue
         meta.append(col)
-    if has_user:
-        meta.append({"name": "user", "type": "Nullable(String)"})
-    result["meta"] = meta
 
     def get_row(row):
         transformed = {}
@@ -347,14 +339,6 @@ def transform_results(result, translated_columns, snuba_filter, selected_columns
                 value = 0
             transformed[translated_columns.get(key, key)] = value
 
-        if has_user:
-            for field in user_fields:
-                if field in transformed and transformed[field]:
-                    transformed["user"] = transformed[field]
-                    break
-            # Remove user component fields once the alias is resolved.
-            for field in user_fields_to_remove:
-                del transformed[field]
         return transformed
 
     if len(translated_columns):
@@ -389,54 +373,6 @@ def transform_results(result, translated_columns, snuba_filter, selected_columns
             break
 
     return result
-
-
-# TODO(evanh) This is only here for backwards compatibilty with old queries using these deprecated
-# aliases. Once we migrate the queries these can go away.
-OLD_FUNCTIONS_TO_NEW = {
-    "p75": "p75()",
-    "p95": "p95()",
-    "p99": "p99()",
-    "last_seen": "last_seen()",
-    "latest_event": "latest_event()",
-    "apdex": "apdex(300)",
-    "impact": "impact(300)",
-    "rpm": "epm()",
-    "rps": "eps()",
-}
-
-
-def transform_deprecated_functions_in_columns(columns):
-    new_list = []
-    translations = {}
-    for column in columns:
-        if column in OLD_FUNCTIONS_TO_NEW:
-            new_column = OLD_FUNCTIONS_TO_NEW[column]
-            translations[get_function_alias(new_column)] = column
-            new_list.append(new_column)
-        elif column.replace("()", "") in OLD_FUNCTIONS_TO_NEW:
-            new_column = OLD_FUNCTIONS_TO_NEW[column.replace("()", "")]
-            translations[get_function_alias(new_column)] = column.replace("()", "")
-            new_list.append(new_column)
-        else:
-            new_list.append(column)
-
-    return new_list, translations
-
-
-def transform_deprecated_functions_in_query(query):
-    if query is None:
-        return query
-
-    for old_function in OLD_FUNCTIONS_TO_NEW:
-        if old_function + "()" in query:
-            replacement = OLD_FUNCTIONS_TO_NEW[old_function]
-            query = query.replace(old_function + "()", replacement)
-        elif old_function + ":" in query:
-            replacement = OLD_FUNCTIONS_TO_NEW[old_function]
-            query = query.replace(old_function, replacement)
-
-    return query
 
 
 def query(
@@ -477,17 +413,14 @@ def query(
     """
     if not selected_columns:
         raise InvalidSearchQuery("No columns selected")
+    else:
+        # We clobber this value throughout this code, so copy the value
+        selected_columns = selected_columns[:]
 
     with sentry_sdk.start_span(
         op="discover.discover", description="query.filter_transform"
     ) as span:
         span.set_data("query", query)
-        # TODO(evanh): These can be removed once we migrate the frontend / saved queries
-        # to use the new function values
-        selected_columns, function_translations = transform_deprecated_functions_in_columns(
-            selected_columns
-        )
-        query = transform_deprecated_functions_in_query(query)
 
         snuba_filter = get_filter(query, params)
         if not use_aggregate_conditions:
@@ -497,6 +430,7 @@ def query(
     # Do that here, and format the bucket number in to the columns before passing it through
     # to event search.
     idx = 0
+    function_translations = {}
     for col in selected_columns:
         if col.startswith("histogram("):
             with sentry_sdk.start_span(
@@ -505,31 +439,28 @@ def query(
                 span.set_data("histogram", col)
                 histogram_column = find_histogram_buckets(col, params, snuba_filter.conditions)
                 selected_columns[idx] = histogram_column
-                function_translations[get_function_alias(histogram_column)] = get_function_alias(
-                    col
-                )
+                snuba_name = get_function_alias(histogram_column)
+                sentry_name = get_function_alias(col)
+                function_translations[snuba_name] = sentry_name
+                # Since we're completely renaming the histogram function, we need to also check if we are
+                # ordering by the histogram values, and change that.
+                if orderby is not None:
+                    orderby = list(orderby) if isinstance(orderby, (list, tuple)) else [orderby]
+                    for i, ordering in enumerate(orderby):
+                        if sentry_name == ordering.lstrip("-"):
+                            ordering = "{}{}".format(
+                                "-" if ordering.startswith("-") else "", snuba_name
+                            )
+                            orderby[i] = ordering
 
             break
 
         idx += 1
 
     with sentry_sdk.start_span(op="discover.discover", description="query.field_translations"):
-        # Check to see if we are ordering by any functions and convert the orderby to be the correct alias.
-        if orderby:
-            orderby = orderby if isinstance(orderby, (list, tuple)) else [orderby]
-            new_orderby = []
-            for ordering in orderby:
-                is_reversed = ordering.startswith("-")
-                ordering = ordering.lstrip("-")
-                for snuba_name, sentry_name in six.iteritems(function_translations):
-                    if sentry_name == ordering:
-                        ordering = snuba_name
-                        break
-
-                ordering = "{}{}".format("-" if is_reversed else "", ordering)
-                new_orderby.append(ordering)
-
-            snuba_filter.orderby = new_orderby
+        if orderby is not None:
+            orderby = list(orderby) if isinstance(orderby, (list, tuple)) else [orderby]
+            snuba_filter.orderby = [get_function_alias(o) for o in orderby]
 
         snuba_filter.update_with(
             resolve_field_list(selected_columns, snuba_filter, auto_fields=auto_fields)
@@ -547,15 +478,41 @@ def query(
 
         # Make sure that any aggregate conditions are also in the selected columns
         for having_clause in snuba_filter.having:
-            found = any(
-                having_clause[0] == agg_clause[-1] for agg_clause in snuba_filter.aggregations
-            )
-            if not found:
-                raise InvalidSearchQuery(
-                    u"Aggregate {} used in a condition but is not a selected column.".format(
-                        having_clause[0]
+            # The first element of the having can be an alias, or a nested array of functions. Loop through to make sure
+            # any referenced functions are in the aggregations.
+            if isinstance(having_clause[0], (list, tuple)):
+                # Functions are of the form [fn, [args]]
+                args_to_check = [[having_clause[0]]]
+                conditions_not_in_aggregations = []
+                while len(args_to_check) > 0:
+                    args = args_to_check.pop()
+                    for arg in args:
+                        if arg[0] in [SNUBA_AND, SNUBA_OR]:
+                            args_to_check.extend(arg[1])
+                        else:
+                            alias = arg[1][0]
+                            found = any(
+                                alias == agg_clause[-1] for agg_clause in snuba_filter.aggregations
+                            )
+                            if not found:
+                                conditions_not_in_aggregations.append(alias)
+
+                if len(conditions_not_in_aggregations) > 0:
+                    raise InvalidSearchQuery(
+                        u"Aggregate(s) {} used in a condition but are not in the selected columns.".format(
+                            ", ".join(conditions_not_in_aggregations)
+                        )
                     )
+            else:
+                found = any(
+                    having_clause[0] == agg_clause[-1] for agg_clause in snuba_filter.aggregations
                 )
+                if not found:
+                    raise InvalidSearchQuery(
+                        u"Aggregate {} used in a condition but is not a selected column.".format(
+                            having_clause[0]
+                        )
+                    )
 
         if conditions is not None:
             snuba_filter.conditions.extend(conditions)
@@ -629,12 +586,9 @@ def key_transaction_query(selected_columns, user_query, params, orderby, referre
     )
 
 
-def get_timeseries_snuba_filter(selected_columns, query, params, rollup, reference_event=None):
-    # TODO(evanh): These can be removed once we migrate the frontend / saved queries
-    # to use the new function values
-    selected_columns, _ = transform_deprecated_functions_in_columns(selected_columns)
-    query = transform_deprecated_functions_in_query(query)
-
+def get_timeseries_snuba_filter(
+    selected_columns, query, params, rollup, reference_event=None, default_count=True
+):
     snuba_filter = get_filter(query, params)
     if not snuba_filter.start and not snuba_filter.end:
         raise InvalidSearchQuery("Cannot get timeseries result without a start and end.")
@@ -652,7 +606,7 @@ def get_timeseries_snuba_filter(selected_columns, query, params, rollup, referen
 
     # Change the alias of the first aggregation to count. This ensures compatibility
     # with other parts of the timeseries endpoint expectations
-    if len(snuba_filter.aggregations) == 1:
+    if len(snuba_filter.aggregations) == 1 and default_count:
         snuba_filter.aggregations[0][2] = "count"
 
     return snuba_filter, translated_columns
@@ -786,6 +740,7 @@ def top_events_timeseries(
     limit,
     organization,
     referrer=None,
+    top_events=None,
 ):
     """
     High-level API for doing arbitrary user timeseries queries for a limited number of top events
@@ -806,26 +761,30 @@ def top_events_timeseries(
     organization (Organization) Used to map group ids to short ids
     referrer (str|None) A referrer string to help locate the origin of this query.
     """
-    with sentry_sdk.start_span(op="discover.discover", description="top_events.fetch_events"):
-        top_events = query(
-            selected_columns,
-            query=user_query,
-            params=params,
-            orderby=orderby,
-            limit=limit,
-            referrer=referrer,
-            use_aggregate_conditions=True,
-        )
+    if top_events is None:
+        with sentry_sdk.start_span(op="discover.discover", description="top_events.fetch_events"):
+            top_events = query(
+                selected_columns,
+                query=user_query,
+                params=params,
+                orderby=orderby,
+                limit=limit,
+                referrer=referrer,
+                use_aggregate_conditions=True,
+            )
 
     with sentry_sdk.start_span(
         op="discover.discover", description="top_events.filter_transform"
     ) as span:
         span.set_data("query", user_query)
         snuba_filter, translated_columns = get_timeseries_snuba_filter(
-            timeseries_columns + selected_columns, user_query, params, rollup
+            list(set(timeseries_columns + selected_columns)),
+            user_query,
+            params,
+            rollup,
+            default_count=False,
         )
 
-        user_fields = FIELD_ALIASES["user"]["fields"]
         for field in selected_columns:
             # project is handled by filter_keys already
             if field in ["project", "project.id"]:
@@ -844,14 +803,6 @@ def top_events_timeseries(
                 # timestamp needs special handling, creating a big OR instead
                 if field == "timestamp":
                     snuba_filter.conditions.append([["timestamp", "=", value] for value in values])
-                # A user field can be any of its field aliases, do an OR across all the user fields
-                elif field == "user":
-                    snuba_filter.conditions.append(
-                        [
-                            [resolve_discover_column(user_field), "IN", values]
-                            for user_field in user_fields
-                        ]
-                    )
                 elif None in values:
                     non_none_values = [value for value in values if value is not None]
                     condition = [[["isNull", [resolve_discover_column(field)]], "=", 1]]
@@ -888,12 +839,6 @@ def top_events_timeseries(
             translated_columns.get(groupby, groupby) for groupby in snuba_filter.groupby
         ]
 
-        if "user" in selected_columns:
-            # Determine user related fields to prune based on what wasn't selected, since transform_results does the same
-            for field in user_fields:
-                if field not in selected_columns:
-                    translated_groupby.remove(field)
-            translated_groupby.append("user")
         issues = {}
         if "issue" in selected_columns:
             issues = Group.issues_mapping(
@@ -961,10 +906,6 @@ def get_facets(query, params, limit=10, referrer=None):
         op="discover.discover", description="facets.filter_transform"
     ) as span:
         span.set_data("query", query)
-        # TODO(evanh): This can be removed once we migrate the frontend / saved queries
-        # to use the new function values
-        query = transform_deprecated_functions_in_query(query)
-
         snuba_filter = get_filter(query, params)
 
         # Resolve the public aliases into the discover dataset names.

@@ -38,11 +38,11 @@ describe('TableField', function() {
         />,
         TestStubs.routerContext()
       );
-      expect(wrapper).toMatchSnapshot();
+      expect(wrapper).toSnapshot();
     });
 
     it('renders with form context', function() {
-      expect(wrapper).toMatchSnapshot();
+      expect(wrapper).toSnapshot();
     });
 
     it('renders button text', function() {

@@ -123,6 +123,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 (
                     snuba.RateLimitExceeded,
                     snuba.QueryMemoryLimitExceeded,
+                    snuba.QueryExecutionTimeMaximum,
                     snuba.QueryTooManySimultaneous,
                 ),
             ):
@@ -130,9 +131,12 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             elif isinstance(
                 error,
                 (
-                    snuba.UnqualifiedQueryError,
+                    snuba.DatasetSelectionError,
+                    snuba.QueryConnectionFailed,
                     snuba.QueryExecutionError,
+                    snuba.QuerySizeExceeded,
                     snuba.SchemaValidationError,
+                    snuba.UnqualifiedQueryError,
                 ),
             ):
                 sentry_sdk.capture_exception(error)
@@ -171,11 +175,13 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 row["transaction.status"] = SPAN_STATUS_CODE_TO_NAME.get(row["transaction.status"])
 
         fields = request.GET.getlist("field")
-        if "issue" in fields:  # Look up the short ID and return that in the results
-            issue_ids = set(row.get("issue.id") for row in results)
-            issues = Group.issues_mapping(issue_ids, project_ids, organization)
+        has_issues = "issue" in fields
+        if has_issues:  # Look up the short ID and return that in the results
+            if has_issues:
+                issue_ids = set(row.get("issue.id") for row in results)
+                issues = Group.issues_mapping(issue_ids, project_ids, organization)
             for result in results:
-                if "issue.id" in result:
+                if has_issues and "issue.id" in result:
                     result["issue"] = issues.get(result["issue.id"], "unknown")
 
         if not ("project.id" in first_row or "projectid" in first_row):
@@ -189,12 +195,14 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 
         return results
 
-    def get_event_stats_data(self, request, organization, get_event_stats, top_events=False):
+    def get_event_stats_data(
+        self, request, organization, get_event_stats, top_events=False, query_column="count()"
+    ):
         with self.handle_query_errors():
             with sentry_sdk.start_span(
                 op="discover.endpoint", description="base.stats_query_creation"
             ):
-                columns = request.GET.getlist("yAxis", ["count()"])
+                columns = request.GET.getlist("yAxis", [query_column])
                 query = request.GET.get("query")
                 try:
                     params = self.get_filter_params(request, organization)
@@ -241,7 +249,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     else:
                         # Need to get function alias if count is a field, but not the axis
                         results[key] = serializer.serialize(
-                            event_result, get_function_alias(query_columns[0])
+                            event_result, column=get_function_alias(query_columns[0])
                         )
                 return results
             elif len(query_columns) > 1:

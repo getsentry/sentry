@@ -9,7 +9,8 @@ import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValue
 import {defined} from 'app/utils';
 
 import getUserKnownData from './getUserKnownData';
-import {UserKnownDataType} from './types';
+import {UserKnownDataType, UserIgnoredDataType} from './types';
+import getUnknownData from '../getUnknownData';
 
 type Props = {
   data: Data;
@@ -27,6 +28,8 @@ const userKnownDataValues = [
   UserKnownDataType.NAME,
 ];
 
+const userIgnoredDataValues = [UserIgnoredDataType.DATA];
+
 const User = ({data}: Props) => {
   const getKeyValueData = (val: object) => Object.keys(val).map(key => [key, val[key]]);
 
@@ -35,7 +38,10 @@ const User = ({data}: Props) => {
       <div className="pull-left">
         <UserAvatar user={removeFilterMaskedEntries(data)} size={48} gravatar={false} />
       </div>
-      <ContextBlock knownData={getUserKnownData(data, userKnownDataValues)} />
+      <ContextBlock data={getUserKnownData(data, userKnownDataValues)} />
+      <ContextBlock
+        data={getUnknownData(data, [...userKnownDataValues, ...userIgnoredDataValues])}
+      />
       {defined(data?.data) && (
         <ErrorBoundary mini>
           <KeyValueList data={getKeyValueData(data.data)} isContextData />

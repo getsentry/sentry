@@ -12,6 +12,7 @@ function initializeData() {
   const organization = TestStubs.Organization({
     features,
     projects: [TestStubs.Project()],
+    apdexThreshold: 400,
   });
   const initialData = initializeOrg({
     organization,
@@ -155,6 +156,26 @@ describe('Performance > TransactionSummary', function() {
 
     // Ensure transaction filter button exists
     expect(wrapper.find('[data-test-id="filter-transactions"]')).toHaveLength(1);
+
+    // Ensure create alert from discover is hidden without metric alert
+    expect(wrapper.find('CreateAlertButton')).toHaveLength(0);
+  });
+
+  it('renders feature flagged UI elements', async function() {
+    const initialData = initializeData();
+    initialData.organization.features.push('incidents');
+    const wrapper = mountWithTheme(
+      <TransactionSummary
+        organization={initialData.organization}
+        location={initialData.router.location}
+      />,
+      initialData.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    // Ensure create alert from discover is shown with metric alerts
+    expect(wrapper.find('CreateAlertButton')).toHaveLength(1);
   });
 
   it('triggers a navigation on search', async function() {

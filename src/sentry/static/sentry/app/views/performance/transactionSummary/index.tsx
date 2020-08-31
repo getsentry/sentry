@@ -25,6 +25,7 @@ import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
 
 import SummaryContent from './content';
+import {addRoutePerformanceContext} from '../utils';
 
 type Props = {
   api: Client;
@@ -64,6 +65,7 @@ class TransactionSummary extends React.Component<Props, State> {
     const {api, organization, selection} = this.props;
     this.fetchTotalCount();
     loadOrganizationTags(api, organization.slug, selection);
+    addRoutePerformanceContext(selection);
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
@@ -83,6 +85,7 @@ class TransactionSummary extends React.Component<Props, State> {
       !isEqual(prevProps.selection.datetime, selection.datetime)
     ) {
       loadOrganizationTags(api, organization.slug, selection);
+      addRoutePerformanceContext(selection);
     }
   }
 
@@ -175,23 +178,26 @@ function generateSummaryEventView(
   // Use the user supplied query but overwrite any transaction or event type
   // conditions they applied.
   const query = decodeScalar(location.query.query) || '';
-  const conditions = Object.assign(tokenizeSearch(query), {
-    'event.type': ['transaction'],
-    transaction: [transactionName],
-  });
+  const conditions = tokenizeSearch(query);
+  conditions
+    .setTag('event.type', ['transaction'])
+    .setTag('transaction', [transactionName]);
 
-  Object.keys(conditions).forEach(field => {
-    if (isAggregateField(field)) delete conditions[field];
+  Object.keys(conditions.tagValues).forEach(field => {
+    if (isAggregateField(field)) conditions.removeTag(field);
   });
 
   // Handle duration filters from the latency chart
   if (location.query.startDuration || location.query.endDuration) {
-    conditions['transaction.duration'] = [
-      decodeScalar(location.query.startDuration),
-      decodeScalar(location.query.endDuration),
-    ]
-      .filter(item => item)
-      .map((item, index) => (index === 0 ? `>${item}` : `<${item}`));
+    conditions.setTag(
+      'transaction.duration',
+      [
+        decodeScalar(location.query.startDuration),
+        decodeScalar(location.query.endDuration),
+      ]
+        .filter(item => item)
+        .map((item, index) => (index === 0 ? `>${item}` : `<${item}`))
+    );
   }
 
   return EventView.fromNewQueryWithLocation(
@@ -199,7 +205,7 @@ function generateSummaryEventView(
       id: undefined,
       version: 2,
       name: transactionName,
-      fields: ['id', 'user', 'transaction.duration', 'timestamp'],
+      fields: ['id', 'user.display', 'transaction.duration', 'timestamp'],
       query: stringifyQueryObject(conditions),
       projects: [],
     },

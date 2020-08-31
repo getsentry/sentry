@@ -341,6 +341,10 @@ table.table.key-value {
       word-break: break-word;
       padding: 8px 10px;
       font-size: 12px;
+
+      .val-string:first-child {
+        padding-left: 0;
+      }
     }
   }
 
@@ -656,7 +660,9 @@ table.table.key-value {
 
 .search-clear-form {
   position: absolute;
-  top: 7px;
+  top: 50%;
+  height: 16px;
+  transform: translateY(-50%);
   right: 10px;
   font-size: 16px;
   color: lighten(@gray, 30);
@@ -779,23 +785,6 @@ table.table.key-value {
 
 .innerColumn(@columnSpan: 1) {
   width: ((@gridColumnWidth) * @columnSpan) + (@gridGutterWidth * (@columnSpan - 1)) - 10;
-}
-
-/**
-* Faces
-* -----
-* A grid of faces for seen-by and participants list
-* ============================================================================
-*/
-
-ul.faces {
-  .list-unstyled;
-  .clearfix;
-
-  li {
-    float: left;
-    margin: 0 5px 5px 0;
-  }
 }
 
 /**

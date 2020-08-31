@@ -64,7 +64,7 @@ setup-git-config:
 
 setup-git: ensure-venv setup-git-config
 	@echo "--> Installing git hooks"
-	cd .git/hooks && ln -sf ../../config/hooks/* ./
+	mkdir -p .git/hooks && cd .git/hooks && ln -sf ../../config/hooks/* ./
 	@PYENV_VERSION=$(REQUIRED_PY3_VERSION) python3 -c '' || (echo 'Please run `make setup-pyenv` to install the required Python 3 version.'; exit 1)
 	$(PIP) install "pre-commit==1.18.2" "virtualenv==20.0.23"
 	@PYENV_VERSION=$(REQUIRED_PY3_VERSION) pre-commit install --install-hooks
@@ -161,18 +161,16 @@ test-js-ci: node-version-check
 	@yarn run test-ci
 	@echo ""
 
-# builds and creates percy snapshots
-test-styleguide:
-	@echo "--> Building and snapshotting styleguide"
-	@yarn run snapshot
-	@echo ""
-
 test-python:
 	@echo "--> Running Python tests"
+	# This gets called by getsentry
+ifndef TEST_GROUP
 	py.test tests/integration tests/sentry
+else
+	py.test tests/integration tests/sentry -m group_$(TEST_GROUP)
+endif
 
 test-python-ci:
-	sentry init
 	make build-platform-assets
 	@echo "--> Running CI Python tests"
 ifndef TEST_GROUP
@@ -193,7 +191,6 @@ test-symbolicator:
 	@echo ""
 
 test-acceptance: node-version-check
-	sentry init
 	@echo "--> Building static assets"
 	@$(WEBPACK) --display errors-only
 	make run-acceptance

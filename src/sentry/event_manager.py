@@ -1,7 +1,6 @@
 from __future__ import absolute_import, print_function
 
 import logging
-import time
 
 
 import ipaddress
@@ -22,8 +21,6 @@ from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS,
     LOG_LEVELS_MAP,
     MAX_TAG_VALUE_LENGTH,
-    MAX_SECS_IN_FUTURE,
-    MAX_SECS_IN_PAST,
 )
 from sentry.grouping.api import (
     get_grouping_config_dict_for_project,
@@ -39,7 +36,6 @@ from sentry.models import (
     Environment,
     EventAttachment,
     EventDict,
-    EventError,
     EventUser,
     File,
     Group,
@@ -98,31 +94,6 @@ def get_tag(data, key):
             return v
 
 
-def validate_and_set_timestamp(data, timestamp):
-    """
-    Helper function for event processors/enhancers to avoid setting broken timestamps.
-
-    If we set a too old or too new timestamp then this affects event retention
-    and search.
-    """
-    # XXX(markus): We should figure out if we could run normalization
-    # after event processing again. Right now we duplicate code between here
-    # and event normalization
-    if timestamp:
-        current = time.time()
-
-        if current - MAX_SECS_IN_PAST > timestamp:
-            data.setdefault("errors", []).append(
-                {"type": EventError.PAST_TIMESTAMP, "name": "timestamp", "value": timestamp}
-            )
-        elif timestamp > current + MAX_SECS_IN_FUTURE:
-            data.setdefault("errors", []).append(
-                {"type": EventError.FUTURE_TIMESTAMP, "name": "timestamp", "value": timestamp}
-            )
-        else:
-            data["timestamp"] = float(timestamp)
-
-
 def plugin_is_regression(group, event):
     project = event.project
     for plugin in plugins.for_project(project):
@@ -169,7 +140,7 @@ def get_stored_crashreports(cache_key, event, max_crashreports):
         return max_crashreports
 
     cached_reports = cache.get(cache_key, None)
-    if cached_reports >= max_crashreports:
+    if cached_reports is not None and cached_reports >= max_crashreports:
         return cached_reports
 
     # Fall-through if max_crashreports was bumped to get a more accurate number.
@@ -451,11 +422,11 @@ class EventManager(object):
                 group=job["group"], environment=job["environment"]
             )
 
-        # XXX: DO NOT MUTATE THE EVENT PAYLOAD AFTER THIS POINT
-        _materialize_event_metrics(jobs)
-
         with metrics.timer("event_manager.filter_attachments_for_group"):
             attachments = filter_attachments_for_group(attachments, job)
+
+        # XXX: DO NOT MUTATE THE EVENT PAYLOAD AFTER THIS POINT
+        _materialize_event_metrics(jobs)
 
         for attachment in attachments:
             key = "bytes.stored.%s" % (attachment.type,)
@@ -1147,9 +1118,7 @@ def discard_event(job, attachments):
         )
 
     metrics.incr(
-        "events.discarded",
-        skip_internal=True,
-        tags={"organization_id": project.organization_id, "platform": job["platform"]},
+        "events.discarded", skip_internal=True, tags={"platform": job["platform"]},
     )
 
 
@@ -1223,6 +1192,14 @@ def filter_attachments_for_group(attachments, job):
         # has already verified PII and just store the attachment.
         if attachment.type in CRASH_REPORT_TYPES:
             if crashreports_exceeded(stored_reports, max_crashreports):
+                # Indicate that the crash report has been removed due to a limit
+                # on the maximum number of crash reports. If this flag is True,
+                # it indicates that there are *other* events in the same group
+                # that store a crash report. This flag will therefore *not* be
+                # set if storage of crash reports is completely disabled.
+                if max_crashreports > 0:
+                    job["data"]["metadata"]["stripped_crash"] = True
+
                 track_outcome(
                     org_id=event.project.organization_id,
                     project_id=job["project_id"],

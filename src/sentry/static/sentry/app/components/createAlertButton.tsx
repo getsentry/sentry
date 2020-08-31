@@ -165,7 +165,11 @@ function incompatibleYAxis(eventView: EventView): boolean {
 
   const invalidFunction = !yAxisConfig.aggregations.includes(column.function[0]);
   // Allow empty parameters, allow all numeric parameters - eg. apdex(300)
-  const aggregation: Aggregation = AGGREGATIONS[column.function[0]];
+  const aggregation: Aggregation | undefined = AGGREGATIONS[column.function[0]];
+  if (!aggregation) {
+    return false;
+  }
+
   const isNumericParameter = aggregation.parameters.some(
     param => param.kind === 'value' && param.dataType === 'number'
   );
@@ -209,7 +213,7 @@ function CreateAlertButton({
   const to = hasErrors
     ? undefined
     : {
-        pathname: `/settings/${organization.slug}/projects/${project?.slug}/alerts/new/`,
+        pathname: `/organizations/${organization.slug}/alerts/${project?.slug}/new/`,
         query: {
           ...eventView.generateQueryStringObject(),
           createFromDiscover: true,

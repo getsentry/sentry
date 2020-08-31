@@ -543,7 +543,7 @@ class SnubaTagStorage(TagStorage):
         if not result:
             return None
         else:
-            return result.keys()[0]
+            return list(result.keys())[0]
 
     def get_first_release(self, project_id, group_id):
         return self.__get_release(project_id, group_id, True)
@@ -669,7 +669,15 @@ class SnubaTagStorage(TagStorage):
         )
 
     def get_tag_value_paginator_for_projects(
-        self, projects, environments, key, start=None, end=None, query=None, order_by="-last_seen"
+        self,
+        projects,
+        environments,
+        key,
+        start=None,
+        end=None,
+        query=None,
+        order_by="-last_seen",
+        include_transactions=False,
     ):
         from sentry.api.paginator import SequencePaginator
 
@@ -678,16 +686,34 @@ class SnubaTagStorage(TagStorage):
 
         dataset = Dataset.Events
         snuba_key = snuba.get_snuba_column_name(key)
-        if snuba_key.startswith("tags["):
+        if include_transactions and snuba_key.startswith("tags["):
             snuba_key = snuba.get_snuba_column_name(key, dataset=Dataset.Discover)
             if not snuba_key.startswith("tags["):
                 dataset = Dataset.Discover
+
+        # We cannot search the values of these columns like we do other columns because they are
+        # a different type, and as such, LIKE and != do not work on them. Furthermore, because the
+        # use case for these values in autosuggestion is minimal, so we choose to disable them here.
+        #
+        # event_id:     This is a FixedString which disallows us to use LIKE on it when searching,
+        #               but does work with !=. However, for consistency sake we disallow it
+        #               entirely, furthermore, suggesting an event_id is not a very useful feature
+        #               as they are not human readable.
+        # timestamp:    This is a DateTime which disallows us to use both LIKE and != on it when
+        #               searching. Suggesting a timestamp can potentially be useful but as it does
+        #               work at all, we opt to disable it here. A potential solution can be to
+        #               generate a time range to bound where they are searching. e.g. if a user
+        #               enters 2020-07 we can generate the following conditions:
+        #               >= 2020-07-01T00:00:00 AND <= 2020-07-31T23:59:59
+        # time:         This is a column computed from timestamp so it suffers the same issues
+        if snuba_key in {"event_id", "timestamp", "time"}:
+            return SequencePaginator([])
 
         conditions = []
 
         # transaction status needs a special case so that the user interacts with the names and not codes
         transaction_status = snuba_key == "transaction_status"
-        if transaction_status:
+        if include_transactions and transaction_status:
             conditions.append(
                 [
                     snuba_key,
@@ -706,18 +732,21 @@ class SnubaTagStorage(TagStorage):
             if converted_query is not None:
                 conditions.append([snuba_key, ">=", converted_query - FUZZY_NUMERIC_DISTANCE])
                 conditions.append([snuba_key, "<=", converted_query + FUZZY_NUMERIC_DISTANCE])
-        elif key == PROJECT_ALIAS:
+        elif include_transactions and key == PROJECT_ALIAS:
             project_filters = {
                 "id__in": projects,
             }
             if query:
                 project_filters["slug__icontains"] = query
             project_queryset = Project.objects.filter(**project_filters).values("id", "slug")
+
+            if not project_queryset.exists():
+                return SequencePaginator([])
+
             project_slugs = {project["id"]: project["slug"] for project in project_queryset}
-            if project_queryset.exists():
-                projects = [project["id"] for project in project_queryset]
-                snuba_key = "project_id"
-                dataset = Dataset.Discover
+            projects = [project["id"] for project in project_queryset]
+            snuba_key = "project_id"
+            dataset = Dataset.Discover
         else:
             if snuba_key in BLACKLISTED_COLUMNS:
                 snuba_key = "tags[%s]" % (key,)
@@ -750,19 +779,24 @@ class SnubaTagStorage(TagStorage):
             referrer="tagstore.get_tag_value_paginator_for_projects",
         )
 
-        # With transaction_status we need to map the ids back to their names
-        if transaction_status:
-            results = OrderedDict(
-                [
-                    (SPAN_STATUS_CODE_TO_NAME[result_key], data)
-                    for result_key, data in six.iteritems(results)
-                ]
-            )
-        # With project names we map the ids back to the project slugs
-        elif key == PROJECT_ALIAS:
-            results = OrderedDict(
-                [(project_slugs[value], data) for value, data in six.iteritems(results)]
-            )
+        if include_transactions:
+            # With transaction_status we need to map the ids back to their names
+            if transaction_status:
+                results = OrderedDict(
+                    [
+                        (SPAN_STATUS_CODE_TO_NAME[result_key], data)
+                        for result_key, data in six.iteritems(results)
+                    ]
+                )
+            # With project names we map the ids back to the project slugs
+            elif key == PROJECT_ALIAS:
+                results = OrderedDict(
+                    [
+                        (project_slugs[value], data)
+                        for value, data in six.iteritems(results)
+                        if value in project_slugs
+                    ]
+                )
 
         tag_values = [
             TagValue(key=key, value=six.text_type(value), **fix_tag_value_data(data))

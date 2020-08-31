@@ -14,6 +14,7 @@ __all__ = (
     "AcceptanceTestCase",
     "IntegrationTestCase",
     "SnubaTestCase",
+    "BaseIncidentsTest",
     "IntegrationRepositoryTestCase",
     "ReleaseCommitPatchTest",
     "SetRefsTestCase",
@@ -26,6 +27,8 @@ import pytest
 import requests
 import six
 import inspect
+from uuid import uuid4
+from contextlib import contextmanager
 from sentry.utils.compat import mock
 
 from click.testing import CliRunner
@@ -41,6 +44,8 @@ from django.http import HttpRequest
 from django.test import override_settings, TestCase, TransactionTestCase
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
+from django.utils.functional import cached_property
+
 from exam import before, fixture, Exam
 from concurrent.futures import ThreadPoolExecutor
 from sentry.utils.compat.mock import patch
@@ -78,17 +83,12 @@ from sentry.rules import EventState
 from sentry.tagstore.snuba import SnubaTagStorage
 from sentry.utils import json
 from sentry.utils.auth import SSO_SESSION_KEY
+from sentry.testutils.helpers.datetime import iso_format
 
 from .fixtures import Fixtures
 from .factories import Factories
 from .skips import requires_snuba
-from .helpers import (
-    AuthProvider,
-    Feature,
-    TaskRunner,
-    override_options,
-    parse_queries,
-)
+from .helpers import AuthProvider, Feature, TaskRunner, override_options, parse_queries
 
 DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36"
 
@@ -106,6 +106,25 @@ class BaseTestCase(Fixtures, Exam):
 
     def tasks(self):
         return TaskRunner()
+
+    @classmethod
+    @contextmanager
+    def capture_on_commit_callbacks(cls, using=DEFAULT_DB_ALIAS, execute=False):
+        """
+        Context manager to capture transaction.on_commit() callbacks.
+        Backported from Django:
+        https://github.com/django/django/pull/12944
+        """
+        callbacks = []
+        start_count = len(connections[using].run_on_commit)
+        try:
+            yield callbacks
+        finally:
+            run_on_commit = connections[using].run_on_commit[start_count:]
+            callbacks[:] = [func for sids, func in run_on_commit]
+            if execute:
+                for callback in callbacks:
+                    callback()
 
     def feature(self, names):
         """
@@ -751,10 +770,34 @@ class SnubaTestCase(BaseTestCase):
 
         assert (
             requests.post(
-                settings.SENTRY_SNUBA + "/tests/events/insert", data=json.dumps(events),
+                settings.SENTRY_SNUBA + "/tests/events/insert", data=json.dumps(events)
             ).status_code
             == 200
         )
+
+
+class BaseIncidentsTest(SnubaTestCase):
+    def create_event(self, timestamp, fingerprint=None, user=None):
+        event_id = uuid4().hex
+        if fingerprint is None:
+            fingerprint = event_id
+
+        data = {
+            "event_id": event_id,
+            "fingerprint": [fingerprint],
+            "timestamp": iso_format(timestamp),
+            "type": "error",
+            # This is necessary because event type error should not exist without
+            # an exception being in the payload
+            "exception": [{"type": "Foo"}],
+        }
+        if user:
+            data["user"] = user
+        return self.store_event(data=data, project_id=self.project.id)
+
+    @cached_property
+    def now(self):
+        return timezone.now().replace(minute=0, second=0, microsecond=0)
 
 
 @pytest.mark.snuba

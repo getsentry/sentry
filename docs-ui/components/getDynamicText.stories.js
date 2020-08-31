@@ -10,8 +10,8 @@ export default {
 export const GetDynamicText = withInfo(
   `
   Use this to wrap dynamic content (i.e. dates) for acceptance/snapshot tests.
-  Currently checks for existence of PERCY_TOKEN env var.
-  (storybook webpack config has webpack.DefinePlugin for "process.env.IS_PERCY")
+  Currently checks for IS_CI env var.
+  (webpack config has webpack.DefinePlugin for "process.env.IS_CI")
   `
 )(() => {
   return (

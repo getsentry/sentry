@@ -49,7 +49,6 @@ const validHookNames = new Set<HookName>([
   'routes:admin',
   'routes:organization',
   'routes:organization-root',
-  'settings:organization-general-settings',
   'settings:organization-navigation',
   'settings:organization-navigation-config',
   'sidebar:bottom-items',
@@ -78,7 +77,7 @@ const hookStoreConfig: Reflux.StoreDefinition & HookStoreInterface = {
 
   add(hookName, callback) {
     // Gracefully error on invalid hooks, but maintain registration
-    // TODO(ts): With typescript we can rmeove this in the future
+    // TODO(ts): With typescript we can remove this in the future
     if (!validHookNames.has(hookName)) {
       // eslint-disable-next-line no-console
       console.error('Invalid hook name: ' + hookName);

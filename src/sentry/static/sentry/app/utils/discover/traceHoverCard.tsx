@@ -10,12 +10,11 @@ import Version from 'app/components/version';
 import space from 'app/styles/space';
 import Clipboard from 'app/components/clipboard';
 import {IconCopy} from 'app/icons';
-import {TableData} from 'app/views/eventsV2/table/types';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import LoadingError from 'app/components/loadingError';
 
 import EventView from './eventView';
-import DiscoverQuery from './discoverQuery';
+import DiscoverQuery, {TableData} from './discoverQuery';
 
 type ChildrenProps = {to: LocationDescriptor};
 

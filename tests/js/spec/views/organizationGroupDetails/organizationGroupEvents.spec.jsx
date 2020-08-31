@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import {browserHistory} from 'react-router';
 
-import {mount, shallow} from 'sentry-test/enzyme';
+import {shallow, mountWithTheme} from 'sentry-test/enzyme';
 
 import {GroupEvents} from 'app/views/organizationGroupDetails/groupEvents';
 
@@ -52,7 +52,7 @@ describe('groupEvents', function() {
   });
 
   it('renders', function() {
-    const component = mount(
+    const component = mountWithTheme(
       <OrganizationGroupEvents
         api={new MockApiClient()}
         group={TestStubs.Group()}
@@ -62,7 +62,7 @@ describe('groupEvents', function() {
       routerContext
     );
 
-    expect(component.find('tr')).toMatchSnapshot();
+    expect(component).toSnapshot();
   });
 
   it('handles search', function() {
