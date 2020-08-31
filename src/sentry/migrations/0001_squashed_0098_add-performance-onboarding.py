@@ -10,10 +10,10 @@ from bitfield.types import BitHandler
 import bitfield.models
 from django.conf import settings
 from django.db import migrations, models
+from django.utils import timezone
 import django.db.migrations.operations.special
 import django.db.models.deletion
 import django.db.models.manager
-import django.utils.timezone
 import sentry.db.mixin
 import sentry.db.models.fields.array
 import sentry.db.models.fields.bounded
