@@ -1,4 +1,4 @@
-**Note**: This plugin has been deprecated in favor of the `Gitlab Global Integration <https://docs.sentry.io/workflow/integrations/global-integrations/#gitlab>`_.
+**Note**: This plugin has been deprecated in favor of the `Gitlab Global Integration <https://docs.sentry.io/product/integrations/gitlab/>`_.
 
 Go to your project's configuration page (Projects -> [Project] -> Issue Tracking) and select
 GitLab. Enter the required credentials (use a `personal access

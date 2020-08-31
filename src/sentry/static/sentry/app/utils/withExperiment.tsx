@@ -2,8 +2,8 @@ import React from 'react';
 
 import ConfigStore from 'app/stores/configStore';
 import {Organization} from 'app/types';
-import {getDisplayName} from 'app/utils/environment';
 import {experimentConfig, unassignedValue} from 'app/data/experimentConfig';
+import getDisplayName from 'app/utils/getDisplayName';
 import {logExperiment} from 'app/utils/analytics';
 import {
   Experiments,

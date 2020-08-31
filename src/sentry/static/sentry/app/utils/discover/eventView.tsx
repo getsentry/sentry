@@ -40,7 +40,7 @@ export type MetaType = Record<string, ColumnType>;
 // Data in discover results.
 export type EventData = Record<string, any>;
 
-type LocationQuery = {
+export type LocationQuery = {
   start?: string | string[];
   end?: string | string[];
   utc?: string | string[];
@@ -549,6 +549,10 @@ class EventView {
 
   hasAggregateField() {
     return this.fields.some(field => isAggregateField(field.field));
+  }
+
+  hasIdField() {
+    return this.fields.some(field => field.field === 'id');
   }
 
   numOfColumns(): number {

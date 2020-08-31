@@ -11,6 +11,7 @@ from django.utils import timezone
 
 from sentry import analytics
 from sentry.api.event_search import get_filter, resolve_field
+from sentry.constants import SentryAppInstallationStatus
 from sentry.incidents import tasks
 from sentry.incidents.models import (
     AlertRule,
@@ -35,7 +36,7 @@ from sentry.incidents.models import (
     TimeSeriesSnapshot,
     TriggerStatus,
 )
-from sentry.models import Integration, Project
+from sentry.models import Integration, Project, PagerDutyService, SentryApp
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QueryDatasets
 from sentry.snuba.subscriptions import (
@@ -1059,13 +1060,9 @@ def create_alert_rule_trigger_action(
         if target_type != AlertRuleTriggerAction.TargetType.SPECIFIC:
             raise InvalidTriggerActionError("Must specify specific target type")
 
-        channel_id = get_alert_rule_trigger_action_integration_object_id(
-            type.value, trigger.alert_rule.organization, integration.id, target_identifier
+        target_identifier, target_display = get_target_identifier_display_for_integration(
+            type.value, target_identifier, trigger.alert_rule.organization, integration.id
         )
-
-        # Use the channel name for display
-        target_display = target_identifier
-        target_identifier = channel_id
 
     return AlertRuleTriggerAction.objects.create(
         alert_rule_trigger=trigger,
@@ -1103,29 +1100,39 @@ def update_alert_rule_trigger_action(
         if type in AlertRuleTriggerAction.INTEGRATION_TYPES:
             integration = updated_fields.get("integration", trigger_action.integration)
             organization = trigger_action.alert_rule_trigger.alert_rule.organization
-            channel_id = get_alert_rule_trigger_action_integration_object_id(
-                type, organization, integration.id, target_identifier,
-            )
-            # Use the target identifier for display
-            updated_fields["target_display"] = target_identifier
-            updated_fields["target_identifier"] = channel_id
-        else:
-            updated_fields["target_identifier"] = target_identifier
 
+            target_identifier, target_display = get_target_identifier_display_for_integration(
+                type, target_identifier, organization, integration.id,
+            )
+            updated_fields["target_display"] = target_display
+        updated_fields["target_identifier"] = target_identifier
     trigger_action.update(**updated_fields)
     return trigger_action
 
 
-def get_alert_rule_trigger_action_integration_object_id(type, *args, **kwargs):
+def get_target_identifier_display_for_integration(type, target_value, *args, **kwargs):
+    # target_value is the Slack username or channel name
     if type == AlertRuleTriggerAction.Type.SLACK.value:
-        return get_alert_rule_trigger_action_slack_channel_id(*args, **kwargs)
+        target_identifier = get_alert_rule_trigger_action_slack_channel_id(
+            target_value, *args, **kwargs
+        )
+    # target_value is the MSTeams username or channel name
     elif type == AlertRuleTriggerAction.Type.MSTEAMS.value:
-        return get_alert_rule_trigger_action_msteams_channel_id(*args, **kwargs)
+        target_identifier = get_alert_rule_trigger_action_msteams_channel_id(
+            target_value, *args, **kwargs
+        )
+    # target_value is the ID of the PagerDuty service
+    elif type == AlertRuleTriggerAction.Type.PAGERDUTY.value:
+        target_identifier, target_value = get_alert_rule_trigger_action_pagerduty_service(
+            target_value, *args, **kwargs
+        )
     else:
         raise Exception("Not implemented")
 
+    return target_identifier, target_value
 
-def get_alert_rule_trigger_action_slack_channel_id(organization, integration_id, name):
+
+def get_alert_rule_trigger_action_slack_channel_id(name, organization, integration_id):
     from sentry.integrations.slack.utils import get_channel_id
 
     try:
@@ -1153,7 +1160,7 @@ def get_alert_rule_trigger_action_slack_channel_id(organization, integration_id,
     return channel_id
 
 
-def get_alert_rule_trigger_action_msteams_channel_id(organization, integration_id, name):
+def get_alert_rule_trigger_action_msteams_channel_id(name, organization, integration_id):
     from sentry.integrations.msteams.utils import get_channel_id
 
     channel_id = get_channel_id(organization, integration_id, name)
@@ -1163,6 +1170,15 @@ def get_alert_rule_trigger_action_msteams_channel_id(organization, integration_i
         raise InvalidTriggerActionError("Could not find channel %s." % name)
 
     return channel_id
+
+
+def get_alert_rule_trigger_action_pagerduty_service(target_value, organization, integration_id):
+    try:
+        service = PagerDutyService.objects.get(id=target_value)
+    except PagerDutyService.DoesNotExist:
+        raise InvalidTriggerActionError("No PagerDuty service found.")
+
+    return (service.id, service.service_name)
 
 
 def delete_alert_rule_trigger_action(trigger_action):
@@ -1188,6 +1204,21 @@ def get_available_action_integrations_for_org(organization):
         if registration.integration_provider is not None
     ]
     return Integration.objects.filter(organizations=organization, provider__in=providers)
+
+
+def get_alertable_sentry_apps(organization_id):
+    return SentryApp.objects.filter(
+        installations__organization_id=organization_id,
+        is_alertable=True,
+        installations__status=SentryAppInstallationStatus.INSTALLED,
+    ).distinct()
+
+
+def get_pagerduty_services(organization, integration_id):
+    return PagerDutyService.objects.filter(
+        organization_integration__organization=organization,
+        organization_integration__integration_id=integration_id,
+    ).values("id", "service_name")
 
 
 # TODO: This is temporarily needed to support back and forth translations for snuba / frontend.

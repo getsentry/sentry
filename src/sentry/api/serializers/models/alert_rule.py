@@ -42,10 +42,19 @@ class AlertRuleSerializer(Serializer):
             rule_result = result[alert_rules[alert_rule_id]].setdefault("projects", [])
             rule_result.append(project_slug)
 
-        for alert_rule_id, user_id in AlertRuleActivity.objects.filter(
+        for rule_activity in AlertRuleActivity.objects.filter(
             alert_rule__in=item_list, type=AlertRuleActivityType.CREATED.value
-        ).values_list("alert_rule", "user"):
-            result[alert_rules[alert_rule_id]].update({"created_by": user_id})
+        ).select_related("alert_rule", "user"):
+            if rule_activity.user:
+                user = {
+                    "id": rule_activity.user.id,
+                    "name": rule_activity.user.get_display_name(),
+                    "email": rule_activity.user.email,
+                }
+            else:
+                user = None
+
+            result[alert_rules[rule_activity.alert_rule.id]].update({"created_by": user})
 
         return result
 

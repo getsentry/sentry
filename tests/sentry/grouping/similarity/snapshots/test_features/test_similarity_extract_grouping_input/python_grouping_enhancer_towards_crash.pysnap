@@ -1,0 +1,12 @@
+---
+created: '2020-08-21T21:07:52.216110Z'
+creator: sentry
+source: tests/sentry/grouping/similarity/test_features.py
+---
+similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","response = wrapped_callback(request, *callback_args, **callback_kwargs)"],["filename","base.py"],["function","get_response"],["module","django.core.handlers.base"]],[["context-line","return self.dispatch(request, *args, **kwargs)"],["filename","base.py"],["function","view"],["module","django.views.generic.base"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["context-line","return self.dispatch(request, *args, **kwargs)"],["filename","base.py"],["function","view"],["module","django.views.generic.base"]],[["context-line","return bound_func(*args, **kwargs)"],["filename","decorators.py"],["function","_wrapper"],["module","django.utils.decorators"]]]
+similarity:2020-07-23:type:ident-shingle: "MultiValueDictKeyError"
+similarity:2020-07-23:value:character-5-shingle: "'user"
+similarity:2020-07-23:value:character-5-shingle: "\"'use"
+similarity:2020-07-23:value:character-5-shingle: "ser'\""
+similarity:2020-07-23:value:character-5-shingle: "user'"

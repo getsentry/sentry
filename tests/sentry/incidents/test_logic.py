@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import pytest
-from uuid import uuid4
 import responses
 from datetime import timedelta
 from exam import fixture, patcher
@@ -11,7 +10,6 @@ import six
 from django.conf import settings
 from django.core import mail
 from django.utils import timezone
-from django.utils.functional import cached_property
 
 from sentry.api.event_search import InvalidSearchQuery
 from sentry.incidents.events import (
@@ -77,7 +75,9 @@ from sentry.incidents.models import (
 )
 from sentry.snuba.models import QueryDatasets, QuerySubscription
 from sentry.models.integration import Integration
-from sentry.testutils import TestCase, SnubaTestCase
+from sentry.testutils import TestCase, BaseIncidentsTest
+from sentry.models import PagerDutyService
+
 from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.utils import json
 from sentry.utils.compat.mock import patch
@@ -230,30 +230,6 @@ class UpdateIncidentStatus(TestCase):
         self.run_test(
             incident, IncidentStatus.CLOSED, timezone.now(), user=self.user, comment="lol"
         )
-
-
-class BaseIncidentsTest(SnubaTestCase):
-    def create_event(self, timestamp, fingerprint=None, user=None):
-        event_id = uuid4().hex
-        if fingerprint is None:
-            fingerprint = event_id
-
-        data = {
-            "event_id": event_id,
-            "fingerprint": [fingerprint],
-            "timestamp": iso_format(timestamp),
-            "type": "error",
-            # This is necessary because event type error should not exist without
-            # an exception being in the payload
-            "exception": [{"type": "Foo"}],
-        }
-        if user:
-            data["user"] = user
-        return self.store_event(data=data, project_id=self.project.id)
-
-    @cached_property
-    def now(self):
-        return timezone.now().replace(minute=0, second=0, microsecond=0)
 
 
 class BaseIncidentEventStatsTest(BaseIncidentsTest):
@@ -1329,6 +1305,62 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
                 integration=integration,
             )
 
+    def test_pagerduty(self):
+        SERVICES = [
+            {
+                "type": "service",
+                "integration_key": "PND4F9",
+                "service_id": "123",
+                "service_name": "hellboi",
+            }
+        ]
+        integration = Integration.objects.create(
+            provider="pagerduty",
+            name="Example PagerDuty",
+            external_id="example-pagerduty",
+            metadata={"services": SERVICES},
+        )
+        integration.add_organization(self.organization, self.user)
+        service = PagerDutyService.objects.create(
+            service_name=SERVICES[0]["service_name"],
+            integration_key=SERVICES[0]["integration_key"],
+            organization_integration=integration.organizationintegration_set.first(),
+        )
+        type = AlertRuleTriggerAction.Type.PAGERDUTY
+        target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
+        target_identifier = service.id
+        action = create_alert_rule_trigger_action(
+            self.trigger,
+            type,
+            target_type,
+            target_identifier=target_identifier,
+            integration=integration,
+        )
+        assert action.alert_rule_trigger == self.trigger
+        assert action.type == type.value
+        assert action.target_type == target_type.value
+        assert action.target_identifier == target_identifier
+        assert action.target_display == "hellboi"
+        assert action.integration == integration
+
+    def test_pagerduty_not_existing(self):
+        integration = Integration.objects.create(
+            provider="pagerduty", name="Example PagerDuty", external_id="example-pagerduty",
+        )
+        integration.add_organization(self.organization, self.user)
+        type = AlertRuleTriggerAction.Type.PAGERDUTY
+        target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
+        target_identifier = 1
+
+        with self.assertRaises(InvalidTriggerActionError):
+            create_alert_rule_trigger_action(
+                self.trigger,
+                type,
+                target_type,
+                target_identifier=target_identifier,
+                integration=integration,
+            )
+
 
 class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
     @fixture
@@ -1439,6 +1471,63 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
                 type,
                 target_type,
                 target_identifier=channel_name,
+                integration=integration,
+            )
+
+    def test_pagerduty(self):
+        SERVICES = [
+            {
+                "type": "service",
+                "integration_key": "PND4F9",
+                "service_id": "123",
+                "service_name": "hellboi",
+            }
+        ]
+        integration = Integration.objects.create(
+            provider="pagerduty",
+            name="Example PagerDuty",
+            external_id="example-pagerduty",
+            metadata={"services": SERVICES},
+        )
+        integration.add_organization(self.organization, self.user)
+        service = PagerDutyService.objects.create(
+            service_name=SERVICES[0]["service_name"],
+            integration_key=SERVICES[0]["integration_key"],
+            organization_integration=integration.organizationintegration_set.first(),
+        )
+        type = AlertRuleTriggerAction.Type.PAGERDUTY
+        target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
+        target_identifier = service.id
+        action = update_alert_rule_trigger_action(
+            self.action,
+            type,
+            target_type,
+            target_identifier=target_identifier,
+            integration=integration,
+        )
+
+        assert action.alert_rule_trigger == self.trigger
+        assert action.type == type.value
+        assert action.target_type == target_type.value
+        assert action.target_identifier == target_identifier
+        assert action.target_display == "hellboi"
+        assert action.integration == integration
+
+    def test_pagerduty_not_existing(self):
+        integration = Integration.objects.create(
+            provider="pagerduty", name="Example PagerDuty", external_id="example-pagerduty",
+        )
+        integration.add_organization(self.organization, self.user)
+        type = AlertRuleTriggerAction.Type.PAGERDUTY
+        target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
+        target_identifier = 1
+
+        with self.assertRaises(InvalidTriggerActionError):
+            update_alert_rule_trigger_action(
+                self.action,
+                type,
+                target_type,
+                target_identifier=target_identifier,
                 integration=integration,
             )
 
