@@ -108,7 +108,7 @@ const getFullActionTitle = ({
   'type' | 'integrationName' | 'sentryAppName' | 'status'
 >) => {
   if (sentryAppName) {
-    if (status === 'internal') {
+    if (status) {
       return `${sentryAppName} (${status})`;
     }
     return `${sentryAppName}`;
