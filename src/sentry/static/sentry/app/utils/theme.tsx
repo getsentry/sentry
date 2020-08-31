@@ -82,32 +82,6 @@ const aliases = {
   subText: colors.gray400,
 
   /**
-   * A color that denotes a "success", or something good
-   */
-  success: colors.green400, // TODO(dark): colors.green300,
-
-  /**
-   * A color that denotes an error, or something that is wrong
-   */
-  error: colors.red400, // TODO(dark): colors.red300,
-
-  /**
-   * Primary border color
-   */
-  border: colors.gray200,
-
-  /**
-   * A color that indicates something is disabled where user can not interact or use
-   * it in the usual manner (implies that there is an "enabled" state)
-   */
-  disabled: colors.gray400, // TODO(dark): colors.gray200,
-
-  /**
-   * Background for the header of a page
-   */
-  headerBackground: colors.white,
-
-  /**
    * Background for the main content area of a page?
    */
   bodyBackground: colors.gray100,
@@ -121,6 +95,32 @@ const aliases = {
    * Secondary background color used as a slight contrast against primary background
    */
   backgroundSecondary: colors.gray100,
+
+  /**
+   * Background for the header of a page
+   */
+  headerBackground: colors.white,
+
+  /**
+   * Primary border color
+   */
+  border: colors.gray200,
+
+  /**
+   * A color that denotes a "success", or something good
+   */
+  success: colors.green400, // TODO(dark): colors.green300,
+
+  /**
+   * A color that denotes an error, or something that is wrong
+   */
+  error: colors.red400, // TODO(dark): colors.red300,
+
+  /**
+   * A color that indicates something is disabled where user can not interact or use
+   * it in the usual manner (implies that there is an "enabled" state)
+   */
+  disabled: colors.gray400, // TODO(dark): colors.gray200,
 
   /**
    * Indicates that something is "active" or "selected"
@@ -455,3 +455,6 @@ export type IconSize = keyof typeof iconSizes;
 export type Aliases = typeof aliases;
 
 export default theme;
+
+// This should never be used directly (except in storybook)
+export {aliases};
