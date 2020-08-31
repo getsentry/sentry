@@ -80,6 +80,6 @@ jobs:
           with:
             main_branch: master
             skip_step: install
-            build_script: build-prod
+            build_script: build
             windows_verbatim_arguments: false
             github_token: ${{ secrets.GITHUB_TOKEN }}
