@@ -68,19 +68,15 @@ class DetailedIncidentSerializer(IncidentSerializer):
         return results
 
     def _get_incident_seen_list(self, incident, user):
-        incident_seen = list(
+        seen_by_list = list(
             User.objects.filter(incidentseen__incident=incident).order_by(
                 "-incidentseen__last_seen"
             )
         )
 
-        has_seen = False
+        has_seen = any(seen_by for seen_by in seen_by_list if seen_by.id == user.id)
 
-        for seen_by in incident_seen:
-            if seen_by.id == user.id:
-                has_seen = True
-
-        return {"seen_by": serialize(incident_seen), "has_seen": has_seen}
+        return {"seen_by": serialize(seen_by_list), "has_seen": has_seen}
 
     def serialize(self, obj, attrs, user):
         context = super(DetailedIncidentSerializer, self).serialize(obj, attrs, user)
