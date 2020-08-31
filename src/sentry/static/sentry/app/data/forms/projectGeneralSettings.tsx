@@ -347,8 +347,8 @@ export const fields: Record<string, Field> = {
       ),
     visible: ({features}) => features.has('event-attachments'),
     placeholder: ({organization, value}) => {
-      // value null means that this project should inherit organization settings
-      if (value === null) {
+      // empty value means that this project should inherit organization settings
+      if (value === '') {
         return tct('Inherit organization settings ([organizationValue])', {
           organizationValue: formatStoreCrashReports(organization.storeCrashReports),
         });
