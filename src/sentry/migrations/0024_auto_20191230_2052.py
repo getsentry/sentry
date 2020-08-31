@@ -74,8 +74,8 @@ def backfill_eventstream(apps, schema_editor):
             project_id=e.project_id, event_id=e.event_id, group_id=e.group_id, data=e.data.data
         )
         primary_hash = event.get_primary_hash()
-        if event.project is None or event.group is None:
-            print("Skipped {} as group or project information is invalid.\n".format(event))
+        if event.project is None or event.group is None or len(event.data) == 0:
+            print("Skipped {} as group, project or node data information is invalid.\n".format(event))
             continue
 
         try:
