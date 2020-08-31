@@ -82,7 +82,7 @@ class List extends React.Component<Props, State> {
 
       const convertedGroups = this.convertGroupsIntoEventFormat(groups);
 
-      // this is necessary, because the AsigneeSelector component fetches the group from the GroupStore
+      // this is necessary, because the AssigneeSelector component fetches the group from the GroupStore
       // @ts-ignore Property 'add' does not exist on type 'Store'
       GroupStore.add(convertedGroups);
       this.setState({groups: convertedGroups, isLoading: false});
