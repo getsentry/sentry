@@ -25,6 +25,7 @@ import SentryTypes from 'app/sentryTypes';
 import ToolbarHeader from 'app/components/toolbarHeader';
 import Tooltip from 'app/components/tooltip';
 import withApi from 'app/utils/withApi';
+import QuestionTooltip from 'app/components/questionTooltip';
 
 const BULK_LIMIT = 1000;
 const BULK_LIMIT_STR = BULK_LIMIT.toLocaleString();
@@ -143,6 +144,7 @@ const IssueListActions = createReactClass({
   propTypes: {
     api: PropTypes.object,
     allResultsVisible: PropTypes.bool,
+    organization: SentryTypes.Organization.isRequired,
     orgId: PropTypes.string.isRequired,
     selection: SentryTypes.GlobalSelection.isRequired,
     groupIds: PropTypes.instanceOf(Array).isRequired,
@@ -374,6 +376,7 @@ const IssueListActions = createReactClass({
   render() {
     const {
       allResultsVisible,
+      organization,
       orgId,
       queryCount,
       query,
@@ -391,6 +394,7 @@ const IssueListActions = createReactClass({
     } = this.state;
     const confirm = getConfirm(numIssues, allInQuerySelected, query, queryCount);
     const label = getLabel(numIssues, allInQuerySelected);
+    const hasDynamicIssueCounts = organization.features.includes('dynamic-issue-counts');
 
     // merges require a single project to be active in an org context
     // selectedProjectSlug is null when 0 or >1 projects are selected.
@@ -565,8 +569,33 @@ const IssueListActions = createReactClass({
               </GraphToggle>
             </GraphHeader>
           </GraphHeaderWrapper>
-          <EventsOrUsersLabel className="align-right">{t('Events')}</EventsOrUsersLabel>
-          <EventsOrUsersLabel className="align-right">{t('Users')}</EventsOrUsersLabel>
+          {hasDynamicIssueCounts ? (
+            <React.Fragment>
+              <EventsOrUsersLabel className="align-right">
+                {t('Events')}
+              </EventsOrUsersLabel>
+              <EventsOrUsersLabel className="align-right">
+                {t('Users')}
+              </EventsOrUsersLabel>
+            </React.Fragment>
+          ) : (
+            <React.Fragment>
+              <EventsOrUsersLabel className="align-right">
+                {t('Events')}
+                <StyledQuestionTooltip
+                  title={t('Number of events since the issue was created')}
+                  size="xs"
+                />
+              </EventsOrUsersLabel>
+              <EventsOrUsersLabel className="align-right">
+                {t('Users')}
+                <StyledQuestionTooltip
+                  title={t('Unique users affected since the issue was created')}
+                  size="xs"
+                />
+              </EventsOrUsersLabel>
+            </React.Fragment>
+          )}
           <AssigneesLabel className="align-right hidden-xs hidden-sm">
             <ToolbarHeader>{t('Assignee')}</ToolbarHeader>
           </AssigneesLabel>
@@ -684,6 +713,12 @@ const GraphToggle = styled('a')`
   &:focus,
   &:active {
     color: ${p => (p.active ? p.theme.gray700 : p.theme.disabled)};
+  }
+`;
+
+const StyledQuestionTooltip = styled(QuestionTooltip)`
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    display: none;
   }
 `;
 
