@@ -30,6 +30,7 @@ import withOrganization from 'app/utils/withOrganization';
 import EventView from 'app/utils/discover/eventView';
 import {t} from 'app/locale';
 import Link from 'app/components/links/link';
+import {queryToObj} from 'app/utils/stream';
 
 const StreamGroup = createReactClass({
   displayName: 'StreamGroup',
@@ -130,17 +131,24 @@ const StreamGroup = createReactClass({
 
     const {period, start, end} = selection.datetime || {};
 
-    const splitQuery =
-      filtered && query
-        ? query.match(/\S+:"[^"]*"?|\S+/g).filter(term => term.slice(0, 3) !== 'is:')
-        : [];
+    const discoveryQueryTerms = [];
+
+    if (filtered && query) {
+      const queryObj = queryToObj(query);
+      for (const key in queryObj)
+        if (!['is', '__text'].includes(key))
+          discoveryQueryTerms.push(`${key}:${queryObj[key]}`);
+    }
+
+    const additionalQuery =
+      (discoveryQueryTerms.length ? ' ' : '') + discoveryQueryTerms.join(' ');
 
     const discoverQuery = {
       id: undefined,
       name: data.title || data.type,
       fields: ['title', 'release', 'environment', 'user', 'timestamp'],
       orderby: '-timestamp',
-      query: `issue.id:${data.id}${splitQuery.length ? ' ' : ''}${splitQuery.join(' ')}`,
+      query: `issue.id:${data.id}${additionalQuery}`,
       projects: [data.project.id],
       version: 2,
     };
