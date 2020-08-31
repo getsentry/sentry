@@ -7,6 +7,7 @@
 !src/sentry/locale/**
 !build-utils
 !build-utils/**
+!babel.config.js
 !jest.config.js
 !now.json
 !package.json
@@ -15,4 +16,5 @@
 !tsconfig.json
 !config
 !config/tsconfig.build.json
+!webpack.config.js
 !yarn.lock
