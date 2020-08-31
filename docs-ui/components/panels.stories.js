@@ -12,6 +12,36 @@ import {
   PanelTable,
 } from 'app/components/panels';
 import Field from 'app/views/settings/components/forms/field';
+import Checkbox from 'app/components/checkbox';
+import BulkController from 'app/utils/bulkController';
+
+const dummy = [
+  {
+    id: 1,
+    text:
+      'Lorem ipsum dolor sit amet consectetur adipisicing elit. Accusantium autem placeat corrupti sapiente optio. Sapiente, aut exercitationem nisi nesciunt molestiae perspiciatis ad illo at officiis porro quam voluptas explicabo quod.',
+  },
+  {
+    id: 2,
+    text:
+      'Lorem ipsum dolor sit amet consectetur adipisicing elit. Accusantium autem placeat corrupti sapiente optio. Sapiente, aut exercitationem nisi nesciunt molestiae perspiciatis ad illo at officiis porro quam voluptas explicabo quod.',
+  },
+  {
+    id: 3,
+    text:
+      'Lorem ipsum dolor sit amet consectetur adipisicing elit. Accusantium autem placeat corrupti sapiente optio. Sapiente, aut exercitationem nisi nesciunt molestiae perspiciatis ad illo at officiis porro quam voluptas explicabo quod.',
+  },
+  {
+    id: 4,
+    text:
+      'Lorem ipsum dolor sit amet consectetur adipisicing elit. Accusantium autem placeat corrupti sapiente optio. Sapiente, aut exercitationem nisi nesciunt molestiae perspiciatis ad illo at officiis porro quam voluptas explicabo quod.',
+  },
+  {
+    id: 5,
+    text:
+      'Lorem ipsum dolor sit amet consectetur adipisicing elit. Accusantium autem placeat corrupti sapiente optio. Sapiente, aut exercitationem nisi nesciunt molestiae perspiciatis ad illo at officiis porro quam voluptas explicabo quod.',
+  },
+];
 
 export default {
   title: 'UI/Panels',
@@ -90,6 +120,42 @@ export const _PanelTable = withInfo({
       <div>Panel Item</div>
       <div>Panel Item</div>
     </PanelTable>
+
+    <BulkController
+      pageIds={dummy.map(d => d.id)}
+      allIdsCount={23}
+      maxIdsCount={1000}
+      noticeColumns={3}
+    >
+      {({selectedIds, onPageIdsToggle, onIdToggle, isPageSelected, bulkNotice}) => (
+        <PanelTable
+          headers={[
+            <Checkbox
+              key="bulk-checkbox"
+              checked={isPageSelected}
+              onChange={e => onPageIdsToggle(e.target.checked)}
+            />,
+            'Id',
+            'Text',
+          ]}
+        >
+          {bulkNotice}
+
+          {dummy.map(d => (
+            <React.Fragment key={d.id}>
+              <div>
+                <Checkbox
+                  checked={selectedIds.includes(d.id)}
+                  onChange={() => onIdToggle(d.id)}
+                />
+              </div>
+              <div>{d.id}</div>
+              <div>{d.text}</div>
+            </React.Fragment>
+          ))}
+        </PanelTable>
+      )}
+    </BulkController>
   </React.Fragment>
 ));
 
