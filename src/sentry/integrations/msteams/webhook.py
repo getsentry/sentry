@@ -26,7 +26,13 @@ from sentry.utils.compat import filter
 from sentry.utils.signing import sign
 from sentry.web.decorators import transaction_start
 
-from .card_builder import build_welcome_card, build_linking_card, build_group_card
+from .card_builder import (
+    build_welcome_card,
+    build_linking_card,
+    build_group_card,
+    build_personal_installation_message,
+    build_mentioned_card,
+)
 from .client import (
     MsTeamsPreInstallClient,
     MsTeamsJwtClient,
@@ -132,6 +138,11 @@ class MsTeamsWebhookEndpoint(Endpoint):
     permission_classes = ()
     provider = "msteams"
 
+    def get_preinstall_client(self, service_url):
+        # may want try/catch here since this makes an external API call
+        access_token = get_token_data()["access_token"]
+        return MsTeamsPreInstallClient(access_token, service_url)
+
     @csrf_exempt
     def dispatch(self, request, *args, **kwargs):
         return super(MsTeamsWebhookEndpoint, self).dispatch(request, *args, **kwargs)
@@ -147,22 +158,42 @@ class MsTeamsWebhookEndpoint(Endpoint):
             # the only message events we care about are those which
             # are from a user submitting an option on a card, which
             # will always contain an "payload.actionType" in the data.
-            if not data.get("value", {}).get("payload", {}).get("actionType"):
-                return self.respond(status=204)
-            return self.handle_action_submitted(request)
+            if data.get("value", {}).get("payload", {}).get("actionType"):
+                return self.handle_action_submitted(request)
+            else:
+                return self.handle_other_message(request)
         elif data["type"] == "conversationUpdate":
             channel_data = data["channelData"]
             event = channel_data.get("eventType")
+            conversation_type = data.get("conversation", {}).get("conversationType")
 
             # TODO: Handle other events
             if event == "teamMemberAdded":
-                return self.handle_member_added(request)
+                return self.handle_team_member_added(request)
             elif event == "teamMemberRemoved":
-                return self.handle_member_removed(request)
+                return self.handle_team_member_removed(request)
+            elif (
+                data.get("membersAdded") and conversation_type == "personal"
+            ):  # no explicit event for user adding app unfortunately
+                return self.handle_personal_member_add(request)
 
         return self.respond(status=204)
 
-    def handle_member_added(self, request):
+    def handle_personal_member_add(self, request):
+        data = request.data
+        # only care if our bot is the new member added
+        matches = filter(lambda x: x["id"] == data["recipient"]["id"], data["membersAdded"])
+        if not matches:
+            return self.respond(status=204)
+
+        client = self.get_preinstall_client(data["serviceUrl"])
+
+        user_conversation_id = data["conversation"]["id"]
+        card = build_personal_installation_message()
+        client.send_card(user_conversation_id, card)
+        return self.respond(status=204)
+
+    def handle_team_member_added(self, request):
         data = request.data
         channel_data = data["channelData"]
         # only care if our bot is the new member added
@@ -171,9 +202,6 @@ class MsTeamsWebhookEndpoint(Endpoint):
             return self.respond(status=204)
 
         team = channel_data["team"]
-
-        # TODO: add try/except for request exceptions
-        access_token = get_token_data()["access_token"]
 
         # need to keep track of the service url since we won't get it later
         signed_data = {
@@ -186,12 +214,12 @@ class MsTeamsWebhookEndpoint(Endpoint):
         signed_params = sign(**signed_data)
 
         # send welcome message to the team
-        client = MsTeamsPreInstallClient(access_token, data["serviceUrl"])
+        client = self.get_preinstall_client(data["serviceUrl"])
         card = build_welcome_card(signed_params)
         client.send_card(team["id"], card)
         return self.respond(status=201)
 
-    def handle_member_removed(self, request):
+    def handle_team_member_removed(self, request):
         data = request.data
         channel_data = data["channelData"]
         # only care if our bot is the new member removed
@@ -388,3 +416,26 @@ class MsTeamsWebhookEndpoint(Endpoint):
         client.update_card(conversation_id, activity_id, card)
 
         return issue_change_response
+
+    def handle_other_message(self, request):
+        data = request.data
+        # check to see if we are mentioned
+        recipient_id = data.get("recipient", {}).get("id")
+        if recipient_id:
+            # check the ids of the mentiokns in the entities
+            mentioned = (
+                len(
+                    filter(
+                        lambda x: x.get("mentioned", {}).get("id") == recipient_id,
+                        data.get("entities", []),
+                    )
+                )
+                > 0
+            )
+            if mentioned:
+                client = self.get_preinstall_client(data["serviceUrl"])
+                card = build_mentioned_card()
+                conversation_id = data["conversation"]["id"]
+                client.send_card(conversation_id, card)
+
+        return self.respond(status=204)
