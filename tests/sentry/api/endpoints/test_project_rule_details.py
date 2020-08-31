@@ -201,7 +201,7 @@ class UpdateProjectRuleTest(APITestCase):
                         "interval": "1h",
                         "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
                         "value": 666,
-                        "name": "An issue is seen more than 30 times in 1m",
+                        "name": "The issue is seen more than 30 times in 1m",
                     }
                 ],
                 "id": rule.id,
@@ -218,7 +218,7 @@ class UpdateProjectRuleTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert (
-            response.data["conditions"][0]["name"] == "An issue is seen more than 666 times in 1h"
+            response.data["conditions"][0]["name"] == "The issue is seen more than 666 times in 1h"
         )
 
         assert RuleActivity.objects.filter(rule=rule, type=RuleActivityType.UPDATED.value).exists()
