@@ -86,18 +86,22 @@ export enum ActionType {
 }
 
 export enum TargetType {
-  // The name can be customized for each integration. Email for email, channel for Slack, service for PagerDuty). We probably won't support this for email at first, since we need to be careful not to enable spam
+  // A direct reference, like an email address, Slack channel, or PagerDuty service
   SPECIFIC = 'specific',
 
-  // Just works with email for now, grabs given user's email address
+  // A specific user. This could be used to grab the user's email address.
   USER = 'user',
 
-  // Just works with email for now, grabs the emails for all team members
+  // A specific team. This could be used to send an email to everyone associated with a team.
   TEAM = 'team',
+
+  // A Sentry App instead of any of the above.
+  SENTRY_APP = 'sentry_app',
 }
 
 /**
- * This is an available action template that is associated to a Trigger in a Metric Alert Rule
+ * This is an available action template that is associated to a Trigger in a
+ * Metric Alert Rule. They are defined by the available-actions API.
  */
 export type MetricActionTemplate = {
   /**
@@ -113,27 +117,27 @@ export type MetricActionTemplate = {
   /**
    * Name of the integration. This is a text field that differentiates integrations from the same provider from each other
    */
-  integrationName: string;
+  integrationName?: string;
 
   /**
    * Integration id for this `type`, should be passed to backend as `integrationId` when creating an action
    */
-  integrationId: number;
+  integrationId?: number;
 
   /**
    * Name of the SentryApp. Like `integrationName`, this differentiates SentryApps from each other.
    */
-  sentryAppName: string;
+  sentryAppName?: string;
 
   /**
    * SentryApp id for this `type`, should be passed to backend as `sentryAppId` when creating an action.
    */
-  sentryAppId: number;
+  sentryAppId?: number;
 
   /**
    * For some available actions, we pass in the list of available targets.
    */
-  options: Array<{label: string; value: any}> | null;
+  options?: Array<{label: string; value: any}>;
 
   /**
    * If this is a `sentry_app` action, this is the Sentry App's status.
