@@ -4,7 +4,12 @@ import {EChartOption, ECharts} from 'echarts/lib/echarts';
 import styled from '@emotion/styled';
 
 import {IS_CI} from 'app/constants';
-import {Series} from 'app/types/echarts';
+import {
+  Series,
+  EChartEventHandler,
+  EChartChartReadyHandler,
+  EChartDataZoomHandler,
+} from 'app/types/echarts';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 
@@ -32,7 +37,7 @@ const getDimensionValue = (dimension?: ReactEChartOpts['height']) => {
 type ReactEchartProps = React.ComponentProps<typeof ReactEchartsCore>;
 type ReactEChartOpts = NonNullable<ReactEchartProps['opts']>;
 
-type EChartEventHandler<P> = (params: P, instance: ECharts) => void;
+// type EChartEventHandler<P> = (params: P, instance: ECharts) => void;
 
 /**
  * Used for soem properties that can be truncated
@@ -142,31 +147,11 @@ type Props = {
    * states whether not to update chart immediately
    */
   lazyUpdate?: boolean;
-  onChartReady?: (instance: ECharts) => void;
+  onChartReady?: EChartChartReadyHandler;
   onHighlight?: EChartEventHandler<any>;
   onMouseOver?: EChartEventHandler<any>;
   onClick?: EChartEventHandler<any>;
-  onDataZoom?: EChartEventHandler<{
-    type: 'datazoom';
-    /**
-     * percentage of zoom start position, 0 - 100
-     */
-    start: number;
-    /**
-     * percentage of zoom finish position, 0 - 100
-     */
-    end: number;
-    /**
-     * data value of zoom start position; only exists in zoom event of
-     * triggered by toolbar
-     */
-    startValue?: number;
-    /**
-     * data value of zoom finish position; only exists in zoom event of
-     * triggered by toolbar
-     */
-    endValue?: number;
-  }>;
+  onDataZoom?: EChartDataZoomHandler;
   /**
    * One example of when this is called is restoring chart from zoom levels
    */
