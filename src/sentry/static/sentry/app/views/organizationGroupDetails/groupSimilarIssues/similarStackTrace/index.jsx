@@ -229,5 +229,5 @@ const Title = styled('h4')`
   font-size: ${p => p.theme.headerFontSize};
   color: ${p => p.theme.gray700};
   font-weight: normal;
-  margin-bottom: 0;
+  margin-bottom: ${space(2)};
 `;
