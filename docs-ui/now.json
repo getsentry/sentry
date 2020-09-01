@@ -1,6 +1,9 @@
 {
 <<<<<<< HEAD
+<<<<<<< HEAD
   "version": 2,
+=======
+>>>>>>> 6597682f4d... build(storybook): Fix vercel deploys
 =======
 >>>>>>> 6597682f4d... build(storybook): Fix vercel deploys
   "github": {"silent": true}
