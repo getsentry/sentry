@@ -257,7 +257,7 @@ ContextData.displayName = 'ContextData';
 
 const StyledIconOpen = styled(IconOpen)`
   position: relative;
-  top: -1px;
+  top: 1px;
 `;
 
 const ToggleIcon = styled('a')`
