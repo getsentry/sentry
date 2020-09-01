@@ -11,7 +11,7 @@ from django.utils import timezone
 
 from sentry import analytics
 from sentry.api.event_search import get_filter, resolve_field
-from sentry.constants import SentryAppInstallationStatus
+from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
 from sentry.incidents import tasks
 from sentry.incidents.models import (
     AlertRule,
@@ -1238,12 +1238,16 @@ def get_available_action_integrations_for_org(organization):
     return Integration.objects.filter(organizations=organization, provider__in=providers)
 
 
-def get_alertable_sentry_apps(organization_id):
-    return SentryApp.objects.filter(
+def get_alertable_sentry_apps(organization_id, with_metric_alerts=False):
+    query = SentryApp.objects.filter(
         installations__organization_id=organization_id,
         is_alertable=True,
         installations__status=SentryAppInstallationStatus.INSTALLED,
-    ).distinct()
+    )
+
+    if with_metric_alerts:
+        query = query.exclude(status=SentryAppStatus.PUBLISHED)
+    return query.distinct()
 
 
 def get_pagerduty_services(organization, integration_id):
