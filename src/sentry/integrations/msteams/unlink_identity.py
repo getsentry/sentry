@@ -38,14 +38,17 @@ class MsTeamsUnlinkIdentityView(BaseView):
                 "sentry/integrations/msteams-unlink-identity.html", request=request, context={},
             )
 
+        # find the identities linked to this team user and sentry user
         identity_list = Identity.objects.filter(
             external_id=params["teams_user_id"], user=request.user
         )
+        # if no identities, tell the user that
         if not identity_list:
             return render_to_response(
-                "sentry/integrations/msteams-no-identities.html", request=request, context={},
+                "sentry/integrations/msteams-no-identity.html", request=request, context={},
             )
 
+        # otherwise, delete the identities, send message to the user, and render a success screen
         identity_list.delete()
         client = get_preinstall_client(params["service_url"])
         card = build_unlinked_card()
