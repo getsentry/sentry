@@ -5,7 +5,7 @@ import {shallow} from 'sentry-test/enzyme';
 import BulkNotice, {
   getEverythingSelectedText,
   getSelectEverythingText,
-} from 'app/components/bulkNotice';
+} from 'app/components/bulkController/bulkNotice';
 
 const props = {
   allRowsCount: 64,

@@ -13,7 +13,7 @@ import {
 } from 'app/components/panels';
 import Field from 'app/views/settings/components/forms/field';
 import Checkbox from 'app/components/checkbox';
-import BulkController from 'app/utils/bulkController';
+import BulkController from 'app/components/bulkController';
 
 const dummy = [
   {

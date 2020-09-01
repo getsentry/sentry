@@ -3,7 +3,7 @@ import xor from 'lodash/xor';
 import uniq from 'lodash/uniq';
 import intersection from 'lodash/intersection';
 
-import BulkNotice from 'app/components/bulkNotice';
+import BulkNotice from './bulkNotice';
 
 type RenderProps = {
   /**
@@ -82,6 +82,7 @@ class BulkController extends React.Component<Props, State> {
       isEverythingSelected: false,
     }));
   };
+
   handleAllIdsToggle = (select: boolean) => {
     const {pageIds} = this.props;
     this.setState({
@@ -89,6 +90,7 @@ class BulkController extends React.Component<Props, State> {
       isEverythingSelected: select,
     });
   };
+
   handlePageIdsToggle = (select: boolean) => {
     const {pageIds} = this.props;
     this.setState(state => ({
