@@ -26,9 +26,12 @@ line = _ (comment / rule / empty) newline?
 rule = _ matchers _ follow _ fingerprint
 
 matchers       = matcher+
-matcher        = _ matcher_type sep argument
-matcher_type   = "path" / "function" / "module" / "family" / "type" / "value" / "message" / "package" / "app"
+matcher        = _ negation? matcher_type sep argument
+matcher_type   = key / quoted_key
 argument       = quoted / unquoted
+
+key                  = ~r"[a-zA-Z0-9_\.-]+"
+quoted_key           = ~r"\"([a-zA-Z0-9_\.:-]+)\""
 
 fingerprint    = fp_value+
 fp_value        = _ fp_argument _ ","?
@@ -40,12 +43,13 @@ quoted         = ~r'"([^"\\]*(?:\\.[^"\\]*)*)"'
 unquoted       = ~r"\S+"
 unquoted_no_comma = ~r"((?:\{\{\s*\S+\s*\}\})|(?:[^\s,]+))"
 
-follow  = "->"
-sep     = ":"
-space   = " "
-empty   = ""
-newline = ~r"[\r\n]"
-_       = space*
+follow   = "->"
+sep      = ":"
+space    = " "
+empty    = ""
+negation = "!"
+newline  = ~r"[\r\n]"
+_        = space*
 
 """
 )
@@ -100,7 +104,8 @@ class EventAccess(object):
                 self._frames.append(
                     {
                         "function": func or "<unknown>",
-                        "path": frame.get("abs_path") or frame.get("filename"),
+                        "abs_path": frame.get("abs_path") or frame.get("filename"),
+                        "filename": frame.get("filename"),
                         "module": frame.get("module"),
                         "family": get_behavior_family_for_platform(platform),
                         "package": frame.get("package"),
@@ -189,10 +194,36 @@ class FingerprintingRules(object):
         return FingerprintingVisitor().visit(tree)
 
 
+MATCHERS = {
+    # discover field names
+    "error.type": "type",
+    "error.value": "value",
+    "stack.module": "module",
+    "stack.abs_path": "path",
+    "stack.package": "package",
+    "stack.function": "function",
+    "message": "message",
+    # fingerprinting shortened fields
+    "type": "type",
+    "value": "value",
+    "module": "module",
+    "path": "path",
+    "package": "package",
+    "function": "function",
+    # fingerprinting specific fields
+    "family": "family",
+    "app": "app",
+}
+
+
 class Match(object):
-    def __init__(self, key, pattern):
-        self.key = key
+    def __init__(self, key, pattern, negated=False):
+        try:
+            self.key = MATCHERS[key]
+        except KeyError:
+            raise InvalidFingerprintingConfig("Unknown matcher '%s'" % key)
         self.pattern = pattern
+        self.negated = negated
 
     @property
     def interface(self):
@@ -202,17 +233,49 @@ class Match(object):
             return "exception"
         return "frame"
 
-    def matches_value(self, value):
+    def matches(self, values):
+        rv = self._positive_match(values)
+        if self.negated:
+            rv = not rv
+        return rv
+
+    def _positive_path_match(self, value):
         if value is None:
             return False
-        if self.key in ("path", "package"):
-            if glob_match(
-                value, self.pattern, ignorecase=True, doublestar=True, path_normalize=True
-            ):
+        if glob_match(value, self.pattern, ignorecase=True, doublestar=True, path_normalize=True):
+            return True
+        if not value.startswith("/") and glob_match(
+            "/" + value, self.pattern, ignorecase=True, doublestar=True, path_normalize=True
+        ):
+            return True
+        return False
+
+    def _positive_match(self, values):
+        # path is special in that it tests against two values (abs_path and path)
+        if self.key == "path":
+            value = values.get("abs_path")
+            if self._positive_path_match(value):
                 return True
-            if not value.startswith("/") and glob_match(
-                "/" + value, self.pattern, ignorecase=True, doublestar=True, path_normalize=True
-            ):
+            alt_value = values.get("filename")
+            if alt_value != value:
+                if self._positive_path_match(value):
+                    return True
+            return False
+
+        # message and value are now basically synonyms to each other that test
+        # against both values (both message and value).
+        if self.key in ("message", "value"):
+            for key in ("message", "value"):
+                value = values.get(key)
+                if value is not None and glob_match(value, self.pattern, ignorecase=True):
+                    return True
+            return False
+
+        value = values.get(self.key)
+        if value is None:
+            return False
+        elif self.key == "package":
+            if self._positive_path_match(value):
                 return True
         elif self.key == "family":
             flags = self.pattern.split(",")
@@ -222,16 +285,25 @@ class Match(object):
             ref_val = get_rule_bool(self.pattern)
             if ref_val is not None and ref_val == value:
                 return True
-        elif glob_match(value, self.pattern, ignorecase=self.key in ("message", "value")):
+        elif glob_match(value, self.pattern):
             return True
         return False
 
     def _to_config_structure(self):
-        return [self.key, self.pattern]
+        key = self.key
+        if self.negated:
+            key = "!" + key
+        return [key, self.pattern]
 
     @classmethod
     def _from_config_structure(cls, obj):
-        return cls(obj[0], obj[1])
+        key = obj[0]
+        if key.startswith("!"):
+            key = key[1:]
+            negated = True
+        else:
+            negated = False
+        return cls(key, obj[1], negated)
 
 
 class Rule(object):
@@ -246,7 +318,7 @@ class Rule(object):
 
         for interface, matchers in six.iteritems(by_interface):
             for values in access.get_values(interface):
-                if all(x.matches_value(values.get(x.key)) for x in matchers):
+                if all(x.matches(values) for x in matchers):
                     break
             else:
                 return
@@ -296,11 +368,11 @@ class FingerprintingVisitor(NodeVisitor):
         return Rule(matcher, fingerprint)
 
     def visit_matcher(self, node, children):
-        _, ty, _, argument = children
-        return Match(ty, argument)
+        _, negation, ty, _, argument = children
+        return Match(ty, argument, bool(negation))
 
     def visit_matcher_type(self, node, children):
-        return node.text
+        return children[0]
 
     def visit_argument(self, node, children):
         return children[0]
@@ -324,3 +396,10 @@ class FingerprintingVisitor(NodeVisitor):
 
     def generic_visit(self, node, children):
         return children
+
+    def visit_key(self, node, children):
+        return node.text
+
+    def visit_quoted_key(self, node, children):
+        # leading ! are used to indicate negation. make sure they don't appear.
+        return node.match.groups()[0].lstrip("!")
