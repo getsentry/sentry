@@ -160,13 +160,13 @@ def test_synchronous_executor():
     assert executor.submit(lambda: mock.sentinel.RESULT).result() is mock.sentinel.RESULT
 
     def callable():
-        raise Exception(mock.sentinel.MESSAGE)
+        raise Exception(mock.sentinel.EXCEPTION)
 
     future = executor.submit(callable)
     try:
         future.result()
     except Exception as e:
-        assert e.message is mock.sentinel.MESSAGE
+        assert e.args[0] == mock.sentinel.EXCEPTION
     else:
         assert False, "expected future to raise"
 
