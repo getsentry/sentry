@@ -65,6 +65,7 @@ class EventAccess(object):
         self._exceptions = None
         self._frames = None
         self._messages = None
+        self._toplevel = None
 
     def get_messages(self):
         if self._messages is None:
@@ -130,12 +131,17 @@ class EventAccess(object):
 
         return self._frames
 
-    def get_values(self, interface):
-        if interface == "message":
-            return self.get_messages()
-        elif interface == "exception":
+    def get_toplevel(self):
+        if self._toplevel is None:
+            self._toplevel = self.get_messages() + self.get_exceptions()
+        return self._toplevel
+
+    def get_values(self, match_group):
+        if match_group == "toplevel":
+            return self.get_toplevel()
+        elif match_group == "exception":
             return self.get_exceptions()
-        elif interface == "frame":
+        elif match_group == "frame":
             return self.get_frames()
         return []
 
@@ -226,10 +232,10 @@ class Match(object):
         self.negated = negated
 
     @property
-    def interface(self):
+    def match_group(self):
         if self.key == "message":
-            return "message"
-        elif self.key in ("type", "value"):
+            return "toplevel"
+        if self.key in ("type", "value"):
             return "exception"
         return "frame"
 
@@ -262,9 +268,8 @@ class Match(object):
                     return True
             return False
 
-        # message and value are now basically synonyms to each other that test
-        # against both values (both message and value).
-        if self.key in ("message", "value"):
+        # message tests against value as well as this is what users expect
+        if self.key == "message":
             for key in ("message", "value"):
                 value = values.get(key)
                 if value is not None and glob_match(value, self.pattern, ignorecase=True):
@@ -312,12 +317,12 @@ class Rule(object):
         self.fingerprint = fingerprint
 
     def get_fingerprint_values_for_event_access(self, access):
-        by_interface = {}
+        by_match_group = {}
         for matcher in self.matchers:
-            by_interface.setdefault(matcher.interface, []).append(matcher)
+            by_match_group.setdefault(matcher.match_group, []).append(matcher)
 
-        for interface, matchers in six.iteritems(by_interface):
-            for values in access.get_values(interface):
+        for match_group, matchers in six.iteritems(by_match_group):
+            for values in access.get_values(match_group):
                 if all(x.matches(values) for x in matchers):
                     break
             else:
