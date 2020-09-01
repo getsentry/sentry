@@ -42,6 +42,8 @@ def get_rule_bool(value):
 def resolve_fingerprint_values(values, event):
     def get_fingerprint_value(value):
         var = parse_fingerprint_var(value)
+        if var is None:
+            return value
         if var == "transaction":
             return event.data.get("transaction") or "<no-transaction>"
         elif var in ("type", "error.type"):
@@ -61,6 +63,12 @@ def resolve_fingerprint_values(values, event):
             if pkg:
                 pkg = pkg.rsplit("/", 1)[-1].rsplit("\\", 1)[-1]
             return pkg or "<no-package>"
+        elif var.startswith("tags."):
+            tag = var[5:]
+            for t, value in event.data.get("tags") or ():
+                if t == tag:
+                    return value
+            return "<no-value-for-tag-%s>" % tag
         return value
 
     return [get_fingerprint_value(x) for x in values]

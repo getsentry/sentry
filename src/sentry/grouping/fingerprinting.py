@@ -66,6 +66,7 @@ class EventAccess(object):
         self._frames = None
         self._messages = None
         self._toplevel = None
+        self._tags = None
 
     def get_messages(self):
         if self._messages is None:
@@ -136,6 +137,13 @@ class EventAccess(object):
             self._toplevel = self.get_messages() + self.get_exceptions()
         return self._toplevel
 
+    def get_tags(self):
+        if self._tags is None:
+            self._tags = [
+                {"tags.%s" % k: v for (k, v) in get_path(self.event, "tags", filter=True) or ()}
+            ]
+        return self._tags
+
     def get_values(self, match_group):
         if match_group == "toplevel":
             return self.get_toplevel()
@@ -143,6 +151,8 @@ class EventAccess(object):
             return self.get_exceptions()
         elif match_group == "frame":
             return self.get_frames()
+        elif match_group == "tags":
+            return self.get_tags()
         return []
 
 
@@ -224,10 +234,13 @@ MATCHERS = {
 
 class Match(object):
     def __init__(self, key, pattern, negated=False):
-        try:
-            self.key = MATCHERS[key]
-        except KeyError:
-            raise InvalidFingerprintingConfig("Unknown matcher '%s'" % key)
+        if key.startswith("tags."):
+            self.key = key
+        else:
+            try:
+                self.key = MATCHERS[key]
+            except KeyError:
+                raise InvalidFingerprintingConfig("Unknown matcher '%s'" % key)
         self.pattern = pattern
         self.negated = negated
 
@@ -237,6 +250,8 @@ class Match(object):
             return "toplevel"
         if self.key in ("type", "value"):
             return "exception"
+        if self.key.startswith("tags."):
+            return "tags"
         return "frame"
 
     def matches(self, values):
