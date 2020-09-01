@@ -86,7 +86,7 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
   }
 
   get resourceLinks() {
-    //only show links for published apps
+    //only show links for published sentry apps
     if (this.sentryApp.status !== 'published') {
       return [];
     }
