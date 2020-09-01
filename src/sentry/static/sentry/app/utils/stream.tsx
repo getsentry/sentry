@@ -20,7 +20,7 @@ type QueryObj = {
 export function queryToObj(queryStr: string): QueryObj {
   const text: string[] = [];
 
-  const queryItems = queryStr.match(/\S+:"[^"]*"?|\S+/g);
+  const queryItems = (queryStr || '').match(/\S+:"[^"]*"?|\S+/g);
   const queryObj: QueryObj = (queryItems || []).reduce((obj, item) => {
     const index = item.indexOf(':');
     if (index === -1) {
