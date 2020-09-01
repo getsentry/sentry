@@ -5,6 +5,7 @@ import {tn, tct, t} from 'app/locale';
 import {defined} from 'app/utils';
 
 import {PanelAlert} from '../panels';
+import Button from '../button';
 
 export function getEverythingSelectedText(allRowsCount?: number, bulkLimit?: number) {
   if (!defined(allRowsCount)) {
@@ -92,7 +93,9 @@ function BulkNotice({
       {isEverythingSelected ? (
         <React.Fragment>
           {getEverythingSelectedText(allRowsCount, bulkLimit)}{' '}
-          <a onClick={onCancelAllRows}>{t('Cancel selection.')}</a>
+          <StyledButton priority="link" onClick={onCancelAllRows}>
+            {t('Cancel selection.')}
+          </StyledButton>
         </React.Fragment>
       ) : (
         <React.Fragment>
@@ -101,9 +104,9 @@ function BulkNotice({
             '%s items on this page selected.',
             selectedRowsCount
           )}{' '}
-          <a onClick={onSelectAllRows}>
+          <StyledButton priority="link" onClick={onSelectAllRows}>
             {getSelectEverythingText(allRowsCount, bulkLimit)}
-          </a>
+          </StyledButton>
         </React.Fragment>
       )}
     </Wrapper>
@@ -116,6 +119,21 @@ const Wrapper = styled(({columnsCount: _columnsCount, ...props}: WrapperProps) =
 ))`
   grid-column: span ${p => p.columnsCount};
   text-align: center;
+`;
+
+const StyledButton = styled(Button)`
+  &,
+  &:hover,
+  &:active,
+  &:focus {
+    /* match the styles of an <a> tag inside Alert */
+    color: ${p => p.theme.textColor};
+    border: none;
+    border-radius: 0;
+    border-bottom: 1px dotted ${p => p.theme.textColor};
+    padding-bottom: 1px;
+    font-size: 15px;
+  }
 `;
 
 export default BulkNotice;
