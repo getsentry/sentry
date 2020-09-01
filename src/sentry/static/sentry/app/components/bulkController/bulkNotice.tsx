@@ -7,34 +7,33 @@ import {defined} from 'app/utils';
 import {PanelAlert} from '../panels';
 import Button from '../button';
 
-function getEverythingSelectedText(allRowsCount?: number, bulkLimit?: number) {
+function getSelectAllText(allRowsCount?: number, bulkLimit?: number) {
   if (!defined(allRowsCount)) {
-    return t('Selected all items across all pages.');
+    return {
+      noticeText: t('Selected all items across all pages.'),
+      actionText: t('Select all items across all pages.'),
+    };
   }
+
   if (bulkLimit && allRowsCount > bulkLimit) {
-    return tct('Selected up to the first [count] items.', {
-      count: bulkLimit,
-    });
+    return {
+      noticeText: tct('Selected up to the first [count] items.', {
+        count: bulkLimit,
+      }),
+      actionText: tct('Select the first [count] items.', {
+        count: bulkLimit,
+      }),
+    };
   }
 
-  return tct('Selected all [count] items.', {
-    count: allRowsCount,
-  });
-}
-
-function getSelectEverythingText(allRowsCount?: number, bulkLimit?: number) {
-  if (!defined(allRowsCount)) {
-    return t('Select all items across all pages.');
-  }
-  if (bulkLimit && allRowsCount > bulkLimit) {
-    return tct('Select the first [count] items.', {
-      count: bulkLimit,
-    });
-  }
-
-  return tct('Select all [count] items.', {
-    count: allRowsCount,
-  });
+  return {
+    noticeText: tct('Selected all [count] items.', {
+      count: allRowsCount,
+    }),
+    actionText: tct('Select all [count] items.', {
+      count: allRowsCount,
+    }),
+  };
 }
 
 type Props = {
@@ -88,11 +87,13 @@ function BulkNotice({
     return null;
   }
 
+  const {noticeText, actionText} = getSelectAllText(allRowsCount, bulkLimit);
+
   return (
     <Wrapper columnsCount={columnsCount} className={className}>
       {isEverythingSelected ? (
         <React.Fragment>
-          {getEverythingSelectedText(allRowsCount, bulkLimit)}{' '}
+          {noticeText}{' '}
           <AlertButton priority="link" onClick={onCancelAllRows}>
             {t('Cancel selection.')}
           </AlertButton>
@@ -105,7 +106,7 @@ function BulkNotice({
             selectedRowsCount
           )}{' '}
           <AlertButton priority="link" onClick={onSelectAllRows}>
-            {getSelectEverythingText(allRowsCount, bulkLimit)}
+            {actionText}
           </AlertButton>
         </React.Fragment>
       )}
