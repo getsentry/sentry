@@ -237,15 +237,15 @@ export default class AsyncComponent<
     // Cancel any in flight requests
     this.api.clear();
 
+    const fetchEndpoints =
+      endpointIndex !== undefined ? [endpoints[endpointIndex]] : endpoints;
+
     this.setState({
       loading: true,
       error: false,
-      remainingRequests: endpoints.length,
+      remainingRequests: fetchEndpoints.length,
       ...extraState,
     });
-
-    const fetchEndpoints =
-      endpointIndex !== undefined ? [endpoints[endpointIndex]] : endpoints;
 
     fetchEndpoints.forEach(([stateKey, endpoint, params, options]) => {
       options = options || {};

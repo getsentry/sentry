@@ -47,7 +47,7 @@ class ProjectReleaseCommitsEndpoint(ProjectEndpoint):
         if repo_name:
             try:
                 repo = Repository.objects.get(organization_id=organization_id, name=repo_name)
-                queryset = queryset.filter(commit__repository=repo)
+                queryset = queryset.filter(commit__repository_id=repo.id)
             except Repository.DoesNotExist:
                 raise ResourceDoesNotExist
 

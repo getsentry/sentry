@@ -1,7 +1,9 @@
 import React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
+import pick from 'lodash/pick';
 
+import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import LoadingError from 'app/components/loadingError';
 import AsyncComponent from 'app/components/asyncComponent';
 import CommitRow from 'app/components/commitRow';
@@ -23,6 +25,7 @@ import {getCommitsByRepository, CommitsByRepository} from '../utils';
 import ReleaseNoCommitData from '../releaseNoCommitData';
 import {ReleaseContext} from '../';
 
+const COMMITS_PER_PAGE = 10;
 const ALL_REPOSITORIES_LABEL = t('All Repositories');
 
 type RouteParams = {
@@ -44,13 +47,12 @@ type State = {
 class ReleaseCommits extends AsyncView<Props, State> {
   static contextType = ReleaseContext;
 
-  componentDidUpdate(_prevProps: Props, prevState: State) {
-    if (
-      prevState.activeRepo === ALL_REPOSITORIES_LABEL &&
-      this.state.activeRepo !== ALL_REPOSITORIES_LABEL
-    ) {
+  componentDidUpdate(prevProps: Props, prevState: State) {
+    if (prevState.activeRepo !== this.state.activeRepo) {
       this.fetchData({}, 0);
     }
+
+    super.componentDidUpdate(prevProps, prevState);
   }
 
   getTitle() {
@@ -71,12 +73,14 @@ class ReleaseCommits extends AsyncView<Props, State> {
   }
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {params} = this.props;
+    const {params, location} = this.props;
     const {orgId, release} = params;
 
     const {project} = this.context;
 
-    const repo = this.state?.repo;
+    const activeRepo = this.state?.activeRepo;
+
+    const repo_name = activeRepo !== ALL_REPOSITORIES_LABEL ? activeRepo : undefined;
 
     return [
       [
@@ -84,26 +88,17 @@ class ReleaseCommits extends AsyncView<Props, State> {
         `/projects/${orgId}/${project.slug}/releases/${encodeURIComponent(
           release
         )}/commits/`,
-        {query: {repo_name: repo !== ALL_REPOSITORIES_LABEL ? repo : undefined}},
+        {
+          query: {
+            ...pick(location.query, [...Object.values(URL_PARAM), 'cursor']),
+            per_page: COMMITS_PER_PAGE,
+            repo_name,
+          },
+        },
       ],
       ['repos', `/organizations/${orgId}/repos/`],
     ];
   }
-
-  renderError(error?: Error, disableLog = false, disableReport = false): React.ReactNode {
-    const {errors} = this.state;
-    const notFound = Object.values(errors).find(resp => resp && resp.status === 404);
-    if (notFound) {
-      this.setState({notFound: true});
-
-      return this.renderBody();
-    }
-    return super.renderError(error, disableLog, disableReport);
-  }
-
-  handleRepoFilterChange = (repo: string) => {
-    this.setState({activeRepo: repo, notFound: false});
-  };
 
   renderRepoSwitcher() {
     const {activeRepo, repos} = this.state;
@@ -133,6 +128,26 @@ class ReleaseCommits extends AsyncView<Props, State> {
     );
   }
 
+  renderError(error?: Error, disableLog = false, disableReport = false): React.ReactNode {
+    const {errors} = this.state;
+    const notFound = Object.values(errors).find(resp => resp && resp.status === 404);
+    if (notFound) {
+      return (
+        <React.Fragment>
+          {this.renderRepoSwitcher()}
+          <LoadingError
+            message={t('We were unable to fetch commits by the selected repository.')}
+          />
+        </React.Fragment>
+      );
+    }
+    return super.renderError(error, disableLog, disableReport);
+  }
+
+  handleRepoFilterChange = (repo: string) => {
+    this.setState({activeRepo: repo, notFound: false});
+  };
+
   renderCommitsForRepo(repo: string, commitsByRepository: CommitsByRepository) {
     return (
       <Panel key={repo}>
@@ -148,7 +163,7 @@ class ReleaseCommits extends AsyncView<Props, State> {
 
   renderBody() {
     const {orgId} = this.props.params;
-    const {commits, repos, activeRepo, commitsPageLinks, notFound} = this.state;
+    const {commits, repos, activeRepo, commitsPageLinks} = this.state;
 
     const commitsByRepository = getCommitsByRepository(commits);
     const reposToRender =
@@ -172,22 +187,9 @@ class ReleaseCommits extends AsyncView<Props, State> {
       );
     }
 
-    const repoSwitcher = this.renderRepoSwitcher();
-
-    if (notFound) {
-      return (
-        <React.Fragment>
-          {repoSwitcher}
-          <LoadingError
-            message={t('We were unable to fetch commits by the selected repository.')}
-          />
-        </React.Fragment>
-      );
-    }
-
     return (
       <React.Fragment>
-        {repoSwitcher}
+        {this.renderRepoSwitcher()}
         {reposToRender.map(repoName =>
           this.renderCommitsForRepo(repoName, commitsByRepository)
         )}
