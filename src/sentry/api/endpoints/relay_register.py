@@ -21,6 +21,7 @@ from sentry_relay import (
     create_register_challenge,
     validate_register_response,
     is_version_supported,
+    UnpackErrorSignatureExpired,
 )
 
 
@@ -159,13 +160,21 @@ class RelayRegisterResponseEndpoint(Endpoint):
 
         try:
             validated = validate_register_response(request.body, sig, secret)
+        except UnpackErrorSignatureExpired:
+            return Response({"detail": "Challenge expired"}, status=status.HTTP_401_UNAUTHORIZED)
         except Exception as exc:
             return Response(
                 {"detail": str(exc).splitlines()[0]}, status=status.HTTP_400_BAD_REQUEST
             )
 
-        relay_id = validated["relay_id"]
+        relay_id = six.text_type(validated["relay_id"])
         public_key = validated["public_key"]
+
+        if relay_id != get_header_relay_id(request):
+            return Response(
+                {"detail": "relay_id in payload did not match header"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         is_internal = is_internal_relay(request, public_key)
         try:
