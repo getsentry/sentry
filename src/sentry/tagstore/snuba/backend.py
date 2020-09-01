@@ -435,13 +435,12 @@ class SnubaTagStorage(TagStorage):
             referrer="tagstore.get_group_seen_values_for_environments",
         )
 
-        return OrderedDict(
-            (
-                issue["group_id"],
-                fix_tag_value_data(dict(filter(lambda key: key[0] != "group_id", issue.items()))),
+        return {
+            issue["group_id"]: fix_tag_value_data(
+                dict(filter(lambda key: key[0] != "group_id", six.iteritems(issue)))
             )
             for issue in result["data"]
-        )
+        }
 
     def get_group_tag_value_count(self, project_id, group_id, environment_id, key):
         tag = u"tags[{}]".format(key)
