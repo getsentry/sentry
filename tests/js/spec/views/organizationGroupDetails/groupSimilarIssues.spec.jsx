@@ -3,7 +3,7 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import GroupSimilar from 'app/views/organizationGroupDetails/groupSimilar';
+import GroupSimilarIssues from 'app/views/organizationGroupDetails/groupSimilarIssues';
 
 describe('Issues Similar View', function() {
   let mock;
@@ -44,7 +44,7 @@ describe('Issues Similar View', function() {
 
   it('renders initially with loading component', function() {
     const component = mountWithTheme(
-      <GroupSimilar
+      <GroupSimilarIssues
         project={project}
         params={{orgId: 'org-slug', groupId: 'group-id'}}
         location={{}}
@@ -57,7 +57,7 @@ describe('Issues Similar View', function() {
 
   it('renders with mocked data', async function() {
     const wrapper = mountWithTheme(
-      <GroupSimilar
+      <GroupSimilarIssues
         project={project}
         query=""
         params={{orgId: 'org-slug', projectId: 'project-slug', groupId: 'group-id'}}
@@ -75,7 +75,7 @@ describe('Issues Similar View', function() {
 
   it('can merge and redirect to new parent', async function() {
     const wrapper = mountWithTheme(
-      <GroupSimilar
+      <GroupSimilarIssues
         project={project}
         params={{orgId: 'org-slug', projectId: 'project-slug', groupId: 'group-id'}}
         location={{}}

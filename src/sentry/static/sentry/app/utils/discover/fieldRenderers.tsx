@@ -16,11 +16,11 @@ import getDynamicText from 'app/utils/getDynamicText';
 import {formatFloat, formatPercentage} from 'app/utils/formatters';
 import {getAggregateAlias, AGGREGATIONS} from 'app/utils/discover/fields';
 import Projects from 'app/utils/projects';
+import {getShortEventId} from 'app/utils/events';
 
 import {
   BarContainer,
   Container,
-  EventId,
   NumberContainer,
   OverflowLink,
   StyledDateTime,
@@ -180,11 +180,8 @@ const SPECIAL_FIELDS: SpecialFields = {
       if (typeof id !== 'string') {
         return null;
       }
-      return (
-        <Container>
-          <EventId value={id} />
-        </Container>
-      );
+
+      return <Container>{getShortEventId(id)}</Container>;
     },
   },
   'issue.id': {

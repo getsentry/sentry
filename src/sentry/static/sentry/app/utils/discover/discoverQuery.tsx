@@ -16,6 +16,7 @@ import {getCurrentTrendFunction} from 'app/views/performance/trends/utils';
  * An individual row in a DiscoverQuery result
  */
 export type TableDataRow = {
+  id: string;
   [key: string]: React.ReactText;
 };
 
@@ -23,8 +24,8 @@ export type TableDataRow = {
  * A DiscoverQuery result including rows and metadata.
  */
 export type TableData = {
-  meta?: MetaType;
   data: Array<TableDataRow>;
+  meta?: MetaType;
 };
 
 type ChildrenProps = {

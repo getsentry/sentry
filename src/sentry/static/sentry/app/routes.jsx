@@ -22,6 +22,7 @@ import errorHandler from 'app/utils/errorHandler';
 import redirectDeprecatedProjectRoute from 'app/views/projects/redirectDeprecatedProjectRoute';
 import {decideReleasesVersion} from 'app/views/releasesV2/utils';
 import RedirectTo from 'app/utils/redirect';
+import {TAB} from 'app/views/organizationGroupDetails/header';
 
 function appendTrailingSlash(nextState, replace) {
   const lastChar = nextState.location.pathname.slice(-1);
@@ -1176,7 +1177,7 @@ function routes() {
             path="/organizations/:orgId/issues/:groupId/"
             componentPromise={() =>
               import(
-                /* webpackChunkName: "OrganizationGroupDetails" */ 'app/views/organizationGroupDetails'
+                /* webpackChunkName: "GroupDetails" */ 'app/views/organizationGroupDetails'
               )
             }
             component={errorHandler(LazyLoad)}
@@ -1184,10 +1185,14 @@ function routes() {
             <IndexRoute
               componentPromise={() =>
                 import(
-                  /* webpackChunkName: "OrganizationGroupEventDetails" */ 'app/views/organizationGroupDetails/groupEventDetails'
+                  /* webpackChunkName: "GroupEventDetails" */ 'app/views/organizationGroupDetails/groupEventDetails'
                 )
               }
               component={errorHandler(LazyLoad)}
+              props={{
+                currentTab: TAB.DETAILS,
+                isEventRoute: false,
+              }}
             />
             <Route
               path="/organizations/:orgId/issues/:groupId/activity/"
@@ -1197,51 +1202,62 @@ function routes() {
                 )
               }
               component={errorHandler(LazyLoad)}
-            />
-            <Route
-              path="/organizations/:orgId/issues/:groupId/events/:eventId/"
-              componentPromise={() =>
-                import(
-                  /* webpackChunkName: "OrganizationGroupEventDetails" */ 'app/views/organizationGroupDetails/groupEventDetails'
-                )
-              }
-              component={errorHandler(LazyLoad)}
+              props={{
+                currentTab: TAB.COMMENTS,
+                isEventRoute: false,
+              }}
             />
             <Route
               path="/organizations/:orgId/issues/:groupId/events/"
               componentPromise={() =>
                 import(
-                  /* webpackChunkName: "OrganizationGroupEvents" */ 'app/views/organizationGroupDetails/groupEvents'
+                  /* webpackChunkName: "GroupEvents" */ 'app/views/organizationGroupDetails/groupEvents'
                 )
               }
               component={errorHandler(LazyLoad)}
+              props={{
+                currentTab: TAB.EVENTS,
+                isEventRoute: false,
+              }}
             />
             <Route
               path="/organizations/:orgId/issues/:groupId/tags/"
               componentPromise={() =>
                 import(
-                  /* webpackChunkName: "OrganizationGroupTags" */ 'app/views/organizationGroupDetails/groupTags'
+                  /* webpackChunkName: "GroupTags" */ 'app/views/organizationGroupDetails/groupTags'
                 )
               }
               component={errorHandler(LazyLoad)}
+              props={{
+                currentTab: TAB.TAGS,
+                isEventRoute: false,
+              }}
             />
             <Route
               path="/organizations/:orgId/issues/:groupId/tags/:tagKey/"
               componentPromise={() =>
                 import(
-                  /* webpackChunkName: "OrganizationGroupTagsValues" */ 'app/views/organizationGroupDetails/groupTagValues'
+                  /* webpackChunkName: "GroupTagsValues" */ 'app/views/organizationGroupDetails/groupTagValues'
                 )
               }
               component={errorHandler(LazyLoad)}
+              props={{
+                currentTab: TAB.TAGS,
+                isEventRoute: false,
+              }}
             />
             <Route
               path="/organizations/:orgId/issues/:groupId/feedback/"
               componentPromise={() =>
                 import(
-                  /* webpackChunkName: "OrganizationGroupUserFeedback" */ 'app/views/organizationGroupDetails/groupUserFeedback'
+                  /* webpackChunkName: "GroupUserFeedback" */ 'app/views/organizationGroupDetails/groupUserFeedback'
                 )
               }
               component={errorHandler(LazyLoad)}
+              props={{
+                currentTab: TAB.USER_FEEDBACK,
+                isEventRoute: false,
+              }}
             />
             <Route
               path="/organizations/:orgId/issues/:groupId/attachments/"
@@ -1251,25 +1267,155 @@ function routes() {
                 )
               }
               component={errorHandler(LazyLoad)}
+              props={{
+                currentTab: TAB.ATTACHMENTS,
+                isEventRoute: false,
+              }}
             />
             <Route
               path="/organizations/:orgId/issues/:groupId/similar/"
               componentPromise={() =>
                 import(
-                  /* webpackChunkName: "GroupSimilarView" */ 'app/views/organizationGroupDetails/groupSimilar'
+                  /* webpackChunkName: "GroupSimilarIssues" */ 'app/views/organizationGroupDetails/groupSimilarIssues'
                 )
               }
               component={errorHandler(LazyLoad)}
+              props={{
+                currentTab: TAB.SIMILAR_ISSUES,
+                isEventRoute: false,
+              }}
             />
             <Route
               path="/organizations/:orgId/issues/:groupId/merged/"
               componentPromise={() =>
                 import(
-                  /* webpackChunkName: "GroupSimilarView" */ 'app/views/organizationGroupDetails/groupMerged'
+                  /* webpackChunkName: "GroupMerged" */ 'app/views/organizationGroupDetails/groupMerged'
                 )
               }
               component={errorHandler(LazyLoad)}
+              props={{
+                currentTab: TAB.MERGED,
+                isEventRoute: false,
+              }}
             />
+            <Route path="/organizations/:orgId/issues/:groupId/events/:eventId/">
+              <IndexRoute
+                componentPromise={() =>
+                  import(
+                    /* webpackChunkName: "GroupEventDetails" */ 'app/views/organizationGroupDetails/groupEventDetails'
+                  )
+                }
+                component={errorHandler(LazyLoad)}
+                props={{
+                  currentTab: TAB.DETAILS,
+                  isEventRoute: true,
+                }}
+              />
+              <Route
+                path="activity/"
+                componentPromise={() =>
+                  import(
+                    /* webpackChunkName: "GroupActivity" */ 'app/views/organizationGroupDetails/groupActivity'
+                  )
+                }
+                component={errorHandler(LazyLoad)}
+                props={{
+                  currentTab: TAB.COMMENTS,
+                  isEventRoute: true,
+                }}
+              />
+              <Route
+                path="events/"
+                componentPromise={() =>
+                  import(
+                    /* webpackChunkName: "GroupEvents" */ 'app/views/organizationGroupDetails/groupEvents'
+                  )
+                }
+                component={errorHandler(LazyLoad)}
+                props={{
+                  currentTab: TAB.EVENTS,
+                  isEventRoute: true,
+                }}
+              />
+              <Route
+                path="similar/"
+                componentPromise={() =>
+                  import(
+                    /* webpackChunkName: "GroupSimilarIssues" */ 'app/views/organizationGroupDetails/groupSimilarIssues'
+                  )
+                }
+                component={errorHandler(LazyLoad)}
+                props={{
+                  currentTab: TAB.SIMILAR_ISSUES,
+                  isEventRoute: true,
+                }}
+              />
+              <Route
+                path="tags/"
+                componentPromise={() =>
+                  import(
+                    /* webpackChunkName: "GroupTags" */ 'app/views/organizationGroupDetails/groupTags'
+                  )
+                }
+                component={errorHandler(LazyLoad)}
+                props={{
+                  currentTab: TAB.TAGS,
+                  isEventRoute: true,
+                }}
+              />
+              <Route
+                path="tags/:tagKey/"
+                componentPromise={() =>
+                  import(
+                    /* webpackChunkName: "GroupTagsValues" */ 'app/views/organizationGroupDetails/groupTagValues'
+                  )
+                }
+                component={errorHandler(LazyLoad)}
+                props={{
+                  currentTab: TAB.TAGS,
+                  isEventRoute: true,
+                }}
+              />
+              <Route
+                path="feedback/"
+                componentPromise={() =>
+                  import(
+                    /* webpackChunkName: "GroupUserFeedback" */ 'app/views/organizationGroupDetails/groupUserFeedback'
+                  )
+                }
+                component={errorHandler(LazyLoad)}
+                props={{
+                  currentTab: TAB.USER_FEEDBACK,
+                  isEventRoute: true,
+                }}
+              />
+              <Route
+                path="attachments/"
+                componentPromise={() =>
+                  import(
+                    /* webpackChunkName: "GroupEventAttachments" */ 'app/views/organizationGroupDetails/groupEventAttachments'
+                  )
+                }
+                component={errorHandler(LazyLoad)}
+                props={{
+                  currentTab: TAB.ATTACHMENTS,
+                  isEventRoute: true,
+                }}
+              />
+              <Route
+                path="merged/"
+                componentPromise={() =>
+                  import(
+                    /* webpackChunkName: "GroupMerged" */ 'app/views/organizationGroupDetails/groupMerged'
+                  )
+                }
+                component={errorHandler(LazyLoad)}
+                props={{
+                  currentTab: TAB.MERGED,
+                  isEventRoute: true,
+                }}
+              />
+            </Route>
           </Route>
 
           <Route

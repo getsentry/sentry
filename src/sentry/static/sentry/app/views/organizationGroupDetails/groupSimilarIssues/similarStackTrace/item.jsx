@@ -20,7 +20,7 @@ import SpreadLayout from 'app/components/spreadLayout';
 
 const similarInterfaces = ['exception', 'message'];
 
-const SimilarIssueItem = createReactClass({
+const Item = createReactClass({
   displayName: 'SimilarIssueItem',
 
   propTypes: {
@@ -159,4 +159,4 @@ const SimilarIssueItem = createReactClass({
   },
 });
 
-export default SimilarIssueItem;
+export default Item;

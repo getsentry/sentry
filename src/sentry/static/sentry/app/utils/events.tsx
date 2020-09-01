@@ -62,3 +62,10 @@ export function getTitle(event: Event | Group): EventTitle {
 
   return result;
 }
+
+/**
+ * Returns a short eventId with only 8 characters
+ */
+export function getShortEventId(eventId: string) {
+  return eventId.substring(0, 8);
+}
