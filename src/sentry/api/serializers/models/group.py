@@ -98,10 +98,13 @@ class GroupSerializerBase(Serializer):
         if last_seen is not None:
             last_seen = last_seen - timedelta(days=1)
 
-        start = max(
-            min(last_seen, datetime.now(pytz.utc) - timedelta(days=14)),
-            datetime.now(pytz.utc) - timedelta(days=90),
-        )
+        if last_seen is None:
+            start = datetime.now(pytz.utc) - timedelta(days=30)
+        else:
+            start = max(
+                min(last_seen, datetime.now(pytz.utc) - timedelta(days=14)),
+                datetime.now(pytz.utc) - timedelta(days=90),
+            )
 
         for item in item_list:
             filter_keys.setdefault("project_id", []).append(item.project_id)
