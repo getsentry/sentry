@@ -230,7 +230,7 @@ class TableView extends React.Component<TableViewProps> {
       });
 
       cell = (
-        <Tooltip key={`eventlink${rowIndex}`} title={t('View Event')}>
+        <Tooltip title={t('View Event')}>
           <StyledLink data-test-id="view-event" to={target}>
             {cell}
           </StyledLink>
