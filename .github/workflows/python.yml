@@ -11,6 +11,7 @@ on:
 
 jobs:
   check-missing-migration:
+    if: ${{ github.ref != 'refs/heads/master' }}
     name: Check Migration Required
     runs-on: ubuntu-16.04
 
