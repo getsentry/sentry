@@ -1,5 +1,8 @@
 name: python
 on:
+  push:
+    branches:
+      - master
   pull_request:
     paths:
       # Matches all python files regardless of directory depth.
@@ -192,7 +195,6 @@ jobs:
       # When we have a full backend test matrix for py3, make a py2 one with new rb as well.
       # TODO(joshuarli):
       # - kakfa+zookeeper devservices necessary for what test suites?
-      # - is `docker exec sentry_snuba snuba migrate` needed?
       # - MIGRATIONS_TEST_MIGRATE=1
       # - TEST_SUITE=relay-integration
       # - TEST_SUITE=symbolicator
