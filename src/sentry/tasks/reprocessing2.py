@@ -54,6 +54,6 @@ def reprocess_group(project_id, group_id, offset=0, start_time=None):
     soft_time_limit=20,
 )
 def reprocess_event(project_id, event_id, start_time):
-    from sentry.reprocessing2 import reprocess_event
+    from sentry.reprocessing2 import reprocess_event as reprocess_event_impl
 
-    reprocess_event(project_id=project_id, event_id=event_id, start_time=start_time)
+    reprocess_event_impl(project_id=project_id, event_id=event_id, start_time=start_time)
