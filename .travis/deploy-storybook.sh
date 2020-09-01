@@ -25,8 +25,8 @@ BUCKET_DIR_NAME="branches/${BRANCH_PROCESSED}"
 echo "Bucket directory: ${BUCKET_DIR_NAME}"
 
 # Upload the files
-gsutil cp .storybook-out/favicon.ico "gs://${GS_BUCKET_NAME}/favicon.ico"
-gsutil -m rsync -r -d .storybook-out/ "gs://${GS_BUCKET_NAME}/${BUCKET_DIR_NAME}"
+gsutil cp docs-ui/.storybook-out/favicon.ico "gs://${GS_BUCKET_NAME}/favicon.ico"
+gsutil -m rsync -r -d docs-ui/.storybook-out/ "gs://${GS_BUCKET_NAME}/${BUCKET_DIR_NAME}"
 
 # Upload build metadata
 echo "{\"branch\": \"${DEPLOY_BRANCH}\", \"commit\": \"${TRAVIS_COMMIT}\", \"synced_at\": $(date +%s)}" > build-info.json
