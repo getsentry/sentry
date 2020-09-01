@@ -50,26 +50,26 @@ export const TRENDS_FUNCTIONS: TrendFunction[] = [
 export function chartIntervalFunction(dateTimeSelection: DateTimeObject) {
   const diffInMinutes = getDiffInMinutes(dateTimeSelection);
   if (diffInMinutes >= THIRTY_DAYS) {
-    return '48h';
-  }
-
-  if (diffInMinutes >= TWO_WEEKS) {
     return '24h';
   }
 
-  if (diffInMinutes >= ONE_WEEK) {
+  if (diffInMinutes >= TWO_WEEKS) {
     return '12h';
   }
 
+  if (diffInMinutes >= ONE_WEEK) {
+    return '6h';
+  }
+
   if (diffInMinutes >= TWENTY_FOUR_HOURS) {
-    return '1h';
+    return '30m';
   }
 
   if (diffInMinutes <= ONE_HOUR) {
-    return '180s';
+    return '90s';
   }
 
-  return '2m';
+  return '60s';
 }
 
 export const trendToColor = {
