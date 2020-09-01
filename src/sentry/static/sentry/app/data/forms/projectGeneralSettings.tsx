@@ -10,12 +10,14 @@ import marked from 'app/utils/marked';
 import platforms from 'app/data/platforms';
 import slugify from 'app/utils/slugify';
 import {
-  STORE_CRASH_REPORTS_VALUES,
+  getStoreCrashReportsValues,
   formatStoreCrashReports,
+  SettingScope,
 } from 'app/utils/crashReports';
 import space from 'app/styles/space';
 import {GroupingConfigItem} from 'app/components/events/groupingInfo';
 import {Field} from 'app/views/settings/components/forms/type';
+import Link from 'app/components/links/link';
 
 // Export route to make these forms searchable by label/help
 export const route = '/settings/:orgId/projects/:projectId/';
@@ -49,7 +51,7 @@ const ORG_DISABLED_REASON = t(
 // Check if a field has been set AND IS TRUTHY at the organization level.
 const hasOrgOverride = ({organization, name}) => organization[name];
 
-export const fields: {[key: string]: Field} = {
+export const fields: Record<string, Field> = {
   slug: {
     name: 'slug',
     type: 'string',
@@ -332,14 +334,35 @@ export const fields: {[key: string]: Field} = {
   },
   storeCrashReports: {
     name: 'storeCrashReports',
-    type: 'range',
+    type: 'array',
     label: t('Store Native Crash Reports'),
-    help: t(
-      'Store native crash reports such as Minidumps for improved processing and download in issue details. Overrides organization settings.'
-    ),
+    help: ({organization}) =>
+      tct(
+        'Store native crash reports such as Minidumps for improved processing and download in issue details. Overrides [organizationSettingsLink: organization settings].',
+        {
+          organizationSettingsLink: (
+            <Link to={`/settings/${organization.slug}/security-and-privacy/`} />
+          ),
+        }
+      ),
     visible: ({features}) => features.has('event-attachments'),
-    formatLabel: value => formatStoreCrashReports(value, {inProjectSettings: true}),
-    allowedValues: STORE_CRASH_REPORTS_VALUES,
+    placeholder: ({organization, value}) => {
+      // empty value means that this project should inherit organization settings
+      if (value === '') {
+        return tct('Inherit organization settings ([organizationValue])', {
+          organizationValue: formatStoreCrashReports(organization.storeCrashReports),
+        });
+      }
+
+      // HACK: some organization can have limit of stored crash reports a number that's not in the options (legacy reasons),
+      // we therefore display it in a placeholder
+      return formatStoreCrashReports(value);
+    },
+    choices: ({organization}) =>
+      getStoreCrashReportsValues(SettingScope.Project).map(value => [
+        value,
+        formatStoreCrashReports(value, organization.storeCrashReports),
+      ]),
   },
   allowedDomains: {
     name: 'allowedDomains',
