@@ -188,10 +188,11 @@ def build_personal_installation_message():
 
 
 def build_mentioned_card():
-
     instruction = {
         "type": "TextBlock",
-        "text": ("Sentry for Microsoft Teams does not support any commands."),
+        "text": (
+            "Sentry for Microsoft Teams does not support any commands in channels, only in direct messages."
+        ),
         "wrap": True,
     }
 
@@ -212,6 +213,47 @@ def build_mentioned_card():
     return {
         "type": "AdaptiveCard",
         "body": [instruction, alert_instruction],
+        "actions": [button],
+        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+        "version": "1.2",
+    }
+
+
+def build_unrecognized_command_card(command_text):
+    instruction = {
+        "type": "TextBlock",
+        "text": (u"Sorry, I didn't understand '{}'. Supported commands:".format(command_text)),
+        "wrap": True,
+    }
+
+    commands = {
+        "type": "TextBlock",
+        "text": ("**unlink**: unlink your Microsoft Teams identity from your Sentry account."),
+        "wrap": True,
+    }
+
+    return {
+        "type": "AdaptiveCard",
+        "body": [instruction, commands],
+        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+        "version": "1.2",
+    }
+
+
+def build_unlink_identity_card(unlink_url):
+    unlink_identity = {
+        "type": "TextBlock",
+        "text": "Click below to unlink your identity",
+        "wrap": True,
+    }
+    button = {
+        "type": "Action.OpenUrl",
+        "title": "Unlink Identity",
+        "url": unlink_url,
+    }
+    return {
+        "type": "AdaptiveCard",
+        "body": [unlink_identity],
         "actions": [button],
         "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
         "version": "1.2",
@@ -616,6 +658,24 @@ def build_linked_card():
     return {
         "type": "AdaptiveCard",
         "body": [body],
+    }
+
+
+def build_unlinked_card():
+    desc = {
+        "type": "TextBlock",
+        "text": (
+            "Your Microsoft Teams identity has been unlinked to your Sentry account."
+            " You will need to re-link if you want to interact with messages again."
+        ),
+        "wrap": True,
+    }
+
+    return {
+        "type": "AdaptiveCard",
+        "body": [desc],
+        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+        "version": "1.2",
     }
 
 
