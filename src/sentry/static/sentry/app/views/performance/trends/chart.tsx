@@ -62,59 +62,127 @@ function getLegend() {
     align: 'left',
     textStyle: {
       verticalAlign: 'top',
-      fontSize: 11,
+      fontSize: 12,
       fontFamily: 'Rubik',
     },
     data: [
       {
-        name: 'Previous Period / This Period',
+        name: 'Baseline',
         icon:
           'path://M180 1000 l0 -40 200 0 200 0 0 40 0 40 -200 0 -200 0 0 -40z, M810 1000 l0 -40 200 0 200 0 0 40 0 40 -200 0 -200 0 0 -40zm, M1440 1000 l0 -40 200 0 200 0 0 40 0 40 -200 0 -200 0 0 -40z',
+      },
+      {
+        name: 'Releases',
+        icon: 'line',
       },
     ],
   };
   return legend;
 }
 
-function getIntervalLine(series: Series[], intervalRatio: number) {
-  if (!series.length || !series[0].data || !series[0].data.length) {
+function getIntervalLine(
+  series: Series[],
+  intervalRatio: number,
+  transaction?: NormalizedTrendsTransaction
+) {
+  if (!transaction || !series.length || !series[0].data || !series[0].data.length) {
     return [];
   }
-  const additionalLineSeries = [
-    {
-      color: theme.gray700,
-      data: [],
-      markLine: {
-        data: [] as any[],
-        label: {show: false},
-        lineStyle: {
-          normal: {
-            color: theme.gray700,
-            type: 'dashed',
-            width: 2,
-          },
-        },
-        symbol: ['none', 'none'],
-        tooltip: {
-          show: false,
-        },
-      },
-      seriesName: 'Previous Period / This Period',
-    },
-  ];
+
   const seriesStart = parseInt(series[0].data[0].name as string, 0);
   const seriesEnd = parseInt(series[0].data.slice(-1)[0].name as string, 0);
 
-  if (additionalLineSeries && seriesEnd > seriesStart) {
-    const seriesDiff = seriesEnd - seriesStart;
-    const seriesLine = seriesDiff * (intervalRatio || 0.5) + seriesStart;
-    additionalLineSeries[0].markLine.data = [
+  if (seriesEnd < seriesStart) {
+    return [];
+  }
+
+  const periodLine = {
+    data: [] as any[],
+    color: theme.gray700,
+    markLine: {
+      data: [] as any[],
+      label: {} as any,
+      lineStyle: {
+        normal: {
+          color: theme.gray700,
+          type: 'dashed',
+          width: 1,
+        },
+      },
+      symbol: ['none', 'none'],
+      tooltip: {
+        show: false,
+      },
+    },
+    seriesName: 'Baseline',
+  };
+
+  const periodLineLabel = {
+    fontSize: 10,
+    show: true,
+  };
+
+  const previousPeriod = {
+    ...periodLine,
+    markLine: {...periodLine.markLine},
+  };
+  const currentPeriod = {
+    ...periodLine,
+    markLine: {...periodLine.markLine},
+  };
+  const periodDividingLine = {
+    ...periodLine,
+    markLine: {...periodLine.markLine},
+  };
+
+  const seriesDiff = seriesEnd - seriesStart;
+  const seriesLine = seriesDiff * (intervalRatio || 0.5) + seriesStart;
+
+  previousPeriod.markLine.data = [
+    [
+      {value: 'Previous Period', coord: [seriesStart, transaction.aggregate_range_1]},
+      {coord: [seriesLine, transaction.aggregate_range_1]},
+    ],
+  ];
+  currentPeriod.markLine.data = [
+    [
+      {value: 'Current Period', coord: [seriesLine, transaction.aggregate_range_2]},
+      {coord: [seriesEnd, transaction.aggregate_range_2]},
+    ],
+  ];
+  periodDividingLine.markLine = {
+    data: [
       {
-        value: 'Comparison line',
+        value: 'Previous Period / This Period',
         xAxis: seriesLine,
       },
-    ];
-  }
+    ],
+    label: {show: false},
+    lineStyle: {
+      normal: {
+        color: theme.gray700,
+        type: 'solid',
+        width: 2,
+      },
+    },
+    symbol: ['none', 'none'],
+    tooltip: {
+      show: false,
+    },
+  };
+
+  previousPeriod.markLine.label = {
+    ...periodLineLabel,
+    formatter: 'Previous Period',
+    position: 'insideStartBottom',
+  };
+  currentPeriod.markLine.label = {
+    ...periodLineLabel,
+    formatter: 'Current Period',
+    position: 'insideEndBottom',
+  };
+
+  const additionalLineSeries = [previousPeriod, currentPeriod, periodDividingLine];
   return additionalLineSeries;
 }
 
@@ -178,7 +246,7 @@ class Chart extends React.Component<Props> {
                   .reverse()
               : [];
 
-            const intervalSeries = getIntervalLine(series, intervalRatio);
+            const intervalSeries = getIntervalLine(series, intervalRatio, transaction);
 
             return (
               <ReleaseSeries
