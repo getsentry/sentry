@@ -84,11 +84,13 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
             "target_type",
             "target_identifier",
             "integration",
+            "sentry_app",
         ]
         extra_kwargs = {
             "target_identifier": {"required": True},
             "target_display": {"required": False},
             "integration": {"required": False, "allow_null": True},
+            "sentry_app": {"required": False, "allow_null": True},
         }
 
     def validate_type(self, type):
@@ -154,6 +156,12 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
             if not attrs.get("integration"):
                 raise serializers.ValidationError(
                     {"integration": "Integration must be provided for slack"}
+                )
+
+        elif attrs.get("type") == AlertRuleTriggerAction.Type.SENTRY_APP:
+            if not attrs.get("sentry_app"):
+                raise serializers.ValidationError(
+                    {"sentry_app": "SentryApp must be provided for sentry_app"}
                 )
 
         return attrs
@@ -231,6 +239,9 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
             for action_data in actions:
                 if "integration_id" in action_data:
                     action_data["integration"] = action_data.pop("integration_id")
+
+                if "sentry_app_id" in action_data:
+                    action_data["sentry_app"] = action_data.pop("sentry_app_id")
 
                 if "id" in action_data:
                     action_instance = AlertRuleTriggerAction.objects.get(
@@ -334,9 +345,12 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             )
 
     def validate(self, data):
-        """Performs validation on an alert rule's data
-        This includes ensuring there is either 1 or 2 triggers, which each have actions, and have proper thresholds set.
-        The critical trigger should both alert and resolve 'after' the warning trigger (whether that means > or < the value depends on threshold type).
+        """
+        Performs validation on an alert rule's data.
+        This includes ensuring there is either 1 or 2 triggers, which each have
+        actions, and have proper thresholds set. The critical trigger should
+        both alert and resolve 'after' the warning trigger (whether that means
+        > or < the value depends on threshold type).
         """
         data.setdefault("dataset", QueryDatasets.EVENTS)
         project_id = data.get("projects")
