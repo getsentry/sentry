@@ -3,7 +3,6 @@ from __future__ import absolute_import, print_function
 import itertools
 from collections import defaultdict
 from datetime import timedelta
-from dateutil.parser import parse as parse_datetime
 
 import six
 import logging
@@ -649,16 +648,10 @@ class GroupSerializerSnuba(GroupSerializerBase):
             start=self.start,
             end=self.end,
         )
-        last_seen = {
-            data["group_id"]: parse_datetime(data["last_seen"]).replace(tzinfo=timezone.utc)
-            for data in seen_data["data"]
-        }
-        times_seen = {data["group_id"]: data["times_seen"] for data in seen_data["data"]}
+        last_seen = {item_id: value["last_seen"] for item_id, value in seen_data.items()}
+        times_seen = {item_id: value["times_seen"] for item_id, value in seen_data.items()}
         if not self.environment_ids:
-            first_seen = {
-                data["group_id"]: parse_datetime(data["first_seen"]).replace(tzinfo=timezone.utc)
-                for data in seen_data["data"]
-            }
+            first_seen = {item_id: value["first_seen"] for item_id, value in seen_data.items()}
         else:
             first_seen = {
                 ge["group_id"]: ge["first_seen__min"]
