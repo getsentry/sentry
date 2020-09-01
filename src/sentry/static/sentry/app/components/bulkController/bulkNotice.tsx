@@ -7,7 +7,7 @@ import {defined} from 'app/utils';
 import {PanelAlert} from '../panels';
 import Button from '../button';
 
-export function getEverythingSelectedText(allRowsCount?: number, bulkLimit?: number) {
+function getEverythingSelectedText(allRowsCount?: number, bulkLimit?: number) {
   if (!defined(allRowsCount)) {
     return t('Selected all items across all pages.');
   }
@@ -22,7 +22,7 @@ export function getEverythingSelectedText(allRowsCount?: number, bulkLimit?: num
   });
 }
 
-export function getSelectEverythingText(allRowsCount?: number, bulkLimit?: number) {
+function getSelectEverythingText(allRowsCount?: number, bulkLimit?: number) {
   if (!defined(allRowsCount)) {
     return t('Select all items across all pages.');
   }
@@ -93,9 +93,9 @@ function BulkNotice({
       {isEverythingSelected ? (
         <React.Fragment>
           {getEverythingSelectedText(allRowsCount, bulkLimit)}{' '}
-          <StyledButton priority="link" onClick={onCancelAllRows}>
+          <AlertButton priority="link" onClick={onCancelAllRows}>
             {t('Cancel selection.')}
-          </StyledButton>
+          </AlertButton>
         </React.Fragment>
       ) : (
         <React.Fragment>
@@ -104,9 +104,9 @@ function BulkNotice({
             '%s items on this page selected.',
             selectedRowsCount
           )}{' '}
-          <StyledButton priority="link" onClick={onSelectAllRows}>
+          <AlertButton priority="link" onClick={onSelectAllRows}>
             {getSelectEverythingText(allRowsCount, bulkLimit)}
-          </StyledButton>
+          </AlertButton>
         </React.Fragment>
       )}
     </Wrapper>
@@ -121,7 +121,7 @@ const Wrapper = styled(({columnsCount: _columnsCount, ...props}: WrapperProps) =
   text-align: center;
 `;
 
-const StyledButton = styled(Button)`
+const AlertButton = styled(Button)`
   &,
   &:hover,
   &:active,

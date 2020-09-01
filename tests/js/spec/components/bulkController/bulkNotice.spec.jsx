@@ -2,14 +2,12 @@ import React from 'react';
 
 import {shallow} from 'sentry-test/enzyme';
 
-import BulkNotice, {
-  getEverythingSelectedText,
-  getSelectEverythingText,
-} from 'app/components/bulkController/bulkNotice';
+import BulkNotice from 'app/components/bulkController/bulkNotice';
 
 const props = {
   allRowsCount: 64,
   selectedRowsCount: 10,
+  bulkLimit: undefined,
   onCancelAllRows: () => {},
   onSelectAllRows: () => {},
   columnsCount: 4,
@@ -28,6 +26,16 @@ describe('BulkNotice', function() {
     expect(wrapper.text()).toBe(
       `${props.selectedRowsCount} items on this page selected. Select all ${props.allRowsCount} items.`
     );
+
+    expect(
+      shallow(<BulkNotice {...props} isPageSelected allRowsCount={undefined} />).text()
+    ).toContain('Select all items across all pages');
+
+    expect(
+      shallow(
+        <BulkNotice {...props} isPageSelected allRowsCount={1001} bulkLimit={1000} />
+      ).text()
+    ).toContain('Select the first 1000 items.');
   });
 
   it('can select all rows across all pages', function() {
@@ -35,7 +43,7 @@ describe('BulkNotice', function() {
     const wrapper = shallow(
       <BulkNotice {...props} isPageSelected onSelectAllRows={onSelectAllRows} />
     );
-    wrapper.find('a').simulate('click');
+    wrapper.find('AlertButton').simulate('click');
     expect(onSelectAllRows).toHaveBeenCalled();
   });
 
@@ -52,41 +60,45 @@ describe('BulkNotice', function() {
     expect(wrapper.text()).toBe(
       `Selected all ${props.allRowsCount} items. Cancel selection.`
     );
-    wrapper.find('a').simulate('click');
+    wrapper.find('AlertButton').simulate('click');
     expect(onCancelAllRows).toHaveBeenCalled();
   });
-});
 
-describe('getEverythingSelectedText', () => {
-  it('no allRowsCount, no bulkLimit', () => {
-    expect(getEverythingSelectedText(undefined, undefined)).toBe(
-      'Selected all items across all pages.'
-    );
-    expect(shallow(<div>{getEverythingSelectedText(123, undefined)}</div>).text()).toBe(
-      'Selected all 123 items.'
-    );
-    expect(shallow(<div>{getEverythingSelectedText(123, 1000)}</div>).text()).toBe(
-      'Selected all 123 items.'
-    );
-    expect(shallow(<div>{getEverythingSelectedText(1001, 1000)}</div>).text()).toBe(
-      'Selected up to the first 1000 items.'
-    );
-  });
-});
+  it('show the right selected all across all pages summary', function() {
+    expect(
+      shallow(
+        <BulkNotice
+          {...props}
+          isPageSelected
+          isEverythingSelected
+          allRowsCount={undefined}
+          bulkLimit={undefined}
+        />
+      ).text()
+    ).toContain('Selected all items across all pages.');
 
-describe('getSelectEverythingText', () => {
-  it('no allRowsCount, no bulkLimit', () => {
-    expect(getSelectEverythingText(undefined, undefined)).toBe(
-      'Select all items across all pages.'
-    );
-    expect(shallow(<div>{getSelectEverythingText(123, undefined)}</div>).text()).toBe(
-      'Select all 123 items.'
-    );
-    expect(shallow(<div>{getSelectEverythingText(123, 1000)}</div>).text()).toBe(
-      'Select all 123 items.'
-    );
-    expect(shallow(<div>{getSelectEverythingText(1001, 1000)}</div>).text()).toBe(
-      'Select the first 1000 items.'
-    );
+    expect(
+      shallow(
+        <BulkNotice
+          {...props}
+          isPageSelected
+          isEverythingSelected
+          allRowsCount={123}
+          bulkLimit={undefined}
+        />
+      ).text()
+    ).toContain('Selected all 123 items.');
+
+    expect(
+      shallow(
+        <BulkNotice
+          {...props}
+          isPageSelected
+          isEverythingSelected
+          allRowsCount={1001}
+          bulkLimit={1000}
+        />
+      ).text()
+    ).toContain('Selected up to the first 1000 items.');
   });
 });
