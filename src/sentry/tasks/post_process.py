@@ -126,7 +126,7 @@ def post_process_group(event, is_new, is_regression, is_new_group_environment, *
     from sentry.reprocessing2 import is_reprocessed_event
 
     with snuba.options_override({"consistent": True}):
-        if is_reprocessed_event(event):
+        if is_reprocessed_event(event.data):
             logger.info(
                 "post_process.skipped",
                 extra={

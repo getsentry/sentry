@@ -151,8 +151,8 @@ def reprocess_event(project_id, event_id, start_time):
     )
 
 
-def is_reprocessed_event(event):
-    return bool(_get_original_event_id(event.data))
+def is_reprocessed_event(data):
+    return bool(_get_original_event_id(data))
 
 
 def _get_original_event_id(data):
