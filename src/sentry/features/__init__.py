@@ -100,6 +100,7 @@ default_manager.add("organizations:sso-rippling", OrganizationFeature)  # NOQA
 default_manager.add("organizations:sso-saml2", OrganizationFeature)  # NOQA
 default_manager.add("organizations:symbol-sources", OrganizationFeature)  # NOQA
 default_manager.add("organizations:usage-stats-graph", OrganizationFeature)  # NOQA
+default_manager.add("organizations:dynamic-issue-counts", OrganizationFeature)  # NOQA
 # XXX(mark) Don't use this feature it is going away soon.
 default_manager.add("organizations:transaction-events", OrganizationFeature)  # NOQA
 default_manager.add("organizations:invite-members-rate-limits", OrganizationFeature)  # NOQA

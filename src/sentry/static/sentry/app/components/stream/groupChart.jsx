@@ -9,6 +9,7 @@ class GroupChart extends React.Component {
     statsPeriod: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
     height: PropTypes.number,
+    hasDynamicIssueCounts: PropTypes.bool,
   };
 
   static defaultProps = {
@@ -24,13 +25,18 @@ class GroupChart extends React.Component {
   }
 
   render() {
-    const stats = this.props.statsPeriod
-      ? this.props.data.stats[this.props.statsPeriod]
+    const {data, hasDynamicIssueCounts, height, statsPeriod} = this.props;
+    // TODO: @taylangocmen pass filtered and unfiltered stats separately to chart and render both
+
+    const stats = statsPeriod
+      ? hasDynamicIssueCounts && data.filtered
+        ? data.filtered.stats[statsPeriod]
+        : data.stats[statsPeriod]
       : null;
+
     if (!stats || !stats.length) {
       return null;
     }
-    const {height} = this.props;
     const chartData = stats.map(point => ({x: point[0], y: point[1]}));
 
     return (

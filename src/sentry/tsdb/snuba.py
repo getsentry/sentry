@@ -213,6 +213,7 @@ class SnubaTSDB(BaseTSDB):
         aggregation="count()",
         group_on_model=True,
         group_on_time=False,
+        snuba_filters=None,
     ):
         """
         Normalizes all the TSDB parameters and sends a query to snuba.
@@ -267,15 +268,21 @@ class SnubaTSDB(BaseTSDB):
         end = to_datetime(series[-1] + rollup)
         limit = min(10000, int(len(keys) * ((end - start).total_seconds() / rollup)))
 
+        conditions = []
+        if model_query_settings.conditions is not None:
+            conditions = deepcopy(model_query_settings.conditions)
+            # copy because we modify the conditions in snuba.query
+
+        if snuba_filters is not None:
+            conditions = conditions + snuba_filters
+
         if keys:
             result = snuba.query(
                 dataset=model_query_settings.dataset,
                 start=start,
                 end=end,
                 groupby=groupby,
-                conditions=deepcopy(
-                    model_query_settings.conditions
-                ),  # copy because we modify the conditions in snuba.query
+                conditions=conditions,
                 filter_keys=keys_map,
                 aggregations=aggregations,
                 rollup=rollup,
@@ -331,7 +338,9 @@ class SnubaTSDB(BaseTSDB):
                     else:
                         del result[rk]
 
-    def get_range(self, model, keys, start, end, rollup=None, environment_ids=None):
+    def get_range(
+        self, model, keys, start, end, rollup=None, environment_ids=None, snuba_filters=None
+    ):
         # 10s is the only rollup under an hour that we support
         if rollup and rollup == 10 and model in self.lower_rollup_query_settings.keys():
             model_query_settings = self.lower_rollup_query_settings.get(model)
@@ -354,6 +363,7 @@ class SnubaTSDB(BaseTSDB):
             environment_ids,
             aggregation=aggregate_function,
             group_on_time=True,
+            snuba_filters=snuba_filters,
         )
         # convert
         #    {group:{timestamp:count, ...}}
