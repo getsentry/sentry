@@ -26,7 +26,7 @@ type RenderProps = {
    * Ready to be rendered summary component showing how many items are selected,
    * with buttons to select everything, cancel everything, etc...
    */
-  bulkNotice: React.ReactNode;
+  renderBulkNotice: () => React.ReactNode;
 } & Pick<State, 'selectedIds' | 'isAllSelected'>;
 
 type State = {
@@ -115,7 +115,7 @@ class BulkController extends React.Component<Props, State> {
       onRowToggle: this.handleRowToggle,
       onAllRowsToggle: this.handleAllRowsToggle,
       onPageRowsToggle: this.handlePageRowsToggle,
-      bulkNotice: (
+      renderBulkNotice: () => (
         <BulkNotice
           allRowsCount={allRowsCount}
           selectedRowsCount={selectedIds.length}

@@ -47,7 +47,7 @@ export const _BulkController = withInfo({
     columnsCount={3}
     bulkLimit={1000}
   >
-    {({selectedIds, onPageRowsToggle, onRowToggle, isPageSelected, bulkNotice}) => (
+    {({selectedIds, onPageRowsToggle, onRowToggle, isPageSelected, renderBulkNotice}) => (
       <PanelTable
         headers={[
           <StyledCheckbox
@@ -59,7 +59,7 @@ export const _BulkController = withInfo({
           'Text',
         ]}
       >
-        {bulkNotice}
+        {renderBulkNotice()}
 
         {dummy.map(d => (
           <React.Fragment key={d.id}>
