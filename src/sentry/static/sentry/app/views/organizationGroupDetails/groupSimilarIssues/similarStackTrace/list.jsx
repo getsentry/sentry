@@ -101,6 +101,5 @@ const Wrapper = styled('div')`
 const Header = styled('div')`
   display: flex;
   justify-content: flex-end;
-  margin-top: ${space(3)};
   margin-bottom: ${space(1)};
 `;
