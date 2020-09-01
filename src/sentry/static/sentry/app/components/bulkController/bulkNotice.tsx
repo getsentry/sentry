@@ -1,9 +1,10 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import Alert from 'app/components/alert';
 import {tn, tct, t} from 'app/locale';
 import {defined} from 'app/utils';
+
+import {PanelAlert} from '../panels';
 
 export function getEverythingSelectedText(allRowsCount?: number, bulkLimit?: number) {
   if (!defined(allRowsCount)) {
@@ -109,14 +110,11 @@ function BulkNotice({
   );
 }
 
-type WrapperProps = {columnsCount: number} & React.ComponentProps<typeof Alert>;
+type WrapperProps = {columnsCount: number} & React.ComponentProps<typeof PanelAlert>;
 const Wrapper = styled(({columnsCount: _columnsCount, ...props}: WrapperProps) => (
-  <Alert {...props} />
+  <PanelAlert {...props} />
 ))`
   grid-column: span ${p => p.columnsCount};
-  border-radius: 0;
-  margin-bottom: 0;
-  border: none;
   text-align: center;
 `;
 
