@@ -4,6 +4,7 @@ import functools
 import six
 from collections import defaultdict, Iterable, OrderedDict
 from dateutil.parser import parse as parse_datetime
+from pytz import UTC
 
 from django.core.cache import cache
 
@@ -55,7 +56,7 @@ tag_value_data_transformers = {"first_seen": parse_datetime, "last_seen": parse_
 def fix_tag_value_data(data):
     for key, transformer in tag_value_data_transformers.items():
         if key in data:
-            data[key] = transformer(data[key])
+            data[key] = transformer(data[key]).replace(tzinfo=UTC)
     return data
 
 
@@ -433,7 +434,13 @@ class SnubaTagStorage(TagStorage):
             referrer="tagstore.get_group_seen_values_for_environments",
         )
 
-        return OrderedDict((issue["group_id"], issue) for issue in result["data"])
+        return OrderedDict(
+            (
+                issue["group_id"],
+                fix_tag_value_data(dict(filter(lambda key: key[0] != "group_id", issue.items()))),
+            )
+            for issue in result["data"]
+        )
 
     def get_group_tag_value_count(self, project_id, group_id, environment_id, key):
         tag = u"tags[{}]".format(key)

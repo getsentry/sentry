@@ -604,20 +604,12 @@ class GroupListTest(APITestCase, SnubaTestCase):
             assert response.data[0]["filtered"] is not None
 
             assert response.data[0]["lifetime"]["count"] == "4"
-            assert response.data[0]["lifetime"]["firstSeen"] == parse_datetime(
-                before_now_300_seconds
-            ).replace(tzinfo=timezone.utc)
-            assert response.data[0]["lifetime"]["lastSeen"] == parse_datetime(
-                before_now_100_seconds
-            ).replace(tzinfo=timezone.utc)
+            assert response.data[0]["lifetime"]["firstSeen"] == before_now_300_seconds
+            assert response.data[0]["lifetime"]["lastSeen"] == before_now_100_seconds
 
             assert response.data[0]["filtered"]["count"] == "2"
-            assert response.data[0]["filtered"]["firstSeen"] == parse_datetime(
-                before_now_250_seconds
-            ).replace(tzinfo=timezone.utc)
-            assert response.data[0]["filtered"]["lastSeen"] == parse_datetime(
-                before_now_150_seconds
-            ).replace(tzinfo=timezone.utc)
+            assert response.data[0]["filtered"]["firstSeen"] == before_now_250_seconds
+            assert response.data[0]["filtered"]["lastSeen"] == before_now_150_seconds
 
     def test_skipped_fields(self):
         with self.feature("organizations:dynamic-issue-counts"):
