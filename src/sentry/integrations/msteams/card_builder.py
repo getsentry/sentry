@@ -668,7 +668,6 @@ def build_unlinked_card():
             "Your Microsoft Teams identity has been unlinked to your Sentry account."
             " You will need to re-link if you want to interact with messages again"
         ),
-        "size": "Large",
         "wrap": True,
     }
 
