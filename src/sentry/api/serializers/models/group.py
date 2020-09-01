@@ -2,9 +2,10 @@ from __future__ import absolute_import, print_function
 
 import itertools
 from collections import defaultdict
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 import six
+import pytz
 import logging
 
 from django.conf import settings
@@ -47,6 +48,7 @@ from sentry.tsdb.snuba import SnubaTSDB
 from sentry.utils.db import attach_foreignkey
 from sentry.utils.safe import safe_execute
 from sentry.utils.compat import map, zip
+from sentry.utils.snuba import Dataset, raw_query
 
 SUBSCRIPTION_REASON_MAP = {
     GroupSubscriptionReason.comment: "commented",
@@ -82,6 +84,40 @@ class GroupSerializerBase(Serializer):
             - user_count
         """
         raise NotImplementedError
+
+    def _get_group_snuba_stats(self, item_list, seen_stats):
+        filter_keys = {}
+
+        # Try to figure out form the seen stats what a reasonable time frame is
+        # to look into stats.  We try to pick 1 day before the earliest last
+        # seen, but at least 14 days but never more than 90 days.
+        last_seen = None
+        for item in seen_stats.values():
+            if last_seen is None or last_seen > item["last_seen"]:
+                last_seen = item["last_seen"]
+        if last_seen is not None:
+            last_seen = last_seen - timedelta(days=1)
+
+        start = max(
+            min(last_seen, datetime.now(pytz.utc) - timedelta(days=14)),
+            datetime.now(pytz.utc) - timedelta(days=90),
+        )
+
+        for item in item_list:
+            filter_keys.setdefault("project_id", []).append(item.project_id)
+            filter_keys.setdefault("group_id", []).append(item.id)
+
+        rv = raw_query(
+            dataset=Dataset.Events,
+            selected_columns=[
+                "group_id",
+                ["has", ["exception_stacks.mechanism_handled", 0], "unhandled"],
+            ],
+            filter_keys=filter_keys,
+            start=start,
+        )
+
+        return dict((x["group_id"], {"unhandled": x["unhandled"]}) for x in rv["data"])
 
     def _get_subscriptions(self, item_list, user):
         """
@@ -285,6 +321,8 @@ class GroupSerializerBase(Serializer):
         )
         merge_list_dictionaries(annotations_by_group_id, local_annotations_by_group_id)
 
+        snuba_stats = self._get_group_snuba_stats(item_list, seen_stats)
+
         for item in item_list:
             active_date = item.active_at or item.first_seen
 
@@ -330,6 +368,7 @@ class GroupSerializerBase(Serializer):
                 "resolution_type": resolution_type,
                 "resolution_actor": resolution_actor,
                 "share_id": share_ids.get(item.id),
+                "is_unhandled": bool(snuba_stats.get(item.id, {}).get("unhandled")),
             }
 
             result[item].update(seen_stats.get(item, {}))
@@ -463,6 +502,7 @@ class GroupSerializerBase(Serializer):
             "assignedTo": serialize(attrs["assigned_to"], user, ActorSerializer()),
             "isBookmarked": attrs["is_bookmarked"],
             "isSubscribed": is_subscribed,
+            "isUnhandled": attrs["is_unhandled"],
             "subscriptionDetails": subscription_details,
             "hasSeen": attrs["has_seen"],
             "annotations": attrs["annotations"],
