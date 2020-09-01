@@ -31,7 +31,7 @@ jobs:
                 owner: 'getsentry',
                 repo: 'getsentry',
                 workflow_id: 'javascript.yml',
-                ref: 'build/gha/add-javascript-workflows',
+                ref: 'master',
                 inputs: {
                   sha: '${{ github.event.pull_request.head.sha }}',
                 }
