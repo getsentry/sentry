@@ -121,9 +121,9 @@ def has_pending_commit_resolution(group):
     )
 
 
-def get_max_crashreports(model):
+def get_max_crashreports(model, allow_none=False):
     value = model.get_option("sentry:store_crash_reports")
-    return convert_crashreport_count(value)
+    return convert_crashreport_count(value, allow_none=allow_none)
 
 
 def crashreports_exceeded(current_count, max_count):
@@ -1169,8 +1169,8 @@ def filter_attachments_for_group(attachments, job):
     # The setting is both an organization and project setting. The project
     # setting strictly overrides the organization setting, unless set to the
     # default.
-    max_crashreports = get_max_crashreports(project)
-    if not max_crashreports:
+    max_crashreports = get_max_crashreports(project, allow_none=True)
+    if max_crashreports is None:
         max_crashreports = get_max_crashreports(project.organization)
 
     # The number of crash reports is cached per group

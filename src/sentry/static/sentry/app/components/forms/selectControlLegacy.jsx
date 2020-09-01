@@ -7,6 +7,7 @@ import {css} from '@emotion/core';
 import {IconChevron} from 'app/icons';
 import convertFromSelect2Choices from 'app/utils/convertFromSelect2Choices';
 import space from 'app/styles/space';
+import {callIfFunction} from 'app/utils/callIfFunction';
 
 /**
  * The library has `value` defined as `PropTypes.object`, but this
@@ -37,6 +38,7 @@ class SelectControlLegacy extends React.Component {
       PropTypes.arrayOf(PropTypes.oneOfType([PropTypes.string, PropTypes.array])),
       PropTypes.func,
     ]),
+    placeholder: PropTypes.oneOfType([ReactSelect.propTypes.placeholder, PropTypes.func]),
   };
 
   static defaultProps = {
@@ -48,7 +50,16 @@ class SelectControlLegacy extends React.Component {
   renderArrow = () => <StyledIconChevron direction="down" size="xs" />;
 
   render() {
-    const {async, creatable, options, choices, clearable, noMenu, ...props} = this.props;
+    const {
+      async,
+      creatable,
+      options,
+      choices,
+      clearable,
+      noMenu,
+      placeholder,
+      ...props
+    } = this.props;
 
     // Compatibility with old select2 API
     const choicesOrOptions =
@@ -78,6 +89,7 @@ class SelectControlLegacy extends React.Component {
         {...props}
         multi={this.props.multiple || this.props.multi}
         options={choicesOrOptions}
+        placeholder={callIfFunction(placeholder, this.props) || placeholder}
       />
     );
   }

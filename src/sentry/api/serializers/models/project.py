@@ -578,7 +578,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 "dataScrubberDefaults": bool(attrs["options"].get("sentry:scrub_defaults", True)),
                 "safeFields": attrs["options"].get("sentry:safe_fields", []),
                 "storeCrashReports": convert_crashreport_count(
-                    attrs["options"].get("sentry:store_crash_reports")
+                    attrs["options"].get("sentry:store_crash_reports"), allow_none=True
                 ),
                 "sensitiveFields": attrs["options"].get("sentry:sensitive_fields", []),
                 "subjectTemplate": attrs["options"].get("mail:subject_template")

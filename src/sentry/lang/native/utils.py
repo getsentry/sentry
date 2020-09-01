@@ -112,7 +112,7 @@ def get_event_attachment(data, attachment_type):
     return next((a for a in attachments if a.type == attachment_type), None)
 
 
-def convert_crashreport_count(value):
+def convert_crashreport_count(value, allow_none=False):
     """
     Shim to read both legacy and new `sentry:store_crash_reports` project and
     organization options.
@@ -121,14 +121,17 @@ def convert_crashreport_count(value):
     and `False` for no crash reports.
 
     The new format stores `-1` for unbounded storage, `0` for no crash reports,
-    and a positive number for a bounded number per group.
+    and a positive number for a bounded number per group, and `None` for no
+    setting (usually inheriting the parent setting).
 
-    Defaults to `0` (no storage).
+    The default depends on the `allow_none` flag:
+     - If unset, the default is `0` (no storage).
+     - If set, the default is `None` (inherit/no value).
     """
     if value is True:
         return STORE_CRASH_REPORTS_ALL
     if value is None:
-        return STORE_CRASH_REPORTS_DEFAULT
+        return None if allow_none else STORE_CRASH_REPORTS_DEFAULT
     return int(value)
 
 
