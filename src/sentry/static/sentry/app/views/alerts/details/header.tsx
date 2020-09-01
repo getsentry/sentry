@@ -132,7 +132,7 @@ export default class DetailsHeader extends React.Component<Props> {
               <ItemTitle>{t('Active For')}</ItemTitle>
               <ItemValue>{environmentLabel}</ItemValue>
               <ItemValue>
-                {project && (
+                {project ? (
                   <Projects slugs={[project]} orgId={params.orgId}>
                     {({projects}) =>
                       projects?.length && (
@@ -140,6 +140,8 @@ export default class DetailsHeader extends React.Component<Props> {
                       )
                     }
                   </Projects>
+                ) : (
+                  <Placeholder height="25px" />
                 )}
               </ItemValue>
               {isErrorDataset && (
@@ -161,10 +163,12 @@ export default class DetailsHeader extends React.Component<Props> {
                 </ItemValue>
               )}
               <ItemValue>
-                {incident && (
+                {incident ? (
                   <Duration
                     seconds={getDynamicText({value: duration || 0, fixed: 1200})}
                   />
+                ) : (
+                  <Placeholder height="25px" />
                 )}
               </ItemValue>
             </GroupedHeaderItems>
