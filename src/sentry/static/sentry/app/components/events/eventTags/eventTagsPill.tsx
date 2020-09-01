@@ -59,7 +59,7 @@ const EventTagsPill = ({
       </Link>
       {isUrl(tag.value) && (
         <ExternalLink href={tag.value} className="external-icon">
-          <IconOpen size="xs" />
+          <StyledIconOpen size="xs" />
         </ExternalLink>
       )}
       {isRelease && (
