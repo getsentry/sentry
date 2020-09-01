@@ -208,13 +208,35 @@ class TableView extends React.Component<TableViewProps> {
     if (!tableData || !tableData.meta) {
       return dataRow[column.key];
     }
-    const fieldRenderer = getFieldRenderer(String(column.key), tableData.meta);
+
+    const columnKey = String(column.key);
+    const fieldRenderer = getFieldRenderer(columnKey, tableData.meta);
 
     const display = eventView.getDisplayMode();
     const isTopEvents =
       display === DisplayModes.TOP5 || display === DisplayModes.DAILYTOP5;
 
     const count = Math.min(tableData?.data?.length ?? TOP_N, TOP_N);
+
+    let cell = fieldRenderer(dataRow, {organization, location});
+
+    if (columnKey === 'id') {
+      const eventSlug = generateEventSlug(dataRow);
+
+      const target = eventDetailsRouteWithEventView({
+        orgSlug: organization.slug,
+        eventSlug,
+        eventView,
+      });
+
+      cell = (
+        <Tooltip title={t('View Event')}>
+          <StyledLink data-test-id="view-event" to={target}>
+            {cell}
+          </StyledLink>
+        </Tooltip>
+      );
+    }
 
     return (
       <React.Fragment>
@@ -226,7 +248,7 @@ class TableView extends React.Component<TableViewProps> {
           dataRow={dataRow}
           handleCellAction={this.handleCellAction(dataRow, column)}
         >
-          {fieldRenderer(dataRow, {organization, location})}
+          {cell}
         </CellAction>
       </React.Fragment>
     );
