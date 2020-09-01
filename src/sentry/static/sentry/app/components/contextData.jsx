@@ -8,6 +8,7 @@ import styled from '@emotion/styled';
 import AnnotatedText from 'app/components/events/meta/annotatedText';
 import {IconOpen, IconAdd, IconSubtract} from 'app/icons';
 import {isUrl} from 'app/utils';
+import ExternalLink from 'app/components/links/externalLink';
 
 function looksLikeObjectRepr(value) {
   const a = value[0];
@@ -166,9 +167,9 @@ class ContextData extends React.Component {
 
         if (valueInfo.isString && isUrl(value)) {
           out.push(
-            <a key="external" href={value} className="external-icon">
+            <ExternalLink key="external" href={value} className="external-icon">
               <StyledIconOpen size="xs" />
-            </a>
+            </ExternalLink>
           );
         }
 
@@ -256,7 +257,7 @@ ContextData.displayName = 'ContextData';
 
 const StyledIconOpen = styled(IconOpen)`
   position: relative;
-  top: 1px;
+  top: -1px;
 `;
 
 const ToggleIcon = styled('a')`
