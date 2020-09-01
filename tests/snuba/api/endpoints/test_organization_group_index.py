@@ -634,8 +634,6 @@ class GroupListTest(APITestCase, SnubaTestCase):
                 project_id=self.project.id,
             )
 
-            event.group.first_release
-
             query = u"server:example.com"
             query += u" status:unresolved"
             query += u" active_at:" + iso_format(before_now(seconds=350))
