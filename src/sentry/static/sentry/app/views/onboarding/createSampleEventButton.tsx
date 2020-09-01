@@ -80,9 +80,32 @@ class CreateSampleEventButton extends React.Component<Props, State> {
     });
   }
 
+  recordAnalytics({eventCreated, retries, duration}) {
+    const {organization, project, source} = this.props;
+
+    if (!project) {
+      return;
+    }
+
+    const eventKey = `sample_event.${eventCreated ? 'created' : 'failed'}`;
+    const eventName = `Sample Event ${eventCreated ? 'Created' : 'Failed'}`;
+
+    trackAnalyticsEvent({
+      eventKey,
+      eventName,
+      organization_id: organization.id,
+      project_id: project.id,
+      platform: project.platform || '',
+      interval: EVENT_POLL_INTERVAL,
+      retries,
+      duration,
+      source,
+    });
+  }
+
   createSampleGroup = async () => {
     // TODO(dena): swap out for action creator
-    const {api, organization, project, source} = this.props;
+    const {api, organization, project} = this.props;
     let eventData;
 
     if (!project) {
@@ -107,20 +130,15 @@ class CreateSampleEventButton extends React.Component<Props, State> {
 
     // Wait for the event to be fully processed and available on the group
     // before redirecting.
+    const t0 = performance.now();
     const {eventCreated, retries} = await latestEventAvailable(api, eventData.groupID);
+    const t1 = performance.now();
+
     clearIndicators();
     this.setState({creating: false});
 
-    trackAnalyticsEvent({
-      eventKey: `sample_event.${eventCreated ? 'created' : 'failed'}`,
-      eventName: `Sample Event ${eventCreated ? 'Created' : 'Failed'}`,
-      organization_id: organization.id,
-      project_id: project.id,
-      platform: project.platform || '',
-      interval: EVENT_POLL_INTERVAL,
-      source,
-      retries,
-    });
+    const duration = Math.ceil(t1 - t0);
+    this.recordAnalytics({eventCreated, retries, duration});
 
     if (!eventCreated) {
       addErrorMessage(t('Failed to load sample event'));
@@ -130,6 +148,7 @@ class CreateSampleEventButton extends React.Component<Props, State> {
         scope.setTag('platform', project.platform || '');
         scope.setTag('interval', EVENT_POLL_INTERVAL.toString());
         scope.setTag('retries', retries.toString());
+        scope.setTag('duration', duration.toString());
 
         scope.setLevel(Sentry.Severity.Warning);
         Sentry.captureMessage('Failed to load sample event');

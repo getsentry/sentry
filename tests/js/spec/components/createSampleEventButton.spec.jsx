@@ -131,16 +131,18 @@ describe('CreateSampleEventButton', function() {
       `/organizations/${org.slug}/issues/${groupID}/`
     );
 
-    expect(trackAnalyticsEvent).toHaveBeenCalledWith({
-      eventKey: 'sample_event.created',
-      eventName: 'Sample Event Created',
-      organization_id: org.id,
-      project_id: project.id,
-      interval: 800,
-      retries: 1,
-      source: 'test',
-      platform: 'javascript',
-    });
+    expect(trackAnalyticsEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventKey: 'sample_event.created',
+        eventName: 'Sample Event Created',
+        organization_id: org.id,
+        project_id: project.id,
+        interval: 800,
+        retries: 1,
+        source: 'test',
+        platform: 'javascript',
+      })
+    );
 
     expect(Sentry.captureMessage).not.toHaveBeenCalled();
   });
