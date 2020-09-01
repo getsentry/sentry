@@ -42,13 +42,17 @@ type Props = {
    */
   selectedRowsCount: number;
   /**
+   * Number of columns to stretch the notice (used in grid-column)
+   */
+  columnsCount: number;
+  /**
    * Are all rows on current page selected?
    */
   isPageSelected: boolean;
   /**
    * Are all rows across all pages selected?
    */
-  isEverythingSelected: boolean;
+  isAllSelected: boolean;
   /**
    * Callback to select all rows across all pages
    */
@@ -56,13 +60,9 @@ type Props = {
   /**
    * Callback to clear selection of all rows
    */
-  onCancelAllRows: () => void;
+  onUnselectAllRows: () => void;
   /**
-   * Number of columns to stretch the notice (used in grid-column)
-   */
-  columnsCount: number;
-  /**
-   * Number of max items we can perform bulk operations on, defaults to 1000
+   * Number of max items we can perform bulk operations on
    */
   bulkLimit?: number;
   /**
@@ -73,14 +73,14 @@ type Props = {
 };
 
 function BulkNotice({
-  allRowsCount,
   selectedRowsCount,
-  isPageSelected,
-  isEverythingSelected,
-  onSelectAllRows,
-  onCancelAllRows,
   columnsCount,
+  isPageSelected,
+  isAllSelected,
+  onSelectAllRows,
+  onUnselectAllRows,
   bulkLimit,
+  allRowsCount,
   className,
 }: Props) {
   if ((allRowsCount && allRowsCount <= selectedRowsCount) || !isPageSelected) {
@@ -91,10 +91,10 @@ function BulkNotice({
 
   return (
     <Wrapper columnsCount={columnsCount} className={className}>
-      {isEverythingSelected ? (
+      {isAllSelected ? (
         <React.Fragment>
           {noticeText}{' '}
-          <AlertButton priority="link" onClick={onCancelAllRows}>
+          <AlertButton priority="link" onClick={onUnselectAllRows}>
             {t('Cancel selection.')}
           </AlertButton>
         </React.Fragment>

@@ -5,39 +5,33 @@ import {shallow} from 'sentry-test/enzyme';
 import BulkController from 'app/components/bulkController';
 
 describe('BulkController', function() {
-  let wrapper,
-    renderProp,
-    toggleRow,
-    selectPage,
-    deselectPage,
-    selectEverything,
-    deselectEverything;
+  let wrapper, renderProp, toggleRow, selectPage, deselectPage, selectAll, unselectAll;
 
   beforeEach(function() {
     renderProp = jest.fn();
     wrapper = shallow(
-      <BulkController allIdsCount={32} pageIds={[1, 2, 3]} noticeColumns={4}>
+      <BulkController allRowsCount={32} pageIds={[1, 2, 3]} columnsCount={4}>
         {({
-          isEverythingSelected,
+          isAllSelected,
           isPageSelected,
           selectedIds,
-          onIdToggle,
-          onAllIdsToggle,
-          onPageIdsToggle,
+          onRowToggle,
+          onAllRowsToggle,
+          onPageRowsToggle,
         }) => {
-          renderProp(isEverythingSelected, isPageSelected, selectedIds);
+          renderProp(isAllSelected, isPageSelected, selectedIds);
           return (
             <React.Fragment>
               {isPageSelected && 'whole page selected'}
-              {isEverythingSelected && 'everything selected'}
-              <button data-test-id="selectAll" onClick={() => onAllIdsToggle(true)} />
-              <button data-test-id="selectPage" onClick={() => onPageIdsToggle(true)} />
-              <button data-test-id="deselectAll" onClick={() => onAllIdsToggle(false)} />
+              {isAllSelected && 'everything selected'}
+              <button data-test-id="selectAll" onClick={() => onAllRowsToggle(true)} />
+              <button data-test-id="selectPage" onClick={() => onPageRowsToggle(true)} />
+              <button data-test-id="unselectAll" onClick={() => onAllRowsToggle(false)} />
               <button
                 data-test-id="deselectPage"
-                onClick={() => onPageIdsToggle(false)}
+                onClick={() => onPageRowsToggle(false)}
               />
-              <button data-test-id="toggleRow" onClick={() => onIdToggle(2)} />
+              <button data-test-id="toggleRow" onClick={() => onRowToggle(2)} />
             </React.Fragment>
           );
         }}
@@ -46,8 +40,8 @@ describe('BulkController', function() {
     toggleRow = wrapper.find('[data-test-id="toggleRow"]');
     selectPage = wrapper.find('[data-test-id="selectPage"]');
     deselectPage = wrapper.find('[data-test-id="deselectPage"]');
-    selectEverything = wrapper.find('[data-test-id="selectAll"]');
-    deselectEverything = wrapper.find('[data-test-id="deselectAll"]');
+    selectAll = wrapper.find('[data-test-id="selectAll"]');
+    unselectAll = wrapper.find('[data-test-id="unselectAll"]');
   });
 
   it('sets the defaults', function() {
@@ -73,14 +67,14 @@ describe('BulkController', function() {
   it('toggles everything', function() {
     toggleRow.simulate('click');
     expect(renderProp).toHaveBeenLastCalledWith(false, false, [2]);
-    selectEverything.simulate('click');
+    selectAll.simulate('click');
     expect(renderProp).toHaveBeenLastCalledWith(true, true, [1, 2, 3]);
-    deselectEverything.simulate('click');
+    unselectAll.simulate('click');
     expect(renderProp).toHaveBeenLastCalledWith(false, false, []);
   });
 
   it('deselects one after having everything selected', function() {
-    selectEverything.simulate('click');
+    selectAll.simulate('click');
     expect(renderProp).toHaveBeenLastCalledWith(true, true, [1, 2, 3]);
     toggleRow.simulate('click');
     expect(renderProp).toHaveBeenLastCalledWith(false, false, [1, 3]);

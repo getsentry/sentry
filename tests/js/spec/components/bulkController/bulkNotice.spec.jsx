@@ -8,11 +8,11 @@ const props = {
   allRowsCount: 64,
   selectedRowsCount: 10,
   bulkLimit: undefined,
-  onCancelAllRows: () => {},
+  onUnselectAllRows: () => {},
   onSelectAllRows: () => {},
   columnsCount: 4,
   isPageSelected: false,
-  isEverythingSelected: false,
+  isAllSelected: false,
 };
 
 describe('BulkNotice', function() {
@@ -48,20 +48,20 @@ describe('BulkNotice', function() {
   });
 
   it('can deselect all once everything is selected', function() {
-    const onCancelAllRows = jest.fn();
+    const onUnselectAllRows = jest.fn();
     const wrapper = shallow(
       <BulkNotice
         {...props}
         isPageSelected
-        isEverythingSelected
-        onCancelAllRows={onCancelAllRows}
+        isAllSelected
+        onUnselectAllRows={onUnselectAllRows}
       />
     );
     expect(wrapper.text()).toBe(
       `Selected all ${props.allRowsCount} items. Cancel selection.`
     );
     wrapper.find('AlertButton').simulate('click');
-    expect(onCancelAllRows).toHaveBeenCalled();
+    expect(onUnselectAllRows).toHaveBeenCalled();
   });
 
   it('show the right selected all across all pages summary', function() {
@@ -70,7 +70,7 @@ describe('BulkNotice', function() {
         <BulkNotice
           {...props}
           isPageSelected
-          isEverythingSelected
+          isAllSelected
           allRowsCount={undefined}
           bulkLimit={undefined}
         />
@@ -82,7 +82,7 @@ describe('BulkNotice', function() {
         <BulkNotice
           {...props}
           isPageSelected
-          isEverythingSelected
+          isAllSelected
           allRowsCount={123}
           bulkLimit={undefined}
         />
@@ -94,7 +94,7 @@ describe('BulkNotice', function() {
         <BulkNotice
           {...props}
           isPageSelected
-          isEverythingSelected
+          isAllSelected
           allRowsCount={1001}
           bulkLimit={1000}
         />

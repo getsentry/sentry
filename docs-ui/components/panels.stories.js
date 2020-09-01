@@ -123,17 +123,17 @@ export const _PanelTable = withInfo({
 
     <BulkController
       pageIds={dummy.map(d => d.id)}
-      allIdsCount={23}
-      maxIdsCount={1000}
-      noticeColumns={3}
+      allRowsCount={23}
+      columnsCount={3}
+      bulkLimit={1000}
     >
-      {({selectedIds, onPageIdsToggle, onIdToggle, isPageSelected, bulkNotice}) => (
+      {({selectedIds, onPageRowsToggle, onRowToggle, isPageSelected, bulkNotice}) => (
         <PanelTable
           headers={[
             <Checkbox
               key="bulk-checkbox"
               checked={isPageSelected}
-              onChange={e => onPageIdsToggle(e.target.checked)}
+              onChange={e => onPageRowsToggle(e.target.checked)}
             />,
             'Id',
             'Text',
@@ -146,7 +146,7 @@ export const _PanelTable = withInfo({
               <div>
                 <Checkbox
                   checked={selectedIds.includes(d.id)}
-                  onChange={() => onIdToggle(d.id)}
+                  onChange={() => onRowToggle(d.id)}
                 />
               </div>
               <div>{d.id}</div>

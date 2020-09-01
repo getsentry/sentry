@@ -13,21 +13,21 @@ type RenderProps = {
   /**
    * Callback for toggling single row
    */
-  onIdToggle: (id: string) => void;
+  onRowToggle: (id: string) => void;
   /**
    * Callback for toggling all rows across all pages
    */
-  onAllIdsToggle: (select: boolean) => void;
+  onAllRowsToggle: (select: boolean) => void;
   /**
    * Callback for toggling all rows on current page
    */
-  onPageIdsToggle: (select: boolean) => void;
+  onPageRowsToggle: (select: boolean) => void;
   /**
    * Ready to be rendered summary component showing how many items are selected,
    * with buttons to select everything, cancel everything, etc...
    */
   bulkNotice: React.ReactNode;
-} & Pick<State, 'selectedIds' | 'isEverythingSelected'>;
+} & Pick<State, 'selectedIds' | 'isAllSelected'>;
 
 type State = {
   /**
@@ -37,7 +37,7 @@ type State = {
   /**
    * Are all rows across all pages selected?
    */
-  isEverythingSelected: boolean;
+  isAllSelected: boolean;
 };
 
 type Props = {
@@ -48,11 +48,11 @@ type Props = {
   /**
    * Number of all rows across all pages
    */
-  allIdsCount: number;
+  allRowsCount: number;
   /**
    * Number of grid columns to stretch the selection summary (used in BulkNotice)
    */
-  noticeColumns: number;
+  columnsCount: number;
   /**
    * Children with render props
    */
@@ -60,13 +60,13 @@ type Props = {
   /**
    * Maximum number of rows that can be bulk manipulated at once (used in BulkNotice)
    */
-  maxIdsCount?: number;
+  bulkLimit?: number;
 };
 
 class BulkController extends React.Component<Props, State> {
   state: State = {
     selectedIds: [],
-    isEverythingSelected: false,
+    isAllSelected: false,
   };
 
   static getDerivedStateFromProps(props: Props, state: State) {
@@ -76,55 +76,55 @@ class BulkController extends React.Component<Props, State> {
     };
   }
 
-  handleIdToggle = (id: string) => {
+  handleRowToggle = (id: string) => {
     this.setState(state => ({
       selectedIds: xor(state.selectedIds, [id]),
-      isEverythingSelected: false,
+      isAllSelected: false,
     }));
   };
 
-  handleAllIdsToggle = (select: boolean) => {
+  handleAllRowsToggle = (select: boolean) => {
     const {pageIds} = this.props;
     this.setState({
       selectedIds: select ? [...pageIds] : [],
-      isEverythingSelected: select,
+      isAllSelected: select,
     });
   };
 
-  handlePageIdsToggle = (select: boolean) => {
+  handlePageRowsToggle = (select: boolean) => {
     const {pageIds} = this.props;
     this.setState(state => ({
       selectedIds: select
         ? uniq([...state.selectedIds, ...pageIds])
         : state.selectedIds.filter(id => !pageIds.includes(id)),
-      isEverythingSelected: false,
+      isAllSelected: false,
     }));
   };
 
   render() {
-    const {pageIds, children, noticeColumns, allIdsCount, maxIdsCount} = this.props;
-    const {selectedIds, isEverythingSelected} = this.state;
+    const {pageIds, children, columnsCount, allRowsCount, bulkLimit} = this.props;
+    const {selectedIds, isAllSelected} = this.state;
 
     const isPageSelected =
       pageIds.length > 0 && pageIds.every(id => selectedIds.includes(id));
 
     const renderProps: RenderProps = {
       selectedIds,
-      isEverythingSelected,
+      isAllSelected,
       isPageSelected,
-      onIdToggle: this.handleIdToggle,
-      onAllIdsToggle: this.handleAllIdsToggle,
-      onPageIdsToggle: this.handlePageIdsToggle,
+      onRowToggle: this.handleRowToggle,
+      onAllRowsToggle: this.handleAllRowsToggle,
+      onPageRowsToggle: this.handlePageRowsToggle,
       bulkNotice: (
         <BulkNotice
-          allRowsCount={allIdsCount}
+          allRowsCount={allRowsCount}
           selectedRowsCount={selectedIds.length}
-          onCancelAllRows={() => this.handleAllIdsToggle(false)}
-          onSelectAllRows={() => this.handleAllIdsToggle(true)}
-          columnsCount={noticeColumns}
+          onUnselectAllRows={() => this.handleAllRowsToggle(false)}
+          onSelectAllRows={() => this.handleAllRowsToggle(true)}
+          columnsCount={columnsCount}
           isPageSelected={isPageSelected}
-          isEverythingSelected={isEverythingSelected}
-          bulkLimit={maxIdsCount}
+          isAllSelected={isAllSelected}
+          bulkLimit={bulkLimit}
         />
       ),
     };
