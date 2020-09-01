@@ -95,6 +95,7 @@ const StreamGroup = createReactClass({
 
   render() {
     const {data} = this.state;
+
     const {
       query,
       hasGuideAnchor,

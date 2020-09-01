@@ -413,7 +413,7 @@ class RedisReportBackend(ReportBackend):
         )
 
     def __encode(self, report):
-        return zlib.compress(json.dumps(list(report)))
+        return zlib.compress(json.dumps(list(report)).encode("utf-8"))
 
     def __decode(self, value):
         if value is None:
@@ -764,6 +764,8 @@ def to_context(organization, interval, reports):
 def get_percentile(values, percentile):
     # XXX: ``values`` must be sorted.
     assert 1 >= percentile > 0
+    if len(values) == 0:
+        return 0
     if percentile == 1:
         index = -1
     else:

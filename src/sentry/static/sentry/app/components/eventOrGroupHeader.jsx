@@ -34,6 +34,7 @@ class EventOrGroupHeader extends React.Component {
 
   getTitle() {
     const {hideIcons, hideLevel, includeLink, data, params, location} = this.props;
+
     const orgId = params?.orgId;
 
     const {id, level, groupID} = data || {};
@@ -53,7 +54,7 @@ class EventOrGroupHeader extends React.Component {
 
       props.to = {
         pathname: `${basePath}${isEvent ? groupID : id}/${
-          isEvent ? `events/${data.id}/` : ''
+          isEvent ? `events/${data.eventID}/` : ''
         }`,
         query,
       };

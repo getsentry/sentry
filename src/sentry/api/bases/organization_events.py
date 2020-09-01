@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 from contextlib import contextmanager
-import math
 import sentry_sdk
 import six
 from rest_framework.exceptions import PermissionDenied
@@ -124,6 +123,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 (
                     snuba.RateLimitExceeded,
                     snuba.QueryMemoryLimitExceeded,
+                    snuba.QueryExecutionTimeMaximum,
                     snuba.QueryTooManySimultaneous,
                 ),
             ):
@@ -131,9 +131,12 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             elif isinstance(
                 error,
                 (
-                    snuba.UnqualifiedQueryError,
+                    snuba.DatasetSelectionError,
+                    snuba.QueryConnectionFailed,
                     snuba.QueryExecutionError,
+                    snuba.QuerySizeExceeded,
                     snuba.SchemaValidationError,
+                    snuba.UnqualifiedQueryError,
                 ),
             ):
                 sentry_sdk.capture_exception(error)
@@ -143,11 +146,9 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
 
 class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
-    def handle_results_with_meta(self, request, organization, project_ids, results, omit_nan=False):
+    def handle_results_with_meta(self, request, organization, project_ids, results):
         with sentry_sdk.start_span(op="discover.endpoint", description="base.handle_results"):
-            data = self.handle_data(
-                request, organization, project_ids, results.get("data"), omit_nan
-            )
+            data = self.handle_data(request, organization, project_ids, results.get("data"))
             if not data:
                 return {"data": [], "meta": {}}
 
@@ -161,7 +162,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     meta[key] = "string"
             return {"meta": meta, "data": data}
 
-    def handle_data(self, request, organization, project_ids, results, omit_nan=False):
+    def handle_data(self, request, organization, project_ids, results):
         if not results:
             return results
 
@@ -175,20 +176,13 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 
         fields = request.GET.getlist("field")
         has_issues = "issue" in fields
-        if has_issues or omit_nan:  # Look up the short ID and return that in the results
+        if has_issues:  # Look up the short ID and return that in the results
             if has_issues:
                 issue_ids = set(row.get("issue.id") for row in results)
                 issues = Group.issues_mapping(issue_ids, project_ids, organization)
             for result in results:
                 if has_issues and "issue.id" in result:
                     result["issue"] = issues.get(result["issue.id"], "unknown")
-                # Remove any potential NaN or Inf cause python json accepts either, but js doesn't
-                if omit_nan:
-                    for key in result.keys():
-                        if isinstance(result[key], float) and (
-                            math.isnan(result[key]) or math.isinf(result[key])
-                        ):
-                            result[key] = None
 
         if not ("project.id" in first_row or "projectid" in first_row):
             return results

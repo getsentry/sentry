@@ -3,6 +3,7 @@ import React from 'react';
 
 import {t} from 'app/locale';
 import {IconOpen} from 'app/icons';
+import ExternalLink from 'app/components/links/externalLink';
 
 const help = {
   'base-uri': t(
@@ -132,10 +133,10 @@ function getLink(key) {
 
   return (
     <span>
-      <a href={href}>developer.mozilla.org</a>
-      <a href={href} className="external-icon">
+      <ExternalLink href={href}>developer.mozilla.org</ExternalLink>
+      <ExternalLink href={href} className="external-icon">
         <IconOpen size="xs" />
-      </a>
+      </ExternalLink>
     </span>
   );
 }

@@ -89,10 +89,17 @@ class TableView extends React.Component<TableViewProps> {
     rowIndex?: number
   ): React.ReactNode[] => {
     const {organization, eventView, tableData, location} = this.props;
-    const hasAggregates = eventView.getAggregateFields().length > 0;
+    const hasAggregates = eventView.hasAggregateField();
+    const hasIdField = eventView.hasIdField();
 
     if (isHeader) {
-      if (!hasAggregates) {
+      if (hasAggregates) {
+        return [
+          <PrependHeader key="header-icon">
+            <IconStack size="sm" />
+          </PrependHeader>,
+        ];
+      } else if (!hasIdField) {
         return [
           <PrependHeader key="header-event-id">
             <SortLink
@@ -104,16 +111,27 @@ class TableView extends React.Component<TableViewProps> {
             />
           </PrependHeader>,
         ];
+      } else {
+        return [];
       }
-
-      return [
-        <PrependHeader key="header-icon">
-          <IconStack size="sm" />
-        </PrependHeader>,
-      ];
     }
 
-    if (!hasAggregates) {
+    if (hasAggregates) {
+      const nextView = getExpandedResults(eventView, {}, dataRow);
+
+      const target = {
+        pathname: location.pathname,
+        query: nextView.generateQueryStringObject(),
+      };
+
+      return [
+        <Tooltip key={`eventlink${rowIndex}`} title={t('Open Stack')}>
+          <Link to={target} data-test-id="open-stack">
+            <StyledIcon size="sm" />
+          </Link>
+        </Tooltip>,
+      ];
+    } else if (!hasIdField) {
       let value = dataRow.id;
 
       if (tableData && tableData.meta) {
@@ -136,22 +154,9 @@ class TableView extends React.Component<TableViewProps> {
           </StyledLink>
         </Tooltip>,
       ];
+    } else {
+      return [];
     }
-
-    const nextView = getExpandedResults(eventView, {}, dataRow);
-
-    const target = {
-      pathname: location.pathname,
-      query: nextView.generateQueryStringObject(),
-    };
-
-    return [
-      <Tooltip key={`eventlink${rowIndex}`} title={t('Open Stack')}>
-        <Link to={target} data-test-id="open-stack">
-          <StyledIcon size="sm" />
-        </Link>
-      </Tooltip>,
-    ];
   };
 
   _renderGridHeaderCell = (column: TableColumn<keyof TableDataRow>): React.ReactNode => {
@@ -203,7 +208,9 @@ class TableView extends React.Component<TableViewProps> {
     if (!tableData || !tableData.meta) {
       return dataRow[column.key];
     }
-    const fieldRenderer = getFieldRenderer(String(column.key), tableData.meta);
+
+    const columnKey = String(column.key);
+    const fieldRenderer = getFieldRenderer(columnKey, tableData.meta);
 
     const display = eventView.getDisplayMode();
     const isTopEvents =
@@ -221,6 +228,26 @@ class TableView extends React.Component<TableViewProps> {
       Actions.DRILLDOWN,
     ];
 
+    let cell = fieldRenderer(dataRow, {organization, location});
+
+    if (columnKey === 'id') {
+      const eventSlug = generateEventSlug(dataRow);
+
+      const target = eventDetailsRouteWithEventView({
+        orgSlug: organization.slug,
+        eventSlug,
+        eventView,
+      });
+
+      cell = (
+        <Tooltip title={t('View Event')}>
+          <StyledLink data-test-id="view-event" to={target}>
+            {cell}
+          </StyledLink>
+        </Tooltip>
+      );
+    }
+
     return (
       <React.Fragment>
         {isTopEvents && rowIndex < TOP_N && columnIndex === 0 ? (
@@ -232,7 +259,7 @@ class TableView extends React.Component<TableViewProps> {
           handleCellAction={this.handleCellAction(dataRow, column)}
           allowActions={allowActions}
         >
-          {fieldRenderer(dataRow, {organization, location})}
+          {cell}
         </CellAction>
       </React.Fragment>
     );
@@ -379,9 +406,10 @@ class TableView extends React.Component<TableViewProps> {
     const columnOrder = eventView.getColumns();
     const columnSortBy = eventView.getSorts();
 
-    const hasAggregates = eventView.getAggregateFields().length > 0;
-    const prependColumnWidths = hasAggregates
+    const prependColumnWidths = eventView.hasAggregateField()
       ? ['40px']
+      : eventView.hasIdField()
+      ? []
       : [`minmax(${COL_WIDTH_MINIMUM}px, max-content)`];
 
     return (

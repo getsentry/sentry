@@ -19,6 +19,7 @@ from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 from django.utils.functional import cached_property
 from django.core.urlresolvers import reverse
+from django.utils.encoding import force_bytes
 
 from sentry import options
 from sentry.db.models import (
@@ -289,9 +290,9 @@ class RecoveryCodeInterface(AuthenticatorInterface):
     def get_codes(self):
         rv = []
         if self.is_enrolled:
-            h = hmac.new(key=self.config["salt"].encode("utf-8"), msg=None, digestmod=hashlib.sha1)
+            h = hmac.new(key=force_bytes(self.config["salt"]), msg=None, digestmod=hashlib.sha1)
             for x in range(10):
-                h.update("%s|" % x)
+                h.update(("%s|" % x).encode("utf-8"))
                 rv.append(base64.b32encode(h.digest())[:8])
         return rv
 
@@ -323,7 +324,7 @@ class RecoveryCodeInterface(AuthenticatorInterface):
         rv = []
         for idx, code in enumerate(self.get_codes()):
             if not mask & (1 << idx):
-                rv.append(code[:4] + "-" + code[4:])
+                rv.append(u"%s-%s" % (code[:4], code[4:]))
         return rv
 
 

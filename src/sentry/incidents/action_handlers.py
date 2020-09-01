@@ -148,24 +148,42 @@ class PagerDutyActionHandler(ActionHandler):
         send_incident_alert_notification(self.action, self.incident, metric_value)
 
 
+@AlertRuleTriggerAction.register_type(
+    "sentry_app",
+    AlertRuleTriggerAction.Type.SENTRY_APP,
+    [AlertRuleTriggerAction.TargetType.SENTRY_APP],
+)
+class IntegrationActionHandler(ActionHandler):
+    def fire(self, metric_value):
+        self.send_alert(metric_value)
+
+    def resolve(self, metric_value):
+        self.send_alert(metric_value)
+
+    def send_alert(self, metric_value):
+        # TODO: finish
+        pass
+
+
 def format_duration(minutes):
     """
     Format minutes into a duration string
     """
 
     if minutes >= 1440:
-        days = minutes // 1440
-        return "{} day{}".format(days, pluralize(days))
+        days = int(minutes // 1440)
+        return "{:d} day{}".format(days, pluralize(days))
 
     if minutes >= 60:
-        hours = minutes // 60
-        return "{} hour{}".format(hours, pluralize(hours))
+        hours = int(minutes // 60)
+        return "{:d} hour{}".format(hours, pluralize(hours))
 
     if minutes >= 1:
-        return "{} minute{}".format(minutes, pluralize(minutes))
+        minutes = int(minutes)
+        return "{:d} minute{}".format(minutes, pluralize(minutes))
 
-    seconds = minutes // 60
-    return "{} second{}".format(seconds, pluralize(seconds))
+    seconds = int(minutes // 60)
+    return "{:d} second{}".format(seconds, pluralize(seconds))
 
 
 INCIDENT_STATUS_KEY = {
