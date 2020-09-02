@@ -1,11 +1,15 @@
 from __future__ import absolute_import
 
+import logging
+
 from rest_framework.response import Response
 
 from sentry.api.bases import SentryAppAuthorizationsBaseEndpoint
 from sentry.coreapi import APIUnauthorized
 from sentry.mediators.token_exchange import GrantExchanger, Refresher, GrantTypes
 from sentry.api.serializers.models.apitoken import ApiTokenSerializer
+
+logger = logging.getLogger(__name__)
 
 
 class SentryAppAuthorizationsEndpoint(SentryAppAuthorizationsBaseEndpoint):
@@ -28,6 +32,7 @@ class SentryAppAuthorizationsEndpoint(SentryAppAuthorizationsBaseEndpoint):
             else:
                 return Response({"error": "Invalid grant_type"}, status=403)
         except APIUnauthorized as e:
+            logger.error(e, exc_info=True)
             return Response({"error": e.msg or "Unauthorized"}, status=403)
 
         attrs = {"state": request.json_body.get("state"), "application": None}
