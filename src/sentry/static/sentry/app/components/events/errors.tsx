@@ -70,7 +70,7 @@ class EventErrors extends React.Component<Props, State> {
 
     try {
       await this.props.api.requestPromise(endpoint, {
-        method: 'PUT',
+        method: 'POST',
       });
     } catch (e) {
       clearIndicators();
@@ -94,7 +94,7 @@ class EventErrors extends React.Component<Props, State> {
 
     try {
       await this.props.api.requestPromise(endpoint, {
-        method: 'PUT',
+        method: 'POST',
       });
     } catch (e) {
       clearIndicators();

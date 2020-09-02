@@ -8,7 +8,7 @@ from sentry.tasks.reprocessing2 import reprocess_event
 
 
 class EventReprocessingEndpoint(ProjectEndpoint):
-    def put(self, request, project, event_id):
+    def post(self, request, project, event_id):
         """
         Reprocess a single event
         ````````````````````````

@@ -5,12 +5,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import (
-    BoundedBigIntegerField,
-    FlexibleForeignKey,
-    Model,
-    sane_repr,
-)
+from sentry.db.models import BoundedBigIntegerField, FlexibleForeignKey, Model, sane_repr
 
 
 # Attachment file types that are considered a crash report (PII relevant)
@@ -31,7 +26,6 @@ class EventAttachment(Model):
     project_id = BoundedBigIntegerField()
     group_id = BoundedBigIntegerField(null=True, db_index=True)
     event_id = models.CharField(max_length=32, db_index=True)
-
     file = FlexibleForeignKey("sentry.File")
     name = models.TextField()
     date_added = models.DateTimeField(default=timezone.now, db_index=True)

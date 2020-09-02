@@ -1,6 +1,6 @@
 bind: "0.0.0.0:3021"
 logging:
-  level: "trace"
+  level: "debug"
   format: "pretty"
   enable_backtraces: true
 

@@ -103,42 +103,14 @@ def reprocess_event(project_id, event_id, start_time):
     attachment_objects = []
 
     for attachment_id, attachment in enumerate(queryset):
-        with sentry_sdk.start_span(op="reprocess_event.copy_attachment") as span:
+        with sentry_sdk.start_span(op="reprocess_event._copy_attachment_into_cache") as span:
             span.set_data("attachment_id", attachment.id)
-
-            fp = attachment.file.getfile()
-            chunk = None
-            chunk_index = 0
-            size = 0
-            while True:
-                chunk = fp.read(settings.SENTRY_REPROCESSING_ATTACHMENT_CHUNK_SIZE)
-                if not chunk:
-                    break
-
-                size += len(chunk)
-
-                attachment_cache.set_chunk(
-                    key=cache_key,
-                    id=attachment_id,
-                    chunk_index=chunk_index,
-                    chunk_data=chunk,
-                    timeout=CACHE_TIMEOUT,
-                )
-                chunk_index += 1
-
-            assert size == attachment.file.size
-
             attachment_objects.append(
-                CachedAttachment(
-                    key=cache_key,
-                    id=attachment_id,
-                    name=attachment.name,
-                    # XXX: Not part of eventattachment model, but not strictly
-                    # necessary for processing
-                    content_type=None,
-                    type=attachment.file.type,
-                    chunks=chunk_index,
-                    size=size,
+                _copy_attachment_into_cache(
+                    attachment_id=attachment_id,
+                    attachment=attachment,
+                    cache_key=cache_key,
+                    cache_timeout=CACHE_TIMEOUT,
                 )
             )
 
@@ -148,6 +120,42 @@ def reprocess_event(project_id, event_id, start_time):
 
     preprocess_event_from_reprocessing(
         cache_key=cache_key, start_time=start_time, event_id=event_id
+    )
+
+
+def _copy_attachment_into_cache(attachment_id, attachment, cache_key, cache_timeout):
+    fp = attachment.file.getfile()
+    chunk = None
+    chunk_index = 0
+    size = 0
+    while True:
+        chunk = fp.read(settings.SENTRY_REPROCESSING_ATTACHMENT_CHUNK_SIZE)
+        if not chunk:
+            break
+
+        size += len(chunk)
+
+        attachment_cache.set_chunk(
+            key=cache_key,
+            id=attachment_id,
+            chunk_index=chunk_index,
+            chunk_data=chunk,
+            timeout=cache_timeout,
+        )
+        chunk_index += 1
+
+    assert size == attachment.file.size
+
+    return CachedAttachment(
+        key=cache_key,
+        id=attachment_id,
+        name=attachment.name,
+        # XXX: Not part of eventattachment model, but not strictly
+        # necessary for processing
+        content_type=None,
+        type=attachment.file.type,
+        chunks=chunk_index,
+        size=size,
     )
 
 

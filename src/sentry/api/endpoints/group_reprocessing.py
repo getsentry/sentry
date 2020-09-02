@@ -12,14 +12,14 @@ from sentry.tasks.reprocessing2 import reprocess_group
 @scenario("ReprocessGroup")
 def reprocess_group_scenario(runner):
     group = Group.objects.filter(project=runner.default_project).first()
-    runner.request(method="PUT", path="/issues/%s/reprocessing/" % group.id)
+    runner.request(method="POST", path="/issues/%s/reprocessing/" % group.id)
 
 
 class GroupReprocessingEndpoint(GroupEndpoint):
     doc_section = DocSection.EVENTS
 
     @attach_scenarios([reprocess_group_scenario])
-    def put(self, request, group):
+    def post(self, request, group):
         """
         Reprocess a group
         `````````````````
