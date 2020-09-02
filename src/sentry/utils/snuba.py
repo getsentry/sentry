@@ -631,6 +631,7 @@ def bulk_raw_query(snuba_param_list, referrer=None):
     query_param_list = map(_prepare_query_params, snuba_param_list)
 
     def snuba_query(params):
+        pass
         query_params, forward, reverse, thread_hub = params
         try:
             with timer("snuba_query"):
