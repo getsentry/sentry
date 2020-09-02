@@ -286,7 +286,7 @@ class GroupDetails extends React.Component<Props, State> {
     }
 
     if (currentTab === TAB.SIMILAR_ISSUES) {
-      childProps = {...childProps, event};
+      childProps = {...childProps};
     }
 
     return (
