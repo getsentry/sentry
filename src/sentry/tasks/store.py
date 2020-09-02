@@ -748,12 +748,15 @@ def _do_save_event(
             with metrics.timer("tasks.store.do_save_event.event_manager.save"):
                 manager = EventManager(data)
                 # event.project.organization is populated after this statement.
-                event = manager.save(
+                manager.save(
                     project_id, assume_normalized=True, start_time=start_time, cache_key=cache_key
                 )
                 # Put the updated event back into the cache so that post_process
                 # has the most recent data.
-                event_processing_store.store(event.data)
+                data = manager.get_data()
+                if isinstance(data, CANONICAL_TYPES):
+                    data = dict(data.items())
+                event_processing_store.store(data)
         except HashDiscarded:
             pass
 
