@@ -132,6 +132,7 @@ describe('groupDetails', function() {
           id: project.id,
           slug: project.slug,
         }),
+        event,
       },
       {}
     );
@@ -223,6 +224,7 @@ describe('groupDetails', function() {
           id: project.id,
           slug: project.slug,
         }),
+        event,
       },
       {}
     );
