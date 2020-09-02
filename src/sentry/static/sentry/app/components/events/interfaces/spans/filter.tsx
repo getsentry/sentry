@@ -54,8 +54,8 @@ class Filter extends React.Component<Props> {
       [parsedTrace.op]
     );
 
-    // sort alphabetically
-    result.sort();
+    // sort alphabetically using case insensitive comparison
+    result.sort((a, b) => a.localeCompare(b, undefined, {sensitivity: 'base'}));
 
     return result;
   }
