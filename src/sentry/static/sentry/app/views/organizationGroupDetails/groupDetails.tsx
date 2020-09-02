@@ -285,10 +285,6 @@ class GroupDetails extends React.Component<Props, State> {
       childProps = {...childProps, event, baseUrl};
     }
 
-    if (currentTab === TAB.SIMILAR_ISSUES) {
-      childProps = {...childProps, event};
-    }
-
     return (
       <React.Fragment>
         <GroupHeader
