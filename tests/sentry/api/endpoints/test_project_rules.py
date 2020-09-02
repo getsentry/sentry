@@ -4,6 +4,7 @@ from django.core.urlresolvers import reverse
 
 from sentry.models import Environment, Integration, Rule, RuleActivity, RuleActivityType
 from sentry.testutils import APITestCase
+from sentry.utils import json
 
 
 class ProjectRuleListTest(APITestCase):
@@ -368,7 +369,6 @@ class CreateProjectRuleTest(APITestCase):
         )
 
         assert response.status_code == 400
-        assert (
-            response.content
-            == '{"filterMatch":["Must select a filter match (all, any, none) if filters are supplied"]}'
-        )
+        assert json.loads(response.content) == {
+            "filterMatch": ["Must select a filter match (all, any, none) if filters are supplied"]
+        }

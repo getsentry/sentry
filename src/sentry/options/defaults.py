@@ -256,3 +256,7 @@ register("processing.can-use-scrubbers", default=True)
 #
 # Note: A value that is neither 0 nor 1 is regarded as 0
 register("store.use-relay-dsn-sample-rate", default=1)
+
+# Runtime switch for transitioning post_process to using a cache key
+# instead of passing the entire event in the celery parameters.
+register("postprocess.use-cache-key", default=0.0, flags=FLAG_PRIORITIZE_DISK)

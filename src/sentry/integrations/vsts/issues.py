@@ -71,12 +71,12 @@ class VstsIssueSync(IssueSyncMixin):
         for item in item_categories:
             for item_type_object in item["workItemTypes"]:
                 # the type is the last part of the url
-                item_type = item_type_object["url"].split(".")[-1]
+                item_type = item_type_object["url"].split("/")[-1]
                 # we can have duplicates so need to dedupe
                 if item_type not in item_type_map:
                     item_type_map[item_type] = item_type_object["name"]
 
-        item_tuples = item_type_map.items()
+        item_tuples = list(item_type_map.items())
 
         # try to get the default from either the last value used or from the first item on the list
         defaults = self.get_project_defaults(group.project_id)

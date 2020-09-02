@@ -51,9 +51,13 @@ export type IssueAlertRuleCondition = Omit<
 };
 
 export type UnsavedIssueAlertRule = {
-  actionMatch: 'all' | 'any';
+  /** When an issue matches [actionMatch] of the following */
+  actionMatch: 'all' | 'any' | 'none';
+  /** If that issue has [filterMatch] of these properties */
+  filterMatch: 'all' | 'any' | 'none';
   actions: IssueAlertRuleAction[];
   conditions: IssueAlertRuleCondition[];
+  filters: IssueAlertRuleCondition[];
   environment: null | string;
   frequency: number;
   name: string;

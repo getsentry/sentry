@@ -8,6 +8,7 @@ from ssl import wrap_socket
 from six.moves.urllib.parse import urlparse
 
 from django.conf import settings
+from django.utils.encoding import force_text
 from urllib3.util.connection import allowed_gai_family, _set_socket_options
 
 from sentry.exceptions import RestrictedIPAddress
@@ -26,13 +27,38 @@ def is_ipaddress_allowed(ip):
     """
     if not DISALLOWED_IPS:
         return True
-    if isinstance(ip, six.binary_type):
-        ip = ip.decode()
-    ip_address = ipaddress.ip_address(ip)
+    ip_address = ipaddress.ip_address(force_text(ip, strings_only=True))
     for ip_network in DISALLOWED_IPS:
         if ip_address in ip_network:
             return False
     return True
+
+
+def ensure_fqdn(hostname):
+    """
+    If a given hostname is just an IP address, this is already qualified.
+    If it's not, then it's a hostname and we want to ensure it's fully qualified
+    by ending with a `.`.
+
+    This is done so that we don't even attempt to use /etc/resolv.conf search domains.
+    1) This is a performance benefit since we don't need to check anything else.
+    2) This is a security issue so that an external domain name configured doesn't
+       even attempt to be resolved over internal search domains.
+    """
+    if not settings.SENTRY_ENSURE_FQDN:
+        return hostname
+
+    hostname = force_text(hostname, strings_only=True)
+
+    # Already fully qualified if it ends in a "."
+    if hostname[-1:] == ".":
+        return hostname
+
+    try:
+        ipaddress.ip_address(hostname)
+        return hostname
+    except ValueError:
+        return hostname + "."
 
 
 def is_valid_url(url):
@@ -54,6 +80,8 @@ def is_safe_hostname(hostname):
 
     if not hostname:
         return False
+
+    hostname = ensure_fqdn(hostname)
 
     # Using the value from allowed_gai_family() in the context of getaddrinfo lets
     # us select whether to work with IPv4 DNS records, IPv6 records, or both.
@@ -80,6 +108,8 @@ def safe_create_connection(
     if host.startswith("["):
         host = host.strip("[]")
     err = None
+
+    host = ensure_fqdn(host)
 
     # Using the value from allowed_gai_family() in the context of getaddrinfo lets
     # us select whether to work with IPv4 DNS records, IPv6 records, or both.

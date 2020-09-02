@@ -28,14 +28,14 @@ import {
 
 export const TRENDS_FUNCTIONS: TrendFunction[] = [
   {
-    label: 'Duration (p50)',
-    field: TrendFunctionField.P50,
-    alias: 'percentile_range',
-  },
-  {
     label: 'Average',
     field: TrendFunctionField.AVG,
     alias: 'avg_range',
+  },
+  {
+    label: 'Duration (p50)',
+    field: TrendFunctionField.P50,
+    alias: 'percentile_range',
   },
   {
     label: 'User Misery',
@@ -50,26 +50,26 @@ export const TRENDS_FUNCTIONS: TrendFunction[] = [
 export function chartIntervalFunction(dateTimeSelection: DateTimeObject) {
   const diffInMinutes = getDiffInMinutes(dateTimeSelection);
   if (diffInMinutes >= THIRTY_DAYS) {
-    return '48h';
-  }
-
-  if (diffInMinutes >= TWO_WEEKS) {
     return '24h';
   }
 
-  if (diffInMinutes >= ONE_WEEK) {
+  if (diffInMinutes >= TWO_WEEKS) {
     return '12h';
   }
 
+  if (diffInMinutes >= ONE_WEEK) {
+    return '6h';
+  }
+
   if (diffInMinutes >= TWENTY_FOUR_HOURS) {
-    return '1h';
+    return '30m';
   }
 
   if (diffInMinutes <= ONE_HOUR) {
-    return '180s';
+    return '90s';
   }
 
-  return '2m';
+  return '60s';
 }
 
 export const trendToColor = {
@@ -128,26 +128,52 @@ export function modifyTrendView(
   trendsType: TrendChangeType
 ) {
   const trendFunction = getCurrentTrendFunction(location);
-  const fields = ['transaction', 'project', 'count()'].map(field => ({
-    field,
-  })) as Field[];
+
+  const trendFunctionFields = TRENDS_FUNCTIONS.map(({field}) => field);
+  const fields = [...trendFunctionFields, 'transaction', 'project', 'count()'].map(
+    field => ({
+      field,
+    })
+  ) as Field[];
 
   const trendSort = {
-    field: `divide_${trendFunction.alias}_2_${trendFunction.alias}_1`,
+    field: `percentage_${trendFunction.alias}_2_${trendFunction.alias}_1`,
     kind: 'asc',
   } as Sort;
+
+  if (trendFunction && trendFunction.field === TrendFunctionField.USER_MISERY) {
+    trendSort.field = `minus_${trendFunction.alias}_2_${trendFunction.alias}_1`;
+  }
+
+  if (trendsType === TrendChangeType.REGRESSION) {
+    trendSort.kind = 'desc';
+  }
 
   if (trendFunction) {
     trendView.trendFunction = trendFunction.field;
   }
   const limitTrendResult = getLimitTransactionItems(trendFunction, trendsType);
   trendView.query += ' ' + limitTrendResult;
-  if (trendsType === TrendChangeType.REGRESSION) {
-    trendSort.kind = 'desc';
-  }
+
+  trendView.interval = getQueryInterval(location, trendView);
 
   trendView.sorts = [trendSort];
   trendView.fields = fields;
+}
+
+function getQueryInterval(location: Location, eventView: TrendView) {
+  const intervalFromQueryParam = decodeScalar(location?.query?.interval);
+  const {start, end, statsPeriod} = eventView;
+
+  const datetimeSelection = {
+    start: start || null,
+    end: end || null,
+    period: statsPeriod,
+  };
+
+  const intervalFromSmoothing = chartIntervalFunction(datetimeSelection);
+
+  return intervalFromQueryParam || intervalFromSmoothing;
 }
 
 export function transformValueDelta(
@@ -190,7 +216,7 @@ export function normalizeTrendsTransactions(data: TrendsTransaction[]) {
       project,
       count_range_1,
       count_range_2,
-      divide_count_range_2_count_range_1,
+      percentage_count_range_2_count_range_1,
     } = row;
 
     const aliasedFields = {} as NormalizedTrendsTransaction;
@@ -198,8 +224,8 @@ export function normalizeTrendsTransactions(data: TrendsTransaction[]) {
       if (typeof row[`${alias}_1`] !== 'undefined') {
         aliasedFields.aggregate_range_1 = row[`${alias}_1`];
         aliasedFields.aggregate_range_2 = row[`${alias}_2`];
-        aliasedFields.divide_aggregate_range_2_aggregate_range_1 =
-          row[getTrendAliasedFieldDivide(alias)];
+        aliasedFields.percentage_aggregate_range_2_aggregate_range_1 =
+          row[getTrendAliasedFieldPercentage(alias)];
         aliasedFields.minus_aggregate_range_2_aggregate_range_1 =
           row[getTrendAliasedMinus(alias)];
       }
@@ -212,20 +238,20 @@ export function normalizeTrendsTransactions(data: TrendsTransaction[]) {
 
       count_range_1,
       count_range_2,
-      divide_count_range_2_count_range_1,
+      percentage_count_range_2_count_range_1,
     } as NormalizedTrendsTransaction;
   });
 }
 
-export function getTrendAliasedFieldDivide(alias: string) {
-  return `divide_${alias}_2_${alias}_1`;
+export function getTrendAliasedFieldPercentage(alias: string) {
+  return `percentage_${alias}_2_${alias}_1`;
 }
 
-export function getTrendAliasedQueryDivide(alias: string) {
-  return `divide(${alias}_2,${alias}_1)`;
+export function getTrendAliasedQueryPercentage(alias: string) {
+  return `percentage(${alias}_2,${alias}_1)`;
 }
 
-function getTrendAliasedMinus(alias: string) {
+export function getTrendAliasedMinus(alias: string) {
   return `minus_${alias}_2_${alias}_1`;
 }
 
@@ -240,12 +266,12 @@ function getLimitTransactionItems(
   trendFunction: TrendFunction,
   trendChangeType: TrendChangeType
 ) {
-  const aliasedDivide = getTrendAliasedQueryDivide(trendFunction.alias);
-  let limitQuery = aliasedDivide + ':<1';
+  const aliasedPercentage = getTrendAliasedQueryPercentage(trendFunction.alias);
+  let limitQuery = aliasedPercentage + ':<1';
   if (trendChangeType === TrendChangeType.REGRESSION) {
-    limitQuery = aliasedDivide + ':>1';
+    limitQuery = aliasedPercentage + ':>1';
   }
   limitQuery +=
-    ' divide(count_range_2,count_range_1):>0.5 divide(count_range_2,count_range_1):<2';
+    ' percentage(count_range_2,count_range_1):>0.5 percentage(count_range_2,count_range_1):<2';
   return limitQuery;
 }

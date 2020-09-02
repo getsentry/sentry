@@ -46,6 +46,12 @@ const StyledDropdownButton = styled(DropdownButton)<{hasDarkBorderBottomColor?: 
   &:hover,
   &:active {
     border-right: 0;
+    ${p =>
+      !p.isOpen &&
+      p.hasDarkBorderBottomColor &&
+      `
+        border-bottom-color: ${p.theme.button.primary.border};
+      `}
   }
   z-index: ${p => p.theme.zIndex.dropdown};
   border-radius: ${p =>

@@ -321,11 +321,11 @@ class Factories(object):
         condition_data = condition_data or [
             {
                 "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
-                "name": "An issue is first seen",
+                "name": "The issue is first seen",
             },
             {
                 "id": "sentry.rules.conditions.every_event.EveryEventCondition",
-                "name": "An event is seen",
+                "name": "An event occurs",
             },
         ]
         return Rule.objects.create(

@@ -78,6 +78,11 @@ INTERNAL_IPS = ()
 # List of IP subnets which should not be accessible
 SENTRY_DISALLOWED_IPS = ()
 
+# When resolving DNS for external sources (source map fetching, webhooks, etc),
+# ensure that domains are fully resolved first to avoid poking internal
+# search domains.
+SENTRY_ENSURE_FQDN = False
+
 # Hosts that are allowed to use system token authentication.
 # http://en.wikipedia.org/wiki/Reserved_IP_addresses
 INTERNAL_SYSTEM_IPS = (
@@ -856,6 +861,8 @@ SENTRY_FEATURES = {
     "organizations:integrations-msteams": False,
     # Allow orgs to install AzureDevops with limited scopes
     "organizations:integrations-vsts-limited-scopes": False,
+    # Use Sentry Apps with Metric Alerts
+    "organizations:integrations-sentry-app-metric-alerts": False,
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
     # Enable experimental performance improvements.
@@ -891,6 +898,8 @@ SENTRY_FEATURES = {
     # Enable graph for subscription quota for errors, transactions and
     # attachments
     "organizations:usage-stats-graph": False,
+    # Enable dynamic issue counts and user counts in the issue stream
+    "organizations:dynamic-issue-counts": False,
     # Enable functionality to specify custom inbound filters on events.
     "projects:custom-inbound-filters": False,
     # Enable data forwarding functionality for projects.
@@ -1414,7 +1423,7 @@ SENTRY_WATCHERS = (
 # will split the requests between Relay and Sentry (all store requests will be passed to Relay, and the
 # rest will be forwarded to Sentry)
 SENTRY_USE_RELAY = True
-SENTRY_RELAY_PORT = 3000
+SENTRY_RELAY_PORT = 7999
 
 # The chunk size for attachments in blob store. Should be a power of two.
 SENTRY_ATTACHMENT_BLOB_SIZE = 8 * 1024 * 1024  # 8MB
@@ -1544,7 +1553,7 @@ SENTRY_DEVSERVICES = {
     "relay": {
         "image": "us.gcr.io/sentryio/relay:latest",
         "pull": True,
-        "ports": {"3000/tcp": SENTRY_RELAY_PORT},
+        "ports": {"7999/tcp": SENTRY_RELAY_PORT},
         "volumes": {RELAY_CONFIG_DIR: {"bind": "/etc/relay"}},
         "command": ["run", "--config", "/etc/relay"],
         "only_if": lambda settings, options: settings.SENTRY_USE_RELAY,

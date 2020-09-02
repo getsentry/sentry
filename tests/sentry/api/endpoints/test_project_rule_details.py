@@ -32,6 +32,25 @@ class ProjectRuleDetailsTest(APITestCase):
         assert response.data["id"] == six.text_type(rule.id)
         assert response.data["environment"] is None
 
+    def test_non_existing_rule(self):
+        self.login_as(user=self.user)
+
+        team = self.create_team()
+        project1 = self.create_project(teams=[team], name="foo", fire_project_created=True)
+        self.create_project(teams=[team], name="bar", fire_project_created=True)
+
+        url = reverse(
+            "sentry-api-0-project-rule-details",
+            kwargs={
+                "organization_slug": project1.organization.slug,
+                "project_slug": project1.slug,
+                "rule_id": 12345,
+            },
+        )
+        response = self.client.get(url, format="json")
+
+        assert response.status_code == 404
+
     def test_with_environment(self):
         self.login_as(user=self.user)
 
@@ -201,7 +220,7 @@ class UpdateProjectRuleTest(APITestCase):
                         "interval": "1h",
                         "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
                         "value": 666,
-                        "name": "An issue is seen more than 30 times in 1m",
+                        "name": "The issue is seen more than 30 times in 1m",
                     }
                 ],
                 "id": rule.id,
@@ -218,7 +237,7 @@ class UpdateProjectRuleTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert (
-            response.data["conditions"][0]["name"] == "An issue is seen more than 666 times in 1h"
+            response.data["conditions"][0]["name"] == "The issue is seen more than 666 times in 1h"
         )
 
         assert RuleActivity.objects.filter(rule=rule, type=RuleActivityType.UPDATED.value).exists()

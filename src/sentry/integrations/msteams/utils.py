@@ -14,7 +14,7 @@ from sentry.models import (
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.compat import filter
 
-from .client import MsTeamsClient
+from .client import MsTeamsClient, MsTeamsPreInstallClient, get_token_data
 
 MSTEAMS_MAX_ITERS = 100
 
@@ -110,3 +110,9 @@ def get_identity(user, organization_id, integration_id):
         raise Http404
 
     return organization, integration, idp
+
+
+def get_preinstall_client(service_url):
+    # may want try/catch here since this makes an external API call
+    access_token = get_token_data()["access_token"]
+    return MsTeamsPreInstallClient(access_token, service_url)
