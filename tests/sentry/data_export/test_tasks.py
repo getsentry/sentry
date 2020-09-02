@@ -28,12 +28,13 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         super(AssembleDownloadTest, self).setUp()
         self.user = self.create_user()
         self.org = self.create_organization()
-        self.project = self.create_project()
+        self.project = self.create_project(organization=self.org)
         self.event = self.store_event(
             data={
                 "tags": {"foo": "bar"},
                 "fingerprint": ["group-1"],
                 "timestamp": iso_format(before_now(minutes=1)),
+                "environment": "dev",
             },
             project_id=self.project.id,
         )
@@ -42,6 +43,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
                 "tags": {"foo": "bar2"},
                 "fingerprint": ["group-1"],
                 "timestamp": iso_format(before_now(minutes=1)),
+                "environment": "prod",
             },
             project_id=self.project.id,
         )
@@ -50,6 +52,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
                 "tags": {"foo": "bar2"},
                 "fingerprint": ["group-1"],
                 "timestamp": iso_format(before_now(minutes=1)),
+                "environment": "prod",
             },
             project_id=self.project.id,
         )
@@ -181,6 +184,89 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert raw3.startswith("<unlabeled event>")
 
         assert emailer.called
+
+    @patch("sentry.data_export.models.ExportedData.email_success")
+    def test_discover_respects_selected_environment(self, emailer):
+        de = ExportedData.objects.create(
+            user=self.user,
+            organization=self.org,
+            query_type=ExportQueryType.DISCOVER,
+            query_info={
+                "project": [self.project.id],
+                "environment": "prod",
+                "field": ["title"],
+                "query": "",
+            },
+        )
+        with self.tasks():
+            assemble_download(de.id, batch_size=1)
+        de = ExportedData.objects.get(id=de.id)
+        assert de.date_finished is not None
+        assert de.date_expired is not None
+        assert de.file is not None
+        assert isinstance(de.file, File)
+        assert de.file.headers == {"Content-Type": "text/csv"}
+        assert de.file.size is not None
+        assert de.file.checksum is not None
+        # Convert raw csv to list of line-strings
+        header, raw1, raw2 = de.file.getfile().read().strip().split("\r\n")
+        assert header == "title"
+
+        assert raw1.startswith("<unlabeled event>")
+        assert raw2.startswith("<unlabeled event>")
+
+        assert emailer.called
+
+    @patch("sentry.data_export.models.ExportedData.email_success")
+    def test_discover_respects_selected_environment_multiple(self, emailer):
+        de = ExportedData.objects.create(
+            user=self.user,
+            organization=self.org,
+            query_type=ExportQueryType.DISCOVER,
+            query_info={
+                "project": [self.project.id],
+                "environment": ["prod", "dev"],
+                "field": ["title"],
+                "query": "",
+            },
+        )
+        with self.tasks():
+            assemble_download(de.id, batch_size=1)
+        de = ExportedData.objects.get(id=de.id)
+        assert de.date_finished is not None
+        assert de.date_expired is not None
+        assert de.file is not None
+        assert isinstance(de.file, File)
+        assert de.file.headers == {"Content-Type": "text/csv"}
+        assert de.file.size is not None
+        assert de.file.checksum is not None
+        # Convert raw csv to list of line-strings
+        header, raw1, raw2, raw3 = de.file.getfile().read().strip().split("\r\n")
+        assert header == "title"
+
+        assert raw1.startswith("<unlabeled event>")
+        assert raw2.startswith("<unlabeled event>")
+        assert raw3.startswith("<unlabeled event>")
+
+        assert emailer.called
+
+    @patch("sentry.data_export.models.ExportedData.email_failure")
+    def test_discover_missing_enviroment(self, emailer):
+        de = ExportedData.objects.create(
+            user=self.user,
+            organization=self.org,
+            query_type=ExportQueryType.DISCOVER,
+            query_info={
+                "project": [self.project.id],
+                "environment": "fake",
+                "field": ["title"],
+                "query": "",
+            },
+        )
+        with self.tasks():
+            assemble_download(de.id, batch_size=1)
+        error = emailer.call_args[1]["message"]
+        assert error == "Requested environment does not exist"
 
     @patch("sentry.data_export.models.ExportedData.email_failure")
     def test_discover_missing_project(self, emailer):
