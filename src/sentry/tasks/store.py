@@ -661,6 +661,7 @@ def create_failed_event(
     # modifications to take place.
     delete_raw_event(project_id, event_id)
     data = event_processing_store.get(cache_key)
+
     if data is None:
         metrics.incr("events.failed", tags={"reason": "cache", "stage": "raw"}, skip_internal=False)
         error_logger.error("process.failed_raw.empty", extra={"cache_key": cache_key})
@@ -747,10 +748,12 @@ def _do_save_event(
             with metrics.timer("tasks.store.do_save_event.event_manager.save"):
                 manager = EventManager(data)
                 # event.project.organization is populated after this statement.
-                manager.save(
+                event = manager.save(
                     project_id, assume_normalized=True, start_time=start_time, cache_key=cache_key
                 )
-
+                # Put the updated event back into the cache so that post_process
+                # has the most recent data.
+                event_processing_store.store(event.data)
         except HashDiscarded:
             pass
 

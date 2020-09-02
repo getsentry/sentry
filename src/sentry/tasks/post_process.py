@@ -126,25 +126,22 @@ def post_process_group(
     from sentry.eventstore.processing import event_processing_store
     from sentry.utils import snuba
 
-    # The event parameter will be removed after transitioning to
-    # event_processing_store is complete.
-    if cache_key is not None and event is None:
-        data = event_processing_store.get(cache_key)
-        if not data:
-            logger.info(
-                "post_process.skipped", extra={"cache_key": cache_key, "reason": "missing_cache"}
-            )
-            return
-        event = Event(
-            project_id=data["project"], event_id=data["event_id"], group_id=group_id, data=data
-        )
-
-    set_current_project(event.project_id)
-
     with snuba.options_override({"consistent": True}):
-        # Once we've transitioned entirely to the cache_key this can
-        # be removed as the eventprocessing_store data will help de-duplicate.
-        if not cache_key and check_event_already_post_processed(event):
+        # The event parameter will be removed after transitioning to
+        # event_processing_store is complete.
+        if cache_key and event is None:
+            data = event_processing_store.get(cache_key)
+            if not data:
+                logger.info(
+                    "post_process.skipped",
+                    extra={"cache_key": cache_key, "reason": "missing_cache"},
+                )
+                return
+            event = Event(
+                project_id=data["project"], event_id=data["event_id"], group_id=group_id, data=data
+            )
+        elif check_event_already_post_processed(event):
+            event_processing_store.delete_by_key(cache_key)
             logger.info(
                 "post_process.skipped",
                 extra={
@@ -154,6 +151,8 @@ def post_process_group(
                 },
             )
             return
+
+        set_current_project(event.project_id)
 
         # NOTE: we must pass through the full Event object, and not an
         # event_id since the Event object may not actually have been stored
