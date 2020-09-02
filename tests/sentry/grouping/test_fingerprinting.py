@@ -44,6 +44,32 @@ logger:sentry.*                                 -> logger-, {{ logger }}
     )
 
 
+def test_automatic_argument_splitting():
+    rules = FingerprintingRules.from_config_string(
+        """
+logger:test -> logger-{{ logger }}
+logger:test -> logger-, {{ logger }}
+logger:test2 -> logger-{{ logger }}-{{ level }}
+logger:test2 -> logger-, {{ logger }}, -, {{ level }}
+"""
+    )
+    assert rules._to_config_structure() == {
+        "rules": [
+            {"matchers": [["logger", "test"]], "fingerprint": ["logger-", "{{ logger }}"]},
+            {"matchers": [["logger", "test"]], "fingerprint": ["logger-", "{{ logger }}"]},
+            {
+                "matchers": [["logger", "test2"]],
+                "fingerprint": ["logger-", "{{ logger }}", "-", "{{ level }}"],
+            },
+            {
+                "matchers": [["logger", "test2"]],
+                "fingerprint": ["logger-", "{{ logger }}", "-", "{{ level }}"],
+            },
+        ],
+        "version": 1,
+    }
+
+
 def test_discover_field_parsing(insta_snapshot):
     rules = FingerprintingRules.from_config_string(
         """
