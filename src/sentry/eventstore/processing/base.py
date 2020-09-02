@@ -39,9 +39,8 @@ class BaseEventProcessingStore(object):
 
     def delete_by_key(self, key):
         self.inner.delete(key)
-        self.inner.delete("{}:u".format(key))
+        self.inner.delete(_get_unprocessed_key(key))
 
     def delete(self, event):
         key = cache_key_for_event(event)
-        self.inner.delete(key)
-        self.inner.delete(_get_unprocessed_key(key))
+        self.delete_by_key(key)
