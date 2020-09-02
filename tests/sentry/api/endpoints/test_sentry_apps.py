@@ -444,10 +444,11 @@ class PostSentryAppsTest(SentryAppsTest):
             response = self._post(**kwargs)
 
             assert response.status_code == 403, response.content
-            assert (
-                response.content
-                == '{"non_field_errors":["Your organization does not have access to the \'error\' resource subscription."]}'
-            )
+            assert response.data == {
+                "non_field_errors": [
+                    "Your organization does not have access to the 'error' resource subscription."
+                ]
+            }
 
     def test_allows_empty_schema(self):
         self.login_as(self.user)

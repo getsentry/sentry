@@ -34,7 +34,7 @@ class MsTeamsExtensionConfigurationTest(TestCase):
         ):
             mock_unsign.side_effect = SignatureExpired()
             resp = self.hit_configure({"signed_params": "test"})
-            assert "Installation link expired" in resp.content
+            assert b"Installation link expired" in resp.content
 
     def test_no_team_plan_feature_flag(self):
         with self.feature({"organizations:integrations-msteams": True}):

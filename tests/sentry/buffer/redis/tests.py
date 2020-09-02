@@ -16,10 +16,10 @@ class RedisBufferTest(TestCase):
         self.buf = RedisBuffer()
 
     def test_coerce_val_handles_foreignkeys(self):
-        assert self.buf._coerce_val(Project(id=1)) == "1"
+        assert self.buf._coerce_val(Project(id=1)) == b"1"
 
     def test_coerce_val_handles_unicode(self):
-        assert self.buf._coerce_val(u"\u201d") == "”"
+        assert self.buf._coerce_val(u"\u201d") == u"”".encode("utf-8")
 
     @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
     @mock.patch("sentry.buffer.redis.process_incr")
