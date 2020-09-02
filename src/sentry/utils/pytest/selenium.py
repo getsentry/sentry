@@ -326,6 +326,16 @@ class Browser(object):
                     self.driver.find_element_by_tag_name("body").screenshot(
                         u"{}/{}.png".format(snapshot_dir, slugify(name))
                     )
+                    has_tooltips = self.driver.execute_script(
+                        "return window.__openAllTooltips && window.__openAllTooltips()"
+                    )
+                    if has_tooltips:
+                        self.driver.find_element_by_tag_name("body").screenshot(
+                            u"{}-tooltips/{}.png".format(snapshot_dir, slugify(name))
+                        )
+                        self.driver.execute_script(
+                            "window.__closeAllTooltips && window.__closeAllTooltips()"
+                        )
 
             with self.mobile_viewport():
                 # switch to a mobile sized viewport
