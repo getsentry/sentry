@@ -5,7 +5,6 @@ from __future__ import unicode_literals
 import logging
 
 from django.db import migrations
-from django.db.models import Q
 
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
@@ -15,25 +14,21 @@ def fix_project_platform(apps, schema_editor):
     Find projects whose platform is either 'python-tracing' or 'node-tracing',
     and change them to be either 'python' or 'node' respectively.
     """
-    Organization = apps.get_model("sentry", "Organization")
     Project = apps.get_model("sentry", "Project")
 
-    for org in RangeQuerySetWrapperWithProgressBar(Organization.objects.filter(status=0)):
-        # We migrate a project at a time, but we prefer to group by org so that for the
-        # most part an org will see the changes all at once.
-        for project in Project.objects.filter(
-            Q(platform="node-tracing") | Q(platform="python-tracing"), organization=org, status=0
-        ):
-            try:
-                if project.platform == "node-tracing":
-                    project.platform = "node"
-
-                if project.platform == "python-tracing":
-                    project.platform = "python"
-
+    for project in RangeQuerySetWrapperWithProgressBar(Project.objects.all()):
+        try:
+            if project.platform == "node-tracing":
+                project.platform = "node"
                 project.save()
-            except Exception:
-                logging.exception("Error changing platform for project {}".format(project.id))
+                continue
+
+            if project.platform == "python-tracing":
+                project.platform = "python"
+                project.save()
+                continue
+        except Exception:
+            logging.exception("Error changing platform for project {}".format(project.id))
 
 
 class Migration(migrations.Migration):
@@ -46,13 +41,13 @@ class Migration(migrations.Migration):
     #   they can be monitored. Since data migrations will now hold a transaction open
     #   this is even more important.
     # - Adding columns to highly active tables, even ones that are NULL.
-    is_dangerous = False
+    is_dangerous = True
 
     # This flag is used to decide whether to run this migration in a transaction or not.
     # By default we prefer to run in a transaction, but for migrations where you want
     # to `CREATE INDEX CONCURRENTLY` this needs to be set to False. Typically you'll
     # want to create an index concurrently when adding one to an existing table.
-    atomic = True
+    atomic = False
 
     dependencies = [("sentry", "0098_add-performance-onboarding")]
 
