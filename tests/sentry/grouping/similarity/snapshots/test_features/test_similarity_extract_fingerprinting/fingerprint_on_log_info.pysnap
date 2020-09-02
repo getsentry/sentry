@@ -1,0 +1,20 @@
+---
+created: '2020-09-02T08:18:16.673126Z'
+creator: sentry
+source: tests/sentry/grouping/similarity/test_features.py
+---
+similarity:2020-07-23:fingerprint:ident-shingle: "-"
+similarity:2020-07-23:fingerprint:ident-shingle: "error"
+similarity:2020-07-23:fingerprint:ident-shingle: "log-"
+similarity:2020-07-23:fingerprint:ident-shingle: "sentry.example.love"
+similarity:2020-07-23:message:character-5-shingle: " foun"
+similarity:2020-07-23:message:character-5-shingle: " not "
+similarity:2020-07-23:message:character-5-shingle: "Love "
+similarity:2020-07-23:message:character-5-shingle: "e not"
+similarity:2020-07-23:message:character-5-shingle: "found"
+similarity:2020-07-23:message:character-5-shingle: "not f"
+similarity:2020-07-23:message:character-5-shingle: "ot fo"
+similarity:2020-07-23:message:character-5-shingle: "ound."
+similarity:2020-07-23:message:character-5-shingle: "ove n"
+similarity:2020-07-23:message:character-5-shingle: "t fou"
+similarity:2020-07-23:message:character-5-shingle: "ve no"

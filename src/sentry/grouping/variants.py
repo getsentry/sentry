@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from sentry.grouping.utils import hash_from_values, DEFAULT_FINGERPRINT_VALUES
+from sentry.grouping.utils import hash_from_values, is_default_fingerprint_var
 
 
 class BaseVariant(object):
@@ -135,7 +135,7 @@ class SaltedComponentVariant(ComponentVariant):
             return None
         final_values = []
         for value in self.values:
-            if value in DEFAULT_FINGERPRINT_VALUES:
+            if is_default_fingerprint_var(value):
                 final_values.extend(self.component.iter_values())
             else:
                 final_values.append(value)
@@ -146,7 +146,7 @@ class SaltedComponentVariant(ComponentVariant):
             yield x
 
         for value in self.values:
-            if value not in DEFAULT_FINGERPRINT_VALUES:
+            if not is_default_fingerprint_var(value):
                 yield ("fingerprint", "ident-shingle"), [value]
 
     def _get_metadata_as_dict(self):

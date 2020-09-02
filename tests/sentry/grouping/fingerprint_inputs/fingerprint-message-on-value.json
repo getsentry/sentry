@@ -1,0 +1,39 @@
+{
+  "_fingerprinting_rules": [
+    {
+      "matchers": [
+        [
+          "message",
+          "*love*"
+        ]
+      ],
+      "fingerprint": [
+        "what-is-love"
+      ]
+    }
+  ],
+  "fingerprint": [
+    "{{ default }}"
+  ],
+  "exception": {
+    "values": [
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "main",
+              "abs_path": "Application.java",
+              "module": "io.sentry.example.Application",
+              "filename": "Application.java",
+              "lineno": 13,
+              "in_app": false
+            }
+          ]
+        },
+        "type": "NoLove",
+        "value": "something has no love."
+      }
+    ]
+  },
+  "platform": "java"
+}
