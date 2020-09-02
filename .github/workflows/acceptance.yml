@@ -81,7 +81,6 @@ jobs:
         NODE_ENV: development
 
         PYTEST_SENTRY_DSN: https://6fd5cfea2d4d46b182ad214ac7810508@sentry.io/2423079
-        PYTEST_SENTRY_ALWAYS_REPORT: 1
         PYTEST_ADDOPTS: "--reruns 5"
 
         # services configuration
@@ -196,6 +195,7 @@ jobs:
           run: |
             mkdir -p ${{ steps.config.outputs.acceptance-dir }}
             mkdir -p ${{ steps.config.outputs.acceptance-dir }}-mobile
+            [ "$GITHUB_REF" != "refs/heads/master" ] || export PYTEST_SENTRY_ALWAYS_REPORT=1
             make run-acceptance
           env:
             PYTEST_SNAPSHOTS_DIR: ${{ steps.config.outputs.acceptance-dir }}
