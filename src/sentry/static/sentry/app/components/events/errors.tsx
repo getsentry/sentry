@@ -7,6 +7,7 @@ import {browserHistory} from 'react-router';
 
 import {openModal} from 'app/actionCreators/modal';
 import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -57,19 +58,19 @@ class EventErrors extends React.Component<Props, State> {
   }
 
   toggle = () => {
-    this.setState({isOpen: !this.state.isOpen});
+    this.setState(state => ({isOpen: !state.isOpen}));
   };
 
   uniqueErrors = errors => uniqWith(errors, isEqual);
 
   onReprocessEvent = async () => {
-    const {orgId, project, event} = this.props;
+    const {api, orgId, project, event} = this.props;
     const endpoint = `/projects/${orgId}/${project.slug}/events/${event.id}/reprocessing/`;
 
     addLoadingMessage(t('Reprocessing event\u2026'));
 
     try {
-      await this.props.api.requestPromise(endpoint, {
+      await api.requestPromise(endpoint, {
         method: 'POST',
       });
     } catch (e) {
@@ -87,13 +88,13 @@ class EventErrors extends React.Component<Props, State> {
   };
 
   onReprocessGroup = async () => {
-    const {orgId, issueId} = this.props;
+    const {api, orgId, issueId} = this.props;
     const endpoint = `/organizations/${orgId}/issues/${issueId}/reprocessing/`;
 
     addLoadingMessage(t('Reprocessing issue\u2026'));
 
     try {
-      await this.props.api.requestPromise(endpoint, {
+      await api.requestPromise(endpoint, {
         method: 'POST',
       });
     } catch (e) {
@@ -114,13 +115,12 @@ class EventErrors extends React.Component<Props, State> {
     openModal(this.renderReprocessModal);
   };
 
-  renderReprocessModal = ({Body, closeModal}) => (
+  renderReprocessModal = ({Body, closeModal, Footer}) => (
     <React.Fragment>
       <Body>
         <p>
           {t(
-            'You can choose to re-process events to see if ' +
-              'your errors have been resolved. Keep the following limitations in mind:'
+            'You can choose to re-process events to see if your errors have been resolved. Keep the following limitations in mind:'
           )}
         </p>
 
@@ -147,23 +147,24 @@ class EventErrors extends React.Component<Props, State> {
           </li>
         </ul>
       </Body>
-      <div className="modal-footer">
-        <Button onClick={this.onReprocessGroup}>
-          {t('Reprocess all events in issue')}
-        </Button>
-        <Button style={{marginLeft: space(1)}} onClick={this.onReprocessEvent}>
-          {t('Reprocess single event')}
-        </Button>
-        <Button style={{marginLeft: space(1)}} onClick={closeModal}>
-          {t('Cancel')}
-        </Button>
-      </div>
+      <Footer>
+        <ButtonBar gap={1}>
+          <Button onClick={this.onReprocessGroup}>
+            {t('Reprocess all events in issue')}
+          </Button>
+          <Button style={{marginLeft: space(1)}} onClick={this.onReprocessEvent}>
+            {t('Reprocess single event')}
+          </Button>
+          <Button style={{marginLeft: space(1)}} onClick={closeModal}>
+            {t('Cancel')}
+          </Button>
+        </ButtonBar>
+      </Footer>
     </React.Fragment>
   );
 
   render() {
     const {event, project} = this.props;
-    const features = new Set(project.features);
     // XXX: uniqueErrors is not performant with large datasets
     const errors =
       event.errors.length > MAX_ERRORS ? event.errors : this.uniqueErrors(event.errors);
@@ -192,7 +193,7 @@ class EventErrors extends React.Component<Props, State> {
             <EventErrorItem key={errorIdx} error={error} />
           ))}
 
-          {features.has('reprocessing-v2') && (
+          {project.features.includes('reprocessing-v2') && (
             <Button size="xsmall" onClick={this.onReprocessStart}>
               {t('Try again')}
             </Button>
