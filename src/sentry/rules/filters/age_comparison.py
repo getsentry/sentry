@@ -49,7 +49,8 @@ class AgeComparisonFilter(EventFilter):
     }
 
     # An issue is newer/older than X minutes/hours/days/weeks
-    label = "An issue is {comparison_type} than {value} {time}"
+    label = "The issue is {comparison_type} than {value} {time}"
+    prompt = "The issue is older or newer than..."
 
     def passes(self, event, state):
         comparison_type = self.get_option("comparison_type")

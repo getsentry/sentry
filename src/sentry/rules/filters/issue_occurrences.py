@@ -15,7 +15,8 @@ class IssueOccurrencesFilter(EventFilter):
         "value": {"type": "number", "placeholder": 10},
     }
 
-    label = "An issue has happened at least {value} times"
+    label = "The issue has happened at least {value} times"
+    prompt = "The issue has happened at least {x} times (Note: this is approximate)"
 
     def passes(self, event, state):
         try:

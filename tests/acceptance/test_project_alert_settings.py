@@ -31,7 +31,7 @@ class ProjectAlertSettingsTest(AcceptanceTestCase):
             },
             {
                 "id": "sentry.rules.conditions.every_event.EveryEventCondition",
-                "name": "An event is seen",
+                "name": "An event occurs",
             },
         ]
 
