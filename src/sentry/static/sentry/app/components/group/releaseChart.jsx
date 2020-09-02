@@ -41,7 +41,7 @@ class GroupReleaseChart extends React.Component {
     const envStats = props.environmentStats;
     const envPoints = {};
     if (envStats) {
-      envStats[props.statsPeriod].forEach(point => {
+      envStats[props.statsPeriod]?.forEach(point => {
         envPoints[point[0]] = point[1];
       });
     }
