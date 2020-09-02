@@ -135,9 +135,13 @@ const StreamGroup = createReactClass({
 
     if (filtered && query) {
       const queryObj = queryToObj(query);
-      for (const key in queryObj)
-        if (!['is', '__text'].includes(key))
-          discoveryQueryTerms.push(`${key}:${queryObj[key]}`);
+      for (const queryTag in queryObj)
+        if (!['is', '__text'].includes(queryTag)) {
+          const queryVal = queryObj[queryTag].includes(' ')
+            ? `"${queryObj[queryTag]}"`
+            : queryObj[queryTag];
+          discoveryQueryTerms.push(`${queryTag}:${queryVal}`);
+        }
     }
 
     const additionalQuery =
