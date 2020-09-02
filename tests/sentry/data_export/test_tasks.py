@@ -209,11 +209,11 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert de.file.size is not None
         assert de.file.checksum is not None
         # Convert raw csv to list of line-strings
-        header, raw1, raw2 = de.file.getfile().read().strip().split("\r\n")
-        assert header == "title"
+        header, raw1, raw2 = de.file.getfile().read().strip().split(b"\r\n")
+        assert header == b"title"
 
-        assert raw1.startswith("<unlabeled event>")
-        assert raw2.startswith("<unlabeled event>")
+        assert raw1.startswith(b"<unlabeled event>")
+        assert raw2.startswith(b"<unlabeled event>")
 
         assert emailer.called
 
@@ -241,12 +241,12 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert de.file.size is not None
         assert de.file.checksum is not None
         # Convert raw csv to list of line-strings
-        header, raw1, raw2, raw3 = de.file.getfile().read().strip().split("\r\n")
-        assert header == "title"
+        header, raw1, raw2, raw3 = de.file.getfile().read().strip().split(b"\r\n")
+        assert header == b"title"
 
-        assert raw1.startswith("<unlabeled event>")
-        assert raw2.startswith("<unlabeled event>")
-        assert raw3.startswith("<unlabeled event>")
+        assert raw1.startswith(b"<unlabeled event>")
+        assert raw2.startswith(b"<unlabeled event>")
+        assert raw3.startswith(b"<unlabeled event>")
 
         assert emailer.called
 
