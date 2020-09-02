@@ -78,14 +78,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
 
     class Meta:
         model = AlertRuleTriggerAction
-        fields = [
-            "id",
-            "type",
-            "target_type",
-            "target_identifier",
-            "integration",
-            "sentry_app",
-        ]
+        fields = ["id", "type", "target_type", "target_identifier", "integration", "sentry_app"]
         extra_kwargs = {
             "target_identifier": {"required": True},
             "target_display": {"required": False},
@@ -430,15 +423,20 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
     def _validate_trigger_thresholds(self, threshold_type, trigger, resolve_threshold):
         if resolve_threshold is None:
             return
+        is_integer = (
+            type(trigger["alert_threshold"]) is int or trigger["alert_threshold"].is_integer()
+        ) and (type(resolve_threshold) is int or resolve_threshold.is_integer())
         # Since we're comparing non-inclusive thresholds here (>, <), we need
         # to modify the values when we compare. An example of why:
         # Alert > 0, resolve < 1. This means that we want to alert on values
         # of 1 or more, and resolve on values of 0 or less. This is valid, but
         # without modifying the values, this boundary case will fail.
         if threshold_type == AlertRuleThresholdType.ABOVE:
-            alert_op, alert_add, resolve_add = operator.lt, 1, -1
+            alert_op = operator.lt
+            alert_add, resolve_add = (1, -1) if is_integer else (0, 0)
         else:
-            alert_op, alert_add, resolve_add = operator.gt, -1, 1
+            alert_op = operator.gt
+            alert_add, resolve_add = (-1, 1) if is_integer else (0, 0)
 
         if alert_op(trigger["alert_threshold"] + alert_add, resolve_threshold + resolve_add):
             raise serializers.ValidationError(
