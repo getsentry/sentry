@@ -7,21 +7,17 @@ const diffFnMap = {
   chars: diffChars,
   words: diffWords,
   lines: diffLines,
-};
+} as const;
 
 type Props = {
   base: string;
   target: string;
-  type: keyof typeof diffFnMap;
-  className: string;
+  type?: keyof typeof diffFnMap;
+  className?: string;
 };
 
-export function SplitDiff({className, type, base, target}: Props) {
+export function SplitDiff({className, type = 'lines', base, target}: Props) {
   const diffFn = diffFnMap[type];
-
-  if (typeof diffFn !== 'function') {
-    return null;
-  }
 
   const baseLines = base.split('\n');
   const targetLines = target.split('\n');
@@ -81,10 +77,6 @@ SplitDiff.propTypes = {
   type: PropTypes.oneOf(['lines', 'words', 'chars']),
 };
 
-SplitDiff.defaultProps = {
-  type: 'lines',
-};
-
 const SplitTable = styled('table')`
   table-layout: fixed;
   border-collapse: collapse;
@@ -92,8 +84,8 @@ const SplitTable = styled('table')`
 `;
 
 const SplitBody = styled('tbody')`
-  font-family: Monaco, Consolas, 'Courier New', monospace;
-  font-size: 13px;
+  font-family: ${p => p.theme.text.familyMono};
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 const Cell = styled('td')<{isRemoved?: Change; isAdded?: Change}>`
