@@ -244,7 +244,7 @@ matrix:
       before_install:
         - *base_install
         - *start_snuba
-        - docker run -d --network host --name symbolicator us.gcr.io/sentryio/symbolicator:latest run
+        - docker run -d -v $PWD/config/symbolicator/:/etc/symbolicator --network host --name symbolicator us.gcr.io/sentryio/symbolicator:latest run -c /etc/symbolicator/config.yml
         - docker ps -a
 
     - <<: *postgres_default
