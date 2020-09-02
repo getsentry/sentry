@@ -116,8 +116,23 @@ class SubscriptionProcessor(object):
         """
         if self.alert_rule.resolve_threshold is not None:
             return self.alert_rule.resolve_threshold
-        func = min if self.alert_rule.threshold_type == AlertRuleThresholdType.ABOVE.value else max
-        return func(trigger.alert_threshold for trigger in self.triggers)
+
+        # Since we only support gt/lt thresholds we have an off-by-one with auto
+        # resolve. If we have an alert threshold of > 0, and no resolve threshold, then
+        # we'd automatically set this to < 0, which can never happen. To work around
+        # this, we add a small amount to the number so that in this case we'd have
+        # the resolve threshold be < 0.000001. This means that when we hit 0 we'll still
+        # resolve as expected.
+        # TODO: We should probably support gte/lte at some point so that we can avoid
+        # these hacks.
+        if self.alert_rule.threshold_type == AlertRuleThresholdType.ABOVE.value:
+            func = min
+            resolve_add = 0.000001
+        else:
+            func = max
+            resolve_add = -0.000001
+
+        return func(trigger.alert_threshold for trigger in self.triggers) + resolve_add
 
     def process_update(self, subscription_update):
         dataset = self.subscription.snuba_query.dataset
