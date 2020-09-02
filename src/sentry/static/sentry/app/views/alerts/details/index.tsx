@@ -60,13 +60,18 @@ class IncidentDetails extends React.Component<Props, State> {
     } = this.props;
 
     try {
-      const [incident, stats] = await Promise.all([
-        fetchIncident(api, orgId, alertId),
-        fetchIncidentStats(api, orgId, alertId),
-      ]);
+      const incidentPromise = fetchIncident(api, orgId, alertId).then(incident => {
+        this.setState({incident});
+        markIncidentAsSeen(api, orgId, incident);
+      });
+      const statsPromise = fetchIncidentStats(api, orgId, alertId).then(stats =>
+        this.setState({stats})
+      );
 
-      this.setState({incident, stats, isLoading: false, hasError: false});
-      markIncidentAsSeen(api, orgId, incident);
+      // State not set after promise.all because stats *usually* takes
+      // more time than the incident api
+      await Promise.all([incidentPromise, statsPromise]);
+      this.setState({isLoading: false, hasError: false});
     } catch (_err) {
       this.setState({isLoading: false, hasError: true});
     }
