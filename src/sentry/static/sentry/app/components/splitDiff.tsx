@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
-import {diffChars, diffWords, diffLines} from 'diff';
+import {diffChars, diffWords, diffLines, Change} from 'diff';
 
 const diffFnMap = {
   chars: diffChars,
@@ -9,14 +9,24 @@ const diffFnMap = {
   lines: diffLines,
 };
 
-class SplitDiff extends React.Component {
+type DefaultProps = {
+  type: keyof typeof diffFnMap;
+};
+
+type Props = DefaultProps & {
+  base: string;
+  target: string;
+  className: string;
+};
+
+class SplitDiff extends React.Component<Props> {
   static propTypes = {
     base: PropTypes.string,
     target: PropTypes.string,
     type: PropTypes.oneOf(['lines', 'words', 'chars']),
   };
 
-  static defaultProps = {
+  static defaultProps: DefaultProps = {
     type: 'lines',
   };
 
@@ -92,7 +102,7 @@ const SplitBody = styled('tbody')`
   font-size: 13px;
 `;
 
-const Cell = styled('td')`
+const Cell = styled('td')<{isRemoved?: Change; isAdded?: Change}>`
   vertical-align: top;
   ${p => p.isRemoved && `background-color: ${p.theme.diff.removedRow}`};
   ${p => p.isAdded && `background-color: ${p.theme.diff.addedRow}`};
@@ -107,7 +117,7 @@ const Line = styled('div')`
   flex-wrap: wrap;
 `;
 
-const Word = styled('span')`
+const Word = styled('span')<{isRemoved?: boolean; isAdded?: boolean}>`
   white-space: pre-wrap;
   word-break: break-all;
   ${p => p.isRemoved && `background-color: ${p.theme.diff.removed}`};
