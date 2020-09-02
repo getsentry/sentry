@@ -190,7 +190,12 @@ class RuleNode extends React.Component<Props> {
     const {data, node} = this.props;
 
     if (!node) {
-      return null;
+      return (
+        <Separator>
+          This node failed to render. It may have migrated to another section of alert
+          conditions
+        </Separator>
+      );
     }
 
     const {label, formFields} = node;

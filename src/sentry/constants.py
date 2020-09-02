@@ -231,6 +231,30 @@ SENTRY_RULES = (
     "sentry.rules.filters.age_comparison.AgeComparisonFilter",
     "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter",
     "sentry.rules.filters.assigned_to.AssignedToFilter",
+    # The following filters are duplicates of their respective conditions and are conditionally shown if the user has issue alert-filters
+    "sentry.rules.filters.event_attribute.EventAttributeFilter",
+    "sentry.rules.filters.tagged_event.TaggedEventFilter",
+    "sentry.rules.filters.level.LevelFilter",
+)
+
+SENTRY_RULES_WITH_MIGRATED_FILTERS = frozenset(
+    [
+        "sentry.mail.actions.NotifyEmailAction",
+        "sentry.rules.actions.notify_event.NotifyEventAction",
+        "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
+        "sentry.rules.conditions.every_event.EveryEventCondition",
+        "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
+        "sentry.rules.conditions.regression_event.RegressionEventCondition",
+        "sentry.rules.conditions.reappeared_event.ReappearedEventCondition",
+        "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
+        "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition",
+        "sentry.rules.filters.age_comparison.AgeComparisonFilter",
+        "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter",
+        "sentry.rules.filters.assigned_to.AssignedToFilter",
+        "sentry.rules.filters.event_attribute.EventAttributeFilter",
+        "sentry.rules.filters.tagged_event.TaggedEventFilter",
+        "sentry.rules.filters.level.LevelFilter",
+    ]
 )
 
 # methods as defined by http://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html + PATCH

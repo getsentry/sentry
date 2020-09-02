@@ -1,6 +1,8 @@
 from __future__ import absolute_import
 
+from sentry import features
 from sentry.api.bases.project import ProjectEndpoint
+from sentry.constants import SENTRY_RULES_WITH_MIGRATED_FILTERS
 from sentry.rules import rules
 from rest_framework.response import Response
 
@@ -19,9 +21,15 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
             project.flags.has_issue_alerts_targeting
             or request.query_params.get("issue_alerts_targeting") == "1"
         )
+        org_has_filters = features.has(
+            "organizations:alert-filters", project.organization, actor=request.user
+        )
         # TODO: conditions need to be based on actions
         for rule_type, rule_cls in rules:
             node = rule_cls(project)
+            # skip over conditions if they are not in the migrated set for an org with alert-filters
+            if org_has_filters and node.id not in SENTRY_RULES_WITH_MIGRATED_FILTERS:
+                continue
             context = {
                 "id": node.id,
                 "label": node.label,
