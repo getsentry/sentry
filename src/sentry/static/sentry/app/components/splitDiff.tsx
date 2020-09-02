@@ -9,87 +9,81 @@ const diffFnMap = {
   lines: diffLines,
 };
 
-type DefaultProps = {
-  type: keyof typeof diffFnMap;
-};
-
-type Props = DefaultProps & {
+type Props = {
   base: string;
   target: string;
+  type: keyof typeof diffFnMap;
   className: string;
 };
 
-class SplitDiff extends React.Component<Props> {
-  static propTypes = {
-    base: PropTypes.string,
-    target: PropTypes.string,
-    type: PropTypes.oneOf(['lines', 'words', 'chars']),
-  };
+export function SplitDiff({className, type, base, target}: Props) {
+  const diffFn = diffFnMap[type];
 
-  static defaultProps: DefaultProps = {
-    type: 'lines',
-  };
-
-  render() {
-    const {className, type, base, target} = this.props;
-    const diffFn = diffFnMap[type];
-
-    if (typeof diffFn !== 'function') {
-      return null;
-    }
-
-    const baseLines = base.split('\n');
-    const targetLines = target.split('\n');
-    const [largerArray] =
-      baseLines.length > targetLines.length
-        ? [baseLines, targetLines]
-        : [targetLines, baseLines];
-    const results = largerArray.map((_line, index) =>
-      diffFn(baseLines[index] || '', targetLines[index] || '', {newlineIsToken: true})
-    );
-
-    return (
-      <SplitTable className={className}>
-        <SplitBody>
-          {results.map((line, j) => {
-            const highlightAdded = line.find(result => result.added);
-            const highlightRemoved = line.find(result => result.removed);
-
-            return (
-              <tr key={j}>
-                <Cell isRemoved={highlightRemoved}>
-                  <Line>
-                    {line
-                      .filter(result => !result.added)
-                      .map((result, i) => (
-                        <Word key={i} isRemoved={result.removed}>
-                          {result.value}
-                        </Word>
-                      ))}
-                  </Line>
-                </Cell>
-
-                <Gap />
-
-                <Cell isAdded={highlightAdded}>
-                  <Line>
-                    {line
-                      .filter(result => !result.removed)
-                      .map((result, i) => (
-                        <Word key={i} isAdded={result.added}>
-                          {result.value}
-                        </Word>
-                      ))}
-                  </Line>
-                </Cell>
-              </tr>
-            );
-          })}
-        </SplitBody>
-      </SplitTable>
-    );
+  if (typeof diffFn !== 'function') {
+    return null;
   }
+
+  const baseLines = base.split('\n');
+  const targetLines = target.split('\n');
+  const [largerArray] =
+    baseLines.length > targetLines.length
+      ? [baseLines, targetLines]
+      : [targetLines, baseLines];
+  const results = largerArray.map((_line, index) =>
+    diffFn(baseLines[index] || '', targetLines[index] || '', {newlineIsToken: true})
+  );
+
+  return (
+    <SplitTable className={className}>
+      <SplitBody>
+        {results.map((line, j) => {
+          const highlightAdded = line.find(result => result.added);
+          const highlightRemoved = line.find(result => result.removed);
+
+          return (
+            <tr key={j}>
+              <Cell isRemoved={highlightRemoved}>
+                <Line>
+                  {line
+                    .filter(result => !result.added)
+                    .map((result, i) => (
+                      <Word key={i} isRemoved={result.removed}>
+                        {result.value}
+                      </Word>
+                    ))}
+                </Line>
+              </Cell>
+
+              <Gap />
+
+              <Cell isAdded={highlightAdded}>
+                <Line>
+                  {line
+                    .filter(result => !result.removed)
+                    .map((result, i) => (
+                      <Word key={i} isAdded={result.added}>
+                        {result.value}
+                      </Word>
+                    ))}
+                </Line>
+              </Cell>
+            </tr>
+          );
+        })}
+      </SplitBody>
+    </SplitTable>
+  );
 }
+
+SplitDiff.propTypes = {
+  base: PropTypes.string,
+  target: PropTypes.string,
+  type: PropTypes.oneOf(['lines', 'words', 'chars']),
+};
+
+SplitDiff.defaultProps = {
+  type: 'lines',
+};
 
 const SplitTable = styled('table')`
   table-layout: fixed;
