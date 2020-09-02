@@ -254,7 +254,7 @@ const StreamGroup = createReactClass({
                 )}
                 <TooltipRow>
                   <TooltipCount value={data.count} />
-                  <TooltipText>{t(`Within ${summary}`)}</TooltipText>
+                  <TooltipText>{t(`In ${summary}`)}</TooltipText>
                   {hasDiscoverQuery && (
                     <StyledIconTelescope
                       to={this.getDiscoverUrl()}
@@ -298,7 +298,7 @@ const StreamGroup = createReactClass({
                 )}
                 <TooltipRow>
                   <TooltipCount value={data.userCount} />
-                  <TooltipText>{t(`Within ${summary}`)}</TooltipText>
+                  <TooltipText>{t(`In ${summary}`)}</TooltipText>
                   {hasDiscoverQuery && (
                     <StyledIconTelescope
                       to={this.getDiscoverUrl()}
