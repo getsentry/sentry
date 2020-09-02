@@ -1,6 +1,5 @@
 import React from 'react';
 import {Location} from 'history';
-import {browserHistory} from 'react-router';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 
@@ -16,6 +15,7 @@ import EventView from 'app/utils/discover/eventView';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import theme from 'app/utils/theme';
 import {getDuration} from 'app/utils/formatters';
+import BarChartZoom from 'app/components/charts/barChartZoom';
 
 import {HeaderTitleLegend} from '../styles';
 
@@ -108,40 +108,18 @@ class LatencyChart extends AsyncComponent<Props, State> {
     }
   };
 
-  handleClick = value => {
-    const {chartData} = this.state;
-    if (chartData === null) {
-      return;
-    }
-    const {location, organization} = this.props;
-    const valueIndex = value.dataIndex;
-
-    // If the active bar is clicked again we need to remove the constraints.
-    const startDuration = chartData.data[valueIndex].histogram_transaction_duration_15;
-    const endDuration = startDuration + this.bucketWidth;
-    // Re-render showing a zoom error above the current bar.
-    if ((endDuration - startDuration) / NUM_BUCKETS < 0.6) {
-      this.setState({
-        zoomError: true,
-      });
-      return;
-    }
+  handleDataZoom = () => {
+    const {organization} = this.props;
 
     trackAnalyticsEvent({
       eventKey: 'performance_views.latency_chart.zoom',
       eventName: 'Performance Views: Transaction Summary Latency Chart Zoom',
       organization_id: parseInt(organization.id, 10),
     });
+  };
 
-    const target = {
-      pathname: location.pathname,
-      query: {
-        ...location.query,
-        startDuration,
-        endDuration,
-      },
-    };
-    browserHistory.push(target);
+  handleDataZoomCancelled = () => {
+    this.setState({zoomError: true});
   };
 
   get bucketWidth() {
@@ -172,6 +150,7 @@ class LatencyChart extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
+    const {location} = this.props;
     const {chartData, zoomError} = this.state;
     if (chartData === null) {
       return null;
@@ -211,7 +190,7 @@ class LatencyChart extends AsyncComponent<Props, State> {
         } else {
           contents = [
             '<div class="tooltip-series tooltip-series-solo">',
-            t('You cannot zoom in any further'),
+            t('Target zoom region too small'),
             '</div>',
           ];
         }
@@ -220,17 +199,33 @@ class LatencyChart extends AsyncComponent<Props, State> {
       },
     };
 
+    const bucketWidth = this.bucketWidth;
+
+    const buckets = computeBuckets(chartData.data, bucketWidth);
+
     return (
-      <BarChart
-        grid={{left: '10px', right: '10px', top: '40px', bottom: '0px'}}
-        xAxis={xAxis}
-        yAxis={{type: 'value'}}
-        series={transformData(chartData.data, this.bucketWidth)}
-        tooltip={tooltip}
-        colors={colors}
-        onClick={this.handleClick}
-        onMouseOver={this.handleMouseOver}
-      />
+      <BarChartZoom
+        minZoomWidth={NUM_BUCKETS}
+        location={location}
+        paramStart="startDuration"
+        paramEnd="endDuration"
+        xAxisIndex={[0]}
+        buckets={buckets}
+        onDataZoomCancelled={this.handleDataZoomCancelled}
+      >
+        {zoomRenderProps => (
+          <BarChart
+            grid={{left: '10px', right: '10px', top: '40px', bottom: '0px'}}
+            xAxis={xAxis}
+            yAxis={{type: 'value'}}
+            series={transformData(chartData.data, bucketWidth)}
+            tooltip={tooltip}
+            colors={colors}
+            onMouseOver={this.handleMouseOver}
+            {...zoomRenderProps}
+          />
+        )}
+      </BarChartZoom>
     );
   }
 
@@ -251,6 +246,16 @@ class LatencyChart extends AsyncComponent<Props, State> {
       </React.Fragment>
     );
   }
+}
+
+function computeBuckets(data: ApiResult[], bucketWidth: number) {
+  return data.map(item => {
+    const bucket = item.histogram_transaction_duration_15;
+    return {
+      start: bucket,
+      end: bucket + bucketWidth,
+    };
+  });
 }
 
 /**
@@ -274,7 +279,7 @@ function transformData(data: ApiResult[], bucketWidth: number) {
     const midPoint = bucketWidth > 1 ? Math.ceil(bucket + bucketWidth / 2) : bucket;
     return {
       value: item.count,
-      name: getDuration(midPoint / 1000, precision, true),
+      name: getDuration(midPoint / 1000, midPoint > 1000 ? precision : 0, true),
     };
   });
 
