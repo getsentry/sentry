@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 from sentry.utils.cache import cache_key_for_event
 
-DEFAULT_TIMEOUT = 3600
+DEFAULT_TIMEOUT = 60 * 60 * 24
 
 
 class BaseEventProcessingStore(object):
