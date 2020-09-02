@@ -268,7 +268,7 @@ class MsTeamsWebhookTest(APITestCase):
         )
 
         assert resp.status_code == 204
-        assert "Personal Installation of Sentry" in responses.calls[3].request.body
+        assert "Personal Installation of Sentry" in responses.calls[3].request.body.decode("utf-8")
         assert "Bearer my_token" in responses.calls[3].request.headers["Authorization"]
 
     @responses.activate
@@ -297,10 +297,9 @@ class MsTeamsWebhookTest(APITestCase):
         )
 
         assert resp.status_code == 204
-        assert (
-            "Sentry for Microsoft Teams does not support any commands"
-            in responses.calls[3].request.body
-        )
+        assert "Sentry for Microsoft Teams does not support any commands" in responses.calls[
+            3
+        ].request.body.decode("utf-8")
         assert "Bearer my_token" in responses.calls[3].request.headers["Authorization"]
 
     @responses.activate
@@ -349,7 +348,9 @@ class MsTeamsWebhookTest(APITestCase):
         )
 
         assert resp.status_code == 204
-        assert "Click below to unlink your identity" in responses.calls[3].request.body
+        assert "Click below to unlink your identity" in responses.calls[3].request.body.decode(
+            "utf-8"
+        )
         assert "Bearer my_token" in responses.calls[3].request.headers["Authorization"]
 
     @responses.activate
@@ -380,5 +381,7 @@ class MsTeamsWebhookTest(APITestCase):
         )
 
         assert resp.status_code == 204
-        assert "Sorry, I didn't understand 'other'" in responses.calls[3].request.body
+        assert "Sorry, I didn't understand 'other'" in responses.calls[3].request.body.decode(
+            "utf-8"
+        )
         assert "Bearer my_token" in responses.calls[3].request.headers["Authorization"]
