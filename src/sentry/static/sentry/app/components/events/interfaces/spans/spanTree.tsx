@@ -95,7 +95,8 @@ class SpanTree extends React.Component<PropType> {
       if (!isCurrentSpanHidden) {
         messages.push(
           <span key="spans-filtered">
-            <strong>{numOfFilteredSpansAbove}</strong> {t('spans filtered out')}
+            <strong>{numOfFilteredSpansAbove}</strong>{' '}
+            {numOfFilteredSpansAbove === 1 ? t('hidden span') : t('hidden spans')}
           </span>
         );
       }
