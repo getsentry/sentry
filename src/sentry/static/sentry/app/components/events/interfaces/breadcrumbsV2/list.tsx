@@ -157,6 +157,7 @@ const StyledList = styled(List)<{height: number}>`
   height: auto !important;
   max-height: ${p => p.height}px;
   overflow-y: auto !important;
+  outline: none;
 `;
 
 const Row = styled('div')<{width?: number}>`

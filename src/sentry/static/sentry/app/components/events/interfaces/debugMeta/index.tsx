@@ -443,6 +443,7 @@ const StyledList = styled(List)<{overflowHidden: boolean; height: number}>`
   ${p => p.overflowHidden && 'overflow: hidden !important;'}
   height: auto !important;
   max-height: ${p => p.height}px;
+  outline: none;
 `;
 
 const Label = styled('label')`
