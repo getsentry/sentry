@@ -13,6 +13,8 @@ import {
 } from 'app/components/panels';
 import Field from 'app/views/settings/components/forms/field';
 
+import {_BulkController} from './bulkController.stories';
+
 export default {
   title: 'UI/Panels',
 };
@@ -90,6 +92,8 @@ export const _PanelTable = withInfo({
       <div>Panel Item</div>
       <div>Panel Item</div>
     </PanelTable>
+
+    <_BulkController />
   </React.Fragment>
 ));
 
