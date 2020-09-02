@@ -154,6 +154,15 @@ class TestAlertRuleSerializer(TestCase):
             {"resolve_threshold": 500},
             {"nonFieldErrors": ["critical alert threshold must be above resolution threshold"]},
         )
+        base_params = self.valid_params.copy()
+        base_params["resolve_threshold"] = 0.5
+        base_params["triggers"].pop()
+        base_params["triggers"][0]["alertThreshold"] = 0.3
+        serializer = AlertRuleSerializer(context=self.context, data=base_params)
+        assert not serializer.is_valid()
+        assert serializer.errors == {
+            "nonFieldErrors": ["critical alert threshold must be above resolution threshold"]
+        }
 
     def test_transaction_dataset(self):
         serializer = AlertRuleSerializer(context=self.context, data=self.valid_transaction_params)
