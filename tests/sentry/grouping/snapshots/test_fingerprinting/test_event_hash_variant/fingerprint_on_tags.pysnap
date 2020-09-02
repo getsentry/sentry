@@ -1,0 +1,29 @@
+---
+created: '2020-09-01T22:31:12.397048Z'
+creator: sentry
+source: tests/sentry/grouping/test_fingerprinting.py
+---
+config:
+  rules:
+  - fingerprint:
+    - foobar-matched-stuff-
+    - '{{ tags.barfoo }}'
+    matchers:
+    - - tags.foobar
+      - '*stuff*'
+  version: 1
+fingerprint:
+- foobar-matched-stuff-
+- '{{ tags.barfoo }}'
+variants:
+  custom-fingerprint:
+    type: custom-fingerprint
+    values:
+    - foobar-matched-stuff-
+    - amazing
+  default:
+    component:
+      contributes: false
+      contributes_to_similarity: true
+      hint: custom fingerprint takes precedence
+    type: component

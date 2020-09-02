@@ -1,0 +1,27 @@
+{
+  "_fingerprinting_rules": [
+    {
+      "matchers": [
+        [
+          "logger",
+          "sentry.*"
+        ],
+        [
+          "level",
+          "ERROR"
+        ]
+      ],
+      "fingerprint": [
+        "log-",
+        "{{ logger }}",
+        "-",
+        "{{ level }}"
+      ]
+    }
+  ],
+  "logentry": {
+    "formatted": "Love not found."
+  },
+  "logger": "sentry.example.love",
+  "level": "error"
+}
