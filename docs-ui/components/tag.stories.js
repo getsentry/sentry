@@ -25,7 +25,7 @@ Warning.story = {
 };
 
 export const Success = withInfo(
-  'A happy tag-like thing. Use this to signal something good!!'
+  'A happy tag-like thing. Use this to signal something good!!!'
 )(() => <Tag priority="success">Development</Tag>);
 
 Success.story = {
