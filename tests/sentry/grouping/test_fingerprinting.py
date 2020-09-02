@@ -17,6 +17,7 @@ app:true                                        -> aha
 app:true                                        -> {{ default }}
 !path:**/foo/**                                 -> everything
 !"path":**/foo/**                               -> everything
+logger:sentry.*                                 -> logger-, {{ logger }}
 """
     )
     assert rules._to_config_structure() == {
@@ -30,6 +31,7 @@ app:true                                        -> {{ default }}
             {"matchers": [["app", "true"]], "fingerprint": ["{{ default }}"]},
             {"matchers": [["!path", "**/foo/**"]], "fingerprint": ["everything"]},
             {"matchers": [["!path", "**/foo/**"]], "fingerprint": ["everything"]},
+            {"matchers": [["logger", "sentry.*"]], "fingerprint": ["logger-", "{{ logger }}"]},
         ],
         "version": 1,
     }

@@ -65,6 +65,7 @@ class EventAccess(object):
         self._exceptions = None
         self._frames = None
         self._messages = None
+        self._log_info = None
         self._toplevel = None
         self._tags = None
 
@@ -80,6 +81,21 @@ class EventAccess(object):
                     }
                 )
         return self._messages
+
+    def get_log_info(self):
+        if self._log_info is None:
+            log_info = {}
+            logger = get_path(self.event, "logger", filter=True)
+            if logger:
+                log_info["logger"] = logger
+            level = get_path(self.event, "level", filter=True)
+            if level:
+                log_info["level"] = level
+            if log_info:
+                self._log_info = [log_info]
+            else:
+                self._log_info = []
+        return self._log_info
 
     def get_exceptions(self):
         if self._exceptions is None:
@@ -145,15 +161,7 @@ class EventAccess(object):
         return self._tags
 
     def get_values(self, match_group):
-        if match_group == "toplevel":
-            return self.get_toplevel()
-        elif match_group == "exception":
-            return self.get_exceptions()
-        elif match_group == "frame":
-            return self.get_frames()
-        elif match_group == "tags":
-            return self.get_tags()
-        return []
+        return getattr(self, "get_" + match_group)()
 
 
 class FingerprintingRules(object):
@@ -219,6 +227,8 @@ MATCHERS = {
     "stack.package": "package",
     "stack.function": "function",
     "message": "message",
+    "logger": "logger",
+    "level": "level",
     # fingerprinting shortened fields
     "type": "type",
     "value": "value",
@@ -248,11 +258,13 @@ class Match(object):
     def match_group(self):
         if self.key == "message":
             return "toplevel"
+        if self.key in ("logger", "level"):
+            return "log_info"
         if self.key in ("type", "value"):
-            return "exception"
+            return "exceptions"
         if self.key.startswith("tags."):
             return "tags"
-        return "frame"
+        return "frames"
 
     def matches(self, values):
         rv = self._positive_match(values)
@@ -305,7 +317,7 @@ class Match(object):
             ref_val = get_rule_bool(self.pattern)
             if ref_val is not None and ref_val == value:
                 return True
-        elif glob_match(value, self.pattern):
+        elif glob_match(value, self.pattern, ignorecase=self.key == "level"):
             return True
         return False
 

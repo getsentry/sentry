@@ -63,6 +63,10 @@ def resolve_fingerprint_values(values, event):
             if pkg:
                 pkg = pkg.rsplit("/", 1)[-1].rsplit("\\", 1)[-1]
             return pkg or "<no-package>"
+        elif var == "level":
+            return event.data.get("level") or "<no-level>"
+        elif var == "logger":
+            return event.data.get("logger") or "<no-logger>"
         elif var.startswith("tags."):
             tag = var[5:]
             for t, value in event.data.get("tags") or ():
