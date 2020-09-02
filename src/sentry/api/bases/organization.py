@@ -217,7 +217,6 @@ class OrganizationEndpoint(Endpoint):
             projects = list(qs)
             span.set_data("Project Count", len(projects))
         with sentry_sdk.start_span(op="apply_project_permissions") as span:
-            span.set_data("Project Count", len(projects))
             if force_global_perms:
                 span.set_tag("mode", "force_global_perms")
             else:
@@ -233,6 +232,7 @@ class OrganizationEndpoint(Endpoint):
                     span.set_tag("mode", "has_project_membership")
                     func = request.access.has_project_membership
                 projects = [p for p in qs if func(p)]
+            span.set_data("Project Count", len(projects))
 
         project_ids = set(p.id for p in projects)
 
