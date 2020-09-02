@@ -43,7 +43,7 @@ class MsTeamsIntegrationTest(IntegrationTestCase):
             access_json = {"expires_in": 86399, "access_token": "my_token"}
             responses.add(
                 responses.POST,
-                u"https://login.microsoftonline.com/botframework.com/oauth2/v2.0/token",
+                "https://login.microsoftonline.com/botframework.com/oauth2/v2.0/token",
                 json=access_json,
             )
 
@@ -78,9 +78,9 @@ class MsTeamsIntegrationTest(IntegrationTestCase):
                 integration=integration, organization=self.organization
             )
 
-            integration_url = "organizations/{}/rules/".format(self.organization.slug)
-            assert integration_url in responses.calls[1].request.body
-            assert self.organization.name in responses.calls[1].request.body
+            integration_url = u"organizations/{}/rules/".format(self.organization.slug)
+            assert integration_url in responses.calls[1].request.body.decode("utf-8")
+            assert self.organization.name in responses.calls[1].request.body.decode("utf-8")
 
     @responses.activate
     def test_installation(self):

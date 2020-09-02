@@ -91,9 +91,10 @@ class MsTeamsIntegrationUnlinkIdentityTest(TestCase):
         identity = Identity.objects.filter(external_id=teams_user_id, user=self.user1)
 
         assert len(identity) == 0
-        assert (
-            "Your Microsoft Teams identity has been unlinked to your Sentry account."
-            in responses.calls[1].request.body
+        assert "Your Microsoft Teams identity has been unlinked to your Sentry account." in responses.calls[
+            1
+        ].request.body.decode(
+            "utf-8"
         )
         assert len(responses.calls) == 2
 
