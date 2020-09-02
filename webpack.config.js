@@ -103,7 +103,7 @@ if (env.SENTRY_EXTRACT_TRANSLATIONS === '1') {
  *
  * A plugin is used to remove the locale chunks from the app entry's chunk
  * dependency list, so that our compiled bundle does not expect that *all*
- * locale chunks must be loadd
+ * locale chunks must be loaded
  */
 const localeCatalogPath = path.join(
   __dirname,

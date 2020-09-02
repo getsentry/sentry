@@ -153,7 +153,7 @@ describe('IncidentDetails', function () {
     expect(wrapper.find('Status').at(0).text()).toBe('Resolved');
   });
 
-  it('allows members to change issuet status', async function () {
+  it('allows members to change issue status', async function () {
     const noAccessOrg = {...organization, access: ['project:read']};
 
     const wrapper = createWrapper(

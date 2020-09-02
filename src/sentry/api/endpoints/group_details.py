@@ -286,7 +286,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             )
 
             # the current release is the 'latest seen' release within the
-            # environment even if it hasnt affected this issue
+            # environment even if it hasn't affected this issue
             if environments:
                 with sentry_sdk.start_span(op="GroupDetailsEndpoint.get.current_release") as span:
                     span.set_data("Environment Count", len(environments))
@@ -339,8 +339,8 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         Update an Issue
         ```````````````
 
-        Updates an individual issues's attributes.  Only the attributes
-        submitted are modified.
+        Updates an individual issue's attributes. Only the attributes submitted
+        are modified.
 
         :pparam string issue_id: the ID of the group to retrieve.
         :param string status: the new status for the issue.  Valid values

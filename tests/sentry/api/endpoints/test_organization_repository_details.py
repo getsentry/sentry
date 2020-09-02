@@ -210,7 +210,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
             organization_id=org.id, key=repo.build_pending_deletion_key()
         ).exists()
 
-    def test_put_cancel_deletion_dupliate_exists(self):
+    def test_put_cancel_deletion_duplicate_exists(self):
         self.login_as(user=self.user)
 
         org = self.create_organization(owner=self.user, name="baz")

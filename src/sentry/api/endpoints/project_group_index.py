@@ -39,7 +39,7 @@ def bulk_update_issues_scenario(runner):
     )
 
 
-@scenario("BulkRemoveIssuess")
+@scenario("BulkRemoveIssues")
 def bulk_remove_issues_scenario(runner):
     with runner.isolated_project("Amazing Plumbing") as project:
         group1, group2 = Group.objects.filter(project=project)[:2]
@@ -50,7 +50,7 @@ def bulk_remove_issues_scenario(runner):
         )
 
 
-@scenario("ListProjectIssuess")
+@scenario("ListProjectIssues")
 def list_project_issues_scenario(runner):
     project = runner.default_project
     runner.request(

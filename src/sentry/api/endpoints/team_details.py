@@ -110,7 +110,7 @@ class TeamDetailsEndpoint(TeamEndpoint):
 
         Schedules a team for deletion.
 
-        **Note:** Deletion happens asynchronously and therefor is not
+        **Note:** Deletion happens asynchronously and therefore is not
         immediate.  However once deletion has begun the state of a project
         changes and will be hidden from most public views.
         """
