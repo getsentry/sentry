@@ -131,6 +131,12 @@ class Match(object):
         )
 
     def matches_frame(self, frame_data, platform):
+        rv = self._positive_frame_match(frame_data, platform)
+        if self.negated:
+            rv = not rv
+        return rv
+
+    def _positive_frame_match(self, frame_data, platform):
         # Path matches are always case insensitive
         if self.key in ("path", "package"):
             if self.key == "package":
