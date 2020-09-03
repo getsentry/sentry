@@ -7,7 +7,7 @@ from hashlib import md5
 import six
 import pytest
 import sentry_sdk
-from sentry_sdk import Hub, Client, start_transaction
+from sentry_sdk import Hub, Client
 
 
 pytest_plugins = ["sentry.utils.pytest"]
@@ -24,44 +24,30 @@ hub = Hub(
         traces_sample_rate=1.0,
     )
 )
-txn = {}
-spans = {}
-call_spans = {}
 
 
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_protocol(item):
     mark = next(x for x in item.own_markers if x.name.startswith("group_"))
-    transaction = txn.get(item.module.__name__)
 
-    if transaction is None:
+    if hub.scope.transaction is None:
         name = u"{} [{}]".format(item.module.__name__, mark.name)
-        transaction = hub.start_transaction(op=name, name=name)
-        txn[item.module.__name__] = transaction
+        with hub.start_transaction(op=name, name=name):
+            yield
 
-    with transaction.start_child(op=item.name) as span:
-        spans[item.name] = span
+    else:
         yield
 
 
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_setup(item):
-    span = spans.get(item.name)
-    if span:
-        with span.start_child(op="pytest.setup", description=item.name):
-            yield
-    else:
+    with hub.start_span(op="pytest.setup", description=item.name):
         yield
 
 
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_call(item):
-    span = spans.get(item.name)
-    if span:
-        with span.start_child(op="pytest.call", description=item.name) as new_span:
-            call_spans[item.name] = new_span
-            yield
-    else:
+    with hub.start_span(op="pytest.call", description=item.name):
         yield
 
 
@@ -69,31 +55,16 @@ def pytest_runtest_call(item):
 def pytest_runtest_makereport(item, call):
     report = yield
 
-    span = call_spans.get(item.name)
+    span = hub.scope.span
     if span:
+        # XXX: never runs
         span.set_tag("test.result", report.result.outcome)
-        call_spans.pop(item.name)
 
 
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_teardown(item, nextitem):
-    span = spans.get(item.name)
-    if span:
-        with span.start_child(op="pytest.teardown", description=item.name):
-            yield
-        span.finish()
-    else:
+    with hub.start_span(op="pytest.teardown", description=item.name):
         yield
-
-    if nextitem is None or item.module.__name__ != nextitem.module.__name__:
-        #  XXX below transaction is unexpectedly None
-        print(hub.scope.span)
-        print(hub.scope.transaction)
-        transaction = txn.get(item.module.__name__)
-        if transaction:
-            transaction.finish()
-            txn.pop(item.module.__name__)
-            pass
 
 
 def pytest_configure(config):
