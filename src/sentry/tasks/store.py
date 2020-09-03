@@ -767,7 +767,8 @@ def _do_save_event(
                 data = manager.get_data()
                 if isinstance(data, CANONICAL_TYPES):
                     data = dict(data.items())
-                event_processing_store.store(data)
+                with metrics.timer("tasks.store.do_save_event.write_processing_cache"):
+                    event_processing_store.store(data)
         except HashDiscarded:
             pass
 
