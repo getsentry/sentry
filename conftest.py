@@ -44,8 +44,13 @@ def pytest_runtest_protocol(item):
         name = u"{} [{}]".format(item.module.__name__, mark.name)
         transaction = hub.start_transaction(op=name, name=name).__enter__()
 
-    with transaction.start_child(op=item.name):
+    with transaction.start_child(hub=hub, op=item.name):
         yield
+
+    #  span = transaction.start_child(hub=hub, op=item.name).__enter__()
+    #  print(hub.scope.span.op)
+    #  yield
+    #  span.__exit__(None, None, None)
 
 
 @pytest.hookimpl(hookwrapper=True)
