@@ -57,13 +57,15 @@ def pytest_runtest_protocol(item, nextitem):
         hub.start_transaction(op=name, name=name).__enter__()
 
     item_class_name = item.cls.__name__ if item.cls else None
-    with hub.scope.transaction.start_child(hub=hub, op=item.name, description=item_class_name):
-        yield
-
-    #  span = transaction.start_child(hub=hub, op=item.name).__enter__()
-    #  print(hub.scope.span.op)
+    #  with hub.scope.transaction.start_child(hub=hub, op=item.name, description=item_class_name):
     #  yield
-    #  span.__exit__(None, None, None)
+
+    span = hub.scope.transaction.start_child(hub=hub, op=item.name, description=item_class_name)
+    spans[item.name] = span
+    #  print(hub.scope.span)
+    yield
+    span.finish()
+    span = None
 
     if hub.scope.transaction and (
         nextitem is None or item.module.__name__ != nextitem.module.__name__
@@ -73,7 +75,8 @@ def pytest_runtest_protocol(item, nextitem):
 
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_setup(item):
-    with hub.scope.span.start_child(hub=hub, op=item.name, description="pytest.setup"):
+    span = spans.get(item.name)
+    with span.start_child(hub=hub, op=item.name, description="pytest.setup"):
         yield
 
 
@@ -81,7 +84,8 @@ def pytest_runtest_setup(item):
 def pytest_runtest_call(item):
     #  call_span = hub.scope.span.start_child(op=item.name, description="pytest.call")
     #  call_spans[item.name] = call_span
-    with hub.scope.span.start_child(hub=hub, op=item.name, description="pytest.call"):
+    span = spans.get(item.name)
+    with span.start_child(hub=hub, op=item.name, description="pytest.call"):
         yield
     #  call_span.finish()
 
@@ -97,13 +101,14 @@ def pytest_runtest_makereport(item, call):
     # XXX: never runs
     # This should be the "call_span" from `pytest_runtest_call`
     #  call_span = call_spans.get(item.name)
-    if hub.scope.span:
-        hub.scope.span.set_tag("test.result", report.result.outcome)
+    span = spans.get(item.name)
+    span.set_tag("test.result", report.result.outcome)
 
 
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_teardown(item, nextitem):
-    with hub.scope.span.start_child(hub=hub, op=item.name, description="pytest.teardown"):
+    span = spans.get(item.name)
+    with span.start_child(hub=hub, op=item.name, description="pytest.teardown"):
         yield
 
 
