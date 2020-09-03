@@ -1,11 +1,13 @@
 from __future__ import absolute_import
 
+import six
 from datetime import timedelta
 
 from django.core.urlresolvers import reverse
 
 from sentry.utils.samples import load_data
 from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
@@ -222,3 +224,95 @@ class OrganizationEventsTrendsEndpointTest(APITestCase, SnubaTestCase):
             [{"count": 2000}],
             [{"count": 2000}],
         ]
+
+
+class OrganizationEventsTrendsPagingTest(APITestCase, SnubaTestCase):
+    def setUp(self):
+        super(OrganizationEventsTrendsPagingTest, self).setUp()
+        self.login_as(user=self.user)
+
+        self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
+
+        self.project = self.create_project()
+        self.prototype = load_data("transaction")
+
+        # Make 10 transactions for paging
+        for i in range(10):
+            for j in range(2):
+                data = self.prototype.copy()
+                data["user"] = {"email": "foo@example.com"}
+                data["start_timestamp"] = iso_format(self.day_ago + timedelta(minutes=30))
+                data["timestamp"] = iso_format(
+                    self.day_ago + timedelta(hours=j, minutes=30, seconds=2)
+                )
+                if i < 5:
+                    data["transaction"] = "transaction_1{}".format(i)
+                else:
+                    data["transaction"] = "transaction_2{}".format(i)
+                self.store_event(data, project_id=self.project.id)
+
+    def _parse_links(self, header):
+        # links come in {url: {...attrs}}, but we need {rel: {...attrs}}
+        links = {}
+        for url, attrs in six.iteritems(parse_link_header(header)):
+            links[attrs["rel"]] = attrs
+            attrs["href"] = url
+        return links
+
+    def test_pagination(self):
+        with self.feature("organizations:internal-catchall"):
+            url = reverse(
+                "sentry-api-0-organization-events-trends",
+                kwargs={"organization_slug": self.project.organization.slug},
+            )
+            response = self.client.get(
+                url,
+                format="json",
+                data={
+                    # Set the timeframe to where the second range has no transactions so all the counts/percentile are 0
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "start": iso_format(self.day_ago - timedelta(hours=2)),
+                    "field": ["project", "transaction"],
+                    "query": "event.type:transaction",
+                    "project": [self.project.id],
+                },
+            )
+            assert response.status_code == 200, response.content
+
+            links = self._parse_links(response["Link"])
+            assert links["previous"]["results"] == "false"
+            assert links["next"]["results"] == "true"
+            assert len(response.data["events"]["data"]) == 5
+
+            response = self.client.get(links["next"]["href"], format="json")
+            assert response.status_code == 200, response.content
+
+            links = self._parse_links(response["Link"])
+            assert links["previous"]["results"] == "true"
+            assert links["next"]["results"] == "false"
+            assert len(response.data["events"]["data"]) == 5
+
+    def test_pagination_with_query(self):
+        with self.feature("organizations:internal-catchall"):
+            url = reverse(
+                "sentry-api-0-organization-events-trends",
+                kwargs={"organization_slug": self.project.organization.slug},
+            )
+            response = self.client.get(
+                url,
+                format="json",
+                data={
+                    # Set the timeframe to where the second range has no transactions so all the counts/percentile are 0
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "start": iso_format(self.day_ago - timedelta(hours=2)),
+                    "field": ["project", "transaction"],
+                    "query": "event.type:transaction transaction:transaction_1*",
+                    "project": [self.project.id],
+                },
+            )
+            assert response.status_code == 200, response.content
+
+            links = self._parse_links(response["Link"])
+            assert links["previous"]["results"] == "false"
+            assert links["next"]["results"] == "false"
+            assert len(response.data["events"]["data"]) == 5
