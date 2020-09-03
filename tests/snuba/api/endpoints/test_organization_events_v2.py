@@ -2399,3 +2399,27 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                     response.data["detail"]
                     == "You can view up to 20 fields at a time. Please delete some and try again."
                 )
+
+    def test_allow_not_project_when_project_not_selected(self):
+        team = self.create_team(organization=self.organization, members=[self.user])
+
+        project = self.create_project(organization=self.organization, teams=[team])
+        project2 = self.create_project(organization=self.organization, teams=[team])
+
+        self.store_event(
+            data={"event_id": "a" * 32, "timestamp": self.min_ago, "fingerprint": ["group1"]},
+            project_id=project.id,
+        )
+        self.store_event(
+            data={"event_id": "b" * 32, "timestamp": self.min_ago, "fingerprint": ["group2"]},
+            project_id=project2.id,
+        )
+
+        query = {
+            "field": ["id", "project.id"],
+            "project": [project.id],
+            "query": "!project:{}".format(project2.slug),
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200
+        assert response.data["data"] == [{"id": "a" * 32, "project.id": 2}]
