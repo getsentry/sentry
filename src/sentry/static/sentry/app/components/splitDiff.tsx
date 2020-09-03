@@ -16,7 +16,7 @@ type Props = {
   className?: string;
 };
 
-function SplitDiff({className, type = 'lines', base, target}: Props) {
+const SplitDiff = ({className, type = 'lines', base, target}: Props) => {
   const diffFn = diffFnMap[type];
 
   const baseLines = base.split('\n');
@@ -69,7 +69,7 @@ function SplitDiff({className, type = 'lines', base, target}: Props) {
       </SplitBody>
     </SplitTable>
   );
-}
+};
 
 SplitDiff.propTypes = {
   base: PropTypes.string,
