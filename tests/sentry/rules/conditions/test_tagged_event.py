@@ -1,7 +1,10 @@
 from __future__ import absolute_import
 
+from datetime import datetime
+
 from sentry.testutils.cases import RuleTestCase
 from sentry.rules.conditions.tagged_event import TaggedEventCondition, MatchType
+from sentry.models import Release
 
 
 class TaggedEventConditionTest(RuleTestCase):
@@ -105,3 +108,43 @@ class TaggedEventConditionTest(RuleTestCase):
 
         rule = self.get_rule(data={"match": MatchType.NOT_SET, "key": "missing"})
         self.assertPasses(rule, event)
+
+    def test_latest_release(self):
+        event = self.get_event()
+        oldRelease = Release.objects.create(
+            organization_id=self.organization.id,
+            version="1",
+            date_added=datetime(2020, 9, 1, 3, 8, 24, 880386),
+        )
+        oldRelease.add_project(self.project)
+
+        newRelease = Release.objects.create(
+            organization_id=self.organization.id,
+            version="2",
+            date_added=datetime(2020, 9, 2, 3, 8, 24, 880386),
+        )
+        newRelease.add_project(self.project)
+
+        event.data["tags"] = (("release", newRelease.version),)
+        rule = self.get_rule(data={"match": MatchType.EQUAL, "key": "release", "value": "latest"})
+        self.assertPasses(rule, event)
+
+    def test_latest_release_no_match(self):
+        event = self.get_event()
+        oldRelease = Release.objects.create(
+            organization_id=self.organization.id,
+            version="1",
+            date_added=datetime(2020, 9, 1, 3, 8, 24, 880386),
+        )
+        oldRelease.add_project(self.project)
+
+        newRelease = Release.objects.create(
+            organization_id=self.organization.id,
+            version="2",
+            date_added=datetime(2020, 9, 2, 3, 8, 24, 880386),
+        )
+        newRelease.add_project(self.project)
+
+        event.data["tags"] = (("release", oldRelease.version),)
+        rule = self.get_rule(data={"match": MatchType.EQUAL, "key": "release", "value": "latest"})
+        self.assertDoesNotPass(rule, event)
