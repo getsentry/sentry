@@ -1,6 +1,7 @@
 import React from 'react';
 import {Location} from 'history';
 import styled from '@emotion/styled';
+import pick from 'lodash/pick';
 
 import space from 'app/styles/space';
 import {t} from 'app/locale';
@@ -19,6 +20,7 @@ import Breadcrumbs from 'app/components/breadcrumbs';
 import DeployBadge from 'app/components/deployBadge';
 import Badge from 'app/components/badge';
 import * as Layout from 'app/components/layouts/thirds';
+import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 
 import ReleaseStat from './releaseStat';
 import ReleaseActions from './releaseActions';
@@ -67,6 +69,11 @@ const ReleaseHeader = ({location, orgId, release, project, releaseMeta}: Props) 
       to: `${releasePath}artifacts/`,
     },
   ];
+
+  const getCurrentTabUrl = (path: string) => ({
+    pathname: path,
+    query: pick(location.query, Object.values(URL_PARAM)),
+  });
 
   return (
     <StyledHeader>
@@ -131,7 +138,7 @@ const ReleaseHeader = ({location, orgId, release, project, releaseMeta}: Props) 
         {tabs.map(tab => (
           <ListLink
             key={tab.to}
-            to={`${tab.to}${location.search}`}
+            to={getCurrentTabUrl(tab.to)}
             isActive={() => tab.to === location.pathname}
           >
             {tab.title}

@@ -226,7 +226,7 @@ export default class AsyncComponent<
     this.fetchData({reloading: true});
   }
 
-  fetchData = (extraState?: object, endpointIndex?: number) => {
+  fetchData = (extraState?: object) => {
     const endpoints = this.getEndpoints();
 
     if (!endpoints.length) {
@@ -237,17 +237,14 @@ export default class AsyncComponent<
     // Cancel any in flight requests
     this.api.clear();
 
-    const fetchEndpoints =
-      endpointIndex !== undefined ? [endpoints[endpointIndex]] : endpoints;
-
     this.setState({
       loading: true,
       error: false,
-      remainingRequests: fetchEndpoints.length,
+      remainingRequests: endpoints.length,
       ...extraState,
     });
 
-    fetchEndpoints.forEach(([stateKey, endpoint, params, options]) => {
+    endpoints.forEach(([stateKey, endpoint, params, options]) => {
       options = options || {};
       // If you're using nested async components/views make sure to pass the
       // props through so that the child component has access to props.location

@@ -25,7 +25,7 @@ import {getCommitsByRepository, CommitsByRepository} from '../utils';
 import ReleaseNoCommitData from '../releaseNoCommitData';
 import {ReleaseContext} from '../';
 
-const COMMITS_PER_PAGE = 10;
+const COMMITS_PER_PAGE = 20;
 const ALL_REPOSITORIES_LABEL = t('All Repositories');
 
 type RouteParams = {
@@ -41,18 +41,24 @@ type State = {
   commits: Commit[];
   repos: Repository[];
   activeRepo: string;
-  notFound: boolean;
 } & AsyncComponent['state'];
 
 class ReleaseCommits extends AsyncView<Props, State> {
   static contextType = ReleaseContext;
 
-  componentDidUpdate(prevProps: Props, prevState: State) {
-    if (prevState.activeRepo !== this.state.activeRepo) {
-      this.fetchData({}, 0);
-    }
+  UNSAFE_componentWillReceiveProps(nextProps: Props) {
+    this.setActiveRepo(nextProps);
+  }
 
-    super.componentDidUpdate(prevProps, prevState);
+  componentDidMount() {
+    this.setActiveRepo(this.props);
+  }
+
+  setActiveRepo(props: Props) {
+    const activeRepo: string | undefined = props.location.query?.activeRepo;
+    if (activeRepo !== this.state.activeRepo) {
+      this.setState({activeRepo: activeRepo ?? ALL_REPOSITORIES_LABEL});
+    }
   }
 
   getTitle() {
@@ -67,20 +73,31 @@ class ReleaseCommits extends AsyncView<Props, State> {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
-      notFound: false,
       activeRepo: ALL_REPOSITORIES_LABEL,
     };
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {params, location} = this.props;
+  getQuery() {
+    const {location} = this.props;
+    const {activeRepo} = this.state;
+
+    const query = {
+      ...pick(location.query, [...Object.values(URL_PARAM), 'cursor']),
+      per_page: COMMITS_PER_PAGE,
+    };
+
+    if (activeRepo === ALL_REPOSITORIES_LABEL) {
+      return query;
+    }
+
+    return {...query, repo_name: activeRepo};
+  }
+
+  getEndpoints = (): ReturnType<AsyncComponent['getEndpoints']> => {
+    const {params} = this.props;
     const {orgId, release} = params;
-
     const {project} = this.context;
-
-    const activeRepo = this.state?.activeRepo;
-
-    const repo_name = activeRepo !== ALL_REPOSITORIES_LABEL ? activeRepo : undefined;
+    const query = this.getQuery();
 
     return [
       [
@@ -88,17 +105,23 @@ class ReleaseCommits extends AsyncView<Props, State> {
         `/projects/${orgId}/${project.slug}/releases/${encodeURIComponent(
           release
         )}/commits/`,
-        {
-          query: {
-            ...pick(location.query, [...Object.values(URL_PARAM), 'cursor']),
-            per_page: COMMITS_PER_PAGE,
-            repo_name,
-          },
-        },
+        {query},
       ],
       ['repos', `/organizations/${orgId}/repos/`],
     ];
-  }
+  };
+
+  handleRepoFilterChange = (activeRepo: string) => {
+    const {router, location} = this.props;
+
+    router.push({
+      ...location,
+      query: {
+        ...location.query,
+        activeRepo: activeRepo === ALL_REPOSITORIES_LABEL ? undefined : activeRepo,
+      },
+    });
+  };
 
   renderRepoSwitcher() {
     const {activeRepo, repos} = this.state;
@@ -143,10 +166,6 @@ class ReleaseCommits extends AsyncView<Props, State> {
     }
     return super.renderError(error, disableLog, disableReport);
   }
-
-  handleRepoFilterChange = (repo: string) => {
-    this.setState({activeRepo: repo, notFound: false});
-  };
 
   renderCommitsForRepo(repo: string, commitsByRepository: CommitsByRepository) {
     return (
