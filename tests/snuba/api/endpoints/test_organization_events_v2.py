@@ -2422,4 +2422,4 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         }
         response = self.do_request(query)
         assert response.status_code == 200
-        assert response.data["data"] == [{"id": "a" * 32, "project.id": 2}]
+        assert response.data["data"] == [{"id": "a" * 32, "project.id": project2.id}]
