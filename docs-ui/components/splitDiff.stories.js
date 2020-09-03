@@ -1,4 +1,5 @@
 import React from 'react';
+import {select} from '@storybook/addon-knobs';
 import {withInfo} from '@storybook/addon-info';
 
 import SplitDiff from 'app/components/splitDiff';
@@ -113,7 +114,13 @@ export default {
 
 export const _SplitDiff = withInfo(
   'Diffs two strings, split by newlines if present'
-)(() => <SplitDiff base={base} target={target} />);
+)(() => (
+  <SplitDiff
+    base={base}
+    target={target}
+    type={select('Type', ['lines', 'words', 'chars'], 'lines')}
+  />
+));
 
 _SplitDiff.story = {
   name: 'SplitDiff',
