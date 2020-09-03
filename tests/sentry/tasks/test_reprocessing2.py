@@ -3,7 +3,6 @@ from __future__ import absolute_import
 from time import time
 import pytest
 import uuid
-import six
 
 from sentry import eventstore
 from sentry.event_manager import EventManager
@@ -27,12 +26,10 @@ def test_basic(
     abs_count = []
 
     def event_preprocessor(data):
-        tags = dict(data.get("tags") or ())
-        assert "processing_counter" not in tags
-        tags["processing_counter"] = "x{}".format(len(abs_count))
+        tags = data.setdefault("tags", [])
+        assert all(not x or x[0] != "processing_counter" for x in tags)
+        tags.append(("processing_counter", "x{}".format(len(abs_count))))
         abs_count.append(None)
-
-        data["tags"] = list(six.iteritems(tags))
 
         if change_stacktrace and len(abs_count) > 0:
             data["exception"] = {
@@ -85,7 +82,7 @@ def test_basic(
         preprocess_event(start_time=time(), cache_key=cache_key, data=data)
 
     event = eventstore.get_event_by_id(default_project.id, event_id)
-    assert dict(event.data["tags"])["processing_counter"] == "x0"
+    assert event.get_tag("processing_counter") == "x0"
     assert not event.data.get("errors")
 
     assert get_event_by_processing_counter("x0")[0].event_id == event.event_id
@@ -103,7 +100,7 @@ def test_basic(
         (event,) = new_events
 
         # Assert original data is used
-        assert dict(event.data["tags"])["processing_counter"] == "x1"
+        assert event.get_tag("processing_counter") == "x1"
         assert not event.data.get("errors")
 
         if change_groups:
@@ -111,5 +108,5 @@ def test_basic(
         else:
             assert event.group_id == old_event.group_id
 
-        assert dict(event.data["tags"])["original_event_id"] == old_event.event_id
-        assert int(dict(event.data["tags"])["original_group_id"]) == old_event.group_id
+        assert event.get_tag("original_event_id") == old_event.event_id
+        assert int(event.get_tag("original_group_id")) == old_event.group_id
