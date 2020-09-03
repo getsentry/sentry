@@ -3,6 +3,8 @@ from __future__ import absolute_import
 import itertools
 import time
 
+from django.utils.encoding import force_text
+
 from sentry.similarity.backends.abstract import AbstractIndexBackend
 from sentry.utils.iterators import chunked
 from sentry.utils.redis import load_script
@@ -59,7 +61,7 @@ class RedisScriptMinHashIndexBackend(AbstractIndexBackend):
         def decode_search_result(result):
             key, scores = result
             return (
-                key,
+                force_text(key),
                 map(lambda score: score_replacements.get(score, score), map(float, scores)),
             )
 
