@@ -41,7 +41,7 @@ def pytest_runtest_protocol(item):
 
     if hub.scope.transaction is None:
         name = u"{} [{}]".format(item.module.__name__, mark.name)
-        transaction = hub.start_transaction(op=name, name=name).__enter__()
+        hub.scope.transaction = hub.start_transaction(op=name, name=name)
 
     with hub.scope.transaction.start_child(op=item.name):
         yield
@@ -85,8 +85,8 @@ def pytest_runtest_teardown(item, nextitem):
     if hub.scope.transaction and (
         nextitem is None or item.module.__name__ != nextitem.module.__name__
     ):
-        print("done with transaction")
-        hub.scope.transaction.__exit__(None, None, None)
+        hub.scope.transaction.finish()
+        hub.scope.transaction = None
 
 
 def pytest_configure(config):
