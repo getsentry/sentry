@@ -14,8 +14,8 @@ pytest_plugins = ["sentry.utils.pytest"]
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
-if os.environ.get("PYTEST_SENTRY_DSN"):
-    sentry_sdk.init(os.environ.get("PYTEST_SENTRY_DSN"), traces_sample_rate=1.0)
+#  if os.environ.get("PYTEST_SENTRY_DSN"):
+#  sentry_sdk.init(os.environ.get("PYTEST_SENTRY_DSN"), traces_sample_rate=1.0)
 
 
 hub = Hub(
