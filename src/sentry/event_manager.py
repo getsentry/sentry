@@ -89,7 +89,7 @@ def pop_tag(data, key):
 def set_tag(data, key, value):
     pop_tag(data, key)
     if value is not None:
-        data["tags"].append((key, trim(value, MAX_TAG_VALUE_LENGTH)))
+        data.setdefault("tags", []).append((key, trim(value, MAX_TAG_VALUE_LENGTH)))
 
 
 def get_tag(data, key):
