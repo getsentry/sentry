@@ -3,15 +3,18 @@ import maxBy from 'lodash/maxBy';
 import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
+import {t} from 'app/locale';
 import {Organization, Project} from 'app/types';
 import {SeriesDataUnit} from 'app/types/echarts';
+import {Panel, PanelBody, PanelAlert} from 'app/components/panels';
 import EventsRequest from 'app/components/charts/eventsRequest';
 import LoadingMask from 'app/components/loadingMask';
 import Placeholder from 'app/components/placeholder';
+import SelectField from 'app/views/settings/components/forms/selectField';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 
-import {IncidentRule, TimeWindow, Trigger} from '../../types';
+import {IncidentRule, TimeWindow, TimePeriod, Trigger} from '../../types';
 import ThresholdsChart from './thresholdsChart';
 
 type Props = {
@@ -26,6 +29,15 @@ type Props = {
   triggers: Trigger[];
   resolveThreshold: IncidentRule['resolveThreshold'];
   thresholdType: IncidentRule['thresholdType'];
+};
+
+const TIME_WINDOW_MAP = {
+  [TimePeriod.SIX_HOURS]: t('Last 6 hours'),
+  [TimePeriod.ONE_DAY]: t('Last day'),
+  [TimePeriod.THREE_DAYS]: t('Last 3 days'),
+  [TimePeriod.SEVEN_DAYS]: t('Last 7 days'),
+  [TimePeriod.FOURTEEN_DAYS]: t('Last 14 days'),
+  [TimePeriod.THIRTY_DAYS]: t('Last 30 days'),
 };
 
 /**
@@ -70,21 +82,48 @@ class TriggersChart extends React.PureComponent<Props> {
 
           return (
             <StickyWrapper>
-              {loading ? (
-                <ChartPlaceholder />
-              ) : (
-                <React.Fragment>
-                  <TransparentLoadingMask visible={reloading} />
-                  <ThresholdsChart
-                    period={period}
-                    maxValue={maxValue ? maxValue.value : maxValue}
-                    data={timeseriesData}
-                    triggers={triggers}
-                    resolveThreshold={resolveThreshold}
-                    thresholdType={thresholdType}
+              <StyledPanel>
+                <PanelBody withPadding>
+                  <StyledSelectField
+                    inline={false}
+                    styles={{
+                      control: provided => ({
+                        ...provided,
+                        minHeight: '25px',
+                        height: '25px',
+                      }),
+                    }}
+                    isSearchable={false}
+                    isClearable={false}
+                    name="actionMatch"
+                    required
+                    flexibleControlStateSize
+                    choices={Object.entries(TIME_WINDOW_MAP)}
+                    // TODO(scttcper): Onchange
+                    onChange={val => {}}
                   />
-                </React.Fragment>
-              )}
+                  {loading ? (
+                    <ChartPlaceholder />
+                  ) : (
+                    <React.Fragment>
+                      <TransparentLoadingMask visible={reloading} />
+                      <ThresholdsChart
+                        period={period}
+                        maxValue={maxValue ? maxValue.value : maxValue}
+                        data={timeseriesData}
+                        triggers={triggers}
+                        resolveThreshold={resolveThreshold}
+                        thresholdType={thresholdType}
+                      />
+                    </React.Fragment>
+                  )}
+                </PanelBody>
+                <StyledPanelAlert>
+                  {/* TODO(scttcper): Translate and learn more link */}
+                  The data above is rolled up to show the average number of errors for
+                  that period of time. Learn more
+                </StyledPanelAlert>
+              </StyledPanel>
             </StickyWrapper>
           );
         }}
@@ -132,7 +171,26 @@ const StickyWrapper = styled('div')`
   position: sticky;
   top: 69px; /* Height of settings breadcrumb 69px */
   z-index: ${p => p.theme.zIndex.dropdown - 1};
-  padding: ${space(2)} ${space(2)} 0;
-  border-bottom: 1px solid ${p => p.theme.borderLight};
   background: rgba(255, 255, 255, 0.9);
+`;
+
+const StyledPanel = styled(Panel)`
+  /* Can't have marign with the sticky window */
+  margin-bottom: 0;
+  /* Keep semi transparent background */
+  background: none;
+`;
+
+const StyledSelectField = styled(SelectField)`
+  width: 180px;
+  padding: 0 0 ${space(1)};
+  margin-left: auto;
+  font-weight: normal;
+  text-transform: none;
+  border: 0;
+`;
+
+const StyledPanelAlert = styled(PanelAlert)`
+  border-top: 1px solid ${p => p.theme.blue300};
+  border-bottom: 0;
 `;
