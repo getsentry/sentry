@@ -80,17 +80,20 @@ CRASH_REPORT_TIMEOUT = 24 * 3600  # one day
 
 
 def pop_tag(data, key):
+    if "tags" not in data:
+        return
+
     data["tags"] = [kv for kv in data["tags"] if kv is None or kv[0] != key]
 
 
 def set_tag(data, key, value):
     pop_tag(data, key)
     if value is not None:
-        data["tags"].append((key, trim(value, MAX_TAG_VALUE_LENGTH)))
+        data.setdefault("tags", []).append((key, trim(value, MAX_TAG_VALUE_LENGTH)))
 
 
 def get_tag(data, key):
-    for k, v in get_path(data, "tags", filter=True):
+    for k, v in get_path(data, "tags", filter=True) or ():
         if k == key:
             return v
 

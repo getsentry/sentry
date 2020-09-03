@@ -69,6 +69,7 @@ def reprocess_event(project_id, event_id, start_time):
     with sentry_sdk.start_span(op="reprocess_events.nodestore.get"):
         data = nodestore.get(node_id)
 
+    from sentry.event_manager import set_tag
     from sentry.tasks.store import preprocess_event_from_reprocessing
     from sentry.ingest.ingest_consumer import CACHE_TIMEOUT
 
@@ -79,14 +80,14 @@ def reprocess_event(project_id, event_id, start_time):
 
     # Step 1: Fix up the event payload for reprocessing and put it in event
     # cache/event_processing_store
-    tags = dict(data.get("tags") or ())
-    orig_event_id = tags["original_event_id"] = data["event_id"]
+    orig_event_id = data["event_id"]
+    set_tag(data, "original_event_id", orig_event_id)
+
     event = eventstore.get_event_by_id(project_id, orig_event_id)
     if event is None:
         return
 
-    tags["original_group_id"] = event.group_id
-    data["tags"] = list(tags.items())
+    set_tag(data, "original_group_id", event.group_id)
 
     event_id = data["event_id"] = uuid.uuid4().hex
 
@@ -164,10 +165,15 @@ def is_reprocessed_event(data):
 
 
 def _get_original_event_id(data):
-    return dict(data.get("tags") or ()).get("original_event_id")
+    from sentry.event_manager import get_tag
+
+    return get_tag(data, "original_event_id")
 
 
 def should_save_reprocessed_event(data):
+    if not data:
+        return False
+
     orig_id = _get_original_event_id(data)
 
     if not orig_id:
