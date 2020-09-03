@@ -9,8 +9,11 @@ jobs:
     jest:
       continue-on-error: true
       runs-on: ubuntu-latest
+      outputs:
+        test-conclusion: ${{ steps.test.outcome }}
       steps:
-        - run: exit 1
+        - id: test
+          run: exit 1
         - if: always()
           run: echo "hi"
 
@@ -20,5 +23,6 @@ jobs:
       needs: [ jest ]
       steps:
         - run: |
-            echo ${{ env.WORKSPACE_CONCLUSION }}
+            echo ${{ needs.jest.outputs.test-conclusion }}
             echo ${{ needs.jest.result }}
+            echo ${{ needs.jest.outcome }}
