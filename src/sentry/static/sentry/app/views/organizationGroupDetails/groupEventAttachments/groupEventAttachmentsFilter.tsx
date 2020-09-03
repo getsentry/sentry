@@ -1,8 +1,7 @@
 import React from 'react';
+import {Location} from 'history';
 import omit from 'lodash/omit';
 import xor from 'lodash/xor';
-import {withRouter} from 'react-router';
-import {WithRouterProps} from 'react-router/lib/withRouter';
 import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
@@ -12,8 +11,12 @@ import Button from 'app/components/button';
 
 const crashReportTypes = ['event.minidump', 'event.applecrashreport'];
 
-const GroupEventAttachmentsFilter = (props: WithRouterProps) => {
-  const {query, pathname} = props.location;
+type Props = {
+  location: Location;
+};
+
+const GroupEventAttachmentsFilter = ({location}: Props) => {
+  const {query, pathname} = location;
   const {types} = query;
   const allAttachmentsQuery = omit(query, 'types');
   const onlyCrashReportsQuery = {
@@ -54,4 +57,4 @@ const FilterWrapper = styled('div')`
 `;
 
 export {crashReportTypes};
-export default withRouter(GroupEventAttachmentsFilter);
+export default GroupEventAttachmentsFilter;
