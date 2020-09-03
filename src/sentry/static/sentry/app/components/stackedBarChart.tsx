@@ -272,7 +272,7 @@ class StackedBarChart extends React.Component<Props, State> {
         viewBox="0 0 10 10"
         size={10}
       >
-        <Tooltip title={title} position="bottom">
+        <Tooltip title={title} position="bottom" disableForVisualTest>
           <circle
             data-test-id="chart-column"
             r="4"
