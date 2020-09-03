@@ -22,6 +22,7 @@ hub = Hub(
     Client(
         dsn="https://24f526f0cefc4083b2546207a3f6811d@o19635.ingest.sentry.io/5415672",
         traces_sample_rate=1.0,
+        _experiments={"auto_enabling_integrations": True},
     )
 )
 
