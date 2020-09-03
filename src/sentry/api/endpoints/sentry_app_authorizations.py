@@ -6,9 +6,11 @@ from sentry.api.bases import SentryAppAuthorizationsBaseEndpoint
 from sentry.coreapi import APIUnauthorized
 from sentry.mediators.token_exchange import GrantExchanger, Refresher, GrantTypes
 from sentry.api.serializers.models.apitoken import ApiTokenSerializer
+from sentry.web.decorators import transaction_start
 
 
 class SentryAppAuthorizationsEndpoint(SentryAppAuthorizationsBaseEndpoint):
+    @transaction_start("SentryAppAuthorizationsEndpoint")
     def post(self, request, installation):
         try:
             if request.json_body.get("grant_type") == GrantTypes.AUTHORIZATION:
