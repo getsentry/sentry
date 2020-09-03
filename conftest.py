@@ -26,7 +26,7 @@ hub = Hub(
 )
 
 # each file will be considered a transaction
-transactions = {}
+transaction = None
 
 # Map of <test item name, Span<pytest.setup>>
 spans = {}
@@ -39,11 +39,12 @@ call_spans = {}
 def pytest_runtest_protocol(item):
     mark = next(x for x in item.own_markers if x.name.startswith("group_"))
 
-    if hub.scope.transaction is None:
+    global transaction
+    if transaction is None:
         name = u"{} [{}]".format(item.module.__name__, mark.name)
-        hub.scope.transaction = hub.start_transaction(op=name, name=name)
+        transaction = hub.start_transaction(op=name, name=name).__enter__()
 
-    with hub.scope.transaction.start_child(op=item.name):
+    with transaction.start_child(op=item.name):
         yield
 
 
@@ -82,11 +83,10 @@ def pytest_runtest_teardown(item, nextitem):
     with hub.scope.span.start_child(op=item.name, description="pytest.teardown"):
         yield
 
-    if hub.scope.transaction and (
-        nextitem is None or item.module.__name__ != nextitem.module.__name__
-    ):
-        hub.scope.transaction.finish()
-        hub.scope.transaction = None
+    global transaction
+    if transaction and (nextitem is None or item.module.__name__ != nextitem.module.__name__):
+        transaction.finish()
+        transaction = None
 
 
 def pytest_configure(config):
