@@ -17,12 +17,11 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 if os.environ.get("PYTEST_SENTRY_DSN"):
     sentry_sdk.init(os.environ.get("PYTEST_SENTRY_DSN"), traces_sample_rate=1.0)
 
-test = sentry_sdk.init(
-    debug=True,
-    dsn="https://24f526f0cefc4083b2546207a3f6811d@o19635.ingest.sentry.io/5415672",
-    traces_sample_rate=1.0,
-)
-print(dir(test))
+#  sentry_sdk.init(
+#  debug=True,
+#  dsn="https://24f526f0cefc4083b2546207a3f6811d@o19635.ingest.sentry.io/5415672",
+#  traces_sample_rate=1.0,
+#  )
 
 
 txn = {}
@@ -30,45 +29,69 @@ spans = {}
 
 
 @pytest.hookimpl(hookwrapper=True)
-def pytest_runtest_setup(item):
+def pytest_runtest_protocol(item):
     transaction = txn.get(item.module.__name__)
     if transaction is None:
-        transaction = Hub.current.start_transaction(name=item.module.__name__)
+        transaction = Hub.current.start_transaction(
+            op=item.module.__name__, name=item.module.__name__
+        )
         # Hub.current.scope.transaction is None here??
         txn[item.module.__name__] = transaction
 
-    with transaction.start_child(op="pytest.setup", description=item.name):
+    with transaction.start_child(op=item.name) as span:
+        spans[item.name] = span
+        yield
+
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_setup(item):
+    span = spans.get(item.name)
+    if span:
+        with span.start_child(op="pytest.setup", description=item.name):
+            yield
+    else:
         yield
 
 
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_call(item):
-    transaction = txn.get(item.module.__name__)
-    if transaction:
-        with transaction.start_child(op="pytest.call", description=item.name):
+    span = spans.get(item.name)
+    if span:
+        with span.start_child(op="pytest.call", description=item.name) as new_span:
             yield
+            #  new_span.set_tag("test.result", call.result)
     else:
-        print("$$$$$ NO TRANSACTION")
         yield
 
 
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_teardown(item, nextitem):
-    transaction = txn.get(item.module.__name__)
-
-    if transaction:
-        with transaction.start_child(op="pytest.teardown", description=item.name):
+    span = spans.get(item.name)
+    if span:
+        with span.start_child(op="pytest.teardown", description=item.name):
             yield
+        span.finish()
     else:
         yield
 
     if nextitem is None:
         #  transaction = Hub.current.scope.transaction
+        transaction = txn.get(item.module.__name__)
         if transaction:
+            if os.environ.get("PYTEST_SENTRY_DSN"):
+                sentry_sdk.init(os.environ.get("PYTEST_SENTRY_DSN"), traces_sample_rate=1.0)
+            #  sentry_sdk.init(
+            #  debug=True,
+            #  dsn="https://24f526f0cefc4083b2546207a3f6811d@o19635.ingest.sentry.io/5415672",
+            #  traces_sample_rate=1.0,
+            #  )
             # XXX client is None here and transaction is unable to finish
-            print(Hub.current.client, transaction.hub.client)
+            # if we don't init again
+            # this happens when we yield?
+            print(item.name, Hub.current.client, transaction.hub.client)
             transaction.finish()
             txn.pop(item.module.__name__)
+            pass
 
 
 def pytest_configure(config):
