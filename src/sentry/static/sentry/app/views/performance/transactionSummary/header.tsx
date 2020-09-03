@@ -18,6 +18,9 @@ type Props = {
   organization: Organization;
   projects: Project[];
   transactionName: string;
+  handleIncompatibleQuery?: React.ComponentProps<
+    typeof CreateAlertButton
+  >['onIncompatibleQuery'];
 };
 
 class TransactionHeader extends React.Component<Props> {
@@ -37,10 +40,7 @@ class TransactionHeader extends React.Component<Props> {
     typeof CreateAlertButton
   >['onIncompatibleQuery'] = (incompatibleAlertNoticeFn, errors) => {
     this.trackAlertClick(errors);
-    const incompatibleAlertNotice = incompatibleAlertNoticeFn(() =>
-      this.setState({incompatibleAlertNotice: null})
-    );
-    this.setState({incompatibleAlertNotice});
+    this.props.handleIncompatibleQuery?.(incompatibleAlertNoticeFn, errors);
   };
 
   handleCreateAlertSuccess = () => {
