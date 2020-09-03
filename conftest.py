@@ -49,20 +49,26 @@ call_spans = {}
 
 
 @pytest.hookimpl(hookwrapper=True)
-def pytest_runtest_protocol(item):
+def pytest_runtest_protocol(item, nextitem):
     mark = next(x for x in item.own_markers if x.name.startswith("group_"))
 
     if hub.scope.transaction is None:
         name = u"{} [{}]".format(item.module.__name__, mark.name)
         hub.start_transaction(op=name, name=name).__enter__()
 
-    with hub.scope.transaction.start_child(hub=hub, op=item.name):
+    item_class_name = item.cls.__name__ if item.cls else None
+    with hub.scope.transaction.start_child(hub=hub, op=item.name, description=item_class_name):
         yield
 
     #  span = transaction.start_child(hub=hub, op=item.name).__enter__()
     #  print(hub.scope.span.op)
     #  yield
     #  span.__exit__(None, None, None)
+
+    if hub.scope.transaction and (
+        nextitem is None or item.module.__name__ != nextitem.module.__name__
+    ):
+        hub.scope.transaction.__exit__(None, None, None)
 
 
 @pytest.hookimpl(hookwrapper=True)
@@ -99,11 +105,6 @@ def pytest_runtest_makereport(item, call):
 def pytest_runtest_teardown(item, nextitem):
     with hub.scope.span.start_child(hub=hub, op=item.name, description="pytest.teardown"):
         yield
-
-    if hub.scope.transaction and (
-        nextitem is None or item.module.__name__ != nextitem.module.__name__
-    ):
-        hub.scope.transaction.__exit__(None, None, None)
 
 
 def pytest_configure(config):
