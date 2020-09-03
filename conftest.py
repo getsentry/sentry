@@ -19,7 +19,7 @@ from sentry_sdk.integrations.argv import ArgvIntegration
 
 from sentry_sdk import Hub, Client
 
-#  from sentry.utils.pytest import
+from pytest_sentry import _resolve_hub_marker_value
 
 pytest_plugins = ["sentry.utils.pytest"]
 
@@ -29,23 +29,23 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 #  sentry_sdk.init(os.environ.get("PYTEST_SENTRY_DSN"), traces_sample_rate=1.0)
 
 
-hub = Hub(
-    Client(
-        dsn="https://24f526f0cefc4083b2546207a3f6811d@o19635.ingest.sentry.io/5415672",
-        traces_sample_rate=1.0,
-        integrations=[
-            DjangoIntegration(),
-            CeleryIntegration(),
-            LoggingIntegration(event_level=None),
-            RedisIntegration(),
-            StdlibIntegration(),
-            DedupeIntegration(),
-            ModulesIntegration(),
-            ArgvIntegration(),
-        ],
-        traceparent_v2=True,
-    )
-)
+#  hub = Hub(
+#  Client(
+#  dsn="https://24f526f0cefc4083b2546207a3f6811d@o19635.ingest.sentry.io/5415672",
+#  traces_sample_rate=1.0,
+#  integrations=[
+#  DjangoIntegration(),
+#  CeleryIntegration(),
+#  LoggingIntegration(event_level=None),
+#  RedisIntegration(),
+#  StdlibIntegration(),
+#  DedupeIntegration(),
+#  ModulesIntegration(),
+#  ArgvIntegration(),
+#  ],
+#  traceparent_v2=True,
+#  )
+#  )
 
 # each file will be considered a transaction
 transaction = None
@@ -63,6 +63,7 @@ def pytest_runtest_protocol(item, nextitem):
     name = u"{} [{}]".format(item.module.__name__, mark.name)
 
     transaction = spans.get(name)
+    hub = _resolve_hub_marker_value(item.get_closest_marker("sentry_client"))
     if transaction is None:
         transaction = hub.start_transaction(op=name, name=name)
         spans[name] = transaction
@@ -86,7 +87,7 @@ def pytest_runtest_protocol(item, nextitem):
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_setup(item):
     span = spans.get(item.name)
-    with span.start_child(hub=hub, op=item.name, description="pytest.setup"):
+    with span.start_child(op=item.name, description="pytest.setup"):
         yield
 
 
@@ -95,7 +96,7 @@ def pytest_runtest_call(item):
     #  call_span = hub.scope.span.start_child(op=item.name, description="pytest.call")
     #  call_spans[item.name] = call_span
     span = spans.get(item.name)
-    with span.start_child(hub=hub, op=item.name, description="pytest.call"):
+    with span.start_child(op=item.name, description="pytest.call"):
         yield
     #  call_span.finish()
 
@@ -118,7 +119,7 @@ def pytest_runtest_makereport(item, call):
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_teardown(item, nextitem):
     span = spans.get(item.name)
-    with span.start_child(hub=hub, op=item.name, description="pytest.teardown"):
+    with span.start_child(op=item.name, description="pytest.teardown"):
         yield
 
 
