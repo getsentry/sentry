@@ -16,7 +16,7 @@ jobs:
 
     test:
       runs-on: ubuntu-latest
-      needs: jest
+      needs: [ jest ]
       steps:
         - run: |
             echo ${{ env.WORKSPACE_CONCLUSION }}
