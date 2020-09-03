@@ -13,7 +13,7 @@ type Props = {
 
 const ReleaseNoCommitData = ({orgId}: Props) => (
   <StyledWell centered>
-    <IconCommit size="xl" />
+    <IconCommit size="54px" />
     <h4>{t('Releases are better with commit data!')}</h4>
     <p>
       {t(
@@ -30,6 +30,10 @@ const StyledWell = styled(Well)`
   background-color: ${p => p.theme.white};
   padding-top: ${space(2)};
   padding-bottom: ${space(4)};
+
+  svg {
+    fill: ${p => p.theme.gray400};
+  }
 `;
 
 export default ReleaseNoCommitData;
