@@ -56,7 +56,7 @@ def pytest_runtest_protocol(item):
 
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_setup(item):
-    with hub.scope.span.start_child(op=item.name, description="pytest.setup"):
+    with hub.scope.span.start_child(hub=hub, op=item.name, description="pytest.setup"):
         yield
 
 
