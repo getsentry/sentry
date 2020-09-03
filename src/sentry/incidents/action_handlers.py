@@ -186,14 +186,6 @@ def format_duration(minutes):
     return "{:d} second{}".format(seconds, pluralize(seconds))
 
 
-INCIDENT_STATUS_KEY = {
-    IncidentStatus.OPEN: "open",
-    IncidentStatus.CLOSED: "resolved",
-    IncidentStatus.CRITICAL: "critical",
-    IncidentStatus.WARNING: "warning",
-}
-
-
 def generate_incident_trigger_email_context(project, incident, alert_rule_trigger, status):
     trigger = alert_rule_trigger
     incident_trigger = IncidentTrigger.objects.get(incident=incident, alert_rule_trigger=trigger)
@@ -241,7 +233,7 @@ def generate_incident_trigger_email_context(project, incident, alert_rule_trigge
         # if resolve threshold and threshold type is *BELOW* then show '>'
         "threshold_direction_string": ">" if show_greater_than_string else "<",
         "status": INCIDENT_STATUS[IncidentStatus(incident.status)],
-        "status_key": INCIDENT_STATUS_KEY[IncidentStatus(incident.status)],
+        "status_key": INCIDENT_STATUS[IncidentStatus(incident.status)].lower(),
         "is_critical": incident.status == IncidentStatus.CRITICAL,
         "is_warning": incident.status == IncidentStatus.WARNING,
         "unsubscribe_link": None,

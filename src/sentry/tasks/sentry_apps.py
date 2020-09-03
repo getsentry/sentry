@@ -6,35 +6,36 @@ from celery.task import current
 from django.core.urlresolvers import reverse
 from requests.exceptions import (
     ConnectionError,
-    Timeout,
     RequestException,
+    Timeout,
 )
 
+from sentry.api.serializers import serialize, AppPlatformEvent
+from sentry.constants import SentryAppInstallationStatus
 from sentry.eventstore.models import Event
 from sentry.http import safe_urlopen
-from sentry.tasks.base import instrumented_task, retry
-from sentry.utils import metrics
-from sentry.utils.http import absolute_uri
-from sentry.utils.sentryappwebhookrequests import SentryAppWebhookRequestsBuffer
-from sentry.api.serializers import serialize, AppPlatformEvent
 from sentry.models import (
-    SentryAppInstallation,
     Group,
-    Project,
     Organization,
-    User,
+    Project,
+    SentryApp,
+    SentryAppInstallation,
     ServiceHook,
     ServiceHookProject,
-    SentryApp,
-)
-from sentry.shared_integrations.exceptions import (
-    IgnorableSentryAppError,
-    ApiHostError,
-    ApiTimeoutError,
+    User,
 )
 from sentry.models.sentryapp import VALID_EVENTS, track_response_code
+from sentry.shared_integrations.exceptions import (
+    ApiHostError,
+    ApiTimeoutError,
+    IgnorableSentryAppError,
+)
+from sentry.tasks.base import instrumented_task, retry
+from sentry.utils import metrics
 from sentry.utils.compat import filter
-from sentry.constants import SentryAppInstallationStatus
+from sentry.utils.http import absolute_uri
+from sentry.utils.sentryappwebhookrequests import SentryAppWebhookRequestsBuffer
+
 
 logger = logging.getLogger("sentry.tasks.sentry_apps")
 
@@ -46,7 +47,7 @@ TASK_OPTIONS = {
 
 RETRY_OPTIONS = {
     "on": (RequestException, ApiHostError, ApiTimeoutError),
-    "ignore": (IgnorableSentryAppError),
+    "ignore": (IgnorableSentryAppError,),
 }
 
 # We call some models by a different name, publicly, than their class name.

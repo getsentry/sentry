@@ -4,7 +4,7 @@ from datetime import timedelta
 from django.core.urlresolvers import reverse
 
 from sentry.incidents.logic import get_incident_aggregates
-from sentry.incidents.models import IncidentStatus, IncidentTrigger
+from sentry.incidents.models import IncidentStatus, IncidentTrigger, INCIDENT_STATUS
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
 
@@ -23,8 +23,10 @@ def incident_attachment_info(incident, metric_value=None):
     )
     if incident_trigger:
         alert_rule_trigger = incident_trigger.alert_rule_trigger
-        # TODO: If we're relying on this and expecting possible delays between a trigger fired and this function running,
-        # then this could actually be incorrect if they changed the trigger's time window in this time period. Should we store it?
+        # TODO: If we're relying on this and expecting possible delays between a
+        # trigger fired and this function running, then this could actually be
+        # incorrect if they changed the trigger's time window in this time period.
+        # Should we store it?
         start = incident_trigger.date_modified - timedelta(
             seconds=alert_rule_trigger.alert_rule.snuba_query.time_window
         )
@@ -32,12 +34,7 @@ def incident_attachment_info(incident, metric_value=None):
     else:
         start, end = None, None
 
-    if incident.status == IncidentStatus.CLOSED.value:
-        status = "Resolved"
-    elif incident.status == IncidentStatus.WARNING.value:
-        status = "Warning"
-    elif incident.status == IncidentStatus.CRITICAL.value:
-        status = "Critical"
+    status = INCIDENT_STATUS[IncidentStatus(incident.status)]
 
     agg_text = QUERY_AGGREGATION_DISPLAY.get(
         alert_rule.snuba_query.aggregate, alert_rule.snuba_query.aggregate
@@ -49,9 +46,8 @@ def incident_attachment_info(incident, metric_value=None):
     time_window = alert_rule.snuba_query.time_window // 60
 
     text = "{} {} in the last {} minutes".format(metric_value, agg_text, time_window)
-
     if alert_rule.snuba_query.query != "":
-        text = text + "\nFilter: {}".format(alert_rule.snuba_query.query)
+        text += "\nFilter: {}".format(alert_rule.snuba_query.query)
 
     ts = incident.date_started
 

@@ -17,7 +17,6 @@ from sentry.incidents.action_handlers import (
     MsTeamsActionHandler,
     PagerDutyActionHandler,
     generate_incident_trigger_email_context,
-    INCIDENT_STATUS_KEY,
 )
 from sentry.incidents.logic import update_incident_status
 from sentry.incidents.models import (
@@ -118,7 +117,7 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
             "query": action.alert_rule_trigger.alert_rule.snuba_query.query,
             "threshold": action.alert_rule_trigger.alert_threshold,
             "status": INCIDENT_STATUS[IncidentStatus(incident.status)],
-            "status_key": INCIDENT_STATUS_KEY[IncidentStatus(incident.status)],
+            "status_key": INCIDENT_STATUS[IncidentStatus(incident.status)].lower(),
             "environment": "All",
             "is_critical": False,
             "is_warning": False,
@@ -306,7 +305,6 @@ class MsTeamsActionHandlerFireTest(MsTeamsActionHandlerBaseTest, TestCase):
 @freeze_time()
 class PagerDutyActionHandlerBaseTest(object):
     def setUp(self):
-
         service = [
             {
                 "type": "service",

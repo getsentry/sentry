@@ -6,13 +6,13 @@ from __future__ import absolute_import
 from django import forms
 
 from sentry.incidents.logic import get_alertable_sentry_apps
+from sentry.models import SentryApp
 from sentry.plugins.base import plugins
 from sentry.rules.actions.base import EventAction
 from sentry.rules.actions.services import PluginService, SentryAppService
-from sentry.models import SentryApp
-from sentry.utils.safe import safe_execute
-from sentry.utils import metrics
 from sentry.tasks.sentry_apps import notify_sentry_app
+from sentry.utils import metrics
+from sentry.utils.safe import safe_execute
 
 
 class NotifyEventServiceForm(forms.Form):
