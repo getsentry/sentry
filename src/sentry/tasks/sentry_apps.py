@@ -87,6 +87,13 @@ def _webhook_event_data(event, group_id, project_id):
 @instrumented_task(name="sentry.tasks.sentry_apps.send_alert_event", **TASK_OPTIONS)
 @retry(**RETRY_OPTIONS)
 def send_alert_event(event, rule, sentry_app_id):
+    """
+    When an incident alert is triggered, send incident data to the SentryApp's webhook.
+    :param event: The `Event` for which to build a payload.
+    :param rule: The AlertRule that was triggered.
+    :param sentry_app_id: The SentryApp to notify.
+    :return:
+    """
     group = event.group
     project = Project.objects.get_from_cache(id=group.project_id)
     organization = Organization.objects.get_from_cache(id=project.organization_id)
@@ -326,6 +333,14 @@ def ignore_unpublished_app_errors(func):
 
 @ignore_unpublished_app_errors
 def send_and_save_webhook_request(url, sentry_app, app_platform_event):
+    """
+    Notify a SentryApp's webhook about an incident and log response on redis.
+
+    :param sentry_app: The SentryApp to notify via a webhook.
+    :param app_platform_event: Incident data. See AppPlatformEvent.
+    :param url: The URL to hit for this webhook if it is different from `sentry_app.webhook_url`.
+    :return: Webhook response
+    """
     buffer = SentryAppWebhookRequestsBuffer(sentry_app)
 
     org_id = app_platform_event.install.organization_id

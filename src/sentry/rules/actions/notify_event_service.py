@@ -23,11 +23,18 @@ logger = logging.getLogger("sentry.integrations.sentry_app")
 
 
 def send_incident_alert_notification(action, incident, metric_value=None):
+    """
+    When a metric alert is triggered, send incident data to the SentryApp's webhook.
+    :param action: The triggered `AlertRuleTriggerAction`.
+    :param incident: The `Incident` for which to build a payload.
+    :param metric_value: The value of the metric that triggered this alert to
+    fire. If not provided we'll attempt to calculate this ourselves.
+    :return:
+    """
     sentry_app = action.sentry_app
     organization = incident.organization
     metrics.incr("notifications.sent", instance=sentry_app.slug, skip_internal=False)
 
-    # TODO we might NOT need to fetch this.
     try:
         install = SentryAppInstallation.objects.get(
             organization=organization.id,
