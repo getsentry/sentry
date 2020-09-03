@@ -38,7 +38,7 @@ type State = {
 };
 
 class EventErrors extends React.Component<Props, State> {
-  static propTypes: any = {
+  static propTypes = {
     api: PropTypes.object.isRequired,
     event: PropTypes.object.isRequired,
     orgId: PropTypes.string.isRequired,
@@ -73,7 +73,7 @@ class EventErrors extends React.Component<Props, State> {
       await api.requestPromise(endpoint, {
         method: 'POST',
       });
-    } catch (e) {
+    } catch {
       clearIndicators();
       addErrorMessage(
         t('Failed to start reprocessing. The event is likely too far in the past.')
@@ -97,7 +97,7 @@ class EventErrors extends React.Component<Props, State> {
       await api.requestPromise(endpoint, {
         method: 'POST',
       });
-    } catch (e) {
+    } catch {
       clearIndicators();
       addErrorMessage(
         t('Failed to start reprocessing. The event is likely too far in the past.')
@@ -236,7 +236,7 @@ const ErrorList = styled('ul')`
   pre {
     background: #f9eded;
     color: #381618;
-    margin: 5px 0 0;
+    margin: ${space(0.5)} 0 0;
   }
 `;
 
