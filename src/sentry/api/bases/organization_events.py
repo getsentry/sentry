@@ -3,12 +3,14 @@ from __future__ import absolute_import
 from contextlib import contextmanager
 import sentry_sdk
 import six
+from django.utils.http import urlquote
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.exceptions import ParseError
 
 
 from sentry import features
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
+from sentry.api.base import LINK_HEADER
 from sentry.api.bases import OrganizationEndpoint, NoProjects
 from sentry.api.event_search import (
     get_filter,
@@ -22,6 +24,7 @@ from sentry.models.group import Group
 from sentry.snuba import discover
 from sentry.utils.compat import map
 from sentry.utils.dates import get_rollup_from_request
+from sentry.utils.http import absolute_uri
 from sentry.utils import snuba
 
 
@@ -146,6 +149,29 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
 
 class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
+    def build_cursor_link(self, request, name, cursor):
+        # The base API function only uses the last query parameter, but this endpoint
+        # needs all the parameters, particularly for the "field" query param.
+        querystring = u"&".join(
+            u"{0}={1}".format(urlquote(query[0]), urlquote(value))
+            for query in request.GET.lists()
+            if query[0] != "cursor"
+            for value in query[1]
+        )
+
+        base_url = absolute_uri(urlquote(request.path))
+        if querystring:
+            base_url = u"{0}?{1}".format(base_url, querystring)
+        else:
+            base_url = base_url + "?"
+
+        return LINK_HEADER.format(
+            uri=base_url,
+            cursor=six.text_type(cursor),
+            name=name,
+            has_results="true" if bool(cursor) else "false",
+        )
+
     def handle_results_with_meta(self, request, organization, project_ids, results):
         with sentry_sdk.start_span(op="discover.endpoint", description="base.handle_results"):
             data = self.handle_data(request, organization, project_ids, results.get("data"))
