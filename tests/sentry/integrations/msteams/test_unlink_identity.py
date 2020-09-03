@@ -70,7 +70,7 @@ class MsTeamsIntegrationUnlinkIdentityTest(TestCase):
         )
 
         signed_params = unlink_url.split("/")[-2]
-        params = unsign(signed_params.encode("ascii", errors="ignore"))
+        params = unsign(signed_params)
         assert params == {
             "conversation_id": self.conversation_id,
             "service_url": "https://smba.trafficmanager.net/amer",

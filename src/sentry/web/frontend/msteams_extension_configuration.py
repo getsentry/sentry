@@ -22,7 +22,5 @@ class MsTeamsExtensionConfigurationView(IntegrationExtensionConfigurationView):
         params = params.copy()
         signed_params = params["signed_params"]
         del params["signed_params"]
-        params.update(
-            unsign(signed_params.encode("ascii", errors="ignore"), max_age=INSTALL_EXPIRATION_TIME)
-        )
+        params.update(unsign(signed_params, max_age=INSTALL_EXPIRATION_TIME,))
         return params

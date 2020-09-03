@@ -31,7 +31,7 @@ class MsTeamsUnlinkIdentityView(BaseView):
     @transaction_start("MsTeamsUnlinkIdentityView")
     @never_cache
     def handle(self, request, signed_params):
-        params = unsign(signed_params.encode("ascii", errors="ignore"))
+        params = unsign(signed_params)
 
         if request.method != "POST":
             return render_to_response(
