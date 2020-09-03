@@ -170,6 +170,9 @@ def _get_original_event_id(data):
 
 
 def should_save_reprocessed_event(data):
+    if not data:
+        return False
+
     orig_id = _get_original_event_id(data)
 
     if not orig_id:

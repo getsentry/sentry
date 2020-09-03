@@ -90,7 +90,7 @@ def set_tag(data, key, value):
 
 
 def get_tag(data, key):
-    for k, v in get_path(data, "tags", filter=True):
+    for k, v in get_path(data, "tags", filter=True) or ():
         if k == key:
             return v
 
