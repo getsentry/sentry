@@ -358,7 +358,7 @@ class MsTeamsWebhookTest(APITestCase):
     @patch("time.time")
     def test_help_command(self, mock_time, mock_decode):
         other_command = deepcopy(EXAMPLE_UNLINK_COMMAND)
-        other_command["text"] = "help"
+        other_command["text"] = "Help"
         access_json = {"expires_in": 86399, "access_token": "my_token"}
         responses.add(
             responses.POST,
