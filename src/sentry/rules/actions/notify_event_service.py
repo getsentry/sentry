@@ -3,16 +3,59 @@ Used for notifying a *specific* plugin
 """
 from __future__ import absolute_import
 
+import logging
 from django import forms
 
+from sentry.api.serializers.models.app_platform_event import AppPlatformEvent
+from sentry.constants import SentryAppInstallationStatus
 from sentry.incidents.logic import get_alertable_sentry_apps
-from sentry.models import SentryApp
+from sentry.integrations.metric_alerts import incident_attachment_info
+from sentry.models import SentryApp, SentryAppInstallation
 from sentry.plugins.base import plugins
 from sentry.rules.actions.base import EventAction
 from sentry.rules.actions.services import PluginService, SentryAppService
-from sentry.tasks.sentry_apps import notify_sentry_app
+from sentry.tasks.sentry_apps import notify_sentry_app, send_and_save_webhook_request
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
+
+
+logger = logging.getLogger("sentry.integrations.sentry_app")
+
+
+def send_incident_alert_notification(action, incident, metric_value=None):
+    sentry_app = action.sentry_app
+    organization = incident.organization
+    metrics.incr("notifications.sent", instance=sentry_app.slug, skip_internal=False)
+
+    # TODO we might NOT need to fetch this.
+    try:
+        install = SentryAppInstallation.objects.get(
+            organization=organization.id,
+            sentry_app=sentry_app,
+            status=SentryAppInstallationStatus.INSTALLED,
+        )
+    except SentryAppInstallation.DoesNotExist:
+        logger.info(
+            "event_alert_webhook.missing_installation",
+            extra={
+                "sentry_app_id": sentry_app.id,
+                "organization": organization.slug,
+                "organization_id": incident.organization_id,
+                "target_identifier": sentry_app.id,
+            }
+        )
+        return
+
+    send_and_save_webhook_request(
+        sentry_app.webhook_url,
+        sentry_app,
+        AppPlatformEvent(
+            resource="metric_alert",
+            action="triggered",
+            install=install,
+            data=incident_attachment_info(incident, metric_value),
+        )
+    )
 
 
 class NotifyEventServiceForm(forms.Form):

@@ -153,7 +153,7 @@ class PagerDutyActionHandler(ActionHandler):
     AlertRuleTriggerAction.Type.SENTRY_APP,
     [AlertRuleTriggerAction.TargetType.SENTRY_APP],
 )
-class IntegrationActionHandler(ActionHandler):
+class SentryAppActionHandler(ActionHandler):
     def fire(self, metric_value):
         self.send_alert(metric_value)
 
@@ -161,8 +161,9 @@ class IntegrationActionHandler(ActionHandler):
         self.send_alert(metric_value)
 
     def send_alert(self, metric_value):
-        # TODO: finish
-        pass
+        from sentry.rules.actions.notify_event_service import send_incident_alert_notification
+
+        send_incident_alert_notification(self.action, self.incident, metric_value)
 
 
 def format_duration(minutes):
