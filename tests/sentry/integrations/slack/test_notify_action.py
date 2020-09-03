@@ -118,7 +118,7 @@ class SlackNotifyActionTest(RuleTestCase):
         mock_uniform.assert_called_with(0, 1)
 
     @responses.activate
-    @patch("random.uniform", return_value=0.049)
+    @patch("random.uniform", return_value=0.49)
     def test_upgrade_notice_bot_app(self, mock_uniform):
         self.integration.metadata.update(
             {

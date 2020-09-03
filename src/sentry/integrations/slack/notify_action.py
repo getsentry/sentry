@@ -23,8 +23,8 @@ from .utils import (
     get_integration_type,
 )
 
-# 30% of messages for workspace apps will get the upgrade CTA
-UPGRADE_MESSAGE_FREQUENCY = 0.30
+# 50% of messages for workspace apps will get the upgrade CTA
+UPGRADE_MESSAGE_FREQUENCY = 0.50
 logger = logging.getLogger("sentry.rules")
 
 
