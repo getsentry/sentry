@@ -17,9 +17,7 @@ const TooltipStore: TooltipStoreInterface = {
     return this.tooltips.filter(tooltip => {
       // Filtering out disabled tooltips and lists of tooltips (which cause rendering issues for snapshots) using the internal 'key'
       return (
-        !(tooltip.props as any).disabled &&
-        !(tooltip as any)._reactInternalFiber.key &&
-        !(tooltip.props as any).disableForVisualTest
+        !(tooltip.props as any).disabled && !(tooltip as any)._reactInternalFiber.key
       );
     });
   },

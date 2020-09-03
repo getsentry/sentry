@@ -59,12 +59,6 @@ type Props = DefaultProps & {
    * If child node supports ref forwarding, you can skip apply a wrapper
    */
   skipWrapper?: boolean;
-
-  /**
-   * Stops tooltip from being opened during tooltip visual acceptance.
-   * Should be set to true if tooltip contains unisolated data (eg. dates)
-   */
-  disableForVisualTest?: boolean;
 };
 
 type State = {
