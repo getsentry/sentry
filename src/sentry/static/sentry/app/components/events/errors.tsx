@@ -38,7 +38,7 @@ type State = {
 };
 
 class EventErrors extends React.Component<Props, State> {
-  static propTypes = {
+  static propTypes: any = {
     api: PropTypes.object.isRequired,
     event: PropTypes.object.isRequired,
     orgId: PropTypes.string.isRequired,
