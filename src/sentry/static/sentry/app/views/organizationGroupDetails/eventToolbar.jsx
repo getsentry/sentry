@@ -152,7 +152,7 @@ class GroupEventToolbar extends React.Component {
           </Link>
         </h4>
         <span>
-          <Tooltip title={this.getDateTooltip()}>
+          <Tooltip title={this.getDateTooltip()} disableForVisualTest>
             <DateTime
               date={getDynamicText({value: evt.dateCreated, fixed: 'Dummy timestamp'})}
               style={style}
