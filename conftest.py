@@ -14,13 +14,12 @@ pytest_plugins = ["sentry.utils.pytest"]
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
-if os.environ.get("PYTEST_SENTRY_DSN"):
-    sentry_sdk.init(os.environ.get("PYTEST_SENTRY_DSN"), traces_sample_rate=1.0)
-
 sentry_sdk.init(
     dsn="https://24f526f0cefc4083b2546207a3f6811d@o19635.ingest.sentry.io/5415672",
     traces_sample_rate=1.0,
 )
+if os.environ.get("PYTEST_SENTRY_DSN"):
+    sentry_sdk.init(os.environ.get("PYTEST_SENTRY_DSN"), traces_sample_rate=1.0)
 
 
 txn = {}
@@ -79,12 +78,12 @@ def pytest_runtest_teardown(item, nextitem):
         #  transaction = Hub.current.scope.transaction
         transaction = txn.get(item.module.__name__)
         if transaction:
-            if os.environ.get("PYTEST_SENTRY_DSN"):
-                sentry_sdk.init(os.environ.get("PYTEST_SENTRY_DSN"), traces_sample_rate=1.0)
             sentry_sdk.init(
                 dsn="https://24f526f0cefc4083b2546207a3f6811d@o19635.ingest.sentry.io/5415672",
                 traces_sample_rate=1.0,
             )
+            if os.environ.get("PYTEST_SENTRY_DSN"):
+                sentry_sdk.init(os.environ.get("PYTEST_SENTRY_DSN"), traces_sample_rate=1.0)
             # XXX client is None here and transaction is unable to finish
             # if we don't init again
             # this happens when we yield?
