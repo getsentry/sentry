@@ -12,7 +12,6 @@ from sentry_sdk.integrations.logging import LoggingIntegration
 from sentry_sdk.integrations.django import DjangoIntegration
 from sentry_sdk.integrations.celery import CeleryIntegration
 from sentry_sdk.integrations.redis import RedisIntegration
-from sentry.utils.rust import RustInfoIntegration
 from sentry_sdk import Hub, Client
 
 
@@ -33,7 +32,6 @@ hub = Hub(
             DjangoIntegration(),
             CeleryIntegration(),
             LoggingIntegration(event_level=None),
-            RustInfoIntegration(),
             RedisIntegration(),
         ],
         traceparent_v2=True,
@@ -54,12 +52,11 @@ call_spans = {}
 def pytest_runtest_protocol(item):
     mark = next(x for x in item.own_markers if x.name.startswith("group_"))
 
-    global transaction
-    if transaction is None:
+    if hub.scope.transaction is None:
         name = u"{} [{}]".format(item.module.__name__, mark.name)
-        transaction = hub.start_transaction(op=name, name=name).__enter__()
+        hub.start_transaction(op=name, name=name).__enter__()
 
-    with transaction.start_child(hub=hub, op=item.name):
+    with hub.scope.transaction.start_child(hub=hub, op=item.name):
         yield
 
     #  span = transaction.start_child(hub=hub, op=item.name).__enter__()
@@ -70,7 +67,7 @@ def pytest_runtest_protocol(item):
 
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_setup(item):
-    with hub.scope.span.start_child(op=item.name, description="pytest.setup"):
+    with hub.scope.span.start_child(hub=hub, op=item.name, description="pytest.setup"):
         yield
 
 
@@ -78,7 +75,7 @@ def pytest_runtest_setup(item):
 def pytest_runtest_call(item):
     #  call_span = hub.scope.span.start_child(op=item.name, description="pytest.call")
     #  call_spans[item.name] = call_span
-    with hub.scope.span.start_child(op=item.name, description="pytest.call"):
+    with hub.scope.span.start_child(hub=hub, op=item.name, description="pytest.call"):
         yield
     #  call_span.finish()
 
@@ -100,13 +97,13 @@ def pytest_runtest_makereport(item, call):
 
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_teardown(item, nextitem):
-    with hub.scope.span.start_child(op=item.name, description="pytest.teardown"):
+    with hub.scope.span.start_child(hub=hub, op=item.name, description="pytest.teardown"):
         yield
 
-    global transaction
-    if transaction and (nextitem is None or item.module.__name__ != nextitem.module.__name__):
-        transaction.finish()
-        transaction = None
+    if hub.scope.transaction and (
+        nextitem is None or item.module.__name__ != nextitem.module.__name__
+    ):
+        hub.scope.transaction.__exit__(None, None, None)
 
 
 def pytest_configure(config):
