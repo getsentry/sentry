@@ -80,6 +80,9 @@ CRASH_REPORT_TIMEOUT = 24 * 3600  # one day
 
 
 def pop_tag(data, key):
+    if "tags" not in data:
+        return
+
     data["tags"] = [kv for kv in data["tags"] if kv is None or kv[0] != key]
 
 
