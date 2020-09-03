@@ -80,7 +80,7 @@ class SeenInfo extends React.Component {
         <dt key={0}>{t('When')}:</dt>
         {date ? (
           <dd key={1}>
-            <Tooltip title={this.getTooltipTitle()}>
+            <Tooltip title={this.getTooltipTitle()} disableForVisualTest>
               <TimeSince className="dotted-underline" date={date} />
             </Tooltip>
             <br />
@@ -90,7 +90,7 @@ class SeenInfo extends React.Component {
           </dd>
         ) : dateGlobal && environment === '' ? (
           <dd key={1}>
-            <Tooltip title={this.getTooltipTitle()}>
+            <Tooltip title={this.getTooltipTitle()} disableForVisualTest>
               <TimeSince date={dateGlobal} />
             </Tooltip>
             <br />
