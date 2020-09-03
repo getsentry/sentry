@@ -117,7 +117,7 @@ def handle_owner_assignment(project, group, event):
 
 @instrumented_task(name="sentry.tasks.post_process.post_process_group")
 def post_process_group(
-    event, is_new, is_regression, is_new_group_environment, cache_key=None, group_id=None, **kwargs
+    is_new, is_regression, is_new_group_environment, cache_key, group_id=None, event=None, **kwargs
 ):
     """
     Fires post processing hooks for a group.
@@ -128,8 +128,12 @@ def post_process_group(
     from sentry.reprocessing2 import is_reprocessed_event
 
     with snuba.options_override({"consistent": True}):
-        # The event parameter will be removed after transitioning to
-        # event_processing_store is complete.
+        # We use the data being present/missing in the processing store
+        # to ensure that we don't duplicate work should the forwarding consumers
+        # need to rewind history.
+        #
+        # While we always send the cache_key and never send the event parameter now,
+        # the code to handle `event` has to stick around for a self-hosted release cycle.
         if cache_key and event is None:
             data = event_processing_store.get(cache_key)
             if not data:
@@ -141,16 +145,11 @@ def post_process_group(
             event = Event(
                 project_id=data["project"], event_id=data["event_id"], group_id=group_id, data=data
             )
-        elif check_event_already_post_processed(event):
+        elif event and check_event_already_post_processed(event):
             if cache_key:
                 event_processing_store.delete_by_key(cache_key)
             logger.info(
-                "post_process.skipped",
-                extra={
-                    "project_id": event.project_id,
-                    "event_id": event.event_id,
-                    "reason": "duplicate",
-                },
+                "post_process.skipped", extra={"cache_key": cache_key, "reason": "missing_cache"},
             )
             return
 
@@ -251,9 +250,8 @@ def post_process_group(
             event=event,
             primary_hash=kwargs.get("primary_hash"),
         )
-        if cache_key:
-            with metrics.timer("tasks.post_process.delete_event_cache"):
-                event_processing_store.delete_by_key(cache_key)
+        with metrics.timer("tasks.post_process.delete_event_cache"):
+            event_processing_store.delete_by_key(cache_key)
 
 
 def process_snoozes(group):

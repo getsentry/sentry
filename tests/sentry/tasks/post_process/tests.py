@@ -154,6 +154,7 @@ class PostProcessGroupTest(TestCase):
     @patch("sentry.rules.processor.RuleProcessor")
     def test_rule_processor_backwards_compat(self, mock_processor):
         event = self.store_event(data={}, project_id=self.project.id)
+        cache_key = get_cache_key(event)
 
         mock_callback = Mock()
         mock_futures = [Mock()]
@@ -161,14 +162,15 @@ class PostProcessGroupTest(TestCase):
         mock_processor.return_value.apply.return_value = [(mock_callback, mock_futures)]
 
         post_process_group(
-            event=event,
+            event=None,
             is_new=True,
             is_regression=False,
             is_new_group_environment=True,
             group_id=event.group_id,
+            cache_key=cache_key,
         )
 
-        mock_processor.assert_called_once_with(event, True, False, True, False)
+        mock_processor.assert_called_once_with(EventMatcher(event), True, False, True, False)
         mock_processor.return_value.apply.assert_called_once_with()
 
         mock_callback.assert_called_once_with(EventMatcher(event), mock_futures)
@@ -332,11 +334,13 @@ class PostProcessGroupTest(TestCase):
             },
             project_id=self.project.id,
         )
+        cache_key = get_cache_key(event)
         post_process_group(
-            event=event,
+            event=None,
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
+            cache_key=cache_key,
             group_id=event.group_id,
         )
         assignee = event.group.assignee_set.first()
@@ -411,6 +415,34 @@ class PostProcessGroupTest(TestCase):
         )
         assignee = event.group.assignee_set.first()
         assert assignee is None
+
+    @patch("sentry.tasks.servicehooks.process_service_hook")
+    def test_event_parameter_backwards_compat(self, mock_process_service_hook):
+        # Ensure that post_process_group still does
+        # what it should when an event parameter is used.
+        # This ensures backwards compatibility for self-hosted.
+        event = self.store_event(data={}, project_id=self.project.id)
+        cache_key = get_cache_key(event)
+        hook = self.create_service_hook(
+            project=self.project,
+            organization=self.project.organization,
+            actor=self.user,
+            events=["event.created"],
+        )
+
+        with self.feature("projects:servicehooks"):
+            post_process_group(
+                event=event,
+                is_new=False,
+                is_regression=False,
+                is_new_group_environment=False,
+                cache_key=cache_key,
+                group_id=event.group_id,
+            )
+
+        mock_process_service_hook.delay.assert_called_once_with(
+            servicehook_id=hook.id, event=EventMatcher(event)
+        )
 
     @patch("sentry.tasks.servicehooks.process_service_hook")
     def test_service_hook_fires_on_new_event(self, mock_process_service_hook):
