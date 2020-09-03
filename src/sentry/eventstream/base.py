@@ -47,7 +47,7 @@ class EventStream(Service):
             logger.info("post_process.skip.raw_event", extra={"event_id": event.event_id})
         else:
             random_val = random.random()
-            if options.get("postprocess.use-cache-key") >= random_val:
+            if options.get("postprocess.use-cache-key") > random_val:
                 cache_key = cache_key_for_event(
                     {"project": event.project_id, "event_id": event.event_id}
                 )
