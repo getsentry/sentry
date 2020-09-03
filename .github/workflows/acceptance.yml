@@ -11,7 +11,7 @@ jobs:
       steps:
         - run: exit 1
         - if: always()
-          run: echo ${{ failure() }}
+          run: echo "hi"
 
 
     test:
