@@ -47,8 +47,6 @@ import NoGroupsHandler from './noGroupsHandler';
 
 const MAX_ITEMS = 25;
 const DEFAULT_SORT = 'date';
-// the default period for the graph in each issue row
-const DEFAULT_GRAPH_STATS_PERIOD = '24h';
 // the allowed period choices for graph in each issue row
 const STATS_PERIODS = new Set(['14d', '24h']);
 
@@ -220,7 +218,7 @@ const IssueListOverview = createReactClass({
 
   getGroupStatsPeriod() {
     const currentPeriod = this.props.location.query.groupStatsPeriod;
-    return STATS_PERIODS.has(currentPeriod) ? currentPeriod : DEFAULT_GRAPH_STATS_PERIOD;
+    return STATS_PERIODS.has(currentPeriod) ? currentPeriod : DEFAULT_STATS_PERIOD;
   },
 
   getEndpointParams() {
@@ -250,7 +248,7 @@ const IssueListOverview = createReactClass({
     }
 
     const groupStatsPeriod = this.getGroupStatsPeriod();
-    if (groupStatsPeriod !== DEFAULT_GRAPH_STATS_PERIOD) {
+    if (groupStatsPeriod !== DEFAULT_STATS_PERIOD) {
       params.groupStatsPeriod = groupStatsPeriod;
     }
 
