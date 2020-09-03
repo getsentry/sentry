@@ -125,6 +125,7 @@ def post_process_group(
     from sentry.eventstore.models import Event
     from sentry.eventstore.processing import event_processing_store
     from sentry.utils import snuba
+    from sentry.reprocessing2 import is_reprocessed_event
 
     with snuba.options_override({"consistent": True}):
         # The event parameter will be removed after transitioning to
@@ -148,6 +149,17 @@ def post_process_group(
                     "project_id": event.project_id,
                     "event_id": event.event_id,
                     "reason": "duplicate",
+                },
+            )
+            return
+
+        if is_reprocessed_event(event.data):
+            logger.info(
+                "post_process.skipped",
+                extra={
+                    "project_id": event.project_id,
+                    "event_id": event.event_id,
+                    "reason": "reprocessed",
                 },
             )
             return

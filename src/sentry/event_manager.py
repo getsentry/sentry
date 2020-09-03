@@ -69,6 +69,7 @@ from sentry.utils.safe import safe_execute, trim, get_path, setdefault_path
 from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 from sentry.culprit import generate_culprit
 from sentry.utils.compat import map
+from sentry.reprocessing2 import save_unprocessed_event
 
 logger = logging.getLogger("sentry.events")
 
@@ -434,6 +435,7 @@ class EventManager(object):
             job["event_metrics"][key] = old_bytes + attachment.size
 
         _nodestore_save_many(jobs)
+        save_unprocessed_event(project, event_id=job["event"].event_id)
 
         if job["release"]:
             if job["is_new"]:
