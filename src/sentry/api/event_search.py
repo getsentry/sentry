@@ -1810,7 +1810,7 @@ def resolve_field_list(fields, snuba_filter, auto_fields=True):
         # would be aggregated away.
         if not aggregations and "id" not in columns:
             columns.append("id")
-        if not aggregations and "project.id" not in columns:
+        if "id" in columns and "project.id" not in columns:
             columns.append("project.id")
             project_key = PROJECT_NAME_ALIAS
 
