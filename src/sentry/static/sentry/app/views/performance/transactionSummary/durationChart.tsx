@@ -132,7 +132,7 @@ class DurationChart extends React.Component<Props> {
       yAxis: {
         axisLabel: {
           color: theme.gray400,
-          // p50 coerces the axis to be time based
+          // p50() coerces the axis to be time based
           formatter: (value: number) => axisLabelFormatter(value, 'p50()'),
         },
       },

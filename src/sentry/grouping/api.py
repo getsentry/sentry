@@ -14,7 +14,7 @@ from sentry.grouping.variants import (
 )
 from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig, ENHANCEMENT_BASES
 from sentry.grouping.utils import (
-    DEFAULT_FINGERPRINT_VALUES,
+    is_default_fingerprint_var,
     hash_from_values,
     resolve_fingerprint_values,
 )
@@ -194,7 +194,7 @@ def get_grouping_variants_for_event(event, config=None):
 
     # Otherwise we go to the various forms of fingerprint handling.
     fingerprint = event.data.get("fingerprint") or ["{{ default }}"]
-    defaults_referenced = sum(1 if d in DEFAULT_FINGERPRINT_VALUES else 0 for d in fingerprint)
+    defaults_referenced = sum(1 if is_default_fingerprint_var(d) else 0 for d in fingerprint)
 
     if config is None:
         config = load_default_grouping_config()

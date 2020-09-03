@@ -10,6 +10,7 @@ import {
   TRENDS_FUNCTIONS,
   getTrendAliasedFieldPercentage,
   getTrendAliasedQueryPercentage,
+  getTrendAliasedMinus,
 } from 'app/views/performance/trends/utils';
 import {TrendFunctionField} from 'app/views/performance/trends/types';
 
@@ -211,9 +212,8 @@ describe('Performance > Trends', function() {
     expect(firstTransaction.find('ItemTransactionAbsoluteFaster').text()).toMatch(
       '863 → 1.6k miserable users'
     );
-    expect(firstTransaction.find('ItemTransactionPercentFaster').text()).toMatch(
-      '797 less'
-    );
+    expect(firstTransaction.find('ItemTransactionPrimary').text()).toMatch('797 less');
+    expect(firstTransaction.find('ItemTransactionSecondary').text()).toMatch('92%');
   });
 
   it('choosing a trend function changes location', async function() {
@@ -267,6 +267,11 @@ describe('Performance > Trends', function() {
       const aliasedFieldDivide = getTrendAliasedFieldPercentage(trendFunction.alias);
       const aliasedQueryDivide = getTrendAliasedQueryPercentage(trendFunction.alias);
 
+      const sort =
+        trendFunction.field === TrendFunctionField.USER_MISERY
+          ? getTrendAliasedMinus(trendFunction.alias)
+          : aliasedFieldDivide;
+
       const defaultFields = ['transaction', 'project', 'count()'];
       const trendFunctionFields = TRENDS_FUNCTIONS.map(({field}) => field);
 
@@ -281,9 +286,9 @@ describe('Performance > Trends', function() {
         expect.objectContaining({
           query: expect.objectContaining({
             trendFunction: trendFunction.field,
-            sort: aliasedFieldDivide,
+            sort,
             query: expect.stringContaining(aliasedQueryDivide + ':<1'),
-            interval: '1h',
+            interval: '30m',
             field,
           }),
         })
@@ -296,9 +301,9 @@ describe('Performance > Trends', function() {
         expect.objectContaining({
           query: expect.objectContaining({
             trendFunction: trendFunction.field,
-            sort: '-' + aliasedFieldDivide,
+            sort: '-' + sort,
             query: expect.stringContaining(aliasedQueryDivide + ':>1'),
-            interval: '1h',
+            interval: '30m',
             field,
           }),
         })

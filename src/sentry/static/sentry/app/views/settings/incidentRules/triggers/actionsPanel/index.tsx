@@ -66,8 +66,9 @@ const getCleanAction = (actionConfig): Action => {
       actionConfig.allowedTargetTypes.length > 0
         ? actionConfig.allowedTargetTypes[0]
         : null,
-    targetIdentifier: '',
+    targetIdentifier: actionConfig.sentryAppId || '',
     integrationId: actionConfig.integrationId,
+    sentryAppId: actionConfig.sentryAppId,
     options: actionConfig.options || null,
   };
 };
@@ -81,9 +82,12 @@ const getCleanAction = (actionConfig): Action => {
 const getActionUniqueKey = ({
   type,
   integrationId,
-}: Pick<Action, 'type' | 'integrationId'>) => {
+  sentryAppId,
+}: Pick<Action, 'type' | 'integrationId' | 'sentryAppId'>) => {
   if (integrationId) {
     return `${type}-${integrationId}`;
+  } else if (sentryAppId) {
+    return `${type}-${sentryAppId}`;
   }
   return type;
 };
@@ -97,7 +101,19 @@ const getActionUniqueKey = ({
 const getFullActionTitle = ({
   type,
   integrationName,
-}: Pick<MetricActionTemplate, 'type' | 'integrationName'>) => {
+  sentryAppName,
+  status,
+}: Pick<
+  MetricActionTemplate,
+  'type' | 'integrationName' | 'sentryAppName' | 'status'
+>) => {
+  if (sentryAppName) {
+    if (status) {
+      return `${sentryAppName} (${status})`;
+    }
+    return `${sentryAppName}`;
+  }
+
   const label = ActionLabel[type];
   if (integrationName) {
     return `${label} - ${integrationName}`;

@@ -47,7 +47,6 @@ from django.utils import timezone
 from django.utils.functional import cached_property
 
 from exam import before, fixture, Exam
-from concurrent.futures import ThreadPoolExecutor
 from sentry.utils.compat.mock import patch
 from pkg_resources import iter_entry_points
 from rest_framework.test import APITestCase as BaseAPITestCase
@@ -660,27 +659,17 @@ class SnubaTestCase(BaseTestCase):
     tests that require snuba.
     """
 
-    init_endpoints = (
-        "/tests/events/drop",
-        "/tests/groupedmessage/drop",
-        "/tests/transactions/drop",
-        "/tests/sessions/drop",
-    )
-
     def setUp(self):
         super(SnubaTestCase, self).setUp()
         self.init_snuba()
 
-    def call_snuba(self, endpoint):
-        return requests.post(settings.SENTRY_SNUBA + endpoint)
+    @pytest.fixture(autouse=True)
+    def initialize(self, reset_snuba, call_snuba):
+        self.call_snuba = call_snuba
 
     def init_snuba(self):
         self.snuba_eventstream = SnubaEventStream()
         self.snuba_tagstore = SnubaTagStorage()
-        assert all(
-            response.status_code == 200
-            for response in ThreadPoolExecutor(4).map(self.call_snuba, self.init_endpoints)
-        )
 
     def store_event(self, *args, **kwargs):
         with mock.patch("sentry.eventstream.insert", self.snuba_eventstream.insert):

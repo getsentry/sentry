@@ -123,8 +123,20 @@ def post_process_group(event, is_new, is_regression, is_new_group_environment, *
     set_current_project(event.project_id)
 
     from sentry.utils import snuba
+    from sentry.reprocessing2 import is_reprocessed_event
 
     with snuba.options_override({"consistent": True}):
+        if is_reprocessed_event(event.data):
+            logger.info(
+                "post_process.skipped",
+                extra={
+                    "project_id": event.project_id,
+                    "event_id": event.event_id,
+                    "reason": "reprocessed",
+                },
+            )
+            return
+
         if check_event_already_post_processed(event):
             logger.info(
                 "post_process.skipped",

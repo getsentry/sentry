@@ -8,7 +8,7 @@ type DefaultProps = {
 };
 
 type DisabledFunction = (props: Omit<Props, 'formatMessageValue'>) => boolean;
-type PlaceholderFunction = () => string;
+type PlaceholderFunction = (props: any) => React.ReactNode;
 
 type Props = DefaultProps &
   Omit<RangeSlider['props'], 'value' | 'disabled' | 'placeholder'> &

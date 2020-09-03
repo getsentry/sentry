@@ -28,14 +28,14 @@ import {
 
 export const TRENDS_FUNCTIONS: TrendFunction[] = [
   {
-    label: 'Duration (p50)',
-    field: TrendFunctionField.P50,
-    alias: 'percentile_range',
-  },
-  {
     label: 'Average',
     field: TrendFunctionField.AVG,
     alias: 'avg_range',
+  },
+  {
+    label: 'Duration (p50)',
+    field: TrendFunctionField.P50,
+    alias: 'percentile_range',
   },
   {
     label: 'User Misery',
@@ -50,26 +50,26 @@ export const TRENDS_FUNCTIONS: TrendFunction[] = [
 export function chartIntervalFunction(dateTimeSelection: DateTimeObject) {
   const diffInMinutes = getDiffInMinutes(dateTimeSelection);
   if (diffInMinutes >= THIRTY_DAYS) {
-    return '48h';
-  }
-
-  if (diffInMinutes >= TWO_WEEKS) {
     return '24h';
   }
 
-  if (diffInMinutes >= ONE_WEEK) {
+  if (diffInMinutes >= TWO_WEEKS) {
     return '12h';
   }
 
+  if (diffInMinutes >= ONE_WEEK) {
+    return '6h';
+  }
+
   if (diffInMinutes >= TWENTY_FOUR_HOURS) {
-    return '1h';
+    return '30m';
   }
 
   if (diffInMinutes <= ONE_HOUR) {
-    return '180s';
+    return '90s';
   }
 
-  return '2m';
+  return '60s';
 }
 
 export const trendToColor = {
@@ -141,14 +141,19 @@ export function modifyTrendView(
     kind: 'asc',
   } as Sort;
 
+  if (trendFunction && trendFunction.field === TrendFunctionField.USER_MISERY) {
+    trendSort.field = `minus_${trendFunction.alias}_2_${trendFunction.alias}_1`;
+  }
+
+  if (trendsType === TrendChangeType.REGRESSION) {
+    trendSort.kind = 'desc';
+  }
+
   if (trendFunction) {
     trendView.trendFunction = trendFunction.field;
   }
   const limitTrendResult = getLimitTransactionItems(trendFunction, trendsType);
   trendView.query += ' ' + limitTrendResult;
-  if (trendsType === TrendChangeType.REGRESSION) {
-    trendSort.kind = 'desc';
-  }
 
   trendView.interval = getQueryInterval(location, trendView);
 
@@ -246,7 +251,7 @@ export function getTrendAliasedQueryPercentage(alias: string) {
   return `percentage(${alias}_2,${alias}_1)`;
 }
 
-function getTrendAliasedMinus(alias: string) {
+export function getTrendAliasedMinus(alias: string) {
   return `minus_${alias}_2_${alias}_1`;
 }
 

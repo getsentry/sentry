@@ -78,9 +78,12 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
                 "type": "select",
                 "choices": tuple((z, z) for z in get_regions()),
             },
-            get_secret_field_config(
-                name="access_key", label="Access Key", secret=self.get_option("access_key", project)
-            ),
+            {
+                "name": "access_key",
+                "label": "Access Key",
+                "type": "text",
+                "placeholder": "Access Key",
+            },
             get_secret_field_config(
                 name="secret_key", label="Secret Key", secret=self.get_option("secret_key", project)
             ),
@@ -90,6 +93,18 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
                 "type": "text",
                 "required": False,
                 "placeholder": "Required for FIFO queues, exclude for standard queues",
+            },
+            {
+                "name": "s3_bucket",
+                "label": "S3 Bucket",
+                "type": "text",
+                "required": False,
+                "placeholder": "s3-bucket",
+                "help": (
+                    "Specify a bucket to store events in S3. The SQS message will contain a reference"
+                    " to the payload location in S3. If no S3 bucket is provided, events over the SQS"
+                    " limit of 256KB will not be forwarded."
+                ),
             },
         ]
 
@@ -118,57 +133,76 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
             logger.info("sentry_plugins.amazon_sqs.skip_unconfigured", extra=logging_params)
             return
 
-        # TODO(dcramer): Amazon doesnt support payloads larger than 256kb
-        # We could support this by simply trimming it and allowing upload
-        # to S3
-        message = json.dumps(payload)
-        if len(message) > 256 * 1024:
-            logger.info("sentry_plugins.amazon_sqs.skip_oversized", extra=logging_params)
-            return False
+        boto3_args = {
+            "aws_access_key_id": access_key,
+            "aws_secret_access_key": secret_key,
+            "region_name": region,
+        }
 
-        try:
-            client = boto3.client(
-                service_name="sqs",
-                aws_access_key_id=access_key,
-                aws_secret_access_key=secret_key,
-                region_name=region,
+        def log_and_increment(metrics_name):
+            logger.info(
+                metrics_name, extra=logging_params,
+            )
+            metrics.incr(
+                metrics_name, tags=metric_tags,
             )
 
-            message = {"QueueUrl": queue_url, "MessageBody": message}
+        def s3_put_object(*args, **kwargs):
+            s3_client = boto3.client(service_name="s3", **boto3_args)
+            return s3_client.put_object(*args, **kwargs)
+
+        def sqs_send_message(message):
+            client = boto3.client(service_name="sqs", **boto3_args)
+            send_message_args = {"QueueUrl": queue_url, "MessageBody": message}
             # need a MessageGroupId for FIFO queues
             # note that if MessageGroupId is specified for non-FIFO, this will fail
             if message_group_id:
                 from uuid import uuid4
 
-                message["MessageGroupId"] = message_group_id
+                send_message_args["MessageGroupId"] = message_group_id
                 # if content based de-duplication is not enabled, we need to provide a
                 # MessageDeduplicationId
-                message["MessageDeduplicationId"] = uuid4().hex
+                send_message_args["MessageDeduplicationId"] = uuid4().hex
+            return client.send_message(**send_message_args)
+
+        # wrap S3 put_object and and SQS send message in one try/except
+        s3_bucket = self.get_option("s3_bucket", event.project)
+        try:
+            # if we have an S3 bucket, upload to S3
+            if s3_bucket:
+                # we want something like 2020-08-29 so we can store it by the date
+                date = event.datetime.strftime("%Y-%m-%d")
+                key = "{}/{}/{}".format(event.project.slug, date, event.event_id)
+                logger.info("sentry_plugins.amazon_sqs.s3_put_object", extra=logging_params)
+                s3_put_object(Bucket=s3_bucket, Body=json.dumps(payload), Key=key)
+
+                url = u"https://{}.s3-{}.amazonaws.com/{}".format(s3_bucket, region, key)
+                # just include the s3Url and the event ID in the payload
+                payload = {"s3Url": url, "eventID": event.event_id}
+
+            message = json.dumps(payload)
+
+            if len(message) > 256 * 1024:
+                logger.info("sentry_plugins.amazon_sqs.skip_oversized", extra=logging_params)
+                return False
+
             logger.info("sentry_plugins.amazon_sqs.send_message", extra=logging_params)
-            client.send_message(**message)
+            sqs_send_message(message)
         except ClientError as e:
             if six.text_type(e).startswith(
                 "An error occurred (InvalidClientTokenId)"
             ) or six.text_type(e).startswith("An error occurred (AccessDenied)"):
                 # If there's an issue with the user's token then we can't do
                 # anything to recover. Just log and continue.
-                metrics_name = "sentry_plugins.amazon_sqs.access_token_invalid"
-                logger.info(
-                    metrics_name, extra=logging_params,
-                )
-
-                metrics.incr(
-                    metrics_name, tags=metric_tags,
-                )
+                log_and_increment("sentry_plugins.amazon_sqs.access_token_invalid")
                 return False
             elif six.text_type(e).endswith("must contain the parameter MessageGroupId."):
-                metrics_name = "sentry_plugins.amazon_sqs.missing_message_group_id"
-                logger.info(
-                    metrics_name, extra=logging_params,
-                )
-                metrics.incr(
-                    metrics_name, tags=metric_tags,
-                )
+                log_and_increment("sentry_plugins.amazon_sqs.missing_message_group_id")
+                return False
+            elif six.text_type(e).startswith("An error occurred (NoSuchBucket)"):
+                # If there's an issue with the user's s3 bucket then we can't do
+                # anything to recover. Just log and continue.
+                log_and_increment("sentry_plugins.amazon_sqs.s3_bucket_invalid")
                 return False
             raise
         return True

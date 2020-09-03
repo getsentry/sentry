@@ -6,33 +6,6 @@ on:
   pull_request:
 
 jobs:
-    getsentry:
-      if: ${{ github.ref != 'refs/heads/master' }}
-      runs-on: ubuntu-16.04
-      steps:
-        - name: getsentry token
-          id: getsentry
-          uses: getsentry/action-github-app-token@v1
-          with:
-            app_id: ${{ secrets.SENTRY_INTERNAL_APP_ID }}
-            private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
-
-        # Notify getsentry
-        - name: Dispatch getsentry tests
-          uses: actions/github-script@v3
-          with:
-            github-token: ${{ steps.getsentry.outputs.token }}
-            script: |
-              github.actions.createWorkflowDispatch({
-                owner: 'getsentry',
-                repo: 'getsentry',
-                workflow_id: 'acceptance.yml',
-                ref: 'master',
-                inputs: {
-                  sha: '${{ github.event.pull_request.head.sha }}',
-                }
-              })
-
     jest:
       runs-on: ubuntu-latest
       env:
@@ -222,6 +195,8 @@ jobs:
           run: |
             mkdir -p ${{ steps.config.outputs.acceptance-dir }}
             mkdir -p ${{ steps.config.outputs.acceptance-dir }}-mobile
+            mkdir -p ${{ steps.config.outputs.acceptance-dir }}-tooltips
+            [ "$GITHUB_REF" = "refs/heads/master" ] && export PYTEST_SENTRY_ALWAYS_REPORT=1
             make run-acceptance
           env:
             PYTEST_SNAPSHOTS_DIR: ${{ steps.config.outputs.acceptance-dir }}

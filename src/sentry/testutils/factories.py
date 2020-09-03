@@ -325,7 +325,7 @@ class Factories(object):
             },
             {
                 "id": "sentry.rules.conditions.every_event.EveryEventCondition",
-                "name": "An event is seen",
+                "name": "An event occurs",
             },
         ]
         return Rule.objects.create(

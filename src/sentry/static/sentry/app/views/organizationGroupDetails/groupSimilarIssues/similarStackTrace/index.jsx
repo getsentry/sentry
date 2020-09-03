@@ -16,14 +16,14 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import Switch from 'app/components/switch';
 import Tooltip from 'app/components/tooltip';
 
-import SimilarList from './similarList';
+import List from './list';
 
-const GroupGroupingView = createReactClass({
+const SimilarStackTrace = createReactClass({
   displayName: 'GroupGroupingView',
 
   propTypes: {
     project: SentryTypes.Project,
-    query: PropTypes.string,
+    location: PropTypes.object,
   },
 
   mixins: [Reflux.listenTo(GroupingStore, 'onGroupingUpdate')],
@@ -124,7 +124,8 @@ const GroupGroupingView = createReactClass({
   },
 
   handleMerge() {
-    const {query, params} = this.props;
+    const {params} = this.props;
+    const query = this.props.location.query;
 
     if (params) {
       // You need at least 1 similarItem OR filteredSimilarItems to be able to merge,
@@ -166,6 +167,8 @@ const GroupGroupingView = createReactClass({
           )}
         </div>
 
+        <Title>{t('Issues with a similar stack trace')}</Title>
+
         {hasV2 && (
           <SwitchContainer>
             💩
@@ -195,7 +198,7 @@ const GroupGroupingView = createReactClass({
         )}
 
         {hasSimilarItems && (
-          <SimilarList
+          <List
             items={this.state.similarItems}
             filteredItems={this.state.filteredSimilarItems}
             onMerge={this.handleMerge}
@@ -209,7 +212,7 @@ const GroupGroupingView = createReactClass({
   },
 });
 
-export default GroupGroupingView;
+export default SimilarStackTrace;
 
 const SwitchContainer = styled('div')`
   text-align: center;
@@ -220,4 +223,11 @@ const SwitchContainer = styled('div')`
     vertical-align: middle;
     margin: ${space(1)};
   }
+`;
+
+const Title = styled('h4')`
+  font-size: ${p => p.theme.headerFontSize};
+  color: ${p => p.theme.gray700};
+  font-weight: normal;
+  margin-bottom: ${space(2)};
 `;

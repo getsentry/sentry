@@ -267,7 +267,7 @@ function TrendsListItem(props: TrendsListItemProps) {
         <Tooltip
           title={
             <TooltipContent>
-              <span>{transaction.project}</span>
+              <span>{t('Total Events')}</span>
               <span>
                 <Count value={transaction.count_range_1} />
                 {' → '}
@@ -276,20 +276,45 @@ function TrendsListItem(props: TrendsListItemProps) {
             </TooltipContent>
           }
         >
-          <ItemTransactionPercent>
-            {formatPercentage(
-              transaction.percentage_aggregate_range_2_aggregate_range_1 - 1,
-              0
+          <ItemTransactionPrimary>
+            {currentTrendFunction === TrendFunctionField.USER_MISERY ? (
+              <React.Fragment>
+                {transformValueDelta(
+                  transaction.minus_aggregate_range_2_aggregate_range_1,
+                  trendChangeType,
+                  currentTrendFunction
+                )}
+              </React.Fragment>
+            ) : (
+              <React.Fragment>
+                {trendChangeType === TrendChangeType.REGRESSION ? '+' : ''}
+                {formatPercentage(
+                  transaction.percentage_aggregate_range_2_aggregate_range_1 - 1,
+                  0
+                )}
+              </React.Fragment>
             )}
-          </ItemTransactionPercent>
+          </ItemTransactionPrimary>
         </Tooltip>
-        <ItemTransactionPercentFaster color={color}>
-          {transformValueDelta(
-            transaction.minus_aggregate_range_2_aggregate_range_1,
-            trendChangeType,
-            currentTrendFunction
+        <ItemTransactionSecondary color={color}>
+          {currentTrendFunction === TrendFunctionField.USER_MISERY ? (
+            <React.Fragment>
+              {trendChangeType === TrendChangeType.REGRESSION ? '+' : ''}
+              {formatPercentage(
+                transaction.percentage_aggregate_range_2_aggregate_range_1 - 1,
+                0
+              )}
+            </React.Fragment>
+          ) : (
+            <React.Fragment>
+              {transformValueDelta(
+                transaction.minus_aggregate_range_2_aggregate_range_1,
+                trendChangeType,
+                currentTrendFunction
+              )}
+            </React.Fragment>
           )}
-        </ItemTransactionPercentFaster>
+        </ItemTransactionSecondary>
       </ItemTransactionPercentContainer>
     </ListItemContainer>
   );
@@ -338,8 +363,8 @@ const ItemTransactionAbsoluteFaster = styled('div')`
   color: ${p => p.theme.gray500};
   font-size: 14px;
 `;
-const ItemTransactionPercent = styled('div')``;
-const ItemTransactionPercentFaster = styled('div')`
+const ItemTransactionPrimary = styled('div')``;
+const ItemTransactionSecondary = styled('div')`
   color: ${p => p.color};
   font-size: 14px;
   white-space: nowrap;

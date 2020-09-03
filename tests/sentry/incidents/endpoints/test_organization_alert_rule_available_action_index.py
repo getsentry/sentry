@@ -5,6 +5,7 @@ from sentry.incidents.endpoints.organization_alert_rule_available_action_index i
 )
 from sentry.incidents.models import AlertRuleTriggerAction
 from sentry.models.integration import Integration, PagerDutyService
+from sentry.constants import SentryAppStatus
 from sentry.testutils import APITestCase
 
 SERVICES = [
@@ -19,13 +20,24 @@ SERVICES = [
 
 class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-alert-rule-available-actions"
+    email = AlertRuleTriggerAction.get_registered_type(AlertRuleTriggerAction.Type.EMAIL)
+    slack = AlertRuleTriggerAction.get_registered_type(AlertRuleTriggerAction.Type.SLACK)
+    sentry_app = AlertRuleTriggerAction.get_registered_type(AlertRuleTriggerAction.Type.SENTRY_APP)
+    pagerduty = AlertRuleTriggerAction.get_registered_type(AlertRuleTriggerAction.Type.PAGERDUTY)
 
     def setUp(self):
         super(OrganizationAlertRuleAvailableActionIndexEndpointTest, self).setUp()
         self.login_as(self.user)
 
-        self.email = AlertRuleTriggerAction.get_registered_type(AlertRuleTriggerAction.Type.EMAIL)
-        self.slack = AlertRuleTriggerAction.get_registered_type(AlertRuleTriggerAction.Type.SLACK)
+    def install_new_sentry_app(self, name, **kwargs):
+        kwargs.update(
+            name=name, organization=self.organization, is_alertable=True, verify_install=False
+        )
+        sentry_app = self.create_sentry_app(**kwargs)
+        self.create_sentry_app_installation(
+            slug=sentry_app.slug, organization=self.organization, user=self.user
+        )
+        return sentry_app
 
     def test_build_action_response_email(self):
         data = build_action_response(self.email)
@@ -64,6 +76,19 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
         assert data["type"] == "pagerduty"
         assert data["allowedTargetTypes"] == ["specific"]
         assert data["options"] == [{"value": service.id, "label": service_name}]
+
+    def test_build_action_response_sentry_app(self):
+        sentry_app = self.create_sentry_app(
+            name="foo", organization=self.organization, is_alertable=True, verify_install=False
+        )
+        self.create_sentry_app_installation(
+            slug=sentry_app.slug, organization=self.organization, user=self.user
+        )
+        data = build_action_response(self.sentry_app, sentry_app=sentry_app)
+
+        assert data["type"] == "sentry_app"
+        assert data["allowedTargetTypes"] == ["sentry_app"]
+        assert data["status"] == SentryAppStatus.UNPUBLISHED_STR
 
     def test_no_integrations(self):
         with self.feature("organizations:incidents"):
@@ -110,3 +135,37 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
         self.create_team(organization=self.organization, members=[self.user])
         resp = self.get_response(self.organization.slug)
         assert resp.status_code == 404
+
+    def test_sentry_apps(self):
+        sentry_app = self.install_new_sentry_app("foo")
+
+        with self.feature(
+            ["organizations:incidents", "organizations:integrations-sentry-app-metric-alerts"]
+        ):
+            resp = self.get_valid_response(self.organization.slug)
+
+        assert resp.data == [
+            build_action_response(
+                AlertRuleTriggerAction.get_registered_type(AlertRuleTriggerAction.Type.SENTRY_APP),
+                sentry_app=sentry_app,
+            ),
+            build_action_response(self.email),
+        ]
+
+    def test_blocked_sentry_apps(self):
+        internal_sentry_app = self.install_new_sentry_app("internal")
+        # Should not show up in available actions.
+        self.install_new_sentry_app("published", published=True)
+
+        with self.feature(
+            ["organizations:incidents", "organizations:integrations-sentry-app-metric-alerts"]
+        ):
+            resp = self.get_valid_response(self.organization.slug)
+
+        assert resp.data == [
+            build_action_response(
+                AlertRuleTriggerAction.get_registered_type(AlertRuleTriggerAction.Type.SENTRY_APP),
+                sentry_app=internal_sentry_app,
+            ),
+            build_action_response(self.email),
+        ]

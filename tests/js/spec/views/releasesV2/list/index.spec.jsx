@@ -82,7 +82,7 @@ describe('ReleasesV2List', function() {
       routerContext
     );
     expect(wrapper.find('StyledPanel')).toHaveLength(0);
-    expect(wrapper.find('ReleasePromo').text()).toContain("You Haven't Set Up Releases!");
+    expect(wrapper.find('ReleasePromo').text()).toContain('Demystify Releases');
 
     location = {query: {statsPeriod: '30d'}};
     wrapper = mountWithTheme(
