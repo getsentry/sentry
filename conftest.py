@@ -25,6 +25,15 @@ hub = Hub(
     )
 )
 
+# each file will be considered a transaction
+transactions = {}
+
+# Map of <test item name, Span<pytest.setup>>
+spans = {}
+
+# Map of <test item name, Span<pytest.call>>
+call_spans = {}
+
 
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_protocol(item):
@@ -32,39 +41,52 @@ def pytest_runtest_protocol(item):
 
     if hub.scope.transaction is None:
         name = u"{} [{}]".format(item.module.__name__, mark.name)
-        with hub.start_transaction(op=name, name=name):
-            yield
+        transaction = hub.start_transaction(op=name, name=name).__enter__()
 
-    else:
+    with hub.scope.transaction.start_child(op=item.name):
         yield
 
 
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_setup(item):
-    with hub.start_span(op="pytest.setup", description=item.name):
+    with hub.scope.span.start_child(op=item.name, description="pytest.setup"):
         yield
 
 
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_call(item):
-    with hub.start_span(op="pytest.call", description=item.name):
+    #  call_span = hub.scope.span.start_child(op=item.name, description="pytest.call")
+    #  call_spans[item.name] = call_span
+    with hub.scope.span.start_child(op=item.name, description="pytest.call"):
         yield
+    #  call_span.finish()
 
 
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_makereport(item, call):
+    """
+    If there is an existing call span, set a tag with the test outcome
+    """
+
     report = yield
 
-    span = hub.scope.span
-    if span:
-        # XXX: never runs
-        span.set_tag("test.result", report.result.outcome)
+    # XXX: never runs
+    # This should be the "call_span" from `pytest_runtest_call`
+    #  call_span = call_spans.get(item.name)
+    if hub.scope.span:
+        hub.scope.span.set_tag("test.result", report.result.outcome)
 
 
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_teardown(item, nextitem):
-    with hub.start_span(op="pytest.teardown", description=item.name):
+    with hub.scope.span.start_child(op=item.name, description="pytest.teardown"):
         yield
+
+    if hub.scope.transaction and (
+        nextitem is None or item.module.__name__ != nextitem.module.__name__
+    ):
+        print("done with transaction")
+        hub.scope.transaction.__exit__(None, None, None)
 
 
 def pytest_configure(config):
