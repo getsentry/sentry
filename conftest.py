@@ -7,7 +7,7 @@ from hashlib import md5
 import six
 import pytest
 import sentry_sdk
-from sentry_sdk import start_transaction
+from sentry_sdk import Hub, Client, start_transaction
 
 
 pytest_plugins = ["sentry.utils.pytest"]
@@ -18,6 +18,12 @@ if os.environ.get("PYTEST_SENTRY_DSN"):
     sentry_sdk.init(os.environ.get("PYTEST_SENTRY_DSN"), traces_sample_rate=1.0)
 
 
+hub = Hub(
+    Client(
+        dsn="https://24f526f0cefc4083b2546207a3f6811d@o19635.ingest.sentry.io/5415672",
+        traces_sample_rate=1.0,
+    )
+)
 txn = {}
 spans = {}
 call_spans = {}
@@ -30,7 +36,7 @@ def pytest_runtest_protocol(item):
 
     if transaction is None:
         name = u"{} [{}]".format(item.module.__name__, mark.name)
-        transaction = start_transaction(op=name, name=name)
+        transaction = hub.start_transaction(op=name, name=name)
         txn[item.module.__name__] = transaction
 
     with transaction.start_child(op=item.name) as span:
@@ -81,15 +87,10 @@ def pytest_runtest_teardown(item, nextitem):
 
     if nextitem is None or item.module.__name__ != nextitem.module.__name__:
         #  XXX below transaction is unexpectedly None
-        # transaction = Hub.current.scope.transaction
+        print(hub.scope.span)
+        print(hub.scope.transaction)
         transaction = txn.get(item.module.__name__)
         if transaction:
-            if os.environ.get("PYTEST_SENTRY_DSN"):
-                sentry_sdk.init(os.environ.get("PYTEST_SENTRY_DSN"), traces_sample_rate=1.0)
-            # XXX client is None here and transaction is unable to finish
-            # if we don't call sentry_sdk.init again
-            #
-            # this seems to happen when we yield?
             transaction.finish()
             txn.pop(item.module.__name__)
             pass
