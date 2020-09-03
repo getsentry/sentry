@@ -58,7 +58,11 @@ def test_basic(
     register_plugin(globals(), ReprocessingTestPlugin)
 
     mgr = EventManager(
-        data={"timestamp": iso_format(before_now(seconds=1))}, project=default_project
+        data={
+            "timestamp": iso_format(before_now(seconds=1)),
+            "tags": [["key1", "value"], None, ["key2", "value"]],
+        },
+        project=default_project,
     )
     mgr.normalize()
     data = mgr.get_data()

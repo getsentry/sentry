@@ -164,7 +164,9 @@ def is_reprocessed_event(data):
 
 
 def _get_original_event_id(data):
-    return dict(data.get("tags") or ()).get("original_event_id")
+    from sentry.event_manager import get_tag
+
+    return get_tag(data, "original_event_id")
 
 
 def should_save_reprocessed_event(data):
