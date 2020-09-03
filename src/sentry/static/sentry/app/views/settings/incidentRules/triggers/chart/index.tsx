@@ -33,7 +33,7 @@ type Props = {
 
 const TIME_WINDOW_MAP = {
   [TimePeriod.SIX_HOURS]: t('Last 6 hours'),
-  [TimePeriod.ONE_DAY]: t('Last day'),
+  [TimePeriod.ONE_DAY]: t('Last 24 hours'),
   [TimePeriod.THREE_DAYS]: t('Last 3 days'),
   [TimePeriod.SEVEN_DAYS]: t('Last 7 days'),
   [TimePeriod.FOURTEEN_DAYS]: t('Last 14 days'),
@@ -119,9 +119,7 @@ class TriggersChart extends React.PureComponent<Props> {
                   )}
                 </PanelBody>
                 <StyledPanelAlert>
-                  {/* TODO(scttcper): Translate and learn more link */}
-                  The data above is rolled up to show the average number of errors for
-                  that period of time. Learn more
+                  {t('Data points above are averaged to show a longer time period.')}
                 </StyledPanelAlert>
               </StyledPanel>
             </StickyWrapper>
