@@ -42,7 +42,6 @@ hub = Hub(
             DedupeIntegration(),
             ModulesIntegration(),
             ArgvIntegration(),
-            PytestIntegration(),
         ],
         traceparent_v2=True,
     )
@@ -61,26 +60,27 @@ call_spans = {}
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_protocol(item, nextitem):
     mark = next(x for x in item.own_markers if x.name.startswith("group_"))
+    name = u"{} [{}]".format(item.module.__name__, mark.name)
 
-    if hub.scope.transaction is None:
-        name = u"{} [{}]".format(item.module.__name__, mark.name)
-        hub.start_transaction(op=name, name=name).__enter__()
+    transaction = spans.get(name)
+    if transaction is None:
+        transaction = hub.start_transaction(op=name, name=name)
+        spans[name] = transaction
 
     item_class_name = item.cls.__name__ if item.cls else None
     #  with hub.scope.transaction.start_child(hub=hub, op=item.name, description=item_class_name):
     #  yield
 
-    span = hub.scope.transaction.start_child(hub=hub, op=item.name, description=item_class_name)
+    span = transaction.start_child(hub=hub, op=item.name, description=item_class_name)
     spans[item.name] = span
     #  print(hub.scope.span)
     yield
     span.finish()
     span = None
 
-    if hub.scope.transaction and (
-        nextitem is None or item.module.__name__ != nextitem.module.__name__
-    ):
-        hub.scope.transaction.__exit__(None, None, None)
+    if transaction and (nextitem is None or item.module.__name__ != nextitem.module.__name__):
+        transaction.finish()
+        spans.pop(name)
 
 
 @pytest.hookimpl(hookwrapper=True)
