@@ -24,6 +24,7 @@ class OrganizationSerializerTest(TestCase):
                 "advanced-search",
                 "shared-issues",
                 "open-membership",
+                "event-attachments",
                 "integrations-issue-basic",
                 "integrations-issue-sync",
                 "integrations-alert-rule",
