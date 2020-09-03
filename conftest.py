@@ -6,7 +6,13 @@ from hashlib import md5
 
 import six
 import pytest
-import sentry_sdk
+
+#  import sentry_sdk
+from sentry_sdk.integrations.logging import LoggingIntegration
+from sentry_sdk.integrations.django import DjangoIntegration
+from sentry_sdk.integrations.celery import CeleryIntegration
+from sentry_sdk.integrations.redis import RedisIntegration
+from sentry.utils.rust import RustInfoIntegration
 from sentry_sdk import Hub, Client
 
 
@@ -23,6 +29,14 @@ hub = Hub(
         dsn="https://24f526f0cefc4083b2546207a3f6811d@o19635.ingest.sentry.io/5415672",
         traces_sample_rate=1.0,
         _experiments={"auto_enabling_integrations": True},
+        integrations=[
+            DjangoIntegration(),
+            CeleryIntegration(),
+            LoggingIntegration(event_level=None),
+            RustInfoIntegration(),
+            RedisIntegration(),
+        ],
+        traceparent_v2=True,
     )
 )
 
@@ -56,7 +70,7 @@ def pytest_runtest_protocol(item):
 
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_setup(item):
-    with hub.scope.span.start_child(hub=hub, op=item.name, description="pytest.setup"):
+    with hub.scope.span.start_child(op=item.name, description="pytest.setup"):
         yield
 
 
