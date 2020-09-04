@@ -46,7 +46,10 @@ function doUpdate({orgId, projectId, pluginId, update, ...params}) {
  * @param {boolean} options.resetLoading Reset will set loading state = true
  * @return Promise
  */
-export function fetchPlugins({orgId, projectId}, options) {
+export function fetchPlugins(
+  {orgId, projectId}: {orgId: string; projectId: string},
+  options: {resetLoading?: boolean}
+) {
   const path = `/projects/${orgId}/${projectId}/plugins/`;
 
   // Make sure we throttle fetches
