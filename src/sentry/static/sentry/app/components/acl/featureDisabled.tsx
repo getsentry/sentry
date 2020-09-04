@@ -2,10 +2,11 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {selectText} from 'app/utils/selectText';
-import {IconInfo, IconChevron, IconLock} from 'app/icons';
+import {IconInfo, IconChevron, IconLock, IconCopy} from 'app/icons';
 import {t, tct} from 'app/locale';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
+import Clipboard from 'app/components/clipboard';
 import ExternalLink from 'app/components/links/externalLink';
 import space from 'app/styles/space';
 import {CONFIG_DOCS_URL} from 'app/constants';
@@ -96,7 +97,12 @@ class FeatureDisabled extends React.Component<Props, State> {
           )}
         </FeatureDisabledMessage>
         {showDescription && (
-          <HelpDescription>
+          <HelpDescription
+            onClick={e => {
+              e.stopPropagation();
+              e.preventDefault();
+            }}
+          >
             <p>
               {tct(
                 `Enable this feature on your sentry installation by adding the
@@ -109,6 +115,18 @@ class FeatureDisabled extends React.Component<Props, State> {
                 }
               )}
             </p>
+            <Clipboard hideUnsupported value={installText(features, featureName)}>
+              <Button
+                borderless
+                size="xsmall"
+                onClick={e => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                }}
+              >
+                <StyledIconCopy /> Copy to Clipboard
+              </Button>
+            </Clipboard>
             <pre onClick={e => selectText(e.target as HTMLElement)}>
               <code>{installText(features, featureName)}</code>
             </pre>
@@ -171,6 +189,10 @@ const AlertWrapper = styled('div')`
   code {
     background: #fbf7e0;
   }
+`;
+
+const StyledIconCopy = styled(IconCopy)`
+  margin-right: ${space(1)};
 `;
 
 export default FeatureDisabled;
