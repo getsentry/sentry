@@ -1,5 +1,6 @@
 import React from 'react';
 
+import {callIfFunction} from 'app/utils/callIfFunction';
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import Form from 'app/views/settings/components/forms/form';
@@ -18,23 +19,12 @@ type Props = {
 };
 
 export default class CreateTeamForm extends React.Component<Props> {
-  handleSubmit = (data: Record<string, any>, onSuccess, onError) => {
-    const {onSubmit} = this.props;
-    if (typeof onSubmit !== 'function') {
-      return;
-    }
-
-    onSubmit(data as Payload, onSuccess, onError);
+  handleSubmit = (data: Record<string, any>, onSuccess: Function, onError: Function) => {
+    callIfFunction(this.props.onSubmit, data as Payload, onSuccess, onError);
   };
 
   handleCreateTeamSuccess = (data: Payload) => {
-    const {onSuccess} = this.props;
-
-    if (typeof onSuccess !== 'function') {
-      return;
-    }
-
-    onSuccess(data);
+    callIfFunction(this.props.onSuccess, data);
   };
 
   render() {
