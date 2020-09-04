@@ -21,9 +21,9 @@ import withOrganization from 'app/utils/withOrganization';
 import {Main} from 'app/components/layouts/thirds';
 import Pagination from 'app/components/pagination';
 
-import {getCommitsByRepository, CommitsByRepository} from '../utils';
-import ReleaseNoCommitData from '../releaseNoCommitData';
-import {ReleaseContext} from '../';
+import {getCommitsByRepository, CommitsByRepository} from './utils';
+import ReleaseNoCommitData from './releaseNoCommitData';
+import {ReleaseContext} from './';
 
 const COMMITS_PER_PAGE = 20;
 const ALL_REPOSITORIES_LABEL = t('All Repositories');
@@ -181,6 +181,7 @@ class ReleaseCommits extends AsyncView<Props, State> {
   }
 
   renderBody() {
+    console.log('HEREEEE');
     const {orgId} = this.props.params;
     const {commits, repos, activeRepo, commitsPageLinks} = this.state;
 
