@@ -7,7 +7,7 @@ from contextlib import contextmanager
 from functools import wraps
 
 from sentry.celery import app
-from sentry.utils import metrics
+from sentry.utils import metrics, snuba
 from sentry.utils.sdk import configure_scope, capture_exception
 
 
@@ -92,6 +92,9 @@ def track_group_async_operation(function):
                 tags={"status": 500 if response is False else 200},
             )
             return response
+        except snuba.RateLimitExceeded:
+            metrics.incr("group.update.async_response", sample_rate=1.0, tags={"status": 429})
+            raise
         except Exception:
             metrics.incr("group.update.async_response", sample_rate=1.0, tags={"status": 500})
             # Continue raising the error now that we've incr the metric

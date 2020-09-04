@@ -34,7 +34,7 @@ from sentry.models import (
 from sentry.plugins.base import plugins
 from sentry.plugins.bases import IssueTrackingPlugin2
 from sentry.signals import issue_deleted
-from sentry.utils import metrics
+from sentry.utils import metrics, snuba
 from sentry.utils.safe import safe_execute
 from sentry.utils.apidocs import scenario, attach_scenarios
 from sentry.utils.compat import zip
@@ -324,6 +324,9 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
 
             metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 200})
             return Response(data)
+        except snuba.RateLimitExceeded:
+            metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 429})
+            raise
         except Exception:
             metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 500})
             raise
@@ -400,6 +403,9 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 "group.update.http_response", sample_rate=1.0, tags={"status": e.status_code}
             )
             return Response(e.body, status=e.status_code)
+        except snuba.RateLimitExceeded:
+            metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 429})
+            raise
         except Exception:
             metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 500})
             raise
@@ -463,6 +469,9 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 )
             metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 200})
             return Response(status=202)
+        except snuba.RateLimitExceeded:
+            metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 429})
+            raise
         except Exception:
             metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 500})
             raise

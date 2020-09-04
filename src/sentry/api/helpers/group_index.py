@@ -56,7 +56,7 @@ from sentry.signals import (
 from sentry.tasks.deletion import delete_groups as delete_groups_task
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.merge import merge_groups
-from sentry.utils import metrics
+from sentry.utils import metrics, snuba
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.cursors import Cursor
 from sentry.utils.functional import extract_lazy_object
@@ -430,6 +430,9 @@ def track_update_groups(function):
     def wrapper(request, projects, *args, **kwargs):
         try:
             response = function(request, projects, *args, **kwargs)
+        except snuba.RateLimitExceeded:
+            metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 429})
+            raise
         except Exception:
             metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 500})
             # Continue raising the error now that we've incr the metric
