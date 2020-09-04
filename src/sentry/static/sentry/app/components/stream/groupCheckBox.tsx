@@ -7,14 +7,22 @@ import {t} from 'app/locale';
 import Checkbox from 'app/components/checkbox';
 import SelectedGroupStore from 'app/stores/selectedGroupStore';
 
-const GroupCheckBox = createReactClass({
+type Props = {
+  id: string;
+};
+
+type State = {
+  isSelected: boolean;
+};
+
+const GroupCheckBox = createReactClass<Props, State>({
   displayName: 'GroupCheckBox',
 
   propTypes: {
     id: PropTypes.string.isRequired,
   },
 
-  mixins: [Reflux.listenTo(SelectedGroupStore, 'onSelectedGroupChange')],
+  mixins: [Reflux.listenTo(SelectedGroupStore, 'onSelectedGroupChange') as any],
 
   getInitialState() {
     return {
@@ -22,7 +30,7 @@ const GroupCheckBox = createReactClass({
     };
   },
 
-  componentWillReceiveProps(nextProps) {
+  componentWillReceiveProps(nextProps: Props) {
     if (nextProps.id !== this.props.id) {
       this.setState({
         isSelected: SelectedGroupStore.isSelected(nextProps.id),
