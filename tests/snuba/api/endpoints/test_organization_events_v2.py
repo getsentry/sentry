@@ -271,6 +271,55 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             == "Invalid query. Project morty does not exist or is not an actively selected project."
         )
 
+    def test_not_project_in_query_but_in_header(self):
+        team = self.create_team(organization=self.organization, members=[self.user])
+
+        project = self.create_project(organization=self.organization, teams=[team])
+        project2 = self.create_project(organization=self.organization, teams=[team])
+
+        self.store_event(
+            data={"event_id": "a" * 32, "timestamp": self.min_ago, "fingerprint": ["group1"]},
+            project_id=project.id,
+        )
+        self.store_event(
+            data={"event_id": "b" * 32, "timestamp": self.min_ago, "fingerprint": ["group2"]},
+            project_id=project2.id,
+        )
+
+        query = {
+            "field": ["id", "project.id"],
+            "project": [project.id],
+            "query": "!project:{}".format(project2.slug),
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200
+        assert response.data["data"] == [{"id": "a" * 32, "project.id": project.id}]
+
+    def test_not_project_in_query_with_all_projects(self):
+        team = self.create_team(organization=self.organization, members=[self.user])
+
+        project = self.create_project(organization=self.organization, teams=[team])
+        project2 = self.create_project(organization=self.organization, teams=[team])
+
+        self.store_event(
+            data={"event_id": "a" * 32, "timestamp": self.min_ago, "fingerprint": ["group1"]},
+            project_id=project.id,
+        )
+        self.store_event(
+            data={"event_id": "b" * 32, "timestamp": self.min_ago, "fingerprint": ["group2"]},
+            project_id=project2.id,
+        )
+
+        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        query = {
+            "field": ["id", "project.id"],
+            "project": [-1],
+            "query": "!project:{}".format(project2.slug),
+        }
+        response = self.do_request(query, features=features)
+        assert response.status_code == 200
+        assert response.data["data"] == [{"id": "a" * 32, "project.id": project.id}]
+
     def test_project_condition_used_for_automatic_filters(self):
         project = self.create_project()
         self.store_event(
