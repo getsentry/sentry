@@ -67,7 +67,7 @@ const defaultProps = {
 type EventEntriesOrganization = {
   id?: string;
   slug: string;
-  features: Array<string>;
+  features?: Array<string>;
 };
 
 type Props = {
@@ -92,7 +92,7 @@ class EventEntries extends React.Component<Props> {
       id: PropTypes.string,
       slug: PropTypes.string.isRequired,
       features: PropTypes.arrayOf(PropTypes.string),
-    }),
+    }).isRequired,
     // event is not guaranteed in shared issue view
     event: SentryTypes.Event,
 
