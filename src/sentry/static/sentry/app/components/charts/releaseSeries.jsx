@@ -40,6 +40,7 @@ class ReleaseSeries extends React.Component {
     router: PropTypes.object,
     organization: SentryTypes.Organization,
     projects: PropTypes.arrayOf(PropTypes.number),
+    environments: PropTypes.arrayOf(PropTypes.string),
 
     period: PropTypes.string,
     start: PropTypes.oneOfType([PropTypes.instanceOf(Date), PropTypes.string]),
@@ -70,6 +71,7 @@ class ReleaseSeries extends React.Component {
   componentDidUpdate(prevProps) {
     if (
       !isEqual(prevProps.projects, this.props.projects) ||
+      !isEqual(prevProps.environments, this.props.environments) ||
       !isEqual(prevProps.start, this.props.start) ||
       !isEqual(prevProps.end, this.props.end) ||
       !isEqual(prevProps.period, this.props.period)
@@ -79,8 +81,14 @@ class ReleaseSeries extends React.Component {
   }
 
   fetchData() {
-    const {api, organization, projects, period, start, end} = this.props;
-    const conditions = {start, end, project: projects, statsPeriod: period};
+    const {api, organization, projects, environments, period, start, end} = this.props;
+    const conditions = {
+      start,
+      end,
+      project: projects,
+      environment: environments,
+      statsPeriod: period,
+    };
     getOrganizationReleases(api, organization, conditions)
       .then(releases => {
         this.setReleasesWithSeries(releases);

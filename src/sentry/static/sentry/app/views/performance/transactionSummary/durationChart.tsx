@@ -209,6 +209,7 @@ class DurationChart extends React.Component<Props> {
                     period={statsPeriod}
                     utc={utc}
                     projects={project}
+                    environments={environment}
                   >
                     {({releaseSeries}) => (
                       <TransitionChart loading={loading} reloading={reloading}>
