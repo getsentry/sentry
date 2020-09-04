@@ -129,7 +129,7 @@ def send_alert_event(event, rule, sentry_app_id):
         resource="event_alert", action="triggered", install=install, data=data
     )
 
-    send_and_save_webhook_request(sentry_app.webhook_url, sentry_app, request_data)
+    send_and_save_webhook_request(sentry_app, request_data)
 
 
 def _process_resource_change(action, sender, instance_id, retryer=None, *args, **kwargs):
@@ -314,14 +314,14 @@ def send_webhooks(installation, event, **kwargs):
 
         request_data = AppPlatformEvent(**kwargs)
         send_and_save_webhook_request(
-            servicehook.sentry_app.webhook_url, installation.sentry_app, request_data
+            installation.sentry_app, request_data, servicehook.sentry_app.webhook_url,
         )
 
 
 def ignore_unpublished_app_errors(func):
-    def wrapper(url, sentry_app, app_platform_event):
+    def wrapper(sentry_app, app_platform_event, url=None):
         try:
-            return func(url, sentry_app, app_platform_event)
+            return func(sentry_app, app_platform_event, url)
         except Exception:
             if sentry_app.is_published:
                 raise
@@ -332,7 +332,7 @@ def ignore_unpublished_app_errors(func):
 
 
 @ignore_unpublished_app_errors
-def send_and_save_webhook_request(url, sentry_app, app_platform_event):
+def send_and_save_webhook_request(sentry_app, app_platform_event, url=None):
     """
     Notify a SentryApp's webhook about an incident and log response on redis.
 
@@ -346,6 +346,7 @@ def send_and_save_webhook_request(url, sentry_app, app_platform_event):
     org_id = app_platform_event.install.organization_id
     event = "{}.{}".format(app_platform_event.resource, app_platform_event.action)
     slug = sentry_app.slug_for_metrics
+    url = url or sentry_app.webhook_url
 
     try:
         resp = safe_urlopen(

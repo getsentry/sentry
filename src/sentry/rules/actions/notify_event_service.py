@@ -54,7 +54,6 @@ def send_incident_alert_notification(action, incident, metric_value=None):
         return
 
     send_and_save_webhook_request(
-        sentry_app.webhook_url,
         sentry_app,
         AppPlatformEvent(
             resource="metric_alert",
