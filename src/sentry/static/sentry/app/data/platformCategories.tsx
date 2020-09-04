@@ -76,6 +76,15 @@ const backend = [
   'rust',
 ] as const;
 
+const serverless = [
+  'python-pythonawslambda',
+  'python-pythongcpfunctions',
+  'python-pythonazurefunctions',
+  'node-gcpfunctions',
+  'node-azurefunctions',
+  'node-awslambda',
+] as const;
+
 const desktop = ['cocoa', 'csharp', 'java', 'electron', 'minidump', 'native'] as const;
 
 const categoryList = [
@@ -84,6 +93,7 @@ const categoryList = [
   {id: 'server', name: t('Server'), platforms: backend},
   {id: 'mobile', name: t('Mobile'), platforms: mobile},
   {id: 'desktop', name: t('Desktop'), platforms: desktop},
+  {id: 'serverless', name: t('Serverless'), platforms: serverless},
 ] as const;
 
 export const sourceMaps: PlatformKey[] = [
@@ -93,7 +103,9 @@ export const sourceMaps: PlatformKey[] = [
   'electron',
 ];
 
-export const tracing = ['python-tracing', 'node-tracing'] as const;
+// TODO(epurkhiser): I've added these since there was a need to have them in
+// the platform key type. However I have not added them anywhere else.
+const tracing = ['python-tracing', 'node-tracing'] as const;
 
 export type PlatformKey =
   | typeof popular[number]
@@ -101,6 +113,7 @@ export type PlatformKey =
   | typeof mobile[number]
   | typeof backend[number]
   | typeof desktop[number]
+  | typeof serverless[number]
   | typeof tracing[number]
   | 'other';
 

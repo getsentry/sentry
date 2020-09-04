@@ -1,0 +1,3 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`platformIconList should return appropriate JSX 1`] = `undefined`;

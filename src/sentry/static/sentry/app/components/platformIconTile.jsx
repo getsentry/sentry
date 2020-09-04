@@ -16,6 +16,12 @@ const PLATFORM_ICONS = {
   'python-django': '\\e605',
   'python-flask': '\\e610',
   'ruby-rails': '\\e603',
+  'python-pythonazurefunctions': '\\e602',
+  'node-azurefunctions': '\\e609',
+  'python-pythonawslambda': '\\e602',
+  'node-awslambda': '\\e609',
+  'python-pythongcpfunctions': '\\e602',
+  'node-gcpfunctions': '\\e609',
   angular: '\\e900',
   angularjs: '\\e900',
   apple: '\\e60e',
@@ -61,12 +67,18 @@ const PLATFORM_COLORS = {
   'javascript-react': ['#2d2d2d', '#00d8ff'],
   'javascript-ember': ['#ed573e', '#fff'],
   'javascript-angular': ['#e03e2f', '#fff'],
+  'python-pythonazurefunctions': ['#3060b8'],
+  'python-pythonawslambda': ['#3060b8'],
+  'python-pythongcpfunctions': ['#3060b8'],
+  'node-awslambda': ['#90c541'],
+  'node-azurefunctions': ['#90c541'],
+  'node-gcpfunctions': ['#90c541'],
 };
 
-const selectPlatfrom = (object, platform) =>
-  object[platform] || object[platform.split('-')[0]];
+export const selectPlatfrom = (object, platform) =>
+  object[platform] || (platform && object[platform.split('-')[0]]);
 
-const getColorStyles = ({monoTone, platform}) => {
+export const getColorStyles = ({monoTone, platform}) => {
   const [bg, fg] = selectPlatfrom(PLATFORM_COLORS, platform) || [];
 
   return (
