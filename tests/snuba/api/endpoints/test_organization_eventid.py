@@ -5,6 +5,7 @@ from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.utils.compat.mock import patch
 
 
 class EventIdLookupEndpointTest(APITestCase, SnubaTestCase):
@@ -49,3 +50,20 @@ class EventIdLookupEndpointTest(APITestCase, SnubaTestCase):
         response = self.client.get(url, format="json")
 
         assert response.status_code == 404, response.content
+
+    @patch(
+        "sentry.api.endpoints.organization_eventid.ratelimiter.is_limited",
+        autospec=True,
+        return_value=True,
+    )
+    def test_ratelimit(self, is_limited):
+        url = reverse(
+            "sentry-api-0-event-id-lookup",
+            kwargs={"organization_slug": self.org.slug, "event_id": self.event.event_id},
+        )
+        resp = self.client.get(url, format="json")
+
+        assert resp.status_code == 429
+        assert resp.data == {
+            "detail": "You are attempting to use this endpoint too quickly. Limit is 100 requests/second."
+        }
