@@ -181,7 +181,6 @@ class ReleaseCommits extends AsyncView<Props, State> {
   }
 
   renderBody() {
-    console.log('HEREEEE');
     const {orgId} = this.props.params;
     const {commits, repos, activeRepo, commitsPageLinks} = this.state;
 
