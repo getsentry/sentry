@@ -195,6 +195,8 @@ jobs:
           run: |
             mkdir -p ${{ steps.config.outputs.acceptance-dir }}
             mkdir -p ${{ steps.config.outputs.acceptance-dir }}-mobile
+            mkdir -p ${{ steps.config.outputs.acceptance-dir }}-tooltips
+            [ "$GITHUB_REF" = "refs/heads/master" ] && export PYTEST_SENTRY_ALWAYS_REPORT=1
             make run-acceptance
           env:
             PYTEST_SNAPSHOTS_DIR: ${{ steps.config.outputs.acceptance-dir }}

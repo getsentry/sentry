@@ -38,6 +38,7 @@ const Time = React.memo(
             </div>
           }
           containerDisplayMode="inline-flex"
+          disableForVisualTest
         >
           <TextOverflow>
             {getDynamicText({
