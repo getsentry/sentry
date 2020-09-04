@@ -52,8 +52,8 @@ class TaggedEventForm(forms.Form):
         if (
             key == "release"
             and value == "latest"
-            and match != MatchType.EQUAL
-            and match != MatchType.NOT_EQUAL
+            and match
+            not in (MatchType.EQUAL, MatchType.NOT_EQUAL, MatchType.IS_SET, MatchType.NOT_SET)
         ):
             raise forms.ValidationError(
                 "When matching on latest release you must use 'equals' or 'does not equal'"
