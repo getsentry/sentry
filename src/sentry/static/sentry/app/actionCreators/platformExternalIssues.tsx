@@ -1,6 +1,11 @@
+import {Client} from 'app/api';
 import PlatformExternalIssueActions from 'app/actions/platformExternalIssueActions';
 
-export function deleteExternalIssue(api, groupId, externalIssueId) {
+export function deleteExternalIssue(
+  api: Client,
+  groupId: string,
+  externalIssueId: string
+) {
   PlatformExternalIssueActions.delete(groupId, externalIssueId);
 
   return new Promise((resolve, reject) =>
