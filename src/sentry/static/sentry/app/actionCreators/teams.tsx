@@ -1,16 +1,38 @@
+import {Client} from 'app/api';
 import TeamActions from 'app/actions/teamActions';
 import {tct} from 'app/locale';
 import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
 import {uniqueId} from 'app/utils/guid';
+import {Team} from 'app/types';
+import {callIfFunction} from 'app/utils/callIfFunction';
 
-const doCallback = (params = {}, name, ...args) => {
-  if (typeof params[name] === 'function') {
-    params[name](...args);
-  }
+type CallbackOptions = {
+  success?: Function;
+  error?: Function;
 };
 
+const doCallback = (
+  params: CallbackOptions = {},
+  name: keyof CallbackOptions,
+  ...args
+) => {
+  callIfFunction(params[name], ...args);
+};
+
+/**
+ * Note these are both slugs
+ */
+type OrgSlug = {orgId: string};
+type TeamSlug = {teamId: string};
+type TeamData = {data: Team};
+
+/**
+ * This is the actual internal id, not username or email
+ */
+type MemberId = {memberId: string};
+
 // Fetch teams for org
-export function fetchTeams(api, params, options) {
+export function fetchTeams(api: Client, params: OrgSlug, options: CallbackOptions) {
   TeamActions.fetchAll(params.orgId);
   return api.request(`/teams/${params.orgId}/`, {
     success: data => {
@@ -24,7 +46,11 @@ export function fetchTeams(api, params, options) {
   });
 }
 
-export function fetchTeamDetails(api, params, options) {
+export function fetchTeamDetails(
+  api: Client,
+  params: TeamSlug & OrgSlug,
+  options: CallbackOptions
+) {
   TeamActions.fetchDetails(params.teamId);
   return api.request(`/teams/${params.orgId}/${params.teamId}/`, {
     success: data => {
@@ -38,11 +64,15 @@ export function fetchTeamDetails(api, params, options) {
   });
 }
 
-export function updateTeamSuccess(teamId, data) {
+export function updateTeamSuccess(teamId: TeamSlug['teamId'], data: Team) {
   TeamActions.updateSuccess(teamId, data);
 }
 
-export function updateTeam(api, params, options) {
+export function updateTeam(
+  api: Client,
+  params: OrgSlug & TeamSlug & TeamData,
+  options: CallbackOptions
+) {
   const endpoint = `/teams/${params.orgId}/${params.teamId}/`;
   TeamActions.update(params.teamId, params.data);
 
@@ -60,7 +90,11 @@ export function updateTeam(api, params, options) {
   });
 }
 
-export function joinTeam(api, params, options) {
+export function joinTeam(
+  api: Client,
+  params: OrgSlug & TeamSlug & TeamData & MemberId,
+  options: CallbackOptions
+) {
   const endpoint = `/organizations/${params.orgId}/members/${params.memberId ||
     'me'}/teams/${params.teamId}/`;
   const id = uniqueId();
@@ -81,7 +115,11 @@ export function joinTeam(api, params, options) {
   });
 }
 
-export function leaveTeam(api, params, options) {
+export function leaveTeam(
+  api: Client,
+  params: OrgSlug & TeamSlug & MemberId,
+  options: CallbackOptions
+) {
   const endpoint = `/organizations/${params.orgId}/members/${params.memberId ||
     'me'}/teams/${params.teamId}/`;
   const id = uniqueId();
@@ -101,7 +139,7 @@ export function leaveTeam(api, params, options) {
   });
 }
 
-export function createTeam(api, team, params) {
+export function createTeam(api: Client, team: Pick<Team, 'slug'>, params: OrgSlug) {
   TeamActions.createTeam(team);
 
   return api
@@ -121,10 +159,10 @@ export function createTeam(api, team, params) {
         return data;
       },
       err => {
-        TeamActions.createTeamError(team.slug || team.name, err);
+        TeamActions.createTeamError(team.slug, err);
         addErrorMessage(
           tct('Unable to create [team] in the [organization] organization', {
-            team: `#${team.slug || team.name}`,
+            team: `#${team.slug}`,
             organization: params.orgId,
           })
         );
@@ -133,7 +171,7 @@ export function createTeam(api, team, params) {
     );
 }
 
-export function removeTeam(api, params) {
+export function removeTeam(api: Client, params: OrgSlug & TeamSlug) {
   TeamActions.removeTeam(params.teamId);
 
   return api
