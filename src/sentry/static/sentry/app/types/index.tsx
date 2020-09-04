@@ -1071,8 +1071,7 @@ export type Deploy = {
 
 export type Commit = {
   id: string;
-  key: string;
-  message: string;
+  message: string | null;
   dateCreated: string;
   repository?: Repository;
   author?: User;
