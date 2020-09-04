@@ -39,6 +39,7 @@
     "@types/lodash": "^4.14.134",
     "@types/marked": "^0.7.2",
     "@types/moment-timezone": "^0.5.12",
+    "@types/node": "^10.17.29",
     "@types/papaparse": "^4.5.11",
     "@types/react": "~16.9.19",
     "@types/react-bootstrap": "^0.32.19",
