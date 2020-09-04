@@ -18,6 +18,11 @@ import {formatPercentage} from 'app/utils/formatters';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import {t} from 'app/locale';
 import withProjects from 'app/utils/withProjects';
+import {IconEllipsis} from 'app/icons';
+import MenuItem from 'app/components/menuItem';
+import DropdownLink from 'app/components/dropdownLink';
+import withApi from 'app/utils/withApi';
+import {Client} from 'app/api';
 
 import Chart from './chart';
 import {
@@ -26,6 +31,7 @@ import {
   TrendsData,
   NormalizedTrendsTransaction,
   TrendFunctionField,
+  TrendsStats,
 } from './types';
 import {
   trendToColor,
@@ -35,11 +41,14 @@ import {
   normalizeTrendsTransactions,
   getSelectedQueryKey,
   getCurrentTrendFunction,
+  getTrendBaselinesForTransaction,
+  getIntervalRatio,
 } from './utils';
 import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
 import {HeaderTitleLegend} from '../styles';
 
 type Props = {
+  api: Client;
   organization: Organization;
   trendChangeType: TrendChangeType;
   previousTrendFunction?: TrendFunctionField;
@@ -113,6 +122,7 @@ function handleChangeSelected(
 
 function ChangedTransactions(props: Props) {
   const {
+    api,
     location,
     trendChangeType,
     previousTrendFunction,
@@ -145,7 +155,7 @@ function ChangedTransactions(props: Props) {
             events
           );
 
-          const results = eventsTrendsData && eventsTrendsData.stats;
+          const statsData = eventsTrendsData && eventsTrendsData.stats;
           const transactionsList = events && events.slice ? events.slice(0, 5) : [];
 
           const trendFunction = getCurrentTrendFunction(location);
@@ -163,7 +173,7 @@ function ChangedTransactions(props: Props) {
                 <React.Fragment>
                   <ChartContainer>
                     <Chart
-                      statsData={results}
+                      statsData={statsData}
                       query={trendView.query}
                       project={trendView.project}
                       environment={trendView.environment}
@@ -178,6 +188,7 @@ function ChangedTransactions(props: Props) {
                   <TransactionsList>
                     {transactionsList.map((transaction, index) => (
                       <TrendsListItem
+                        api={api}
                         currentTrendFunction={currentTrendFunction}
                         trendView={props.trendView}
                         organization={organization}
@@ -188,6 +199,7 @@ function ChangedTransactions(props: Props) {
                         transactions={transactionsList}
                         location={location}
                         projects={projects}
+                        statsData={statsData}
                         handleSelectTransaction={handleChangeSelected(
                           location,
                           trendChangeType,
@@ -211,6 +223,7 @@ function ChangedTransactions(props: Props) {
 }
 
 type TrendsListItemProps = {
+  api: Client;
   trendView: TrendView;
   organization: Organization;
   transaction: NormalizedTrendsTransaction;
@@ -220,6 +233,7 @@ type TrendsListItemProps = {
   projects: Project[];
   location: Location;
   index: number;
+  statsData: TrendsStats;
   handleSelectTransaction: (transaction: NormalizedTrendsTransaction) => void;
 };
 
@@ -255,6 +269,24 @@ function TrendsListItem(props: TrendsListItemProps) {
       <ItemTransactionNameContainer>
         <ItemTransactionName>
           <TransactionLink {...props} />
+          <TransactionMenuContainer>
+            <DropdownLink
+              caret={false}
+              title={
+                <TransactionMenuButton>
+                  <IconEllipsis
+                    size="sm"
+                    data-test-id="trends-item-action"
+                    color="gray600"
+                  />
+                </TransactionMenuButton>
+              }
+            >
+              <MenuItem>
+                <TransactionSummaryLink {...props} />
+              </MenuItem>
+            </DropdownLink>
+          </TransactionMenuContainer>
         </ItemTransactionName>
         <ItemTransactionAbsoluteFaster>
           {transformDeltaSpread(
@@ -324,6 +356,45 @@ function TrendsListItem(props: TrendsListItemProps) {
 type TransactionLinkProps = TrendsListItemProps & {};
 
 const TransactionLink = (props: TransactionLinkProps) => {
+  const {
+    organization,
+    trendView: eventView,
+    transaction,
+    api,
+    statsData,
+    location,
+  } = props;
+  const summaryView = eventView.clone();
+  const intervalRatio = getIntervalRatio(location);
+
+  async function onLinkClick() {
+    const baselines = await getTrendBaselinesForTransaction(
+      api,
+      organization,
+      eventView,
+      statsData,
+      intervalRatio,
+      transaction
+    );
+    if (baselines) {
+      const {previousPeriod, currentPeriod} = baselines;
+      const comparisonString = `${previousPeriod.project}:${previousPeriod.id}/${currentPeriod.project}:${currentPeriod.id}`;
+      browserHistory.push({
+        pathname: `/organizations/${organization.slug}/performance/compare/${comparisonString}/`,
+        query: {
+          ...summaryView.generateQueryStringObject(),
+          transaction: String(transaction.transaction),
+        },
+      });
+    }
+  }
+
+  return <StyledLink onClick={onLinkClick}>{transaction.transaction}</StyledLink>;
+};
+
+type TransactionSummaryLinkProps = TrendsListItemProps & {};
+
+const TransactionSummaryLink = (props: TransactionSummaryLinkProps) => {
   const {organization, trendView: eventView, transaction, projects} = props;
 
   const summaryView = eventView.clone();
@@ -335,11 +406,38 @@ const TransactionLink = (props: TransactionLinkProps) => {
     projectID,
   });
 
-  return <StyledLink to={target}>{transaction.transaction}</StyledLink>;
+  return <StyledSummaryLink to={target}>{t('View Summary')}</StyledSummaryLink>;
 };
 
-const StyledLink = styled(Link)`
+const StyledLink = styled('a')`
   word-break: break-all;
+`;
+
+const StyledSummaryLink = styled(Link)`
+  color: ${p => p.theme.textColor};
+  :hover {
+    color: ${p => p.theme.textColor};
+  }
+`;
+
+const TransactionMenuButton = styled('button')`
+  display: flex;
+  height: 100%;
+  justify-content: center;
+  align-items: center;
+  padding: 0 ${space(1)};
+
+  border: 0;
+  background: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+  outline: none;
+`;
+const TransactionMenuContainer = styled('div')`
+  height: 100%;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
 `;
 
 const TransactionsList = styled('div')``;
@@ -359,7 +457,11 @@ const ItemRadioContainer = styled('div')`
 const ItemTransactionNameContainer = styled('div')`
   flex-grow: 1;
 `;
-const ItemTransactionName = styled('div')``;
+const ItemTransactionName = styled('div')`
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+`;
 const ItemTransactionAbsoluteFaster = styled('div')`
   color: ${p => p.theme.gray500};
   font-size: 14px;
@@ -397,4 +499,4 @@ const EmptyStateContainer = styled('div')`
 
 const StyledPanel = styled(Panel)``;
 
-export default withProjects(withOrganization(ChangedTransactions));
+export default withApi(withProjects(withOrganization(ChangedTransactions)));
