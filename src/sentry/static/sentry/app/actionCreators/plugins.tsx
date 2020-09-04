@@ -6,12 +6,20 @@ import {
 } from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 import PluginActions from 'app/actions/pluginActions';
+import {Plugin} from 'app/types';
 
 const activeFetch = {};
 // PluginsStore always exists, so api client should be independent of component lifecycle
 const api = new Client();
 
-function doUpdate({orgId, projectId, pluginId, update, ...params}) {
+type DoUpdateParams = {
+  orgId: string;
+  projectId: string;
+  pluginId: string;
+  update: Partial<Plugin>;
+};
+
+function doUpdate({orgId, projectId, pluginId, update, ...params}: DoUpdateParams) {
   PluginActions.update(pluginId, update);
   const request = api.requestPromise(
     `/projects/${orgId}/${projectId}/plugins/${pluginId}/`,
@@ -97,7 +105,7 @@ type EnableDisablePluginParams = {
  * @param {string} params.pluginId Plugin ID
  * @return Promise
  */
-export function enablePlugin(params) {
+export function enablePlugin(params: EnableDisablePluginParams) {
   addLoadingMessage(t('Enabling...'));
   return doUpdate({...params, update: {enabled: true}, method: 'POST'})
     .then(() => addSuccessMessage(t('Plugin was enabled')))
@@ -112,7 +120,7 @@ export function enablePlugin(params) {
  * @param {string} params.projectId Project ID
  * @param {string} params.pluginId Plugin ID
  */
-export function disablePlugin(params) {
+export function disablePlugin(params: EnableDisablePluginParams) {
   addLoadingMessage(t('Disabling...'));
   return doUpdate({...params, update: {enabled: false}, method: 'DELETE'})
     .then(() => addSuccessMessage(t('Plugin was disabled')))
