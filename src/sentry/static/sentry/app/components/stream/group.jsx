@@ -229,7 +229,6 @@ const StreamGroup = createReactClass({
         {withChart && (
           <Box width={160} mx={2} className="hidden-xs hidden-sm">
             <GroupChart
-              id={data.id}
               statsPeriod={statsPeriod}
               data={data}
               hasDynamicIssueCounts={hasDynamicIssueCounts}

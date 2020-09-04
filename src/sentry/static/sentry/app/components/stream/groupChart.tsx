@@ -2,9 +2,20 @@ import LazyLoad from 'react-lazyload';
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import {Group, GroupStats} from 'app/types';
 import BarChart from 'app/components/barChart';
 
-class GroupChart extends React.Component {
+const defaultProps = {
+  height: 24,
+};
+
+type Props = {
+  statsPeriod: string;
+  data: Group;
+  hasDynamicIssueCounts?: boolean;
+} & typeof defaultProps;
+
+class GroupChart extends React.Component<Props> {
   static propTypes = {
     statsPeriod: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
@@ -12,23 +23,13 @@ class GroupChart extends React.Component {
     hasDynamicIssueCounts: PropTypes.bool,
   };
 
-  static defaultProps = {
-    height: 24,
-  };
-
-  shouldComponentUpdate(nextProps) {
-    // Sometimes statsPeriod updates before graph data has been
-    // pulled from server / propagated down to components ...
-    // don't update until data is available
-    const {data, statsPeriod} = nextProps;
-    return data.hasOwnProperty(statsPeriod);
-  }
+  static defaultProps = defaultProps;
 
   render() {
     const {data, hasDynamicIssueCounts, height, statsPeriod} = this.props;
     // TODO: @taylangocmen pass filtered and unfiltered stats separately to chart and render both
 
-    const stats = statsPeriod
+    const stats: GroupStats[] = statsPeriod
       ? hasDynamicIssueCounts && data.filtered
         ? data.filtered.stats[statsPeriod]
         : data.stats[statsPeriod]
