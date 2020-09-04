@@ -1,4 +1,4 @@
-import {Client} from 'app/api';
+import {Client, RequestOptions} from 'app/api';
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -17,7 +17,7 @@ type DoUpdateParams = {
   projectId: string;
   pluginId: string;
   update: Partial<Plugin>;
-};
+} & Partial<RequestOptions>;
 
 function doUpdate({orgId, projectId, pluginId, update, ...params}: DoUpdateParams) {
   PluginActions.update(pluginId, update);
