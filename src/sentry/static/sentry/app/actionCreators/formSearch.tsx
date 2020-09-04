@@ -1,18 +1,22 @@
 import flatten from 'lodash/flatten';
 import flatMap from 'lodash/flatMap';
 
+import {Field, JsonFormObject} from 'app/views/settings/components/forms/type';
 import FormSearchActions from 'app/actions/formSearchActions';
 
+type Params = {
+  route: string;
+  formGroups: JsonFormObject[];
+  fields: Record<string, Field>;
+};
 /**
  * Creates a list of objects to be injected by a search source
  *
- * @param {Object} formDataModule Exported object from a form configuration file
- * @param {String} formDataModule.route The route a form field belongs on
- * @param {Array<FormGroup>} formDataModule.formGroups An array of `FormGroup: {title: String, fields: [Field]}`
- * @param {Map<String, Field>} formDataModule.fields An object whose key is field name and value is a `Field`
- * @return {Array<SearchSource>} Returns a list of SearchSource objects
+ * @param route The route a form field belongs on
+ * @param formGroups An array of `FormGroup: {title: String, fields: [Field]}`
+ * @param fields An object whose key is field name and value is a `Field`
  */
-const createSearchMap = ({route, formGroups, fields, ...other}) => {
+const createSearchMap = ({route, formGroups, fields, ...other}: Params) => {
   // There are currently two ways to define forms (TODO(billy): Turn this into one):
   // If `formGroups` is defined, then return a flattened list of fields in all formGroups
   // Otherwise `fields` is a map of fieldName -> fieldObject -- create a list of fields
@@ -23,8 +27,8 @@ const createSearchMap = ({route, formGroups, fields, ...other}) => {
   return listOfFields.map(field => ({
     ...other,
     route,
-    title: field.label,
-    description: field.help,
+    title: typeof field !== 'function' ? field.label : null,
+    description: typeof field !== 'function' ? field.help : null,
     field,
   }));
 };
@@ -32,7 +36,7 @@ const createSearchMap = ({route, formGroups, fields, ...other}) => {
 export function loadSearchMap() {
   // Load all form configuration files via webpack that export a named `route`
   // as well as either `fields` or `formGroups`
-  const context = require.context('../data/forms', true, /\.jsx$/);
+  const context = require.context('../data/forms', true, /\.[tj]sx?$/);
 
   // Get a list of all form fields defined in `../data/forms`
   const allFormFields = flatten(
