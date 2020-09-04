@@ -1,4 +1,4 @@
-import {Client} from 'app/api';
+import {Client, RequestOptions} from 'app/api';
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -6,12 +6,34 @@ import {
 } from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 import PluginActions from 'app/actions/pluginActions';
+import {Plugin} from 'app/types';
 
 const activeFetch = {};
 // PluginsStore always exists, so api client should be independent of component lifecycle
 const api = new Client();
 
-function doUpdate({orgId, projectId, pluginId, update, ...params}) {
+type Slugs = {
+  /**
+   * Organization slug
+   */
+  orgId: string;
+
+  /**
+   * Project slug
+   */
+  projectId: string;
+
+  /**
+   * Plugin slug
+   */
+  pluginId: string;
+};
+
+type DoUpdateParams = Slugs & {
+  update: Partial<Plugin>;
+} & Partial<RequestOptions>;
+
+function doUpdate({orgId, projectId, pluginId, update, ...params}: DoUpdateParams) {
   PluginActions.update(pluginId, update);
   const request = api.requestPromise(
     `/projects/${orgId}/${projectId}/plugins/${pluginId}/`,
@@ -36,17 +58,20 @@ function doUpdate({orgId, projectId, pluginId, update, ...params}) {
   return request;
 }
 
+type FetchPluginsOptions = {
+  /**
+   * Reset will set loading state = true
+   */
+  resetLoading?: boolean;
+};
+
 /**
  * Fetches list of available plugins for a project
- *
- * @param {object} params
- * @param {string} params.orgId Organization ID
- * @param {string} params.projectId Project ID
- * @param {object} options
- * @param {boolean} options.resetLoading Reset will set loading state = true
- * @return Promise
  */
-export function fetchPlugins({orgId, projectId}, options) {
+export function fetchPlugins(
+  {orgId, projectId}: Pick<Slugs, 'orgId' | 'projectId'>,
+  options?: FetchPluginsOptions
+) {
   const path = `/projects/${orgId}/${projectId}/plugins/`;
 
   // Make sure we throttle fetches
@@ -57,13 +82,14 @@ export function fetchPlugins({orgId, projectId}, options) {
   PluginActions.fetchAll(options);
   const request = api.requestPromise(path, {
     method: 'GET',
+    includeAllArgs: true,
   });
 
   activeFetch[path] = request;
 
   // This is intentionally not chained because we want the unhandled promise to be returned
   request
-    .then((data, _, jqXHR) => {
+    .then(([data, _, jqXHR]) => {
       PluginActions.fetchAllSuccess(data, {
         pageLinks: jqXHR && jqXHR.getResponseHeader('Link'),
       });
@@ -79,16 +105,12 @@ export function fetchPlugins({orgId, projectId}, options) {
   return request;
 }
 
+type EnableDisablePluginParams = Slugs;
+
 /**
  * Enables a plugin
- *
- * @param {object} params
- * @param {string} params.orgId Organization ID
- * @param {string} params.projectId Project ID
- * @param {string} params.pluginId Plugin ID
- * @return Promise
  */
-export function enablePlugin(params) {
+export function enablePlugin(params: EnableDisablePluginParams) {
   addLoadingMessage(t('Enabling...'));
   return doUpdate({...params, update: {enabled: true}, method: 'POST'})
     .then(() => addSuccessMessage(t('Plugin was enabled')))
@@ -97,13 +119,8 @@ export function enablePlugin(params) {
 
 /**
  * Disables a plugin
- *
- * @param {object} params
- * @param {string} params.orgId Organization ID
- * @param {string} params.projectId Project ID
- * @param {string} params.pluginId Plugin ID
  */
-export function disablePlugin(params) {
+export function disablePlugin(params: EnableDisablePluginParams) {
   addLoadingMessage(t('Disabling...'));
   return doUpdate({...params, update: {enabled: false}, method: 'DELETE'})
     .then(() => addSuccessMessage(t('Plugin was disabled')))
