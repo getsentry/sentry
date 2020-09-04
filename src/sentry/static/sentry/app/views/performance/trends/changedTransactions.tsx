@@ -7,7 +7,7 @@ import {Panel} from 'app/components/panels';
 import Pagination from 'app/components/pagination';
 import withOrganization from 'app/utils/withOrganization';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
-import {Organization, Project} from 'app/types';
+import {Organization, Project, AvatarProject} from 'app/types';
 import {decodeScalar} from 'app/utils/queryString';
 import space from 'app/styles/space';
 import {RadioLineItem} from 'app/views/settings/components/forms/controls/radioGroup';
@@ -15,15 +15,17 @@ import Link from 'app/components/links/link';
 import Radio from 'app/components/radio';
 import Tooltip from 'app/components/tooltip';
 import Count from 'app/components/count';
-import {formatPercentage} from 'app/utils/formatters';
+import {formatPercentage, getDuration} from 'app/utils/formatters';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import {t} from 'app/locale';
 import withProjects from 'app/utils/withProjects';
 import {IconEllipsis} from 'app/icons';
 import MenuItem from 'app/components/menuItem';
 import DropdownLink from 'app/components/dropdownLink';
+import ProjectAvatar from 'app/components/avatar/projectAvatar';
 import withApi from 'app/utils/withApi';
 import {Client} from 'app/api';
+import QuestionTooltip from 'app/components/questionTooltip';
 
 import Chart from './chart';
 import {
@@ -190,11 +192,19 @@ function ChangedTransactions(props: Props) {
             ? previousTrendFunction
             : trendFunction.field;
 
+        const titleTooltipContent = t(
+          'This compares the baseline (%s) of the past with the present.',
+          trendFunction.legendLabel
+        );
+
         return (
           <ChangedTransactionsContainer>
             <StyledPanel>
               <ContainerTitle>
-                <HeaderTitleLegend>{chartTitle}</HeaderTitleLegend>
+                <HeaderTitleLegend>
+                  {chartTitle}{' '}
+                  <QuestionTooltip size="sm" position="top" title={titleTooltipContent} />
+                </HeaderTitleLegend>
               </ContainerTitle>
               {transactionsList.length ? (
                 <React.Fragment>
@@ -273,6 +283,7 @@ function TrendsListItem(props: TrendsListItemProps) {
     currentTrendFunction,
     index,
     location,
+    projects,
     handleSelectTransaction,
   } = props;
   const color = trendToColor[trendChangeType];
@@ -283,6 +294,32 @@ function TrendsListItem(props: TrendsListItemProps) {
     transactions
   );
   const isSelected = selectedTransaction === transaction;
+
+  const project = projects.find(
+    ({slug}) => slug === transaction.project
+  ) as AvatarProject;
+
+  const currentPeriodValue = transaction.aggregate_range_2;
+  const previousPeriodValue = transaction.aggregate_range_1;
+
+  const percentChange = formatPercentage(
+    transaction.percentage_aggregate_range_2_aggregate_range_1 - 1,
+    0
+  );
+
+  const absolutePercentChange = formatPercentage(
+    Math.abs(transaction.percentage_aggregate_range_2_aggregate_range_1 - 1),
+    0
+  );
+
+  const percentChangeExplanation = t(
+    'Over this period, the duration for %s has %s %s from %s to %s',
+    currentTrendFunction,
+    trendChangeType === TrendChangeType.IMPROVED ? t('decreased') : t('increased'),
+    absolutePercentChange,
+    getDuration(previousPeriodValue / 1000, previousPeriodValue < 1000 ? 0 : 2),
+    getDuration(currentPeriodValue / 1000, currentPeriodValue < 1000 ? 0 : 2)
+  );
 
   return (
     <ListItemContainer>
@@ -296,7 +333,20 @@ function TrendsListItem(props: TrendsListItemProps) {
       </ItemRadioContainer>
       <ItemTransactionNameContainer>
         <ItemTransactionName>
-          <TransactionLink {...props} />
+          <Tooltip
+            title={
+              <TooltipContent>
+                <span>{t('Total Events')}</span>
+                <span>
+                  <Count value={transaction.count_range_1} />
+                  {' → '}
+                  <Count value={transaction.count_range_2} />
+                </span>
+              </TooltipContent>
+            }
+          >
+            <TransactionLink {...props} />
+          </Tooltip>
           <TransactionMenuContainer>
             <DropdownLink
               caret={false}
@@ -316,28 +366,24 @@ function TrendsListItem(props: TrendsListItemProps) {
             </DropdownLink>
           </TransactionMenuContainer>
         </ItemTransactionName>
-        <ItemTransactionAbsoluteFaster>
-          {transformDeltaSpread(
-            transaction.aggregate_range_1,
-            transaction.aggregate_range_2,
-            currentTrendFunction
+        <ItemTransactionNameSecondary>
+          {project && (
+            <Tooltip title={transaction.project}>
+              <StyledProjectAvatar project={project} />
+            </Tooltip>
           )}
-        </ItemTransactionAbsoluteFaster>
+          <ItemTransactionAbsoluteFaster>
+            {transformDeltaSpread(
+              transaction.aggregate_range_1,
+              transaction.aggregate_range_2,
+              currentTrendFunction
+            )}
+          </ItemTransactionAbsoluteFaster>
+        </ItemTransactionNameSecondary>
       </ItemTransactionNameContainer>
       <ItemTransactionPercentContainer>
-        <Tooltip
-          title={
-            <TooltipContent>
-              <span>{t('Total Events')}</span>
-              <span>
-                <Count value={transaction.count_range_1} />
-                {' → '}
-                <Count value={transaction.count_range_2} />
-              </span>
-            </TooltipContent>
-          }
-        >
-          <ItemTransactionPrimary>
+        <ItemTransactionPrimary>
+          <Tooltip title={percentChangeExplanation}>
             {currentTrendFunction === TrendFunctionField.USER_MISERY ? (
               <React.Fragment>
                 {transformValueDelta(
@@ -355,16 +401,13 @@ function TrendsListItem(props: TrendsListItemProps) {
                 )}
               </React.Fragment>
             )}
-          </ItemTransactionPrimary>
-        </Tooltip>
+          </Tooltip>
+        </ItemTransactionPrimary>
         <ItemTransactionSecondary color={color}>
           {currentTrendFunction === TrendFunctionField.USER_MISERY ? (
             <React.Fragment>
               {trendChangeType === TrendChangeType.REGRESSION ? '+' : ''}
-              {formatPercentage(
-                transaction.percentage_aggregate_range_2_aggregate_range_1 - 1,
-                0
-              )}
+              {percentChange}
             </React.Fragment>
           ) : (
             <React.Fragment>
@@ -491,9 +534,16 @@ const ItemTransactionName = styled('div')`
   justify-content: flex-start;
   align-items: center;
 `;
+const ItemTransactionNameSecondary = styled('div')`
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+`;
+
 const ItemTransactionAbsoluteFaster = styled('div')`
   color: ${p => p.theme.gray500};
   font-size: 14px;
+  margin-left: ${space(2)};
 `;
 const ItemTransactionPrimary = styled('div')``;
 const ItemTransactionSecondary = styled('div')`
@@ -525,6 +575,8 @@ const ChartContainer = styled('div')`
 const EmptyStateContainer = styled('div')`
   padding: ${space(4)} 0;
 `;
+
+const StyledProjectAvatar = styled(ProjectAvatar)``;
 
 const StyledPanel = styled(Panel)``;
 
