@@ -12,10 +12,24 @@ const activeFetch = {};
 // PluginsStore always exists, so api client should be independent of component lifecycle
 const api = new Client();
 
-type DoUpdateParams = {
+type Slugs = {
+  /**
+   * Organization slug
+   */
   orgId: string;
+
+  /**
+   * Project slug
+   */
   projectId: string;
+
+  /**
+   * Plugin slug
+   */
   pluginId: string;
+};
+
+type DoUpdateParams = Slugs & {
   update: Partial<Plugin>;
 } & Partial<RequestOptions>;
 
@@ -44,16 +58,19 @@ function doUpdate({orgId, projectId, pluginId, update, ...params}: DoUpdateParam
   return request;
 }
 
+type FetchPluginsOptions = {
+  /**
+   * Reset will set loading state = true
+   */
+  resetLoading?: boolean;
+};
+
 /**
  * Fetches list of available plugins for a project
- *
- * @param orgId Organization ID
- * @param projectId Project ID
- * @param resetLoading Reset will set loading state = true
  */
 export function fetchPlugins(
-  {orgId, projectId}: {orgId: string; projectId: string},
-  options?: {resetLoading?: boolean}
+  {orgId, projectId}: Pick<Slugs, 'orgId' | 'projectId'>,
+  options?: FetchPluginsOptions
 ) {
   const path = `/projects/${orgId}/${projectId}/plugins/`;
 
@@ -88,22 +105,10 @@ export function fetchPlugins(
   return request;
 }
 
-type EnableDisablePluginParams = {
-  /**
-   * Organization slug
-   */
-  orgId: string;
-  projectId: string;
-  pluginId: string;
-};
+type EnableDisablePluginParams = Slugs;
+
 /**
  * Enables a plugin
- *
- * @param {object} params
- * @param {string} params.orgId Organization ID
- * @param {string} params.projectId Project ID
- * @param {string} params.pluginId Plugin ID
- * @return Promise
  */
 export function enablePlugin(params: EnableDisablePluginParams) {
   addLoadingMessage(t('Enabling...'));
@@ -114,11 +119,6 @@ export function enablePlugin(params: EnableDisablePluginParams) {
 
 /**
  * Disables a plugin
- *
- * @param {object} params
- * @param {string} params.orgId Organization ID
- * @param {string} params.projectId Project ID
- * @param {string} params.pluginId Plugin ID
  */
 export function disablePlugin(params: EnableDisablePluginParams) {
   addLoadingMessage(t('Disabling...'));
