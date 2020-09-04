@@ -129,6 +129,7 @@ function ChangedTransactions(props: Props) {
         orgSlug={organization.slug}
         location={location}
         trendChangeType={trendChangeType}
+        limit={5}
       >
         {({isLoading, tableData}) => {
           const eventsTrendsData = (tableData as unknown) as TrendsData;

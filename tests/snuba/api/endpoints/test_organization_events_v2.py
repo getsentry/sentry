@@ -289,8 +289,35 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.data["data"][0]["project"] == project.slug
         assert "project.id" not in response.data["data"][0]
 
-    def test_user_search(self):
+    def test_auto_insert_project_name_when_event_id_present(self):
+        project = self.create_project()
+        self.store_event(
+            data={"event_id": "a" * 32, "environment": "staging", "timestamp": self.min_ago},
+            project_id=project.id,
+        )
+        query = {
+            "field": ["id"],
+            "statsPeriod": "1h",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [{"project.name": project.slug, "id": "a" * 32}]
 
+    def test_auto_insert_project_name_when_event_id_present_with_aggregate(self):
+        project = self.create_project()
+        self.store_event(
+            data={"event_id": "a" * 32, "environment": "staging", "timestamp": self.min_ago},
+            project_id=project.id,
+        )
+        query = {
+            "field": ["id", "count()"],
+            "statsPeriod": "1h",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [{"project.name": project.slug, "id": "a" * 32, "count": 1}]
+
+    def test_user_search(self):
         project = self.create_project()
         data = load_data("transaction", timestamp=before_now(minutes=1))
         data["user"] = {
@@ -321,7 +348,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             assert response.data["data"][0]["user"] == "id:123"
 
     def test_has_user(self):
-
         project = self.create_project()
         data = load_data("transaction", timestamp=before_now(minutes=1))
         self.store_event(data, project_id=project.id)
@@ -336,7 +362,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             assert response.data["data"][0]["user"] == "ip:{}".format(data["user"]["ip_address"])
 
     def test_has_issue(self):
-
         project = self.create_project()
         event = self.store_event(
             {"timestamp": iso_format(before_now(minutes=1))}, project_id=project.id
