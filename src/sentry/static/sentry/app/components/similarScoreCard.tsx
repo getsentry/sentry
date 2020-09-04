@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
@@ -12,35 +11,22 @@ const scoreComponents = {
   'message:message:character-shingles': t('Log Message'),
 };
 
-class SimilarScoreCard extends React.Component {
-  static propTypes = {
-    scoreList: PropTypes.arrayOf(PropTypes.array),
-  };
+type Props = {
+  scoreList: Array<[string, number | null]>;
+};
 
-  static defaultProps = {
-    scoreList: [],
-  };
+const SimilarScoreCard = ({scoreList}: Props) =>
+  scoreList.length > 0 ? (
+    <div>
+      {scoreList.map(([key, score]) => (
+        <Wrapper key={key}>
+          <div>{scoreComponents[key]}</div>
 
-  render() {
-    const {scoreList} = this.props;
-
-    if (!scoreList.length) {
-      return null;
-    }
-
-    return (
-      <div>
-        {scoreList.map(([key, score]) => (
-          <Wrapper key={key}>
-            <div>{scoreComponents[key]}</div>
-
-            <Score score={score === null ? score : Math.round(score * 5)} />
-          </Wrapper>
-        ))}
-      </div>
-    );
-  }
-}
+          <Score score={score === null ? score : Math.round(score * 5)} />
+        </Wrapper>
+      ))}
+    </div>
+  ) : null;
 
 const Wrapper = styled('div')`
   display: flex;
@@ -48,7 +34,7 @@ const Wrapper = styled('div')`
   margin: ${space(0.25)} 0;
 `;
 
-const Score = styled('div')`
+const Score = styled('div')<{score: number | null}>`
   height: 16px;
   width: 48px;
   border-radius: 2px;
