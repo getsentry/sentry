@@ -5,8 +5,18 @@ import {buildUserId, buildTeamId} from 'app/utils';
 import {uniqueId} from 'app/utils/guid';
 import GroupActions from 'app/actions/groupActions';
 import GroupStore from 'app/stores/groupStore';
+import {Member, User, Group, Actor, Note} from 'app/types';
 
-export function assignToUser(params) {
+type IssueId = {
+  /**
+   * Issue id
+   */
+  id: string;
+};
+
+type AssignToUserParams = IssueId & {member?: Member; user: User};
+
+export function assignToUser(params: AssignToUserParams) {
   const api = new Client();
 
   const endpoint = `/issues/${params.id}/`;
@@ -38,7 +48,7 @@ export function assignToUser(params) {
   return request;
 }
 
-export function clearAssignment(groupId) {
+export function clearAssignment(groupId: string) {
   const api = new Client();
 
   const endpoint = `/issues/${groupId}/`;
@@ -68,7 +78,15 @@ export function clearAssignment(groupId) {
   return request;
 }
 
-export function assignToActor({id, actor}) {
+type AssignToActorParams = {
+  /**
+   * Issue id
+   */
+  id: string;
+  actor: Pick<Actor, 'id' | 'type'>;
+};
+
+export function assignToActor({id, actor}: AssignToActorParams) {
   const api = new Client();
 
   const endpoint = `/issues/${id}/`;
@@ -107,7 +125,7 @@ export function assignToActor({id, actor}) {
     });
 }
 
-export function deleteNote(api, group, id, oldText) {
+export function deleteNote(api: Client, group: Group, id: string, oldText: string) {
   const index = GroupStore.removeActivity(group.id, id);
   if (index === -1) {
     // I dunno, the id wasn't found in the GroupStore
@@ -125,7 +143,7 @@ export function deleteNote(api, group, id, oldText) {
   return promise;
 }
 
-export function createNote(api, group, note) {
+export function createNote(api: Client, group: Group, note: Note) {
   const promise = api.requestPromise(`/issues/${group.id}/comments/`, {
     method: 'POST',
     data: note,
@@ -136,7 +154,13 @@ export function createNote(api, group, note) {
   return promise;
 }
 
-export function updateNote(api, group, note, id, oldText) {
+export function updateNote(
+  api: Client,
+  group: Group,
+  note: Note,
+  id: string,
+  oldText: string
+) {
   GroupStore.updateActivity(group.id, id, {text: note.text});
 
   const promise = api.requestPromise(`/issues/${group.id}/comments/${id}/`, {

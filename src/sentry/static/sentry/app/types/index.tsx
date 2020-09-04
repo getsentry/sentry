@@ -1408,3 +1408,18 @@ export type Frame = {
   mapUrl?: string;
   instructionAddr?: string;
 };
+
+/**
+ * Note used in Group Activity and Alerts for users to comment
+ */
+export type Note = {
+  /**
+   * Note contents (markdown allowed)
+   */
+  text: string;
+
+  /**
+   * Array of [id, display string] tuples used for @-mentions
+   */
+  mentions: [string, string][];
+};
