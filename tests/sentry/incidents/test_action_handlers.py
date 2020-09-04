@@ -13,10 +13,11 @@ from six.moves.urllib.parse import parse_qs
 
 from sentry.incidents.action_handlers import (
     EmailActionHandler,
-    SlackActionHandler,
+    generate_incident_trigger_email_context,
     MsTeamsActionHandler,
     PagerDutyActionHandler,
-    generate_incident_trigger_email_context,
+    SentryAppActionHandler,
+    SlackActionHandler,
 )
 from sentry.incidents.logic import update_incident_status
 from sentry.incidents.models import (
@@ -26,6 +27,7 @@ from sentry.incidents.models import (
     TriggerStatus,
     INCIDENT_STATUS,
 )
+from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.models import Integration, PagerDutyService, UserOption
 from sentry.testutils import TestCase
 from sentry.utils import json
@@ -391,6 +393,48 @@ class PagerDutyActionHandlerTest(FireTest, TestCase):
             integration_key=service[0]["integration_key"],
             organization_integration=self.integration.organizationintegration_set.first(),
         )
+        self.run_fire_test()
+
+    def test_resolve_metric_alert(self):
+        self.run_fire_test("resolve")
+
+
+@freeze_time()
+class SentryAppActionHandlerTest(FireTest, TestCase):
+    def setUp(self):
+        self.sentry_app = self.create_sentry_app(
+            name="foo", organization=self.organization, is_alertable=True, verify_install=False,
+        )
+        self.create_sentry_app_installation(
+            slug=self.sentry_app.slug, organization=self.organization, user=self.user
+        )
+
+    @responses.activate
+    def run_test(self, incident, method):
+        action = self.create_alert_rule_trigger_action(
+            target_identifier=self.sentry_app.id,
+            type=AlertRuleTriggerAction.Type.SENTRY_APP,
+            target_type=AlertRuleTriggerAction.TargetType.SENTRY_APP,
+            sentry_app=self.sentry_app,
+        )
+
+        responses.add(
+            method=responses.POST,
+            url="https://example.com/webhook",
+            status=200,
+            content_type="application/json",
+            body=json.dumps({"ok": "true"}),
+        )
+
+        handler = SentryAppActionHandler(action, incident, self.project)
+        metric_value = 1000
+        with self.tasks():
+            getattr(handler, method)(metric_value)
+        data = responses.calls[0].request.body
+
+        assert json.dumps(incident_attachment_info(incident, metric_value)) in data
+
+    def test_fire_metric_alert(self):
         self.run_fire_test()
 
     def test_resolve_metric_alert(self):
