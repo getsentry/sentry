@@ -39,16 +39,13 @@ function doUpdate({orgId, projectId, pluginId, update, ...params}) {
 /**
  * Fetches list of available plugins for a project
  *
- * @param {object} params
- * @param {string} params.orgId Organization ID
- * @param {string} params.projectId Project ID
- * @param {object} options
- * @param {boolean} options.resetLoading Reset will set loading state = true
- * @return Promise
+ * @param orgId Organization ID
+ * @param projectId Project ID
+ * @param resetLoading Reset will set loading state = true
  */
 export function fetchPlugins(
   {orgId, projectId}: {orgId: string; projectId: string},
-  options: {resetLoading?: boolean}
+  options?: {resetLoading?: boolean}
 ) {
   const path = `/projects/${orgId}/${projectId}/plugins/`;
 
@@ -60,13 +57,14 @@ export function fetchPlugins(
   PluginActions.fetchAll(options);
   const request = api.requestPromise(path, {
     method: 'GET',
+    includeAllArgs: true,
   });
 
   activeFetch[path] = request;
 
   // This is intentionally not chained because we want the unhandled promise to be returned
   request
-    .then((data, _, jqXHR) => {
+    .then(([data, _, jqXHR]) => {
       PluginActions.fetchAllSuccess(data, {
         pageLinks: jqXHR && jqXHR.getResponseHeader('Link'),
       });
@@ -82,6 +80,14 @@ export function fetchPlugins(
   return request;
 }
 
+type EnableDisablePluginParams = {
+  /**
+   * Organization slug
+   */
+  orgId: string;
+  projectId: string;
+  pluginId: string;
+};
 /**
  * Enables a plugin
  *
