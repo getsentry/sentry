@@ -1,9 +1,10 @@
 import React from 'react';
-import {Location} from 'history';
+import {Location, Query} from 'history';
 import styled from '@emotion/styled';
 import {browserHistory} from 'react-router';
 
 import {Panel} from 'app/components/panels';
+import Pagination from 'app/components/pagination';
 import withOrganization from 'app/utils/withOrganization';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import {Organization, Project} from 'app/types';
@@ -56,6 +57,31 @@ type Props = {
   location: Location;
   projects: Project[];
 };
+
+type TrendsCursorQuery = {
+  improvedCursor?: string;
+  regressionCursor?: string;
+};
+
+function onTrendsCursor(trendChangeType: TrendChangeType) {
+  return function onCursor(
+    cursor: string,
+    path: string,
+    query: Query,
+    _direction: number
+  ) {
+    const cursorQuery = {} as TrendsCursorQuery;
+    if (trendChangeType === TrendChangeType.IMPROVED) {
+      cursorQuery.improvedCursor = cursor;
+    } else if (trendChangeType === TrendChangeType.REGRESSION) {
+      cursorQuery.regressionCursor = cursor;
+    }
+    browserHistory.push({
+      pathname: path,
+      query: {...query, ...cursorQuery},
+    });
+  };
+}
 
 function getTransactionProjectId(
   transaction: NormalizedTrendsTransaction,
@@ -132,40 +158,41 @@ function ChangedTransactions(props: Props) {
   const trendView = props.trendView.clone();
   const chartTitle = getChartTitle(trendChangeType);
   modifyTrendView(trendView, location, trendChangeType);
+
+  const onCursor = onTrendsCursor(trendChangeType);
+
   return (
-    <StyledPanel>
-      <DiscoverQuery
-        eventView={trendView}
-        orgSlug={organization.slug}
-        location={location}
-        trendChangeType={trendChangeType}
-        limit={5}
-      >
-        {({isLoading, tableData}) => {
-          const eventsTrendsData = (tableData as unknown) as TrendsData;
-          const events = normalizeTrendsTransactions(
-            (eventsTrendsData &&
-              eventsTrendsData.events &&
-              eventsTrendsData.events.data) ||
-              []
-          );
-          const selectedTransaction = getSelectedTransaction(
-            location,
-            trendChangeType,
-            events
-          );
+    <DiscoverQuery
+      eventView={trendView}
+      orgSlug={organization.slug}
+      location={location}
+      trendChangeType={trendChangeType}
+      limit={5}
+    >
+      {({isLoading, tableData, pageLinks}) => {
+        const eventsTrendsData = (tableData as unknown) as TrendsData;
+        const events = normalizeTrendsTransactions(
+          (eventsTrendsData && eventsTrendsData.events && eventsTrendsData.events.data) ||
+            []
+        );
+        const selectedTransaction = getSelectedTransaction(
+          location,
+          trendChangeType,
+          events
+        );
 
-          const statsData = eventsTrendsData && eventsTrendsData.stats;
-          const transactionsList = events && events.slice ? events.slice(0, 5) : [];
+        const statsData = eventsTrendsData && eventsTrendsData.stats;
+        const transactionsList = events && events.slice ? events.slice(0, 5) : [];
 
-          const trendFunction = getCurrentTrendFunction(location);
-          const currentTrendFunction =
-            isLoading && previousTrendFunction
-              ? previousTrendFunction
-              : trendFunction.field;
+        const trendFunction = getCurrentTrendFunction(location);
+        const currentTrendFunction =
+          isLoading && previousTrendFunction
+            ? previousTrendFunction
+            : trendFunction.field;
 
-          return (
-            <React.Fragment>
+        return (
+          <ChangedTransactionsContainer>
+            <StyledPanel>
               <ContainerTitle>
                 <HeaderTitleLegend>{chartTitle}</HeaderTitleLegend>
               </ContainerTitle>
@@ -214,11 +241,12 @@ function ChangedTransactions(props: Props) {
                   <EmptyStateWarning small>{t('No results')}</EmptyStateWarning>
                 </EmptyStateContainer>
               )}
-            </React.Fragment>
-          );
-        }}
-      </DiscoverQuery>
-    </StyledPanel>
+            </StyledPanel>
+            <Pagination pageLinks={pageLinks} onCursor={onCursor} />
+          </ChangedTransactionsContainer>
+        );
+      }}
+    </DiscoverQuery>
   );
 }
 
@@ -409,6 +437,7 @@ const TransactionSummaryLink = (props: TransactionSummaryLinkProps) => {
   return <StyledSummaryLink to={target}>{t('View Summary')}</StyledSummaryLink>;
 };
 
+const ChangedTransactionsContainer = styled('div')``;
 const StyledLink = styled('a')`
   word-break: break-all;
 `;
