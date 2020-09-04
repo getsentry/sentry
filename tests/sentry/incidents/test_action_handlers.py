@@ -148,10 +148,24 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
         ).get("environment")
 
 
+class FireTest(object):
+    def run_test(self, incident, method):
+        raise NotImplementedError
+
+    def run_fire_test(self, method="fire"):
+        alert_rule = self.create_alert_rule()
+        incident = self.create_incident(alert_rule=alert_rule, status=IncidentStatus.CLOSED.value)
+        if method == "resolve":
+            update_incident_status(
+                incident, IncidentStatus.CLOSED, status_method=IncidentStatusMethod.MANUAL
+            )
+        self.run_test(incident, method)
+
+
 @freeze_time()
-class EmailActionHandlerFireTest(TestCase):
-    def test_user(self):
-        incident = self.create_incident(status=IncidentStatus.CRITICAL.value)
+class EmailActionHandlerTest(FireTest, TestCase):
+    @responses.activate
+    def run_test(self, incident, method):
         action = self.create_alert_rule_trigger_action(
             target_identifier=six.text_type(self.user.id), triggered_for_incident=incident,
         )
@@ -160,27 +174,19 @@ class EmailActionHandlerFireTest(TestCase):
             handler.fire(1000)
         out = mail.outbox[0]
         assert out.to == [self.user.email]
-        assert out.subject == u"[Critical] {} - {}".format(incident.title, self.project.slug)
-
-
-@freeze_time()
-class EmailActionHandlerResolveTest(TestCase):
-    def test_user(self):
-        incident = self.create_incident()
-        action = self.create_alert_rule_trigger_action(
-            target_identifier=six.text_type(self.user.id), triggered_for_incident=incident,
+        assert out.subject == u"[{}] {} - {}".format(
+            INCIDENT_STATUS[IncidentStatus(incident.status)], incident.title, self.project.slug
         )
-        handler = EmailActionHandler(action, incident, self.project)
-        with self.tasks():
-            incident.status = IncidentStatus.CLOSED.value
-            handler.resolve(1000)
-        out = mail.outbox[0]
-        assert out.to == [self.user.email]
-        assert out.subject == u"[Resolved] {} - {}".format(incident.title, self.project.slug)
+
+    def test_fire_metric_alert(self):
+        self.run_fire_test()
+
+    def test_resolve_metric_alert(self):
+        self.run_fire_test("resolve")
 
 
 @freeze_time()
-class SlackActionHandlerBaseTest(object):
+class SlackActionHandlerTest(FireTest, TestCase):
     @responses.activate
     def run_test(self, incident, method):
         from sentry.integrations.slack.utils import build_incident_attachment
@@ -226,25 +232,15 @@ class SlackActionHandlerBaseTest(object):
             incident, metric_value
         )
 
+    def test_fire_metric_alert(self):
+        self.run_fire_test()
 
-class SlackActionHandlerFireTest(SlackActionHandlerBaseTest, TestCase):
-    def test(self):
-        alert_rule = self.create_alert_rule()
-        self.run_test(self.create_incident(status=2, alert_rule=alert_rule), "fire")
-
-
-class SlackActionHandlerResolveTest(SlackActionHandlerBaseTest, TestCase):
-    def test(self):
-        alert_rule = self.create_alert_rule()
-        incident = self.create_incident(alert_rule=alert_rule)
-        update_incident_status(
-            incident, IncidentStatus.CLOSED, status_method=IncidentStatusMethod.MANUAL
-        )
-        self.run_test(incident, "resolve")
+    def test_resolve_metric_alert(self):
+        self.run_fire_test("resolve")
 
 
 @freeze_time()
-class MsTeamsActionHandlerBaseTest(object):
+class MsTeamsActionHandlerTest(FireTest, TestCase):
     @responses.activate
     def run_test(self, incident, method):
         from sentry.integrations.msteams.card_builder import build_incident_attachment
@@ -295,15 +291,12 @@ class MsTeamsActionHandlerBaseTest(object):
             incident, metric_value
         )
 
-
-class MsTeamsActionHandlerFireTest(MsTeamsActionHandlerBaseTest, TestCase):
-    def test(self):
-        alert_rule = self.create_alert_rule()
-        self.run_test(self.create_incident(status=2, alert_rule=alert_rule), "fire")
+    def test_fire_metric_alert(self):
+        self.run_fire_test()
 
 
 @freeze_time()
-class PagerDutyActionHandlerBaseTest(object):
+class PagerDutyActionHandlerTest(FireTest, TestCase):
     def setUp(self):
         service = [
             {
@@ -381,11 +374,8 @@ class PagerDutyActionHandlerBaseTest(object):
             incident, self.service.integration_key, metric_value
         )
 
-
-class PagerDutyActionHandlerFireTest(PagerDutyActionHandlerBaseTest, TestCase):
     def test_fire_metric_alert(self):
-        alert_rule = self.create_alert_rule()
-        self.run_test(self.create_incident(status=2, alert_rule=alert_rule), "fire")
+        self.run_fire_test()
 
     def test_fire_metric_alert_multiple_services(self):
         service = [
@@ -401,15 +391,7 @@ class PagerDutyActionHandlerFireTest(PagerDutyActionHandlerBaseTest, TestCase):
             integration_key=service[0]["integration_key"],
             organization_integration=self.integration.organizationintegration_set.first(),
         )
-        alert_rule = self.create_alert_rule()
-        self.run_test(self.create_incident(status=2, alert_rule=alert_rule), "fire")
+        self.run_fire_test()
 
-
-class PagerDutyActionHandlerResolveTest(PagerDutyActionHandlerBaseTest, TestCase):
     def test_resolve_metric_alert(self):
-        alert_rule = self.create_alert_rule()
-        incident = self.create_incident(alert_rule=alert_rule)
-        update_incident_status(
-            incident, IncidentStatus.CLOSED, status_method=IncidentStatusMethod.MANUAL
-        )
-        self.run_test(incident, "resolve")
+        self.run_fire_test("resolve")
