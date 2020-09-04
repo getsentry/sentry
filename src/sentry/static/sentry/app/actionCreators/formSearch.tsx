@@ -36,7 +36,7 @@ const createSearchMap = ({route, formGroups, fields, ...other}: Params) => {
 export function loadSearchMap() {
   // Load all form configuration files via webpack that export a named `route`
   // as well as either `fields` or `formGroups`
-  const context = require.context('../data/forms', true, /\.tsx$/);
+  const context = require.context('../data/forms', true, /\.[tj]sx?$/);
 
   // Get a list of all form fields defined in `../data/forms`
   const allFormFields = flatten(
