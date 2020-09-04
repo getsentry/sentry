@@ -10,6 +10,8 @@ export type TrendFunction = {
   label: string;
   field: TrendFunctionField;
   alias: string;
+  chartLabel: string;
+  legendLabel: string;
 };
 
 export enum TrendChangeType {
