@@ -5,30 +5,26 @@ import CheckboxFancy from 'app/components/checkboxFancy/checkboxFancy';
 import space from 'app/styles/space';
 
 const defaultProps = {
-  renderCheckbox: ({checkbox}) => checkbox,
+  /**
+   * This is a render prop which may be used to augment the checkbox rendered
+   * to the right of the row. It will receive the default `checkbox` as a
+   * prop along with the `checked` boolean.
+   */
+  renderCheckbox: (({checkbox}) => checkbox) as (options: {
+    checkbox: React.ReactNode;
+    checked?: boolean;
+  }) => React.ReactNode,
   multi: true,
 };
 
 type Props = {
   checked: boolean;
-  multi: boolean;
   onCheckClick: (event: React.MouseEvent) => void;
   children: React.ReactNode;
-
-  /**
-   * This is a render prop which may be used to augment the checkbox rendered
-   * to the right of the row. It will receive the default `checkbox` as a
-   * prop anlong with the `checked` boolean.
-   */
-  renderCheckbox: (options: {
-    checkbox: React.ReactNode;
-    checked: boolean;
-  }) => React.ReactNode;
 } & typeof defaultProps;
 
 class GlobalSelectionHeaderRow extends React.Component<Props> {
   static defaultProps = defaultProps;
-
   render() {
     const {checked, onCheckClick, multi, renderCheckbox, children, ...props} = this.props;
 
