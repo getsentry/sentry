@@ -16,6 +16,7 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 
 from sentry.utils.samples import load_data
 from sentry.utils.compat.mock import patch
+from sentry.utils.compat import zip
 from sentry.utils.snuba import (
     RateLimitExceeded,
     QueryIllegalTypeOfArgument,
@@ -2208,19 +2209,11 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         event_data["timestamp"] = iso_format(before_now(minutes=1))
         event_data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
         event_data["user"]["geo"] = {"country_code": "US", "region": "CA", "city": "San Francisco"}
-        event_data["contexts"]["http"] = {
-            "method": "GET",
-            "referer": "something.something",
-            "url": "https://areyouasimulation.com",
-        }
         self.store_event(event_data, project_id=project.id)
         event_data["type"] = "error"
         self.store_event(event_data, project_id=project.id)
 
         fields = [
-            "http.method",
-            "http.referer",
-            "http.url",
             "os.build",
             "os.kernel_version",
             "device.arch",
@@ -2253,6 +2246,49 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 key, value = field.split(".", 1)
                 expected = six.text_type(event_data["contexts"][key][value])
                 assert results[0][field] == expected, field + six.text_type(datum)
+
+    def test_http_fields_between_datasets(self):
+        project = self.create_project()
+        event_data = load_data("android")
+        transaction_data = load_data("transaction")
+        event_data["spans"] = transaction_data["spans"]
+        event_data["contexts"]["trace"] = transaction_data["contexts"]["trace"]
+        event_data["type"] = "transaction"
+        event_data["transaction"] = "/failure_rate/1"
+        event_data["timestamp"] = iso_format(before_now(minutes=1))
+        event_data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
+        event_data["user"]["geo"] = {"country_code": "US", "region": "CA", "city": "San Francisco"}
+        event_data["request"] = transaction_data["request"]
+        self.store_event(event_data, project_id=project.id)
+        event_data["type"] = "error"
+        self.store_event(event_data, project_id=project.id)
+
+        fields = [
+            "http.method",
+            "http.referer",
+            "http.url",
+        ]
+        expected = [
+            "GET",
+            "fixtures.transaction",
+            "http://countries:8010/country_by_code/",
+        ]
+
+        data = [
+            {"field": fields + ["location", "count()"], "query": "event.type:error"},
+            {"field": fields + ["duration", "count()"], "query": "event.type:transaction"},
+        ]
+
+        for datum in data:
+            response = self.do_request(datum)
+
+            assert response.status_code == 200, response.content
+            assert len(response.data["data"]) == 1, datum
+            results = response.data["data"]
+            assert results[0]["count"] == 1, datum
+
+            for (field, exp) in zip(fields, expected):
+                assert results[0][field] == exp, field + six.text_type(datum)
 
     def test_histogram_function(self):
         project = self.create_project()

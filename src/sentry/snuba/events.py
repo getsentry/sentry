@@ -52,25 +52,17 @@ class Columns(Enum):
     )
 
     HTTP_METHOD = Column(
-        "events.contexts[http.method]",
-        "contexts[http.method]",
-        "contexts[http.method]",
-        "contexts[http.method]",
-        "http.method",
+        "events.contexts[http.method]", "http_method", "http_method", "http_method", "http.method",
     )
     HTTP_REFERER = Column(
         "events.contexts[http.referer]",
-        "contexts[http.referer]",
-        "contexts[http.referer]",
-        "contexts[http.referer]",
+        "http_referer",
+        "http_referer",
+        "http_referer",
         "http.referer",
     )
     HTTP_URL = Column(
-        "events.contexts[http.url]",
-        "contexts[http.url]",
-        "contexts[http.url]",
-        "contexts[http.url]",
-        "http.url",
+        "events.contexts[http.url]", "tags[url]", "tags[url]", "tags[url]", "http.url",
     )
     OS_BUILD = Column(
         "events.contexts[os.build]",
