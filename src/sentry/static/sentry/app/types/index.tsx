@@ -1440,3 +1440,10 @@ export type Note = {
    */
   mentions: [string, string][];
 };
+
+export type FilesByRepository = {
+  [repoName: string]: {
+    authors?: {[email: string]: CommitAuthor};
+    types?: Set<string>;
+  };
+};
