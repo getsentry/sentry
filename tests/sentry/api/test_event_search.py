@@ -2141,6 +2141,17 @@ class ResolveFieldListTest(unittest.TestCase):
             resolve_field_list(fields, eventstore.Filter())
         assert "start argument invalid: today is in the wrong format" in six.text_type(err)
 
+    def test_absolute_correlation(self):
+        fields = ["absolute_correlation()"]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["aggregations"] == [
+            [
+                "abs",
+                [["corr", ["toUnixTimestamp", ["timestamp"], "duration"]]],
+                u"absolute_correlation",
+            ]
+        ]
+
     def test_percentage(self):
         fields = [
             "user_misery_range(300, 2020-05-01T01:12:34, 2020-05-03T06:48:57, 1)",

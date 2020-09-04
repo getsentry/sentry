@@ -1029,7 +1029,9 @@ def resolve_snuba_aliases(snuba_filter, resolve_func, function_translations=None
             else:
                 # Parameter is a list of fields.
                 aggregation[1] = [
-                    resolve_func(col) if col not in derived_columns else col
+                    resolve_func(col)
+                    if not isinstance(col, (set, tuple, list)) and col not in derived_columns
+                    else col
                     for col in aggregation[1]
                 ]
     resolved.aggregations = aggregations
