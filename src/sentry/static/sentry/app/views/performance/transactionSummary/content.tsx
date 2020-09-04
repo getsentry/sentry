@@ -97,6 +97,7 @@ class SummaryContent extends React.Component<Props, State> {
           organization={organization}
           projects={projects}
           transactionName={transactionName}
+          handleIncompatibleQuery={this.handleIncompatibleQuery}
         />
         <Layout.Body>
           {incompatibleAlertNotice && (

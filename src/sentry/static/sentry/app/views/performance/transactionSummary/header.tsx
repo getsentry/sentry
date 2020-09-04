@@ -18,7 +18,7 @@ type Props = {
   organization: Organization;
   projects: Project[];
   transactionName: string;
-  handleIncompatibleQuery?: React.ComponentProps<
+  handleIncompatibleQuery: React.ComponentProps<
     typeof CreateAlertButton
   >['onIncompatibleQuery'];
 };
