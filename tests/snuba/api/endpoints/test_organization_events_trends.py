@@ -59,6 +59,8 @@ class OrganizationEventsTrendsEndpointTest(APITestCase, SnubaTestCase):
         result_stats = response.data["stats"]
 
         assert len(events["data"]) == 1
+        # Shouldn't do an exact match here because we aren't using the stable correlation function
+        assert events["data"][0].pop("absolute_correlation") > 0.2
         assert events["data"][0] == {
             "count_range_1": 1,
             "count_range_2": 3,
@@ -101,6 +103,8 @@ class OrganizationEventsTrendsEndpointTest(APITestCase, SnubaTestCase):
         result_stats = response.data["stats"]
 
         assert len(events["data"]) == 1
+        # Shouldn't do an exact match here because we aren't using the stable correlation function
+        assert events["data"][0].pop("absolute_correlation") > 0.2
         assert events["data"][0] == {
             "count_range_2": 3,
             "count_range_1": 1,
@@ -143,6 +147,8 @@ class OrganizationEventsTrendsEndpointTest(APITestCase, SnubaTestCase):
         result_stats = response.data["stats"]
 
         assert len(events["data"]) == 1
+        # Shouldn't do an exact match here because we aren't using the stable correlation function
+        assert events["data"][0].pop("absolute_correlation") > 0.2
         assert events["data"][0] == {
             "count_range_2": 3,
             "count_range_1": 1,
@@ -205,6 +211,8 @@ class OrganizationEventsTrendsEndpointTest(APITestCase, SnubaTestCase):
         result_stats = response.data["stats"]
 
         assert len(events["data"]) == 1
+        # Shouldn't do an exact match here because we aren't using the stable correlation function
+        assert events["data"][0].pop("absolute_correlation") > 0.2
         assert events["data"][0] == {
             "count_range_2": 4,
             "count_range_1": 0,
