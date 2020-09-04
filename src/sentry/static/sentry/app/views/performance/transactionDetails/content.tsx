@@ -5,8 +5,6 @@ import PropTypes from 'prop-types';
 
 import {t} from 'app/locale';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {Client} from 'app/api';
-import withApi from 'app/utils/withApi';
 import {Organization, Event, EventTag} from 'app/types';
 import SentryTypes from 'app/sentryTypes';
 import EventMetadata from 'app/components/events/eventMetadata';
@@ -32,7 +30,6 @@ type Props = {
   organization: Organization;
   location: Location;
   params: Params;
-  api: Client;
   eventSlug: string;
 };
 
@@ -107,7 +104,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
   }
 
   renderContent(event: Event) {
-    const {api, organization, location, eventSlug} = this.props;
+    const {organization, location, eventSlug} = this.props;
 
     // metrics
     trackAnalyticsEvent({
@@ -156,11 +153,9 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                   }}
                 >
                   <BorderlessEventEntries
-                    api={api}
                     organization={organization}
                     event={event}
                     project={projects[0]}
-                    location={location}
                     showExampleCommit={false}
                     showTagSummary={false}
                   />
@@ -219,4 +214,4 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
   }
 }
 
-export default withApi(EventDetailsContent);
+export default EventDetailsContent;

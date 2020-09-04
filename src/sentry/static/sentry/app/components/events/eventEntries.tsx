@@ -55,7 +55,9 @@ export const INTERFACES = {
   spans: SpansInterface,
 };
 
-class EventEntries extends React.Component {
+type Props = any;
+
+class EventEntries extends React.Component<Props, {}> {
   static propTypes = {
     // Custom shape because shared view doesn't get id.
     organization: PropTypes.shape({
@@ -151,12 +153,7 @@ class EventEntries extends React.Component {
       } catch (ex) {
         logException(ex);
         return (
-          <EventDataSection
-            projectId={project.slug}
-            event={event}
-            type={entry.type}
-            title={entry.type}
-          >
+          <EventDataSection type={entry.type} title={entry.type}>
             <p>{t('There was an error rendering this data.')}</p>
           </EventDataSection>
         );
@@ -290,12 +287,18 @@ const BorderlessEventEntries = styled(EventEntries)`
   }
 `;
 
+type StyledEventUserFeedbackProps = React.ComponentProps<typeof EventUserFeedback> & {
+  includeBorder: boolean;
+  theme?: any;
+};
+
 const StyledEventUserFeedback = styled(EventUserFeedback)`
   border-radius: 0;
   box-shadow: none;
   padding: 20px 30px 0 40px;
   border: 0;
-  ${p => (p.includeBorder ? `border-top: 1px solid ${p.theme.borderLight};` : '')}
+  ${(p: StyledEventUserFeedbackProps) =>
+    p.includeBorder ? `border-top: 1px solid ${p.theme.borderLight};` : ''}
   margin: 0;
 `;
 
