@@ -251,7 +251,8 @@ def build_help_command_card():
     commands = {
         "type": "TextBlock",
         "text": (
-            "- **unlink**: unlink your Microsoft Teams identity from your Sentry account"
+            "- **link**: link your Microsoft Teams identity to your Sentry account"
+            "\n\n- **unlink**: unlink your Microsoft Teams identity from your Sentry account"
             "\n\n- **help**: view list of all bot commands"
         ),
         "wrap": True,
