@@ -1,52 +1,50 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
+import {AvatarUser} from 'app/types';
 import {ListGroup, ListGroupItem} from 'app/components/listGroup';
 import FileChange from 'app/components/fileChange';
 import {t, tn} from 'app/locale';
 import space from 'app/styles/space';
 
-function Collapsed(props) {
-  return (
-    <ListGroupItem centered>
-      <a onClick={props.onClick}>
-        {tn('Show %s collapsed file', 'Show %s collapsed files', props.count)}
-      </a>
-    </ListGroupItem>
-  );
-}
+type FileChangeSummary = Record<
+  string,
+  {
+    authors: Record<string, AvatarUser>;
+    types: Set<'M' | 'A' | 'D'>;
+  }
+>;
 
-Collapsed.propTypes = {
-  onClick: PropTypes.func.isRequired,
-  count: PropTypes.number.isRequired,
+type DefaultProps = {
+  collapsable: boolean;
+  maxWhenCollapsed: number;
 };
 
-class RepositoryFileSummary extends React.Component {
-  static propTypes = {
-    fileChangeSummary: PropTypes.object,
-    repository: PropTypes.string,
-    collapsable: PropTypes.bool,
-    maxWhenCollapsed: PropTypes.number,
-  };
+type Props = DefaultProps & {
+  fileChangeSummary: FileChangeSummary;
+  repository: string;
+};
 
-  static defaultProps = {
+type State = {
+  loading: boolean;
+  collapsed: boolean;
+};
+
+class RepositoryFileSummary extends React.Component<Props, State> {
+  static defaultProps: DefaultProps = {
     collapsable: true,
     maxWhenCollapsed: 5,
   };
 
-  constructor(...args) {
-    super(...args);
-    this.state = {
-      loading: true,
-      collapsed: true,
-    };
-  }
+  state: State = {
+    loading: true,
+    collapsed: true,
+  };
 
   onCollapseToggle = () => {
-    this.setState({
-      collapsed: !this.state.collapsed,
-    });
+    this.setState(state => ({
+      collapsed: !state.collapsed,
+    }));
   };
 
   render() {
@@ -59,6 +57,7 @@ class RepositoryFileSummary extends React.Component {
     }
     const numCollapsed = fileCount - files.length;
     const canCollapse = collapsable && fileCount > maxWhenCollapsed;
+
     return (
       <Container>
         <h5>
@@ -70,18 +69,21 @@ class RepositoryFileSummary extends React.Component {
         </h5>
         <ListGroup striped>
           {files.map(filename => {
-            const {authors, types} = fileChangeSummary[filename];
+            const {authors} = fileChangeSummary[filename];
             return (
               <FileChange
                 key={filename}
                 filename={filename}
                 authors={Object.values(authors)}
-                types={types}
               />
             );
           })}
           {numCollapsed > 0 && (
-            <Collapsed onClick={this.onCollapseToggle} count={numCollapsed} />
+            <ListGroupItem centered>
+              <a onClick={this.onCollapseToggle}>
+                {tn('Show %s collapsed file', 'Show %s collapsed files', numCollapsed)}
+              </a>
+            </ListGroupItem>
           )}
           {numCollapsed === 0 && canCollapse && (
             <ListGroupItem centered>
