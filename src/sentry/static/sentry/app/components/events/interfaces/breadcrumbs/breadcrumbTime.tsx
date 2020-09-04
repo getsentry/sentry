@@ -18,7 +18,7 @@ type Props = {
 
 const BreadcrumbTime = ({timestamp}: Props) =>
   defined(timestamp) ? (
-    <Tooltip title={getBreadcrumbTimeTooltipTitle(timestamp)}>
+    <Tooltip title={getBreadcrumbTimeTooltipTitle(timestamp)} disableForVisualTest>
       <Time>
         {getDynamicText({
           value: moment(timestamp).format('HH:mm:ss'),
