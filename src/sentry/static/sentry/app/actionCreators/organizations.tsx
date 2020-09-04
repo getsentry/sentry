@@ -1,6 +1,7 @@
 import {browserHistory} from 'react-router';
 
 import {Client} from 'app/api';
+import {Organization, LightWeightOrganization} from 'app/types';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {resetGlobalSelection} from 'app/actionCreators/globalSelection';
 import OrganizationActions from 'app/actions/organizationActions';
@@ -9,7 +10,28 @@ import OrganizationsStore from 'app/stores/organizationsStore';
 import ProjectsStore from 'app/stores/projectsStore';
 import TeamStore from 'app/stores/teamStore';
 
-export function redirectToRemainingOrganization({orgId, removeOrg}) {
+type RedirectRemainingOrganizationParams = {
+  /**
+   * The organization slug
+   */
+  orgId: string;
+
+  /**
+   * Should remove org?
+   */
+  removeOrg?: boolean;
+};
+
+/**
+ * After removing an organization, this will redirect to a remaining active organization or
+ * the screen to create a new organization.
+ *
+ * Can optionally remove organization from organizations store.
+ */
+export function redirectToRemainingOrganization({
+  orgId,
+  removeOrg,
+}: RedirectRemainingOrganizationParams) {
   // Remove queued, should redirect
   const allOrgs = OrganizationsStore.getAll().filter(
     org => org.status.id === 'active' && org.slug !== orgId
@@ -29,7 +51,24 @@ export function redirectToRemainingOrganization({orgId, removeOrg}) {
   }
 }
 
-export function remove(api, {successMessage, errorMessage, orgId} = {}) {
+type RemoveParams = {
+  /**
+   * The organization slug
+   */
+  orgId: string;
+
+  /**
+   * An optional error message to be used in a toast, if remove fails
+   */
+  errorMessage?: string;
+
+  /**
+   * An optional success message to be used in a toast, if remove succeeds
+   */
+  successMessage?: string;
+};
+
+export function remove(api: Client, {successMessage, errorMessage, orgId}: RemoveParams) {
   const endpoint = `/organizations/${orgId}/`;
   return api
     .requestPromise(endpoint, {
@@ -55,24 +94,46 @@ export function switchOrganization() {
   resetGlobalSelection();
 }
 
-export function removeAndRedirectToRemainingOrganization(api, params) {
+export function removeAndRedirectToRemainingOrganization(
+  api: Client,
+  params: RedirectRemainingOrganizationParams & RemoveParams
+) {
   remove(api, params).then(() => redirectToRemainingOrganization(params));
 }
 
-export function setActiveOrganization(org) {
+/**
+ * Set active organization
+ */
+export function setActiveOrganization(org: LightWeightOrganization) {
   OrganizationsActions.setActive(org);
 }
 
-export function changeOrganizationSlug(prev, next) {
+export function changeOrganizationSlug(
+  prev: Organization,
+  next: Partial<Organization> & Pick<Organization, 'slug'>
+) {
   OrganizationsActions.changeSlug(prev, next);
 }
 
-export function updateOrganization(org) {
+/**
+ * Updates an organization for the store
+ *
+ * Accepts a partial organization as it will merge will existing organization
+ */
+export function updateOrganization(org: Partial<LightWeightOrganization>) {
   OrganizationsActions.update(org);
   OrganizationActions.update(org);
 }
 
-export async function fetchOrganizationByMember(memberId, {addOrg, fetchOrgDetails}) {
+type FetchOrganizationByMemberParams = {
+  addOrg?: boolean;
+  fetchOrgDetails?: boolean;
+};
+
+export async function fetchOrganizationByMember(
+  memberId: string,
+  {addOrg, fetchOrgDetails}: FetchOrganizationByMemberParams
+) {
   const api = new Client();
   const data = await api.requestPromise(`/organizations/?query=member_id:${memberId}`);
 
@@ -95,9 +156,25 @@ export async function fetchOrganizationByMember(memberId, {addOrg, fetchOrgDetai
   return org;
 }
 
+type FetchOrganizationDetailsParams = {
+  /**
+   * Should set as active organization?
+   */
+  setActive?: boolean;
+
+  /**
+   * Should load teams in TeamStore?
+   */
+  loadTeam?: boolean;
+
+  /**
+   * Should load projects in ProjectsStore
+   */
+  loadProjects?: boolean;
+};
 export async function fetchOrganizationDetails(
-  orgId,
-  {setActive, loadProjects, loadTeam}
+  orgId: string,
+  {setActive, loadProjects, loadTeam}: FetchOrganizationDetailsParams
 ) {
   const api = new Client();
   const data = await api.requestPromise(`/organizations/${orgId}/`);
