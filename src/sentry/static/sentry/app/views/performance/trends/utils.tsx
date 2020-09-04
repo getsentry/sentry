@@ -34,19 +34,18 @@ import {BaselineQueryResults} from '../transactionSummary/baselineQuery';
 
 export const TRENDS_FUNCTIONS: TrendFunction[] = [
   {
-    label: 'Average',
-    field: TrendFunctionField.AVG,
-    alias: 'avg_range',
-  },
-  {
     label: 'Duration (p50)',
     field: TrendFunctionField.P50,
     alias: 'percentile_range',
+    chartLabel: 'p50()',
+    legendLabel: 'p50',
   },
   {
-    label: 'User Misery',
-    field: TrendFunctionField.USER_MISERY,
-    alias: 'user_misery_range',
+    label: 'Duration (average)',
+    field: TrendFunctionField.AVG,
+    alias: 'avg_range',
+    chartLabel: 'avg(transaction.duration)',
+    legendLabel: 'average',
   },
 ];
 
