@@ -1,6 +1,7 @@
 import React from 'react';
 import maxBy from 'lodash/maxBy';
 import styled from '@emotion/styled';
+import {components as selectComponents, OptionProps} from 'react-select';
 
 import {Client} from 'app/api';
 import {t} from 'app/locale';
@@ -11,9 +12,10 @@ import Feature from 'app/components/acl/feature';
 import EventsRequest from 'app/components/charts/eventsRequest';
 import LoadingMask from 'app/components/loadingMask';
 import Placeholder from 'app/components/placeholder';
-import SelectField from 'app/views/settings/components/forms/selectField';
+import SelectControl from 'app/components/forms/selectControl';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
+import Tooltip from 'app/components/tooltip';
 
 import {IncidentRule, TimeWindow, TimePeriod, Trigger} from '../../types';
 import ThresholdsChart from './thresholdsChart';
@@ -115,6 +117,7 @@ class TriggersChart extends React.PureComponent<Props> {
     const period = AVAILABLE_TIME_PERIODS[timeWindow].includes(statsPeriod)
       ? statsPeriod
       : AVAILABLE_TIME_PERIODS[timeWindow][0];
+    const statsPeriodOptions = AVAILABLE_TIME_PERIODS[timeWindow];
 
     return (
       <EventsRequest
@@ -150,16 +153,44 @@ class TriggersChart extends React.PureComponent<Props> {
                           height: '25px',
                         }),
                       }}
+                      components={{
+                        Option: ({
+                          label,
+                          data,
+                          ...props
+                        }: OptionProps<{
+                          label: string;
+                          value: any;
+                        }>) => (
+                          <selectComponents.Option label={label} {...(props as any)}>
+                            <Tooltip
+                              disabled={!props.isDisabled}
+                              title={t(
+                                'The currently selected Time Window is not allowed with this time period.'
+                              )}
+                              position="left"
+                            >
+                              <Wrapper isDisabled={props.isDisabled}>
+                                <span data-test-id="label">{label}</span>
+                                {props.isDisabled ? 'disabled' : ''}
+                              </Wrapper>
+                            </Tooltip>
+                          </selectComponents.Option>
+                        ),
+                      }}
                       isSearchable={false}
                       isClearable={false}
                       name="statsPeriod"
                       defaultValue={period}
                       required
                       flexibleControlStateSize
-                      choices={AVAILABLE_TIME_PERIODS[timeWindow].map(t => [
-                        t,
-                        TIME_PERIOD_MAP[t],
+                      choices={Object.values(TimePeriod).map(timePeriod => [
+                        timePeriod,
+                        TIME_PERIOD_MAP[timePeriod],
                       ])}
+                      isOptionDisabled={option =>
+                        !statsPeriodOptions.includes(option.value)
+                      }
                       onChange={this.handleStatsPeriodChange}
                     />
                   </Feature>
@@ -180,9 +211,9 @@ class TriggersChart extends React.PureComponent<Props> {
                     </React.Fragment>
                   )}
                 </PanelBody>
-                <StyledPanelAlert>
+                {/* <StyledPanelAlert>
                   {t('Data points above are averaged to show a longer time period.')}
-                </StyledPanelAlert>
+                </StyledPanelAlert> */}
               </StyledPanel>
             </StickyWrapper>
           );
@@ -242,13 +273,33 @@ const StyledPanel = styled(Panel)`
   background: none;
 `;
 
-const StyledSelectField = styled(SelectField)`
+const StyledSelectField = styled(SelectControl)`
   width: 180px;
-  padding: 0 0 ${space(1)};
-  margin-left: auto;
+  margin: 0 0 ${space(1)} auto;
   font-weight: normal;
   text-transform: none;
   border: 0;
+`;
+
+const Description = styled('div')`
+  color: ${p => p.theme.gray500};
+`;
+
+const Wrapper = styled('div')<{isSelected?: boolean; isDisabled: boolean}>`
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-gap: ${space(1)};
+  ${p => p.isDisabled && `color: ${p.theme.gray400}`}
+  ${p =>
+    !p.isDisabled &&
+    p.isSelected &&
+    `
+      ${Description} {
+        :not(:hover) {
+          color: ${p.theme.white};
+        }
+      }
+    `}
 `;
 
 const StyledPanelAlert = styled(PanelAlert)`
