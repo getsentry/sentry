@@ -62,6 +62,23 @@ describe('ReleaseSeries', function() {
     );
   });
 
+  it('fetches releases with environment conditions', async function() {
+    const wrapper = mount(
+      <ReleaseSeries environments={['dev', 'test']}>{renderFunc}</ReleaseSeries>,
+      routerContext
+    );
+
+    await tick();
+    wrapper.update();
+
+    expect(releasesMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: {environment: ['dev', 'test']},
+      })
+    );
+  });
+
   it('fetches releases with start and end date strings', async function() {
     const wrapper = mount(
       <ReleaseSeries start="2020-01-01" end="2020-01-31">
