@@ -23,9 +23,7 @@ import {TimeWindow, IncidentRule, Dataset} from './types';
 import MetricField from './metricField';
 import {DATASET_EVENT_TYPE_FILTERS, DEFAULT_AGGREGATE} from './constants';
 
-type TimeWindowMapType = {[key in TimeWindow]: string};
-
-const TIME_WINDOW_MAP: TimeWindowMapType = {
+const TIME_WINDOW_MAP: Record<TimeWindow, string> = {
   [TimeWindow.ONE_MINUTE]: t('1 minute'),
   [TimeWindow.FIVE_MINUTES]: t('5 minutes'),
   [TimeWindow.TEN_MINUTES]: t('10 minutes'),

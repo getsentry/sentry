@@ -32,6 +32,7 @@ import {
   Trigger,
   Dataset,
   UnsavedIncidentRule,
+  TimePeriod,
 } from '../types';
 import {addOrUpdateRule} from '../actions';
 import {createDefaultTrigger, DATASET_EVENT_TYPE_FILTERS} from '../constants';

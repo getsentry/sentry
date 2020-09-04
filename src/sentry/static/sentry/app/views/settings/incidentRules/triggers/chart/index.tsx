@@ -7,6 +7,7 @@ import {t} from 'app/locale';
 import {Organization, Project} from 'app/types';
 import {SeriesDataUnit} from 'app/types/echarts';
 import {Panel, PanelBody, PanelAlert} from 'app/components/panels';
+import Feature from 'app/components/acl/feature';
 import EventsRequest from 'app/components/charts/eventsRequest';
 import LoadingMask from 'app/components/loadingMask';
 import Placeholder from 'app/components/placeholder';
@@ -31,7 +32,7 @@ type Props = {
   thresholdType: IncidentRule['thresholdType'];
 };
 
-const TIME_WINDOW_MAP = {
+const TIME_PERIOD_MAP: Record<TimePeriod, string> = {
   [TimePeriod.SIX_HOURS]: t('Last 6 hours'),
   [TimePeriod.ONE_DAY]: t('Last 24 hours'),
   [TimePeriod.THREE_DAYS]: t('Last 3 days'),
@@ -41,10 +42,61 @@ const TIME_WINDOW_MAP = {
 };
 
 /**
+ * If TimeWindow is small we want to limit the stats period
+ * If the time window is one day we want to use a larger stats period
+ */
+const AVAILABLE_TIME_PERIODS: Record<TimeWindow, TimePeriod[]> = {
+  [TimeWindow.ONE_MINUTE]: [
+    TimePeriod.SIX_HOURS,
+    TimePeriod.ONE_DAY,
+    TimePeriod.THREE_DAYS,
+    TimePeriod.SEVEN_DAYS,
+  ],
+  [TimeWindow.FIVE_MINUTES]: [
+    TimePeriod.SIX_HOURS,
+    TimePeriod.ONE_DAY,
+    TimePeriod.THREE_DAYS,
+    TimePeriod.SEVEN_DAYS,
+    TimePeriod.FOURTEEN_DAYS,
+    TimePeriod.THIRTY_DAYS,
+  ],
+  [TimeWindow.TEN_MINUTES]: [
+    TimePeriod.ONE_DAY,
+    TimePeriod.THREE_DAYS,
+    TimePeriod.SEVEN_DAYS,
+    TimePeriod.FOURTEEN_DAYS,
+    TimePeriod.THIRTY_DAYS,
+  ],
+  [TimeWindow.FIFTEEN_MINUTES]: [
+    TimePeriod.THREE_DAYS,
+    TimePeriod.SEVEN_DAYS,
+    TimePeriod.FOURTEEN_DAYS,
+    TimePeriod.THIRTY_DAYS,
+  ],
+  [TimeWindow.THIRTY_MINUTES]: [
+    TimePeriod.SEVEN_DAYS,
+    TimePeriod.FOURTEEN_DAYS,
+    TimePeriod.THIRTY_DAYS,
+  ],
+  [TimeWindow.ONE_HOUR]: [TimePeriod.FOURTEEN_DAYS, TimePeriod.THIRTY_DAYS],
+  [TimeWindow.TWO_HOURS]: [TimePeriod.THIRTY_DAYS],
+  [TimeWindow.FOUR_HOURS]: [TimePeriod.THIRTY_DAYS],
+  [TimeWindow.ONE_DAY]: [TimePeriod.THIRTY_DAYS],
+};
+
+/**
  * This is a chart to be used in Metric Alert rules that fetches events based on
  * query, timewindow, and aggregations.
  */
 class TriggersChart extends React.PureComponent<Props> {
+  state = {
+    statsPeriod: TimePeriod.ONE_DAY,
+  };
+
+  handleStatsPeriodChange = (statsPeriod: TimePeriod) => {
+    this.setState({statsPeriod});
+  };
+
   render() {
     const {
       api,
@@ -58,8 +110,11 @@ class TriggersChart extends React.PureComponent<Props> {
       thresholdType,
       environment,
     } = this.props;
+    const {statsPeriod} = this.state;
 
-    const period = getPeriodForTimeWindow(timeWindow);
+    const period = AVAILABLE_TIME_PERIODS[timeWindow].includes(statsPeriod)
+      ? statsPeriod
+      : AVAILABLE_TIME_PERIODS[timeWindow][0];
 
     return (
       <EventsRequest
@@ -84,31 +139,38 @@ class TriggersChart extends React.PureComponent<Props> {
             <StickyWrapper>
               <StyledPanel>
                 <PanelBody withPadding>
-                  <StyledSelectField
-                    inline={false}
-                    styles={{
-                      control: provided => ({
-                        ...provided,
-                        minHeight: '25px',
-                        height: '25px',
-                      }),
-                    }}
-                    isSearchable={false}
-                    isClearable={false}
-                    name="actionMatch"
-                    required
-                    flexibleControlStateSize
-                    choices={Object.entries(TIME_WINDOW_MAP)}
-                    // TODO(scttcper): Onchange
-                    onChange={val => {}}
-                  />
-                  {loading ? (
+                  {/* TODO(scttcper): pick a feature flag name */}
+                  <Feature features={['discover-basic']} organization={organization}>
+                    <StyledSelectField
+                      inline={false}
+                      styles={{
+                        control: provided => ({
+                          ...provided,
+                          minHeight: '25px',
+                          height: '25px',
+                        }),
+                      }}
+                      isSearchable={false}
+                      isClearable={false}
+                      name="statsPeriod"
+                      defaultValue={period}
+                      required
+                      flexibleControlStateSize
+                      choices={AVAILABLE_TIME_PERIODS[timeWindow].map(t => [
+                        t,
+                        TIME_PERIOD_MAP[t],
+                      ])}
+                      onChange={this.handleStatsPeriodChange}
+                    />
+                  </Feature>
+
+                  {loading || reloading ? (
                     <ChartPlaceholder />
                   ) : (
                     <React.Fragment>
                       <TransparentLoadingMask visible={reloading} />
                       <ThresholdsChart
-                        period={period}
+                        period={statsPeriod}
                         maxValue={maxValue ? maxValue.value : maxValue}
                         data={timeseriesData}
                         triggers={triggers}
@@ -161,7 +223,8 @@ const TransparentLoadingMask = styled(LoadingMask)<{visible: boolean}>`
 `;
 
 const ChartPlaceholder = styled(Placeholder)`
-  margin: ${space(2)} 0;
+  /* Height and margin should add up to graph size (200px) */
+  margin: 0 0 ${space(2)};
   height: 184px;
 `;
 
@@ -191,4 +254,6 @@ const StyledSelectField = styled(SelectField)`
 const StyledPanelAlert = styled(PanelAlert)`
   border-top: 1px solid ${p => p.theme.blue300};
   border-bottom: 0;
+  margin-bottom: 0;
+  border-radius: 0 0 ${p => `${p.theme.borderRadius} ${p.theme.borderRadius}`};
 `;

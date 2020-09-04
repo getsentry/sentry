@@ -43,7 +43,7 @@ export type UnsavedIncidentRule = {
   projects: string[];
   environment: string | null;
   query: string;
-  timeWindow: number;
+  timeWindow: TimeWindow;
   triggers: Trigger[];
   aggregate: string;
   thresholdType: AlertRuleThresholdType;
@@ -63,7 +63,7 @@ export type IncidentRule = Partial<SavedIncidentRule> & UnsavedIncidentRule;
 export enum TimePeriod {
   SIX_HOURS = '6h',
   ONE_DAY = '1d',
-  THREE_DAYS = '13d',
+  THREE_DAYS = '3d',
   SEVEN_DAYS = '7d',
   FOURTEEN_DAYS = '14d',
   THIRTY_DAYS = '30d',
