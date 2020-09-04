@@ -286,7 +286,7 @@ type SentryEventBase = {
   dateReceived?: string;
   endTimestamp?: number;
   entries: EntryType[];
-  errors: object[];
+  errors: any[];
 
   previousEventID?: string;
   nextEventID?: string;
@@ -307,7 +307,15 @@ type SentryEventBase = {
     enhancements: string;
   };
 
+  userReport?: any;
+
   crashFile: EventAttachment | null;
+
+  sdk?: {
+    name?: string;
+  };
+
+  sdkUpdates?: any;
 };
 
 export type SentryTransactionEvent = {
@@ -316,9 +324,6 @@ export type SentryTransactionEvent = {
   entries: SpanEntry[];
   startTimestamp: number;
   endTimestamp: number;
-  sdk?: {
-    name?: string;
-  };
   contexts?: {
     trace?: TraceContextType;
   };

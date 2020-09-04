@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 
 import {analytics} from 'app/utils/analytics';
 import {logException} from 'app/utils/logging';
@@ -36,6 +37,7 @@ import ThreadsInterface from 'app/components/events/interfaces/threads/threads';
 import {DataSection} from 'app/components/events/styles';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
+import {Event, AvatarProject, Group} from 'app/types';
 
 import BreadcrumbsInterface from './eventEntriesBreadcrumbs';
 
@@ -55,9 +57,35 @@ export const INTERFACES = {
   spans: SpansInterface,
 };
 
-type Props = any;
+const defaultProps = {
+  isShare: false,
+  showExampleCommit: false,
+  showTagSummary: true,
+};
 
-class EventEntries extends React.Component<Props, {}> {
+// Custom shape because shared view doesn't get id.
+type EventEntriesOrganization = {
+  id?: string;
+  slug: string;
+  features: Array<string>;
+};
+
+type Props = {
+  // This is definetly required because this component would crash if
+  // organization were undefined.
+  organization: EventEntriesOrganization;
+
+  // XXX(markus): Is this really optional? propTypes say so, but jsx file probably
+  // would've crashed without.
+  event?: Event;
+  group?: Group;
+  project: AvatarProject;
+
+  className?: string;
+  location: Location;
+} & typeof defaultProps;
+
+class EventEntries extends React.Component<Props> {
   static propTypes = {
     // Custom shape because shared view doesn't get id.
     organization: PropTypes.shape({
@@ -77,11 +105,7 @@ class EventEntries extends React.Component<Props, {}> {
     showTagSummary: PropTypes.bool,
   };
 
-  static defaultProps = {
-    isShare: false,
-    showExampleCommit: false,
-    showTagSummary: true,
-  };
+  static defaultProps = defaultProps;
 
   componentDidMount() {
     const {event} = this.props;
@@ -96,7 +120,7 @@ class EventEntries extends React.Component<Props, {}> {
     this.recordIssueError(errorTypes, errorMessages);
   }
 
-  shouldComponentUpdate(nextProps) {
+  shouldComponentUpdate(nextProps: Props) {
     const {event, showExampleCommit} = this.props;
 
     return (
@@ -105,14 +129,19 @@ class EventEntries extends React.Component<Props, {}> {
     );
   }
 
-  recordIssueError(errorTypes, errorMessages) {
+  recordIssueError(errorTypes: any[], errorMessages: any[]) {
     const {organization, project, event} = this.props;
+
+    if (!organization) {
+      return;
+    }
+
     const orgId = organization.id;
     const platform = project.platform;
 
     analytics('issue_error_banner.viewed', {
-      org_id: parseInt(orgId, 10),
-      group: event.groupID,
+      org_id: orgId ? parseInt(orgId, 10) : null,
+      group: event?.groupID,
       error_type: errorTypes,
       error_message: errorMessages,
       ...(platform && {platform}),
@@ -196,7 +225,7 @@ class EventEntries extends React.Component<Props, {}> {
               event={event}
               orgId={organization.slug}
               project={project}
-              issueId={group.id}
+              issueId={group?.id}
             />
           </ErrorContainer>
         )}
@@ -210,7 +239,7 @@ class EventEntries extends React.Component<Props, {}> {
               projectId={project.slug}
             />
           ))}
-        {event.userReport && group && (
+        {event && event.userReport && group && (
           <StyledEventUserFeedback
             report={event.userReport}
             orgId={organization.slug}
@@ -230,9 +259,9 @@ class EventEntries extends React.Component<Props, {}> {
         )}
         {this.renderEntries()}
         {hasContext && <EventContexts group={group} event={event} />}
-        {!objectIsEmpty(event.context) && <EventExtraData event={event} />}
-        {!objectIsEmpty(event.packages) && <EventPackageData event={event} />}
-        {!objectIsEmpty(event.device) && <EventDevice event={event} />}
+        {event && !objectIsEmpty(event.context) && <EventExtraData event={event} />}
+        {event && !objectIsEmpty(event.packages) && <EventPackageData event={event} />}
+        {event && !objectIsEmpty(event.device) && <EventDevice event={event} />}
         {!isShare && features.has('event-attachments') && (
           <EventAttachments
             event={event}
@@ -242,10 +271,10 @@ class EventEntries extends React.Component<Props, {}> {
           />
         )}
         {!objectIsEmpty(event.sdk) && <EventSdk event={event} />}
-        {!isShare && event.sdkUpdates && event.sdkUpdates.length > 0 && (
+        {!isShare && event && event.sdkUpdates && event.sdkUpdates.length > 0 && (
           <EventSdkUpdates event={event} />
         )}
-        {!isShare && event.groupID && (
+        {!isShare && event && event.groupID && (
           <EventGroupingInfo
             projectId={project.slug}
             event={event}
@@ -302,5 +331,6 @@ const StyledEventUserFeedback = styled(EventUserFeedback)`
   margin: 0;
 `;
 
-export default withOrganization(EventEntries);
+// any required due to our use of EventEntriesOrganization
+export default withOrganization<any>(EventEntries);
 export {BorderlessEventEntries};

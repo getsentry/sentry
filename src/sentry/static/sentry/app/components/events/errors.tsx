@@ -15,7 +15,7 @@ import {
 } from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
 import EventErrorItem from 'app/components/events/errorItem';
-import {Event, Project} from 'app/types';
+import {Event, AvatarProject, Project} from 'app/types';
 import {IconWarning} from 'app/icons';
 import {t, tn} from 'app/locale';
 import space from 'app/styles/space';
@@ -29,8 +29,8 @@ type Props = {
   api: Client;
   event: Event;
   orgId: string;
-  project: Project;
-  issueId: string;
+  project: AvatarProject | Project;
+  issueId?: string;
 };
 
 type State = {
@@ -43,7 +43,7 @@ class EventErrors extends React.Component<Props, State> {
     event: PropTypes.object.isRequired,
     orgId: PropTypes.string.isRequired,
     project: PropTypes.object.isRequired,
-    issueId: PropTypes.string.isRequired,
+    issueId: PropTypes.string,
   };
 
   state: State = {
@@ -61,7 +61,7 @@ class EventErrors extends React.Component<Props, State> {
     this.setState(state => ({isOpen: !state.isOpen}));
   };
 
-  uniqueErrors = errors => uniqWith(errors, isEqual);
+  uniqueErrors = (errors: any[]) => uniqWith(errors, isEqual);
 
   onReprocessEvent = async () => {
     const {api, orgId, project, event} = this.props;
@@ -87,8 +87,8 @@ class EventErrors extends React.Component<Props, State> {
     );
   };
 
-  onReprocessGroup = async () => {
-    const {api, orgId, issueId} = this.props;
+  onReprocessGroup = async (issueId: string) => {
+    const {api, orgId} = this.props;
     const endpoint = `/organizations/${orgId}/issues/${issueId}/reprocessing/`;
 
     addLoadingMessage(t('Reprocessing issue\u2026'));
@@ -115,49 +115,54 @@ class EventErrors extends React.Component<Props, State> {
     openModal(this.renderReprocessModal);
   };
 
-  renderReprocessModal = ({Body, closeModal, Footer}) => (
-    <React.Fragment>
-      <Body>
-        <p>
-          {t(
-            'You can choose to re-process events to see if your errors have been resolved. Keep the following limitations in mind:'
-          )}
-        </p>
+  renderReprocessModal = ({Body, closeModal, Footer}) => {
+    const {issueId} = this.props;
+    return (
+      <React.Fragment>
+        <Body>
+          <p>
+            {t(
+              'You can choose to re-process events to see if your errors have been resolved. Keep the following limitations in mind:'
+            )}
+          </p>
 
-        <ul>
-          <li>
-            {t(
-              'Sentry will duplicate events in your project (for now) and not delete the old versions.'
+          <ul>
+            <li>
+              {t(
+                'Sentry will duplicate events in your project (for now) and not delete the old versions.'
+              )}
+            </li>
+            <li>
+              {t(
+                'Reprocessing one or multiple events counts against your quota, but bypasses rate limits.'
+              )}
+            </li>
+            <li>
+              {t(
+                'If an event is reprocessed but did not change, we will not create the new version and not bill you for it (for now).'
+              )}
+            </li>
+            <li>
+              {t(
+                'If you have provided missing symbols please wait at least 1 hour before attempting to re-process. This is a limitation we will try to get rid of.'
+              )}
+            </li>
+          </ul>
+        </Body>
+        <Footer>
+          <ButtonBar gap={1}>
+            {issueId && (
+              <Button onClick={() => this.onReprocessGroup(issueId)}>
+                {t('Reprocess all events in issue')}
+              </Button>
             )}
-          </li>
-          <li>
-            {t(
-              'Reprocessing one or multiple events counts against your quota, but bypasses rate limits.'
-            )}
-          </li>
-          <li>
-            {t(
-              'If an event is reprocessed but did not change, we will not create the new version and not bill you for it (for now).'
-            )}
-          </li>
-          <li>
-            {t(
-              'If you have provided missing symbols please wait at least 1 hour before attempting to re-process. This is a limitation we will try to get rid of.'
-            )}
-          </li>
-        </ul>
-      </Body>
-      <Footer>
-        <ButtonBar gap={1}>
-          <Button onClick={this.onReprocessGroup}>
-            {t('Reprocess all events in issue')}
-          </Button>
-          <Button onClick={this.onReprocessEvent}>{t('Reprocess single event')}</Button>
-          <Button onClick={closeModal}>{t('Cancel')}</Button>
-        </ButtonBar>
-      </Footer>
-    </React.Fragment>
-  );
+            <Button onClick={this.onReprocessEvent}>{t('Reprocess single event')}</Button>
+            <Button onClick={closeModal}>{t('Cancel')}</Button>
+          </ButtonBar>
+        </Footer>
+      </React.Fragment>
+    );
+  };
 
   render() {
     const {event, project} = this.props;
@@ -189,7 +194,7 @@ class EventErrors extends React.Component<Props, State> {
             <EventErrorItem key={errorIdx} error={error} />
           ))}
 
-          {project.features.includes('reprocessing-v2') && (
+          {'features' in project && project.features.includes('reprocessing-v2') && (
             <Button size="xsmall" onClick={this.onReprocessStart}>
               {t('Try again')}
             </Button>

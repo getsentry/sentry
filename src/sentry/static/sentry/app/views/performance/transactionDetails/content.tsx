@@ -158,6 +158,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                     project={projects[0]}
                     showExampleCommit={false}
                     showTagSummary={false}
+                    location={location}
                   />
                 </SpanEntryContext.Provider>
               )}

@@ -217,6 +217,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                 >
                   <BorderlessEventEntries
                     organization={organization}
+                    location={location}
                     event={event}
                     project={projects[0]}
                     showExampleCommit={false}
