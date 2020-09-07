@@ -327,6 +327,6 @@ const StyledEventUserFeedback = styled(EventUserFeedback)<StyledEventUserFeedbac
   margin: 0;
 `;
 
-// any required due to our use of EventEntriesOrganization
+// TODO(ts): any required due to our use of EventEntriesOrganization
 export default withOrganization<any>(EventEntries);
 export {BorderlessEventEntries};
