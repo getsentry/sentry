@@ -112,17 +112,20 @@ class RelayRegisterChallengeEndpoint(Endpoint):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        try:
-            relay = Relay.objects.get(relay_id=relay_id)
-        except Relay.DoesNotExist:
-            pass
-        else:
-            if relay.public_key != six.text_type(public_key):
-                # This happens if we have an ID collision or someone copies an existing id
-                return Response(
-                    {"detail": "Attempted to register agent with a different public key"},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
+        #  TODO (RaduW) check it is ok to remove it: A user might change the public_key for a relay
+        # or might change the version (new behavior), any way we don't need to care, we're just going
+        # to update the existing Relay, if anything changed, when we validate the register response.
+        # try:
+        #     relay = Relay.objects.get(relay_id=relay_id)
+        # except Relay.DoesNotExist:
+        #     pass
+        # else:
+        #     if relay.public_key != six.text_type(public_key):
+        #         # This happens if we have an ID collision or someone copies an existing id
+        #         return Response(
+        #             {"detail": "Attempted to register agent with a different public key"},
+        #             status=status.HTTP_400_BAD_REQUEST,
+        #         )
 
         return Response(serialize(challenge))
 
@@ -168,6 +171,7 @@ class RelayRegisterResponseEndpoint(Endpoint):
             )
 
         relay_id = six.text_type(validated["relay_id"])
+        version = six.text_type(validated["version"])
         public_key = validated["public_key"]
 
         if relay_id != get_header_relay_id(request):
@@ -178,14 +182,15 @@ class RelayRegisterResponseEndpoint(Endpoint):
 
         is_internal = is_internal_relay(request, public_key)
         try:
-            relay = Relay.objects.get(relay_id=relay_id)
+            relay = Relay.objects.get(relay_id=relay_id, version=version)
         except Relay.DoesNotExist:
             relay = Relay.objects.create(
-                relay_id=relay_id, public_key=public_key, is_internal=is_internal
+                relay_id=relay_id, public_key=public_key, is_internal=is_internal, version=version
             )
         else:
             relay.last_seen = timezone.now()
             relay.is_internal = is_internal
+            relay.public_key = public_key
             relay.save()
 
         return Response(serialize({"relay_id": relay.relay_id}))
