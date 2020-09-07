@@ -216,13 +216,13 @@ class EventEntries extends React.Component<Props> {
 
     return (
       <div className={className} data-test-id="event-entries">
-        {!objectIsEmpty(event.errors) && (
+        {hasErrors && (
           <ErrorContainer>
             <EventErrors
               event={event}
               orgId={organization.slug}
               project={project}
-              issueId={group?.id}
+              issueId={group?.id ?? event.groupID}
             />
           </ErrorContainer>
         )}

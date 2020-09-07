@@ -30,6 +30,7 @@ import {eventDetailsRoute} from 'app/utils/discover/urls';
 import * as Layout from 'app/components/layouts/thirds';
 import ButtonBar from 'app/components/buttonBar';
 import {FIELD_TAGS} from 'app/utils/discover/fields';
+import LoadingIndicator from 'app/components/loadingIndicator';
 
 import {generateTitle, getExpandedResults} from '../utils';
 import LinkedIssue from './linkedIssue';
@@ -199,32 +200,36 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
         <Layout.Body>
           <Layout.Main fullWidth={!isSidebarVisible}>
             <Projects orgId={organization.slug} slugs={[this.projectId]}>
-              {({projects}) => (
-                <SpanEntryContext.Provider
-                  value={{
-                    getViewChildTransactionTarget: childTransactionProps => {
-                      const childTransactionLink = eventDetailsRoute({
-                        eventSlug: childTransactionProps.eventSlug,
-                        orgSlug: organization.slug,
-                      });
+              {({projects, initiallyLoaded}) =>
+                initiallyLoaded ? (
+                  <SpanEntryContext.Provider
+                    value={{
+                      getViewChildTransactionTarget: childTransactionProps => {
+                        const childTransactionLink = eventDetailsRoute({
+                          eventSlug: childTransactionProps.eventSlug,
+                          orgSlug: organization.slug,
+                        });
 
-                      return {
-                        pathname: childTransactionLink,
-                        query: eventView.generateQueryStringObject(),
-                      };
-                    },
-                  }}
-                >
-                  <BorderlessEventEntries
-                    organization={organization}
-                    location={location}
-                    event={event}
-                    project={projects[0]}
-                    showExampleCommit={false}
-                    showTagSummary={false}
-                  />
-                </SpanEntryContext.Provider>
-              )}
+                        return {
+                          pathname: childTransactionLink,
+                          query: eventView.generateQueryStringObject(),
+                        };
+                      },
+                    }}
+                  >
+                    <BorderlessEventEntries
+                      organization={organization}
+                      event={event}
+                      project={projects[0]}
+                      location={location}
+                      showExampleCommit={false}
+                      showTagSummary={false}
+                    />
+                  </SpanEntryContext.Provider>
+                ) : (
+                  <LoadingIndicator />
+                )
+              }
             </Projects>
           </Layout.Main>
           {isSidebarVisible && (

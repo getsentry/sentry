@@ -1957,7 +1957,10 @@ SENTRY_MAIL_ADAPTER_BACKEND = "sentry.mail.adapter.MailAdapter"
 SENTRY_SYNTHETIC_MONITORING_PROJECT_ID = None
 
 # Similarity cluster to use
+# Similarity-v1: uses hardcoded set of event properties for diffing
 SENTRY_SIMILARITY_INDEX_REDIS_CLUSTER = "default"
+# Similarity-v2: uses grouping components for diffing (None = fallback to setting for v1)
+SENTRY_SIMILARITY2_INDEX_REDIS_CLUSTER = None
 
 # The grouping strategy to use for driving similarity-v2. You can add multiple
 # strategies here to index them all. This is useful for transitioning a
