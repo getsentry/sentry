@@ -5,6 +5,7 @@ import {Location} from 'history';
 
 import {t, tct} from 'app/locale';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
+import DropdownButton from 'app/components/dropdownButton';
 import Button from 'app/components/button';
 import DiscoverButton from 'app/components/discoverButton';
 import GroupList from 'app/components/issues/groupList';
@@ -22,6 +23,7 @@ import {getReleaseEventView} from './chart/utils';
 
 enum IssuesType {
   NEW = 'new',
+  UNHANDLED = 'unhandled',
   RESOLVED = 'resolved',
   ALL = 'all',
 }
@@ -61,10 +63,18 @@ class Issues extends React.Component<Props, State> {
     const {queryParams} = this.getIssuesEndpoint();
     const query = new QueryResults([]);
 
-    if (issuesType === IssuesType.NEW) {
-      query.setTag('firstRelease', [version]);
-    } else {
-      query.setTag('release', [version]);
+    switch (issuesType) {
+      case IssuesType.NEW:
+        query.setTag('firstRelease', [version]);
+        break;
+      case IssuesType.UNHANDLED:
+        query.setTag('release', [version]);
+        query.setTag('handled', ['no']);
+        break;
+      case IssuesType.RESOLVED:
+      case IssuesType.ALL:
+      default:
+        query.setTag('release', [version]);
     }
 
     return {
@@ -89,18 +99,34 @@ class Issues extends React.Component<Props, State> {
       case IssuesType.ALL:
         return {
           path: `/organizations/${orgId}/issues/`,
-          queryParams: {...queryParams, query: `release:"${version}"`},
+          queryParams: {
+            ...queryParams,
+            query: stringifyQueryObject(new QueryResults([`release:${version}`])),
+          },
         };
       case IssuesType.RESOLVED:
         return {
           path: `/organizations/${orgId}/releases/${version}/resolved/`,
           queryParams: {...queryParams, query: ''},
         };
+      case IssuesType.UNHANDLED:
+        return {
+          path: `/organizations/${orgId}/issues/`,
+          queryParams: {
+            ...queryParams,
+            query: stringifyQueryObject(
+              new QueryResults([`release:${version}`, 'handled:no'])
+            ),
+          },
+        };
       case IssuesType.NEW:
       default:
         return {
           path: `/organizations/${orgId}/issues/`,
-          queryParams: {...queryParams, query: `first-release:"${version}"`},
+          queryParams: {
+            ...queryParams,
+            query: stringifyQueryObject(new QueryResults([`first-release:${version}`])),
+          },
         };
     }
   }
@@ -126,6 +152,10 @@ class Issues extends React.Component<Props, State> {
               tct('No new issues in this release for the [timePeriod].', {
                 timePeriod: displayedPeriod,
               })}
+            {issuesType === IssuesType.UNHANDLED &&
+              tct('No unhandled issues in this release for the [timePeriod].', {
+                timePeriod: displayedPeriod,
+              })}
             {issuesType === IssuesType.RESOLVED &&
               t('No resolved issues in this release.')}
             {issuesType === IssuesType.ALL &&
@@ -143,17 +173,26 @@ class Issues extends React.Component<Props, State> {
     const {orgId} = this.props;
     const {path, queryParams} = this.getIssuesEndpoint();
     const issuesTypes = [
-      {value: 'new', label: t('New Issues')},
-      {value: 'resolved', label: t('Resolved Issues')},
-      {value: 'all', label: t('All Issues')},
+      {value: IssuesType.NEW, label: t('New Issues')},
+      {value: IssuesType.RESOLVED, label: t('Resolved Issues')},
+      {value: IssuesType.UNHANDLED, label: t('Unhandled Issues')},
+      {value: IssuesType.ALL, label: t('All Issues')},
     ];
 
     return (
       <React.Fragment>
         <ControlsWrapper>
           <DropdownControl
-            buttonProps={{prefix: t('Filter'), size: 'small'}}
-            label={issuesTypes.find(i => i.value === issuesType)?.label}
+            button={({isOpen, getActorProps}) => (
+              <StyledDropdownButton
+                {...getActorProps()}
+                isOpen={isOpen}
+                prefix={t('Filter')}
+                size="small"
+              >
+                {issuesTypes.find(i => i.value === issuesType)?.label}
+              </StyledDropdownButton>
+            )}
           >
             {issuesTypes.map(({value, label}) => (
               <StyledDropdownItem
@@ -209,6 +248,10 @@ const OpenInButtonBar = styled(ButtonBar)`
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     margin-top: ${space(1)};
   }
+`;
+
+const StyledDropdownButton = styled(DropdownButton)`
+  min-width: 145px;
 `;
 
 const StyledDropdownItem = styled(DropdownItem)`
