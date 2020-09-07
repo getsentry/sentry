@@ -60,7 +60,7 @@ const IntegrationButton = styled('button')`
   text-transform: uppercase;
   border: 1px solid #eee;
   background: inherit;
-  border-radius: 4px;
+  border-radius: ${p => p.theme.borderRadius};
   padding: 10px;
 
   &:hover {
