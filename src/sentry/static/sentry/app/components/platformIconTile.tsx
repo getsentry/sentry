@@ -42,7 +42,7 @@ const PLATFORM_ICONS = {
   react: '\\e801',
   ruby: '\\e604',
   swift: '\\e60e',
-};
+} as const;
 
 // platformName: [background, forground]
 const PLATFORM_COLORS = {
@@ -61,12 +61,14 @@ const PLATFORM_COLORS = {
   'javascript-react': ['#2d2d2d', '#00d8ff'],
   'javascript-ember': ['#ed573e', '#fff'],
   'javascript-angular': ['#e03e2f', '#fff'],
-};
+} as const;
 
-const selectPlatfrom = (object, platform) =>
-  object[platform] || object[platform.split('-')[0]];
+const selectPlatfrom = (
+  object: typeof PLATFORM_ICONS | typeof PLATFORM_COLORS,
+  platform: string
+) => object[platform] || object[platform.split('-')[0]];
 
-const getColorStyles = ({monoTone, platform}) => {
+const getColorStyles = ({monoTone, platform}: Props) => {
   const [bg, fg] = selectPlatfrom(PLATFORM_COLORS, platform) || [];
 
   return (
@@ -78,9 +80,15 @@ const getColorStyles = ({monoTone, platform}) => {
   );
 };
 
+type Props = {
+  platform: keyof typeof PLATFORM_ICONS;
+  className?: string;
+  monoTone?: boolean;
+};
+
 const PlatformIconTile = styled('div', {
   shouldForwardProp: prop => prop !== 'platform' && prop !== 'monoTone',
-})`
+})<Props>`
   /* stylelint-disable-next-line font-family-no-missing-generic-family-keyword */
   font-family: 'platformicons';
   font-weight: normal;
@@ -95,7 +103,7 @@ const PlatformIconTile = styled('div', {
 `;
 
 PlatformIconTile.propTypes = {
-  platform: PropTypes.string,
+  platform: PropTypes.any,
   className: PropTypes.string,
   monoTone: PropTypes.bool,
 };
