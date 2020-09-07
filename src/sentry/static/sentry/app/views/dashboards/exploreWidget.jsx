@@ -8,7 +8,7 @@ import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 import Button from 'app/components/button';
 import DropdownMenu from 'app/components/dropdownMenu';
-import {IconChevron, IconStack, IconTelescope} from 'app/icons';
+import {IconChevron, IconStack} from 'app/icons';
 import {
   getDiscoverUrlPathFromDiscoverQuery,
   getDiscover2UrlPathFromDiscoverQuery,
@@ -105,9 +105,7 @@ class ExploreWidget extends React.Component {
             ? t('Explore data in Discover')
             : t('You do not have access to Discover')
         }
-      >
-        <IconTelescope size="xs" />
-      </ExploreAction>
+      />
     );
   }
 
@@ -127,9 +125,7 @@ class ExploreWidget extends React.Component {
             ? t('Explore data in Discover')
             : t('You do not have access to Discover. Click to learn more.')
         }
-      >
-        <IconTelescope size="xs" />
-      </ExploreAction>
+      />
     );
   }
 
