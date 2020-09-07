@@ -75,9 +75,7 @@ type Props = {
   // organization were undefined.
   organization: EventEntriesOrganization;
 
-  // XXX(markus): Is this really optional? propTypes say so, but jsx file probably
-  // would've crashed without.
-  event?: Event;
+  event: Event;
   group?: Group;
   project: AvatarProject;
 
@@ -94,7 +92,7 @@ class EventEntries extends React.Component<Props> {
       features: PropTypes.arrayOf(PropTypes.string),
     }).isRequired,
     // event is not guaranteed in shared issue view
-    event: SentryTypes.Event,
+    event: SentryTypes.Event.isRequired,
 
     group: SentryTypes.Group,
     project: PropTypes.object.isRequired,
@@ -321,13 +319,12 @@ type StyledEventUserFeedbackProps = React.ComponentProps<typeof EventUserFeedbac
   theme?: any;
 };
 
-const StyledEventUserFeedback = styled(EventUserFeedback)`
+const StyledEventUserFeedback = styled(EventUserFeedback)<StyledEventUserFeedbackProps>`
   border-radius: 0;
   box-shadow: none;
   padding: 20px 30px 0 40px;
   border: 0;
-  ${(p: StyledEventUserFeedbackProps) =>
-    p.includeBorder ? `border-top: 1px solid ${p.theme.borderLight};` : ''}
+  ${p => (p.includeBorder ? `border-top: 1px solid ${p.theme.borderLight};` : '')}
   margin: 0;
 `;
 
