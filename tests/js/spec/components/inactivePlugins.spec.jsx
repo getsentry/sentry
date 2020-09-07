@@ -29,6 +29,6 @@ describe('InactivePlugins', function() {
       .find('button')
       .first()
       .simulate('click');
-    expect(enableFn).toHaveBeenCalledWith(expect.objectContaining(plugins[0]), true);
+    expect(enableFn).toHaveBeenCalledWith(expect.objectContaining(plugins[0]));
   });
 });
