@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import six
 import logging
 
 from django.conf import settings
@@ -60,9 +61,9 @@ def get_frame_attributes(frame):
     return attributes
 
 
-def _make_index_backend(cluster=None, namespace="sim:1"):
-    if not cluster:
-        cluster_id = getattr(settings, "SENTRY_SIMILARITY_INDEX_REDIS_CLUSTER", "similarity")
+def _make_index_backend(cluster, namespace="sim:1"):
+    if isinstance(cluster, six.string_types):
+        cluster_id = cluster
 
         try:
             cluster = redis.redis_clusters.get(cluster_id)
@@ -80,7 +81,10 @@ def _make_index_backend(cluster=None, namespace="sim:1"):
 
 
 features = FeatureSet(
-    _make_index_backend(namespace="sim:1"),
+    _make_index_backend(
+        getattr(settings, "SENTRY_SIMILARITY_INDEX_REDIS_CLUSTER", None) or "similarity",
+        namespace="sim:1",
+    ),
     Encoder({Frame: get_frame_attributes}),
     BidirectionalMapping(
         {
@@ -108,4 +112,11 @@ features = FeatureSet(
     expected_encoding_errors=(FrameEncodingError,),
 )
 
-features2 = GroupingBasedFeatureSet(_make_index_backend(namespace="sim:2"))
+features2 = GroupingBasedFeatureSet(
+    _make_index_backend(
+        getattr(settings, "SENTRY_SIMILARITY2_INDEX_REDIS_CLUSTER", None)
+        or getattr(settings, "SENTRY_SIMILARITY_INDEX_REDIS_CLUSTER", None)
+        or "similarity",
+        namespace="sim:2",
+    )
+)
