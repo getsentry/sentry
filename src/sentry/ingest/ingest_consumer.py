@@ -24,7 +24,7 @@ from sentry.utils.batching_kafka_consumer import AbstractBatchWorker
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.ingest.types import ConsumerType
 from sentry.ingest.userreport import Conflict, save_userreport
-from sentry.event_manager import save_attachment, save_transaction_events
+from sentry.event_manager import save_attachment
 from sentry.eventstore.processing import event_processing_store
 
 logger = logging.getLogger(__name__)
@@ -46,7 +46,6 @@ class IngestConsumerWorker(AbstractBatchWorker):
     def _flush_batch(self, batch):
         attachment_chunks = []
         other_messages = []
-        transactions = []
 
         projects_to_fetch = set()
 
@@ -57,8 +56,6 @@ class IngestConsumerWorker(AbstractBatchWorker):
 
                 if message_type == "event":
                     other_messages.append((process_event, message))
-                elif message_type == "transaction":
-                    transactions.append(message)
                 elif message_type == "attachment_chunk":
                     attachment_chunks.append(message)
                 elif message_type == "attachment":
@@ -85,10 +82,6 @@ class IngestConsumerWorker(AbstractBatchWorker):
                 for processing_func, message in other_messages:
                     processing_func(message, projects=projects)
 
-        if transactions:
-            with metrics.timer("ingest_consumer.process_transactions"):
-                process_transactions_batch(transactions, projects)
-
     def shutdown(self):
         pass
 
@@ -106,30 +99,6 @@ def trace_func(**span_kwargs):
         return inner
 
     return wrapper
-
-
-@trace_func(name="ingest_consumer.process_transactions_batch")
-@metrics.wraps("ingest_consumer.process_transactions_batch")
-def process_transactions_batch(messages, projects):
-    if options.get("store.transactions-celery") is True:
-        for message in messages:
-            _do_process_event(message, projects)
-        return
-
-    jobs = []
-    for message in messages:
-        payload = message["payload"]
-        project_id = int(message["project_id"])
-        start_time = float(message["start_time"])
-
-        if project_id not in projects:
-            continue
-
-        with metrics.timer("ingest_consumer.decode_transaction_json"):
-            data = json.loads(payload)
-        jobs.append({"data": data, "start_time": start_time})
-
-    save_transaction_events(jobs, projects)
 
 
 @metrics.wraps("ingest_consumer.process_event")
