@@ -6,6 +6,7 @@ import PropTypes from 'prop-types';
 import ScrollToTop from 'app/views/settings/components/scrollToTop';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
+import withLatestContext from 'app/utils/withLatestContext';
 
 type Props = {
   location: Location;
@@ -68,7 +69,7 @@ class SettingsWrapper extends React.Component<Props, State> {
   }
 }
 
-export default SettingsWrapper;
+export default withLatestContext(SettingsWrapper);
 
 const StyledSettingsWrapper = styled('div')`
   display: flex;
