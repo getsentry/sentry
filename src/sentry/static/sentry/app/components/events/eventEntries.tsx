@@ -71,7 +71,7 @@ type EventEntriesOrganization = {
 };
 
 type Props = {
-  // This is definetly required because this component would crash if
+  // This is definitely required because this component would crash if
   // organization were undefined.
   organization: EventEntriesOrganization;
 
@@ -91,7 +91,6 @@ class EventEntries extends React.Component<Props> {
       slug: PropTypes.string.isRequired,
       features: PropTypes.arrayOf(PropTypes.string),
     }).isRequired,
-    // event is not guaranteed in shared issue view
     event: SentryTypes.Event.isRequired,
 
     group: SentryTypes.Group,
