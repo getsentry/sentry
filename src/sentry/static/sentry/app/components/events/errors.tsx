@@ -190,7 +190,7 @@ class EventErrors extends React.Component<Props, State> {
             <EventErrorItem key={errorIdx} error={error} />
           ))}
 
-          {project?.features.includes('reprocessing-v2') && (
+          {project?.features?.includes('reprocessing-v2') && (
             <Button size="xsmall" onClick={this.onReprocessStart}>
               {t('Try again')}
             </Button>
