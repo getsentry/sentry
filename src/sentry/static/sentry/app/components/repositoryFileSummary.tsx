@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {AvatarUser} from 'app/types';
+import {CommitAuthor} from 'app/types';
 import {ListGroup, ListGroupItem} from 'app/components/listGroup';
 import FileChange from 'app/components/fileChange';
 import {t, tn} from 'app/locale';
@@ -10,7 +10,7 @@ import space from 'app/styles/space';
 type FileChangeSummary = Record<
   string,
   {
-    authors: Record<string, AvatarUser>;
+    authors: Record<string, CommitAuthor>;
     types: Set<'M' | 'A' | 'D'>;
   }
 >;
