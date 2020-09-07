@@ -8,7 +8,7 @@ import pytest
 
 from django.conf import settings
 
-from sentry import eventstore, options
+from sentry import eventstore
 from sentry.event_manager import EventManager
 from sentry.ingest.ingest_consumer import ConsumerType, get_ingest_consumer
 from sentry.utils import json
@@ -103,7 +103,6 @@ def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
         auto_offset_reset="earliest",
     )
 
-    options.set("store.transactions-celery", not inline_transactions)
     with task_runner():
         i = 0
         while i < MAX_POLL_ITERATIONS:
