@@ -10,7 +10,7 @@ from django.core.cache import cache
 
 import sentry_sdk
 
-from sentry import eventstore, features, options
+from sentry import eventstore, features
 
 from sentry.models import Project
 from sentry.signals import event_accepted
