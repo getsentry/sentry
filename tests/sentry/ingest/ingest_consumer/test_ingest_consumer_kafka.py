@@ -70,17 +70,8 @@ def get_test_message(request, default_project):
 
 
 @pytest.mark.django_db(transaction=True)
-@pytest.mark.parametrize(
-    "inline_transactions", [True, False], ids=["inline_transactions", "worker_transactions"]
-)
 def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
-    task_runner,
-    kafka_producer,
-    kafka_admin,
-    requires_kafka,
-    default_project,
-    get_test_message,
-    inline_transactions,
+    task_runner, kafka_producer, kafka_admin, requires_kafka, default_project, get_test_message,
 ):
     group_id = "test-consumer"
     topic_event_name = ConsumerType.get_topic_name(ConsumerType.Events)
