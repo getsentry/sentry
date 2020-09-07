@@ -1,16 +1,15 @@
-import {withRouter} from 'react-router';
-import PropTypes from 'prop-types';
 import React from 'react';
+import {Location} from 'history';
 
 import {callIfFunction} from 'app/utils/callIfFunction';
 
-class ScrollToTop extends React.Component {
-  static propTypes = {
-    location: PropTypes.object,
-    disable: PropTypes.func,
-  };
+type Props = {
+  location: Location;
+  disable: (location: Location, prevLocation: Location) => boolean;
+};
 
-  componentDidUpdate(prevProps) {
+class ScrollToTop extends React.Component<Props> {
+  componentDidUpdate(prevProps: Props) {
     const {disable, location} = this.props;
 
     const shouldDisable = callIfFunction(disable, location, prevProps.location);
@@ -24,4 +23,5 @@ class ScrollToTop extends React.Component {
     return this.props.children;
   }
 }
-export default withRouter(ScrollToTop);
+
+export default ScrollToTop;
