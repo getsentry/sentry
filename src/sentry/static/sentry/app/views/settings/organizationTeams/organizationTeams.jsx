@@ -76,7 +76,6 @@ class OrganizationTeams extends React.Component {
           <PanelHeader>{t('Your Teams')}</PanelHeader>
           <PanelBody>
             <AllTeamsList
-              useCreateModal
               urlPrefix={urlPrefix}
               organization={org}
               teamList={activeTeams}
@@ -89,7 +88,6 @@ class OrganizationTeams extends React.Component {
           <PanelHeader>{t('Other Teams')}</PanelHeader>
           <PanelBody>
             <AllTeamsList
-              useCreateModal
               urlPrefix={urlPrefix}
               organization={org}
               teamList={otherTeams}
