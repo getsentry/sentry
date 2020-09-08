@@ -190,6 +190,8 @@ class EventEntries extends React.Component {
     const hasContext = !objectIsEmpty(event.user) || !objectIsEmpty(event.contexts);
     const hasErrors = !objectIsEmpty(event.errors);
 
+    console.log('EVENT', event);
+
     return (
       <div className={className} data-test-id="event-entries">
         {hasErrors && (
@@ -243,7 +245,7 @@ class EventEntries extends React.Component {
             location={location}
           />
         )}
-        {!objectIsEmpty(event.sdk) && <EventSdk event={event} />}
+        {!objectIsEmpty(event.sdk) && <EventSdk sdk={event.sdk} />}
         {!isShare && event.sdkUpdates && event.sdkUpdates.length > 0 && (
           <EventSdkUpdates event={event} />
         )}
