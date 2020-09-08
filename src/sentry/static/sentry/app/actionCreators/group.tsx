@@ -14,7 +14,7 @@ type IssueId = {
   id: string;
 };
 
-type AssignToUserParams = IssueId & {member?: Member; user: User};
+type AssignToUserParams = IssueId & {user: User; member?: Member};
 
 export function assignToUser(params: AssignToUserParams) {
   const api = new Client();
