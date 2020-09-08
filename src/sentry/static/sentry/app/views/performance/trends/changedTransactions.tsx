@@ -503,21 +503,25 @@ const TransactionMenuButton = styled('button')`
 `;
 const TransactionMenuContainer = styled('div')`
   height: 100%;
-
   display: flex;
   justify-content: center;
   align-items: center;
 `;
 
-const TransactionsList = styled('div')``;
+const TransactionsList = styled('div')`
+  font-size: ${p => p.theme.fontSizeMedium};
+`;
+
 const ListItemContainer = styled('div')`
   display: flex;
   border-top: 1px solid ${p => p.theme.borderLight};
   padding: ${space(1)} ${space(2)};
-  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const ItemRadioContainer = styled('div')`
+  input {
+    cursor: pointer;
+  }
   input:checked::after {
     background-color: ${p => p.color};
     width: 11px;
