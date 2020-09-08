@@ -380,11 +380,13 @@ let appConfig = {
 };
 
 if (IS_TEST || IS_CI || IS_STORYBOOK) {
+  console.log('$$$$$$$$$$ STORYBOOK', __dirname);
   appConfig.resolve.alias['integration-docs-platforms'] = path.join(
     __dirname,
     'tests/fixtures/integration-docs/_platforms.json'
   );
 } else {
+  console.log('$$$$$$$$$$ NOT STORYBOOK');
   const plugin = new IntegrationDocsFetchPlugin({basePath: __dirname});
   appConfig.plugins.push(plugin);
   appConfig.resolve.alias['integration-docs-platforms'] = plugin.modulePath;
