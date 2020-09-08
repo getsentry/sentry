@@ -4,6 +4,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
+import {Organization, Project, Team} from 'app/types';
 import {inputStyles} from 'app/styles/input';
 import {openCreateTeamModal} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
@@ -14,10 +15,10 @@ import PlatformIconTile from 'app/components/platformIconTile';
 import PlatformPicker from 'app/components/platformPicker';
 import ProjectActions from 'app/actions/projectActions';
 import SelectControl from 'app/components/forms/selectControl';
-import SentryTypes from 'app/sentryTypes';
 import Tooltip from 'app/components/tooltip';
 import getPlatformName from 'app/utils/getPlatformName';
 import space from 'app/styles/space';
+import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import withTeams from 'app/utils/withTeams';
@@ -26,13 +27,36 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 import slugify from 'app/utils/slugify';
 import {IconAdd} from 'app/icons';
 
-class CreateProject extends React.Component {
-  static propTypes = {
-    api: PropTypes.object,
-    teams: PropTypes.arrayOf(SentryTypes.Team),
-    organization: SentryTypes.Organization,
-  };
+type RuleEventData = {
+  eventKey: string;
+  eventName: string;
+  organization_id: string;
+  project_id: string;
+  rule_type: string;
+  custom_rule_id?: string;
+};
 
+type Props = {
+  api: any;
+  organization: Organization;
+  teams: Team[];
+};
+
+type PlatformName = React.ComponentProps<typeof PlatformIconTile>['platform'];
+type IssueAlertFragment = Parameters<
+  React.ComponentProps<typeof IssueAlertOptions>['onChange']
+>[0];
+
+type State = {
+  error: boolean;
+  projectName: string;
+  team: string;
+  platform: PlatformName;
+  inFlight: boolean;
+  dataFragment: IssueAlertFragment | undefined;
+};
+
+class CreateProject extends React.Component<Props, State> {
   static contextTypes = {
     location: PropTypes.object,
   };
@@ -41,8 +65,8 @@ class CreateProject extends React.Component {
     super(props, ...args);
 
     const {query} = this.context.location;
-    const {teams} = this.props.organization;
-    const accessTeams = teams.filter(team => team.hasAccess);
+    const {teams} = props.organization;
+    const accessTeams = teams.filter((team: Team) => team.hasAccess);
 
     const team = query.team || (accessTeams.length && accessTeams[0].slug);
     const platform = getPlatformName(query.platform) ? query.platform : '';
@@ -53,7 +77,7 @@ class CreateProject extends React.Component {
       team,
       platform,
       inFlight: false,
-      dataFragment: {},
+      dataFragment: undefined,
     };
   }
 
@@ -67,12 +91,11 @@ class CreateProject extends React.Component {
       <CreateProjectForm onSubmit={this.createProject}>
         <div>
           <FormLabel>{t('Project name')}</FormLabel>
-          <ProjectNameInput>
+          <ProjectNameInput theme={theme}>
             <ProjectPlatformIcon monoTone platform={platform} />
             <input
               type="text"
               name="name"
-              label={t('Project Name')}
               placeholder={t('Project name')}
               autoComplete="off"
               value={projectName}
@@ -132,14 +155,14 @@ class CreateProject extends React.Component {
   }
 
   get canSubmitForm() {
-    const {projectName, team, inFlight, dataFragment} = this.state;
+    const {projectName, team, inFlight} = this.state;
+    const {shouldCreateCustomRule, conditions} = this.state.dataFragment || {};
 
     return (
       !inFlight &&
       team &&
       projectName !== '' &&
-      (!dataFragment?.shouldCreateCustomRule ||
-        dataFragment?.conditions?.every?.(condition => condition.value))
+      (!shouldCreateCustomRule || conditions?.every?.(condition => condition.value))
     );
   }
 
@@ -156,7 +179,7 @@ class CreateProject extends React.Component {
       actionMatch,
       frequency,
       defaultRules,
-    } = dataFragment;
+    } = dataFragment || {};
 
     this.setState({inFlight: true});
 
@@ -178,7 +201,7 @@ class CreateProject extends React.Component {
         },
       });
 
-      let ruleId;
+      let ruleId: string | undefined;
       if (shouldCreateCustomRule) {
         const ruleData = await api.requestPromise(
           `/projects/${organization.slug}/${projectData.slug}/rules/`,
@@ -227,14 +250,14 @@ class CreateProject extends React.Component {
   };
 
   trackIssueAlertOptionSelectedEvent(
-    projectData,
-    isDefaultRules,
-    shouldCreateCustomRule,
-    ruleId
+    projectData: Project,
+    isDefaultRules: boolean | undefined,
+    shouldCreateCustomRule: boolean | undefined,
+    ruleId: string | undefined
   ) {
     const {organization} = this.props;
 
-    let data = {
+    let data: RuleEventData = {
       eventKey: 'new_project.alert_rule_selected',
       eventName: 'New Project Alert Rule Selected',
       organization_id: organization.id,
@@ -253,12 +276,12 @@ class CreateProject extends React.Component {
     trackAnalyticsEvent(data);
   }
 
-  setPlatform = platformId =>
-    this.setState(({projectName, platform}) => ({
+  setPlatform = (platformId: PlatformName) =>
+    this.setState(({projectName, platform}: State) => ({
       platform: platformId,
       projectName:
         !projectName || (platform && getPlatformName(platform) === projectName)
-          ? getPlatformName(platformId)
+          ? getPlatformName(platformId) || ''
           : projectName,
     }));
 
