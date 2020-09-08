@@ -1,30 +1,30 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
 import CheckboxFancy from 'app/components/checkboxFancy/checkboxFancy';
 import space from 'app/styles/space';
 
-class GlobalSelectionHeaderRow extends React.Component {
-  static propTypes = {
-    checked: PropTypes.bool.isRequired,
-    multi: PropTypes.bool,
-    onCheckClick: PropTypes.func.isRequired,
-    children: PropTypes.node.isRequired,
+const defaultProps = {
+  /**
+   * This is a render prop which may be used to augment the checkbox rendered
+   * to the right of the row. It will receive the default `checkbox` as a
+   * prop along with the `checked` boolean.
+   */
+  renderCheckbox: (({checkbox}) => checkbox) as (options: {
+    checkbox: React.ReactNode;
+    checked?: boolean;
+  }) => React.ReactNode,
+  multi: true,
+};
 
-    /**
-     * This is a render prop which may be used to augment the checkbox rendered
-     * to the right of the row. It will receive the default `checkbox` as a
-     * prop anlong with the `checked` boolean.
-     */
-    renderCheckbox: PropTypes.func,
-  };
+type Props = {
+  checked: boolean;
+  onCheckClick: (event: React.MouseEvent) => void;
+  children: React.ReactNode;
+} & typeof defaultProps;
 
-  static defaultProps = {
-    renderCheckbox: ({checkbox}) => checkbox,
-    multi: true,
-  };
-
+class GlobalSelectionHeaderRow extends React.Component<Props> {
+  static defaultProps = defaultProps;
   render() {
     const {checked, onCheckClick, multi, renderCheckbox, children, ...props} = this.props;
 
@@ -33,7 +33,7 @@ class GlobalSelectionHeaderRow extends React.Component {
     return (
       <Container isChecked={checked} {...props}>
         <Content multi={multi}>{children}</Content>
-        <CheckboxHitbox onClick={multi ? onCheckClick : null}>
+        <CheckboxHitbox onClick={multi ? onCheckClick : undefined}>
           {renderCheckbox({checkbox, checked})}
         </CheckboxHitbox>
       </Container>
@@ -41,7 +41,7 @@ class GlobalSelectionHeaderRow extends React.Component {
   }
 }
 
-const Container = styled('div')`
+const Container = styled('div')<{isChecked: boolean}>`
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -60,7 +60,7 @@ const Container = styled('div')`
   }
 `;
 
-const Content = styled('div')`
+const Content = styled('div')<{multi: boolean}>`
   display: flex;
   flex-shrink: 1;
   overflow: hidden;
@@ -77,7 +77,7 @@ const Content = styled('div')`
 
 const CheckboxHitbox = styled('div')`
   margin: 0 -${space(1)} 0 0; /* pushes the click box to be flush with the edge of the menu */
-  padding: 0 ${space(1.5)} 0 ${space(1.25)};
+  padding: 0 ${space(1.5)};
   height: 100%;
   display: flex;
   justify-content: flex-end;
