@@ -65,7 +65,7 @@ export function fetchTeamDetails(
   });
 }
 
-export function updateTeamSuccess(teamId: TeamSlug['teamId'], data: Team) {
+export function updateTeamSuccess(teamId: OrgAndTeamSlug['teamId'], data: Team) {
   TeamActions.updateSuccess(teamId, data);
 }
 
