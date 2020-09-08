@@ -10,9 +10,9 @@ import {PackageStatusIcon} from 'app/components/events/interfaces/packageStatus'
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 
 type Props = {
-  packagePath: string;
+  packagePath?: string;
   onClick: (event: React.MouseEvent<HTMLAnchorElement>) => void;
-  isClickable: boolean;
+  isClickable?: boolean;
   withLeadHint: boolean;
 };
 

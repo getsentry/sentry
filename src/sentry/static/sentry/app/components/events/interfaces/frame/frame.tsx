@@ -18,13 +18,36 @@ import {SymbolicatorStatus} from 'app/components/events/interfaces/types';
 import {combineStatus} from 'app/components/events/interfaces/debugMeta/utils';
 import {IconRefresh, IconAdd, IconSubtract, IconQuestion, IconWarning} from 'app/icons';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
+import {Frame as FrameType, SentryAppComponent, PlatformType} from 'app/types';
+import DebugImage from 'app/components/events/interfaces/debugMeta/debugImage';
 
 import FrameDefaultTitle from './frameDefaultTitle';
 import FrameContext from './frameContext';
 import FrameFunctionName from './frameFunctionName';
 import {getPlatform} from './utils';
 
-export class Frame extends React.Component {
+type Props = {
+  data: FrameType & {symbolicatorStatus?: string};
+  nextFrame: FrameType;
+  prevFrame: FrameType;
+  platform: PlatformType;
+  isExpanded: boolean;
+  emptySourceNotation: boolean;
+  isOnlyFrame: boolean;
+  timesRepeated: number;
+  registers: {[key: string]: string};
+  components: Array<SentryAppComponent>;
+  showingAbsoluteAddress: boolean;
+  onAddressToggle: () => void;
+  image: React.ComponentProps<typeof DebugImage>['image'];
+  maxLengthOfRelativeAddress: number;
+};
+
+type State = {
+  isExpanded: boolean;
+};
+
+export class Frame extends React.Component<Props, State> {
   static propTypes = {
     data: PropTypes.object.isRequired,
     nextFrame: PropTypes.object,
@@ -63,7 +86,7 @@ export class Frame extends React.Component {
   };
 
   hasContextSource() {
-    return defined(this.props.data.context) && this.props.data.context.length;
+    return defined(this.props.data.context) && !!this.props.data.context.length;
   }
 
   hasContextVars() {
@@ -105,7 +128,9 @@ export class Frame extends React.Component {
   shouldShowLinkToImage() {
     const {symbolicatorStatus} = this.props.data;
 
-    return symbolicatorStatus && symbolicatorStatus !== SymbolicatorStatus.UNKNOWN_IMAGE;
+    return (
+      !!symbolicatorStatus && symbolicatorStatus !== SymbolicatorStatus.UNKNOWN_IMAGE
+    );
   }
 
   packageStatus() {
@@ -238,7 +263,7 @@ export class Frame extends React.Component {
 
   renderDefaultLine() {
     return (
-      <StrictClick onClick={this.isExpandable() ? this.toggleContext : null}>
+      <StrictClick onClick={this.isExpandable() ? this.toggleContext : undefined}>
         <DefaultLine className="title">
           <VertCenterWrapper>
             <div>
@@ -267,7 +292,7 @@ export class Frame extends React.Component {
     const leadHint = this.renderLeadHint();
 
     return (
-      <StrictClick onClick={this.isExpandable() ? this.toggleContext : null}>
+      <StrictClick onClick={this.isExpandable() ? this.toggleContext : undefined}>
         <DefaultLine className="title as-table">
           <NativeLineContent>
             <PackageInfo>
@@ -281,15 +306,17 @@ export class Frame extends React.Component {
                 <PackageStatus status={this.packageStatus()} />
               </PackageLink>
             </PackageInfo>
-            <TogglableAddress
-              address={data.instructionAddr}
-              startingAddress={image ? image.image_addr : null}
-              isAbsolute={showingAbsoluteAddress}
-              isFoundByStackScanning={this.isFoundByStackScanning()}
-              isInlineFrame={this.isInlineFrame()}
-              onToggle={onAddressToggle}
-              maxLengthOfRelativeAddress={maxLengthOfRelativeAddress}
-            />
+            {data.instructionAddr && (
+              <TogglableAddress
+                address={data.instructionAddr}
+                startingAddress={image ? image.image_addr : null}
+                isAbsolute={showingAbsoluteAddress}
+                isFoundByStackScanning={this.isFoundByStackScanning()}
+                isInlineFrame={this.isInlineFrame()}
+                onToggle={onAddressToggle}
+                maxLengthOfRelativeAddress={maxLengthOfRelativeAddress}
+              />
+            )}
             <Symbol className="symbol">
               <FrameFunctionName frame={data} />{' '}
               {hint !== null ? (

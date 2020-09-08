@@ -1400,7 +1400,7 @@ export type Widget = {
 
 export type EventGroupInfo = Record<EventGroupVariantKey, EventGroupVariant>;
 
-export type PlatformType = 'java' | 'csharp' | 'other';
+export type PlatformType = 'java' | 'csharp' | 'objc' | 'cocoa' | 'native' | 'other';
 
 export type Frame = {
   filename: string;
