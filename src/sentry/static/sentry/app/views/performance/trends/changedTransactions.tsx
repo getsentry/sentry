@@ -345,7 +345,9 @@ function TrendsListItem(props: TrendsListItemProps) {
               </TooltipContent>
             }
           >
-            <TransactionLink {...props} />
+            <TransactionLink onClick={() => handleSelectTransaction(transaction)}>
+              {transaction.transaction}
+            </TransactionLink>
           </Tooltip>
           <TransactionMenuContainer>
             <DropdownLink
@@ -373,11 +375,7 @@ function TrendsListItem(props: TrendsListItemProps) {
             </Tooltip>
           )}
           <ItemTransactionAbsoluteFaster>
-            {transformDeltaSpread(
-              transaction.aggregate_range_1,
-              transaction.aggregate_range_2,
-              currentTrendFunction
-            )}
+            <CompareLink {...props} />
           </ItemTransactionAbsoluteFaster>
         </ItemTransactionNameSecondary>
       </ItemTransactionNameContainer>
@@ -424,9 +422,9 @@ function TrendsListItem(props: TrendsListItemProps) {
   );
 }
 
-type TransactionLinkProps = TrendsListItemProps & {};
+type CompareLinkProps = TrendsListItemProps & {};
 
-const TransactionLink = (props: TransactionLinkProps) => {
+const CompareLink = (props: CompareLinkProps) => {
   const {
     organization,
     trendView: eventView,
@@ -434,6 +432,7 @@ const TransactionLink = (props: TransactionLinkProps) => {
     api,
     statsData,
     location,
+    currentTrendFunction,
   } = props;
   const summaryView = eventView.clone();
   const intervalRatio = getIntervalRatio(location);
@@ -460,7 +459,15 @@ const TransactionLink = (props: TransactionLinkProps) => {
     }
   }
 
-  return <StyledLink onClick={onLinkClick}>{transaction.transaction}</StyledLink>;
+  return (
+    <StyledLink onClick={onLinkClick}>
+      {transformDeltaSpread(
+        transaction.aggregate_range_1,
+        transaction.aggregate_range_2,
+        currentTrendFunction
+      )}
+    </StyledLink>
+  );
 };
 
 type TransactionSummaryLinkProps = TrendsListItemProps & {};
@@ -479,6 +486,10 @@ const TransactionSummaryLink = (props: TransactionSummaryLinkProps) => {
 
   return <StyledSummaryLink to={target}>{t('View Summary')}</StyledSummaryLink>;
 };
+
+const TransactionLink = styled('div')`
+  cursor: pointer;
+`;
 
 const ChangedTransactionsContainer = styled('div')``;
 const StyledLink = styled('a')`
