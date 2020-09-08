@@ -137,11 +137,8 @@ class TriggersChart extends React.PureComponent<Props> {
             <StickyWrapper>
               <StyledPanel>
                 <PanelBody withPadding>
-                  <Feature
-                    features={['metric-alert-stats-period']}
-                    organization={organization}
-                  >
-                    <StyledSelectField
+                  <Feature features={['internal-catchall']} organization={organization}>
+                    <StyledSelectControl
                       inline={false}
                       styles={{
                         control: provided => ({
@@ -155,8 +152,6 @@ class TriggersChart extends React.PureComponent<Props> {
                       disabled={loading || reloading}
                       name="statsPeriod"
                       value={period}
-                      required
-                      flexibleControlStateSize
                       choices={statsPeriodOptions.map(timePeriod => [
                         timePeriod,
                         TIME_PERIOD_MAP[timePeriod],
@@ -221,7 +216,7 @@ const StyledPanel = styled(Panel)`
   background: none;
 `;
 
-const StyledSelectField = styled(SelectControl)`
+const StyledSelectControl = styled(SelectControl)`
   width: 180px;
   margin: 0 0 ${space(1)} auto;
   font-weight: normal;
