@@ -56,7 +56,7 @@ from sentry.signals import (
 from sentry.tasks.deletion import delete_groups as delete_groups_task
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.merge import merge_groups
-from sentry.utils import metrics, snuba
+from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.cursors import Cursor
 from sentry.utils.functional import extract_lazy_object
@@ -428,6 +428,8 @@ def self_subscribe_and_assign_issue(acting_user, group):
 
 def track_update_groups(function):
     def wrapper(request, projects, *args, **kwargs):
+        from sentry.utils import snuba
+
         try:
             response = function(request, projects, *args, **kwargs)
         except snuba.RateLimitExceeded:

@@ -7,7 +7,7 @@ from contextlib import contextmanager
 from functools import wraps
 
 from sentry.celery import app
-from sentry.utils import metrics, snuba
+from sentry.utils import metrics
 from sentry.utils.sdk import configure_scope, capture_exception
 
 
@@ -84,6 +84,8 @@ def retry(func=None, on=(Exception,), exclude=(), ignore=()):
 
 def track_group_async_operation(function):
     def wrapper(*args, **kwargs):
+        from sentry.utils import snuba
+
         try:
             response = function(*args, **kwargs)
             metrics.incr(

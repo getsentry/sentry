@@ -34,7 +34,7 @@ from sentry.models import (
 from sentry.plugins.base import plugins
 from sentry.plugins.bases import IssueTrackingPlugin2
 from sentry.signals import issue_deleted
-from sentry.utils import metrics, snuba
+from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 from sentry.utils.apidocs import scenario, attach_scenarios
 from sentry.utils.compat import zip
@@ -200,6 +200,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         """
         try:
             # TODO(dcramer): handle unauthenticated/public response
+            from sentry.utils import snuba
 
             organization = group.project.organization
             environments = get_environments(request, organization)
@@ -360,6 +361,8 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         :auth: required
         """
         try:
+            from sentry.utils import snuba
+
             discard = request.data.get("discard")
 
             # TODO(dcramer): we need to implement assignedTo in the bulk mutation
@@ -422,6 +425,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         :auth: required
         """
         try:
+            from sentry.utils import snuba
             from sentry.tasks.deletion import delete_groups
 
             updated = (
