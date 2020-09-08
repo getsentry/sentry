@@ -143,9 +143,7 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
     def test_sentry_apps(self):
         sentry_app = self.install_new_sentry_app("foo")
 
-        with self.feature(
-            ["organizations:incidents", "organizations:integrations-sentry-app-metric-alerts"]
-        ):
+        with self.feature("organizations:incidents"):
             resp = self.get_valid_response(self.organization.slug)
 
         assert len(resp.data) == 2
@@ -157,9 +155,7 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
         # Should not show up in available actions.
         self.install_new_sentry_app("published", published=True)
 
-        with self.feature(
-            ["organizations:incidents", "organizations:integrations-sentry-app-metric-alerts"]
-        ):
+        with self.feature("organizations:incidents"):
             resp = self.get_valid_response(self.organization.slug)
 
         assert len(resp.data) == 2
