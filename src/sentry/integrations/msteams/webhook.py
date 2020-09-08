@@ -34,6 +34,8 @@ from .card_builder import (
     build_mentioned_card,
     build_unlink_identity_card,
     build_unrecognized_command_card,
+    build_help_command_card,
+    build_link_identity_command_card,
 )
 from .client import (
     MsTeamsJwtClient,
@@ -442,14 +444,19 @@ class MsTeamsWebhookEndpoint(Endpoint):
     def handle_personal_message(self, request):
         data = request.data
         command_text = data.get("text", "").strip()
+        lowercase_command = command_text.lower()
         conversation_id = data["conversation"]["id"]
 
         # only supporting unlink for now
-        if "unlink" in command_text:
+        if "unlink" in lowercase_command:
             unlink_url = build_unlinking_url(
                 conversation_id, data["serviceUrl"], data["from"]["id"]
             )
             card = build_unlink_identity_card(unlink_url)
+        elif "help" in lowercase_command:
+            card = build_help_command_card()
+        elif "link" == lowercase_command:  # don't to match other types of link commands
+            card = build_link_identity_command_card()
         else:
             card = build_unrecognized_command_card(command_text)
 

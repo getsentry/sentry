@@ -164,6 +164,7 @@ class EventErrors extends React.Component<Props, State> {
     // XXX: uniqueErrors is not performant with large datasets
     const errors =
       event.errors.length > MAX_ERRORS ? event.errors : this.uniqueErrors(event.errors);
+
     const numErrors = errors.length;
     const isOpen = this.state.isOpen;
     return (
@@ -189,7 +190,7 @@ class EventErrors extends React.Component<Props, State> {
             <EventErrorItem key={errorIdx} error={error} />
           ))}
 
-          {project.features.includes('reprocessing-v2') && (
+          {project?.features?.includes('reprocessing-v2') && (
             <Button size="xsmall" onClick={this.onReprocessStart}>
               {t('Try again')}
             </Button>

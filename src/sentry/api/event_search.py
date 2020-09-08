@@ -855,21 +855,22 @@ def format_search_filter(term, params):
         project = None
         try:
             project = Project.objects.get(id__in=params.get("project_id", []), slug=value)
-        except Exception:
-            raise InvalidSearchQuery(
-                u"Invalid query. Project {} does not exist or is not an actively selected project.".format(
-                    value
+        except Exception as e:
+            if not isinstance(e, Project.DoesNotExist) or term.operator != "!=":
+                raise InvalidSearchQuery(
+                    u"Invalid query. Project {} does not exist or is not an actively selected project.".format(
+                        value
+                    )
                 )
-            )
+        else:
+            # Create a new search filter with the correct values
+            term = SearchFilter(SearchKey("project_id"), term.operator, SearchValue(project.id))
+            converted_filter = convert_search_filter_to_snuba_query(term)
+            if converted_filter:
+                if term.operator == "=":
+                    project_to_filter = project.id
 
-        # Create a new search filter with the correct values
-        term = SearchFilter(SearchKey("project_id"), term.operator, SearchValue(project.id))
-        converted_filter = convert_search_filter_to_snuba_query(term)
-        if converted_filter:
-            if term.operator == "=":
-                project_to_filter = project.id
-
-            conditions.append(converted_filter)
+                conditions.append(converted_filter)
     elif name == ISSUE_ID_ALIAS and value != "":
         # A blank term value means that this is a has filter
         group_ids = to_list(value)
@@ -1562,6 +1563,12 @@ FUNCTIONS = {
         "aggregate": [u"minus", [ArgValue("minuend"), ArgValue("subtrahend")], None],
         "result_type": "duration",
     },
+    "absolute_correlation": {
+        "name": "absolute_correlation",
+        "args": [],
+        "aggregate": ["abs", [["corr", ["toUnixTimestamp", ["timestamp"], "duration"]]], None],
+        "result_type": "number",
+    },
 }
 
 
@@ -1810,7 +1817,7 @@ def resolve_field_list(fields, snuba_filter, auto_fields=True):
         # would be aggregated away.
         if not aggregations and "id" not in columns:
             columns.append("id")
-        if not aggregations and "project.id" not in columns:
+        if "id" in columns and "project.id" not in columns:
             columns.append("project.id")
             project_key = PROJECT_NAME_ALIAS
 
