@@ -109,10 +109,10 @@ class TriggersChart extends React.PureComponent<Props> {
     } = this.props;
     const {statsPeriod} = this.state;
 
-    const period = AVAILABLE_TIME_PERIODS[timeWindow].includes(statsPeriod)
-      ? statsPeriod
-      : AVAILABLE_TIME_PERIODS[timeWindow][0];
     const statsPeriodOptions = AVAILABLE_TIME_PERIODS[timeWindow];
+    const period = statsPeriodOptions.includes(statsPeriod)
+      ? statsPeriod
+      : statsPeriodOptions[0];
 
     return (
       <EventsRequest
