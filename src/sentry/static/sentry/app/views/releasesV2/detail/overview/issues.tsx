@@ -69,7 +69,7 @@ class Issues extends React.Component<Props, State> {
         break;
       case IssuesType.UNHANDLED:
         query.setTag('release', [version]);
-        query.setTag('handled', ['no']);
+        query.setTag('error.handled', ['0']);
         break;
       case IssuesType.RESOLVED:
       case IssuesType.ALL:
@@ -115,7 +115,7 @@ class Issues extends React.Component<Props, State> {
           queryParams: {
             ...queryParams,
             query: stringifyQueryObject(
-              new QueryResults([`release:${version}`, 'handled:no'])
+              new QueryResults([`release:${version}`, 'error.handled:0'])
             ),
           },
         };

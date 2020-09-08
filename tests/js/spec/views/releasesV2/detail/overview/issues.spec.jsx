@@ -36,7 +36,7 @@ describe('ReleasesV2 Issues', function() {
     });
     unhandledIssuesEndpoint = MockApiClient.addMockResponse({
       url:
-        '/organizations/org/issues/?limit=50&query=release%3A1.0.0%20handled%3Ano&sort=new',
+        '/organizations/org/issues/?limit=50&query=release%3A1.0.0%20error.handled%3A0&sort=new',
       body: [],
     });
     allIssuesEndpoint = MockApiClient.addMockResponse({
@@ -152,7 +152,7 @@ describe('ReleasesV2 Issues', function() {
     filterIssues(wrapper, 'unhandled');
     expect(wrapper.find('Link[data-test-id="issues-button"]').prop('to')).toEqual({
       pathname: '/organizations/org/issues/',
-      query: {limit: 50, sort: 'new', query: 'release:1.0.0 handled:no'},
+      query: {limit: 50, sort: 'new', query: 'release:1.0.0 error.handled:0'},
     });
 
     filterIssues(wrapper, 'all');
