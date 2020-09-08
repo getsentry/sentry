@@ -4,6 +4,7 @@ from collections import OrderedDict
 from django import forms
 
 from sentry import tagstore
+from sentry.signals import release_created
 from sentry.rules.conditions.base import EventCondition
 from sentry.utils.cache import cache
 from sentry.api.serializers.models.project import bulk_fetch_project_latest_releases
@@ -32,6 +33,17 @@ MATCH_CHOICES = OrderedDict(
         (MatchType.NOT_SET, "is not set"),
     ]
 )
+
+
+def get_project_release_cache_key(project_id):
+    return u"project:{}:latest_release".format(project_id)
+
+
+@release_created.connect(weak=False)
+def clear_project_release_cache(release, **kwargs):
+    release_project_ids = release.projects.values_list("id", flat=True)
+    for proj_id in release_project_ids:
+        cache.delete(get_project_release_cache_key(proj_id))
 
 
 class TaggedEventForm(forms.Form):
@@ -71,12 +83,12 @@ class TaggedEventCondition(EventCondition):
     }
 
     def get_latest_release(self, event):
-        cache_key = u"project:{}:latest_release".format(event.group.project_id)
+        cache_key = get_project_release_cache_key(event.group.project_id)
         latest_release = cache.get(cache_key)
         if not latest_release:
             latest_releases = bulk_fetch_project_latest_releases([event.group.project])
             if latest_releases:
-                cache.set(cache_key, latest_releases[0], 60)
+                cache.set(cache_key, latest_releases[0], 600)
                 return latest_releases[0]
         return latest_release
 
