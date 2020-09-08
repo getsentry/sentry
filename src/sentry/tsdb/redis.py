@@ -5,7 +5,6 @@ import logging
 import operator
 import random
 import uuid
-from binascii import crc32
 from collections import defaultdict, namedtuple
 from hashlib import md5
 
@@ -19,8 +18,7 @@ from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.redis import check_cluster_versions, get_cluster_from_options, SentryScript
 from sentry.utils.versioning import Version
 from six.moves import reduce
-from sentry.utils.compat import map
-from sentry.utils.compat import zip
+from sentry.utils.compat import map, zip, crc32
 
 logger = logging.getLogger(__name__)
 
