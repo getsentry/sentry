@@ -1,5 +1,6 @@
 import React from 'react';
 import {Location} from 'history';
+import styled from '@emotion/styled';
 
 import {Organization, Project} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
@@ -7,10 +8,18 @@ import Feature from 'app/components/acl/feature';
 import CreateAlertButton from 'app/components/createAlertButton';
 import * as Layout from 'app/components/layouts/thirds';
 import ButtonBar from 'app/components/buttonBar';
+import ListLink from 'app/components/links/listLink';
+import NavTabs from 'app/components/navTabs';
+import {t} from 'app/locale';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import Breadcrumb from 'app/views/performance/breadcrumb';
 
 import KeyTransactionButton from './keyTransactionButton';
+
+export enum Tab {
+  TransactionSummary,
+  RealUserMonitoring,
+}
 
 type Props = {
   eventView: EventView;
@@ -18,6 +27,7 @@ type Props = {
   organization: Organization;
   projects: Project[];
   transactionName: string;
+  currentTab: Tab;
   handleIncompatibleQuery: React.ComponentProps<
     typeof CreateAlertButton
   >['onIncompatibleQuery'];
@@ -74,8 +84,14 @@ class TransactionHeader extends React.Component<Props> {
     );
   }
 
+  get baseUrl() {
+    const {organization} = this.props;
+    return `/organizations/${organization.slug}/performance/summary/`;
+  }
+
   render() {
-    const {organization, location, transactionName} = this.props;
+    const {organization, location, transactionName, currentTab} = this.props;
+    const baseUrl = this.baseUrl;
 
     return (
       <Layout.Header>
@@ -84,6 +100,7 @@ class TransactionHeader extends React.Component<Props> {
             organization={organization}
             location={location}
             transactionName={transactionName}
+            realUserMonitoring={currentTab === Tab.RealUserMonitoring}
           />
           <Layout.Title>{transactionName}</Layout.Title>
         </Layout.HeaderContent>
@@ -95,9 +112,29 @@ class TransactionHeader extends React.Component<Props> {
             {this.renderKeyTransactionButton()}
           </ButtonBar>
         </Layout.HeaderActions>
+        <StyledNavTabs>
+          <ListLink
+            to={`${baseUrl}${location.search}`}
+            isActive={() => currentTab === Tab.TransactionSummary}
+          >
+            {t('Overview')}
+          </ListLink>
+          <ListLink
+            to={`${baseUrl}rum/${location.search}`}
+            isActive={() => currentTab === Tab.RealUserMonitoring}
+          >
+            {t('Real User Monitoring')}
+          </ListLink>
+        </StyledNavTabs>
       </Layout.Header>
     );
   }
 }
+
+const StyledNavTabs = styled(NavTabs)`
+  margin-bottom: 0;
+  /* Makes sure the tabs are pushed into another row */
+  width: 100%;
+`;
 
 export default TransactionHeader;

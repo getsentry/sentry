@@ -15,6 +15,7 @@ import 'echarts/lib/component/dataZoom';
 import 'echarts/lib/component/graphic';
 import 'echarts/lib/component/legend';
 import 'echarts/lib/component/legendScroll';
+import 'echarts/lib/component/markArea';
 import 'echarts/lib/component/markLine';
 import 'echarts/lib/component/markPoint';
 import 'echarts/lib/component/toolbox';
