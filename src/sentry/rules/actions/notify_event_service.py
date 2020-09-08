@@ -43,12 +43,12 @@ def send_incident_alert_notification(action, incident, metric_value=None):
         )
     except SentryAppInstallation.DoesNotExist:
         logger.info(
-            "event_alert_webhook.missing_installation",
+            "metric_alert_webhook.missing_installation",
             extra={
-                "sentry_app_id": sentry_app.id,
+                "action": action.id,
+                "incident": incident.id,
                 "organization": organization.slug,
-                "organization_id": incident.organization_id,
-                "target_identifier": sentry_app.id,
+                "sentry_app_id": sentry_app.id,
             }
         )
         return
