@@ -4,12 +4,23 @@ import classNames from 'classnames';
 import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
+import {ProcessingIssue} from 'app/types';
 import {IconWarning, IconSettings} from 'app/icons';
 import TimeSince from 'app/components/timeSince';
 import {t, tn, tct} from 'app/locale';
 import space from 'app/styles/space';
 
-class ProcessingIssueHint extends React.Component {
+const defaultProps = {
+  showProject: false,
+};
+
+type Props = {
+  issue: ProcessingIssue;
+  orgId: string;
+  projectId: string;
+} & typeof defaultProps;
+
+class ProcessingIssueHint extends React.Component<Props> {
   static propTypes = {
     issue: PropTypes.object.isRequired,
     orgId: PropTypes.string.isRequired,
@@ -17,9 +28,7 @@ class ProcessingIssueHint extends React.Component {
     showProject: PropTypes.bool,
   };
 
-  static defaultProps = {
-    showProject: false,
-  };
+  static defaultProps = defaultProps;
 
   render() {
     const {orgId, projectId, issue, showProject} = this.props;
@@ -29,11 +38,11 @@ class ProcessingIssueHint extends React.Component {
       'processing-issues': true,
       alert: true,
     };
-    let text = null;
-    let lastEvent = null;
-    let icon = null;
+    let text = '';
+    let lastEvent: React.ReactNode = null;
+    let icon: React.ReactNode = null;
 
-    let project = null;
+    let project: React.ReactNode = null;
     if (showProject) {
       project = (
         <span>
