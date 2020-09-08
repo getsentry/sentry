@@ -16,6 +16,10 @@ import Duration from 'app/components/duration';
 import {Sort, Field} from 'app/utils/discover/fields';
 import {t} from 'app/locale';
 import Count from 'app/components/count';
+import {Organization} from 'app/types';
+import EventView from 'app/utils/discover/eventView';
+import {Client} from 'app/api';
+import {getUtcDateString} from 'app/utils/dates';
 
 import {
   TrendFunction,
@@ -24,23 +28,24 @@ import {
   TrendsTransaction,
   NormalizedTrendsTransaction,
   TrendFunctionField,
+  TrendsStats,
 } from './types';
+import {BaselineQueryResults} from '../transactionSummary/baselineQuery';
 
 export const TRENDS_FUNCTIONS: TrendFunction[] = [
-  {
-    label: 'Average',
-    field: TrendFunctionField.AVG,
-    alias: 'avg_range',
-  },
   {
     label: 'Duration (p50)',
     field: TrendFunctionField.P50,
     alias: 'percentile_range',
+    chartLabel: 'p50()',
+    legendLabel: 'p50',
   },
   {
-    label: 'User Misery',
-    field: TrendFunctionField.USER_MISERY,
-    alias: 'user_misery_range',
+    label: 'Duration (average)',
+    field: TrendFunctionField.AVG,
+    alias: 'avg_range',
+    chartLabel: 'avg(transaction.duration)',
+    legendLabel: 'average',
   },
 ];
 
@@ -159,6 +164,62 @@ export function modifyTrendView(
 
   trendView.sorts = [trendSort];
   trendView.fields = fields;
+}
+
+export async function getTrendBaselinesForTransaction(
+  api: Client,
+  organization: Organization,
+  eventView: EventView,
+  statsData: TrendsStats,
+  intervalRatio: number,
+  transaction: NormalizedTrendsTransaction
+) {
+  const orgSlug = organization.slug;
+  const url = `/organizations/${orgSlug}/event-baseline/`;
+
+  const scopeQueryToTransaction = ` transaction:${transaction.transaction}`;
+
+  const globalSelectionQuery = eventView.getGlobalSelectionQuery();
+  delete globalSelectionQuery.statsPeriod;
+  const baseApiPayload = {
+    ...globalSelectionQuery,
+    query: eventView.query + scopeQueryToTransaction,
+  };
+
+  const stats = Object.values(statsData)[0].data;
+
+  const seriesStart = stats[0][0] * 1000;
+  const seriesEnd = stats.slice(-1)[0][0] * 1000;
+  const seriesSplit = seriesStart + (seriesEnd - seriesStart) * intervalRatio;
+
+  const previousPeriodPayload = {
+    ...baseApiPayload,
+    start: getUtcDateString(seriesStart),
+    end: getUtcDateString(seriesSplit),
+    baselineValue: transaction.aggregate_range_1,
+  };
+  const currentPeriodPayload = {
+    ...baseApiPayload,
+    start: getUtcDateString(seriesSplit),
+    end: getUtcDateString(seriesEnd),
+    baselineValue: transaction.aggregate_range_2,
+  };
+
+  const dataPreviousPeriodPromise = api.requestPromise(url, {
+    method: 'GET',
+    query: previousPeriodPayload,
+  });
+  const dataCurrentPeriodPromise = api.requestPromise(url, {
+    method: 'GET',
+    query: currentPeriodPayload,
+  });
+
+  const previousPeriod = (await dataPreviousPeriodPromise) as BaselineQueryResults;
+  const currentPeriod = (await dataCurrentPeriodPromise) as BaselineQueryResults;
+  return {
+    currentPeriod,
+    previousPeriod,
+  };
 }
 
 function getQueryInterval(location: Location, eventView: TrendView) {

@@ -82,7 +82,7 @@ const PlatformIcon = ({platform, size, ...props}: Props) => {
     // TODO(Priscila): find a better way to do it, maybe by removing the react svg path fill attributes
     return (
       <StyledPlatformIconTile
-        platform={platform}
+        platform={platform as any} // TODO(ts): this will be removed once new platformicons land
         width={width}
         height={height}
         {...props}

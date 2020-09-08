@@ -16,6 +16,7 @@ import LineChart from 'app/components/charts/lineChart';
 import ChartZoom from 'app/components/charts/chartZoom';
 import {Series} from 'app/types/echarts';
 import theme from 'app/utils/theme';
+import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
 
 import {trendToColor, getIntervalRatio, getCurrentTrendFunction} from './utils';
 import {TrendChangeType, TrendsStats, NormalizedTrendsTransaction} from './types';
@@ -62,12 +63,17 @@ function getLegend() {
     align: 'left',
     textStyle: {
       verticalAlign: 'top',
-      fontSize: 12,
+      fontSize: 11,
       fontFamily: 'Rubik',
     },
     data: [
       {
-        name: 'Baseline',
+        name: 'Present Baseline',
+        icon:
+          'path://M180 1000 l0 -40 200 0 200 0 0 40 0 40 -200 0 -200 0 0 -40z, M810 1000 l0 -40 200 0 200 0 0 40 0 40 -200 0 -200 0 0 -40zm, M1440 1000 l0 -40 200 0 200 0 0 40 0 40 -200 0 -200 0 0 -40z',
+      },
+      {
+        name: 'Past Baseline',
         icon:
           'path://M180 1000 l0 -40 200 0 200 0 0 40 0 40 -200 0 -200 0 0 -40z, M810 1000 l0 -40 200 0 200 0 0 40 0 40 -200 0 -200 0 0 -40zm, M1440 1000 l0 -40 200 0 200 0 0 40 0 40 -200 0 -200 0 0 -40z',
       },
@@ -118,21 +124,24 @@ function getIntervalLine(
   };
 
   const periodLineLabel = {
-    fontSize: 10,
+    fontSize: 11,
     show: true,
   };
 
   const previousPeriod = {
     ...periodLine,
     markLine: {...periodLine.markLine},
+    seriesName: 'Past Baseline',
   };
   const currentPeriod = {
     ...periodLine,
     markLine: {...periodLine.markLine},
+    seriesName: 'Present Baseline',
   };
   const periodDividingLine = {
     ...periodLine,
     markLine: {...periodLine.markLine},
+    seriesName: 'Period split',
   };
 
   const seriesDiff = seriesEnd - seriesStart;
@@ -140,13 +149,13 @@ function getIntervalLine(
 
   previousPeriod.markLine.data = [
     [
-      {value: 'Previous Period', coord: [seriesStart, transaction.aggregate_range_1]},
+      {value: 'Past', coord: [seriesStart, transaction.aggregate_range_1]},
       {coord: [seriesLine, transaction.aggregate_range_1]},
     ],
   ];
   currentPeriod.markLine.data = [
     [
-      {value: 'Current Period', coord: [seriesLine, transaction.aggregate_range_2]},
+      {value: 'Present', coord: [seriesLine, transaction.aggregate_range_2]},
       {coord: [seriesEnd, transaction.aggregate_range_2]},
     ],
   ];
@@ -173,12 +182,12 @@ function getIntervalLine(
 
   previousPeriod.markLine.label = {
     ...periodLineLabel,
-    formatter: 'Previous Period',
+    formatter: 'Past',
     position: 'insideStartBottom',
   };
   currentPeriod.markLine.label = {
     ...periodLineLabel,
-    formatter: 'Current Period',
+    formatter: 'Present',
     position: 'insideEndBottom',
   };
 
@@ -210,7 +219,7 @@ class Chart extends React.Component<Props> {
     const data = events?.data ?? [];
 
     const trendFunction = getCurrentTrendFunction(location);
-    const results = transformEventStats(data, trendFunction.label);
+    const results = transformEventStats(data, trendFunction.chartLabel);
 
     const start = props.start ? getUtcToLocalDateObject(props.start) : undefined;
 
@@ -222,6 +231,19 @@ class Chart extends React.Component<Props> {
 
     const loading = isLoading;
     const reloading = isLoading;
+
+    const chartOptions = {
+      tooltip: {
+        valueFormatter: tooltipFormatter,
+      },
+      yAxis: {
+        axisLabel: {
+          color: theme.gray400,
+          // p50() coerces the axis to be time based
+          formatter: (value: number) => axisLabelFormatter(value, 'p50()'),
+        },
+      },
+    };
 
     return (
       <React.Fragment>
@@ -255,6 +277,7 @@ class Chart extends React.Component<Props> {
                 period={statsPeriod}
                 utc={utc}
                 projects={project}
+                environments={environment}
               >
                 {({releaseSeries}) => (
                   <TransitionChart loading={loading} reloading={reloading}>
@@ -263,6 +286,7 @@ class Chart extends React.Component<Props> {
                       value: (
                         <LineChart
                           {...zoomRenderProps}
+                          {...chartOptions}
                           series={[...series, ...releaseSeries, ...intervalSeries]}
                           seriesOptions={{
                             showSymbol: false,

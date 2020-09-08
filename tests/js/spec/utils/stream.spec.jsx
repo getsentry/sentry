@@ -32,6 +32,12 @@ describe('utils/stream', function() {
         is: 'unresolved',
       });
     });
+
+    it('should use empty string as __text and not fail if query is undefined', function() {
+      expect(queryToObj()).toEqual({
+        __text: '',
+      });
+    });
   });
 
   describe('objToQuery()', function() {

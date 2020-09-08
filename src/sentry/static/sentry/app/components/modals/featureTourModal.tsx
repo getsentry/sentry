@@ -206,7 +206,7 @@ const TourContent = styled('div')`
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin: ${space(1)} ${space(4)};
+  margin: ${space(3)} ${space(4)} ${space(1)} ${space(4)};
 `;
 
 const TourHeader = styled('h4')`
@@ -221,21 +221,21 @@ const StepCounter = styled('div')`
   text-transform: uppercase;
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: bold;
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.gray500};
 `;
 
 // Styled components that can be used to build tour content.
 export const TourText = styled('p')`
   text-align: center;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${space(4)};
 `;
 
 export const TourImage = styled('img')`
-  max-width: 360px;
   height: 200px;
   margin-bottom: ${space(4)};
 
   /** override styles in less files */
+  max-width: 380px !important;
   box-shadow: none !important;
   border: 0 !important;
   border-radius: 0 !important;

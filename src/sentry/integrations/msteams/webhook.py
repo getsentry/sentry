@@ -35,6 +35,8 @@ from .card_builder import (
     build_unlink_identity_card,
     build_unrecognized_command_card,
     build_help_command_card,
+    build_link_identity_command_card,
+    build_already_linked_identity_command_card,
 )
 from .client import (
     MsTeamsJwtClient,
@@ -445,15 +447,20 @@ class MsTeamsWebhookEndpoint(Endpoint):
         command_text = data.get("text", "").strip()
         lowercase_command = command_text.lower()
         conversation_id = data["conversation"]["id"]
+        teams_user_id = data["from"]["id"]
 
         # only supporting unlink for now
         if "unlink" in lowercase_command:
-            unlink_url = build_unlinking_url(
-                conversation_id, data["serviceUrl"], data["from"]["id"]
-            )
+            unlink_url = build_unlinking_url(conversation_id, data["serviceUrl"], teams_user_id)
             card = build_unlink_identity_card(unlink_url)
         elif "help" in lowercase_command:
             card = build_help_command_card()
+        elif "link" == lowercase_command:  # don't to match other types of link commands
+            has_linked_identity = Identity.objects.filter(external_id=teams_user_id).exists()
+            if has_linked_identity:
+                card = build_already_linked_identity_command_card()
+            else:
+                card = build_link_identity_command_card()
         else:
             card = build_unrecognized_command_card(command_text)
 
