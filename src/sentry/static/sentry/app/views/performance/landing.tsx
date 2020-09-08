@@ -34,6 +34,7 @@ import Charts from './charts/index';
 import Onboarding from './onboarding';
 import {addRoutePerformanceContext, getTransactionSearchQuery} from './utils';
 import TrendsContent from './trends/content';
+import {modifyTrendsViewDefaultPeriod, DEFAULT_TRENDS_STATS_PERIOD} from './trends/utils';
 
 export enum FilterViews {
   ALL_TRANSACTIONS = 'ALL_TRANSACTIONS',
@@ -267,11 +268,14 @@ class PerformanceLanding extends React.Component<Props, State> {
 
   render() {
     const {organization, location, router, projects} = this.props;
-    const {eventView} = this.state;
+    const currentView = this.getCurrentView();
+    const isTrendsView = currentView === FilterViews.TRENDS;
+    const eventView = isTrendsView
+      ? modifyTrendsViewDefaultPeriod(this.state.eventView, location)
+      : this.state.eventView;
     const showOnboarding = this.shouldShowOnboarding();
     const filterString = getTransactionSearchQuery(location);
     const summaryConditions = this.getSummaryConditions(filterString);
-    const currentView = this.getCurrentView();
 
     return (
       <SentryDocumentTitle title={t('Performance')} objSlug={organization.slug}>
@@ -281,7 +285,7 @@ class PerformanceLanding extends React.Component<Props, State> {
               start: null,
               end: null,
               utc: false,
-              period: DEFAULT_STATS_PERIOD,
+              period: isTrendsView ? DEFAULT_TRENDS_STATS_PERIOD : DEFAULT_STATS_PERIOD,
             },
           }}
         >
