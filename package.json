@@ -200,7 +200,7 @@
     "dev-ui": "SENTRY_UI_DEV_ONLY=1 SENTRY_WEBPACK_PROXY_PORT=7999 yarn webpack-dev-server",
     "dev-acceptance": "NO_DEV_SERVER=1 NODE_ENV=development yarn webpack --watch",
     "storybook": "SENTRY_UI_HOT_RELOAD='' start-storybook -p 9001 -c .storybook",
-    "storybook-build": "ls tests/fixtures/integration-docs/ && build-storybook -c .storybook -o docs-ui/.storybook-out --quiet",
+    "storybook-build": "tests/fixtures/ && build-storybook -c .storybook -o docs-ui/.storybook-out --quiet",
     "webpack-profile": "NO_TS_FORK=1 yarn -s webpack --profile --json > stats.json",
     "build-css": "NODE_ENV=production yarn webpack --config=config/webpack.css.config.js",
     "build": "NODE_ENV=production yarn webpack --mode production --display errors-only --output-path=public"
