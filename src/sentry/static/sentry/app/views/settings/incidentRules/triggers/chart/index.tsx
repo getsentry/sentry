@@ -7,6 +7,7 @@ import {t} from 'app/locale';
 import {Organization, Project} from 'app/types';
 import {SeriesDataUnit} from 'app/types/echarts';
 import {Panel, PanelBody} from 'app/components/panels';
+import Feature from 'app/components/acl/feature';
 import EventsRequest from 'app/components/charts/eventsRequest';
 import LoadingMask from 'app/components/loadingMask';
 import Placeholder from 'app/components/placeholder';
@@ -136,28 +137,33 @@ class TriggersChart extends React.PureComponent<Props> {
             <StickyWrapper>
               <StyledPanel>
                 <PanelBody withPadding>
-                  <StyledSelectField
-                    inline={false}
-                    styles={{
-                      control: provided => ({
-                        ...provided,
-                        minHeight: '25px',
-                        height: '25px',
-                      }),
-                    }}
-                    isSearchable={false}
-                    isClearable={false}
-                    disabled={loading || reloading}
-                    name="statsPeriod"
-                    value={period}
-                    required
-                    flexibleControlStateSize
-                    choices={statsPeriodOptions.map(timePeriod => [
-                      timePeriod,
-                      TIME_PERIOD_MAP[timePeriod],
-                    ])}
-                    onChange={this.handleStatsPeriodChange}
-                  />
+                  <Feature
+                    features={['metric-alert-stats-period']}
+                    organization={organization}
+                  >
+                    <StyledSelectField
+                      inline={false}
+                      styles={{
+                        control: provided => ({
+                          ...provided,
+                          minHeight: '25px',
+                          height: '25px',
+                        }),
+                      }}
+                      isSearchable={false}
+                      isClearable={false}
+                      disabled={loading || reloading}
+                      name="statsPeriod"
+                      value={period}
+                      required
+                      flexibleControlStateSize
+                      choices={statsPeriodOptions.map(timePeriod => [
+                        timePeriod,
+                        TIME_PERIOD_MAP[timePeriod],
+                      ])}
+                      onChange={this.handleStatsPeriodChange}
+                    />
+                  </Feature>
 
                   {loading || reloading ? (
                     <ChartPlaceholder />
