@@ -26,7 +26,7 @@ const IS_PRODUCTION = env.NODE_ENV === 'production';
 const IS_TEST = env.NODE_ENV === 'test' || env.TEST_SUITE;
 const IS_STORYBOOK = env.STORYBOOK_BUILD === '1';
 const IS_CI = !!env.CI || !!env.TRAVIS;
-const IS_DEPLOY_PREVIEW = !!env.NOW_GITHUB_DEPLOYMENT;
+const IS_DEPLOY_PREVIEW = !!env.VERCEL_GITHUB_DEPLOYMENT;
 const IS_UI_DEV_ONLY = !!env.SENTRY_UI_DEV_ONLY;
 const DEV_MODE = !(IS_PRODUCTION || IS_CI);
 const WEBPACK_MODE = IS_PRODUCTION ? 'production' : 'development';
@@ -53,10 +53,10 @@ const SHOULD_HOT_MODULE_RELOAD = DEV_MODE && !!env.SENTRY_UI_HOT_RELOAD;
 // Deploy previews are built using zeit. We can check if we're in zeit's
 // build process by checking the existence of the PULL_REQUEST env var.
 const DEPLOY_PREVIEW_CONFIG = IS_DEPLOY_PREVIEW && {
-  branch: env.NOW_GITHUB_COMMIT_REF,
-  commitSha: env.NOW_GITHUB_COMMIT_SHA,
-  githubOrg: env.NOW_GITHUB_COMMIT_ORG,
-  githubRepo: env.NOW_GITHUB_COMMIT_REPO,
+  branch: env.VERCEL_GITHUB_COMMIT_REF,
+  commitSha: env.VERCEL_GITHUB_COMMIT_SHA,
+  githubOrg: env.VERCEL_GITHUB_COMMIT_ORG,
+  githubRepo: env.VERCEL_GITHUB_COMMIT_REPO,
 };
 
 // When deploy previews are enabled always enable experimental SPA mode --
@@ -430,7 +430,7 @@ if (
   if (!IS_UI_DEV_ONLY) {
     // This proxies to local backend server
     const backendAddress = `http://localhost:${SENTRY_BACKEND_PORT}/`;
-    const relayAddress = 'http://127.0.0.1:7999';
+    const relayAddress = 'http://127.0.0.1:7899';
 
     appConfig.devServer = {
       ...appConfig.devServer,

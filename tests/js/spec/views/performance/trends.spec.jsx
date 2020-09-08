@@ -237,28 +237,6 @@ describe('Performance > Trends', function() {
     });
   });
 
-  it('transaction list renders user misery', async function() {
-    const projects = [TestStubs.Project()];
-    const data = initializeData(projects, {project: ['-1']});
-
-    const location = {
-      query: {...trendsViewQuery, trendFunction: TrendFunctionField.USER_MISERY},
-    };
-    const wrapper = mountWithTheme(
-      <PerformanceLanding organization={data.organization} location={location} />,
-      data.routerContext
-    );
-    await tick();
-    wrapper.update();
-
-    const firstTransaction = wrapper.find('TrendsListItem').first();
-    expect(firstTransaction.find('ItemTransactionAbsoluteFaster').text()).toMatch(
-      '863 → 1.6k miserable users'
-    );
-    expect(firstTransaction.find('ItemTransactionPrimary').text()).toMatch('797 less');
-    expect(firstTransaction.find('ItemTransactionSecondary').text()).toMatch('92%');
-  });
-
   it('choosing a trend function changes location', async function() {
     const projects = [TestStubs.Project()];
     const data = initializeData(projects, {project: ['-1']});
@@ -320,7 +298,7 @@ describe('Performance > Trends', function() {
 
       const field = [...trendFunctionFields, ...defaultFields];
 
-      expect(field).toHaveLength(6);
+      expect(field).toHaveLength(5);
 
       // Improved trends call
       expect(trendsMock).toHaveBeenNthCalledWith(
@@ -331,8 +309,9 @@ describe('Performance > Trends', function() {
             trendFunction: trendFunction.field,
             sort,
             query: expect.stringContaining(aliasedQueryDivide + ':<1'),
-            interval: '30m',
+            interval: '12h',
             field,
+            statsPeriod: '14d',
           }),
         })
       );
@@ -346,8 +325,9 @@ describe('Performance > Trends', function() {
             trendFunction: trendFunction.field,
             sort: '-' + sort,
             query: expect.stringContaining(aliasedQueryDivide + ':>1'),
-            interval: '30m',
+            interval: '12h',
             field,
+            statsPeriod: '14d',
           }),
         })
       );

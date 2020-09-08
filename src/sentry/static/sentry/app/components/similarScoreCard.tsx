@@ -12,35 +12,30 @@ const scoreComponents = {
   'message:message:character-shingles': t('Log Message'),
 };
 
-class SimilarScoreCard extends React.Component {
-  static propTypes = {
-    scoreList: PropTypes.arrayOf(PropTypes.array),
-  };
+type Key = keyof typeof scoreComponents;
+type Score = number | null;
 
-  static defaultProps = {
-    scoreList: [],
-  };
+type Props = {
+  scoreList?: [Key, Score][];
+};
 
-  render() {
-    const {scoreList} = this.props;
-
-    if (!scoreList.length) {
-      return null;
-    }
-
-    return (
-      <div>
-        {scoreList.map(([key, score]) => (
-          <Wrapper key={key}>
-            <div>{scoreComponents[key]}</div>
-
-            <Score score={score === null ? score : Math.round(score * 5)} />
-          </Wrapper>
-        ))}
-      </div>
-    );
+const SimilarScoreCard = ({scoreList = []}: Props) => {
+  if (scoreList.length === 0) {
+    return null;
   }
-}
+
+  return (
+    <div>
+      {scoreList.map(([key, score]) => (
+        <Wrapper key={key}>
+          <div>{scoreComponents[key]}</div>
+
+          <Score score={score === null ? score : Math.round(score * 5)} />
+        </Wrapper>
+      ))}
+    </div>
+  );
+};
 
 const Wrapper = styled('div')`
   display: flex;
@@ -48,12 +43,16 @@ const Wrapper = styled('div')`
   margin: ${space(0.25)} 0;
 `;
 
-const Score = styled('div')`
+const Score = styled('div')<{score: Score}>`
   height: 16px;
   width: 48px;
   border-radius: 2px;
   background-color: ${p =>
     p.score === null ? p.theme.similarity.empty : p.theme.similarity.colors[p.score]};
 `;
+
+SimilarScoreCard.propTypes = {
+  scoreList: PropTypes.arrayOf(PropTypes.array),
+};
 
 export default SimilarScoreCard;

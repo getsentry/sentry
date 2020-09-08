@@ -1563,6 +1563,12 @@ FUNCTIONS = {
         "aggregate": [u"minus", [ArgValue("minuend"), ArgValue("subtrahend")], None],
         "result_type": "duration",
     },
+    "absolute_correlation": {
+        "name": "absolute_correlation",
+        "args": [],
+        "aggregate": ["abs", [["corr", ["toUnixTimestamp", ["timestamp"], "duration"]]], None],
+        "result_type": "number",
+    },
 }
 
 

@@ -1,5 +1,6 @@
 import React from 'react';
 
+import {callIfFunction} from 'app/utils/callIfFunction';
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import Form from 'app/views/settings/components/forms/form';
@@ -12,20 +13,18 @@ type Payload = {
 
 type Props = {
   organization: Organization;
-  onSubmit?: (data: object, onSuccess: Function, onError: Function) => void;
+  onSubmit?: (data: Payload, onSuccess: Function, onError: Function) => void;
   onSuccess?: (data: Payload) => void;
   formProps?: Partial<typeof Form>;
 };
 
 export default class CreateTeamForm extends React.Component<Props> {
+  handleSubmit = (data: Record<string, any>, onSuccess: Function, onError: Function) => {
+    callIfFunction(this.props.onSubmit, data as Payload, onSuccess, onError);
+  };
+
   handleCreateTeamSuccess = (data: Payload) => {
-    const {onSuccess} = this.props;
-
-    if (typeof onSuccess !== 'function') {
-      return;
-    }
-
-    onSuccess(data);
+    callIfFunction(this.props.onSuccess, data);
   };
 
   render() {
@@ -43,7 +42,7 @@ export default class CreateTeamForm extends React.Component<Props> {
           submitLabel={t('Create Team')}
           apiEndpoint={`/organizations/${organization.slug}/teams/`}
           apiMethod="POST"
-          onSubmit={this.props.onSubmit}
+          onSubmit={this.handleSubmit}
           onSubmitSuccess={this.handleCreateTeamSuccess}
           requireChanges
           data-test-id="create-team-form"

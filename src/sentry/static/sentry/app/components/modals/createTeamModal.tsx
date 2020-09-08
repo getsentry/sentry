@@ -15,7 +15,7 @@ type Props = {
 } & ModalRenderProps;
 
 class CreateTeamModal extends React.Component<Props> {
-  handleSubmit = (data: object, onSuccess: Function, onError: Function) => {
+  handleSubmit = (data: {slug: string}, onSuccess: Function, onError: Function) => {
     const {organization, api} = this.props;
     createTeam(api, data, {orgId: organization.slug})
       .then((resp: Team) => {

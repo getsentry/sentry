@@ -200,6 +200,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         """
         try:
             # TODO(dcramer): handle unauthenticated/public response
+            from sentry.utils import snuba
 
             organization = group.project.organization
             environments = get_environments(request, organization)
@@ -324,6 +325,9 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
 
             metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 200})
             return Response(data)
+        except snuba.RateLimitExceeded:
+            metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 429})
+            raise
         except Exception:
             metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 500})
             raise
@@ -357,6 +361,8 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         :auth: required
         """
         try:
+            from sentry.utils import snuba
+
             discard = request.data.get("discard")
 
             # TODO(dcramer): we need to implement assignedTo in the bulk mutation
@@ -400,6 +406,9 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 "group.update.http_response", sample_rate=1.0, tags={"status": e.status_code}
             )
             return Response(e.body, status=e.status_code)
+        except snuba.RateLimitExceeded:
+            metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 429})
+            raise
         except Exception:
             metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 500})
             raise
@@ -416,6 +425,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         :auth: required
         """
         try:
+            from sentry.utils import snuba
             from sentry.tasks.deletion import delete_groups
 
             updated = (
@@ -463,6 +473,9 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 )
             metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 200})
             return Response(status=202)
+        except snuba.RateLimitExceeded:
+            metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 429})
+            raise
         except Exception:
             metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 500})
             raise
