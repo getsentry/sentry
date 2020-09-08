@@ -14,7 +14,7 @@ type CallbackOptions = {
 const doCallback = (
   params: CallbackOptions = {},
   name: keyof CallbackOptions,
-  ...args
+  ...args: any[]
 ) => {
   callIfFunction(params[name], ...args);
 };
@@ -23,7 +23,8 @@ const doCallback = (
  * Note these are both slugs
  */
 type OrgSlug = {orgId: string};
-type TeamSlug = {teamId: string};
+type OrgAndTeamSlug = OrgSlug & {teamId: string};
+
 type TeamData = {data: Team};
 
 /**
@@ -48,7 +49,7 @@ export function fetchTeams(api: Client, params: OrgSlug, options: CallbackOption
 
 export function fetchTeamDetails(
   api: Client,
-  params: TeamSlug & OrgSlug,
+  params: OrgAndTeamSlug,
   options: CallbackOptions
 ) {
   TeamActions.fetchDetails(params.teamId);
@@ -70,7 +71,7 @@ export function updateTeamSuccess(teamId: TeamSlug['teamId'], data: Team) {
 
 export function updateTeam(
   api: Client,
-  params: OrgSlug & TeamSlug & TeamData,
+  params: OrgAndTeamSlug & TeamData,
   options: CallbackOptions
 ) {
   const endpoint = `/teams/${params.orgId}/${params.teamId}/`;
@@ -92,7 +93,7 @@ export function updateTeam(
 
 export function joinTeam(
   api: Client,
-  params: OrgSlug & TeamSlug & TeamData & MemberId,
+  params: OrgAndTeamSlug & TeamData & MemberId,
   options: CallbackOptions
 ) {
   const endpoint = `/organizations/${params.orgId}/members/${params.memberId ||
@@ -117,7 +118,7 @@ export function joinTeam(
 
 export function leaveTeam(
   api: Client,
-  params: OrgSlug & TeamSlug & MemberId,
+  params: OrgAndTeamSlug & MemberId,
   options: CallbackOptions
 ) {
   const endpoint = `/organizations/${params.orgId}/members/${params.memberId ||
@@ -171,7 +172,7 @@ export function createTeam(api: Client, team: Pick<Team, 'slug'>, params: OrgSlu
     );
 }
 
-export function removeTeam(api: Client, params: OrgSlug & TeamSlug) {
+export function removeTeam(api: Client, params: OrgAndTeamSlug) {
   TeamActions.removeTeam(params.teamId);
 
   return api
