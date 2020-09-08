@@ -1430,7 +1430,7 @@ SENTRY_WATCHERS = (
 # will split the requests between Relay and Sentry (all store requests will be passed to Relay, and the
 # rest will be forwarded to Sentry)
 SENTRY_USE_RELAY = True
-SENTRY_RELAY_PORT = 7999
+SENTRY_RELAY_PORT = 7899
 
 # The chunk size for attachments in blob store. Should be a power of two.
 SENTRY_ATTACHMENT_BLOB_SIZE = 8 * 1024 * 1024  # 8MB
@@ -1561,7 +1561,7 @@ SENTRY_DEVSERVICES = {
     "relay": {
         "image": "us.gcr.io/sentryio/relay:latest",
         "pull": True,
-        "ports": {"7999/tcp": SENTRY_RELAY_PORT},
+        "ports": {"7899/tcp": SENTRY_RELAY_PORT},
         "volumes": {RELAY_CONFIG_DIR: {"bind": "/etc/relay"}},
         "command": ["run", "--config", "/etc/relay"],
         "only_if": lambda settings, options: settings.SENTRY_USE_RELAY,
