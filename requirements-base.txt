@@ -36,7 +36,7 @@ Pillow>=6.2.2,<7.0.0
 progressbar2>=3.32,<3.33
 psycopg2-binary>=2.7.0,<2.9.0
 PyJWT>=1.5.0,<1.6.0
-pyrsistent<0.17.0 # TODO(py3): 0.17.0 requires python3, see https://github.com/tobgu/pyrsistent/issues/205
+pyrsistent==0.16.0 # TODO(py3): 0.17.0 requires python3, see https://github.com/tobgu/pyrsistent/issues/205
 python-dateutil>=2.0.0,<3.0.0
 python-memcached>=1.53,<2.0.0
 python3-saml>=1.4.0,<1.5
