@@ -176,9 +176,6 @@ class TriggersChart extends React.PureComponent<Props> {
                     </React.Fragment>
                   )}
                 </PanelBody>
-                {/* <StyledPanelAlert>
-                  {t('Data points above are averaged to show a longer time period.')}
-                </StyledPanelAlert> */}
               </StyledPanel>
             </StickyWrapper>
           );
