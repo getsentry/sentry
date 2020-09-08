@@ -6,9 +6,12 @@ from __future__ import absolute_import
 import logging
 from django import forms
 
+from sentry.api.serializers import serialize
 from sentry.api.serializers.models.app_platform_event import AppPlatformEvent
+from sentry.api.serializers.models.incident import IncidentSerializer
 from sentry.constants import SentryAppInstallationStatus
 from sentry.incidents.logic import get_alertable_sentry_apps
+from sentry.incidents.models import INCIDENT_STATUS, IncidentStatus
 from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.models import SentryApp, SentryAppInstallation
 from sentry.plugins.base import plugins
@@ -20,6 +23,16 @@ from sentry.utils.safe import safe_execute
 
 
 logger = logging.getLogger("sentry.integrations.sentry_app")
+
+
+def build_incident_attachment(incident, metric_value=None):
+    data = incident_attachment_info(incident, metric_value)
+    return {
+        "metric_alert": serialize(incident, serializer=IncidentSerializer()),
+        "text": data["text"],
+        "title": data["title"],
+        "url": data["title_link"],
+    }
 
 
 def send_incident_alert_notification(action, incident, metric_value=None):
@@ -49,7 +62,7 @@ def send_incident_alert_notification(action, incident, metric_value=None):
                 "incident": incident.id,
                 "organization": organization.slug,
                 "sentry_app_id": sentry_app.id,
-            }
+            },
         )
         return
 
@@ -57,10 +70,10 @@ def send_incident_alert_notification(action, incident, metric_value=None):
         sentry_app,
         AppPlatformEvent(
             resource="metric_alert",
-            action="triggered",
+            action=INCIDENT_STATUS[IncidentStatus(incident.status)].lower(),
             install=install,
-            data=incident_attachment_info(incident, metric_value),
-        )
+            data=build_incident_attachment(incident, metric_value),
+        ),
     )
 
 
