@@ -104,7 +104,7 @@ function getChartTitle(trendChangeType: TrendChangeType): string {
     case TrendChangeType.IMPROVED:
       return t('Most Improved');
     case TrendChangeType.REGRESSION:
-      return t('Worst Regressions');
+      return t('Worst Regressed');
     default:
       throw new Error('No trend type passed');
   }
@@ -517,9 +517,6 @@ const ListItemContainer = styled('div')`
 `;
 
 const ItemRadioContainer = styled('div')`
-  input {
-    cursor: pointer;
-  }
   input:checked::after {
     background-color: ${p => p.color};
   }
