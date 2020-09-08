@@ -3,7 +3,7 @@ import {Location} from 'history';
 import {browserHistory} from 'react-router';
 import {EChartOption} from 'echarts/lib/echarts';
 
-import DataZoom from 'app/components/charts/components/dataZoom';
+import DataZoomInside from 'app/components/charts/components/dataZoomInside';
 import ToolBox from 'app/components/charts/components/toolBox';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import {EChartChartReadyHandler, EChartDataZoomHandler} from 'app/types/echarts';
@@ -117,7 +117,7 @@ class BarChartZoom extends React.Component<Props> {
 
     const renderProps = {
       onChartReady: this.handleChartReady,
-      dataZoom: DataZoom({xAxisIndex}),
+      dataZoom: DataZoomInside({xAxisIndex}),
       // We must include data zoom in the toolbox for the zoom to work,
       // but we do not want to show the toolbox components.
       toolBox: ToolBox(

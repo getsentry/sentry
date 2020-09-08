@@ -1,5 +1,3 @@
-import 'echarts/lib/component/dataZoom';
-
 import {EChartOption} from 'echarts';
 
 const DEFAULT = {
