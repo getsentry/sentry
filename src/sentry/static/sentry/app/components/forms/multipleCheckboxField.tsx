@@ -7,26 +7,53 @@ import Tooltip from 'app/components/tooltip';
 import {IconQuestion} from 'app/icons';
 import {defined} from 'app/utils';
 
-export default class MultipleCheckboxField extends FormField {
+type Value = string | number | boolean;
+
+type Props = {
+  hideLabelDivider?: boolean;
+  choices: Array<[number | string, number | string]>;
+} & FormField['props'];
+
+type State = FormField['state'] & {
+  values: Value[];
+};
+
+export default class MultipleCheckboxField extends FormField<Props, State> {
   static propTypes = {
     ...FormField.propTypes,
     hideLabelDivider: PropTypes.bool,
     choices: PropTypes.array.isRequired,
   };
 
-  onChange = (value, e) => {
-    let allValues = this.state.value;
-    if (e.target.checked) {
-      if (allValues) {
-        allValues = [...allValues, value];
+  onChange = (e: React.ChangeEvent<HTMLInputElement>, value?: Value) => {
+    let allValues = this.state.values;
+    if (value) {
+      if (e.target.checked) {
+        if (allValues) {
+          allValues = [...allValues, value];
+        } else {
+          allValues = [value];
+        }
       } else {
-        allValues = [value];
+        allValues = allValues.filter(v => v !== value);
       }
-    } else {
-      allValues = allValues.filter(v => v !== value);
+      this.setValues(allValues);
     }
-    this.setValue(allValues);
   };
+
+  setValues(values: Value[]) {
+    const form = (this.context || {}).form;
+    this.setState(
+      {
+        values,
+      },
+      () => {
+        const finalValue = this.coerceValue(this.state.values);
+        this.props.onChange && this.props.onChange(finalValue);
+        form && form.onFieldChange(this.props.name, finalValue);
+      }
+    );
+  }
 
   render() {
     const {
@@ -83,10 +110,10 @@ export default class MultipleCheckboxField extends FormField {
               <input
                 type="checkbox"
                 value={value}
-                onChange={this.onChange.bind(this, value)}
+                onChange={e => this.onChange(e, value)}
                 disabled={disabled}
                 checked={
-                  defined(this.state.value) && this.state.value.indexOf(value) !== -1
+                  defined(this.state.values) && this.state.values.indexOf(value) !== -1
                 }
               />
               {choiceLabel}

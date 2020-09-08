@@ -127,7 +127,7 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
     };
   };
 
-  handleChangeSearchTerm = (searchTerm: string) => {
+  handleChangeSearchTerm = (searchTerm: string | number | boolean) => {
     const {breadcrumbs} = this.state;
 
     const filteredBreadcrumbs = breadcrumbs.filter(
@@ -140,7 +140,7 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
     );
 
     this.setState({
-      searchTerm,
+      searchTerm: searchTerm as string,
       filteredBreadcrumbs,
     });
   };
