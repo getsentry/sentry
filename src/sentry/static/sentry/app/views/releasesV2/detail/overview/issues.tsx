@@ -198,6 +198,7 @@ class Issues extends React.Component<Props, State> {
               <StyledDropdownItem
                 key={value}
                 onSelect={this.handleIssuesTypeSelection}
+                data-test-id={`filter-${value}`}
                 eventKey={value}
                 isActive={value === issuesType}
               >
@@ -208,12 +209,16 @@ class Issues extends React.Component<Props, State> {
 
           <OpenInButtonBar gap={1}>
             <Feature features={['discover-basic']}>
-              <DiscoverButton to={this.getDiscoverUrl()} size="small">
+              <DiscoverButton
+                to={this.getDiscoverUrl()}
+                size="small"
+                data-test-id="discover-button"
+              >
                 {t('Open in Discover')}
               </DiscoverButton>
             </Feature>
 
-            <Button to={this.getIssuesUrl()} size="small">
+            <Button to={this.getIssuesUrl()} size="small" data-test-id="issues-button">
               {t('Open in Issues')}
             </Button>
           </OpenInButtonBar>
