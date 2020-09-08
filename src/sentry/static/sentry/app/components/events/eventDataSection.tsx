@@ -49,7 +49,7 @@ class EventDataSection extends React.Component<Props> {
         if (anchorElement) {
           anchorElement.scrollIntoView();
         }
-      } catch (e) {
+      } catch {
         // Since we're blindly taking the hash from the url and shoving
         // it into a querySelector, it's possible that this may
         // raise an exception if the input is invalid. So let's just ignore
@@ -131,8 +131,13 @@ const Permalink = styled('a')`
 
 const SectionHeader = styled('div')<{isCentered?: boolean}>`
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  margin-bottom: ${space(3)};
+  margin-bottom: ${space(2)};
+
+  > * {
+    margin-bottom: ${space(1)};
+  }
 
   & h3,
   & h3 a {
@@ -193,6 +198,7 @@ const SectionContents = styled('div')`
 
 const ActionContainer = styled('div')`
   flex-shrink: 0;
+  max-width: 100%;
 `;
 
 export default EventDataSection;
