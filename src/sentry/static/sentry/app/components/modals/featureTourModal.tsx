@@ -231,11 +231,11 @@ export const TourText = styled('p')`
 `;
 
 export const TourImage = styled('img')`
-  max-width: 360px;
   height: 200px;
   margin-bottom: ${space(4)};
 
   /** override styles in less files */
+  max-width: 380px !important;
   box-shadow: none !important;
   border: 0 !important;
   border-radius: 0 !important;
