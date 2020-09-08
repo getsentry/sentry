@@ -17,29 +17,27 @@ QUERY_AGGREGATION_DISPLAY = {
 def incident_attachment_info(incident, metric_value=None):
     logo_url = absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
     alert_rule = incident.alert_rule
-
-    incident_trigger = (
-        IncidentTrigger.objects.filter(incident=incident).order_by("-date_modified").first()
-    )
-    if incident_trigger:
-        alert_rule_trigger = incident_trigger.alert_rule_trigger
-        # TODO: If we're relying on this and expecting possible delays between a
-        # trigger fired and this function running, then this could actually be
-        # incorrect if they changed the trigger's time window in this time period.
-        # Should we store it?
-        start = incident_trigger.date_modified - timedelta(
-            seconds=alert_rule_trigger.alert_rule.snuba_query.time_window
-        )
-        end = incident_trigger.date_modified
-    else:
-        start, end = None, None
-
     status = INCIDENT_STATUS[IncidentStatus(incident.status)]
 
     agg_text = QUERY_AGGREGATION_DISPLAY.get(
         alert_rule.snuba_query.aggregate, alert_rule.snuba_query.aggregate
     )
     if metric_value is None:
+        incident_trigger = (
+            IncidentTrigger.objects.filter(incident=incident).order_by("-date_modified").first()
+        )
+        if incident_trigger:
+            alert_rule_trigger = incident_trigger.alert_rule_trigger
+            # TODO: If we're relying on this and expecting possible delays between a
+            # trigger fired and this function running, then this could actually be
+            # incorrect if they changed the trigger's time window in this time period.
+            # Should we store it?
+            start = incident_trigger.date_modified - timedelta(
+                seconds=alert_rule_trigger.alert_rule.snuba_query.time_window
+            )
+            end = incident_trigger.date_modified
+        else:
+            start, end = None, None
         metric_value = get_incident_aggregates(incident, start, end, use_alert_aggregate=True)[
             "count"
         ]
