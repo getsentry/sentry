@@ -32,6 +32,8 @@ import {
 } from './types';
 import {BaselineQueryResults} from '../transactionSummary/baselineQuery';
 
+export const DEFAULT_TRENDS_STATS_PERIOD = '14d';
+
 export const TRENDS_FUNCTIONS: TrendFunction[] = [
   {
     label: 'Duration (p50)',
@@ -164,6 +166,17 @@ export function modifyTrendView(
 
   trendView.sorts = [trendSort];
   trendView.fields = fields;
+}
+
+export function modifyTrendsViewDefaultPeriod(eventView: EventView, location: Location) {
+  const {query} = location;
+
+  const hasStartAndEnd = query.start && query.end;
+
+  if (!query.statsPeriod && !hasStartAndEnd) {
+    eventView.statsPeriod = DEFAULT_TRENDS_STATS_PERIOD;
+  }
+  return eventView;
 }
 
 export async function getTrendBaselinesForTransaction(
