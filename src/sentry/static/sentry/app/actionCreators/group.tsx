@@ -7,14 +7,14 @@ import GroupActions from 'app/actions/groupActions';
 import GroupStore from 'app/stores/groupStore';
 import {Member, User, Group, Actor, Note} from 'app/types';
 
-type IssueId = {
+type AssignToUserParams = {
   /**
    * Issue id
    */
   id: string;
+  user: User;
+  member?: Member;
 };
-
-type AssignToUserParams = IssueId & {user: User; member?: Member};
 
 export function assignToUser(params: AssignToUserParams) {
   const api = new Client();
