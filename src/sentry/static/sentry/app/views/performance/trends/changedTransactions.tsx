@@ -46,6 +46,7 @@ import {
   getCurrentTrendFunction,
   getTrendBaselinesForTransaction,
   getIntervalRatio,
+  StyledIconArrow,
 } from './utils';
 import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
 import {HeaderTitleLegend} from '../styles';
@@ -339,7 +340,7 @@ function TrendsListItem(props: TrendsListItemProps) {
                 <span>{t('Total Events')}</span>
                 <span>
                   <Count value={transaction.count_range_1} />
-                  {' → '}
+                  <StyledIconArrow direction="right" size="xs" />
                   <Count value={transaction.count_range_2} />
                 </span>
               </TooltipContent>
@@ -352,11 +353,7 @@ function TrendsListItem(props: TrendsListItemProps) {
               caret={false}
               title={
                 <TransactionMenuButton>
-                  <IconEllipsis
-                    size="sm"
-                    data-test-id="trends-item-action"
-                    color="gray600"
-                  />
+                  <IconEllipsis data-test-id="trends-item-action" color="gray600" />
                 </TransactionMenuButton>
               }
             >
@@ -517,13 +514,14 @@ const ListItemContainer = styled('div')`
   display: flex;
   border-top: 1px solid ${p => p.theme.borderLight};
   padding: ${space(1)} ${space(2)};
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const ItemRadioContainer = styled('div')`
   input:checked::after {
     background-color: ${p => p.color};
-    width: 14px;
-    height: 14px;
+    width: 11px;
+    height: 11px;
   }
 `;
 const ItemTransactionNameContainer = styled('div')`
@@ -542,13 +540,11 @@ const ItemTransactionNameSecondary = styled('div')`
 
 const ItemTransactionAbsoluteFaster = styled('div')`
   color: ${p => p.theme.gray500};
-  font-size: 14px;
-  margin-left: ${space(2)};
+  margin-left: ${space(1)};
 `;
 const ItemTransactionPrimary = styled('div')``;
 const ItemTransactionSecondary = styled('div')`
   color: ${p => p.color};
-  font-size: 14px;
   white-space: nowrap;
 `;
 const ItemTransactionPercentContainer = styled('div')`
@@ -564,7 +560,7 @@ const TooltipContent = styled('div')`
 `;
 
 const ContainerTitle = styled('div')`
-  padding-top: ${space(2)};
+  padding-top: ${space(3)};
   padding-left: ${space(2)};
 `;
 
