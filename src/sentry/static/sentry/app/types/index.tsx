@@ -663,6 +663,17 @@ export type Group = {
   subscriptionDetails: {disabled?: boolean; reason?: string} | null;
 };
 
+export type ProcessingIssue = {
+  project: string;
+  numIssues: number;
+  signedLink: string;
+  lastSeen: string;
+  hasMoreResolvableIssues: boolean;
+  hasIssues: boolean;
+  issuesProcessing: number;
+  resolveableIssues: number;
+};
+
 /**
  * Returned from /organizations/org/users/
  */
