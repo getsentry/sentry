@@ -79,7 +79,7 @@ class LinkedIssue extends AsyncComponent<
             <StyledSeenByList seenBy={group.seenBy} maxVisibleAvatars={5} />
           </IssueCardHeader>
           <IssueCardBody>
-            <GroupChart id={group.id} statsPeriod="30d" data={group} height={56} />
+            <GroupChart statsPeriod="30d" data={group} height={56} />
           </IssueCardBody>
           <IssueCardFooter>
             <Times lastSeen={group.lastSeen} firstSeen={group.firstSeen} />

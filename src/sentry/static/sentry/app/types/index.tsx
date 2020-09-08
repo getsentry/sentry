@@ -618,6 +618,8 @@ export type EventOrGroupType =
   | 'default'
   | 'transaction';
 
+export type GroupStats = [number, number];
+
 // TODO(ts): incomplete
 export type Group = {
   id: string;
@@ -649,7 +651,8 @@ export type Group = {
   seenBy: User[];
   shareId: string;
   shortId: string;
-  stats: any; // TODO(ts)
+  stats: Record<string, GroupStats[]>;
+  filtered?: any; // TODO(ts)
   status: string;
   statusDetails: ResolutionStatusDetails;
   tags: Pick<Tag, 'key' | 'name' | 'totalValues'>[];
