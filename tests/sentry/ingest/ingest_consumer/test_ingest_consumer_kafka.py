@@ -8,7 +8,7 @@ import pytest
 
 from django.conf import settings
 
-from sentry import eventstore, options
+from sentry import eventstore
 from sentry.event_manager import EventManager
 from sentry.ingest.ingest_consumer import ConsumerType, get_ingest_consumer
 from sentry.utils import json
@@ -56,7 +56,7 @@ def get_test_message(request, default_project):
         em.normalize()
         normalized_event = dict(em.get_data())
         message = {
-            "type": request.param,
+            "type": "event",
             "start_time": time.time(),
             "event_id": event_id,
             "project_id": int(project_id),
@@ -70,17 +70,8 @@ def get_test_message(request, default_project):
 
 
 @pytest.mark.django_db(transaction=True)
-@pytest.mark.parametrize(
-    "inline_transactions", [True, False], ids=["inline_transactions", "worker_transactions"]
-)
 def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
-    task_runner,
-    kafka_producer,
-    kafka_admin,
-    requires_kafka,
-    default_project,
-    get_test_message,
-    inline_transactions,
+    task_runner, kafka_producer, kafka_admin, requires_kafka, default_project, get_test_message,
 ):
     group_id = "test-consumer"
     topic_event_name = ConsumerType.get_topic_name(ConsumerType.Events)
@@ -103,7 +94,6 @@ def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
         auto_offset_reset="earliest",
     )
 
-    options.set("store.transactions-celery", not inline_transactions)
     with task_runner():
         i = 0
         while i < MAX_POLL_ITERATIONS:
