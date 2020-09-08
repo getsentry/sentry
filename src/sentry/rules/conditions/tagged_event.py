@@ -4,10 +4,10 @@ from collections import OrderedDict
 from django import forms
 
 from sentry import tagstore
-from sentry.signals import release_created
-from sentry.rules.conditions.base import EventCondition
-from sentry.utils.cache import cache
 from sentry.api.serializers.models.project import bulk_fetch_project_latest_releases
+from sentry.rules.conditions.base import EventCondition
+from sentry.signals import release_created
+from sentry.utils.cache import cache
 
 
 class MatchType(object):
