@@ -1,13 +1,12 @@
 import React from 'react';
 import maxBy from 'lodash/maxBy';
 import styled from '@emotion/styled';
-import {components as selectComponents, OptionProps} from 'react-select';
 
 import {Client} from 'app/api';
 import {t} from 'app/locale';
 import {Organization, Project} from 'app/types';
 import {SeriesDataUnit} from 'app/types/echarts';
-import {Panel, PanelBody, PanelAlert} from 'app/components/panels';
+import {Panel, PanelBody} from 'app/components/panels';
 import Feature from 'app/components/acl/feature';
 import EventsRequest from 'app/components/charts/eventsRequest';
 import LoadingMask from 'app/components/loadingMask';
@@ -15,7 +14,6 @@ import Placeholder from 'app/components/placeholder';
 import SelectControl from 'app/components/forms/selectControl';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
-import Tooltip from 'app/components/tooltip';
 
 import {IncidentRule, TimeWindow, TimePeriod, Trigger} from '../../types';
 import ThresholdsChart from './thresholdsChart';
@@ -52,15 +50,12 @@ const AVAILABLE_TIME_PERIODS: Record<TimeWindow, TimePeriod[]> = {
     TimePeriod.SIX_HOURS,
     TimePeriod.ONE_DAY,
     TimePeriod.THREE_DAYS,
-    TimePeriod.SEVEN_DAYS,
   ],
   [TimeWindow.FIVE_MINUTES]: [
-    TimePeriod.SIX_HOURS,
     TimePeriod.ONE_DAY,
     TimePeriod.THREE_DAYS,
     TimePeriod.SEVEN_DAYS,
     TimePeriod.FOURTEEN_DAYS,
-    TimePeriod.THIRTY_DAYS,
   ],
   [TimeWindow.TEN_MINUTES]: [
     TimePeriod.ONE_DAY,
@@ -95,8 +90,8 @@ class TriggersChart extends React.PureComponent<Props> {
     statsPeriod: TimePeriod.ONE_DAY,
   };
 
-  handleStatsPeriodChange = (statsPeriod: TimePeriod) => {
-    this.setState({statsPeriod});
+  handleStatsPeriodChange = (statsPeriod: {value: TimePeriod; label: string}) => {
+    this.setState({statsPeriod: statsPeriod.value});
   };
 
   render() {
@@ -153,44 +148,17 @@ class TriggersChart extends React.PureComponent<Props> {
                           height: '25px',
                         }),
                       }}
-                      components={{
-                        Option: ({
-                          label,
-                          data,
-                          ...props
-                        }: OptionProps<{
-                          label: string;
-                          value: any;
-                        }>) => (
-                          <selectComponents.Option label={label} {...(props as any)}>
-                            <Tooltip
-                              disabled={!props.isDisabled}
-                              title={t(
-                                'The currently selected Time Window is not allowed with this time period.'
-                              )}
-                              position="left"
-                            >
-                              <Wrapper isDisabled={props.isDisabled}>
-                                <span data-test-id="label">{label}</span>
-                                {props.isDisabled ? 'disabled' : ''}
-                              </Wrapper>
-                            </Tooltip>
-                          </selectComponents.Option>
-                        ),
-                      }}
                       isSearchable={false}
                       isClearable={false}
+                      disabled={loading || reloading}
                       name="statsPeriod"
-                      defaultValue={period}
+                      value={period}
                       required
                       flexibleControlStateSize
-                      choices={Object.values(TimePeriod).map(timePeriod => [
+                      choices={statsPeriodOptions.map(timePeriod => [
                         timePeriod,
                         TIME_PERIOD_MAP[timePeriod],
                       ])}
-                      isOptionDisabled={option =>
-                        !statsPeriodOptions.includes(option.value)
-                      }
                       onChange={this.handleStatsPeriodChange}
                     />
                   </Feature>
@@ -225,28 +193,6 @@ class TriggersChart extends React.PureComponent<Props> {
 
 export default withApi(TriggersChart);
 
-const TIME_WINDOW_TO_PERIOD: Record<TimeWindow, string> = {
-  [TimeWindow.ONE_MINUTE]: '12h',
-  [TimeWindow.FIVE_MINUTES]: '12h',
-  [TimeWindow.TEN_MINUTES]: '1d',
-  [TimeWindow.FIFTEEN_MINUTES]: '3d',
-  [TimeWindow.THIRTY_MINUTES]: '3d',
-  [TimeWindow.ONE_HOUR]: '7d',
-  [TimeWindow.TWO_HOURS]: '7d',
-  [TimeWindow.FOUR_HOURS]: '7d',
-  [TimeWindow.ONE_DAY]: '14d',
-};
-
-/**
- * Gets a reasonable period given a time window (in minutes)
- *
- * @param timeWindow The time window in minutes
- * @return period The period string to use (e.g. 14d)
- */
-function getPeriodForTimeWindow(timeWindow: TimeWindow): string {
-  return TIME_WINDOW_TO_PERIOD[timeWindow];
-}
-
 const TransparentLoadingMask = styled(LoadingMask)<{visible: boolean}>`
   ${p => !p.visible && 'display: none;'};
   opacity: 0.4;
@@ -279,32 +225,4 @@ const StyledSelectField = styled(SelectControl)`
   font-weight: normal;
   text-transform: none;
   border: 0;
-`;
-
-const Description = styled('div')`
-  color: ${p => p.theme.gray500};
-`;
-
-const Wrapper = styled('div')<{isSelected?: boolean; isDisabled: boolean}>`
-  display: grid;
-  grid-template-columns: 1fr auto;
-  grid-gap: ${space(1)};
-  ${p => p.isDisabled && `color: ${p.theme.gray400}`}
-  ${p =>
-    !p.isDisabled &&
-    p.isSelected &&
-    `
-      ${Description} {
-        :not(:hover) {
-          color: ${p.theme.white};
-        }
-      }
-    `}
-`;
-
-const StyledPanelAlert = styled(PanelAlert)`
-  border-top: 1px solid ${p => p.theme.blue300};
-  border-bottom: 0;
-  margin-bottom: 0;
-  border-radius: 0 0 ${p => `${p.theme.borderRadius} ${p.theme.borderRadius}`};
 `;
