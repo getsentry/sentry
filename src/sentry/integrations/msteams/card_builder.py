@@ -303,6 +303,20 @@ def build_unlink_identity_card(unlink_url):
     }
 
 
+def build_already_linked_identity_command_card():
+    link_identity = {
+        "type": "TextBlock",
+        "text": ("Your Microsoft Teams identity is already linked to a" " Sentry account."),
+        "wrap": True,
+    }
+    return {
+        "type": "AdaptiveCard",
+        "body": [link_identity],
+        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+        "version": "1.2",
+    }
+
+
 def build_group_title(group):
     # TODO: implement with event as well
     ev_metadata = group.get_event_metadata()
