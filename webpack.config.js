@@ -380,7 +380,7 @@ let appConfig = {
 };
 
 if (IS_TEST || IS_CI || IS_STORYBOOK) {
-  console.log('$$$$$$$$$$ STORYBOOK');
+  console.log('$$$$$$$$$$ STORYBOOK', __dirname);
   appConfig.resolve.alias['integration-docs-platforms'] = path.join(
     __dirname,
     'tests/fixtures/integration-docs/_platforms.json'
