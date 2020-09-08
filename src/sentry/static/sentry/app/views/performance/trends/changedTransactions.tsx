@@ -508,9 +508,7 @@ const TransactionMenuContainer = styled('div')`
   align-items: center;
 `;
 
-const TransactionsList = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
-`;
+const TransactionsList = styled('div')``;
 
 const ListItemContainer = styled('div')`
   display: flex;
@@ -524,11 +522,10 @@ const ItemRadioContainer = styled('div')`
   }
   input:checked::after {
     background-color: ${p => p.color};
-    width: 11px;
-    height: 11px;
   }
 `;
 const ItemTransactionNameContainer = styled('div')`
+  font-size: ${p => p.theme.fontSizeMedium};
   flex-grow: 1;
 `;
 const ItemTransactionName = styled('div')`
@@ -555,6 +552,7 @@ const ItemTransactionPercentContainer = styled('div')`
   display: flex;
   flex-direction: column;
   align-items: flex-end;
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const TooltipContent = styled('div')`
