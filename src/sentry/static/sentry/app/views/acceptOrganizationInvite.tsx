@@ -104,18 +104,28 @@ class AcceptOrganizationInvite extends AsyncView<Props, State> {
             )}
           </p>
         )}
+
         {inviteDetails.needsSso && (
           <p data-test-id="action-info-sso">
-            {tct(
-              `Note that [orgSlug] has [isRequired] Single Sign-On (SSO) using
+            {inviteDetails.requireSso
+              ? tct(
+                  `Note that [orgSlug] has required Single Sign-On (SSO) using
                [authProvider]. You may create an account by authenticating with
                the organization's SSO provider.`,
-              {
-                orgSlug: <strong>{inviteDetails.orgSlug}</strong>,
-                authProvider: inviteDetails.ssoProvider,
-                isRequired: inviteDetails.requireSso ? 'required' : 'enabled',
-              }
-            )}
+                  {
+                    orgSlug: <strong>{inviteDetails.orgSlug}</strong>,
+                    authProvider: inviteDetails.ssoProvider,
+                  }
+                )
+              : tct(
+                  `Note that [orgSlug] has enabled Single Sign-On (SSO) using
+               [authProvider]. You may create an account by authenticating with
+               the organization's SSO provider.`,
+                  {
+                    orgSlug: <strong>{inviteDetails.orgSlug}</strong>,
+                    authProvider: inviteDetails.ssoProvider,
+                  }
+                )}
           </p>
         )}
 
