@@ -43,14 +43,14 @@ class LatestReleaseFilter(EventFilter):
         if not latest_release:
             return False
 
-        values = (
+        releases = (
             v.lower()
             for k, v in event.tags
             if k.lower() == "release" or tagstore.get_standardized_key(k) == "release"
         )
 
-        for releases in values:
-            if releases == latest_release.version:
+        for release in releases:
+            if release == latest_release.version:
                 return True
 
         return False
