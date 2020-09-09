@@ -1,10 +1,11 @@
-import React from 'react';
+import React, {Profiler} from 'react';
 import {Location} from 'history';
 
 import {t} from 'app/locale';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {IconWarning} from 'app/icons';
+import {onRenderCallback} from 'app/utils/performanceForSentry';
 
 import {
   GridColumn,
@@ -378,7 +379,7 @@ class GridEditable<
     const {title, headerButtons} = this.props;
     const showHeader = title || headerButtons;
     return (
-      <React.Fragment>
+      <Profiler id="GridEditable" onRender={onRenderCallback}>
         {showHeader && (
           <Header>
             {title && <HeaderTitle>{title}</HeaderTitle>}
@@ -393,7 +394,7 @@ class GridEditable<
             <GridBody>{this.renderGridBody()}</GridBody>
           </Grid>
         </Body>
-      </React.Fragment>
+      </Profiler>
     );
   }
 }

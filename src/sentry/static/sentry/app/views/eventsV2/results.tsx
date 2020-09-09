@@ -5,6 +5,7 @@ import {Location} from 'history';
 import omit from 'lodash/omit';
 import isEqual from 'lodash/isEqual';
 import * as Sentry from '@sentry/react';
+import {withProfiler} from '@sentry/react';
 
 import {Organization, GlobalSelection} from 'app/types';
 import {t, tct} from 'app/locale';
@@ -486,4 +487,6 @@ function ResultsContainer(props: Props) {
   );
 }
 
-export default withApi(withOrganization(withGlobalSelection(ResultsContainer)));
+export default withProfiler(
+  withApi(withOrganization(withGlobalSelection(ResultsContainer)))
+);

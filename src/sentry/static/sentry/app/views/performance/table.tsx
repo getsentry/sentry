@@ -1,6 +1,7 @@
 import React from 'react';
 import {Location, LocationDescriptorObject} from 'history';
 import * as ReactRouter from 'react-router';
+import {withProfiler} from '@sentry/react';
 
 import {Organization, Project} from 'app/types';
 import Pagination from 'app/components/pagination';
@@ -255,4 +256,4 @@ class Table extends React.Component<Props, State> {
   }
 }
 
-export default Table;
+export default withProfiler(Table);

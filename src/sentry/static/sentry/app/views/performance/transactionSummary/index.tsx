@@ -5,6 +5,7 @@ import {Location} from 'history';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 import * as Sentry from '@sentry/react';
+import {withProfiler} from '@sentry/react';
 
 import {Client} from 'app/api';
 import {t} from 'app/locale';
@@ -213,6 +214,6 @@ function generateSummaryEventView(
   );
 }
 
-export default withApi(
-  withGlobalSelection(withProjects(withOrganization(TransactionSummary)))
+export default withProfiler(
+  withApi(withGlobalSelection(withProjects(withOrganization(TransactionSummary))))
 );

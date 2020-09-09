@@ -3,7 +3,7 @@ import {RouteComponentProps} from 'react-router/lib/Router';
 import {browserHistory} from 'react-router';
 import Cookies from 'js-cookie';
 import PropTypes from 'prop-types';
-import React from 'react';
+import React, {Profiler} from 'react';
 import isEqual from 'lodash/isEqual';
 import keydown from 'react-keydown';
 
@@ -28,6 +28,7 @@ import NewsletterConsent from 'app/views/newsletterConsent';
 import OrganizationsStore from 'app/stores/organizationsStore';
 import withApi from 'app/utils/withApi';
 import withConfig from 'app/utils/withConfig';
+import {onRenderCallback} from 'app/utils/performanceForSentry';
 
 import SystemAlerts from './systemAlerts';
 
@@ -251,12 +252,14 @@ class App extends React.Component<Props, State> {
     }
 
     return (
-      <div className="main-container" tabIndex={-1} ref={this.mainContainerRef}>
-        <GlobalModal onClose={this.handleGlobalModalClose} />
-        <SystemAlerts className="messages-container" />
-        <Indicators className="indicators-container" />
-        <ErrorBoundary>{this.renderBody()}</ErrorBoundary>
-      </div>
+      <Profiler id="App" onRender={onRenderCallback}>
+        <div className="main-container" tabIndex={-1} ref={this.mainContainerRef}>
+          <GlobalModal onClose={this.handleGlobalModalClose} />
+          <SystemAlerts className="messages-container" />
+          <Indicators className="indicators-container" />
+          <ErrorBoundary>{this.renderBody()}</ErrorBoundary>
+        </div>
+      </Profiler>
     );
   }
 }

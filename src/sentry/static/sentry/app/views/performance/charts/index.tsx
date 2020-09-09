@@ -1,6 +1,7 @@
 import React from 'react';
 import {Location} from 'history';
 import * as ReactRouter from 'react-router';
+import {withProfiler} from '@sentry/react';
 
 import {Organization} from 'app/types';
 import {Client} from 'app/api';
@@ -140,4 +141,4 @@ class Container extends React.Component<Props> {
   }
 }
 
-export default withApi(Container);
+export default withProfiler(withApi(Container));
