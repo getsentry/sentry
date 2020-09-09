@@ -1,9 +1,9 @@
 import {MentionsInput, Mention} from 'react-mentions';
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
+import {NoteType} from 'app/types/alerts';
 import Button from 'app/components/button';
 import ConfigStore from 'app/stores/configStore';
 import NavTabs from 'app/components/navTabs';
@@ -12,83 +12,66 @@ import marked from 'app/utils/marked';
 import space from 'app/styles/space';
 import textStyles from 'app/styles/text';
 
+import {Mentionable, Mentioned, MentionChangeEvent, CreateError} from './types';
 import Mentionables from './mentionables';
 import mentionStyle from './mentionStyle';
 
-const mentionShape = PropTypes.shape({
-  display: PropTypes.string,
-  email: PropTypes.string,
-  id: PropTypes.string,
-});
+const defaultProps = {
+  placeholder: t('Add a comment.\nTag users with @, or teams with #'),
+  minHeight: 140,
+  busy: false,
+};
 
-class NoteInput extends React.Component {
-  static propTypes = {
-    teams: PropTypes.arrayOf(mentionShape).isRequired,
-    memberList: PropTypes.arrayOf(mentionShape).isRequired,
+type Props = {
+  teams: Mentionable[];
+  memberList: Mentionable[];
+  /**
+   * This is the id of the note object from the server
+   * This is to indicate you are editing an existing item
+   */
+  modelId?: string;
+  /**
+   * The note text itself
+   */
+  text?: string;
+  error?: boolean;
+  errorJSON?: CreateError | null;
+  onEditFinish?: () => void;
+  onUpdate?: (data: NoteType) => void;
+  onCreate?: (data: NoteType) => void;
+  onChange?: (e: MentionChangeEvent, extra: {updating?: boolean}) => void;
+} & typeof defaultProps;
 
-    // This is the id of the note object from the server
-    // This is to indicate you are editing an existing item
-    modelId: PropTypes.string,
+type State = {
+  preview: boolean;
+  value: string;
+  memberMentions: Mentioned[];
+  teamMentions: Mentioned[];
+};
 
-    // The note text itself
-    text: PropTypes.string,
-    error: PropTypes.bool,
-    errorJSON: PropTypes.shape({
-      detail: PropTypes.shape({
-        message: PropTypes.string,
-        code: PropTypes.number,
-        extra: PropTypes.any,
-      }),
-    }),
-    placeholder: PropTypes.string,
-    busy: PropTypes.bool,
-
-    /**
-     * minimum height of the textarea
-     */
-    minHeight: PropTypes.number,
-
-    onEditFinish: PropTypes.func,
-    onUpdate: PropTypes.func,
-    onCreate: PropTypes.func,
-    onChange: PropTypes.func,
+class NoteInput extends React.Component<Props, State> {
+  state: State = {
+    preview: false,
+    value: this.props.text || '',
+    memberMentions: [],
+    teamMentions: [],
   };
 
-  static defaultProps = {
-    placeholder: t('Add a comment.\nTag users with @, or teams with #'),
-    minHeight: 140,
-    busy: false,
-  };
-
-  constructor(props) {
-    super(props);
-
-    const {text} = props;
-    const defaultText = text || '';
-
-    this.state = {
-      preview: false,
-      value: defaultText,
-      memberMentions: [],
-      teamMentions: [],
-    };
-  }
-
-  cleanMarkdown(text) {
+  cleanMarkdown(text: string) {
     return text
       .replace(/\[sentry\.strip:member\]/g, '@')
       .replace(/\[sentry\.strip:team\]/g, '');
   }
 
-  submitForm = () => {
+  submitForm() {
     if (!!this.props.modelId) {
       this.update();
     } else {
       this.create();
     }
-  };
+  }
 
-  create = () => {
+  create() {
     const {onCreate} = this.props;
 
     if (onCreate) {
@@ -97,9 +80,9 @@ class NoteInput extends React.Component {
         mentions: this.finalizeMentions(),
       });
     }
-  };
+  }
 
-  update = () => {
+  update() {
     const {onUpdate} = this.props;
 
     if (onUpdate) {
@@ -108,20 +91,20 @@ class NoteInput extends React.Component {
         mentions: this.finalizeMentions(),
       });
     }
-  };
+  }
 
-  finish = () => {
+  finish() {
     this.props.onEditFinish && this.props.onEditFinish();
-  };
+  }
 
-  finalizeMentions = () => {
+  finalizeMentions(): string[] {
     const {memberMentions, teamMentions} = this.state;
 
     // each mention looks like [id, display]
     return [...memberMentions, ...teamMentions]
       .filter(mention => this.state.value.indexOf(mention[1]) !== -1)
       .map(mention => mention[0]);
-  };
+  }
 
   handleToggleEdit = () => {
     this.setState({preview: false});
@@ -131,12 +114,12 @@ class NoteInput extends React.Component {
     this.setState({preview: true});
   };
 
-  handleSubmit = e => {
+  handleSubmit = (e: React.MouseEvent<HTMLFormElement>) => {
     e.preventDefault();
     this.submitForm();
   };
 
-  handleChange = e => {
+  handleChange = (e: MentionChangeEvent) => {
     this.setState({value: e.target.value});
 
     if (this.props.onChange) {
@@ -144,27 +127,29 @@ class NoteInput extends React.Component {
     }
   };
 
-  handleKeyDown = e => {
+  handleKeyDown = (
+    e: React.KeyboardEvent<HTMLTextAreaElement> | React.KeyboardEvent<HTMLInputElement>
+  ) => {
     // Auto submit the form on [meta] + Enter
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
       this.submitForm();
     }
   };
 
-  handleCancel = e => {
+  handleCancel = (e: React.MouseEvent<Element>) => {
     e.preventDefault();
     this.finish();
   };
 
-  handleAddMember = (id, display) => {
+  handleAddMember = (id: React.ReactText, display: string) => {
     this.setState(({memberMentions}) => ({
-      memberMentions: [...memberMentions, [id, display]],
+      memberMentions: [...memberMentions, [`${id}`, display]],
     }));
   };
 
-  handleAddTeam = (id, display) => {
+  handleAddTeam = (id: React.ReactText, display: string) => {
     this.setState(({teamMentions}) => ({
-      teamMentions: [...teamMentions, [id, display]],
+      teamMentions: [...teamMentions, [`${id}`, display]],
     }));
   };
 
@@ -173,7 +158,6 @@ class NoteInput extends React.Component {
     const {
       modelId,
       busy,
-      error,
       placeholder,
       minHeight,
       errorJSON,
@@ -196,7 +180,6 @@ class NoteInput extends React.Component {
       <NoteInputForm
         data-test-id="note-input-form"
         noValidate
-        error={error}
         onSubmit={this.handleSubmit}
       >
         <NoteInputNavTabs>
@@ -269,12 +252,18 @@ class NoteInput extends React.Component {
   }
 }
 
-class NoteInputContainer extends React.Component {
-  static propTypes = {
-    projectSlugs: PropTypes.arrayOf(PropTypes.string),
-  };
+type NoteInputContainerProps = {
+  projectSlugs: string[];
+} & Omit<Props, 'memberList' | 'teams'>;
 
-  renderInput = ({members, teams}) => {
+type MentionablesChildFunc = Parameters<
+  React.ComponentProps<typeof Mentionables>['children']
+>[0];
+
+class NoteInputContainer extends React.Component<NoteInputContainerProps> {
+  static defaultProps = defaultProps;
+
+  renderInput = ({members, teams}: MentionablesChildFunc) => {
     const {projectSlugs: _, ...props} = this.props;
     return <NoteInput memberList={members} teams={teams} {...props} />;
   };
@@ -366,7 +355,11 @@ const Footer = styled('div')`
   padding-left: ${space(1.5)};
 `;
 
-const FooterButton = styled(Button)`
+type FooterButtonProps = {
+  error?: string | null;
+} & React.ComponentProps<typeof Button>;
+
+const FooterButton = styled(Button)<FooterButtonProps>`
   font-size: 13px;
   margin: -1px -1px -1px;
   border-radius: 0 0 ${p => p.theme.borderRadius};
@@ -421,7 +414,10 @@ const MarkdownSupported = styled('span')`
   font-size: 14px;
 `;
 
-const NotePreview = styled('div')`
+type NotePreviewProps = {
+  minHeight: Props['minHeight'];
+};
+const NotePreview = styled('div')<NotePreviewProps>`
   ${getNotePreviewCss};
   padding-bottom: ${space(1)};
 `;

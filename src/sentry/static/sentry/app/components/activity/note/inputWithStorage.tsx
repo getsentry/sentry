@@ -1,28 +1,33 @@
 import debounce from 'lodash/debounce';
-import PropTypes from 'prop-types';
 import React from 'react';
 import * as Sentry from '@sentry/react';
 
+import {NoteType} from 'app/types/alerts';
+import {MentionChangeEvent} from 'app/components/activity/note/types';
 import NoteInput from 'app/components/activity/note/input';
 import localStorage from 'app/utils/localStorage';
 
-class NoteInputWithStorage extends React.Component {
-  static propTypes = {
-    storageKey: PropTypes.string.isRequired,
-    itemKey: PropTypes.string.isRequired,
-    text: PropTypes.string,
-    onLoad: PropTypes.func.isRequired,
-    onSave: PropTypes.func.isRequired,
-    onChange: PropTypes.func,
-    onCreate: PropTypes.func,
-  };
+const defaultProps = {
+  /**
+   * Triggered when local storage has been loaded and parsed.
+   */
+  onLoad: (data: string) => data,
+  onSave: (data: string) => data,
+};
 
-  static defaultProps = {
-    onSave: i => i,
-    onLoad: i => i,
-  };
+type InputProps = React.ComponentProps<typeof NoteInput>;
 
-  fetchFromStorage = () => {
+type Props = {
+  storageKey: string;
+  itemKey: string;
+  text?: string;
+} & InputProps &
+  typeof defaultProps;
+
+class NoteInputWithStorage extends React.Component<Props> {
+  static defaultProps = defaultProps;
+
+  fetchFromStorage() {
     const {storageKey} = this.props;
 
     const storage = localStorage.getItem(storageKey);
@@ -39,9 +44,9 @@ class NoteInputWithStorage extends React.Component {
       });
       return null;
     }
-  };
+  }
 
-  saveToStorage = obj => {
+  saveToStorage(obj: object) {
     const {storageKey} = this.props;
 
     try {
@@ -53,9 +58,9 @@ class NoteInputWithStorage extends React.Component {
         Sentry.captureException(err);
       });
     }
-  };
+  }
 
-  getValue = () => {
+  getValue() {
     const {itemKey, text, onLoad} = this.props;
 
     if (text) {
@@ -71,9 +76,12 @@ class NoteInputWithStorage extends React.Component {
     if (!storageObj.hasOwnProperty(itemKey)) {
       return '';
     }
+    if (!onLoad) {
+      return storageObj[itemKey];
+    }
 
     return onLoad(storageObj[itemKey]);
-  };
+  }
 
   save = debounce(value => {
     const {itemKey, onSave} = this.props;
@@ -82,7 +90,7 @@ class NoteInputWithStorage extends React.Component {
     this.saveToStorage({...currentObj, [itemKey]: onSave(value)});
   }, 150);
 
-  handleChange = (e, options = {}) => {
+  handleChange = (e: MentionChangeEvent, options: {updating?: boolean} = {}) => {
     const {onChange} = this.props;
 
     if (onChange) {
@@ -101,11 +109,11 @@ class NoteInputWithStorage extends React.Component {
    *
    * Remove in progress item from local storage if it exists
    */
-  handleCreate = (...args) => {
+  handleCreate = (data: NoteType) => {
     const {itemKey, onCreate} = this.props;
 
     if (onCreate) {
-      onCreate(...args);
+      onCreate(data);
     }
 
     // Remove from local storage
