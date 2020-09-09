@@ -201,16 +201,13 @@ const ChartPlaceholder = styled(Placeholder)`
 
 const StickyWrapper = styled('div')`
   position: sticky;
-  top: 69px; /* Height of settings breadcrumb 69px */
+  top: ${space(1)};
   z-index: ${p => p.theme.zIndex.dropdown - 1};
-  background: rgba(255, 255, 255, 0.9);
 `;
 
 const StyledPanel = styled(Panel)`
   /* Remove margin for the sticky window */
   margin-bottom: 0;
-  /* Keep semi transparent background */
-  background: none;
 `;
 
 const StyledSelectControl = styled(SelectControl)`
