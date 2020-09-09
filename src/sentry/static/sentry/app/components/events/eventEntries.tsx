@@ -30,6 +30,7 @@ import MessageInterface from 'app/components/events/interfaces/message';
 import RequestInterface from 'app/components/events/interfaces/request';
 import RRWebIntegration from 'app/components/events/rrwebIntegration';
 import SentryTypes from 'app/sentryTypes';
+import BreadcrumbsInterface from 'app/components/events/interfaces/breadcrumbsV2';
 import SpansInterface from 'app/components/events/interfaces/spans';
 import StacktraceInterface from 'app/components/events/interfaces/stacktrace';
 import TemplateInterface from 'app/components/events/interfaces/template';
@@ -38,8 +39,6 @@ import {DataSection} from 'app/components/events/styles';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 import {Event, AvatarProject, Group} from 'app/types';
-
-import BreadcrumbsInterface from './eventEntriesBreadcrumbs';
 
 export const INTERFACES = {
   exception: ExceptionInterface,
@@ -267,7 +266,7 @@ class EventEntries extends React.Component<Props> {
             location={location}
           />
         )}
-        {!objectIsEmpty(event.sdk) && <EventSdk event={event} />}
+        {!objectIsEmpty(event.sdk) && <EventSdk sdk={event.sdk} />}
         {!isShare && event && event.sdkUpdates && event.sdkUpdates.length > 0 && (
           <EventSdkUpdates event={event} />
         )}
