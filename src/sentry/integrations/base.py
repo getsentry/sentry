@@ -289,6 +289,9 @@ class IntegrationInstallation(object):
     def get_config_data(self):
         return self.org_integration.config
 
+    def get_dynamic_display_information(self):
+        return None
+
     def get_client(self):
         # Return the api client for a given provider
         raise NotImplementedError

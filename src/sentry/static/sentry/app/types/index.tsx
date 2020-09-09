@@ -858,6 +858,11 @@ export type Integration = {
       | 'born_as_bot'
       | 'migrated_to_bot';
   };
+  dynamicDisplayInformation?: {
+    configure_integration?: {
+      instructions: string[];
+    };
+  };
 };
 
 export type IntegrationExternalIssue = {
