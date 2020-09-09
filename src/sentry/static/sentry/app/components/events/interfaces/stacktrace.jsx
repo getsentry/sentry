@@ -5,7 +5,8 @@ import ConfigStore from 'app/stores/configStore';
 import EventDataSection from 'app/components/events/eventDataSection';
 import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
-import CrashHeader from 'app/components/events/interfaces/crashHeader';
+import CrashTitle from 'app/components/events/interfaces/crashHeader/crashTitle';
+import CrashActions from 'app/components/events/interfaces/crashHeader/crashActions';
 import CrashContent from 'app/components/events/interfaces/crashContent';
 
 export function isStacktraceNewestFirst() {
@@ -50,29 +51,33 @@ class StacktraceInterface extends React.Component {
     });
   };
 
+  handleChange = newState => {
+    this.setState(newState);
+  };
+
   render() {
     const {projectId, event, data, hideGuide} = this.props;
     const {stackView, newestFirst} = this.state;
 
-    const title = (
-      <CrashHeader
-        title={t('Stacktrace')}
-        platform={event.platform}
-        stacktrace={data}
-        stackView={stackView}
-        newestFirst={newestFirst}
-        hideGuide={hideGuide}
-        onChange={newState => {
-          this.setState(newState);
-        }}
-      />
-    );
+    const commonCrashHeaderProps = {
+      newestFirst,
+      hideGuide,
+      onChange: this.handleChange,
+    };
 
     return (
       <EventDataSection
         event={event}
         type={this.props.type}
-        title={title}
+        title={<CrashTitle title={t('Stacktrace')} {...commonCrashHeaderProps} />}
+        actions={
+          <CrashActions
+            stackView={stackView}
+            platform={event.platform}
+            stacktrace={data}
+            {...commonCrashHeaderProps}
+          />
+        }
         wrapTitle={false}
       >
         <CrashContent

@@ -5,7 +5,8 @@ import {t} from 'app/locale';
 import EventDataSection from 'app/components/events/eventDataSection';
 import SentryTypes from 'app/sentryTypes';
 import {isStacktraceNewestFirst} from 'app/components/events/interfaces/stacktrace';
-import CrashHeader from 'app/components/events/interfaces/crashHeader';
+import CrashTitle from 'app/components/events/interfaces/crashHeader/crashTitle';
+import CrashActions from 'app/components/events/interfaces/crashHeader/crashActions';
 import CrashContent from 'app/components/events/interfaces/crashContent';
 
 class ExceptionInterface extends React.Component {
@@ -32,6 +33,10 @@ class ExceptionInterface extends React.Component {
 
   eventHasThreads = () => !!this.props.event.entries.find(x => x.type === 'threads');
 
+  handleChange = newState => {
+    this.setState(newState);
+  };
+
   render() {
     const {projectId, event, data, hideGuide, type} = this.props;
     const {stackView, stackType, newestFirst} = this.state;
@@ -43,23 +48,28 @@ class ExceptionInterface extends React.Component {
       return null;
     }
 
-    const title = (
-      <CrashHeader
-        title={t('Exception')}
-        platform={event.platform}
-        exception={data}
-        stackView={stackView}
-        newestFirst={newestFirst}
-        stackType={stackType}
-        hideGuide={hideGuide}
-        onChange={newState => {
-          this.setState(newState);
-        }}
-      />
-    );
+    const commonCrashHeaderProps = {
+      newestFirst,
+      hideGuide,
+      onChange: this.handleChange,
+    };
 
     return (
-      <EventDataSection event={event} type={type} title={title} wrapTitle={false}>
+      <EventDataSection
+        event={event}
+        type={type}
+        title={<CrashTitle title={t('Exception')} {...commonCrashHeaderProps} />}
+        actions={
+          <CrashActions
+            stackType={stackType}
+            stackView={stackView}
+            platform={event.platform}
+            exception={data}
+            {...commonCrashHeaderProps}
+          />
+        }
+        wrapTitle={false}
+      >
         <CrashContent
           projectId={projectId}
           event={event}
