@@ -1,5 +1,5 @@
 import {Client} from 'app/api';
-import {CommitFile, Commit} from 'app/types';
+import {CommitFile, Commit, FilesByRepository} from 'app/types';
 import {t} from 'app/locale';
 
 export type CommitsByRepository = {
@@ -21,7 +21,7 @@ export const deleteRelease = (orgId: string, version: string) => {
  * Convert list of individual file changes into a per-file summary grouped by repository
  */
 export function getFilesByRepository(fileList: CommitFile[]) {
-  return fileList.reduce((filesByRepository, file) => {
+  return fileList.reduce<FilesByRepository>((filesByRepository, file) => {
     const {filename, repoName, author, type} = file;
 
     if (!filesByRepository.hasOwnProperty(repoName)) {
@@ -35,7 +35,10 @@ export function getFilesByRepository(fileList: CommitFile[]) {
       };
     }
 
-    filesByRepository[repoName][filename].authors[author.email] = author;
+    if (author.email) {
+      filesByRepository[repoName][filename].authors[author.email] = author;
+    }
+
     filesByRepository[repoName][filename].types.add(type);
 
     return filesByRepository;

@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
@@ -6,8 +5,14 @@ import {ListGroup, ListGroupItem} from 'app/components/listGroup';
 import FileChange from 'app/components/fileChange';
 import {t, tn} from 'app/locale';
 import space from 'app/styles/space';
+import {FilesByRepository} from 'app/types';
 
-function Collapsed(props) {
+type CollapsedProps = {
+  onClick: React.MouseEventHandler<HTMLAnchorElement>;
+  count: number;
+};
+
+function Collapsed(props: CollapsedProps) {
   return (
     <ListGroupItem centered>
       <a onClick={props.onClick}>
@@ -17,31 +22,28 @@ function Collapsed(props) {
   );
 }
 
-Collapsed.propTypes = {
-  onClick: PropTypes.func.isRequired,
-  count: PropTypes.number.isRequired,
+type Props = {
+  fileChangeSummary: FilesByRepository[string];
+  repository: string;
+  collapsable: boolean;
+  maxWhenCollapsed: number;
 };
 
-class RepositoryFileSummary extends React.Component {
-  static propTypes = {
-    fileChangeSummary: PropTypes.object,
-    repository: PropTypes.string,
-    collapsable: PropTypes.bool,
-    maxWhenCollapsed: PropTypes.number,
-  };
+type State = {
+  loading: boolean;
+  collapsed: boolean;
+};
 
+class RepositoryFileSummary extends React.Component<Props, State> {
   static defaultProps = {
     collapsable: true,
     maxWhenCollapsed: 5,
   };
 
-  constructor(...args) {
-    super(...args);
-    this.state = {
-      loading: true,
-      collapsed: true,
-    };
-  }
+  state: State = {
+    loading: true,
+    collapsed: true,
+  };
 
   onCollapseToggle = () => {
     this.setState({
@@ -70,13 +72,12 @@ class RepositoryFileSummary extends React.Component {
         </h5>
         <ListGroup striped>
           {files.map(filename => {
-            const {authors, types} = fileChangeSummary[filename];
+            const {authors} = fileChangeSummary[filename];
             return (
               <FileChange
                 key={filename}
                 filename={filename}
-                authors={Object.values(authors)}
-                types={types}
+                authors={authors ? Object.values(authors) : []}
               />
             );
           })}
