@@ -24,9 +24,9 @@ type FieldType =
   | 'text'
   | 'url'
   | 'number'
-  | 'textarea'
-  | 'choice'
-  | 'select';
+  | 'textarea';
+
+type SelectFieldType = 'select' | 'choice';
 
 type Config = {
   required?: boolean;
@@ -39,7 +39,17 @@ type Config = {
   type: FieldType;
   has_autocomplete: boolean;
   choices: Array<[number | string, number | string]>;
-  url?: string; // TODO(ts): Required for SelectAsyncField
+  url?: string;
+};
+
+type SelectFieldConfig = Omit<Config, 'type' | 'has_autocomplete'> & {
+  type: SelectFieldType;
+  has_autocomplete: false;
+};
+
+type AsyncSelectFieldConfig = Omit<SelectFieldConfig, 'url' | 'has_autocomplete'> & {
+  url: string;
+  has_autocomplete: true;
 };
 
 interface FormData {
@@ -47,7 +57,7 @@ interface FormData {
 }
 
 type Props = {
-  config: Config;
+  config: Config | SelectFieldConfig | AsyncSelectFieldConfig;
   formData: FormData;
   formErrors?: object;
   formState: typeof FormState[keyof typeof FormState];
@@ -107,8 +117,13 @@ const GenericField = ({
       // for select elements, so just make it look like
       // it's required (with *) and rely on server validation
       delete fieldProps.required;
-      if (fieldProps.has_autocomplete) {
-        return <SelectAsyncField deprecatedSelectControl url="" {...fieldProps} />;
+      if (config.has_autocomplete) {
+        // Redeclaring field props here as config has been narrowed to include the correct options for SelectAsyncField
+        const selectFieldProps = {
+          ...config,
+          ...fieldProps,
+        };
+        return <SelectAsyncField deprecatedSelectControl {...selectFieldProps} />;
       }
       return <SelectField deprecatedSelectControl {...fieldProps} />;
     default:
