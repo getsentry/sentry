@@ -207,7 +207,7 @@ const StickyWrapper = styled('div')`
 `;
 
 const StyledPanel = styled(Panel)`
-  /* Can't have marign with the sticky window */
+  /* Remove margin for the sticky window */
   margin-bottom: 0;
   /* Keep semi transparent background */
   background: none;
