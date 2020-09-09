@@ -428,8 +428,13 @@ def self_subscribe_and_assign_issue(acting_user, group):
 
 def track_update_groups(function):
     def wrapper(request, projects, *args, **kwargs):
+        from sentry.utils import snuba
+
         try:
             response = function(request, projects, *args, **kwargs)
+        except snuba.RateLimitExceeded:
+            metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 429})
+            raise
         except Exception:
             metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 500})
             # Continue raising the error now that we've incr the metric

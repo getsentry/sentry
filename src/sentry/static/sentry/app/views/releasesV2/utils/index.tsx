@@ -4,7 +4,6 @@ import localStorage from 'app/utils/localStorage';
 import ConfigStore from 'app/stores/configStore';
 import OrganizationStore from 'app/stores/organizationStore';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {Client} from 'app/api';
 import {stringifyQueryObject, QueryResults} from 'app/utils/tokenizeSearch';
 
 const RELEASES_VERSION_KEY = 'releases:version';
@@ -29,30 +28,14 @@ export const wantsLegacyReleases = () => {
 };
 
 export const decideReleasesVersion = async hasNewReleases => {
-  const api = new Client();
   const {organization} = OrganizationStore.get();
 
+  // we are forcing everyone to version 2 now, we will delete the codebase behind v1 in a week or so
   if (wantsLegacyReleases()) {
-    return hasNewReleases(false);
+    switchReleasesVersion('2', organization?.id ?? '0');
   }
 
-  if (organization) {
-    return hasNewReleases(organization.features.includes('releases-v2'));
-  }
-
-  // in case there is no organization in the store yet, we fetch it
-  // this function is being called from the routes file where we do not have access to much stuff at that point
-  // we will be removing this logic once we go GA with releases v2 in a few weeks
-  try {
-    const currentOrgSlug = location.pathname.split('/')[2];
-    const fetchedOrg = await api.requestPromise(`/organizations/${currentOrgSlug}/`, {
-      query: {detailed: 0},
-    });
-
-    return hasNewReleases(fetchedOrg.features.includes('releases-v2'));
-  } catch {
-    return hasNewReleases(false);
-  }
+  return hasNewReleases(true);
 };
 
 export const roundDuration = (seconds: number) => {

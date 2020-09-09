@@ -49,7 +49,7 @@ class EventDataSection extends React.Component<Props> {
         if (anchorElement) {
           anchorElement.scrollIntoView();
         }
-      } catch (e) {
+      } catch {
         // Since we're blindly taking the hash from the url and shoving
         // it into a querySelector, it's possible that this may
         // raise an exception if the input is invalid. So let's just ignore
@@ -80,14 +80,16 @@ class EventDataSection extends React.Component<Props> {
       <DataSection className={className || ''}>
         {title && (
           <SectionHeader id={type} isCentered={isCentered}>
-            {showPermalink ? (
-              <Permalink href={'#' + type} className="permalink">
-                <StyledIconAnchor />
-                {titleNode}
-              </Permalink>
-            ) : (
-              <div>{titleNode}</div>
-            )}
+            <Title>
+              {showPermalink ? (
+                <Permalink href={'#' + type} className="permalink">
+                  <StyledIconAnchor />
+                  {titleNode}
+                </Permalink>
+              ) : (
+                <div>{titleNode}</div>
+              )}
+            </Title>
             {type === 'extra' && (
               <ButtonBar merged active={raw ? 'raw' : 'formatted'}>
                 <Button
@@ -115,6 +117,10 @@ class EventDataSection extends React.Component<Props> {
   }
 }
 
+const Title = styled('div')`
+  display: flex;
+`;
+
 const StyledIconAnchor = styled(IconAnchor)`
   display: none;
   position: absolute;
@@ -131,8 +137,13 @@ const Permalink = styled('a')`
 
 const SectionHeader = styled('div')<{isCentered?: boolean}>`
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  margin-bottom: ${space(3)};
+  margin-bottom: ${space(2)};
+
+  > * {
+    margin-bottom: ${space(0.5)};
+  }
 
   & h3,
   & h3 a {
@@ -193,6 +204,7 @@ const SectionContents = styled('div')`
 
 const ActionContainer = styled('div')`
   flex-shrink: 0;
+  max-width: 100%;
 `;
 
 export default EventDataSection;

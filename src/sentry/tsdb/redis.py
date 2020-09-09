@@ -5,12 +5,12 @@ import logging
 import operator
 import random
 import uuid
-from binascii import crc32
 from collections import defaultdict, namedtuple
 from hashlib import md5
 
 import six
 from django.utils import timezone
+from django.utils.encoding import force_bytes
 from pkg_resources import resource_string
 
 from sentry.tsdb.base import BaseTSDB
@@ -18,8 +18,7 @@ from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.redis import check_cluster_versions, get_cluster_from_options, SentryScript
 from sentry.utils.versioning import Version
 from six.moves import reduce
-from sentry.utils.compat import map
-from sentry.utils.compat import zip
+from sentry.utils.compat import map, zip, crc32
 
 logger = logging.getLogger(__name__)
 
@@ -173,9 +172,7 @@ class RedisTSDB(BaseTSDB):
         if isinstance(model_key, six.integer_types):
             vnode = model_key % self.vnodes
         else:
-            if isinstance(model_key, six.text_type):
-                model_key = model_key.encode("utf-8")
-            vnode = crc32(model_key) % self.vnodes
+            vnode = crc32(force_bytes(model_key)) % self.vnodes
 
         return (
             u"{prefix}{model}:{epoch}:{vnode}".format(
@@ -727,7 +724,9 @@ class RedisTSDB(BaseTSDB):
         results = {}
         cluster, _ = self.get_cluster(environment_id)
         for key, responses in cluster.execute_commands(commands).items():
-            results[key] = [(member, float(score)) for member, score in responses[0].value]
+            results[key] = [
+                (member.decode("utf-8"), float(score)) for member, score in responses[0].value
+            ]
 
         return results
 
@@ -757,7 +756,7 @@ class RedisTSDB(BaseTSDB):
             ]
 
         def unpack_response(response):
-            return {item: float(score) for item, score in response.value}
+            return {item.decode("utf-8"): float(score) for item, score in response.value}
 
         results = {}
         cluster, _ = self.get_cluster(environment_id)

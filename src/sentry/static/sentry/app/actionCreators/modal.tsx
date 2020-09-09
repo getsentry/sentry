@@ -3,7 +3,7 @@ import {css} from '@emotion/core';
 import {ModalHeader, ModalBody, ModalFooter} from 'react-bootstrap';
 
 import ModalActions from 'app/actions/modalActions';
-import {Organization, SentryApp, Project} from 'app/types';
+import {Organization, SentryApp, Project, Team} from 'app/types';
 
 export type ModalRenderProps = {
   closeModal: () => void;
@@ -71,6 +71,7 @@ type CreateTeamModalOptions = {
    * An initial project to add the team to. This may be deprecated soon as we may add a project selection inside of the modal flow
    */
   project?: Project;
+  onClose?: (team: Team) => void;
 };
 
 export async function openCreateTeamModal(options: CreateTeamModalOptions) {

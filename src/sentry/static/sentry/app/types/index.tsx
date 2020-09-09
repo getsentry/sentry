@@ -209,6 +209,9 @@ export type Team = {
   id: string;
   slug: string;
   isMember: boolean;
+  hasAccess: boolean;
+  isPending: boolean;
+  memberCount: number;
   avatar: Avatar;
 };
 
@@ -308,6 +311,11 @@ type SentryEventBase = {
   };
 
   crashFile: EventAttachment | null;
+
+  sdk?: {
+    name: string;
+    version: string;
+  };
 };
 
 export type SentryTransactionEvent = {
@@ -316,9 +324,6 @@ export type SentryTransactionEvent = {
   entries: SpanEntry[];
   startTimestamp: number;
   endTimestamp: number;
-  sdk?: {
-    name?: string;
-  };
   contexts?: {
     trace?: TraceContextType;
   };
@@ -852,6 +857,11 @@ export type Integration = {
       | 'classic_bot'
       | 'born_as_bot'
       | 'migrated_to_bot';
+  };
+  dynamicDisplayInformation?: {
+    configure_integration?: {
+      instructions: string[];
+    };
   };
 };
 
@@ -1436,4 +1446,11 @@ export type Note = {
    * Array of [id, display string] tuples used for @-mentions
    */
   mentions: [string, string][];
+};
+
+export type FilesByRepository = {
+  [repoName: string]: {
+    authors?: {[email: string]: CommitAuthor};
+    types?: Set<string>;
+  };
 };
