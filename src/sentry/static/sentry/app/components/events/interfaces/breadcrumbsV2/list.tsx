@@ -6,6 +6,7 @@ import {
   CellMeasurer,
   CellMeasurerCache,
   AutoSizer,
+  ScrollbarPresenceParams,
 } from 'react-virtualized';
 import isEqual from 'lodash/isEqual';
 
@@ -29,6 +30,7 @@ const cache = new CellMeasurerCache({
 
 type State = {
   scrollToIndex?: number;
+  scrollbarSize?: number;
 };
 
 class ListContainer extends React.Component<Props, State> {
@@ -57,12 +59,17 @@ class ListContainer extends React.Component<Props, State> {
     if (this.listRef) {
       cache.clearAll();
       this.listRef.forceUpdateGrid();
+      this.listRef.recomputeGridSize();
     }
   };
 
   setScrollToIndex(scrollToIndex: State['scrollToIndex']) {
     this.setState({scrollToIndex});
   }
+
+  setScrollbarSize = ({size}: ScrollbarPresenceParams) => {
+    this.setState({scrollbarSize: size});
+  };
 
   renderBody(breadcrumb: BreadcrumbsWithDetails[0], isLastItem = false) {
     const {event, orgId, searchTerm, relativeTime, displayRelativeTime} = this.props;
@@ -108,7 +115,7 @@ class ListContainer extends React.Component<Props, State> {
 
   render() {
     const {breadcrumbs, displayRelativeTime, onSwitchTimeFormat} = this.props;
-    const {scrollToIndex} = this.state;
+    const {scrollToIndex, scrollbarSize} = this.state;
 
     // onResize is required in case the user rotates the device.
     return (
@@ -116,12 +123,12 @@ class ListContainer extends React.Component<Props, State> {
         <AutoSizer disableHeight onResize={this.updateGrid}>
           {({width}) => (
             <React.Fragment>
-              <Row width={width}>
+              <RowSticky width={width} scrollbarSize={scrollbarSize}>
                 <ListHeader
                   displayRelativeTime={!!displayRelativeTime}
                   onSwitchTimeFormat={onSwitchTimeFormat}
                 />
-              </Row>
+              </RowSticky>
               <StyledList
                 ref={(el: List | null) => {
                   this.listRef = el;
@@ -133,6 +140,7 @@ class ListContainer extends React.Component<Props, State> {
                 rowHeight={cache.rowHeight}
                 rowRenderer={this.renderRow}
                 width={width}
+                onScrollbarPresenceChange={this.setScrollbarSize}
                 // when the component mounts, it scrolls to the last item
                 scrollToIndex={scrollToIndex}
                 scrollToAlignment={scrollToIndex ? 'end' : undefined}
@@ -166,5 +174,16 @@ const Row = styled('div')<{width?: number}>`
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     grid-template-columns: 63px minmax(132px, 1fr) 6fr 75px 85px;
   }
-  ${p => p.width && `width: ${p.width}px`};
+  ${p => p.width && `width: ${p.width}px;`}
+`;
+
+const RowSticky = styled(Row)<{scrollbarSize?: number}>`
+  ${p =>
+    p.scrollbarSize &&
+    `padding-right: ${p.scrollbarSize};
+     grid-template-columns: 45px minmax(55px, 1fr) 6fr 86px calc(67px + ${p.scrollbarSize}px);
+     @media (min-width: ${p.theme.breakpoints[0]}) {
+      grid-template-columns: 63px minmax(132px, 1fr) 6fr 75px calc(85px + ${p.scrollbarSize}px);
+    }
+  `}
 `;
