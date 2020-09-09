@@ -140,7 +140,7 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
     );
 
     this.setState({
-      searchTerm: searchTerm as string,
+      searchTerm: `${searchTerm}`,
       filteredBreadcrumbs,
     });
   };

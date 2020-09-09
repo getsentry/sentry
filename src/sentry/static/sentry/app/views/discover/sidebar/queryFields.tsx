@@ -92,7 +92,7 @@ export default class QueryFields extends React.Component<QueryFieldsProps> {
                 value={getDynamicText({value: savedQueryName, fixed: 'query name'})}
                 placeholder={t('Saved search name')}
                 onChange={(val: string | number | boolean) =>
-                  onUpdateName && onUpdateName(val as string)
+                  onUpdateName && onUpdateName(`${val}`)
                 }
               />
             </React.Fragment>
