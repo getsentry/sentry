@@ -12005,10 +12005,10 @@ pkg-up@2.0.0, pkg-up@^2.0.0:
   dependencies:
     find-up "^2.1.0"
 
-platformicons@2.1.1:
-  version "2.1.1"
-  resolved "https://registry.yarnpkg.com/platformicons/-/platformicons-2.1.1.tgz#ab8c04c465ec3fbbcd0d5485d0c543e014a7f8a4"
-  integrity sha512-zfAgpUzIdbrXgHdhyO5ld2gvgS+HA5E/KrVavPRnYRNBeCDnX6DBprHXs6ipeyo/0+OKKoGeMejjXnoFApGdtA==
+platformicons@3.0.0:
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/platformicons/-/platformicons-3.0.0.tgz#49696f922c3e081751195d9561f3f913361a61af"
+  integrity sha512-/upfuKrPteZ8twPeiMnZSgLfI7W5RGEmLpOAazH2fmzntIQAStLM+QFrjD0tZycK8Ma9c4xCZeWZg7YqeJV+Bg==
 
 pluralize@^7.0.0:
   version "7.0.0"
