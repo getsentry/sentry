@@ -57,7 +57,7 @@ class Columns(Enum):
     HTTP_REFERER = Column(
         "events.http_referer", "http_referer", "http_referer", "http_referer", "http.referer",
     )
-    HTTP_URL = Column("events.tags[url]", "tags[url]", "tags[url]", "tags[url]", "http.url",)
+    HTTP_URL = Column("events.tags[url]", "tags[url]", "tags[url]", "tags[url]", "http.url")
     OS_BUILD = Column(
         "events.contexts[os.build]",
         "contexts[os.build]",
