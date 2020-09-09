@@ -190,8 +190,6 @@ class EventEntries extends React.Component {
     const hasContext = !objectIsEmpty(event.user) || !objectIsEmpty(event.contexts);
     const hasErrors = !objectIsEmpty(event.errors);
 
-    console.log('EVENT', event);
-
     return (
       <div className={className} data-test-id="event-entries">
         {hasErrors && (
