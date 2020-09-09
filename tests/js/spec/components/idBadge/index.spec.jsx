@@ -15,7 +15,7 @@ describe('IdBadge', function() {
   it('renders the correct component when `team` property is passed', function() {
     const wrapper = mountWithTheme(<IdBadge team={TestStubs.Team()} />, routerContext);
 
-    expect(wrapper.find('TeamBadgeContainer')).toHaveLength(1);
+    expect(wrapper.find('[data-test-id="team-badge"]')).toHaveLength(1);
   });
 
   it('renders the correct component when `project` property is passed', function() {
