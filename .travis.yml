@@ -30,8 +30,6 @@ env:
     - SENTRY_LIGHT_BUILD=1
     - SENTRY_SKIP_BACKEND_VALIDATION=1
     - MIGRATIONS_TEST_MIGRATE=0
-    # Use this to override the django version in the requirements file.
-    - DJANGO_VERSION=">=1.11,<1.12"
     - VOLTA_VERSION=0.8.1
     - VOLTA_HOME="${HOME}/.volta"
     - PATH="${HOME}/.volta/bin:${PATH}"
