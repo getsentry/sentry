@@ -110,9 +110,17 @@ def pytest_configure(config):
     if not hasattr(settings, "SENTRY_OPTIONS"):
         settings.SENTRY_OPTIONS = {}
 
+    cluster_hosts = [{"host": "127.0.0.1", "port": port} for port in range(7000, 7006)]
     settings.SENTRY_OPTIONS.update(
         {
-            "redis.clusters": {"default": {"hosts": {0: {"db": 9}}}},
+            "redis.clusters": {
+                "default": {"is_redis_cluster": True, "hosts": cluster_hosts},
+                "similarity": {"is_redis_cluster": True, "hosts": cluster_hosts},
+                "rc-long": {"is_redis_cluster": True, "hosts": cluster_hosts},
+                "rc-ingest": {"is_redis_cluster": True, "hosts": cluster_hosts},
+                "rc-processing": {"is_redis_cluster": True, "hosts": cluster_hosts},
+                "tsdb": {"is_redis_cluster": True, "hosts": cluster_hosts},
+            },
             "mail.backend": "django.core.mail.backends.locmem.EmailBackend",
             "system.url-prefix": "http://testserver",
             "slack.client-id": "slack-client-id",

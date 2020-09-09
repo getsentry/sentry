@@ -93,6 +93,13 @@ start_snuba: &start_snuba |-
 
   docker exec sentry_snuba snuba migrations migrate --force
 
+start_redis_cluster: &start_redis_cluster |-
+  docker run \
+    --name sentry_redis_cluster \
+    -d --network host \
+    --ulimit nofile=262144:262144 \
+    grokzen/redis-cluster:5.0.9
+
 script:
   - make travis-test-$TEST_SUITE
 
@@ -120,11 +127,11 @@ base_postgres: &postgres_default
   python: 2.7
   services:
     - memcached
-    - redis-server
     - postgresql
   before_install:
     - *base_install
     - *start_snuba
+    - *start_redis_cluster
     - docker ps -a
   install:
     - python setup.py install_egg_info
@@ -165,26 +172,26 @@ base_acceptance: &acceptance_default
 matrix:
   fast_finish: true
   include:
-    - language: generic
-      name: 'Linter (Javascript)'
-      env: TEST_SUITE=lint-js
-      before_install:
-        # Under a "generic" language environment, this will make travis pyenv error because there
-        # is no pyenv python installed.
-        - rm .python-version
-        - *install_volta
-      install:
-        - *install_node_dependencies
-
-    - python: 3.7
-      name: 'pre-commit hooks (includes python linting + format check)'
-      install:
-        - SENTRY_NO_VIRTUALENV_CREATION=1 make setup-git
-      script:
-        # Run pre-commit to lint and format check files that were changed (but not deleted) compared to master.
-        # XXX: there is a very small chance that it'll expand to exceed Linux's limits
-        #      `getconf ARG_MAX` - max # bytes of args + environ for exec()
-        - pre-commit run --files $(git diff --diff-filter=d --name-only master)
+#    - language: generic
+#      name: 'Linter (Javascript)'
+#      env: TEST_SUITE=lint-js
+#      before_install:
+#        # Under a "generic" language environment, this will make travis pyenv error because there
+#        # is no pyenv python installed.
+#        - rm .python-version
+#        - *install_volta
+#      install:
+#        - *install_node_dependencies
+#
+#    - python: 3.7
+#      name: 'pre-commit hooks (includes python linting + format check)'
+#      install:
+#        - SENTRY_NO_VIRTUALENV_CREATION=1 make setup-git
+#      script:
+#        # Run pre-commit to lint and format check files that were changed (but not deleted) compared to master.
+#        # XXX: there is a very small chance that it'll expand to exceed Linux's limits
+#        #      `getconf ARG_MAX` - max # bytes of args + environ for exec()
+#        - pre-commit run --files $(git diff --diff-filter=d --name-only master)
 
     - <<: *postgres_default
       name: 'Backend with migrations [Postgres] (1/2)'
@@ -193,105 +200,105 @@ matrix:
       name: 'Backend with migrations [Postgres] (2/2)'
       env: TEST_SUITE=postgres DB=postgres TOTAL_TEST_GROUPS=2 TEST_GROUP=1 MIGRATIONS_TEST_MIGRATE=1
 
-    - <<: *acceptance_default
-      name: 'Acceptance (1/3)'
-      env: TEST_SUITE=acceptance USE_SNUBA=1 TOTAL_TEST_GROUPS=3 TEST_GROUP=0
-    - <<: *acceptance_default
-      name: 'Acceptance (2/3)'
-      env: TEST_SUITE=acceptance USE_SNUBA=1 TOTAL_TEST_GROUPS=3 TEST_GROUP=1
-    - <<: *acceptance_default
-      name: 'Acceptance (3/3)'
-      env: TEST_SUITE=acceptance USE_SNUBA=1 TOTAL_TEST_GROUPS=3 TEST_GROUP=2
-
-    - <<: *acceptance_default
-      name: 'Plugins'
-      env: TEST_SUITE=plugins DB=postgres
-
-    - python: 2.7
-      name: 'Frontend [test]'
-      env: TEST_SUITE=js
-      before_install:
-        - *install_volta
-      install:
-        - *install_node_dependencies
-
-    - python: 2.7
-      name: 'Frontend [build]'
-      env: TEST_SUITE=js-build
-      before_install:
-        - *install_volta
-      install:
-        - *install_node_dependencies
-
-    - python: 2.7
-      name: 'Command Line'
-      env: TEST_SUITE=cli
-      services:
-        - postgresql
-        - redis-server
-      install:
-        - python setup.py install_egg_info
-        - pip install -U -e ".[dev]"
-        - sentry init
-      before_script:
-        - psql -c 'create database sentry;' -U postgres
-
-    - <<: *postgres_default
-      name: 'Symbolicator Integration'
-      env: TEST_SUITE=symbolicator
-      before_install:
-        - *base_install
-        - *start_snuba
-        - docker run -d -v $PWD/config/symbolicator/:/etc/symbolicator --network host --name symbolicator us.gcr.io/sentryio/symbolicator:latest run -c /etc/symbolicator/config.yml
-        - docker ps -a
-
-    - <<: *postgres_default
-      name: 'Sentry-Relay integration tests'
-      env: TEST_SUITE=relay-integration DB=postgres
-      services:
-        - docker
-        - memcached
-        - redis-server
-        - postgresql
-      before_install:
-        - *base_install
-        - *start_snuba
-        - docker pull us.gcr.io/sentryio/relay:latest # pull relay we'll run and kill it for each test
-        - docker ps -a
-
-    - python: 2.7
-      name: 'Snuba Integration with migrations'
-      env: TEST_SUITE=snuba USE_SNUBA=1 MIGRATIONS_TEST_MIGRATE=1
-      services:
-        - docker
-        - memcached
-        - redis-server
-        - postgresql
-      before_install:
-        - *base_install
-        - *start_snuba
-        - docker ps -a
-      install:
-        - python setup.py install_egg_info
-        - pip install -U -e ".[dev]"
-        - sentry init
-      before_script:
-        - psql -c 'create database sentry;' -U postgres
-
-    # Deploy 'storybook' (component & style guide)
-    - name: 'Storybook Deploy'
-      language: generic
-      env: STORYBOOK_BUILD=1
-      before_install:
-        # travis pyenv will attempt to use .python-version, but the appropriate python version won't be installed.
-        # since we don't need python here, we have to remove this.
-        - rm .python-version
-        - *install_volta
-      install:
-        - *install_node_dependencies
-      script: yarn run storybook-build
-      after_success: .travis/deploy-storybook.sh
-      after_failure: skip
+#    - <<: *acceptance_default
+#      name: 'Acceptance (1/3)'
+#      env: TEST_SUITE=acceptance USE_SNUBA=1 TOTAL_TEST_GROUPS=3 TEST_GROUP=0
+#    - <<: *acceptance_default
+#      name: 'Acceptance (2/3)'
+#      env: TEST_SUITE=acceptance USE_SNUBA=1 TOTAL_TEST_GROUPS=3 TEST_GROUP=1
+#    - <<: *acceptance_default
+#      name: 'Acceptance (3/3)'
+#      env: TEST_SUITE=acceptance USE_SNUBA=1 TOTAL_TEST_GROUPS=3 TEST_GROUP=2
+#
+#    - <<: *acceptance_default
+#      name: 'Plugins'
+#      env: TEST_SUITE=plugins DB=postgres
+#
+#    - python: 2.7
+#      name: 'Frontend [test]'
+#      env: TEST_SUITE=js
+#      before_install:
+#        - *install_volta
+#      install:
+#        - *install_node_dependencies
+#
+#    - python: 2.7
+#      name: 'Frontend [build]'
+#      env: TEST_SUITE=js-build
+#      before_install:
+#        - *install_volta
+#      install:
+#        - *install_node_dependencies
+#
+#    - python: 2.7
+#      name: 'Command Line'
+#      env: TEST_SUITE=cli
+#      services:
+#        - postgresql
+#        - redis-server
+#      install:
+#        - python setup.py install_egg_info
+#        - pip install -U -e ".[dev]"
+#        - sentry init
+#      before_script:
+#        - psql -c 'create database sentry;' -U postgres
+#
+#    - <<: *postgres_default
+#      name: 'Symbolicator Integration'
+#      env: TEST_SUITE=symbolicator
+#      before_install:
+#        - *base_install
+#        - *start_snuba
+#        - docker run -d -v $PWD/config/symbolicator/:/etc/symbolicator --network host --name symbolicator us.gcr.io/sentryio/symbolicator:latest run -c /etc/symbolicator/config.yml
+#        - docker ps -a
+#
+#    - <<: *postgres_default
+#      name: 'Sentry-Relay integration tests'
+#      env: TEST_SUITE=relay-integration DB=postgres
+#      services:
+#        - docker
+#        - memcached
+#        - redis-server
+#        - postgresql
+#      before_install:
+#        - *base_install
+#        - *start_snuba
+#        - docker pull us.gcr.io/sentryio/relay:latest # pull relay we'll run and kill it for each test
+#        - docker ps -a
+#
+#    - python: 2.7
+#      name: 'Snuba Integration with migrations'
+#      env: TEST_SUITE=snuba USE_SNUBA=1 MIGRATIONS_TEST_MIGRATE=1
+#      services:
+#        - docker
+#        - memcached
+#        - redis-server
+#        - postgresql
+#      before_install:
+#        - *base_install
+#        - *start_snuba
+#        - docker ps -a
+#      install:
+#        - python setup.py install_egg_info
+#        - pip install -U -e ".[dev]"
+#        - sentry init
+#      before_script:
+#        - psql -c 'create database sentry;' -U postgres
+#
+#    # Deploy 'storybook' (component & style guide)
+#    - name: 'Storybook Deploy'
+#      language: generic
+#      env: STORYBOOK_BUILD=1
+#      before_install:
+#        # travis pyenv will attempt to use .python-version, but the appropriate python version won't be installed.
+#        # since we don't need python here, we have to remove this.
+#        - rm .python-version
+#        - *install_volta
+#      install:
+#        - *install_node_dependencies
+#      script: yarn run storybook-build
+#      after_success: .travis/deploy-storybook.sh
+#      after_failure: skip
 
 notifications:
   webhooks:
