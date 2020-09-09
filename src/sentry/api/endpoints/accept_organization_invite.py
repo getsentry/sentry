@@ -45,6 +45,7 @@ class AcceptOrganizationInvite(Endpoint):
             "needsAuthentication": not helper.user_authenticated,
             "needs2fa": helper.needs_2fa,
             "needsSso": auth_provider is not None,
+            "requireSso": auth_provider is not None and not auth_provider.flags.allow_unlinked,
             # If they're already a member of the organization its likely
             # they're using a shared account and either previewing this invite
             # or are incorrectly expecting this to create a new account.

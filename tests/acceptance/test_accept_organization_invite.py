@@ -48,5 +48,5 @@ class AcceptOrganizationInviteTest(AcceptanceTestCase):
         AuthProvider.objects.create(organization=self.org, provider="google")
         self.browser.get(self.member.get_invite_link().split("/", 3)[-1])
         self.browser.wait_until('[data-test-id="accept-invite"]')
-        assert self.browser.element_exists_by_test_id("suggests-sso")
+        assert self.browser.element_exists_by_test_id("action-info-sso")
         assert self.browser.element_exists('[aria-label="sso-login"]')
