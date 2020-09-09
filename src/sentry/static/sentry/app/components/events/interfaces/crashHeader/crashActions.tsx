@@ -45,7 +45,7 @@ const CrashActions = ({
   const hasSystemFrames: boolean =
     stacktrace?.hasSystemFrames ||
     thread?.stacktrace?.hasSystemFrames ||
-    exception?.values.find(x => !!x?.stacktrace.hasSystemFrames);
+    exception?.values.find(x => !!x?.stacktrace?.hasSystemFrames);
 
   const hasMinified = !stackType
     ? false
