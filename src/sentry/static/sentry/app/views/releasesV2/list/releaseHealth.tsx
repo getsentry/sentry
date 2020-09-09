@@ -104,7 +104,7 @@ const ReleaseHealth = ({
                         query: {project: id},
                       }}
                     >
-                      <ProjectBadge project={project} avatarSize={16} key={slug} />
+                      <ProjectBadge project={project} avatarSize={16} />
                     </GlobalSelectionLink>
                   </ProjectColumn>
 

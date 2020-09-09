@@ -63,7 +63,7 @@ class OtherProjects extends React.Component<Props, State> {
                 query: {...location.query, project: project.id, yAxis: undefined},
               }}
             >
-              <ProjectBadge project={project} avatarSize={16} key={project.slug} />
+              <ProjectBadge project={project} avatarSize={16} />
             </StyledLink>
           </Row>
         ))}
