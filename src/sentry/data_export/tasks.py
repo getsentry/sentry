@@ -268,7 +268,7 @@ def store_export_chunk_as_blob(data_export, bytes_written, fileobj, blob_size=DE
 
         blob_fileobj = ContentFile(contents)
         blob = FileBlob.from_file(blob_fileobj, logger=logger)
-        ExportedDataBlob.objects.create(
+        ExportedDataBlob.objects.get_or_create(
             data_export=data_export, blob=blob, offset=bytes_written + bytes_offset
         )
 

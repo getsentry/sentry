@@ -88,6 +88,37 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
 
         assert emailer.called
 
+    @patch("sentry.data_export.models.ExportedData.email_success")
+    def test_no_error_on_retry(self, emailer):
+        de = ExportedData.objects.create(
+            user=self.user,
+            organization=self.org,
+            query_type=ExportQueryType.ISSUES_BY_TAG,
+            query_info={"project": [self.project.id], "group": self.event.group_id, "key": "foo"},
+        )
+        with self.tasks():
+            assemble_download(de.id, batch_size=1)
+            # rerunning the export should not be problematic and produce the same results
+            # this can happen when a batch is interrupted and has to be retried
+            assemble_download(de.id, batch_size=1)
+        de = ExportedData.objects.get(id=de.id)
+        assert de.date_finished is not None
+        assert de.date_expired is not None
+        assert de.file is not None
+        assert isinstance(de.file, File)
+        assert de.file.headers == {"Content-Type": "text/csv"}
+        assert de.file.size is not None
+        assert de.file.checksum is not None
+        # Convert raw csv to list of line-strings
+        header, raw1, raw2 = de.file.getfile().read().strip().split(b"\r\n")
+        assert header == b"value,times_seen,last_seen,first_seen"
+
+        raw1, raw2 = sorted([raw1, raw2])
+        assert raw1.startswith(b"bar,1,")
+        assert raw2.startswith(b"bar2,2,")
+
+        assert emailer.called
+
     @patch("sentry.data_export.models.ExportedData.email_failure")
     def test_issue_by_tag_missing_key(self, emailer):
         de = ExportedData.objects.create(
