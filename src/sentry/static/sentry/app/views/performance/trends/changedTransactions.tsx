@@ -46,6 +46,7 @@ import {
   getCurrentTrendFunction,
   getTrendBaselinesForTransaction,
   getIntervalRatio,
+  StyledIconArrow,
 } from './utils';
 import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
 import {HeaderTitleLegend} from '../styles';
@@ -103,7 +104,7 @@ function getChartTitle(trendChangeType: TrendChangeType): string {
     case TrendChangeType.IMPROVED:
       return t('Most Improved');
     case TrendChangeType.REGRESSION:
-      return t('Worst Regressions');
+      return t('Worst Regressed');
     default:
       throw new Error('No trend type passed');
   }
@@ -339,7 +340,7 @@ function TrendsListItem(props: TrendsListItemProps) {
                 <span>{t('Total Events')}</span>
                 <span>
                   <Count value={transaction.count_range_1} />
-                  {' → '}
+                  <StyledIconArrow direction="right" size="xs" />
                   <Count value={transaction.count_range_2} />
                 </span>
               </TooltipContent>
@@ -354,11 +355,7 @@ function TrendsListItem(props: TrendsListItemProps) {
               caret={false}
               title={
                 <TransactionMenuButton>
-                  <IconEllipsis
-                    size="sm"
-                    data-test-id="trends-item-action"
-                    color="gray600"
-                  />
+                  <IconEllipsis data-test-id="trends-item-action" color="gray600" />
                 </TransactionMenuButton>
               }
             >
@@ -517,13 +514,13 @@ const TransactionMenuButton = styled('button')`
 `;
 const TransactionMenuContainer = styled('div')`
   height: 100%;
-
   display: flex;
   justify-content: center;
   align-items: center;
 `;
 
 const TransactionsList = styled('div')``;
+
 const ListItemContainer = styled('div')`
   display: flex;
   border-top: 1px solid ${p => p.theme.borderLight};
@@ -533,11 +530,10 @@ const ListItemContainer = styled('div')`
 const ItemRadioContainer = styled('div')`
   input:checked::after {
     background-color: ${p => p.color};
-    width: 14px;
-    height: 14px;
   }
 `;
 const ItemTransactionNameContainer = styled('div')`
+  font-size: ${p => p.theme.fontSizeMedium};
   flex-grow: 1;
 `;
 const ItemTransactionName = styled('div')`
@@ -553,19 +549,18 @@ const ItemTransactionNameSecondary = styled('div')`
 
 const ItemTransactionAbsoluteFaster = styled('div')`
   color: ${p => p.theme.gray500};
-  font-size: 14px;
-  margin-left: ${space(2)};
+  margin-left: ${space(1)};
 `;
 const ItemTransactionPrimary = styled('div')``;
 const ItemTransactionSecondary = styled('div')`
   color: ${p => p.color};
-  font-size: 14px;
   white-space: nowrap;
 `;
 const ItemTransactionPercentContainer = styled('div')`
   display: flex;
   flex-direction: column;
   align-items: flex-end;
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const TooltipContent = styled('div')`
@@ -575,7 +570,7 @@ const TooltipContent = styled('div')`
 `;
 
 const ContainerTitle = styled('div')`
-  padding-top: ${space(2)};
+  padding-top: ${space(3)};
   padding-left: ${space(2)};
 `;
 
