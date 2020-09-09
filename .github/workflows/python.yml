@@ -20,9 +20,6 @@ jobs:
       # The hostname used to communicate with the PostgreSQL from sentry
       DATABASE_URL: postgresql://postgres:postgres@localhost/sentry
 
-      # Use this to override the django version in the requirements file.
-      DJANGO_VERSION: ">=1.11,<1.12"
-
     services:
       postgres:
         image: postgres:9.6
@@ -121,9 +118,6 @@ jobs:
 
       SENTRY_LIGHT_BUILD: 1
       SENTRY_SKIP_BACKEND_VALIDATION: 1
-
-      # Use this to override the django version in the requirements file.
-      DJANGO_VERSION: ">=1.11,<1.12"
 
       PYTEST_SENTRY_DSN: https://6fd5cfea2d4d46b182ad214ac7810508@sentry.io/2423079
       # XXX(py3): Reruns are disabled for until all tests are passing.
