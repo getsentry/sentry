@@ -59,7 +59,6 @@ class ListContainer extends React.Component<Props, State> {
     if (this.listRef) {
       cache.clearAll();
       this.listRef.forceUpdateGrid();
-      this.listRef.recomputeGridSize();
     }
   };
 
