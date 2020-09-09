@@ -115,6 +115,10 @@
             "countries:8010"
          ],
          [
+            "Referer",
+            "fixtures.transaction"
+         ],
+         [
             "Sentry-Trace",
             "a7d67cf796774551a95be6543cacd459-8988cec7cc0779c1-1"
          ],
