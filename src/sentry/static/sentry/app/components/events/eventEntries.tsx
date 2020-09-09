@@ -125,12 +125,8 @@ class EventEntries extends React.Component<Props> {
     );
   }
 
-  recordIssueError(errorTypes: any[], errorMessages: any[]) {
+  recordIssueError(errorTypes: any[], errorMessages: string[]) {
     const {organization, project, event} = this.props;
-
-    if (!organization) {
-      return;
-    }
 
     const orgId = organization.id;
     const platform = project.platform;
