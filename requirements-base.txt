@@ -46,7 +46,7 @@ qrcode>=6.1.0,<6.2.0
 rb>=1.7.0,<2.0.0
 # redis-py-cluster==2.1.0 isn't released yet, so just pinning to the current latest commit
 # in the repo.
-redis-py-cluster @ git+git://github.com/Grokzen/redis-py-cluster@dcb53583869810dc9093b86293a85240ef2e8190#egg=redis-py-cluster
+redis-py-cluster @ https://github.com/Grokzen/redis-py-cluster/archive/dcb53583869810dc9093b86293a85240ef2e8190.zip#egg=redis-py-cluster
 redis==3.3.11
 requests-oauthlib==1.2.0
 requests[security]>=2.20.0,<2.21.0
