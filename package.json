@@ -120,6 +120,7 @@
     "regenerator-runtime": "^0.13.3",
     "rrweb-player": "^0.4.6",
     "scroll-to-element": "^2.0.0",
+    "sentry-global-search": "getsentry/sentry-global-search#0.0.18",
     "sprintf-js": "1.0.3",
     "style-loader": "^0.23.1",
     "svg-sprite-loader": "^3.9.0",
