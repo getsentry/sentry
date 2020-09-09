@@ -39,7 +39,6 @@ type Config = {
   type: FieldType;
   has_autocomplete: boolean;
   choices: Array<[number | string, number | string]>;
-  url?: string;
 };
 
 type SelectFieldConfig = Omit<Config, 'type' | 'has_autocomplete'> & {
@@ -47,7 +46,7 @@ type SelectFieldConfig = Omit<Config, 'type' | 'has_autocomplete'> & {
   has_autocomplete: false;
 };
 
-type AsyncSelectFieldConfig = Omit<SelectFieldConfig, 'url' | 'has_autocomplete'> & {
+type AsyncSelectFieldConfig = Omit<SelectFieldConfig, 'has_autocomplete'> & {
   url: string;
   has_autocomplete: true;
 };
