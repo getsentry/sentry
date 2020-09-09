@@ -27,7 +27,6 @@ from sentry.incidents.models import (
     TriggerStatus,
     INCIDENT_STATUS,
 )
-from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.models import Integration, PagerDutyService, UserOption
 from sentry.testutils import TestCase
 from sentry.utils import json
@@ -411,6 +410,8 @@ class SentryAppActionHandlerTest(FireTest, TestCase):
 
     @responses.activate
     def run_test(self, incident, method):
+        from sentry.rules.actions.notify_event_service import build_incident_attachment
+
         action = self.create_alert_rule_trigger_action(
             target_identifier=self.sentry_app.id,
             type=AlertRuleTriggerAction.Type.SENTRY_APP,
@@ -432,7 +433,7 @@ class SentryAppActionHandlerTest(FireTest, TestCase):
             getattr(handler, method)(metric_value)
         data = responses.calls[0].request.body
 
-        assert json.dumps(incident_attachment_info(incident, metric_value)) in data
+        assert json.dumps(build_incident_attachment(incident, metric_value)) in data
 
     def test_fire_metric_alert(self):
         self.run_fire_test()
