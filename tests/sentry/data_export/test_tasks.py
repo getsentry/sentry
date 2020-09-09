@@ -16,10 +16,14 @@ from sentry.utils.snuba import (
     SnubaError,
     RateLimitExceeded,
     QueryMemoryLimitExceeded,
+    QueryExecutionTimeMaximum,
     QueryTooManySimultaneous,
-    UnqualifiedQueryError,
+    DatasetSelectionError,
+    QueryConnectionFailed,
+    QuerySizeExceeded,
     QueryExecutionError,
     SchemaValidationError,
+    UnqualifiedQueryError,
 )
 
 
@@ -443,6 +447,15 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
             == "Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects."
         )
 
+        mock_query.side_effect = QueryExecutionTimeMaximum("test")
+        with self.tasks():
+            assemble_download(de.id)
+        error = emailer.call_args[1]["message"]
+        assert (
+            error
+            == "Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects."
+        )
+
         mock_query.side_effect = QueryTooManySimultaneous("test")
         with self.tasks():
             assemble_download(de.id)
@@ -452,7 +465,19 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
             == "Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects."
         )
 
-        mock_query.side_effect = UnqualifiedQueryError("test")
+        mock_query.side_effect = DatasetSelectionError("test")
+        with self.tasks():
+            assemble_download(de.id)
+        error = emailer.call_args[1]["message"]
+        assert error == "Internal error. Your query failed to run."
+
+        mock_query.side_effect = QueryConnectionFailed("test")
+        with self.tasks():
+            assemble_download(de.id)
+        error = emailer.call_args[1]["message"]
+        assert error == "Internal error. Your query failed to run."
+
+        mock_query.side_effect = QuerySizeExceeded("test")
         with self.tasks():
             assemble_download(de.id)
         error = emailer.call_args[1]["message"]
@@ -465,6 +490,12 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert error == "Internal error. Your query failed to run."
 
         mock_query.side_effect = SchemaValidationError("test")
+        with self.tasks():
+            assemble_download(de.id)
+        error = emailer.call_args[1]["message"]
+        assert error == "Internal error. Your query failed to run."
+
+        mock_query.side_effect = UnqualifiedQueryError("test")
         with self.tasks():
             assemble_download(de.id)
         error = emailer.call_args[1]["message"]
