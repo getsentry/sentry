@@ -80,14 +80,16 @@ class EventDataSection extends React.Component<Props> {
       <DataSection className={className || ''}>
         {title && (
           <SectionHeader id={type} isCentered={isCentered}>
-            {showPermalink ? (
-              <Permalink href={'#' + type} className="permalink">
-                <StyledIconAnchor />
-                {titleNode}
-              </Permalink>
-            ) : (
-              <div>{titleNode}</div>
-            )}
+            <Title>
+              {showPermalink ? (
+                <Permalink href={'#' + type} className="permalink">
+                  <StyledIconAnchor />
+                  {titleNode}
+                </Permalink>
+              ) : (
+                <div>{titleNode}</div>
+              )}
+            </Title>
             {type === 'extra' && (
               <ButtonBar merged active={raw ? 'raw' : 'formatted'}>
                 <Button
@@ -114,6 +116,10 @@ class EventDataSection extends React.Component<Props> {
     );
   }
 }
+
+const Title = styled('div')`
+  display: flex;
+`;
 
 const StyledIconAnchor = styled(IconAnchor)`
   display: none;

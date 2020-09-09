@@ -311,6 +311,11 @@ type SentryEventBase = {
   };
 
   crashFile: EventAttachment | null;
+
+  sdk?: {
+    name: string;
+    version: string;
+  };
 };
 
 export type SentryTransactionEvent = {
@@ -319,9 +324,6 @@ export type SentryTransactionEvent = {
   entries: SpanEntry[];
   startTimestamp: number;
   endTimestamp: number;
-  sdk?: {
-    name?: string;
-  };
   contexts?: {
     trace?: TraceContextType;
   };
