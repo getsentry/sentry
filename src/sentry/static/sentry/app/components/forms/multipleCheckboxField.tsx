@@ -25,20 +25,20 @@ export default class MultipleCheckboxField extends FormField<Props, State> {
     choices: PropTypes.array.isRequired,
   };
 
-  onChange = (e: React.ChangeEvent<HTMLInputElement>, value?: Value) => {
+  onChange = (e: React.ChangeEvent<HTMLInputElement>, _value?: Value) => {
+    const value = _value as Value; // Casting here to allow _value to be optional, which it has to be since it's overloaded.
     let allValues = this.state.values;
-    if (value) {
-      if (e.target.checked) {
-        if (allValues) {
-          allValues = [...allValues, value];
-        } else {
-          allValues = [value];
-        }
+
+    if (e.target.checked) {
+      if (allValues) {
+        allValues = [...allValues, value];
       } else {
-        allValues = allValues.filter(v => v !== value);
+        allValues = [value];
       }
-      this.setValues(allValues);
+    } else {
+      allValues = allValues.filter(v => v !== value);
     }
+    this.setValues(allValues);
   };
 
   setValues(values: Value[]) {
