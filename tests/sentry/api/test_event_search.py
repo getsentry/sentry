@@ -1656,8 +1656,22 @@ class GetSnubaQueryArgsTest(TestCase):
 
         result = get_filter("error.handled:0")
         assert result.conditions == [[["notHandled", []], "=", 1]]
+
+        result = get_filter("has:error.handled")
+        assert result.conditions == [[["isHandled", []], "=", 1]]
+
+        result = get_filter("!has:error.handled")
+        assert result.conditions == [[["isHandled", []], "=", 0]]
+
         with pytest.raises(InvalidSearchQuery):
             get_filter("error.handled:99")
+
+        # Numeric fields can't be negated.
+        with pytest.raises(InvalidSearchQuery):
+            get_filter("!error.handled:0")
+
+        with pytest.raises(InvalidSearchQuery):
+            get_filter("!error.handled:1")
 
     def test_function_negation(self):
         result = get_filter("!p95():5s")

@@ -795,7 +795,11 @@ def convert_search_filter_to_snuba_query(search_filter, key=None):
             ]
         return [user_display_expr, search_filter.operator, value]
     elif name == "error.handled":
-        # null values and 1 are the same, and both indicate a handled error.
+        # Treat has filter as equivalent to handled
+        if search_filter.value.raw_value == "":
+            output = 1 if search_filter.operator == "!=" else 0
+            return [["isHandled", []], "=", output]
+        # Null values and 1 are the same, and both indicate a handled error.
         if value in ("1", 1):
             return [["isHandled", []], "=", 1]
         if value in ("0", 0,):
