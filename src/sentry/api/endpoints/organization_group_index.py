@@ -109,7 +109,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
             return Response({"detail": ERR_INVALID_STATS_PERIOD}, status=400)
         elif stats_period is None:
             # default
-            stats_period = "24h"
+            stats_period = "14d"
         elif stats_period == "":
             # disable stats
             stats_period = None
