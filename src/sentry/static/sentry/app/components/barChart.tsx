@@ -2,19 +2,42 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import StackedBarChart from 'app/components/stackedBarChart';
+import theme from 'app/utils/theme';
 
 type Props = Partial<Omit<React.ComponentProps<typeof StackedBarChart>, 'points'>> & {
   points?: Array<{x: number; y: number; label?: string}>;
+  secondaryPoints?: Array<{x: number; y: number; label?: string}>;
+  showSecondaryPoints?: boolean;
 };
 
-const BarChart = ({points = [], ...rest}: Props) => {
-  const formattedPoints = points.map(point => ({x: point.x, y: [point.y]}));
-  const props = {...rest, points: formattedPoints};
+const BarChart = ({points = [], secondaryPoints = [], ...rest}: Props) => {
+  const formattedPoints = points.map(point => ({
+    x: point.x,
+    y: [point.y],
+    color: theme.gray500,
+  }));
+  const formattedSecondaryPoints = secondaryPoints.map(point => ({
+    x: point.x,
+    y: [point.y],
+    color: theme.gray400,
+  }));
+  const props = {
+    ...rest,
+    points: formattedPoints,
+    secondaryPoints: formattedSecondaryPoints,
+  };
   return <StackedBarChart {...props} />;
 };
 
 BarChart.propTypes = {
   points: PropTypes.arrayOf(
+    PropTypes.shape({
+      x: PropTypes.number.isRequired,
+      y: PropTypes.number.isRequired,
+      label: PropTypes.string,
+    })
+  ),
+  secondaryPoints: PropTypes.arrayOf(
     PropTypes.shape({
       x: PropTypes.number.isRequired,
       y: PropTypes.number.isRequired,

@@ -176,11 +176,15 @@ const StreamGroup = createReactClass({
       memberList,
       withChart,
       statsPeriod,
+      selection,
       organization,
     } = this.props;
 
     const hasDynamicIssueCounts = organization.features.includes('dynamic-issue-counts');
     const hasDiscoverQuery = organization.features.includes('discover-basic');
+
+    const {start, end} = selection.datetime || {};
+    const useAutoStatsPeriod = hasDynamicIssueCounts && !!start && !!end;
 
     const popperStyle = {maxWidth: 'none'};
 
@@ -204,6 +208,15 @@ const StreamGroup = createReactClass({
     // TODO: @taylangocmen sort rows when clicked on a column
     // TODO: @taylangocmen onboarding callouts when for when feature ships
 
+    const showSecondaryPoints = Boolean(
+      showLifetimeStats &&
+        withChart &&
+        data &&
+        data.filtered &&
+        hasDynamicIssueCounts &&
+        statsPeriod
+    );
+
     return (
       <Group data-test-id="group" onClick={this.toggleSelect} {...mouseEventHandlers}>
         {canSelect && (
@@ -224,9 +237,10 @@ const StreamGroup = createReactClass({
         {withChart && (
           <Box width={160} mx={2} className="hidden-xs hidden-sm">
             <GroupChart
-              statsPeriod={statsPeriod}
+              statsPeriod={useAutoStatsPeriod ? 'auto' : statsPeriod}
               data={data}
               hasDynamicIssueCounts={hasDynamicIssueCounts}
+              showSecondaryPoints={showSecondaryPoints}
             />
           </Box>
         )}
@@ -385,7 +399,7 @@ const TooltipText = styled('td')`
 
 const StyledIconTelescope = styled(({to, ...p}) => (
   <td {...p}>
-    <Link title={t('Open in Discover')} to={to}>
+    <Link title={t('Open in Discover')} to={to} target="_blank">
       <IconTelescope size="xs" color={p.color} />
     </Link>
   </td>
