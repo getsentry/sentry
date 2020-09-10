@@ -648,6 +648,13 @@ class GroupListTest(APITestCase, SnubaTestCase):
             assert response.data[0]["lifetime"] is not None
             assert response.data[0]["filtered"] is not None
 
+    @patch(
+        "sentry.api.helpers.group_index.ratelimiter.is_limited", autospec=True, return_value=True,
+    )
+    def test_ratelimit(self, is_limited):
+        self.login_as(user=self.user)
+        self.get_valid_response(sort_by="date", limit=1, status_code=429)
+
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"
@@ -1541,6 +1548,13 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert tombstone.project == group1.project
         assert tombstone.data == group1.data
 
+    @patch(
+        "sentry.api.helpers.group_index.ratelimiter.is_limited", autospec=True, return_value=True,
+    )
+    def test_ratelimit(self, is_limited):
+        self.login_as(user=self.user)
+        self.get_valid_response(sort_by="date", limit=1, status_code=429)
+
 
 class GroupDeleteTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"
@@ -1661,3 +1675,10 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         for group in groups:
             assert not Group.objects.filter(id=group.id).exists()
             assert not GroupHash.objects.filter(group_id=group.id).exists()
+
+    @patch(
+        "sentry.api.helpers.group_index.ratelimiter.is_limited", autospec=True, return_value=True,
+    )
+    def test_ratelimit(self, is_limited):
+        self.login_as(user=self.user)
+        self.get_valid_response(sort_by="date", limit=1, status_code=429)
