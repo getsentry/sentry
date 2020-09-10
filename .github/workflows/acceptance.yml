@@ -27,7 +27,7 @@ jobs:
                 owner: 'getsentry',
                 repo: 'getsentry',
                 workflow_id: 'acceptance.yml',
-                ref: 'master',
+                ref: 'build/github/fix-sentry-check-when-other-tests-fai',
                 inputs: {
                   sha: '${{ github.event.pull_request.head.sha }}',
                 }
