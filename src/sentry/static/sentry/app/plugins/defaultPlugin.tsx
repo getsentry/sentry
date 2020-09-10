@@ -1,7 +1,7 @@
 import BasePlugin from 'app/plugins/basePlugin';
 
-class DefaultPlugin extends BasePlugin {}
-
-DefaultPlugin.displayName = 'DefaultPlugin';
+class DefaultPlugin extends BasePlugin {
+  static displayName = 'DefaultPlugin';
+}
 
 export {DefaultPlugin};
