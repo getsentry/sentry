@@ -19,7 +19,7 @@ jobs:
         - name: Parse commit message
           id: commit
           run: |
-            echo "::set-output name=message::$(git log --format=%B ${{ github.event.after }})"
+            echo "::set-output name=message::$(git show -s --format=%B)"
 
     getsentry:
       needs: parse-commit-message
