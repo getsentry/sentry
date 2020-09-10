@@ -92,11 +92,6 @@ class TransactionVitals extends React.Component<Props> {
                   );
                 }}
               </MeasuresHistogramQuery>
-              {this.renderVitals(
-                Object.values(WebVital),
-                summaryResults,
-                colors.slice(0, colors.length)
-              )}
             </Panel>
           );
         }}
