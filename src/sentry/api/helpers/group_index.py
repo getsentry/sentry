@@ -15,6 +15,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
 from sentry import eventstream, features
+from sentry.app import ratelimiter
 from sentry.api.base import audit_logger
 from sentry.api.fields import Actor, ActorField
 from sentry.api.serializers import serialize
@@ -54,6 +55,7 @@ from sentry.signals import (
     advanced_search_feature_gated,
 )
 from sentry.tasks.deletion import delete_groups as delete_groups_task
+from sentry.utils.hashlib import md5_text
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.merge import merge_groups
 from sentry.utils import metrics
@@ -453,6 +455,29 @@ def track_update_groups(function):
         return response
 
     return wrapper
+
+
+def rate_limit_issue_endpoint(limit=1, window=1):
+    def inner(function):
+        def wrapper(request, *args, **kwargs):
+            try:
+                if ratelimiter.is_limited(
+                    u"api:issue-endpoint:{}".format(md5_text(function).hexdigest()),
+                    limit=limit,
+                    window=window,
+                ):
+                    return Response(
+                        {"detail": "You are attempting to use this endpoint too quickly."},
+                        status=429,
+                    )
+                else:
+                    return function(request, *args, **kwargs)
+            except Exception:
+                raise
+
+        return wrapper
+
+    return inner
 
 
 @track_update_groups
