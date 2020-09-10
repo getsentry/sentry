@@ -504,6 +504,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             prototype["event_id"] = event[0]
             prototype["exception"]["values"][0]["value"] = event[1]
             prototype["exception"]["values"][0]["mechanism"]["handled"] = event[2]
+            prototype["timestamp"] = self.two_min_ago
             self.store_event(data=prototype, project_id=project.id)
 
         with self.feature("organizations:discover-basic"):
