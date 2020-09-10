@@ -9,6 +9,7 @@ import getDynamicText from 'app/utils/getDynamicText';
 import marked from 'app/utils/marked';
 import platforms from 'app/data/platforms';
 import slugify from 'app/utils/slugify';
+import ExternalLink from 'app/components/links/externalLink';
 import {
   getStoreCrashReportsValues,
   formatStoreCrashReports,
@@ -209,7 +210,7 @@ export const fields: Record<string, Field> = {
             {
               pattern: <code>matcher:glob [^v]?[+-]flag</code>,
               docs: (
-                <a href="https://docs.sentry.io/platform-redirect/?next=%2Fdata-management%2Fevent-grouping%2Fgrouping-enhancements%2F" />
+                <ExternalLink href="https://docs.sentry.io/platform-redirect/?next=%2Fdata-management%2Fevent-grouping%2Fgrouping-enhancements%2F" />
               ),
             }
           )}
@@ -250,7 +251,7 @@ export const fields: Record<string, Field> = {
             {
               pattern: <code>matcher:glob -> fingerprint, values</code>,
               docs: (
-                <a href="https://docs.sentry.io/platform-redirect/?next=%2Fdata-management%2Fevent-grouping%2Fserver-side-fingerprinting%2F" />
+                <ExternalLink href="https://docs.sentry.io/platform-redirect/?next=%2Fdata-management%2Fevent-grouping%2Fserver-side-fingerprinting%2F" />
               ),
             }
           )}
