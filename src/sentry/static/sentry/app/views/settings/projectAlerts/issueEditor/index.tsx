@@ -212,7 +212,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     const endpoint = `/projects/${organization.slug}/${project.slug}/rules/${ruleId}`;
 
     if (rule && rule.environment === ALL_ENVIRONMENTS_KEY) {
-      delete rule.environment;
+      delete (rule as any).environment;
     }
 
     addLoadingMessage();
