@@ -23,7 +23,7 @@ jobs:
 
     getsentry:
       needs: parse-commit-message
-      if: ${{ github.ref != 'refs/heads/master' && contains(needs.parse-commit-message.outputs.commit, '#test-getsentry') }}
+      if: ${{ contains(needs.parse-commit-message.outputs.commit, '#test-getsentry') }}
       runs-on: ubuntu-16.04
       steps:
         - name: getsentry token
