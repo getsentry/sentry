@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
 import pytest
@@ -69,6 +70,9 @@ class RedisTSDBTest(TestCase):
 
         result = self.db.get_model_key("foo")
         assert result == "bf4e529197e56a48ae2737505b9736e4"
+
+        result = self.db.get_model_key(u"我爱啤酒")
+        assert result == "26f980fbe1e8a9d3a0123d2049f95f28"
 
     def test_simple(self):
         now = datetime.utcnow().replace(tzinfo=pytz.UTC) - timedelta(hours=4)
