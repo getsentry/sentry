@@ -4,7 +4,7 @@ import {Client} from 'app/api';
 import getDisplayName from 'app/utils/getDisplayName';
 
 type InjectedApiProps = {
-  api: Client;
+  api?: Client;
 };
 
 type WrappedProps<P> = Omit<P, keyof InjectedApiProps> & Partial<InjectedApiProps>;

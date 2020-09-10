@@ -7,7 +7,7 @@ import getDisplayName from 'app/utils/getDisplayName';
 import ConfigStore from 'app/stores/configStore';
 
 type InjectedConfigProps = {
-  config: Config;
+  config?: Config;
 };
 
 type State = {
