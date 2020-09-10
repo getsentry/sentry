@@ -247,7 +247,7 @@ const StreamGroup = createReactClass({
             title={
               <TooltipContent>
                 {data.filtered && (
-                  <TooltipRow>
+                  <tr>
                     <TooltipCount value={data.filtered.count} />
                     <TooltipText>{t('With filters applied')}</TooltipText>
                     {hasDiscoverQuery && (
@@ -256,9 +256,9 @@ const StreamGroup = createReactClass({
                         color={theme.blue300}
                       />
                     )}
-                  </TooltipRow>
+                  </tr>
                 )}
-                <TooltipRow>
+                <tr>
                   <TooltipCount value={data.count} />
                   <TooltipText>{t(`In ${summary}`)}</TooltipText>
                   {hasDiscoverQuery && (
@@ -267,12 +267,12 @@ const StreamGroup = createReactClass({
                       color={theme.blue300}
                     />
                   )}
-                </TooltipRow>
+                </tr>
                 {data.lifetime && (
-                  <TooltipRow>
+                  <tr>
                     <TooltipCount value={data.lifetime.count} />
                     <TooltipText>{t('Since issue began')}</TooltipText>
-                  </TooltipRow>
+                  </tr>
                 )}
               </TooltipContent>
             }
@@ -291,7 +291,7 @@ const StreamGroup = createReactClass({
             title={
               <TooltipContent>
                 {data.filtered && (
-                  <TooltipRow>
+                  <tr>
                     <TooltipCount value={data.filtered.userCount} />
                     <TooltipText>{t('With filters applied')}</TooltipText>
                     {hasDiscoverQuery && (
@@ -300,9 +300,9 @@ const StreamGroup = createReactClass({
                         color={theme.blue300}
                       />
                     )}
-                  </TooltipRow>
+                  </tr>
                 )}
-                <TooltipRow>
+                <tr>
                   <TooltipCount value={data.userCount} />
                   <TooltipText>{t(`In ${summary}`)}</TooltipText>
                   {hasDiscoverQuery && (
@@ -311,12 +311,12 @@ const StreamGroup = createReactClass({
                       color={theme.blue300}
                     />
                   )}
-                </TooltipRow>
+                </tr>
                 {data.lifetime && (
-                  <TooltipRow>
+                  <tr>
                     <TooltipCount value={data.lifetime.userCount} />
                     <TooltipText>{t('Since issue began')}</TooltipText>
-                  </TooltipRow>
+                  </tr>
                 )}
               </TooltipContent>
             }
@@ -374,8 +374,6 @@ const TooltipContent = styled(({children, ...p}) => (
 ))`
   margin: 0;
 `;
-
-const TooltipRow = styled('tr')``;
 
 const TooltipCount = styled(({value, ...p}) => (
   <td {...p}>
