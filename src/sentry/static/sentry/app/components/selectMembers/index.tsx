@@ -77,7 +77,7 @@ type FilterOption<T> = {
  * A component that allows you to select either members and/or teams
  */
 class SelectMembers extends React.Component<Props, State> {
-  static propTypes = {
+  static propTypes: any = {
     project: SentryTypes.Project,
     organization: SentryTypes.Organization,
     value: PropTypes.string,

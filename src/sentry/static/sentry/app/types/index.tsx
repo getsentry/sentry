@@ -1076,7 +1076,7 @@ export type NewQuery = {
   createdBy?: User;
 
   // Query and Table
-  query: string;
+  query?: string;
   fields: Readonly<string[]>;
   widths?: Readonly<string[]>;
   orderby?: string;

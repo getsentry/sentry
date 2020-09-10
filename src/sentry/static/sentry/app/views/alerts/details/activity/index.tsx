@@ -211,7 +211,6 @@ class ActivityContainer extends React.PureComponent<Props, State> {
 
     return (
       <Activity
-        noteInputId={this.state.noteInputId}
         alertId={alertId}
         me={me}
         api={api}

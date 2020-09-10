@@ -245,7 +245,7 @@ export const fields: Record<string, Field> = {
             `This can be used to modify the fingerprinting rules on the server with custom rules.
         Rules follow the pattern [pattern].`,
             {
-              pattern: <code>matcher:glob -> fingerprint, values</code>,
+              pattern: <code>matcher:glob -&gt; fingerprint, values</code>,
             }
           )}
         </div>
