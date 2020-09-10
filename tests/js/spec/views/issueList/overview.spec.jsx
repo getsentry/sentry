@@ -1188,7 +1188,7 @@ describe('IssueList', function() {
         location: {
           query: {
             sort: 'date',
-            groupStatsPeriod: '14d',
+            groupStatsPeriod: '24h',
           },
         },
       });
