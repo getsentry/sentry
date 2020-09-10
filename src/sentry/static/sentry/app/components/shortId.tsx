@@ -8,6 +8,7 @@ import AutoSelectText from 'app/components/autoSelectText';
 type Props = {
   shortId: string;
   avatar?: React.ReactNode;
+  stopPropagation?: boolean;
 };
 
 export default class ShortId extends React.Component<Props> {
@@ -16,11 +17,15 @@ export default class ShortId extends React.Component<Props> {
     avatar: PropTypes.node,
   };
 
-  preventPropagation(e: React.MouseEvent) {
+  onClick = (event: React.MouseEvent) => {
+    if (this.props.stopPropagation === false) {
+      return;
+    }
+
     // this is a hack for the stream so the click handler doesn't
     // affect this element
-    e.stopPropagation();
-  }
+    event.stopPropagation();
+  };
 
   render() {
     const {shortId, avatar} = this.props;
@@ -30,7 +35,7 @@ export default class ShortId extends React.Component<Props> {
     }
 
     return (
-      <StyledShortId onClick={this.preventPropagation} {...this.props}>
+      <StyledShortId onClick={this.onClick} {...this.props}>
         {avatar}
         <StyledAutoSelectText avatar={!!avatar}>{shortId}</StyledAutoSelectText>
       </StyledShortId>

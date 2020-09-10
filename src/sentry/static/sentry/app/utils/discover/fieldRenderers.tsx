@@ -220,7 +220,7 @@ const SPECIAL_FIELDS: SpecialFields = {
       return (
         <Container>
           <OverflowLink to={target} aria-label={issueID}>
-            <StyledShortId shortId={`${data.issue}`} />
+            <StyledShortId shortId={`${data.issue}`} stopPropagation={false} />
           </OverflowLink>
         </Container>
       );
