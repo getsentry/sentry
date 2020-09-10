@@ -187,7 +187,10 @@ const SPECIAL_FIELDS: SpecialFields = {
   'issue.id': {
     sortField: 'issue.id',
     renderFunc: (data, {organization}) => {
-      const target = `/organizations/${organization.slug}/issues/${data['issue.id']}/`;
+      const target = {
+        pathname: `/organizations/${organization.slug}/issues/${data['issue.id']}/`,
+      };
+
       return (
         <Container>
           <OverflowLink to={target} aria-label={data['issue.id']}>
@@ -210,7 +213,10 @@ const SPECIAL_FIELDS: SpecialFields = {
         );
       }
 
-      const target = `/organizations/${organization.slug}/issues/${issueID}/`;
+      const target = {
+        pathname: `/organizations/${organization.slug}/issues/${issueID}/`,
+      };
+
       return (
         <Container>
           <OverflowLink to={target} aria-label={issueID}>
