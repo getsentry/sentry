@@ -108,10 +108,6 @@ class SpanDetail extends React.Component<Props, State> {
       end,
     };
 
-    if (query.project.length === 0) {
-      delete query.project;
-    }
-
     return api.requestPromise(url, {
       method: 'GET',
       query,
