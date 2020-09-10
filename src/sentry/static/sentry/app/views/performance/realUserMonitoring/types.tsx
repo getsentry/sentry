@@ -12,10 +12,10 @@ export type Vital = {
 };
 
 export enum WebVital {
-  FCP = 'metrics.fcp',
-  LCP = 'metrics.lcp',
-  FID = 'metrics.fid',
-  CLS = 'metrics.cls',
+  FP = 'measurements.fp',
+  FCP = 'measurements.fcp',
+  LCP = 'measurements.lcp',
+  FID = 'measurements.fid',
 }
 
 export type Point = {

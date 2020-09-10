@@ -6,11 +6,15 @@ export const NUM_BUCKETS = 50;
 
 export const PERCENTILE = 0.75;
 
-export const DURATION_VITALS = [WebVital.FCP, WebVital.LCP, WebVital.FID];
-
-export const NON_DURATION_VITALS = [WebVital.CLS];
-
 export const WEB_VITAL_DETAILS: Record<WebVital, Vital> = {
+  [WebVital.FP]: {
+    slug: 'fp',
+    name: t('First Paint'),
+    // TODO: needs a description and web.dev does not define a failure threshold for this
+    description: t('asdf'),
+    failureThreshold: 4000,
+    type: 'duration',
+  },
   [WebVital.FCP]: {
     slug: 'fcp',
     name: t('First Contentful Paint'),
@@ -35,14 +39,5 @@ export const WEB_VITAL_DETAILS: Record<WebVital, Vital> = {
     ),
     failureThreshold: 300,
     type: 'duration',
-  },
-  [WebVital.CLS]: {
-    slug: 'cls',
-    name: t('Cumulative Layout Shift'),
-    description: t(
-      'This measures the significance of unexpected layout shifts in a page.'
-    ),
-    failureThreshold: 0.25,
-    type: 'number',
   },
 };

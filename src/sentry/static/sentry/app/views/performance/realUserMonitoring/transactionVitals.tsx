@@ -3,10 +3,12 @@ import {Location} from 'history';
 
 import {Panel} from 'app/components/panels';
 import {Organization} from 'app/types';
+import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
+import {getAggregateAlias} from 'app/utils/discover/fields';
 import theme from 'app/utils/theme';
 
-import {DURATION_VITALS, NON_DURATION_VITALS, WEB_VITAL_DETAILS} from './constants';
+import {PERCENTILE, WEB_VITAL_DETAILS} from './constants';
 import {WebVital} from './types';
 import VitalCard from './vitalCard';
 import MeasuresHistogramQuery from './measuresHistogramQuery';
@@ -18,77 +20,87 @@ type Props = {
 };
 
 class TransactionVitals extends React.Component<Props> {
-  renderVitals(vitals, summaryResults, colors) {
-    const {location, organization, eventView} = this.props;
+  generateSummaryEventView() {
+    const {eventView} = this.props;
 
-    // TODO(tonyx): remove
-    const max = vitals[0] === WebVital.CLS ? 1 : 10000;
-    const min = 0;
-
-    return (
-      <MeasuresHistogramQuery
-        location={location}
-        organization={organization}
-        eventView={eventView}
-        measures={vitals}
-        min={min}
-        max={max}
-      >
-        {results => {
-          return (
-            <React.Fragment>
-              {vitals.map((vital, index) => (
-                <VitalCard
-                  key={vital}
-                  isLoading={results.isLoading}
-                  error={results.errors.length > 0}
-                  vital={WEB_VITAL_DETAILS[vital]}
-                  summary={summaryResults[vital]!}
-                  chartData={results.histogram[vital]!}
-                  colors={[colors[index]]}
-                />
-              ))}
-            </React.Fragment>
-          );
-        }}
-      </MeasuresHistogramQuery>
-    );
+    return EventView.fromSavedQuery({
+      id: '',
+      name: '',
+      version: 2,
+      fields: Object.values(WebVital).map(vital => `percentile(${vital}, ${PERCENTILE})`),
+      projects: eventView.project,
+      range: eventView.statsPeriod,
+      query: eventView.query,
+      environment: eventView.environment,
+      start: eventView.start,
+      end: eventView.end,
+    });
   }
 
   render() {
-    const colors = [
-      ...theme.charts.getColorPalette(
-        DURATION_VITALS.length + NON_DURATION_VITALS.length - 1
-      ),
-    ].reverse();
+    const {location, organization, eventView} = this.props;
+    const vitals = Object.values(WebVital);
 
-    // TODO(tonyx): replace this with DiscoverQuery for the actual info
-    const summaryResults = [...DURATION_VITALS, ...NON_DURATION_VITALS].reduce(
-      (summary, vital) => {
-        const max = vital === WebVital.CLS ? 1 : 10000;
-        const min = 0;
-        summary[vital] = Math.random() * (max - min) + min;
-        return summary;
-      },
-      {}
-    );
+    const colors = [...theme.charts.getColorPalette(vitals.length - 1)].reverse();
+
+    // TODO remove this
+    const max = 10000;
+    const min = 0;
 
     return (
-      <Panel>
-        {this.renderVitals(
-          DURATION_VITALS,
-          summaryResults,
-          colors.slice(0, colors.length)
-        )}
-        {this.renderVitals(
-          NON_DURATION_VITALS,
-          summaryResults,
-          colors.slice(
-            DURATION_VITALS.length,
-            DURATION_VITALS.length + NON_DURATION_VITALS.length
-          )
-        )}
-      </Panel>
+      <DiscoverQuery
+        location={location}
+        orgSlug={organization.slug}
+        eventView={this.generateSummaryEventView()}
+        limit={1}
+      >
+        {summaryResults => {
+          return (
+            <Panel>
+              <MeasuresHistogramQuery
+                location={location}
+                organization={organization}
+                eventView={eventView}
+                measures={vitals}
+                min={min}
+                max={max}
+              >
+                {results => {
+                  return (
+                    <React.Fragment>
+                      {vitals.map((vital, index) => {
+                        const error =
+                          summaryResults.error !== null || results.errors.length > 0;
+                        const alias = getAggregateAlias(
+                          `percentile(${vital}, ${PERCENTILE})`
+                        );
+                        const summary =
+                          summaryResults.tableData?.data?.[0]?.[alias] ?? null;
+                        return (
+                          <VitalCard
+                            key={vital}
+                            isLoading={summaryResults.isLoading || results.isLoading}
+                            error={error}
+                            vital={WEB_VITAL_DETAILS[vital]}
+                            summary={summary as number | null}
+                            chartData={results.histogram[vital]!}
+                            colors={[colors[index]]}
+                          />
+                        );
+                      })}
+                    </React.Fragment>
+                  );
+                }}
+              </MeasuresHistogramQuery>
+              {this.renderVitals(
+                Object.values(WebVital),
+                summaryResults,
+                colors.slice(0, colors.length)
+              )}
+            </Panel>
+          );
+        }}
+      </DiscoverQuery>
     );
   }
 }
