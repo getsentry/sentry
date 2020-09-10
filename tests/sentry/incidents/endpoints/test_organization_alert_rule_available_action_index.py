@@ -29,6 +29,16 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
         super(OrganizationAlertRuleAvailableActionIndexEndpointTest, self).setUp()
         self.login_as(self.user)
 
+    def install_new_sentry_app(self, name, **kwargs):
+        kwargs.update(
+            name=name, organization=self.organization, is_alertable=True, verify_install=False
+        )
+        sentry_app = self.create_sentry_app(**kwargs)
+        self.create_sentry_app_installation(
+            slug=sentry_app.slug, organization=self.organization, user=self.user
+        )
+        return sentry_app
+
     def test_build_action_response_email(self):
         data = build_action_response(self.email)
 
@@ -56,11 +66,8 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
             organization_integration=integration.organizationintegration_set.first(),
         )
 
-        pagerduty = AlertRuleTriggerAction.get_registered_type(
-            AlertRuleTriggerAction.Type.PAGERDUTY
-        )
         data = build_action_response(
-            pagerduty, integration=integration, organization=self.organization
+            self.pagerduty, integration=integration, organization=self.organization
         )
 
         assert data["type"] == "pagerduty"
@@ -93,12 +100,14 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
         with self.feature("organizations:incidents"):
             resp = self.get_valid_response(self.organization.slug)
 
-        assert resp.data == [
-            build_action_response(self.email),
+        assert len(resp.data) == 2
+        assert build_action_response(self.email) in resp.data
+        assert (
             build_action_response(
                 self.slack, integration=integration, organization=self.organization
-            ),
-        ]
+            )
+            in resp.data
+        )
 
     def test_duplicate_integrations(self):
         integration = Integration.objects.create(external_id="1", provider="slack", name="slack 1")
@@ -111,15 +120,20 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
         with self.feature("organizations:incidents"):
             resp = self.get_valid_response(self.organization.slug)
 
-        assert resp.data == [
-            build_action_response(self.email),
+        assert len(resp.data) == 3
+        assert build_action_response(self.email) in resp.data
+        assert (
             build_action_response(
                 self.slack, integration=integration, organization=self.organization
-            ),
+            )
+            in resp.data
+        )
+        assert (
             build_action_response(
                 self.slack, integration=other_integration, organization=self.organization
-            ),
-        ]
+            )
+            in resp.data
+        )
 
     def test_no_feature(self):
         self.create_team(organization=self.organization, members=[self.user])
@@ -127,22 +141,27 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
         assert resp.status_code == 404
 
     def test_sentry_apps(self):
-        sentry_app = self.create_sentry_app(
-            name="foo", organization=self.organization, is_alertable=True, verify_install=False
-        )
-        self.create_sentry_app_installation(
-            slug=sentry_app.slug, organization=self.organization, user=self.user
-        )
+        sentry_app = self.install_new_sentry_app("foo")
 
         with self.feature(
             ["organizations:incidents", "organizations:integrations-sentry-app-metric-alerts"]
         ):
             resp = self.get_valid_response(self.organization.slug)
 
-        assert resp.data == [
-            build_action_response(
-                AlertRuleTriggerAction.get_registered_type(AlertRuleTriggerAction.Type.SENTRY_APP),
-                sentry_app=sentry_app,
-            ),
-            build_action_response(self.email),
-        ]
+        assert len(resp.data) == 2
+        assert build_action_response(self.email) in resp.data
+        assert build_action_response(self.sentry_app, sentry_app=sentry_app) in resp.data
+
+    def test_blocked_sentry_apps(self):
+        internal_sentry_app = self.install_new_sentry_app("internal")
+        # Should not show up in available actions.
+        self.install_new_sentry_app("published", published=True)
+
+        with self.feature(
+            ["organizations:incidents", "organizations:integrations-sentry-app-metric-alerts"]
+        ):
+            resp = self.get_valid_response(self.organization.slug)
+
+        assert len(resp.data) == 2
+        assert build_action_response(self.email) in resp.data
+        assert build_action_response(self.sentry_app, sentry_app=internal_sentry_app) in resp.data

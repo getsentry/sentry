@@ -154,7 +154,11 @@ class BaseApiClient(object):
             tags={self.integration_type: self.name, "status": code},
         )
 
-        span.set_http_status(code)
+        try:
+            span.set_http_status(int(code))
+        except ValueError:
+            span.set_status(code)
+
         span.set_tag(self.integration_type, self.name)
 
         extra = {

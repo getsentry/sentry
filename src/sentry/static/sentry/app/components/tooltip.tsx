@@ -4,8 +4,10 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import styled from '@emotion/styled';
+import memoize from 'lodash/memoize';
 
 import {domId} from 'app/utils/domId';
+import {IS_CI} from 'app/constants';
 
 const IS_HOVERABLE_DELAY = 50; // used if isHoverable is true (for hiding AND showing)
 
@@ -57,10 +59,17 @@ type Props = DefaultProps & {
    * If child node supports ref forwarding, you can skip apply a wrapper
    */
   skipWrapper?: boolean;
+
+  /**
+   * Stops tooltip from being opened during tooltip visual acceptance.
+   * Should be set to true if tooltip contains unisolated data (eg. dates)
+   */
+  disableForVisualTest?: boolean;
 };
 
 type State = {
   isOpen: boolean;
+  usesGlobalPortal: boolean;
 };
 
 class Tooltip extends React.Component<Props, State> {
@@ -94,26 +103,54 @@ class Tooltip extends React.Component<Props, State> {
     containerDisplayMode: 'inline-block',
   };
 
-  constructor(props: Props) {
-    super(props);
-
-    let portal = document.getElementById('tooltip-portal');
-    if (!portal) {
-      portal = document.createElement('div');
-      portal.setAttribute('id', 'tooltip-portal');
-      document.body.appendChild(portal);
-    }
-    this.portalEl = portal;
-  }
-
-  state = {
+  state: State = {
     isOpen: false,
+    usesGlobalPortal: true,
   };
 
-  portalEl: HTMLElement;
+  async componentDidMount() {
+    if (IS_CI) {
+      const TooltipStore = (
+        await import(/* webpackChunkName: "TooltipStore" */ 'app/stores/tooltipStore')
+      ).default;
+      TooltipStore.addTooltip(this);
+    }
+  }
+
+  async componentWillUnmount() {
+    const {usesGlobalPortal} = this.state;
+
+    if (IS_CI) {
+      const TooltipStore = (
+        await import(/* webpackChunkName: "TooltipStore" */ 'app/stores/tooltipStore')
+      ).default;
+      TooltipStore.removeTooltip(this);
+    }
+    if (!usesGlobalPortal) {
+      document.body.removeChild(this.getPortal(usesGlobalPortal));
+    }
+  }
+
   tooltipId: string = domId('tooltip-');
   delayTimeout: number | null = null;
   delayHideTimeout: number | null = null;
+
+  getPortal = memoize(
+    (usesGlobalPortal): HTMLElement => {
+      if (usesGlobalPortal) {
+        let portal = document.getElementById('tooltip-portal');
+        if (!portal) {
+          portal = document.createElement('div');
+          portal.setAttribute('id', 'tooltip-portal');
+          document.body.appendChild(portal);
+        }
+        return portal;
+      }
+      const portal = document.createElement('div');
+      document.body.appendChild(portal);
+      return portal;
+    }
+  );
 
   setOpen = () => {
     this.setState({isOpen: true});
@@ -188,7 +225,7 @@ class Tooltip extends React.Component<Props, State> {
 
   render() {
     const {disabled, children, title, position, popperStyle, isHoverable} = this.props;
-    const {isOpen} = this.state;
+    const {isOpen, usesGlobalPortal} = this.state;
     if (disabled) {
       return children;
     }
@@ -224,11 +261,12 @@ class Tooltip extends React.Component<Props, State> {
                 ref={arrowProps.ref}
                 data-placement={placement}
                 style={arrowProps.style}
+                background={popperStyle?.background || '#000'}
               />
             </TooltipContent>
           )}
         </Popper>,
-        this.portalEl
+        this.getPortal(usesGlobalPortal)
       );
     }
 
@@ -271,7 +309,7 @@ const TooltipContent = styled('div')<{hide: boolean} & Pick<Props, 'popperStyle'
   ${p => p.hide && `display: none`};
 `;
 
-const TooltipArrow = styled('span')`
+const TooltipArrow = styled('span')<{background: string | number}>`
   position: absolute;
   width: 10px;
   height: 5px;
@@ -282,7 +320,7 @@ const TooltipArrow = styled('span')`
     margin-top: -5px;
     &::before {
       border-width: 0 5px 5px 5px;
-      border-color: transparent transparent #000 transparent;
+      border-color: transparent transparent ${p => p.background} transparent;
     }
   }
 
@@ -292,7 +330,7 @@ const TooltipArrow = styled('span')`
     margin-bottom: -5px;
     &::before {
       border-width: 5px 5px 0 5px;
-      border-color: #000 transparent transparent transparent;
+      border-color: ${p => p.background} transparent transparent transparent;
     }
   }
 
@@ -301,7 +339,7 @@ const TooltipArrow = styled('span')`
     margin-left: -5px;
     &::before {
       border-width: 5px 5px 5px 0;
-      border-color: transparent #000 transparent transparent;
+      border-color: transparent ${p => p.background} transparent transparent;
     }
   }
 
@@ -310,7 +348,7 @@ const TooltipArrow = styled('span')`
     margin-right: -5px;
     &::before {
       border-width: 5px 0 5px 5px;
-      border-color: transparent transparent transparent #000;
+      border-color: transparent transparent transparent ${p => p.background};
     }
   }
 

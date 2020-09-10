@@ -76,8 +76,7 @@ describe('ProjectAlertsCreate', function() {
     browserHistory.replace = jest.fn();
     memberActionCreators.fetchOrgMembers = jest.fn();
     MockApiClient.addMockResponse({
-      url:
-        '/projects/org-slug/project-slug/rules/configuration/?issue_alerts_targeting=0',
+      url: '/projects/org-slug/project-slug/rules/configuration/',
       body: TestStubs.ProjectAlertRuleConfiguration(),
     });
     MockApiClient.addMockResponse({

@@ -1650,6 +1650,29 @@ class GetSnubaQueryArgsTest(TestCase):
         assert "Invalid value" in six.text_type(err)
         assert "cancelled," in six.text_type(err)
 
+    def test_error_handled(self):
+        result = get_filter("error.handled:1")
+        assert result.conditions == [[["isHandled", []], "=", 1]]
+
+        result = get_filter("error.handled:0")
+        assert result.conditions == [[["notHandled", []], "=", 1]]
+
+        result = get_filter("has:error.handled")
+        assert result.conditions == [[["isHandled", []], "=", 1]]
+
+        result = get_filter("!has:error.handled")
+        assert result.conditions == [[["isHandled", []], "=", 0]]
+
+        with pytest.raises(InvalidSearchQuery):
+            get_filter("error.handled:99")
+
+        # Numeric fields can't be negated.
+        with pytest.raises(InvalidSearchQuery):
+            get_filter("!error.handled:0")
+
+        with pytest.raises(InvalidSearchQuery):
+            get_filter("!error.handled:1")
+
     def test_function_negation(self):
         result = get_filter("!p95():5s")
         assert result.having == [["p95", "!=", 5000.0]]
@@ -2140,6 +2163,17 @@ class ResolveFieldListTest(unittest.TestCase):
             fields = ["user_misery_range(300, today, 2020-05-03T06:48:57, 1)"]
             resolve_field_list(fields, eventstore.Filter())
         assert "start argument invalid: today is in the wrong format" in six.text_type(err)
+
+    def test_absolute_correlation(self):
+        fields = ["absolute_correlation()"]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["aggregations"] == [
+            [
+                "abs",
+                [["corr", ["toUnixTimestamp", ["timestamp"], "duration"]]],
+                u"absolute_correlation",
+            ]
+        ]
 
     def test_percentage(self):
         fields = [

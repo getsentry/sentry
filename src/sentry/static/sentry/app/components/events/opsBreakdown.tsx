@@ -20,7 +20,9 @@ type Duration = number;
 
 type TimeWindowSpan = [StartTimestamp, EndTimestamp];
 
-type OperationName = string;
+const OtherOperation = Symbol('Other');
+
+type OperationName = string | typeof OtherOperation;
 
 // mapping an operation name to a disjoint set of time intervals (start/end timestamp).
 // this is an intermediary data structure to help calculate the coverage of an operation name
@@ -28,7 +30,11 @@ type OperationName = string;
 type OperationNameIntervals = Record<OperationName, Array<TimeWindowSpan>>;
 type OperationNameCoverage = Record<OperationName, Duration>;
 
-type OpStats = {name: string; percentage: number; totalInterval: number};
+type OpStats = {
+  name: OperationName;
+  percentage: number;
+  totalInterval: number;
+};
 
 const TOP_N_SPANS = 4;
 
@@ -157,16 +163,16 @@ class OpsBreakdown extends React.Component<Props> {
       }
     );
 
-    const breakdown = sortedOpsBreakdown
-      .slice(0, TOP_N_SPANS)
-      .map(([operationName, duration]: [OperationName, Duration]) => {
+    const breakdown = sortedOpsBreakdown.slice(0, TOP_N_SPANS).map(
+      ([operationName, duration]: [OperationName, Duration]): OpStats => {
         return {
           name: operationName,
           // percentage to be recalculated after the ops breakdown group is decided
           percentage: 0,
           totalInterval: duration,
         };
-      });
+      }
+    );
 
     const other = sortedOpsBreakdown.slice(TOP_N_SPANS).reduce(
       (accOther: OpStats, [_operationName, duration]: [OperationName, Duration]) => {
@@ -175,7 +181,7 @@ class OpsBreakdown extends React.Component<Props> {
         return accOther;
       },
       {
-        name: t('Other'),
+        name: OtherOperation,
         // percentage to be recalculated after the ops breakdown group is decided
         percentage: 0,
         totalInterval: 0,
@@ -213,7 +219,7 @@ class OpsBreakdown extends React.Component<Props> {
     return (
       <StyledBreakdown>
         <BreakdownHeader>
-          <SectionHeading>{t('Ops Breakdown')}</SectionHeading>
+          <SectionHeading>{t('Operation Breakdown')}</SectionHeading>
           <QuestionTooltip
             position="top"
             size="sm"
@@ -225,15 +231,19 @@ class OpsBreakdown extends React.Component<Props> {
         </BreakdownHeader>
         {breakdown.map(currOp => {
           const {name, percentage, totalInterval} = currOp;
+
+          const isOther = name === OtherOperation;
+          const operationName = typeof name === 'string' ? name : t('Other');
+
           const durLabel = Math.round(totalInterval * 1000 * 100) / 100;
           const pctLabel = isFinite(percentage) ? Math.round(percentage * 100) : '∞';
-          const opsColor: string = pickSpanBarColour(name);
+          const opsColor: string = pickSpanBarColour(operationName);
 
           return (
-            <OpsLine key={name}>
+            <OpsLine key={operationName}>
               <OpsNameContainer>
-                <OpsDot style={{backgroundColor: opsColor}} />
-                <OpsName>{name}</OpsName>
+                <OpsDot style={{backgroundColor: isOther ? 'transparent' : opsColor}} />
+                <OpsName>{operationName}</OpsName>
               </OpsNameContainer>
               <OpsContent>
                 <Dur>{durLabel}ms</Dur>

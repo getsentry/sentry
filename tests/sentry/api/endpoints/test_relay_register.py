@@ -201,7 +201,7 @@ class RelayRegisterTest(APITestCase):
 
         assert resp.status_code == 400, resp.content
 
-    def test_expired_challenge(self):
+    def test_public_key_mismatch(self):
         data = {"public_key": six.text_type(self.public_key), "relay_id": self.relay_id}
 
         raw_json, signature = self.private_key.pack(data)
@@ -241,7 +241,7 @@ class RelayRegisterTest(APITestCase):
             HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
         )
 
-        assert resp.status_code == 401, resp.content
+        assert resp.status_code == 400, resp.content
 
     def test_forge_public_key_on_register(self):
         data = {"public_key": six.text_type(self.public_key), "relay_id": self.relay_id}
@@ -369,7 +369,7 @@ class RelayRegisterTest(APITestCase):
 
         assert resp.status_code == 400, resp.content
 
-    def test_relay_id_missmatch_response(self):
+    def test_relay_id_mismatch_response(self):
         data = {"public_key": six.text_type(self.public_key), "relay_id": self.relay_id}
 
         raw_json, signature = self.private_key.pack(data)

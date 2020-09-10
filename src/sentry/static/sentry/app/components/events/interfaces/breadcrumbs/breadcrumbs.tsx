@@ -179,7 +179,9 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
         actions={
           <BreadCrumbsSearch
             searchTerm={searchTerm}
-            onChangeSearchTerm={this.handleChangeSearchTerm}
+            onChangeSearchTerm={value => {
+              this.handleChangeSearchTerm(value as string);
+            }}
             onClearSearchTerm={this.handleCleanSearch}
           />
         }

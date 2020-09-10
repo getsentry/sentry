@@ -32,16 +32,20 @@ from .card_builder import (
     build_group_card,
     build_personal_installation_message,
     build_mentioned_card,
+    build_unlink_identity_card,
+    build_unrecognized_command_card,
+    build_help_command_card,
+    build_link_identity_command_card,
+    build_already_linked_identity_command_card,
 )
 from .client import (
-    MsTeamsPreInstallClient,
     MsTeamsJwtClient,
     MsTeamsClient,
-    get_token_data,
     CLOCK_SKEW,
 )
 from .link_identity import build_linking_url
-from .utils import ACTION_TYPE
+from .unlink_identity import build_unlinking_url
+from .utils import ACTION_TYPE, get_preinstall_client
 
 
 logger = logging.getLogger("sentry.integrations.msteams.webhooks")
@@ -138,11 +142,6 @@ class MsTeamsWebhookEndpoint(Endpoint):
     permission_classes = ()
     provider = "msteams"
 
-    def get_preinstall_client(self, service_url):
-        # may want try/catch here since this makes an external API call
-        access_token = get_token_data()["access_token"]
-        return MsTeamsPreInstallClient(access_token, service_url)
-
     @csrf_exempt
     def dispatch(self, request, *args, **kwargs):
         return super(MsTeamsWebhookEndpoint, self).dispatch(request, *args, **kwargs)
@@ -153,6 +152,8 @@ class MsTeamsWebhookEndpoint(Endpoint):
         verify_signature(request)
 
         data = request.data
+        conversation_type = data.get("conversation", {}).get("conversationType")
+
         # only care about conversationUpdate and message
         if data["type"] == "message":
             # the only message events we care about are those which
@@ -160,13 +161,13 @@ class MsTeamsWebhookEndpoint(Endpoint):
             # will always contain an "payload.actionType" in the data.
             if data.get("value", {}).get("payload", {}).get("actionType"):
                 return self.handle_action_submitted(request)
+            elif conversation_type == "channel":
+                return self.handle_channel_message(request)
             else:
-                return self.handle_other_message(request)
+                return self.handle_personal_message(request)
         elif data["type"] == "conversationUpdate":
             channel_data = data["channelData"]
             event = channel_data.get("eventType")
-            conversation_type = data.get("conversation", {}).get("conversationType")
-
             # TODO: Handle other events
             if event == "teamMemberAdded":
                 return self.handle_team_member_added(request)
@@ -186,7 +187,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
         if not matches:
             return self.respond(status=204)
 
-        client = self.get_preinstall_client(data["serviceUrl"])
+        client = get_preinstall_client(data["serviceUrl"])
 
         user_conversation_id = data["conversation"]["id"]
         card = build_personal_installation_message()
@@ -214,7 +215,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
         signed_params = sign(**signed_data)
 
         # send welcome message to the team
-        client = self.get_preinstall_client(data["serviceUrl"])
+        client = get_preinstall_client(data["serviceUrl"])
         card = build_welcome_card(signed_params)
         client.send_card(team["id"], card)
         return self.respond(status=201)
@@ -417,12 +418,13 @@ class MsTeamsWebhookEndpoint(Endpoint):
 
         return issue_change_response
 
-    def handle_other_message(self, request):
+    def handle_channel_message(self, request):
         data = request.data
+
         # check to see if we are mentioned
         recipient_id = data.get("recipient", {}).get("id")
         if recipient_id:
-            # check the ids of the mentiokns in the entities
+            # check the ids of the mentions in the entities
             mentioned = (
                 len(
                     filter(
@@ -433,9 +435,35 @@ class MsTeamsWebhookEndpoint(Endpoint):
                 > 0
             )
             if mentioned:
-                client = self.get_preinstall_client(data["serviceUrl"])
+                client = get_preinstall_client(data["serviceUrl"])
                 card = build_mentioned_card()
                 conversation_id = data["conversation"]["id"]
                 client.send_card(conversation_id, card)
 
+        return self.respond(status=204)
+
+    def handle_personal_message(self, request):
+        data = request.data
+        command_text = data.get("text", "").strip()
+        lowercase_command = command_text.lower()
+        conversation_id = data["conversation"]["id"]
+        teams_user_id = data["from"]["id"]
+
+        # only supporting unlink for now
+        if "unlink" in lowercase_command:
+            unlink_url = build_unlinking_url(conversation_id, data["serviceUrl"], teams_user_id)
+            card = build_unlink_identity_card(unlink_url)
+        elif "help" in lowercase_command:
+            card = build_help_command_card()
+        elif "link" == lowercase_command:  # don't to match other types of link commands
+            has_linked_identity = Identity.objects.filter(external_id=teams_user_id).exists()
+            if has_linked_identity:
+                card = build_already_linked_identity_command_card()
+            else:
+                card = build_link_identity_command_card()
+        else:
+            card = build_unrecognized_command_card(command_text)
+
+        client = get_preinstall_client(data["serviceUrl"])
+        client.send_card(conversation_id, card)
         return self.respond(status=204)

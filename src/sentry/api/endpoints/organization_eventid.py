@@ -5,12 +5,14 @@ import six
 from rest_framework.response import Response
 
 from sentry import eventstore
+from sentry.app import ratelimiter
 from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.models import Project
 from sentry.utils.apidocs import scenario, attach_scenarios
+from sentry.utils.hashlib import md5_text
 
 
 @scenario("ResolveEventId")
@@ -40,6 +42,23 @@ class EventIdLookupEndpoint(OrganizationEndpoint):
         # Largely copied from ProjectGroupIndexEndpoint
         if len(event_id) != 32:
             return Response({"detail": "Event ID must be 32 characters."}, status=400)
+
+        # Limit to 1 req/s
+        if ratelimiter.is_limited(
+            u"api:event-id-lookup:{}".format(
+                md5_text(
+                    request.user.id if request.user and request.user.is_authenticated() else ""
+                ).hexdigest()
+            ),
+            limit=1,
+            window=1,
+        ):
+            return Response(
+                {
+                    "detail": "You are attempting to use this endpoint too quickly. Limit is 1 request per second."
+                },
+                status=429,
+            )
 
         project_slugs_by_id = dict(
             Project.objects.filter(organization=organization).values_list("id", "slug")

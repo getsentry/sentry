@@ -32,7 +32,7 @@ class AssignedToForm(MemberTeamForm):
 class AssignedToFilter(EventFilter):
     form_cls = AssignedToForm
     label = "The issue is assigned to {targetType}"
-    prompt = "The issue is assigned to {No One/Team/Member}"
+    prompt = "The issue is assigned to {no one/team/member}"
 
     form_fields = {"targetType": {"type": "assignee", "choices": CHOICES}}
 

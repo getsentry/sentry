@@ -10,6 +10,7 @@ import {
   TRENDS_FUNCTIONS,
   getTrendAliasedFieldPercentage,
   getTrendAliasedQueryPercentage,
+  getTrendAliasedMinus,
 } from 'app/views/performance/trends/utils';
 import {TrendFunctionField} from 'app/views/performance/trends/types';
 
@@ -30,7 +31,7 @@ function selectTrendFunction(wrapper, field) {
 }
 
 function initializeData(projects, query) {
-  const features = ['transaction-event', 'performance-view', 'internal-catchall'];
+  const features = ['transaction-event', 'performance-view', 'trends'];
   const organization = TestStubs.Organization({
     features,
     projects,
@@ -49,6 +50,7 @@ function initializeData(projects, query) {
 
 describe('Performance > Trends', function() {
   let trendsMock;
+  let baselineMock;
   beforeEach(function() {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
@@ -124,6 +126,13 @@ describe('Performance > Trends', function() {
         },
       },
     });
+    baselineMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/event-baseline/',
+      body: {
+        project: 'sentry',
+        id: '66877921c6ff440b8b891d3734f074e7',
+      },
+    });
   });
 
   afterEach(function() {
@@ -167,7 +176,38 @@ describe('Performance > Trends', function() {
     expect(wrapper.find('TrendsListItem')).toHaveLength(4);
   });
 
-  it('clicking transaction link links to the correct view', async function() {
+  it('view summary menu action links to the correct view', async function() {
+    const projects = [TestStubs.Project({id: 1, slug: 'internal'}), TestStubs.Project()];
+    const data = initializeData(projects, {project: ['1']});
+
+    const wrapper = mountWithTheme(
+      <PerformanceLanding
+        organization={data.organization}
+        location={data.router.location}
+      />,
+      data.routerContext
+    );
+
+    await tick();
+    wrapper.update();
+
+    wrapper
+      .find('TransactionMenuButton')
+      .first()
+      .simulate('click');
+
+    const firstTransaction = wrapper.find('TrendsListItem').first();
+    const summaryLink = firstTransaction.find('StyledSummaryLink');
+    expect(summaryLink).toHaveLength(1);
+
+    expect(summaryLink.text()).toEqual('View Summary');
+    expect(summaryLink.props().to.pathname).toEqual(
+      '/organizations/org-slug/performance/summary/'
+    );
+    expect(summaryLink.props().to.query.project).toEqual(1);
+  });
+
+  it('transaction link calls comparison view', async function() {
     const projects = [TestStubs.Project({id: 1, slug: 'internal'}), TestStubs.Project()];
     const data = initializeData(projects, {project: ['1']});
 
@@ -183,37 +223,18 @@ describe('Performance > Trends', function() {
     wrapper.update();
 
     const firstTransaction = wrapper.find('TrendsListItem').first();
-    const transactionLink = firstTransaction.find('StyledLink');
-    expect(transactionLink).toHaveLength(1);
+    const transactionLink = firstTransaction.find('StyledLink').first();
+    transactionLink.simulate('click');
 
-    expect(transactionLink.text()).toEqual('/organizations/:orgId/performance/');
-    expect(transactionLink.props().to.pathname).toEqual(
-      '/organizations/org-slug/performance/summary/'
-    );
-    expect(transactionLink.props().to.query.project).toEqual(1);
-  });
-
-  it('transaction list renders user misery', async function() {
-    const projects = [TestStubs.Project()];
-    const data = initializeData(projects, {project: ['-1']});
-
-    const location = {
-      query: {...trendsViewQuery, trendFunction: TrendFunctionField.USER_MISERY},
-    };
-    const wrapper = mountWithTheme(
-      <PerformanceLanding organization={data.organization} location={location} />,
-      data.routerContext
-    );
     await tick();
     wrapper.update();
 
-    const firstTransaction = wrapper.find('TrendsListItem').first();
-    expect(firstTransaction.find('ItemTransactionAbsoluteFaster').text()).toMatch(
-      '863 → 1.6k miserable users'
-    );
-    expect(firstTransaction.find('ItemTransactionPercentFaster').text()).toMatch(
-      '797 less'
-    );
+    expect(baselineMock).toHaveBeenCalledTimes(2);
+    expect(browserHistory.push).toHaveBeenCalledWith({
+      pathname:
+        '/organizations/org-slug/performance/compare/sentry:66877921c6ff440b8b891d3734f074e7/sentry:66877921c6ff440b8b891d3734f074e7/',
+      query: expect.anything(),
+    });
   });
 
   it('choosing a trend function changes location', async function() {
@@ -267,12 +288,17 @@ describe('Performance > Trends', function() {
       const aliasedFieldDivide = getTrendAliasedFieldPercentage(trendFunction.alias);
       const aliasedQueryDivide = getTrendAliasedQueryPercentage(trendFunction.alias);
 
+      const sort =
+        trendFunction.field === TrendFunctionField.USER_MISERY
+          ? getTrendAliasedMinus(trendFunction.alias)
+          : aliasedFieldDivide;
+
       const defaultFields = ['transaction', 'project', 'count()'];
       const trendFunctionFields = TRENDS_FUNCTIONS.map(({field}) => field);
 
       const field = [...trendFunctionFields, ...defaultFields];
 
-      expect(field).toHaveLength(6);
+      expect(field).toHaveLength(5);
 
       // Improved trends call
       expect(trendsMock).toHaveBeenNthCalledWith(
@@ -281,10 +307,11 @@ describe('Performance > Trends', function() {
         expect.objectContaining({
           query: expect.objectContaining({
             trendFunction: trendFunction.field,
-            sort: aliasedFieldDivide,
+            sort,
             query: expect.stringContaining(aliasedQueryDivide + ':<1'),
-            interval: '1h',
+            interval: '12h',
             field,
+            statsPeriod: '14d',
           }),
         })
       );
@@ -296,10 +323,11 @@ describe('Performance > Trends', function() {
         expect.objectContaining({
           query: expect.objectContaining({
             trendFunction: trendFunction.field,
-            sort: '-' + aliasedFieldDivide,
+            sort: '-' + sort,
             query: expect.stringContaining(aliasedQueryDivide + ':>1'),
-            interval: '1h',
+            interval: '12h',
             field,
+            statsPeriod: '14d',
           }),
         })
       );

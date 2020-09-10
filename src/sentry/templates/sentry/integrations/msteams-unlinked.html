@@ -1,0 +1,14 @@
+{% extends "sentry/bases/modal.html" %}
+
+{% load i18n %}
+
+{% block title %}{% trans "Microsoft Teams Unlinked" %} | {{ block.super }}{% endblock %}
+{% block wrapperclass %}narrow auth{% endblock %}
+
+{% block main %}
+  <div class="align-center">
+    <p>
+      {% trans "Your Microsoft Teams identity has been unassociated with your Sentry account." %}
+    </p>
+  </div>
+{% endblock %}

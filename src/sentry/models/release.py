@@ -491,7 +491,8 @@ class Release(Model):
 
                     commit_author_by_commit[commit.id] = author
 
-                    patch_set = data.get("patch_set", [])
+                    # Guard against patch_set being None
+                    patch_set = data.get("patch_set") or []
                     for patched_file in patch_set:
                         try:
                             with transaction.atomic():

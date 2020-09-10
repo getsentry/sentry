@@ -36,6 +36,7 @@ Pillow>=6.2.2,<7.0.0
 progressbar2>=3.32,<3.33
 psycopg2-binary>=2.7.0,<2.9.0
 PyJWT>=1.5.0,<1.6.0
+pyrsistent==0.16.0 # TODO(py3): 0.17.0 requires python3, see https://github.com/tobgu/pyrsistent/issues/205
 python-dateutil>=2.0.0,<3.0.0
 python-memcached>=1.53,<2.0.0
 python3-saml>=1.4.0,<1.5
@@ -51,7 +52,7 @@ requests[security]>=2.20.0,<2.21.0
 rfc3339-validator==0.1.2
 rfc3986-validator==0.1.1
 # [end] jsonschema format validators
-sentry-relay>=0.5.12,<0.6.0
+sentry-relay>=0.6.0,<0.7.0
 sentry-sdk>=0.16.4,<0.17.0
 simplejson>=3.11.0,<3.12.0
 six>=1.11.0,<1.12.0

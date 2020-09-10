@@ -70,6 +70,7 @@ from sentry.utils.safe import safe_execute, trim, get_path, setdefault_path
 from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 from sentry.culprit import generate_culprit
 from sentry.utils.compat import map
+from sentry.reprocessing2 import save_unprocessed_event
 
 logger = logging.getLogger("sentry.events")
 
@@ -80,17 +81,20 @@ CRASH_REPORT_TIMEOUT = 24 * 3600  # one day
 
 
 def pop_tag(data, key):
+    if "tags" not in data:
+        return
+
     data["tags"] = [kv for kv in data["tags"] if kv is None or kv[0] != key]
 
 
 def set_tag(data, key, value):
     pop_tag(data, key)
     if value is not None:
-        data["tags"].append((key, trim(value, MAX_TAG_VALUE_LENGTH)))
+        data.setdefault("tags", []).append((key, trim(value, MAX_TAG_VALUE_LENGTH)))
 
 
 def get_tag(data, key):
-    for k, v in get_path(data, "tags", filter=True):
+    for k, v in get_path(data, "tags", filter=True) or ():
         if k == key:
             return v
 
@@ -125,9 +129,9 @@ def has_pending_commit_resolution(group):
     return not ReleaseCommit.objects.filter(commit__id=recent_group_link.linked_id).exists()
 
 
-def get_max_crashreports(model):
+def get_max_crashreports(model, allow_none=False):
     value = model.get_option("sentry:store_crash_reports")
-    return convert_crashreport_count(value)
+    return convert_crashreport_count(value, allow_none=allow_none)
 
 
 def crashreports_exceeded(current_count, max_count):
@@ -438,6 +442,7 @@ class EventManager(object):
             job["event_metrics"][key] = old_bytes + attachment.size
 
         _nodestore_save_many(jobs)
+        save_unprocessed_event(project, event_id=job["event"].event_id)
 
         if job["release"]:
             if job["is_new"]:
@@ -1173,8 +1178,8 @@ def filter_attachments_for_group(attachments, job):
     # The setting is both an organization and project setting. The project
     # setting strictly overrides the organization setting, unless set to the
     # default.
-    max_crashreports = get_max_crashreports(project)
-    if not max_crashreports:
+    max_crashreports = get_max_crashreports(project, allow_none=True)
+    if max_crashreports is None:
         max_crashreports = get_max_crashreports(project.organization)
 
     # The number of crash reports is cached per group

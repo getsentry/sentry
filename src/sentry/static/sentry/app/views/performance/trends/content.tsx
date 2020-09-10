@@ -73,7 +73,7 @@ class TrendsContent extends React.Component<Props, State> {
 
     const query = getTransactionSearchQuery(location);
     return (
-      <Feature features={['internal-catchall']}>
+      <Feature features={['trends']}>
         <StyledSearchContainer>
           <StyledSearchBar
             organization={organization}
@@ -84,7 +84,7 @@ class TrendsContent extends React.Component<Props, State> {
           />
           <TrendsDropdown>
             <DropdownControl
-              buttonProps={{prefix: t('Filter')}}
+              buttonProps={{prefix: t('Display')}}
               label={currentTrendFunction.label}
             >
               {TRENDS_FUNCTIONS.map(({label, field}) => (

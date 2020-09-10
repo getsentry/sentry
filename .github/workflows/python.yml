@@ -20,9 +20,6 @@ jobs:
       # The hostname used to communicate with the PostgreSQL from sentry
       DATABASE_URL: postgresql://postgres:postgres@localhost/sentry
 
-      # Use this to override the django version in the requirements file.
-      DJANGO_VERSION: ">=1.11,<1.12"
-
     services:
       postgres:
         image: postgres:9.6
@@ -108,6 +105,7 @@ jobs:
           sentry django makemigrations -n ci_test --check --dry-run --no-input || (echo '::error::Error: Migration required -- to generate a migration, run `sentry django makemigrations -n <some_name>`' && exit 1)
 
   test-py3:
+    name: 'py3 [ignore fails]'
     runs-on: ubuntu-16.04
     continue-on-error: true
     strategy:
@@ -120,9 +118,6 @@ jobs:
 
       SENTRY_LIGHT_BUILD: 1
       SENTRY_SKIP_BACKEND_VALIDATION: 1
-
-      # Use this to override the django version in the requirements file.
-      DJANGO_VERSION: ">=1.11,<1.12"
 
       PYTEST_SENTRY_DSN: https://6fd5cfea2d4d46b182ad214ac7810508@sentry.io/2423079
       # XXX(py3): Reruns are disabled for until all tests are passing.
@@ -152,7 +147,7 @@ jobs:
           MATRIX_INSTANCE: ${{ matrix.instance }}
         run: |
           # XXX(py3): Minors that aren't latest seem to not be available.
-          echo "::set-output name=python-version::3.6.11"
+          echo "::set-output name=python-version::3.6.12"
           echo "::set-output name=matrix-instance-number::$(($MATRIX_INSTANCE+1))"
 
       - name: Set up Python ${{ steps.config.outputs.python-version }}

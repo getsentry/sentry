@@ -39,6 +39,14 @@ declare global {
      */
     csrfCookieName?: string;
     /**
+     * Used to open tooltips for testing purposes.
+     */
+    __openAllTooltips: () => void;
+    /**
+     * Used to close tooltips for testing purposes.
+     */
+    __closeAllTooltips: () => void;
+    /**
      * Primary entrypoint for rendering the sentry app. This is typically
      * called in the django templates, or in the case of the EXPERIMENTAL_SPA,
      * after config hydration.
@@ -201,6 +209,9 @@ export type Team = {
   id: string;
   slug: string;
   isMember: boolean;
+  hasAccess: boolean;
+  isPending: boolean;
+  memberCount: number;
   avatar: Avatar;
 };
 
@@ -266,6 +277,7 @@ type SentryEventBase = {
   groupID?: string;
   title: string;
   culprit: string;
+  dateCreated: string;
   metadata: EventMetadata;
   contexts: EventContexts;
   context?: {[key: string]: any};
@@ -274,10 +286,10 @@ type SentryEventBase = {
   user: EventUser;
   message: string;
   platform?: PlatformKey;
-  dateCreated?: string;
   dateReceived?: string;
   endTimestamp?: number;
   entries: EntryType[];
+  errors: object[];
 
   previousEventID?: string;
   nextEventID?: string;
@@ -299,6 +311,11 @@ type SentryEventBase = {
   };
 
   crashFile: EventAttachment | null;
+
+  sdk?: {
+    name: string;
+    version: string;
+  };
 };
 
 export type SentryTransactionEvent = {
@@ -307,9 +324,6 @@ export type SentryTransactionEvent = {
   entries: SpanEntry[];
   startTimestamp: number;
   endTimestamp: number;
-  sdk?: {
-    name?: string;
-  };
   contexts?: {
     trace?: TraceContextType;
   };
@@ -609,6 +623,8 @@ export type EventOrGroupType =
   | 'default'
   | 'transaction';
 
+export type GroupStats = [number, number];
+
 // TODO(ts): incomplete
 export type Group = {
   id: string;
@@ -640,7 +656,8 @@ export type Group = {
   seenBy: User[];
   shareId: string;
   shortId: string;
-  stats: any; // TODO(ts)
+  stats: Record<string, GroupStats[]>;
+  filtered?: any; // TODO(ts)
   status: string;
   statusDetails: ResolutionStatusDetails;
   tags: Pick<Tag, 'key' | 'name' | 'totalValues'>[];
@@ -649,6 +666,17 @@ export type Group = {
   userCount: number;
   userReportCount: number;
   subscriptionDetails: {disabled?: boolean; reason?: string} | null;
+};
+
+export type ProcessingIssue = {
+  project: string;
+  numIssues: number;
+  signedLink: string;
+  lastSeen: string;
+  hasMoreResolvableIssues: boolean;
+  hasIssues: boolean;
+  issuesProcessing: number;
+  resolveableIssues: number;
 };
 
 /**
@@ -829,6 +857,11 @@ export type Integration = {
       | 'classic_bot'
       | 'born_as_bot'
       | 'migrated_to_bot';
+  };
+  dynamicDisplayInformation?: {
+    configure_integration?: {
+      instructions: string[];
+    };
   };
 };
 
@@ -1398,4 +1431,26 @@ export type Frame = {
   origAbsPath?: string;
   mapUrl?: string;
   instructionAddr?: string;
+};
+
+/**
+ * Note used in Group Activity and Alerts for users to comment
+ */
+export type Note = {
+  /**
+   * Note contents (markdown allowed)
+   */
+  text: string;
+
+  /**
+   * Array of [id, display string] tuples used for @-mentions
+   */
+  mentions: [string, string][];
+};
+
+export type FilesByRepository = {
+  [repoName: string]: {
+    authors?: {[email: string]: CommitAuthor};
+    types?: Set<string>;
+  };
 };

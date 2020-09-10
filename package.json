@@ -30,6 +30,7 @@
     "@types/clipboard": "^2.0.1",
     "@types/color": "^3.0.0",
     "@types/create-react-class": "^15.6.2",
+    "@types/diff": "4.0.2",
     "@types/dompurify": "^2.0.1",
     "@types/echarts": "^4.4.3",
     "@types/jest": "^24.0.17",
@@ -65,7 +66,7 @@
     "create-react-class": "^15.6.2",
     "crypto-js": "4.0.0",
     "css-loader": "^2.0.1",
-    "diff": "^3.5.0",
+    "diff": "4.0.2",
     "dompurify": "^2.0.7",
     "echarts": "4.7.0",
     "echarts-for-react": "2.0.16",
@@ -199,11 +200,10 @@
     "dev-ui": "SENTRY_UI_DEV_ONLY=1 SENTRY_WEBPACK_PROXY_PORT=7999 yarn webpack-dev-server",
     "dev-acceptance": "NO_DEV_SERVER=1 NODE_ENV=development yarn webpack --watch",
     "storybook": "SENTRY_UI_HOT_RELOAD='' start-storybook -p 9001 -c .storybook",
-    "storybook-build": "build-storybook -c .storybook -o .storybook-out && sed -i -e 's/\\/sb_dll/sb_dll/g' .storybook-out/index.html",
-    "webpack-profile": "yarn -s webpack --profile --json > stats.json",
+    "storybook-build": "build-storybook -c .storybook -o docs-ui/.storybook-out --quiet",
+    "webpack-profile": "NO_TS_FORK=1 yarn -s webpack --profile --json > stats.json",
     "build-css": "NODE_ENV=production yarn webpack --config=config/webpack.css.config.js",
-    "build-prod": "NODE_ENV=production yarn webpack --mode production --display errors-only --output-path=public",
-    "build": "yarn webpack --output-path=public"
+    "build": "NODE_ENV=production yarn webpack --mode production --display errors-only --output-path=public"
   },
   "volta": {
     "node": "10.21.0",

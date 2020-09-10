@@ -116,16 +116,11 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   }
 
   getEndpoints() {
-    const {params, location} = this.props;
-    const {ruleId, projectId, orgId} = params;
-    const {issue_alerts_targeting = 0} = location.query ?? {};
+    const {ruleId, projectId, orgId} = this.props.params;
 
     const endpoints = [
       ['environments', `/projects/${orgId}/${projectId}/environments/`],
-      [
-        'configs',
-        `/projects/${orgId}/${projectId}/rules/configuration/?issue_alerts_targeting=${issue_alerts_targeting}`,
-      ],
+      ['configs', `/projects/${orgId}/${projectId}/rules/configuration/`],
     ];
 
     if (ruleId) {
@@ -505,34 +500,37 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
                     <StepContent>
                       <StepLead>
-                        {tct('[when:When] an issue matches [selector] of the following', {
-                          when: <Badge />,
-                          selector: (
-                            <EmbeddedWrapper>
-                              <EmbeddedSelectField
-                                className={classNames({
-                                  error: this.hasError('actionMatch'),
-                                })}
-                                inline={false}
-                                styles={{
-                                  control: provided => ({
-                                    ...provided,
-                                    minHeight: '20px',
-                                    height: '20px',
-                                  }),
-                                }}
-                                isSearchable={false}
-                                isClearable={false}
-                                name="actionMatch"
-                                required
-                                flexibleControlStateSize
-                                choices={ACTION_MATCH_CHOICES}
-                                onChange={val => this.handleChange('actionMatch', val)}
-                                disabled={!hasAccess}
-                              />
-                            </EmbeddedWrapper>
-                          ),
-                        })}
+                        {tct(
+                          '[when:When] an issue meets [selector] of the following conditions',
+                          {
+                            when: <Badge />,
+                            selector: (
+                              <EmbeddedWrapper>
+                                <EmbeddedSelectField
+                                  className={classNames({
+                                    error: this.hasError('actionMatch'),
+                                  })}
+                                  inline={false}
+                                  styles={{
+                                    control: provided => ({
+                                      ...provided,
+                                      minHeight: '20px',
+                                      height: '20px',
+                                    }),
+                                  }}
+                                  isSearchable={false}
+                                  isClearable={false}
+                                  name="actionMatch"
+                                  required
+                                  flexibleControlStateSize
+                                  choices={ACTION_MATCH_CHOICES}
+                                  onChange={val => this.handleChange('actionMatch', val)}
+                                  disabled={!hasAccess}
+                                />
+                              </EmbeddedWrapper>
+                            ),
+                          }
+                        )}
                       </StepLead>
                       <RuleNodeList
                         nodes={this.state.configs?.conditions ?? null}

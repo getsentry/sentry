@@ -1,0 +1,32 @@
+---
+created: '2020-09-01T15:34:37.668131Z'
+creator: sentry
+source: tests/sentry/grouping/test_fingerprinting.py
+---
+config:
+  rules:
+  - fingerprint:
+    - what-is-love
+    matchers:
+    - - message
+      - '*love*'
+  version: 1
+fingerprint:
+- what-is-love
+variants:
+  app:
+    component:
+      contributes: false
+      contributes_to_similarity: true
+      hint: custom fingerprint takes precedence
+    type: component
+  custom-fingerprint:
+    type: custom-fingerprint
+    values:
+    - what-is-love
+  system:
+    component:
+      contributes: false
+      contributes_to_similarity: true
+      hint: custom fingerprint takes precedence
+    type: component

@@ -16,6 +16,7 @@ import {getCurrentTrendFunction} from 'app/views/performance/trends/utils';
  * An individual row in a DiscoverQuery result
  */
 export type TableDataRow = {
+  id: string;
   [key: string]: React.ReactText;
 };
 
@@ -23,8 +24,8 @@ export type TableDataRow = {
  * A DiscoverQuery result including rows and metadata.
  */
 export type TableData = {
-  meta?: MetaType;
   data: Array<TableDataRow>;
+  meta?: MetaType;
 };
 
 type ChildrenProps = {
@@ -97,8 +98,26 @@ class DiscoverQuery extends React.Component<Props, State> {
 
     return (
       !isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload) ||
+      this.shouldRefetchTrendData(prevProps) ||
       prevProps.limit !== this.props.limit
     );
+  };
+
+  shouldRefetchTrendData = (prevProps: Props): boolean => {
+    if (!this.props.trendChangeType) {
+      return false;
+    }
+
+    const thisAPIPayload = this.modifyTrendsPayload(
+      this.props.eventView.getEventsAPIPayload(this.props.location),
+      this.props.location
+    );
+    const otherAPIPayload = this.modifyTrendsPayload(
+      prevProps.eventView.getEventsAPIPayload(prevProps.location),
+      prevProps.location
+    );
+
+    return !isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
   };
 
   getRoute(keyTransactions, trendsType) {
@@ -133,7 +152,7 @@ class DiscoverQuery extends React.Component<Props, State> {
       LocationQuery &
       TrendsQuery = eventView.getEventsAPIPayload(location);
 
-    this.modifyTrendsPayload(apiPayload);
+    this.modifyTrendsPayload(apiPayload, location);
 
     this.setState({isLoading: true, tableFetchID});
 
@@ -174,13 +193,29 @@ class DiscoverQuery extends React.Component<Props, State> {
       });
   };
 
-  modifyTrendsPayload = (apiPayload: EventQuery & LocationQuery & TrendsQuery) => {
-    const {trendChangeType, location, eventView} = this.props;
+  modifyTrendsPayload = (
+    apiPayload: EventQuery & LocationQuery & TrendsQuery,
+    location: Location
+  ) => {
+    const {trendChangeType, eventView} = this.props;
     if (trendChangeType) {
+      delete apiPayload.cursor;
+      if (
+        trendChangeType === TrendChangeType.IMPROVED &&
+        location?.query?.improvedCursor
+      ) {
+        apiPayload.cursor = location?.query?.improvedCursor;
+      } else if (
+        trendChangeType === TrendChangeType.REGRESSION &&
+        location?.query?.regressionCursor
+      ) {
+        apiPayload.cursor = location?.query?.regressionCursor;
+      }
       const trendFunction = getCurrentTrendFunction(location);
       apiPayload.trendFunction = trendFunction.field;
       apiPayload.interval = eventView.interval;
     }
+    return apiPayload;
   };
 
   render() {

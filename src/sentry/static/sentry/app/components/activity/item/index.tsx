@@ -13,6 +13,8 @@ import {isRenderFunc} from 'app/utils/isRenderFunc';
 import ActivityAvatar from './avatar';
 import ActivityBubble from './bubble';
 
+export type ActivityAuthorType = 'user' | 'system';
+
 type ChildFunction = () => React.ReactNode;
 
 type Props = {
@@ -40,7 +42,7 @@ type Props = {
    * `user` is required if `type` is "user"
    */
   author?: {
-    type: 'user' | 'system';
+    type: ActivityAuthorType;
     user?: AvatarUser;
   };
 
