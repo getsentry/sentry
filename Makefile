@@ -174,9 +174,9 @@ test-python-ci:
 	make build-platform-assets
 	@echo "--> Running CI Python tests"
 ifndef TEST_GROUP
-	py.test tests/integration tests/sentry --cov . --cov-report="xml:.artifacts/python.coverage.xml" --junit-xml=".artifacts/python.junit.xml" || exit 1
+	py.test tests/integration tests/sentry -s --cov . --cov-report="xml:.artifacts/python.coverage.xml" --junit-xml=".artifacts/python.junit.xml" || exit 1
 else
-	py.test tests/integration tests/sentry -m group_$(TEST_GROUP) --cov . --cov-report="xml:.artifacts/python.coverage.xml" --junit-xml=".artifacts/python.junit.xml" || exit 1
+	py.test tests/integration tests/sentry -s -m group_$(TEST_GROUP) --cov . --cov-report="xml:.artifacts/python.coverage.xml" --junit-xml=".artifacts/python.junit.xml" || exit 1
 endif
 	@echo ""
 

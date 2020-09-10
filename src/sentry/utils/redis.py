@@ -88,6 +88,7 @@ class RetryingRedisCluster(RedisCluster):
     """
 
     def execute_command(self, *args, **kwargs):
+        logger.error("RetryingRedisCluster exec command", args, kwargs)
         try:
             return super(self.__class__, self).execute_command(*args, **kwargs)
         except (
@@ -118,6 +119,7 @@ class _RedisCluster(object):
         # make TCP connections on boot. Wrap the client in a lazy proxy object.
         def cluster_factory():
             if config.get("is_redis_cluster", False):
+                logger.error("Getting redis cluster")
                 return RetryingRedisCluster(
                     startup_nodes=hosts,
                     decode_responses=True,

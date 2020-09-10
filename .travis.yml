@@ -127,6 +127,7 @@ base_postgres: &postgres_default
   python: 2.7
   services:
     - memcached
+    - redis-server
     - postgresql
   before_install:
     - *base_install
