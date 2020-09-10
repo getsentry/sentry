@@ -157,7 +157,6 @@ type Props = {
    */
   onRestore?: EChartEventHandler<{type: 'restore'}>;
   onFinished?: EChartEventHandler<{}>;
-  onLegendSelectChanged?: EChartEventHandler<{}>;
   /**
    * Forwarded Ref
    */
@@ -261,8 +260,6 @@ class BaseChart extends React.Component<Props, State> {
     datazoom: (props, instance) => this.props.onDataZoom?.(props, instance),
     restore: (props, instance) => this.props.onRestore?.(props, instance),
     finished: (props, instance) => this.props.onFinished?.(props, instance),
-    legendselectchanged: (props, instance) =>
-      this.props.onLegendSelectChanged?.(props, instance),
   };
 
   // TODO(ts): What is the series type? EChartOption.Series's data cannot have
