@@ -92,7 +92,10 @@ const ReleaseHeader = ({location, orgId, release, project, releaseMeta}: Props) 
             </DeploysWrapper>
           </ReleaseStat>
           {hasHealthData && (
-            <ReleaseStat label={t('Crashes')}>
+            <ReleaseStat
+              label={t('Crashes')}
+              help={t('Crash means that user experienced an unhandled error')}
+            >
               <Count value={sessionsCrashed} />
             </ReleaseStat>
           )}
