@@ -66,9 +66,9 @@ class NoteInput extends React.Component<Props, State> {
   submitForm() {
     if (!!this.props.modelId) {
       this.update();
-    } else {
-      this.create();
+      return;
     }
+    this.create();
   }
 
   create() {
@@ -127,9 +127,7 @@ class NoteInput extends React.Component<Props, State> {
     }
   };
 
-  handleKeyDown = (
-    e: React.KeyboardEvent<HTMLTextAreaElement> | React.KeyboardEvent<HTMLInputElement>
-  ) => {
+  handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement | HTMLInputElement>) => {
     // Auto submit the form on [meta] + Enter
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
       this.submitForm();
@@ -282,8 +280,11 @@ class NoteInputContainer extends React.Component<NoteInputContainerProps> {
 
 export default NoteInputContainer;
 
+type NotePreviewProps = {
+  minHeight: Props['minHeight'];
+};
 // This styles both the note preview and the note editor input
-const getNotePreviewCss = p => {
+const getNotePreviewCss = (p: NotePreviewProps) => {
   const {minHeight, padding, overflow, border} = mentionStyle(p)['&multiLine'].input;
 
   return `
@@ -414,9 +415,6 @@ const MarkdownSupported = styled('span')`
   font-size: 14px;
 `;
 
-type NotePreviewProps = {
-  minHeight: Props['minHeight'];
-};
 const NotePreview = styled('div')<NotePreviewProps>`
   ${getNotePreviewCss};
   padding-bottom: ${space(1)};

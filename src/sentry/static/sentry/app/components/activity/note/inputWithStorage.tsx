@@ -46,7 +46,7 @@ class NoteInputWithStorage extends React.Component<Props> {
     }
   }
 
-  saveToStorage(obj: object) {
+  saveToStorage(obj: Record<string, any>) {
     const {storageKey} = this.props;
 
     try {
