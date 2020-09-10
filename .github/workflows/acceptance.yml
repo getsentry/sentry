@@ -218,9 +218,9 @@ jobs:
         - name: Run acceptance tests (#${{ steps.config.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
           if: always()
           run: |
-            mkdir -p ${{ steps.config.outputs.acceptance-dir }}
-            mkdir -p ${{ steps.config.outputs.acceptance-dir }}-mobile
-            mkdir -p ${{ steps.config.outputs.acceptance-dir }}-tooltips
+            mkdir -p ${{ steps.config.outputs.acceptance-dir }}/1680px
+            mkdir -p ${{ steps.config.outputs.acceptance-dir }}/375px
+            mkdir -p ${{ steps.config.outputs.acceptance-dir }}/tooltips
             [ "$GITHUB_REF" = "refs/heads/master" ] && export PYTEST_SENTRY_ALWAYS_REPORT=1
             make run-acceptance
           env:
