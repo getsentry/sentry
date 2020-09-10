@@ -152,6 +152,7 @@ jobs:
             echo "::set-output name=matrix-instance-number::$(($MATRIX_INSTANCE+1))"
             echo "::set-output name=acceptance-dir::.artifacts/visual-snapshots/acceptance"
 
+
         # yarn cache
         - uses: actions/cache@v1
           id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
@@ -229,7 +230,7 @@ jobs:
 
         - name: Save snapshots
           if: always()
-          uses: getsentry/action-visual-snapshot@v2
+          uses: getsentry/action-visual-snapshot@v2-dev
           with:
             save-only: true
             snapshot-path: .artifacts/visual-snapshots
@@ -242,7 +243,7 @@ jobs:
       steps:
         - name: Diff snapshots
           id: visual-snapshots-diff
-          uses: getsentry/action-visual-snapshot@v2
+          uses: getsentry/action-visual-snapshot@v2-dev
           with:
             api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
             github-token: ${{ secrets.GITHUB_TOKEN }}

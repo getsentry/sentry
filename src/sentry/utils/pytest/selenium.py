@@ -30,6 +30,9 @@ class Browser(object):
         self.live_server_url = live_server.url
         self.domain = urlparse(self.live_server_url).hostname
         self._has_initialized_cookie_store = False
+        window_size = self.driver.get_window_size()
+        self.window_width = window_size["width"]
+        self.mobile_window_width = 375
 
     def __getattr__(self, attr):
         return getattr(self.driver, attr)
@@ -118,8 +121,10 @@ class Browser(object):
         return self.set_viewport(width, height, fit_content=True)
 
     @contextmanager
-    def mobile_viewport(self, width=375, height=812):
-        return self.set_viewport(width, height, fit_content=True)
+    def mobile_viewport(self, width=None, height=812):
+        return self.set_viewport(
+            width if width is not None else self.mobile_window_width, height, fit_content=True
+        )
 
     def element(self, selector=None, xpath=None):
         """
@@ -324,14 +329,14 @@ class Browser(object):
                 # This will make sure we resize viewport height to fit contents
                 with self.full_viewport():
                     self.driver.find_element_by_tag_name("body").screenshot(
-                        u"{}/{}.png".format(snapshot_dir, slugify(name))
+                        u"{}/{}px/{}.png".format(snapshot_dir, self.window_width, slugify(name))
                     )
                     has_tooltips = self.driver.execute_script(
                         "return window.__openAllTooltips && window.__openAllTooltips()"
                     )
                     if has_tooltips:
                         self.driver.find_element_by_tag_name("body").screenshot(
-                            u"{}-tooltips/{}.png".format(snapshot_dir, slugify(name))
+                            u"{}/tooltips/{}.png".format(snapshot_dir, slugify(name))
                         )
                         self.driver.execute_script(
                             "window.__closeAllTooltips && window.__closeAllTooltips()"
@@ -340,7 +345,7 @@ class Browser(object):
             with self.mobile_viewport():
                 # switch to a mobile sized viewport
                 self.driver.find_element_by_tag_name("body").screenshot(
-                    u"{}-mobile/{}.png".format(snapshot_dir, slugify(name))
+                    u"{}/{}px/{}.png".format(snapshot_dir, self.mobile_window_width, slugify(name))
                 )
 
         return self
