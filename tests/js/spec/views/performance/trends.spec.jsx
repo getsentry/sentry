@@ -31,7 +31,7 @@ function selectTrendFunction(wrapper, field) {
 }
 
 function initializeData(projects, query) {
-  const features = ['transaction-event', 'performance-view', 'internal-catchall'];
+  const features = ['transaction-event', 'performance-view', 'trends'];
   const organization = TestStubs.Organization({
     features,
     projects,
