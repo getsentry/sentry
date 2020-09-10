@@ -22,8 +22,7 @@ def get_activity_notifiers(project):
         for notifier in safe_execute(plugin.get_notifiers, _with_transaction=False) or ():
             results.append(notifier)
 
-    if project.flags.has_issue_alerts_targeting:
-        results.append(mail_adapter)
+    results.append(mail_adapter)
 
     return results
 

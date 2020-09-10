@@ -15,26 +15,12 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
         condition_list = []
         filter_list = []
 
-        has_issue_alerts_targeting = (
-            project.flags.has_issue_alerts_targeting
-            or request.query_params.get("issue_alerts_targeting") == "1"
-        )
         # TODO: conditions need to be based on actions
         for rule_type, rule_cls in rules:
             node = rule_cls(project)
-            context = {
-                "id": node.id,
-                "label": node.label,
-                "enabled": node.is_enabled(),
-            }
+            context = {"id": node.id, "label": node.label, "enabled": node.is_enabled()}
             if hasattr(node, "prompt"):
                 context["prompt"] = node.prompt
-
-            if (
-                node.id == "sentry.mail.actions.NotifyEmailAction"
-                and not has_issue_alerts_targeting
-            ):
-                continue
 
             if hasattr(node, "form_fields"):
                 context["formFields"] = node.form_fields
