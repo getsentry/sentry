@@ -23,7 +23,6 @@ import SelectedGroupStore from 'app/stores/selectedGroupStore';
 import space from 'app/styles/space';
 import Tooltip from 'app/components/tooltip';
 import SentryTypes from 'app/sentryTypes';
-import {getRelativeSummary} from 'app/components/organizations/timeRangeSelector/utils';
 import {DEFAULT_STATS_PERIOD, MENU_CLOSE_DELAY} from 'app/constants';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
@@ -177,19 +176,11 @@ const StreamGroup = createReactClass({
       memberList,
       withChart,
       statsPeriod,
-      selection,
       organization,
     } = this.props;
 
     const hasDynamicIssueCounts = organization.features.includes('dynamic-issue-counts');
     const hasDiscoverQuery = organization.features.includes('discover-basic');
-
-    const {period, start, end} = selection.datetime || {};
-
-    const summary =
-      !!start && !!end
-        ? 'the selected period'
-        : getRelativeSummary(period || DEFAULT_STATS_PERIOD).toLowerCase();
 
     const popperStyle = {maxWidth: 'none'};
 
@@ -249,7 +240,7 @@ const StreamGroup = createReactClass({
                 {data.filtered && (
                   <tr>
                     <TooltipCount value={data.filtered.count} />
-                    <TooltipText>{t('With filters applied')}</TooltipText>
+                    <TooltipText>{t('Matching search filters')}</TooltipText>
                     {hasDiscoverQuery && (
                       <StyledIconTelescope
                         to={this.getDiscoverUrl(true)}
@@ -260,7 +251,7 @@ const StreamGroup = createReactClass({
                 )}
                 <tr>
                   <TooltipCount value={data.count} />
-                  <TooltipText>{t(`In ${summary}`)}</TooltipText>
+                  <TooltipText>{t(`Without search filters`)}</TooltipText>
                   {hasDiscoverQuery && (
                     <StyledIconTelescope
                       to={this.getDiscoverUrl()}
@@ -293,7 +284,7 @@ const StreamGroup = createReactClass({
                 {data.filtered && (
                   <tr>
                     <TooltipCount value={data.filtered.userCount} />
-                    <TooltipText>{t('With filters applied')}</TooltipText>
+                    <TooltipText>{t('Matching search filters')}</TooltipText>
                     {hasDiscoverQuery && (
                       <StyledIconTelescope
                         to={this.getDiscoverUrl(true)}
@@ -304,7 +295,7 @@ const StreamGroup = createReactClass({
                 )}
                 <tr>
                   <TooltipCount value={data.userCount} />
-                  <TooltipText>{t(`In ${summary}`)}</TooltipText>
+                  <TooltipText>{t(`Without search filters`)}</TooltipText>
                   {hasDiscoverQuery && (
                     <StyledIconTelescope
                       to={this.getDiscoverUrl()}
