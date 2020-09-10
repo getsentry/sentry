@@ -502,6 +502,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         )
         for event in events:
             prototype["event_id"] = event[0]
+            prototype["message"] = event[1]
             prototype["exception"]["values"][0]["value"] = event[1]
             prototype["exception"]["values"][0]["mechanism"]["handled"] = event[2]
             prototype["timestamp"] = self.two_min_ago
@@ -509,9 +510,9 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         with self.feature("organizations:discover-basic"):
             query = {
-                "field": ["title", "error.handled"],
+                "field": ["message", "error.handled"],
                 "query": "error.handled:0",
-                "orderby": "title",
+                "orderby": "message",
             }
             response = self.do_request(query)
             assert response.status_code == 200
@@ -520,15 +521,15 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         with self.feature("organizations:discover-basic"):
             query = {
-                "field": ["title", "error.handled"],
+                "field": ["message", "error.handled"],
                 "query": "error.handled:1",
-                "orderby": "title",
+                "orderby": "message",
             }
             response = self.do_request(query)
             assert response.status_code == 200, response.data
             assert 2 == len(response.data["data"])
-            assert [1] == response.data["data"][0]["error.handled"]
-            assert [None] == response.data["data"][1]["error.handled"]
+            assert [None] == response.data["data"][0]["error.handled"]
+            assert [1] == response.data["data"][1]["error.handled"]
 
     def test_implicit_groupby(self):
         project = self.create_project()
