@@ -18,7 +18,7 @@ import {SymbolicatorStatus} from 'app/components/events/interfaces/types';
 import {combineStatus} from 'app/components/events/interfaces/debugMeta/utils';
 import {IconRefresh, IconAdd, IconSubtract, IconQuestion, IconWarning} from 'app/icons';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
-import {Frame as FrameType, SentryAppComponent, PlatformType} from 'app/types';
+import {Frame, SentryAppComponent, PlatformType} from 'app/types';
 import DebugImage from 'app/components/events/interfaces/debugMeta/debugImage';
 
 import FrameDefaultTitle from './frameDefaultTitle';
@@ -27,15 +27,15 @@ import FrameFunctionName from './frameFunctionName';
 import {getPlatform} from './utils';
 
 type Props = {
-  data: FrameType;
-  nextFrame: FrameType;
-  prevFrame: FrameType;
+  data: Frame;
+  nextFrame: Frame;
+  prevFrame: Frame;
   platform: PlatformType;
   isExpanded: boolean;
   emptySourceNotation: boolean;
   isOnlyFrame: boolean;
   timesRepeated: number;
-  registers: Record<string, string>
+  registers: Record<string, string>;
   components: Array<SentryAppComponent>;
   showingAbsoluteAddress: boolean;
   onAddressToggle: () => void;
@@ -47,7 +47,7 @@ type State = {
   isExpanded: boolean;
 };
 
-export class Frame extends React.Component<Props, State> {
+export class FrameLine extends React.Component<Props, State> {
   static propTypes: any = {
     data: PropTypes.object.isRequired,
     nextFrame: PropTypes.object,
@@ -471,4 +471,4 @@ const LeadHint = styled('div')`
   width: 67px;
 `;
 
-export default withSentryAppComponents(Frame, {componentType: 'stacktrace-link'});
+export default withSentryAppComponents(FrameLine, {componentType: 'stacktrace-link'});
