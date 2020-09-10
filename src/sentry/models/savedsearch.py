@@ -13,6 +13,7 @@ DEFAULT_SAVED_SEARCHES = [
     {"name": "Assigned To Me", "query": "is:unresolved assigned:me"},
     {"name": "My Bookmarks", "query": "is:unresolved bookmarks:me"},
     {"name": "New Today", "query": "is:unresolved age:-24h"},
+    {"name": "Unhandled Errors", "query": "is:unresolved error.handled:0 event.type:error"},
 ]
 DEFAULT_SAVED_SEARCH_QUERIES = set(search["query"] for search in DEFAULT_SAVED_SEARCHES)
 
