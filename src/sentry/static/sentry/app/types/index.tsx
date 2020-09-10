@@ -11,6 +11,7 @@ import {
 import {WIDGET_DISPLAY} from 'app/views/dashboards/constants';
 import {Props as AlertProps} from 'app/components/alert';
 import {Query as DiscoverQuery} from 'app/views/discover/types';
+import {SymbolicatorStatus} from 'app/components/events/interfaces/types';
 
 declare global {
   interface Window {
@@ -1432,6 +1433,7 @@ export type Frame = {
   mapUrl?: string;
   instructionAddr?: string;
   trust?: string;
+  symbolicatorStatus?: SymbolicatorStatus;
 };
 
 /**

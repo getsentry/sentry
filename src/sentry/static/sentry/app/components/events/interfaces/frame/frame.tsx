@@ -27,7 +27,7 @@ import FrameFunctionName from './frameFunctionName';
 import {getPlatform} from './utils';
 
 type Props = {
-  data: FrameType & {symbolicatorStatus?: string};
+  data: FrameType;
   nextFrame: FrameType;
   prevFrame: FrameType;
   platform: PlatformType;
