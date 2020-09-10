@@ -1,9 +1,12 @@
 from __future__ import absolute_import
 
+import random
 import logging
 
-from sentry.utils.services import Service
+from sentry import options
 from sentry.tasks.post_process import post_process_group
+from sentry.utils.services import Service
+from sentry.utils.cache import cache_key_for_event
 
 
 logger = logging.getLogger(__name__)
@@ -43,13 +46,30 @@ class EventStream(Service):
         if skip_consume:
             logger.info("post_process.skip.raw_event", extra={"event_id": event.event_id})
         else:
-            post_process_group.delay(
-                event=event,
-                is_new=is_new,
-                is_regression=is_regression,
-                is_new_group_environment=is_new_group_environment,
-                primary_hash=primary_hash,
+            random_val = random.random()
+            cache_key = cache_key_for_event(
+                {"project": event.project_id, "event_id": event.event_id}
             )
+            if options.get("postprocess.use-cache-key") > random_val:
+                post_process_group.delay(
+                    event=None,
+                    is_new=is_new,
+                    is_regression=is_regression,
+                    is_new_group_environment=is_new_group_environment,
+                    primary_hash=primary_hash,
+                    cache_key=cache_key,
+                    group_id=event.group_id,
+                )
+            else:
+                # Pass the cache key here to ensure that the processing cache is removed.
+                post_process_group.delay(
+                    event=event,
+                    is_new=is_new,
+                    is_regression=is_regression,
+                    is_new_group_environment=is_new_group_environment,
+                    primary_hash=primary_hash,
+                    cache_key=cache_key,
+                )
 
     def insert(
         self,
