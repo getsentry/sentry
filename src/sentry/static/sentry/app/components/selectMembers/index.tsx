@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import debounce from 'lodash/debounce';
 import styled from '@emotion/styled';
@@ -14,7 +13,6 @@ import IdBadge from 'app/components/idBadge';
 import MemberListStore from 'app/stores/memberListStore';
 import ProjectsStore from 'app/stores/projectsStore';
 import SelectControl from 'app/components/forms/selectControl';
-import SentryTypes from 'app/sentryTypes';
 import TeamStore from 'app/stores/teamStore';
 import Tooltip from 'app/components/tooltip';
 import withApi from 'app/utils/withApi';
@@ -77,18 +75,6 @@ type FilterOption<T> = {
  * A component that allows you to select either members and/or teams
  */
 class SelectMembers extends React.Component<Props, State> {
-  static propTypes: any = {
-    project: SentryTypes.Project,
-    organization: SentryTypes.Organization,
-    value: PropTypes.string,
-    onChange: PropTypes.func.isRequired,
-    onInputChange: PropTypes.func,
-    disabled: PropTypes.bool,
-    styles: PropTypes.shape({
-      control: PropTypes.func,
-    }),
-  };
-
   state: State = {
     loading: false,
     inputValue: '',
