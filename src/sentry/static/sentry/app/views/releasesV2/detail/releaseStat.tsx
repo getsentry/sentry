@@ -34,13 +34,14 @@ const Label = styled('div')<{hasHelp: boolean}>`
   line-height: 1.3;
   margin-bottom: ${space(0.25)};
   white-space: nowrap;
-  padding-right: ${p =>
-    p.hasHelp ? `calc(${space(0.25)} + ${p.theme.iconSizes.xs})` : '0'};
+  display: flex;
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    justify-content: flex-end;
+  }
 `;
 
 const StyledQuestionTooltip = styled(QuestionTooltip)`
   margin-left: ${space(0.5)};
-  position: absolute;
 `;
 
 const Value = styled('div')`
