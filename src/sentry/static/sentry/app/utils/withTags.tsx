@@ -7,7 +7,7 @@ import TagStore from 'app/stores/tagStore';
 import {TagCollection} from 'app/types';
 
 type InjectedTagsProps = {
-  tags: TagCollection;
+  tags?: TagCollection;
 };
 
 type State = {

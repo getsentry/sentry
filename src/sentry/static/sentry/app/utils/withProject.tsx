@@ -5,7 +5,7 @@ import getDisplayName from 'app/utils/getDisplayName';
 import {Project} from 'app/types';
 
 type InjectedProjectProps = {
-  project: Project;
+  project?: Project;
 };
 
 /**

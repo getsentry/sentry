@@ -8,7 +8,7 @@ import {OrganizationSummary} from 'app/types';
 
 type InjectedOrganizationsProps = {
   organizationsLoading?: boolean;
-  organizations: OrganizationSummary[];
+  organizations?: OrganizationSummary[];
 };
 
 type State = {

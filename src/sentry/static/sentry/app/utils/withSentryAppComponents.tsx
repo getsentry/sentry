@@ -9,7 +9,7 @@ import SentryAppComponentsStore from 'app/stores/sentryAppComponentsStore';
 type Component = {};
 
 type InjectedAppComponentsProps = {
-  components: Component[];
+  components?: Component[];
 };
 
 type State = {

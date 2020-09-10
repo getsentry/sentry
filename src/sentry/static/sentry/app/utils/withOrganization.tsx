@@ -5,7 +5,7 @@ import getDisplayName from 'app/utils/getDisplayName';
 import {Organization, LightWeightOrganization} from 'app/types';
 
 type InjectedOrganizationProps = {
-  organization: Organization | LightWeightOrganization;
+  organization?: Organization | LightWeightOrganization;
 };
 
 const withOrganization = <P extends InjectedOrganizationProps>(

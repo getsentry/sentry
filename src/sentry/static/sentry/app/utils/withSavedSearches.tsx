@@ -7,9 +7,9 @@ import getDisplayName from 'app/utils/getDisplayName';
 import {SavedSearch} from 'app/types';
 
 type InjectedSavedSearchesProps = {
-  savedSearches: SavedSearch[];
-  savedSearchLoading: boolean;
-  savedSearch: SavedSearch | null;
+  savedSearches?: SavedSearch[];
+  savedSearchLoading?: boolean;
+  savedSearch?: SavedSearch | null;
 };
 
 type State = {
