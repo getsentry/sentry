@@ -19,6 +19,7 @@ class Main extends React.Component {
       <CacheProvider value={cache}>
         <ThemeProvider theme={theme}>
           <GlobalStyles theme={theme} />
+          Hello
           <Router history={browserHistory}>{routes()}</Router>
         </ThemeProvider>
       </CacheProvider>
