@@ -37,7 +37,6 @@ type Config = {
   default: string;
   readonly: boolean;
   type: FieldType;
-  has_autocomplete: boolean;
   choices: Array<[number | string, number | string]>;
 };
 
