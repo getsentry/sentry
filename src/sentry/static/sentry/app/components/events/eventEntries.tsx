@@ -262,7 +262,7 @@ class EventEntries extends React.Component<Props> {
             location={location}
           />
         )}
-        {!objectIsEmpty(event.sdk) && <EventSdk sdk={event.sdk} />}
+        {event && !objectIsEmpty(event.sdk) && <EventSdk sdk={event.sdk} />}
         {!isShare && event && event.sdkUpdates && event.sdkUpdates.length > 0 && (
           <EventSdkUpdates event={event} />
         )}
