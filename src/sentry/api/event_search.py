@@ -269,7 +269,15 @@ class SearchVisitor(NodeVisitor):
     # A list of mappers that map source keys to a target name. Format is
     # <target_name>: [<list of source names>],
     key_mappings = {}
-    duration_keys = set(["transaction.duration"])
+    duration_keys = set(
+        [
+            "transaction.duration",
+            "measurements.fp",
+            "measurements.fcp",
+            "measurements.lcp",
+            "measurements.fid",
+        ]
+    )
     numeric_keys = set(
         [
             "project_id",
@@ -287,6 +295,10 @@ class SearchVisitor(NodeVisitor):
             "p99",
             "failure_rate",
             "user_misery",
+            "measurements.fp",
+            "measurements.fcp",
+            "measurements.lcp",
+            "measurements.fid",
         ]
     )
     date_keys = set(
@@ -1316,7 +1328,13 @@ class DurationColumn(FunctionArg):
         snuba_column = SEARCH_MAP.get(value)
         if not snuba_column:
             raise InvalidFunctionArgument(u"{} is not a valid column".format(value))
-        elif snuba_column != "duration":
+        elif snuba_column not in [
+            "duration",
+            "measurements.fp",
+            "measurements.fcp",
+            "measurements.lcp",
+            "measurements.fid",
+        ]:
             raise InvalidFunctionArgument(u"{} is not a duration column".format(value))
         return snuba_column
 

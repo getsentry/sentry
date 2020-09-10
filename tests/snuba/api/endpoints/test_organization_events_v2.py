@@ -2474,3 +2474,23 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                     response.data["detail"]
                     == "You can view up to 20 fields at a time. Please delete some and try again."
                 )
+
+    def test_measurements_query(self):
+        data = load_data("transaction")
+        # data["measurements"] = {"fp": 0.4}
+        self.store_event(data, self.project.id)
+        query = {"field": ["measurements.fp", "p50()"]}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["measurements.fp"] == 0.4
+
+    def test_measurements_quantile(self):
+        data = load_data("transaction")
+        # data["measurements"] = {"fcp": 0.5}
+        self.store_event(data, self.project.id)
+        query = {"field": ["percentile(measurements.fcp, 0.5)"]}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["percentile_measurements_fcp_0_5"] == 0.5
