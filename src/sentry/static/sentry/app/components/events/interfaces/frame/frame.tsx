@@ -48,7 +48,7 @@ type State = {
 };
 
 export class Frame extends React.Component<Props, State> {
-  static propTypes = {
+  static propTypes: any = {
     data: PropTypes.object.isRequired,
     nextFrame: PropTypes.object,
     prevFrame: PropTypes.object,
@@ -194,7 +194,7 @@ export class Frame extends React.Component<Props, State> {
     const {symbolicatorStatus} = this.props.data;
     const func = this.props.data.function || '<unknown>';
     // Custom color used to match adjacent text.
-    const warningIcon = <IconQuestion size="xs" color="#2c45a8" />;
+    const warningIcon = <IconQuestion size="xs" color={'#2c45a8' as any} />;
     const errorIcon = <IconWarning size="xs" color="red400" />;
 
     if (func.match(/^@objc\s/)) {

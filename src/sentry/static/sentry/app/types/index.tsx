@@ -1431,6 +1431,7 @@ export type Frame = {
   origAbsPath?: string;
   mapUrl?: string;
   instructionAddr?: string;
+  trust?: string;
 };
 
 /**
