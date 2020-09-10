@@ -64,6 +64,3 @@ class EventIdLookupEndpointTest(APITestCase, SnubaTestCase):
         resp = self.client.get(url, format="json")
 
         assert resp.status_code == 429
-        assert resp.data == {
-            "detail": "You are attempting to use this endpoint too quickly. Limit is 100 requests/second."
-        }
