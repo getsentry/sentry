@@ -37,7 +37,7 @@ class OrganizationEventsTrendsEndpointTest(APITestCase, SnubaTestCase):
             self.store_event(data, project_id=self.project.id)
 
     def test_simple(self):
-        with self.feature("organizations:internal-catchall"):
+        with self.feature("organizations:trends"):
             url = reverse(
                 "sentry-api-0-organization-events-trends",
                 kwargs={"organization_slug": self.project.organization.slug},
@@ -80,7 +80,7 @@ class OrganizationEventsTrendsEndpointTest(APITestCase, SnubaTestCase):
         ]
 
     def test_avg_trend_function(self):
-        with self.feature("organizations:internal-catchall"):
+        with self.feature("organizations:trends"):
             url = reverse(
                 "sentry-api-0-organization-events-trends",
                 kwargs={"organization_slug": self.project.organization.slug},
@@ -124,7 +124,7 @@ class OrganizationEventsTrendsEndpointTest(APITestCase, SnubaTestCase):
         ]
 
     def test_misery_trend_function(self):
-        with self.feature("organizations:internal-catchall"):
+        with self.feature("organizations:trends"):
             url = reverse(
                 "sentry-api-0-organization-events-trends",
                 kwargs={"organization_slug": self.project.organization.slug},
@@ -168,7 +168,7 @@ class OrganizationEventsTrendsEndpointTest(APITestCase, SnubaTestCase):
         ]
 
     def test_invalid_trend_function(self):
-        with self.feature("organizations:internal-catchall"):
+        with self.feature("organizations:trends"):
             url = reverse(
                 "sentry-api-0-organization-events-trends",
                 kwargs={"organization_slug": self.project.organization.slug},
@@ -188,7 +188,7 @@ class OrganizationEventsTrendsEndpointTest(APITestCase, SnubaTestCase):
             assert response.status_code == 400
 
     def test_divide_by_zero(self):
-        with self.feature("organizations:internal-catchall"):
+        with self.feature("organizations:trends"):
             url = reverse(
                 "sentry-api-0-organization-events-trends",
                 kwargs={"organization_slug": self.project.organization.slug},
@@ -268,7 +268,7 @@ class OrganizationEventsTrendsPagingTest(APITestCase, SnubaTestCase):
         return links
 
     def test_pagination(self):
-        with self.feature("organizations:internal-catchall"):
+        with self.feature("organizations:trends"):
             url = reverse(
                 "sentry-api-0-organization-events-trends",
                 kwargs={"organization_slug": self.project.organization.slug},
@@ -301,7 +301,7 @@ class OrganizationEventsTrendsPagingTest(APITestCase, SnubaTestCase):
             assert len(response.data["events"]["data"]) == 5
 
     def test_pagination_with_query(self):
-        with self.feature("organizations:internal-catchall"):
+        with self.feature("organizations:trends"):
             url = reverse(
                 "sentry-api-0-organization-events-trends",
                 kwargs={"organization_slug": self.project.organization.slug},

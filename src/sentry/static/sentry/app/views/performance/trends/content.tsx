@@ -73,7 +73,7 @@ class TrendsContent extends React.Component<Props, State> {
 
     const query = getTransactionSearchQuery(location);
     return (
-      <Feature features={['internal-catchall']}>
+      <Feature features={['trends']}>
         <StyledSearchContainer>
           <StyledSearchBar
             organization={organization}
