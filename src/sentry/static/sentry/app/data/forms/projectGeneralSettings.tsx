@@ -205,17 +205,20 @@ export const fields: Record<string, Field> = {
         <div style={{marginBottom: 3}}>
           {tct(
             `This can be used to enhance the grouping algorithm with custom rules.
-        Rules follow the pattern [pattern].`,
+        Rules follow the pattern [pattern]. [docs:Read the docs] for more information.`,
             {
               pattern: <code>matcher:glob [^v]?[+-]flag</code>,
+              docs: (
+                <a href="https://docs.sentry.io/platform-redirect/?next=%2Fdata-management%2Fevent-grouping%2Fgrouping-enhancements%2F" />
+              ),
             }
           )}
         </div>
         <pre>
           {'# remove all frames above a certain function from grouping\n' +
-            'function:panic_handler      ^-group\n' +
+            'stack.function:panic_handler      ^-group\n' +
             '# mark all functions following a prefix in-app\n' +
-            'function:mylibrary_*        +app\n'}
+            'stack.function:mylibrary_*        +app\n'}
         </pre>
       </React.Fragment>
     ),
@@ -227,7 +230,7 @@ export const fields: Record<string, Field> = {
     type: 'string',
     label: t('Server Side Fingerprinting'),
     placeholder: t(
-      'type:MyException -> fingerprint-value\nfunction:some_panic_function -> fingerprint-value'
+      'error.type:MyException -> fingerprint-value\nstack.function:some_panic_function -> fingerprint-value'
     ),
     multiline: true,
     monospace: true,
@@ -243,17 +246,20 @@ export const fields: Record<string, Field> = {
         <div style={{marginBottom: 3}}>
           {tct(
             `This can be used to modify the fingerprinting rules on the server with custom rules.
-        Rules follow the pattern [pattern].`,
+        Rules follow the pattern [pattern]. [docs:Read the docs] for more information.`,
             {
               pattern: <code>matcher:glob -> fingerprint, values</code>,
+              docs: (
+                <a href="https://docs.sentry.io/platform-redirect/?next=%2Fdata-management%2Fevent-grouping%2Fserver-side-fingerprinting%2F" />
+              ),
             }
           )}
         </div>
         <pre>
           {'# force all errors of the same type to have the same fingerprint\n' +
-            'type:DatabaseUnavailable -> system-down\n' +
+            'error.type:DatabaseUnavailable -> system-down\n' +
             '# force all memory allocation errors to be grouped together\n' +
-            'family:native function:malloc -> memory-allocation-error\n'}
+            'stack.function:malloc -> memory-allocation-error\n'}
         </pre>
       </React.Fragment>
     ),
