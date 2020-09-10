@@ -263,12 +263,14 @@ class ReleaseSerializer(Serializer):
             first_seen, last_seen, issue_counts_by_release = self.__get_release_data_no_environment(
                 project, item_list
             )
+            environments = None
         else:
             (
                 first_seen,
                 last_seen,
                 issue_counts_by_release,
             ) = self.__get_release_data_with_environment(project, item_list, environment)
+            environments = [environment]
 
         owners = {
             d["id"]: d for d in serialize(set(i.owner for i in item_list if i.owner_id), user)
@@ -300,6 +302,7 @@ class ReleaseSerializer(Serializer):
                 [(pr["project__id"], pr["release__version"]) for pr in project_releases],
                 health_stats_period=health_stats_period,
                 summary_stats_period=summary_stats_period,
+                environments=environments,
                 stat=health_stat,
             )
         else:
