@@ -108,7 +108,7 @@ export default function getConfiguration({
       items: [
         {
           path: `${pathPrefix}/install/`,
-          title: t('Error Tracking'),
+          title: t('Instrumentation'),
         },
         {
           path: `${pathPrefix}/keys/`,
