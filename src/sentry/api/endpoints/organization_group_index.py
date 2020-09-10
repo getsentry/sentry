@@ -15,7 +15,7 @@ from sentry.api.helpers.group_index import (
     build_query_params_from_request,
     delete_groups,
     get_by_short_id,
-    rate_limit_issue_endpoint,
+    rate_limit_endpoint,
     update_groups,
     ValidationError,
 )
@@ -62,7 +62,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         result = search.query(**query_kwargs)
         return result, query_kwargs
 
-    @rate_limit_issue_endpoint(limit=10, window=1)
+    @rate_limit_endpoint(limit=10, window=1)
     def get(self, request, organization):
         """
         List an Organization's Issues
@@ -104,22 +104,6 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                                           issues belong to.
         :auth: required
         """
-        # if ratelimiter.is_limited(
-        #     u"api:group-index-get:{}".format(
-        #         md5_text(
-        #             request.user.id if request.user else ""
-        #         ).hexdigest()
-        #     ),
-        #     limit=1,
-        #     window=1,
-        # ):
-        #     return Response(
-        #         {
-        #             "detail": "You are attempting to use this endpoint too quickly. Limit is 1 request per second."
-        #         },
-        #         status=429,
-        #     )
-
         stats_period = request.GET.get("groupStatsPeriod")
         if stats_period not in (None, "", "24h", "14d"):
             return Response({"detail": ERR_INVALID_STATS_PERIOD}, status=400)
@@ -260,7 +244,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         # TODO(jess): add metrics that are similar to project endpoint here
         return response
 
-    @rate_limit_issue_endpoint(limit=10, window=1)
+    @rate_limit_endpoint(limit=10, window=1)
     def put(self, request, organization):
         """
         Bulk Mutate a List of Issues
@@ -322,22 +306,6 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                                      the bookmark flag.
         :auth: required
         """
-        # if ratelimiter.is_limited(
-        #     u"api:group-index-put:{}".format(
-        #         md5_text(
-        #             request.user.id if request.user else ""
-        #         ).hexdigest()
-        #     ),
-        #     limit=1,
-        #     window=1,
-        # ):
-        #     return Response(
-        #         {
-        #             "detail": "You are attempting to use this endpoint too quickly. Limit is 1 request per second."
-        #         },
-        #         status=429,
-        #     )
-
         projects = self.get_projects(request, organization)
         if len(projects) > 1 and not features.has(
             "organizations:global-views", organization, actor=request.user
@@ -355,7 +323,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         )
         return update_groups(request, projects, organization.id, search_fn)
 
-    @rate_limit_issue_endpoint(limit=10, window=1)
+    @rate_limit_endpoint(limit=10, window=1)
     def delete(self, request, organization):
         """
         Bulk Remove a List of Issues
@@ -376,21 +344,6 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                                           issues belong to.
         :auth: required
         """
-        # if ratelimiter.is_limited(
-        #     u"api:group-index-delete:{}".format(
-        #         md5_text(
-        #             request.user.id if request.user else ""
-        #         ).hexdigest()
-        #     ),
-        #     limit=1,
-        #     window=1,
-        # ):
-        #     return Response(
-        #         {
-        #             "detail": "You are attempting to use this endpoint too quickly. Limit is 1 request per second."
-        #         },
-        #         status=429,
-        #     )
         projects = self.get_projects(request, organization)
         if len(projects) > 1 and not features.has(
             "organizations:global-views", organization, actor=request.user

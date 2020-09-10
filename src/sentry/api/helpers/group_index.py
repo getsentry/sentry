@@ -457,12 +457,12 @@ def track_update_groups(function):
     return wrapper
 
 
-def rate_limit_issue_endpoint(limit=1, window=1):
+def rate_limit_endpoint(limit=1, window=1):
     def inner(function):
-        def wrapper(request, *args, **kwargs):
+        def wrapper(*args, **kwargs):
             try:
                 if ratelimiter.is_limited(
-                    u"api:issue-endpoint:{}".format(md5_text(function).hexdigest()),
+                    u"rate_limit_endpoint:{}".format(md5_text(function).hexdigest()),
                     limit=limit,
                     window=window,
                 ):
@@ -471,7 +471,7 @@ def rate_limit_issue_endpoint(limit=1, window=1):
                         status=429,
                     )
                 else:
-                    return function(request, *args, **kwargs)
+                    return function(*args, **kwargs)
             except Exception:
                 raise
 
