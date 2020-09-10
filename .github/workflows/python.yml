@@ -108,10 +108,17 @@ jobs:
           # Below will exit with non-zero status if model changes are missing migrations
           sentry django makemigrations -n ci_test --check --dry-run --no-input || (echo '::error::Error: Migration required -- to generate a migration, run `sentry django makemigrations -n <some_name>`' && exit 1)
 
-  test-py3:
-    name: 'py3 [ignore fails]'
+  # TODO(joshuarli):
+  # More jobs. Also, python2 equivalents as well.
+  # - kakfa+zookeeper devservices necessary for what test suites?
+  # - MIGRATIONS_TEST_MIGRATE=1
+  # - TEST_SUITE=relay-integration
+  # - TEST_SUITE=symbolicator
+  # - TEST_SUITE=cli
+
+  test-py3-simple-no-migrations:
+    name: '(required) python3.6 backend (simple, no migrations)'
     runs-on: ubuntu-16.04
-    continue-on-error: true
     strategy:
       matrix:
         instance: [0, 1, 2, 3]
@@ -193,14 +200,7 @@ jobs:
           sentry init
           sentry devservices up postgres redis clickhouse snuba
 
-      # When we have a full backend test matrix for py3, make a py2 one with new rb as well.
-      # TODO(joshuarli):
-      # - kakfa+zookeeper devservices necessary for what test suites?
-      # - MIGRATIONS_TEST_MIGRATE=1
-      # - TEST_SUITE=relay-integration
-      # - TEST_SUITE=symbolicator
-      # - TEST_SUITE=cli
-      - name: Python 3.6 backend w/o migrations (${{ steps.config.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
+      - name: Test shard (${{ steps.config.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
         if: always()
         run: |
           make travis-test-postgres
