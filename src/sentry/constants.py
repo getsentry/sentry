@@ -82,7 +82,7 @@ SENTRY_APP_SLUG_MAX_LENGTH = 64
 
 # Maximum number of results we are willing to fetch when calculating rollup
 # Clients should adapt the interval width based on their display width.
-MAX_ROLLUP_POINTS = 4500
+MAX_ROLLUP_POINTS = 10000
 
 
 # Team slugs which may not be used. Generally these are top level URL patterns
