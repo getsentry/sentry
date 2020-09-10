@@ -1,9 +1,10 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
-import ActivityItem from 'app/components/activity/item';
-import SentryTypes from 'app/sentryTypes';
+import {ActivityType} from 'app/views/alerts/types';
+import {User} from 'app/types';
+import {NoteType} from 'app/types/alerts';
+import ActivityItem, {ActivityAuthorType} from 'app/components/activity/item';
 import space from 'app/styles/space';
 
 import EditorTools from './editorTools';
@@ -11,42 +12,57 @@ import NoteBody from './body';
 import NoteHeader from './header';
 import NoteInput from './input';
 
-class Note extends React.Component {
-  static propTypes = {
-    // String for author name to be displayed in header
-    // This is not completely derived from `props.user` because we can set a default from parent component
-    authorName: PropTypes.string.isRequired,
+type Props = {
+  /**
+   * String for author name to be displayed in header
+   * This is not completely derived from `props.user` because we can set a default from parent component
+   */
+  authorName: string;
+  /**
+   * This is the id of the note object from the server
+   * This is to indicate you are editing an existing item
+   */
+  modelId: string;
+  /**
+   * The note text itself
+   */
+  text: string;
+  user: User;
+  dateCreated: Date | string;
+  /**
+   * pass through to ActivityItem
+   * shows absolute time instead of a relative string
+   */
+  showTime: boolean;
+  /**
+   * min-height for NoteInput textarea
+   */
+  minHeight: number;
+  /**
+   * If used, will fetch list of teams/members that can be mentioned for projects
+   */
+  projectSlugs: string[];
+  onUpdate: (data: NoteType, props: Props) => void;
+  onDelete: (props: Props) => void;
+  onCreate?: (data: NoteType) => void;
+  /**
+   * This is unusual usage that Alert Details uses to get
+   * back the activity that an input was bound to as the onUpdate and onDelete
+   * actions forward this component's props.
+   */
+  activity?: ActivityType;
+  /**
+   * pass through to ActivityItem
+   * hides the date/timestamp in header
+   */
+  hideDate?: boolean;
+};
 
-    // This is the id of the note object from the server
-    // This is to indicate you are editing an existing item
-    modelId: PropTypes.string,
+type State = {
+  editing: boolean;
+};
 
-    // The note text itself
-    text: PropTypes.string.isRequired,
-
-    user: SentryTypes.User,
-
-    dateCreated: PropTypes.oneOfType([PropTypes.instanceOf(Date), PropTypes.string]),
-
-    // pass through to ActivityItem
-    // shows absolute time instead of a relative string
-    showTime: PropTypes.bool,
-
-    // pass through to ActivityItem
-    // hides the date/timestamp in header
-    hideDate: PropTypes.bool,
-
-    // min-height for NoteInput textarea
-    minHeight: PropTypes.number,
-
-    // If used, will fetch list of teams/members that can be mentioned for projects
-    projectSlugs: PropTypes.arrayOf(PropTypes.string),
-
-    onDelete: PropTypes.func,
-    onCreate: PropTypes.func,
-    onUpdate: PropTypes.func,
-  };
-
+class Note extends React.Component<Props, State> {
   state = {
     editing: false,
   };
@@ -65,13 +81,15 @@ class Note extends React.Component {
     onDelete(this.props);
   };
 
-  handleCreate = note => {
+  handleCreate = (note: NoteType) => {
     const {onCreate} = this.props;
 
-    onCreate(note);
+    if (onCreate) {
+      onCreate(note);
+    }
   };
 
-  handleUpdate = note => {
+  handleUpdate = (note: NoteType) => {
     const {onUpdate} = this.props;
 
     onUpdate(note, this.props);
@@ -95,7 +113,10 @@ class Note extends React.Component {
       hideDate,
       showTime,
       id: `activity-item-${modelId}`,
-      author: {type: 'user', user},
+      author: {
+        type: 'user' as ActivityAuthorType,
+        user,
+      },
       date: dateCreated,
     };
 
