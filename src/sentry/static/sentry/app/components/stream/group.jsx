@@ -350,6 +350,7 @@ const PrimaryCount = styled(Count)`
 `;
 
 const SecondaryCount = styled(({value, ...p}) => <Count {...p} value={value} />)`
+  position: absolute;
   font-size: ${p => p.theme.fontSizeExtraLarge};
   color: ${p => p.theme.gray500};
 
