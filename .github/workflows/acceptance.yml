@@ -161,6 +161,12 @@ jobs:
             restore-keys: |
               ${{ runner.os }}-yarn-
 
+        - uses: actions/cache@v1
+          id: node-modules-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
+          with:
+            path: node_modules
+            key: node-modules-${{ runner.os }}-${{ github.head_ref }}-${{ hashFiles('yarn.lock') }}
+
         # setup python
         - name: Set up Python ${{ steps.config.outputs.python-version }}
           uses: actions/setup-python@v1
