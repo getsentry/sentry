@@ -1,15 +1,33 @@
 import uniqBy from 'lodash/uniqBy';
-import PropTypes from 'prop-types';
 import React from 'react';
-import Reflux from 'reflux';
 
 import MemberListStore from 'app/stores/memberListStore';
 import Projects from 'app/utils/projects';
-import SentryTypes from 'app/sentryTypes';
+import {callIfFunction} from 'app/utils/callIfFunction';
+import {isRenderFunc} from 'app/utils/isRenderFunc';
 import withOrganization from 'app/utils/withOrganization';
+import {User, Project, Organization} from 'app/types';
 
-const buildUserId = id => `user:${id}`;
-const buildTeamId = id => `team:${id}`;
+import {Mentionable} from './types';
+
+const buildUserId = (id: string) => `user:${id}`;
+const buildTeamId = (id: string) => `team:${id}`;
+
+type ChildFuncProps = {
+  members: Mentionable[];
+  teams: Mentionable[];
+};
+
+type Props = {
+  me: User;
+  organization: Organization;
+  projectSlugs: string[];
+  children: (props: ChildFuncProps) => React.ReactNode;
+};
+
+type State = {
+  members: User[];
+};
 
 /**
  * Make sure the actionCreator, `fetchOrgMembers`, has been called somewhere
@@ -17,30 +35,22 @@ const buildTeamId = id => `team:${id}`;
  *
  * Will provide a list of users and teams that can be used for @-mentions
  * */
-class Mentionables extends React.PureComponent {
-  static propTypes = {
-    me: SentryTypes.User,
-    organization: SentryTypes.Organization.isRequired,
-    projectSlugs: PropTypes.arrayOf(PropTypes.string),
-  };
-
-  state = {
+class Mentionables extends React.PureComponent<Props, State> {
+  state: State = {
     members: MemberListStore.getAll(),
   };
 
-  componentDidMount() {
-    this.membersStoreMixin = Reflux.listenTo(
-      MemberListStore,
-      this.handleMemberListUpdate
-    );
-    this.membersStoreMixin.componentDidMount();
-  }
-
   componentWillUnmount() {
-    this.membersStoreMixin.componentWillUnmount();
+    this.listeners.forEach(callIfFunction);
   }
 
-  handleMemberListUpdate = members => {
+  listeners = [
+    MemberListStore.listen((users: User[]) => {
+      this.handleMemberListUpdate(users);
+    }, undefined),
+  ];
+
+  handleMemberListUpdate = (members: User[]) => {
     if (members === this.state.members) {
       return;
     }
@@ -50,7 +60,7 @@ class Mentionables extends React.PureComponent {
     });
   };
 
-  getMemberList = (memberList, sessionUser) => {
+  getMemberList(memberList: User[], sessionUser: User): Mentionable[] {
     const members = uniqBy(memberList, ({id}) => id).filter(
       ({id}) => !sessionUser || sessionUser.id !== id
     );
@@ -59,9 +69,9 @@ class Mentionables extends React.PureComponent {
       display: member.name,
       email: member.email,
     }));
-  };
+  }
 
-  getTeams = projects => {
+  getTeams(projects: Project[]): Mentionable[] {
     const uniqueTeams = uniqBy(
       projects
         .map(({teams}) => teams)
@@ -74,14 +84,17 @@ class Mentionables extends React.PureComponent {
       display: `#${team.slug}`,
       email: team.id,
     }));
-  };
+  }
 
   renderChildren = ({projects}) => {
     const {children, me} = this.props;
-    return children({
-      members: this.getMemberList(this.state.members, me),
-      teams: this.getTeams(projects),
-    });
+    if (isRenderFunc<ChildFuncProps>(children)) {
+      return children({
+        members: this.getMemberList(this.state.members, me),
+        teams: this.getTeams(projects),
+      });
+    }
+    return null;
   };
 
   render() {
