@@ -91,7 +91,7 @@ export function sortArray<T>(arr: Array<T>, score_fn: (entry: T) => string): Arr
   return arr;
 }
 
-export function objectIsEmpty(obj?: object): boolean {
+export function objectIsEmpty(obj = {}): boolean {
   for (const prop in obj) {
     if (obj.hasOwnProperty(prop)) {
       return false;

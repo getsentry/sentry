@@ -63,16 +63,16 @@ const defaultProps = {
 };
 
 // Custom shape because shared view doesn't get id.
-type EventEntriesOrganization = {
-  id?: string;
+type SharedViewOrganization = {
   slug: string;
+  id?: string;
   features?: Array<string>;
 };
 
 type Props = {
   // This is definitely required because this component would crash if
   // organization were undefined.
-  organization: EventEntriesOrganization;
+  organization: SharedViewOrganization;
 
   event: Event;
   group?: Group;
@@ -231,7 +231,7 @@ class EventEntries extends React.Component<Props> {
               projectId={project.slug}
             />
           ))}
-        {event && event.userReport && group && (
+        {event?.userReport && group && (
           <StyledEventUserFeedback
             report={event.userReport}
             orgId={organization.slug}
@@ -262,11 +262,11 @@ class EventEntries extends React.Component<Props> {
             location={location}
           />
         )}
-        {event && !objectIsEmpty(event.sdk) && <EventSdk sdk={event.sdk} />}
-        {!isShare && event && event.sdkUpdates && event.sdkUpdates.length > 0 && (
+        {event?.sdk && !objectIsEmpty(event.sdk) && <EventSdk sdk={event.sdk} />}
+        {!isShare && event?.sdkUpdates && event.sdkUpdates.length > 0 && (
           <EventSdkUpdates event={event} />
         )}
-        {!isShare && event && event.groupID && (
+        {!isShare && event?.groupID && (
           <EventGroupingInfo
             projectId={project.slug}
             event={event}
@@ -308,9 +308,8 @@ const BorderlessEventEntries = styled(EventEntries)`
   }
 `;
 
-type StyledEventUserFeedbackProps = React.ComponentProps<typeof EventUserFeedback> & {
+type StyledEventUserFeedbackProps = {
   includeBorder: boolean;
-  theme?: any;
 };
 
 const StyledEventUserFeedback = styled(EventUserFeedback)<StyledEventUserFeedbackProps>`
@@ -322,6 +321,6 @@ const StyledEventUserFeedback = styled(EventUserFeedback)<StyledEventUserFeedbac
   margin: 0;
 `;
 
-// TODO(ts): any required due to our use of EventEntriesOrganization
+// TODO(ts): any required due to our use of SharedViewOrganization
 export default withOrganization<any>(EventEntries);
 export {BorderlessEventEntries};
