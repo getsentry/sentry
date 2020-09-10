@@ -201,9 +201,8 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         :auth: required
         """
         try:
-            from sentry.utils import snuba
-
             # TODO(dcramer): handle unauthenticated/public response
+            from sentry.utils import snuba
 
             organization = group.project.organization
             environments = get_environments(request, organization)
