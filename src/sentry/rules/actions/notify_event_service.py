@@ -26,9 +26,16 @@ logger = logging.getLogger("sentry.integrations.sentry_app")
 
 
 def build_incident_attachment(incident, metric_value=None):
+    from sentry.api.serializers.rest_framework.base import (
+        camel_to_snake_case,
+        convert_dict_key_case,
+    )
+
     data = incident_attachment_info(incident, metric_value)
     return {
-        "metric_alert": serialize(incident, serializer=IncidentSerializer()),
+        "metric_alert": convert_dict_key_case(
+            serialize(incident, serializer=IncidentSerializer()), camel_to_snake_case
+        ),
         "text": data["text"],
         "title": data["title"],
         "url": data["title_link"],
