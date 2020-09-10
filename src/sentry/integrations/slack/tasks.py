@@ -58,18 +58,7 @@ class RedisRuleStatus(object):
 
 
 @instrumented_task(name="sentry.integrations.slack.search_channel_id", queue="integrations")
-def find_channel_id_for_rule(
-    name,
-    environment,
-    project,
-    action_match,
-    filter_match,
-    conditions,
-    actions,
-    frequency,
-    uuid,
-    rule_id=None,
-):
+def find_channel_id_for_rule(project, actions, uuid, rule_id=None, **kwargs):
     redis_rule_status = RedisRuleStatus(uuid)
 
     try:
@@ -118,16 +107,8 @@ def find_channel_id_for_rule(
                 action["channel_id"] = item_id
                 break
 
-        kwargs = {
-            "name": name,
-            "environment": environment,
-            "project": project,
-            "action_match": action_match,
-            "filter_match": filter_match,
-            "conditions": conditions,
-            "actions": actions,
-            "frequency": frequency,
-        }
+        kwargs["actions"] = actions
+        kwargs["project"] = project
 
         if rule_id:
             rule = Rule.objects.get(id=rule_id)
