@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from django.db.models.signals import post_save, pre_delete
+from django.db.models.signals import post_save, post_delete, pre_delete
 
 from sentry import tagstore
 from sentry.api.serializers.models.project import bulk_fetch_project_latest_releases
@@ -31,11 +31,13 @@ class LatestReleaseFilter(EventFilter):
     def get_latest_release(self, event):
         cache_key = get_project_release_cache_key(event.group.project_id)
         latest_release = cache.get(cache_key)
-        if not latest_release:
+        if latest_release is None:
             latest_releases = bulk_fetch_project_latest_releases([event.group.project])
             if latest_releases:
                 cache.set(cache_key, latest_releases[0], 600)
                 return latest_releases[0]
+            else:
+                cache.set(cache_key, False, 600)
         return latest_release
 
     def passes(self, event, state):
@@ -60,4 +62,4 @@ post_save.connect(clear_release_cache, sender=Release, weak=False)
 pre_delete.connect(clear_release_cache, sender=Release, weak=False)
 
 post_save.connect(clear_release_project_cache, sender=ReleaseProject, weak=False)
-pre_delete.connect(clear_release_project_cache, sender=ReleaseProject, weak=False)
+post_delete.connect(clear_release_project_cache, sender=ReleaseProject, weak=False)
