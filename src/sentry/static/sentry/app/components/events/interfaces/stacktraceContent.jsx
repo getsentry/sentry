@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import Frame from 'app/components/events/interfaces/frame/frame';
+import FrameLine from 'app/components/events/interfaces/frame/frameLine';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import {parseAddress, getImageRange} from 'app/components/events/interfaces/utils';
@@ -127,7 +127,7 @@ export default class StacktraceContent extends React.Component {
         const image = this.findImageForAddress(frame.instructionAddr);
 
         frames.push(
-          <Frame
+          <FrameLine
             key={frameIdx}
             data={frame}
             isExpanded={expandFirstFrame && lastFrameIdx === frameIdx}
