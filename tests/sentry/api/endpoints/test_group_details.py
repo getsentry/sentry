@@ -306,7 +306,10 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
     )
     def test_ratelimit(self, is_limited):
         self.login_as(user=self.user)
-        self.get_valid_response(sort_by="date", limit=1, status_code=429)
+        group = self.create_group()
+        url = u"/api/0/issues/{}/".format(group.id)
+        response = self.client.get(url, sort_by="date", limit=1)
+        assert response.status_code == 429
 
 
 class GroupUpdateTest(APITestCase):
@@ -601,7 +604,10 @@ class GroupUpdateTest(APITestCase):
     )
     def test_ratelimit(self, is_limited):
         self.login_as(user=self.user)
-        self.get_valid_response(sort_by="date", limit=1, status_code=429)
+        group = self.create_group()
+        url = u"/api/0/issues/{}/".format(group.id)
+        response = self.client.put(url, sort_by="date", limit=1)
+        assert response.status_code == 429
 
 
 class GroupDeleteTest(APITestCase):
@@ -640,4 +646,7 @@ class GroupDeleteTest(APITestCase):
     )
     def test_ratelimit(self, is_limited):
         self.login_as(user=self.user)
-        self.get_valid_response(sort_by="date", limit=1, status_code=429)
+        group = self.create_group()
+        url = u"/api/0/issues/{}/".format(group.id)
+        response = self.client.delete(url, sort_by="date", limit=1)
+        assert response.status_code == 429
