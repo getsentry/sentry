@@ -7,7 +7,7 @@ import TagStore from 'app/stores/tagStore';
 import {TagCollection} from 'app/types';
 
 type InjectedTagsProps = {
-  tags?: TagCollection;
+  tags: TagCollection;
 };
 
 type State = {
@@ -37,7 +37,8 @@ const withTags = <P extends InjectedTagsProps>(
     },
 
     render() {
-      return <WrappedComponent tags={this.state.tags} {...(this.props as P)} />;
+      const {tags = this.state.tags as TagCollection} = this.props as P;
+      return <WrappedComponent {...(this.props as P)} tags={tags} />;
     },
   });
 

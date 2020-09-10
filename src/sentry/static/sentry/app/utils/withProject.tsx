@@ -5,7 +5,7 @@ import getDisplayName from 'app/utils/getDisplayName';
 import {Project} from 'app/types';
 
 type InjectedProjectProps = {
-  project?: Project;
+  project: Project;
 };
 
 /**
@@ -23,12 +23,8 @@ const withProject = <P extends InjectedProjectProps>(
     };
 
     render() {
-      return (
-        <WrappedComponent
-          project={this.context.project as Project}
-          {...(this.props as P)}
-        />
-      );
+      const {project = this.context.project as Project} = this.props as P;
+      return <WrappedComponent {...(this.props as P)} project={project} />;
     }
   };
 

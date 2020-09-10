@@ -4,7 +4,7 @@ import {Client} from 'app/api';
 import getDisplayName from 'app/utils/getDisplayName';
 
 type InjectedApiProps = {
-  api?: Client;
+  api: Client;
 };
 
 type WrappedProps<P> = Omit<P, keyof InjectedApiProps> & Partial<InjectedApiProps>;
@@ -46,7 +46,8 @@ const withApi = <P extends InjectedApiProps>(
     private api: Client;
 
     render() {
-      return <WrappedComponent api={this.api} {...(this.props as P)} />;
+      const {api = this.api} = this.props as P;
+      return <WrappedComponent {...(this.props as P)} api={api} />;
     }
   };
 

@@ -5,7 +5,7 @@ import getDisplayName from 'app/utils/getDisplayName';
 import {Organization, LightWeightOrganization} from 'app/types';
 
 type InjectedOrganizationProps = {
-  organization?: Organization | LightWeightOrganization;
+  organization: Organization | LightWeightOrganization;
 };
 
 const withOrganization = <P extends InjectedOrganizationProps>(
@@ -20,12 +20,11 @@ const withOrganization = <P extends InjectedOrganizationProps>(
     };
 
     render() {
-      return (
-        <WrappedComponent
-          organization={this.context.organization as Organization}
-          {...(this.props as P)}
-        />
-      );
+      const {
+        organization = this.context
+          .organization as InjectedOrganizationProps['organization'],
+      } = this.props as P;
+      return <WrappedComponent {...(this.props as P)} organization={organization} />;
     }
   };
 

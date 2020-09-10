@@ -7,7 +7,7 @@ import getDisplayName from 'app/utils/getDisplayName';
 import ConfigStore from 'app/stores/configStore';
 
 type InjectedConfigProps = {
-  config?: Config;
+  config: Config;
 };
 
 type State = {
@@ -36,9 +36,8 @@ const withConfig = <P extends InjectedConfigProps>(
     },
 
     render() {
-      return (
-        <WrappedComponent config={this.state.config as Config} {...(this.props as P)} />
-      );
+      const {config = this.state.config as Config} = this.props as P;
+      return <WrappedComponent {...(this.props as P)} config={config} />;
     },
   });
 

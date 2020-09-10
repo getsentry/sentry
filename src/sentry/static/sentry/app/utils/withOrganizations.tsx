@@ -8,7 +8,7 @@ import {OrganizationSummary} from 'app/types';
 
 type InjectedOrganizationsProps = {
   organizationsLoading?: boolean;
-  organizations?: OrganizationSummary[];
+  organizations: OrganizationSummary[];
 };
 
 type State = {
@@ -26,11 +26,16 @@ const withOrganizations = <P extends InjectedOrganizationsProps>(
     mixins: [Reflux.connect(OrganizationsStore, 'organizations') as any],
 
     render() {
+      const {
+        organizationsLoading = !OrganizationsStore.loaded as boolean,
+        organizations = this.state.organizations,
+      } = this.props as P;
+
       return (
         <WrappedComponent
-          organizationsLoading={!OrganizationsStore.loaded as boolean}
-          organizations={this.state.organizations as OrganizationSummary[]}
           {...(this.props as P)}
+          organizationsLoading={organizationsLoading}
+          organizations={organizations}
         />
       );
     },

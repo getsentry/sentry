@@ -9,7 +9,7 @@ import SentryAppComponentsStore from 'app/stores/sentryAppComponentsStore';
 type Component = {};
 
 type InjectedAppComponentsProps = {
-  components?: Component[];
+  components: Component[];
 };
 
 type State = {
@@ -32,14 +32,10 @@ const withSentryAppComponents = <P extends InjectedAppComponentsProps>(
     mixins: [Reflux.connect(SentryAppComponentsStore, 'components') as any],
 
     render() {
-      return (
-        <WrappedComponent
-          components={
-            SentryAppComponentsStore.getComponentByType(componentType) as Component[]
-          }
-          {...(this.props as P)}
-        />
-      );
+      const {
+        components = SentryAppComponentsStore.getComponentByType(componentType),
+      } = this.props as P;
+      return <WrappedComponent {...(this.props as P)} components={components} />;
     },
   });
 
