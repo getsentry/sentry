@@ -1,19 +1,25 @@
 import {browserHistory} from 'react-router';
 import React from 'react';
+import * as Sentry from '@sentry/react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import CreateSampleEventButton from 'app/views/onboarding/createSampleEventButton';
 
 jest.useFakeTimers();
+jest.mock('app/utils/analytics');
 
 describe('CreateSampleEventButton', function() {
   const {org, project, routerContext} = initializeOrg();
   const groupID = '123';
 
   const wrapper = mountWithTheme(
-    <CreateSampleEventButton source="test" project={project} />,
+    <CreateSampleEventButton
+      source="test"
+      project={{...project, platform: 'javascript'}}
+    />,
     routerContext
   );
 
@@ -124,5 +130,20 @@ describe('CreateSampleEventButton', function() {
     expect(browserHistory.push).toHaveBeenCalledWith(
       `/organizations/${org.slug}/issues/${groupID}/`
     );
+
+    expect(trackAnalyticsEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventKey: 'sample_event.created',
+        eventName: 'Sample Event Created',
+        organization_id: org.id,
+        project_id: project.id,
+        interval: 800,
+        retries: 1,
+        source: 'test',
+        platform: 'javascript',
+      })
+    );
+
+    expect(Sentry.captureMessage).not.toHaveBeenCalled();
   });
 });
