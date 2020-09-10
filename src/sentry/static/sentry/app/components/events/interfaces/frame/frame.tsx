@@ -35,7 +35,7 @@ type Props = {
   emptySourceNotation: boolean;
   isOnlyFrame: boolean;
   timesRepeated: number;
-  registers: {[key: string]: string};
+  registers: Record<string, string>
   components: Array<SentryAppComponent>;
   showingAbsoluteAddress: boolean;
   onAddressToggle: () => void;
