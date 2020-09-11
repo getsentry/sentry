@@ -5,7 +5,7 @@ import six
 
 from django.conf import settings
 
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import ParseError, PermissionDenied
 from rest_framework.response import Response
 
 from sentry import features
@@ -108,7 +108,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         try:
             start, end = get_date_range_from_params(request.GET)
         except InvalidParams as e:
-            return Response({"detail": six.text_type(e)}, status=400)
+            raise ParseError(detail=six.text_type(e))
 
         has_dynamic_issue_counts = features.has(
             "organizations:dynamic-issue-counts", organization, actor=request.user
