@@ -4,10 +4,11 @@ import React from 'react';
 import StackedBarChart from 'app/components/stackedBarChart';
 import theme from 'app/utils/theme';
 
-type Props = Partial<Omit<React.ComponentProps<typeof StackedBarChart>, 'points'>> & {
+type Props = Partial<
+  Omit<React.ComponentProps<typeof StackedBarChart>, 'points' | 'secondaryPoints'>
+> & {
   points?: Array<{x: number; y: number; label?: string}>;
   secondaryPoints?: Array<{x: number; y: number; label?: string}>;
-  showSecondaryPoints?: boolean;
 };
 
 const BarChart = ({points = [], secondaryPoints = [], ...rest}: Props) => {
@@ -54,6 +55,7 @@ BarChart.propTypes = {
       label: PropTypes.string,
     })
   ),
+  showSecondaryPoints: PropTypes.bool,
 };
 
 export default BarChart;
