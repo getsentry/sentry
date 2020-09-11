@@ -65,12 +65,12 @@ function getSuggestion({event, suggestion}: Props) {
   }
 
   const alertContent = suggestion.enables
-    .map((suggestion2, index) => {
-      const suggestion2Content = getSuggestion({suggestion: suggestion2, event});
-      if (!suggestion2Content) {
+    .map((subSuggestion, index) => {
+      const subSuggestionContent = getSuggestion({suggestion: subSuggestion, event});
+      if (!subSuggestionContent) {
         return null;
       }
-      return <React.Fragment key={index}>{suggestion2Content}</React.Fragment>;
+      return <React.Fragment key={index}>{subSuggestionContent}</React.Fragment>;
     })
     .filter(content => !!content);
 
