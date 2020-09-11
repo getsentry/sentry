@@ -17,18 +17,15 @@ type DependentProps = {
   group?: Group;
 };
 
-// XXX: I have commented out loading/error because the components using this
-// HOC (suggestedOwners, eventCause) do not have loading/error states
+// XXX: State does not include loading/error because components using this
+// HOC (suggestedOwners, eventCause) do not have loading/error states. However,
+// the store maintains those states if it is needed in the future.
 type InjectedProps = {
   committers: Committer[];
-  // committersLoading?: boolean;
-  // committersError?: Error;
 };
 
 const INITIAL_STATE: InjectedProps = {
   committers: [],
-  // committersLoading: undefined,
-  // committersError: undefined,
 };
 
 const withCommitters = <P extends DependentProps>(
