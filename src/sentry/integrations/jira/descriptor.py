@@ -42,7 +42,7 @@ class JiraDescriptorEndpoint(Endpoint):
                     },
                     "configurePage": {
                         "url": "/extensions/jira/configure",
-                        "name": {"value": "Configure Sentry Add-on"},
+                        "name": {"value": "Link your Sentry Organization"},
                         "key": "configure-sentry",
                     },
                     "webhooks": [

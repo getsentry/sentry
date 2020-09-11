@@ -185,7 +185,7 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
       const query = {orgSlug: selectedOrgSlug, ...this.queryParams};
       this.trackInstallationStart();
       window.location.assign(
-        `/extensions/${this.integrationSlug}/configure/?${urlEncode(query)}`
+        `/extensions/${this.integrationSlug}/extension-configuration/?${urlEncode(query)}`
       );
     });
   }

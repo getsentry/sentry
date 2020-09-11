@@ -8,6 +8,7 @@ from .installed import JiraInstalledEndpoint
 from .search import JiraSearchEndpoint
 from .uninstalled import JiraUninstalledEndpoint
 from .webhooks import JiraIssueUpdatedWebhook
+from .extension_configuration import JiraExtensionConfigurationView
 
 
 urlpatterns = [
@@ -25,4 +26,5 @@ urlpatterns = [
         JiraSearchEndpoint.as_view(),
         name="sentry-extensions-jira-search",
     ),
+    url(r"^extension-configuration/$", JiraExtensionConfigurationView.as_view()),
 ]
