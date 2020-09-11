@@ -35,13 +35,11 @@ class ExternalIntegrationPipeline(IntegrationPipeline):
 class IntegrationExtensionConfigurationView(BaseView):
     auth_required = False
 
-    @property
-    def configure_path(self):
-        return u"/extensions/{}/configure/".format(self.provider)
-
     def get(self, request, *args, **kwargs):
         if not request.user.is_authenticated():
-            configure_uri = u"{}?{}".format(self.configure_path, urlencode(request.GET.dict()),)
+            configure_uri = u"/extensions/{}/configure/?{}".format(
+                self.provider, urlencode(request.GET.dict())
+            )
 
             redirect_uri = u"{}?{}".format(
                 reverse("sentry-login"), urlencode({"next": configure_uri})

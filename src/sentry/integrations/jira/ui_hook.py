@@ -30,6 +30,7 @@ class JiraUiHookView(View):
         except ExpiredSignatureError:
             return self.get_response({"refresh_required": True})
 
+        # expose a link to the configuration view
         signed_data = {
             "external_id": integration.external_id,
             "metadata": json.dumps(integration.metadata),

@@ -15,10 +15,6 @@ class JiraExtensionConfigurationView(IntegrationExtensionConfigurationView):
     provider = "jira"
     external_provider_key = "jira"
 
-    @property
-    def configure_path(self):
-        return u"/extensions/{}/extension-configuration/".format(self.provider)
-
     def map_params_to_state(self, params):
         # decode the signed params and add them to whatever params we have
         params = params.copy()
