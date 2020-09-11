@@ -272,6 +272,33 @@ type EventContexts = {
   trace?: TraceContextType;
 };
 
+type EnableIntegrationSuggestion = {
+  type: 'enableIntegration';
+  integrationName: string;
+  enables: any[];
+  integrationUrl?: string;
+};
+
+type UpdateSdkSuggestion = {
+  type: 'updateSdk';
+  sdkName: string;
+  newSdkVersion: string;
+  enables: any[];
+  sdkUrl?: string;
+};
+
+type ChangeSdkSuggestion = {
+  type: 'changeSdk';
+  newSdkName: string;
+  enables: any[];
+  sdkUrl?: string;
+};
+
+type SDKUpdatesSuggestion =
+  | EnableIntegrationSuggestion
+  | UpdateSdkSuggestion
+  | ChangeSdkSuggestion;
+
 type SentryEventBase = {
   id: string;
   eventID: string;
@@ -317,6 +344,8 @@ type SentryEventBase = {
     name: string;
     version: string;
   };
+
+  sdkUpdates?: Array<SDKUpdatesSuggestion>;
 };
 
 export type SentryTransactionEvent = {
