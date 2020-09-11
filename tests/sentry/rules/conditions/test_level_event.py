@@ -9,7 +9,7 @@ class LevelConditionTest(RuleTestCase):
 
     def test_render_label(self):
         rule = self.get_rule(data={"match": MatchType.EQUAL, "level": "30"})
-        assert rule.render_label() == u"An event's level is equal to warning"
+        assert rule.render_label() == u"The event's level is equal to warning"
 
     def test_equals(self):
         event = self.store_event(data={"level": "info"}, project_id=self.project.id)

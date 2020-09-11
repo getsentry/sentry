@@ -46,7 +46,7 @@ class EventAttributeConditionTest(RuleTestCase):
         rule = self.get_rule(
             data={"match": MatchType.EQUAL, "attribute": u"\xc3", "value": u"\xc4"}
         )
-        assert rule.render_label() == u"An event's \xc3 value equals \xc4"
+        assert rule.render_label() == u"The event's \xc3 value equals \xc4"
 
     def test_equals(self):
         event = self.get_event()
