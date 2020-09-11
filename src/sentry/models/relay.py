@@ -10,16 +10,18 @@ from django.utils.functional import cached_property
 from sentry_relay import PublicKey
 
 
-class OrganizationRelayKey(Model):
-    """
-    Keeps the public keys associated with an organization
-    """
-
+class RelayUsage(Model):
     __core__ = True
-    public_key = models.CharField(max_length=200, unique=True)
-    organization = models.ForeignKey("Organization")
-    creation_date = models.DateTimeField(default=timezone.now)
-    is_deleted = models.BooleanField(default=False)
+
+    relay_id = models.CharField(max_length=64)
+    version = models.CharField(max_length=32, default="0.0.1")
+    first_seen = models.DateTimeField(default=timezone.now)
+    last_seen = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        unique_together = (("relay_id", "version"),)
+        app_label = "sentry"
+        db_table = "sentry_relayusage"
 
 
 class Relay(Model):
@@ -27,13 +29,9 @@ class Relay(Model):
 
     relay_id = models.CharField(max_length=64, unique=True)
     public_key = models.CharField(max_length=200)
-    first_seen = models.DateTimeField(default=timezone.now)
-    last_seen = models.DateTimeField(default=timezone.now)
     is_internal = models.BooleanField(default=False)
-    version = models.CharField(max_length=32, default="0.0.1")
 
     class Meta:
-        unique_together = (("relay_id", "version"),)
         app_label = "sentry"
         db_table = "sentry_relay"
 
