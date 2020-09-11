@@ -26,16 +26,15 @@ const withOrganizations = <P extends InjectedOrganizationsProps>(
     mixins: [Reflux.connect(OrganizationsStore, 'organizations') as any],
 
     render() {
-      const {
-        organizationsLoading = !OrganizationsStore.loaded as boolean,
-        organizations = this.state.organizations,
-      } = this.props as P;
-
+      const {organizationsLoading, organizations, ...props} = this.props as P;
       return (
         <WrappedComponent
-          {...(this.props as P)}
-          organizationsLoading={organizationsLoading}
-          organizations={organizations}
+          {...({
+            organizationsLoading:
+              organizationsLoading ?? (!OrganizationsStore.loaded as boolean),
+            organizations: organizations ?? this.state.organizations,
+            ...props,
+          } as P)}
         />
       );
     },

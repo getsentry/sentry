@@ -46,8 +46,8 @@ const withApi = <P extends InjectedApiProps>(
     private api: Client;
 
     render() {
-      const {api = this.api} = this.props as P;
-      return <WrappedComponent {...(this.props as P)} api={api} />;
+      const {api, ...props} = this.props;
+      return <WrappedComponent {...({api: api ?? this.api, ...props} as P)} />;
     }
   };
 

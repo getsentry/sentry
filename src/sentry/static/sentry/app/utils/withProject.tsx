@@ -23,8 +23,12 @@ const withProject = <P extends InjectedProjectProps>(
     };
 
     render() {
-      const {project = this.context.project as Project} = this.props as P;
-      return <WrappedComponent {...(this.props as P)} project={project} />;
+      const {project, ...props} = this.props as P;
+      return (
+        <WrappedComponent
+          {...({project: project ?? (this.context.project as Project), ...props} as P)}
+        />
+      );
     }
   };
 

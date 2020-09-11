@@ -20,11 +20,17 @@ const withOrganization = <P extends InjectedOrganizationProps>(
     };
 
     render() {
-      const {
-        organization = this.context
-          .organization as InjectedOrganizationProps['organization'],
-      } = this.props as P;
-      return <WrappedComponent {...(this.props as P)} organization={organization} />;
+      const {organization, ...props} = this.props as P;
+      return (
+        <WrappedComponent
+          {...({
+            organization:
+              organization ??
+              (this.context.organization as InjectedOrganizationProps['organization']),
+            ...props,
+          } as P)}
+        />
+      );
     }
   };
 
