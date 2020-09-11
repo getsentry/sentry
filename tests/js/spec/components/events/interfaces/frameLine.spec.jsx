@@ -23,7 +23,7 @@ describe('Frame', function() {
     it('should render the source map information as a HTML string', function() {
       const frame = mountWithTheme(<FrameLine data={data} components={[]} />);
 
-      expect(frame.find('Tooltip').prop('title')).toMatchSnapshot();
+      expect(frame.find('Tooltip')).toSnapshot();
     });
   });
 
@@ -38,7 +38,7 @@ describe('Frame', function() {
       };
 
       const frame = mountWithTheme(<FrameLine data={data} components={[]} isExpanded />);
-      expect(frame.find('ContextLine')).toMatchSnapshot();
+      expect(frame.find('ContextLine')).toSnapshot();
     });
 
     it('should render register values', () => {
