@@ -14,45 +14,6 @@ type ExceptionStacktraceContentProps = React.ComponentProps<
   typeof ExceptionStacktraceContent
 >;
 
-// TODO(ts): Move the types below to exceptionMechanism component once it is in typescript
-type MechanismMeta = {
-  errno?: {
-    number: number;
-    name?: string;
-  };
-  mach_exception?: {
-    exception: number;
-    code: number;
-    subcode: number;
-    name?: string;
-  };
-  signal?: {
-    number: number;
-    code?: number;
-    name?: string;
-    code_name?: string;
-  };
-};
-
-type Mechanism = {
-  handled: boolean;
-  synthetic: boolean;
-  type: string;
-  meta?: MechanismMeta;
-  data?: object;
-  description?: string;
-  help_link?: string;
-};
-
-type ExceptionValue = {
-  type: string;
-  value: string;
-  stacktrace: Stacktrace;
-  rawStacktrace: RawStacktrace;
-  mechanism: null | Mechanism;
-  module?: string;
-};
-
 type Props = {
   event: Event;
   type: 'original' | 'minified';

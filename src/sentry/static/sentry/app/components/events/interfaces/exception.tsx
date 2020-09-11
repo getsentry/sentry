@@ -4,22 +4,27 @@ import {t} from 'app/locale';
 import EventDataSection from 'app/components/events/eventDataSection';
 import {isStacktraceNewestFirst} from 'app/components/events/interfaces/stacktrace';
 import CrashTitle from 'app/components/events/interfaces/crashHeader/crashTitle';
-import CrashActions, {
-  STACK_VIEW,
-  STACK_TYPE,
-} from 'app/components/events/interfaces/crashHeader/crashActions';
+import CrashActions from 'app/components/events/interfaces/crashHeader/crashActions';
+import {STACK_TYPE, STACK_VIEW} from 'app/types/stacktrace';
 import CrashContent from 'app/components/events/interfaces/crashContent';
-import {Event} from 'app/types';
-import {Stacktrace} from 'app/types/stacktrace';
+import {Event, ExceptionType} from 'app/types';
 
 const defaultProps = {
   hideGuide: false,
 };
 
+type Data = {
+  // TODO(ts): Check if we can use the StackTrace type here;
+  hasSystemFrames: boolean;
+  values: Array<ExceptionType>;
+  // TODO(ts): Check what values come when it's not null
+  excOmitted: any | null;
+};
+
 type Props = {
   event: Event;
   type: string;
-  data: Stacktrace;
+  data: Data;
   projectId: string;
 } & typeof defaultProps;
 

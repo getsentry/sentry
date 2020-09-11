@@ -5,17 +5,7 @@ import {t} from 'app/locale';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import space from 'app/styles/space';
-
-export enum STACK_VIEW {
-  RAW = 'raw',
-  FULL = 'full',
-  APP = 'app',
-}
-
-export enum STACK_TYPE {
-  ORIGINAL = 'original',
-  MINIFIED = 'minified',
-}
+import {STACK_TYPE, STACK_VIEW} from 'app/types/stacktrace';
 
 type NotifyOptions = {
   stackView?: STACK_VIEW;
