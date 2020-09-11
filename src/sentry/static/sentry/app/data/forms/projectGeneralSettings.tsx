@@ -249,7 +249,7 @@ export const fields: Record<string, Field> = {
             `This can be used to modify the fingerprinting rules on the server with custom rules.
         Rules follow the pattern [pattern]. [docs:Read the docs] for more information.`,
             {
-              pattern: <code>matcher:glob -> fingerprint, values</code>,
+              pattern: <code>matcher:glob -&gt; fingerprint, values</code>,
               docs: (
                 <ExternalLink href="https://docs.sentry.io/platform-redirect/?next=%2Fdata-management%2Fevent-grouping%2Fserver-side-fingerprinting%2F" />
               ),
