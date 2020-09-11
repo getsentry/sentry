@@ -71,38 +71,44 @@ class GroupSidebar extends React.Component<Props, State> {
 
     // Fetch group data for all environments since the one passed in props is filtered for the selected environment
     // The charts rely on having all environment data as well as the data for the selected env
-    api.request(`/issues/${group.id}/`, {
-      success: data => {
+    api
+      .requestPromise(`/issues/${group.id}/`, {
+        method: 'GET',
+      })
+      .then(data => {
         this.setState({allEnvironmentsGroupData: data});
-      },
-      error: () => this.setState({error: true}),
-    });
+      })
+      .catch(() => this.setState({error: true}));
   }
 
   fetchCurrentRelease() {
     const {group, api} = this.props;
 
-    api.request(`/issues/${group.id}/current-release/`, {
-      success: data => {
+    api
+      .requestPromise(`/issues/${group.id}/current-release/`, {
+        method: 'GET',
+      })
+      .then(data => {
         const {currentRelease} = data;
         this.setState({currentRelease});
-      },
-      error: () => this.setState({error: true}),
-    });
+      })
+      .catch(() => this.setState({error: true}));
   }
 
   fetchParticipants() {
     const {group, api} = this.props;
 
-    api.request(`/issues/${group.id}/participants/`, {
-      success: data => {
+    api
+      .requestPromise(`/issues/${group.id}/participants/`, {
+        method: 'GET',
+      })
+      .then(data => {
         this.setState({
           participants: data,
           error: false,
         });
-      },
-      error: () => this.setState({error: true}),
-    });
+      })
+      .catch(() => this.setState({error: true}));
   }
 
   fetchTagData() {
