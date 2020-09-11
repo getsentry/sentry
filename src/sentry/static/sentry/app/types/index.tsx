@@ -275,7 +275,7 @@ type EventContexts = {
 type EnableIntegrationSuggestion = {
   type: 'enableIntegration';
   integrationName: string;
-  enables: any[];
+  enables: Array<SDKUpdatesSuggestion>;
   integrationUrl?: string;
 };
 
@@ -283,14 +283,14 @@ type UpdateSdkSuggestion = {
   type: 'updateSdk';
   sdkName: string;
   newSdkVersion: string;
-  enables: any[];
+  enables: Array<SDKUpdatesSuggestion>;
   sdkUrl?: string;
 };
 
 type ChangeSdkSuggestion = {
   type: 'changeSdk';
   newSdkName: string;
-  enables: any[];
+  enables: Array<SDKUpdatesSuggestion>;
   sdkUrl?: string;
 };
 

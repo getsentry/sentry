@@ -28,7 +28,7 @@ const SDKUpdates = ({event}: Props) => {
 
         return (
           <Alert key={index} type="info" icon={<IconUpgrade />}>
-            {tct('We recommend you [suggestion].', {suggestion})}
+            {tct('We recommend you [suggestion]', {suggestion})}
           </Alert>
         );
       })}

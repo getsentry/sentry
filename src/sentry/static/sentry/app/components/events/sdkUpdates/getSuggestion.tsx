@@ -78,14 +78,10 @@ function getSuggestion({event, suggestion}: Props) {
     return title;
   }
 
-  return (
-    <span>
-      {tct('[title] so you can [suggestion]', {
-        title,
-        suggestion: <AlertUl>{alertContent}</AlertUl>,
-      })}
-    </span>
-  );
+  return tct('[title] so you can: [suggestion]', {
+    title,
+    suggestion: <AlertUl>{alertContent}</AlertUl>,
+  });
 }
 
 export default getSuggestion;
@@ -93,4 +89,5 @@ export default getSuggestion;
 const AlertUl = styled('ul')`
   margin-top: ${space(1)};
   margin-bottom: ${space(1)};
+  padding-left: 0 !important;
 `;
