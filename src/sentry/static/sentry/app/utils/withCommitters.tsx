@@ -17,16 +17,18 @@ type DependentProps = {
   group?: Group;
 };
 
+// XXX: We do not pass loading/error states because the components using
+// this HOC (suggestedOwners, eventCause) do not have loading/error states
 type InjectedProps = {
-  committers: Committer[] | undefined;
-  committersLoading: boolean | undefined;
-  committersError: Error | undefined;
+  committers: Committer[];
+  // committersLoading: boolean | undefined;
+  // committersError: Error | undefined;
 };
 
 const INITIAL_STATE: InjectedProps = {
-  committers: undefined,
-  committersLoading: undefined,
-  committersError: undefined,
+  committers: [],
+  // committersLoading: undefined,
+  // committersError: undefined,
 };
 
 const withCommitters = <P extends DependentProps>(
@@ -49,7 +51,7 @@ const withCommitters = <P extends DependentProps>(
     componentDidMount() {
       const {group} = this.props as P & DependentProps;
 
-      // No committers if you don't have any releases
+      // No committers if group doesn't have any releases
       if (group && !!group.firstRelease) {
         this.fetchCommitters();
       }
@@ -74,18 +76,18 @@ const withCommitters = <P extends DependentProps>(
     onStoreUpdate() {
       const {organization, project, event} = this.props as P & DependentProps;
       const repoData = CommitterStore.get(organization.slug, project.slug, event.id);
-      this.setState({...repoData});
+      this.setState({committers: repoData.committers});
     },
 
     render() {
-      const {committers} = this.state;
+      const {committers} = this.state as InjectedProps;
 
       // XXX: We do not pass loading/error states because the components using
       // this HOC (suggestedOwners, eventCause) do not have loading/error states
       return (
         <WrappedComponent
           {...(this.props as P & DependentProps)}
-          committers={committers || []}
+          committers={committers || INITIAL_STATE.committers}
         />
       );
     },
