@@ -1222,7 +1222,12 @@ def get_json_meta_type(field_alias, snuba_type):
         function_definition = FUNCTIONS.get(function_match.group(1))
         if function_definition and function_definition.result_type:
             return function_definition.result_type
-    if "duration" in field_alias:
+    if "duration" in field_alias or field_alias in [
+        "measurements.fp",
+        "measurements.fcp",
+        "measurements.lcp",
+        "measurements.fid",
+    ]:
         return "duration"
     if field_alias == "transaction.status":
         return "string"
@@ -1314,9 +1319,8 @@ class NumericColumn(FunctionArg):
             raise InvalidFunctionArgument(u"{} is not a valid column".format(value))
         elif (
             snuba_column not in ["time", "timestamp", "duration"]
-            and
             # all measurements are numeric columns
-            not snuba_column.startswith("measurements.")
+            and not snuba_column.startswith("measurements.")
         ):
             raise InvalidFunctionArgument(u"{} is not a numeric column".format(value))
         return snuba_column

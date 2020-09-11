@@ -91,7 +91,7 @@ class QueryField extends React.Component<Props> {
           return;
         }
         if (param.kind === 'column') {
-          const field = this.getFieldOrTagValue(fieldValue.function[i + 1]);
+          const field = this.getFieldOrTagOrMeasurementValue(fieldValue.function[i + 1]);
           if (field === null) {
             fieldValue.function[i + 1] = param.defaultValue || '';
           } else if (
@@ -151,7 +151,7 @@ class QueryField extends React.Component<Props> {
     this.props.onChange(fieldValue);
   }
 
-  getFieldOrTagValue(name: string | undefined): FieldValue | null {
+  getFieldOrTagOrMeasurementValue(name: string | undefined): FieldValue | null {
     const {fieldOptions} = this.props;
     if (name === undefined) {
       return null;
@@ -205,7 +205,7 @@ class QueryField extends React.Component<Props> {
     }
 
     if (fieldValue.kind === 'field') {
-      field = this.getFieldOrTagValue(fieldValue.field);
+      field = this.getFieldOrTagOrMeasurementValue(fieldValue.field);
       fieldOptions = this.appendFieldIfUnknown(fieldOptions, field);
     }
 
@@ -220,7 +220,9 @@ class QueryField extends React.Component<Props> {
       parameterDescriptions = field.meta.parameters.map(
         (param, index: number): ParameterDescription => {
           if (param.kind === 'column') {
-            const fieldParameter = this.getFieldOrTagValue(fieldValue.function[1]);
+            const fieldParameter = this.getFieldOrTagOrMeasurementValue(
+              fieldValue.function[1]
+            );
             fieldOptions = this.appendFieldIfUnknown(fieldOptions, fieldParameter);
             return {
               kind: 'column',
@@ -229,7 +231,8 @@ class QueryField extends React.Component<Props> {
               options: Object.values(fieldOptions).filter(
                 ({value}) =>
                   (value.kind === FieldValueKind.FIELD ||
-                    value.kind === FieldValueKind.TAG) &&
+                    value.kind === FieldValueKind.TAG ||
+                    value.kind === FieldValueKind.MEASUREMENT) &&
                   param.columnTypes.includes(value.meta.dataType)
               ),
             };

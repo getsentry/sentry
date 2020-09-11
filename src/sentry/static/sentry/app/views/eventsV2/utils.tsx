@@ -69,7 +69,8 @@ export function decodeColumnOrder(
       }
       column.isSortable = aggregate && aggregate.isSortable;
     } else if (col.kind === 'field') {
-      // TODO: this needs a more robust solution
+      // TODO(tonyx): this needs a more robust solution
+      // also not all measurements are durations, some are numbers
       column.type = col.field.startsWith('measurements.')
         ? 'duration'
         : FIELDS[col.field];
@@ -489,6 +490,7 @@ export function generateFieldOptions({
         label: measurement,
         value: {
           kind: FieldValueKind.MEASUREMENT,
+          // TODO(tonyx): not all measurements are durations, some are numbers
           meta: {name: measurement, dataType: 'duration'},
         },
       };

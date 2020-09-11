@@ -333,6 +333,7 @@ def get_snuba_column_name(name, dataset=Dataset.Events):
     if not name or name.startswith("tags[") or QUOTED_LITERAL_RE.match(name):
         return name
 
+    # TODO(tonyx): not sure if we need this
     # if name.startswith("measurements."):
     #     return u"measurements[{}]".format(name.split(".", 1)[1])
 
