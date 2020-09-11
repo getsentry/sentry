@@ -23,9 +23,6 @@ class JiraUiHookView(View):
         return res
 
     def get(self, request, *args, **kwargs):
-        return self.handle(request)
-
-    def handle(self, request):
         try:
             integration = get_integration_from_request(request, "jira")
         except AtlassianConnectValidationError:
