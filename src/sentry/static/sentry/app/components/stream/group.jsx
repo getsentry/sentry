@@ -176,15 +176,11 @@ const StreamGroup = createReactClass({
       memberList,
       withChart,
       statsPeriod,
-      selection,
       organization,
     } = this.props;
 
     const hasDynamicIssueCounts = organization.features.includes('dynamic-issue-counts');
     const hasDiscoverQuery = organization.features.includes('discover-basic');
-
-    const {start, end} = selection.datetime || {};
-    const useAutoStatsPeriod = hasDynamicIssueCounts && !!start && !!end;
 
     const popperStyle = {maxWidth: 'none'};
 
@@ -237,7 +233,7 @@ const StreamGroup = createReactClass({
         {withChart && (
           <Box width={160} mx={2} className="hidden-xs hidden-sm">
             <GroupChart
-              statsPeriod={useAutoStatsPeriod ? 'auto' : statsPeriod}
+              statsPeriod={statsPeriod}
               data={data}
               hasDynamicIssueCounts={hasDynamicIssueCounts}
               showSecondaryPoints={showSecondaryPoints}
