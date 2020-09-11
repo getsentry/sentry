@@ -16,6 +16,7 @@ export default class SelectField extends FormField {
     clearable: SelectControl.propTypes.clearable,
     onChange: PropTypes.func,
     multiple: PropTypes.bool,
+    deprecatedSelectControl: PropTypes.bool,
   };
 
   static defaultProps = {

@@ -4,7 +4,13 @@ import React from 'react';
 import {defined} from 'app/utils';
 import InputField from 'app/components/forms/inputField';
 
-export default class RadioBooleanField extends InputField {
+type Props = {
+  yesLabel: string;
+  noLabel: string;
+  yesFirst?: boolean;
+} & InputField['props'];
+
+export default class RadioBooleanField extends InputField<Props> {
   static propTypes = {
     ...InputField.propTypes,
     yesLabel: PropTypes.string.isRequired,

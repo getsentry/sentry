@@ -4,7 +4,21 @@ import ReactDOM from 'react-dom';
 
 import InputField from 'app/components/forms/inputField';
 
-export default class RangeField extends InputField {
+type Props = {
+  min?: number;
+  max?: number;
+  step?: number;
+  snap?: boolean;
+  allowedValues?: number[];
+  formatLabel: (value: number | '') => string;
+} & InputField['props'];
+
+// TODO(ts): Fix this if switching vendor/simple-slider to ts, but probably isn't worth it for only one spot in the application
+type ExtendedJQuery = {
+  simpleSlider: any;
+} & JQuery;
+
+export default class RangeField extends InputField<Props> {
   static formatMinutes = value => {
     value = value / 60;
     return `${value} minute${value !== 1 ? 's' : ''}`;
@@ -46,8 +60,10 @@ export default class RangeField extends InputField {
       suffixClassNames += ' disabled';
     }
 
-    // eslint-disable-next-line react/no-find-dom-node
-    $(ReactDOM.findDOMNode(this.refs.input))
+    ($(
+      // eslint-disable-next-line react/no-find-dom-node
+      ReactDOM.findDOMNode(this.refs.input) as HTMLElement
+    )
       .on('slider:ready', (_e, data) => {
         const value = parseInt(data.value, 10);
         $value.appendTo(data.el);
@@ -57,15 +73,14 @@ export default class RangeField extends InputField {
         const value = parseInt(data.value, 10);
         $value.html(this.props.formatLabel(value));
         this.setValue(value);
-      })
-      .simpleSlider({
-        value: this.props.defaultValue || this.props.value,
-        range: [this.props.min, this.props.max],
-        step: this.props.step,
-        snap: this.props.snap,
-        allowedValues: this.props.allowedValues,
-        classSuffix: suffixClassNames,
-      });
+      }) as ExtendedJQuery).simpleSlider({
+      value: this.props.defaultValue || this.props.value,
+      range: [this.props.min, this.props.max],
+      step: this.props.step,
+      snap: this.props.snap,
+      allowedValues: this.props.allowedValues,
+      classSuffix: suffixClassNames,
+    });
   }
 
   removeSlider() {

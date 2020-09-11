@@ -33,8 +33,6 @@ export default class NewsletterConsent extends React.Component<Props> {
           submitLabel={t('Continue')}
         >
           <RadioBooleanField
-            p={0}
-            inline={false}
             key="subscribed"
             name="subscribed"
             label={t('Email Updates')}
