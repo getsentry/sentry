@@ -18,7 +18,28 @@ ReactSelect.Value.propTypes = {
   value: PropTypes.any,
 };
 
-class SelectControlLegacy extends React.Component {
+type Option = {
+  label: React.ReactNode;
+  value: any;
+};
+
+type Props = {
+  options: Option[];
+  multiple?: boolean;
+  multi?: boolean;
+  noMenu?: boolean;
+  choices?: Function | Array<string | any[]>;
+  placeholder?: string;
+
+  clearable: boolean;
+  height: number;
+
+  async: boolean;
+  creatable: boolean;
+  forwardedRef: React.Ref<HTMLInputElement>;
+};
+
+class SelectControlLegacy extends React.Component<Props> {
   static propTypes = {
     ...ReactSelect.propTypes,
     options: PropTypes.arrayOf(
@@ -95,7 +116,13 @@ class SelectControlLegacy extends React.Component {
   }
 }
 
-const SelectPicker = ({async, creatable, forwardedRef, ...props}) => {
+type SelectPickerProps = {
+  arrowRenderer: () => JSX.Element | null;
+  backspaceRemoves: boolean;
+  deleteRemoves: boolean;
+} & Props;
+
+const SelectPicker = ({async, creatable, forwardedRef, ...props}: SelectPickerProps) => {
   // Pick the right component to use
   let Component;
   if (async && creatable) {
@@ -127,7 +154,7 @@ const StyledSelect = styled(SelectPicker)`
 
   &.Select.is-focused > .Select-control {
     border: 1px solid ${p => p.theme.borderDark};
-    border-color: ${p => p.theme.gray};
+    border-color: ${p => p.theme.gray700};
     box-shadow: rgba(209, 202, 216, 0.5) 0 0 0 3px;
   }
 
@@ -153,7 +180,7 @@ const StyledSelect = styled(SelectPicker)`
     height: ${p => p.height}px;
     line-height: ${p => p.height}px;
     &:focus {
-      border: 1px solid ${p => p.theme.gray};
+      border: 1px solid ${p => p.theme.gray700};
     }
   }
 
