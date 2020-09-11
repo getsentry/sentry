@@ -6,7 +6,7 @@ import ButtonBar from 'app/components/buttonBar';
 import Button from 'app/components/button';
 import EventDataSection from 'app/components/events/eventDataSection';
 import CSPContent from 'app/components/events/interfaces/cspContent';
-import CSPHelp from 'app/components/events/interfaces/csphelp';
+import CSPHelp from 'app/components/events/interfaces/cspHelp';
 import {t} from 'app/locale';
 
 function getView(view, data) {
