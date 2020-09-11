@@ -1312,7 +1312,12 @@ class NumericColumn(FunctionArg):
         snuba_column = SEARCH_MAP.get(value)
         if not snuba_column:
             raise InvalidFunctionArgument(u"{} is not a valid column".format(value))
-        elif snuba_column not in ["time", "timestamp", "duration"]:
+        elif (
+            snuba_column not in ["time", "timestamp", "duration"]
+            and
+            # all measurements are numeric columns
+            not snuba_column.startswith("measurements.")
+        ):
             raise InvalidFunctionArgument(u"{} is not a numeric column".format(value))
         return snuba_column
 

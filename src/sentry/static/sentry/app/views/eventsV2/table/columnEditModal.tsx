@@ -20,6 +20,7 @@ type Props = {
   columns: Column[];
   organization: LightWeightOrganization;
   tagKeys: null | string[];
+  measurementKeys: null | string[];
   // Fired when column selections have been applied.
   onApply: (columns: Column[]) => void;
 } & ModalRenderProps;
@@ -53,7 +54,7 @@ class ColumnEditModal extends React.Component<Props, State> {
   };
 
   render() {
-    const {Header, Body, Footer, tagKeys, organization} = this.props;
+    const {Header, Body, Footer, tagKeys, measurementKeys, organization} = this.props;
     return (
       <React.Fragment>
         <Header>
@@ -77,6 +78,7 @@ class ColumnEditModal extends React.Component<Props, State> {
             organization={organization}
             columns={this.state.columns}
             tagKeys={tagKeys}
+            measurementKeys={measurementKeys}
             onChange={this.handleChange}
           />
         </Body>

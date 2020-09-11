@@ -67,6 +67,7 @@ class QueryField extends React.Component<Props> {
 
     switch (value.kind) {
       case FieldValueKind.TAG:
+      case FieldValueKind.MEASUREMENT:
       case FieldValueKind.FIELD:
         fieldValue = {kind: 'field', field: value.meta.name};
         break;
@@ -160,6 +161,12 @@ class QueryField extends React.Component<Props> {
     if (fieldOptions[fieldName]) {
       return fieldOptions[fieldName].value;
     }
+
+    const measurementName = `measurement:${name}`;
+    if (fieldOptions[measurementName]) {
+      return fieldOptions[measurementName].value;
+    }
+
     const tagName =
       name.indexOf('tags[') === 0
         ? `tag:${name.replace(/tags\[(.*?)\]/, '$1')}`
@@ -386,12 +393,18 @@ class QueryField extends React.Component<Props> {
               <components.Option label={label} {...(props as any)}>
                 <span data-test-id="label">{label}</span>
                 {data.value.kind === FieldValueKind.TAG && <Badge text="tag" />}
+                {data.value.kind === FieldValueKind.MEASUREMENT && (
+                  <Badge text="measurement" />
+                )}
               </components.Option>
             ),
             SingleValue: ({data, ...props}: SingleValueProps<OptionType>) => (
               <components.SingleValue data={data} {...(props as any)}>
                 <span data-test-id="label">{data.label}</span>
                 {data.value.kind === FieldValueKind.TAG && <Badge text="tag" />}
+                {data.value.kind === FieldValueKind.MEASUREMENT && (
+                  <Badge text="measurement" />
+                )}
               </components.SingleValue>
             ),
           }}
