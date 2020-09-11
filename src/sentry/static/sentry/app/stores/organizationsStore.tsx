@@ -5,6 +5,7 @@ import OrganizationsActions from 'app/actions/organizationsActions';
 
 type OrganizationsStoreInterface = {
   state: Organization[];
+  loaded: boolean;
 
   onUpdate: (org: Organization) => void;
   onChangeSlug: (prev: Organization, next: Organization) => void;
