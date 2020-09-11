@@ -16,16 +16,14 @@ type Props = {
   currentRelease: any | null | undefined; // TODO(ts)
 };
 
-const GroupReleaseStats = (props: Props) => {
-  const {
-    organization,
-    project,
-    environments,
-    allEnvironments,
-    group,
-    currentRelease,
-  } = props;
-
+const GroupReleaseStats = ({
+  organization,
+  project,
+  environments,
+  allEnvironments,
+  group,
+  currentRelease,
+}: Props) => {
   const environmentLabel =
     environments.length > 0
       ? environments.map(env => env.displayName).join(', ')
