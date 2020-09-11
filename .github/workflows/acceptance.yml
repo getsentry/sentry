@@ -6,8 +6,24 @@ on:
   pull_request:
 
 jobs:
+    parse-commit-message:
+      if: ${{ github.ref != 'refs/heads/master' }}
+      runs-on: ubuntu-16.04
+      outputs:
+        commit: ${{ steps.commit.outputs.message }}
+      steps:
+        - uses: actions/checkout@v2
+          with:
+            ref: ${{ github.event.pull_request.head.sha }}
+
+        - name: Parse commit message
+          id: commit
+          run: |
+            echo "::set-output name=message::$(git show -s --format=%B)"
+
     getsentry:
-      if: ${{ github.ref != 'refs/heads/master' && !contains(github.event.commits[0].message, '#test-getsentry') }}
+      needs: parse-commit-message
+      if: ${{ contains(needs.parse-commit-message.outputs.commit, '#test-getsentry') }}
       runs-on: ubuntu-16.04
       steps:
         - name: getsentry token

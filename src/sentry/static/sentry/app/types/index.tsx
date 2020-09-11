@@ -11,6 +11,7 @@ import {
 import {WIDGET_DISPLAY} from 'app/views/dashboards/constants';
 import {Props as AlertProps} from 'app/components/alert';
 import {Query as DiscoverQuery} from 'app/views/discover/types';
+import {SymbolicatorStatus} from 'app/components/events/interfaces/types';
 
 declare global {
   interface Window {
@@ -858,6 +859,11 @@ export type Integration = {
       | 'born_as_bot'
       | 'migrated_to_bot';
   };
+  dynamicDisplayInformation?: {
+    configure_integration?: {
+      instructions: string[];
+    };
+  };
 };
 
 export type IntegrationExternalIssue = {
@@ -1076,7 +1082,7 @@ export type NewQuery = {
   createdBy?: User;
 
   // Query and Table
-  query: string;
+  query?: string;
   fields: Readonly<string[]>;
   widths?: Readonly<string[]>;
   orderby?: string;
@@ -1405,7 +1411,7 @@ export type Widget = {
 
 export type EventGroupInfo = Record<EventGroupVariantKey, EventGroupVariant>;
 
-export type PlatformType = 'java' | 'csharp' | 'other';
+export type PlatformType = 'java' | 'csharp' | 'objc' | 'cocoa' | 'native' | 'other';
 
 export type Frame = {
   filename: string;
@@ -1426,6 +1432,8 @@ export type Frame = {
   origAbsPath?: string;
   mapUrl?: string;
   instructionAddr?: string;
+  trust?: string;
+  symbolicatorStatus?: SymbolicatorStatus;
 };
 
 /**

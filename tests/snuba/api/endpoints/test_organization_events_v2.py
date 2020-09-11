@@ -492,6 +492,46 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.data["data"][0]["project"] == project2.slug
         assert "project.id" not in response.data["data"][0]
 
+    def test_error_handled_condition(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+        prototype = load_data("android-ndk")
+        events = (
+            ("a" * 32, "not handled", False),
+            ("b" * 32, "was handled", True),
+            ("c" * 32, "undefined", None),
+        )
+        for event in events:
+            prototype["event_id"] = event[0]
+            prototype["message"] = event[1]
+            prototype["exception"]["values"][0]["value"] = event[1]
+            prototype["exception"]["values"][0]["mechanism"]["handled"] = event[2]
+            prototype["timestamp"] = self.two_min_ago
+            self.store_event(data=prototype, project_id=project.id)
+
+        with self.feature("organizations:discover-basic"):
+            query = {
+                "field": ["message", "error.handled"],
+                "query": "error.handled:0",
+                "orderby": "message",
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200
+            assert 1 == len(response.data["data"])
+            assert [0] == response.data["data"][0]["error.handled"]
+
+        with self.feature("organizations:discover-basic"):
+            query = {
+                "field": ["message", "error.handled"],
+                "query": "error.handled:1",
+                "orderby": "message",
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.data
+            assert 2 == len(response.data["data"])
+            assert [None] == response.data["data"][0]["error.handled"]
+            assert [1] == response.data["data"][1]["error.handled"]
+
     def test_implicit_groupby(self):
         project = self.create_project()
         self.store_event(
@@ -2291,7 +2331,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             "os.build",
             "os.kernel_version",
             "device.arch",
-            "device.battery_level",
+            # TODO: battery level is not consistent across both datasets
+            # "device.battery_level",
             "device.brand",
             "device.charging",
             "device.locale",

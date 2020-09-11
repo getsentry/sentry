@@ -2,7 +2,7 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import Frame from 'app/components/events/interfaces/frame/frame';
+import FrameLine from 'app/components/events/interfaces/frame/frameLine';
 
 describe('Frame', function() {
   let data;
@@ -21,7 +21,7 @@ describe('Frame', function() {
     });
 
     it('should render the source map information as a HTML string', function() {
-      const frame = mountWithTheme(<Frame data={data} components={[]} />);
+      const frame = mountWithTheme(<FrameLine data={data} components={[]} />);
 
       expect(frame.find('Tooltip').prop('title')).toMatchSnapshot();
     });
@@ -37,8 +37,8 @@ describe('Frame', function() {
         ],
       };
 
-      const frame = mountWithTheme(<Frame data={data} components={[]} isExpanded />);
-      expect(frame.find('ContextLine')).toSnapshot();
+      const frame = mountWithTheme(<FrameLine data={data} components={[]} isExpanded />);
+      expect(frame.find('ContextLine')).toMatchSnapshot();
     });
 
     it('should render register values', () => {
@@ -64,7 +64,7 @@ describe('Frame', function() {
       };
 
       const frame = mountWithTheme(
-        <Frame data={data} registers={registers} components={[]} isExpanded />
+        <FrameLine data={data} registers={registers} components={[]} isExpanded />
       );
       expect(frame.find('FrameRegisters').prop('data')).toEqual(registers);
     });
@@ -74,7 +74,7 @@ describe('Frame', function() {
       const registers = {};
 
       const frame = mountWithTheme(
-        <Frame data={data} registers={registers} components={[]} isExpanded />
+        <FrameLine data={data} registers={registers} components={[]} isExpanded />
       );
       expect(frame.find('FrameRegisters')).toHaveLength(0);
     });
@@ -93,7 +93,7 @@ describe('Frame', function() {
         },
       };
 
-      const frame = mountWithTheme(<Frame data={data} components={[]} isExpanded />);
+      const frame = mountWithTheme(<FrameLine data={data} components={[]} isExpanded />);
       expect(frame.find('FrameVariables').prop('data')).toEqual(data.vars);
     });
   });

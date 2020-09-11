@@ -160,7 +160,7 @@ const FrameDefaultTitle = ({frame, platform}: Props) => {
     );
   }
 
-  return title;
+  return <React.Fragment>{title}</React.Fragment>;
 };
 
 const StyledExternalLink = styled(ExternalLink)`
