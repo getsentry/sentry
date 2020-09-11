@@ -10,6 +10,7 @@ import {defined} from 'app/utils';
 import {getExactDuration} from 'app/utils/formatters';
 
 import {YAxis} from './releaseChartControls';
+import {LOG_ZERO} from '../releaseStatsRequest';
 
 type Props = {
   reloading: boolean;
@@ -41,6 +42,14 @@ class HealthChart extends React.Component<Props> {
         return defined(value) ? `${value}%` : '\u2015';
       case YAxis.SESSIONS:
       case YAxis.USERS:
+        if (value === LOG_ZERO) {
+          return '0';
+        }
+        if (typeof value === 'number') {
+          // TODO: add proper comment
+          return (value - 1).toLocaleString();
+        }
+        return value;
       default:
         return typeof value === 'number' ? value.toLocaleString() : value;
     }
@@ -64,6 +73,15 @@ class HealthChart extends React.Component<Props> {
         };
       case YAxis.SESSIONS:
       case YAxis.USERS:
+        return {
+          type: 'log',
+          min: 1,
+          axisLabel: {
+            // TODO: add proper todo comment
+            formatter: value => (value === 1 ? 0 : value),
+            color: theme.gray400,
+          },
+        };
       default:
         return undefined;
     }

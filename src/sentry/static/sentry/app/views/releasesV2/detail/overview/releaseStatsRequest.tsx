@@ -27,6 +27,18 @@ const omitIgnoredProps = (props: Props) =>
     ['api', 'version', 'orgId', 'projectSlug', 'location', 'children'].includes(key)
   );
 
+// TODO: add proper comment
+export const LOG_ZERO = 0.001;
+
+const convertValueForLogChart = (value: number) => {
+  if (value <= 0) {
+    return LOG_ZERO;
+  }
+
+  // TODO: add proper comment
+  return value + 1;
+};
+
 type ChartData = {
   [key: string]: Series;
 };
@@ -289,12 +301,15 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
       const errored = values[`${yAxis}_errored`];
       const healthy = values[yAxis] - crashed - abnormal - errored;
 
-      chartData.crashed.data.push({name: date, value: crashed});
-      chartData.abnormal.data.push({name: date, value: abnormal});
-      chartData.errored.data.push({name: date, value: errored});
+      chartData.crashed.data.push({name: date, value: convertValueForLogChart(crashed)});
+      chartData.abnormal.data.push({
+        name: date,
+        value: convertValueForLogChart(abnormal),
+      });
+      chartData.errored.data.push({name: date, value: convertValueForLogChart(errored)});
       chartData.healthy.data.push({
         name: date,
-        value: healthy >= 0 ? healthy : 0,
+        value: convertValueForLogChart(healthy),
       });
     });
 
