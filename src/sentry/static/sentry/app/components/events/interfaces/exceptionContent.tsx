@@ -4,8 +4,7 @@ import styled from '@emotion/styled';
 import space from 'app/styles/space';
 import Annotated from 'app/components/events/meta/annotated';
 import ExceptionMechanism from 'app/components/events/interfaces/exceptionMechanism';
-import {Event} from 'app/types';
-import {Stacktrace, RawStacktrace} from 'app/types/stacktrace';
+import {Event, ExceptionType} from 'app/types';
 
 import ExceptionStacktraceContent from './exceptionStacktraceContent';
 import ExceptionTitle from './exceptionTitle';
@@ -19,7 +18,7 @@ type Props = {
   type: 'original' | 'minified';
   stackView: ExceptionStacktraceContentProps['stackView'];
   platform: ExceptionStacktraceContentProps['platform'];
-  values: Array<ExceptionValue>;
+  values: Array<ExceptionType>;
   newestFirst?: boolean;
 };
 
