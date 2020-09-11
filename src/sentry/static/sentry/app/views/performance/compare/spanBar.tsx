@@ -535,14 +535,12 @@ const ComparisonReportLabelContainer = styled('div')`
   position: absolute;
   user-select: none;
   right: ${space(1)};
-  color: ${p => p.theme.gray500};
   line-height: 16px;
   font-size: ${p => p.theme.fontSizeExtraSmall};
 `;
 
 const NotableComparisonReport = styled(ComparisonReportLabelContainer)`
   font-weight: bold;
-  color: ${p => p.theme.gray800};
 `;
 
 export default SpanBar;
