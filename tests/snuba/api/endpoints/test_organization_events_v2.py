@@ -2331,7 +2331,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             "os.build",
             "os.kernel_version",
             "device.arch",
-            "device.battery_level",
+            # TODO: battery level is not consistent across both datasets
+            # "device.battery_level",
             "device.brand",
             "device.charging",
             "device.locale",
