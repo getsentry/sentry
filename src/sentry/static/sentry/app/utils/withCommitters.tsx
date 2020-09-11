@@ -59,9 +59,6 @@ const withCommitters = <P extends DependentProps>(
       const {api, organization, project, event} = this.props as P & DependentProps;
       const repoData = CommitterStore.get(organization.slug, project.slug, event.id);
 
-      // XXX(leedongwei): Do not check the orgSlug here. It would have been
-      // verified at `getInitialState`. The short-circuit hack in actionCreator
-      // does not update the orgSlug in the store.
       if (
         (!repoData.committers && !repoData.committersLoading) ||
         repoData.committersError
