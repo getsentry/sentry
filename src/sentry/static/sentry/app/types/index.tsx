@@ -571,7 +571,7 @@ export type EnrolledAuthenticator = {
   authId: string;
 };
 
-export type Config = {
+export interface Config {
   languageCode: string;
   csrfCookieName: string;
   features: Set<string>;
@@ -613,7 +613,7 @@ export type Config = {
   distPrefix: string;
   apmSampling: number;
   dsn_requests: string;
-};
+}
 
 export type EventOrGroupType =
   | 'error'
