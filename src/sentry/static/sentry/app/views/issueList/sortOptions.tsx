@@ -21,7 +21,7 @@ const IssueListSortOptions = ({onSelect, sort}: Props) => {
       case 'priority':
         return t('Priority');
       case 'freq':
-        return t('Frequency');
+        return t('Events');
       case 'user':
         return t('Users');
       case 'date':

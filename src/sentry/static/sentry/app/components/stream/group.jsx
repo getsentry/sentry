@@ -23,7 +23,6 @@ import SelectedGroupStore from 'app/stores/selectedGroupStore';
 import space from 'app/styles/space';
 import Tooltip from 'app/components/tooltip';
 import SentryTypes from 'app/sentryTypes';
-import {getRelativeSummary} from 'app/components/organizations/timeRangeSelector/utils';
 import {DEFAULT_STATS_PERIOD, MENU_CLOSE_DELAY} from 'app/constants';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
@@ -135,9 +134,13 @@ const StreamGroup = createReactClass({
 
     if (filtered && query) {
       const queryObj = queryToObj(query);
-      for (const key in queryObj)
-        if (!['is', '__text'].includes(key))
-          discoveryQueryTerms.push(`${key}:${queryObj[key]}`);
+      for (const queryTag in queryObj)
+        if (!['is', '__text'].includes(queryTag)) {
+          const queryVal = queryObj[queryTag].includes(' ')
+            ? `"${queryObj[queryTag]}"`
+            : queryObj[queryTag];
+          discoveryQueryTerms.push(`${queryTag}:${queryVal}`);
+        }
     }
 
     const additionalQuery =
@@ -173,19 +176,11 @@ const StreamGroup = createReactClass({
       memberList,
       withChart,
       statsPeriod,
-      selection,
       organization,
     } = this.props;
 
     const hasDynamicIssueCounts = organization.features.includes('dynamic-issue-counts');
     const hasDiscoverQuery = organization.features.includes('discover-basic');
-
-    const {period, start, end} = selection.datetime || {};
-
-    const summary =
-      !!start && !!end
-        ? 'the selected period'
-        : getRelativeSummary(period || DEFAULT_STATS_PERIOD).toLowerCase();
 
     const popperStyle = {maxWidth: 'none'};
 
@@ -242,33 +237,33 @@ const StreamGroup = createReactClass({
             isHoverable
             title={
               <TooltipContent>
-                {data.lifetime && (
-                  <TooltipRow>
-                    <TooltipCount>{data.lifetime.count}</TooltipCount>
-                    <TooltipText>{t('Since issue began')}</TooltipText>
-                  </TooltipRow>
-                )}
-                <TooltipRow>
-                  <TooltipCount>{data.count}</TooltipCount>
-                  <TooltipText>{t(`Within ${summary}`)}</TooltipText>
-                  {hasDiscoverQuery && (
-                    <StyledIconTelescope
-                      to={this.getDiscoverUrl()}
-                      color={theme.blue300}
-                    />
-                  )}
-                </TooltipRow>
                 {data.filtered && (
-                  <TooltipRow>
-                    <TooltipCount>{data.filtered.count}</TooltipCount>
-                    <TooltipText>{t('With filters applied')}</TooltipText>
+                  <tr>
+                    <TooltipCount value={data.filtered.count} />
+                    <TooltipText>{t('Matching search filters')}</TooltipText>
                     {hasDiscoverQuery && (
                       <StyledIconTelescope
                         to={this.getDiscoverUrl(true)}
                         color={theme.blue300}
                       />
                     )}
-                  </TooltipRow>
+                  </tr>
+                )}
+                <tr>
+                  <TooltipCount value={data.count} />
+                  <TooltipText>{t(`Without search filters`)}</TooltipText>
+                  {hasDiscoverQuery && (
+                    <StyledIconTelescope
+                      to={this.getDiscoverUrl()}
+                      color={theme.blue300}
+                    />
+                  )}
+                </tr>
+                {data.lifetime && (
+                  <tr>
+                    <TooltipCount value={data.lifetime.count} />
+                    <TooltipText>{t('Since issue began')}</TooltipText>
+                  </tr>
                 )}
               </TooltipContent>
             }
@@ -286,33 +281,33 @@ const StreamGroup = createReactClass({
             isHoverable
             title={
               <TooltipContent>
-                {data.lifetime && (
-                  <TooltipRow>
-                    <TooltipCount>{data.lifetime.userCount}</TooltipCount>
-                    <TooltipText>{t('Since issue began')}</TooltipText>
-                  </TooltipRow>
-                )}
-                <TooltipRow>
-                  <TooltipCount>{data.userCount}</TooltipCount>
-                  <TooltipText>{t(`Within ${summary}`)}</TooltipText>
-                  {hasDiscoverQuery && (
-                    <StyledIconTelescope
-                      to={this.getDiscoverUrl()}
-                      color={theme.blue300}
-                    />
-                  )}
-                </TooltipRow>
                 {data.filtered && (
-                  <TooltipRow>
-                    <TooltipCount>{data.filtered.userCount}</TooltipCount>
-                    <TooltipText>{t('With filters applied')}</TooltipText>
+                  <tr>
+                    <TooltipCount value={data.filtered.userCount} />
+                    <TooltipText>{t('Matching search filters')}</TooltipText>
                     {hasDiscoverQuery && (
                       <StyledIconTelescope
                         to={this.getDiscoverUrl(true)}
                         color={theme.blue300}
                       />
                     )}
-                  </TooltipRow>
+                  </tr>
+                )}
+                <tr>
+                  <TooltipCount value={data.userCount} />
+                  <TooltipText>{t(`Without search filters`)}</TooltipText>
+                  {hasDiscoverQuery && (
+                    <StyledIconTelescope
+                      to={this.getDiscoverUrl()}
+                      color={theme.blue300}
+                    />
+                  )}
+                </tr>
+                {data.lifetime && (
+                  <tr>
+                    <TooltipCount value={data.lifetime.userCount} />
+                    <TooltipText>{t('Since issue began')}</TooltipText>
+                  </tr>
                 )}
               </TooltipContent>
             }
@@ -355,6 +350,7 @@ const PrimaryCount = styled(Count)`
 `;
 
 const SecondaryCount = styled(({value, ...p}) => <Count {...p} value={value} />)`
+  position: absolute;
   font-size: ${p => p.theme.fontSizeExtraLarge};
   color: ${p => p.theme.gray500};
 
@@ -371,18 +367,20 @@ const TooltipContent = styled(({children, ...p}) => (
   margin: 0;
 `;
 
-const TooltipRow = styled('tr')`
-  padding: ${space(0.5)} ${space(1)};
-  display: block;
+const TooltipCount = styled(({value, ...p}) => (
+  <td {...p}>
+    <Count value={value} />
+  </td>
+))`
+  text-align: right;
+  font-weight: bold;
+  padding: ${space(0.5)};
 `;
 
 const TooltipText = styled('td')`
-  padding-left: ${space(1.5)};
   font-weight: normal;
-`;
-
-const TooltipCount = styled('td')`
-  font-weight: bold;
+  text-align: left;
+  padding: ${space(0.5)} ${space(1)};
 `;
 
 const StyledIconTelescope = styled(({to, ...p}) => (
@@ -392,7 +390,7 @@ const StyledIconTelescope = styled(({to, ...p}) => (
     </Link>
   </td>
 ))`
-  padding-left: ${space(1.5)};
+  padding: ${space(0.5)};
 `;
 
 export default withGlobalSelection(withOrganization(StreamGroup));
