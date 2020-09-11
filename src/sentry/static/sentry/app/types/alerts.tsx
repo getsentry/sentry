@@ -82,3 +82,8 @@ export enum AssigneeTargetType {
   Team = 'Team',
   Member = 'Member',
 }
+
+export type NoteType = {
+  text: string;
+  mentions: string[];
+};

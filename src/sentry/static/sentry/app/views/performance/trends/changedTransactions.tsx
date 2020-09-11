@@ -486,6 +486,7 @@ const TransactionSummaryLink = (props: TransactionSummaryLinkProps) => {
 
 const TransactionLink = styled('div')`
   cursor: pointer;
+  word-break: break-all;
 `;
 
 const ChangedTransactionsContainer = styled('div')``;
@@ -517,6 +518,7 @@ const TransactionMenuContainer = styled('div')`
   display: flex;
   justify-content: center;
   align-items: center;
+  margin-top: 3px;
 `;
 
 const TransactionsList = styled('div')``;
@@ -539,7 +541,7 @@ const ItemTransactionNameContainer = styled('div')`
 const ItemTransactionName = styled('div')`
   display: flex;
   justify-content: flex-start;
-  align-items: center;
+  align-items: flex-start;
 `;
 const ItemTransactionNameSecondary = styled('div')`
   display: flex;

@@ -55,8 +55,7 @@ describe('ProjectAlerts -> IssueEditor', function() {
   beforeEach(async function() {
     browserHistory.replace = jest.fn();
     MockApiClient.addMockResponse({
-      url:
-        '/projects/org-slug/project-slug/rules/configuration/?issue_alerts_targeting=0',
+      url: '/projects/org-slug/project-slug/rules/configuration/',
       body: TestStubs.ProjectAlertRuleConfiguration(),
     });
     MockApiClient.addMockResponse({

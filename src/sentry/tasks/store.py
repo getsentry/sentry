@@ -770,7 +770,10 @@ def _do_save_event(
                 with metrics.timer("tasks.store.do_save_event.write_processing_cache"):
                     event_processing_store.store(data)
         except HashDiscarded:
-            pass
+            # Delete the event payload from cache since it won't show up in post-processing.
+            if cache_key:
+                with metrics.timer("tasks.store.do_save_event.delete_cache"):
+                    event_processing_store.delete_by_key(cache_key)
 
         finally:
             if cache_key:

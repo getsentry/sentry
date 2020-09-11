@@ -1418,7 +1418,9 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
                 continue
             test_query("has:%s" % key)
             test_query("!has:%s" % key)
-            if key in IssueSearchVisitor.numeric_keys:
+            if key == "error.handled":
+                val = 1
+            elif key in IssueSearchVisitor.numeric_keys:
                 val = "123"
             elif key in IssueSearchVisitor.date_keys:
                 val = "2019-01-01"
