@@ -15,7 +15,7 @@ from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
 
 
-class JiraConfigureView(View):
+class JiraUiHookView(View):
     def get_response(self, context):
         context["ac_js_src"] = "https://connect-cdn.atl-paas.net/all.js"
         res = render_to_response("sentry/integrations/jira-config.html", context, self.request)
@@ -23,9 +23,6 @@ class JiraConfigureView(View):
         return res
 
     def get(self, request, *args, **kwargs):
-        return self.handle(request)
-
-    def post(self, request, *args, **kwargs):
         return self.handle(request)
 
     def handle(self, request):
@@ -36,10 +33,11 @@ class JiraConfigureView(View):
         except ExpiredSignatureError:
             return self.get_response({"refresh_required": True})
 
-        metadata = integration.metadata
-
-        signed_data = {"external_id": integration.external_id, "metadata": json.dumps(metadata)}
+        signed_data = {
+            "external_id": integration.external_id,
+            "metadata": json.dumps(integration.metadata),
+        }
         finish_link = u"{}.?signed_params={}".format(
-            absolute_uri("/extensions/jira/extension-configuration/"), sign(**signed_data)
+            absolute_uri("/extensions/jira/configure/"), sign(**signed_data)
         )
         return self.get_response({"finish_link": finish_link})
