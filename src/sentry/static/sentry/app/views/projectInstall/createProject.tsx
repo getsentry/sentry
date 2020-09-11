@@ -11,7 +11,7 @@ import {t} from 'app/locale';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import PageHeading from 'app/components/pageHeading';
-import PlatformIconTile from 'app/components/platformIconTile';
+import PlatformIcon from 'app/components/platformIcon';
 import PlatformPicker from 'app/components/platformPicker';
 import ProjectActions from 'app/actions/projectActions';
 import SelectControl from 'app/components/forms/selectControl';
@@ -42,7 +42,7 @@ type Props = {
   teams: Team[];
 };
 
-type PlatformName = React.ComponentProps<typeof PlatformIconTile>['platform'];
+type PlatformName = React.ComponentProps<typeof PlatformIcon>['platform'];
 type IssueAlertFragment = Parameters<
   React.ComponentProps<typeof IssueAlertOptions>['onChange']
 >[0];
@@ -92,7 +92,7 @@ class CreateProject extends React.Component<Props, State> {
         <div>
           <FormLabel>{t('Project name')}</FormLabel>
           <ProjectNameInput theme={theme}>
-            <ProjectPlatformIcon monoTone platform={platform} />
+            <StyledPlatformIcon platform={platform} />
             <input
               type="text"
               name="name"
@@ -333,17 +333,18 @@ const FormLabel = styled('div')`
   margin-bottom: ${space(1)};
 `;
 
-const ProjectPlatformIcon = styled(PlatformIconTile)`
-  font-size: 25px;
+const StyledPlatformIcon = styled(PlatformIcon)`
+  width: 20px;
+  height: 20px;
+  margin-right: ${space(1)};
+  border-radius: 3px;
 `;
 
 const ProjectNameInput = styled('div')`
   ${inputStyles};
-  display: grid;
-  grid-template-columns: min-content 1fr;
-  grid-gap: ${space(1)};
-  align-items: center;
   padding: 5px 10px;
+  display: flex;
+  align-items: center;
 
   input {
     border: 0;
