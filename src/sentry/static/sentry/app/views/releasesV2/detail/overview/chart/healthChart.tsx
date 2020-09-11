@@ -13,7 +13,7 @@ import {YAxis} from './releaseChartControls';
 
 type Props = {
   reloading: boolean;
-  utc: boolean;
+  utc: boolean | null;
   timeseriesData: Series[];
   zoomRenderProps: any;
   yAxis: YAxis;

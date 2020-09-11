@@ -1,6 +1,7 @@
 import Reflux from 'reflux';
 import isEqual from 'lodash/isEqual';
 
+import {GlobalSelection, Organization} from 'app/types';
 import {LOCAL_STORAGE_KEY} from 'app/constants/globalSelectionHeader';
 import {getDefaultSelection} from 'app/components/organizations/globalSelectionHeader/utils';
 import {isEqualWithDates} from 'app/utils/isEqualWithDates';
@@ -8,9 +9,41 @@ import GlobalSelectionActions from 'app/actions/globalSelectionActions';
 import OrganizationsStore from 'app/stores/organizationsStore';
 import localStorage from 'app/utils/localStorage';
 
-const GlobalSelectionStore = Reflux.createStore({
+type UpdateData = {
+  project: number[];
+  environment: string[];
+};
+
+type StoreState = {
+  selection: GlobalSelection;
+  isReady: boolean;
+};
+
+type GlobalSelectionStoreInterface = {
+  state: GlobalSelection;
+
+  reset: (state?: GlobalSelection) => void;
+  onReset: () => void;
+  isReady: () => boolean;
+  onSetOrganization: (organization: Organization) => void;
+  onInitializeUrlState: (newSelection: GlobalSelection) => void;
+  get: () => StoreState;
+  updateProjects: (
+    projects: GlobalSelection['projects'],
+    environments: null | string[]
+  ) => void;
+  updateDateTime: (datetime: GlobalSelection['datetime']) => void;
+  updateEnvironments: (environments: string[]) => void;
+  onSave: (data: UpdateData) => void;
+};
+
+type GlobalSelectionStore = Reflux.Store & GlobalSelectionStoreInterface;
+
+const storeConfig: Reflux.StoreDefinition & GlobalSelectionStoreInterface = {
+  state: getDefaultSelection(),
+
   init() {
-    this.reset(this.selection);
+    this.reset(this.state);
     this.listenTo(GlobalSelectionActions.reset, this.onReset);
     this.listenTo(GlobalSelectionActions.initializeUrlState, this.onInitializeUrlState);
     this.listenTo(GlobalSelectionActions.setOrganization, this.onSetOrganization);
@@ -24,7 +57,7 @@ const GlobalSelectionStore = Reflux.createStore({
     // Has passed the enforcement state
     this._hasEnforcedProject = false;
     this._hasInitialState = false;
-    this.selection = state || getDefaultSelection();
+    this.state = state || getDefaultSelection();
   },
 
   isReady() {
@@ -40,13 +73,13 @@ const GlobalSelectionStore = Reflux.createStore({
    */
   onInitializeUrlState(newSelection) {
     this._hasInitialState = true;
-    this.selection = newSelection;
+    this.state = newSelection;
     this.trigger(this.get());
   },
 
   get() {
     return {
-      selection: this.selection,
+      selection: this.state,
       isReady: this.isReady(),
     };
   },
@@ -57,37 +90,37 @@ const GlobalSelectionStore = Reflux.createStore({
   },
 
   updateProjects(projects = [], environments = null) {
-    if (isEqual(this.selection.projects, projects)) {
+    if (isEqual(this.state.projects, projects)) {
       return;
     }
 
-    this.selection = {
-      ...this.selection,
+    this.state = {
+      ...this.state,
       projects,
-      environments: environments === null ? this.selection.environments : environments,
+      environments: environments === null ? this.state.environments : environments,
     };
     this.trigger(this.get());
   },
 
   updateDateTime(datetime) {
-    if (isEqualWithDates(this.selection.datetime, datetime)) {
+    if (isEqualWithDates(this.state.datetime, datetime)) {
       return;
     }
 
-    this.selection = {
-      ...this.selection,
+    this.state = {
+      ...this.state,
       datetime,
     };
     this.trigger(this.get());
   },
 
   updateEnvironments(environments) {
-    if (isEqual(this.selection.environments, environments)) {
+    if (isEqual(this.state.environments, environments)) {
       return;
     }
 
-    this.selection = {
-      ...this.selection,
+    this.state = {
+      ...this.state,
       environments: environments ?? [],
     };
     this.trigger(this.get());
@@ -103,7 +136,7 @@ const GlobalSelectionStore = Reflux.createStore({
    * save the current project alongside environment to local storage. It's debatable if
    * this is the desired behavior.
    */
-  onSave(updateObj) {
+  onSave(updateObj: UpdateData) {
     // Do nothing if no org is loaded or user is not an org member. Only
     // organizations that a user has membership in will be available via the
     // organizations store
@@ -127,6 +160,6 @@ const GlobalSelectionStore = Reflux.createStore({
       // Do nothing
     }
   },
-});
+};
 
-export default GlobalSelectionStore;
+export default Reflux.createStore(storeConfig) as GlobalSelectionStore;

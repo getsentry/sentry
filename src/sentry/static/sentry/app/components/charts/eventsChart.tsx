@@ -237,7 +237,7 @@ type Props = {
   /**
    * Should datetimes be formatted in UTC?
    */
-  utc?: boolean;
+  utc?: boolean | null;
   /**
    * Don't show the previous period's data. Will automatically disable
    * when start/end are used.

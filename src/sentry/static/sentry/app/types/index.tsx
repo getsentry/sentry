@@ -512,7 +512,7 @@ export type GlobalSelection = {
     start: DateString;
     end: DateString;
     period: string;
-    utc: boolean;
+    utc: boolean | null;
   };
 };
 
