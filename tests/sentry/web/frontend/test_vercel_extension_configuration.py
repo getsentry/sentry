@@ -66,7 +66,7 @@ class VercelExtensionConfigurationTest(TestCase):
         # Goes straight to Vercel OAuth
         assert resp.status_code == 302
 
-    def test_logged_no_(self):
+    def test_logged_in_as_member(self):
         OrganizationMember.objects.filter(user=self.user, organization=self.org).update(
             role="member"
         )
