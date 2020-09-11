@@ -357,7 +357,7 @@ class SpanBar extends React.Component<Props, State> {
         let label: string = '';
 
         if (baselineDuration === regressionDuration) {
-          label = 'no change';
+          label = 'No change';
         }
 
         if (baselineDuration > regressionDuration) {
@@ -387,9 +387,7 @@ class SpanBar extends React.Component<Props, State> {
       }
       case 'regression': {
         return (
-          <ComparisonReportLabelContainer>
-            {t('No change')}
-          </ComparisonReportLabelContainer>
+          <ComparisonReportLabelContainer>{t('Added')}</ComparisonReportLabelContainer>
         );
       }
       default: {
