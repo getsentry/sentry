@@ -127,7 +127,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     }
     const eventReference = {...event};
     if (eventReference.id) {
-      delete eventReference.id;
+      delete (eventReference as any).id;
     }
     const tagKey = this.generateTagKey(tag);
     const nextView = getExpandedResults(eventView, {[tagKey]: tag.value}, eventReference);

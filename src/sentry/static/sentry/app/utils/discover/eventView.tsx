@@ -918,7 +918,7 @@ class EventView {
     const environment = this.environment as string[];
 
     // generate event query
-    const eventQuery: EventQuery & LocationQuery = Object.assign(
+    const eventQuery = Object.assign(
       omit(picked, DATETIME_QUERY_STRING_KEYS),
       normalizedTimeWindowParams,
       {
@@ -929,7 +929,7 @@ class EventView {
         per_page: DEFAULT_PER_PAGE,
         query: this.query,
       }
-    );
+    ) as EventQuery & LocationQuery;
 
     if (!eventQuery.sort) {
       delete eventQuery.sort;

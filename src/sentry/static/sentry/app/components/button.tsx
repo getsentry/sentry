@@ -358,7 +358,7 @@ const getIconMargin = ({size, hasChildren}: IconProps) => {
   return size && size.endsWith('small') ? '6px' : '8px';
 };
 
-const Icon = styled('span')<IconProps>`
+const Icon = styled('span')<IconProps & Omit<StyledButtonProps, 'theme'>>`
   display: flex;
   align-items: center;
   margin-right: ${getIconMargin};

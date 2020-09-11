@@ -58,7 +58,7 @@ export type UnsavedIssueAlertRule = {
   actions: IssueAlertRuleAction[];
   conditions: IssueAlertRuleCondition[];
   filters: IssueAlertRuleCondition[];
-  environment: null | string;
+  environment?: null | string;
   frequency: number;
   name: string;
 };
