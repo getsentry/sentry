@@ -1,7 +1,8 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
+import {Client} from 'app/api';
+import {Organization, Team, Project} from 'app/types';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {joinTeam} from 'app/actionCreators/teams';
 import {t} from 'app/locale';
@@ -11,14 +12,20 @@ import Well from 'app/components/well';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 
-class MissingProjectMembership extends React.Component {
-  static propTypes = {
-    api: PropTypes.object,
-    organization: PropTypes.object.isRequired,
-    projectId: PropTypes.string.isRequired,
-  };
+type Props = {
+  api: Client;
+  organization: Organization;
+  projectId: string;
+};
 
-  constructor(props) {
+type State = {
+  loading: boolean;
+  error: boolean;
+  project: Project | undefined;
+};
+
+class MissingProjectMembership extends React.Component<Props, State> {
+  constructor(props: Props) {
     super(props);
 
     const {organization, projectId} = this.props;
@@ -31,7 +38,7 @@ class MissingProjectMembership extends React.Component {
     };
   }
 
-  joinTeam(team) {
+  joinTeam(team: Team) {
     this.setState({
       loading: true,
     });
@@ -60,7 +67,7 @@ class MissingProjectMembership extends React.Component {
     );
   }
 
-  renderJoinTeam(team, features) {
+  renderJoinTeam(team: Team, features: Set<string>) {
     if (!team) {
       return null;
     }
@@ -82,9 +89,9 @@ class MissingProjectMembership extends React.Component {
     );
   }
 
-  renderExplanation(features) {
+  renderExplanation(features: Set<string>) {
     if (features.has('open-membership')) {
-      return t('To view this data you must one of the following teams.');
+      return t('To view this data you must join one of the following teams.');
     } else {
       return t(
         'To view this data you must first request access to one of the following teams:'
@@ -92,9 +99,9 @@ class MissingProjectMembership extends React.Component {
     }
   }
 
-  renderJoinTeams(features) {
-    const {teams} = this.state.project;
-    if (!teams.length) {
+  renderJoinTeams(features: Set<string>) {
+    const {teams} = this.state.project ?? {};
+    if (!teams || !teams.length) {
       return (
         <EmptyMessage>
           {t(

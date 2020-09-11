@@ -93,7 +93,7 @@ export function updateTeam(
 
 export function joinTeam(
   api: Client,
-  params: OrgAndTeamSlug & TeamData & MemberId,
+  params: OrgAndTeamSlug & Partial<TeamData & MemberId>,
   options: CallbackOptions
 ) {
   const endpoint = `/organizations/${params.orgId}/members/${params.memberId ||
