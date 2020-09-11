@@ -276,7 +276,7 @@ type EnableIntegrationSuggestion = {
   type: 'enableIntegration';
   integrationName: string;
   enables: Array<SDKUpdatesSuggestion>;
-  integrationUrl?: string;
+  integrationUrl?: string | null;
 };
 
 type UpdateSdkSuggestion = {
@@ -284,14 +284,14 @@ type UpdateSdkSuggestion = {
   sdkName: string;
   newSdkVersion: string;
   enables: Array<SDKUpdatesSuggestion>;
-  sdkUrl?: string;
+  sdkUrl?: string | null;
 };
 
 type ChangeSdkSuggestion = {
   type: 'changeSdk';
   newSdkName: string;
   enables: Array<SDKUpdatesSuggestion>;
-  sdkUrl?: string;
+  sdkUrl?: string | null;
 };
 
 type SDKUpdatesSuggestion =
