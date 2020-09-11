@@ -93,10 +93,10 @@ export function updateTeam(
 
 export function joinTeam(
   api: Client,
-  params: OrgAndTeamSlug & TeamData & MemberId,
+  params: OrgAndTeamSlug & Partial<MemberId>,
   options: CallbackOptions
 ) {
-  const endpoint = `/organizations/${params.orgId}/members/${params.memberId ||
+  const endpoint = `/organizations/${params.orgId}/members/${params.memberId ??
     'me'}/teams/${params.teamId}/`;
   const id = uniqueId();
 
@@ -104,7 +104,6 @@ export function joinTeam(
 
   return api.request(endpoint, {
     method: 'POST',
-    data: params.data,
     success: data => {
       TeamActions.updateSuccess(params.teamId, data);
       doCallback(options, 'success', data);
