@@ -34,7 +34,7 @@ const organizationsStoreConfig: Reflux.StoreDefinition & OrganizationsStoreInter
     this.loaded = false;
   },
 
-  onUpdate(org) {
+  onUpdate(org: Organization) {
     this.add(org);
   },
 
@@ -51,7 +51,7 @@ const organizationsStoreConfig: Reflux.StoreDefinition & OrganizationsStoreInter
     this.remove(slug);
   },
 
-  get(slug) {
+  get(slug: Organization['slug']) {
     return this.state.find((item: Organization) => item.slug === slug);
   },
 
@@ -59,14 +59,14 @@ const organizationsStoreConfig: Reflux.StoreDefinition & OrganizationsStoreInter
     return this.state;
   },
 
-  remove(slug) {
-    this.state = this.state.filter((item: Organization) => slug !== item.slug);
+  remove(slug: Organization['slug']) {
+    this.state = this.state.filter(item => slug !== item.slug);
     this.trigger(this.state);
   },
 
-  add(item) {
+  add(item: Organization) {
     let match = false;
-    this.state.forEach((existing: Organization, idx: number) => {
+    this.state.forEach((existing, idx) => {
       if (existing.id === item.id) {
         item = {...existing, ...item};
         this.state[idx] = item;
@@ -79,7 +79,7 @@ const organizationsStoreConfig: Reflux.StoreDefinition & OrganizationsStoreInter
     this.trigger(this.state);
   },
 
-  load(items) {
+  load(items: Organization[]) {
     this.state = items;
     this.loaded = true;
     this.trigger(items);
