@@ -9,7 +9,7 @@ import {IconPrevious, IconNext} from 'app/icons';
 type Props = {
   location: Location;
   /**
-   * A set of urls that will be used in the buttons in the following order:
+   * A set of pathName's that will be used in the buttons in the following order:
    * [OldestURL, OlderURL, NewerURL, NewestURL]
    */
   urls: [string, string, string, string];
