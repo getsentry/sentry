@@ -51,7 +51,7 @@ const CSPHelp = ({data: {effective_directive: key}}: Props) => {
       </h4>
       <blockquote dangerouslySetInnerHTML={getHelp()} />
       <StyledP>
-        <span>{'— MDN ('}</span>
+        <span>{'_ MDN ('}</span>
         <span>{getLink()}</span>
         <span>{')'}</span>
       </StyledP>
