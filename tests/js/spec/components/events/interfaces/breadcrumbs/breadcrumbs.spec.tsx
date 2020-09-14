@@ -39,7 +39,7 @@ describe('BreadcrumbsInterface', () => {
   });
 
   describe('filterCrumbs', () => {
-    it('should filter crumbs based on crumb message', async () => {
+    it('should filter crumbs based on crumb message', () => {
       const breadcrumbs = mountWithTheme(<BreadcrumbsInterface {...props} />);
 
       breadcrumbs.instance().handleSearch('hi');
