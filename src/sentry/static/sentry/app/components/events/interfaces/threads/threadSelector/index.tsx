@@ -63,14 +63,20 @@ const ThreadSelector = ({threads, event, activeThread, onChange}: Props) => {
 
   const items = getItems();
 
+  console.log('threads', threads);
+
   return (
     <StyledDropdownAutoComplete
       items={items}
       onSelect={item => {
+        console.log('item', item);
         const selectedThread = threads.find(thread => thread.id === item.value);
         if (selectedThread) {
           handleChange(selectedThread);
         }
+      }}
+      onChange={item => {
+        console.log('okokoko', item);
       }}
       alignMenu="left"
       maxHeight={DROPDOWN_MAX_HEIGHT}
