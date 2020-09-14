@@ -518,6 +518,7 @@ class Rule(object):
 
 class EnhancmentsVisitor(NodeVisitor):
     visit_comment = visit_empty = lambda *a: None
+    unwrapped_exceptions = (InvalidEnhancerConfig,)
 
     def __init__(self, bases, id=None):
         self.bases = bases
