@@ -17,21 +17,29 @@ type Props = {
 const SDKUpdates = ({event}: Props) => {
   const {sdkUpdates} = event;
 
+  const eventDataSectinContent = sdkUpdates
+    .map((sdkUpdate, index) => {
+      const suggestion = getSuggestion({suggestion: sdkUpdate, event});
+
+      if (!suggestion) {
+        return null;
+      }
+
+      return (
+        <Alert key={index} type="info" icon={<IconUpgrade />}>
+          {tct('We recommend you [suggestion]', {suggestion})}
+        </Alert>
+      );
+    })
+    .filter(alert => !!alert);
+
+  if (!eventDataSectinContent.length) {
+    return null;
+  }
+
   return (
     <EventDataSection title={null} type="sdk-updates">
-      {sdkUpdates.map((sdkUpdate, index) => {
-        const suggestion = getSuggestion({suggestion: sdkUpdate, event});
-
-        if (!suggestion) {
-          return null;
-        }
-
-        return (
-          <Alert key={index} type="info" icon={<IconUpgrade />}>
-            {tct('We recommend you [suggestion]', {suggestion})}
-          </Alert>
-        );
-      })}
+      {eventDataSectinContent}
     </EventDataSection>
   );
 };
