@@ -5,17 +5,7 @@ import {t} from 'app/locale';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import space from 'app/styles/space';
-
-enum STACK_VIEW {
-  RAW = 'raw',
-  FULL = 'full',
-  APP = 'app',
-}
-
-enum STACK_TYPE {
-  ORIGINAL = 'original',
-  MINIFIED = 'minified',
-}
+import {STACK_TYPE, STACK_VIEW} from 'app/types/stacktrace';
 
 type NotifyOptions = {
   stackView?: STACK_VIEW;
@@ -23,9 +13,9 @@ type NotifyOptions = {
 };
 
 type Props = {
-  platform: string;
-  stackView: string;
-  stackType?: string;
+  stackView: STACK_VIEW;
+  stackType?: STACK_TYPE;
+  platform?: string;
   // TODO(ts): create types for the following Record props:
   stacktrace?: Record<string, any>;
   thread?: Record<string, any>;

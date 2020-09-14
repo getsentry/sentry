@@ -50,10 +50,12 @@ describe('highlightFuseMatches', function() {
   });
 
   it('renders a highlighted string', function() {
+    // eslint-disable-next-line sentry/no-to-match-snapshot
     expect(highlightFuseMatches(matchObj)).toMatchSnapshot();
   });
 
   it('matches whole word', function() {
+    // eslint-disable-next-line sentry/no-to-match-snapshot
     expect(highlightFuseMatches({value: 'foo', indices: [[0, 2]]})).toMatchSnapshot();
   });
 });

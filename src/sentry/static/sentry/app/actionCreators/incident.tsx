@@ -1,7 +1,7 @@
 import {addErrorMessage, clearIndicators} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 import {Client} from 'app/api';
-import {NoteType} from 'app/views/alerts/types';
+import {NoteType} from 'app/types/alerts';
 
 /**
  * Fetches a list of activities for an incident
