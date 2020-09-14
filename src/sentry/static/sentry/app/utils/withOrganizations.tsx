@@ -30,8 +30,7 @@ const withOrganizations = <P extends InjectedOrganizationsProps>(
       return (
         <WrappedComponent
           {...({
-            organizationsLoading:
-              organizationsLoading ?? (!OrganizationsStore.loaded as boolean),
+            organizationsLoading: organizationsLoading ?? !OrganizationsStore.loaded,
             organizations: organizations ?? this.state.organizations,
             ...props,
           } as P)}
