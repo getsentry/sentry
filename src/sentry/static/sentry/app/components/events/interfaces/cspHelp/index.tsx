@@ -37,12 +37,10 @@ const CSPHelp = ({data: {effective_directive: key}}: Props) => {
     const href = getLinkHref();
 
     return (
-      <React.Fragment>
-        <ExternalLink href={href}>developer.mozilla.org</ExternalLink>
-        <ExternalLink href={href} className="external-icon">
-          <IconOpen size="xs" />
-        </ExternalLink>
-      </React.Fragment>
+      <StyledExternalLink href={href}>
+        {'developer.mozilla.org'}
+        <IconOpen size="xs" className="external-icon" />
+      </StyledExternalLink>
     );
   };
 
@@ -68,4 +66,9 @@ const StyledP = styled('p')`
   display: grid;
   grid-template-columns: repeat(3, max-content);
   grid-gap: ${space(0.25)};
+`;
+
+const StyledExternalLink = styled(ExternalLink)`
+  display: inline-flex;
+  align-items: center;
 `;
