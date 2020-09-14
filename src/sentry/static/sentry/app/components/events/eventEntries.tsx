@@ -263,7 +263,9 @@ class EventEntries extends React.Component<Props> {
           />
         )}
         {event?.sdk && !objectIsEmpty(event.sdk) && <EventSdk sdk={event.sdk} />}
-        {!isShare && event?.sdkUpdates && event.sdkUpdates.length > 0 && <EventSdkUpdates event={{sdkUpdates: event.sdkUpdates, ...event}} />}
+        {!isShare && event?.sdkUpdates && event.sdkUpdates.length > 0 && (
+          <EventSdkUpdates event={{sdkUpdates: event.sdkUpdates, ...event}} />
+        )}
         {!isShare && event?.groupID && (
           <EventGroupingInfo
             projectId={project.slug}
