@@ -1,7 +1,7 @@
 beautifulsoup4>=4.7.1,<4.8
 boto3>=1.4.1,<1.4.6
 botocore<1.5.71
-celery==4.1.1
+celery>=4.1.1,<=4.4.7
 click>=5.0,<7.0
 confluent-kafka==0.11.5
 croniter>=0.3.34,<0.4.0
@@ -72,8 +72,8 @@ uwsgi>2.0.0,<2.1.0
 # We specifically pin to 3.5.0.4 to avoid the issue in
 # https://github.com/celery/billiard/issues/260. Once we upgrade to Celery 4.3+ we can
 # use a newer version of billiard that has a proper fix.
-billiard==3.5.0.4
-kombu==4.2.2.post1
+billiard>=3.5.0.4,<=3.6.3
+kombu>=4.2.2.post1,<=4.6.11
 
 # not directly used, but provides a speedup for redis
 hiredis==0.3.1
