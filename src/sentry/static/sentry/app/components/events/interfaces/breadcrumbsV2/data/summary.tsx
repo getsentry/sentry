@@ -3,9 +3,8 @@ import styled from '@emotion/styled';
 
 import Highlight from 'app/components/highlight';
 import {getMeta} from 'app/components/events/meta/metaProxy';
+import AnnotatedText from 'app/components/events/meta/annotatedText';
 import {defined} from 'app/utils';
-
-import getBreadcrumbCustomRendererValue from '../../breadcrumbs/getBreadcrumbCustomRendererValue';
 
 type Props = {
   searchTerm: string;
@@ -49,10 +48,10 @@ class Summary extends React.Component<Props, State> {
               <DataLabel>
                 <Highlight text={searchTerm}>{`${key}: `}</Highlight>
               </DataLabel>
-              {getBreadcrumbCustomRendererValue({
-                value: <Highlight text={searchTerm}>{value}</Highlight>,
-                meta: getMeta(kvData, key),
-              })}
+              <AnnotatedText
+                value={<Highlight text={searchTerm}>{value}</Highlight>}
+                meta={getMeta(kvData, key)}
+              />
             </StyledPre>
           </Data>
         );

@@ -6,8 +6,8 @@ import withProjects from 'app/utils/withProjects';
 import {generateEventSlug, eventDetailsRoute} from 'app/utils/discover/urls';
 import Link from 'app/components/links/link';
 import Highlight from 'app/components/highlight';
+import AnnotatedText from 'app/components/events/meta/annotatedText';
 
-import getBreadcrumbCustomRendererValue from '../../breadcrumbs/getBreadcrumbCustomRendererValue';
 import {BreadcrumbTypeDefault, BreadcrumbTypeNavigation} from '../types';
 import Summary from './summary';
 
@@ -20,9 +20,9 @@ type Props = {
 
 const Default = ({breadcrumb, event, orgId, searchTerm}: Props) => (
   <Summary kvData={breadcrumb.data} searchTerm={searchTerm}>
-    {breadcrumb?.message &&
-      getBreadcrumbCustomRendererValue({
-        value: (
+    {breadcrumb?.message && (
+      <AnnotatedText
+        value={
           <FormatMessage
             searchTerm={searchTerm}
             event={event}
@@ -30,9 +30,10 @@ const Default = ({breadcrumb, event, orgId, searchTerm}: Props) => (
             breadcrumb={breadcrumb}
             message={breadcrumb.message}
           />
-        ),
-        meta: getMeta(breadcrumb, 'message'),
-      })}
+        }
+        meta={getMeta(breadcrumb, 'message')}
+      />
+    )}
   </Summary>
 );
 
