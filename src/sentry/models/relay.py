@@ -29,6 +29,10 @@ class Relay(Model):
 
     relay_id = models.CharField(max_length=64, unique=True)
     public_key = models.CharField(max_length=200)
+    # not used, functionality replaced by RelayUsage
+    first_seen = models.DateTimeField(default=None, null=True)
+    # not used, functionality replaced by RelayUsage
+    last_seen = models.DateTimeField(default=None, null=True)
     is_internal = models.BooleanField(default=False)
 
     class Meta:
