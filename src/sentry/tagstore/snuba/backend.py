@@ -37,10 +37,6 @@ BLACKLISTED_COLUMNS = frozenset(["project_id"])
 
 FUZZY_NUMERIC_KEYS = frozenset(
     [
-        "device.battery_level",
-        "device.charging",
-        "device.online",
-        "device.simulator",
         "error.handled",
         "stack.colno",
         "stack.in_app",
