@@ -7,15 +7,28 @@ import Tooltip from 'app/components/tooltip';
 import {IconQuestion} from 'app/icons';
 import {defined} from 'app/utils';
 
-export default class MultipleCheckboxField extends FormField {
+type Value = string | number | boolean;
+
+type Props = {
+  hideLabelDivider?: boolean;
+  choices: Array<[number | string, number | string]>;
+} & FormField['props'];
+
+type State = FormField['state'] & {
+  values: Value[];
+};
+
+export default class MultipleCheckboxField extends FormField<Props, State> {
   static propTypes = {
     ...FormField.propTypes,
     hideLabelDivider: PropTypes.bool,
     choices: PropTypes.array.isRequired,
   };
 
-  onChange = (value, e) => {
-    let allValues = this.state.value;
+  onChange = (e: React.ChangeEvent<HTMLInputElement>, _value?: Value) => {
+    const value = _value as Value; // Casting here to allow _value to be optional, which it has to be since it's overloaded.
+    let allValues = this.state.values;
+
     if (e.target.checked) {
       if (allValues) {
         allValues = [...allValues, value];
@@ -25,8 +38,22 @@ export default class MultipleCheckboxField extends FormField {
     } else {
       allValues = allValues.filter(v => v !== value);
     }
-    this.setValue(allValues);
+    this.setValues(allValues);
   };
+
+  setValues(values: Value[]) {
+    const form = (this.context || {}).form;
+    this.setState(
+      {
+        values,
+      },
+      () => {
+        const finalValue = this.coerceValue(this.state.values);
+        this.props.onChange && this.props.onChange(finalValue);
+        form && form.onFieldChange(this.props.name, finalValue);
+      }
+    );
+  }
 
   render() {
     const {
@@ -83,10 +110,10 @@ export default class MultipleCheckboxField extends FormField {
               <input
                 type="checkbox"
                 value={value}
-                onChange={this.onChange.bind(this, value)}
+                onChange={e => this.onChange(e, value)}
                 disabled={disabled}
                 checked={
-                  defined(this.state.value) && this.state.value.indexOf(value) !== -1
+                  defined(this.state.values) && this.state.values.indexOf(value) !== -1
                 }
               />
               {choiceLabel}

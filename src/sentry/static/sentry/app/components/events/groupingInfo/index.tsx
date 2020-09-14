@@ -1,7 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {Client} from 'app/api';
 import AsyncComponent from 'app/components/asyncComponent';
 import EventDataSection from 'app/components/events/eventDataSection';
 import {t} from 'app/locale';
@@ -15,7 +14,6 @@ import GroupVariant from './groupingVariant';
 import GroupingConfigSelect from './groupingConfigSelect';
 
 type Props = AsyncComponent['props'] & {
-  api: Client;
   organization: Organization;
   projectId: string;
   event: Event;
