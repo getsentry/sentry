@@ -13,6 +13,8 @@ import {Props as AlertProps} from 'app/components/alert';
 import {Query as DiscoverQuery} from 'app/views/discover/types';
 import {SymbolicatorStatus} from 'app/components/events/interfaces/types';
 
+import {Stacktrace, RawStacktrace, Mechanism} from './stacktrace';
+
 declare global {
   interface Window {
     /**
@@ -1456,4 +1458,14 @@ export type FilesByRepository = {
     authors?: {[email: string]: CommitAuthor};
     types?: Set<string>;
   };
+};
+
+export type ExceptionType = {
+  type: string;
+  value: string;
+  stacktrace: Stacktrace;
+  rawStacktrace: RawStacktrace;
+  mechanism: Mechanism | null;
+  module: string | null;
+  threadId: string | null;
 };

@@ -8,7 +8,7 @@ import {defined} from 'app/utils';
 
 type Props = {
   type: string;
-  exceptionModule?: string;
+  exceptionModule?: string | null;
 };
 
 const ExceptionTitle = ({type, exceptionModule}: Props) => {

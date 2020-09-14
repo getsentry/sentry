@@ -1,52 +1,71 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 
 import {t} from 'app/locale';
 import EventDataSection from 'app/components/events/eventDataSection';
-import SentryTypes from 'app/sentryTypes';
 import {isStacktraceNewestFirst} from 'app/components/events/interfaces/stacktrace';
 import CrashTitle from 'app/components/events/interfaces/crashHeader/crashTitle';
 import CrashActions from 'app/components/events/interfaces/crashHeader/crashActions';
+import {STACK_TYPE, STACK_VIEW} from 'app/types/stacktrace';
 import CrashContent from 'app/components/events/interfaces/crashContent';
+import {Event, ExceptionType} from 'app/types';
 
-class ExceptionInterface extends React.Component {
-  static propTypes = {
-    event: SentryTypes.Event.isRequired,
-    type: PropTypes.string.isRequired,
-    data: PropTypes.object.isRequired,
-    projectId: PropTypes.string.isRequired,
-    hideGuide: PropTypes.bool,
-  };
+const defaultProps = {
+  hideGuide: false,
+};
 
+type Data = {
+  // TODO(ts): Check if we can use the StackTrace type here;
+  hasSystemFrames: boolean;
+  values: Array<ExceptionType>;
+  // TODO(ts): Check what values come when it's not null
+  excOmitted: any | null;
+};
+
+type Props = {
+  event: Event;
+  type: string;
+  data: Data;
+  projectId: string;
+} & typeof defaultProps;
+
+type State = {
+  stackView: STACK_VIEW;
+  stackType: STACK_TYPE;
+  newestFirst: boolean;
+};
+
+class Exception extends React.Component<Props, State> {
   static defaultProps = {
     hideGuide: false,
   };
 
-  constructor(...args) {
-    super(...args);
-    this.state = {
-      stackView: this.props.data.hasSystemFrames ? 'app' : 'full',
-      newestFirst: isStacktraceNewestFirst(),
-      stackType: 'original',
-    };
-  }
+  state: State = {
+    stackView: this.props.data.hasSystemFrames ? STACK_VIEW.APP : STACK_VIEW.FULL,
+    newestFirst: isStacktraceNewestFirst(),
+    stackType: STACK_TYPE.ORIGINAL,
+  };
 
-  eventHasThreads = () => !!this.props.event.entries.find(x => x.type === 'threads');
-
-  handleChange = newState => {
-    this.setState(newState);
+  handleChange = (newState: Partial<State>) => {
+    this.setState(prevState => ({
+      ...prevState,
+      ...newState,
+    }));
   };
 
   render() {
-    const {projectId, event, data, hideGuide, type} = this.props;
-    const {stackView, stackType, newestFirst} = this.state;
+    const eventHasThreads = !!this.props.event.entries.find(
+      entry => entry.type === 'threads'
+    );
 
     // in case there are threads in the event data, we don't render the
     // exception block.  Instead the exception is contained within the
     // thread interface.
-    if (this.eventHasThreads()) {
+    if (eventHasThreads) {
       return null;
     }
+
+    const {projectId, event, data, hideGuide, type} = this.props;
+    const {stackView, stackType, newestFirst} = this.state;
 
     const commonCrashHeaderProps = {
       newestFirst,
@@ -56,7 +75,6 @@ class ExceptionInterface extends React.Component {
 
     return (
       <EventDataSection
-        event={event}
         type={type}
         title={<CrashTitle title={t('Exception')} {...commonCrashHeaderProps} />}
         actions={
@@ -83,4 +101,4 @@ class ExceptionInterface extends React.Component {
   }
 }
 
-export default ExceptionInterface;
+export default Exception;

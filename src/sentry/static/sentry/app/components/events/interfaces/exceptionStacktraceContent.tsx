@@ -5,14 +5,13 @@ import StacktraceContent from 'app/components/events/interfaces/stacktraceConten
 import {Panel} from 'app/components/panels';
 import {IconWarning} from 'app/icons';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import SentryTypes from 'app/sentryTypes';
-import {Stacktrace, StackViewType} from 'app/types/stacktrace';
-import {PlatformType} from 'app/types';
+import {Stacktrace, STACK_VIEW} from 'app/types/stacktrace';
+import {PlatformType, Event} from 'app/types';
 
 type Props = {
-  stackView: StackViewType;
+  stackView: STACK_VIEW;
   data: Stacktrace | null;
-  event: SentryTypes.Event;
+  event: Event;
   platform: PlatformType;
   stacktrace: Stacktrace;
   chainedException: boolean;
@@ -35,7 +34,7 @@ const ExceptionStacktraceContent = ({
   }
 
   if (
-    stackView === 'app' &&
+    stackView === STACK_VIEW.APP &&
     stacktrace.frames.filter(frame => frame.inApp).length === 0 &&
     !chainedException
   ) {
@@ -63,7 +62,7 @@ const ExceptionStacktraceContent = ({
       data={data}
       expandFirstFrame={expandFirstFrame}
       includeSystemFrames={
-        stackView === 'full' ||
+        stackView === STACK_VIEW.FULL ||
         (chainedException && stacktrace.frames.every(frame => !frame.inApp))
       }
       platform={platform}
