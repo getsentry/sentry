@@ -36,9 +36,9 @@ def build_incident_attachment(incident, metric_value=None):
         "metric_alert": convert_dict_key_case(
             serialize(incident, serializer=IncidentSerializer()), camel_to_snake_case
         ),
-        "text": data["text"],
-        "title": data["title"],
-        "url": data["title_link"],
+        "description_text": data["text"],
+        "description_title": data["title"],
+        "web_url": data["title_link"],
     }
 
 
