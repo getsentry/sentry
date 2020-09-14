@@ -1,6 +1,7 @@
 import React from 'react';
 
-import {shallow} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
+
 import ProjectExpectCtReports from 'app/views/settings/projectSecurityHeaders/expectCt';
 
 describe('ProjectExpectCtReports', function() {
@@ -18,11 +19,10 @@ describe('ProjectExpectCtReports', function() {
   });
 
   it('renders', function() {
-    const wrapper = shallow(
+    const wrapper = mountWithTheme(
       <ProjectExpectCtReports
         organization={org}
         project={project}
-        setProjectNavSection={() => {}}
         {...TestStubs.routerProps({
           params: {orgId: org.slug, projectId: project.slug},
           location: TestStubs.location({pathname: url}),
@@ -30,6 +30,6 @@ describe('ProjectExpectCtReports', function() {
       />,
       TestStubs.routerContext()
     );
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 });

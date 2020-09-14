@@ -1,10 +1,10 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+
 import rawStacktraceContent from 'app/components/events/interfaces/rawStacktraceContent';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import LoadingError from 'app/components/loadingError';
 import ClippedBox from 'app/components/clippedBox';
-
 import SentryTypes from 'app/sentryTypes';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
@@ -18,7 +18,9 @@ class RawExceptionContent extends React.Component {
     eventId: PropTypes.string,
     projectId: PropTypes.string.isRequired,
     values: PropTypes.array.isRequired,
-    organization: SentryTypes.Organization.isRequired,
+
+    // XXX: Organization is NOT available for Shared Issues!
+    organization: SentryTypes.Organization,
   };
 
   constructor(props) {
@@ -50,19 +52,25 @@ class RawExceptionContent extends React.Component {
   getAppleCrashReportEndpoint() {
     const {type, organization, projectId, eventId} = this.props;
 
-    const minified = type == 'minified';
-    return `/projects/${
-      organization.slug
-    }/${projectId}/events/${eventId}/apple-crash-report?minified=${minified}`;
+    const minified = type === 'minified';
+    return `/projects/${organization.slug}/${projectId}/events/${eventId}/apple-crash-report?minified=${minified}`;
   }
 
   fetchAppleCrashReport() {
+    const {api, organization} = this.props;
+
+    // Shared issues do not have access to organization
+    if (!organization) {
+      return;
+    }
+
     this.setState({
       loading: true,
       error: false,
       crashReport: '',
     });
-    this.props.api.request(this.getAppleCrashReportEndpoint(), {
+
+    api.request(this.getAppleCrashReportEndpoint(), {
       method: 'GET',
       success: data => {
         this.setState({
@@ -96,7 +104,7 @@ class RawExceptionContent extends React.Component {
           content = <LoadingIndicator />;
         } else if (this.state.error) {
           content = <LoadingError onRetry={this.fetchData} />;
-        } else if (!this.state.loading && this.state.crashReport != '') {
+        } else if (!this.state.loading && this.state.crashReport !== '') {
           content = <ClippedBox clipHeight={250}>{this.state.crashReport}</ClippedBox>;
           downloadButton = (
             <a

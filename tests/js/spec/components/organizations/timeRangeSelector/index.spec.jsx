@@ -1,5 +1,6 @@
 import React from 'react';
-import {mount} from 'enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ConfigStore from 'app/stores/configStore';
 import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
@@ -10,7 +11,7 @@ describe('TimeRangeSelector', function() {
   const routerContext = TestStubs.routerContext();
 
   const createWrapper = (props = {}) =>
-    mount(
+    mountWithTheme(
       <TimeRangeSelector
         showAbsolute
         showRelative
@@ -29,7 +30,7 @@ describe('TimeRangeSelector', function() {
   });
 
   it('renders when given relative period not in dropdown', function() {
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <TimeRangeSelector showAbsolute={false} showRelative={false} relative="9d" />,
       routerContext
     );
@@ -37,7 +38,7 @@ describe('TimeRangeSelector', function() {
   });
 
   it('renders when given an invalid relative period', function() {
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <TimeRangeSelector showAbsolute={false} showRelative={false} relative="1w" />,
       routerContext
     );
@@ -45,7 +46,7 @@ describe('TimeRangeSelector', function() {
   });
 
   it('hides relative and absolute selectors', async function() {
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <TimeRangeSelector showAbsolute={false} showRelative={false} />,
       routerContext
     );
@@ -267,5 +268,18 @@ describe('TimeRangeSelector', function() {
       end: new Date('2017-10-17T23:59:59.000Z'),
       utc: false,
     });
+  });
+
+  it('deselects default filter when absolute date selected', async function() {
+    wrapper = createWrapper({
+      relative: '14d',
+      utc: false,
+    });
+
+    await wrapper.find('HeaderItem').simulate('click');
+    await wrapper.find('SelectorItem[value="absolute"]').simulate('click');
+
+    expect(wrapper.find('SelectorItem[value="absolute"]').prop('selected')).toBe(true);
+    expect(wrapper.find('SelectorItem[value="14d"]').prop('selected')).toBe(false);
   });
 });

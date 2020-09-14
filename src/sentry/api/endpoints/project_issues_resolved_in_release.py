@@ -12,7 +12,7 @@ from sentry.models import Group
 
 class ProjectIssuesResolvedInReleaseEndpoint(ProjectEndpoint, EnvironmentMixin):
     doc_section = DocSection.RELEASES
-    permission_classes = (ProjectPermission, )
+    permission_classes = (ProjectPermission,)
 
     def get(self, request, project, version):
         """
@@ -35,7 +35,7 @@ class ProjectIssuesResolvedInReleaseEndpoint(ProjectEndpoint, EnvironmentMixin):
             request.user,
             GroupSerializer(
                 environment_func=self._get_environment_func(request, project.organization_id)
-            )
+            ),
         )
 
         return Response(context)

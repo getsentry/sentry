@@ -1,10 +1,3 @@
-"""
-sentry.models.organization
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
 from __future__ import absolute_import, print_function
 
 import logging
@@ -23,7 +16,7 @@ from django.utils.functional import cached_property
 from sentry import roles
 from sentry.app import locks
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS, RESERVED_PROJECT_SLUGS
-from sentry.db.models import (BaseManager, BoundedPositiveIntegerField, Model, sane_repr)
+from sentry.db.models import BaseManager, BoundedPositiveIntegerField, Model, sane_repr
 from sentry.db.models.utils import slugify_instance
 from sentry.utils.http import absolute_uri
 from sentry.utils.retries import TimedRetryPolicy
@@ -52,16 +45,16 @@ class OrganizationStatus(IntEnum):
             if name != member.name:
                 continue
             # realistically Enum shouldn't even creating these, but alas
-            if name.startswith('_'):
+            if name.startswith("_"):
                 continue
             result.append((member.value, member.label))
         return tuple(result)
 
 
 OrganizationStatus._labels = {
-    OrganizationStatus.ACTIVE: 'active',
-    OrganizationStatus.PENDING_DELETION: 'pending deletion',
-    OrganizationStatus.DELETION_IN_PROGRESS: 'deletion in progress',
+    OrganizationStatus.ACTIVE: "active",
+    OrganizationStatus.PENDING_DELETION: "pending deletion",
+    OrganizationStatus.DELETION_IN_PROGRESS: "deletion in progress",
 }
 
 
@@ -84,7 +77,7 @@ class OrganizationManager(BaseManager):
             else:
                 return list(self.filter())
 
-        qs = OrganizationMember.objects.filter(user=user).select_related('organization')
+        qs = OrganizationMember.objects.filter(user=user).select_related("organization")
         if only_visible:
             qs = qs.filter(organization__status=OrganizationStatus.ACTIVE)
 
@@ -99,76 +92,75 @@ class Organization(Model):
     """
     An organization represents a group of individuals which maintain ownership of projects.
     """
+
     __core__ = True
 
     name = models.CharField(max_length=64)
     slug = models.SlugField(unique=True)
     status = BoundedPositiveIntegerField(
-        choices=OrganizationStatus.as_choices(),
-        # south will generate a default value of `'<OrganizationStatus.ACTIVE: 0>'`
-        # if `.value` is omitted
-        default=OrganizationStatus.ACTIVE.value
+        choices=OrganizationStatus.as_choices(), default=OrganizationStatus.ACTIVE.value
     )
     date_added = models.DateTimeField(default=timezone.now)
     members = models.ManyToManyField(
         settings.AUTH_USER_MODEL,
-        through='sentry.OrganizationMember',
-        related_name='org_memberships'
+        through="sentry.OrganizationMember",
+        related_name="org_memberships",
+        through_fields=("organization", "user"),
     )
-    default_role = models.CharField(
-        choices=roles.get_choices(),
-        max_length=32,
-        default=roles.get_default().id,
-    )
+    default_role = models.CharField(max_length=32, default=roles.get_default().id)
 
     flags = BitField(
         flags=(
             (
-                'allow_joinleave',
-                'Allow members to join and leave teams without requiring approval.'
-            ), (
-                'enhanced_privacy',
-                'Enable enhanced privacy controls to limit personally identifiable information (PII) as well as source code in things like notifications.'
-            ), (
-                'disable_shared_issues',
-                'Disable sharing of limited details on issues to anonymous users.'
-            ), (
-                'early_adopter',
-                'Enable early adopter status, gaining access to features prior to public release.'
-            ), (
-                'require_2fa',
-                'Require and enforce two-factor authentication for all members.'
-            ), (
-                'disable_new_visibility_features',
-                'Temporarily opt out of new visibility features and ui',
+                "allow_joinleave",
+                "Allow members to join and leave teams without requiring approval.",
+            ),
+            (
+                "enhanced_privacy",
+                "Enable enhanced privacy controls to limit personally identifiable information (PII) as well as source code in things like notifications.",
+            ),
+            (
+                "disable_shared_issues",
+                "Disable sharing of limited details on issues to anonymous users.",
+            ),
+            (
+                "early_adopter",
+                "Enable early adopter status, gaining access to features prior to public release.",
+            ),
+            ("require_2fa", "Require and enforce two-factor authentication for all members."),
+            (
+                "disable_new_visibility_features",
+                "Temporarily opt out of new visibility features and ui",
             ),
         ),
-        default=1
+        default=1,
     )
 
-    objects = OrganizationManager(cache_fields=('pk', 'slug', ))
+    objects = OrganizationManager(cache_fields=("pk", "slug"))
 
     class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_organization'
+        app_label = "sentry"
+        db_table = "sentry_organization"
 
-    __repr__ = sane_repr('owner_id', 'name', 'slug')
+    __repr__ = sane_repr("owner_id", "name", "slug")
 
     @classmethod
     def get_default(cls):
         """
         Return the organization used in single organization mode.
         """
-        return cls.objects.filter(
-            status=OrganizationStatus.ACTIVE,
-        )[0]
+
+        if settings.SENTRY_ORGANIZATION is not None:
+            return cls.objects.get(id=settings.SENTRY_ORGANIZATION)
+
+        return cls.objects.filter(status=OrganizationStatus.ACTIVE)[0]
 
     def __unicode__(self):
-        return u'%s (%s)' % (self.name, self.slug)
+        return u"%s (%s)" % (self.name, self.slug)
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            lock = locks.get('slug:organization', duration=5)
+            lock = locks.get("slug:organization", duration=5)
             with TimedRetryPolicy(10)(lock.acquire):
                 slugify_instance(self, self.name, reserved=RESERVED_ORGANIZATION_SLUGS)
             super(Organization, self).save(*args, **kwargs)
@@ -177,7 +169,7 @@ class Organization(Model):
 
     def delete(self):
         if self.is_default:
-            raise Exception('You cannot delete the the default organization.')
+            raise Exception("You cannot delete the the default organization.")
         return super(Organization, self).delete()
 
     @cached_property
@@ -196,16 +188,17 @@ class Organization(Model):
 
     def get_audit_log_data(self):
         return {
-            'id': self.id,
-            'slug': self.slug,
-            'name': self.name,
-            'status': int(self.status),
-            'flags': int(self.flags),
-            'default_role': self.default_role,
+            "id": self.id,
+            "slug": self.slug,
+            "name": self.name,
+            "status": int(self.status),
+            "flags": int(self.flags),
+            "default_role": self.default_role,
         }
 
     def get_owners(self):
         from sentry.models import User
+
         return User.objects.filter(
             sentry_orgmember_set__role=roles.get_top_dog().id,
             sentry_orgmember_set__organization=self,
@@ -213,17 +206,15 @@ class Organization(Model):
         )
 
     def get_default_owner(self):
-        if not hasattr(self, '_default_owner'):
+        if not hasattr(self, "_default_owner"):
             self._default_owner = self.get_owners()[0]
         return self._default_owner
 
     def has_single_owner(self):
         from sentry.models import OrganizationMember
+
         count = OrganizationMember.objects.filter(
-            organization=self,
-            role=roles.get_top_dog().id,
-            user__isnull=False,
-            user__is_active=True,
+            organization=self, role=roles.get_top_dog().id, user__isnull=False, user__is_active=True
         )[:2].count()
         return count == 1
 
@@ -251,34 +242,31 @@ class Organization(Model):
         for from_member in OrganizationMember.objects.filter(
             organization=from_org, user__isnull=False
         ):
-            logger = logging.getLogger('sentry.merge')
+            logger = logging.getLogger("sentry.merge")
             try:
                 to_member = OrganizationMember.objects.get(
-                    organization=to_org,
-                    user=from_member.user,
+                    organization=to_org, user=from_member.user
                 )
             except OrganizationMember.DoesNotExist:
                 from_member.update(organization=to_org)
                 to_member = from_member
             else:
                 qs = OrganizationMemberTeam.objects.filter(
-                    organizationmember=from_member,
-                    is_active=True,
+                    organizationmember=from_member, is_active=True
                 ).select_related()
                 for omt in qs:
                     OrganizationMemberTeam.objects.create_or_update(
-                        organizationmember=to_member,
-                        team=omt.team,
-                        defaults={
-                            'is_active': True,
-                        },
+                        organizationmember=to_member, team=omt.team, defaults={"is_active": True}
                     )
-            logger.info('user.migrate', extra={
-                'instance_id': from_member.id,
-                'new_member_id': to_member.id,
-                'from_organization_id': from_org.id,
-                'to_organization_id': to_org.id,
-            })
+            logger.info(
+                "user.migrate",
+                extra={
+                    "instance_id": from_member.id,
+                    "new_member_id": to_member.id,
+                    "from_organization_id": from_org.id,
+                    "to_organization_id": to_org.id,
+                },
+            )
 
         for from_team in Team.objects.filter(organization=from_org):
             try:
@@ -286,16 +274,16 @@ class Organization(Model):
                     from_team.update(organization=to_org)
             except IntegrityError:
                 slugify_instance(from_team, from_team.name, organization=to_org)
-                from_team.update(
-                    organization=to_org,
-                    slug=from_team.slug,
-                )
-            logger.info('team.migrate', extra={
-                'instance_id': from_team.id,
-                'new_slug': from_team.slug,
-                'from_organization_id': from_org.id,
-                'to_organization_id': to_org.id,
-            })
+                from_team.update(organization=to_org, slug=from_team.slug)
+            logger.info(
+                "team.migrate",
+                extra={
+                    "instance_id": from_team.id,
+                    "new_slug": from_team.slug,
+                    "from_organization_id": from_org.id,
+                    "to_organization_id": to_org.id,
+                },
+            )
 
         for from_project in Project.objects.filter(organization=from_org):
             try:
@@ -306,17 +294,18 @@ class Organization(Model):
                     from_project,
                     from_project.name,
                     organization=to_org,
-                    reserved=RESERVED_PROJECT_SLUGS)
-                from_project.update(
-                    organization=to_org,
-                    slug=from_project.slug,
+                    reserved=RESERVED_PROJECT_SLUGS,
                 )
-            logger.info('project.migrate', extra={
-                'instance_id': from_project.id,
-                'new_slug': from_project.slug,
-                'from_organization_id': from_org.id,
-                'to_organization_id': to_org.id,
-            })
+                from_project.update(organization=to_org, slug=from_project.slug)
+            logger.info(
+                "project.migrate",
+                extra={
+                    "instance_id": from_project.id,
+                    "new_slug": from_project.slug,
+                    "from_organization_id": from_org.id,
+                    "to_organization_id": to_org.id,
+                },
+            )
 
         # TODO(jess): update this when adding unique constraint
         # on version, organization for releases
@@ -327,11 +316,14 @@ class Organization(Model):
                 Release.objects.filter(id=from_release.id).update(organization=to_org)
             else:
                 Release.merge(to_release, [from_release])
-            logger.info('release.migrate', extra={
-                'instance_id': from_release.id,
-                'from_organization_id': from_org.id,
-                'to_organization_id': to_org.id,
-            })
+            logger.info(
+                "release.migrate",
+                extra={
+                    "instance_id": from_release.id,
+                    "from_organization_id": from_org.id,
+                    "to_organization_id": to_org.id,
+                },
+            )
 
         def do_update(queryset, params):
             model_name = queryset.model.__name__.lower()
@@ -344,42 +336,47 @@ class Organization(Model):
                         with transaction.atomic():
                             instance.update(**params)
                     except IntegrityError:
-                        logger.info('{}.migrate-skipped'.format(model_name), extra={
-                            'from_organization_id': from_org.id,
-                            'to_organization_id': to_org.id,
-                        })
+                        logger.info(
+                            "{}.migrate-skipped".format(model_name),
+                            extra={
+                                "from_organization_id": from_org.id,
+                                "to_organization_id": to_org.id,
+                            },
+                        )
                     else:
-                        logger.info('{}.migrate'.format(model_name), extra={
-                            'instance_id': instance.id,
-                            'from_organization_id': from_org.id,
-                            'to_organization_id': to_org.id,
-                        })
+                        logger.info(
+                            "{}.migrate".format(model_name),
+                            extra={
+                                "instance_id": instance.id,
+                                "from_organization_id": from_org.id,
+                                "to_organization_id": to_org.id,
+                            },
+                        )
             else:
-                logger.info('{}.migrate'.format(model_name), extra={
-                    'from_organization_id': from_org.id,
-                    'to_organization_id': to_org.id,
-                })
+                logger.info(
+                    "{}.migrate".format(model_name),
+                    extra={"from_organization_id": from_org.id, "to_organization_id": to_org.id},
+                )
 
         INST_MODEL_LIST = (
-            AuthProvider, ApiKey, AuditLogEntry, OrganizationAvatar,
-            OrganizationIntegration, ReleaseEnvironment, ReleaseFile,
+            AuthProvider,
+            ApiKey,
+            AuditLogEntry,
+            OrganizationAvatar,
+            OrganizationIntegration,
+            ReleaseEnvironment,
+            ReleaseFile,
         )
 
-        ATTR_MODEL_LIST = (
-            Commit, ReleaseCommit, ReleaseHeadCommit, Repository, Environment,
-        )
+        ATTR_MODEL_LIST = (Commit, ReleaseCommit, ReleaseHeadCommit, Repository, Environment)
 
         for model in INST_MODEL_LIST:
-            queryset = model.objects.filter(
-                organization=from_org,
-            )
-            do_update(queryset, {'organization': to_org})
+            queryset = model.objects.filter(organization=from_org)
+            do_update(queryset, {"organization": to_org})
 
         for model in ATTR_MODEL_LIST:
-            queryset = model.objects.filter(
-                organization_id=from_org.id,
-            )
-            do_update(queryset, {'organization_id': to_org.id})
+            queryset = model.objects.filter(organization_id=from_org.id)
+            do_update(queryset, {"organization_id": to_org.id})
 
     # TODO: Make these a mixin
     def update_option(self, *args, **kwargs):
@@ -404,50 +401,42 @@ class Organization(Model):
         owners = self.get_owners()
 
         context = {
-            'organization': self,
-            'audit_log_entry': audit_log_entry,
-            'eta': timezone.now() + timedelta(seconds=countdown),
-            'url': absolute_uri(reverse(
-                'sentry-restore-organization',
-                args=[self.slug],
-            )),
+            "organization": self,
+            "audit_log_entry": audit_log_entry,
+            "eta": timezone.now() + timedelta(seconds=countdown),
+            "url": absolute_uri(reverse("sentry-restore-organization", args=[self.slug])),
         }
 
         MessageBuilder(
-            subject='%sOrganization Queued for Deletion' % (options.get('mail.subject-prefix'), ),
-            template='sentry/emails/org_delete_confirm.txt',
-            html_template='sentry/emails/org_delete_confirm.html',
-            type='org.confirm_delete',
+            subject="%sOrganization Queued for Deletion" % (options.get("mail.subject-prefix"),),
+            template="sentry/emails/org_delete_confirm.txt",
+            html_template="sentry/emails/org_delete_confirm.html",
+            type="org.confirm_delete",
             context=context,
         ).send_async([o.email for o in owners])
 
     def flag_has_changed(self, flag_name):
         "Returns ``True`` if ``flag`` has changed since initialization."
-        return getattr(self.old_value('flags'), flag_name, None) != getattr(self.flags, flag_name)
+        return getattr(self.old_value("flags"), flag_name, None) != getattr(self.flags, flag_name)
 
     def handle_2fa_required(self, request):
         from sentry.models import ApiKey
         from sentry.tasks.auth import remove_2fa_non_compliant_members
 
         actor_id = request.user.id if request.user and request.user.is_authenticated() else None
-        api_key_id = request.auth.id if hasattr(
-            request, 'auth') and isinstance(
-            request.auth, ApiKey) else None
-        ip_address = request.META['REMOTE_ADDR']
+        api_key_id = (
+            request.auth.id
+            if hasattr(request, "auth") and isinstance(request.auth, ApiKey)
+            else None
+        )
+        ip_address = request.META["REMOTE_ADDR"]
 
         remove_2fa_non_compliant_members.delay(
-            self.id,
-            actor_id=actor_id,
-            actor_key_id=api_key_id,
-            ip_address=ip_address
+            self.id, actor_id=actor_id, actor_key_id=api_key_id, ip_address=ip_address
         )
 
     def get_url_viewname(self):
-        from sentry import features
-        if features.has('organizations:sentry10', self):
-            return 'sentry-organization-issue-list'
-        else:
-            return 'sentry-organization-home'
+        return "sentry-organization-issue-list"
 
     def get_url(self):
         return reverse(self.get_url_viewname(), args=[self.slug])

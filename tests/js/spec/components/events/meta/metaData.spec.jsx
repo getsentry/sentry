@@ -1,5 +1,6 @@
-import {mount} from 'enzyme';
 import React from 'react';
+
+import {mount} from 'sentry-test/enzyme';
 
 import {withMeta} from 'app/components/events/meta/metaProxy';
 import MetaData from 'app/components/events/meta/metaData';

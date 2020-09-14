@@ -1,16 +1,17 @@
 import PropTypes from 'prop-types';
 import React, {Component} from 'react';
-import SentryTypes from 'app/sentryTypes';
 
-import GroupEventDataSection from 'app/components/events/eventDataSection';
-import KeyValueList from 'app/components/events/interfaces/keyValueList';
+import SentryTypes from 'app/sentryTypes';
+import ButtonBar from 'app/components/buttonBar';
+import Button from 'app/components/button';
+import EventDataSection from 'app/components/events/eventDataSection';
+import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValueList';
 import {t} from 'app/locale';
-import {objectToArray} from 'app/utils';
 
 function getView(view, data) {
   switch (view) {
     case 'report':
-      return <KeyValueList data={objectToArray(data)} isContextData={true} />;
+      return <KeyValueList data={Object.entries(data)} isContextData />;
     case 'raw':
       return <pre>{JSON.stringify({'csp-report': data}, null, 2)}</pre>;
     default:
@@ -19,7 +20,6 @@ function getView(view, data) {
 }
 export default class GenericInterface extends Component {
   static propTypes = {
-    group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
     type: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
@@ -42,24 +42,22 @@ export default class GenericInterface extends Component {
 
   render() {
     const {view, data} = this.state;
-    const {group, event, type} = this.props;
+    const {event, type} = this.props;
 
     const title = (
       <div>
-        <div className="btn-group">
-          <a
-            className={(view === 'report' ? 'active' : '') + ' btn btn-default btn-sm'}
+        <ButtonBar merged active={view}>
+          <Button
+            barId="report"
+            size="xsmall"
             onClick={this.toggleView.bind(this, 'report')}
           >
             {t('Report')}
-          </a>
-          <a
-            className={(view === 'raw' ? 'active' : '') + ' btn btn-default btn-sm'}
-            onClick={this.toggleView.bind(this, 'raw')}
-          >
+          </Button>
+          <Button barId="raw" size="xsmall" onClick={this.toggleView.bind(this, 'raw')}>
             {t('Raw')}
-          </a>
-        </div>
+          </Button>
+        </ButtonBar>
         <h3>{t('Report')}</h3>
       </div>
     );
@@ -67,15 +65,9 @@ export default class GenericInterface extends Component {
     const children = getView(view, data);
 
     return (
-      <GroupEventDataSection
-        group={group}
-        event={event}
-        type={type}
-        title={title}
-        wrapTitle={false}
-      >
+      <EventDataSection event={event} type={type} title={title} wrapTitle={false}>
         {children}
-      </GroupEventDataSection>
+      </EventDataSection>
     );
   }
 }

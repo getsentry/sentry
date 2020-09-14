@@ -1,8 +1,8 @@
 import React from 'react';
-import {mount} from 'enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import SentryAppExternalIssueActions from 'app/components/group/sentryAppExternalIssueActions';
-import {selectByValue} from '../../../helpers/select';
 
 describe('SentryAppExternalIssueActions', () => {
   let group;
@@ -14,18 +14,31 @@ describe('SentryAppExternalIssueActions', () => {
 
   beforeEach(() => {
     group = TestStubs.Group();
-    component = TestStubs.SentryAppComponent();
     sentryApp = TestStubs.SentryApp();
+    component = TestStubs.SentryAppComponent({
+      sentryApp: {
+        uuid: sentryApp.uuid,
+        slug: sentryApp.slug,
+        name: sentryApp.name,
+      },
+    });
+    //unable to use the selectByValue here so remove the select option
+    component.schema.create.required_fields.pop();
     install = TestStubs.SentryAppInstallation({sentryApp});
     externalIssue = TestStubs.PlatformExternalIssue({
       groupId: group.id,
       serviceType: component.sentryApp.slug,
     });
+
+    MockApiClient.addMockResponse({
+      url: `/sentry-apps/${sentryApp.slug}/interaction/`,
+      method: 'POST',
+    });
   });
 
   describe('without an external issue linked', () => {
     beforeEach(() => {
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <SentryAppExternalIssueActions
           group={group}
           sentryAppInstallation={install}
@@ -42,7 +55,7 @@ describe('SentryAppExternalIssueActions', () => {
     });
 
     it('renders the add icon', () => {
-      expect(wrapper.find('AddRemoveIcon').prop('isLinked')).toBe(false);
+      expect(wrapper.find('StyledIcon IconAdd')).toHaveLength(1);
     });
 
     it('opens the modal', () => {
@@ -126,7 +139,6 @@ describe('SentryAppExternalIssueActions', () => {
 
       wrapper.find('Input#title').simulate('change', {target: {value: 'foo'}});
       wrapper.find('TextArea#description').simulate('change', {target: {value: 'bar'}});
-      selectByValue(wrapper, 1, {name: 'numbers'});
 
       wrapper.find('Form form').simulate('submit');
 
@@ -146,7 +158,7 @@ describe('SentryAppExternalIssueActions', () => {
 
   describe('with an external issue linked', () => {
     beforeEach(() => {
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <SentryAppExternalIssueActions
           group={group}
           sentryAppComponent={component}
@@ -171,7 +183,7 @@ describe('SentryAppExternalIssueActions', () => {
     });
 
     it('renders the remove issue button', () => {
-      expect(wrapper.find('AddRemoveIcon').prop('isLinked')).toBe(true);
+      expect(wrapper.find('StyledIcon IconClose')).toHaveLength(1);
     });
 
     it('deletes a Linked Issue', () => {
@@ -180,7 +192,7 @@ describe('SentryAppExternalIssueActions', () => {
         method: 'DELETE',
       });
 
-      wrapper.find('AddRemoveIcon').simulate('click');
+      wrapper.find('StyledIcon').simulate('click');
 
       expect(request).toHaveBeenCalled();
     });

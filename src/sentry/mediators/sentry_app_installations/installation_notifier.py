@@ -4,14 +4,15 @@ import six
 
 from sentry.api.serializers import SentryAppInstallationSerializer, AppPlatformEvent
 from sentry.coreapi import APIUnauthorized
-from sentry.http import safe_urlopen, safe_urlread
+from sentry.http import safe_urlread
 from sentry.mediators import Mediator, Param
 from sentry.utils.cache import memoize
+from sentry.tasks.sentry_apps import send_and_save_webhook_request
 
 
 class InstallationNotifier(Mediator):
-    install = Param('sentry.models.SentryAppInstallation')
-    user = Param('sentry.models.User')
+    install = Param("sentry.models.SentryAppInstallation")
+    user = Param("sentry.models.User")
     action = Param(six.string_types)
 
     def call(self):
@@ -19,16 +20,13 @@ class InstallationNotifier(Mediator):
         self._send_webhook()
 
     def _verify_action(self):
-        if self.action not in ['created', 'deleted']:
+        if self.action not in ["created", "deleted"]:
             raise APIUnauthorized(u"Invalid action '{}'".format(self.action))
 
     def _send_webhook(self):
         safe_urlread(
-            safe_urlopen(
-                url=self.sentry_app.webhook_url,
-                data=self.request.body,
-                headers=self.request.headers,
-                timeout=5,
+            send_and_save_webhook_request(
+                self.sentry_app.webhook_url, self.sentry_app, self.request
             )
         )
 
@@ -36,20 +34,18 @@ class InstallationNotifier(Mediator):
     def request(self):
         attrs = {}
 
-        if self.action == 'created' and self.api_grant:
-            attrs['code'] = self.api_grant.code
+        if self.action == "created" and self.api_grant:
+            attrs["code"] = self.api_grant.code
 
         data = SentryAppInstallationSerializer().serialize(
-            self.install,
-            attrs=attrs,
-            user=self.user,
+            self.install, attrs=attrs, user=self.user
         )
 
         return AppPlatformEvent(
-            resource='installation',
+            resource="installation",
             action=self.action,
             install=self.install,
-            data={'installation': data},
+            data={"installation": data},
             actor=self.user,
         )
 

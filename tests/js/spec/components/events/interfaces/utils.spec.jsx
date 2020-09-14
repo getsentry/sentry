@@ -2,14 +2,19 @@ import {MetaProxy, withMeta} from 'app/components/events/meta/metaProxy';
 import {
   getCurlCommand,
   objectToSortedTupleArray,
+  removeFilterMaskedEntries,
 } from 'app/components/events/interfaces/utils';
+import {FILTER_MASK} from 'app/constants';
 
 describe('components/interfaces/utils', function() {
   describe('getCurlCommand()', function() {
     it('should convert an http request object to an equivalent unix curl command string', function() {
       expect(
         getCurlCommand({
-          cookies: [['foo', 'bar'], ['biz', 'baz']],
+          cookies: [
+            ['foo', 'bar'],
+            ['biz', 'baz'],
+          ],
           url: 'http://example.com/foo',
           headers: [
             ['Referer', 'http://example.com'],
@@ -95,7 +100,10 @@ describe('components/interfaces/utils', function() {
       // Escape escaped strings.
       expect(
         getCurlCommand({
-          cookies: [['foo', 'bar'], ['biz', 'baz']],
+          cookies: [
+            ['foo', 'bar'],
+            ['biz', 'baz'],
+          ],
           url: 'http://example.com/foo',
           headers: [
             ['Referer', 'http://example.com'],
@@ -164,7 +172,31 @@ describe('components/interfaces/utils', function() {
         objectToSortedTupleArray({
           foo: ['bar', 'baz'],
         })
-      ).toEqual([['foo', 'bar'], ['foo', 'baz']]);
+      ).toEqual([
+        ['foo', 'bar'],
+        ['foo', 'baz'],
+      ]);
+    });
+  });
+
+  describe('removeFilterMaskedEntries()', function() {
+    const rawData = {
+      id: '26',
+      name: FILTER_MASK,
+      username: 'maiseythedog',
+      email: FILTER_MASK,
+    };
+    it('should remove filtered values', function() {
+      const result = removeFilterMaskedEntries(rawData);
+      expect(result).not.toHaveProperty('name');
+      expect(result).not.toHaveProperty('email');
+    });
+    it('should preserve unfiltered values', function() {
+      const result = removeFilterMaskedEntries(rawData);
+      expect(result).toHaveProperty('id');
+      expect(result.id).toEqual('26');
+      expect(result).toHaveProperty('username');
+      expect(result.username).toEqual('maiseythedog');
     });
   });
 });

@@ -1,8 +1,10 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import SentryTypes from 'app/sentryTypes';
 
-import GroupEventDataSection from 'app/components/events/eventDataSection';
+import SentryTypes from 'app/sentryTypes';
+import ButtonBar from 'app/components/buttonBar';
+import Button from 'app/components/button';
+import EventDataSection from 'app/components/events/eventDataSection';
 import CSPContent from 'app/components/events/interfaces/cspContent';
 import CSPHelp from 'app/components/events/interfaces/cspHelp';
 import {t} from 'app/locale';
@@ -22,22 +24,11 @@ function getView(view, data) {
 
 export default class CspInterface extends React.Component {
   static propTypes = {
-    group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
     data: PropTypes.object.isRequired,
   };
 
-  constructor(props) {
-    super(props);
-    const {data} = props;
-    // hide the report-uri since this is redundant and silly
-    data.original_policy = data.original_policy.replace(/(;\s+)?report-uri [^;]+/, '');
-
-    this.state = {
-      view: 'report',
-      data,
-    };
-  }
+  state = {view: 'report'};
 
   toggleView = value => {
     this.setState({
@@ -46,47 +37,48 @@ export default class CspInterface extends React.Component {
   };
 
   render() {
-    const {view, data} = this.state;
-    const {group, event} = this.props;
+    const {view} = this.state;
+    const {event, data} = this.props;
 
-    const title = (
-      <div>
-        <div className="btn-group">
-          <a
-            className={(view === 'report' ? 'active' : '') + ' btn btn-default btn-sm'}
-            onClick={this.toggleView.bind(this, 'report')}
-          >
-            {t('Report')}
-          </a>
-          <a
-            className={(view === 'raw' ? 'active' : '') + ' btn btn-default btn-sm'}
-            onClick={this.toggleView.bind(this, 'raw')}
-          >
-            {t('Raw')}
-          </a>
-          <a
-            className={(view === 'help' ? 'active' : '') + ' btn btn-default btn-sm'}
-            onClick={this.toggleView.bind(this, 'help')}
-          >
-            {t('Help')}
-          </a>
-        </div>
-        <h3>{t('CSP Report')}</h3>
-      </div>
+    const cleanData =
+      data.original_policy !== 'string'
+        ? data
+        : {
+            ...data,
+            // Hide the report-uri since this is redundant and silly
+            original_policy: data.original_policy.replace(/(;\s+)?report-uri [^;]+/, ''),
+          };
+
+    const actions = (
+      <ButtonBar merged active={view}>
+        <Button
+          barId="report"
+          size="xsmall"
+          onClick={this.toggleView.bind(this, 'report')}
+        >
+          {t('Report')}
+        </Button>
+        <Button barId="raw" size="xsmall" onClick={this.toggleView.bind(this, 'raw')}>
+          {t('Raw')}
+        </Button>
+        <Button barId="help" size="xsmall" onClick={this.toggleView.bind(this, 'help')}>
+          {t('Help')}
+        </Button>
+      </ButtonBar>
     );
 
-    const children = getView(view, data);
+    const children = getView(view, cleanData);
 
     return (
-      <GroupEventDataSection
-        group={group}
+      <EventDataSection
         event={event}
         type="csp"
-        title={title}
+        title={<h3>{t('CSP Report')}</h3>}
+        actions={actions}
         wrapTitle={false}
       >
         {children}
-      </GroupEventDataSection>
+      </EventDataSection>
     );
   }
 }

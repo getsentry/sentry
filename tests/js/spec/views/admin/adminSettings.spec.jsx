@@ -1,5 +1,6 @@
 import React from 'react';
-import {shallow} from 'enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
 import AdminSettings from 'app/views/admin/adminSettings';
@@ -116,12 +117,12 @@ describe('AdminSettings', function() {
     });
 
     it('renders', function() {
-      const wrapper = shallow(<AdminSettings params={{}} />, {
+      const wrapper = mountWithTheme(<AdminSettings params={{}} />, {
         context: {
           router: TestStubs.router(),
         },
       });
-      expect(wrapper).toMatchSnapshot();
+      expect(wrapper).toSnapshot();
     });
   });
 });

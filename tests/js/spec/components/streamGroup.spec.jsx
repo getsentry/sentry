@@ -1,10 +1,10 @@
 import React from 'react';
-import {shallow} from 'enzyme';
+
+import {initializeOrg} from 'sentry-test/initializeOrg';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import GroupStore from 'app/stores/groupStore';
 import StreamGroup from 'app/components/stream/group';
-
-// jest.mock('app/mixins/projectState');
 
 describe('StreamGroup', function() {
   let GROUP_1;
@@ -24,19 +24,22 @@ describe('StreamGroup', function() {
   afterEach(function() {});
 
   it('renders with anchors', function() {
-    const component = shallow(
+    const {routerContext} = initializeOrg();
+    const component = mountWithTheme(
       <StreamGroup
         id="1L"
         orgId="orgId"
         groupId="groupId"
         lastSeen="2017-07-25T22:56:12Z"
         firstSeen="2017-07-01T02:06:02Z"
-        hasGuideAnchor={true}
-      />
+        hasGuideAnchor
+        {...routerContext}
+      />,
+      routerContext
     );
 
     expect(component.find('GuideAnchor').exists()).toBe(true);
-    expect(component.find('GuideAnchor')).toHaveLength(3);
-    expect(component).toMatchSnapshot();
+    expect(component.find('GuideAnchor')).toHaveLength(2);
+    expect(component).toSnapshot();
   });
 });

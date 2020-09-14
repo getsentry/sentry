@@ -1,16 +1,13 @@
-import PropTypes from 'prop-types';
-/* eslint-disable getsentry/jsx-needs-il8n */
 /* eslint-disable react/jsx-key */
+import PropTypes from 'prop-types';
 import React from 'react';
 import moment from 'moment';
 import createReactClass from 'create-react-class';
 
 import {t} from 'app/locale';
 import withApi from 'app/utils/withApi';
-import withEnvironment from 'app/utils/withEnvironment';
-
 import ResultGrid from 'app/components/resultGrid';
-import LinkWithConfirmation from 'app/components/linkWithConfirmation';
+import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
 
 const prettyDate = function(x) {
   return moment(x).format('ll LTS');
@@ -105,4 +102,4 @@ const AdminRelays = createReactClass({
 
 export {AdminRelays};
 
-export default withApi(withEnvironment(AdminRelays));
+export default withApi(AdminRelays);

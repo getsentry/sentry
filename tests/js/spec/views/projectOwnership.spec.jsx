@@ -1,5 +1,6 @@
 import React from 'react';
-import {shallow} from 'enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
 import ProjectOwnership from 'app/views/settings/project/projectOwnership';
@@ -30,7 +31,7 @@ describe('ProjectTeamsSettings', function() {
 
   describe('render()', function() {
     it('renders', function() {
-      const wrapper = shallow(
+      const wrapper = mountWithTheme(
         <ProjectOwnership
           params={{orgId: org.slug, projectId: project.slug}}
           organization={org}
@@ -38,7 +39,7 @@ describe('ProjectTeamsSettings', function() {
         />,
         TestStubs.routerContext()
       );
-      expect(wrapper).toMatchSnapshot();
+      expect(wrapper).toSnapshot();
     });
   });
 });

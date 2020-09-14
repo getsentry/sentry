@@ -1,76 +1,75 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
-import {uniqBy, flatMap} from 'lodash';
-import styled from 'react-emotion';
+import uniqBy from 'lodash/uniqBy';
+import flatMap from 'lodash/flatMap';
+import styled from '@emotion/styled';
 
-import ApiMixin from 'app/mixins/apiMixin';
 import CommitRow from 'app/components/commitRow';
-import InlineSvg from 'app/components/inlineSvg';
-
+import {IconAdd, IconSubtract} from 'app/icons';
+import {Panel} from 'app/components/panels';
+import {DataSection, CauseHeader} from 'app/components/events/styles';
+import withApi from 'app/utils/withApi';
+import space from 'app/styles/space';
 import {t} from 'app/locale';
 
-import {Panel} from 'app/components/panels';
-
-const ExpandButton = styled.span`
-  cursor: pointer;
-  position: absolute;
-  right: 0;
-  top: 7px;
+const ExpandButton = styled('button')`
+  display: flex;
+  align-items: center;
+  & > svg {
+    margin-left: ${space(0.5)};
+  }
 `;
 
-export default createReactClass({
-  displayName: 'EventCause',
-
-  propTypes: {
+class EventCause extends React.Component {
+  static propTypes = {
+    api: PropTypes.object.isRequired,
     event: PropTypes.object.isRequired,
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
-  },
+  };
 
-  mixins: [ApiMixin],
-
-  getInitialState() {
-    return {committers: undefined, expanded: false};
-  },
+  state = {
+    committers: undefined,
+    expanded: false,
+  };
 
   componentDidMount() {
     this.fetchData(this.props.event);
-  },
+  }
 
-  componentWillReceiveProps(nextProps) {
-    if (this.props.event && nextProps.event) {
-      if (this.props.event.id !== nextProps.event.id) {
-        //two events, with different IDs
-        this.fetchData(nextProps.event);
-      }
-    } else if (nextProps.event) {
-      //going from having no event to having an event
-      this.fetchData(nextProps.event);
+  componentDidUpdate(prevProps) {
+    let doFetch = false;
+    if (!prevProps.event && this.props.event) {
+      // going from having no event to having an event
+      doFetch = true;
+    } else if (this.props.event && this.props.event.id !== prevProps.event.id) {
+      doFetch = true;
     }
-  },
+
+    if (doFetch) {
+      this.fetchData(this.props.event);
+    }
+  }
 
   fetchData(event) {
     // TODO(dcramer): this API request happens twice, and we need a store for it
     if (!event) {
       return;
     }
-    this.api.request(
-      `/projects/${this.props.orgId}/${this.props.projectId}/events/${
-        event.id
-      }/committers/`,
+    this.props.api.request(
+      `/projects/${this.props.orgId}/${this.props.projectId}/events/${event.id}/committers/`,
       {
-        success: (data, _, jqXHR) => {
+        success: data => {
           this.setState(data);
         },
-        error: error => {
+        error: () => {
           this.setState({
             committers: undefined,
           });
         },
       }
     );
-  },
+  }
 
   getUniqueCommitsWithAuthors() {
     const {committers} = this.state;
@@ -85,7 +84,7 @@ export default createReactClass({
     //remove duplicate commits
     const uniqueCommitsWithAuthors = uniqBy(commitsWithAuthors, commit => commit.id);
     return uniqueCommitsWithAuthors;
-  },
+  }
 
   render() {
     const {committers, expanded} = this.state;
@@ -96,31 +95,33 @@ export default createReactClass({
     const commits = this.getUniqueCommitsWithAuthors();
 
     return (
-      <div className="box">
-        <div className="box-header">
+      <DataSection>
+        <CauseHeader>
           <h3>
             {t('Suspect Commits')} ({commits.length})
-            {commits.length > 1 && (
-              <ExpandButton onClick={() => this.setState({expanded: !expanded})}>
-                {expanded ? (
-                  <React.Fragment>
-                    {t('Show less')} <InlineSvg src="icon-circle-subtract" size="16px" />
-                  </React.Fragment>
-                ) : (
-                  <React.Fragment>
-                    {t('Show more')} <InlineSvg src="icon-circle-add" size="16px" />
-                  </React.Fragment>
-                )}
-              </ExpandButton>
-            )}
           </h3>
-          <Panel>
-            {commits.slice(0, expanded ? 100 : 1).map(commit => {
-              return <CommitRow key={commit.id} commit={commit} />;
-            })}
-          </Panel>
-        </div>
-      </div>
+          {commits.length > 1 && (
+            <ExpandButton onClick={() => this.setState({expanded: !expanded})}>
+              {expanded ? (
+                <React.Fragment>
+                  {t('Show less')} <IconSubtract isCircled size="md" />
+                </React.Fragment>
+              ) : (
+                <React.Fragment>
+                  {t('Show more')} <IconAdd isCircled size="md" />
+                </React.Fragment>
+              )}
+            </ExpandButton>
+          )}
+        </CauseHeader>
+        <Panel>
+          {commits.slice(0, expanded ? 100 : 1).map(commit => (
+            <CommitRow key={commit.id} commit={commit} />
+          ))}
+        </Panel>
+      </DataSection>
     );
-  },
-});
+  }
+}
+
+export default withApi(EventCause);

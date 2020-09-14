@@ -23,21 +23,16 @@ class OrganizationRepositoryCommitsEndpoint(OrganizationEndpoint):
         :auth: required
         """
         try:
-            repo = Repository.objects.get(
-                id=repo_id,
-                organization_id=organization.id,
-            )
+            repo = Repository.objects.get(id=repo_id, organization_id=organization.id)
         except Repository.DoesNotExist:
             raise ResourceDoesNotExist
 
-        queryset = Commit.objects.filter(
-            repository_id=repo.id,
-        ).select_related('author')
+        queryset = Commit.objects.filter(repository_id=repo.id).select_related("author")
 
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by='-date_added',
+            order_by="-date_added",
             on_results=lambda x: serialize(x, request.user),
             paginator_cls=DateTimePaginator,
         )

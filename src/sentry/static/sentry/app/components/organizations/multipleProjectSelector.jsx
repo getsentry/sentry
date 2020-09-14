@@ -1,46 +1,54 @@
+import {ClassNames} from '@emotion/core';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled, {css} from 'react-emotion';
+import styled from '@emotion/styled';
+import {Link} from 'react-router';
 
 import SentryTypes from 'app/sentryTypes';
 import {analytics} from 'app/utils/analytics';
+import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
-import {t} from 'app/locale';
-import ProjectSelector from 'app/components/projectSelector';
-import InlineSvg from 'app/components/inlineSvg';
-
+import {t, tct} from 'app/locale';
+import Button from 'app/components/button';
+import Tooltip from 'app/components/tooltip';
 import HeaderItem from 'app/components/organizations/headerItem';
-import MultipleSelectorSubmitRow from 'app/components/organizations/multipleSelectorSubmitRow';
+import {growIn} from 'app/styles/animations';
+import space from 'app/styles/space';
+import PlatformList from 'app/components/platformList';
+import {IconProject} from 'app/icons';
 
-const rootContainerStyles = css`
-  display: flex;
-`;
+import ProjectSelector from './projectSelector';
 
 export default class MultipleProjectSelector extends React.PureComponent {
   static propTypes = {
     organization: SentryTypes.Organization.isRequired,
     value: PropTypes.array,
     projects: PropTypes.array.isRequired,
+    nonMemberProjects: PropTypes.array.isRequired,
+    isGlobalSelectionReady: PropTypes.bool,
     onChange: PropTypes.func,
     onUpdate: PropTypes.func,
     multi: PropTypes.bool,
+    shouldForceProject: PropTypes.bool,
     forceProject: SentryTypes.Project,
-  };
-
-  static defaultProps = {
-    multi: true,
+    showIssueStreamLink: PropTypes.bool,
+    showProjectSettingsLink: PropTypes.bool,
+    lockedMessageSubject: PropTypes.string,
+    footerMessage: PropTypes.node,
   };
 
   static contextTypes = {
     router: PropTypes.object,
   };
 
-  constructor() {
-    super();
-    this.state = {
-      hasChanges: false,
-    };
-  }
+  static defaultProps = {
+    multi: true,
+    lockedMessageSubject: t('page'),
+  };
+
+  state = {
+    hasChanges: false,
+  };
 
   // Reset "hasChanges" state and call `onUpdate` callback
   doUpdate = () => {
@@ -63,13 +71,14 @@ export default class MultipleProjectSelector extends React.PureComponent {
    *
    * Should perform an "update" callback
    */
-  handleQuickSelect = (selected, checked, e) => {
+  handleQuickSelect = selected => {
     analytics('projectselector.direct_selection', {
       path: getRouteStringFromRoutes(this.context.router.routes),
       org_id: parseInt(this.props.organization.id, 10),
     });
 
-    this.props.onChange([parseInt(selected.id, 10)]);
+    const value = selected.id === null ? [] : [parseInt(selected.id, 10)];
+    this.props.onChange(value);
     this.doUpdate();
   };
 
@@ -78,7 +87,7 @@ export default class MultipleProjectSelector extends React.PureComponent {
    *
    * Should perform an "update" callback
    */
-  handleClose = props => {
+  handleClose = () => {
     // Only update if there are changes
     if (!this.state.hasChanges) {
       return;
@@ -115,7 +124,7 @@ export default class MultipleProjectSelector extends React.PureComponent {
   /**
    * Handler for selecting multiple items, should NOT call update
    */
-  handleMultiSelect = (selected, checked, e) => {
+  handleMultiSelect = selected => {
     const {onChange, value} = this.props;
 
     analytics('projectselector.toggle', {
@@ -123,80 +132,264 @@ export default class MultipleProjectSelector extends React.PureComponent {
       path: getRouteStringFromRoutes(this.context.router.routes),
       org_id: parseInt(this.props.organization.id, 10),
     });
-    onChange(selected.map(({id}) => parseInt(id, 10)));
+
+    selected = selected.map(({id}) => parseInt(id, 10)).filter(i => i);
+    onChange(selected);
     this.setState({hasChanges: true});
   };
 
+  renderProjectName() {
+    const {location} = this.context.router;
+    const {forceProject, multi, organization, showIssueStreamLink} = this.props;
+
+    if (showIssueStreamLink && forceProject && multi) {
+      return (
+        <Tooltip title={t('Issues Stream')} position="bottom">
+          <StyledLink
+            to={{
+              pathname: `/organizations/${organization.slug}/issues/`,
+              query: {...location.query, project: forceProject.id},
+            }}
+          >
+            {forceProject.slug}
+          </StyledLink>
+        </Tooltip>
+      );
+    }
+
+    if (forceProject) {
+      return forceProject.slug;
+    }
+
+    return '';
+  }
+
+  getLockedMessage() {
+    const {forceProject, lockedMessageSubject} = this.props;
+
+    if (forceProject) {
+      return tct('This [subject] is unique to the [projectSlug] project', {
+        subject: lockedMessageSubject,
+        projectSlug: forceProject.slug,
+      });
+    }
+
+    return tct('This [subject] is unique to a project', {subject: lockedMessageSubject});
+  }
+
   render() {
-    const {value, projects, multi, organization, forceProject} = this.props;
+    const {
+      value,
+      projects,
+      isGlobalSelectionReady,
+      nonMemberProjects,
+      multi,
+      organization,
+      shouldForceProject,
+      forceProject,
+      showProjectSettingsLink,
+      footerMessage,
+    } = this.props;
     const selectedProjectIds = new Set(value);
 
-    const selected = projects.filter(project =>
+    const allProjects = [...projects, ...nonMemberProjects];
+    const selected = allProjects.filter(project =>
       selectedProjectIds.has(parseInt(project.id, 10))
     );
 
-    return forceProject ? (
+    // `forceProject` can be undefined if it is loading the project
+    // We are intentionally using an empty string as its "loading" state
+
+    return shouldForceProject ? (
       <StyledHeaderItem
-        icon={<StyledInlineSvg src="icon-project" />}
-        locked={true}
-        lockedMessage={t(`This issue is unique to the ${forceProject.slug} project`)}
-        settingsLink={`/settings/${organization.slug}/projects/${forceProject.slug}/`}
-      >
-        {forceProject.slug}
-      </StyledHeaderItem>
-    ) : (
-      <StyledProjectSelector
-        {...this.props}
-        multi={multi}
-        selectedProjects={selected}
-        multiProjects={projects}
-        onSelect={this.handleQuickSelect}
-        onClose={this.handleClose}
-        onMultiSelect={this.handleMultiSelect}
-        rootClassName={rootContainerStyles}
-        menuFooter={({actions}) =>
-          this.state.hasChanges && (
-            <MultipleSelectorSubmitRow onSubmit={() => this.handleUpdate(actions)} />
+        data-test-id="global-header-project-selector"
+        icon={
+          forceProject && (
+            <PlatformList
+              platforms={forceProject.platform ? [forceProject.platform] : []}
+              max={1}
+            />
           )
         }
+        locked
+        lockedMessage={this.getLockedMessage()}
+        settingsLink={
+          forceProject &&
+          showProjectSettingsLink &&
+          `/settings/${organization.slug}/projects/${forceProject.slug}/`
+        }
       >
-        {({
-          getActorProps,
-          selectedItem,
-          activeProject,
-          selectedProjects,
-          isOpen,
-          actions,
-          onBlur,
-        }) => {
-          const hasSelected = !!selectedProjects.length;
-          const title = hasSelected
-            ? selectedProjects.map(({slug}) => slug).join(', ')
-            : t('All Projects');
-          return (
-            <StyledHeaderItem
-              active={hasSelected || isOpen}
-              icon={<StyledInlineSvg src="icon-project" />}
-              hasSelected={hasSelected}
-              hasChanges={this.state.hasChanges}
-              isOpen={isOpen}
-              onClear={this.handleClear}
-              allowClear={multi}
-              {...getActorProps()}
-            >
-              {title}
-            </StyledHeaderItem>
-          );
-        }}
-      </StyledProjectSelector>
+        {this.renderProjectName()}
+      </StyledHeaderItem>
+    ) : !isGlobalSelectionReady ? (
+      <StyledHeaderItem
+        data-test-id="global-header-project-selector"
+        icon={<IconProject />}
+        loading
+      >
+        {t('Loading\u2026')}
+      </StyledHeaderItem>
+    ) : (
+      <ClassNames>
+        {({css}) => (
+          <StyledProjectSelector
+            {...this.props}
+            multi={multi}
+            selectedProjects={selected}
+            multiProjects={projects}
+            onSelect={this.handleQuickSelect}
+            onClose={this.handleClose}
+            onMultiSelect={this.handleMultiSelect}
+            rootClassName={css`
+              display: flex;
+            `}
+            menuFooter={({actions}) => (
+              <SelectorFooterControls
+                selected={selectedProjectIds}
+                multi={multi}
+                organization={organization}
+                hasChanges={this.state.hasChanges}
+                onApply={() => this.handleUpdate(actions)}
+                onShowAllProjects={() => {
+                  this.handleQuickSelect({id: ALL_ACCESS_PROJECTS});
+                  actions.close();
+                }}
+                onShowMyProjects={() => {
+                  this.handleClear();
+                  actions.close();
+                }}
+                message={footerMessage}
+              />
+            )}
+          >
+            {({getActorProps, selectedProjects, isOpen}) => {
+              const hasSelected = !!selectedProjects.length;
+              const title = hasSelected
+                ? selectedProjects.map(({slug}) => slug).join(', ')
+                : selectedProjectIds.has(ALL_ACCESS_PROJECTS)
+                ? t('All Projects')
+                : t('My Projects');
+              const icon = hasSelected ? (
+                <PlatformList
+                  platforms={selectedProjects.map(p => p.platform ?? 'other').reverse()}
+                  max={5}
+                />
+              ) : (
+                <IconProject />
+              );
+
+              return (
+                <StyledHeaderItem
+                  data-test-id="global-header-project-selector"
+                  active={hasSelected || isOpen}
+                  icon={icon}
+                  hasSelected={hasSelected}
+                  hasChanges={this.state.hasChanges}
+                  isOpen={isOpen}
+                  onClear={this.handleClear}
+                  allowClear={multi}
+                  {...getActorProps()}
+                >
+                  {title}
+                </StyledHeaderItem>
+              );
+            }}
+          </StyledProjectSelector>
+        )}
+      </ClassNames>
     );
   }
 }
 
+const SelectorFooterControls = props => {
+  const {
+    selected,
+    multi,
+    hasChanges,
+    onApply,
+    onShowAllProjects,
+    onShowMyProjects,
+    organization,
+    message,
+  } = props;
+  let showMyProjects = false;
+  let showAllProjects = false;
+  if (multi) {
+    showMyProjects = true;
+
+    const hasGlobalRole = ['owner', 'manager'].includes(organization.role);
+    const hasOpenMembership = organization.features.includes('open-membership');
+    const allSelected = selected && selected.has(ALL_ACCESS_PROJECTS);
+    if ((hasGlobalRole || hasOpenMembership) && !allSelected) {
+      showAllProjects = true;
+      showMyProjects = false;
+    }
+  }
+
+  // Nothing to show.
+  if (!(showAllProjects || showMyProjects || hasChanges || message)) {
+    return null;
+  }
+
+  return (
+    <FooterContainer>
+      {message && <FooterMessage>{message}</FooterMessage>}
+
+      <FooterActions>
+        {showAllProjects && (
+          <Button onClick={onShowAllProjects} priority="default" size="xsmall">
+            {t('View All Projects')}
+          </Button>
+        )}
+        {showMyProjects && (
+          <Button onClick={onShowMyProjects} priority="default" size="xsmall">
+            {t('View My Projects')}
+          </Button>
+        )}
+        {hasChanges && (
+          <SubmitButton onClick={onApply} size="xsmall" priority="primary">
+            {t('Apply Filter')}
+          </SubmitButton>
+        )}
+      </FooterActions>
+    </FooterContainer>
+  );
+};
+SelectorFooterControls.propTypes = {
+  // Actually a set
+  selected: PropTypes.instanceOf(Set),
+  organization: SentryTypes.Organization,
+  multi: PropTypes.bool,
+  hasChanges: PropTypes.bool,
+  onApply: PropTypes.func,
+  onShowAllProjects: PropTypes.func,
+  onShowMyProjects: PropTypes.func,
+  message: PropTypes.node,
+};
+
+const FooterContainer = styled('div')`
+  padding: ${space(1)} 0;
+`;
+const FooterActions = styled('div')`
+  display: flex;
+  justify-content: flex-end;
+  & > * {
+    margin-left: ${space(0.5)};
+  }
+`;
+const SubmitButton = styled(Button)`
+  animation: 0.1s ${growIn} ease-in;
+`;
+
+const FooterMessage = styled('div')`
+  font-size: ${p => p.theme.fontSizeSmall};
+  padding: 0 ${space(0.5)};
+`;
+
 const StyledProjectSelector = styled(ProjectSelector)`
   margin: 1px 0 0 -1px;
-  border-radius: 0 0 4px 4px;
-  width: 110%;
+  border-radius: ${p => p.theme.borderRadiusBottom};
+  width: 100%;
 `;
 
 const StyledHeaderItem = styled(HeaderItem)`
@@ -205,8 +398,10 @@ const StyledHeaderItem = styled(HeaderItem)`
   ${p => p.locked && 'cursor: default'};
 `;
 
-const StyledInlineSvg = styled(InlineSvg)`
-  height: 18px;
-  width: 18px;
-  transform: translateY(-2px);
+const StyledLink = styled(Link)`
+  color: ${p => p.theme.gray500};
+
+  &:hover {
+    color: ${p => p.theme.gray500};
+  }
 `;

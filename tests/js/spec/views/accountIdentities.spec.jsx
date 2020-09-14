@@ -1,5 +1,6 @@
 import React from 'react';
-import {shallow, mount} from 'enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
 import AccountIdentities from 'app/views/settings/account/accountIdentities';
@@ -18,9 +19,9 @@ describe('AccountIdentities', function() {
       body: [],
     });
 
-    const wrapper = shallow(<AccountIdentities />, TestStubs.routerContext());
+    const wrapper = mountWithTheme(<AccountIdentities />, TestStubs.routerContext());
 
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
   it('renders list', function() {
@@ -36,8 +37,8 @@ describe('AccountIdentities', function() {
       ],
     });
 
-    const wrapper = shallow(<AccountIdentities />, TestStubs.routerContext());
-    expect(wrapper).toMatchSnapshot();
+    const wrapper = mountWithTheme(<AccountIdentities />, TestStubs.routerContext());
+    expect(wrapper).toSnapshot();
   });
 
   it('disconnects identity', function() {
@@ -53,7 +54,7 @@ describe('AccountIdentities', function() {
       ],
     });
 
-    const wrapper = mount(<AccountIdentities />, TestStubs.routerContext());
+    const wrapper = mountWithTheme(<AccountIdentities />, TestStubs.routerContext());
 
     const disconnectRequest = {
       url: `${ENDPOINT}1/`,

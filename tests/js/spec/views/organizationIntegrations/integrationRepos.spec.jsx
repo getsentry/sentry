@@ -1,18 +1,46 @@
-/*global global*/
 import React from 'react';
 
+import {mountWithTheme} from 'sentry-test/enzyme';
+
+import RepositoryActions from 'app/actions/repositoryActions';
 import {Client} from 'app/api';
-import {mount} from 'enzyme';
 import IntegrationRepos from 'app/views/organizationIntegrations/integrationRepos';
 
 describe('IntegrationRepos', function() {
-  beforeEach(function() {
-    Client.clearMockResponses();
-  });
-
   const org = TestStubs.Organization();
   const integration = TestStubs.GitHubIntegration();
   const routerContext = TestStubs.routerContext();
+
+  beforeEach(() => {
+    Client.clearMockResponses();
+    jest.spyOn(RepositoryActions, 'resetRepositories');
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  describe('Getting repositories', function() {
+    it('handles broken integrations', function() {
+      Client.addMockResponse({
+        url: `/organizations/${org.slug}/integrations/1/repos/`,
+        statusCode: 400,
+        body: {detail: 'Invalid grant'},
+      });
+      Client.addMockResponse({
+        url: `/organizations/${org.slug}/repos/`,
+        method: 'GET',
+        body: [],
+      });
+
+      const wrapper = mountWithTheme(
+        <IntegrationRepos integration={integration} />,
+        routerContext
+      );
+      expect(wrapper.find('PanelBody')).toHaveLength(0);
+      expect(wrapper.find('Alert')).toHaveLength(1);
+    });
+  });
 
   describe('Adding repositories', function() {
     it('can save successfully', async function() {
@@ -33,7 +61,7 @@ describe('IntegrationRepos', function() {
         body: [],
       });
 
-      const wrapper = mount(
+      const wrapper = mountWithTheme(
         <IntegrationRepos integration={integration} />,
         routerContext
       );
@@ -59,6 +87,8 @@ describe('IntegrationRepos', function() {
         .first();
       expect(name).toHaveLength(1);
       expect(name.text()).toEqual('example/repo-name');
+
+      expect(RepositoryActions.resetRepositories).toHaveBeenCalled();
     });
 
     it('handles failure during save', async function() {
@@ -84,7 +114,7 @@ describe('IntegrationRepos', function() {
         body: [],
       });
 
-      const wrapper = mount(
+      const wrapper = mountWithTheme(
         <IntegrationRepos integration={integration} />,
         routerContext
       );
@@ -98,7 +128,7 @@ describe('IntegrationRepos', function() {
   });
 
   describe('migratable repo', function() {
-    it('associates repository with integration', () => {
+    it('associates repository with integration', async () => {
       Client.addMockResponse({
         url: `/organizations/${org.slug}/repos/`,
         body: [
@@ -122,19 +152,22 @@ describe('IntegrationRepos', function() {
         url: `/organizations/${org.slug}/repos/4/`,
         body: {},
       });
-      const wrapper = mount(
+      const wrapper = mountWithTheme(
         <IntegrationRepos integration={integration} />,
         routerContext
       );
 
       wrapper.find('DropdownButton').simulate('click');
       wrapper.find('StyledListElement').simulate('click');
+      await tick();
+
       expect(updateRepo).toHaveBeenCalledWith(
         `/organizations/${org.slug}/repos/4/`,
         expect.objectContaining({
           data: {integrationId: '1'},
         })
       );
+      expect(RepositoryActions.resetRepositories).toHaveBeenCalled();
     });
 
     it('uses externalSlug not name for comparison', () => {
@@ -155,7 +188,7 @@ describe('IntegrationRepos', function() {
         url: `/organizations/${org.slug}/repos/4/`,
         body: {},
       });
-      const wrapper = mount(
+      const wrapper = mountWithTheme(
         <IntegrationRepos integration={integration} />,
         routerContext
       );

@@ -1,22 +1,24 @@
 import React from 'react';
-import {shallow} from 'enzyme';
+
+import {initializeOrg} from 'sentry-test/initializeOrg';
+import {mountWithTheme, shallow} from 'sentry-test/enzyme';
 
 import {TeamCreate} from 'app/views/teamCreate';
 
 describe('TeamCreate', function() {
   describe('render()', function() {
     it('renders correctly', function() {
-      const wrapper = shallow(
+      const {organization, routerContext} = initializeOrg();
+      const wrapper = mountWithTheme(
         <TeamCreate
+          organization={organization}
           params={{
             orgId: 'org',
           }}
         />,
-        {
-          context: {router: TestStubs.router(), organization: TestStubs.Organization()},
-        }
+        routerContext
       );
-      expect(wrapper).toMatchSnapshot();
+      expect(wrapper).toSnapshot();
     });
   });
 

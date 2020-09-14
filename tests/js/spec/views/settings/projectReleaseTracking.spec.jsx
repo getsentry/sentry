@@ -1,5 +1,6 @@
 import React from 'react';
-import {mount} from 'enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ProjectReleaseTrackingContainer, {
   ProjectReleaseTracking,
@@ -7,7 +8,7 @@ import ProjectReleaseTrackingContainer, {
 import {fetchPlugins} from 'app/actionCreators/plugins';
 
 jest.mock('app/actionCreators/plugins', () => ({
-  fetchPlugins: jest.fn(),
+  fetchPlugins: jest.fn().mockResolvedValue([]),
 }));
 
 describe('ProjectReleaseTracking', function() {
@@ -33,7 +34,7 @@ describe('ProjectReleaseTracking', function() {
   });
 
   it('renders with token', function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <ProjectReleaseTracking
         organization={org}
         project={project}
@@ -47,7 +48,7 @@ describe('ProjectReleaseTracking', function() {
   });
 
   it('can regenerate token', function(done) {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <ProjectReleaseTracking
         organization={org}
         project={project}
@@ -85,7 +86,7 @@ describe('ProjectReleaseTracking', function() {
   });
 
   it('fetches new plugins when project changes', function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <ProjectReleaseTrackingContainer
         organization={org}
         project={project}

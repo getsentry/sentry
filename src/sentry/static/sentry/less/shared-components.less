@@ -210,61 +210,8 @@ fieldset[disabled] .btn-danger.active,
   text-shadow: none;
 }
 
-/* Icons */
-.icon-star-solid.bookmark,
-.icon-star-outline.bookmark {
-  margin-right: 6px;
-}
-.icon-star-solid.bookmark {
-  color: @yellow-orange;
-  &:hover {
-    color: @yellow-orange;
-  }
-}
-
-/* Button icons */
-
-.btn {
-  .icon-star-solid {
-    position: relative;
-    top: 1px;
-    margin-right: -1px;
-    margin-left: -1px;
-  }
-
-  .icon-ellipsis {
-    position: relative;
-    top: 2px;
-  }
-
-  .icon-checkmark,
-  .icon-trash,
-  .icon-pause {
-    position: relative;
-    top: 1px;
-    margin-right: -1px;
-  }
-
-  .icon-play {
-    font-size: 14px;
-    position: relative;
-    top: 2px;
-    left: -2px;
-    width: 0;
-    margin-right: -6px;
-  }
-
-  .icon-signal {
-    font-size: 18px;
-    position: relative;
-    top: 2px;
-  }
-}
-
 /* Small button icons */
-
 .btn-sm {
-  .icon-arrow-down,
   .icon-arrow-right,
   .icon-arrow-left,
   .icon-refresh {
@@ -366,6 +313,7 @@ pre.plain {
   margin: 0 5px;
   color: @gray-light;
   line-height: 1;
+  vertical-align: middle;
 
   &:hover {
     color: @gray;
@@ -393,6 +341,10 @@ table.table.key-value {
       word-break: break-word;
       padding: 8px 10px;
       font-size: 12px;
+
+      .val-string:first-child {
+        padding-left: 0;
+      }
     }
   }
 
@@ -477,58 +429,9 @@ table.table.key-value {
 
 .org-avatar {
   .square(30px);
-  background: @red url(../images/sentry-avatar.png);
+  background: @red url(../images/logos/sentry-avatar.png);
   background-size: cover;
   border-radius: 3px;
-}
-
-/**
-* Avatar Cropping
-* ============================================================================
-*/
-
-.image-cropper {
-  text-align: center;
-  background-image: url(../images/avatars/cropper-bg.gif);
-  margin-bottom: 20px;
-
-  .crop-container {
-    position: relative;
-    display: inline-block;
-    max-width: 100%;
-  }
-  .cropper {
-    position: absolute;
-    border: 2px dashed @gray-light;
-    .resizer {
-      border-radius: 5px;
-      width: 10px;
-      height: 10px;
-      position: absolute;
-      background-color: @gray-light;
-    }
-    .resizer.nw {
-      top: -5px;
-      left: -5px;
-    }
-    .resizer.ne {
-      top: -5px;
-      right: -5px;
-    }
-    .resizer.se {
-      bottom: -5px;
-      right: -5px;
-    }
-    .resizer.sw {
-      bottom: -5px;
-      left: -5px;
-    }
-  }
-}
-.canvas-container {
-  canvas {
-    display: none;
-  }
 }
 
 /**
@@ -663,6 +566,7 @@ table.table.key-value {
 .loading.mini {
   margin: 4px 0;
   font-size: 13px;
+  height: 24px;
 
   .loading-indicator {
     margin: 0;
@@ -688,8 +592,7 @@ table.table.key-value {
   }
 }
 
-// Loading Gif
-
+// Spinning logo icon loader
 .loading.triangle {
   position: absolute;
   top: 50%;
@@ -702,27 +605,10 @@ table.table.key-value {
     border: 0;
     animation: none;
     -webkit-animation: none;
-    background-image: url(../images/sentry-loader.gif);
-    .square(150px);
-    background-size: contain;
-  }
-}
-
-/**
-* Avatar Grid
-* ============================================================================
-*/
-
-.avatar-grid {
-  display: flex;
-  flex-wrap: wrap;
-
-  .avatar-grid-item {
-    margin: 0 4px 4px 0;
-
-    .avatar {
-      .square(24px);
-    }
+    height: 150px;
+    width: 150px;
+    overflow: hidden;
+    border-radius: 50%;
   }
 }
 
@@ -737,18 +623,10 @@ table.table.key-value {
     position: relative;
   }
 
-  .icon-search {
-    color: lighten(@gray, 15);
-    position: absolute;
-    top: 12px;
-    left: 14px;
-    font-size: 14px;
-  }
-
   .search-input {
     // Match the height of buttons adjacent to the search input.
     height: 40px;
-    padding: 8px 24px 8px 37px;
+    padding: 8px 34px 8px 37px;
     font-size: 14px;
     background: #fff;
     .transition(none);
@@ -768,10 +646,6 @@ table.table.key-value {
       box-shadow: none;
     }
 
-    .icon-search {
-      color: @gray-light;
-    }
-
     &:after {
       display: block;
       content: '';
@@ -786,8 +660,11 @@ table.table.key-value {
 
 .search-clear-form {
   position: absolute;
-  top: 8px;
+  top: 50%;
+  height: 16px;
+  transform: translateY(-50%);
   right: 10px;
+  font-size: 16px;
   color: lighten(@gray, 30);
 
   &:hover {
@@ -908,116 +785,6 @@ table.table.key-value {
 
 .innerColumn(@columnSpan: 1) {
   width: ((@gridColumnWidth) * @columnSpan) + (@gridGutterWidth * (@columnSpan - 1)) - 10;
-}
-
-/**
-* Faces
-* -----
-* A grid of faces for seen-by and participants list
-* ============================================================================
-*/
-
-ul.faces {
-  .list-unstyled;
-  .clearfix;
-
-  li {
-    float: left;
-    margin: 0 5px 5px 0;
-  }
-}
-
-/**
-* Key value pill / lozenge
-* ============================================================================
-*/
-
-.pills {
-  .list-unstyled;
-  display: flex;
-  flex-wrap: wrap;
-  font-size: 13px;
-
-  li {
-    white-space: nowrap;
-    margin: 0 10px 10px 0;
-    border-radius: 1px;
-    display: flex;
-    border: 1px solid darken(@trim, 7);
-    border-radius: 3px;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-    line-height: 1.2;
-    max-width: 100%;
-
-    &.true .value {
-      background: #fbfefa;
-      border: 1px solid #c7dbbd;
-      margin: -1px;
-      color: #6a726c;
-    }
-
-    &.false .value {
-      background: #fff9f9;
-      border: 1px solid #e5c4c4;
-      margin: -1px;
-      color: #766a6a;
-    }
-
-    &:last-child {
-      margin-right: 0;
-    }
-  }
-
-  .key,
-  .value {
-    padding: 4px 8px;
-    min-width: 0;
-    white-space: nowrap;
-  }
-
-  .value {
-    background: @white-dark;
-    border-left: 1px solid darken(@trim, 4);
-    border-radius: 0 3px 3px 0;
-    font-family: Monaco, monospace;
-    max-width: 100%;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-
-    > a {
-      max-width: 100%;
-      .truncate;
-      display: inline-block;
-      vertical-align: text-bottom;
-    }
-
-    .pill-icon,
-    .external-icon {
-      .transition(0.1s linear color);
-      display: inline;
-      margin: 0 0 0 8px;
-      color: @gray-light;
-      line-height: 1.2;
-
-      &:hover {
-        color: @gray;
-      }
-    }
-
-    // Some pill icons are hovercard wrappers, so select the direct anchor
-    // element and correctly color that
-    .pill-icon > a {
-      color: @gray-light;
-
-      &:hover {
-        color: @gray;
-      }
-    }
-  }
-
-  &.no-margin {
-    margin-bottom: -10px;
-  }
 }
 
 /**
@@ -1187,45 +954,6 @@ ul.faces {
   }
 }
 
-.box-clippable {
-  position: relative;
-  margin-left: -20px;
-  margin-right: -20px;
-  padding: 16px 20px 0;
-  border-top: 1px solid #f1f2f3;
-  .transition(all 5s ease-in-out);
-
-  &.revealed {
-    /* For "Show More" animation */
-    max-height: 50000px;
-  }
-
-  &:first-of-type {
-    margin-top: -20px;
-    border: 0;
-  }
-
-  h5 {
-    margin-bottom: 15px;
-  }
-
-  .clip-fade {
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    padding: 40px 0 0;
-    #gradient > .vertical(rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 1));
-    text-align: center;
-    border-bottom: 10px solid #fff;
-  }
-
-  &.clipped {
-    max-height: 200px;
-    overflow: hidden;
-  }
-}
-
 /**
  * Global Messages
  * ============================================================================
@@ -1275,7 +1003,6 @@ ul.faces {
 * ============================================================================
 */
 
-.sub-header + .alert,
 header + .alert {
   margin-top: -31px;
   position: relative;
@@ -1467,25 +1194,10 @@ header + .alert {
     }
   }
 
-  li a {
-    .transition(none);
-    color: @gray-dark;
-
-    &:hover,
-    &.hover {
-      background: #f7f8f9;
-      color: darken(@gray-dark, 10);
-    }
-  }
-
   li.active a,
   li.active a:hover {
     background: @purple;
     color: #fff !important;
-  }
-
-  .divider {
-    margin: 4px 0;
   }
 
   .disabled {
@@ -1660,6 +1372,11 @@ header + .alert {
         background: none;
         color: @gray-darker;
       }
+
+      &.focus-visible {
+        text-decoration: underline;
+        outline: none;
+      }
     }
 
     .dropdown-menu {
@@ -1680,25 +1397,6 @@ header + .alert {
     }
   }
 
-  > li.markdown {
-    float: right;
-    color: @gray;
-    margin-right: 0;
-
-    > .icon-markdown {
-      font-size: 20px;
-    }
-
-    > .supported {
-      // The text doesn't quit line up with the icon, so we
-      // manually fudge this to make it look better.
-      position: relative;
-      top: -4px;
-      left: 5px;
-      font-size: 14px;
-    }
-  }
-
   &.border-bottom {
     border-bottom: 1px solid @trim;
   }
@@ -1708,91 +1406,6 @@ header + .alert {
       margin: 0 0 0 30px;
     }
   }
-}
-
-/**
-* Badge
-* ============================================================================
-*/
-
-.badge {
-  background: @40;
-  color: #fff;
-  font-size: 75%;
-  font-weight: 600;
-  .square(20px);
-  padding: 0 5px;
-  min-width: 20px;
-  width: auto;
-  border-radius: 20px;
-  line-height: 20px;
-  text-align: center;
-  display: inline-block;
-  position: relative;
-  top: -1px;
-  margin-left: 4px;
-  .transition(0.1s background linear);
-
-  &.new {
-    background: @red;
-  }
-
-  &.badge-soft {
-    color: @gray;
-    top: 0;
-    line-height: 18px;
-    border: 1px solid @gray-lighter;
-    background: inherit;
-  }
-
-  &.strong {
-    background: @blue;
-  }
-
-  &.highlight {
-    background: @green;
-  }
-}
-
-/**
-* Label
-* ============================================================================
-*/
-
-.label.verification {
-  &.label-warning {
-    background-color: @yellow-orange;
-  }
-
-  &.label-success {
-    background-color: @green-light;
-  }
-
-  display: inline;
-  padding: 0.2em 0.6em 0.3em;
-  font-size: 75%;
-  font-weight: bold;
-  line-height: 1;
-  color: #fff;
-  text-align: center;
-  white-space: nowrap;
-  vertical-align: baseline;
-  border-radius: 0.25em;
-  margin-left: 4px;
-}
-
-/**
-* Repository label
-* ============================================================================
-*/
-
-.repo-label {
-  .label;
-  display: inline-block;
-  vertical-align: text-bottom;
-  padding: 5px 8px;
-  line-height: 1;
-  background: @40;
 }
 
 /**
@@ -1832,6 +1445,13 @@ ul.radio-inputs {
 */
 .modal-backdrop {
   background-color: @gray-dark;
+  // Match zIndex.modal in theme.jsx
+  z-index: 10000;
+}
+
+.modal {
+  // Match zIndex.modal in theme.jsx
+  z-index: 10000;
 }
 
 .modal-container {
@@ -1846,7 +1466,7 @@ ul.radio-inputs {
   .close {
     background: none;
     border: 0;
-    padding: 0;
+    padding: 0 6px;
     margin: 0;
     font-size: 24px;
     position: absolute;
@@ -1860,6 +1480,13 @@ ul.radio-inputs {
     &:hover {
       color: @gray;
     }
+
+    &.focus-visible {
+      outline: none;
+      border-radius: 50%;
+      background: lighten(@gray, 60);
+      color: @gray;
+    }
   }
   .modal-content {
     padding: 30px;
@@ -1869,7 +1496,6 @@ ul.radio-inputs {
   }
 
   .modal-header {
-    background: rgba(249, 250, 251, 0.8);
     border-bottom: 1px solid @trim;
     border-radius: 7px 7px 0 0;
     padding: 20px 30px;
@@ -1935,74 +1561,6 @@ ul.radio-inputs {
       }
     }
   }
-}
-
-// Command Palette
-.command-palette.modal {
-  .modal-content {
-    padding: 0;
-  }
-}
-
-// Docs Search
-.help-search-modal.modal {
-  .modal-content {
-    padding: 0;
-  }
-}
-
-.create-ownership-rule-modal {
-  @media (min-width: 767px) {
-    .modal-dialog {
-      width: 80%;
-      margin-left: -40%;
-    }
-  }
-  .modal-content {
-    overflow: initial;
-  }
-}
-
-/**
-* Well
-* ============================================================================
-*/
-.blankslate {
-  text-align: center;
-  padding: 50px 0;
-  .icon {
-    font-size: 72px;
-    color: @40;
-    margin-bottom: 10px;
-  }
-
-  h5 {
-    margin-bottom: 10px;
-  }
-}
-
-/**
- * Error level colors
- * ============================================================================
- */
-
-.level-error .error-level {
-  background: @orange;
-}
-&.level-info .error-level {
-  background: @blue;
-}
-&.level-warning .error-level {
-  background: @yellow-orange;
-}
-&.level-error .error-level {
-  background: @orange;
-}
-&.level-fatal .error-level {
-  background: @red;
-}
-&.level-sample .error-level {
-  background: @purple;
 }
 
 /**

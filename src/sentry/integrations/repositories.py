@@ -11,7 +11,7 @@ class RepositoryMixin(object):
 
     def get_repositories(self, query=None):
         """
-        Get a list of availble repositories for an installation
+        Get a list of available repositories for an installation
 
         >>> def get_repositories(self):
         >>>     return self.get_client().get_repositories()
@@ -36,8 +36,8 @@ class RepositoryMixin(object):
         """
         organizations = self.model.organizations.all()
         Repository.objects.filter(
-            organization_id__in=organizations.values_list('id', flat=True),
-            provider='integrations:%s' % self.model.provider,
+            organization_id__in=organizations.values_list("id", flat=True),
+            provider="integrations:%s" % self.model.provider,
             integration_id=self.model.id,
         ).update(status=ObjectStatus.VISIBLE)
 

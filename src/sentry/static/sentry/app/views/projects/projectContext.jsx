@@ -5,7 +5,6 @@ import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 
-import {loadEnvironments} from 'app/actionCreators/environments';
 import {fetchOrgMembers} from 'app/actionCreators/members';
 import {setActiveProject} from 'app/actionCreators/projects';
 import {t} from 'app/locale';
@@ -13,11 +12,11 @@ import withApi from 'app/utils/withApi';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import MemberListStore from 'app/stores/memberListStore';
-import MissingProjectMembership from 'app/components/missingProjectMembership';
-import OrganizationState from 'app/mixins/organizationState';
+import MissingProjectMembership from 'app/components/projects/missingProjectMembership';
 import ProjectsStore from 'app/stores/projectsStore';
 import SentryTypes from 'app/sentryTypes';
 import withProjects from 'app/utils/withProjects';
+import withOrganization from 'app/utils/withOrganization';
 
 const ERROR_TYPES = {
   MISSING_MEMBERSHIP: 'MISSING_MEMBERSHIP',
@@ -42,11 +41,10 @@ const ProjectContext = createReactClass({
      * If true, this will not change `state.loading` during `fetchData` phase
      */
     skipReload: PropTypes.bool,
-
+    organization: SentryTypes.Organization,
     projects: PropTypes.arrayOf(SentryTypes.Project),
     projectId: PropTypes.string,
     orgId: PropTypes.string,
-    location: PropTypes.object,
   },
 
   childContextTypes: {
@@ -56,7 +54,6 @@ const ProjectContext = createReactClass({
   mixins: [
     Reflux.connect(MemberListStore, 'memberList'),
     Reflux.listenTo(ProjectsStore, 'onProjectChange'),
-    OrganizationState,
   ],
 
   getInitialState() {
@@ -66,7 +63,6 @@ const ProjectContext = createReactClass({
       errorType: null,
       memberList: [],
       project: null,
-      projectNavSection: null,
     };
   },
 
@@ -92,6 +88,17 @@ const ProjectContext = createReactClass({
 
   componentDidUpdate(prevProps, prevState) {
     if (prevProps.projectId !== this.props.projectId) {
+      this.fetchData();
+    }
+
+    // Project list has changed. Likely indicating that a new project has been
+    // added. Re-fetch project details in case that the new project is the active
+    // project.
+    //
+    // For now, only compare lengths. It is possible that project slugs within
+    // the list could change, but it doesn't seem to be broken anywhere else at
+    // the moment that would require deeper checks.
+    if (prevProps.projects.length !== this.props.projects.length) {
       this.fetchData();
     }
 
@@ -148,8 +155,8 @@ const ProjectContext = createReactClass({
     return projects.find(({slug}) => slug === projectSlug) || null;
   },
 
-  fetchData() {
-    const {orgId, projectId, location, skipReload} = this.props;
+  async fetchData() {
+    const {orgId, projectId, skipReload} = this.props;
     // we fetch core access/information from the global organization data
     const activeProject = this.identifyProject();
     const hasAccess = activeProject && activeProject.hasAccess;
@@ -167,68 +174,53 @@ const ProjectContext = createReactClass({
         `/projects/${orgId}/${projectId}/`
       );
 
-      const environmentRequest = this.props.api.requestPromise(
-        this.getEnvironmentListEndpoint()
-      );
+      try {
+        const project = await projectRequest;
+        this.setState({
+          loading: false,
+          project,
+          error: false,
+          errorType: null,
+        });
 
-      Promise.all([projectRequest, environmentRequest]).then(
-        ([project, envs]) => {
-          this.setState({
-            loading: false,
-            project,
-            error: false,
-            errorType: null,
-          });
-
-          // assuming here that this means the project is considered the active project
-          setActiveProject(project);
-
-          // If an environment is specified in the query string, load it instead of default
-          const queryEnv = location.query.environment;
-          // The default environment cannot be "" (No Environment)
-          const {defaultEnvironment} = project;
-          const envName = typeof queryEnv === 'undefined' ? defaultEnvironment : queryEnv;
-          loadEnvironments(envs, envName);
-        },
-        () => {
-          this.setState({
-            loading: false,
-            error: false,
-            errorType: ERROR_TYPES.UNKNOWN,
-          });
-        }
-      );
+        // assuming here that this means the project is considered the active project
+        setActiveProject(project);
+      } catch (error) {
+        this.setState({
+          loading: false,
+          error: false,
+          errorType: ERROR_TYPES.UNKNOWN,
+        });
+      }
 
       fetchOrgMembers(this.props.api, orgId, activeProject.id);
-    } else if (activeProject && !activeProject.isMember) {
+
+      return;
+    }
+
+    // User is not a memberof the active project
+    if (activeProject && !activeProject.isMember) {
       this.setState({
         loading: false,
         error: true,
         errorType: ERROR_TYPES.MISSING_MEMBERSHIP,
       });
-    } else {
-      // The request is a 404 or other error
-      this.props.api.request(`/projects/${orgId}/${projectId}/`, {
-        error: () => {
-          this.setState({
-            loading: false,
-            error: true,
-            errorType: ERROR_TYPES.PROJECT_NOT_FOUND,
-          });
-        },
+
+      return;
+    }
+
+    // There is no active project. This likely indicates either the project
+    // *does not exist* or the project has not yet been added to the store.
+    // Either way, make a request to check for existence of the project.
+    try {
+      await this.props.api.requestPromise(`/projects/${orgId}/${projectId}/`);
+    } catch (error) {
+      this.setState({
+        loading: false,
+        error: true,
+        errorType: ERROR_TYPES.PROJECT_NOT_FOUND,
       });
     }
-  },
-
-  getEnvironmentListEndpoint() {
-    const {orgId, projectId} = this.props;
-    return `/projects/${orgId}/${projectId}/environments/`;
-  },
-
-  setProjectNavSection(section) {
-    this.setState({
-      projectNavSection: section,
-    });
   },
 
   renderBody() {
@@ -254,7 +246,7 @@ const ProjectContext = createReactClass({
           // out into a reusable missing access error component
           return (
             <MissingProjectMembership
-              organization={this.getOrganization()}
+              organization={this.props.organization}
               projectId={this.state.project.slug}
             />
           );
@@ -277,4 +269,4 @@ const ProjectContext = createReactClass({
 
 export {ProjectContext};
 
-export default withApi(withProjects(withRouter(ProjectContext)));
+export default withApi(withOrganization(withProjects(withRouter(ProjectContext))));

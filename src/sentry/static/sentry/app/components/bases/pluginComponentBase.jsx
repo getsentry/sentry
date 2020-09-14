@@ -1,13 +1,18 @@
 import React from 'react';
-import _ from 'lodash';
+import isFunction from 'lodash/isFunction';
 
 import {Client} from 'app/api';
 import {FormState, GenericField} from 'app/components/forms';
-import IndicatorStore from 'app/stores/indicatorStore';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+  clearIndicators,
+} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 
 const callbackWithArgs = function(callback, ...args) {
-  if (_.isFunction(callback)) {
+  if (isFunction(callback)) {
     callback = callback.bind(this, ...args);
   } else {
     callback = null;
@@ -41,7 +46,7 @@ class PluginComponentBase extends React.Component {
     };
   }
 
-  componentWillMount() {
+  UNSAFE_componentWillMount() {
     this.api = new Client();
   }
 
@@ -74,13 +79,11 @@ class PluginComponentBase extends React.Component {
       },
       callbackWithArgs(callback, ...args)
     );
-    IndicatorStore.add(t('An error occurred.'), 'error', {
-      duration: 3000,
-    });
+    addErrorMessage(t('An error occurred.'));
   }
 
   onSave(callback, ...args) {
-    if (this.state.state == FormState.SAVING) {
+    if (this.state.state === FormState.SAVING) {
       return;
     }
     callback = callbackWithArgs(callback, ...args);
@@ -89,22 +92,23 @@ class PluginComponentBase extends React.Component {
         state: FormState.SAVING,
       },
       () => {
-        this._loadingIndicator = IndicatorStore.add(t('Saving changes..'));
+        addLoadingMessage(t('Saving changes\u2026'));
         callback && callback();
       }
     );
   }
 
   onSaveSuccess(callback, ...args) {
+    callback = callbackWithArgs(callback, ...args);
     this.setState(
       {
         state: FormState.READY,
       },
-      callbackWithArgs(callback, ...args)
+      () => callback && callback()
     );
-    IndicatorStore.add(t('Success!'), 'success', {
-      duration: 3000,
-    });
+    setTimeout(() => {
+      addSuccessMessage(t('Success!'));
+    }, 0);
   }
 
   onSaveError(callback, ...args) {
@@ -113,17 +117,15 @@ class PluginComponentBase extends React.Component {
       {
         state: FormState.ERROR,
       },
-      () => {
-        IndicatorStore.add(t('Unable to save changes. Please try again.'), 'error', {
-          duration: 3000,
-        });
-        callback && callback();
-      }
+      () => callback && callback()
     );
+    setTimeout(() => {
+      addErrorMessage(t('Unable to save changes. Please try again.'));
+    }, 0);
   }
 
   onSaveComplete(callback, ...args) {
-    IndicatorStore.remove(this._loadingIndicator);
+    clearIndicators();
     callback = callbackWithArgs(callback, ...args);
     callback && callback();
   }

@@ -1,5 +1,6 @@
 import React from 'react';
-import {mount} from 'enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {updateMember} from 'app/actionCreators/members';
 import OrganizationMemberDetail from 'app/views/settings/organizationMembers/organizationMemberDetail';
@@ -72,7 +73,7 @@ describe('OrganizationMemberDetail', function() {
     });
 
     it('changes role to owner', function() {
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <OrganizationMemberDetail params={{memberId: member.id}} />,
         routerContext
       );
@@ -106,7 +107,7 @@ describe('OrganizationMemberDetail', function() {
     });
 
     it('leaves a team', async function() {
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <OrganizationMemberDetail params={{memberId: member.id}} />,
         routerContext
       );
@@ -132,7 +133,7 @@ describe('OrganizationMemberDetail', function() {
     });
 
     it('joins a team', async function() {
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <OrganizationMemberDetail params={{memberId: member.id}} />,
         routerContext
       );
@@ -140,7 +141,7 @@ describe('OrganizationMemberDetail', function() {
       await wrapper.update();
 
       // Should have one team enabled
-      expect(wrapper.find('TeamSelect PanelItem')).toHaveLength(1);
+      expect(wrapper.find('TeamPanelItem')).toHaveLength(1);
 
       // Select new team to join
       // Open the dropdown
@@ -173,7 +174,7 @@ describe('OrganizationMemberDetail', function() {
     });
 
     it('can not change roles, teams, or save', async function() {
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <OrganizationMemberDetail params={{memberId: member.id}} />,
         routerContext
       );
@@ -188,9 +189,9 @@ describe('OrganizationMemberDetail', function() {
           .first()
           .prop('disabled')
       ).toBe(true);
-      expect(
-        wrapper.find('Button[className="invite-member-submit"]').prop('disabled')
-      ).toBe(true);
+
+      // Save Member
+      expect(wrapper.find('Button[priority="primary"]').prop('disabled')).toBe(true);
     });
   });
 
@@ -201,7 +202,7 @@ describe('OrganizationMemberDetail', function() {
     });
 
     it('display pending status', function() {
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <OrganizationMemberDetail params={{memberId: pendingMember.id}} />,
         routerContext
       );
@@ -212,7 +213,7 @@ describe('OrganizationMemberDetail', function() {
     });
 
     it('display expired status', function() {
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <OrganizationMemberDetail params={{memberId: expiredMember.id}} />,
         routerContext
       );
@@ -230,7 +231,7 @@ describe('OrganizationMemberDetail', function() {
     });
 
     it('shows for pending', function() {
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <OrganizationMemberDetail params={{memberId: pendingMember.id}} />,
         routerContext
       );
@@ -240,7 +241,7 @@ describe('OrganizationMemberDetail', function() {
     });
 
     it('does not show for expired', function() {
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <OrganizationMemberDetail params={{memberId: expiredMember.id}} />,
         routerContext
       );
@@ -343,7 +344,7 @@ describe('OrganizationMemberDetail', function() {
     };
 
     it('does not show for pending member', function() {
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <OrganizationMemberDetail params={{memberId: pendingMember.id}} />,
         routerContext
       );
@@ -351,7 +352,7 @@ describe('OrganizationMemberDetail', function() {
     });
 
     it('shows tooltip for joined member without permission to edit', function() {
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <OrganizationMemberDetail params={{memberId: noAccess.id}} />,
         routerContext
       );
@@ -359,7 +360,7 @@ describe('OrganizationMemberDetail', function() {
     });
 
     it('shows tooltip for member without 2fa', function() {
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <OrganizationMemberDetail params={{memberId: no2fa.id}} />,
         routerContext
       );
@@ -367,28 +368,28 @@ describe('OrganizationMemberDetail', function() {
     });
 
     it('can reset member 2FA', function() {
-      const deleteMocks = has2fa.user.authenticators.map(auth => {
-        return MockApiClient.addMockResponse({
+      const deleteMocks = has2fa.user.authenticators.map(auth =>
+        MockApiClient.addMockResponse({
           url: `/users/${has2fa.user.id}/authenticators/${auth.id}/`,
           method: 'DELETE',
-        });
-      });
+        })
+      );
 
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <OrganizationMemberDetail params={{memberId: has2fa.id}} />,
         routerContext
       );
 
       expectButtonEnabled();
       wrapper.find(button).simulate('click');
-      wrapper.find('Button[data-test-id="confirm-modal"]').simulate('click');
+      wrapper.find('Button[data-test-id="confirm-button"]').simulate('click');
       deleteMocks.map(deleteMock => {
         expect(deleteMock).toHaveBeenCalled();
       });
     });
 
     it('shows tooltip for member in multiple orgs', function() {
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <OrganizationMemberDetail params={{memberId: multipleOrgs.id}} />,
         routerContext
       );
@@ -402,7 +403,7 @@ describe('OrganizationMemberDetail', function() {
         body: has2fa,
       });
 
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <OrganizationMemberDetail params={{memberId: has2fa.id}} />,
         routerContext
       );

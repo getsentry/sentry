@@ -12,19 +12,19 @@ class CrashContent extends React.Component {
   static propTypes = {
     event: SentryTypes.Event.isRequired,
     stackView: PropTypes.string.isRequired,
-    stackType: PropTypes.string,
+    projectId: PropTypes.string.isRequired,
     newestFirst: PropTypes.bool.isRequired,
+    stackType: PropTypes.string,
     exception: PropTypes.object,
     stacktrace: PropTypes.object,
-    group: SentryTypes.Group,
   };
 
   renderException = () => {
-    const {event, stackView, stackType, newestFirst, exception, group} = this.props;
+    const {event, stackView, stackType, newestFirst, exception, projectId} = this.props;
     return stackView === 'raw' ? (
       <RawExceptionContent
         eventId={event.id}
-        projectId={group.project.slug}
+        projectId={projectId}
         type={stackType}
         values={exception.values}
         platform={event.platform}
@@ -32,17 +32,17 @@ class CrashContent extends React.Component {
     ) : (
       <ExceptionContent
         type={stackType}
-        view={stackView}
-        group={group}
+        stackView={stackView}
         values={exception.values}
         platform={event.platform}
         newestFirst={newestFirst}
+        event={event}
       />
     );
   };
 
   renderStacktrace = () => {
-    const {event, stackView, newestFirst, stacktrace, group} = this.props;
+    const {event, stackView, newestFirst, stacktrace} = this.props;
     return stackView === 'raw' ? (
       <pre className="traceback plain">
         {rawStacktraceContent(stacktrace, event.platform)}
@@ -53,8 +53,8 @@ class CrashContent extends React.Component {
         className="no-exception"
         includeSystemFrames={stackView === 'full'}
         platform={event.platform}
+        event={event}
         newestFirst={newestFirst}
-        group={group}
       />
     );
   };

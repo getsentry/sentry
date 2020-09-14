@@ -1,5 +1,6 @@
 import React from 'react';
-import {shallow, mount} from 'enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import OrganizationAuthList from 'app/views/settings/organizationAuth/organizationAuthList';
 
@@ -7,16 +8,16 @@ jest.mock('jquery');
 
 describe('OrganizationAuthList', function() {
   it('renders with no providers', function() {
-    const wrapper = shallow(
+    const wrapper = mountWithTheme(
       <OrganizationAuthList providerList={[]} />,
       TestStubs.routerContext()
     );
 
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
   it('renders', function() {
-    const wrapper = shallow(
+    const wrapper = mountWithTheme(
       <OrganizationAuthList
         orgId="org-slug"
         onSendReminders={() => {}}
@@ -25,11 +26,11 @@ describe('OrganizationAuthList', function() {
       TestStubs.routerContext()
     );
 
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
   it('renders for members', function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <OrganizationAuthList
         orgId="org-slug"
         onSendReminders={() => {}}
@@ -56,7 +57,7 @@ describe('OrganizationAuthList', function() {
         {organization: TestStubs.Organization({...require2fa, ...withSSO})},
       ]);
 
-      const wrapper = shallow(
+      const wrapper = mountWithTheme(
         <OrganizationAuthList
           orgId="org-slug"
           onSendReminders={() => {}}
@@ -73,7 +74,7 @@ describe('OrganizationAuthList', function() {
         {organization: TestStubs.Organization({...require2fa, ...withSAML})},
       ]);
 
-      const wrapper = shallow(
+      const wrapper = mountWithTheme(
         <OrganizationAuthList
           orgId="org-slug"
           onSendReminders={() => {}}
@@ -90,7 +91,7 @@ describe('OrganizationAuthList', function() {
         {organization: TestStubs.Organization({...require2fa})},
       ]);
 
-      const wrapper = shallow(
+      const wrapper = mountWithTheme(
         <OrganizationAuthList
           orgId="org-slug"
           onSendReminders={() => {}}
@@ -107,7 +108,7 @@ describe('OrganizationAuthList', function() {
         {organization: TestStubs.Organization({...withSSO})},
       ]);
 
-      const wrapper = shallow(
+      const wrapper = mountWithTheme(
         <OrganizationAuthList
           orgId="org-slug"
           onSendReminders={() => {}}
@@ -124,7 +125,7 @@ describe('OrganizationAuthList', function() {
         {organization: TestStubs.Organization({...withSAML})},
       ]);
 
-      const wrapper = shallow(
+      const wrapper = mountWithTheme(
         <OrganizationAuthList
           orgId="org-slug"
           onSendReminders={() => {}}

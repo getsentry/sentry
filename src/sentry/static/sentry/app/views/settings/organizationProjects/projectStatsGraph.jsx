@@ -2,44 +2,33 @@ import LazyLoad from 'react-lazyload';
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import createReactClass from 'create-react-class';
-
 import BarChart from 'app/components/barChart';
 import SentryTypes from 'app/sentryTypes';
 
-const ProjectStatsGraph = createReactClass({
-  displayName: 'ProjectListItem',
+const ProjectStatsGraph = ({project, stats}) => {
+  stats = stats || project.stats;
+  const chartData = stats && stats.map(point => ({x: point[0], y: point[1]}));
 
-  propTypes: {
-    project: SentryTypes.Project,
-    stats: PropTypes.array,
-  },
+  return (
+    <div>
+      {chartData && (
+        <LazyLoad height={25} debounce={50}>
+          <BarChart
+            height={25}
+            minHeights={[3]}
+            gap={1}
+            points={chartData}
+            label="events"
+          />
+        </LazyLoad>
+      )}
+    </div>
+  );
+};
 
-  render() {
-    const {project} = this.props;
-    const stats = this.props.stats || project.stats;
-    const chartData =
-      stats &&
-      stats.map(point => {
-        return {x: point[0], y: point[1]};
-      });
-
-    return (
-      <div>
-        {chartData && (
-          <LazyLoad height={25} debounce={50}>
-            <BarChart
-              height={25}
-              minHeights={[3]}
-              gap={1}
-              points={chartData}
-              label="events"
-            />
-          </LazyLoad>
-        )}
-      </div>
-    );
-  },
-});
+ProjectStatsGraph.propTypes = {
+  project: SentryTypes.Project,
+  stats: PropTypes.array,
+};
 
 export default ProjectStatsGraph;

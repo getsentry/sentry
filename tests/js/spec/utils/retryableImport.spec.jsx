@@ -26,7 +26,7 @@ describe('retryableImport', function() {
     const importMock = jest.fn();
 
     importMock.mockReturnValueOnce(
-      new Promise((resolve, reject) => reject(new Error('Another error happened')))
+      new Promise((_resolve, reject) => reject(new Error('Another error happened')))
     );
 
     try {
@@ -42,10 +42,10 @@ describe('retryableImport', function() {
 
     importMock
       .mockReturnValueOnce(
-        new Promise((resolve, reject) => reject(new Error('Loading chunk 123 failed')))
+        new Promise((_resolve, reject) => reject(new Error('Loading chunk 123 failed')))
       )
       .mockReturnValueOnce(
-        new Promise((resolve, reject) => reject(new Error('Loading chunk 123 failed')))
+        new Promise((_resolve, reject) => reject(new Error('Loading chunk 123 failed')))
       )
       .mockReturnValue(
         new Promise(resolve =>
@@ -68,7 +68,7 @@ describe('retryableImport', function() {
   it('only retries 3 times', async function() {
     const importMock = jest.fn(
       () =>
-        new Promise((resolve, reject) => reject(new Error('Loading chunk 123 failed')))
+        new Promise((_resolve, reject) => reject(new Error('Loading chunk 123 failed')))
     );
 
     await expect(retryableImport(() => importMock())).rejects.toThrow(

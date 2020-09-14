@@ -18,7 +18,7 @@ class Lock(object):
         self.routing_key = routing_key
 
     def __repr__(self):
-        return u'<Lock: {!r}>'.format(self.key)
+        return u"<Lock: {!r}>".format(self.key)
 
     def acquire(self):
         """
@@ -33,8 +33,8 @@ class Lock(object):
             self.backend.acquire(self.key, self.duration, self.routing_key)
         except Exception as error:
             six.raise_from(
-                UnableToAcquireLock(u'Unable to acquire {!r} due to error: {}'.format(self, error)),
-                error
+                UnableToAcquireLock(u"Unable to acquire {!r} due to error: {}".format(self, error)),
+                error,
             )
 
         @contextmanager
@@ -51,9 +51,9 @@ class Lock(object):
         Attempt to release the lock.
 
         Any exceptions raised when attempting to release the lock are logged
-        and supressed.
+        and suppressed.
         """
         try:
             self.backend.release(self.key, self.routing_key)
         except Exception as error:
-            logger.warning('Failed to release %r due to error: %r', self, error, exc_info=True)
+            logger.warning("Failed to release %r due to error: %r", self, error, exc_info=True)

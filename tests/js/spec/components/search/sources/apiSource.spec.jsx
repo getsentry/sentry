@@ -1,5 +1,6 @@
 import React from 'react';
-import {mount} from 'enzyme';
+
+import {mount} from 'sentry-test/enzyme';
 
 import {ApiSource} from 'app/components/search/sources/apiSource';
 
@@ -51,6 +52,27 @@ describe('ApiSource', function() {
       url: '/organizations/org-slug/eventids/12345678901234567890123456789012/',
       query: '12345678901234567890123456789012',
       body: TestStubs.EventIdQueryResult(),
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/plugins/?plugins=_all',
+      query: {plugins: '_all'},
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/plugins/configs/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/config/integrations/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/sentry-apps/?status=published',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/shortids/foo-t/',
+      body: [],
     });
     allMocks = {orgsMock, projectsMock, teamsMock, membersMock, shortIdMock, eventIdMock};
   });
@@ -231,18 +253,6 @@ describe('ApiSource', function() {
         expect.objectContaining({
           item: expect.objectContaining({
             model: expect.objectContaining({
-              slug: 'foo-project',
-            }),
-            sourceType: 'project',
-            resultType: 'route',
-            to: '/org-slug/foo-project/',
-          }),
-          matches: expect.anything(),
-          score: expect.anything(),
-        }),
-        expect.objectContaining({
-          item: expect.objectContaining({
-            model: expect.objectContaining({
               slug: 'foo-team',
             }),
             sourceType: 'team',
@@ -256,7 +266,7 @@ describe('ApiSource', function() {
     });
 
     // There are no members that match
-    expect(mock.mock.calls[1][0].results).toHaveLength(5);
+    expect(mock.mock.calls[1][0].results).toHaveLength(4);
   });
 
   it('render function is called with correct results when API requests partially succeed', async function() {
@@ -321,7 +331,7 @@ describe('ApiSource', function() {
     wrapper.update();
 
     // There are no members that match
-    expect(mock.mock.calls[1][0].results).toHaveLength(5);
+    expect(mock.mock.calls[1][0].results).toHaveLength(4);
     expect(mock.mock.calls[1][0].results[0].item.model.slug).toBe('foo-org');
 
     mock.mockClear();
@@ -329,8 +339,8 @@ describe('ApiSource', function() {
     await tick();
     wrapper.update();
 
-    // Still have 5 results, but is re-ordered
-    expect(mock.mock.calls[0][0].results).toHaveLength(5);
+    // Still have 4 results, but is re-ordered
+    expect(mock.mock.calls[0][0].results).toHaveLength(4);
     expect(mock.mock.calls[0][0].results[0].item.model.slug).toBe('foo-team');
   });
 

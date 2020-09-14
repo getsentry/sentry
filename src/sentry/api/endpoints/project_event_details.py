@@ -1,22 +1,23 @@
 from __future__ import absolute_import
 
+from copy import deepcopy
+from datetime import datetime
 from rest_framework.response import Response
 
-from sentry import options
+from sentry import eventstore
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import DetailedEventSerializer, serialize
-from sentry.models import Event, SnubaEvent
 
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 
-@scenario('RetrieveEventForProject')
+@scenario("RetrieveEventForProject")
 def retrieve_event_for_project_scenario(runner):
     runner.request(
-        method='GET',
-        path='/projects/%s/%s/events/%s/' %
-        (runner.org.slug, runner.default_project.slug, runner.default_event.event_id)
+        method="GET",
+        path="/projects/%s/%s/events/%s/"
+        % (runner.org.slug, runner.default_project.slug, runner.default_event.event_id),
     )
 
 
@@ -41,41 +42,56 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
         :auth: required
         """
 
-        use_snuba = options.get('snuba.events-queries.enabled')
+        event = eventstore.get_event_by_id(project.id, event_id)
 
-        if not use_snuba:
-            return self.get_legacy(request, project, event_id)
-
-        snuba_event = SnubaEvent.objects.from_event_id(event_id, project.id)
-
-        if snuba_event is None:
-            return Response({'detail': 'Event not found'}, status=404)
-
-        data = serialize(snuba_event)
-
-        requested_environments = set(request.GET.getlist('environment'))
-
-        next_event_id = snuba_event.next_event_id(environments=requested_environments)
-        prev_event_id = snuba_event.prev_event_id(environments=requested_environments)
-
-        data['nextEventID'] = next_event_id
-        data['previousEventID'] = prev_event_id
-
-        return Response(data)
-
-    def get_legacy(self, request, project, event_id):
-        event = Event.objects.from_event_id(event_id, project.id)
         if event is None:
-            return Response({'detail': 'Event not found'}, status=404)
-
-        Event.objects.bind_nodes([event], 'data')
+            return Response({"detail": "Event not found"}, status=404)
 
         data = serialize(event, request.user, DetailedEventSerializer())
-        next_event_id = event.next_event_id()
-        prev_event_id = event.prev_event_id()
-        # TODO this is inconsistent with the event_details API which uses the
-        # `id` instead of the `event_id`
-        data['nextEventID'] = next_event_id
-        data['previousEventID'] = prev_event_id
+
+        # Used for paginating through events of a single issue in group details
+        # Skip next/prev for issueless events
+        next_event_id = None
+        prev_event_id = None
+
+        if event.group_id:
+            requested_environments = set(request.GET.getlist("environment"))
+            conditions = [["event.type", "!=", "transaction"]]
+
+            if requested_environments:
+                conditions.append(["environment", "IN", requested_environments])
+
+            _filter = eventstore.Filter(
+                conditions=conditions, project_ids=[event.project_id], group_ids=[event.group_id]
+            )
+
+            # Ignore any time params and search entire retention period
+            next_event_filter = deepcopy(_filter)
+            next_event_filter.end = datetime.utcnow()
+            next_event = eventstore.get_next_event_id(event, filter=next_event_filter)
+
+            prev_event_filter = deepcopy(_filter)
+            prev_event_filter.start = datetime.utcfromtimestamp(0)
+            prev_event = eventstore.get_prev_event_id(event, filter=prev_event_filter)
+
+            next_event_id = next_event[1] if next_event else None
+            prev_event_id = prev_event[1] if prev_event else None
+
+        data["nextEventID"] = next_event_id
+        data["previousEventID"] = prev_event_id
 
         return Response(data)
+
+
+class EventJsonEndpoint(ProjectEndpoint):
+    def get(self, request, project, event_id):
+        event = eventstore.get_event_by_id(project.id, event_id)
+
+        if not event:
+            return Response({"detail": "Event not found"}, status=404)
+
+        event_dict = event.as_dict()
+        if isinstance(event_dict["datetime"], datetime):
+            event_dict["datetime"] = event_dict["datetime"].isoformat()
+
+        return Response(event_dict, status=200)

@@ -1,17 +1,9 @@
 ---
-created: '2019-03-14T17:12:35.134010Z'
+created: '2020-07-09T22:22:50.686392Z'
 creator: sentry
 source: tests/sentry/event_manager/interfaces/test_csp.py
 ---
-culprit: script-src 'self'
 errors: null
-message: Blocked unsafe (eval() or inline) 'script'
-origin: http://example.com/foo
-tags:
-- - effective-directive
-  - script-src
-- - blocked-uri
-  - ''
 to_json:
   blocked_uri: ''
   document_uri: http://example.com/foo

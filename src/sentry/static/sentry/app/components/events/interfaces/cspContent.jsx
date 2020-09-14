@@ -1,8 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {objectToArray} from 'app/utils';
-import KeyValueList from 'app/components/events/interfaces/keyValueList';
+import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValueList';
 
 class CSPContent extends React.Component {
   static propTypes = {
@@ -16,7 +15,7 @@ class CSPContent extends React.Component {
         <h4>
           <span>{data.effective_directive}</span>
         </h4>
-        <KeyValueList data={objectToArray(data)} isContextData={true} />
+        <KeyValueList data={Object.entries(data)} isContextData />
       </div>
     );
   }

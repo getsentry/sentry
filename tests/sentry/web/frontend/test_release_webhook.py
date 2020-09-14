@@ -5,7 +5,7 @@ import hmac
 from django.core.urlresolvers import reverse
 from exam import fixture
 from hashlib import sha256
-from mock import patch
+from sentry.utils.compat.mock import patch
 
 from sentry.models import ProjectOption
 from sentry.testutils import TestCase
@@ -18,81 +18,69 @@ class ReleaseWebhookTest(TestCase):
         self.organization = self.create_organization()
         self.team = self.create_team(organization=self.organization)
         self.project = self.create_project(teams=[self.team])
-        self.token = 'a2587e3af83411e4a28634363b8514c2'
+        self.token = "a2587e3af83411e4a28634363b8514c2"
         self.signature = hmac.new(
-            key=self.token.encode('utf-8'),
-            msg=('dummy-{}'.format(self.project.id)).encode('utf-8'),
+            key=self.token.encode("utf-8"),
+            msg=("dummy-{}".format(self.project.id)).encode("utf-8"),
             digestmod=sha256,
         ).hexdigest()
-        ProjectOption.objects.set_value(self.project, 'sentry:release-token', self.token)
+        ProjectOption.objects.set_value(self.project, "sentry:release-token", self.token)
 
     @fixture
     def path(self):
         return reverse(
-            'sentry-release-hook',
+            "sentry-release-hook",
             kwargs={
-                'project_id': self.project.id,
-                'plugin_id': 'dummy',
-                'signature': self.signature,
-            }
+                "project_id": self.project.id,
+                "plugin_id": "dummy",
+                "signature": self.signature,
+            },
         )
 
     def test_no_token(self):
         project = self.create_project(teams=[self.team])
         path = reverse(
-            'sentry-release-hook',
-            kwargs={
-                'project_id': project.id,
-                'plugin_id': 'dummy',
-                'signature': self.signature,
-            }
+            "sentry-release-hook",
+            kwargs={"project_id": project.id, "plugin_id": "dummy", "signature": self.signature},
         )
         resp = self.client.post(path)
         assert resp.status_code == 403
 
     def test_invalid_signature(self):
         path = reverse(
-            'sentry-release-hook',
-            kwargs={
-                'project_id': self.project.id,
-                'plugin_id': 'dummy',
-                'signature': 'wrong',
-            }
+            "sentry-release-hook",
+            kwargs={"project_id": self.project.id, "plugin_id": "dummy", "signature": "wrong"},
         )
         resp = self.client.post(path)
         assert resp.status_code == 403
 
     def test_invalid_project(self):
         path = reverse(
-            'sentry-release-hook',
-            kwargs={
-                'project_id': 1000000,
-                'plugin_id': 'dummy',
-                'signature': self.signature,
-            }
+            "sentry-release-hook",
+            kwargs={"project_id": 1000000, "plugin_id": "dummy", "signature": self.signature},
         )
         resp = self.client.post(path)
         assert resp.status_code == 404
 
-    @patch('sentry.plugins.plugins.get')
+    @patch("sentry.plugins.base.plugins.get")
     def test_valid_signature(self, mock_plugin_get):
         MockPlugin = mock_plugin_get.return_value
         MockPlugin.is_enabled.return_value = True
         MockReleaseHook = MockPlugin.get_release_hook.return_value
         resp = self.client.post(self.path)
         assert resp.status_code == 204
-        mock_plugin_get.assert_called_once_with('dummy')
+        mock_plugin_get.assert_called_once_with("dummy")
         MockPlugin.get_release_hook.assert_called_once_with()
         MockReleaseHook.assert_called_once_with(self.project)
-        assert MockReleaseHook.return_value.handle.call_count is 1
+        assert MockReleaseHook.return_value.handle.call_count == 1
 
-    @patch('sentry.plugins.plugins.get')
+    @patch("sentry.plugins.base.plugins.get")
     def test_disabled_plugin(self, mock_plugin_get):
         MockPlugin = mock_plugin_get.return_value
         MockPlugin.is_enabled.return_value = False
         resp = self.client.post(self.path)
         assert resp.status_code == 403
-        mock_plugin_get.assert_called_once_with('dummy')
+        mock_plugin_get.assert_called_once_with("dummy")
         assert not MockPlugin.get_release_hook.called
 
 
@@ -102,35 +90,33 @@ class BuiltinReleaseWebhookTest(TestCase):
         self.organization = self.create_organization()
         self.team = self.create_team(organization=self.organization)
         self.project = self.create_project(teams=[self.team])
-        self.token = 'a2587e3af83411e4a28634363b8514c2'
+        self.token = "a2587e3af83411e4a28634363b8514c2"
         self.signature = hmac.new(
-            key=self.token.encode('utf-8'),
-            msg=('builtin-{}'.format(self.project.id)).encode('utf-8'),
+            key=self.token.encode("utf-8"),
+            msg=("builtin-{}".format(self.project.id)).encode("utf-8"),
             digestmod=sha256,
         ).hexdigest()
-        ProjectOption.objects.set_value(self.project, 'sentry:release-token', self.token)
+        ProjectOption.objects.set_value(self.project, "sentry:release-token", self.token)
 
     @fixture
     def path(self):
         return reverse(
-            'sentry-release-hook',
+            "sentry-release-hook",
             kwargs={
-                'project_id': self.project.id,
-                'plugin_id': 'builtin',
-                'signature': self.signature,
-            }
+                "project_id": self.project.id,
+                "plugin_id": "builtin",
+                "signature": self.signature,
+            },
         )
 
     def test_invalid_params(self):
-        resp = self.client.post(self.path, content_type='application/json')
+        resp = self.client.post(self.path, content_type="application/json")
         assert resp.status_code == 400
 
     def test_valid_params(self):
         resp = self.client.post(
-            self.path, data=json.dumps({
-                'version': 'a',
-            }), content_type='application/json'
+            self.path, data=json.dumps({"version": "a"}), content_type="application/json"
         )
         assert resp.status_code == 201, resp.content
         data = json.loads(resp.content)
-        assert data['version'] == 'a'
+        assert data["version"] == "a"

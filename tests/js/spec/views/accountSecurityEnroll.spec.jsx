@@ -1,5 +1,6 @@
 import React from 'react';
-import {mount} from 'enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
 import AccountSecurityEnroll from 'app/views/settings/account/accountSecurity/accountSecurityEnroll';
@@ -28,7 +29,7 @@ describe('AccountSecurityEnroll', function() {
         url: `${ENDPOINT}${authenticator.authId}/enroll/`,
         body: authenticator,
       });
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <AccountSecurityEnroll />,
         TestStubs.routerContext([
           {
@@ -79,7 +80,7 @@ describe('AccountSecurityEnroll', function() {
       });
 
       const pushMock = jest.fn();
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <AccountSecurityEnroll />,
         TestStubs.routerContext([
           {

@@ -1,6 +1,8 @@
 import React from 'react';
-import {shallow} from 'enzyme';
-import ProjectPlugins from 'app/views/projectPlugins/projectPlugins';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
+
+import ProjectPlugins from 'app/views/settings/projectPlugins/projectPlugins';
 
 describe('ProjectPlugins', function() {
   let wrapper;
@@ -14,16 +16,16 @@ describe('ProjectPlugins', function() {
   };
 
   it('renders', function() {
-    wrapper = shallow(
+    wrapper = mountWithTheme(
       <ProjectPlugins params={params} plugins={plugins} />,
       routerContext
     );
 
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
   it('has loading state', function() {
-    wrapper = shallow(
+    wrapper = mountWithTheme(
       <ProjectPlugins params={params} loading plugins={[]} />,
       routerContext
     );
@@ -32,7 +34,7 @@ describe('ProjectPlugins', function() {
   });
 
   it('has error state when plugins=null and loading is true', function() {
-    wrapper = shallow(
+    wrapper = mountWithTheme(
       <ProjectPlugins
         params={params}
         plugins={null}
@@ -42,11 +44,11 @@ describe('ProjectPlugins', function() {
       routerContext
     );
 
-    expect(wrapper.dive().find('RouteError')).toHaveLength(1);
+    expect(wrapper.find('RouteError')).toHaveLength(1);
   });
 
   it('has error state when plugins=[]', function() {
-    wrapper = shallow(
+    wrapper = mountWithTheme(
       <ProjectPlugins
         params={params}
         plugins={[]}
@@ -55,6 +57,6 @@ describe('ProjectPlugins', function() {
       />,
       routerContext
     );
-    expect(wrapper.dive().find('RouteError')).toHaveLength(1);
+    expect(wrapper.find('RouteError')).toHaveLength(1);
   });
 });

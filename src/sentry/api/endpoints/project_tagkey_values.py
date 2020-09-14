@@ -4,6 +4,7 @@ from sentry import tagstore
 from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.utils import get_date_range_from_params
 from sentry.api.serializers import serialize
 from sentry.models import Environment
 
@@ -38,12 +39,16 @@ class ProjectTagKeyValuesEndpoint(ProjectEndpoint, EnvironmentMixin):
         except tagstore.TagKeyNotFound:
             raise ResourceDoesNotExist
 
+        start, end = get_date_range_from_params(request.GET)
+
         paginator = tagstore.get_tag_value_paginator(
             project.id,
             environment_id,
             tagkey.key,
-            query=request.GET.get('query'),
-            order_by='-last_seen',
+            start=start,
+            end=end,
+            query=request.GET.get("query"),
+            order_by="-last_seen",
         )
 
         return self.paginate(

@@ -1,5 +1,7 @@
 import React from 'react';
-import {shallow} from 'enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
+
 import SimilarSpectrum from 'app/components/similarSpectrum';
 
 describe('SimilarSpectrum', function() {
@@ -8,7 +10,7 @@ describe('SimilarSpectrum', function() {
   afterEach(function() {});
 
   it('renders', function() {
-    const wrapper = shallow(<SimilarSpectrum />);
-    expect(wrapper).toMatchSnapshot();
+    const wrapper = mountWithTheme(<SimilarSpectrum />);
+    expect(wrapper).toSnapshot();
   });
 });

@@ -8,40 +8,25 @@ from sentry.models.search_common import SearchType
 
 
 DEFAULT_SAVED_SEARCHES = [
-    {
-        'name': 'Unresolved Issues',
-        'query': 'is:unresolved',
-        'is_default': True
-    },
-    {
-        'name': 'Needs Triage',
-        'query': 'is:unresolved is:unassigned'
-    },
-    {
-        'name': 'Assigned To Me',
-        'query': 'is:unresolved assigned:me'
-    },
-    {
-        'name': 'My Bookmarks',
-        'query': 'is:unresolved bookmarks:me'
-    },
-    {
-        'name': 'New Today',
-        'query': 'is:unresolved age:-24h'
-    },
+    {"name": "Unresolved Issues", "query": "is:unresolved", "is_default": True},
+    {"name": "Needs Triage", "query": "is:unresolved is:unassigned"},
+    {"name": "Assigned To Me", "query": "is:unresolved assigned:me"},
+    {"name": "My Bookmarks", "query": "is:unresolved bookmarks:me"},
+    {"name": "New Today", "query": "is:unresolved age:-24h"},
 ]
-DEFAULT_SAVED_SEARCH_QUERIES = set(search['query'] for search in DEFAULT_SAVED_SEARCHES)
+DEFAULT_SAVED_SEARCH_QUERIES = set(search["query"] for search in DEFAULT_SAVED_SEARCHES)
 
 
 class SavedSearch(Model):
     """
     A saved search query.
     """
+
     __core__ = True
     # TODO: Remove this column and rows where it's not null once we've
     # completely removed Sentry 9
-    project = FlexibleForeignKey('sentry.Project', null=True)
-    organization = FlexibleForeignKey('sentry.Organization', null=True)
+    project = FlexibleForeignKey("sentry.Project", null=True)
+    organization = FlexibleForeignKey("sentry.Organization", null=True)
     type = models.PositiveSmallIntegerField(default=SearchType.ISSUE.value, null=True)
     name = models.CharField(max_length=128)
     query = models.TextField()
@@ -49,22 +34,23 @@ class SavedSearch(Model):
     # TODO: Remove this column once we've completely removed Sentry 9
     is_default = models.BooleanField(default=False)
     is_global = models.NullBooleanField(null=True, default=False, db_index=True)
-    owner = FlexibleForeignKey('sentry.User', null=True)
+    owner = FlexibleForeignKey("sentry.User", null=True)
 
     class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_savedsearch'
-        # Note that we also have a partial unique constraint on
-        # (organization_id, name, type) where owner_id is null
+        app_label = "sentry"
+        db_table = "sentry_savedsearch"
+        # Note that we also have a partial unique constraint on:
+        #   (organization_id, name, type) WHERE owner_id IS NULL
+        #   (is_global, name) WHERE is_global
         unique_together = (
-            ('project', 'name'),
+            ("project", "name"),
             # Each user can have one default search per org
-            ('organization', 'owner', 'type'),
+            ("organization", "owner", "type"),
         )
 
     @property
     def is_pinned(self):
-        if hasattr(self, '_is_pinned'):
+        if hasattr(self, "_is_pinned"):
             return self._is_pinned
         return self.owner is not None and self.organization is not None
 
@@ -76,7 +62,7 @@ class SavedSearch(Model):
     def is_org_custom_search(self):
         return self.owner is None and self.organization is not None
 
-    __repr__ = sane_repr('project_id', 'name')
+    __repr__ = sane_repr("project_id", "name")
 
 
 # TODO: Remove once we've completely removed sentry 9
@@ -84,13 +70,14 @@ class SavedSearchUserDefault(Model):
     """
     Indicates the default saved search for a given user
     """
+
     __core__ = True
 
-    savedsearch = FlexibleForeignKey('sentry.SavedSearch')
-    project = FlexibleForeignKey('sentry.Project')
-    user = FlexibleForeignKey('sentry.User')
+    savedsearch = FlexibleForeignKey("sentry.SavedSearch")
+    project = FlexibleForeignKey("sentry.Project")
+    user = FlexibleForeignKey("sentry.User")
 
     class Meta:
-        unique_together = (('project', 'user'), )
-        app_label = 'sentry'
-        db_table = 'sentry_savedsearch_userdefault'
+        unique_together = (("project", "user"),)
+        app_label = "sentry"
+        db_table = "sentry_savedsearch_userdefault"

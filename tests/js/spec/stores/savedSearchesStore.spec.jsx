@@ -1,6 +1,7 @@
 import SavedSearchesStore from 'app/stores/savedSearchesStore';
 import {
   fetchSavedSearches,
+  deleteSavedSearch,
   pinSearch,
   unpinSearch,
 } from 'app/actionCreators/savedSearches';
@@ -9,8 +10,9 @@ import {Client} from 'app/api';
 describe('SavedSearchesStore', function() {
   let api;
 
-  beforeAll(function() {
+  beforeAll(async function() {
     api = new Client();
+    await SavedSearchesStore.reset();
   });
 
   beforeEach(function() {
@@ -21,6 +23,7 @@ describe('SavedSearchesStore', function() {
     Client.addMockResponse({
       url: '/organizations/org-1/pinned-searches/',
       method: 'PUT',
+      body: {},
     });
     Client.addMockResponse({
       url: '/organizations/org-1/pinned-searches/',
@@ -28,9 +31,10 @@ describe('SavedSearchesStore', function() {
     });
   });
 
-  afterEach(function() {
+  afterEach(async function() {
     Client.clearMockResponses();
     SavedSearchesStore.reset();
+    await tick();
   });
 
   it('get', function() {
@@ -49,17 +53,40 @@ describe('SavedSearchesStore', function() {
     expect(SavedSearchesStore.get().isLoading).toBe(false);
   });
 
+  it('failed fetches do not corrupt store', async function() {
+    Client.addMockResponse({
+      url: '/organizations/org-1/searches/',
+      body: '',
+    });
+    await fetchSavedSearches(api, 'org-1', {});
+    await tick();
+
+    expect(SavedSearchesStore.get().savedSearches).toHaveLength(0);
+    expect(SavedSearchesStore.get().isLoading).toBe(false);
+  });
+
   it('creates a new pin search', async function() {
     await fetchSavedSearches(api, 'org-1', {});
     await tick();
 
+    Client.addMockResponse({
+      url: '/organizations/org-1/pinned-searches/',
+      method: 'PUT',
+      body: {
+        id: '123',
+        query: 'level:info',
+        isPinned: true,
+      },
+    });
+
     pinSearch(api, 'org-1', 0, 'level:info');
+    await tick();
     await tick();
 
     expect(SavedSearchesStore.get().savedSearches).toHaveLength(3);
     expect(SavedSearchesStore.get().savedSearches[0]).toEqual(
       expect.objectContaining({
-        id: null,
+        id: '123',
         isPinned: true,
         type: 0,
         query: 'level:info',
@@ -83,16 +110,36 @@ describe('SavedSearchesStore', function() {
         ...searches,
       ],
     });
+
+    Client.addMockResponse({
+      url: '/organizations/org-1/pinned-searches/',
+      method: 'PUT',
+      body: {
+        id: '1',
+        isDefault: false,
+        isGlobal: true,
+        isOrgCustom: false,
+        isPinned: true,
+        query: 'is:unresolved',
+        name: 'Unresolved Issues',
+        type: 0,
+      },
+    });
+
     await fetchSavedSearches(api, 'org-1', {});
     await tick();
 
     pinSearch(api, 'org-1', 0, searches[1].query);
+    await tick();
     await tick();
 
     // Order should remain the same
     expect(SavedSearchesStore.get().savedSearches[1]).toEqual(
       expect.objectContaining({
         id: '1',
+        isDefault: false,
+        isGlobal: true,
+        isOrgCustom: false,
         isPinned: true,
         type: 0,
         name: 'Unresolved Issues',
@@ -111,10 +158,26 @@ describe('SavedSearchesStore', function() {
       url: '/organizations/org-1/searches/',
       body: [{...searches[0], isPinned: true}, searches[1]],
     });
+
+    Client.addMockResponse({
+      url: '/organizations/org-1/pinned-searches/',
+      method: 'PUT',
+      body: {
+        id: '1',
+        isDefault: false,
+        isGlobal: true,
+        isOrgCustom: false,
+        isPinned: true,
+        query: 'is:unresolved',
+        name: 'Unresolved Issues',
+        type: 0,
+      },
+    });
     await fetchSavedSearches(api, 'org-1', {});
     await tick();
 
     pinSearch(api, 'org-1', 0, searches[1].query);
+    await tick();
     await tick();
 
     expect(SavedSearchesStore.get().savedSearches).toHaveLength(2);
@@ -132,6 +195,9 @@ describe('SavedSearchesStore', function() {
     expect(SavedSearchesStore.get().savedSearches[1]).toEqual(
       expect.objectContaining({
         id: '1',
+        isDefault: false,
+        isGlobal: true,
+        isOrgCustom: false,
         isPinned: true,
         type: 0,
         name: 'Unresolved Issues',
@@ -159,6 +225,7 @@ describe('SavedSearchesStore', function() {
     await tick();
 
     unpinSearch(api, 'org-1', 0, searches[0]);
+    await tick();
     await tick();
 
     // Saved custom search should be removed
@@ -196,6 +263,7 @@ describe('SavedSearchesStore', function() {
     await tick();
 
     unpinSearch(api, 'org-1', 0, searches[0]);
+    await tick();
     await tick();
 
     expect(SavedSearchesStore.get().savedSearches).toHaveLength(2);
@@ -236,6 +304,7 @@ describe('SavedSearchesStore', function() {
 
     unpinSearch(api, 'org-1', 0, searches[0]);
     await tick();
+    await tick();
 
     expect(SavedSearchesStore.get().savedSearches).toHaveLength(2);
 
@@ -258,5 +327,23 @@ describe('SavedSearchesStore', function() {
         query: 'is:unresolved',
       })
     );
+  });
+
+  it('removes deleted saved searches', async function() {
+    await fetchSavedSearches(api, 'org-1', {});
+    await tick();
+
+    const searches = SavedSearchesStore.get().savedSearches;
+    Client.addMockResponse({
+      url: `/organizations/org-1/searches/${searches[0].id}/`,
+      method: 'DELETE',
+      body: {},
+    });
+    await deleteSavedSearch(api, 'org-1', searches[0]);
+    await tick();
+
+    const newSearches = SavedSearchesStore.get().savedSearches;
+    expect(newSearches.length).toBeLessThan(searches.length);
+    expect(newSearches[0].id).not.toBe(searches[0].id);
   });
 });

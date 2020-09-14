@@ -1,0 +1,37 @@
+---
+created: '2020-09-02T08:17:26.393018Z'
+creator: sentry
+source: tests/sentry/grouping/test_fingerprinting.py
+---
+config:
+  rules:
+  - fingerprint:
+    - log-
+    - '{{ logger }}'
+    - '-'
+    - '{{ level }}'
+    matchers:
+    - - logger
+      - sentry.*
+    - - level
+      - ERROR
+  version: 1
+fingerprint:
+- log-
+- '{{ logger }}'
+- '-'
+- '{{ level }}'
+variants:
+  custom-fingerprint:
+    type: custom-fingerprint
+    values:
+    - log-
+    - sentry.example.love
+    - '-'
+    - error
+  default:
+    component:
+      contributes: false
+      contributes_to_similarity: true
+      hint: custom fingerprint takes precedence
+    type: component

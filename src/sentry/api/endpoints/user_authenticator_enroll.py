@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from rest_framework import serializers, status
+from rest_framework.fields import SkipField
 from rest_framework.response import Response
 
 import logging
@@ -9,84 +10,84 @@ import petname
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
-from sentry.models import Authenticator, OrganizationMember
+from sentry.models import Authenticator
 from sentry.security import capture_security_activity
-from sentry.web.frontend.accept_organization_invite import ApiInviteHelper
+from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie
 
 logger = logging.getLogger(__name__)
 
-ALREADY_ENROLLED_ERR = {'details': 'Already enrolled'}
-INVALID_OTP_ERR = {'details': 'Invalid OTP'},
-SEND_SMS_ERR = {'details': 'Error sending SMS'}
+ALREADY_ENROLLED_ERR = {"details": "Already enrolled"}
+INVALID_OTP_ERR = ({"details": "Invalid OTP"},)
+SEND_SMS_ERR = {"details": "Error sending SMS"}
 
 
-class BaseRestSerializer(serializers.Serializer):
-    # Fields needed to accept an org invite
-    # pending 2FA enrollment
-    memberId = serializers.CharField(
-        required=False
-    )
-    token = serializers.CharField(
-        required=False,
-    )
-
-
-class TotpRestSerializer(BaseRestSerializer):
+class TotpRestSerializer(serializers.Serializer):
     otp = serializers.CharField(
-        label='Authenticator code',
-        help_text='Code from authenticator',
+        label="Authenticator code",
+        help_text="Code from authenticator",
         required=True,
-        max_length=20
+        max_length=20,
+        trim_whitespace=False,
     )
 
 
-class SmsRestSerializer(BaseRestSerializer):
+class SmsRestSerializer(serializers.Serializer):
     phone = serializers.CharField(
         label="Phone number",
         help_text="Phone number to send SMS code",
         required=True,
         max_length=20,
+        trim_whitespace=False,
     )
     otp = serializers.CharField(
-        label='Authenticator code',
-        help_text='Code from authenticator',
+        label="Authenticator code",
+        help_text="Code from authenticator",
         required=False,
-        max_length=20
+        allow_null=True,
+        allow_blank=True,
+        max_length=20,
+        trim_whitespace=False,
     )
 
 
-class U2fRestSerializer(BaseRestSerializer):
+class U2fRestSerializer(serializers.Serializer):
     deviceName = serializers.CharField(
-        label='Device name',
+        label="Device name",
         required=False,
+        allow_null=True,
+        allow_blank=True,
         max_length=60,
-        default=lambda: petname.Generate(2, ' ', letters=10).title(),
+        trim_whitespace=False,
+        default=lambda: petname.Generate(2, " ", letters=10).title(),
     )
-    challenge = serializers.CharField(
-        required=True,
-    )
-    response = serializers.CharField(
-        required=True,
-    )
+    challenge = serializers.CharField(required=True, trim_whitespace=False)
+    response = serializers.CharField(required=True, trim_whitespace=False)
 
 
-hidden_fields = ['memberId', 'token']
-
-serializer_map = {
-    'totp': TotpRestSerializer,
-    'sms': SmsRestSerializer,
-    'u2f': U2fRestSerializer,
-}
+serializer_map = {"totp": TotpRestSerializer, "sms": SmsRestSerializer, "u2f": U2fRestSerializer}
 
 
 def get_serializer_field_metadata(serializer, fields=None):
     """Returns field metadata for serializer"""
     meta = []
-    for field in serializer.base_fields:
-        if (fields is None or field in fields) and field not in hidden_fields:
-            serialized_field = dict(serializer.base_fields[field].metadata())
-            serialized_field['name'] = field
-            serialized_field['defaultValue'] = serializer.base_fields[field].get_default_value()
+    for field_name, field in serializer.fields.items():
+        if (fields is None or field_name in fields) and field_name:
+            try:
+                default = field.get_default()
+            except SkipField:
+                default = None
+            serialized_field = {
+                "name": field_name,
+                "defaultValue": default,
+                "read_only": field.read_only,
+                "required": field.required,
+                "type": "string",
+            }
+            if hasattr(field, "max_length") and field.max_length:
+                serialized_field["max_length"] = field.max_length
+            if field.label:
+                serialized_field["label"] = field.label
+
             meta.append(serialized_field)
 
     return meta
@@ -116,27 +117,25 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
         # User is not enrolled in auth interface:
         # - display configuration form
         response = serialize(interface)
-        response['form'] = get_serializer_field_metadata(
-            serializer_map[interface_id]
-        )
+        response["form"] = get_serializer_field_metadata(serializer_map[interface_id]())
 
         # U2fInterface has no 'secret' attribute
         try:
-            response['secret'] = interface.secret
+            response["secret"] = interface.secret
         except AttributeError:
             pass
 
-        if interface_id == 'totp':
-            response['qrcode'] = interface.get_provision_qrcode(user.email)
+        if interface_id == "totp":
+            response["qrcode"] = interface.get_provision_qrcode(user.email)
 
-        if interface_id == 'u2f':
-            response['challenge'] = interface.start_enrollment()
+        if interface_id == "u2f":
+            response["challenge"] = interface.start_enrollment()
             # XXX: Upgrading python-u2flib-server to 5.0.0 changes the response
             # format. Our current js u2f library expects the old format, so
             # massaging the data to include appId here
-            app_id = response['challenge']['appId']
-            for register_request in response['challenge']['registerRequests']:
-                register_request['appId'] = app_id
+            app_id = response["challenge"]["appId"]
+            for register_request in response["challenge"]["registerRequests"]:
+                register_request["appId"] = app_id
 
         return Response(response)
 
@@ -160,7 +159,7 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
         if serializer_cls is None:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-        serializer = serializer_cls(data=request.DATA)
+        serializer = serializer_cls(data=request.data)
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -175,18 +174,18 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
             return Response(ALREADY_ENROLLED_ERR, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            interface.secret = request.DATA['secret']
+            interface.secret = request.data["secret"]
         except KeyError:
             pass
 
         context = {}
         # Need to update interface with phone number before validating OTP
-        if 'phone' in request.DATA:
-            interface.phone_number = serializer.data['phone']
+        if "phone" in request.data:
+            interface.phone_number = serializer.data["phone"]
 
             # Disregarding value of 'otp', if no OTP was provided,
             # send text message to phone number with OTP
-            if 'otp' not in request.DATA:
+            if "otp" not in request.data:
                 if interface.send_text(for_enrollment=True, request=request._request):
                     return Response(status=status.HTTP_204_NO_CONTENT)
                 else:
@@ -194,63 +193,46 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
                     return Response(SEND_SMS_ERR, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         # Attempt to validate OTP
-        if 'otp' in request.DATA and not interface.validate_otp(serializer.data['otp']):
+        if "otp" in request.data and not interface.validate_otp(serializer.data["otp"]):
             return Response(INVALID_OTP_ERR, status=status.HTTP_400_BAD_REQUEST)
 
         # Try u2f enrollment
-        if interface_id == 'u2f':
+        if interface_id == "u2f":
             # What happens when this fails?
             interface.try_enroll(
-                serializer.data['challenge'],
-                serializer.data['response'],
-                serializer.data['deviceName']
+                serializer.data["challenge"],
+                serializer.data["response"],
+                serializer.data["deviceName"],
             )
-            context.update({
-                'device_name': serializer.data['deviceName']
-            })
+            context.update({"device_name": serializer.data["deviceName"]})
 
         try:
             interface.enroll(request.user)
         except Authenticator.AlreadyEnrolled:
             return Response(ALREADY_ENROLLED_ERR, status=status.HTTP_400_BAD_REQUEST)
-        else:
-            context.update({
-                'authenticator': interface.authenticator
-            })
-            capture_security_activity(
-                account=request.user,
-                type='mfa-added',
-                actor=request.user,
-                ip_address=request.META['REMOTE_ADDR'],
-                context=context,
-                send_email=True,
-            )
-            request.user.clear_lost_passwords()
-            request.user.refresh_session_nonce(self.request)
-            request.user.save()
-            Authenticator.objects.auto_add_recovery_codes(request.user)
 
-            # Try to accept an org invite pending 2FA enrollment
-            member_id = serializer.data.get('memberId')
-            token = serializer.data.get('token')
+        context.update({"authenticator": interface.authenticator})
+        capture_security_activity(
+            account=request.user,
+            type="mfa-added",
+            actor=request.user,
+            ip_address=request.META["REMOTE_ADDR"],
+            context=context,
+            send_email=True,
+        )
+        request.user.clear_lost_passwords()
+        request.user.refresh_session_nonce(self.request)
+        request.user.save()
+        Authenticator.objects.auto_add_recovery_codes(request.user)
 
-            if member_id and token:
-                try:
-                    helper = ApiInviteHelper(
-                        instance=self,
-                        request=request,
-                        member_id=member_id,
-                        token=token,
-                        logger=logger,
-                    )
-                except OrganizationMember.DoesNotExist:
-                    logger.error('Failed to accept pending org invite', exc_info=True)
-                else:
-                    if helper.valid_request():
-                        helper.accept_invite()
+        response = Response(status=status.HTTP_204_NO_CONTENT)
 
-                        response = Response(status=status.HTTP_204_NO_CONTENT)
-                        helper.remove_invite_cookie(response)
-                        return response
+        # If there is a pending organization invite accept after the
+        # authenticator has been configured.
+        invite_helper = ApiInviteHelper.from_cookie(request=request, instance=self, logger=logger)
 
-            return Response(status=status.HTTP_204_NO_CONTENT)
+        if invite_helper and invite_helper.valid_request:
+            invite_helper.accept_invite()
+            remove_invite_cookie(request, response)
+
+        return response

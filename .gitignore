@@ -1,3 +1,4 @@
+.env
 .cache/
 .coverage
 .storybook-out/
@@ -28,7 +29,6 @@ sentry-package.json
 /src/sentry/static/sentry/dist/
 /src/sentry/static/sentry/vendor/
 /src/sentry/static/sentry/admin/
-/src/sentry/static/sentry/debug_toolbar/
 /src/sentry/static/sentry/rest_framework/
 /src/sentry/integration-docs
 /src/sentry/loader/_registry.json
@@ -43,3 +43,7 @@ coverage.xml
 junit.xml
 *.codestyle.xml
 package-lock.json
+.webpack.meta
+pip-wheel-metadata/
+Brewfile.lock.json
+~/

@@ -1,6 +1,7 @@
 import React from 'react';
 
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
+
 import SentryAppDetailsModal from 'app/components/modals/sentryAppDetailsModal';
 
 describe('SentryAppDetailsModal', function() {
@@ -10,9 +11,11 @@ describe('SentryAppDetailsModal', function() {
   let onInstall;
   let isInstalled;
   let closeModal;
+  const installButton = 'Button[data-test-id="install"]';
+  let sentryAppInteractionRequest;
 
   function render() {
-    return mount(
+    return mountWithTheme(
       <SentryAppDetailsModal
         sentryApp={sentryApp}
         organization={org}
@@ -30,6 +33,20 @@ describe('SentryAppDetailsModal', function() {
     onInstall = jest.fn();
     isInstalled = false;
     closeModal = jest.fn();
+
+    MockApiClient.addMockResponse({
+      url: `/sentry-apps/${sentryApp.slug}/features/`,
+      method: 'GET',
+      body: [],
+    });
+
+    sentryAppInteractionRequest = MockApiClient.addMockResponse({
+      url: `/sentry-apps/${sentryApp.slug}/interaction/`,
+      method: 'POST',
+      statusCode: 200,
+      body: {},
+    });
+
     wrapper = render();
   });
 
@@ -37,17 +54,32 @@ describe('SentryAppDetailsModal', function() {
     expect(wrapper.find('Name').text()).toBe(sentryApp.name);
   });
 
+  it('records interaction request', () => {
+    expect(sentryAppInteractionRequest).toHaveBeenCalledWith(
+      `/sentry-apps/${sentryApp.slug}/interaction/`,
+      expect.objectContaining({
+        method: 'POST',
+        data: {
+          tsdbField: 'sentry_app_viewed',
+        },
+      })
+    );
+  });
+
   it('displays the Integrations description', () => {
-    expect(wrapper.find('Description').text()).toBe(sentryApp.overview);
+    expect(wrapper.find('Description').text()).toContain(sentryApp.overview);
   });
 
   it('closes when Cancel is clicked', () => {
-    wrapper.find({onClick: closeModal}).simulate('click');
+    wrapper
+      .find({onClick: closeModal})
+      .first()
+      .simulate('click');
     expect(closeModal).toHaveBeenCalled();
   });
 
   it('installs the Integration when Install is clicked', () => {
-    wrapper.find({onClick: onInstall}).simulate('click');
+    wrapper.find(installButton).simulate('click');
     expect(onInstall).toHaveBeenCalled();
   });
 
@@ -58,7 +90,7 @@ describe('SentryAppDetailsModal', function() {
     });
 
     it('does not display the Install button', () => {
-      expect(wrapper.find({onClick: onInstall}).length).toBe(0);
+      expect(wrapper.find(installButton).length).toBe(0);
     });
   });
 
@@ -69,7 +101,18 @@ describe('SentryAppDetailsModal', function() {
     });
 
     it('disabled the Install button', () => {
-      expect(wrapper.find({onClick: onInstall}).prop('disabled')).toBe(true);
+      expect(wrapper.find(installButton).prop('disabled')).toBe(true);
+    });
+  });
+
+  describe('when the Integration requires no permissions', () => {
+    beforeEach(() => {
+      sentryApp = {...sentryApp, scopes: []};
+      wrapper = render();
+    });
+
+    it('does not render permissions', () => {
+      expect(wrapper.exists('Title')).toBe(false);
     });
   });
 });

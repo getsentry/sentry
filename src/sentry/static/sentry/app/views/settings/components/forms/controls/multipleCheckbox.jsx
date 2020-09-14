@@ -1,17 +1,16 @@
-import {Box} from 'grid-emotion';
-
+import {Box} from 'reflexbox';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {defined} from 'app/utils';
 
-const MultipleCheckboxWrapper = styled.div`
+const MultipleCheckboxWrapper = styled('div')`
   display: flex;
   flex-wrap: wrap;
 `;
 
-const Label = styled.label`
+const Label = styled('label')`
   font-weight: normal;
   white-space: nowrap;
   margin-right: 10px;
@@ -19,7 +18,7 @@ const Label = styled.label`
   width: 20%;
 `;
 
-const CheckboxLabel = styled.span`
+const CheckboxLabel = styled('span')`
   margin-left: 3px;
 `;
 
@@ -53,22 +52,20 @@ export default class MultipleCheckbox extends React.Component {
 
     return (
       <MultipleCheckboxWrapper>
-        {choices.map(([choiceValue, choiceLabel]) => {
-          return (
-            <Box key={choiceValue} w={[1, 1 / 2, 1 / 3, 1 / 4]}>
-              <Label>
-                <input
-                  type="checkbox"
-                  value={choiceValue}
-                  onChange={this.onChange.bind(this, choiceValue)}
-                  disabled={disabled}
-                  checked={defined(value) && value.indexOf(choiceValue) !== -1}
-                />
-                <CheckboxLabel>{choiceLabel}</CheckboxLabel>
-              </Label>
-            </Box>
-          );
-        })}
+        {choices.map(([choiceValue, choiceLabel]) => (
+          <Box key={choiceValue} width={[1, 1 / 2, 1 / 3, 1 / 4]}>
+            <Label>
+              <input
+                type="checkbox"
+                value={choiceValue}
+                onChange={this.onChange.bind(this, choiceValue)}
+                disabled={disabled}
+                checked={defined(value) && value.indexOf(choiceValue) !== -1}
+              />
+              <CheckboxLabel>{choiceLabel}</CheckboxLabel>
+            </Label>
+          </Box>
+        ))}
       </MultipleCheckboxWrapper>
     );
   }

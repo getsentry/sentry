@@ -1,7 +1,7 @@
-/*global global*/
 import React from 'react';
 
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
+
 import FormModel from 'app/views/settings/components/forms/model';
 import PermissionsObserver from 'app/views/settings/organizationDeveloperSettings/permissionsObserver';
 
@@ -9,17 +9,12 @@ describe('PermissionsObserver', () => {
   let wrapper;
 
   beforeEach(() => {
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <PermissionsObserver
         scopes={['project:read', 'project:write', 'project:releases', 'org:admin']}
         events={['issue']}
       />,
-      {
-        context: {
-          router: TestStubs.routerContext(),
-          form: new FormModel(),
-        },
-      }
+      TestStubs.routerContext([{form: new FormModel()}])
     );
   });
 

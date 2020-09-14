@@ -1,7 +1,6 @@
-import {Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {
   Panel,
@@ -38,6 +37,11 @@ const LEGACY_BROWSER_SUBFILTERS = {
   ie10: {
     icon: 'internet-explorer',
     helpText: 'Version 10',
+    title: 'Internet Explorer',
+  },
+  ie11: {
+    icon: 'internet-explorer',
+    helpText: 'Version 11',
     title: 'Internet Explorer',
   },
   safari_pre_6: {
@@ -134,13 +138,13 @@ class LegacyBrowserFilterRow extends React.Component {
             return (
               <FilterGridItemWrapper key={key}>
                 <FilterGridItem>
-                  <Flex align="center" flex="1">
+                  <FilterItem>
                     <FilterGridIcon className={`icon-${subfilter.icon}`} />
                     <div>
                       <FilterTitle>{subfilter.title}</FilterTitle>
                       <FilterDescription>{subfilter.helpText}</FilterDescription>
                     </div>
-                  </Flex>
+                  </FilterItem>
 
                   <Switch
                     isActive={this.state.subfilters.has(key)}
@@ -171,6 +175,7 @@ class ProjectFiltersSettings extends AsyncComponent {
       hooksDisabled: HookStore.get('project:custom-inbound-filters:disabled'),
     };
   }
+
   getEndpoints() {
     const {orgId, projectId} = this.props.params;
     return [
@@ -179,7 +184,14 @@ class ProjectFiltersSettings extends AsyncComponent {
     ];
   }
 
-  handleLegacyChange = (onChange, onBlur, filter, subfilters, e) => {
+  componentDidUpdate(prevProps, prevState) {
+    if (prevProps.project !== this.props.project) {
+      this.reloadData();
+    }
+    super.componentDidUpdate(prevProps, prevState);
+  }
+
+  handleLegacyChange = (onChange, onBlur, _filter, subfilters, e) => {
     onChange(subfilters, e);
     onBlur(subfilters, e);
   };
@@ -198,6 +210,7 @@ class ProjectFiltersSettings extends AsyncComponent {
   renderCustomFilters = disabled => () => (
     <Feature
       features={['projects:custom-inbound-filters']}
+      hookName="feature-disabled:custom-inbound-filters"
       renderDisabled={({children, ...props}) =>
         children({...props, renderDisabled: this.renderDisabledCustomFilters})
       }
@@ -236,7 +249,7 @@ class ProjectFiltersSettings extends AsyncComponent {
             <Panel>
               <PanelHeader>{t('Filters')}</PanelHeader>
               <PanelBody>
-                {this.state.filterList.map((filter, idx) => {
+                {this.state.filterList.map(filter => {
                   const fieldProps = {
                     name: filter.id,
                     label: filter.name,
@@ -318,15 +331,15 @@ const NestedForm = styled(Form)`
   flex: 1;
 `;
 
-const FilterGrid = styled.div`
+const FilterGrid = styled('div')`
   display: flex;
   flex-wrap: wrap;
 `;
 
-const FilterGridItem = styled.div`
+const FilterGridItem = styled('div')`
   display: flex;
   align-items: center;
-  background: ${p => p.theme.whiteDark};
+  background: ${p => p.theme.gray100};
   border-radius: 3px;
   flex: 1;
   padding: 12px;
@@ -334,12 +347,18 @@ const FilterGridItem = styled.div`
 `;
 
 // We want this wrapper to maining 30% width
-const FilterGridItemWrapper = styled.div`
+const FilterGridItemWrapper = styled('div')`
   padding: 12px;
   width: 50%;
 `;
 
-const FilterGridIcon = styled.div`
+const FilterItem = styled('div')`
+  display: flex;
+  flex: 1;
+  align-items: center;
+`;
+
+const FilterGridIcon = styled('div')`
   width: 38px;
   height: 38px;
   background-repeat: no-repeat;
@@ -349,31 +368,31 @@ const FilterGridIcon = styled.div`
   flex-shrink: 0;
 `;
 
-const FilterTitle = styled.div`
+const FilterTitle = styled('div')`
   font-size: 14px;
   font-weight: bold;
   line-height: 1;
   white-space: nowrap;
 `;
 
-const FilterDescription = styled.div`
-  color: ${p => p.theme.gray3};
+const FilterDescription = styled('div')`
+  color: ${p => p.theme.gray600};
   font-size: 12px;
   line-height: 1;
   white-space: nowrap;
 `;
 
-const BulkFilter = styled.div`
+const BulkFilter = styled('div')`
   text-align: right;
   padding: 0 12px;
 `;
 
-const BulkFilterLabel = styled.span`
+const BulkFilterLabel = styled('span')`
   font-weight: bold;
   margin-right: 6px;
 `;
 
-const BulkFilterItem = styled.a`
+const BulkFilterItem = styled('a')`
   border-right: 1px solid #f1f2f3;
   margin-right: 6px;
   padding-right: 6px;

@@ -1,8 +1,9 @@
 import React from 'react';
-import {shallow, mount} from 'enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
-import {ReleaseArtifacts} from 'app/views/releases/detail/shared/releaseArtifacts';
+import {ReleaseArtifacts} from 'app/views/releases/detail/releaseArtifacts';
 
 describe('ReleaseArtifacts', function() {
   let wrapper;
@@ -41,19 +42,19 @@ describe('ReleaseArtifacts', function() {
       method: 'DELETE',
     });
 
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <ReleaseArtifacts
         location={{query: {cursor: '0:0:100'}}}
-        params={{orgId: '123', projectId: '456', version: 'abcdef'}}
+        params={{orgId: '123', projectId: '456', release: 'abcdef'}}
         organization={TestStubs.Organization({id: '123', access: ['project:read']})}
         api={api}
       />
     );
 
-    wrapperWithPermission = shallow(
+    wrapperWithPermission = mountWithTheme(
       <ReleaseArtifacts
         location={{query: {cursor: '0:0:100'}}}
-        params={{orgId: '123', projectId: '456', version: 'abcdef'}}
+        params={{orgId: '123', projectId: '456', release: 'abcdef'}}
         organization={TestStubs.Organization({id: '123', access: ['project:write']})}
         api={api}
       />
@@ -72,7 +73,9 @@ describe('ReleaseArtifacts', function() {
     });
 
     it('should have no permission to download', function() {
-      expect(wrapper.find('div.btn > .icon-open')).toHaveLength(2);
+      const buttons = wrapper.find('Button[data-test-id="artifact-download"]');
+      expect(buttons).toHaveLength(2);
+      expect(buttons.first().props().disabled).toBe(true);
     });
 
     it('should have permission to download', function() {
@@ -93,7 +96,9 @@ describe('ReleaseArtifacts', function() {
         ],
       });
 
-      expect(wrapper.find('a.btn > .icon-open')).toHaveLength(2);
+      const buttons = wrapper.find('Button[data-test-id="artifact-download"]');
+      expect(buttons).toHaveLength(2);
+      expect(buttons.first().props().disabled).toBe(false);
     });
   });
 
@@ -122,7 +127,7 @@ describe('ReleaseArtifacts', function() {
     });
 
     it('fetches data for organization releases', function() {
-      wrapper.setProps({params: {orgId: '123', version: 'abcdef'}});
+      wrapper.setProps({params: {orgId: '123', release: 'abcdef'}});
       wrapper.instance().fetchData();
 
       expect(organizationMock).toHaveBeenCalledWith(

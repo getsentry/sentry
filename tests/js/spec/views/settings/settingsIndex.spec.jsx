@@ -1,5 +1,6 @@
-import {shallow, mount} from 'enzyme';
 import React from 'react';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import * as OrgActions from 'app/actionCreators/organizations';
 import {SettingsIndex} from 'app/views/settings/settingsIndex';
@@ -9,12 +10,19 @@ describe('SettingsIndex', function() {
   let wrapper;
 
   it('renders', function() {
-    wrapper = shallow(<SettingsIndex organization={TestStubs.Organization()} />);
-    expect(wrapper).toMatchSnapshot();
+    wrapper = mountWithTheme(
+      <SettingsIndex
+        router={TestStubs.router()}
+        organization={TestStubs.Organization()}
+      />
+    );
+    expect(wrapper).toSnapshot();
   });
 
   it('has loading when there is no organization', function() {
-    wrapper = shallow(<SettingsIndex organization={null} />);
+    wrapper = mountWithTheme(
+      <SettingsIndex router={TestStubs.router()} organization={null} />
+    );
 
     expect(wrapper.find('LoadingIndicator')).toHaveLength(1);
   });
@@ -22,7 +30,12 @@ describe('SettingsIndex', function() {
   it('has different links for on premise users', function() {
     ConfigStore.set('isOnPremise', true);
 
-    wrapper = shallow(<SettingsIndex organization={TestStubs.Organization()} />);
+    wrapper = mountWithTheme(
+      <SettingsIndex
+        router={TestStubs.router()}
+        organization={TestStubs.Organization()}
+      />
+    );
 
     expect(
       wrapper.find(
@@ -52,7 +65,10 @@ describe('SettingsIndex', function() {
         url: `/organizations/${organization.slug}/`,
       });
       ConfigStore.config.isOnPremise = false;
-      wrapper = mount(<SettingsIndex params={{}} />, TestStubs.routerContext());
+      wrapper = mountWithTheme(
+        <SettingsIndex router={TestStubs.router()} params={{}} />,
+        TestStubs.routerContext()
+      );
     });
 
     it('fetches org details for SidebarDropdown', function() {

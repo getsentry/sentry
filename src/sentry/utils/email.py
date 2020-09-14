@@ -1,10 +1,3 @@
-"""
-sentry.utils.email
-~~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
 from __future__ import absolute_import
 
 import logging
@@ -22,8 +15,7 @@ from random import randrange
 import lxml
 import toronado
 from django.conf import settings
-from django.core.mail import get_connection as _get_connection
-from django.core.mail import send_mail as _send_mail
+from django.core import mail
 from django.core.mail import EmailMultiAlternatives
 from django.core.mail.backends.base import BaseEmailBackend
 from django.core.signing import BadSignature, Signer
@@ -32,26 +24,27 @@ from django.utils.encoding import force_bytes, force_str, force_text
 
 from sentry import options
 from sentry.logging import LoggingFormat
-from sentry.models import (Activity, Event, Group, GroupEmailThread, Project, User, UserOption)
+from sentry.models import Activity, Group, GroupEmailThread, Project, User, UserOption
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 from sentry.utils.strings import is_valid_dot_atom
 from sentry.web.helpers import render_to_string
+from sentry.utils.compat import map
 
 # The maximum amount of recipients to display in human format.
 MAX_RECIPIENTS = 5
 
 # The fake TLD used to construct email addresses when one is required,
 # for example by automatically generated SSO accounts.
-FAKE_EMAIL_TLD = '.sentry-fake'
+FAKE_EMAIL_TLD = ".sentry-fake"
 
-logger = logging.getLogger('sentry.mail')
+logger = logging.getLogger("sentry.mail")
 
 
 def inline_css(value):
     tree = lxml.html.document_fromstring(value)
     toronado.inline(tree)
-    # CSS media query support is inconistent when the DOCTYPE declaration is
+    # CSS media query support is inconsistent when the DOCTYPE declaration is
     # missing, so we force it to HTML5 here.
     return lxml.html.tostring(tree, doctype="<!DOCTYPE html>")
 
@@ -94,17 +87,17 @@ def email_to_group_id(address):
     Email address should be in the form of:
         {group_id}+{signature}@example.com
     """
-    address = address.split('@', 1)[0]
-    signed_data = address.replace('+', ':')
+    address = address.split("@", 1)[0]
+    signed_data = address.replace("+", ":")
     return int(force_bytes(signer.unsign(signed_data)))
 
 
 def group_id_to_email(group_id):
     signed_data = signer.sign(six.text_type(group_id))
-    return '@'.join(
+    return "@".join(
         (
-            signed_data.replace(':', '+'), options.get('mail.reply-hostname') or
-            get_from_email_domain(),
+            signed_data.replace(":", "+"),
+            options.get("mail.reply-hostname") or get_from_email_domain(),
         )
     )
 
@@ -112,14 +105,14 @@ def group_id_to_email(group_id):
 def domain_from_email(email):
     email = parseaddr(email)[1]
     try:
-        return email.split('@', 1)[1]
+        return email.split("@", 1)[1]
     except IndexError:
         # The email address is likely malformed or something
         return email
 
 
 # Slightly modified version of Django's
-# `django.core.mail.message:make_msgid` becuase we need
+# `django.core.mail.message:make_msgid` because we need
 # to override the domain. If we ever upgrade to
 # django 1.8, we can/should replace this.
 def make_msgid(domain):
@@ -131,10 +124,10 @@ def make_msgid(domain):
     defined hostname.
     """
     timeval = time.time()
-    utcdate = time.strftime('%Y%m%d%H%M%S', time.gmtime(timeval))
+    utcdate = time.strftime("%Y%m%d%H%M%S", time.gmtime(timeval))
     pid = os.getpid()
     randint = randrange(100000)
-    msgid = '<%s.%s.%s@%s>' % (utcdate, pid, randint, domain)
+    msgid = "<%s.%s.%s@%s>" % (utcdate, pid, randint, domain)
     return msgid
 
 
@@ -145,7 +138,7 @@ _from_email_domain_cache = (None, None)
 
 def get_from_email_domain():
     global _from_email_domain_cache
-    from_ = options.get('mail.from')
+    from_ = options.get("mail.from")
     if not _from_email_domain_cache[0] == from_:
         _from_email_domain_cache = (from_, domain_from_email(from_))
     return _from_email_domain_cache[1]
@@ -172,34 +165,21 @@ def get_email_addresses(user_ids, project=None):
     results = {}
 
     if project:
-        queryset = UserOption.objects.filter(
-            project=project,
-            user__in=pending,
-            key='mail:email',
-        )
-        for option in (o for o in queryset if o.value and not is_fake_email(o.value)):
-            results[option.user_id] = option.value
-            pending.discard(option.user_id)
-
-    if pending:
-        queryset = UserOption.objects.filter(
-            user__in=pending,
-            key='alert_email',
-        )
+        queryset = UserOption.objects.filter(project=project, user__in=pending, key="mail:email")
         for option in (o for o in queryset if o.value and not is_fake_email(o.value)):
             results[option.user_id] = option.value
             pending.discard(option.user_id)
 
     if pending:
         queryset = User.objects.filter(pk__in=pending, is_active=True)
-        for (user_id, email) in queryset.values_list('id', 'email'):
+        for (user_id, email) in queryset.values_list("id", "email"):
             if email and not is_fake_email(email):
                 results[user_id] = email
                 pending.discard(user_id)
 
     if pending:
         logger.warning(
-            'Could not resolve email addresses for user IDs in %r, discarding...', pending
+            "Could not resolve email addresses for user IDs in %r, discarding...", pending
         )
 
     return results
@@ -242,25 +222,23 @@ class ListResolver(object):
             handler = self.__type_handlers[type(instance)]
         except KeyError:
             raise self.UnregisteredTypeError(
-                u'Cannot generate mailing list identifier for {!r}'.format(instance)
+                u"Cannot generate mailing list identifier for {!r}".format(instance)
             )
 
-        label = '.'.join(map(six.binary_type, handler(instance)))
+        label = ".".join(map(six.text_type, handler(instance)))
         assert is_valid_dot_atom(label)
 
-        return u'{}.{}'.format(label, self.__namespace)
+        return u"<{}.{}>".format(label, self.__namespace)
 
 
 default_list_type_handlers = {
-    Activity: attrgetter('project.slug', 'project.organization.slug'),
-    Project: attrgetter('slug', 'organization.slug'),
-    Group: attrgetter('project.slug', 'organization.slug'),
-    Event: attrgetter('project.slug', 'organization.slug'),
+    Activity: attrgetter("project.slug", "project.organization.slug"),
+    Project: attrgetter("slug", "organization.slug"),
+    Group: attrgetter("project.slug", "organization.slug"),
 }
 
 make_listid_from_instance = ListResolver(
-    options.get('mail.list-namespace'),
-    default_list_type_handlers,
+    options.get("mail.list-namespace"), default_list_type_handlers
 )
 
 
@@ -271,13 +249,13 @@ class MessageBuilder(object):
         context=None,
         template=None,
         html_template=None,
-        body=None,
+        body="",
         html_body=None,
         headers=None,
         reference=None,
         reply_reference=None,
         from_email=None,
-        type=None
+        type=None,
     ):
         assert not (body and template)
         assert not (html_body and html_template)
@@ -295,13 +273,13 @@ class MessageBuilder(object):
         self.headers = headers
         self.reference = reference  # The object that generated this message
         self.reply_reference = reply_reference  # The object this message is replying about
-        self.from_email = from_email or options.get('mail.from')
+        self.from_email = from_email or options.get("mail.from")
         self._send_to = set()
-        self.type = type if type else 'generic'
+        self.type = type if type else "generic"
 
-        if reference is not None and 'List-Id' not in headers:
+        if reference is not None and "List-Id" not in headers:
             try:
-                headers['List-Id'] = make_listid_from_instance(reference)
+                headers["List-Id"] = make_listid_from_instance(reference)
             except ListResolver.UnregisteredTypeError as error:
                 logger.debug(six.text_type(error))
             except AssertionError as error:
@@ -331,25 +309,25 @@ class MessageBuilder(object):
         else:
             headers = self.headers.copy()
 
-        if options.get('mail.enable-replies') and 'X-Sentry-Reply-To' in headers:
-            reply_to = headers['X-Sentry-Reply-To']
+        if options.get("mail.enable-replies") and "X-Sentry-Reply-To" in headers:
+            reply_to = headers["X-Sentry-Reply-To"]
         else:
             reply_to = set(reply_to or ())
             reply_to.discard(to)
-            reply_to = ', '.join(reply_to)
+            reply_to = ", ".join(reply_to)
 
         if reply_to:
-            headers.setdefault('Reply-To', reply_to)
+            headers.setdefault("Reply-To", reply_to)
 
         # Every message sent needs a unique message id
         message_id = make_msgid(get_from_email_domain())
-        headers.setdefault('Message-Id', message_id)
+        headers.setdefault("Message-Id", message_id)
 
-        subject = self.subject
+        subject = force_text(self.subject)
 
         if self.reply_reference is not None:
             reference = self.reply_reference
-            subject = 'Re: %s' % subject
+            subject = "Re: %s" % subject
         else:
             reference = self.reference
 
@@ -357,20 +335,17 @@ class MessageBuilder(object):
             thread, created = GroupEmailThread.objects.get_or_create(
                 email=to,
                 group=reference,
-                defaults={
-                    'project': reference.project,
-                    'msgid': message_id,
-                },
+                defaults={"project": reference.project, "msgid": message_id},
             )
             if not created:
-                headers.setdefault('In-Reply-To', thread.msgid)
-                headers.setdefault('References', thread.msgid)
+                headers.setdefault("In-Reply-To", thread.msgid)
+                headers.setdefault("References", thread.msgid)
 
         msg = EmailMultiAlternatives(
             subject=subject.splitlines()[0],
             body=self.__render_text_body(),
             from_email=self.from_email,
-            to=(to, ),
+            to=(to,),
             cc=cc or (),
             bcc=bcc or (),
             headers=headers,
@@ -378,74 +353,71 @@ class MessageBuilder(object):
 
         html_body = self.__render_html_body()
         if html_body:
-            msg.attach_alternative(html_body.decode('utf-8'), 'text/html')
+            msg.attach_alternative(html_body.decode("utf-8"), "text/html")
 
         return msg
 
     def get_built_messages(self, to=None, cc=None, bcc=None):
         send_to = set(to or ())
         send_to.update(self._send_to)
-        results = [self.build(to=email, reply_to=send_to, cc=cc, bcc=bcc)
-                   for email in send_to if email]
+        results = [
+            self.build(to=email, reply_to=send_to, cc=cc, bcc=bcc) for email in send_to if email
+        ]
         if not results:
-            logger.debug('Did not build any messages, no users to send to.')
+            logger.debug("Did not build any messages, no users to send to.")
         return results
 
     def format_to(self, to):
         if not to:
-            return ''
+            return ""
         if len(to) > MAX_RECIPIENTS:
-            to = to[:MAX_RECIPIENTS] + [u'and {} more.'.format(len(to[MAX_RECIPIENTS:]))]
-        return ', '.join(to)
+            to = to[:MAX_RECIPIENTS] + [u"and {} more.".format(len(to[MAX_RECIPIENTS:]))]
+        return ", ".join(to)
 
     def send(self, to=None, cc=None, bcc=None, fail_silently=False):
         return send_messages(
-            self.get_built_messages(to, cc=cc, bcc=bcc),
-            fail_silently=fail_silently,
+            self.get_built_messages(to, cc=cc, bcc=bcc), fail_silently=fail_silently
         )
 
     def send_async(self, to=None, cc=None, bcc=None):
         from sentry.tasks.email import send_email
-        fmt = options.get('system.logging-format')
-        messages = self.get_built_messages(to, cc=cc, bcc=bcc)
-        extra = {'message_type': self.type}
-        loggable = [v for k, v in six.iteritems(self.context) if hasattr(v, 'id')]
-        for context in loggable:
-            extra['%s_id' % type(context).__name__.lower()] = context.id
 
-        log_mail_queued = partial(logger.info, 'mail.queued', extra=extra)
+        fmt = options.get("system.logging-format")
+        messages = self.get_built_messages(to, cc=cc, bcc=bcc)
+        extra = {"message_type": self.type}
+        loggable = [v for k, v in six.iteritems(self.context) if hasattr(v, "id")]
+        for context in loggable:
+            extra["%s_id" % type(context).__name__.lower()] = context.id
+
+        log_mail_queued = partial(logger.info, "mail.queued", extra=extra)
         for message in messages:
-            safe_execute(
-                send_email.delay,
-                message=message,
-                _with_transaction=False,
-            )
-            extra['message_id'] = message.extra_headers['Message-Id']
-            metrics.incr('email.queued', instance=self.type, skip_internal=False)
+            safe_execute(send_email.delay, message=message, _with_transaction=False)
+            extra["message_id"] = message.extra_headers["Message-Id"]
+            metrics.incr("email.queued", instance=self.type, skip_internal=False)
             if fmt == LoggingFormat.HUMAN:
-                extra['message_to'] = self.format_to(message.to),
+                extra["message_to"] = (self.format_to(message.to),)
                 log_mail_queued()
             elif fmt == LoggingFormat.MACHINE:
                 for recipient in message.to:
-                    extra['message_to'] = recipient
+                    extra["message_to"] = recipient
                     log_mail_queued()
 
 
 def send_messages(messages, fail_silently=False):
     connection = get_connection(fail_silently=fail_silently)
     sent = connection.send_messages(messages)
-    metrics.incr('email.sent', len(messages), skip_internal=False)
+    metrics.incr("email.sent", len(messages), skip_internal=False)
     for message in messages:
         extra = {
-            'message_id': message.extra_headers['Message-Id'],
-            'size': len(message.message().as_bytes()),
+            "message_id": message.extra_headers["Message-Id"],
+            "size": len(message.message().as_bytes()),
         }
-        logger.info('mail.sent', extra=extra)
+        logger.info("mail.sent", extra=extra)
     return sent
 
 
 def get_mail_backend():
-    backend = options.get('mail.backend')
+    backend = options.get("mail.backend")
     try:
         return settings.SENTRY_EMAIL_BACKEND_ALIASES[backend]
     except KeyError:
@@ -456,29 +428,32 @@ def get_connection(fail_silently=False):
     """
     Gets an SMTP connection using our OptionsStore
     """
-    return _get_connection(
+    return mail.get_connection(
         backend=get_mail_backend(),
-        host=options.get('mail.host'),
-        port=options.get('mail.port'),
-        username=options.get('mail.username'),
-        password=options.get('mail.password'),
-        use_tls=options.get('mail.use-tls'),
-        timeout=options.get('mail.timeout'),
+        host=options.get("mail.host"),
+        port=options.get("mail.port"),
+        username=options.get("mail.username"),
+        password=options.get("mail.password"),
+        use_tls=options.get("mail.use-tls"),
+        timeout=options.get("mail.timeout"),
         fail_silently=fail_silently,
     )
 
 
-def send_mail(subject, message, from_email, recipient_list, fail_silently=False):
+def send_mail(subject, message, from_email, recipient_list, fail_silently=False, **kwargs):
     """
     Wrapper that forces sending mail through our connection.
+    Uses EmailMessage class which has more options than the simple send_mail
     """
-    return _send_mail(
+    email = mail.EmailMessage(
         subject,
         message,
         from_email,
         recipient_list,
         connection=get_connection(fail_silently=fail_silently),
+        **kwargs
     )
+    return email.send(fail_silently=fail_silently)
 
 
 def is_smtp_enabled(backend=None):
@@ -502,9 +477,7 @@ class PreviewBackend(BaseEmailBackend):
         for message in email_messages:
             content = six.binary_type(message.message())
             preview = tempfile.NamedTemporaryFile(
-                delete=False,
-                prefix='sentry-email-preview-',
-                suffix='.eml',
+                delete=False, prefix="sentry-email-preview-", suffix=".eml"
             )
             try:
                 preview.write(content)
@@ -512,6 +485,6 @@ class PreviewBackend(BaseEmailBackend):
             finally:
                 preview.close()
 
-            subprocess.check_call(('open', preview.name))
+            subprocess.check_call(("open", preview.name))
 
         return len(email_messages)

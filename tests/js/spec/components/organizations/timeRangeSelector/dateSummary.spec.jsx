@@ -1,6 +1,7 @@
 import React from 'react';
 
-import {mount} from 'enzyme';
+import {mount} from 'sentry-test/enzyme';
+
 import DateSummary from 'app/components/organizations/timeRangeSelector/dateSummary';
 
 const start = new Date('2017-10-14T02:38:00.000Z');
@@ -15,7 +16,7 @@ describe('DateSummary', function() {
 
   it('renders', async function() {
     wrapper = createWrapper();
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
   it('does not show times when it is midnight for start date and 23:59:59 for end date', function() {

@@ -1,21 +1,12 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled, {css} from 'react-emotion';
+import styled from '@emotion/styled';
+import {ClassNames, css} from '@emotion/core';
 
 import {t} from 'app/locale';
 import Search from 'app/components/search';
 import HelpSource from 'app/components/search/sources/helpSource';
 import theme from 'app/utils/theme';
-
-const dropdownStyle = css`
-  width: 100%;
-  border: transparent;
-  border-top-left-radius: 0;
-  border-top-right-radius: 0;
-  position: initial;
-  box-shadow: none;
-  border-top: 1px solid ${p => theme.borderLight};
-`;
 
 class HelpSearchModal extends React.Component {
   static propTypes = {
@@ -27,26 +18,38 @@ class HelpSearchModal extends React.Component {
 
     return (
       <Body>
-        <Search
-          {...this.props}
-          sources={[HelpSource]}
-          entryPoint="sidebar_help"
-          minSearch={3}
-          maxResults={10}
-          dropdownStyle={dropdownStyle}
-          closeOnSelect={false}
-          renderInput={({getInputProps}) => (
-            <InputWrapper>
-              <Input
-                autoFocus
-                {...getInputProps({
-                  type: 'text',
-                  placeholder: t('Search for Docs and FAQs...'),
-                })}
-              />
-            </InputWrapper>
+        <ClassNames>
+          {({css: injectedCss}) => (
+            <Search
+              {...this.props}
+              sources={[HelpSource]}
+              entryPoint="sidebar_help"
+              minSearch={3}
+              maxResults={10}
+              dropdownStyle={injectedCss`
+                width: 100%;
+                border: transparent;
+                border-top-left-radius: 0;
+                border-top-right-radius: 0;
+                position: initial;
+                box-shadow: none;
+                border-top: 1px solid ${theme.borderLight};
+              `}
+              closeOnSelect={false}
+              renderInput={({getInputProps}) => (
+                <InputWrapper>
+                  <Input
+                    autoFocus
+                    {...getInputProps({
+                      type: 'text',
+                      placeholder: t('Search for Docs and FAQs...'),
+                    })}
+                  />
+                </InputWrapper>
+              )}
+            />
           )}
-        />
+        </ClassNames>
       </Body>
     );
   }
@@ -65,6 +68,12 @@ const Input = styled('input')`
 
   &:focus {
     outline: none;
+  }
+`;
+
+export const modalCss = css`
+  .modal-content {
+    padding: 0;
   }
 `;
 

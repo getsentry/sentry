@@ -1,9 +1,10 @@
 import React from 'react';
-import {mount} from 'enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ProjectPluginDetailsContainer, {
   ProjectPluginDetails,
-} from 'app/views/projectPluginDetails';
+} from 'app/views/settings/projectPlugins/details';
 
 jest.mock('jquery');
 
@@ -47,7 +48,7 @@ describe('ProjectPluginDetails', function() {
       },
     });
 
-    component = mount(
+    component = mountWithTheme(
       <ProjectPluginDetailsContainer
         organization={org}
         project={project}
@@ -64,12 +65,12 @@ describe('ProjectPluginDetails', function() {
   });
 
   it('renders', function() {
-    expect(component).toMatchSnapshot();
+    expect(component).toSnapshot();
   });
 
   it('resets plugin', function() {
     // Test component instead of container so that we can access state
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <ProjectPluginDetails
         organization={org}
         project={project}

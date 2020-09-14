@@ -1,0 +1,23 @@
+minVersion: "0.10.0"
+github:
+  owner: getsentry
+  repo: sentry
+releaseBranchPrefix: releases
+changelog: CHANGES
+changelogPolicy: auto
+statusProvider:
+  name: github
+  config:
+    contexts:
+      - 'onpremise-builder (sentryio)'
+      - 'continuous-integration/travis-ci/push'
+      - 'acceptance'
+targets:
+  - name: github
+  - name: pypi
+  - name: docker
+    source: us.gcr.io/sentryio/sentry
+    target: getsentry/sentry
+
+requireNames:
+  - /^sentry-.+-py27-none-any.whl$/

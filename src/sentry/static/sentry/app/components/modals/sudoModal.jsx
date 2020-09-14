@@ -10,8 +10,9 @@ import Button from 'app/components/button';
 import ConfigStore from 'app/stores/configStore';
 import Form from 'app/views/settings/components/forms/form';
 import InputField from 'app/views/settings/components/forms/inputField';
+import {IconFlag} from 'app/icons';
 import TextBlock from 'app/views/settings/components/text/textBlock';
-import U2fContainer from 'app/components/u2fContainer';
+import U2fContainer from 'app/components/u2f/u2fContainer';
 import space from 'app/styles/space';
 
 class SudoModal extends React.Component {
@@ -127,11 +128,7 @@ class SudoModal extends React.Component {
               </TextBlock>
 
               {this.state.error && (
-                <Alert
-                  css={{marginBottom: 0}}
-                  type="error"
-                  icon="icon-circle-exclamation"
-                >
+                <Alert css={{marginBottom: 0}} type="error" icon={<IconFlag size="md" />}>
                   {t('Incorrect password')}
                 </Alert>
               )}

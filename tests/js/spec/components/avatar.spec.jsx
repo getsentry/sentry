@@ -1,20 +1,20 @@
 import React from 'react';
-import {mount} from 'enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
+
 import Avatar from 'app/components/avatar';
 
-jest.mock('app/stores/configStore', () => {
-  return {
-    getConfig: () => ({
-      gravatarBaseUrl: 'gravatarBaseUrl',
-    }),
-  };
-});
+jest.mock('app/stores/configStore', () => ({
+  getConfig: () => ({
+    gravatarBaseUrl: 'gravatarBaseUrl',
+  }),
+}));
 
 describe('Avatar', function() {
   const USER = {
     id: '1',
-    name: 'Jane Doe',
-    email: 'janedoe@example.com',
+    name: 'Jane Bloggs',
+    email: 'janebloggs@example.com',
   };
 
   describe('render()', function() {
@@ -25,7 +25,7 @@ describe('Avatar', function() {
           avatarUuid: '2d641b5d-8c74-44de-9cb6-fbd54701b35e',
         },
       });
-      const avatar = mount(<Avatar user={user} />);
+      const avatar = mountWithTheme(<Avatar user={user} />);
       expect(avatar.find('span.avatar')).toHaveLength(1);
     });
 
@@ -36,7 +36,7 @@ describe('Avatar', function() {
           avatarUuid: '2d641b5d-8c74-44de-9cb6-fbd54701b35e',
         },
       });
-      const avatar = mount(<Avatar user={user} />);
+      const avatar = mountWithTheme(<Avatar user={user} />);
 
       expect(avatar.find('BaseAvatar').prop('type')).toBe('gravatar');
 
@@ -56,7 +56,7 @@ describe('Avatar', function() {
           avatarUuid: '2d641b5d-8c74-44de-9cb6-fbd54701b35e',
         },
       });
-      const avatar = mount(<Avatar user={user} />);
+      const avatar = mountWithTheme(<Avatar user={user} />);
       expect(avatar.find('BaseAvatar').prop('type')).toBe('upload');
       expect(avatar.find('BaseAvatar').prop('uploadId')).toBe(
         '2d641b5d-8c74-44de-9cb6-fbd54701b35e'
@@ -73,22 +73,22 @@ describe('Avatar', function() {
           avatarUuid: '2d641b5d-8c74-44de-9cb6-fbd54701b35e',
         },
       });
-      let avatar = mount(<Avatar user={user} size={76} />);
+      let avatar = mountWithTheme(<Avatar user={user} size={76} />);
       expect(avatar.find('BaseAvatar img').prop('src')).toMatch(
         '/avatar/2d641b5d-8c74-44de-9cb6-fbd54701b35e/?s=120'
       );
 
-      avatar = mount(<Avatar user={user} size={121} />);
+      avatar = mountWithTheme(<Avatar user={user} size={121} />);
       expect(avatar.find('BaseAvatar img').prop('src')).toMatch(
         '/avatar/2d641b5d-8c74-44de-9cb6-fbd54701b35e/?s=120'
       );
 
-      avatar = mount(<Avatar user={user} size={32} />);
+      avatar = mountWithTheme(<Avatar user={user} size={32} />);
       expect(avatar.find('BaseAvatar img').prop('src')).toMatch(
         '/avatar/2d641b5d-8c74-44de-9cb6-fbd54701b35e/?s=120'
       );
 
-      avatar = mount(<Avatar user={user} size={1} />);
+      avatar = mountWithTheme(<Avatar user={user} size={1} />);
       expect(avatar.find('BaseAvatar img').prop('src')).toMatch(
         '/avatar/2d641b5d-8c74-44de-9cb6-fbd54701b35e/?s=120'
       );
@@ -101,38 +101,38 @@ describe('Avatar', function() {
           avatarUuid: '2d641b5d-8c74-44de-9cb6-fbd54701b35e',
         },
       });
-      const avatar = mount(<Avatar user={user} />);
+      const avatar = mountWithTheme(<Avatar user={user} />);
       expect(avatar.find('BaseAvatar').prop('type')).toBe('letter_avatar');
     });
 
     it('use letter avatar by default, when no avatar type is set and user has an email address', function() {
-      const avatar = mount(<Avatar user={USER} />);
+      const avatar = mountWithTheme(<Avatar user={USER} />);
       expect(avatar.find('BaseAvatar').prop('type')).toBe('letter_avatar');
     });
 
     it('should show a gravatar when no avatar type is set and user has an email address', function() {
-      const avatar = mount(<Avatar gravatar user={USER} />);
+      const avatar = mountWithTheme(<Avatar gravatar user={USER} />);
       expect(avatar.find('BaseAvatar').prop('type')).toBe('gravatar');
     });
 
     it('should not show a gravatar when no avatar type is set and user has no email address', function() {
       const user = Object.assign({}, USER);
       delete user.email;
-      const avatar = mount(<Avatar gravatar user={user} />);
+      const avatar = mountWithTheme(<Avatar gravatar user={user} />);
 
       expect(avatar.find('BaseAvatar').prop('type')).toBe('letter_avatar');
     });
 
     it('can display a team Avatar', function() {
       const team = TestStubs.Team({slug: 'test-team_test'});
-      const avatar = mount(<Avatar team={team} />);
+      const avatar = mountWithTheme(<Avatar team={team} />);
       expect(avatar.find('LetterAvatar').prop('displayName')).toBe('test team test');
       expect(avatar.find('LetterAvatar').prop('identifier')).toBe('test-team_test');
     });
 
     it('can display an organization Avatar', function() {
       const organization = TestStubs.Organization({slug: 'test-organization'});
-      const avatar = mount(<Avatar organization={organization} />);
+      const avatar = mountWithTheme(<Avatar organization={organization} />);
       expect(avatar.find('LetterAvatar').prop('displayName')).toBe('test organization');
       expect(avatar.find('LetterAvatar').prop('identifier')).toBe('test-organization');
     });
@@ -142,18 +142,18 @@ describe('Avatar', function() {
         platforms: ['python', 'javascript'],
         platform: 'java',
       });
-      const avatar = mount(<Avatar project={project} />);
+      const avatar = mountWithTheme(<Avatar project={project} />);
       expect(avatar.find('PlatformList').prop('platforms')).toEqual(['java']);
     });
 
     it('displays a fallback platform list for project Avatar using the `platform` specified during onboarding', function() {
       const project = TestStubs.Project({platform: 'java'});
-      const avatar = mount(<Avatar project={project} />);
+      const avatar = mountWithTheme(<Avatar project={project} />);
       expect(avatar.find('PlatformList').prop('platforms')).toEqual(['java']);
     });
     it('uses onboarding project when platforms is an empty array', function() {
       const project = TestStubs.Project({platforms: [], platform: 'java'});
-      const avatar = mount(<Avatar project={project} />);
+      const avatar = mountWithTheme(<Avatar project={project} />);
       expect(avatar.find('PlatformList').prop('platforms')).toEqual(['java']);
     });
   });

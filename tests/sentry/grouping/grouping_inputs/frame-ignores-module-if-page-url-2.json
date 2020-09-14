@@ -4,7 +4,8 @@
       {
         "abs_path": "https://sentry.io/foo/bar/baz",
         "module": "foo/bar/baz",
-        "filename": "foo.py"
+        "filename": "foo.py",
+        "function": "a"
       }
     ]
   },

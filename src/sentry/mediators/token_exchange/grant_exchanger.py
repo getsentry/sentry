@@ -18,49 +18,37 @@ class GrantExchanger(Mediator):
     """
     Exchanges a Grant Code for an Access Token
     """
-    install = Param('sentry.models.SentryAppInstallation')
+
+    install = Param("sentry.models.SentryAppInstallation")
     code = Param(six.string_types)
     client_id = Param(six.string_types)
-    user = Param('sentry.models.User')
+    user = Param("sentry.models.User")
 
     def call(self):
         self._validate()
+        self._create_token()
 
         # Once it's exchanged it's no longer valid and should not be
         # exchangable, so we delete it.
         self._delete_grant()
 
-        self.token = ApiToken.objects.create(
-            user=self.user,
-            application=self.application,
-            scope_list=self.sentry_app.scope_list,
-            expires_at=token_expiration()
-        )
-
         return self.token
 
     def record_analytics(self):
         analytics.record(
-            'sentry_app.token_exchanged',
+            "sentry_app.token_exchanged",
             sentry_app_installation_id=self.install.id,
-            exchange_type='authorization',
+            exchange_type="authorization",
         )
 
     def _validate(self):
-        Validator.run(
-            install=self.install,
-            client_id=self.client_id,
-            user=self.user,
-        )
+        Validator.run(install=self.install, client_id=self.client_id, user=self.user)
 
-        if (
-            not self._grant_belongs_to_install() or
-            not self._sentry_app_user_owns_grant()
-        ):
+        if not self._grant_belongs_to_install() or not self._sentry_app_user_owns_grant():
             raise APIUnauthorized
 
         if not self._grant_is_active():
-            raise APIUnauthorized('Grant has already expired.')
+            raise APIUnauthorized("Grant has already expired.")
 
     def _grant_belongs_to_install(self):
         return self.grant.sentry_app_installation == self.install
@@ -74,14 +62,25 @@ class GrantExchanger(Mediator):
     def _delete_grant(self):
         self.grant.delete()
 
+    def _create_token(self):
+        self.token = ApiToken.objects.create(
+            user=self.user,
+            application=self.application,
+            scope_list=self.sentry_app.scope_list,
+            expires_at=token_expiration(),
+        )
+        self.install.api_token = self.token
+        self.install.save()
+
     @memoize
     def grant(self):
         try:
-            return ApiGrant.objects \
-                .select_related('sentry_app_installation') \
-                .select_related('application') \
-                .select_related('application__sentry_app') \
+            return (
+                ApiGrant.objects.select_related("sentry_app_installation")
+                .select_related("application")
+                .select_related("application__sentry_app")
                 .get(code=self.code)
+            )
         except ApiGrant.DoesNotExist:
             raise APIUnauthorized
 

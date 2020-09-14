@@ -1,4 +1,4 @@
-import {flattenDepth} from 'lodash';
+import flattenDepth from 'lodash/flattenDepth';
 import PropTypes from 'prop-types';
 import React from 'react';
 
@@ -18,7 +18,7 @@ import withLatestContext from 'app/utils/withLatestContext';
 // We need to go through all navigation configurations and get a flattened list of all navigation item objects
 const mapFunc = (config, context = {}) =>
   (Array.isArray(config) ? config : config(context)).map(({items}) =>
-    items.filter(({show, ...rest}) => (typeof show === 'function' ? show(context) : true))
+    items.filter(({show}) => (typeof show === 'function' ? show(context) : true))
   );
 
 class RouteSource extends React.Component {

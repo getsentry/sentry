@@ -1,6 +1,8 @@
 import React from 'react';
-import {mount} from 'enzyme';
 import $ from 'jquery';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
+
 import IgnoreActions from 'app/components/actions/ignore';
 
 describe('IgnoreActions', function() {
@@ -11,7 +13,10 @@ describe('IgnoreActions', function() {
     const spy = jest.fn();
 
     beforeEach(function() {
-      component = mount(<IgnoreActions onUpdate={spy} disabled={true} />, routerContext);
+      component = mountWithTheme(
+        <IgnoreActions onUpdate={spy} disabled />,
+        routerContext
+      );
       button = component.find('a.btn.btn-default').first();
     });
 
@@ -29,7 +34,10 @@ describe('IgnoreActions', function() {
     let component;
     const spy = jest.fn();
     beforeEach(function() {
-      component = mount(<IgnoreActions onUpdate={spy} isIgnored={true} />, routerContext);
+      component = mountWithTheme(
+        <IgnoreActions onUpdate={spy} isIgnored />,
+        routerContext
+      );
     });
 
     it('displays ignored view', function() {
@@ -49,7 +57,7 @@ describe('IgnoreActions', function() {
     const spy = jest.fn();
 
     beforeEach(function() {
-      component = mount(<IgnoreActions onUpdate={spy} />, routerContext);
+      component = mountWithTheme(<IgnoreActions onUpdate={spy} />, routerContext);
     });
 
     it('calls spy with ignore details when clicked', function() {
@@ -65,8 +73,8 @@ describe('IgnoreActions', function() {
     const spy = jest.fn();
 
     beforeEach(function() {
-      component = mount(
-        <IgnoreActions onUpdate={spy} shouldConfirm={true} confirmMessage="Yoooooo" />,
+      component = mountWithTheme(
+        <IgnoreActions onUpdate={spy} shouldConfirm confirmMessage="Yoooooo" />,
         routerContext
       );
       button = component.find('a.btn.btn-default').first();

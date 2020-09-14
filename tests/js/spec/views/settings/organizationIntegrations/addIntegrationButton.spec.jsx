@@ -1,7 +1,8 @@
 /*global global*/
 import React from 'react';
 
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
+
 import AddIntegrationButton from 'app/views/organizationIntegrations/addIntegrationButton';
 
 describe('AddIntegrationButton', function() {
@@ -16,7 +17,7 @@ describe('AddIntegrationButton', function() {
     const open = jest.fn().mockReturnValue({focus});
     global.open = open;
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <AddIntegrationButton provider={provider} onAddIntegration={onAdd} />,
       routerContext
     );

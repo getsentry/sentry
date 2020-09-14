@@ -1,10 +1,3 @@
-"""
-sentry.app
-~~~~~~~~~~
-
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
 from __future__ import absolute_import
 
 from threading import local
@@ -34,4 +27,4 @@ from sentry.utils.sdk import RavenShim
 
 raven = client = RavenShim()  # NOQA
 
-locks = LockManager(RedisLockBackend(redis.clusters.get('default')))
+locks = LockManager(RedisLockBackend(redis.clusters.get("default")))

@@ -20,7 +20,7 @@ describe('marked', function() {
   it('rejected links should be rendered as plain text', function() {
     for (const test of [
       ['[x](javascript:foo)', 'javascript:foo'],
-      ['[x](java\nscript:foo)', 'java\nscript:foo'],
+      ['[x](java\nscript:foo)', '[x](java\nscript:foo)'],
       ['[x](data:foo)', 'data:foo'],
       ['[x](vbscript:foo)', 'vbscript:foo'],
     ]) {
@@ -30,9 +30,9 @@ describe('marked', function() {
 
   it('normal images get rendered as html', function() {
     for (const test of [
-      ['![](http://example.com)', '<img src="http://example.com" alt="">'],
-      ['![x](http://example.com)', '<img src="http://example.com" alt="x">'],
-      ['![x](https://example.com)', '<img src="https://example.com" alt="x">'],
+      ['![](http://example.com)', '<img alt="" src="http://example.com">'],
+      ['![x](http://example.com)', '<img alt="x" src="http://example.com">'],
+      ['![x](https://example.com)', '<img alt="x" src="https://example.com">'],
     ]) {
       expectMarkdown(test);
     }
@@ -42,5 +42,20 @@ describe('marked', function() {
     for (const test of [['![x](javascript:foo)', '']]) {
       expectMarkdown(test);
     }
+  });
+
+  it('escapes XSS and removes invalid attributes on img', function() {
+    [
+      [
+        `[test](http://example.com\""#><img/onerror='alert\(location\)'/src=>)
+![test](http://example.com"/onerror='alert\(location\)'/)`,
+        `<a href="http://example.com"><img src="">"&gt;test</a>
+<img alt="test" src="http://example.com">`,
+      ],
+      [
+        '<script> <img <script> src=x onerror=alert(1) />',
+        '&lt;script&gt; &lt;img &lt;script&gt; src=x onerror=alert(1) /&gt;',
+      ],
+    ].forEach(expectMarkdown);
   });
 });

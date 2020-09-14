@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import DropdownAutoCompleteMenu from 'app/components/dropdownAutoCompleteMenu';
 
@@ -25,16 +25,13 @@ class DropdownAutoComplete extends React.Component {
       <DropdownAutoCompleteMenu {...props}>
         {renderProps => {
           // Don't pass `onClick` from `getActorProps`
-          const {
-            //eslint-disable-next-line no-unused-vars
-            onClick,
-            ...actorProps
-          } = renderProps.getActorProps({isStyled: true});
+          const {onClick: _onClick, ...actorProps} = renderProps.getActorProps();
 
           return (
             <Actor
               isOpen={renderProps.isOpen}
               role="button"
+              tabIndex="0"
               onClick={
                 renderProps.isOpen && allowActorToggle
                   ? renderProps.actions.close

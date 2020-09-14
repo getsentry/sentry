@@ -1,5 +1,6 @@
 import React from 'react';
-import {mount} from 'enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
 import App from 'app/views/app';
@@ -17,7 +18,7 @@ describe('Sudo Modal', function() {
       },
     });
     Client.addMockResponse({
-      url: '/assistant/',
+      url: '/assistant/?v2',
       body: [],
     });
     Client.addMockResponse({
@@ -46,7 +47,7 @@ describe('Sudo Modal', function() {
       ...ConfigStore.get('user'),
       hasPasswordAuth: true,
     });
-    const wrapper = mount(<App>{<div>placeholder content</div>}</App>);
+    const wrapper = mountWithTheme(<App>{<div>placeholder content</div>}</App>);
 
     const api = new Client();
     const successCb = jest.fn();
@@ -130,7 +131,7 @@ describe('Sudo Modal', function() {
       ...ConfigStore.get('user'),
       hasPasswordAuth: false,
     });
-    const wrapper = mount(<App>{<div>placeholder content</div>}</App>);
+    const wrapper = mountWithTheme(<App>{<div>placeholder content</div>}</App>);
 
     const api = new Client();
     const successCb = jest.fn();

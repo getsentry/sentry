@@ -1,53 +1,59 @@
 import React from 'react';
-import {shallow} from 'enzyme';
-import toJson from 'enzyme-to-json';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
+
 import EventOrGroupExtraDetails from 'app/components/eventOrGroupExtraDetails';
 
-jest.mock('app/mixins/projectState');
+import {initializeOrg} from '../../sentry-test/initializeOrg';
 
 describe('EventOrGroupExtraDetails', function() {
+  const {routerContext} = initializeOrg();
+
   it('renders last and first seen', function() {
-    const component = shallow(
+    const component = mountWithTheme(
       <EventOrGroupExtraDetails
         orgId="orgId"
         projectId="projectId"
         groupId="groupId"
         lastSeen="2017-07-25T22:56:12Z"
         firstSeen="2017-07-01T02:06:02Z"
-      />
+      />,
+      routerContext
     );
 
-    expect(toJson(component)).toMatchSnapshot();
+    expect(component).toSnapshot();
   });
 
   it('renders only first seen', function() {
-    const component = shallow(
+    const component = mountWithTheme(
       <EventOrGroupExtraDetails
         orgId="orgId"
         projectId="projectId"
         groupId="groupId"
         firstSeen="2017-07-01T02:06:02Z"
-      />
+      />,
+      routerContext
     );
 
-    expect(toJson(component)).toMatchSnapshot();
+    expect(component).toSnapshot();
   });
 
   it('renders only last seen', function() {
-    const component = shallow(
+    const component = mountWithTheme(
       <EventOrGroupExtraDetails
         orgId="orgId"
         projectId="projectId"
         groupId="groupId"
         lastSeen="2017-07-25T22:56:12Z"
-      />
+      />,
+      routerContext
     );
 
-    expect(toJson(component)).toMatchSnapshot();
+    expect(component).toSnapshot();
   });
 
   it('renders all details', function() {
-    const component = shallow(
+    const component = mountWithTheme(
       <EventOrGroupExtraDetails
         orgId="orgId"
         projectId="projectId"
@@ -62,14 +68,15 @@ describe('EventOrGroupExtraDetails', function() {
           name: 'Assignee Name',
         }}
         status="resolved"
-      />
+      />,
+      routerContext
     );
 
-    expect(toJson(component)).toMatchSnapshot();
+    expect(component).toSnapshot();
   });
 
   it('renders assignee and status', function() {
-    const component = shallow(
+    const component = mountWithTheme(
       <EventOrGroupExtraDetails
         orgId="orgId"
         projectId="projectId"
@@ -86,14 +93,15 @@ describe('EventOrGroupExtraDetails', function() {
         status="resolved"
         showAssignee
         showStatus
-      />
+      />,
+      routerContext
     );
 
-    expect(toJson(component)).toMatchSnapshot();
+    expect(component).toSnapshot();
   });
 
   it('details when mentioned', function() {
-    const component = shallow(
+    const component = mountWithTheme(
       <EventOrGroupExtraDetails
         orgId="orgId"
         projectId="projectId"
@@ -105,9 +113,10 @@ describe('EventOrGroupExtraDetails', function() {
         logger="javascript logger"
         annotations={['annotation1', 'annotation2']}
         subscriptionDetails={{reason: 'mentioned'}}
-      />
+      />,
+      routerContext
     );
 
-    expect(toJson(component)).toMatchSnapshot();
+    expect(component).toSnapshot();
   });
 });

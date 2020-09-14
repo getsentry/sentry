@@ -1,9 +1,9 @@
-import {debounce} from 'lodash';
+import debounce from 'lodash/debounce';
 import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import algoliasearch from 'algoliasearch';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {
   ALGOLIA_APP_ID,
@@ -55,7 +55,7 @@ class HelpSource extends React.Component {
     }
   }
 
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     if (nextProps.query !== this.props.query) {
       this.doSearch(nextProps.query);
     }
@@ -130,11 +130,13 @@ function buildHit(hit, options) {
     htmlString: _highlightResult.title.value,
     markTags: HIGHLIGHT_TAGS,
   });
-  const description = parseHtmlMarks({
-    key: 'description',
-    htmlString: _snippetResult[descriptionKey].value,
-    markTags: HIGHLIGHT_TAGS,
-  });
+  const description = _snippetResult
+    ? parseHtmlMarks({
+        key: 'description',
+        htmlString: _snippetResult[descriptionKey].value,
+        markTags: HIGHLIGHT_TAGS,
+      })
+    : {};
 
   const item = {
     sourceType: 'help',
@@ -162,11 +164,11 @@ const ResultIcon = styled('div')`
 `;
 
 const DocsBadge = styled(p => <ResultIcon {...p}>docs</ResultIcon>)`
-  background: ${p => p.theme.blueLight};
+  background: ${p => p.theme.blue300};
 `;
 
 const FaqsBadge = styled(p => <ResultIcon {...p}>faqs</ResultIcon>)`
-  background: ${p => p.theme.greenLight};
+  background: ${p => p.theme.green300};
 `;
 
 export {HelpSource};

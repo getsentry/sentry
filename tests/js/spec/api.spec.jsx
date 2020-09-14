@@ -1,4 +1,5 @@
 import $ from 'jquery';
+import * as Sentry from '@sentry/react';
 
 import {Client, Request, paramsToQueryArgs} from 'app/api';
 import GroupActions from 'app/actions/groupActions';
@@ -32,13 +33,13 @@ describe('api', function() {
       ).toEqual({query: 'is:unresolved'});
     });
 
-    it('should convert params w/o itemIds or query to undefined', function() {
+    it('should convert params w/o itemIds or query to empty object', function() {
       expect(
         paramsToQueryArgs({
           foo: 'bar',
           bar: 'baz', // paramsToQueryArgs ignores these
         })
-      ).toBeUndefined();
+      ).toEqual({});
     });
 
     it('should keep environment when query is provided', function() {
@@ -57,6 +58,29 @@ describe('api', function() {
           environment: null,
         })
       ).toEqual({query: 'is:unresolved'});
+    });
+
+    it('should handle non-empty projects', function() {
+      expect(
+        paramsToQueryArgs({
+          itemIds: [1, 2, 3],
+          project: [1],
+        })
+      ).toEqual({id: [1, 2, 3], project: [1]});
+
+      expect(
+        paramsToQueryArgs({
+          itemIds: [1, 2, 3],
+          project: [],
+        })
+      ).toEqual({id: [1, 2, 3]});
+
+      expect(
+        paramsToQueryArgs({
+          itemIds: [1, 2, 3],
+          project: null,
+        })
+      ).toEqual({id: [1, 2, 3]});
     });
   });
 
@@ -90,7 +114,10 @@ describe('api', function() {
   it('does not call success callback if 302 was returned because of a project slug change', function() {
     const successCb = jest.fn();
     api.activeRequests = {id: {alive: true}};
-    api.wrapCallback('id', successCb)({
+    api.wrapCallback(
+      'id',
+      successCb
+    )({
       responseJSON: {
         detail: {
           code: PROJECT_MOVED,
@@ -105,7 +132,7 @@ describe('api', function() {
   });
 
   it('handles error callback', function() {
-    jest.spyOn(api, 'wrapCallback').mockImplementation((id, func) => func);
+    jest.spyOn(api, 'wrapCallback').mockImplementation((_id, func) => func);
     const errorCb = jest.fn();
     const args = ['test', true, 1];
     api.handleRequestError(
@@ -173,6 +200,22 @@ describe('api', function() {
         undefined
       );
     });
+
+    it('should apply project option', function() {
+      api.bulkUpdate({
+        orgId: '1337',
+        project: [99],
+        itemIds: [1, 2, 3],
+        data: {status: 'unresolved'},
+      });
+
+      expect(api._wrapRequest).toHaveBeenCalledTimes(1);
+      expect(api._wrapRequest).toHaveBeenCalledWith(
+        '/organizations/1337/issues/',
+        expect.objectContaining({query: {id: [1, 2, 3], project: [99]}}),
+        undefined
+      );
+    });
   });
 
   describe('merge()', function() {
@@ -215,6 +258,26 @@ describe('api', function() {
         expect.objectContaining({query: {query: 'is:resolved'}}),
         undefined
       );
+    });
+  });
+
+  describe('Sentry reporting', function() {
+    beforeEach(function() {
+      jest.spyOn($, 'ajax');
+
+      $.ajax.mockReset();
+      Sentry.captureException.mockClear();
+
+      $.ajax.mockImplementation(async ({error}) => {
+        await tick();
+        error({
+          status: 500,
+          statusText: 'Internal server error',
+          responseJSON: {detail: 'Item was not found'},
+        });
+
+        return {};
+      });
     });
   });
 });

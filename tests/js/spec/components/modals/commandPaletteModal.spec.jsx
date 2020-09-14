@@ -1,10 +1,10 @@
 import React from 'react';
 
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
+
 import {openCommandPalette} from 'app/actionCreators/modal';
 import App from 'app/views/app';
 import FormSearchStore from 'app/stores/formSearchStore';
-
 import {navigateTo} from 'app/actionCreators/navigation';
 
 jest.mock('jquery');
@@ -38,7 +38,22 @@ describe('Command Palette Modal', function() {
       query: 'foo',
       body: TestStubs.Members(),
     });
-
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/plugins/?plugins=_all',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/config/integrations/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/plugins/configs/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/sentry-apps/?status=published',
+      body: [],
+    });
     MockApiClient.addMockResponse({
       url: '/internal/health/',
       body: {
@@ -46,13 +61,13 @@ describe('Command Palette Modal', function() {
       },
     });
     MockApiClient.addMockResponse({
-      url: '/assistant/',
+      url: '/assistant/?v2',
       body: [],
     });
   });
 
   it('can open command palette modal and search', async function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <App params={{orgId: 'org-slug'}}>{<div>placeholder content</div>}</App>,
       TestStubs.routerContext([
         {

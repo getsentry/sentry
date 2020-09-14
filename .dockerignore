@@ -1,2 +1,8 @@
-node_modules/
-build/
+# Ignore everything
+*
+
+!/docker
+!/package.json
+!/yarn.lock
+!/dist/requirements.txt
+!/dist/*.whl

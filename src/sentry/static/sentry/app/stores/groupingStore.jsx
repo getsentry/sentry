@@ -1,8 +1,12 @@
 import Reflux from 'reflux';
-import {pick} from 'lodash';
+import pick from 'lodash/pick';
 
-import IndicatorStore from 'app/stores/indicatorStore';
 import {Client} from 'app/api';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'app/actionCreators/indicator';
 import GroupingActions from 'app/actions/groupingActions';
 
 const api = new Client();
@@ -83,25 +87,26 @@ const GroupingStore = Reflux.createStore({
     this.init();
     this.triggerFetchState();
 
-    const promises = requests.map(({endpoint, queryParams, dataKey}) => {
-      return new Promise((resolve, reject) => {
-        api.request(endpoint, {
-          method: 'GET',
-          data: queryParams,
-          success: (data, _, jqXHR) => {
-            resolve({
-              dataKey,
-              data,
-              links: jqXHR.getResponseHeader('Link'),
-            });
-          },
-          error: err => {
-            const error = (err.responseJSON && err.responseJSON.detail) || true;
-            reject(error);
-          },
-        });
-      });
-    });
+    const promises = requests.map(
+      ({endpoint, queryParams, dataKey}) =>
+        new Promise((resolve, reject) => {
+          api.request(endpoint, {
+            method: 'GET',
+            data: queryParams,
+            success: (data, _, jqXHR) => {
+              resolve({
+                dataKey,
+                data,
+                links: jqXHR.getResponseHeader('Link'),
+              });
+            },
+            error: err => {
+              const error = (err.responseJSON && err.responseJSON.detail) || true;
+              reject(error);
+            },
+          });
+        })
+    );
 
     const responseProcessors = {
       merged: item => {
@@ -249,18 +254,16 @@ const GroupingStore = Reflux.createStore({
         busy: true,
       });
       this.triggerUnmergeState();
-      const loadingIndicator = IndicatorStore.add(loadingMessage);
+      addLoadingMessage(loadingMessage);
 
       api.request(`/issues/${groupId}/hashes/`, {
         method: 'DELETE',
         query: {
           id: ids,
         },
-        success: (data, _, jqXHR) => {
-          IndicatorStore.remove(loadingIndicator);
-          IndicatorStore.add(successMessage, 'success', {
-            duration: 5000,
-          });
+        success: () => {
+          addSuccessMessage(successMessage);
+
           // Busy rows after successful merge
           this.setStateForId(this.unmergeState, ids, {
             checked: false,
@@ -269,8 +272,7 @@ const GroupingStore = Reflux.createStore({
           this.unmergeList.clear();
         },
         error: () => {
-          IndicatorStore.remove(loadingIndicator);
-          IndicatorStore.add(errorMessage, 'error');
+          addErrorMessage(errorMessage);
           this.setStateForId(this.unmergeState, ids, {
             checked: true,
             busy: false,
@@ -295,7 +297,7 @@ const GroupingStore = Reflux.createStore({
     });
     this.triggerMergeState();
 
-    const promise = new Promise((resolve, reject) => {
+    const promise = new Promise(resolve => {
       // Disable merge button
 
       if (params) {
@@ -308,7 +310,7 @@ const GroupingStore = Reflux.createStore({
             query,
           },
           {
-            success: (data, _, jqXHR) => {
+            success: data => {
               if (data && data.merge && data.merge.parent) {
                 this.trigger({
                   mergedParent: data.merge.parent,
@@ -344,9 +346,13 @@ const GroupingStore = Reflux.createStore({
 
   // Toggle collapsed state of all fingerprints
   onToggleCollapseFingerprints() {
-    this.setStateForId(this.unmergeState, this.mergedItems.map(({id}) => id), {
-      collapsed: !this.unmergeLastCollapsed,
-    });
+    this.setStateForId(
+      this.unmergeState,
+      this.mergedItems.map(({id}) => id),
+      {
+        collapsed: !this.unmergeLastCollapsed,
+      }
+    );
 
     this.unmergeLastCollapsed = !this.unmergeLastCollapsed;
 

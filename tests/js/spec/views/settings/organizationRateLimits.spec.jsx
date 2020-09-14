@@ -1,5 +1,6 @@
-import {mount} from 'enzyme';
 import React from 'react';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
 import OrganizationRateLimits from 'app/views/settings/organizationRateLimits/organizationRateLimits';
@@ -24,7 +25,7 @@ describe('Organization Rate Limits', function() {
   });
 
   it('renders with initialData', function() {
-    const wrapper = mount(creator(), TestStubs.routerContext());
+    const wrapper = mountWithTheme(creator(), TestStubs.routerContext());
 
     expect(
       wrapper
@@ -48,11 +49,14 @@ describe('Organization Rate Limits', function() {
         maxRateInterval: 60,
       },
     };
-    const wrapper = mount(creator({organization: org}), TestStubs.routerContext());
+    const wrapper = mountWithTheme(
+      creator({organization: org}),
+      TestStubs.routerContext()
+    );
 
     expect(wrapper.find('RangeSlider')).toHaveLength(1);
 
-    expect(wrapper.find('Form TextBlock')).toMatchSnapshot();
+    expect(wrapper.find('Form TextBlock')).toSnapshot();
   });
 
   it('can change Account Rate Limit', function() {
@@ -62,7 +66,7 @@ describe('Organization Rate Limits', function() {
       statusCode: 200,
     });
 
-    const wrapper = mount(creator(), TestStubs.routerContext());
+    const wrapper = mountWithTheme(creator(), TestStubs.routerContext());
 
     expect(mock).not.toHaveBeenCalled();
 
@@ -92,7 +96,7 @@ describe('Organization Rate Limits', function() {
       statusCode: 200,
     });
 
-    const wrapper = mount(creator(), TestStubs.routerContext());
+    const wrapper = mountWithTheme(creator(), TestStubs.routerContext());
 
     expect(mock).not.toHaveBeenCalled();
 

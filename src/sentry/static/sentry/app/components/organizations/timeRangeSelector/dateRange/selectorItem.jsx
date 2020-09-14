@@ -1,7 +1,6 @@
-import {Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
 
@@ -20,25 +19,26 @@ class SelectorItem extends React.PureComponent {
   render() {
     const {className, label} = this.props;
     return (
-      <Flex className={className} onClick={this.handleClick}>
+      <div className={className} onClick={this.handleClick}>
         <Label>{label}</Label>
-      </Flex>
+      </div>
     );
   }
 }
 
 const StyledSelectorItem = styled(SelectorItem)`
+  display: flex;
   cursor: pointer;
   white-space: nowrap;
   padding: ${space(1)};
   align-items: center;
   flex: 1;
-  background-color: ${p => (p.selected ? p.theme.offWhite : 'transpatent')};
+  background-color: ${p => (p.selected ? p.theme.gray100 : 'transparent')};
   font-weight: ${p => (p.selected ? 'bold' : 'normal')};
   border-bottom: 1px solid ${p => (p.last ? 'transparent' : p.theme.borderLight)};
 
   &:hover {
-    background: ${p => p.theme.offWhite};
+    background: ${p => p.theme.gray100};
   }
 `;
 

@@ -1,19 +1,25 @@
-/*global global*/
-import {observable} from 'mobx';
 import React from 'react';
 
+import {mountWithTheme} from 'sentry-test/enzyme';
+import {selectByValue} from 'sentry-test/select';
+
 import {Client} from 'app/api';
-import {mount} from 'enzyme';
 import SentryApplicationDetails from 'app/views/settings/organizationDeveloperSettings/sentryApplicationDetails';
-import {selectByValue} from '../../../../helpers/select';
+import JsonForm from 'app/views/settings/components/forms/jsonForm';
+import PermissionsObserver from 'app/views/settings/organizationDeveloperSettings/permissionsObserver';
 
 describe('Sentry Application Details', function() {
   let org;
   let orgId;
   let sentryApp;
+  let token;
   let wrapper;
   let createAppRequest;
   let editAppRequest;
+
+  const verifyInstallToggle = 'Switch[name="verifyInstall"]';
+  const redirectUrlInput = 'Input[name="redirectUrl"]';
+  const maskedValue = '*'.repeat(64);
 
   beforeEach(() => {
     Client.clearMockResponses();
@@ -22,7 +28,7 @@ describe('Sentry Application Details', function() {
     orgId = org.slug;
   });
 
-  describe('Creating a new Sentry App', () => {
+  describe('Creating a new public Sentry App', () => {
     beforeEach(() => {
       createAppRequest = Client.addMockResponse({
         url: '/sentry-apps/',
@@ -30,17 +36,22 @@ describe('Sentry Application Details', function() {
         body: [],
       });
 
-      wrapper = mount(
-        <SentryApplicationDetails params={{orgId}} />,
+      wrapper = mountWithTheme(
+        <SentryApplicationDetails params={{orgId}} route={{path: 'new-public/'}} />,
         TestStubs.routerContext()
       );
+    });
+
+    it('has inputs for redirectUrl and verifyInstall', () => {
+      expect(wrapper.exists(verifyInstallToggle)).toBeTruthy();
+      expect(wrapper.exists(redirectUrlInput)).toBeTruthy();
     });
 
     it('it shows empty scopes and no credentials', function() {
       // new app starts off with no scopes selected
       expect(wrapper.find('PermissionsObserver').prop('scopes')).toEqual([]);
       expect(
-        wrapper.find('PanelHeader').findWhere(h => h.text() == 'Permissions')
+        wrapper.find('PanelHeader').findWhere(h => h.text() === 'Permissions')
       ).toBeDefined();
     });
 
@@ -58,7 +69,7 @@ describe('Sentry Application Details', function() {
         .simulate('change', {target: {value: 'https://webhook.com'}});
 
       wrapper
-        .find('Input[name="redirectUrl"]')
+        .find(redirectUrlInput)
         .simulate('change', {target: {value: 'https://webhook.com/setup'}});
 
       wrapper.find('TextArea[name="schema"]').simulate('change', {target: {value: '{}'}});
@@ -81,9 +92,17 @@ describe('Sentry Application Details', function() {
         organization: org.slug,
         redirectUrl: 'https://webhook.com/setup',
         webhookUrl: 'https://webhook.com',
-        scopes: observable(['member:read', 'member:admin', 'event:read', 'event:admin']),
-        events: observable(['issue']),
+        scopes: expect.arrayContaining([
+          'member:read',
+          'member:admin',
+          'event:read',
+          'event:admin',
+        ]),
+        events: ['issue'],
+        isInternal: false,
+        verifyInstall: true,
         isAlertable: true,
+        allowedOrigins: [],
         schema: {},
       };
 
@@ -97,7 +116,211 @@ describe('Sentry Application Details', function() {
     });
   });
 
-  describe('editing an existing Sentry App', () => {
+  describe('Creating a new internal Sentry App', () => {
+    beforeEach(() => {
+      wrapper = mountWithTheme(
+        <SentryApplicationDetails params={{orgId}} route={{path: 'new-internal/'}} />,
+        TestStubs.routerContext()
+      );
+    });
+    it('no inputs for redirectUrl and verifyInstall', () => {
+      expect(wrapper.exists(verifyInstallToggle)).toBeFalsy();
+      expect(wrapper.exists(redirectUrlInput)).toBeFalsy();
+    });
+  });
+
+  describe('Renders public app', function() {
+    beforeEach(() => {
+      sentryApp = TestStubs.SentryApp();
+      sentryApp.events = ['issue'];
+
+      Client.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/`,
+        body: sentryApp,
+      });
+
+      Client.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/api-tokens/`,
+        body: [],
+      });
+
+      wrapper = mountWithTheme(
+        <SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId}} />,
+        TestStubs.routerContext()
+      );
+    });
+
+    it('has inputs for redirectUrl and verifyInstall', () => {
+      expect(wrapper.exists(verifyInstallToggle)).toBeTruthy();
+      expect(wrapper.exists(redirectUrlInput)).toBeTruthy();
+    });
+
+    it('it shows application data', function() {
+      // data should be filled out
+      expect(wrapper.find('PermissionsObserver').prop('scopes')).toEqual([
+        'project:read',
+      ]);
+    });
+
+    it('renders clientId and clientSecret for public apps', function() {
+      expect(wrapper.find('#clientId').exists()).toBe(true);
+      expect(wrapper.find('#clientSecret').exists()).toBe(true);
+    });
+  });
+
+  describe('Renders for internal apps', () => {
+    beforeEach(() => {
+      sentryApp = TestStubs.SentryApp({
+        status: 'internal',
+      });
+      token = TestStubs.SentryAppToken();
+      sentryApp.events = ['issue'];
+
+      Client.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/`,
+        body: sentryApp,
+      });
+
+      Client.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/api-tokens/`,
+        body: [token],
+      });
+
+      wrapper = mountWithTheme(
+        <SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId}} />,
+        TestStubs.routerContext()
+      );
+    });
+
+    it('no inputs for redirectUrl and verifyInstall', () => {
+      expect(wrapper.exists(verifyInstallToggle)).toBeFalsy();
+      expect(wrapper.exists(redirectUrlInput)).toBeFalsy();
+    });
+
+    it('shows tokens', function() {
+      expect(
+        wrapper
+          .find('PanelHeader')
+          .at(3)
+          .text()
+      ).toContain('Tokens');
+      expect(wrapper.find('TokenItem').exists()).toBe(true);
+    });
+
+    it('shows just clientSecret', function() {
+      expect(wrapper.find('#clientSecret').exists()).toBe(true);
+      expect(wrapper.find('#clientId').exists()).toBe(false);
+    });
+  });
+
+  describe('Renders masked values', () => {
+    beforeEach(() => {
+      sentryApp = TestStubs.SentryApp({
+        status: 'internal',
+        clientSecret: maskedValue,
+      });
+      token = TestStubs.SentryAppToken({token: maskedValue, refreshToken: maskedValue});
+      sentryApp.events = ['issue'];
+
+      Client.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/`,
+        body: sentryApp,
+      });
+
+      Client.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/api-tokens/`,
+        body: [token],
+      });
+
+      wrapper = mountWithTheme(
+        <SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId}} />,
+        TestStubs.routerContext()
+      );
+    });
+
+    it('shows masked tokens', function() {
+      expect(
+        wrapper
+          .find('TextCopyInput input')
+          .first()
+          .prop('value')
+      ).toBe(maskedValue);
+    });
+
+    it('shows masked clientSecret', function() {
+      expect(wrapper.find('#clientSecret input').prop('value')).toBe(maskedValue);
+    });
+  });
+
+  describe('Editing internal app tokens', () => {
+    beforeEach(() => {
+      sentryApp = TestStubs.SentryApp({
+        status: 'internal',
+        isAlertable: true,
+      });
+      token = TestStubs.SentryAppToken();
+      sentryApp.events = ['issue'];
+
+      Client.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/`,
+        body: sentryApp,
+      });
+
+      Client.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/api-tokens/`,
+        body: [token],
+      });
+
+      wrapper = mountWithTheme(
+        <SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId}} />,
+        TestStubs.routerContext()
+      );
+    });
+    it('adding token to list', async function() {
+      Client.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/api-tokens/`,
+        method: 'POST',
+        body: [
+          TestStubs.SentryAppToken({
+            token: '392847329',
+            dateCreated: '2018-03-02T18:30:26Z',
+          }),
+        ],
+      });
+      wrapper.find('Button[data-test-id="token-add"]').simulate('click');
+      await tick();
+      wrapper.update();
+
+      const tokenItems = wrapper.find('TokenItem');
+      expect(tokenItems).toHaveLength(2);
+    });
+
+    it('removing token from list', async function() {
+      Client.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/api-tokens/${token.token}/`,
+        method: 'DELETE',
+        body: {},
+      });
+      wrapper.find('Button[data-test-id="token-delete"]').simulate('click');
+      await tick();
+      wrapper.update();
+
+      expect(wrapper.find('EmptyMessage').exists()).toBe(true);
+    });
+
+    it('removing webhookURL unsets isAlertable and changes webhookDisabled to true', async () => {
+      expect(wrapper.find(PermissionsObserver).prop('webhookDisabled')).toBe(false);
+      expect(wrapper.find('Switch[name="isAlertable"]').prop('isActive')).toBe(true);
+      wrapper.find('Input[name="webhookUrl"]').simulate('change', {target: {value: ''}});
+      expect(wrapper.find('Switch[name="isAlertable"]').prop('isActive')).toBe(false);
+      expect(wrapper.find(PermissionsObserver).prop('webhookDisabled')).toBe(true);
+      expect(wrapper.find(JsonForm).prop('additionalFieldProps')).toEqual({
+        webhookDisabled: true,
+      });
+    });
+  });
+
+  describe('Editing an existing public Sentry App', () => {
     beforeEach(() => {
       sentryApp = TestStubs.SentryApp();
       sentryApp.events = ['issue'];
@@ -113,30 +336,20 @@ describe('Sentry Application Details', function() {
         body: sentryApp,
       });
 
-      wrapper = mount(
+      Client.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/api-tokens/`,
+        body: [],
+      });
+
+      wrapper = mountWithTheme(
         <SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId}} />,
         TestStubs.routerContext()
       );
     });
 
-    it('it shows application data and credentials', function() {
-      // data should be filled out
-      expect(wrapper.find('PermissionsObserver').prop('scopes')).toEqual([
-        'project:read',
-      ]);
-
-      // 'Credentials' should be last PanelHeader when editing an application.
-      expect(
-        wrapper
-          .find('PanelHeader')
-          .last()
-          .text()
-      ).toBe('Credentials');
-    });
-
     it('it updates app with correct data', function() {
       wrapper
-        .find('Input[name="redirectUrl"]')
+        .find(redirectUrlInput)
         .simulate('change', {target: {value: 'https://hello.com/'}});
 
       wrapper.find('TextArea[name="schema"]').simulate('change', {target: {value: '{}'}});
@@ -153,7 +366,7 @@ describe('Sentry Application Details', function() {
         expect.objectContaining({
           data: expect.objectContaining({
             redirectUrl: 'https://hello.com/',
-            events: observable.array([]),
+            events: [],
           }),
           method: 'PUT',
         })
@@ -176,10 +389,53 @@ describe('Sentry Application Details', function() {
         `/sentry-apps/${sentryApp.slug}/`,
         expect.objectContaining({
           data: expect.objectContaining({
-            events: observable.array([]),
+            events: [],
           }),
           method: 'PUT',
         })
+      );
+    });
+  });
+
+  describe('Editing an existing public Sentry App with a scope error', () => {
+    beforeEach(() => {
+      sentryApp = TestStubs.SentryApp();
+
+      editAppRequest = Client.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/`,
+        method: 'PUT',
+        statusCode: 400,
+        body: {
+          scopes: [
+            "Requested permission of member:write exceeds requester's permission. Please contact an administrator to make the requested change.",
+            "Requested permission of member:admin exceeds requester's permission. Please contact an administrator to make the requested change.",
+          ],
+        },
+      });
+
+      Client.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/`,
+        body: sentryApp,
+      });
+
+      Client.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/api-tokens/`,
+        body: [],
+      });
+
+      wrapper = mountWithTheme(
+        <SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId}} />,
+        TestStubs.routerContext()
+      );
+    });
+
+    it('renders the error', async () => {
+      wrapper.find('form').simulate('submit');
+      await tick();
+      wrapper.update();
+
+      expect(wrapper.find('div FieldErrorReason').text()).toEqual(
+        "Requested permission of member:admin exceeds requester's permission. Please contact an administrator to make the requested change."
       );
     });
   });

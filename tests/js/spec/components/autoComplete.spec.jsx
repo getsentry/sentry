@@ -1,5 +1,7 @@
 import React from 'react';
-import {mount} from 'enzyme';
+
+import {mount} from 'sentry-test/enzyme';
+
 import AutoComplete from 'app/components/autoComplete';
 
 const items = [
@@ -114,7 +116,7 @@ describe('AutoComplete', function() {
       expect(wrapper.find('li')).toHaveLength(3);
     });
 
-    it('only tries to close once if input is blurred and click outside occurs', function() {
+    it('only tries to close once if input is blurred and click outside occurs', async function() {
       jest.useFakeTimers();
       input.simulate('focus');
       input.simulate('blur');
@@ -122,6 +124,7 @@ describe('AutoComplete', function() {
       expect(wrapper.find('li')).toHaveLength(3);
       wrapper.find('DropdownMenu').prop('onClickOutside')();
       jest.runAllTimers();
+      await Promise.resolve();
       wrapper.update();
 
       expect(mocks.onClose).toHaveBeenCalledTimes(1);

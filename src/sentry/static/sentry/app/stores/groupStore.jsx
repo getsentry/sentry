@@ -1,15 +1,39 @@
-import _ from 'lodash';
+import isArray from 'lodash/isArray';
+import isUndefined from 'lodash/isUndefined';
 import Reflux from 'reflux';
 
 import GroupActions from 'app/actions/groupActions';
 import IndicatorStore from 'app/stores/indicatorStore';
-import PendingChangeQueue from 'app/utils/pendingChangeQueue';
 import {t} from 'app/locale';
 
 function showAlert(msg, type) {
   IndicatorStore.add(msg, type, {
     duration: 4000,
   });
+}
+
+class PendingChangeQueue {
+  constructor() {
+    this.changes = [];
+  }
+
+  getForItem(itemId) {
+    return this.changes.filter(change => change[1] === itemId);
+  }
+
+  push(changeId, itemId, data) {
+    this.changes.push([changeId, itemId, data]);
+  }
+
+  remove(changeId, itemId) {
+    this.changes = this.changes.filter(
+      change => change[0] !== changeId || change[1] !== itemId
+    );
+  }
+
+  forEach() {
+    this.changes.forEach.apply(this.changes, arguments);
+  }
 }
 
 const GroupStore = Reflux.createStore({
@@ -39,7 +63,7 @@ const GroupStore = Reflux.createStore({
   },
 
   add(items) {
-    if (!_.isArray(items)) {
+    if (!isArray(items)) {
       items = [items];
     }
 
@@ -80,21 +104,21 @@ const GroupStore = Reflux.createStore({
   },
 
   addStatus(id, status) {
-    if (_.isUndefined(this.statuses[id])) {
+    if (isUndefined(this.statuses[id])) {
       this.statuses[id] = {};
     }
     this.statuses[id][status] = true;
   },
 
   clearStatus(id, status) {
-    if (_.isUndefined(this.statuses[id])) {
+    if (isUndefined(this.statuses[id])) {
       return;
     }
     this.statuses[id][status] = false;
   },
 
   hasStatus(id, status) {
-    if (_.isUndefined(this.statuses[id])) {
+    if (isUndefined(this.statuses[id])) {
       return false;
     }
     return this.statuses[id][status] || false;
@@ -208,7 +232,7 @@ const GroupStore = Reflux.createStore({
     // regroup pending changes by their itemID
     const pendingById = {};
     this.pendingChanges.forEach(change => {
-      if (_.isUndefined(pendingById[change.id])) {
+      if (isUndefined(pendingById[change.id])) {
         pendingById[change.id] = [];
       }
       pendingById[change.id].push(change);
@@ -216,7 +240,7 @@ const GroupStore = Reflux.createStore({
 
     return this.items.map(item => {
       let rItem = item;
-      if (!_.isUndefined(pendingById[item.id])) {
+      if (!isUndefined(pendingById[item.id])) {
         // copy the object so dirty state doesnt mutate original
         rItem = {...rItem};
         pendingById[item.id].forEach(change => {
@@ -230,18 +254,18 @@ const GroupStore = Reflux.createStore({
     });
   },
 
-  onAssignTo(changeId, itemId, data) {
+  onAssignTo(_changeId, itemId, _data) {
     this.addStatus(itemId, 'assignTo');
     this.trigger(new Set([itemId]));
   },
 
   // TODO(dcramer): This is not really the best place for this
-  onAssignToError(changeId, itemId, error) {
+  onAssignToError(_changeId, itemId, _error) {
     this.clearStatus(itemId, 'assignTo');
     showAlert(t('Unable to change assignee. Please try again.'), 'error');
   },
 
-  onAssignToSuccess(changeId, itemId, response) {
+  onAssignToSuccess(_changeId, itemId, response) {
     const item = this.get(itemId);
     if (!item) {
       return;
@@ -251,7 +275,7 @@ const GroupStore = Reflux.createStore({
     this.trigger(new Set([itemId]));
   },
 
-  onDelete(changeId, itemIds) {
+  onDelete(_changeId, itemIds) {
     itemIds = this._itemIdsOrAll(itemIds);
     itemIds.forEach(itemId => {
       this.addStatus(itemId, 'delete');
@@ -259,7 +283,7 @@ const GroupStore = Reflux.createStore({
     this.trigger(new Set(itemIds));
   },
 
-  onDeleteError(changeId, itemIds, response) {
+  onDeleteError(_changeId, itemIds, _response) {
     showAlert(t('Unable to delete events. Please try again.'), 'error');
 
     if (!itemIds) {
@@ -272,7 +296,7 @@ const GroupStore = Reflux.createStore({
     this.trigger(new Set(itemIds));
   },
 
-  onDeleteSuccess(changeId, itemIds, response) {
+  onDeleteSuccess(_changeId, itemIds, _response) {
     itemIds = this._itemIdsOrAll(itemIds);
     const itemIdSet = new Set(itemIds);
     itemIds.forEach(itemId => {
@@ -284,18 +308,18 @@ const GroupStore = Reflux.createStore({
     this.trigger(new Set(itemIds));
   },
 
-  onDiscard(changeId, itemId) {
+  onDiscard(_changeId, itemId) {
     this.addStatus(itemId, 'discard');
     this.trigger(new Set([itemId]));
   },
 
-  onDiscardError(changeId, itemId, response) {
+  onDiscardError(_changeId, itemId, _response) {
     this.clearStatus(itemId, 'discard');
     showAlert(t('Unable to discard event. Please try again.'), 'error');
     this.trigger(new Set([itemId]));
   },
 
-  onDiscardSuccess(changeId, itemId, response) {
+  onDiscardSuccess(_changeId, itemId, _response) {
     delete this.statuses[itemId];
     this.clearStatus(itemId, 'discard');
     this.items = this.items.filter(item => item.id !== itemId);
@@ -303,7 +327,7 @@ const GroupStore = Reflux.createStore({
     this.trigger(new Set([itemId]));
   },
 
-  onMerge(changeId, itemIds) {
+  onMerge(_changeId, itemIds) {
     itemIds = this._itemIdsOrAll(itemIds);
 
     itemIds.forEach(itemId => {
@@ -314,7 +338,7 @@ const GroupStore = Reflux.createStore({
     this.trigger(new Set(itemIds));
   },
 
-  onMergeError(changeId, itemIds, response) {
+  onMergeError(_changeId, itemIds, _response) {
     itemIds = this._itemIdsOrAll(itemIds);
 
     itemIds.forEach(itemId => {
@@ -324,7 +348,7 @@ const GroupStore = Reflux.createStore({
     this.trigger(new Set(itemIds));
   },
 
-  onMergeSuccess(changeId, mergedIds, response) {
+  onMergeSuccess(_changeId, mergedIds, response) {
     mergedIds = this._itemIdsOrAll(mergedIds); // everything on page
 
     mergedIds.forEach(itemId => {
@@ -350,7 +374,7 @@ const GroupStore = Reflux.createStore({
    * If itemIds is undefined, returns all ids in the store
    */
   _itemIdsOrAll(itemIds) {
-    if (_.isUndefined(itemIds)) {
+    if (isUndefined(itemIds)) {
       itemIds = this.items.map(item => item.id);
     }
     return itemIds;
@@ -366,7 +390,7 @@ const GroupStore = Reflux.createStore({
     this.trigger(new Set(itemIds));
   },
 
-  onUpdateError(changeId, itemIds, error, failSilently) {
+  onUpdateError(changeId, itemIds, _error, failSilently) {
     itemIds = this._itemIdsOrAll(itemIds);
 
     this.pendingChanges.remove(changeId);

@@ -1,5 +1,6 @@
 import React from 'react';
-import {mount} from 'enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ExternalIssueActions from 'app/components/group/externalIssueActions';
 
@@ -8,12 +9,12 @@ describe('ExternalIssueActions', function() {
 
   describe('with no external issues linked', function() {
     const integration = TestStubs.GitHubIntegration({externalIssues: []});
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <ExternalIssueActions group={group} integration={integration} />,
       TestStubs.routerContext()
     );
     it('renders', function() {
-      expect(wrapper).toMatchSnapshot();
+      expect(wrapper).toSnapshot();
     });
 
     it('renders Link GitHub Issue when no issues currently linked', function() {
@@ -37,7 +38,7 @@ describe('ExternalIssueActions', function() {
       });
 
       it('opens when clicking +', function() {
-        wrapper.find('OpenCloseIcon').simulate('click');
+        wrapper.find('StyledIcon').simulate('click');
         expect(
           wrapper
             .find('Modal')
@@ -57,12 +58,12 @@ describe('ExternalIssueActions', function() {
       },
     ];
     const integration = TestStubs.GitHubIntegration({externalIssues});
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <ExternalIssueActions group={group} integration={integration} />,
       TestStubs.routerContext()
     );
     it('renders', function() {
-      expect(wrapper.find('IssueSyncElement')).toMatchSnapshot();
+      expect(wrapper.find('IssueSyncElement')).toHaveLength(0);
     });
 
     it('renders Link GitHub Issue when no issues currently linked', function() {
@@ -76,7 +77,7 @@ describe('ExternalIssueActions', function() {
       });
 
       it('deletes when clicking x', function() {
-        wrapper.find('OpenCloseIcon').simulate('click');
+        wrapper.find('StyledIcon').simulate('click');
         expect(wrapper.find('IntegrationLink a').text()).toEqual('Link GitHub Issue');
       });
     });

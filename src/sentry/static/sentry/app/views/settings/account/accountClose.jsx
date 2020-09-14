@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {
   Panel,
@@ -11,18 +11,19 @@ import {
 } from 'app/components/panels';
 import {addMessage, addErrorMessage} from 'app/actionCreators/indicator';
 import {openModal} from 'app/actionCreators/modal';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import Alert from 'app/components/alert';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
+import {IconFlag} from 'app/icons';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 
 const BYE_URL = '/';
 const leaveRedirect = () => (window.location.href = BYE_URL);
 
-const Important = styled.div`
+const Important = styled('div')`
   font-weight: bold;
   font-size: 1.2em;
 `;
@@ -61,11 +62,10 @@ class AccountClose extends AsyncView {
   }
 
   // Returns an array of single owners
-  getSingleOwners = () => {
-    return this.state.organizations
+  getSingleOwners = () =>
+    this.state.organizations
       .filter(({singleOwner}) => singleOwner)
       .map(({organization}) => organization.slug);
-  };
 
   handleChange = ({slug}, isSingle, event) => {
     const checked = event.target.checked;
@@ -127,7 +127,7 @@ class AccountClose extends AsyncView {
           {t('This will permanently remove all associated data for your user')}.
         </TextBlock>
 
-        <Alert type="error" icon="icon-circle-exclamation">
+        <Alert type="error" icon={<IconFlag size="md" />}>
           <Important>
             {t('Closing your account is permanent and cannot be undone')}!
           </Important>
@@ -138,11 +138,12 @@ class AccountClose extends AsyncView {
           <PanelBody>
             <PanelAlert type="info">
               {t(
-                'Ownership will remain with other members if an organization is not deleted.'
+                'Ownership will remain with other organization owners if an organization is not deleted.'
               )}
               <br />
-              {t(
-                'Disabled boxes mean that there is no other owner within the organization so no one else can take ownership.'
+              {tct(
+                "Boxes which can't be unchecked mean that you are the only organization owner and the organization [strong:will be deleted].",
+                {strong: <strong />}
               )}
             </PanelAlert>
 

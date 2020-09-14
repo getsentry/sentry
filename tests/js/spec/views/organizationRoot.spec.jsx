@@ -1,5 +1,6 @@
 import React from 'react';
-import {mount} from 'enzyme';
+
+import {mount} from 'sentry-test/enzyme';
 
 import {OrganizationRoot} from 'app/views/organizationRoot';
 import {setActiveProject} from 'app/actionCreators/projects';

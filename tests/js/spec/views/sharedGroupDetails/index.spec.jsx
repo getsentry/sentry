@@ -1,6 +1,8 @@
 import React from 'react';
-import {mount} from 'enzyme';
-import SharedGroupDetails from 'app/views/sharedGroupDetails';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
+
+import SharedGroupDetails from 'app/views/sharedGroupDetails/sharedGroupDetails';
 
 describe('SharedGroupDetails', function() {
   beforeEach(function() {
@@ -25,7 +27,10 @@ describe('SharedGroupDetails', function() {
       params: {shareId: 'a'},
     };
 
-    const wrapper = mount(<SharedGroupDetails {...props} />);
-    expect(wrapper).toMatchSnapshot();
+    const wrapper = mountWithTheme(
+      <SharedGroupDetails {...props} />,
+      TestStubs.routerContext()
+    );
+    expect(wrapper).toSnapshot();
   });
 });

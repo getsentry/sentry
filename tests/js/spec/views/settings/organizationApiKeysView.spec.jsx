@@ -1,5 +1,6 @@
 import React from 'react';
-import {mount} from 'enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
 import OrganizationApiKeys from 'app/views/settings/organizationApiKeys';
@@ -33,7 +34,7 @@ describe('OrganizationApiKeys', function() {
   });
 
   it('fetches api keys', function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <OrganizationApiKeys
         location={TestStubs.location()}
         params={{orgId: 'org-slug'}}
@@ -46,7 +47,7 @@ describe('OrganizationApiKeys', function() {
   });
 
   it('can delete a key', function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <OrganizationApiKeys
         location={TestStubs.location()}
         params={{orgId: 'org-slug'}}

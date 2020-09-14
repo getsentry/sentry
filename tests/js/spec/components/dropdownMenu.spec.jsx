@@ -1,5 +1,7 @@
 import React from 'react';
-import {mount} from 'enzyme';
+
+import {mount} from 'sentry-test/enzyme';
+
 import DropdownMenu from 'app/components/dropdownMenu';
 
 jest.useFakeTimers();
@@ -10,24 +12,22 @@ describe('DropdownMenu', function() {
   beforeEach(function() {
     wrapper = mount(
       <DropdownMenu>
-        {({getRootProps, getActorProps, getMenuProps, isOpen}) => {
-          return (
-            <span {...getRootProps({})}>
-              <button {...getActorProps({})}>Open Dropdown</button>
-              {isOpen && (
-                <ul {...getMenuProps({})}>
-                  <li>Dropdown Menu Item 1</li>
-                </ul>
-              )}
-            </span>
-          );
-        }}
+        {({getRootProps, getActorProps, getMenuProps, isOpen}) => (
+          <span {...getRootProps({})}>
+            <button {...getActorProps({})}>Open Dropdown</button>
+            {isOpen && (
+              <ul {...getMenuProps({})}>
+                <li>Dropdown Menu Item 1</li>
+              </ul>
+            )}
+          </span>
+        )}
       </DropdownMenu>
     );
   });
 
   it('renders', function() {
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
   it('can toggle dropdown menu with actor', function() {
@@ -46,12 +46,14 @@ describe('DropdownMenu', function() {
     expect(wrapper.find('ul')).toHaveLength(0);
   });
 
-  it('closes dropdown when clicking outside of menu', function() {
+  it('closes dropdown when clicking outside of menu', async function() {
     wrapper.find('button').simulate('click');
     // Simulate click on document
     const evt = document.createEvent('HTMLEvents');
     evt.initEvent('click', false, true);
     document.body.dispatchEvent(evt);
+    jest.runAllTimers();
+    await Promise.resolve();
     wrapper.update();
 
     expect(wrapper.find('ul')).toHaveLength(0);
@@ -69,18 +71,16 @@ describe('DropdownMenu', function() {
   it('ignores "Escape" key if `closeOnEscape` is false', function() {
     wrapper = mount(
       <DropdownMenu closeOnEscape={false}>
-        {({getRootProps, getActorProps, getMenuProps, isOpen}) => {
-          return (
-            <span {...getRootProps({})}>
-              <button {...getActorProps({})}>Open Dropdown</button>
-              {isOpen && (
-                <ul {...getMenuProps({})}>
-                  <li>Dropdown Menu Item 1</li>
-                </ul>
-              )}
-            </span>
-          );
-        }}
+        {({getRootProps, getActorProps, getMenuProps, isOpen}) => (
+          <span {...getRootProps({})}>
+            <button {...getActorProps({})}>Open Dropdown</button>
+            {isOpen && (
+              <ul {...getMenuProps({})}>
+                <li>Dropdown Menu Item 1</li>
+              </ul>
+            )}
+          </span>
+        )}
       </DropdownMenu>
     );
 
@@ -94,18 +94,16 @@ describe('DropdownMenu', function() {
   it('keeps dropdown open when clicking on anything in menu with `keepMenuOpen` prop', function() {
     wrapper = mount(
       <DropdownMenu keepMenuOpen>
-        {({getRootProps, getActorProps, getMenuProps, isOpen}) => {
-          return (
-            <span {...getRootProps({})}>
-              <button {...getActorProps({})}>Open Dropdown</button>
-              {isOpen && (
-                <ul {...getMenuProps({})}>
-                  <li>Dropdown Menu Item 1</li>
-                </ul>
-              )}
-            </span>
-          );
-        }}
+        {({getRootProps, getActorProps, getMenuProps, isOpen}) => (
+          <span {...getRootProps({})}>
+            <button {...getActorProps({})}>Open Dropdown</button>
+            {isOpen && (
+              <ul {...getMenuProps({})}>
+                <li>Dropdown Menu Item 1</li>
+              </ul>
+            )}
+          </span>
+        )}
       </DropdownMenu>
     );
 
@@ -124,35 +122,33 @@ describe('DropdownMenu', function() {
 
     wrapper = mount(
       <DropdownMenu keepMenuOpen>
-        {({getRootProps, getActorProps, getMenuProps, isOpen}) => {
-          return (
-            <span
-              {...getRootProps({
-                className: 'root',
-                onClick: rootClick,
+        {({getRootProps, getActorProps, getMenuProps, isOpen}) => (
+          <span
+            {...getRootProps({
+              className: 'root',
+              onClick: rootClick,
+            })}
+          >
+            <button
+              {...getActorProps({
+                className: 'actor',
+                onClick: actorClick,
               })}
             >
-              <button
-                {...getActorProps({
-                  className: 'actor',
-                  onClick: actorClick,
+              Open Dropdown
+            </button>
+            {isOpen && (
+              <ul
+                {...getMenuProps({
+                  className: 'menu',
+                  onClick: menuClick,
                 })}
               >
-                Open Dropdown
-              </button>
-              {isOpen && (
-                <ul
-                  {...getMenuProps({
-                    className: 'menu',
-                    onClick: menuClick,
-                  })}
-                >
-                  <li>Dropdown Menu Item 1</li>
-                </ul>
-              )}
-            </span>
-          );
-        }}
+                <li>Dropdown Menu Item 1</li>
+              </ul>
+            )}
+          </span>
+        )}
       </DropdownMenu>
     );
 
@@ -166,7 +162,7 @@ describe('DropdownMenu', function() {
     expect(menuClick).toHaveBeenCalled();
 
     // breaks in jest22
-    // expect(wrapper).toMatchSnapshot();
+    // expect(wrapper).toSnapshot();
     expect(wrapper.find('ul')).toHaveLength(1);
     expect(document.addEventListener).toHaveBeenCalled();
 
@@ -183,30 +179,28 @@ describe('DropdownMenu', function() {
 
     wrapper = mount(
       <DropdownMenu alwaysRenderMenu>
-        {({getRootProps, getActorProps, getMenuProps, isOpen}) => {
-          return (
-            <span
-              {...getRootProps({
-                className: 'root',
+        {({getRootProps, getActorProps, getMenuProps}) => (
+          <span
+            {...getRootProps({
+              className: 'root',
+            })}
+          >
+            <button
+              {...getActorProps({
+                className: 'actor',
               })}
             >
-              <button
-                {...getActorProps({
-                  className: 'actor',
-                })}
-              >
-                Open Dropdown
-              </button>
-              <ul
-                {...getMenuProps({
-                  className: 'menu',
-                })}
-              >
-                <li>Dropdown Menu Item 1</li>
-              </ul>
-            </span>
-          );
-        }}
+              Open Dropdown
+            </button>
+            <ul
+              {...getMenuProps({
+                className: 'menu',
+              })}
+            >
+              <li>Dropdown Menu Item 1</li>
+            </ul>
+          </span>
+        )}
       </DropdownMenu>
     );
 
@@ -223,5 +217,28 @@ describe('DropdownMenu', function() {
 
     addSpy.mockRestore();
     removeSpy.mockRestore();
+  });
+
+  it('does not close nested dropdown on actor clicks', function() {
+    wrapper = mount(
+      <DropdownMenu isNestedDropdown>
+        {({getRootProps, getActorProps, getMenuProps}) => (
+          <span {...getRootProps({})}>
+            <button {...getActorProps({})}>Open Dropdown</button>
+            {
+              <ul {...getMenuProps({})}>
+                <li data-test-id="menu-item">Dropdown Menu Item 1</li>
+              </ul>
+            }
+          </span>
+        )}
+      </DropdownMenu>
+    );
+    wrapper.find('button').simulate('mouseEnter');
+    expect(wrapper.find('[data-test-id="menu-item"]')).toHaveLength(1);
+
+    wrapper.find('button').simulate('click');
+    //Should still be visible.
+    expect(wrapper.find('[data-test-id="menu-item"]')).toHaveLength(1);
   });
 });

@@ -1,13 +1,41 @@
-Version 10.0 (Unreleased)
--------------------------
+20.8.0
+------
 
-Version 9.1.1
--------------
+- No documented changes.
+
+20.7.1
+------
+
+- No documented changes.
+
+20.7.0
+------
+
+- No documented changes.
+
+v20.6.0
+-------
+
+- Switched to CalVer
+
+v10.0
+-----
+
+Please refer to our blog post: https://blog.sentry.io/2020/01/07/self-hosted-sentry-10-is-ready-to-serve-get-it-while-its-hot/
+
+v9.1.2
+------
+
+- Bug fixes from 9.1.1 release.
+- See https://github.com/getsentry/sentry/releases/tag/9.1.2 for a summary
+
+v9.1.1
+------
 
 - Bug fixes from 9.1.0 release.
 
-Version 9.1
------------
+v9.1
+----
 
 The changelog for Sentry 9.1 is summarized. For full details, we recommend reviewing the
 full set of SCM changes on GitHub.
@@ -73,8 +101,8 @@ Misc
 - Repository access is now coupled to integrations access (`org:integrations`)
 - Various improvements to exception fingerprinting.
 
-Version 9.0
------------
+v9.0
+----
 
 The changelog for Sentry 9 is summarized. For full details, we recommend reviewing the
 full set of SCM changes on GitHub. There are far too many changes to list in Sentry 9,
@@ -186,8 +214,8 @@ Misc
 - Various performance around event processing to make up for all the added load we're forcing on
   ya'll. =)
 
-Version 8.22
-------------
+v8.22
+-----
 
 - BREAKING: Members will no longer be automatically granted membership to the
   default organization. You should use SSO or the invite flows.
@@ -208,8 +236,8 @@ API Changes
 
 - Added API endpoint to list members awaiting access
 
-Version 8.21
-------------
+v8.21
+-----
 
 - Ignore querystrings when looking up release artifacts
 - Add Visual Studio authentication provider for plugins.
@@ -225,8 +253,8 @@ Schema Changes
 - Added ``ProjectTeam`` model
 
 
-Version 8.20
-------------
+v8.20
+-----
 - Make BitBucket repositories enabled by default
 - Add raw data toggle for Additional Data
 - Improved function name resolving for JavaScript sourcemaps
@@ -252,8 +280,8 @@ Schema Changes
 - Added ``Email`` model
 - Change ``CommitFileChange.filename`` from varchar to text in PostgreSQL
 
-Version 8.19
-------------
+v8.19
+-----
 
 - Hide project filter when there are no projects to list.
 - Added lookup methods to constants to get a unique `integration_id` for a given
@@ -265,15 +293,15 @@ Schema Changes
 - Added ``Integration``, ``OrganizationIntegration``, and ``ProjectIntegration`` models
 - Added ``Repository(integration_id)`` column
 
-Version 8.18
-------------
+v8.18
+-----
 
 - Expanded resolution options to allow current and explicit versions.
 - Added proguard support
 - Removed support for global dsyms.
 - Moved Queue admin page to React.
 - Replaced usage of jQuery Flot library with internal graphs.
-- Expanded ignore actions to include deltas and rates for both occurances and
+- Expanded ignore actions to include deltas and rates for both occurrences and
   users impacted.
 - Add a new option (`auth.allow-registration`) for determining whether registration
   is allowed on an installation.
@@ -317,8 +345,8 @@ API Changes
 - Project keys endpoint will include all available keys by default. Use
   ``status=active`` to retain the old behavior.
 
-Version 8.17
-------------
+v8.17
+-----
 
 - Added @mentions to comments
 - Initial (internal) analytics abstraction.
@@ -348,13 +376,13 @@ Schema Changes
 - Added ``EventUser.name`` column
 - Added ``UserReport.event_user_id`` column
 
-Version 8.16.1
---------------
+v8.16.1
+-------
 
 - Fixed issue in migration 0302 that prevented upgrading
 
-Version 8.16
-------------
+v8.16
+-----
 
 - Added data migration to create UserEmail objects for users whose primary emails did not have them
 - Time series data (used by graphs and other features) is now updated when groups are merged.
@@ -375,8 +403,8 @@ API Changes
 
 - Deprecate `dateStarted` in releases endpoints
 
-Version 8.15
-------------
+v8.15
+-----
 
 - Added overview for a release to view a breakdown of files changes, commit authors, new issues, and issues resolved
 - Refactor usage of ``sentry.app`` to use individual modules.
@@ -427,15 +455,15 @@ Security
   - ProjectOption.value
   - UserOption.value
 
-Version 8.14.1
---------------
+v8.14.1
+-------
 
 - Fixed issues related to migrations failing to finish for 8.14
 - Fixed an issue where Release version names were erronously too restrictve.
 - Fixed an issue where "New Issues" counts would have all been 0 for releases created in 8.14.
 
-Version 8.14
-------------
+v8.14
+-----
 
 - Added new internal processing interface that supports multiple processing steps per stacktrace (for instance JavaScript + native)
 - Add IE10 legacy browser filter
@@ -479,8 +507,8 @@ Schema Changes
 - Added not null constraint to ``Environment.organization_id`` column.
 - Removed not null constraint on ``Environment.project_id`` and ``ReleaseEnvironment.project_id`` columns
 
-Version 8.13
-------------
+v8.13
+-----
 
 - Added individual filters for legacy browsers to improve customization of error filtering based on browser versions
 - Support for setting a custom security header for javascript fetching.
@@ -519,8 +547,8 @@ API Changes
 - Provide repository information for commits
 - Added new internal processing interface that supports multiple processing steps per stacktrace (for instance JavaScript + native)
 
-Version 8.12
-------------
+v8.12
+-----
 
 - Fix bug where some users would incorrectly not receive workflow notifications for projects they were subscribed to.
 - restructured dSYM processing.  It now records errors in the symbolication process
@@ -551,8 +579,8 @@ Schema Changes
 - Added ``ReleaseFile.organization`` column.
 - Added ``ReleaseEnvironment.organization_id`` column.
 
-Version 8.11
-------------
+v8.11
+-----
 
 - Ignore a ``null`` ``Origin`` header for authentication.
 - Added the ability to search for issues that you are subscribed to from the stream view.
@@ -592,8 +620,8 @@ API Changes
 - Added ``/organizations/{org}/config/repos/`` endpoint.
 - Added ``/organizations/{org}/repos/{repo}/`` endpoint.
 
-Version 8.10
-------------
+v8.10
+-----
 
 - New and improved UI.
 - Removed previously deprecated ``sentry celery`` command.
@@ -626,8 +654,8 @@ Schema Changes
 - Added index on ``GroupTagValue(project, key, value, last_seen)``.
 - Dropped index on ``GroupTagValue(project, key, value)``.
 
-Version 8.9
------------
+v8.9
+----
 
 - Added support for Elixir.
 - Improve performance for bulk deletions of Events and Groups.
@@ -645,8 +673,8 @@ Schema Changes
 
 - Added unique index on ``Authenticator(user_id, type)``
 
-Version 8.8
------------
+v8.8
+----
 
 - Added unique user frequency rule condition.
 - Fixed a major performance regression from 8.7 on the ``GroupTagValue`` model.
@@ -660,8 +688,8 @@ Schema Changes
 - Added ``OrganizationMember.token`` column.
 - Removed ``OrganizationMember.counter`` column.
 
-Version 8.7
------------
+v8.7
+----
 
 - Removed "Replay Request" feature.
 - Upgraded underlying redis library to resolve some networking issues.
@@ -676,8 +704,8 @@ Schema Changes
 - Added ``Environment`` model.
 - Added ``ReleaseEnvironment`` model.
 
-Version 8.6
------------
+v8.6
+----
 
 - The ``message`` attribute on Event/Group is now purely used for search storage.
 - The ``sentry.interfaces.Message`` interface now contains a ``formatted`` attribute.
@@ -709,15 +737,15 @@ Schema Changes
 - Added index on ``GroupTagValue(project_id, key, value)``
 - Added ``GroupSubscription`` model.
 
-Version 8.5.1
--------------
+v8.5.1
+------
 
 - Fixed issue with new Unsubscribe links in emails not working.
 - Fixed bug with raven-js compatibility with IE8.
 - Fixed bug handling IPv6 addresses.
 
-Version 8.5
------------
+v8.5
+----
 
 - Added option to upload a profile image as an alternative to Gravatar.
 - Deprecated ``sentry celery`` subcommand in favor of ``sentry run {worker|cron}``.
@@ -738,15 +766,15 @@ Schema Changes
 - Added ``Authenticator`` model.
 
 
-Version 8.4.1
--------------
+v8.4.1
+------
 
 - Fixed issue in running 8.4 migrations on MySQL only.
 - Fixed issue that caused an infinite loop in ``patch_context.py`` under a race condition.
 - Silently ignore breadcrumb data coming from clients instead of showing an error in the UI.
 
-Version 8.4
------------
+v8.4
+----
 
 - Fixed bug that caused some email subjects to be generated without respecting the project subject prefix option.
 - Organization's can now opt-in to early adopter features (via organization settings).
@@ -765,26 +793,26 @@ Schema Changes
 - Added ``DSymObject`` model.
 - Added ``DSymBundle`` model.
 
-Version 8.3.3
--------------
+v8.3.3
+------
 
 - [SECURITY] Fixed a bug which allows API keys more permission than granted within the organization.
 
-Version 8.3.2
--------------
+v8.3.2
+------
 
 - Fixed bug affecting only MySQL users, see `GH-3030 <https://github.com/getsentry/sentry/issues/3030>`_.
 
-Version 8.3.1
--------------
+v8.3.1
+------
 
 - Fixed bug that, ironically, prevented saving a saved search.
 - Fixed bug when merging groups and the counts are merged incorrectly.
 - Fixed bug that caused the Installation Wizard to never go away if using a non-smtp email.backend setting.
 - Fixed an ImproperlyConfigured issue from a cascading error.
 
-Version 8.3.0
--------------
+v8.3.0
+------
 
 - Added initial support for per-project callsigns and short IDs.  This feature is not exposed to users yet.
 - Improved static file delivery performance.
@@ -806,33 +834,33 @@ Schema Changes
 - Added ``Project.forced_color`` column.
 - Added ``GroupRedirect`` model.
 
-Version 8.2.5
--------------
+v8.2.5
+------
 
 - [SECURITY] Fixed a bug which allows API keys more permission than granted within the organization.
 
-Version 8.2.4
--------------
+v8.2.4
+------
 
 - [SECURITY] If being run in multi-organization mode, it was possible for a user to craft a URL which would allow them to view membership details of other users.
 
-Version 8.2.3
--------------
+v8.2.3
+------
 
 - Fix compatibility with Redis 2.8.9.
 
-Version 8.2.2
--------------
+v8.2.2
+------
 
 - [SECURITY] Fixed an issue where a superuser had the ability to inject data into audit logs through the admin UI.
 
-Version 8.2.1
--------------
+v8.2.1
+------
 
 - Fix compatibility with setuptools 20.2
 
-Version 8.2.0
--------------
+v8.2.0
+------
 
 - SENTRY_DISALLOWED_IPS is no longer configured by default. If you're exposing Sentry outside of your company you may wish to configure this.
 - Do not require the documentation sync on repair to succeed.
@@ -849,35 +877,35 @@ Schema Changes
 - Added ``EventTag`` model.
 - Added ``OrganizationOnboardingTask`` model.
 
-Version 8.1.5
--------------
+v8.1.5
+------
 
 - [SECURITY] If being run in multi-organization mode, it was possible for a user to craft a URL which would allow them to view membership details of other users.
 
-Version 8.1.4
--------------
+v8.1.4
+------
 
 - [SECURITY] Fixed an issue where a superuser had the ability to inject data into audit logs through the admin UI.
 
-Version 8.1.3
--------------
+v8.1.3
+------
 
 - Fix compatibility with setuptools 20.2
 
-Version 8.1.2
--------------
+v8.1.2
+------
 
 - [CRITICAL] Fix issue running ``sentry start`` with supervisord.
 - Fix compatibility with older versions of djangorestframework.
 - Updated member invitation emails.
 
-Version 8.1.1
--------------
+v8.1.1
+------
 
 - Fix broken static files compiled from 8.1.0. :(
 
-Version 8.1.0
--------------
+v8.1.0
+------
 
 - Default web server is now uWSGI (https://uwsgi-docs.readthedocs.io/en/latest/) to replace gunicorn.
 - New "Saved Searches". See: http://blog.getsentry.com/2016/01/19/introducing-saved-searches.html
@@ -888,8 +916,8 @@ Schema Changes
 - Added ``SavedSearch.is_default`` column.
 - Added new ``SavedSearchUserDefault`` model.
 
-Version 8.0.6
--------------
+v8.0.6
+------
 
 - Fixed assignee dropdown not being clickable from touch devices.
 - Don't ignore ``SENTRY_WEB_OPTIONS['workers']`` value if set.
@@ -897,26 +925,26 @@ Version 8.0.6
 - Fix display for Release names when they include special characters.
 - Added new ``sentry config generate-secret-key`` to help with regenerating a new SECRET_KEY value if needed.
 
-Version 8.0.5
--------------
+v8.0.5
+------
 
 - [CRITICAL] Fixed another issue where performing a bulk merge could merge more than intended. We're pretty confident we got this all squared away now. :(
 - Fixed a bug where Issue assignment emails weren't being delivered.
 
-Version 8.0.4
--------------
+v8.0.4
+------
 
 - Fixed an issue where notification digests weren't sending on some systems.
 
-Version 8.0.3
--------------
+v8.0.3
+------
 
 - [CRITICAL] Fixed an issue where performing a bulk merge would merge more than intended.
 - Fixed saving the "Use Default Scrubbers" project setting
 - Fix syncing documentation when behind an http proxy
 
-Version 8.0.2
--------------
+v8.0.2
+------
 
 - Fix ``IntegrityError`` after merging groups.
 - Be less noisy about ``Cannot digest timeline, timeline is not in the ready state.``
@@ -925,16 +953,16 @@ Version 8.0.2
 - Multiple bulk deletion improvements and bug fixes.
 - Clarify ``Forcing documentation sync`` error messaging.
 
-Version 8.0.1
--------------
+v8.0.1
+------
 
 - Ignore ``blob:`` urls in hashing algorithms.
 - Bump ``extra`` data size to 16k (previously 4k)
 - Fixed some odd behavior where superusers appeared as members of a team when they weren't.
 - By default, new superusers created through ``sentry createuser`` will be added as a member to a team, if there is only one team available.
 
-Version 8.0.0
--------------
+v8.0.0
+------
 
 Version 8 of Sentry introduces a brand new frontend. Most of the application has been overhauled
 and rewritten on top of React and our web API. Additionally many new features have been exposed
@@ -1065,13 +1093,13 @@ Schema Changes
 - Removed ``Activity.event`` column.
 - Removed ``Event.num_comments`` column.
 
-Version 7.7.1
--------------
+v7.7.1
+------
 
 - Pin Kombu dependency due to incompatibility.
 
-Version 7.7.0
--------------
+v7.7.0
+------
 
 - The behavior of ``create_or_update`` has changed. If you're using it please see the updated function.
 - Added ``Group.first_release`` column.
@@ -1089,19 +1117,19 @@ Version 7.7.0
   - Adds ``fingerprint`` attribute.
 - The behavior of ``SENTRY_ENABLE_EXPLORE_USERS`` is now default and the setting has been removed.
 
-Version 7.6.2
--------------
+v7.6.2
+------
 
 - Improved (fixed?) static bundling in various conditions.
 
-Version 7.6.1
--------------
+v7.6.1
+------
 
 - [Security] An XSS vulnerability was addressed with low cardinality tags and the stream filter box:
   https://github.com/getsentry/sentry/commit/364b959811561de83f29893e105cc590224edbee
 
-Version 7.6.0
--------------
+v7.6.0
+------
 
 This releases entirely removes Access Groups. If you're upgrading from an installation that had yet to migrate away from this system you should first upgrade to a previous version, run the migration wizard, and then continue the upgrade.
 
@@ -1120,41 +1148,41 @@ This releases entirely removes Access Groups. If you're upgrading from an instal
 - New ``import`` and ``export`` commands now exist for creating backups of critical metadata
   (i.e. api keys, projects, user settings)
 
-Version 7.5.6
--------------
+v7.5.6
+------
 
 - Improved (fixed?) static bundling in various conditions.
 
-Version 7.5.5
--------------
+v7.5.5
+------
 
 - [Security] An XSS vulnerability was addressed with low cardinality tags and the stream filter box:
   https://github.com/getsentry/sentry/commit/364b959811561de83f29893e105cc590224edbee
 
-Version 7.5.4
--------------
+v7.5.4
+------
 
 - Yet another case where valid team membership was being excluded.
 
-Version 7.5.3
--------------
+v7.5.3
+------
 
 - Fix another case where valid team membership was being excluded
 
-Version 7.5.2
--------------
+v7.5.2
+------
 
 - Correctly support SENTRY_PROJECT.
 
-Version 7.5.1
--------------
+v7.5.1
+------
 
 - Fix case where certain pages were not correctly including valid team membership
 - Fix default user creation (regain automated signal)
 - Fix sampling of internal metrics
 
-Version 7.5.0
--------------
+v7.5.0
+------
 
 This release removes the ability to login or create accounts using a social auth backend.
 
@@ -1185,26 +1213,26 @@ Redis must be at least version 2.6.12.
 - Notification integrations are now present within project's notification settings.
 - Fixed an issue with tag key deletion not following explicit constraints.
 
-Version 7.4.3
--------------
+v7.4.3
+------
 
 - Corrected various issues involving sampled data. Things should now sample according to actual MATH.
 
 
-Version 7.4.2
--------------
+v7.4.2
+------
 
 - Corrected invalid reference to SENTRY_ALLOW_REGISTRATION.
 
 
-Version 7.4.1
--------------
+v7.4.1
+------
 
 - Correct an issue with AuthProvider's migrations on MySQL.
 
 
-Version 7.4.0
--------------
+v7.4.0
+------
 
 - A new features subsystem was added, and many optional features are now run through it.
 - The 'add_organization' permission is no longer used.
@@ -1227,19 +1255,19 @@ Version 7.4.0
 - An XSS vulnerability with tag values not being escaped (on the group details page) has been resolved.
 
 
-Version 7.3.2
--------------
+v7.3.2
+------
 
 - Fixed missing beacon task import.
 
-Version 7.3.1
--------------
+v7.3.1
+------
 
 - Updated Gunicorn version and default configuration.
 - Fixed periodic task for beacon.
 
-Version 7.3.0
--------------
+v7.3.0
+------
 
 - The SENTRY_ADMIN_EMAIL setting now exists, and should be the technical contact for the install.
 - Fixed an issue that would cause job fanout in deletions.
@@ -1258,8 +1286,8 @@ Version 7.3.0
 - Moved sentry_webhooks into builtins.
 - Added reporting Beacon (see docs).
 
-Version 7.2.0
--------------
+v7.2.0
+------
 
 - A py.test plugin now exists to make extension testing easier.
 - A Mailgun webhook endpoint is now available for incoming email.
@@ -1275,8 +1303,8 @@ Version 7.2.0
 - Rules will no longer execute duplicate actions.
 - EventFrequencyCondition will now fire a maximum of once every 30 minutes.
 
-Version 7.1.4
--------------
+v7.1.4
+------
 
 - Fixed an issue with hourly rollups not expiring accurately in TSDB
 
@@ -1285,26 +1313,26 @@ If you've been running a 7.x series release for a while you may considering runn
   https://gist.github.com/dcramer/55a44904be883f8d03e1
 
 
-Version 7.1.3
--------------
+v7.1.3
+------
 
 - Resolved an issue with migrations we created in 7.1.2.
 
 
-Version 7.1.2
--------------
+v7.1.2
+------
 
 - Fix migrations to ensure org/teams arent created with empty slugs.
 
 
-Version 7.1.1
--------------
+v7.1.1
+------
 
 - Suggest realip module over X-Forwarded-For
 
 
-Version 7.1.0
--------------
+v7.1.0
+------
 
 Plugin v2
 ~~~~~~~~~
@@ -1333,8 +1361,8 @@ Other Changes
 - Added NodeStore.multi_delete.
 
 
-Version 7.0.0
--------------
+v7.0.0
+------
 
 Between version 6.4.x and 7.0 a significant number of changes have landed (approximately a years worth of commits). There are a large number of overall architecture changes, as well as various API compatibility changes. This document does not attempt to cover them all.
 
@@ -1404,8 +1432,8 @@ Help Pages
 The beginnings of bundled documentation now exists. The defaults are generated from disk (see sentry/data/help_pages/).
 
 
-Version 6.4.0
--------------
+v6.4.0
+------
 
 Some major backend changes are introduced in Sentry 6.4.0.
 
@@ -1447,8 +1475,8 @@ Protocol Version 5
 - sentry_version should be sent as '5'.
 - The stacktrace interface now accepts a 'frames_omitted' tuple.
 
-Version 6.3.0
--------------
+v6.3.0
+------
 
 - Most of the db utilities were refactored into ``sentry.db``.
 - The user interface now accepts an ``ip_address`` attribute.
@@ -1456,8 +1484,8 @@ Version 6.3.0
 - ``time_spent`` is now expected to be sent as an integer in milliseconds.
 - A new Notes feature is available for leaving comments on an event.
 
-Version 6.2.0
--------------
+v6.2.0
+------
 
 - Added tracking to which users have seen which groups
 - The stream now reflects if you've viewed an event since it was created or regressed.
@@ -1466,8 +1494,8 @@ Version 6.2.0
   an event has happened to.
 - Various stream polling fixes and improvements.
 
-Version 6.1.1 (Security Release)
---------------------------------
+v6.1.1 (Security Release)
+-------------------------
 
 Sentry 6.1.1 is a security release which patches a remote code execution exploit.
 
@@ -1477,13 +1505,13 @@ The following commit demonstrates the exploit, as well as the patch:
 
 https://github.com/getsentry/sentry/commit/5793c6cac19aeb7d2e19f9a09f4421b771af4306
 
-Version 6.1.0
--------------
+v6.1.0
+------
 
 - Added Rate Limit controls.
 
-Version 6.0.0
--------------
+v6.0.0
+------
 
 Say hello to our new logomark! Version 6 of Sentry includes many changes within
 the core designed to improve future compatibility for various platforms.
@@ -1560,8 +1588,8 @@ Other Changes
 - A new Sentry logo mark has replaced the simple text header.
 - C# has been added to experimental clients.
 
-Version 5.4.0
--------------
+v5.4.0
+------
 
 SENTRY_PUBLIC now dictates whether or not a Sentry install should be considered
 accessible by all users or not. This should better solve the use-case of companies
@@ -1590,8 +1618,8 @@ Additionally, this includes the following other items:
   ``SENTRY_USE_TRENDING = False``
 
 
-Version 5.3.0
--------------
+v5.3.0
+------
 
 A brand new Sentry design has landed.
 
@@ -1610,18 +1638,18 @@ Additionally:
 - SENTRY_PUBLIC behavior has changed to signify the default state of projects.
 - Project slug's are now only unique within a team.
 
-Version 5.2.2
--------------
+v5.2.2
+------
 
 - [New] The dashboard will now stream updates to the new and trending event components.
 
-Version 5.2.1
--------------
+v5.2.1
+------
 
 - [Fix] Trends sorting options on the Stream page work correctly again.
 
-Version 5.2.0
--------------
+v5.2.0
+------
 
 - [New] A new activity stream exists on event pages.
 - [New] Syntax highlighting now exists on all context frames.
@@ -1646,8 +1674,8 @@ Additional, the following client protocol changes are part of this release:
 
 We've also reduced the test suite time down to 25% of what it originally was (thanks, Alex!)
 
-Version 5.1.3
--------------
+v5.1.3
+------
 
 A new user's affected-tracking mechanism is present (storage only). This will
 become available in the UX in a future version, and relies on the existing HTTP
@@ -1658,8 +1686,8 @@ and User interface datas.
 - [New] Team and project owners can now change ownership (non-superuser).
 - [Fix] Counts are now formatted correctly when number of visible digits > 3.
 
-Version 5.1.2
--------------
+v5.1.2
+------
 
 - [Fix] Option schema (key length = 64).
 - [Fix] Template interface now renders correctly.
@@ -1667,8 +1695,8 @@ Version 5.1.2
 - [New] iOS client documentation.
 - Improved client documentation visuals.
 
-Version 5.1.1
--------------
+v5.1.1
+------
 
 Several schema changes are made in this upgrade:
 
@@ -1694,8 +1722,8 @@ The following changes are also part of this release:
 - Various fixes for breadcrumbs and header styles.
 - Most plugins will no longer default to enabled on new projects.
 
-Version 5.1.0
--------------
+v5.1.0
+------
 
 Minor point releases now signify major changes (5.1.0 is a major release). Bugfix and smaller
 releases will continue as normal.
@@ -1743,8 +1771,8 @@ Other Changes
 - Early support for WSGI (should be functional) exists as ``sentry.wsgi``.
 - Many fixes around cache usage.
 
-Version 5.0.0
--------------
+v5.0.0
+------
 
 - Variable versions of Django are no longer supported. Django 1.4.x must now be used.
 - Public projects are restricted to viewing without being authenticated.
@@ -1752,16 +1780,16 @@ Version 5.0.0
 - Permissions have been refactored to be more precise.
 
 
-Version 4.10.0
---------------
+v4.10.0
+-------
 
 - A new IssuePlugin base is available.
 - Charts have been refactored to show 7 days worth of data.
 - django.contrib.staticfiles is now supported.
 - django.contrib.messages is now supported.
 
-Version 4.9.0
--------------
+v4.9.0
+------
 
 Social authentication is now supported!
 
@@ -1776,8 +1804,8 @@ Currently, the following services are supported:
 * Facebook
 * Google
 
-Version 4.8.0
--------------
+v4.8.0
+------
 
 Tags are now able to be created dynamically! See the documentation for more details on implementing it inside
 of your client.
@@ -1785,8 +1813,8 @@ of your client.
 You can also configure which tags will show up as filters in the sidebar via your project's settings page. By
 default all tags will show up.
 
-Version 4.7.0
--------------
+v4.7.0
+------
 
 User options are now available to plugins. The builtin mail plugin also now takes advantage of them.
 
@@ -1795,8 +1823,8 @@ User options are now available to plugins. The builtin mail plugin also now take
 - Numeric slugs will no longer return 404s.
 - Corrected the repair command with the --owner argument.
 
-Version 4.6.0
--------------
+v4.6.0
+------
 
 Improvements to the dashboard are trickling in, with this update including:
 
@@ -1814,8 +1842,8 @@ Additionally:
 - Long awaited cleanup/fixes for applying the initial database migrations (sorry MySQL users).
 - Initial support for arbitrary event tagging (coming soon to a client near you).
 
-Version 4.5.0
--------------
+v4.5.0
+------
 
 Builtin plugins have been refactored to be more concise. This includes changes to the
 servers, urls, and sites plugins. There is also a new builtin plugin::
@@ -1831,8 +1859,8 @@ Additionally:
 - Signatures are deprecated, and no longer required.
 - Several fixes regarding CORS support.
 
-Version 4.4.0
--------------
+v4.4.0
+------
 
 Two new columns were added to the ``Group`` model:
 
@@ -1842,8 +1870,8 @@ Two new columns were added to the ``Group`` model:
 The dashboard's "New Events" will now use the active_at date rather than the original
 first seen date on an event.
 
-Version 4.3.0
--------------
+v4.3.0
+------
 
 A new global dashboard now exists. The dashboard contains an event graph for all projects which
 you have access to, as well as a list of the top events, and new events.
@@ -1853,16 +1881,16 @@ Additionally:
 - API endpoints now properly send no-cache headers.
 - Added a countdown to update buffers.
 
-Version 4.2.0
--------------
+v4.2.0
+------
 
 Sentry now has support for buffering a majority of its counters via Redis. For more information, check
 the buffer section of the configuration documentation.
 
 - Nearly all race conditions are now handled correctly using distributed cache locks.
 
-Version 4.1.0
--------------
+v4.1.0
+------
 
 Sentry now maintains full support for CORS requests from external hosts. This means that clients like
 raven-js will now able to securely send messages to Sentry, without compromising their secret key.
@@ -1874,8 +1902,8 @@ In addition:
 - raven-javascript and raven-ruby are now officially supported clients.
 - Added ``sentry repair``.
 
-Version 4.0.0
--------------
+v4.0.0
+------
 
 Introducing Teams!
 
@@ -1892,22 +1920,22 @@ Additional changes:
 - Legacy data format is no longer supported (pre-Raven 1.x)
 - API will now validate data before sending it into the queue, enabling better debugging for clients.
 
-Version 3.8.0
--------------
+v3.8.0
+------
 
 Plugins are now configurable per-project. This makes it easy to install a plugin globally
 and allow it to run only on selective projects.
 
-Version 3.7.0
--------------
+v3.7.0
+------
 
 Several minor fixes, as well as a backwards incompatible change with filters.
 
 All filters must now accept the project argument in the initializer. The signature is
 now __init__(request, project).
 
-Version 3.6.0
--------------
+v3.6.0
+------
 
 This version focuses on improving membership control. It includes the ability to revoke
 project members access temporarily (by suspending them), as well as revoking users
@@ -1918,8 +1946,8 @@ invite users who may or may not already have accounts in the system. We plan to 
 this flow in an upcoming release to allow invitees easy registration within the system
 if they don't already have an account.
 
-Version 3.5.0
--------------
+v3.5.0
+------
 
 Several improvements and additions have been made around the administration, including
 performance improvements.
@@ -1927,23 +1955,23 @@ performance improvements.
 If you're utilizing the queue, the installation guide now recommends you switch off the
 database backend, and move to something more efficient (such as Redis).
 
-Version 3.4.0
--------------
+v3.4.0
+------
 
 Eventlet is no longer used as the default worker for gunicorn, and thus is no longer
 installed by default. If you're using the udp worker, or ``send_fake_data`` you MUST
 install eventlet yourself. The recommended worker class for gunicorn is now ``gevent``
 as it corrects some issues with async queries in psycopg2.
 
-Version 3.3.0
--------------
+v3.3.0
+------
 
 The queue has been changed from direct Kombu, to utilizing Celery entirely. If you were
 already using the queue, the upgrade simply requires you to change "sentry start worker"
 to "sentry celeryd".
 
-Version 3.0.0
--------------
+v3.0.0
+------
 
 Version 3 of Sentry is centered around a restructure of the internal services and
 the architecture for running those. It also includes improvements to the plugin architecture.
@@ -1961,36 +1989,36 @@ if you were doing ``sentry start --config...`` the command would now be changed 
 * The plugin interface (IPlugin) is now documented.
 * It is now recommended that clients allow the Sentry server to compute checksums.
 
-Version 2.9.0
--------------
+v2.9.0
+------
 
 * Plugins must now behave as singletons and be registered with a newly provided
   sentry.plugins.@register decorator.
 * The Bugzilla and Redmine extensions are no longer part of Sentry core.
 * Added a global overview of projects to the administration.
 
-Version 2.8.0
--------------
+v2.8.0
+------
 
 * Added an Account Settings panel which allows users to change their name,
   email, and password.
 * The default Sentry server now correctly wraps itself in its own middleware.
 * Improved Real-time JavaScript.
 
-Version 2.7.0
--------------
+v2.7.0
+------
 
 * Added first_seen and last_seen to all message filter values.
 * Added a new "since" option to the dashboard with a default value of 3 days.
 
-Version 2.6.0
--------------
+v2.6.0
+------
 
 * The built-in webserver is now powered by gunicorn.
 * Cleaned up several admin pages and split them into sub-pages.
 
-Version 2.5.0
--------------
+v2.5.0
+------
 
 * Corrected some queue behavior.
 * Resolve Feed now only resolves items active within current filters.
@@ -1998,59 +2026,59 @@ Version 2.5.0
 * Ensure client side requests run checks on HTTP_REFERER
 * Adjust documentation for service settings.
 
-Version 2.4.5
--------------
+v2.4.5
+------
 
 * Corrected indexing behavior to handle non strings.
 * If queuing is enabled the indexer will now queue it's jobs.
 * Moved group creation into a transaction.
 
-Version 2.4.4
--------------
+v2.4.4
+------
 
 * Mail configuration value of send_to now correctly uses ',' as a separator
   (rather than ';').
 * Changed rendering of sidebar widgets for all builtin extensions.
 * Added an event details slot to the sidebar pane for individual events.
 
-Version 2.4.3
--------------
+v2.4.3
+------
 
 * Correct some behavior with MySQL on the groups pane.
 * Correct generated configuration behavior to use absolute
   paths for run and log folders.
 
-Version 2.4.2
--------------
+v2.4.2
+------
 
 * Include DSN and member type on projects list grid.
 
-Version 2.4.1
--------------
+v2.4.1
+------
 
 * Change appearance of resolve states.
 * Adjust user management to link username (which is required) and not
   optional fields.
 
-Version 2.4.0
--------------
+v2.4.0
+------
 
 * Added user management for admins.
 * Resolved events should now appear differently.
 * Default membership access is now configurable.
 
-Version 2.3.2
--------------
+v2.3.2
+------
 
 * Maintaining *some* level of support for SQLite.
 
-Version 2.3.1
--------------
+v2.3.1
+------
 
 * Correct rendering of sites, urls, and servers on details panes.
 
-Version 2.3.0
--------------
+v2.3.0
+------
 
 * The polling API and JavaScript have been refactored.
 
@@ -2062,14 +2090,14 @@ Version 2.3.0
 * Sampling rates are now configurable.
 * Some minor design tweaks.
 
-Version 2.2.5
--------------
+v2.2.5
+------
 
 * The \|date filter now forces things to UTC (it assumes local time).
 * Event templates have been updated to resemble groups.
 
-Version 2.2.4
--------------
+v2.2.4
+------
 
 * Improve error logging in API.
 * Update Celery client code to use new send_encoded interfaces.
@@ -2080,15 +2108,15 @@ Version 2.2.4
 * Adjust default configuration to specify LOG and RUN directories.
 * upgrade now correctly handles the delete ghosts argument.
 
-Version 2.2.3
--------------
+v2.2.3
+------
 
 * Lower font size of counts on event list.
 * Align actions to right side (vertical).
 * Fix issue with long filters not transforming to selects.
 
-Version 2.2.2
--------------
+v2.2.2
+------
 
 * Corrected event_id key to contain (project_id, event_id).
 * Adjusted project form to default the user to the current user
@@ -2096,19 +2124,19 @@ Version 2.2.2
 * Change sentry admin to be /manage/ to avoid any unintentional
   conflict with the Django admin.
 
-Version 2.2.1
--------------
+v2.2.1
+------
 
 * Cleaned up several pages.
 
-Version 2.2.0
--------------
+v2.2.0
+------
 
 * Sentry has a brand new design utilizing Bootstrap 2.
 * Superusers can now create projects for users.
 
-Version 2.1.3
--------------
+v2.1.3
+------
 
 * Ensure we truncate tokens to 128 characters for SearchDocument.
 * Gracefully handle errors with indexing.
@@ -2116,19 +2144,19 @@ Version 2.1.3
 * Gracefully handle errors with regression_signal.
 * Fixed priority sort option not activating.
 
-Version 2.1.2
--------------
+v2.1.2
+------
 
 * Fixed an issue that was causing signals to not be registered.
 * Made date the default sort order for aggregate stream.
 
-Version 2.1.1
--------------
+v2.1.1
+------
 
 * Fixed an issue with indexing pre and post context on templates.
 
-Version 2.1.0
--------------
+v2.1.0
+------
 
 * ``pytz`` is now a requirement.
 * Changed default TIME_ZONE to be "UTC".
@@ -2139,16 +2167,16 @@ Version 2.1.0
 * Changed ProjectMember.get_dsn() to use request.get_host() which
   corrects a bug in some webservers.
 
-Version 2.0.2
--------------
+v2.0.2
+------
 
 * ``start`` no longer performs ``upgrade`` as its problematic.
 * Initial queue usage (optional).
 * Fix reference to bookmark_querystring.
 * Added DSN to project member details page.
 
-Version 2.0.1
--------------
+v2.0.1
+------
 
 * Skip logging of south in default server configuration as it proves to be problematic.
 * Remove use of deprecated logging handler in default server configuration.
@@ -2159,8 +2187,8 @@ Version 2.0.1
 * Gracefully handle rendering errors with interfaces.
 * Correct a bug with default email options.
 
-Version 2.0
------------
+v2.0
+----
 
 Sentry 2.0 is a major release which contains many new features as well as some large
 rearchitecting of the codebase.
@@ -2187,91 +2215,91 @@ to test your extensions before upgrading.
 * Added ``sentry manage`` command.
 * Sentry now has its own isolated queues (using Kombu).
 
-Version 1.13.5
---------------
+v1.13.5
+-------
 
 * Level filters are now precise (they no longer show their level + messages from higher levels).
 
-Version 1.13.4
---------------
+v1.13.4
+-------
 
 * Updated message details page to resemble look and feel of group details.
 
-Version 1.13.3
---------------
+v1.13.3
+-------
 
 * Added back in the "raw traceback" view.
 
-Version 1.13.2
---------------
+v1.13.2
+-------
 
 * Counts will now render differently with large values (e.g. 13000 will now be 13k)
 
-Version 1.13.1
---------------
+v1.13.1
+-------
 
 * Search by message_id will now display a list of results if there are multiple matches.
 
-Version 1.13.0
---------------
+v1.13.0
+-------
 
 * Deprecated the Sentry client, and added Raven to the as the default builtin.
 * Removed Highstock and replaced it with an awesome OPEN SOURCE alternative, jQuery Flot.
 * Default Sentry server options should now work out of the box.
 * Packaged Google Web Font as part of Sentry.
 
-Version 1.12.2
---------------
+v1.12.2
+-------
 
 * Fixed infinite loop.
 
-Version 1.12.1
---------------
+v1.12.1
+-------
 
 * Stabilize migration schema (solves problem with index creation fail introduced in 1.12.0).
 
-Version 1.12.0
---------------
+v1.12.0
+-------
 
 * Adjusted message_id to include the checksum to avoid situations were the message_id
   that was generated did not exist due to sampling.
 
-Version 1.11.4
---------------
+v1.11.4
+-------
 
 * Several design improvements for group/message details panes.
 
-Version 1.11.3
---------------
+v1.11.3
+-------
 
 * Fixed a bug that was causing exception summary to not show.
 
-Version 1.11.2
---------------
+v1.11.2
+-------
 
 * Cleaned up message and group details pages (adding back some missing information).
 * Cleaned up some design around odd margins/padding.
 
-Version 1.11.1
---------------
+v1.11.1
+-------
 
 * Fixed a bug that would cause the admin (and potentially other modules) to get loaded multiple times.
 
-Version 1.11.0
---------------
+v1.11.0
+-------
 
 * Added license headers.
 * Removed ``sentry.helpers`` and ``sentry.routers``.
 * Global module versions are now cached to avoid continuous path walking and
   import overhead.
 
-Version 1.10.1
---------------
+v1.10.1
+-------
 
 * Fixed an issue that was causing servers to show logger names.
 
-Version 1.10.0
---------------
+v1.10.0
+-------
 
 * You can now pass ``extra={'stack': True}`` to logging methods to capture
   the current frames and their locals.
@@ -2289,32 +2317,32 @@ Version 1.10.0
   stacktraces to ignore the ``message`` and line numbers.
 * Much improved test coverage.
 
-Version 1.9.0
--------------
+v1.9.0
+------
 
 * Load the Frequency chart asynchronously.
 * Frequency chart no longer shows for SQLite.
 * Switch graphing library to Highstock from Highcharts.
 
-Version 1.8.10
---------------
+v1.8.10
+-------
 
 * Ensure dictionary keys are coerced to strings.
 * Fixed path to missing_permissions.html.
 
-Version 1.8.9
--------------
+v1.8.9
+------
 
 * Safely handle unpickling objects that may not have been stored in a
   valid format.
 
-Version 1.8.8
--------------
+v1.8.8
+------
 
 * Changed ``sentry cleanup`` to use a range query.
 
-Version 1.8.7
--------------
+v1.8.7
+------
 
 * Added "Clear Feed" option.
 * Version information will be read from pkg_resources if possible.
@@ -2324,61 +2352,61 @@ Version 1.8.7
 * Added support for Django's LOGIN_URL setting.
 * Fixed a memory leak in the client (thanks to Ben Bangert).
 
-Version 1.8.6.2
----------------
+v1.8.6.2
+--------
 
 * Reverted change which required distribute.
 * Cleaned up configuration defaults.
 
-Version 1.8.6.1
----------------
+v1.8.6.1
+--------
 
 * Include distribute_setup.py in the MANIFEST to ship it in sdists.
 
-Version 1.8.6
--------------
+v1.8.6
+------
 
 * Corrected an issue which was causing certain settings (like WEB_HOST) to
   not take affect in custom configuration files.
 * The Sentry server will now pull in default server settings, as well as
   ~/.sentry/sentry.conf.py if --config is not passed to it.
 
-Version 1.8.5.1
----------------
+v1.8.5.1
+--------
 
 * Fixed a bug which caused thrashing prevention to not function correctly.
 * Corrected an error in transform()'s recursion safety.
 * Changed packaging to use Distribute.
 
-Version 1.8.5
--------------
+v1.8.5
+------
 
 * Pulled test suite out of the Sentry namespace to avoid conflicts in projects.
 
-Version 1.8.4.2
----------------
+v1.8.4.2
+--------
 
 * Added missing invalid_message_id template.
 
-Version 1.8.4.1
----------------
+v1.8.4.1
+--------
 
 * Fixed an error that was causing LOG_LEVELS to not display correctly.
 
-Version 1.8.4
--------------
+v1.8.4
+------
 
 * The Sentry base client will now pass along the timestamp from when the
   message was generated.
 
-Version 1.8.3.1
----------------
+v1.8.3.1
+--------
 
 * Fixed a case where the client may hit a transaction aborted error when
   transforming variables.
 
-Version 1.8.3
--------------
+v1.8.3
+------
 
 * Added several settings which were Django specific so that they can be
   configured isolated to the Sentry instance.
@@ -2387,33 +2415,33 @@ Version 1.8.3
 * Better rendering of non-dict variables when passed within extra data.
 * Graceful failover for searching on message_id's that aren't found.
 
-Version 1.8.0
--------------
+v1.8.0
+------
 
 * Refactored Sentry server to run standalone (sentry --help).
 
-Version 1.7.5
--------------
+v1.7.5
+------
 
 * Implemented new client/server storage API and signing methods.
 * Fixed a bug where accessing __sentry__ would sometimes cause errors on
   certain code paths.
 
-Version 1.7.4
--------------
+v1.7.4
+------
 
 * Fixed a bug with potential recursion issues.
 * Fixed a bug with the storage API and unicode keys.
 
-Version 1.7.3
--------------
+v1.7.3
+------
 
 * Storage API has better responses when data fails to decode, or
   you send a bad request.
 * Documentation improvements for JSON storage API.
 
-Version 1.7.2
--------------
+v1.7.2
+------
 
 * All strings, lists, tuples, and sets are now shortened before sending
   to the server. Iterable data structures are truncated to the first
@@ -2421,13 +2449,13 @@ Version 1.7.2
 
   Both shorteners have configurable values in the settings.
 
-Version 1.7.1
--------------
+v1.7.1
+------
 
 * Fixed a bug that slipped through with blocktrans usage.
 
-Version 1.7.0
--------------
+v1.7.0
+------
 
 * Added ``score`` to ``GroupedMessage`` (schema change).
 * Added ``MessageIndex`` (schema change).
@@ -2442,30 +2470,30 @@ Version 1.7.0
 * Respect TIME_ZONE by using auto_now_* on DateTimeField's.
 * Tests required Haystack and Celery are now skipped if module is not found.
 
-Version 1.6.10
---------------
+v1.6.10
+-------
 
 * Added JSON support to storage API.
 * Changed default client to use JSON format.
 
-Version 1.6.9.1
----------------
+v1.6.9.1
+--------
 
 * Fixed an issue with encoding to UTF-8 for Haystack.
 
-Version 1.6.9
--------------
+v1.6.9
+------
 
 * Added URLs to default search parameters.
 * Fixed a bug to ensure template information is only added if its the correct loader
 
-Version 1.6.8.1
----------------
+v1.6.8.1
+--------
 
 * Search will now show when unauthenticated (e.g. when SENTRY_PUBLIC is enabled)
 
-Version 1.6.8
--------------
+v1.6.8
+------
 
 * Search no longer allows filters.
 * Search no longer allows arbitrary queries without Haystack.
@@ -2473,46 +2501,46 @@ Version 1.6.8
 * Haystack has been updated for further flexibility.
 * SearchFilter is now unused (you should update your configs).
 
-Version 1.6.7
--------------
+v1.6.7
+------
 
 * Moved static media into /static/.
 * Added serve_static view to handle static media solely within Sentry.
 * Added SENTRY_STATIC_URL_PREFIX setting.
 
-Version 1.6.6
--------------
+v1.6.6
+------
 
 * setup.py install will no longer install example_project.
 * Fixed an issue where __sentry__ would be called even if it wasn't a callable.
 * Fixed an issue where transactions would attempt a rollback when not managed while creating
   the sort index.
 
-Version 1.8.8
--------------
+v1.8.8
+------
 
 * Set a last_message_id so when thrashing is hit there is still a point of reference for tracing.
 * Check correct permissions for Sentry.
 
-Version 1.6.4
--------------
+v1.6.4
+------
 
 * Fixed a memory leak due to TextNode's being created from leading whitespace in realtime packets.
 
-Version 1.6.3
--------------
+v1.6.3
+------
 
 * Fixed a critical bug in the Sentry JS namespace preventing it from loading.
 
-Version 1.6.2
--------------
+v1.6.2
+------
 
 * LogHandler will attempt to pick up the request automatically using SentryLogMiddleware.
 * Updated AJAX CSRF support for Django 1.2.5.
 * request.sentry is now set in any event which has request as part of the parameters.
 
-Version 1.6.0
--------------
+v1.6.0
+------
 
 * Added message references (uuid's) as message_id in Message
 * Fixed css compatibility issues with TextWidget

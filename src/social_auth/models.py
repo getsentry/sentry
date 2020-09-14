@@ -7,7 +7,7 @@ import six
 from datetime import datetime, timedelta
 from django.conf import settings
 from django.db import models
-from django.db.models.loading import get_model
+from django.apps import apps
 
 from .fields import JSONField
 from .utils import setting
@@ -15,39 +15,36 @@ from .utils import setting
 
 AUTH_USER_MODEL = settings.AUTH_USER_MODEL
 
-UID_LENGTH = setting('SOCIAL_AUTH_UID_LENGTH', 255)
-NONCE_SERVER_URL_LENGTH = setting('SOCIAL_AUTH_NONCE_SERVER_URL_LENGTH', 255)
-ASSOCIATION_SERVER_URL_LENGTH = setting(
-    'SOCIAL_AUTH_ASSOCIATION_SERVER_URL_LENGTH',
-    255
-)
-ASSOCIATION_HANDLE_LENGTH = setting(
-    'SOCIAL_AUTH_ASSOCIATION_HANDLE_LENGTH',
-    255
-)
+UID_LENGTH = setting("SOCIAL_AUTH_UID_LENGTH", 255)
+NONCE_SERVER_URL_LENGTH = setting("SOCIAL_AUTH_NONCE_SERVER_URL_LENGTH", 255)
+ASSOCIATION_SERVER_URL_LENGTH = setting("SOCIAL_AUTH_ASSOCIATION_SERVER_URL_LENGTH", 255)
+ASSOCIATION_HANDLE_LENGTH = setting("SOCIAL_AUTH_ASSOCIATION_HANDLE_LENGTH", 255)
 
-CLEAN_USERNAME_REGEX = re.compile(r'[^\w.@+-_]+', re.UNICODE)
+CLEAN_USERNAME_REGEX = re.compile(r"[^\w.@+-_]+", re.UNICODE)
 
 
 class UserSocialAuth(models.Model):
     """Social Auth association model"""
-    user = models.ForeignKey(AUTH_USER_MODEL, related_name='social_auth')
+
+    user = models.ForeignKey(AUTH_USER_MODEL, related_name="social_auth")
     provider = models.CharField(max_length=32)
     uid = models.CharField(max_length=UID_LENGTH)
-    extra_data = JSONField(default='{}')
+    extra_data = JSONField(default="{}")
 
     class Meta:
         """Meta data"""
-        unique_together = ('provider', 'uid', 'user')
-        app_label = 'social_auth'
+
+        unique_together = ("provider", "uid", "user")
+        app_label = "social_auth"
 
     def __unicode__(self):
         """Return associated user unicode representation"""
-        return u'%s - %s' % (six.text_type(self.user), self.provider.title())
+        return u"%s - %s" % (six.text_type(self.user), self.provider.title())
 
     def get_backend(self):
         # Make import here to avoid recursive imports :-/
         from social_auth.backends import get_backends
+
         return get_backends().get(self.provider)
 
     @property
@@ -61,31 +58,28 @@ class UserSocialAuth(models.Model):
 
     def revoke_token(self, drop_token=True):
         """Attempts to revoke permissions for provider."""
-        if 'access_token' in self.tokens:
-            success = self.get_backend().revoke_token(
-                self.tokens['access_token'],
-                self.uid
-            )
+        if "access_token" in self.tokens:
+            success = self.get_backend().revoke_token(self.tokens["access_token"], self.uid)
             if success and drop_token:
-                self.extra_data.pop('access_token', None)
+                self.extra_data.pop("access_token", None)
                 self.save()
 
     def refresh_token(self):
-        refresh_token = self.extra_data.get('refresh_token')
+        refresh_token = self.extra_data.get("refresh_token")
         if refresh_token:
             backend = self.get_backend()
-            if hasattr(backend, 'refresh_token'):
+            if hasattr(backend, "refresh_token"):
                 response = backend.refresh_token(refresh_token, self.provider)
-                new_access_token = response.get('access_token')
+                new_access_token = response.get("access_token")
                 # We have not got a new access token, so don't lose the
                 # existing one.
                 if not new_access_token:
                     return
-                self.extra_data['access_token'] = new_access_token
+                self.extra_data["access_token"] = new_access_token
                 # New refresh token might be given.
-                new_refresh_token = response.get('refresh_token')
+                new_refresh_token = response.get("refresh_token")
                 if new_refresh_token:
-                    self.extra_data['refresh_token'] = new_refresh_token
+                    self.extra_data["refresh_token"] = new_refresh_token
                 self.save()
 
     def expiration_datetime(self):
@@ -96,9 +90,9 @@ class UserSocialAuth(models.Model):
         timedelta is inferred from current time (using UTC timezone). None is
         returned if there's no value stored or it's invalid.
         """
-        if self.extra_data and 'expires' in self.extra_data:
+        if self.extra_data and "expires" in self.extra_data:
             try:
-                expires = int(self.extra_data['expires'])
+                expires = int(self.extra_data["expires"])
             except (ValueError, TypeError):
                 return None
 
@@ -114,25 +108,25 @@ class UserSocialAuth(models.Model):
 
     @classmethod
     def clean_username(cls, value):
-        return CLEAN_USERNAME_REGEX.sub('', value)
+        return CLEAN_USERNAME_REGEX.sub("", value)
 
     @classmethod
     def user_username(cls, user):
-        if hasattr(user, 'USERNAME_FIELD'):
+        if hasattr(user, "USERNAME_FIELD"):
             # Django 1.5 custom user model, 'username' is just for internal
             # use, doesn't imply that the model should have an username field
             field_name = user.USERNAME_FIELD
         else:
-            field_name = 'username'
+            field_name = "username"
         return getattr(user, field_name)
 
     @classmethod
     def username_field(cls, values):
         user_model = cls.user_model()
-        if hasattr(user_model, 'USERNAME_FIELD'):
+        if hasattr(user_model, "USERNAME_FIELD"):
             # Django 1.5 custom user model, 'username' is just for internal
             # use, doesn't imply that the model should have an username field
-            values[user_model.USERNAME_FIELD] = values.pop('username')
+            values[user_model.USERNAME_FIELD] = values.pop("username")
         return values
 
     @classmethod
@@ -183,11 +177,7 @@ class UserSocialAuth(models.Model):
     @classmethod
     def get_social_auth(cls, provider, uid, user):
         try:
-            instance = cls.objects.get(
-                provider=provider,
-                uid=uid,
-                user=user,
-            )
+            instance = cls.objects.get(provider=provider, uid=uid, user=user)
             instance.user = user
             return instance
         except UserSocialAuth.DoesNotExist:
@@ -195,11 +185,11 @@ class UserSocialAuth(models.Model):
 
     @classmethod
     def username_max_length(cls):
-        return cls._field_length('USERNAME_FIELD', 'username')
+        return cls._field_length("USERNAME_FIELD", "username")
 
     @classmethod
     def email_max_length(cls):
-        return cls._field_length('EMAIL_FIELD', 'email')
+        return cls._field_length("EMAIL_FIELD", "email")
 
     @classmethod
     def _field_length(self, setting_name, default_name):
@@ -209,4 +199,4 @@ class UserSocialAuth(models.Model):
 
     @classmethod
     def user_model(cls):
-        return get_model(*AUTH_USER_MODEL.split('.'))
+        return apps.get_model(*AUTH_USER_MODEL.split("."))

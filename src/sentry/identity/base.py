@@ -1,22 +1,8 @@
 from __future__ import absolute_import, print_function
 
 import logging
-from collections import namedtuple
 
 from sentry.pipeline import PipelineProvider
-
-
-class MigratingIdentityId(namedtuple('MigratingIdentityId', ['id', 'legacy_id'])):
-    """
-    MigratingIdentityId may be used in the ``id`` field of an identity
-    dictionary to facilitate migrating user identites from one identifying id
-    to another.
-    """
-    __slots__ = ()
-
-    def __unicode__(self):
-        # Default to id when coercing for query lookup
-        return self.id
 
 
 class Provider(PipelineProvider):
@@ -32,7 +18,7 @@ class Provider(PipelineProvider):
 
     def __init__(self, **config):
         self.config = config
-        self.logger = logging.getLogger(u'sentry.identity.%s'.format(self.key))
+        self.logger = logging.getLogger(u"sentry.identity.%s".format(self.key))
 
     def build_identity(self, state):
         """
@@ -44,7 +30,7 @@ class Provider(PipelineProvider):
         >>>     "id":     "foo@example.com",
         >>>     "email":  "foo@example.com",
         >>>     "name":   "Foo Bar",
-        >>>     "scopes": ['emaill', ...],
+        >>>     "scopes": ['email', ...],
         >>>     "data":   { ... },
         >>> }
 

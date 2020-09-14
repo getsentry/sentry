@@ -4,6 +4,7 @@ jest.unmock('app/utils/recreateRoute');
 
 const routes = [
   {path: '/', childRoutes: []},
+  {childRoutes: []},
   {path: '/settings/', name: 'Settings'},
   {name: 'Organizations', path: ':orgId/', childRoutes: []},
   {childRoutes: []},
@@ -12,6 +13,7 @@ const routes = [
 
 const projectRoutes = [
   {path: '/', childRoutes: []},
+  {childRoutes: []},
   {path: '/settings/', name: 'Settings', indexRoute: {}, childRoutes: []},
   {name: 'Organizations', path: ':orgId/', childRoutes: []},
   {name: 'Projects', path: ':projectId/', childRoutes: []},
@@ -29,13 +31,34 @@ const location = {
 
 describe('recreateRoute', function() {
   it('returns correct path to a route object', function() {
-    expect(recreateRoute(routes[4], {routes, params})).toBe(
+    expect(recreateRoute(routes[0], {routes, params})).toBe('/');
+    expect(recreateRoute(routes[1], {routes, params})).toBe('/');
+    expect(recreateRoute(routes[2], {routes, params})).toBe('/settings/');
+    expect(recreateRoute(routes[3], {routes, params})).toBe('/settings/org-slug/');
+    expect(recreateRoute(routes[4], {routes, params})).toBe('/settings/org-slug/');
+    expect(recreateRoute(routes[5], {routes, params})).toBe(
       '/settings/org-slug/api-keys/'
     );
 
     expect(
-      recreateRoute(projectRoutes[4], {routes: projectRoutes, location, params})
+      recreateRoute(projectRoutes[5], {routes: projectRoutes, location, params})
     ).toBe('/settings/org-slug/project-slug/alerts/');
+  });
+
+  it('has correct path with route object with many roots (starts with "/")', function() {
+    const r = [
+      {path: '/', childRoutes: []},
+      {childRoutes: []},
+      {path: '/foo/', childRoutes: []},
+      {childRoutes: []},
+      {path: 'bar', childRoutes: []},
+      {path: '/settings/', name: 'Settings'},
+      {name: 'Organizations', path: ':orgId/', childRoutes: []},
+      {childRoutes: []},
+      {path: 'api-keys/', name: 'API Key'},
+    ];
+
+    expect(recreateRoute(r[4], {routes: r, params})).toBe('/foo/bar');
   });
 
   it('returns correct path to a string (at the end of the routes)', function() {
@@ -50,12 +73,8 @@ describe('recreateRoute', function() {
     );
   });
 
-  it('stepBack needs to be less than 0', function() {
-    expect(() => recreateRoute('', {routes, location, params, stepBack: 0})).toThrow();
-  });
-
   it('switches to new org but keeps current route', function() {
-    expect(recreateRoute(routes[4], {routes, location, params: {orgId: 'new-org'}})).toBe(
+    expect(recreateRoute(routes[5], {routes, location, params: {orgId: 'new-org'}})).toBe(
       '/settings/new-org/api-keys/'
     );
   });
@@ -65,7 +84,7 @@ describe('recreateRoute', function() {
       search: '?key1=foo&key2=bar',
     };
 
-    expect(recreateRoute(routes[4], {routes, params, location: withSearch})).toBe(
+    expect(recreateRoute(routes[5], {routes, params, location: withSearch})).toBe(
       '/settings/org-slug/api-keys/?key1=foo&key2=bar'
     );
   });

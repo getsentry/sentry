@@ -37,7 +37,13 @@
     <h2>Sentry Integration Configuration</h2>
     {% if login_required %}
       <div class="aui-message aui-message-info">
-        <p>Please login to your Sentry account to access the Sentry Add-on configuration</p>
+        <p>Please login to your Sentry account to access the Sentry Add-on configuration.</p>
+        {% if is_safari %}
+          <p>You may also need to <a href="https://www.whatismybrowser.com/guides/how-to-enable-cookies/safari"  target="_blank">enable 3rd-party cookies in your browser.</a></p>
+        {% else %}
+          <p>You may also need to enable 3rd-party cookies in your browser.</p>
+        {% endif %}
+        <p>You must disable your ad-blocker to install this integration, as it relies on 3rd-party cookies.</p>
       </div>
       <div class="signin">
         <a class="aui-button aui-button-default" href="{{ login_url }}" target="_blank">
@@ -57,8 +63,8 @@
             </p>
             <p>
               The Sentry Jira integration is now enabled for the selected
-              organizations. Return to your sentry organization to configure the Jira
-              integration for your organization.
+              organizations. Return to your Sentry organization to finish configuring the
+              integration.
             </p>
           </div>
         {% endif %}
@@ -81,7 +87,7 @@
           </form>
         {% elif not completed %}
           <div class="aui-message aui-message-warning">
-            <p>You must have Owner or Manager permissions in Sentry to complete setup.</p>
+            <p>You must be an organization owner or manager in Sentry to complete setup.</p>
           </div>
         {% endif %}
 

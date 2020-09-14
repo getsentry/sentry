@@ -1,22 +1,22 @@
-import {debounce} from 'lodash';
+import debounce from 'lodash/debounce';
 import PropTypes from 'prop-types';
 import React from 'react';
 import keydown from 'react-keydown';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {analytics} from 'app/utils/analytics';
 import {inputStyles} from 'app/styles/input';
 import {t, tct} from 'app/locale';
 import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import ExternalLink from 'app/components/externalLink';
-import InlineSvg from 'app/components/inlineSvg';
-import ListLink from 'app/components/listLink';
+import ExternalLink from 'app/components/links/externalLink';
+import ListLink from 'app/components/links/listLink';
 import NavTabs from 'app/components/navTabs';
-import PlatformIconTile from 'app/components/platformIconTile';
+import PlatformIcon from 'app/components/platformIcon';
 import categoryList from 'app/data/platformCategories';
 import platforms from 'app/data/platforms';
 import space from 'app/styles/space';
+import {IconClose, IconSearch, IconProject} from 'app/icons';
 
 const PLATFORM_CATEGORIES = categoryList.concat({id: 'all', name: t('All')});
 
@@ -25,19 +25,19 @@ class PlatformPicker extends React.Component {
     setPlatform: PropTypes.func.isRequired,
     platform: PropTypes.string,
     showOther: PropTypes.bool,
+    listClassName: PropTypes.string,
+    listProps: PropTypes.object,
+    noAutoFilter: PropTypes.bool,
   };
 
   static defaultProps = {
     showOther: true,
   };
 
-  constructor(props, ...args) {
-    super(props, ...args);
-    this.state = {
-      category: PLATFORM_CATEGORIES[0].id,
-      filter: props.platform?.split('-')[0],
-    };
-  }
+  state = {
+    category: PLATFORM_CATEGORIES[0].id,
+    filter: this.props.noAutoFilter ? '' : (this.props.platform || '').split('-')[0],
+  };
 
   get platformList() {
     const {category} = this.state;
@@ -73,7 +73,7 @@ class PlatformPicker extends React.Component {
 
   render() {
     const platformList = this.platformList;
-    const {setPlatform} = this.props;
+    const {setPlatform, listProps, listClassName} = this.props;
     const {filter, category} = this.state;
 
     return (
@@ -96,7 +96,7 @@ class PlatformPicker extends React.Component {
             ))}
           </CategoryNav>
           <SearchBar>
-            <InlineSvg src="icon-search" />
+            <IconSearch size="xs" />
             <input
               type="text"
               ref={this.searchInput}
@@ -107,7 +107,7 @@ class PlatformPicker extends React.Component {
             />
           </SearchBar>
         </NavContainer>
-        <PlatformList>
+        <PlatformList className={listClassName} {...listProps}>
           {platformList.map(platform => (
             <PlatformCard
               data-test-id={`platform-${platform.id}`}
@@ -118,7 +118,7 @@ class PlatformPicker extends React.Component {
                 setPlatform('');
                 e.stopPropagation();
               }}
-              onClick={e => {
+              onClick={() => {
                 analytics('platformpicker.select_platform', {platform: platform.id});
                 setPlatform(platform.id);
               }}
@@ -127,7 +127,7 @@ class PlatformPicker extends React.Component {
         </PlatformList>
         {platformList.length === 0 && (
           <EmptyMessage
-            icon="icon-project"
+            icon={<IconProject size="xl" />}
             title={t("We don't have an SDK for that yet!")}
           >
             {tct(
@@ -160,7 +160,7 @@ const NavContainer = styled('div')`
 const SearchBar = styled('div')`
   ${inputStyles};
   padding: 0 8px;
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
   display: flex;
   align-items: center;
   font-size: 15px;
@@ -170,6 +170,8 @@ const SearchBar = styled('div')`
     background: none;
     padding: 2px 4px;
     width: 100%;
+    /* Ensure a consistent line height to keep the input the desired height */
+    line-height: 24px;
 
     &:focus {
       outline: none;
@@ -186,9 +188,10 @@ const PlatformList = styled('div')`
   display: grid;
   grid-gap: ${space(1)};
   grid-template-columns: repeat(auto-fill, 112px);
+  margin-bottom: ${space(2)};
 `;
 
-const StyledPlatformIconTile = styled(PlatformIconTile)`
+const StyledPlatformIcon = styled(PlatformIcon)`
   width: 56px;
   height: 56px;
   font-size: 42px;
@@ -199,7 +202,7 @@ const StyledPlatformIconTile = styled(PlatformIconTile)`
 `;
 
 const ClearButton = styled(p => (
-  <Button {...p} icon="icon-circle-close" size="xsmall" borderless />
+  <Button {...p} icon={<IconClose isCircled size="xs" />} size="xsmall" borderless />
 ))`
   position: absolute;
   top: -6px;
@@ -208,12 +211,13 @@ const ClearButton = styled(p => (
   width: 22px;
   border-radius: 50%;
   background: #fff;
-  color: ${p => p.theme.gray4};
+  color: ${p => p.theme.gray700};
 `;
 
 const PlatformCard = styled(({platform, selected, onClear, ...props}) => (
   <div {...props}>
-    <StyledPlatformIconTile platform={platform.id} />
+    <StyledPlatformIcon platform={platform.id} size="lg" />
+
     <h3>{platform.name}</h3>
     {selected && <ClearButton onClick={onClear} />}
   </div>
@@ -228,7 +232,7 @@ const PlatformCard = styled(({platform, selected, onClear, ...props}) => (
   background: ${p => p.selected && '#ecf5fd'};
 
   &:hover {
-    background: #f7f5fa;
+    background: #ebebef;
   }
 
   h3 {

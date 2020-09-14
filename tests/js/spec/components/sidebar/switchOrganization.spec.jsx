@@ -1,6 +1,7 @@
 import React from 'react';
 
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
+
 import {SwitchOrganization} from 'app/components/sidebar/sidebarDropdown/switchOrganization';
 
 describe('SwitchOrganization', function() {
@@ -9,7 +10,7 @@ describe('SwitchOrganization', function() {
 
   it('can list organizations', function() {
     jest.useFakeTimers();
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <SwitchOrganization
         organizations={[organization, TestStubs.Organization({slug: 'org2'})]}
       />,
@@ -26,7 +27,7 @@ describe('SwitchOrganization', function() {
 
   it('shows "Create an Org" if they have permission', function() {
     jest.useFakeTimers();
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <SwitchOrganization
         organizations={[organization, TestStubs.Organization({slug: 'org2'})]}
         canCreateOrganization
@@ -45,7 +46,7 @@ describe('SwitchOrganization', function() {
 
   it('does not have "Create an Org" if they do not have permission', function() {
     jest.useFakeTimers();
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <SwitchOrganization
         organizations={[organization, TestStubs.Organization({slug: 'org2'})]}
         canCreateOrganization={false}

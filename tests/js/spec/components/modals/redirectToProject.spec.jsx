@@ -1,8 +1,9 @@
 import {Modal} from 'react-bootstrap';
 import React from 'react';
 
+import {mountWithTheme} from 'sentry-test/enzyme';
+
 import {RedirectToProjectModal} from 'app/components/modals/redirectToProject';
-import {mount} from 'enzyme';
 
 jest.unmock('app/utils/recreateRoute');
 describe('RedirectToProjectModal', function() {
@@ -22,7 +23,7 @@ describe('RedirectToProjectModal', function() {
   });
 
   it('has timer to redirect to new slug after mounting', function() {
-    mount(
+    mountWithTheme(
       <RedirectToProjectModal
         routes={routes}
         params={{orgId: 'org-slug', projectId: 'project-slug'}}

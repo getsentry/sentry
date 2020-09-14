@@ -1,10 +1,3 @@
-"""
-sentry.models.authenticator
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2016 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
 from __future__ import absolute_import
 
 import os
@@ -12,6 +5,7 @@ import hmac
 import time
 import base64
 import hashlib
+from binascii import hexlify
 import six
 
 from u2flib_server import u2f
@@ -25,11 +19,16 @@ from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 from django.utils.functional import cached_property
 from django.core.urlresolvers import reverse
+from django.utils.encoding import force_bytes
 
 from sentry import options
 from sentry.db.models import (
-    BaseManager, BaseModel, BoundedAutoField, BoundedPositiveIntegerField,
-    EncryptedPickledObjectField, FlexibleForeignKey
+    BaseManager,
+    BaseModel,
+    BoundedAutoField,
+    BoundedPositiveIntegerField,
+    EncryptedPickledObjectField,
+    FlexibleForeignKey,
 )
 from sentry.utils.decorators import classproperty
 from sentry.utils.otp import generate_secret_key, TOTP
@@ -43,14 +42,14 @@ class ActivationResult(object):
 
 
 class ActivationMessageResult(ActivationResult):
-    def __init__(self, message, type='info'):
-        assert type in ('error', 'warning', 'info')
+    def __init__(self, message, type="info"):
+        assert type in ("error", "warning", "info")
         self.type = type
         self.message = message
 
 
 class ActivationChallengeResult(ActivationResult):
-    type = 'challenge'
+    type = "challenge"
 
     def __init__(self, challenge):
         self.challenge = challenge
@@ -118,12 +117,9 @@ class AuthenticatorManager(BaseManager):
         """
         interface = AUTHENTICATOR_INTERFACES.get(interface_id)
         if interface is None or not interface.is_available:
-            raise LookupError('No such interface %r' % interface_id)
+            raise LookupError("No such interface %r" % interface_id)
         try:
-            return Authenticator.objects.get(
-                user=user,
-                type=interface.type,
-            ).interface
+            return Authenticator.objects.get(user=user, type=interface.type).interface
         except Authenticator.DoesNotExist:
             return interface()
 
@@ -131,8 +127,7 @@ class AuthenticatorManager(BaseManager):
         """Checks if the user has any 2FA configured.
         """
         return Authenticator.objects.filter(
-            user=user,
-            type__in=[a.type for a in available_authenticators(ignore_backup=True)],
+            user=user, type__in=[a.type for a in available_authenticators(ignore_backup=True)]
         ).exists()
 
     def bulk_users_have_2fa(self, user_ids):
@@ -143,7 +138,9 @@ class AuthenticatorManager(BaseManager):
             Authenticator.objects.filter(
                 user__in=user_ids,
                 type__in=[a.type for a in available_authenticators(ignore_backup=True)],
-            ).distinct().values_list('user_id', flat=True)
+            )
+            .distinct()
+            .values_list("user_id", flat=True)
         )
         return {id: id in authenticators for id in user_ids}
 
@@ -173,9 +170,9 @@ class AuthenticatorInterface(object):
     name = None
     description = None
     is_backup_interface = False
-    enroll_button = _('Enroll')
-    configure_button = _('Info')
-    remove_button = _('Remove')
+    enroll_button = _("Enroll")
+    configure_button = _("Info")
+    remove_button = _("Remove")
     is_available = True
     allow_multi_enrollment = False
 
@@ -197,16 +194,18 @@ class AuthenticatorInterface(object):
         """If the interface has an activation method that needs to be
         called this returns `True`.
         """
-        return self.activate.im_func is not \
-            AuthenticatorInterface.activate.im_func
+        return self.activate.__func__ is not six.get_unbound_function(
+            AuthenticatorInterface.activate
+        )
 
     @property
     def can_validate_otp(self):
         """If the interface is able to validate OTP codes then this returns
         `True`.
         """
-        return self.validate_otp.im_func is not \
-            AuthenticatorInterface.validate_otp.im_func
+        return self.validate_otp.__func__ is not six.get_unbound_function(
+            AuthenticatorInterface.validate_otp
+        )
 
     @property
     def config(self):
@@ -217,7 +216,7 @@ class AuthenticatorInterface(object):
         """
         if self.authenticator is not None:
             return self.authenticator.config
-        rv = getattr(self, '_unbound_config', None)
+        rv = getattr(self, "_unbound_config", None)
         if rv is None:
             # Prevent bad recursion if stuff wants to access the default
             # config
@@ -244,9 +243,7 @@ class AuthenticatorInterface(object):
         """
         if self.authenticator is None:
             self.authenticator = Authenticator.objects.create(
-                user=user,
-                type=self.type,
-                config=self.config,
+                user=user, type=self.type, config=self.config
             )
         else:
             if not self.allow_multi_enrollment:
@@ -273,16 +270,17 @@ class AuthenticatorInterface(object):
 @register_authenticator
 class RecoveryCodeInterface(AuthenticatorInterface):
     """A backup interface that is based on static recovery codes."""
+
     type = 0
-    interface_id = 'recovery'
-    name = _('Recovery Codes')
+    interface_id = "recovery"
+    name = _("Recovery Codes")
     description = _(
-        'Recovery codes are the only way to access your account '
-        'if you lose your device and cannot receive two factor '
-        'authentication codes.'
+        "Recovery codes are the only way to access your account "
+        "if you lose your device and cannot receive two factor "
+        "authentication codes."
     )
-    enroll_button = _('Activate')
-    configure_button = _('View Codes')
+    enroll_button = _("Activate")
+    configure_button = _("View Codes")
     remove_button = None
     is_backup_interface = True
 
@@ -292,66 +290,53 @@ class RecoveryCodeInterface(AuthenticatorInterface):
     def get_codes(self):
         rv = []
         if self.is_enrolled:
-            h = hmac.new(
-                key=self.config['salt'].encode('utf-8'),
-                msg=None,
-                digestmod=hashlib.sha1,
-            )
+            h = hmac.new(key=force_bytes(self.config["salt"]), msg=None, digestmod=hashlib.sha1)
             for x in range(10):
-                h.update('%s|' % x)
+                h.update(("%s|" % x).encode("utf-8"))
                 rv.append(base64.b32encode(h.digest())[:8])
         return rv
 
     def generate_new_config(self):
-        if six.PY3:
-            salt = int(os.urandom(16).decode('utf-8'), 16)
-        else:
-            salt = os.urandom(16).encode('hex')
-
-        return {
-            'salt': salt,
-            'used': 0,
-        }
+        salt = hexlify(os.urandom(16))
+        return {"salt": salt, "used": 0}
 
     def regenerate_codes(self, save=True):
         if not self.is_enrolled:
-            raise RuntimeError('Interface is not enrolled')
+            raise RuntimeError("Interface is not enrolled")
         self.config.update(self.generate_new_config())
         self.authenticator.reset_fields(save=False)
         if save:
             self.authenticator.save()
 
     def validate_otp(self, otp):
-        mask = self.config['used']
-        code = otp.strip().replace('-', '').upper()
+        mask = self.config["used"]
+        code = otp.strip().replace("-", "").upper()
         for idx, ref_code in enumerate(self.get_codes()):
             if code == ref_code:
                 if mask & (1 << idx):
                     break
-                self.config['used'] = mask | (1 << idx)
+                self.config["used"] = mask | (1 << idx)
                 return True
         return False
 
     def get_unused_codes(self):
-        mask = self.config['used']
+        mask = self.config["used"]
         rv = []
         for idx, code in enumerate(self.get_codes()):
             if not mask & (1 << idx):
-                rv.append(code[:4] + '-' + code[4:])
+                rv.append(u"%s-%s" % (code[:4], code[4:]))
         return rv
 
 
 class OtpMixin(object):
     def generate_new_config(self):
-        return {
-            'secret': generate_secret_key(),
-        }
+        return {"secret": generate_secret_key()}
 
     def _get_secret(self):
-        return self.config['secret']
+        return self.config["secret"]
 
     def _set_secret(self, secret):
-        self.config['secret'] = secret
+        self.config["secret"] = secret
 
     secret = property(_get_secret, _set_secret)
     del _get_secret, _set_secret
@@ -361,7 +346,7 @@ class OtpMixin(object):
 
     def _get_otp_counter_cache_key(self, counter):
         if self.authenticator is not None:
-            return 'used-otp-counters:%s:%s' % (self.authenticator.user_id, counter, )
+            return "used-otp-counters:%s:%s" % (self.authenticator.user_id, counter)
 
     def check_otp_counter(self, counter):
         # OTP uses an internal counter that increments every 30 seconds.
@@ -370,16 +355,18 @@ class OtpMixin(object):
         # redis as used by remembering which counter it was generated
         # from.  This is what we check for here.
         cache_key = self._get_otp_counter_cache_key(counter)
-        return cache_key is None or cache.get(cache_key) != '1'
+        return cache_key is None or cache.get(cache_key) != "1"
 
     def mark_otp_counter_used(self, counter):
         cache_key = self._get_otp_counter_cache_key(counter)
         if cache_key is not None:
             # Mark us used for three windows
-            cache.set(cache_key, '1', timeout=120)
+            cache.set(cache_key, "1", timeout=120)
 
     def validate_otp(self, otp):
-        otp = otp.strip().replace('-', '').replace(' ', '')
+        if not otp:
+            return False
+        otp = otp.strip().replace("-", "").replace(" ", "")
         used_counter = self.make_otp().verify(
             otp, return_counter=True, check_counter_func=self.check_otp_counter
         )
@@ -392,14 +379,15 @@ class OtpMixin(object):
 @register_authenticator
 class TotpInterface(OtpMixin, AuthenticatorInterface):
     """This interface uses TOTP with an authenticator."""
+
     type = 1
-    interface_id = 'totp'
-    name = _('Authenticator App')
+    interface_id = "totp"
+    name = _("Authenticator App")
     description = _(
-        'An authenticator application that supports TOTP (like '
-        'Google Authenticator or 1Password) can be used to '
-        'conveniently secure your account.  A new token is '
-        'generated every 30 seconds.'
+        "An authenticator application that supports TOTP (like "
+        "Google Authenticator or 1Password) can be used to "
+        "conveniently secure your account.  A new token is "
+        "generated every 30 seconds."
     )
 
     def get_provision_qrcode(self, user, issuer=None):
@@ -409,14 +397,15 @@ class TotpInterface(OtpMixin, AuthenticatorInterface):
 @register_authenticator
 class SmsInterface(OtpMixin, AuthenticatorInterface):
     """This interface sends OTP codes via text messages to the user."""
+
     type = 2
-    interface_id = 'sms'
-    name = _('Text Message')
+    interface_id = "sms"
+    name = _("Text Message")
     description = _(
-        'This authenticator sends you text messages for '
-        'verification.  It\'s useful as a backup method '
-        'or when you do not have a phone that supports '
-        'an authenticator application.'
+        "This authenticator sends you text messages for "
+        "verification.  It's useful as a backup method "
+        "or when you do not have a phone that supports "
+        "an authenticator application."
     )
     code_ttl = 45
 
@@ -426,59 +415,59 @@ class SmsInterface(OtpMixin, AuthenticatorInterface):
 
     def generate_new_config(self):
         config = super(SmsInterface, self).generate_new_config()
-        config['phone_number'] = None
+        config["phone_number"] = None
         return config
 
     def make_otp(self):
-        return TOTP(self.config['secret'], digits=6, interval=self.code_ttl, default_window=1)
+        return TOTP(self.config["secret"], digits=6, interval=self.code_ttl, default_window=1)
 
     def _get_phone_number(self):
-        return self.config['phone_number']
+        return self.config["phone_number"]
 
     def _set_phone_number(self, value):
-        self.config['phone_number'] = value
+        self.config["phone_number"] = value
 
     phone_number = property(_get_phone_number, _set_phone_number)
     del _get_phone_number, _set_phone_number
 
     def activate(self, request):
-        phone_number = self.config['phone_number']
+        phone_number = self.config["phone_number"]
         if len(phone_number) == 10:
-            mask = '(***) ***-**%s' % (phone_number[-2:])
+            mask = "(***) ***-**%s" % (phone_number[-2:])
         else:
-            mask = '%s%s' % ((len(phone_number) - 2) * '*', phone_number[-2:])
+            mask = "%s%s" % ((len(phone_number) - 2) * "*", phone_number[-2:])
 
         if self.send_text(request=request):
             return ActivationMessageResult(
-                _('A confirmation code was sent to %(phone_mask)s. '
-                  'It is valid for %(ttl)d seconds.') % {
-                    'phone_mask': '<strong>%s</strong>' % mask,
-                    'ttl': self.code_ttl,
-                }
+                _(
+                    "A confirmation code was sent to %(phone_mask)s. "
+                    "It is valid for %(ttl)d seconds."
+                )
+                % {"phone_mask": "<strong>%s</strong>" % mask, "ttl": self.code_ttl}
             )
         return ActivationMessageResult(
             _(
-                'Error: we failed to send a text message to you. You '
-                'can try again later or sign in with a different method.'
+                "Error: we failed to send a text message to you. You "
+                "can try again later or sign in with a different method."
             ),
-            type='error'
+            type="error",
         )
 
     def send_text(self, for_enrollment=False, request=None):
-        ctx = {'code': self.make_otp().generate_otp()}
+        ctx = {"code": self.make_otp().generate_otp()}
 
         if for_enrollment:
             text = _(
-                '%(code)s is your Sentry two-factor enrollment code. '
-                'You are about to set up text message based two-factor '
-                'authentication.'
+                "%(code)s is your Sentry two-factor enrollment code. "
+                "You are about to set up text message based two-factor "
+                "authentication."
             )
         else:
-            text = _('%(code)s is your Sentry authentication code.')
+            text = _("%(code)s is your Sentry authentication code.")
 
         if request is not None:
-            text = u'%s\n\n%s' % (text, _('Requested from %(ip)s'))
-            ctx['ip'] = request.META['REMOTE_ADDR']
+            text = u"%s\n\n%s" % (text, _("Requested from %(ip)s"))
+            ctx["ip"] = request.META["REMOTE_ADDR"]
 
         return send_sms(text % ctx, to=self.phone_number)
 
@@ -486,34 +475,34 @@ class SmsInterface(OtpMixin, AuthenticatorInterface):
 @register_authenticator
 class U2fInterface(AuthenticatorInterface):
     type = 3
-    interface_id = 'u2f'
-    configure_button = _('Configure')
-    name = _('U2F (Universal 2nd Factor)')
+    interface_id = "u2f"
+    configure_button = _("Configure")
+    name = _("U2F (Universal 2nd Factor)")
     description = _(
-        'Authenticate with a U2F hardware device. This is a '
-        'device like a Yubikey or something similar which '
-        'supports FIDO\'s U2F specification. This also requires '
-        'a browser which supports this system (like Google '
-        'Chrome).'
+        "Authenticate with a U2F hardware device. This is a "
+        "device like a Yubikey or something similar which "
+        "supports FIDO's U2F specification. This also requires "
+        "a browser which supports this system (like Google "
+        "Chrome)."
     )
     allow_multi_enrollment = True
 
     @classproperty
     def u2f_app_id(cls):
-        rv = options.get('u2f.app-id')
-        return rv or absolute_uri(reverse('sentry-u2f-app-id'))
+        rv = options.get("u2f.app-id")
+        return rv or absolute_uri(reverse("sentry-u2f-app-id"))
 
     @classproperty
     def u2f_facets(cls):
-        facets = options.get('u2f.facets')
+        facets = options.get("u2f.facets")
         if not facets:
-            return [options.get('system.url-prefix')]
-        return [x.rstrip('/') for x in facets]
+            return [options.get("system.url-prefix")]
+        return [x.rstrip("/") for x in facets]
 
     @classproperty
     def is_available(cls):
-        url_prefix = options.get('system.url-prefix')
-        return url_prefix and url_prefix.startswith('https://')
+        url_prefix = options.get("system.url-prefix")
+        return url_prefix and url_prefix.startswith("https://")
 
     def generate_new_config(self):
         return {}
@@ -523,51 +512,51 @@ class U2fInterface(AuthenticatorInterface):
 
     def get_u2f_devices(self):
         rv = []
-        for data in self.config.get('devices') or ():
+        for data in self.config.get("devices") or ():
             # XXX: The previous version of python-u2flib-server didn't store
             # the `version` in the device binding. Defaulting to `U2F_V2` here
             # so that we don't break existing u2f registrations.
-            data['binding'].setdefault('version', 'U2F_V2')
-            rv.append(DeviceRegistration(data['binding']))
+            data["binding"].setdefault("version", "U2F_V2")
+            rv.append(DeviceRegistration(data["binding"]))
         return rv
 
     def remove_u2f_device(self, key):
         """Removes a U2F device but never removes the last one.  This returns
         False if the last device would be removed.
         """
-        devices = [x for x in self.config.get('devices') or () if x['binding']['keyHandle'] != key]
+        devices = [x for x in self.config.get("devices") or () if x["binding"]["keyHandle"] != key]
         if devices:
-            self.config['devices'] = devices
+            self.config["devices"] = devices
             return True
         return False
 
     def get_device_name(self, key):
-        for device in self.config.get('devices') or ():
-            if device['binding']['keyHandle'] == key:
-                return device['name']
+        for device in self.config.get("devices") or ():
+            if device["binding"]["keyHandle"] == key:
+                return device["name"]
 
     def get_registered_devices(self):
         rv = []
-        for device in self.config.get('devices') or ():
+        for device in self.config.get("devices") or ():
             rv.append(
                 {
-                    'timestamp': to_datetime(device['ts']),
-                    'name': device['name'],
-                    'key_handle': device['binding']['keyHandle'],
-                    'app_id': device['binding']['appId'],
+                    "timestamp": to_datetime(device["ts"]),
+                    "name": device["name"],
+                    "key_handle": device["binding"]["keyHandle"],
+                    "app_id": device["binding"]["appId"],
                 }
             )
-        rv.sort(key=lambda x: x['name'])
+        rv.sort(key=lambda x: x["name"])
         return rv
 
     def try_enroll(self, enrollment_data, response_data, device_name=None):
         binding, cert = u2f.complete_registration(enrollment_data, response_data, self.u2f_facets)
-        devices = self.config.setdefault('devices', [])
+        devices = self.config.setdefault("devices", [])
         devices.append(
             {
-                'name': device_name or 'Security Key',
-                'ts': int(time.time()),
-                'binding': dict(binding),
+                "name": device_name or "Security Key",
+                "ts": int(time.time()),
+                "binding": dict(binding),
             }
         )
 
@@ -577,14 +566,16 @@ class U2fInterface(AuthenticatorInterface):
         # format. Our current js u2f library expects the old format, so
         # massaging the data to include the old `authenticateRequests` key here.
         authenticate_requests = []
-        for registered_key in challenge['registeredKeys']:
-            authenticate_requests.append({
-                'challenge': challenge['challenge'],
-                'version': registered_key['version'],
-                'keyHandle': registered_key['keyHandle'],
-                'appId': registered_key['appId'],
-            })
-        challenge['authenticateRequests'] = authenticate_requests
+        for registered_key in challenge["registeredKeys"]:
+            authenticate_requests.append(
+                {
+                    "challenge": challenge["challenge"],
+                    "version": registered_key["version"],
+                    "keyHandle": registered_key["keyHandle"],
+                    "appId": registered_key["appId"],
+                }
+            )
+        challenge["authenticateRequests"] = authenticate_requests
 
         return ActivationChallengeResult(challenge=challenge)
 
@@ -600,9 +591,9 @@ class Authenticator(BaseModel):
     __core__ = True
 
     id = BoundedAutoField(primary_key=True)
-    user = FlexibleForeignKey('sentry.User', db_index=True)
-    created_at = models.DateTimeField(_('created at'), default=timezone.now)
-    last_used_at = models.DateTimeField(_('last used at'), null=True)
+    user = FlexibleForeignKey("sentry.User", db_index=True)
+    created_at = models.DateTimeField(_("created at"), default=timezone.now)
+    last_used_at = models.DateTimeField(_("last used at"), null=True)
     type = BoundedPositiveIntegerField(choices=AUTHENTICATOR_CHOICES)
     config = EncryptedPickledObjectField()
 
@@ -612,11 +603,11 @@ class Authenticator(BaseModel):
         pass
 
     class Meta:
-        app_label = 'sentry'
-        db_table = 'auth_authenticator'
-        verbose_name = _('authenticator')
-        verbose_name_plural = _('authenticators')
-        unique_together = (('user', 'type'), )
+        app_label = "sentry"
+        db_table = "auth_authenticator"
+        verbose_name = _("authenticator")
+        verbose_name_plural = _("authenticators")
+        unique_together = (("user", "type"),)
 
     @cached_property
     def interface(self):
@@ -634,6 +625,7 @@ class Authenticator(BaseModel):
             self.save()
 
     def __repr__(self):
-        return '<Authenticator user=%r interface=%r>' % (
-            self.user.email, self.interface.interface_id,
+        return "<Authenticator user=%r interface=%r>" % (
+            self.user.email,
+            self.interface.interface_id,
         )

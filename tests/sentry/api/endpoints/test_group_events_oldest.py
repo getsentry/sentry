@@ -2,47 +2,59 @@ from __future__ import absolute_import
 
 import six
 
-from datetime import timedelta
-from django.utils import timezone
-
-from sentry.models import Group
-from sentry.testutils import APITestCase
+from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
-class GroupEventsOldestTest(APITestCase):
+class GroupEventsOldestEndpointTest(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(GroupEventsOldestTest, self).setUp()
+        super(GroupEventsOldestEndpointTest, self).setUp()
+
         self.login_as(user=self.user)
-
         project = self.create_project()
-        min_ago = (timezone.now() - timedelta(minutes=1)).isoformat()[:19]
-        two_min_ago = (timezone.now() - timedelta(minutes=2)).isoformat()[:19]
 
-        self.event1 = self.store_event(
+        self.event_a = self.store_event(
             data={
-                'event_id': 'a' * 32,
-                'environment': 'staging',
-                'fingerprint': ['group_1'],
-                'timestamp': two_min_ago
+                "event_id": "a" * 32,
+                "environment": "development",
+                "timestamp": iso_format(before_now(days=1)),
+                "fingerprint": ["group-1"],
+            },
+            project_id=project.id,
+        )
+        self.event_b = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "environment": "production",
+                "timestamp": iso_format(before_now(minutes=5)),
+                "fingerprint": ["group-1"],
+            },
+            project_id=project.id,
+        )
+        self.event_c = self.store_event(
+            data={
+                "event_id": "c" * 32,
+                "environment": "staging",
+                "timestamp": iso_format(before_now(minutes=1)),
+                "fingerprint": ["group-1"],
             },
             project_id=project.id,
         )
 
-        self.event2 = self.store_event(
-            data={
-                'event_id': 'b' * 32,
-                'environment': 'production',
-                'fingerprint': ['group_1'],
-                'timestamp': min_ago
-            },
-            project_id=project.id,
-        )
+    def test_get_simple(self):
+        url = u"/api/0/issues/{}/events/oldest/".format(self.event_a.group.id)
+        response = self.client.get(url, format="json")
 
-        self.group = Group.objects.first()
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == six.text_type(self.event_a.event_id)
+        assert response.data["previousEventID"] is None
+        assert response.data["nextEventID"] == six.text_type(self.event_b.event_id)
 
-    def test_simple(self):
-        url = u'/api/0/issues/{}/events/oldest/'.format(self.group.id)
-        response = self.client.get(url, format='json')
+    def test_get_with_environment(self):
+        url = u"/api/0/issues/{}/events/oldest/".format(self.event_a.group.id)
+        response = self.client.get(url, format="json", data={"environment": ["production"]})
 
-        assert response.status_code == 200
-        assert response.data['id'] == six.text_type(self.event1.id)
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == six.text_type(self.event_b.event_id)
+        assert response.data["previousEventID"] is None
+        assert response.data["nextEventID"] is None

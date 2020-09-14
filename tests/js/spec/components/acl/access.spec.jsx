@@ -1,5 +1,6 @@
 import React from 'react';
-import {mount} from 'enzyme';
+
+import {mount} from 'sentry-test/enzyme';
 
 import Access from 'app/components/acl/access';
 import ConfigStore from 'app/stores/configStore';
@@ -30,7 +31,7 @@ describe('Access', function() {
       });
     });
 
-    it('has accesss', function() {
+    it('has access', function() {
       mount(
         <Access access={['project:write', 'project:read']}>{childrenMock}</Access>,
         routerContext
@@ -82,15 +83,26 @@ describe('Access', function() {
     });
 
     it('handles no org/project', function() {
-      mount(
-        <Access organization={null} project={null} access={['org:write']}>
-          {childrenMock}
-        </Access>,
-        routerContext
+      mount(<Access access={['org:write']}>{childrenMock}</Access>, routerContext);
+
+      expect(childrenMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          hasAccess: false,
+          hasSuperuser: false,
+        })
       );
+    });
+
+    it('handles no user', function() {
+      // Regression test for the share sheet.
+      ConfigStore.config = {
+        user: null,
+      };
+
+      mount(<Access>{childrenMock}</Access>, routerContext);
 
       expect(childrenMock).toHaveBeenCalledWith({
-        hasAccess: false,
+        hasAccess: true,
         hasSuperuser: false,
       });
     });

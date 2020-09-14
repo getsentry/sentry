@@ -1,5 +1,6 @@
 import React from 'react';
-import {mount} from 'enzyme';
+
+import {mount, mountWithTheme} from 'sentry-test/enzyme';
 
 import Feature from 'app/components/acl/feature';
 import ConfigStore from 'app/stores/configStore';
@@ -35,6 +36,7 @@ describe('Feature', function() {
         features,
         organization,
         project,
+        renderDisabled: false,
       });
     });
 
@@ -53,6 +55,7 @@ describe('Feature', function() {
         organization,
         project,
         features,
+        renderDisabled: false,
       });
     });
 
@@ -64,6 +67,7 @@ describe('Feature', function() {
         organization,
         project,
         features: ['org-baz'],
+        renderDisabled: false,
       });
     });
 
@@ -100,6 +104,7 @@ describe('Feature', function() {
         organization: customOrg,
         project,
         features: ['org-bazar'],
+        renderDisabled: false,
       });
     });
 
@@ -117,24 +122,23 @@ describe('Feature', function() {
         organization,
         project: customProject,
         features: ['project-baz'],
+        renderDisabled: false,
       });
     });
 
     it('handles no org/project', function() {
       const features = ['org-foo', 'project-foo'];
-      mount(
-        <Feature organization={null} project={null} features={features}>
-          {childrenMock}
-        </Feature>,
-        routerContext
-      );
+      mount(<Feature features={features}>{childrenMock}</Feature>, routerContext);
 
-      expect(childrenMock).toHaveBeenCalledWith({
-        hasFeature: false,
-        organization: null,
-        project: null,
-        features,
-      });
+      expect(childrenMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          hasFeature: true,
+          organization,
+          project,
+          features,
+          renderDisabled: false,
+        })
+      );
     });
 
     it('handles features prefixed with org/project', function() {
@@ -148,6 +152,7 @@ describe('Feature', function() {
         organization,
         project,
         features: ['organizations:org-bar'],
+        renderDisabled: false,
       });
 
       mount(<Feature features={['projects:bar']}>{childrenMock}</Feature>, routerContext);
@@ -157,6 +162,7 @@ describe('Feature', function() {
         organization,
         project,
         features: ['projects:bar'],
+        renderDisabled: false,
       });
     });
 
@@ -174,6 +180,7 @@ describe('Feature', function() {
         organization,
         project,
         features: ['organizations:create'],
+        renderDisabled: false,
       });
     });
   });
@@ -192,7 +199,7 @@ describe('Feature', function() {
         <Feature features={['org-bar']} renderDisabled={() => <span>disabled</span>} />,
         routerContext
       );
-      expect(wrapper.find('Feature').text()).toBeNull();
+      expect(wrapper.find('Feature').text()).toBe('');
     });
   });
 
@@ -220,7 +227,7 @@ describe('Feature', function() {
     });
 
     it('renders a default disabled component', function() {
-      const wrapper = mount(
+      const wrapper = mountWithTheme(
         <Feature features={['org-baz']} renderDisabled>
           <div>The Child</div>
         </Feature>,
@@ -265,46 +272,10 @@ describe('Feature', function() {
       delete HookStore.hooks['feature-disabled:org-baz'];
     });
 
-    it('calls renderDisabled function from HookStore when no features', function() {
-      const noFeatureRenderer = jest.fn(() => null);
-      const children = <div>The Child</div>;
-      const wrapper = mount(
-        <Feature features={['org-baz']} renderDisabled={noFeatureRenderer}>
-          {children}
-        </Feature>,
-        routerContext
-      );
-
-      expect(wrapper.find('Feature div')).toHaveLength(0);
-      expect(noFeatureRenderer).not.toHaveBeenCalled();
-
-      expect(hookFn).toHaveBeenCalledWith({
-        hasFeature: false,
-        children,
-        organization,
-        project,
-        features: ['org-baz'],
-      });
-    });
-
-    it('does not check hook store for multiple features', function() {
-      const noFeatureRenderer = jest.fn(() => null);
-      const wrapper = mount(
-        <Feature features={['org-baz', 'org-bazar']} renderDisabled={noFeatureRenderer}>
-          <div>The Child</div>
-        </Feature>,
-        routerContext
-      );
-
-      expect(wrapper.find('Feature div')).toHaveLength(0);
-      expect(hookFn).not.toHaveBeenCalled();
-      expect(noFeatureRenderer).toHaveBeenCalled();
-    });
-
     it('uses hookName if provided', function() {
       const children = <div>The Child</div>;
       const wrapper = mount(
-        <Feature features={['org-bazar']} hookName="test-hook">
+        <Feature features={['org-bazar']} hookName="feature-disabled:test-hook">
           {children}
         </Feature>,
         routerContext

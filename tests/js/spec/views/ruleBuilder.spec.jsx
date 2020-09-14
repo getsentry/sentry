@@ -1,10 +1,10 @@
 import React from 'react';
-import {mount} from 'enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import MemberListStore from 'app/stores/memberListStore';
 import TeamStore from 'app/stores/teamStore';
 import ProjectsStore from 'app/stores/projectsStore';
-
 import RuleBuilder from 'app/views/settings/project/projectOwnership/ruleBuilder';
 
 jest.mock('jquery');
@@ -15,12 +15,12 @@ describe('RuleBuilder', function() {
   let handleAdd;
   const USER_1 = TestStubs.User({
     id: '1',
-    name: 'Jane Doe',
-    email: 'janedoe@example.com',
+    name: 'Jane Bloggs',
+    email: 'janebloggs@example.com',
     user: {
       id: '1',
-      name: 'Jane Doe',
-      email: 'janedoe@example.com',
+      name: 'Jane Bloggs',
+      email: 'janebloggs@example.com',
     },
   });
   const USER_2 = TestStubs.User({
@@ -71,7 +71,7 @@ describe('RuleBuilder', function() {
   afterEach(function() {});
 
   it('renders', async function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <RuleBuilder project={project} organization={organization} onAddRule={handleAdd} />,
       TestStubs.routerContext()
     );
@@ -101,11 +101,11 @@ describe('RuleBuilder', function() {
     // This is because after selecting, react-select (async) reloads
     await tick();
     wrapper.update();
-    expect(wrapper.find(RuleBuilder)).toMatchSnapshot();
+    expect(wrapper.find(RuleBuilder)).toSnapshot();
   });
 
   it('renders with suggestions', async function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <RuleBuilder
         project={project}
         organization={organization}
@@ -146,7 +146,7 @@ describe('RuleBuilder', function() {
         .prop('user').id
     ).toBe('2');
 
-    // Enter to select Jane Doe
+    // Enter to select Jane Bloggs
     wrapper.find('SelectOwners .Select-control').simulate('keyDown', {keyCode: 13});
 
     const ruleCandidate = wrapper.find('RuleCandidate').first();
@@ -155,7 +155,7 @@ describe('RuleBuilder', function() {
     // This is because after selecting, react-select (async) reloads
     await tick();
     wrapper.update();
-    expect(wrapper.find(RuleBuilder)).toMatchSnapshot();
+    expect(wrapper.find(RuleBuilder)).toSnapshot();
 
     wrapper.find('Button').simulate('click');
     expect(handleAdd).toHaveBeenCalled();

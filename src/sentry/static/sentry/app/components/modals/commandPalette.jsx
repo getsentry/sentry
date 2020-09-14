@@ -1,21 +1,12 @@
+import {ClassNames, css} from '@emotion/core';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled, {css} from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {analytics} from 'app/utils/analytics';
 import {t} from 'app/locale';
 import Search from 'app/components/search';
 import theme from 'app/utils/theme';
-
-const dropdownStyle = css`
-  width: 100%;
-  border: transparent;
-  border-top-left-radius: 0;
-  border-top-right-radius: 0;
-  position: initial;
-  box-shadow: none;
-  border-top: 1px solid ${p => theme.borderLight};
-`;
 
 class CommandPaletteModal extends React.Component {
   static propTypes = {
@@ -41,31 +32,49 @@ class CommandPaletteModal extends React.Component {
 
     return (
       <Body>
-        <Search
-          {...this.props}
-          entryPoint="command_palette"
-          minSearch={1}
-          maxResults={10}
-          dropdownStyle={dropdownStyle}
-          renderInput={({getInputProps}) => (
-            <InputWrapper>
-              <Input
-                autoFocus
-                innerRef={ref => (this.searchInput = ref)}
-                {...getInputProps({
-                  type: 'text',
-                  placeholder: t('Search for projects, teams, settings, etc...'),
-                })}
-              />
-            </InputWrapper>
+        <ClassNames>
+          {({css: injectedCss}) => (
+            <Search
+              {...this.props}
+              entryPoint="command_palette"
+              minSearch={1}
+              maxResults={10}
+              dropdownStyle={injectedCss`
+                width: 100%;
+                border: transparent;
+                border-top-left-radius: 0;
+                border-top-right-radius: 0;
+                position: initial;
+                box-shadow: none;
+                border-top: 1px solid ${theme.borderLight};
+              `}
+              renderInput={({getInputProps}) => (
+                <InputWrapper>
+                  <Input
+                    autoFocus
+                    ref={ref => (this.searchInput = ref)}
+                    {...getInputProps({
+                      type: 'text',
+                      placeholder: t('Search for projects, teams, settings, etc...'),
+                    })}
+                  />
+                </InputWrapper>
+              )}
+            />
           )}
-        />
+        </ClassNames>
       </Body>
     );
   }
 }
 
 export default CommandPaletteModal;
+
+export const modalCss = css`
+  .modal-content {
+    padding: 0;
+  }
+`;
 
 const InputWrapper = styled('div')`
   padding: 2px;

@@ -5,6 +5,8 @@ import {
   explodeSlug,
   sortProjects,
   descopeFeatureName,
+  deepFreeze,
+  escapeDoubleQuotes,
 } from 'app/utils';
 
 describe('utils.valueIsEqual', function() {
@@ -243,4 +245,56 @@ describe('utils.descopeFeatureName', function() {
     ['unknown-scope:feature', 'unknown-scope:feature'],
     ['', ''],
   ].map(([input, expected]) => expect(descopeFeatureName(input)).toEqual(expected));
+});
+
+describe('deepFreeze', function() {
+  it('throws error on attempt to mutate frozen object', function() {
+    const testObj = deepFreeze({foo: [1, 2, 3]});
+
+    [
+      () => {
+        testObj.foo.push(4);
+      },
+      () => {
+        testObj.bar = '';
+      },
+      () => {
+        delete testObj.foo;
+      },
+    ].forEach(fn => {
+      expect(fn).toThrow();
+    });
+  });
+});
+
+describe('utils.escapeDoubleQuotes', function() {
+  // test cases from https://gist.github.com/getify/3667624
+
+  it('should escapse any unescaped double quotes', function() {
+    const cases = [
+      ['a"b', 'a\\"b'], //
+      ['a\\"b', 'a\\"b'], //
+      ['a\\\\"b', 'a\\\\\\"b'],
+      ['a"b"c', 'a\\"b\\"c'],
+      ['a""b', 'a\\"\\"b'],
+      ['""', '\\"\\"'],
+    ];
+
+    for (const testCase of cases) {
+      const [input, expected] = testCase;
+      expect(escapeDoubleQuotes(input)).toBe(expected);
+    }
+
+    // should return the same input as the output
+
+    const cases2 = ['ab', 'a\\"b', 'a\\\\\\"b'];
+
+    for (const test of cases2) {
+      expect(escapeDoubleQuotes(test)).toBe(test);
+    }
+
+    // don't unnecessarily escape
+    const actual = escapeDoubleQuotes(escapeDoubleQuotes(escapeDoubleQuotes('a"b')));
+    expect(actual).toBe('a\\"b');
+  });
 });

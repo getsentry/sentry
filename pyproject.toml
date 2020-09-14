@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=40.2.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.black]
+line-length=100
+target-version=['py27']
+include='\.py$'
+exclude='''
+(
+      \.venv/
+      \.venv3/
+    | node_modules/
+    | migrations/
+)
+'''

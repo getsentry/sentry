@@ -8,7 +8,7 @@
           "name": "sentry frontend",
           "type": "chrome",
           "request": "launch",
-          "url": "http://localhost:8000",
+          "url": "http://dev.getsentry.net:8000",
           "webRoot": "${workspaceRoot}/src/sentry/static/sentry/app"
         },
         {
@@ -16,7 +16,7 @@
           "type": "python",
           "request": "launch",
           "stopOnEntry": true,
-          "program": "/Users/billy/.virtualenvs/sentry/bin/sentry",
+          "program": "${workspaceRoot}/.venv/bin/sentry",
           "args": ["devserver"],
           "cwd": "${workspaceRoot}",
           "debugOptions": ["WaitOnAbnormalExit", "WaitOnNormalExit", "RedirectOutput"]

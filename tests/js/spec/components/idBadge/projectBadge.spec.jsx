@@ -1,10 +1,12 @@
 import React from 'react';
-import {mount} from 'enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
+
 import ProjectBadge from 'app/components/idBadge/projectBadge';
 
 describe('ProjectBadge', function() {
   it('renders with Avatar and team name', function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <ProjectBadge project={TestStubs.Project()} />,
       TestStubs.routerContext()
     );

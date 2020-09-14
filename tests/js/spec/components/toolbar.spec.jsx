@@ -1,5 +1,7 @@
 import React from 'react';
-import {shallow} from 'enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
+
 import Toolbar from 'app/components/toolbar';
 
 describe('Toolbar', function() {
@@ -8,11 +10,11 @@ describe('Toolbar', function() {
   afterEach(function() {});
 
   it('renders', function() {
-    const wrapper = shallow(
+    const wrapper = mountWithTheme(
       <Toolbar>
         <div />
       </Toolbar>
     );
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 });

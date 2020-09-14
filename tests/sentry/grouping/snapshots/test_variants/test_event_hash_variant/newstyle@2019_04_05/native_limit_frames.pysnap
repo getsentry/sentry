@@ -1,0 +1,40 @@
+---
+created: '2020-02-26T19:54:31.994782Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        stacktrace
+          frame (non app frame)
+            function* (isolated function)
+              "Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated"
+          frame (non app frame)
+            function* (isolated function)
+              "Scaleform::GFx::AS3::IMEManager::DispatchEvent"
+          frame (non app frame)
+            function*
+              "<lambda_5db80dab47756d3e72c2dcd38b80b1dd>::operator()"
+        type (ignored because exception is synthetic)
+          "log_demo"
+--------------------------------------------------------------------------
+system:
+  hash: "31f85aded5e85e51fb740d675fbfeccc"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame (ignored because only 1 frame is considered by grouping enhancement rule (family:native max-frames=1))
+            function* (isolated function)
+              "Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated"
+          frame (ignored because only 1 frame is considered by grouping enhancement rule (family:native max-frames=1))
+            function* (isolated function)
+              "Scaleform::GFx::AS3::IMEManager::DispatchEvent"
+          frame*
+            function*
+              "<lambda_5db80dab47756d3e72c2dcd38b80b1dd>::operator()"
+        type (ignored because exception is synthetic)
+          "log_demo"

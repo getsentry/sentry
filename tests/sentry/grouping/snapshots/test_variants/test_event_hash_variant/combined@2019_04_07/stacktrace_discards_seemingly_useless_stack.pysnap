@@ -1,0 +1,31 @@
+---
+created: '2020-02-26T19:54:25.562601Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app
+      stacktrace (ignored single frame stack)
+        frame (non app frame)
+          filename (ignored because filename is a URL)
+            "foo"
+          context-line (discarded because from URL origin)
+          lineno (line number is not used if module or filename are available)
+            1
+--------------------------------------------------------------------------
+fallback:
+  hash: "d41d8cd98f00b204e9800998ecf8427e"
+--------------------------------------------------------------------------
+system:
+  hash: null
+  component:
+    system
+      stacktrace (ignored single frame stack)
+        frame
+          filename (ignored because filename is a URL)
+            "foo"
+          context-line (discarded because from URL origin)
+          lineno (line number is not used if module or filename are available)
+            1

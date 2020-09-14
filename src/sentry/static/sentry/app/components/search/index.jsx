@@ -1,12 +1,11 @@
-import {Flex} from 'grid-emotion';
-import {debounce} from 'lodash';
+import debounce from 'lodash/debounce';
 import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
-import {analytics} from 'app/utils/analytics';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {navigateTo} from 'app/actionCreators/navigation';
 import {t} from 'app/locale';
 import ApiSource from 'app/components/search/sources/apiSource';
@@ -19,6 +18,7 @@ import SearchResult from 'app/components/search/searchResult';
 import SearchResultWrapper from 'app/components/search/searchResultWrapper';
 import SearchSources from 'app/components/search/sources';
 import replaceRouterParams from 'app/utils/replaceRouterParams';
+import space from 'app/styles/space';
 
 // "Omni" search
 class Search extends React.Component {
@@ -74,7 +74,10 @@ class Search extends React.Component {
   };
 
   componentDidMount() {
-    analytics(`${this.props.entryPoint}.open`);
+    trackAnalyticsEvent({
+      eventKey: `${this.props.entryPoint}.open`,
+      eventName: `${this.props.entryPoint} Open`,
+    });
   }
 
   handleSelect = (item, state) => {
@@ -82,7 +85,13 @@ class Search extends React.Component {
       return;
     }
 
-    analytics(`${this.props.entryPoint}.select`, {query: state && state.inputValue});
+    trackAnalyticsEvent({
+      eventKey: `${this.props.entryPoint}.select`,
+      eventName: `${this.props.entryPoint} Select`,
+      query: state && state.inputValue,
+      result_type: item.resultType,
+      source_type: item.sourceType,
+    });
 
     const {to, action} = item;
 
@@ -121,7 +130,11 @@ class Search extends React.Component {
     if (!query) {
       return;
     }
-    analytics(`${this.props.entryPoint}.query`, {query});
+    trackAnalyticsEvent({
+      eventKey: `${this.props.entryPoint}.query`,
+      eventName: `${this.props.entryPoint} Query`,
+      query,
+    });
   }, 200);
 
   renderItem = ({resultObj, index, highlightedIndex, getItemProps}) => {
@@ -133,6 +146,7 @@ class Search extends React.Component {
     const itemProps = {
       ...getItemProps({
         item,
+        index,
       }),
     };
 
@@ -178,9 +192,9 @@ class Search extends React.Component {
           getItemProps,
           isOpen,
           inputValue,
-          selectedItem,
+          selectedItem: _selectedItem,
           highlightedIndex,
-          onChange,
+          onChange: _onChange,
         }) => {
           const searchQuery = inputValue.toLowerCase().trim();
           const isValidSearch = inputValue.length >= minSearch;
@@ -201,21 +215,21 @@ class Search extends React.Component {
                   sources={sources}
                 >
                   {({isLoading, results, hasAnyResults}) => (
-                    <DropdownBox css={dropdownStyle}>
+                    <DropdownBox className={dropdownStyle}>
                       {isLoading && (
-                        <Flex justify="center" align="center" p={1}>
+                        <LoadingWrapper>
                           <LoadingIndicator mini hideMessage relative />
-                        </Flex>
+                        </LoadingWrapper>
                       )}
                       {!isLoading &&
-                        results.slice(0, maxResults).map((resultObj, index) => {
-                          return this.renderItem({
+                        results.slice(0, maxResults).map((resultObj, index) =>
+                          this.renderItem({
                             resultObj,
                             index,
                             highlightedIndex,
                             getItemProps,
-                          });
-                        })}
+                          })
+                        )}
                       {!isLoading && !hasAnyResults && (
                         <EmptyItem>{t('No results found')}</EmptyItem>
                       )}
@@ -233,7 +247,7 @@ class Search extends React.Component {
 
 export default withRouter(Search);
 
-const DropdownBox = styled.div`
+const DropdownBox = styled('div')`
   background: #fff;
   border: 1px solid ${p => p.theme.borderDark};
   box-shadow: ${p => p.theme.dropShadowHeavy};
@@ -245,7 +259,7 @@ const DropdownBox = styled.div`
   overflow: hidden;
 `;
 
-const SearchWrapper = styled.div`
+const SearchWrapper = styled('div')`
   position: relative;
 `;
 
@@ -253,4 +267,11 @@ const EmptyItem = styled(SearchResultWrapper)`
   text-align: center;
   padding: 16px;
   opacity: 0.5;
+`;
+
+const LoadingWrapper = styled('div')`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: ${space(1)};
 `;

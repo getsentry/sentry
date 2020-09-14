@@ -1,5 +1,6 @@
 import React from 'react';
-import {mount} from 'enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import AccountClose from 'app/views/settings/account/accountClose';
 
@@ -32,7 +33,7 @@ describe('AccountClose', function() {
   });
 
   it('lists all orgs user is an owner of', function() {
-    const wrapper = mount(<AccountClose />, TestStubs.routerContext());
+    const wrapper = mountWithTheme(<AccountClose />, TestStubs.routerContext());
 
     // Input for single owner org
     expect(

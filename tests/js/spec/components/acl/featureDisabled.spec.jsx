@@ -1,14 +1,15 @@
 import React from 'react';
 
+import {mountWithTheme} from 'sentry-test/enzyme';
+
 import {PanelAlert} from 'app/components/panels';
-import {mount} from 'enzyme';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
 
 describe('FeatureDisabled', function() {
   const routerContext = TestStubs.routerContext();
 
   it('renders', function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <FeatureDisabled
         features={['organization:my-features']}
         featureName="Some Feature"
@@ -18,7 +19,7 @@ describe('FeatureDisabled', function() {
 
     expect(
       wrapper
-        .find('[data-test-id="feature-message"]')
+        .find('FeatureDisabledMessage')
         .first()
         .text()
     ).toEqual(
@@ -29,7 +30,7 @@ describe('FeatureDisabled', function() {
 
   it('renders with custom message', function() {
     const customMessage = 'custom message';
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <FeatureDisabled
         message={customMessage}
         features={['organization:my-features']}
@@ -40,14 +41,14 @@ describe('FeatureDisabled', function() {
 
     expect(
       wrapper
-        .find('[data-test-id="feature-message"]')
+        .find('FeatureDisabledMessage')
         .first()
         .text()
     ).toEqual(expect.stringContaining(customMessage));
   });
 
   it('renders as an Alert', function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <FeatureDisabled
         alert
         features={['organization:my-features']}
@@ -60,7 +61,7 @@ describe('FeatureDisabled', function() {
   });
 
   it('renders with custom alert component', function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <FeatureDisabled
         alert={PanelAlert}
         features={['organization:my-features']}
@@ -73,7 +74,7 @@ describe('FeatureDisabled', function() {
   });
 
   it('displays instructions when help is clicked', function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <FeatureDisabled
         alert
         features={['organization:my-features']}

@@ -1,31 +1,41 @@
-import {Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from '@emotion/styled';
 
-import {getOrganizationState} from 'app/mixins/organizationState';
 import {sortProjects} from 'app/utils';
 import {t} from 'app/locale';
+import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import AsyncView from 'app/views/asyncView';
+import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
+import Placeholder from 'app/components/placeholder';
 import ProjectListItem from 'app/views/settings/components/settingsProjectItem';
 import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import routeTitleGen from 'app/utils/routeTitle';
+import space from 'app/styles/space';
+import withOrganization from 'app/utils/withOrganization';
+import {IconAdd} from 'app/icons';
 
 import ProjectStatsGraph from './projectStatsGraph';
 
-export default class OrganizationProjects extends AsyncView {
-  static contextTypes = {
-    router: PropTypes.object.isRequired,
+const ITEMS_PER_PAGE = 50;
+
+class OrganizationProjects extends AsyncView {
+  static propTypes = {
     organization: SentryTypes.Organization,
   };
 
-  componentWillReceiveProps(nextProps, nextContext) {
-    super.componentWillReceiveProps(nextProps, nextContext);
-    const searchQuery = nextProps?.location?.query?.query;
-    if (searchQuery !== this.props?.location?.query?.query) {
+  static contextTypes = {
+    router: PropTypes.object.isRequired,
+  };
+
+  UNSAFE_componentWillReceiveProps(nextProps, nextContext) {
+    super.UNSAFE_componentWillReceiveProps(nextProps, nextContext);
+    const searchQuery = nextProps.location.query.query;
+    if (searchQuery !== this.props.location.query.query) {
       this.setState({searchQuery});
     }
   }
@@ -38,7 +48,8 @@ export default class OrganizationProjects extends AsyncView {
         `/organizations/${orgId}/projects/`,
         {
           query: {
-            query: this.props?.location?.query?.query,
+            query: this.props.location.query.query,
+            per_page: ITEMS_PER_PAGE,
           },
         },
       ],
@@ -50,6 +61,7 @@ export default class OrganizationProjects extends AsyncView {
             since: new Date().getTime() / 1000 - 3600 * 24,
             stat: 'generated',
             group: 'project',
+            per_page: ITEMS_PER_PAGE,
           },
         },
       ],
@@ -59,23 +71,23 @@ export default class OrganizationProjects extends AsyncView {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
-      searchQuery: this.props?.location?.query?.query || '',
+      searchQuery: this.props.location.query.query || '',
     };
   }
 
   getTitle() {
-    const org = this.context.organization;
-    return `${org.name} Projects`;
+    const {organization} = this.props;
+    return routeTitleGen(t('Projects'), organization.slug, false);
+  }
+
+  renderLoading() {
+    return this.renderBody();
   }
 
   renderBody() {
     const {projectList, projectListPageLinks, projectStats} = this.state;
-    const {organization} = this.context;
-    const canCreateProjects = getOrganizationState(this.context.organization)
-      .getAccess()
-      .has('project:admin');
-
-    const hasNewRoutes = new Set(organization.features).has('sentry10');
+    const {organization} = this.props;
+    const canCreateProjects = new Set(organization.access).has('project:admin');
 
     const action = (
       <Button
@@ -88,7 +100,7 @@ export default class OrganizationProjects extends AsyncView {
             : undefined
         }
         to={`/organizations/${organization.slug}/projects/new/`}
-        icon="icon-circle-add"
+        icon={<IconAdd size="xs" isCircled />}
       >
         {t('Create Project')}
       </Button>
@@ -108,35 +120,29 @@ export default class OrganizationProjects extends AsyncView {
             })}
           </PanelHeader>
           <PanelBody css={{width: '100%'}}>
-            {sortProjects(projectList).map((project, i) => (
-              <PanelItem p={0} key={project.id} align="center">
-                <Box p={2} flex="1">
-                  <ProjectListItem
-                    project={project}
-                    organization={this.context.organization}
-                  />
-                </Box>
-                <Box w={3 / 12} p={2}>
-                  <ProjectStatsGraph
-                    key={project.id}
-                    project={project}
-                    stats={projectStats[project.id]}
-                  />
-                </Box>
-                {!hasNewRoutes && (
-                  <Box p={2} align="right">
-                    <Button
-                      icon="icon-settings"
-                      size="small"
-                      to={`/settings/${organization.slug}/projects/${project.slug}/`}
-                    >
-                      {t('Settings')}
-                    </Button>
-                  </Box>
-                )}
-              </PanelItem>
-            ))}
-            {projectList.length === 0 && (
+            {projectList ? (
+              sortProjects(projectList).map(project => (
+                <GridPanelItem key={project.id}>
+                  <ProjectListItemWrapper>
+                    <ProjectListItem project={project} organization={organization} />
+                  </ProjectListItemWrapper>
+                  <ProjectStatsGraphWrapper>
+                    {projectStats ? (
+                      <ProjectStatsGraph
+                        key={project.id}
+                        project={project}
+                        stats={projectStats[project.id]}
+                      />
+                    ) : (
+                      <Placeholder height="25px" />
+                    )}
+                  </ProjectStatsGraphWrapper>
+                </GridPanelItem>
+              ))
+            ) : (
+              <LoadingIndicator />
+            )}
+            {projectList && projectList.length === 0 && (
               <EmptyMessage>{t('No projects found.')}</EmptyMessage>
             )}
           </PanelBody>
@@ -148,3 +154,22 @@ export default class OrganizationProjects extends AsyncView {
     );
   }
 }
+
+export default withOrganization(OrganizationProjects);
+
+const GridPanelItem = styled(PanelItem)`
+  display: flex;
+  align-items: center;
+  padding: 0;
+`;
+
+const ProjectListItemWrapper = styled('div')`
+  padding: ${space(2)};
+  flex: 1;
+`;
+
+const ProjectStatsGraphWrapper = styled('div')`
+  padding: ${space(2)};
+  width: 25%;
+  margin-left: ${space(2)};
+`;

@@ -1,6 +1,7 @@
 import React from 'react';
 
-import {mount, shallow} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
+
 import ProjectCspReports from 'app/views/settings/projectSecurityHeaders/csp';
 
 describe('ProjectCspReports', function() {
@@ -26,11 +27,10 @@ describe('ProjectCspReports', function() {
   });
 
   it('renders', function() {
-    const wrapper = shallow(
+    const wrapper = mountWithTheme(
       <ProjectCspReports
         organization={org}
         project={project}
-        setProjectNavSection={() => {}}
         {...TestStubs.routerProps({
           params: {orgId: org.slug, projectId: project.slug},
           location: TestStubs.location({pathname: routeUrl}),
@@ -38,15 +38,14 @@ describe('ProjectCspReports', function() {
       />,
       TestStubs.routerContext()
     );
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
   it('can enable default ignored sources', function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <ProjectCspReports
         organization={org}
         project={project}
-        setProjectNavSection={() => {}}
         {...TestStubs.routerProps({
           params: {orgId: org.slug, projectId: project.slug},
           location: TestStubs.location({pathname: routeUrl}),
@@ -79,11 +78,10 @@ describe('ProjectCspReports', function() {
   });
 
   it('can set additional ignored sources', function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <ProjectCspReports
         organization={org}
         project={project}
-        setProjectNavSection={() => {}}
         {...TestStubs.routerProps({
           params: {orgId: org.slug, projectId: project.slug},
           location: TestStubs.location({pathname: routeUrl}),

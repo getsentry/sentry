@@ -1,7 +1,8 @@
 import React from 'react';
 
+import {mountWithTheme} from 'sentry-test/enzyme';
+
 import {descopeFeatureName} from 'app/utils';
-import {mount} from 'enzyme';
 import ProviderItem from 'app/views/settings/organizationAuth/providerItem';
 
 describe('ProviderItem', function() {
@@ -12,7 +13,7 @@ describe('ProviderItem', function() {
   const routerContext = TestStubs.routerContext([{organization: org}]);
 
   it('renders', function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <ProviderItem organization={org} provider={provider} onConfigure={() => {}} />,
       routerContext
     );
@@ -25,7 +26,7 @@ describe('ProviderItem', function() {
 
   it('calls configure callback', function() {
     const mock = jest.fn();
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <ProviderItem organization={org} provider={provider} onConfigure={mock} />,
       routerContext
     );
@@ -36,7 +37,7 @@ describe('ProviderItem', function() {
 
   it('renders a disabled Tag when disabled', function() {
     const noFeatureRouterContext = TestStubs.routerContext();
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <ProviderItem organization={org} provider={provider} onConfigure={() => {}} />,
       noFeatureRouterContext
     );

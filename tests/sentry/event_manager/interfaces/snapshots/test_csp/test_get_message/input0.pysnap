@@ -1,19 +1,10 @@
 ---
-created: '2019-03-14T17:12:35.093184Z'
+created: '2020-07-09T22:22:50.644896Z'
 creator: sentry
 source: tests/sentry/event_manager/interfaces/test_csp.py
 ---
-culprit: ''
 errors: null
-message: Blocked 'image' from 'google.com'
-origin: http://example.com/foo
-tags:
-- - effective-directive
-  - img-src
-- - blocked-uri
-  - http://google.com/foo
 to_json:
   blocked_uri: http://google.com/foo
   document_uri: http://example.com/foo
   effective_directive: img-src
-  violated_directive: ''

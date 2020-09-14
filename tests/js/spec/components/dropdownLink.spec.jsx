@@ -1,9 +1,9 @@
 import $ from 'jquery';
 import React from 'react';
 
-import {mount} from 'enzyme';
-import DropdownLink from 'app/components/dropdownLink';
+import {mount} from 'sentry-test/enzyme';
 
+import DropdownLink from 'app/components/dropdownLink';
 import {MENU_CLOSE_DELAY} from 'app/constants';
 
 jest.useFakeTimers();
@@ -27,7 +27,7 @@ describe('DropdownLink', function() {
         </DropdownLink>
       );
 
-      expect(component).toMatchSnapshot();
+      expect(component).toSnapshot();
     });
 
     it('and anchors to right', function() {
@@ -38,7 +38,7 @@ describe('DropdownLink', function() {
         </DropdownLink>
       );
 
-      expect(component).toMatchSnapshot();
+      expect(component).toSnapshot();
     });
   });
 
@@ -72,10 +72,12 @@ describe('DropdownLink', function() {
         wrapper.find('a').simulate('click');
       });
 
-      it('closes when clicked outside', function() {
+      it('closes when clicked outside', async function() {
         const evt = document.createEvent('HTMLEvents');
         evt.initEvent('click', false, true);
         document.body.dispatchEvent(evt);
+        jest.runAllTimers();
+        await Promise.resolve();
         wrapper.update();
         expect(wrapper.find('li')).toHaveLength(0);
       });
@@ -115,7 +117,7 @@ describe('DropdownLink', function() {
     describe('Opened', function() {
       beforeEach(function() {
         wrapper = mount(
-          <DropdownLink isOpen={true} alwaysRenderMenu={false} title="test">
+          <DropdownLink isOpen alwaysRenderMenu={false} title="test">
             <li>hi</li>
           </DropdownLink>
         );
@@ -172,14 +174,14 @@ describe('DropdownLink', function() {
               className="nested-menu"
               alwaysRenderMenu={false}
               title="nested"
-              isNestedDropdown={true}
+              isNestedDropdown
             >
               <li id="nested-actor-2">
                 <DropdownLink
                   className="nested-menu-2"
                   alwaysRenderMenu={false}
                   title="nested #2"
-                  isNestedDropdown={true}
+                  isNestedDropdown
                 >
                   <li id="nested-actor-3">Hello</li>
                 </DropdownLink>
@@ -248,12 +250,12 @@ describe('DropdownLink', function() {
       expect(wrapper.find('.dropdown-menu')).toHaveLength(0);
     });
 
-    it('closes when second level nested actor is clicked', function() {
+    it('does not close when second level nested actor is clicked', function() {
       wrapper.find('a.nested-menu').simulate('mouseEnter');
       jest.runAllTimers();
       wrapper.update();
       wrapper.find('a.nested-menu-2 span').simulate('click');
-      expect(wrapper.find('.dropdown-menu')).toHaveLength(0);
+      expect(wrapper.find('.dropdown-menu')).toHaveLength(2);
     });
 
     it('closes when third level nested actor is clicked', function() {

@@ -6,9 +6,19 @@ import threading
 import uuid
 
 from concurrent.futures import TimeoutError
-from confluent_kafka import Consumer, OFFSET_BEGINNING, OFFSET_END, OFFSET_STORED, OFFSET_INVALID, TopicPartition
+from confluent_kafka import (
+    Consumer,
+    OFFSET_BEGINNING,
+    OFFSET_END,
+    OFFSET_STORED,
+    OFFSET_INVALID,
+    TopicPartition,
+)
 
-from sentry.eventstream.kafka.state import SynchronizedPartitionState, SynchronizedPartitionStateManager
+from sentry.eventstream.kafka.state import (
+    SynchronizedPartitionState,
+    SynchronizedPartitionStateManager,
+)
 from sentry.utils.concurrent import execute
 
 
@@ -16,9 +26,9 @@ logger = logging.getLogger(__name__)
 
 
 def get_commit_data(message):
-    topic, partition, group = message.key().decode('utf-8').split(':', 3)
+    topic, partition, group = message.key().decode("utf-8").split(":", 3)
     partition = int(partition)
-    offset = int(message.value().decode('utf-8'))
+    offset = int(message.value().decode("utf-8"))
     return group, topic, partition, offset
 
 
@@ -28,11 +38,18 @@ def get_commit_data(message):
 LOGICAL_OFFSETS = frozenset([OFFSET_BEGINNING, OFFSET_END, OFFSET_STORED, OFFSET_INVALID])
 
 
-def run_commit_log_consumer(bootstrap_servers, consumer_group, commit_log_topic,
-                            partition_state_manager, synchronize_commit_group, start_event, stop_request_event):
+def run_commit_log_consumer(
+    bootstrap_servers,
+    consumer_group,
+    commit_log_topic,
+    partition_state_manager,
+    synchronize_commit_group,
+    start_event,
+    stop_request_event,
+):
     start_event.set()
 
-    logging.debug('Starting commit log consumer...')
+    logging.debug("Starting commit log consumer...")
 
     positions = {}
 
@@ -45,33 +62,31 @@ def run_commit_log_consumer(bootstrap_servers, consumer_group, commit_log_topic,
     # this consumer process!!! This ensures that it is able to consume from all
     # partitions of the commit log topic and get a comprehensive view of the
     # state of the consumer groups it is tracking.
-    consumer = Consumer({
-        'bootstrap.servers': bootstrap_servers,
-        'group.id': consumer_group,
-        'enable.auto.commit': 'false',
-        'enable.auto.offset.store': 'true',
-        'enable.partition.eof': 'false',
-        'default.topic.config': {
-            'auto.offset.reset': 'error',
-        },
-    })
+    consumer = Consumer(
+        {
+            "bootstrap.servers": bootstrap_servers,
+            "group.id": consumer_group,
+            "enable.auto.commit": "false",
+            "enable.auto.offset.store": "true",
+            "enable.partition.eof": "false",
+            "default.topic.config": {"auto.offset.reset": "error"},
+        }
+    )
 
     def rewind_partitions_on_assignment(consumer, assignment):
         # The commit log consumer must start consuming from the beginning of
         # the commit log topic to ensure that it has a comprehensive view of
         # all active partitions.
-        consumer.assign([
-            TopicPartition(
-                i.topic,
-                i.partition,
-                positions.get((i.topic, i.partition), OFFSET_BEGINNING),
-            ) for i in assignment
-        ])
+        consumer.assign(
+            [
+                TopicPartition(
+                    i.topic, i.partition, positions.get((i.topic, i.partition), OFFSET_BEGINNING)
+                )
+                for i in assignment
+            ]
+        )
 
-    consumer.subscribe(
-        [commit_log_topic],
-        on_assign=rewind_partitions_on_assignment,
-    )
+    consumer.subscribe([commit_log_topic], on_assign=rewind_partitions_on_assignment)
 
     while not stop_request_event.is_set():
         message = consumer.poll(1)
@@ -86,22 +101,18 @@ def run_commit_log_consumer(bootstrap_servers, consumer_group, commit_log_topic,
 
         group, topic, partition, offset = get_commit_data(message)
         if group != synchronize_commit_group:
-            logger.debug('Received consumer offsets update from %r, ignoring...', group)
+            logger.debug("Received consumer offsets update from %r, ignoring...", group)
             continue
 
         if offset in LOGICAL_OFFSETS:
             logger.debug(
-                'Skipping invalid logical offset (%r) from %s/%s...',
-                offset,
-                topic,
-                partition)
+                "Skipping invalid logical offset (%r) from %s/%s...", offset, topic, partition
+            )
             continue
         elif offset < 0:
             logger.warning(
-                'Received unexpected negative offset (%r) from %s/%s!',
-                offset,
-                topic,
-                partition)
+                "Received unexpected negative offset (%r) from %s/%s!", offset, topic, partition
+            )
 
         partition_state_manager.set_remote_offset(topic, partition, offset)
 
@@ -142,13 +153,18 @@ class SynchronizedConsumer(object):
     implementation here tries to pause consuming from the partition as soon as
     possible, but this makes no explicit guarantees about that behavior.)
     """
-    initial_offset_reset_strategies = {
-        'earliest': get_earliest_offset,
-        'latest': get_latest_offset,
-    }
 
-    def __init__(self, bootstrap_servers, consumer_group, commit_log_topic,
-                 synchronize_commit_group, initial_offset_reset='latest', on_commit=None):
+    initial_offset_reset_strategies = {"earliest": get_earliest_offset, "latest": get_latest_offset}
+
+    def __init__(
+        self,
+        bootstrap_servers,
+        consumer_group,
+        commit_log_topic,
+        synchronize_commit_group,
+        initial_offset_reset="latest",
+        on_commit=None,
+    ):
         self.bootstrap_servers = bootstrap_servers
         self.consumer_group = consumer_group
         self.commit_log_topic = commit_log_topic
@@ -156,8 +172,12 @@ class SynchronizedConsumer(object):
         self.initial_offset_reset = self.initial_offset_reset_strategies[initial_offset_reset]
 
         self.__partition_state_manager = SynchronizedPartitionStateManager(
-            self.__on_partition_state_change)
-        self.__commit_log_consumer, self.__commit_log_consumer_stop_request = self.__start_commit_log_consumer()
+            self.__on_partition_state_change
+        )
+        (
+            self.__commit_log_consumer,
+            self.__commit_log_consumer_stop_request,
+        ) = self.__start_commit_log_consumer()
 
         self.__positions = {}
 
@@ -166,15 +186,13 @@ class SynchronizedConsumer(object):
                 return on_commit(error, partitions)
 
         consumer_configuration = {
-            'bootstrap.servers': self.bootstrap_servers,
-            'group.id': self.consumer_group,
-            'enable.auto.commit': 'false',
-            'enable.auto.offset.store': 'true',
-            'enable.partition.eof': 'false',
-            'default.topic.config': {
-                'auto.offset.reset': 'error',
-            },
-            'on_commit': commit_callback,
+            "bootstrap.servers": self.bootstrap_servers,
+            "group.id": self.consumer_group,
+            "enable.auto.commit": "false",
+            "enable.auto.offset.store": "true",
+            "enable.partition.eof": "false",
+            "default.topic.config": {"auto.offset.reset": "error"},
+            "on_commit": commit_callback,
         }
 
         self.__consumer = Consumer(consumer_configuration)
@@ -189,13 +207,13 @@ class SynchronizedConsumer(object):
             functools.partial(
                 run_commit_log_consumer,
                 bootstrap_servers=self.bootstrap_servers,
-                consumer_group='{}:sync:{}'.format(self.consumer_group, uuid.uuid1().hex),
+                consumer_group="{}:sync:{}".format(self.consumer_group, uuid.uuid1().hex),
                 commit_log_topic=self.commit_log_topic,
                 synchronize_commit_group=self.synchronize_commit_group,
                 partition_state_manager=self.__partition_state_manager,
                 start_event=start_event,
                 stop_request_event=stop_request_event,
-            ),
+            )
         )
         start_event.wait(timeout)
         return result, stop_request_event
@@ -207,15 +225,20 @@ class SynchronizedConsumer(object):
             except TimeoutError:
                 pass  # not helpful
 
-            raise Exception('Commit log consumer unexpectedly exit!')
+            raise Exception("Commit log consumer unexpectedly exit!")
 
     def __on_partition_state_change(
-            self, topic, partition, previous_state_and_offsets, current_state_and_offsets):
+        self, topic, partition, previous_state_and_offsets, current_state_and_offsets
+    ):
         """
         Callback that is invoked when a partition state changes.
         """
-        logger.debug('State change for %r: %r to %r', (topic, partition),
-                     previous_state_and_offsets, current_state_and_offsets)
+        logger.debug(
+            "State change for %r: %r to %r",
+            (topic, partition),
+            previous_state_and_offsets,
+            current_state_and_offsets,
+        )
 
         current_state, current_offsets = current_state_and_offsets
         if current_offsets.local is None:
@@ -228,13 +251,16 @@ class SynchronizedConsumer(object):
         # TODO: This will be called from the commit log consumer thread, so need
         # to verify that calling the ``consumer.{pause,resume}`` methods is
         # thread safe!
-        if current_state in (SynchronizedPartitionState.UNKNOWN, SynchronizedPartitionState.SYNCHRONIZED,
-                             SynchronizedPartitionState.REMOTE_BEHIND):
+        if current_state in (
+            SynchronizedPartitionState.UNKNOWN,
+            SynchronizedPartitionState.SYNCHRONIZED,
+            SynchronizedPartitionState.REMOTE_BEHIND,
+        ):
             self.__consumer.pause([TopicPartition(topic, partition, current_offsets.local)])
         elif current_state is SynchronizedPartitionState.LOCAL_BEHIND:
             self.__consumer.resume([TopicPartition(topic, partition, current_offsets.local)])
         else:
-            raise NotImplementedError('Unexpected partition state: %s' % (current_state,))
+            raise NotImplementedError("Unexpected partition state: %s" % (current_state,))
 
     def subscribe(self, topics, on_assign=None, on_revoke=None):
         """
@@ -248,19 +274,29 @@ class SynchronizedConsumer(object):
             # starting offset if no offset has been committed for this topic during
             # the ``__consumer_offsets`` topic retention period.
             assignment = {
-                (i.topic, i.partition): self.__positions.get((i.topic, i.partition)) for i in assignment
+                (i.topic, i.partition): self.__positions.get((i.topic, i.partition))
+                for i in assignment
             }
 
-            for i in self.__consumer.committed([TopicPartition(topic, partition) for (
-                    topic, partition), offset in assignment.items() if offset is None]):
+            for i in self.__consumer.committed(
+                [
+                    TopicPartition(topic, partition)
+                    for (topic, partition), offset in assignment.items()
+                    if offset is None
+                ]
+            ):
                 k = (i.topic, i.partition)
                 if i.offset > -1:
                     assignment[k] = i.offset
                 else:
                     assignment[k] = self.initial_offset_reset(consumer, i.topic, i.partition)
 
-            self.__consumer.assign([TopicPartition(topic, partition, offset)
-                                    for (topic, partition), offset in assignment.items()])
+            self.__consumer.assign(
+                [
+                    TopicPartition(topic, partition, offset)
+                    for (topic, partition), offset in assignment.items()
+                ]
+            )
 
             for (topic, partition), offset in assignment.items():
                 # Setting the local offsets will either cause the partition to be
@@ -270,8 +306,10 @@ class SynchronizedConsumer(object):
                 self.__positions[(topic, partition)] = offset
 
             if on_assign is not None:
-                on_assign(self, [TopicPartition(topic, partition)
-                                 for topic, partition in assignment.keys()])
+                on_assign(
+                    self,
+                    [TopicPartition(topic, partition) for topic, partition in assignment.keys()],
+                )
 
         def revocation_callback(consumer, assignment):
             for item in assignment:
@@ -282,9 +320,8 @@ class SynchronizedConsumer(object):
                 on_revoke(self, assignment)
 
         self.__consumer.subscribe(
-            topics,
-            on_assign=assignment_callback,
-            on_revoke=revocation_callback)
+            topics, on_assign=assignment_callback, on_revoke=revocation_callback
+        )
 
     def poll(self, timeout):
         self.__check_commit_log_consumer_running()
@@ -297,9 +334,11 @@ class SynchronizedConsumer(object):
             return message
 
         self.__partition_state_manager.validate_local_message(
-            message.topic(), message.partition(), message.offset())
+            message.topic(), message.partition(), message.offset()
+        )
         self.__partition_state_manager.set_local_offset(
-            message.topic(), message.partition(), message.offset() + 1)
+            message.topic(), message.partition(), message.offset() + 1
+        )
         self.__positions[(message.topic(), message.partition())] = message.offset() + 1
 
         return message

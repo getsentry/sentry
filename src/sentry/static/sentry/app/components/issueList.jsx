@@ -1,12 +1,12 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-
 import createReactClass from 'create-react-class';
 
 import {Panel, PanelBody} from 'app/components/panels';
 import withApi from 'app/utils/withApi';
-import CompactIssue from 'app/components/compactIssue';
+import CompactIssue from 'app/components/issues/compactIssue';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import {IconSearch} from 'app/icons';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
@@ -59,8 +59,8 @@ const IssueList = createReactClass({
     }
 
     if (
-      location.pathname != nextLocation.pathname ||
-      location.search != nextLocation.search
+      location.pathname !== nextLocation.pathname ||
+      location.search !== nextLocation.search
     ) {
       this.remountComponent();
     }
@@ -114,17 +114,15 @@ const IssueList = createReactClass({
       body = (
         <Panel style={panelStyle}>
           <PanelBody className="issue-list">
-            {this.state.data.map(issue => {
-              return (
-                <CompactIssue
-                  key={issue.id}
-                  id={issue.id}
-                  data={issue}
-                  statsPeriod={this.props.statsPeriod}
-                  showActions={this.props.showActions}
-                />
-              );
-            })}
+            {this.state.data.map(issue => (
+              <CompactIssue
+                key={issue.id}
+                id={issue.id}
+                data={issue}
+                statsPeriod={this.props.statsPeriod}
+                showActions={this.props.showActions}
+              />
+            ))}
           </PanelBody>
         </Panel>
       );
@@ -161,7 +159,7 @@ const IssueList = createReactClass({
 
     return (
       <Panel style={panelStyle}>
-        <EmptyMessage icon="icon-circle-exclamation">
+        <EmptyMessage icon={<IconSearch size="xl" />}>
           {emptyText ? emptyText : t('Nothing to show here, move along.')}
         </EmptyMessage>
       </Panel>

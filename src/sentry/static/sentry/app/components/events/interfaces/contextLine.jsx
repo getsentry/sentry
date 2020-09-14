@@ -1,8 +1,9 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
+import styled from '@emotion/styled';
+
 import {defined} from 'app/utils';
-import styled from 'react-emotion';
 
 const Context = styled('div')`
   display: inline;

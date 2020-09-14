@@ -1,22 +1,18 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-
 import createReactClass from 'create-react-class';
 
-import ApiMixin from 'app/mixins/apiMixin';
-import StackedBarChart from 'app/components/stackedBarChart';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import StackedBarChart from 'app/components/stackedBarChart';
+import withApi from 'app/utils/withApi';
 
-export default createReactClass({
-  displayName: 'apiChart',
-
+const ApiChart = createReactClass({
   propTypes: {
+    api: PropTypes.object.isRequired,
     since: PropTypes.number.isRequired,
     resolution: PropTypes.string.isRequired,
   },
-
-  mixins: [ApiMixin],
 
   getInitialState() {
     return {
@@ -48,7 +44,7 @@ export default createReactClass({
     ];
 
     statNameList.forEach(statName => {
-      this.api.request('/internal/stats/', {
+      this.props.api.request('/internal/stats/', {
         method: 'GET',
         data: {
           since: this.props.since,
@@ -64,7 +60,7 @@ export default createReactClass({
             };
           }, this.requestFinished);
         },
-        error: data => {
+        error: () => {
           this.setState({
             error: true,
           });
@@ -90,9 +86,7 @@ export default createReactClass({
   },
 
   processRawSeries(series) {
-    return series.map(item => {
-      return {x: item[0], y: item[1]};
-    });
+    return series.map(item => ({x: item[0], y: item[1]}));
   },
 
   getChartSeries() {
@@ -132,3 +126,5 @@ export default createReactClass({
     );
   },
 });
+
+export default withApi(ApiChart);

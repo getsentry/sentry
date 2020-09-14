@@ -1,5 +1,7 @@
 import React from 'react';
-import {shallow} from 'enzyme';
+
+import {shallow} from 'sentry-test/enzyme';
+
 import SnoozeAction from 'app/components/issues/snoozeAction';
 
 describe('SnoozeAction', function() {

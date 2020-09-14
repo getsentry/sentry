@@ -1,34 +1,31 @@
 import PropTypes from 'prop-types';
-import SentryTypes from 'app/sentryTypes';
 import React from 'react';
-import createReactClass from 'create-react-class';
-//import GroupEventDataSection from "../eventDataSection";
-import Frame from 'app/components/events/interfaces/frame';
+
+import FrameLine from 'app/components/events/interfaces/frame/frameLine';
 import {t} from 'app/locale';
-import OrganizationState from 'app/mixins/organizationState';
+import SentryTypes from 'app/sentryTypes';
+import {parseAddress, getImageRange} from 'app/components/events/interfaces/utils';
 
-const StacktraceContent = createReactClass({
-  displayName: 'StacktraceContent',
-
-  propTypes: {
+export default class StacktraceContent extends React.Component {
+  static propTypes = {
     data: PropTypes.object.isRequired,
     includeSystemFrames: PropTypes.bool,
     expandFirstFrame: PropTypes.bool,
     platform: PropTypes.string,
     newestFirst: PropTypes.bool,
-    group: SentryTypes.Group,
-  },
+    event: SentryTypes.Event.isRequired,
+  };
 
-  mixins: [OrganizationState],
+  static defaultProps = {
+    includeSystemFrames: true,
+    expandFirstFrame: true,
+  };
 
-  getDefaultProps() {
-    return {
-      includeSystemFrames: true,
-      expandFirstFrame: true,
-    };
-  },
+  state = {
+    showingAbsoluteAddresses: false,
+  };
 
-  renderOmittedFrames(firstFrameOmitted, lastFrameOmitted) {
+  renderOmittedFrames = (firstFrameOmitted, lastFrameOmitted) => {
     const props = {
       className: 'frame frames-omitted',
       key: 'omitted',
@@ -39,16 +36,34 @@ const StacktraceContent = createReactClass({
       lastFrameOmitted
     );
     return <li {...props}>{text}</li>;
-  },
+  };
 
-  frameIsVisible(frame, nextFrame) {
-    return (
-      this.props.includeSystemFrames || frame.inApp || (nextFrame && nextFrame.inApp)
-    );
-  },
+  frameIsVisible = (frame, nextFrame) =>
+    this.props.includeSystemFrames || frame.inApp || (nextFrame && nextFrame.inApp);
+
+  findImageForAddress(address) {
+    const images = this.props.event.entries.find(entry => entry.type === 'debugmeta')
+      ?.data?.images;
+
+    return images
+      ? images.find(img => {
+          const [startAddress, endAddress] = getImageRange(img);
+          return address >= startAddress && address < endAddress;
+        })
+      : null;
+  }
+
+  handleToggleAddresses = event => {
+    event.stopPropagation(); // to prevent collapsing if collapsable
+
+    this.setState(prevState => ({
+      showingAbsoluteAddresses: !prevState.showingAbsoluteAddresses,
+    }));
+  };
 
   render() {
     const data = this.props.data;
+    const {showingAbsoluteAddresses} = this.state;
     let firstFrameOmitted, lastFrameOmitted;
 
     if (data.framesOmitted) {
@@ -72,6 +87,27 @@ const StacktraceContent = createReactClass({
     const expandFirstFrame = this.props.expandFirstFrame;
     const frames = [];
     let nRepeats = 0;
+
+    const maxLengthOfAllRelativeAddresses = data.frames.reduce(
+      (maxLengthUntilThisPoint, frame) => {
+        const correspondingImage = this.findImageForAddress(frame.instructionAddr);
+
+        try {
+          const relativeAddress = (
+            parseAddress(frame.instructionAddr) -
+            parseAddress(correspondingImage.image_addr)
+          ).toString(16);
+
+          return maxLengthUntilThisPoint > relativeAddress.length
+            ? maxLengthUntilThisPoint
+            : relativeAddress.length;
+        } catch {
+          return maxLengthUntilThisPoint;
+        }
+      },
+      0
+    );
+
     data.frames.forEach((frame, frameIdx) => {
       const prevFrame = data.frames[frameIdx - 1];
       const nextFrame = data.frames[frameIdx + 1];
@@ -88,8 +124,10 @@ const StacktraceContent = createReactClass({
       }
 
       if (this.frameIsVisible(frame, nextFrame) && !repeatedFrame) {
+        const image = this.findImageForAddress(frame.instructionAddr);
+
         frames.push(
-          <Frame
+          <FrameLine
             key={frameIdx}
             data={frame}
             isExpanded={expandFirstFrame && lastFrameIdx === frameIdx}
@@ -99,7 +137,10 @@ const StacktraceContent = createReactClass({
             prevFrame={prevFrame}
             platform={this.props.platform}
             timesRepeated={nRepeats}
-            group={this.props.group}
+            showingAbsoluteAddress={showingAbsoluteAddresses}
+            onAddressToggle={this.handleToggleAddresses}
+            image={image}
+            maxLengthOfRelativeAddress={maxLengthOfAllRelativeAddresses}
           />
         );
       }
@@ -137,7 +178,5 @@ const StacktraceContent = createReactClass({
         <ul>{frames}</ul>
       </div>
     );
-  },
-});
-
-export default StacktraceContent;
+  }
+}

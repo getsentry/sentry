@@ -1,19 +1,10 @@
 ---
-created: '2019-03-14T17:12:35.103422Z'
+created: '2020-07-09T22:22:50.654549Z'
 creator: sentry
 source: tests/sentry/event_manager/interfaces/test_csp.py
 ---
-culprit: ''
 errors: null
-message: Blocked inline 'style'
-origin: http://example.com/foo
-tags:
-- - effective-directive
-  - style-src
-- - blocked-uri
-  - ''
 to_json:
   blocked_uri: ''
   document_uri: http://example.com/foo
   effective_directive: style-src
-  violated_directive: ''

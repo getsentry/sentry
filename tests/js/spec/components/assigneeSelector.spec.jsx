@@ -1,13 +1,22 @@
 import React from 'react';
 
-import {AssigneeSelectorComponent} from 'app/components/assigneeSelector';
+import {mountWithTheme} from 'sentry-test/enzyme';
+
+import {
+  AssigneeSelectorComponent,
+  putSessionUserFirst,
+} from 'app/components/assigneeSelector';
 import {Client} from 'app/api';
-import {mount} from 'enzyme';
 import ConfigStore from 'app/stores/configStore';
 import GroupStore from 'app/stores/groupStore';
 import MemberListStore from 'app/stores/memberListStore';
 import ProjectsStore from 'app/stores/projectsStore';
 import TeamStore from 'app/stores/teamStore';
+import {openInviteMembersModal} from 'app/actionCreators/modal';
+
+jest.mock('app/actionCreators/modal', () => ({
+  openInviteMembersModal: jest.fn(),
+}));
 
 describe('AssigneeSelector', function() {
   let assigneeSelector;
@@ -21,8 +30,8 @@ describe('AssigneeSelector', function() {
   beforeEach(function() {
     USER_1 = TestStubs.User({
       id: '1',
-      name: 'Jane Doe',
-      email: 'janedoe@example.com',
+      name: 'Jane Bloggs',
+      email: 'janebloggs@example.com',
     });
     USER_2 = TestStubs.User({
       id: '2',
@@ -67,10 +76,10 @@ describe('AssigneeSelector', function() {
       },
     });
 
-    MemberListStore.items = null;
+    MemberListStore.state = [];
     MemberListStore.loaded = false;
 
-    assigneeSelector = mount(
+    assigneeSelector = mountWithTheme(
       <AssigneeSelectorComponent id={GROUP_1.id} />,
       TestStubs.routerContext()
     );
@@ -84,7 +93,7 @@ describe('AssigneeSelector', function() {
 
   describe('render with props', function() {
     it('renders members from the prop when present', async function() {
-      assigneeSelector = mount(
+      assigneeSelector = mountWithTheme(
         <AssigneeSelectorComponent id={GROUP_1.id} memberList={[USER_2, USER_3]} />,
         TestStubs.routerContext()
       );
@@ -93,7 +102,6 @@ describe('AssigneeSelector', function() {
 
       assigneeSelector.update();
       expect(assigneeSelector.find('LoadingIndicator')).toHaveLength(0);
-      expect(assigneeSelector.find('Avatar')).toHaveLength(3);
       expect(assigneeSelector.find('UserAvatar')).toHaveLength(2);
       expect(assigneeSelector.find('TeamAvatar')).toHaveLength(1);
 
@@ -105,7 +113,6 @@ describe('AssigneeSelector', function() {
   });
 
   describe('putSessionUserFirst()', function() {
-    const putSessionUserFirst = AssigneeSelectorComponent.putSessionUserFirst;
     it('should place the session user at the top of the member list if present', function() {
       jest.spyOn(ConfigStore, 'get').mockImplementation(() => ({
         id: '2',
@@ -140,7 +147,6 @@ describe('AssigneeSelector', function() {
     expect(assigneeSelector.instance().assignableTeams()).toHaveLength(1);
 
     expect(assigneeSelector.find('LoadingIndicator')).toHaveLength(0);
-    expect(assigneeSelector.find('Avatar')).toHaveLength(3);
     expect(assigneeSelector.find('UserAvatar')).toHaveLength(2);
     expect(assigneeSelector.find('TeamAvatar')).toHaveLength(1);
   });
@@ -150,13 +156,13 @@ describe('AssigneeSelector', function() {
     MemberListStore.loadInitialData([USER_1, USER_2]);
     assigneeSelector.update();
 
-    expect(assigneeSelector.find('Avatar')).toHaveLength(3);
+    expect(assigneeSelector.find('UserAvatar')).toHaveLength(2);
     expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(false);
 
     MemberListStore.loadInitialData([USER_1, USER_2, USER_3]);
     assigneeSelector.update();
 
-    expect(assigneeSelector.find('Avatar')).toHaveLength(3);
+    expect(assigneeSelector.find('UserAvatar')).toHaveLength(2);
     expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(false);
   });
 
@@ -225,7 +231,7 @@ describe('AssigneeSelector', function() {
     // Assign first item in list, which is TEAM_1
     assigneeSelector.update();
     assigneeSelector
-      .find('Avatar')
+      .find('TeamAvatar')
       .first()
       .simulate('click');
     assigneeSelector.update();
@@ -259,46 +265,16 @@ describe('AssigneeSelector', function() {
   });
 
   it('shows invite member button', async function() {
-    const routerContext = TestStubs.routerContext();
+    jest.spyOn(ConfigStore, 'get').mockImplementation(() => true);
 
     openMenu();
     MemberListStore.loadInitialData([USER_1, USER_2]);
     assigneeSelector.update();
     expect(assigneeSelector.find('LoadingIndicator').exists()).toBe(false);
-    expect(
-      assigneeSelector.find('InviteMemberLink[data-test-id="invite-member"]')
-    ).toHaveLength(0);
-
-    assigneeSelector.unmount();
-    jest.spyOn(ConfigStore, 'get').mockImplementation(() => true);
-    assigneeSelector = mount(
-      <AssigneeSelectorComponent id={GROUP_1.id} />,
-      routerContext
-    );
-    await tick();
-    assigneeSelector.update();
-    openMenu();
-    expect(
-      assigneeSelector.find('InviteMemberLink[data-test-id="invite-member"]')
-    ).toHaveLength(1);
-    ConfigStore.get.mockRestore();
-  });
-
-  it('requires org:write to invite member', async function() {
-    MemberListStore.loadInitialData([USER_1, USER_2]);
-    jest.spyOn(ConfigStore, 'get').mockImplementation(() => true);
-
-    // Remove org:write access permission and make sure invite member button is not shown.
-    assigneeSelector.unmount();
-    assigneeSelector = mount(
-      <AssigneeSelectorComponent id={GROUP_1.id} />,
-      TestStubs.routerContext([{organization: TestStubs.Organization({access: []})}])
-    );
-    openMenu();
-    assigneeSelector.update();
-    expect(
-      assigneeSelector.find('InviteMemberLink[data-test-id="invite-member"]')
-    ).toHaveLength(0);
+    assigneeSelector
+      .find('InviteMemberLink[data-test-id="invite-member"]')
+      .simulate('click');
+    expect(openInviteMembersModal).toHaveBeenCalled();
     ConfigStore.get.mockRestore();
   });
 
@@ -312,8 +288,8 @@ describe('AssigneeSelector', function() {
       .find('StyledInput')
       .simulate('change', {target: {value: 'JohnSmith@example.com'}});
 
-    expect(assigneeSelector.find('Avatar')).toHaveLength(1);
-    expect(assigneeSelector.find('Avatar').prop('user')).toEqual(USER_2);
+    expect(assigneeSelector.find('UserAvatar')).toHaveLength(1);
+    expect(assigneeSelector.find('UserAvatar').prop('user')).toEqual(USER_2);
 
     assigneeSelector.find('StyledInput').simulate('keyDown', {key: 'Enter'});
     assigneeSelector.update();

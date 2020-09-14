@@ -1,6 +1,7 @@
 import React from 'react';
 
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
+
 import ProjectUserFeedback from 'app/views/settings/project/projectUserFeedback';
 
 describe('ProjectUserFeedback', function() {
@@ -23,11 +24,10 @@ describe('ProjectUserFeedback', function() {
   });
 
   it('can toggle sentry branding option', function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <ProjectUserFeedback
         organization={org}
         project={project}
-        setProjectNavSection={() => {}}
         params={{orgId: org.slug, projectId: project.slug}}
       />,
       TestStubs.routerContext()

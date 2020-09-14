@@ -28,19 +28,15 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         :qparam string query: the title of the dashboard being searched for.
         :auth: required
         """
-        dashboards = Dashboard.objects.filter(
-            organization_id=organization.id
-        )
-        query = request.GET.get('query')
+        dashboards = Dashboard.objects.filter(organization_id=organization.id)
+        query = request.GET.get("query")
         if query:
-            dashboards = dashboards.filter(
-                title__icontains=query,
-            )
+            dashboards = dashboards.filter(title__icontains=query)
 
         return self.paginate(
             request=request,
             queryset=dashboards,
-            order_by='title',
+            order_by="title",
             paginator_cls=OffsetPaginator,
             on_results=lambda x: serialize(x, request.user),
         )
@@ -54,21 +50,19 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                                           dashboards belongs to.
         :param string title: the title of the dashboard.
         """
-        serializer = DashboardSerializer(data=request.DATA)
+        serializer = DashboardSerializer(data=request.data)
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        result = serializer.object
+        result = serializer.validated_data
 
         try:
             with transaction.atomic():
                 dashboard = Dashboard.objects.create(
-                    organization_id=organization.id,
-                    title=result['title'],
-                    created_by=request.user,
+                    organization_id=organization.id, title=result["title"], created_by=request.user
                 )
         except IntegrityError:
-            return Response('This dashboard already exists', status=409)
+            return Response("This dashboard already exists", status=409)
 
         return Response(serialize(dashboard, request.user), status=201)

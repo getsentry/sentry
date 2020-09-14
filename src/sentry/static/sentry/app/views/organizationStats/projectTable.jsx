@@ -1,7 +1,7 @@
 import {Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {
   ProjectTableLayout,
@@ -25,8 +25,6 @@ const ProjectTable = ({projectMap, projectTotals, orgTotal, organization}) => {
     return <div />;
   }
 
-  const hasSentry10 = new Set(organization.features).has('sentry10');
-
   return projectTotals
     .sort((a, b) => b.received - a.received)
     .map((item, index) => {
@@ -36,9 +34,7 @@ const ProjectTable = ({projectMap, projectTotals, orgTotal, organization}) => {
         return null;
       }
 
-      const projectLink = hasSentry10
-        ? `/settings/${organization.slug}/projects/${project.slug}/`
-        : `/${organization.slug}/${project.slug}/`;
+      const projectLink = `/settings/${organization.slug}/projects/${project.slug}/`;
 
       return (
         <StyledProjectTableLayout key={index}>
@@ -91,7 +87,7 @@ const Percentage = styled(
   ({children, ...props}) => children !== '' && <div {...props}>{children}</div>
 )`
   margin-top: ${space(0.25)};
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   font-size: 12px;
   line-height: 1.2;
 `;

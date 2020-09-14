@@ -2,68 +2,132 @@
 
 from __future__ import absolute_import
 
-import os
-import json
 import pytest
 
-from sentry.event_manager import EventManager
-from sentry.grouping.api import apply_server_fingerprinting
-from sentry.grouping.fingerprinting import FingerprintingRules
+from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
+
+from tests.sentry.grouping import with_fingerprint_input
 
 
 def test_basic_parsing(insta_snapshot):
-    rules = FingerprintingRules.from_config_string('''
+    rules = FingerprintingRules.from_config_string(
+        """
 # This is a config
 type:DatabaseUnavailable                        -> DatabaseUnavailable
 function:assertion_failed module:foo            -> AssertionFailed, foo
-''')
+app:true                                        -> aha
+app:true                                        -> {{ default }}
+!path:**/foo/**                                 -> everything
+!"path":**/foo/**                               -> everything
+logger:sentry.*                                 -> logger-, {{ logger }}
+"""
+    )
     assert rules._to_config_structure() == {
-        'rules': [
-            {'matchers': [['type', 'DatabaseUnavailable']],
-             'fingerprint': ['DatabaseUnavailable']},
-            {'matchers': [['function', 'assertion_failed'],
-                          ['module', 'foo']],
-             'fingerprint': ['AssertionFailed', 'foo']}
+        "rules": [
+            {"matchers": [["type", "DatabaseUnavailable"]], "fingerprint": ["DatabaseUnavailable"]},
+            {
+                "matchers": [["function", "assertion_failed"], ["module", "foo"]],
+                "fingerprint": ["AssertionFailed", "foo"],
+            },
+            {"matchers": [["app", "true"]], "fingerprint": ["aha"]},
+            {"matchers": [["app", "true"]], "fingerprint": ["{{ default }}"]},
+            {"matchers": [["!path", "**/foo/**"]], "fingerprint": ["everything"]},
+            {"matchers": [["!path", "**/foo/**"]], "fingerprint": ["everything"]},
+            {"matchers": [["logger", "sentry.*"]], "fingerprint": ["logger-", "{{ logger }}"]},
         ],
-        'version': 1
+        "version": 1,
     }
 
-    assert FingerprintingRules._from_config_structure(
-        rules._to_config_structure())._to_config_structure() == rules._to_config_structure()
+    assert (
+        FingerprintingRules._from_config_structure(
+            rules._to_config_structure()
+        )._to_config_structure()
+        == rules._to_config_structure()
+    )
 
 
-_fixture_path = os.path.join(os.path.dirname(__file__), 'fingerprint_inputs')
+def test_parsing_errors():
+    with pytest.raises(InvalidFingerprintingConfig):
+        FingerprintingRules.from_config_string("invalid.message:foo -> bar")
 
 
-def load_configs():
-    rv = []
-    for filename in os.listdir(_fixture_path):
-        if filename.endswith('.json'):
-            rv.append(filename[:-5])
-    return sorted(rv)
+def test_automatic_argument_splitting():
+    rules = FingerprintingRules.from_config_string(
+        """
+logger:test -> logger-{{ logger }}
+logger:test -> logger-, {{ logger }}
+logger:test2 -> logger-{{ logger }}-{{ level }}
+logger:test2 -> logger-, {{ logger }}, -, {{ level }}
+"""
+    )
+    assert rules._to_config_structure() == {
+        "rules": [
+            {"matchers": [["logger", "test"]], "fingerprint": ["logger-", "{{ logger }}"]},
+            {"matchers": [["logger", "test"]], "fingerprint": ["logger-", "{{ logger }}"]},
+            {
+                "matchers": [["logger", "test2"]],
+                "fingerprint": ["logger-", "{{ logger }}", "-", "{{ level }}"],
+            },
+            {
+                "matchers": [["logger", "test2"]],
+                "fingerprint": ["logger-", "{{ logger }}", "-", "{{ level }}"],
+            },
+        ],
+        "version": 1,
+    }
 
 
-@pytest.mark.parametrize(
-    'testcase',
-    load_configs(),
-    ids=lambda x: x.replace("-", "_")  # Nicer folder structure for insta_snapshot
-)
-def test_event_hash_variant(insta_snapshot, testcase):
-    with open(os.path.join(_fixture_path, testcase + '.json')) as f:
-        input = json.load(f)
+def test_discover_field_parsing(insta_snapshot):
+    rules = FingerprintingRules.from_config_string(
+        """
+# This is a config
+error.type:DatabaseUnavailable                        -> DatabaseUnavailable
+stack.function:assertion_failed stack.module:foo      -> AssertionFailed, foo
+app:true                                        -> aha
+app:true                                        -> {{ default }}
+"""
+    )
+    assert rules._to_config_structure() == {
+        "rules": [
+            {"matchers": [["type", "DatabaseUnavailable"]], "fingerprint": ["DatabaseUnavailable"]},
+            {
+                "matchers": [["function", "assertion_failed"], ["module", "foo"]],
+                "fingerprint": ["AssertionFailed", "foo"],
+            },
+            {"matchers": [["app", "true"]], "fingerprint": ["aha"]},
+            {"matchers": [["app", "true"]], "fingerprint": ["{{ default }}"]},
+        ],
+        "version": 1,
+    }
 
-    config = FingerprintingRules.from_json({
-        'rules': input.pop('_fingerprinting_rules'),
-        'version': 1,
-    })
-    mgr = EventManager(data=input)
-    mgr.normalize()
-    data = mgr.get_data()
+    assert (
+        FingerprintingRules._from_config_structure(
+            rules._to_config_structure()
+        )._to_config_structure()
+        == rules._to_config_structure()
+    )
 
-    data.setdefault('fingerprint', ['{{ default }}'])
-    apply_server_fingerprinting(data, config)
 
-    insta_snapshot({
-        'config': config.to_json(),
-        'fingerprint': data['fingerprint'],
-    })
+@with_fingerprint_input("input")
+def test_event_hash_variant(insta_snapshot, input):
+    config, evt = input.create_event()
+
+    def dump_variant(v):
+        rv = v.as_dict()
+
+        for key in "hash", "description", "config":
+            rv.pop(key, None)
+
+        if "component" in rv:
+            for key in "id", "name", "values":
+                rv["component"].pop(key, None)
+
+        return rv
+
+    insta_snapshot(
+        {
+            "config": config.to_json(),
+            "fingerprint": evt.data["fingerprint"],
+            "variants": {k: dump_variant(v) for (k, v) in evt.get_grouping_variants().items()},
+        }
+    )

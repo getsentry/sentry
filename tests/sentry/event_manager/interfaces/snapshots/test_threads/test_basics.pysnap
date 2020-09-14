@@ -1,5 +1,5 @@
 ---
-created: '2019-03-14T17:12:36.728580Z'
+created: '2019-11-14T11:21:19.912555Z'
 creator: sentry
 source: tests/sentry/event_manager/interfaces/test_threads.py
 ---
@@ -23,6 +23,7 @@ api_context:
         module: null
         package: null
         platform: null
+        rawFunction: null
         symbol: null
         symbolAddr: null
         trust: null
@@ -44,6 +45,7 @@ api_context:
         module: null
         package: null
         platform: null
+        rawFunction: null
         symbol: null
         symbolAddr: null
         trust: null

@@ -2,15 +2,16 @@ from __future__ import absolute_import
 
 from django.contrib.auth.models import AnonymousUser
 from django.utils.crypto import constant_time_compare
-from rest_framework.authentication import (BasicAuthentication, get_authorization_header)
+from django.utils.encoding import force_text
+from rest_framework.authentication import BasicAuthentication, get_authorization_header
 from rest_framework.exceptions import AuthenticationFailed
+
+from sentry_relay import UnpackError
 
 from sentry.auth.system import SystemToken
 from sentry.models import ApiApplication, ApiKey, ApiToken, ProjectKey, Relay
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
 from sentry.utils.sdk import configure_scope
-
-import semaphore
 
 
 class QuietBasicAuthentication(BasicAuthentication):
@@ -28,13 +29,13 @@ class StandardAuthentication(QuietBasicAuthentication):
             return None
 
         if len(auth) == 1:
-            msg = 'Invalid token header. No credentials provided.'
+            msg = "Invalid token header. No credentials provided."
             raise AuthenticationFailed(msg)
         elif len(auth) > 2:
-            msg = 'Invalid token header. Token string should not contain spaces.'
+            msg = "Invalid token header. Token string should not contain spaces."
             raise AuthenticationFailed(msg)
 
-        return self.authenticate_credentials(request, auth[1])
+        return self.authenticate_credentials(request, force_text(auth[1]))
 
 
 class RelayAuthentication(BasicAuthentication):
@@ -42,27 +43,26 @@ class RelayAuthentication(BasicAuthentication):
         relay_id = get_header_relay_id(request)
         relay_sig = get_header_relay_signature(request)
         if not relay_id:
-            raise AuthenticationFailed('Invalid relay ID')
+            raise AuthenticationFailed("Invalid relay ID")
         if not relay_sig:
-            raise AuthenticationFailed('Missing relay signature')
+            raise AuthenticationFailed("Missing relay signature")
         return self.authenticate_credentials(relay_id, relay_sig, request)
 
     def authenticate_credentials(self, relay_id, relay_sig, request):
         with configure_scope() as scope:
-            scope.set_tag('relay_id', relay_id)
+            scope.set_tag("relay_id", relay_id)
 
         try:
             relay = Relay.objects.get(relay_id=relay_id)
         except Relay.DoesNotExist:
-            raise AuthenticationFailed('Unknown relay')
+            raise AuthenticationFailed("Unknown relay")
 
         try:
-            data = relay.public_key_object.unpack(request.body, relay_sig,
-                                                  max_age=60 * 5)
+            data = relay.public_key_object.unpack(request.body, relay_sig, max_age=60 * 5)
             request.relay = relay
             request.relay_request_data = data
-        except semaphore.UnpackError:
-            raise AuthenticationFailed('Invalid relay signature')
+        except UnpackError:
+            raise AuthenticationFailed("Invalid relay signature")
 
         # TODO(mitsuhiko): can we return the relay here?  would be nice if we
         # could find some common interface for it
@@ -77,10 +77,10 @@ class ApiKeyAuthentication(QuietBasicAuthentication):
         try:
             key = ApiKey.objects.get_from_cache(key=userid)
         except ApiKey.DoesNotExist:
-            raise AuthenticationFailed('API key is not valid')
+            raise AuthenticationFailed("API key is not valid")
 
         if not key.is_active:
-            raise AuthenticationFailed('Key is disabled')
+            raise AuthenticationFailed("Key is disabled")
 
         with configure_scope() as scope:
             scope.set_tag("api_key", key.id)
@@ -100,12 +100,12 @@ class ClientIdSecretAuthentication(QuietBasicAuthentication):
 
     def authenticate(self, request):
         if not request.json_body:
-            raise AuthenticationFailed('Invalid request')
+            raise AuthenticationFailed("Invalid request")
 
-        client_id = request.json_body.get('client_id')
-        client_secret = request.json_body.get('client_secret')
+        client_id = request.json_body.get("client_id")
+        client_secret = request.json_body.get("client_secret")
 
-        invalid_pair_error = AuthenticationFailed('Invalid Client ID / Secret pair')
+        invalid_pair_error = AuthenticationFailed("Invalid Client ID / Secret pair")
 
         if not client_id or not client_secret:
             raise invalid_pair_error
@@ -125,25 +125,28 @@ class ClientIdSecretAuthentication(QuietBasicAuthentication):
 
 
 class TokenAuthentication(StandardAuthentication):
-    token_name = b'bearer'
+    token_name = b"bearer"
 
     def authenticate_credentials(self, request, token_str):
         token = SystemToken.from_request(request, token_str)
         try:
-            token = token or ApiToken.objects.filter(token=token_str) \
-                .select_related('user', 'application') \
+            token = (
+                token
+                or ApiToken.objects.filter(token=token_str)
+                .select_related("user", "application")
                 .get()
+            )
         except ApiToken.DoesNotExist:
-            raise AuthenticationFailed('Invalid token')
+            raise AuthenticationFailed("Invalid token")
 
         if token.is_expired():
-            raise AuthenticationFailed('Token expired')
+            raise AuthenticationFailed("Token expired")
 
         if not token.user.is_active:
-            raise AuthenticationFailed('User inactive or deleted')
+            raise AuthenticationFailed("User inactive or deleted")
 
         if token.application and not token.application.is_active:
-            raise AuthenticationFailed('UserApplication inactive or deleted')
+            raise AuthenticationFailed("UserApplication inactive or deleted")
 
         with configure_scope() as scope:
             scope.set_tag("api_token_type", self.token_name)
@@ -153,16 +156,16 @@ class TokenAuthentication(StandardAuthentication):
 
 
 class DSNAuthentication(StandardAuthentication):
-    token_name = b'dsn'
+    token_name = b"dsn"
 
     def authenticate_credentials(self, request, token):
         try:
             key = ProjectKey.from_dsn(token)
         except ProjectKey.DoesNotExist:
-            raise AuthenticationFailed('Invalid token')
+            raise AuthenticationFailed("Invalid token")
 
         if not key.is_active:
-            raise AuthenticationFailed('Invalid token')
+            raise AuthenticationFailed("Invalid token")
 
         with configure_scope() as scope:
             scope.set_tag("api_token_type", self.token_name)

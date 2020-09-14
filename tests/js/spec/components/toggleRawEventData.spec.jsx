@@ -1,8 +1,9 @@
 import React from 'react';
-import {shallow} from 'enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
+
 import EventDataSection from 'app/components/events/eventDataSection';
-import KeyValueList from 'app/components/events/interfaces/keyValueList';
-import {objectToArray} from 'app/utils';
+import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValueList';
 
 const data = {
   metadata: {
@@ -30,7 +31,7 @@ describe('EventDataSection', function() {
     culprit: undefined,
   };
   it('renders formatted', function() {
-    const component = shallow(
+    const component = mountWithTheme(
       <EventDataSection
         group={groupData}
         event={eventData}
@@ -40,20 +41,20 @@ describe('EventDataSection', function() {
       />
     );
 
-    expect(component).toMatchSnapshot();
+    expect(component).toSnapshot();
   });
 
   it('renders raw', function() {
-    const component = shallow(
+    const component = mountWithTheme(
       <EventDataSection
         group={groupData}
         event={eventData}
         type="extra"
         title="Additional Data"
-        raw={true}
+        raw
       />
     );
-    expect(component).toMatchSnapshot();
+    expect(component).toSnapshot();
   });
 });
 
@@ -63,21 +64,21 @@ describe('KeyValueList', function() {
     plussomeotherstuff: 'here',
     andthis: 0,
   };
-  const extraDataArray = objectToArray(context);
+  const extraDataArray = Object.entries(context);
 
   it('renders formatted', function() {
-    const component = shallow(
-      <KeyValueList data={extraDataArray} isContextData={true} raw={false} />
+    const component = mountWithTheme(
+      <KeyValueList data={extraDataArray} isContextData raw={false} />
     );
 
-    expect(component).toMatchSnapshot();
+    expect(component).toSnapshot();
   });
 
   it('renders raw', function() {
-    const component = shallow(
-      <KeyValueList data={extraDataArray} isContextData={true} raw={true} />
+    const component = mountWithTheme(
+      <KeyValueList data={extraDataArray} isContextData raw />
     );
 
-    expect(component).toMatchSnapshot();
+    expect(component).toSnapshot();
   });
 });

@@ -2,7 +2,7 @@
 from __future__ import absolute_import
 
 from sentry.grouping.strategies.base import strategy, lookup_strategy
-from sentry.grouping.utils import get_grouping_family_for_platform
+from sentry.stacktraces.platform import get_behavior_family_for_platform
 
 
 def dispatch_strategy(id, targets, score=None):
@@ -30,6 +30,7 @@ def dispatch_strategy(id, targets, score=None):
                 return s(_interface, **meta)
 
     if has_variant_processor:
+
         @main_strategy.variant_processor
         def variant_processor(variants, **meta):
             for s, selector in selectors:
@@ -43,37 +44,37 @@ def dispatch_strategy(id, targets, score=None):
 
 
 def is_native(meta):
-    return get_grouping_family_for_platform(meta['event'].platform) == 'native'
+    return get_behavior_family_for_platform(meta["event"].platform) == "native"
 
 
 stacktrace_v1nl = dispatch_strategy(
-    id='stacktrace:v1nl',
+    id="stacktrace:v1nl",
     targets=[
-        ('stacktrace:v1', lambda stacktrace, **meta: is_native(meta)),
-        ('stacktrace:legacy', lambda stacktrace, **meta: True),
-    ]
+        ("stacktrace:v1", lambda stacktrace, **meta: is_native(meta)),
+        ("stacktrace:legacy", lambda stacktrace, **meta: True),
+    ],
 )
 
 frame_v1nl = dispatch_strategy(
-    id='frame:v1nl',
+    id="frame:v1nl",
     targets=[
-        ('frame:v1', lambda stacktrace, **meta: is_native(meta)),
-        ('frame:legacy', lambda stacktrace, **meta: True),
-    ]
+        ("frame:v1", lambda stacktrace, **meta: is_native(meta)),
+        ("frame:legacy", lambda stacktrace, **meta: True),
+    ],
 )
 
 single_exception_v1nl = dispatch_strategy(
-    id='single-exception:v1nl',
+    id="single-exception:v1nl",
     targets=[
-        ('single-exception:v1', lambda exception, **meta: is_native(meta)),
-        ('single-exception:legacy', lambda exception, **meta: True),
-    ]
+        ("single-exception:v1", lambda exception, **meta: is_native(meta)),
+        ("single-exception:legacy", lambda exception, **meta: True),
+    ],
 )
 
 chained_exception_v1nl = dispatch_strategy(
-    id='chained-exception:v1nl',
+    id="chained-exception:v1nl",
     targets=[
-        ('chained-exception:v1', lambda chained_exception, **meta: is_native(meta)),
-        ('chained-exception:legacy', lambda chained_exception, **meta: True),
-    ]
+        ("chained-exception:v1", lambda chained_exception, **meta: is_native(meta)),
+        ("chained-exception:legacy", lambda chained_exception, **meta: True),
+    ],
 )

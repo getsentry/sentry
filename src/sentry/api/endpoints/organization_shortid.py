@@ -12,12 +12,12 @@ from sentry.models import Group
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 
-@scenario('ResolveShortId')
+@scenario("ResolveShortId")
 def resolve_short_id_scenario(runner):
     group = Group.objects.filter(project=runner.default_project).first()
     runner.request(
-        method='GET',
-        path='/organizations/%s/shortids/%s/' % (runner.org.slug, group.qualified_short_id, )
+        method="GET",
+        path="/organizations/%s/shortids/%s/" % (runner.org.slug, group.qualified_short_id),
     )
 
 
@@ -44,13 +44,10 @@ class ShortIdLookupEndpoint(OrganizationEndpoint):
 
         return Response(
             {
-                'organizationSlug': organization.slug,
-                'projectSlug': group.project.slug,
-                'groupId': six.text_type(group.id),
-                'group': serialize(
-                    group,
-                    request.user,
-                ),
-                'shortId': group.qualified_short_id,
+                "organizationSlug": organization.slug,
+                "projectSlug": group.project.slug,
+                "groupId": six.text_type(group.id),
+                "group": serialize(group, request.user),
+                "shortId": group.qualified_short_id,
             }
         )

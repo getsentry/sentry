@@ -1,5 +1,5 @@
 ---
-created: '2019-04-07T22:42:22.847873Z'
+created: '2020-08-19T12:18:26.346877Z'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
@@ -13,3 +13,20 @@ config:
   version: 1
 fingerprint:
 - something-went-wrong
+variants:
+  app:
+    component:
+      contributes: false
+      contributes_to_similarity: true
+      hint: custom fingerprint takes precedence
+    type: component
+  custom-fingerprint:
+    type: custom-fingerprint
+    values:
+    - something-went-wrong
+  system:
+    component:
+      contributes: false
+      contributes_to_similarity: true
+      hint: custom fingerprint takes precedence
+    type: component

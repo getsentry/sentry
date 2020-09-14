@@ -6,15 +6,9 @@ from django.db.models import Q
 from django.utils import six
 
 from sentry import analytics
-from sentry.api.bases.organization import (
-    OrganizationEndpoint,
-    OrganizationSearchPermission,
-)
+from sentry.api.bases.organization import OrganizationEndpoint, OrganizationSearchPermission
 from sentry.api.serializers import serialize
-from sentry.models.savedsearch import (
-    DEFAULT_SAVED_SEARCH_QUERIES,
-    SavedSearch,
-)
+from sentry.models.savedsearch import DEFAULT_SAVED_SEARCH_QUERIES, SavedSearch
 from sentry.models.search_common import SearchType
 
 
@@ -25,7 +19,7 @@ class OrganizationSearchSerializer(serializers.Serializer):
 
 
 class OrganizationSearchesEndpoint(OrganizationEndpoint):
-    permission_classes = (OrganizationSearchPermission, )
+    permission_classes = (OrganizationSearchPermission,)
 
     def get(self, request, organization):
         """
@@ -39,26 +33,25 @@ class OrganizationSearchesEndpoint(OrganizationEndpoint):
 
         """
         try:
-            search_type = SearchType(int(request.GET.get('type', 0)))
+            search_type = SearchType(int(request.GET.get("type", 0)))
         except ValueError as e:
             return Response(
-                {'detail': 'Invalid input for `type`. Error: %s' % six.text_type(e)},
-                status=400,
+                {"detail": "Invalid input for `type`. Error: %s" % six.text_type(e)}, status=400
             )
 
-        if request.GET.get('use_org_level') == '1':
+        if request.GET.get("use_org_level") == "1":
             org_searches_q = Q(
-                Q(owner=request.user) | Q(owner__isnull=True),
-                organization=organization,
+                Q(owner=request.user) | Q(owner__isnull=True), organization=organization
             )
             global_searches_q = Q(is_global=True)
-            saved_searches = list(SavedSearch.objects.filter(
-                org_searches_q | global_searches_q,
-                type=search_type,
-            ).extra(
-                select={'has_owner': 'owner_id is not null', 'name__upper': 'UPPER(name)'},
-                order_by=['-has_owner', 'name__upper'],
-            ))
+            saved_searches = list(
+                SavedSearch.objects.filter(
+                    org_searches_q | global_searches_q, type=search_type
+                ).extra(
+                    select={"has_owner": "owner_id is not null", "name__upper": "UPPER(name)"},
+                    order_by=["-has_owner", "name__upper"],
+                )
+            )
             results = []
             if saved_searches:
                 pinned_search = None
@@ -82,39 +75,39 @@ class OrganizationSearchesEndpoint(OrganizationEndpoint):
                 project__in=self.get_projects(request, organization),
             )
             global_searches = Q(is_global=True)
-            results = list(SavedSearch.objects.filter(
-                org_searches | global_searches
-            ).order_by('name', 'project'))
+            results = list(
+                SavedSearch.objects.filter(org_searches | global_searches).order_by(
+                    "name", "project"
+                )
+            )
 
         return Response(serialize(results, request.user))
 
     def post(self, request, organization):
-        serializer = OrganizationSearchSerializer(data=request.DATA)
+        serializer = OrganizationSearchSerializer(data=request.data)
 
         if serializer.is_valid():
-            result = serializer.object
+            result = serializer.validated_data
             # Prevent from creating duplicate queries
             if SavedSearch.objects.filter(
                 Q(is_global=True) | Q(organization=organization, owner__isnull=True),
-                query=result['query'],
+                query=result["query"],
             ).exists():
                 return Response(
-                    {'detail': u'Query {} already exists'.format(result['query'])},
-                    status=400,
+                    {"detail": u"Query {} already exists".format(result["query"])}, status=400
                 )
 
             saved_search = SavedSearch.objects.create(
                 organization=organization,
-                type=result['type'],
-                name=result['name'],
-                query=result['query'],
+                type=result["type"],
+                name=result["name"],
+                query=result["query"],
             )
             analytics.record(
-                'organization_saved_search.created',
-                search_type=saved_search.type,
-                organization_id=organization.id,
-                id=saved_search.id,
-                user_id=request.user.id,
+                "organization_saved_search.created",
+                search_type=SearchType(saved_search.type).name,
+                org_id=organization.id,
+                query=saved_search.query,
             )
             return Response(serialize(saved_search, request.user))
         return Response(serializer.errors, status=400)

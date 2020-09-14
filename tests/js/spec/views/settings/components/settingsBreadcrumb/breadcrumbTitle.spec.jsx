@@ -1,6 +1,7 @@
 import React from 'react';
 
-import {mount} from 'enzyme';
+import {mount} from 'sentry-test/enzyme';
+
 import BreadcrumbTitle from 'app/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 import Crumb from 'app/views/settings/components/settingsBreadcrumb/crumb';
 import SettingsBreadcrumb from 'app/views/settings/components/settingsBreadcrumb';
@@ -51,6 +52,6 @@ describe('BreadcrumbTitle', function() {
     // Simulate navigating up a level, trimming the last title
     breadcrumbs.setProps({routes: upOneRoutes});
     await tick();
-    expect(SettingsBreadcrumbStore.pathMap).toEqual({'/one/two/': 'Second Title'});
+    expect(SettingsBreadcrumbStore.pathMap).toEqual({'/two/': 'Second Title'});
   });
 });

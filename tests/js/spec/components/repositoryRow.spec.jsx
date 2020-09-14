@@ -1,8 +1,8 @@
-/*global global*/
 import React from 'react';
 
+import {mountWithTheme} from 'sentry-test/enzyme';
+
 import {Client} from 'app/api';
-import {mount} from 'enzyme';
 import RepositoryRow from 'app/components/repositoryRow';
 
 describe('RepositoryRow', function() {
@@ -18,12 +18,12 @@ describe('RepositoryRow', function() {
 
   describe('rendering with access', function() {
     const organization = TestStubs.Organization({
-      access: ['org:admin'],
+      access: ['org:integrations'],
     });
     const routerContext = TestStubs.routerContext([{organization}]);
 
     it('displays provider information', function() {
-      const wrapper = mount(
+      const wrapper = mountWithTheme(
         <RepositoryRow repository={repository} api={api} orgId={organization.slug} />,
         routerContext
       );
@@ -38,14 +38,14 @@ describe('RepositoryRow', function() {
     });
 
     it('displays cancel pending button', function() {
-      const wrapper = mount(
+      const wrapper = mountWithTheme(
         <RepositoryRow repository={pendingRepo} api={api} orgId={organization.slug} />,
         routerContext
       );
 
       // Trash button should be disabled
       expect(wrapper.find('Confirm').props().disabled).toEqual(true);
-      expect(wrapper.find('Button[icon="icon-trash"]').props().disabled).toEqual(true);
+      expect(wrapper.find('Button[label="delete"]').props().disabled).toEqual(true);
 
       // Cancel button active
       const cancel = wrapper.find('Button[data-test-id="repo-cancel"]');
@@ -61,18 +61,18 @@ describe('RepositoryRow', function() {
     const routerContext = TestStubs.routerContext([{organization}]);
 
     it('displays disabled trash', function() {
-      const wrapper = mount(
+      const wrapper = mountWithTheme(
         <RepositoryRow repository={repository} api={api} orgId={organization.slug} />,
         routerContext
       );
 
       // Trash button should be disabled
       expect(wrapper.find('Confirm').props().disabled).toEqual(true);
-      expect(wrapper.find('Button[icon="icon-trash"]').props().disabled).toEqual(true);
+      expect(wrapper.find('Button[label="delete"]').props().disabled).toEqual(true);
     });
 
     it('displays disabled cancel', function() {
-      const wrapper = mount(
+      const wrapper = mountWithTheme(
         <RepositoryRow repository={pendingRepo} api={api} orgId={organization.slug} />,
         routerContext
       );
@@ -86,7 +86,7 @@ describe('RepositoryRow', function() {
 
   describe('deletion', function() {
     const organization = TestStubs.Organization({
-      access: ['org:admin'],
+      access: ['org:integrations'],
     });
     const routerContext = TestStubs.routerContext([{organization}]);
 
@@ -98,11 +98,11 @@ describe('RepositoryRow', function() {
         body: {},
       });
 
-      const wrapper = mount(
+      const wrapper = mountWithTheme(
         <RepositoryRow repository={repository} api={api} orgId={organization.slug} />,
         routerContext
       );
-      wrapper.find('Button[icon="icon-trash"]').simulate('click');
+      wrapper.find('Button[label="delete"]').simulate('click');
       await tick();
 
       // Confirm modal
@@ -115,7 +115,7 @@ describe('RepositoryRow', function() {
 
   describe('cancel deletion', function() {
     const organization = TestStubs.Organization({
-      access: ['org:admin'],
+      access: ['org:integrations'],
     });
     const routerContext = TestStubs.routerContext([{organization}]);
 
@@ -127,7 +127,7 @@ describe('RepositoryRow', function() {
         body: {},
       });
 
-      const wrapper = mount(
+      const wrapper = mountWithTheme(
         <RepositoryRow repository={pendingRepo} api={api} orgId={organization.slug} />,
         routerContext
       );

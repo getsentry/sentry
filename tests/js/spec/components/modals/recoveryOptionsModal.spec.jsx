@@ -1,7 +1,8 @@
 import {Modal} from 'react-bootstrap';
 import React from 'react';
 
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
+
 import RecoveryOptionsModal from 'app/components/modals/recoveryOptionsModal';
 
 describe('RecoveryOptionsModal', function() {
@@ -16,7 +17,7 @@ describe('RecoveryOptionsModal', function() {
       method: 'GET',
       body: TestStubs.AllAuthenticators(),
     });
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <RecoveryOptionsModal
         Body={Modal.Body}
         Header={Modal.Header}
@@ -66,7 +67,7 @@ describe('RecoveryOptionsModal', function() {
       method: 'GET',
       body: [TestStubs.Authenticators().Totp(), TestStubs.Authenticators().Recovery()],
     });
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <RecoveryOptionsModal
         Body={Modal.Body}
         Header={Modal.Header}

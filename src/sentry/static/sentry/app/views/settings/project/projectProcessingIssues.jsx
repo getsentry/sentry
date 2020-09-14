@@ -1,23 +1,27 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
+import styled from '@emotion/styled';
 
-import {Panel} from 'app/components/panels';
-import {addLoadingMessage, removeIndicator} from 'app/actionCreators/indicator';
+import {IconQuestion, IconSettings} from 'app/icons';
+import {Panel, PanelAlert, PanelTable} from 'app/components/panels';
+import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
 import {t, tn} from 'app/locale';
 import Access from 'app/components/acl/access';
-import withApi from 'app/utils/withApi';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
+import AutoSelectText from 'app/components/autoSelectText';
 import Button from 'app/components/button';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import OrganizationState from 'app/mixins/organizationState';
+import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import TimeSince from 'app/components/timeSince';
 import formGroups from 'app/data/forms/processingIssues';
+import withApi from 'app/utils/withApi';
+import withOrganization from 'app/utils/withOrganization';
 
 const MESSAGES = {
   native_no_crashed_thread: t('No crashed thread found in crash report'),
@@ -44,35 +48,32 @@ const HELP_LINKS = {
   native_missing_symbol: 'https://docs.sentry.io/server/dsym/',
 };
 
-const ProjectProcessingIssues = createReactClass({
-  displayName: 'ProjectProcessingIssues',
-  propTypes: {
-    api: PropTypes.object,
-  },
-  mixins: [OrganizationState],
+class ProjectProcessingIssues extends React.Component {
+  static propTypes = {
+    api: PropTypes.object.isRequired,
+    organization: SentryTypes.Organization.isRequired,
+  };
 
-  getInitialState() {
-    return {
-      formData: {},
-      loading: true,
-      reprocessing: false,
-      expected: 0,
-      error: false,
-      processingIssues: null,
-    };
-  },
+  state = {
+    formData: {},
+    loading: true,
+    reprocessing: false,
+    expected: 0,
+    error: false,
+    processingIssues: null,
+  };
 
   componentDidMount() {
     this.fetchData();
-  },
+  }
 
-  fetchData() {
+  fetchData = () => {
     const {orgId, projectId} = this.props.params;
     this.setState({
       expected: this.state.expected + 2,
     });
     this.props.api.request(`/projects/${orgId}/${projectId}/`, {
-      success: (data, _, jqXHR) => {
+      success: data => {
         const expected = this.state.expected - 1;
         this.setState({
           expected,
@@ -113,17 +114,17 @@ const ProjectProcessingIssues = createReactClass({
         },
       }
     );
-  },
+  };
 
-  sendReprocessing() {
+  sendReprocessing = () => {
     this.setState({
       reprocessing: true,
     });
-    const loadingIndicator = addLoadingMessage(t('Started reprocessing..'));
+    addLoadingMessage(t('Started reprocessing\u2026'));
     const {orgId, projectId} = this.props.params;
     this.props.api.request(`/projects/${orgId}/${projectId}/reprocessing/`, {
       method: 'POST',
-      success: (data, _, jqXHR) => {
+      success: () => {
         this.fetchData();
         this.setState({
           reprocessing: false,
@@ -135,19 +136,19 @@ const ProjectProcessingIssues = createReactClass({
         });
       },
       complete: () => {
-        removeIndicator(loadingIndicator);
+        clearIndicators();
       },
     });
-  },
+  };
 
-  discardEvents() {
+  discardEvents = () => {
     const {orgId, projectId} = this.props.params;
     this.setState({
       expected: this.state.expected + 1,
     });
     this.props.api.request(`/projects/${orgId}/${projectId}/processingissues/discard/`, {
       method: 'DELETE',
-      success: (data, _, jqXHR) => {
+      success: () => {
         const expected = this.state.expected - 1;
         this.setState({
           expected,
@@ -167,16 +168,16 @@ const ProjectProcessingIssues = createReactClass({
         });
       },
     });
-  },
+  };
 
-  deleteProcessingIssues() {
+  deleteProcessingIssues = () => {
     const {orgId, projectId} = this.props.params;
     this.setState({
       expected: this.state.expected + 1,
     });
     this.props.api.request(`/projects/${orgId}/${projectId}/processingissues/`, {
       method: 'DELETE',
-      success: (data, _, jqXHR) => {
+      success: () => {
         const expected = this.state.expected - 1;
         this.setState({
           expected,
@@ -196,9 +197,9 @@ const ProjectProcessingIssues = createReactClass({
         });
       },
     });
-  },
+  };
 
-  renderDebugTable() {
+  renderDebugTable = () => {
     let body;
     if (this.state.loading) {
       body = this.renderLoading();
@@ -215,37 +216,33 @@ const ProjectProcessingIssues = createReactClass({
     }
 
     return body;
-  },
+  };
 
-  renderLoading() {
-    return (
-      <div className="box">
-        <LoadingIndicator />
-      </div>
-    );
-  },
+  renderLoading = () => (
+    <div className="box">
+      <LoadingIndicator />
+    </div>
+  );
 
-  renderEmpty() {
-    return (
-      <Panel>
-        <EmptyStateWarning>
-          <p>{t('Good news! There are no processing issues.')}</p>
-        </EmptyStateWarning>
-      </Panel>
-    );
-  },
+  renderEmpty = () => (
+    <Panel>
+      <EmptyStateWarning>
+        <p>{t('Good news! There are no processing issues.')}</p>
+      </EmptyStateWarning>
+    </Panel>
+  );
 
-  getProblemDescription(item) {
+  getProblemDescription = item => {
     const msg = MESSAGES[item.type];
     return msg || item.message || 'Unknown Error';
-  },
+  };
 
-  getImageName(path) {
+  getImageName = path => {
     const pathSegments = path.split(/^([a-z]:\\|\\\\)/i.test(path) ? '\\' : '/');
     return pathSegments[pathSegments.length - 1];
-  },
+  };
 
-  renderProblem(item) {
+  renderProblem = item => {
     const description = this.getProblemDescription(item);
     const helpLink = HELP_LINKS[item.type];
     return (
@@ -253,14 +250,14 @@ const ProjectProcessingIssues = createReactClass({
         <span className="description">{description}</span>{' '}
         {helpLink && (
           <a href={helpLink} className="help-link">
-            <span className="icon-question" />
+            <IconQuestion size="xs" />
           </a>
         )}
       </div>
     );
-  },
+  };
 
-  renderDetails(item) {
+  renderDetails = item => {
     let dsymUUID = null;
     let dsymName = null;
     let dsymArch = null;
@@ -284,9 +281,9 @@ const ProjectProcessingIssues = createReactClass({
         {dsymName && <span> (for {dsymName})</span>}
       </span>
     );
-  },
+  };
 
-  renderResolveButton() {
+  renderResolveButton = () => {
     const issues = this.state.processingIssues;
     if (issues === null || this.state.reprocessing) {
       return null;
@@ -304,9 +301,9 @@ const ProjectProcessingIssues = createReactClass({
         Pro Tip: <a onClick={this.sendReprocessing}>{fixButton}</a>
       </div>
     );
-  },
+  };
 
-  renderResults() {
+  renderResults = () => {
     const fixLink = this.state.processingIssues
       ? this.state.processingIssues.signedLink
       : false;
@@ -325,12 +322,9 @@ const ProjectProcessingIssues = createReactClass({
                   "Paste this command into your shell and we'll attempt to upload the missing symbols from your machine:"
                 )}
               </label>
-              <div
-                className="form-control disabled auto-select"
-                style={{marginBottom: 6}}
-              >
-                curl -sL {fixLink} | bash
-              </div>
+              <AutoSelectText className="form-control disabled" style={{marginBottom: 6}}>
+                curl -sL "{fixLink}" | bash
+              </AutoSelectText>
             </div>
           </div>
         </div>
@@ -339,21 +333,13 @@ const ProjectProcessingIssues = createReactClass({
     let processingRow = null;
     if (this.state.processingIssues.issuesProcessing > 0) {
       processingRow = (
-        <div className="list-group-item alert-info">
-          <div className="row row-flex row-center-vertically">
-            <div className="col-sm-12">
-              <span
-                className="icon icon-processing play"
-                style={{display: 'inline', marginRight: 12}}
-              />
-              {tn(
-                'Reprocessing %s event …',
-                'Reprocessing %s events …',
-                this.state.processingIssues.issuesProcessing
-              )}
-            </div>
-          </div>
-        </div>
+        <StyledPanelAlert type="info" icon={<IconSettings size="sm" />}>
+          {tn(
+            'Reprocessing %s event …',
+            'Reprocessing %s events …',
+            this.state.processingIssues.issuesProcessing
+          )}
+        </StyledPanelAlert>
       );
     }
 
@@ -375,39 +361,25 @@ const ProjectProcessingIssues = createReactClass({
             )}
           </Access>
         </h3>
-        <div className="panel panel-default">
-          <div className="panel-heading panel-heading-bold hidden-xs">
-            <div className="row">
-              <div className="col-sm-3">{t('Problem')}</div>
-              <div className="col-sm-5">{t('Details')}</div>
-              <div className="col-sm-2">{t('Events')}</div>
-              <div className="col-sm-2">{t('Last seen')}</div>
-            </div>
-          </div>
-          <div className="list-group">
-            {processingRow}
-            {this.state.processingIssues.issues.map((item, idx) => {
-              return (
-                <div key={idx} className="list-group-item">
-                  <div className="row row-flex row-center-vertically">
-                    <div className="col-sm-3">{this.renderProblem(item)}</div>
-                    <div className="col-sm-5">{this.renderDetails(item)}</div>
-                    <div className="col-sm-2">{item.numEvents + ''}</div>
-                    <div className="col-sm-2">
-                      <TimeSince date={item.lastSeen} />
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        <PanelTable headers={[t('Problem'), t('Details'), t('Events'), t('Last seen')]}>
+          {processingRow}
+          {this.state.processingIssues.issues.map((item, idx) => (
+            <React.Fragment key={idx}>
+              <div>{this.renderProblem(item)}</div>
+              <div>{this.renderDetails(item)}</div>
+              <div>{item.numEvents + ''}</div>
+              <div>
+                <TimeSince date={item.lastSeen} />
+              </div>
+            </React.Fragment>
+          ))}
+        </PanelTable>
       </div>
     );
-  },
+  };
 
-  renderReprocessingSettings() {
-    const access = this.getAccess();
+  renderReprocessingSettings = () => {
+    const access = new Set(this.props.organization.access);
     if (this.state.loading) {
       return this.renderLoading();
     }
@@ -422,24 +394,37 @@ const ProjectProcessingIssues = createReactClass({
         apiMethod="PUT"
         initialData={formData}
       >
-        <JsonForm access={access} forms={formGroups} />
+        <JsonForm
+          access={access}
+          forms={formGroups}
+          renderHeader={() => (
+            <PanelAlert type="warning">
+              <TextBlock noMargin>
+                {t(`Reprocessing does not apply to Minidumps. Even when enabled,
+                    Minidump events with processing issues will show up in the
+                    issues stream immediately and cannot be reprocessed.`)}
+              </TextBlock>
+            </PanelAlert>
+          )}
+        />
       </Form>
     );
-  },
+  };
 
   render() {
+    const {projectId} = this.props.params;
+    const title = t('Processing Issues');
     return (
       <div>
-        <SettingsPageHeader title={t('Processing Issues')} />
+        <SentryDocumentTitle title={title} objSlug={projectId} />
+        <SettingsPageHeader title={title} />
         <TextBlock>
           {t(
-            `
-          For some platforms the event processing requires configuration or
+            `For some platforms the event processing requires configuration or
           manual action.  If a misconfiguration happens or some necessary
           steps are skipped, issues can occur during processing. (The most common
           reason for this is missing debug symbols.) In these cases you can see
-          all the problems here with guides of how to correct them.
-        `
+          all the problems here with guides of how to correct them.`
           )}
         </TextBlock>
         {this.renderDebugTable()}
@@ -447,9 +432,13 @@ const ProjectProcessingIssues = createReactClass({
         {this.renderReprocessingSettings()}
       </div>
     );
-  },
-});
+  }
+}
+
+const StyledPanelAlert = styled(PanelAlert)`
+  grid-column: 1/5;
+`;
 
 export {ProjectProcessingIssues};
 
-export default withApi(ProjectProcessingIssues);
+export default withApi(withOrganization(ProjectProcessingIssues));

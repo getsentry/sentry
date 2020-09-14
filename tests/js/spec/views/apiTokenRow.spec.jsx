@@ -1,21 +1,23 @@
 import React from 'react';
-import {shallow, mount} from 'enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
+
 import ApiTokenRow from 'app/views/settings/account/apiTokenRow';
 
 describe('ApiTokenRow', function() {
   it('renders', function() {
-    const wrapper = shallow(
+    const wrapper = mountWithTheme(
       <ApiTokenRow onRemove={() => {}} token={TestStubs.ApiToken()} />,
       TestStubs.routerContext()
     );
 
     // Should be loading
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
   it('calls onRemove callback when trash can is clicked', function() {
     const cb = jest.fn();
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <ApiTokenRow onRemove={cb} token={TestStubs.ApiToken()} />,
       TestStubs.routerContext()
     );

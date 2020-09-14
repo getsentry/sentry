@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import {Link as RouterLink} from 'react-router';
+import * as qs from 'query-string';
 
 import {extractSelectionParameters} from 'app/components/organizations/globalSelectionHeader/utils';
 
@@ -22,27 +23,38 @@ export default class GlobalSelectionLink extends React.Component {
 
   render() {
     const {location} = this.context;
+    const {to} = this.props;
 
-    const query = extractSelectionParameters(location.query);
+    const globalQuery = extractSelectionParameters(location.query);
+    const hasGlobalQuery = Object.keys(globalQuery).length > 0;
+    const query = to && to.query ? {...globalQuery, ...to.query} : globalQuery;
 
     if (location) {
-      const hasQuery = Object.keys(query).length > 0;
-
-      let {to} = this.props;
-
-      if (hasQuery) {
+      let toWithGlobalQuery;
+      if (hasGlobalQuery) {
         if (typeof to === 'string') {
-          to = {pathname: to, query};
+          toWithGlobalQuery = {pathname: to, query};
+        } else {
+          toWithGlobalQuery = {...to, query};
         }
       }
-
-      const routerProps = to ? {...this.props, to} : {...this.props};
+      const routerProps = hasGlobalQuery
+        ? {...this.props, to: toWithGlobalQuery}
+        : {...this.props, to};
 
       return <RouterLink {...routerProps}>{this.props.children}</RouterLink>;
     } else {
-      const {to, ...props} = this.props;
+      let queryStringObject = {...qs.parse(to.search), ...globalQuery};
+      if (to && to.query) {
+        queryStringObject = {...queryStringObject, ...to.query};
+      }
+
+      const url =
+        (typeof to === 'string' ? to : to.pathname) +
+        '?' +
+        qs.stringify(queryStringObject);
       return (
-        <a {...props} href={to}>
+        <a {...this.props} href={url}>
           {this.props.children}
         </a>
       );

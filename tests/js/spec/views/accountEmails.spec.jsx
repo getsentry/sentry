@@ -1,5 +1,6 @@
 import React from 'react';
-import {mount, shallow} from 'enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
 import AccountEmails from 'app/views/settings/account/accountEmails';
@@ -18,9 +19,9 @@ describe('AccountEmails', function() {
   });
 
   it('renders with emails', function() {
-    const wrapper = shallow(<AccountEmails />, TestStubs.routerContext());
+    const wrapper = mountWithTheme(<AccountEmails />, TestStubs.routerContext());
 
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
   it('can remove an email', function() {
@@ -30,7 +31,7 @@ describe('AccountEmails', function() {
       statusCode: 200,
     });
 
-    const wrapper = mount(<AccountEmails />, TestStubs.routerContext());
+    const wrapper = mountWithTheme(<AccountEmails />, TestStubs.routerContext());
 
     expect(mock).not.toHaveBeenCalled();
 
@@ -58,7 +59,7 @@ describe('AccountEmails', function() {
       statusCode: 200,
     });
 
-    const wrapper = mount(<AccountEmails />, TestStubs.routerContext());
+    const wrapper = mountWithTheme(<AccountEmails />, TestStubs.routerContext());
 
     expect(mock).not.toHaveBeenCalled();
 
@@ -86,7 +87,7 @@ describe('AccountEmails', function() {
       statusCode: 200,
     });
 
-    const wrapper = mount(<AccountEmails />, TestStubs.routerContext());
+    const wrapper = mountWithTheme(<AccountEmails />, TestStubs.routerContext());
 
     expect(mock).not.toHaveBeenCalled();
 
@@ -109,7 +110,7 @@ describe('AccountEmails', function() {
       method: 'POST',
       statusCode: 200,
     });
-    const wrapper = mount(<AccountEmails />, TestStubs.routerContext());
+    const wrapper = mountWithTheme(<AccountEmails />, TestStubs.routerContext());
 
     expect(mock).not.toHaveBeenCalled();
 

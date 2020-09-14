@@ -1,9 +1,9 @@
 import React from 'react';
-import {shallow, mount} from 'enzyme';
 
-import FrameRegisters, {
-  RegisterValue,
-} from 'app/components/events/interfaces/frameRegisters';
+import {mount} from 'sentry-test/enzyme';
+
+import FrameRegisters from 'app/components/events/interfaces/frameRegisters/frameRegisters';
+import FrameRegistersValue from 'app/components/events/interfaces/frameRegisters/frameRegistersValue';
 
 describe('FrameRegisters', () => {
   it('should render registers', () => {
@@ -13,8 +13,8 @@ describe('FrameRegisters', () => {
       r12: '0x0000000000000000',
     };
 
-    const wrapper = shallow(<FrameRegisters data={registers} />);
-    expect(wrapper.find('RegisterValue')).toMatchSnapshot();
+    const wrapper = mount(<FrameRegisters data={registers} />);
+    expect(wrapper.find('[data-test-id="frame-registers-value"]')).toSnapshot();
   });
 
   it('should skip registers without a value', () => {
@@ -24,8 +24,8 @@ describe('FrameRegisters', () => {
       r12: '0x0000000000000000',
     };
 
-    const wrapper = shallow(<FrameRegisters data={registers} />);
-    expect(wrapper.find('RegisterValue')).toMatchSnapshot();
+    const wrapper = mount(<FrameRegisters data={registers} />);
+    expect(wrapper.find('[data-test-id="frame-registers-value"]')).toSnapshot();
   });
 });
 
@@ -33,7 +33,7 @@ describe('RegisterValue', () => {
   let wrapper;
   describe('with string value', () => {
     beforeEach(() => {
-      wrapper = mount(<RegisterValue value="0x000000000000000a" />);
+      wrapper = mount(<FrameRegistersValue value="0x000000000000000a" />);
     });
 
     it('should display the hexadecimal value', () => {
@@ -48,7 +48,7 @@ describe('RegisterValue', () => {
 
   describe('with numeric value', () => {
     beforeEach(() => {
-      wrapper = mount(<RegisterValue value={10} />);
+      wrapper = mount(<FrameRegistersValue value={10} />);
     });
 
     it('should display the hexadecimal value', () => {
@@ -63,7 +63,7 @@ describe('RegisterValue', () => {
 
   describe('with unknown value', () => {
     beforeEach(() => {
-      wrapper = mount(<RegisterValue value="xyz" />);
+      wrapper = mount(<FrameRegistersValue value="xyz" />);
     });
 
     it('should display the hexadecimal value', () => {

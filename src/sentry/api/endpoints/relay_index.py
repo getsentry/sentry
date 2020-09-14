@@ -10,7 +10,7 @@ from sentry.api.permissions import SuperuserPermission
 
 
 class RelayIndexEndpoint(Endpoint):
-    permission_classes = (SuperuserPermission, )
+    permission_classes = (SuperuserPermission,)
 
     def get(self, request):
         """
@@ -22,14 +22,12 @@ class RelayIndexEndpoint(Endpoint):
 
         :auth: required
         """
-        queryset = Relay.objects.filter(
-            public_key__in=settings.SENTRY_RELAY_WHITELIST_PK,
-        )
+        queryset = Relay.objects.filter(public_key__in=settings.SENTRY_RELAY_WHITELIST_PK)
 
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by='relay_id',
+            order_by="relay_id",
             paginator_cls=OffsetPaginator,
             on_results=lambda x: serialize(x, request.user),
         )

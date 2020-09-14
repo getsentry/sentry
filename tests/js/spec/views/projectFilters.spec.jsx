@@ -1,6 +1,7 @@
 import React from 'react';
 
-import {mount} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
+
 import ProjectFilters from 'app/views/settings/project/projectFilters';
 
 describe('ProjectFilters', function() {
@@ -11,18 +12,17 @@ describe('ProjectFilters', function() {
 
   const getFilterEndpoint = filter => `${PROJECT_URL}filters/${filter}/`;
 
-  const createFilterMock = filter => {
-    return MockApiClient.addMockResponse({
+  const createFilterMock = filter =>
+    MockApiClient.addMockResponse({
       url: getFilterEndpoint(filter),
       method: 'PUT',
     });
-  };
 
   const creator = custom => {
     if (custom) {
       wrapper = custom();
     } else {
-      wrapper = mount(
+      wrapper = mountWithTheme(
         <ProjectFilters
           params={{projectId: project.slug, orgId: org.slug}}
           location={{}}
@@ -80,7 +80,7 @@ describe('ProjectFilters', function() {
   });
 
   it('can toggle filters: localhost, web crawlers', function() {
-    ['localhost', 'web-crawlers'].map((filter, i) => {
+    ['localhost', 'web-crawlers'].map(filter => {
       const mock = createFilterMock(filter);
       const Switch = wrapper.find(`BooleanField[name="${filter}"] Switch`);
 
@@ -133,7 +133,7 @@ describe('ProjectFilters', function() {
     expect(Array.from(mock.mock.calls[0][1].data.subfilters)).toEqual([
       'ie_pre_9',
       'ie9',
-      'opera_pre_15',
+      'safari_pre_6',
     ]);
 
     // Toggle filter off
@@ -144,8 +144,8 @@ describe('ProjectFilters', function() {
     expect(Array.from(mock.mock.calls[1][1].data.subfilters)).toEqual([
       'ie_pre_9',
       'ie9',
-      'opera_pre_15',
       'safari_pre_6',
+      'ie11',
     ]);
 
     mock.mockReset();
@@ -161,8 +161,8 @@ describe('ProjectFilters', function() {
       .simulate('click');
 
     expect(Array.from(mock.mock.calls[1][1].data.subfilters)).toEqual([
-      'opera_pre_15',
       'safari_pre_6',
+      'ie11',
     ]);
   });
 
@@ -179,6 +179,7 @@ describe('ProjectFilters', function() {
       'ie_pre_9',
       'ie9',
       'ie10',
+      'ie11',
       'safari_pre_6',
       'opera_pre_15',
       'opera_mini_pre_8',
@@ -214,8 +215,8 @@ describe('ProjectFilters', function() {
   });
 
   it('has custom inbound filters with flag + can change', function() {
-    wrapper = creator(() => {
-      return mount(
+    wrapper = creator(() =>
+      mountWithTheme(
         <ProjectFilters
           params={{projectId: project.slug, orgId: org.slug}}
           location={{}}
@@ -230,8 +231,8 @@ describe('ProjectFilters', function() {
           },
           childContextTypes: TestStubs.routerContext().childContextTypes,
         }
-      );
-    });
+      )
+    );
 
     expect(wrapper.find('TextArea[name="filters:releases"]')).toHaveLength(1);
     expect(wrapper.find('TextArea[name="filters:error_messages"]')).toHaveLength(1);
@@ -260,7 +261,7 @@ describe('ProjectFilters', function() {
   });
 
   it('disables configuration for non project:write users', function() {
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <ProjectFilters
         params={{projectId: project.slug, orgId: org.slug}}
         location={{}}

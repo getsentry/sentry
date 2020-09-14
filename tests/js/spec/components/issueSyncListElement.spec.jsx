@@ -1,16 +1,18 @@
 import React from 'react';
-import {shallow, mount} from 'enzyme';
+
+import {mountWithTheme, mount} from 'sentry-test/enzyme';
+
 import IssueSyncListElement from 'app/components/issueSyncListElement';
 
 describe('AlertLink', function() {
   it('renders', function() {
-    const wrapper = shallow(<IssueSyncListElement integrationType="github" />);
-    expect(wrapper).toMatchSnapshot();
+    const wrapper = mountWithTheme(<IssueSyncListElement integrationType="github" />);
+    expect(wrapper).toSnapshot();
   });
 
   it('can open', function() {
     const onOpen = jest.fn();
-    const wrapper = shallow(
+    const wrapper = mount(
       <IssueSyncListElement integrationType="github" onOpen={onOpen} />
     );
     expect(onOpen).not.toHaveBeenCalled();
@@ -33,7 +35,7 @@ describe('AlertLink', function() {
     );
 
     expect(onClose).not.toHaveBeenCalled();
-    wrapper.find('OpenCloseIcon').simulate('click');
+    wrapper.find('StyledIcon').simulate('click');
     expect(onClose).toHaveBeenCalled();
   });
 });

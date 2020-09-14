@@ -3,6 +3,9 @@ import React from 'react';
 import {sortArray} from 'app/utils';
 import AsyncView from 'app/views/asyncView';
 import Pagination from 'app/components/pagination';
+import {t} from 'app/locale';
+import routeTitleGen from 'app/utils/routeTitle';
+
 import OrganizationRepositories from './organizationRepositories';
 
 export default class OrganizationRepositoriesContainer extends AsyncView {
@@ -34,7 +37,8 @@ export default class OrganizationRepositoriesContainer extends AsyncView {
   };
 
   getTitle() {
-    return 'Repositories';
+    const {orgId} = this.props.params;
+    return routeTitleGen(t('Repositories'), orgId, false);
   }
 
   renderBody() {

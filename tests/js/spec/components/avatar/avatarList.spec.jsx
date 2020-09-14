@@ -1,5 +1,6 @@
 import React from 'react';
-import {mount} from 'enzyme';
+
+import {mount} from 'sentry-test/enzyme';
 
 import AvatarList from 'app/components/avatar/avatarList';
 
@@ -8,9 +9,9 @@ describe('AvatarList', function() {
     const users = [TestStubs.User({id: '1'}), TestStubs.User({id: '2'})];
 
     const wrapper = mount(<AvatarList users={users} />);
-    expect(wrapper.find('Avatar')).toHaveLength(2);
+    expect(wrapper.find('UserAvatar')).toHaveLength(2);
     expect(wrapper.find('CollapsedUsers')).toHaveLength(0);
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
   it('renders with collapsed avatar count if > 5 users', function() {
@@ -24,8 +25,8 @@ describe('AvatarList', function() {
     ];
 
     const wrapper = mount(<AvatarList users={users} />);
-    expect(wrapper.find('Avatar')).toHaveLength(5);
+    expect(wrapper.find('UserAvatar')).toHaveLength(5);
     expect(wrapper.find('CollapsedUsers')).toHaveLength(1);
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 });

@@ -1,0 +1,68 @@
+---
+created: '2020-02-26T19:54:39.990724Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        stacktrace (discarded because stacktrace only contains 1 frame which is under the configured threshold by grouping enhancement rule (family:native min-frames=2))
+          frame (non app frame)
+            function*
+              "_main"
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
+            function*
+              "std::rt::lang_start_internal"
+          frame (non app frame)
+            function*
+              "___rust_maybe_catch_panic"
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
+            function*
+              "std::panicking::try::do_call"
+          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
+            function*
+              "std::rt::lang_start::{{closure}}"
+          frame* (marked in-app by grouping enhancement rule (function:log_demo::* +app))
+            function*
+              "log_demo::main"
+          frame (non app frame)
+            function*
+              "log::__private_api_log"
+        type*
+          "log_demo"
+        value*
+          "Holy shit everything is on fire!"
+--------------------------------------------------------------------------
+system:
+  hash: "e0b4eea234ff891472cb927c00153bbe"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "_main"
+          frame* (marked out of app by grouping enhancement rule (family:native function:std::* -app))
+            function*
+              "std::rt::lang_start_internal"
+          frame*
+            function*
+              "___rust_maybe_catch_panic"
+          frame* (marked out of app by grouping enhancement rule (family:native function:std::* -app))
+            function*
+              "std::panicking::try::do_call"
+          frame* (marked out of app by grouping enhancement rule (family:native function:std::* -app))
+            function*
+              "std::rt::lang_start::{{closure}}"
+          frame* (marked in-app by grouping enhancement rule (function:log_demo::* +app))
+            function*
+              "log_demo::main"
+          frame*
+            function*
+              "log::__private_api_log"
+        type*
+          "log_demo"
+        value (ignored because stacktrace takes precedence)
+          "Holy shit everything is on fire!"

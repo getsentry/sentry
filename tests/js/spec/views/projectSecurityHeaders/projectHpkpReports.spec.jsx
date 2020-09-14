@@ -1,6 +1,7 @@
 import React from 'react';
 
-import {shallow} from 'enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
+
 import ProjectHpkpReports from 'app/views/settings/projectSecurityHeaders/hpkp';
 
 describe('ProjectHpkpReports', function() {
@@ -23,11 +24,10 @@ describe('ProjectHpkpReports', function() {
   });
 
   it('renders', function() {
-    const wrapper = shallow(
+    const wrapper = mountWithTheme(
       <ProjectHpkpReports
         organization={org}
         project={project}
-        setProjectNavSection={() => {}}
         {...TestStubs.routerProps({
           params: {orgId: org.slug, projectId: project.slug},
           location: TestStubs.location({pathname: url}),
@@ -35,6 +35,6 @@ describe('ProjectHpkpReports', function() {
       />,
       TestStubs.routerContext()
     );
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 });

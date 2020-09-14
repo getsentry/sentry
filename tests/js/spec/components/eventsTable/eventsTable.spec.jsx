@@ -1,8 +1,8 @@
 import React from 'react';
-import {shallow} from 'enzyme';
-import EventsTable from 'app/components/eventsTable/eventsTable';
 
-import events from '../../../mocks/events';
+import {mountWithTheme} from 'sentry-test/enzyme';
+
+import EventsTable from 'app/components/eventsTable/eventsTable';
 
 describe('EventsTable', function() {
   beforeEach(function() {});
@@ -10,15 +10,16 @@ describe('EventsTable', function() {
   afterEach(function() {});
 
   it('renders', function() {
-    const wrapper = shallow(
+    const wrapper = mountWithTheme(
       <EventsTable
         tagList={[]}
         orgId="orgId"
         projectId="projectId"
         groupId="groupId"
-        events={events}
-      />
+        events={TestStubs.DetailedEvents()}
+      />,
+      TestStubs.routerContext()
     );
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 });

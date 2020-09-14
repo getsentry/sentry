@@ -14,11 +14,10 @@ class AccountIdentityAssociateView(OrganizationView):
     def handle(self, request, organization, provider_key, external_id):
         try:
             provider_model = IdentityProvider.objects.get(
-                type=provider_key,
-                external_id=external_id,
+                type=provider_key, external_id=external_id
             )
         except IdentityProvider.DoesNotExist:
-            return self.redirect(reverse('sentry-account-settings-identities'))
+            return self.redirect(reverse("sentry-account-settings-identities"))
 
         pipeline = IdentityProviderPipeline(
             organization=organization,
@@ -27,12 +26,9 @@ class AccountIdentityAssociateView(OrganizationView):
             request=request,
         )
 
-        if request.method != 'POST' and not pipeline.is_valid():
-            context = {
-                'provider': pipeline.provider,
-                'organization': organization,
-            }
-            return render_to_response('sentry/auth-link-identity.html', context, request)
+        if request.method != "POST" and not pipeline.is_valid():
+            context = {"provider": pipeline.provider, "organization": organization}
+            return render_to_response("sentry/auth-link-identity.html", context, request)
 
         pipeline.initialize()
 

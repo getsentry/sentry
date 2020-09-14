@@ -1,27 +1,32 @@
 import React from 'react';
-import {mount} from 'enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
+import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {Client} from 'app/api';
-
-import OrganizationTeamProjects from 'app/views/settings/organizationTeams/teamProjects';
+import {TeamProjects as OrganizationTeamProjects} from 'app/views/settings/organizationTeams/teamProjects';
 
 describe('OrganizationTeamProjects', function() {
-  let project;
-  let project2;
   let team;
   let getMock;
   let putMock;
   let postMock;
   let deleteMock;
 
+  const project = TestStubs.Project({teams: [team]});
+  const project2 = TestStubs.Project({
+    id: '3',
+    slug: 'project-slug-2',
+    name: 'Project Name 2',
+  });
+
+  const {routerContext, organization} = initializeOrg({
+    organization: TestStubs.Organization({slug: 'org-slug'}),
+    projects: [project, project2],
+  });
+
   beforeEach(function() {
     team = TestStubs.Team({slug: 'team-slug'});
-    project = TestStubs.Project({teams: [team]});
-    project2 = TestStubs.Project({
-      id: '3',
-      slug: 'project-slug-2',
-      name: 'Project Name 2',
-    });
 
     getMock = Client.addMockResponse({
       url: '/organizations/org-slug/projects/',
@@ -54,12 +59,14 @@ describe('OrganizationTeamProjects', function() {
   });
 
   it('fetches linked and unlinked projects', async function() {
-    mount(
+    mountWithTheme(
       <OrganizationTeamProjects
+        api={new MockApiClient()}
+        organization={organization}
         params={{orgId: 'org-slug', teamId: team.slug}}
         location={{query: {}}}
       />,
-      TestStubs.routerContext()
+      routerContext
     );
 
     expect(getMock).toHaveBeenCalledTimes(2);
@@ -69,18 +76,20 @@ describe('OrganizationTeamProjects', function() {
   });
 
   it('Should render', async function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <OrganizationTeamProjects
+        api={new MockApiClient()}
+        organization={organization}
         params={{orgId: 'org-slug', teamId: team.slug}}
         location={{query: {}}}
       />,
-      TestStubs.routerContext()
+      routerContext
     );
 
     await tick();
     wrapper.update();
 
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
     expect(
       wrapper
         .find('.project-name')
@@ -90,12 +99,14 @@ describe('OrganizationTeamProjects', function() {
   });
 
   it('Should allow bookmarking', async function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <OrganizationTeamProjects
+        api={new MockApiClient()}
+        organization={organization}
         params={{orgId: 'org-slug', teamId: team.slug}}
         location={{query: {}}}
       />,
-      TestStubs.routerContext()
+      routerContext
     );
 
     await tick();
@@ -115,12 +126,14 @@ describe('OrganizationTeamProjects', function() {
   });
 
   it('Should allow adding and removing projects', async function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <OrganizationTeamProjects
+        api={new MockApiClient()}
+        organization={organization}
         params={{orgId: 'org-slug', teamId: team.slug}}
         location={{query: {}}}
       />,
-      TestStubs.routerContext()
+      routerContext
     );
 
     await tick();
@@ -147,12 +160,14 @@ describe('OrganizationTeamProjects', function() {
   });
 
   it('handles filtering unlinked projects', async function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <OrganizationTeamProjects
+        api={new MockApiClient()}
+        organization={organization}
         params={{orgId: 'org-slug', teamId: team.slug}}
         location={{query: {}}}
       />,
-      TestStubs.routerContext()
+      routerContext
     );
 
     await tick();

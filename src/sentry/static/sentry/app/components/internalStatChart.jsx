@@ -1,89 +1,71 @@
-/*eslint getsentry/jsx-needs-il8n:0*/
 import PropTypes from 'prop-types';
-
 import React from 'react';
-import createReactClass from 'create-react-class';
-import _ from 'lodash';
 
-import ApiMixin from 'app/mixins/apiMixin';
 import BarChart from 'app/components/barChart';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import withApi from 'app/utils/withApi';
 
-export default createReactClass({
-  displayName: 'internalStatChart',
-
-  propTypes: {
+class InternalStatChart extends React.Component {
+  static propTypes = {
+    api: PropTypes.object.isRequired,
     since: PropTypes.number.isRequired,
     resolution: PropTypes.string.isRequired,
     stat: PropTypes.string.isRequired,
     label: PropTypes.string,
     height: PropTypes.number,
-  },
+  };
 
-  mixins: [ApiMixin],
+  static defaultProps = {
+    height: 150,
+  };
 
-  getDefaultProps() {
-    return {
-      height: 150,
-    };
-  },
+  state = {
+    error: false,
+    loading: true,
+    data: null,
+  };
 
-  getInitialState() {
-    return {
-      error: false,
-      loading: true,
-      data: null,
-    };
-  },
-
-  componentWillMount() {
+  componentDidMount() {
     this.fetchData();
-  },
+  }
 
-  componentWillReceiveProps(nextProps) {
-    if (!_.isEqual(nextProps, this.props)) {
-      this.setState(
-        {
-          loading: true,
-        },
-        this.fetchData
-      );
-    }
-  },
-
-  shouldComponentUpdate(nextProps, nextState) {
+  shouldComponentUpdate(_nextProps, nextState) {
     return this.state.loading !== nextState.loading;
-  },
+  }
+
+  componentDidUpdate(prevProps) {
+    if (
+      prevProps.since !== this.props.since ||
+      prevProps.stat !== this.props.stat ||
+      prevProps.resolution !== this.props.resolution
+    ) {
+      this.fetchData();
+    }
+  }
 
   fetchData() {
-    this.api.request('/internal/stats/', {
+    this.setState({loading: true});
+    this.props.api.request('/internal/stats/', {
       method: 'GET',
       data: {
         since: this.props.since,
         resolution: this.props.resolution,
         key: this.props.stat,
       },
-      success: data => {
+      success: data =>
         this.setState({
           data,
           loading: false,
           error: false,
-        });
-      },
-      error: data => {
-        this.setState({
-          error: true,
-        });
-      },
+        }),
+      error: () => this.setState({error: true}),
     });
-  },
+  }
 
   getChartPoints() {
-    return this.state.data.map(([x, y]) => {
-      return {x, y};
-    });
-  },
+    return this.state.data.map(([x, y]) => ({x, y}));
+  }
 
   render() {
     if (this.state.loading) {
@@ -100,5 +82,7 @@ export default createReactClass({
         height={this.props.height}
       />
     );
-  },
-});
+  }
+}
+
+export default withApi(InternalStatChart);

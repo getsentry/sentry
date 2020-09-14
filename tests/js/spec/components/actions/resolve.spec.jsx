@@ -1,6 +1,8 @@
 import React from 'react';
-import {mount} from 'enzyme';
 import $ from 'jquery';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
+
 import ResolveActions from 'app/components/actions/resolve';
 
 describe('ResolveActions', function() {
@@ -9,10 +11,10 @@ describe('ResolveActions', function() {
     const spy = jest.fn();
 
     beforeEach(function() {
-      component = mount(
+      component = mountWithTheme(
         <ResolveActions
           onUpdate={spy}
-          disabled={true}
+          disabled
           hasRelease={false}
           orgId="org-1"
           projectId="proj-1"
@@ -37,10 +39,10 @@ describe('ResolveActions', function() {
     const spy = jest.fn();
 
     beforeEach(function() {
-      component = mount(
+      component = mountWithTheme(
         <ResolveActions
           onUpdate={spy}
-          disableDropdown={true}
+          disableDropdown
           hasRelease={false}
           orgId="org-1"
           projectId="proj-1"
@@ -70,14 +72,14 @@ describe('ResolveActions', function() {
     let component;
     const spy = jest.fn();
     beforeEach(function() {
-      component = mount(
+      component = mountWithTheme(
         <ResolveActions
           onUpdate={spy}
-          disabled={true}
+          disabled
           hasRelease={false}
           orgId="org-1"
           projectId="proj-1"
-          isResolved={true}
+          isResolved
         />,
         TestStubs.routerContext()
       );
@@ -98,15 +100,15 @@ describe('ResolveActions', function() {
   describe('auto resolved', function() {
     it('cannot be unresolved manually', function() {
       const spy = jest.fn();
-      const component = mount(
+      const component = mountWithTheme(
         <ResolveActions
           onUpdate={spy}
-          disabled={true}
+          disabled
           hasRelease={false}
           orgId="org-1"
           projectId="proj-1"
-          isResolved={true}
-          isAutoResolved={true}
+          isResolved
+          isAutoResolved
         />,
         TestStubs.routerContext()
       );
@@ -120,7 +122,7 @@ describe('ResolveActions', function() {
     let component;
     const spy = jest.fn();
     beforeEach(function() {
-      component = mount(
+      component = mountWithTheme(
         <ResolveActions
           onUpdate={spy}
           hasRelease={false}
@@ -132,7 +134,7 @@ describe('ResolveActions', function() {
     });
 
     it('renders', function() {
-      expect(component).toMatchSnapshot();
+      expect(component).toSnapshot();
     });
 
     it('calls spy with resolved status when clicked', function() {
@@ -148,13 +150,13 @@ describe('ResolveActions', function() {
     const spy = jest.fn();
 
     beforeEach(function() {
-      component = mount(
+      component = mountWithTheme(
         <ResolveActions
           onUpdate={spy}
           hasRelease={false}
           orgId="org-1"
           projectId="proj-1"
-          shouldConfirm={true}
+          shouldConfirm
           confirmMessage="Are you sure???"
         />,
         TestStubs.routerContext()
@@ -163,7 +165,7 @@ describe('ResolveActions', function() {
     });
 
     it('renders', function() {
-      expect(component).toMatchSnapshot();
+      expect(component).toSnapshot();
     });
 
     it('displays confirmation modal with message provided', function() {
@@ -186,7 +188,7 @@ describe('ResolveActions', function() {
       url: '/projects/org-slug/project-slug/releases/',
       body: [TestStubs.Release()],
     });
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <ResolveActions
         hasRelease
         orgId="org-slug"

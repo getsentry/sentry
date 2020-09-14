@@ -1,6 +1,8 @@
 import React from 'react';
-import {mount} from 'enzyme';
-import ProjectPluginRow from 'app/views/projectPlugins/projectPluginRow';
+
+import {mount} from 'sentry-test/enzyme';
+
+import ProjectPluginRow from 'app/views/settings/projectPlugins/projectPluginRow';
 
 describe('ProjectPluginRow', function() {
   let wrapper;
@@ -13,7 +15,7 @@ describe('ProjectPluginRow', function() {
   it('renders', function() {
     wrapper = mount(<ProjectPluginRow {...params} {...plugin} />, routerContext);
 
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 
   it('calls `onChange` when clicked', function() {

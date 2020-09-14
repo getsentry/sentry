@@ -7,24 +7,25 @@ from zlib import compress as zlib_compress, decompress as zlib_decompress
 
 from google.cloud import bigtable
 from google.cloud.bigtable.row_set import RowSet
-from simplejson import JSONEncoder, _default_decoder
 from django.utils import timezone
 
+from sentry.utils import json
 from sentry.nodestore.base import NodeStorage
 
+
 # Cache an instance of the encoder we want to use
-json_dumps = JSONEncoder(
-    separators=(',', ':'),
+json_dumps = json.JSONEncoder(
+    separators=(",", ":"),
     skipkeys=False,
     ensure_ascii=True,
     check_circular=True,
     allow_nan=True,
     indent=None,
-    encoding='utf-8',
+    encoding="utf-8",
     default=None,
 ).encode
 
-json_loads = _default_decoder.decode
+json_loads = json._default_decoder.decode
 
 
 _connection_lock = Lock()
@@ -46,9 +47,7 @@ def get_connection(project, instance, table, options):
                 return _connection_cache[key]
             except KeyError:
                 _connection_cache[key] = (
-                    bigtable.Client(project=project, **options)
-                    .instance(instance)
-                    .table(table)
+                    bigtable.Client(project=project, **options).instance(instance).table(table)
                 )
     return _connection_cache[key]
 
@@ -67,17 +66,24 @@ class BigtableNodeStorage(NodeStorage):
     """
 
     max_size = 1024 * 1024 * 10
-    column_family = b'x'
-    ttl_column = b't'
-    flags_column = b'f'
-    data_column = b'0'
+    column_family = b"x"
+    ttl_column = b"t"
+    flags_column = b"f"
+    data_column = b"0"
 
     _FLAG_COMPRESSED = 1 << 0
 
-    def __init__(self, project=None, instance='sentry', table='nodestore',
-                 automatic_expiry=False, default_ttl=None, compression=False,
-                 thread_pool_size=5,  # TODO(mattrobenolt): Remove this
-                 **kwargs):
+    def __init__(
+        self,
+        project=None,
+        instance="sentry",
+        table="nodestore",
+        automatic_expiry=False,
+        default_ttl=None,
+        compression=False,
+        thread_pool_size=5,  # TODO(mattrobenolt): Remove this
+        **kwargs
+    ):
         self.project = project
         self.instance = instance
         self.table = table
@@ -85,29 +91,43 @@ class BigtableNodeStorage(NodeStorage):
         self.automatic_expiry = automatic_expiry
         self.default_ttl = default_ttl
         self.compression = compression
-        self.skip_deletes = automatic_expiry and '_SENTRY_CLEANUP' in os.environ
+        self.skip_deletes = automatic_expiry and "_SENTRY_CLEANUP" in os.environ
 
     @property
     def connection(self):
         return get_connection(self.project, self.instance, self.table, self.options)
 
     def get(self, id):
-        return self.decode_row(self.connection.read_row(id))
+        item_from_cache = self._get_cache_item(id)
+        if item_from_cache:
+            return item_from_cache
+
+        data = self.decode_row(self.connection.read_row(id))
+        self._set_cache_item(id, data)
+        return data
 
     def get_multi(self, id_list):
-        if len(id_list) == 1:
-            id = id_list[0]
-            return {id: self.get(id)}
+        id_list = list(set(id_list))
 
+        if len(id_list) == 1:
+            return {id_list[0]: self.get(id_list[0])}
+
+        cache_items = self._get_cache_items(id_list)
+
+        if len(cache_items) == len(id_list):
+            return cache_items
+
+        uncached_ids = [id for id in id_list if id not in cache_items]
         rv = {}
         rows = RowSet()
-        for id in id_list:
+        for id in uncached_ids:
             rows.add_row_key(id)
             rv[id] = None
 
         for row in self.connection.read_rows(row_set=rows):
             rv[row.row_key] = self.decode_row(row)
-
+        self._set_cache_items(rv)
+        rv.update(cache_items)
         return rv
 
     def decode_row(self, row):
@@ -137,7 +157,7 @@ class BigtableNodeStorage(NodeStorage):
         # Read our flags
         flags = 0
         if self.flags_column in columns:
-            flags = struct.unpack('B', columns[self.flags_column][0].value)[0]
+            flags = struct.unpack("B", columns[self.flags_column][0].value)[0]
 
         # Check for a compression flag on, if so
         # decompress the data.
@@ -149,6 +169,7 @@ class BigtableNodeStorage(NodeStorage):
     def set(self, id, data, ttl=None):
         row = self.encode_row(id, data, ttl)
         row.commit()
+        self._set_cache_item(id, data)
 
     def encode_row(self, id, data, ttl=None):
         data = json_dumps(data)
@@ -179,7 +200,7 @@ class BigtableNodeStorage(NodeStorage):
             row.set_cell(
                 self.column_family,
                 self.ttl_column,
-                struct.pack('<I', int(ttl.total_seconds())),
+                struct.pack("<I", int(ttl.total_seconds())),
                 timestamp=ts,
             )
 
@@ -195,20 +216,12 @@ class BigtableNodeStorage(NodeStorage):
         # are enabled. And if so, pack it into a single byte.
         if flags:
             row.set_cell(
-                self.column_family,
-                self.flags_column,
-                struct.pack('B', flags),
-                timestamp=ts,
+                self.column_family, self.flags_column, struct.pack("B", flags), timestamp=ts
             )
 
         assert len(data) <= self.max_size
 
-        row.set_cell(
-            self.column_family,
-            self.data_column,
-            data,
-            timestamp=ts,
-        )
+        row.set_cell(self.column_family, self.data_column, data, timestamp=ts)
         return row
 
     def delete(self, id):
@@ -218,6 +231,7 @@ class BigtableNodeStorage(NodeStorage):
         row = self.connection.row(id)
         row.delete()
         row.commit()
+        self._delete_cache_item(id)
 
     def delete_multi(self, id_list):
         if self.skip_deletes:
@@ -234,6 +248,7 @@ class BigtableNodeStorage(NodeStorage):
             rows.append(row)
 
         self.connection.mutate_rows(rows)
+        self._delete_cache_items(id_list)
 
     def cleanup(self, cutoff_timestamp):
         raise NotImplementedError
@@ -255,6 +270,7 @@ class BigtableNodeStorage(NodeStorage):
         # when their timestamp is passed.
         if self.automatic_expiry:
             from datetime import timedelta
+
             # NOTE: Bigtable can't actually use 0 TTL, and
             # requires a minimum value of 1ms.
             # > InvalidArgument desc = Error in field 'Modifications list' : Error in element #0 : max_age must be at least one millisecond
@@ -263,6 +279,8 @@ class BigtableNodeStorage(NodeStorage):
         else:
             gc_rule = None
 
-        table.create(column_families={
-            self.column_family: gc_rule,
-        })
+        from google.api_core import exceptions
+        from google.api_core import retry
+
+        retry_504 = retry.Retry(retry.if_exception_type(exceptions.DeadlineExceeded))
+        retry_504(table.create)(column_families={self.column_family: gc_rule})

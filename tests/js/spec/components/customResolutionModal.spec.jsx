@@ -1,5 +1,6 @@
 import React from 'react';
-import {mount} from 'enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import CustomResolutionModal from 'app/components/customResolutionModal';
 
@@ -14,7 +15,7 @@ describe('CustomResolutionModal', function() {
 
   it('can select a version', async function() {
     const onSelected = jest.fn();
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <CustomResolutionModal
         orgId="org-slug"
         projectId="project-slug"

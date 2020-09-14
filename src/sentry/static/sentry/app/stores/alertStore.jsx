@@ -1,4 +1,5 @@
 import Reflux from 'reflux';
+
 import AlertActions from 'app/actions/alertActions';
 import localStorage from 'app/utils/localStorage';
 import {defined} from 'app/utils';
@@ -12,7 +13,7 @@ const AlertStore = Reflux.createStore({
   },
 
   onAddAlert(alert) {
-    const alertAlreadyExists = this.alerts.some(a => a.id == alert.id);
+    const alertAlreadyExists = this.alerts.some(a => a.id === alert.id);
     if (alertAlreadyExists && alert.noDuplicates) {
       return;
     }

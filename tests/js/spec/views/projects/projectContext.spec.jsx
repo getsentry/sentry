@@ -1,8 +1,8 @@
 import React from 'react';
-import {mount} from 'enzyme';
+
+import {mount} from 'sentry-test/enzyme';
 
 import {ProjectContext} from 'app/views/projects/projectContext';
-import SentryTypes from 'app/sentryTypes';
 
 jest.unmock('app/utils/recreateRoute');
 jest.mock('app/actionCreators/modal', () => ({
@@ -58,10 +58,7 @@ describe('projectContext component', function() {
       />
     );
 
-    const wrapper = mount(projectContext, {
-      context: {organization: org},
-      childContextTypes: {organization: SentryTypes.Organization},
-    });
+    const wrapper = mount(projectContext);
 
     await tick();
     wrapper.update();
@@ -93,10 +90,7 @@ describe('projectContext component', function() {
       />
     );
 
-    const wrapper = mount(projectContext, {
-      context: {organization: org},
-      childContextTypes: {organization: SentryTypes.Organization},
-    });
+    const wrapper = mount(projectContext);
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
 
@@ -117,5 +111,45 @@ describe('projectContext component', function() {
     wrapper.update();
 
     expect(fetchMock).toHaveBeenCalled();
+  });
+
+  it('fetches data again if projects list changes', function() {
+    const router = TestStubs.router();
+    const fetchMock = MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/`,
+      method: 'GET',
+      statusCode: 200,
+      body: project,
+    });
+
+    const projectContext = (
+      <ProjectContext
+        api={new MockApiClient()}
+        params={{orgId: org.slug, projectId: project.slug}}
+        projects={[]}
+        routes={routes}
+        router={router}
+        location={location}
+        orgId={org.slug}
+        projectId={project.slug}
+      />
+    );
+
+    const wrapper = mount(projectContext);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    // The project will become active, thus requesting org members
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/users/`,
+      method: 'GET',
+      statusCode: 200,
+      body: [],
+    });
+
+    wrapper.setProps({projects: [project]});
+    wrapper.update();
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });

@@ -1,6 +1,10 @@
-import _ from 'lodash';
+import mapKeys from 'lodash/mapKeys';
+import moment from 'moment';
+import startCase from 'lodash/startCase';
+import isEmpty from 'lodash/isEmpty';
 import React from 'react';
-import KeyValueList from 'app/components/events/interfaces/keyValueList';
+
+import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValueList';
 import {t} from 'app/locale';
 import {EventError} from 'app/sentryTypes';
 
@@ -22,7 +26,7 @@ class EventErrorItem extends React.Component {
     };
   }
 
-  shouldComponentUpdate(nextProps, nextState) {
+  shouldComponentUpdate(_nextProps, nextState) {
     return this.state.isOpen !== nextState.isOpen;
   }
 
@@ -51,7 +55,16 @@ class EventErrorItem extends React.Component {
       data.image_path = path.length ? path.join(separator) + separator : '';
     }
 
-    return _.mapKeys(data, (value, key) => t(keyMapping[key] || _.startCase(key)));
+    if (typeof data.server_time === 'string' && typeof data.sdk_time === 'string') {
+      data.message = t(
+        'Adjusted timestamps by %s',
+        moment
+          .duration(moment.utc(data.server_time).diff(moment.utc(data.sdk_time)))
+          .humanize()
+      );
+    }
+
+    return mapKeys(data, (_value, key) => t(keyMapping[key] || startCase(key)));
   }
 
   renderPath() {
@@ -77,7 +90,7 @@ class EventErrorItem extends React.Component {
       <li>
         {this.renderPath()}
         {error.message}
-        {!_.isEmpty(data) && (
+        {!isEmpty(data) && (
           <small>
             {' '}
             <a style={{marginLeft: 10}} onClick={this.toggle}>

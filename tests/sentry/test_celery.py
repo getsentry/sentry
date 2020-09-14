@@ -8,4 +8,4 @@ def test_import_paths():
         try:
             __import__(path)
         except ImportError:
-            raise AssertionError(u'Unable to import {} from CELERY_IMPORTS'.format(path))
+            raise AssertionError(u"Unable to import {} from CELERY_IMPORTS".format(path))
