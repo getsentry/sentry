@@ -10,7 +10,7 @@ import {
 
 describe('HttpRenderer', () => {
   describe('render', () => {
-    it.only('should work', () => {
+    it('should work', () => {
       const httpRendererWrapper = mountWithTheme(
         <HttpRenderer
           searchTerm=""
@@ -53,34 +53,41 @@ describe('HttpRenderer', () => {
       ).toEqual(' [0]');
     });
 
-    it("shouldn't blow up if crumb.data is missing", function() {
+    it("shouldn't blow up if crumb.data is missing", () => {
       const httpRendererWrapper = mountWithTheme(
         <HttpRenderer
+          searchTerm=""
           breadcrumb={{
             category: 'xhr',
-            type: 'http',
+            type: BreadcrumbType.HTTP,
+            level: BreadcrumbLevelType.INFO,
           }}
         />
       );
 
-      expect(httpRendererWrapper.find('CrumbCategory').text()).toEqual('xhr');
+      const annotatedTexts = httpRendererWrapper.find('AnnotatedText');
+
+      expect(annotatedTexts.length).toEqual(0);
     });
 
-    it("shouldn't blow up if url is not a string", function() {
+    it("shouldn't blow up if url is not a string", () => {
       const httpRendererWrapper = mountWithTheme(
         <HttpRenderer
+          searchTerm=""
           breadcrumb={{
             category: 'xhr',
-            type: 'http',
+            type: BreadcrumbType.HTTP,
+            level: BreadcrumbLevelType.INFO,
             data: {
               method: 'GET',
-              url: {},
             },
           }}
         />
       );
 
-      expect(httpRendererWrapper.find('CrumbCategory').text()).toEqual('xhr');
+      const annotatedTexts = httpRendererWrapper.find('AnnotatedText');
+
+      expect(annotatedTexts.length).toEqual(1);
     });
   });
 });
