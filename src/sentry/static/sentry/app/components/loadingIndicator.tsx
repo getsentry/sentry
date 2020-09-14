@@ -3,6 +3,8 @@ import React from 'react';
 import classNames from 'classnames';
 import {withProfiler} from '@sentry/react';
 
+import spinnerVideo from '../../images/sentry-loader.mp4';
+
 type Props = {
   overlay?: boolean;
   dark?: boolean;
@@ -59,6 +61,11 @@ function LoadingIndicator(props: Props) {
     <div className={cx} style={style}>
       {!hideSpinner && (
         <div className={loadingCx} style={loadingStyle}>
+          {triangle && (
+            <video autoPlay disablePictureInPicture loop height="150">
+              <source src={spinnerVideo} type="video/mp4" />
+            </video>
+          )}
           {finished ? <div className="checkmark draw" style={style} /> : null}
         </div>
       )}
