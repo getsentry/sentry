@@ -204,6 +204,15 @@ const StreamGroup = createReactClass({
     // TODO: @taylangocmen sort rows when clicked on a column
     // TODO: @taylangocmen onboarding callouts when for when feature ships
 
+    const showSecondaryPoints = Boolean(
+      showLifetimeStats &&
+        withChart &&
+        data &&
+        data.filtered &&
+        hasDynamicIssueCounts &&
+        statsPeriod
+    );
+
     return (
       <Group data-test-id="group" onClick={this.toggleSelect} {...mouseEventHandlers}>
         {canSelect && (
@@ -227,6 +236,7 @@ const StreamGroup = createReactClass({
               statsPeriod={statsPeriod}
               data={data}
               hasDynamicIssueCounts={hasDynamicIssueCounts}
+              showSecondaryPoints={showSecondaryPoints}
             />
           </Box>
         )}
@@ -385,7 +395,7 @@ const TooltipText = styled('td')`
 
 const StyledIconTelescope = styled(({to, ...p}) => (
   <td {...p}>
-    <Link title={t('Open in Discover')} to={to}>
+    <Link title={t('Open in Discover')} to={to} target="_blank">
       <IconTelescope size="xs" color={p.color} />
     </Link>
   </td>
