@@ -526,21 +526,33 @@ class GroupStatsMixin(object):
         "24h": StatsPeriod(24, timedelta(hours=1)),
     }
 
+    CUSTOM_PERIOD_SEGMENTS = 29  # for 30 segments use 1/29th intervals
+
     def query_tsdb(self, group_ids, query_params):
         raise NotImplementedError
 
     def get_stats(self, item_list, user):
         if self.stats_period:
-            # we need to compute stats at 1d (1h resolution), and 14d
+            # we need to compute stats at 1d (1h resolution), and 14d or a custom given period
             group_ids = [g.id for g in item_list]
 
-            segments, interval = self.STATS_PERIOD_CHOICES[self.stats_period]
-            now = timezone.now()
-            query_params = {
-                "start": now - ((segments - 1) * interval),
-                "end": now,
-                "rollup": int(interval.total_seconds()),
-            }
+            if self.stats_period == "auto":
+                query_params = {
+                    "start": self.stats_period_start,
+                    "end": self.stats_period_end,
+                    "rollup": int(
+                        (self.stats_period_end - self.stats_period_start).total_seconds()
+                        / self.CUSTOM_PERIOD_SEGMENTS
+                    ),
+                }
+            else:
+                segments, interval = self.STATS_PERIOD_CHOICES[self.stats_period]
+                now = timezone.now()
+                query_params = {
+                    "start": now - ((segments - 1) * interval),
+                    "end": now,
+                    "rollup": int(interval.total_seconds()),
+                }
 
             return self.query_tsdb(group_ids, query_params)
 
@@ -550,15 +562,19 @@ class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
         self,
         environment_func=None,
         stats_period=None,
+        stats_period_start=None,
+        stats_period_end=None,
         matching_event_id=None,
         matching_event_environment=None,
     ):
         super(StreamGroupSerializer, self).__init__(environment_func)
 
         if stats_period is not None:
-            assert stats_period in self.STATS_PERIOD_CHOICES
+            assert stats_period in self.STATS_PERIOD_CHOICES or stats_period == "auto"
 
         self.stats_period = stats_period
+        self.stats_period_start = stats_period_start
+        self.stats_period_end = stats_period_end
         self.matching_event_id = matching_event_id
         self.matching_event_environment = matching_event_environment
 
@@ -678,6 +694,8 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         self,
         environment_ids=None,
         stats_period=None,
+        stats_period_start=None,
+        stats_period_end=None,
         matching_event_id=None,
         start=None,
         end=None,
@@ -686,9 +704,13 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         super(StreamGroupSerializerSnuba, self).__init__(environment_ids, start, end, snuba_filters)
 
         if stats_period is not None:
-            assert stats_period in self.STATS_PERIOD_CHOICES
+            assert stats_period in self.STATS_PERIOD_CHOICES or (
+                stats_period == "auto" and stats_period_start and stats_period_end
+            )
 
         self.stats_period = stats_period
+        self.stats_period_start = stats_period_start
+        self.stats_period_end = stats_period_end
         self.matching_event_id = matching_event_id
 
     def query_tsdb(self, group_ids, query_params):

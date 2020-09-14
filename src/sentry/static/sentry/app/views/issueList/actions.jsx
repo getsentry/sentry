@@ -560,13 +560,21 @@ const IssueListActions = createReactClass({
               >
                 {t('24h')}
               </GraphToggle>
-
-              <GraphToggle
-                active={statsPeriod === '14d'}
-                onClick={this.handleSelectStatsPeriod.bind(this, '14d')}
-              >
-                {t('14d')}
-              </GraphToggle>
+              {hasDynamicIssueCounts ? (
+                <GraphToggle
+                  active={statsPeriod === 'auto'}
+                  onClick={this.handleSelectStatsPeriod.bind(this, 'auto')}
+                >
+                  {t('Auto')}
+                </GraphToggle>
+              ) : (
+                <GraphToggle
+                  active={statsPeriod === '14d'}
+                  onClick={this.handleSelectStatsPeriod.bind(this, '14d')}
+                >
+                  {t('14d')}
+                </GraphToggle>
+              )}
             </GraphHeader>
           </GraphHeaderWrapper>
           {hasDynamicIssueCounts ? (
