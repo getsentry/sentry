@@ -1,15 +1,22 @@
 import React from 'react';
 
-import {shallow, mountWithTheme} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
-import HttpRenderer from 'app/components/events/interfaces/breadcrumbs/httpRenderer';
+import HttpRenderer from 'app/components/events/interfaces/breadcrumbsV2/data/http';
+import {
+  BreadcrumbType,
+  BreadcrumbLevelType,
+} from 'app/components/events/interfaces/breadcrumbsV2/types';
 
-describe('HttpRenderer', function() {
-  describe('render()', function() {
-    it('should work', function() {
-      const httpRendererWrapper = shallow(
+describe('HttpRenderer', () => {
+  describe('render', () => {
+    it.only('should work', () => {
+      const httpRendererWrapper = mountWithTheme(
         <HttpRenderer
+          searchTerm=""
           breadcrumb={{
+            type: BreadcrumbType.HTTP,
+            level: BreadcrumbLevelType.INFO,
             data: {
               method: 'POST',
               url: 'http://example.com/foo',
@@ -20,18 +27,29 @@ describe('HttpRenderer', function() {
         />
       );
 
-      const summaryLine = httpRendererWrapper.prop('summary');
+      const annotatedTexts = httpRendererWrapper.find('AnnotatedText');
 
-      const summaryLineWrapper = shallow(summaryLine).render();
-      expect(summaryLineWrapper.find('strong').text()).toEqual('POST ');
+      expect(annotatedTexts.length).toEqual(3);
+
       expect(
-        summaryLineWrapper
-          .find('[data-test-id="http-renderer-external-link"]')
+        annotatedTexts
+          .at(0)
+          .find('strong')
           .text()
-          .trim()
-      ).toEqual('http://example.com/foo');
+      ).toEqual('POST ');
+
       expect(
-        summaryLineWrapper.find('[data-test-id="http-renderer-status-code"]').text()
+        annotatedTexts
+          .at(1)
+          .find('a[data-test-id="http-renderer-external-link"]')
+          .text()
+      ).toEqual('http://example.com/foo');
+
+      expect(
+        annotatedTexts
+          .at(2)
+          .find('Highlight[data-test-id="http-renderer-status-code"]')
+          .text()
       ).toEqual(' [0]');
     });
 
