@@ -319,7 +319,7 @@ type SentryEventBase = {
   dateReceived?: string;
   endTimestamp?: number;
   entries: EntryType[];
-  errors: object[];
+  errors: any[];
 
   previousEventID?: string;
   nextEventID?: string;
@@ -339,6 +339,8 @@ type SentryEventBase = {
     id: string;
     enhancements: string;
   };
+
+  userReport?: any;
 
   crashFile: EventAttachment | null;
 

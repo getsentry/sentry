@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 
 import {analytics} from 'app/utils/analytics';
 import {logException} from 'app/utils/logging';
@@ -37,6 +38,7 @@ import ThreadsInterface from 'app/components/events/interfaces/threads/threads';
 import {DataSection} from 'app/components/events/styles';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
+import {Event, AvatarProject, Group} from 'app/types';
 
 export const INTERFACES = {
   exception: ExceptionInterface,
@@ -54,16 +56,40 @@ export const INTERFACES = {
   spans: SpansInterface,
 };
 
-class EventEntries extends React.Component {
+const defaultProps = {
+  isShare: false,
+  showExampleCommit: false,
+  showTagSummary: true,
+};
+
+// Custom shape because shared view doesn't get id.
+type SharedViewOrganization = {
+  slug: string;
+  id?: string;
+  features?: Array<string>;
+};
+
+type Props = {
+  // This is definitely required because this component would crash if
+  // organization were undefined.
+  organization: SharedViewOrganization;
+  event: Event;
+  project: AvatarProject;
+  location: Location;
+
+  group?: Group;
+  className?: string;
+} & typeof defaultProps;
+
+class EventEntries extends React.Component<Props> {
   static propTypes = {
     // Custom shape because shared view doesn't get id.
     organization: PropTypes.shape({
       id: PropTypes.string,
       slug: PropTypes.string.isRequired,
       features: PropTypes.arrayOf(PropTypes.string),
-    }),
-    // event is not guaranteed in shared issue view
-    event: SentryTypes.Event,
+    }).isRequired,
+    event: SentryTypes.Event.isRequired,
 
     group: SentryTypes.Group,
     project: PropTypes.object.isRequired,
@@ -74,11 +100,7 @@ class EventEntries extends React.Component {
     showTagSummary: PropTypes.bool,
   };
 
-  static defaultProps = {
-    isShare: false,
-    showExampleCommit: false,
-    showTagSummary: true,
-  };
+  static defaultProps = defaultProps;
 
   componentDidMount() {
     const {event} = this.props;
@@ -93,7 +115,7 @@ class EventEntries extends React.Component {
     this.recordIssueError(errorTypes, errorMessages);
   }
 
-  shouldComponentUpdate(nextProps) {
+  shouldComponentUpdate(nextProps: Props) {
     const {event, showExampleCommit} = this.props;
 
     return (
@@ -102,14 +124,15 @@ class EventEntries extends React.Component {
     );
   }
 
-  recordIssueError(errorTypes, errorMessages) {
+  recordIssueError(errorTypes: any[], errorMessages: string[]) {
     const {organization, project, event} = this.props;
+
     const orgId = organization.id;
     const platform = project.platform;
 
     analytics('issue_error_banner.viewed', {
-      org_id: parseInt(orgId, 10),
-      group: event.groupID,
+      org_id: orgId ? parseInt(orgId, 10) : null,
+      group: event?.groupID,
       error_type: errorTypes,
       error_message: errorMessages,
       ...(platform && {platform}),
@@ -150,12 +173,7 @@ class EventEntries extends React.Component {
       } catch (ex) {
         logException(ex);
         return (
-          <EventDataSection
-            projectId={project.slug}
-            event={event}
-            type={entry.type}
-            title={entry.type}
-          >
+          <EventDataSection type={entry.type} title={entry.type}>
             <p>{t('There was an error rendering this data.')}</p>
           </EventDataSection>
         );
@@ -212,7 +230,7 @@ class EventEntries extends React.Component {
               projectId={project.slug}
             />
           ))}
-        {event.userReport && group && (
+        {event?.userReport && group && (
           <StyledEventUserFeedback
             report={event.userReport}
             orgId={organization.slug}
@@ -232,9 +250,9 @@ class EventEntries extends React.Component {
         )}
         {this.renderEntries()}
         {hasContext && <EventContexts group={group} event={event} />}
-        {!objectIsEmpty(event.context) && <EventExtraData event={event} />}
-        {!objectIsEmpty(event.packages) && <EventPackageData event={event} />}
-        {!objectIsEmpty(event.device) && <EventDevice event={event} />}
+        {event && !objectIsEmpty(event.context) && <EventExtraData event={event} />}
+        {event && !objectIsEmpty(event.packages) && <EventPackageData event={event} />}
+        {event && !objectIsEmpty(event.device) && <EventDevice event={event} />}
         {!isShare && features.has('event-attachments') && (
           <EventAttachments
             event={event}
@@ -243,9 +261,11 @@ class EventEntries extends React.Component {
             location={location}
           />
         )}
-        {!objectIsEmpty(event.sdk) && <EventSdk sdk={event.sdk} />}
-        {!isShare && event?.sdkUpdates?.length > 0 && <EventSdkUpdates event={event} />}
-        {!isShare && event.groupID && (
+        {event?.sdk && !objectIsEmpty(event.sdk) && <EventSdk sdk={event.sdk} />}
+        {!isShare && event?.sdkUpdates && event.sdkUpdates.length > 0 && (
+          <EventSdkUpdates event={{sdkUpdates: event.sdkUpdates, ...event}} />
+        )}
+        {!isShare && event?.groupID && (
           <EventGroupingInfo
             projectId={project.slug}
             event={event}
@@ -287,7 +307,11 @@ const BorderlessEventEntries = styled(EventEntries)`
   }
 `;
 
-const StyledEventUserFeedback = styled(EventUserFeedback)`
+type StyledEventUserFeedbackProps = {
+  includeBorder: boolean;
+};
+
+const StyledEventUserFeedback = styled(EventUserFeedback)<StyledEventUserFeedbackProps>`
   border-radius: 0;
   box-shadow: none;
   padding: 20px 30px 0 40px;
@@ -296,5 +320,6 @@ const StyledEventUserFeedback = styled(EventUserFeedback)`
   margin: 0;
 `;
 
-export default withOrganization(EventEntries);
+// TODO(ts): any required due to our use of SharedViewOrganization
+export default withOrganization<any>(EventEntries);
 export {BorderlessEventEntries};
