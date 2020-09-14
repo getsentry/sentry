@@ -1,3 +1,4 @@
+// eslint-disable-next-line no-restricted-imports
 import {Flex} from 'reflexbox';
 import PropTypes from 'prop-types';
 import React from 'react';
