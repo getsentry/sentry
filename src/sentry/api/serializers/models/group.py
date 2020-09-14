@@ -526,6 +526,8 @@ class GroupStatsMixin(object):
         "24h": StatsPeriod(24, timedelta(hours=1)),
     }
 
+    CUSTOM_PERIOD_SEGMENTS = 29  # for 30 segments use 1/29th intervals
+
     def query_tsdb(self, group_ids, query_params):
         raise NotImplementedError
 
@@ -539,7 +541,8 @@ class GroupStatsMixin(object):
                     "start": self.stats_period_start,
                     "end": self.stats_period_end,
                     "rollup": int(
-                        (self.stats_period_end - self.stats_period_start).total_seconds() / 29
+                        (self.stats_period_end - self.stats_period_start).total_seconds()
+                        / self.CUSTOM_PERIOD_SEGMENTS
                     ),
                 }
             else:

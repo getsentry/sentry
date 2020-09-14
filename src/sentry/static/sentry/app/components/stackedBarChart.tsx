@@ -127,8 +127,9 @@ class StackedBarChart extends React.Component<Props, State> {
       }
 
       series = this.pointsToSeries(props.points);
-      if (props.secondaryPoints.length)
+      if (props.secondaryPoints.length) {
         secondarySeries = this.pointsToSeries(props.secondaryPoints);
+      }
     }
 
     this.state = {
@@ -355,21 +356,19 @@ class StackedBarChart extends React.Component<Props, State> {
     // we leave a little extra space for bars with min-heights.
     const maxPercentage = 99;
 
-    let prevPct = 0;
-    let prevPct2 = 0;
-    const pts = point.y.map((y, i) => {
-      const pct = Math.max(
+    const calcPct = (y, i) =>
+      Math.max(
         totalY && formatFloat((y / totalY) * totalPct * maxPercentage, 2),
         this.getMinHeight(i)
       );
 
+    let prevPct = 0;
+    let prevPct2 = 0;
+    const pts = point.y.map((y, i) => {
+      const pct = calcPct(y, i);
+
       const y2 = secondaryPoint && secondaryPoint.y[i];
-      const pct2 =
-        y2 &&
-        Math.max(
-          totalY && formatFloat((y2 / totalY) * totalPct * maxPercentage, 2),
-          this.getMinHeight(i)
-        );
+      const pct2 = y2 && calcPct(y2, i);
 
       const pt = (
         <React.Fragment key={i}>
