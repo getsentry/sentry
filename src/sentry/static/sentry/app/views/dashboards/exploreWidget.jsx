@@ -8,7 +8,7 @@ import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 import Button from 'app/components/button';
 import DropdownMenu from 'app/components/dropdownMenu';
-import {IconChevron, IconStack, IconTelescope} from 'app/icons';
+import {IconChevron, IconOpen, IconStack} from 'app/icons';
 import {
   getDiscoverUrlPathFromDiscoverQuery,
   getDiscover2UrlPathFromDiscoverQuery,
@@ -106,7 +106,7 @@ class ExploreWidget extends React.Component {
             : t('You do not have access to Discover')
         }
       >
-        <IconTelescope size="xs" />
+        <IconOpen />
       </ExploreAction>
     );
   }
@@ -128,7 +128,7 @@ class ExploreWidget extends React.Component {
             : t('You do not have access to Discover. Click to learn more.')
         }
       >
-        <IconTelescope size="xs" />
+        <IconOpen />
       </ExploreAction>
     );
   }
@@ -201,11 +201,11 @@ const ExploreRoot = styled('div')`
   ${p => p.isOpen && 'filter: drop-shadow(-7px -7px 12px rgba(47, 40, 55, 0.04));'};
 `;
 
-const UnstyledButton = props => <Button borderless size="zero" {...props} />;
+const ExploreAction = props => <Button priority="link" {...props} />;
 
 const ExploreButton = styled(props => {
   const remaining = omit(props, 'isOpen');
-  return <UnstyledButton {...remaining} />;
+  return <ExploreAction {...remaining} />;
 })`
   position: relative;
   color: ${p => (p.isOpen ? p.theme.purple400 : p.theme.gray500)};
@@ -240,14 +240,6 @@ const ExploreRow = styled('li')`
   display: flex;
   align-items: center;
   padding: 0 ${space(0.5)};
-`;
-
-const ExploreAction = styled(UnstyledButton)`
-  padding: ${space(1)};
-  color: ${p => p.theme.purple400};
-  &:hover {
-    color: ${p => p.theme.purple400};
-  }
 `;
 
 const QueryName = styled('span')`
