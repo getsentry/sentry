@@ -73,13 +73,12 @@ type Props = {
   // This is definitely required because this component would crash if
   // organization were undefined.
   organization: SharedViewOrganization;
-
   event: Event;
-  group?: Group;
   project: AvatarProject;
-
-  className?: string;
   location: Location;
+
+  group?: Group;
+  className?: string;
 } & typeof defaultProps;
 
 class EventEntries extends React.Component<Props> {
