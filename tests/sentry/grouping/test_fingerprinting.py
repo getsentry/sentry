@@ -2,7 +2,9 @@
 
 from __future__ import absolute_import
 
-from sentry.grouping.fingerprinting import FingerprintingRules
+import pytest
+
+from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
 
 from tests.sentry.grouping import with_fingerprint_input
 
@@ -42,6 +44,11 @@ logger:sentry.*                                 -> logger-, {{ logger }}
         )._to_config_structure()
         == rules._to_config_structure()
     )
+
+
+def test_parsing_errors():
+    with pytest.raises(InvalidFingerprintingConfig):
+        FingerprintingRules.from_config_string("invalid.message:foo -> bar")
 
 
 def test_automatic_argument_splitting():
