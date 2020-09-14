@@ -474,6 +474,9 @@ if (IS_UI_DEV_ONLY) {
         target: 'https://sentry.io',
         secure: false,
         changeOrigin: true,
+        headers: {
+          Referer: 'https://sentry.io/',
+        },
       },
     ],
     historyApiFallback: {
