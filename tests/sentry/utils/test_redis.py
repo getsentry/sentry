@@ -40,9 +40,9 @@ class ClusterManagerTestCase(TestCase):
         with pytest.raises(KeyError):
             manager.get("invalid")
 
-    @mock.patch("sentry.utils.redis.RetryingStrictRedisCluster")
+    @mock.patch("sentry.utils.redis.RetryingRedisCluster")
     @mock.patch("sentry.utils.redis.StrictRedis")
-    def test_specific_cluster(self, StrictRedis, RetryingStrictRedisCluster):
+    def test_specific_cluster(self, StrictRedis, RetryingRedisCluster):
         manager = make_manager(cluster_type=_RedisCluster)
 
         # We wrap the cluster in a Simple Lazy Object, force creation of the
@@ -51,7 +51,7 @@ class ClusterManagerTestCase(TestCase):
         # cluster foo is fine since it's a single node
         assert manager.get("foo")._setupfunc() is StrictRedis.return_value
         # baz works becasue it's explicitly is_redis_cluster
-        assert manager.get("baz")._setupfunc() is RetryingStrictRedisCluster.return_value
+        assert manager.get("baz")._setupfunc() is RetryingRedisCluster.return_value
 
         # bar is not a valid redis or redis cluster definition
         # becasue it is two hosts, without explicitly saying is_redis_cluster
