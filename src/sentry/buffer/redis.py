@@ -191,7 +191,7 @@ class RedisBuffer(Buffer):
             pipe.hset(key, "s", "1")
 
         pipe.expire(key, self.key_expire)
-        pipe.zadd(pending_key, time(), key)
+        pipe.zadd(pending_key, {key: time()})
         pipe.execute()
 
         metrics.incr(
