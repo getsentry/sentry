@@ -24,7 +24,7 @@ type InjectedProps = {
   committers: Committer[];
 };
 
-const INITIAL_STATE: InjectedProps = {
+const initialState: InjectedProps = {
   committers: [],
 };
 
