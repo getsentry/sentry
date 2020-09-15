@@ -270,7 +270,7 @@ const StreamGroup = createReactClass({
                 <tr>
                   <TooltipCount value={data.count} />
                   <TooltipText>
-                    {data.filtered ? t(`Without search filters`) : t(`Within ${summary}`)}
+                    {data.filtered ? t(`Without search filters`) : t(`In ${summary}`)}
                   </TooltipText>
                   {hasDiscoverQuery && (
                     <StyledIconTelescope
@@ -316,7 +316,7 @@ const StreamGroup = createReactClass({
                 <tr>
                   <TooltipCount value={data.userCount} />
                   <TooltipText>
-                    {data.filtered ? t(`Without search filters`) : t(`Within ${summary}`)}
+                    {data.filtered ? t(`Without search filters`) : t(`In ${summary}`)}
                   </TooltipText>
                   {hasDiscoverQuery && (
                     <StyledIconTelescope
