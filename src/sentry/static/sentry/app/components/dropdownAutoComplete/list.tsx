@@ -5,6 +5,13 @@ import {AutoSizer, List as ReactVirtualizedList, ListRowProps} from 'react-virtu
 import {Item} from './types';
 import Row from './row';
 
+type Items = Array<
+  Item & {
+    items?: Array<Item>;
+    hideGroupLabel?: boolean; // Should hide group label
+  }
+>;
+
 type RowProps = Pick<
   React.ComponentProps<typeof Row>,
   'itemSize' | 'highlightedIndex' | 'inputValue' | 'getItemProps'
@@ -12,7 +19,7 @@ type RowProps = Pick<
 
 type Props = {
   // flat item array | grouped item array
-  items: Array<Item>;
+  items: Items;
   /**
    * Max height of dropdown menu. Units are assumed as `px`
    */
@@ -36,7 +43,7 @@ type Props = {
 } & RowProps;
 
 function getHeight(
-  items: Array<Item>,
+  items: Items,
   maxHeight: number,
   virtualizedHeight: number,
   virtualizedLabelHeight?: number

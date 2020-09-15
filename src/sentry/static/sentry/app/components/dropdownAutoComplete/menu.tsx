@@ -12,6 +12,13 @@ import List from './list';
 import {Item} from './types';
 import autoCompleteFilter from './autoCompleteFilter';
 
+type Items = Array<
+  Omit<Item, 'index'> & {
+    items?: Array<Omit<Item, 'index'>>;
+    hideGroupLabel?: boolean; // Should hide group label
+  }
+>;
+
 type MenuFooterChildProps = {
   actions: Actions;
 };
@@ -53,6 +60,7 @@ type ChildrenArgs = {
 type ListProps = React.ComponentProps<typeof List>;
 
 type Props = {
+  items: Items;
   children: (args: ChildrenArgs) => React.ReactNode;
 
   menuHeader?: React.ReactElement;
@@ -190,7 +198,7 @@ type Props = {
   css?: any;
 } & Pick<
   ListProps,
-  'virtualizedHeight' | 'virtualizedLabelHeight' | 'itemSize' | 'onScroll' | 'items'
+  'virtualizedHeight' | 'virtualizedLabelHeight' | 'itemSize' | 'onScroll'
 >;
 
 const Menu = ({

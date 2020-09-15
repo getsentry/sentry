@@ -56,7 +56,7 @@ const ThreadSelector = ({threads, event, activeThread, onChange}: Props) => {
     return [...crashed, ...notCrashed].map(getDropDownItem);
   };
 
-  const handleOnChange = ({thread}: {thread: Thread}) => {
+  const handleChange = (thread: Thread) => {
     if (onChange) {
       onChange(thread);
     }
@@ -65,7 +65,12 @@ const ThreadSelector = ({threads, event, activeThread, onChange}: Props) => {
   return (
     <StyledDropdownAutoComplete
       items={getItems()}
-      onSelect={handleOnChange}
+      onSelect={item => {
+        const selectedThread = threads.find(thread => thread.id === item.thread.id);
+        if (selectedThread) {
+          handleChange(selectedThread);
+        }
+      }}
       maxHeight={DROPDOWN_MAX_HEIGHT}
       searchPlaceholder={t('Filter Threads')}
       emptyMessage={t('You have no threads')}
