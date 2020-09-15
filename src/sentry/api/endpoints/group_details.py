@@ -25,6 +25,7 @@ from sentry.models import (
     User,
     UserReport,
 )
+from sentry.api.helpers.group_index import rate_limit_endpoint
 from sentry.plugins.base import plugins
 from sentry.plugins.bases import IssueTrackingPlugin2
 from sentry.signals import issue_deleted
@@ -180,6 +181,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         ]
 
     @attach_scenarios([retrieve_aggregate_scenario])
+    @rate_limit_endpoint(limit=10, window=1)
     def get(self, request, group):
         """
         Retrieve an Issue
@@ -289,6 +291,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             raise
 
     @attach_scenarios([update_aggregate_scenario])
+    @rate_limit_endpoint(limit=10, window=1)
     def put(self, request, group):
         """
         Update an Issue
@@ -370,6 +373,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             raise
 
     @attach_scenarios([delete_aggregate_scenario])
+    @rate_limit_endpoint(limit=10, window=1)
     def delete(self, request, group):
         """
         Remove an Issue

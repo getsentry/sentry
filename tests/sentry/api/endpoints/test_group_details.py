@@ -27,6 +27,7 @@ from sentry.models import (
 )
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.plugins.base import plugins
+from sentry.utils.compat.mock import patch
 
 
 class GroupDetailsTest(APITestCase, SnubaTestCase):
@@ -219,6 +220,16 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         result = response.data["permalink"]
         assert "http://" in result
         assert "{}/issues/{}".format(group.organization.slug, group.id) in result
+
+    @patch(
+        "sentry.api.helpers.group_index.ratelimiter.is_limited", autospec=True, return_value=True,
+    )
+    def test_ratelimit(self, is_limited):
+        self.login_as(user=self.user)
+        group = self.create_group()
+        url = u"/api/0/issues/{}/".format(group.id)
+        response = self.client.get(url, sort_by="date", limit=1)
+        assert response.status_code == 429
 
 
 class GroupUpdateTest(APITestCase):
@@ -508,6 +519,16 @@ class GroupUpdateTest(APITestCase):
         assert tombstone.project == group.project
         assert tombstone.data == group.data
 
+    @patch(
+        "sentry.api.helpers.group_index.ratelimiter.is_limited", autospec=True, return_value=True,
+    )
+    def test_ratelimit(self, is_limited):
+        self.login_as(user=self.user)
+        group = self.create_group()
+        url = u"/api/0/issues/{}/".format(group.id)
+        response = self.client.put(url, sort_by="date", limit=1)
+        assert response.status_code == 429
+
 
 class GroupDeleteTest(APITestCase):
     def test_delete(self):
@@ -539,3 +560,13 @@ class GroupDeleteTest(APITestCase):
         # Now we killed everything with fire
         assert not Group.objects.filter(id=group.id).exists()
         assert not GroupHash.objects.filter(group_id=group.id).exists()
+
+    @patch(
+        "sentry.api.helpers.group_index.ratelimiter.is_limited", autospec=True, return_value=True,
+    )
+    def test_ratelimit(self, is_limited):
+        self.login_as(user=self.user)
+        group = self.create_group()
+        url = u"/api/0/issues/{}/".format(group.id)
+        response = self.client.delete(url, sort_by="date", limit=1)
+        assert response.status_code == 429

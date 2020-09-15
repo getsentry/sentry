@@ -370,6 +370,7 @@ class Rule(object):
 
 class FingerprintingVisitor(NodeVisitor):
     visit_comment = visit_empty = lambda *a: None
+    unwrapped_exceptions = (InvalidFingerprintingConfig,)
 
     def visit_comment(self, node, children):
         return node.text

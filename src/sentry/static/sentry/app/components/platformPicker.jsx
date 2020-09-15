@@ -12,7 +12,7 @@ import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import ExternalLink from 'app/components/links/externalLink';
 import ListLink from 'app/components/links/listLink';
 import NavTabs from 'app/components/navTabs';
-import PlatformIconTile from 'app/components/platformIconTile';
+import PlatformIcon from 'app/components/platformIcon';
 import categoryList from 'app/data/platformCategories';
 import platforms from 'app/data/platforms';
 import space from 'app/styles/space';
@@ -191,7 +191,7 @@ const PlatformList = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
-const StyledPlatformIconTile = styled(PlatformIconTile)`
+const StyledPlatformIcon = styled(PlatformIcon)`
   width: 56px;
   height: 56px;
   font-size: 42px;
@@ -216,7 +216,8 @@ const ClearButton = styled(p => (
 
 const PlatformCard = styled(({platform, selected, onClear, ...props}) => (
   <div {...props}>
-    <StyledPlatformIconTile platform={platform.id} />
+    <StyledPlatformIcon platform={platform.id} size="lg" />
+
     <h3>{platform.name}</h3>
     {selected && <ClearButton onClick={onClear} />}
   </div>

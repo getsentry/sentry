@@ -667,6 +667,7 @@ def create_failed_event(
     # modifications to take place.
     delete_raw_event(project_id, event_id)
     data = event_processing_store.get(cache_key)
+
     if data is None:
         metrics.incr("events.failed", tags={"reason": "cache", "stage": "raw"}, skip_internal=False)
         error_logger.error("process.failed_raw.empty", extra={"cache_key": cache_key})
@@ -690,7 +691,6 @@ def create_failed_event(
             type=issue["type"],
             data=issue["data"],
         )
-
     event_processing_store.delete_by_key(cache_key)
 
     return True
@@ -762,15 +762,21 @@ def _do_save_event(
                 manager.save(
                     project_id, assume_normalized=True, start_time=start_time, cache_key=cache_key
                 )
-
+                # Put the updated event back into the cache so that post_process
+                # has the most recent data.
+                data = manager.get_data()
+                if isinstance(data, CANONICAL_TYPES):
+                    data = dict(data.items())
+                with metrics.timer("tasks.store.do_save_event.write_processing_cache"):
+                    event_processing_store.store(data)
         except HashDiscarded:
-            pass
-
-        finally:
+            # Delete the event payload from cache since it won't show up in post-processing.
             if cache_key:
                 with metrics.timer("tasks.store.do_save_event.delete_cache"):
                     event_processing_store.delete_by_key(cache_key)
 
+        finally:
+            if cache_key:
                 with metrics.timer("tasks.store.do_save_event.delete_attachment_cache"):
                     attachment_cache.delete(cache_key)
 
