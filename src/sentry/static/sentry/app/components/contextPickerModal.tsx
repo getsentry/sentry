@@ -334,7 +334,7 @@ type ContainerProps = Omit<
 };
 
 type ContainerState = {
-  selectedOrganization: string | null;
+  selectedOrganization: string | undefined;
   organizations?: Organization[];
 };
 
@@ -344,7 +344,7 @@ const ContextPickerModalContainer = createReactClass<ContainerProps, ContainerSt
   getInitialState() {
     const storeState = OrganizationStore.get();
     return {
-      selectedOrganization: storeState.organization && storeState.organization.slug,
+      selectedOrganization: storeState.organization?.slug,
     };
   },
 
