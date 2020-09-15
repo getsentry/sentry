@@ -349,6 +349,7 @@ const ProjectNameInput = styled('div')`
   input {
     border: 0;
     outline: 0;
+    width: 100%;
   }
 `;
 
