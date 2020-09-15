@@ -66,13 +66,10 @@ const ThreadSelector = ({threads, event, activeThread, onChange}: Props) => {
     <StyledDropdownAutoComplete
       items={getItems()}
       onSelect={handleOnChange}
-      align="left"
-      alignMenu="left"
       maxHeight={DROPDOWN_MAX_HEIGHT}
-      placeholder={t('Filter Threads')}
+      searchPlaceholder={t('Filter Threads')}
       emptyMessage={t('You have no threads')}
       noResultsMessage={t('No threads found')}
-      zIndex={theme.zIndex.dropdown}
       menuHeader={<Header />}
       closeOnSelect
       emptyHidesInput
