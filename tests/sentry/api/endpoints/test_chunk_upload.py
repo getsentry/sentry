@@ -131,7 +131,7 @@ class ChunkUploadTest(APITestCase):
         assert response.status_code == 200, response.content
 
         # We overflow the request here
-        files.append(SimpleUploadedFile(sha1(b"content").hexdigest(), "content"))
+        files.append(SimpleUploadedFile(sha1(b"content").hexdigest(), b"content"))
         response = self.client.post(
             self.url,
             data={"file": files},
@@ -156,8 +156,8 @@ class ChunkUploadTest(APITestCase):
 
     def test_checksum_missmatch(self):
         files = []
-        content = "x" * (settings.SENTRY_CHUNK_UPLOAD_BLOB_SIZE + 1)
-        files.append(SimpleUploadedFile("wrong checksum", content))
+        content = b"x" * (settings.SENTRY_CHUNK_UPLOAD_BLOB_SIZE + 1)
+        files.append(SimpleUploadedFile(b"wrong checksum", content))
 
         response = self.client.post(
             self.url,

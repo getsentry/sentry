@@ -6,6 +6,7 @@ import logging
 
 from django.utils.translation import ugettext_lazy as _
 from rest_framework.serializers import ValidationError
+from six.moves.urllib.parse import urlencode
 
 
 from sentry.integrations import (
@@ -16,10 +17,12 @@ from sentry.integrations import (
     FeatureDescription,
 )
 from sentry import options
+from sentry.constants import ObjectStatus
 from sentry.pipeline import NestedPipelineView
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.utils.http import absolute_uri
 from sentry.models import (
+    Organization,
     Integration,
     Project,
     ProjectKey,
@@ -35,9 +38,11 @@ from .client import VercelClient
 
 logger = logging.getLogger("sentry.integrations.vercel")
 
-DESCRIPTION = """
+DESCRIPTION = _(
+    """
 Vercel is an all-in-one platform with Global CDN supporting static & JAMstack deployment and Serverless Functions.
 """
+)
 
 FEATURES = [
     FeatureDescription(
@@ -48,7 +53,7 @@ FEATURES = [
     ),
 ]
 
-INSTALL_NOTICE_TEXT = (
+INSTALL_NOTICE_TEXT = _(
     "Visit the Vercel Marketplace to install this integration. After installing the"
     " Sentry integration, you'll be redirected back to Sentry to finish syncing Vercel and Sentry projects."
 )
@@ -62,11 +67,19 @@ external_install = {
 
 
 configure_integration = {"title": _("Connect Your Projects")}
+connect_project_instruction = _(
+    "To complete installation, please connect your Sentry and Vercel projects."
+)
+install_source_code_integration = _(
+    "Install a [source code integration]({}) and configure your repositories."
+)
 
 disable_dialog = {
-    "actionText": "Visit Vercel",
-    "body": "In order to uninstall this integration, you must go"
-    " to Vercel and uninstall there by clicking 'Remove Configuration'.",
+    "actionText": _("Visit Vercel"),
+    "body": _(
+        "In order to uninstall this integration, you must go"
+        " to Vercel and uninstall there by clicking 'Remove Configuration'."
+    ),
 }
 
 
@@ -95,6 +108,21 @@ class VercelIntegration(IntegrationInstallation):
     @property
     def metadata(self):
         return self.model.metadata
+
+    def get_dynamic_display_information(self):
+        organization = Organization.objects.get_from_cache(id=self.organization_id)
+        source_code_link = absolute_uri(
+            u"/settings/%s/integrations/?%s"
+            % (organization.slug, urlencode({"category": "source code management"}))
+        )
+        return {
+            "configure_integration": {
+                "instructions": [
+                    connect_project_instruction,
+                    install_source_code_integration.format(source_code_link),
+                ]
+            }
+        }
 
     def get_client(self):
         access_token = self.metadata["access_token"]
@@ -147,7 +175,9 @@ class VercelIntegration(IntegrationInstallation):
         sentry_projects = map(
             lambda proj: {key: proj[key] for key in proj_fields},
             (
-                Project.objects.filter(organization_id=self.organization_id)
+                Project.objects.filter(
+                    organization_id=self.organization_id, status=ObjectStatus.VISIBLE
+                )
                 .order_by("slug")
                 .values(*proj_fields)
             ),
@@ -260,9 +290,9 @@ class VercelIntegration(IntegrationInstallation):
     def create_env_var(self, client, vercel_project_id, key, value):
         if not self.env_var_already_exists(client, vercel_project_id, key):
             return client.create_env_variable(vercel_project_id, key, value)
-        self.delete_env_variable(client, vercel_project_id, key, value)
+        self.update_env_variable(client, vercel_project_id, key, value)
 
-    def delete_env_variable(self, client, vercel_project_id, key, value):
+    def update_env_variable(self, client, vercel_project_id, key, value):
         return client.update_env_variable(vercel_project_id, key, value)
 
 

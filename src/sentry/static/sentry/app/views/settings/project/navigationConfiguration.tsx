@@ -78,7 +78,6 @@ export default function getConfiguration({
           description: t(
             'Configuration related to dealing with sensitive data and other security settings. (Data Scrubbing, Data Privacy, Data Scrubbing)'
           ),
-          badge: () => 'new',
         },
 
         {
@@ -109,7 +108,7 @@ export default function getConfiguration({
       items: [
         {
           path: `${pathPrefix}/install/`,
-          title: t('Error Tracking'),
+          title: t('Instrumentation'),
         },
         {
           path: `${pathPrefix}/keys/`,

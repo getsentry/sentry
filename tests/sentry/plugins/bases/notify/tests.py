@@ -1,12 +1,14 @@
 from __future__ import absolute_import
 
+from six.moves.urllib.parse import urlparse, parse_qs
+from requests.exceptions import HTTPError, SSLError
+
 from sentry_plugins.base import CorePluginMixin
 from sentry.exceptions import PluginError
 from sentry.shared_integrations.exceptions import ApiError, ApiHostError, ApiUnauthorized
 from sentry.plugins.bases.notify import NotificationPlugin
 from sentry.plugins.base.structs import Notification
 from sentry.testutils import TestCase
-from requests.exceptions import HTTPError, SSLError
 
 
 class DummyNotificationPlugin(CorePluginMixin, NotificationPlugin):
@@ -25,9 +27,11 @@ class NotifyPlugin(TestCase):
         assert n.add_notification_referrer_param(url) == "https://sentry.io/?referrer=slack"
 
         url = "https://sentry.io/?utm_source=google"
-        assert (
-            n.add_notification_referrer_param(url)
-            == "https://sentry.io/?referrer=slack&utm_source=google"
+        with_referrer = n.add_notification_referrer_param(url)
+
+        # XXX(py3): Handle ordering differences between py2/3
+        assert parse_qs(urlparse(with_referrer).query) == parse_qs(
+            "referrer=slack&utm_source=google"
         )
 
         n.slug = ""

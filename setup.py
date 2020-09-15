@@ -28,7 +28,7 @@ from sentry.utils.distutils import (
 )
 
 
-VERSION = "20.8.0.dev0"
+VERSION = "20.9.0.dev0"
 IS_LIGHT_BUILD = os.environ.get("SENTRY_LIGHT_BUILD") == "1"
 
 
@@ -39,14 +39,6 @@ def get_requirements(env):
 
 install_requires = get_requirements("base")
 dev_requires = get_requirements("dev")
-
-# override django version in requirements file if DJANGO_VERSION is set
-DJANGO_VERSION = os.environ.get("DJANGO_VERSION")
-if DJANGO_VERSION:
-    install_requires = [
-        u"Django{}".format(DJANGO_VERSION) if r.startswith("Django>=") else r
-        for r in install_requires
-    ]
 
 
 class SentrySDistCommand(SDistCommand):

@@ -8,10 +8,12 @@ from django.utils import timezone
 import pytest
 import pytz
 
-from sentry.models import GroupRelease, Release
+from sentry.models import GroupRelease, Release, Project
 from sentry.testutils import TestCase
+from sentry.utils.compat import mock
 from sentry.utils.snuba import (
     _prepare_query_params,
+    get_query_params_to_update_for_projects,
     get_snuba_translators,
     get_json_type,
     get_snuba_column_name,
@@ -176,6 +178,26 @@ class PrepareQueryParamsTest(TestCase):
 
         kwargs, _, _ = _prepare_query_params(query_params)
         assert kwargs["project"] == [self.project.id]
+
+    def test_with_deleted_project(self):
+        query_params = SnubaQueryParams(
+            dataset=Dataset.Events, filter_keys={"project_id": [self.project.id]}
+        )
+
+        self.project.delete()
+        with pytest.raises(UnqualifiedQueryError):
+            get_query_params_to_update_for_projects(query_params)
+
+    @mock.patch("sentry.models.Project.objects.get_from_cache", side_effect=Project.DoesNotExist)
+    def test_with_some_deleted_projects(self, mock_project):
+        other_project = self.create_project(organization=self.organization, slug="a" * 32)
+        query_params = SnubaQueryParams(
+            dataset=Dataset.Events, filter_keys={"project_id": [self.project.id, other_project.id]}
+        )
+
+        other_project.delete()
+        organization_id, _ = get_query_params_to_update_for_projects(query_params)
+        assert organization_id == self.organization.id
 
     def test_outcomes_dataset_with_org_id(self):
         query_params = SnubaQueryParams(

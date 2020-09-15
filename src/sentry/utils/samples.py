@@ -126,7 +126,8 @@ def load_data(platform, default=None, sample_name=None, timestamp=None, start_ti
 
         # Verify by checking if the file is within our folder explicitly
         # avoids being able to have a name that invokes traversing directories.
-        json_path = "%s.json" % platform.encode("utf-8")
+        json_path = u"{}.json".format(platform)
+
         if json_path not in all_samples:
             continue
 

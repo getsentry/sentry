@@ -100,7 +100,7 @@ class TestSentryAppAuthorizations(APITestCase):
         response = self.client.get(url, HTTP_AUTHORIZATION="Bearer {}".format(token))
 
         assert response.status_code == 200
-        assert response.data["id"] == six.text_type(self.org.id).encode("utf-8")
+        assert response.data["id"] == six.text_type(self.org.id)
 
     def test_state(self):
         response = self._run_request(state="abc123")

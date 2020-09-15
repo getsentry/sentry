@@ -6,7 +6,7 @@ export const DEFAULT_EVENT_VIEW: Readonly<NewQuery> = {
   name: t('All Events'),
   query: '',
   projects: [],
-  fields: ['title', 'event.type', 'project', 'user', 'timestamp'],
+  fields: ['title', 'event.type', 'project', 'user.display', 'timestamp'],
   orderby: '-timestamp',
   version: 2,
   range: '24h',

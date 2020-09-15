@@ -16,9 +16,9 @@ describe('IssueListActions', function() {
   afterEach(function() {});
 
   describe('Bulk', function() {
-    describe('Total results > bulk limit', function() {
+    describe('Total results greater than bulk limit', function() {
       beforeAll(function() {
-        const {routerContext} = initializeOrg();
+        const {routerContext, org} = initializeOrg();
 
         SelectedGroupStore.records = {};
         SelectedGroupStore.add([1, 2, 3]);
@@ -29,6 +29,7 @@ describe('IssueListActions', function() {
             query=""
             queryCount={1500}
             orgId="1337"
+            organization={org}
             projectId="project-slug"
             selection={{
               projects: [1],
@@ -83,7 +84,7 @@ describe('IssueListActions', function() {
       });
     });
 
-    describe('Total results < bulk limit', function() {
+    describe('Total results less than bulk limit', function() {
       beforeAll(function() {
         SelectedGroupStore.records = {};
         SelectedGroupStore.add([1, 2, 3]);
@@ -94,6 +95,7 @@ describe('IssueListActions', function() {
             query=""
             queryCount={600}
             orgId="1337"
+            organization={TestStubs.routerContext().context.organization}
             projectId="1"
             selection={{
               projects: [1],
@@ -159,6 +161,7 @@ describe('IssueListActions', function() {
             query=""
             queryCount={15}
             orgId="1337"
+            organization={TestStubs.routerContext().context.organization}
             projectId="1"
             selection={{
               projects: [1],
@@ -260,6 +263,7 @@ describe('IssueListActions', function() {
           api={new MockApiClient()}
           query=""
           orgId="1337"
+          organization={TestStubs.routerContext().context.organization}
           projectId="1"
           selection={{
             projects: [1],
@@ -320,6 +324,7 @@ describe('IssueListActions', function() {
           api={new MockApiClient()}
           query=""
           orgId="1337"
+          organization={TestStubs.routerContext().context.organization}
           groupIds={[1, 2, 3]}
           selection={{
             projects: [],

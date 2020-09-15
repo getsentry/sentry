@@ -5,8 +5,6 @@ import PropTypes from 'prop-types';
 
 import {t} from 'app/locale';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {Client} from 'app/api';
-import withApi from 'app/utils/withApi';
 import {Organization, Event, EventTag} from 'app/types';
 import SentryTypes from 'app/sentryTypes';
 import EventMetadata from 'app/components/events/eventMetadata';
@@ -17,6 +15,7 @@ import LoadingError from 'app/components/loadingError';
 import NotFound from 'app/components/errors/notFound';
 import AsyncComponent from 'app/components/asyncComponent';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
+import RootSpanStatus from 'app/components/events/rootSpanStatus';
 import OpsBreakdown from 'app/components/events/opsBreakdown';
 import TagsTable from 'app/components/tagsTable';
 import Projects from 'app/utils/projects';
@@ -31,7 +30,6 @@ type Props = {
   organization: Organization;
   location: Location;
   params: Params;
-  api: Client;
   eventSlug: string;
 };
 
@@ -106,7 +104,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
   }
 
   renderContent(event: Event) {
-    const {api, organization, location, eventSlug} = this.props;
+    const {organization, location, eventSlug} = this.props;
 
     // metrics
     trackAnalyticsEvent({
@@ -155,13 +153,12 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                   }}
                 >
                   <BorderlessEventEntries
-                    api={api}
                     organization={organization}
                     event={event}
                     project={projects[0]}
-                    location={location}
                     showExampleCommit={false}
                     showTagSummary={false}
+                    location={location}
                   />
                 </SpanEntryContext.Provider>
               )}
@@ -174,6 +171,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                 organization={organization}
                 projectId={this.projectId}
               />
+              <RootSpanStatus event={event} />
               <OpsBreakdown event={event} />
               <TagsTable event={event} query={query} generateUrl={this.generateTagUrl} />
             </Layout.Side>
@@ -217,4 +215,4 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
   }
 }
 
-export default withApi(EventDetailsContent);
+export default EventDetailsContent;

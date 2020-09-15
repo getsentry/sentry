@@ -30,8 +30,9 @@ class SlackNotifyActionTest(RuleTestCase):
         assert form.cleaned_data["channel_id"] == expected_channel_id
         assert form.cleaned_data["channel"] == expected_channel
 
+    @patch("random.uniform", return_value=1)
     @responses.activate
-    def test_applies_correctly(self):
+    def test_applies_correctly(self, mock_uniform):
         event = self.get_event()
 
         rule = self.get_rule(data={"workspace": self.integration.id, "channel": "#my-channel"})
@@ -117,7 +118,7 @@ class SlackNotifyActionTest(RuleTestCase):
         mock_uniform.assert_called_with(0, 1)
 
     @responses.activate
-    @patch("random.uniform", return_value=0.049)
+    @patch("random.uniform", return_value=0.49)
     def test_upgrade_notice_bot_app(self, mock_uniform):
         self.integration.metadata.update(
             {
@@ -329,3 +330,16 @@ class SlackNotifyActionTest(RuleTestCase):
 
         assert not form.is_valid()
         assert len(form.errors) == 1
+
+    def test_channel_id_provided(self):
+        rule = self.get_rule(
+            data={
+                "workspace": self.integration.id,
+                "channel": "#my-channel",
+                "channel_id": "C2349874",
+                "tags": "",
+            }
+        )
+
+        form = rule.get_form_instance()
+        assert form.is_valid()

@@ -1,4 +1,3 @@
-import React from 'react';
 import styled from '@emotion/styled';
 
 import DateTime from 'app/components/dateTime';
@@ -42,8 +41,3 @@ export const BarContainer = styled('div')`
   max-width: 80px;
   margin-left: auto;
 `;
-
-export const EventId = ({value}: {value: string}) => {
-  const shortId = value.substring(0, 8);
-  return <React.Fragment>{shortId}</React.Fragment>;
-};

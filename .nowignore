@@ -18,3 +18,7 @@
 !config/tsconfig.build.json
 !webpack.config.js
 !yarn.lock
+!docs-ui
+!docs-ui/**
+!.storybook
+!.storybook/**

@@ -2,103 +2,204 @@ name: python
 on:
   pull_request:
     paths:
-      - 'src/**/*.py'
+      # Matches all python files regardless of directory depth.
+      - '**.py'
+      - requirements*.txt
 
 jobs:
-    check-missing-migration:
-      name: Check Migration Required
-      runs-on: ubuntu-16.04
+  check-missing-migration:
+    name: Check Migration Required
+    runs-on: ubuntu-16.04
 
-      env:
-        PIP_DISABLE_PIP_VERSION_CHECK: on
-        SENTRY_LIGHT_BUILD: 1
-        SENTRY_SKIP_BACKEND_VALIDATION: 1
-        MIGRATIONS_TEST_MIGRATE: 0
+    env:
+      PIP_DISABLE_PIP_VERSION_CHECK: on
+      SENTRY_LIGHT_BUILD: 1
+      SENTRY_SKIP_BACKEND_VALIDATION: 1
+      MIGRATIONS_TEST_MIGRATE: 0
 
-        # The hostname used to communicate with the PostgreSQL from sentry
-        DATABASE_URL: postgresql://postgres:postgres@localhost/sentry
+      # The hostname used to communicate with the PostgreSQL from sentry
+      DATABASE_URL: postgresql://postgres:postgres@localhost/sentry
 
-        # Use this to override the django version in the requirements file.
-        DJANGO_VERSION: ">=1.11,<1.12"
+    services:
+      postgres:
+        image: postgres:9.6
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          # Maps tcp port 5432 on service container to the host
+          - 5432:5432
+        # needed because the postgres container does not provide a healthcheck
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
-      services:
-        postgres:
-          image: postgres:9.6
-          env:
-            POSTGRES_USER: postgres
-            POSTGRES_PASSWORD: postgres
-          ports:
-            # Maps tcp port 5432 on service container to the host
-            - 5432:5432
-          # needed because the postgres container does not provide a healthcheck
-          options: >-
-            --health-cmd pg_isready
-            --health-interval 10s
-            --health-timeout 5s
-            --health-retries 5
+    steps:
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libxmlsec1-dev \
+            libmaxminddb-dev
 
-      steps:
-        # Checkout codebase
-        - uses: actions/checkout@v2
+      # Checkout codebase
+      - uses: actions/checkout@v2
 
-        # Python
-        #   Use `.python-version` to avoid duplication
-        #   XXX: can't actually read from .python-version because GitHub Actions
-        #   does not support our version (2.7.16)
-        #
-        #   XXX: Using `2.7` as GHA image only seems to keep one minor version around and will break
-        #   CI if we pin it to a specific patch version.
-        - name: Set up outputs
-          id: config
-          env:
-            MATRIX_INSTANCE: ${{ matrix.instance }}
-          run: |
-            echo "::set-output name=python-version::2.7"
+      # Python
+      #   Use `.python-version` to avoid duplication
+      #   XXX: can't actually read from .python-version because GitHub Actions
+      #   does not support our version (2.7.16)
+      #
+      #   XXX: Using `2.7` as GHA image only seems to keep one minor version around and will break
+      #   CI if we pin it to a specific patch version.
+      - name: Set up outputs
+        id: config
+        env:
+          MATRIX_INSTANCE: ${{ matrix.instance }}
+        run: |
+          echo "::set-output name=python-version::2.7"
 
-        # setup python
-        - name: Set up Python ${{ steps.config.outputs.python-version }}
-          uses: actions/setup-python@v1
-          with:
-            python-version: ${{ steps.config.outputs.python-version}}
+      # setup python
+      - name: Set up Python ${{ steps.config.outputs.python-version }}
+        uses: actions/setup-python@v1
+        with:
+          python-version: ${{ steps.config.outputs.python-version}}
 
-        # setup pip
-        - name: Install pip
-          run: |
-            pip install --no-cache-dir --upgrade "pip>=20.0.2"
+      # setup pip
+      - name: Install pip
+        run: |
+          pip install --no-cache-dir --upgrade "pip>=20.0.2"
 
-        # pip cache
-        - name: Get pip cache dir
-          id: pip-cache
-          run: |
-            echo "::set-output name=dir::$(pip cache dir)"
+      # pip cache
+      - name: Get pip cache dir
+        id: pip-cache
+        run: |
+          echo "::set-output name=dir::$(pip cache dir)"
 
-        - name: pip cache
-          uses: actions/cache@v1
-          with:
-            path: ${{ steps.pip-cache.outputs.dir }}
-            key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements-*.txt') }}
-            restore-keys: |
-              ${{ runner.os }}-pip-
+      - name: pip cache
+        uses: actions/cache@v1
+        with:
+          path: ${{ steps.pip-cache.outputs.dir }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements-*.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
 
-        - name: Install System Dependencies
-          run: |
-            sudo apt-get update
-            sudo apt-get install libxmlsec1-dev libmaxminddb-dev
+      - name: Install Python Dependencies
+        env:
+          PGPASSWORD: postgres
+        run: |
+          python setup.py install_egg_info
+          pip install wheel # GitHub Actions does not have this installed by default (unlike Travis)
+          pip install -U -e ".[dev]"
+          psql -c 'create database sentry;' -h localhost -U postgres
+          sentry init
 
-        - name: Install Python Dependencies
-          env:
-            PGPASSWORD: postgres
-          run: |
-            python setup.py install_egg_info
-            pip install wheel # GitHub Actions does not have this installed by default (unlike Travis)
-            pip install -U -e ".[dev]"
-            psql -c 'create database sentry;' -h localhost -U postgres
-            sentry init
+      - name: Check if a migration is required
+        env:
+          SENTRY_LOG_LEVEL: ERROR
+          PGPASSWORD: postgres
+        run: |
+          # Below will exit with non-zero status if model changes are missing migrations
+          sentry django makemigrations -n ci_test --check --dry-run --no-input || (echo '::error::Error: Migration required -- to generate a migration, run `sentry django makemigrations -n <some_name>`' && exit 1)
 
-        - name: Check if a migration is required
-          env:
-            SENTRY_LOG_LEVEL: ERROR
-            PGPASSWORD: postgres
-          run: |
-            # Below will exit with non-zero status if model changes are missing migrations
-            sentry django makemigrations -n ci_test --check --dry-run --no-input || (echo '::error::Error: Migration required -- to generate a migration, run `sentry django makemigrations -n <some_name>`' && exit 1)
+  test-py3:
+    name: 'py3 [ignore fails]'
+    runs-on: ubuntu-16.04
+    continue-on-error: true
+    strategy:
+      matrix:
+        instance: [0, 1, 2, 3]
+
+    env:
+      SENTRY_PYTHON3: 1
+      PIP_DISABLE_PIP_VERSION_CHECK: on
+
+      SENTRY_LIGHT_BUILD: 1
+      SENTRY_SKIP_BACKEND_VALIDATION: 1
+
+      PYTEST_SENTRY_DSN: https://6fd5cfea2d4d46b182ad214ac7810508@sentry.io/2423079
+      # XXX(py3): Reruns are disabled for until all tests are passing.
+      PYTEST_ADDOPTS: ""
+      PYTEST_SENTRY_ALWAYS_REPORT: no
+
+      # services configuration
+      SENTRY_REDIS_HOST: redis
+      DATABASE_URL: postgresql://postgres:postgres@localhost/sentry
+
+      # Number of matrix instances
+      TOTAL_TEST_GROUPS: ${{ strategy.job-total }}
+
+    steps:
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libxmlsec1-dev \
+            libmaxminddb-dev
+
+      - uses: actions/checkout@v2
+
+      - name: Set up outputs
+        id: config
+        env:
+          MATRIX_INSTANCE: ${{ matrix.instance }}
+        run: |
+          # XXX(py3): Minors that aren't latest seem to not be available.
+          echo "::set-output name=python-version::3.6.12"
+          echo "::set-output name=matrix-instance-number::$(($MATRIX_INSTANCE+1))"
+
+      - name: Set up Python ${{ steps.config.outputs.python-version }}
+        uses: actions/setup-python@v1
+        with:
+          python-version: ${{ steps.config.outputs.python-version}}
+
+      - name: Install pip
+        run: |
+          pip install --no-cache-dir --upgrade "pip>=20.0.2"
+
+      - name: Get pip cache dir
+        id: pip-cache
+        run: |
+          echo "::set-output name=dir::$(pip cache dir)"
+
+      - name: pip cache
+        uses: actions/cache@v1
+        with:
+          path: ${{ steps.pip-cache.outputs.dir }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements-*.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install Python Dependencies
+        env:
+          PGPASSWORD: postgres
+        run: |
+          python setup.py install_egg_info
+          pip install wheel # GitHub Actions does not have this installed by default (unlike Travis)
+          pip install -U -e ".[dev]"
+          # XXX: wasn't able to get this working in requirements_base.
+          # It's possible if you're installing via -r but it breaks -e.
+          pip uninstall -y rb
+          pip install -e git+https://github.com/getsentry/rb.git@master#egg=rb
+
+      - name: Start devservices
+        run: |
+          sentry init
+          sentry devservices up postgres redis clickhouse snuba
+
+      # When we have a full backend test matrix for py3, make a py2 one with new rb as well.
+      # TODO(joshuarli):
+      # - kakfa+zookeeper devservices necessary for what test suites?
+      # - is `docker exec sentry_snuba snuba migrate` needed?
+      # - MIGRATIONS_TEST_MIGRATE=1
+      # - TEST_SUITE=relay-integration
+      # - TEST_SUITE=symbolicator
+      # - TEST_SUITE=cli
+      - name: Python 3.6 backend w/o migrations (${{ steps.config.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
+        if: always()
+        run: |
+          make travis-test-postgres
+        env:
+          TEST_GROUP: ${{ matrix.instance }}

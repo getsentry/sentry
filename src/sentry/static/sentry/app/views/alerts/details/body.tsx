@@ -272,9 +272,14 @@ export default class DetailsBody extends React.Component<Props> {
                 <span>{t('Alert Rule')}</span>
                 {incident?.alertRule?.status !== AlertRuleStatus.SNAPSHOT && (
                   <SideHeaderLink
-                    to={{
-                      pathname: `/settings/${params.orgId}/projects/${incident?.projects[0]}/alerts/metric-rules/${incident?.alertRule?.id}/`,
-                    }}
+                    disabled={!!incident?.id}
+                    to={
+                      incident?.id
+                        ? {
+                            pathname: `/organizations/${params.orgId}/alerts/metric-rules/${incident?.projects[0]}/${incident?.alertRule?.id}/`,
+                          }
+                        : ''
+                    }
                   >
                     {t('View Alert Rule')}
                   </SideHeaderLink>
@@ -330,10 +335,6 @@ const SidebarHeading = styled(SectionHeading)`
 `;
 
 const SideHeaderLink = styled(Link)`
-  display: grid;
-  grid-auto-flow: column;
-  align-items: center;
-  grid-gap: ${space(0.5)};
   font-weight: normal;
 `;
 

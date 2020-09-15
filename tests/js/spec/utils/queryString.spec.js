@@ -56,18 +56,23 @@ describe('appendTagCondition', function() {
     expect(result).toEqual('color:"purple red"');
   });
 
-  it('special cases user tags', function() {
+  it('wraps values with colon', function() {
+    const result = utils.appendTagCondition(null, 'color', 'id:red');
+    expect(result).toEqual('color:"id:red"');
+  });
+
+  it('handles user tag values', function() {
     let result = utils.appendTagCondition('', 'user', 'something');
     expect(result).toEqual('user:something');
 
     result = utils.appendTagCondition('', 'user', 'id:1');
-    expect(result).toEqual('user.id:1');
+    expect(result).toEqual('user:"id:1"');
 
     result = utils.appendTagCondition('', 'user', 'email:foo@example.com');
-    expect(result).toEqual('user.email:foo@example.com');
+    expect(result).toEqual('user:"email:foo@example.com"');
 
     result = utils.appendTagCondition('', 'user', 'name:jill jones');
-    expect(result).toEqual('user.name:"jill jones"');
+    expect(result).toEqual('user:"name:jill jones"');
   });
 });
 

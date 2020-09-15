@@ -3,12 +3,20 @@ import {Location} from 'history';
 
 import {Client} from 'app/api';
 import withApi from 'app/utils/withApi';
-import EventView, {MetaType, isAPIPayloadSimilar} from 'app/utils/discover/eventView';
+import EventView, {
+  MetaType,
+  isAPIPayloadSimilar,
+  LocationQuery,
+} from 'app/utils/discover/eventView';
+import {EventQuery} from 'app/actionCreators/events';
+import {TrendChangeType} from 'app/views/performance/trends/types';
+import {getCurrentTrendFunction} from 'app/views/performance/trends/utils';
 
 /**
  * An individual row in a DiscoverQuery result
  */
 export type TableDataRow = {
+  id: string;
   [key: string]: React.ReactText;
 };
 
@@ -16,8 +24,8 @@ export type TableDataRow = {
  * A DiscoverQuery result including rows and metadata.
  */
 export type TableData = {
-  meta?: MetaType;
   data: Array<TableDataRow>;
+  meta?: MetaType;
 };
 
 type ChildrenProps = {
@@ -33,6 +41,7 @@ type Props = {
   eventView: EventView;
   orgSlug: string;
   keyTransactions?: boolean;
+  trendChangeType?: TrendChangeType;
   limit?: number;
 
   children: (props: ChildrenProps) => React.ReactNode;
@@ -41,6 +50,12 @@ type Props = {
 type State = {
   tableFetchID: symbol | undefined;
 } & ChildrenProps;
+
+type TrendsQuery = {
+  trendFunction?: string;
+  intervalRatio?: number;
+  interval?: string;
+};
 
 class DiscoverQuery extends React.Component<Props, State> {
   static defaultProps = {
@@ -83,22 +98,61 @@ class DiscoverQuery extends React.Component<Props, State> {
 
     return (
       !isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload) ||
+      this.shouldRefetchTrendData(prevProps) ||
       prevProps.limit !== this.props.limit
     );
   };
 
+  shouldRefetchTrendData = (prevProps: Props): boolean => {
+    if (!this.props.trendChangeType) {
+      return false;
+    }
+
+    const thisAPIPayload = this.modifyTrendsPayload(
+      this.props.eventView.getEventsAPIPayload(this.props.location),
+      this.props.location
+    );
+    const otherAPIPayload = this.modifyTrendsPayload(
+      prevProps.eventView.getEventsAPIPayload(prevProps.location),
+      prevProps.location
+    );
+
+    return !isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
+  };
+
+  getRoute(keyTransactions, trendsType) {
+    if (keyTransactions) {
+      return 'key-transactions';
+    }
+    if (trendsType) {
+      return 'events-trends';
+    }
+    return 'eventsv2';
+  }
+
   fetchData = () => {
-    const {eventView, orgSlug, location, limit, keyTransactions} = this.props;
+    const {
+      eventView,
+      orgSlug,
+      location,
+      limit,
+      keyTransactions,
+      trendChangeType,
+    } = this.props;
 
     if (!eventView.isValid()) {
       return;
     }
 
-    const route = keyTransactions ? 'key-transactions' : 'eventsv2';
+    const route = this.getRoute(keyTransactions, trendChangeType);
 
     const url = `/organizations/${orgSlug}/${route}/`;
-    const tableFetchID = Symbol('tableFetchID');
-    const apiPayload = eventView.getEventsAPIPayload(location);
+    const tableFetchID = Symbol(`tableFetchID`);
+    const apiPayload: EventQuery &
+      LocationQuery &
+      TrendsQuery = eventView.getEventsAPIPayload(location);
+
+    this.modifyTrendsPayload(apiPayload, location);
 
     this.setState({isLoading: true, tableFetchID});
 
@@ -137,6 +191,31 @@ class DiscoverQuery extends React.Component<Props, State> {
           tableData: null,
         });
       });
+  };
+
+  modifyTrendsPayload = (
+    apiPayload: EventQuery & LocationQuery & TrendsQuery,
+    location: Location
+  ) => {
+    const {trendChangeType, eventView} = this.props;
+    if (trendChangeType) {
+      delete apiPayload.cursor;
+      if (
+        trendChangeType === TrendChangeType.IMPROVED &&
+        location?.query?.improvedCursor
+      ) {
+        apiPayload.cursor = location?.query?.improvedCursor;
+      } else if (
+        trendChangeType === TrendChangeType.REGRESSION &&
+        location?.query?.regressionCursor
+      ) {
+        apiPayload.cursor = location?.query?.regressionCursor;
+      }
+      const trendFunction = getCurrentTrendFunction(location);
+      apiPayload.trendFunction = trendFunction.field;
+      apiPayload.interval = eventView.interval;
+    }
+    return apiPayload;
   };
 
   render() {

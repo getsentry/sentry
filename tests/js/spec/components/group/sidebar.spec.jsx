@@ -76,7 +76,7 @@ describe('GroupSidebar', function() {
   describe('renders with tags', function() {
     it('renders', function() {
       expect(wrapper.find('SuggestedOwners')).toHaveLength(1);
-      expect(wrapper.find('GroupReleaseStats')).toHaveLength(1);
+      expect(wrapper.find('Memo(GroupReleaseStats)')).toHaveLength(1);
       expect(wrapper.find('ExternalIssueList')).toHaveLength(1);
       expect(
         wrapper.find('GroupTagDistributionMeter[data-test-id="group-tag"]')

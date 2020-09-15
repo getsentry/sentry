@@ -22,13 +22,20 @@ describe('DeployBadge', function() {
   });
 
   it('renders with icon and link', function() {
+    const projectId = 1;
+
     const wrapper = mountWithTheme(
-      <DeployBadge deploy={deploy} orgSlug="sentry" version="1.2.3" />
+      <DeployBadge
+        deploy={deploy}
+        orgSlug="sentry"
+        version="1.2.3"
+        projectId={projectId}
+      />
     );
 
     expect(wrapper.find('Link').props('to').to).toEqual({
       pathname: '/organizations/sentry/issues/',
-      query: {project: null, environment: 'production', query: 'release:1.2.3'},
+      query: {project: projectId, environment: 'production', query: 'release:1.2.3'},
     });
     expect(wrapper.find('Badge').text()).toEqual('production');
     expect(wrapper.find('Icon').length).toEqual(1);

@@ -713,13 +713,13 @@ describe('SmartSearchBar', function() {
       input.simulate('change', {target: {value: 'user:'}});
       searchBar.getCursorPosition = jest.fn().mockReturnValueOnce(5);
       searchBar.onAutoComplete('id:1', {});
-      expect(searchBar.state.query).toEqual('user.id:1');
+      expect(searchBar.state.query).toEqual('user:"id:1"');
 
       // try it with the SEARCH_WILDCARD
       input.simulate('change', {target: {value: 'user:1*'}});
       searchBar.getCursorPosition = jest.fn().mockReturnValueOnce(5);
       searchBar.onAutoComplete('ip:127.0.0.1', {});
-      expect(searchBar.state.query).toEqual('user.ip:127.0.0.1');
+      expect(searchBar.state.query).toEqual('user:"ip:127.0.0.1"');
     });
   });
 

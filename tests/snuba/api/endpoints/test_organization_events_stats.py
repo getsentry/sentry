@@ -1197,12 +1197,12 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(data) == 5
 
-        assert data["bar@example.com"]["order"] == 0
-        assert [attrs for time, attrs in data["bar@example.com"]["data"]] == [
+        assert data["email:bar@example.com"]["order"] == 0
+        assert [attrs for time, attrs in data["email:bar@example.com"]["data"]] == [
             [{"count": 7}],
             [{"count": 0}],
         ]
-        assert [attrs for time, attrs in data["127.0.0.1"]["data"]] == [
+        assert [attrs for time, attrs in data["ip:127.0.0.1"]["data"]] == [
             [{"count": 3}],
             [{"count": 0}],
         ]
@@ -1227,12 +1227,12 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(data) == 5
 
-        assert data["bar@example.com,bar@example.com"]["order"] == 0
-        assert [attrs for time, attrs in data["bar@example.com,bar@example.com"]["data"]] == [
+        assert data["email:bar@example.com,bar@example.com"]["order"] == 0
+        assert [attrs for time, attrs in data["email:bar@example.com,bar@example.com"]["data"]] == [
             [{"count": 7}],
             [{"count": 0}],
         ]
-        assert [attrs for time, attrs in data["127.0.0.1,None"]["data"]] == [
+        assert [attrs for time, attrs in data["ip:127.0.0.1,None"]["data"]] == [
             [{"count": 3}],
             [{"count": 0}],
         ]

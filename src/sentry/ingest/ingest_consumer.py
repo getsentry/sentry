@@ -2,19 +2,15 @@ from __future__ import absolute_import
 
 import random
 import functools
-import atexit
 import logging
 import msgpack
-
-import multiprocessing.dummy
-import multiprocessing as _multiprocessing
 
 from django.conf import settings
 from django.core.cache import cache
 
 import sentry_sdk
 
-from sentry import eventstore, features, options
+from sentry import eventstore, features
 
 from sentry.models import Project
 from sentry.signals import event_accepted
@@ -28,7 +24,7 @@ from sentry.utils.batching_kafka_consumer import AbstractBatchWorker
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.ingest.types import ConsumerType
 from sentry.ingest.userreport import Conflict, save_userreport
-from sentry.event_manager import save_attachment, save_transaction_events
+from sentry.event_manager import save_attachment
 from sentry.eventstore.processing import event_processing_store
 
 logger = logging.getLogger(__name__)
@@ -38,10 +34,6 @@ CACHE_TIMEOUT = 3600
 
 
 class IngestConsumerWorker(AbstractBatchWorker):
-    def __init__(self, concurrency):
-        self.pool = _multiprocessing.dummy.Pool(concurrency)
-        atexit.register(self.pool.close)
-
     def process_message(self, message):
         message = msgpack.unpackb(message.value(), use_list=False)
         return message
@@ -54,7 +46,6 @@ class IngestConsumerWorker(AbstractBatchWorker):
     def _flush_batch(self, batch):
         attachment_chunks = []
         other_messages = []
-        transactions = []
 
         projects_to_fetch = set()
 
@@ -65,8 +56,6 @@ class IngestConsumerWorker(AbstractBatchWorker):
 
                 if message_type == "event":
                     other_messages.append((process_event, message))
-                elif message_type == "transaction":
-                    transactions.append(message)
                 elif message_type == "attachment_chunk":
                     attachment_chunks.append(message)
                 elif message_type == "attachment":
@@ -85,23 +74,13 @@ class IngestConsumerWorker(AbstractBatchWorker):
         if attachment_chunks:
             # attachment_chunk messages need to be processed before attachment/event messages.
             with metrics.timer("ingest_consumer.process_attachment_chunk_batch"):
-                for _ in self.pool.imap_unordered(
-                    lambda msg: process_attachment_chunk(msg, projects=projects),
-                    attachment_chunks,
-                    chunksize=100,
-                ):
-                    pass
+                for attachment_chunk in attachment_chunks:
+                    process_attachment_chunk(attachment_chunk, projects=projects)
 
         if other_messages:
             with metrics.timer("ingest_consumer.process_other_messages_batch"):
-                for _ in self.pool.imap_unordered(
-                    lambda args: args[0](args[1], projects=projects), other_messages, chunksize=100,
-                ):
-                    pass
-
-        if transactions:
-            with metrics.timer("ingest_consumer.process_transactions"):
-                process_transactions_batch(transactions, projects)
+                for processing_func, message in other_messages:
+                    processing_func(message, projects=projects)
 
     def shutdown(self):
         pass
@@ -120,30 +99,6 @@ def trace_func(**span_kwargs):
         return inner
 
     return wrapper
-
-
-@trace_func(name="ingest_consumer.process_transactions_batch")
-@metrics.wraps("ingest_consumer.process_transactions_batch")
-def process_transactions_batch(messages, projects):
-    if options.get("store.transactions-celery") is True:
-        for message in messages:
-            _do_process_event(message, projects)
-        return
-
-    jobs = []
-    for message in messages:
-        payload = message["payload"]
-        project_id = int(message["project_id"])
-        start_time = float(message["start_time"])
-
-        if project_id not in projects:
-            continue
-
-        with metrics.timer("ingest_consumer.decode_transaction_json"):
-            data = json.loads(payload)
-        jobs.append({"data": data, "start_time": start_time})
-
-    save_transaction_events(jobs, projects)
 
 
 @metrics.wraps("ingest_consumer.process_event")
@@ -309,7 +264,7 @@ def process_userreport(message, projects):
         return False
 
 
-def get_ingest_consumer(consumer_types, once=False, concurrency=None, **options):
+def get_ingest_consumer(consumer_types, once=False, **options):
     """
     Handles events coming via a kafka queue.
 
@@ -319,5 +274,5 @@ def get_ingest_consumer(consumer_types, once=False, concurrency=None, **options)
         ConsumerType.get_topic_name(consumer_type) for consumer_type in consumer_types
     )
     return create_batching_kafka_consumer(
-        topic_names=topic_names, worker=IngestConsumerWorker(concurrency=concurrency), **options
+        topic_names=topic_names, worker=IngestConsumerWorker(), **options
     )

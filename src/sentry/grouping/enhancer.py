@@ -33,8 +33,11 @@ line = _ (comment / rule / empty) newline?
 rule = _ matchers actions
 
 matchers         = matcher+
-matcher          = _ matcher_type sep argument
-matcher_type     = "path" / "function" / "module" / "family" / "package" / "app"
+matcher          = _ negation? matcher_type sep argument
+matcher_type     = key / quoted_key
+
+key              = ~r"[a-zA-Z0-9_\.-]+"
+quoted_key       = ~r"\"([a-zA-Z0-9_\.:-]+)\""
 
 actions          = action+
 action           = flag_action / var_action
@@ -53,11 +56,12 @@ argument         = quoted / unquoted
 quoted           = ~r'"([^"\\]*(?:\\.[^"\\]*)*)"'
 unquoted         = ~r"\S+"
 
-sep     = ":"
-space   = " "
-empty   = ""
-newline = ~r"[\r\n]"
-_       = space*
+sep      = ":"
+space    = " "
+empty    = ""
+negation = "!"
+newline  = ~r"[\r\n]"
+_        = space*
 
 """
 )
@@ -89,14 +93,35 @@ ACTION_FLAGS = {
 REVERSE_ACTION_FLAGS = dict((v, k) for k, v in six.iteritems(ACTION_FLAGS))
 
 
+MATCHERS = {
+    # discover field names
+    "stack.module": "module",
+    "stack.abs_path": "path",
+    "stack.package": "package",
+    "stack.function": "function",
+    # fingerprinting shortened fields
+    "module": "module",
+    "path": "path",
+    "package": "package",
+    "function": "function",
+    # fingerprinting specific fields
+    "family": "family",
+    "app": "app",
+}
+
+
 class InvalidEnhancerConfig(Exception):
     pass
 
 
 class Match(object):
-    def __init__(self, key, pattern):
-        self.key = key
+    def __init__(self, key, pattern, negated=False):
+        try:
+            self.key = MATCHERS[key]
+        except KeyError:
+            raise InvalidEnhancerConfig("Unknown matcher '%s'" % key)
         self.pattern = pattern
+        self.negated = negated
 
     @property
     def description(self):
@@ -106,6 +131,12 @@ class Match(object):
         )
 
     def matches_frame(self, frame_data, platform):
+        rv = self._positive_frame_match(frame_data, platform)
+        if self.negated:
+            rv = not rv
+        return rv
+
+    def _positive_frame_match(self, frame_data, platform):
         # Path matches are always case insensitive
         if self.key in ("path", "package"):
             if self.key == "package":
@@ -154,16 +185,22 @@ class Match(object):
             arg = {True: "1", False: "0"}.get(get_rule_bool(self.pattern), "")
         else:
             arg = self.pattern
-        return MATCH_KEYS[self.key] + arg
+        return ("!" if self.negated else "") + MATCH_KEYS[self.key] + arg
 
     @classmethod
     def _from_config_structure(cls, obj):
-        key = SHORT_MATCH_KEYS[obj[0]]
-        if key == "family":
-            arg = ",".join([_f for _f in [REVERSE_FAMILIES.get(x) for x in obj[1:]] if _f])
+        val = obj
+        if val.startswith("!"):
+            negated = True
+            val = val[1:]
         else:
-            arg = obj[1:]
-        return cls(key, arg)
+            negated = False
+        key = SHORT_MATCH_KEYS[val[0]]
+        if key == "family":
+            arg = ",".join([_f for _f in [REVERSE_FAMILIES.get(x) for x in val[1:]] if _f])
+        else:
+            arg = val[1:]
+        return cls(key, arg, negated)
 
 
 class Action(object):
@@ -346,7 +383,7 @@ class Enhancements(object):
 
         return stacktrace_state
 
-    def assemble_stacktrace_component(self, components, frames, platform):
+    def assemble_stacktrace_component(self, components, frames, platform, **kw):
         """This assembles a stacktrace grouping component out of the given
         frame components and source frames.  Internally this invokes the
         `update_frame_components_contributions` method but also handles cases
@@ -369,7 +406,7 @@ class Enhancements(object):
                 contributes = False
 
         return GroupingComponent(
-            id="stacktrace", values=components, hint=hint, contributes=contributes
+            id="stacktrace", values=components, hint=hint, contributes=contributes, **kw
         )
 
     def as_dict(self, with_rules=False):
@@ -421,7 +458,7 @@ class Enhancements(object):
         padded = data + b"=" * (4 - (len(data) % 4))
         try:
             return cls._from_config_structure(
-                msgpack.loads(zlib.decompress(base64.urlsafe_b64decode(padded)))
+                msgpack.loads(zlib.decompress(base64.urlsafe_b64decode(padded)), raw=False)
             )
         except (LookupError, AttributeError, TypeError, ValueError) as e:
             raise ValueError("invalid grouping enhancement config: %s" % e)
@@ -481,6 +518,7 @@ class Rule(object):
 
 class EnhancmentsVisitor(NodeVisitor):
     visit_comment = visit_empty = lambda *a: None
+    unwrapped_exceptions = (InvalidEnhancerConfig,)
 
     def __init__(self, bases, id=None):
         self.bases = bases
@@ -520,8 +558,8 @@ class EnhancmentsVisitor(NodeVisitor):
         return Rule(matcher, actions)
 
     def visit_matcher(self, node, children):
-        _, ty, _, argument = children
-        return Match(ty, argument)
+        _, negation, ty, _, argument = children
+        return Match(ty, argument, bool(negation))
 
     def visit_matcher_type(self, node, children):
         return node.text
@@ -572,6 +610,13 @@ class EnhancmentsVisitor(NodeVisitor):
 
     def generic_visit(self, node, children):
         return children
+
+    def visit_key(self, node, children):
+        return node.text
+
+    def visit_quoted_key(self, node, children):
+        # leading ! are used to indicate negation. make sure they don't appear.
+        return node.match.groups()[0].lstrip("!")
 
 
 def _load_configs():

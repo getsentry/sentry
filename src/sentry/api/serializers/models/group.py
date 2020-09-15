@@ -486,7 +486,10 @@ class GroupSerializer(GroupSerializerBase):
             project_id = item_list[0].project_id
             item_ids = [g.id for g in item_list]
             user_counts = tagstore.get_groups_user_counts(
-                [project_id], item_ids, environment_ids=environment and [environment.id]
+                [project_id],
+                item_ids,
+                environment_ids=environment and [environment.id],
+                snuba_filters=None,
             )
             first_seen = {}
             last_seen = {}
@@ -523,21 +526,33 @@ class GroupStatsMixin(object):
         "24h": StatsPeriod(24, timedelta(hours=1)),
     }
 
+    CUSTOM_PERIOD_SEGMENTS = 29  # for 30 segments use 1/29th intervals
+
     def query_tsdb(self, group_ids, query_params):
         raise NotImplementedError
 
     def get_stats(self, item_list, user):
         if self.stats_period:
-            # we need to compute stats at 1d (1h resolution), and 14d
+            # we need to compute stats at 1d (1h resolution), and 14d or a custom given period
             group_ids = [g.id for g in item_list]
 
-            segments, interval = self.STATS_PERIOD_CHOICES[self.stats_period]
-            now = timezone.now()
-            query_params = {
-                "start": now - ((segments - 1) * interval),
-                "end": now,
-                "rollup": int(interval.total_seconds()),
-            }
+            if self.stats_period == "auto":
+                query_params = {
+                    "start": self.stats_period_start,
+                    "end": self.stats_period_end,
+                    "rollup": int(
+                        (self.stats_period_end - self.stats_period_start).total_seconds()
+                        / self.CUSTOM_PERIOD_SEGMENTS
+                    ),
+                }
+            else:
+                segments, interval = self.STATS_PERIOD_CHOICES[self.stats_period]
+                now = timezone.now()
+                query_params = {
+                    "start": now - ((segments - 1) * interval),
+                    "end": now,
+                    "rollup": int(interval.total_seconds()),
+                }
 
             return self.query_tsdb(group_ids, query_params)
 
@@ -547,15 +562,19 @@ class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
         self,
         environment_func=None,
         stats_period=None,
+        stats_period_start=None,
+        stats_period_end=None,
         matching_event_id=None,
         matching_event_environment=None,
     ):
         super(StreamGroupSerializer, self).__init__(environment_func)
 
         if stats_period is not None:
-            assert stats_period in self.STATS_PERIOD_CHOICES
+            assert stats_period in self.STATS_PERIOD_CHOICES or stats_period == "auto"
 
         self.stats_period = stats_period
+        self.stats_period_start = stats_period_start
+        self.stats_period_end = stats_period_end
         self.matching_event_id = matching_event_id
         self.matching_event_environment = matching_event_environment
 
@@ -619,10 +638,11 @@ class SharedGroupSerializer(GroupSerializer):
 
 
 class GroupSerializerSnuba(GroupSerializerBase):
-    def __init__(self, environment_ids=None, start=None, end=None):
+    def __init__(self, environment_ids=None, start=None, end=None, snuba_filters=None):
         self.environment_ids = environment_ids
         self.start = start
         self.end = end
+        self.snuba_filters = snuba_filters
 
     def _get_seen_stats(self, item_list, user):
         project_ids = list(set([item.project_id for item in item_list]))
@@ -631,17 +651,23 @@ class GroupSerializerSnuba(GroupSerializerBase):
             project_ids,
             group_ids,
             environment_ids=self.environment_ids,
+            snuba_filters=self.snuba_filters,
             start=self.start,
             end=self.end,
         )
 
         seen_data = tagstore.get_group_seen_values_for_environments(
-            project_ids, group_ids, self.environment_ids, start=self.start, end=self.end
+            project_ids,
+            group_ids,
+            self.environment_ids,
+            snuba_filters=self.snuba_filters,
+            start=self.start,
+            end=self.end,
         )
         last_seen = {item_id: value["last_seen"] for item_id, value in seen_data.items()}
+        times_seen = {item_id: value["times_seen"] for item_id, value in seen_data.items()}
         if not self.environment_ids:
-            first_seen = {item.id: item.first_seen for item in item_list}
-            times_seen = {item.id: item.times_seen for item in item_list}
+            first_seen = {item_id: value["first_seen"] for item_id, value in seen_data.items()}
         else:
             first_seen = {
                 ge["group_id"]: ge["first_seen__min"]
@@ -652,8 +678,6 @@ class GroupSerializerSnuba(GroupSerializerBase):
                 .values("group_id")
                 .annotate(Min("first_seen"))
             }
-            times_seen = {item_id: value["times_seen"] for item_id, value in seen_data.items()}
-
         attrs = {}
         for item in item_list:
             attrs[item] = {
@@ -662,18 +686,31 @@ class GroupSerializerSnuba(GroupSerializerBase):
                 "last_seen": last_seen.get(item.id),
                 "user_count": user_counts.get(item.id, 0),
             }
-
         return attrs
 
 
 class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
-    def __init__(self, environment_ids=None, stats_period=None, matching_event_id=None):
-        super(StreamGroupSerializerSnuba, self).__init__(environment_ids)
+    def __init__(
+        self,
+        environment_ids=None,
+        stats_period=None,
+        stats_period_start=None,
+        stats_period_end=None,
+        matching_event_id=None,
+        start=None,
+        end=None,
+        snuba_filters=None,
+    ):
+        super(StreamGroupSerializerSnuba, self).__init__(environment_ids, start, end, snuba_filters)
 
         if stats_period is not None:
-            assert stats_period in self.STATS_PERIOD_CHOICES
+            assert stats_period in self.STATS_PERIOD_CHOICES or (
+                stats_period == "auto" and stats_period_start and stats_period_end
+            )
 
         self.stats_period = stats_period
+        self.stats_period_start = stats_period_start
+        self.stats_period_end = stats_period_end
         self.matching_event_id = matching_event_id
 
     def query_tsdb(self, group_ids, query_params):
@@ -681,6 +718,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             model=snuba_tsdb.models.group,
             keys=group_ids,
             environment_ids=self.environment_ids,
+            snuba_filters=self.snuba_filters,
             **query_params
         )
 

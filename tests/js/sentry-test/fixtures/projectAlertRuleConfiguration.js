@@ -4,22 +4,22 @@ export function ProjectAlertRuleConfiguration(params = {}) {
       {
         enabled: true,
         id: 'sentry.rules.conditions.every_event.EveryEventCondition',
-        label: 'An event is seen',
+        label: 'An event occurs',
       },
       {
         enabled: true,
         id: 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
-        label: 'An issue is first seen',
+        label: 'The issue is first seen',
       },
       {
         enabled: true,
         id: 'sentry.rules.conditions.regression_event.RegressionEventCondition',
-        label: 'An issue changes state from resolved to unresolved',
+        label: 'The issue changes state from resolved to unresolved',
       },
       {
         enabled: true,
         id: 'sentry.rules.conditions.reappeared_event.ReappearedEventCondition',
-        label: 'An issue changes state from ignored to unresolved',
+        label: 'The issue changes state from ignored to unresolved',
       },
       {
         formFields: {
@@ -59,7 +59,7 @@ export function ProjectAlertRuleConfiguration(params = {}) {
         },
         enabled: true,
         id: 'sentry.rules.conditions.event_frequency.EventFrequencyCondition',
-        label: 'An issue is seen more than {value} times in {interval}',
+        label: 'The issue is seen more than {value} times in {interval}',
       },
       {
         formFields: {
@@ -77,7 +77,7 @@ export function ProjectAlertRuleConfiguration(params = {}) {
         },
         enabled: true,
         id: 'sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition',
-        label: 'An issue is seen by more than {value} users in {interval}',
+        label: 'The issue is seen by more than {value} users in {interval}',
       },
       {
         formFields: {
@@ -179,6 +179,46 @@ export function ProjectAlertRuleConfiguration(params = {}) {
         enabled: false,
         id: 'sentry.integrations.pagerduty.notify_action.PagerDutyNotifyServiceAction',
         label: 'Send a notification to PagerDuty account {account} and service {service}',
+      },
+    ],
+    filters: [
+      {
+        formFields: {
+          comparison_type: {
+            type: 'choice',
+            choices: [
+              ['older', 'older'],
+              ['newer', 'newer'],
+            ],
+          },
+          value: {
+            placeholder: 10,
+            type: 'number',
+          },
+          time: {
+            type: 'choice',
+            choices: [
+              ['minute', 'minute(s)'],
+              ['hour', 'hour(s)'],
+              ['day', 'day(s)'],
+              ['week', 'week(s)'],
+            ],
+          },
+        },
+        enabled: true,
+        id: 'sentry.rules.filters.age_comparison.AgeComparisonFilter',
+        label: 'An issue is {comparison_type} than {value} {time}',
+      },
+      {
+        formFields: {
+          value: {
+            placeholder: 10,
+            type: 'number',
+          },
+        },
+        enabled: true,
+        id: 'sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter',
+        label: 'An issue has happened at least {value} times',
       },
     ],
     ...params,

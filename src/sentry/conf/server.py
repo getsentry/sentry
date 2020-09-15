@@ -78,6 +78,11 @@ INTERNAL_IPS = ()
 # List of IP subnets which should not be accessible
 SENTRY_DISALLOWED_IPS = ()
 
+# When resolving DNS for external sources (source map fetching, webhooks, etc),
+# ensure that domains are fully resolved first to avoid poking internal
+# search domains.
+SENTRY_ENSURE_FQDN = False
+
 # Hosts that are allowed to use system token authentication.
 # http://en.wikipedia.org/wiki/Reserved_IP_addresses
 INTERNAL_SYSTEM_IPS = (
@@ -115,6 +120,10 @@ NODE_MODULES_ROOT = os.path.normpath(NODE_MODULES_ROOT)
 
 RELAY_CONFIG_DIR = os.path.normpath(
     os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "config", "relay")
+)
+
+SYMBOLICATOR_CONFIG_DIR = os.path.normpath(
+    os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "config", "symbolicator")
 )
 
 sys.path.insert(0, os.path.normpath(os.path.join(PROJECT_ROOT, os.pardir)))
@@ -539,6 +548,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.unmerge",
     "sentry.tasks.update_user_reports",
     "sentry.tasks.relay",
+    "sentry.tasks.release_registry",
 )
 CELERY_QUEUES = [
     Queue("activity.notify", routing_key="activity.notify"),
@@ -690,6 +700,11 @@ CELERYBEAT_SCHEDULE = {
         "schedule": timedelta(hours=1),
         "options": {"expires": 3600, "queue": "incidents"},
     },
+    "fetch-release-registry-data": {
+        "task": "sentry.tasks.release_registry.fetch_release_registry_data",
+        "schedule": timedelta(minutes=5),
+        "options": {"expires": 3600},
+    },
 }
 
 BGTASKS = {
@@ -743,6 +758,7 @@ LOGGING = {
         "sentry_plugins": {"level": "INFO"},
         "sentry.files": {"level": "WARNING"},
         "sentry.minidumps": {"handlers": ["internal"], "propagate": False},
+        "sentry.reprocessing": {"handlers": ["internal"], "propagate": False},
         "sentry.interfaces": {"handlers": ["internal"], "propagate": False},
         # This only needs to go to Sentry for now.
         "sentry.similarity": {"handlers": ["internal"], "propagate": False},
@@ -808,7 +824,7 @@ SENTRY_FEATURES = {
     # Enable the 'discover' interface.
     "organizations:discover": False,
     # Enable attaching arbitrary files to events.
-    "organizations:event-attachments": False,
+    "organizations:event-attachments": True,
     # Allow organizations to configure built-in symbol sources.
     "organizations:symbol-sources": True,
     # Allow organizations to configure custom external symbol sources.
@@ -843,13 +859,15 @@ SENTRY_FEATURES = {
     "organizations:integrations-alert-rule": True,
     # Enable integration functionality to work with alert rules (specifically chat integrations)
     "organizations:integrations-chat-unfurl": True,
-    # Enable integration functionality to work with alert rules (specifically indicdent)
+    # Enable integration functionality to work with alert rules (specifically incident
     # management integrations)
     "organizations:integrations-incident-management": True,
     # Enable the MsTeams integration
     "organizations:integrations-msteams": False,
     # Allow orgs to install AzureDevops with limited scopes
     "organizations:integrations-vsts-limited-scopes": False,
+    # Use Sentry Apps with Metric Alerts
+    "organizations:integrations-sentry-app-metric-alerts": False,
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
     # Enable experimental performance improvements.
@@ -859,13 +877,15 @@ SENTRY_FEATURES = {
     "organizations:internal-catchall": False,
     # Enable inviting members to organizations.
     "organizations:invite-members": True,
+    # Enable rate limits for inviting members.
+    "organizations:invite-members-rate-limits": True,
     # Enable org-wide saved searches and user pinned search
     "organizations:org-saved-searches": False,
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
-    # Enable the new version of interface/breadcrumbs
-    "organizations:breadcrumbs-v2": False,
+    # Enable the new Related Events feature
+    "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
     # https://github.com/getsentry/relay.
     "organizations:relay": False,
@@ -878,9 +898,13 @@ SENTRY_FEATURES = {
     "organizations:sso-saml2": True,
     # Enable Rippling SSO functionality.
     "organizations:sso-rippling": False,
+    # Enable trends view for performance.
+    "organizations:trends": False,
     # Enable graph for subscription quota for errors, transactions and
     # attachments
     "organizations:usage-stats-graph": False,
+    # Enable dynamic issue counts and user counts in the issue stream
+    "organizations:dynamic-issue-counts": False,
     # Enable functionality to specify custom inbound filters on events.
     "projects:custom-inbound-filters": False,
     # Enable data forwarding functionality for projects.
@@ -898,6 +922,8 @@ SENTRY_FEATURES = {
     "projects:plugins": True,
     # Enable functionality for rate-limiting events on projects.
     "projects:rate-limits": True,
+    # Enable version 2 of reprocessing (completely distinct from v1)
+    "projects:reprocessing-v2": False,
     # Enable functionality for sampling of events on projects.
     "projects:sample-events": False,
     # Enable functionality to trigger service hooks upon event ingestion.
@@ -1404,12 +1430,12 @@ SENTRY_WATCHERS = (
 # will split the requests between Relay and Sentry (all store requests will be passed to Relay, and the
 # rest will be forwarded to Sentry)
 SENTRY_USE_RELAY = True
-SENTRY_RELAY_PORT = 3000
+SENTRY_RELAY_PORT = 7899
 
 # The chunk size for attachments in blob store. Should be a power of two.
 SENTRY_ATTACHMENT_BLOB_SIZE = 8 * 1024 * 1024  # 8MB
 
-# The chunk size for files in the chunk uplooad. This is used for native debug
+# The chunk size for files in the chunk upload. This is used for native debug
 # files and source maps, and directly translates to the chunk size in blob
 # store. MUST be a power of two.
 SENTRY_CHUNK_UPLOAD_BLOB_SIZE = 8 * 1024 * 1024  # 8MB
@@ -1528,13 +1554,14 @@ SENTRY_DEVSERVICES = {
         "image": "us.gcr.io/sentryio/symbolicator:latest",
         "pull": True,
         "ports": {"3021/tcp": 3021},
-        "command": ["run"],
+        "volumes": {SYMBOLICATOR_CONFIG_DIR: {"bind": "/etc/symbolicator"}},
+        "command": ["run", "--config", "/etc/symbolicator/config.yml"],
         "only_if": lambda settings, options: options.get("symbolicator.enabled"),
     },
     "relay": {
         "image": "us.gcr.io/sentryio/relay:latest",
         "pull": True,
-        "ports": {"3000/tcp": SENTRY_RELAY_PORT},
+        "ports": {"7899/tcp": SENTRY_RELAY_PORT},
         "volumes": {RELAY_CONFIG_DIR: {"bind": "/etc/relay"}},
         "command": ["run", "--config", "/etc/relay"],
         "only_if": lambda settings, options: settings.SENTRY_USE_RELAY,
@@ -1929,4 +1956,23 @@ SENTRY_MAIL_ADAPTER_BACKEND = "sentry.mail.adapter.MailAdapter"
 # observed mainly for producing stable metrics.
 SENTRY_SYNTHETIC_MONITORING_PROJECT_ID = None
 
+# Similarity cluster to use
+# Similarity-v1: uses hardcoded set of event properties for diffing
+SENTRY_SIMILARITY_INDEX_REDIS_CLUSTER = "default"
+# Similarity-v2: uses grouping components for diffing (None = fallback to setting for v1)
+SENTRY_SIMILARITY2_INDEX_REDIS_CLUSTER = None
+
+# The grouping strategy to use for driving similarity-v2. You can add multiple
+# strategies here to index them all. This is useful for transitioning a
+# similarity dataset to newer grouping configurations.
+#
+# The dictionary value represents the redis prefix to use.
+#
+# Check out `test_similarity_config_migration` to understand the procedure and risks.
+SENTRY_SIMILARITY_GROUPING_CONFIGURATIONS_TO_INDEX = {
+    "similarity:2020-07-23": "a",
+}
+
 SENTRY_USE_UWSGI = True
+
+SENTRY_REPROCESSING_ATTACHMENT_CHUNK_SIZE = 2 ** 20

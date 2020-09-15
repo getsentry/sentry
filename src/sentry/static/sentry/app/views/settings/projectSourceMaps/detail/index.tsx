@@ -38,7 +38,7 @@ type State = AsyncView['state'] & {
   artifacts: Artifact[];
 };
 
-class ProjectSourceMaps extends AsyncView<Props, State> {
+class ProjectSourceMapsDetail extends AsyncView<Props, State> {
   getTitle() {
     const {projectId, name} = this.props.params;
 
@@ -177,6 +177,7 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
                 <Button
                   icon={<IconDelete size="sm" />}
                   title={t('Remove All Artifacts')}
+                  label={t('Remove All Artifacts')}
                 />
               </Confirm>
               <SearchBar
@@ -245,4 +246,4 @@ const SizeColumn = styled('div')`
   text-align: right;
 `;
 
-export default ProjectSourceMaps;
+export default ProjectSourceMapsDetail;

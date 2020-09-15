@@ -29,6 +29,7 @@ from .endpoints.debug_files import (
 from .endpoints.event_apple_crash_report import EventAppleCrashReportEndpoint
 from .endpoints.event_attachment_details import EventAttachmentDetailsEndpoint
 from .endpoints.event_attachments import EventAttachmentsEndpoint
+from .endpoints.event_reprocessing import EventReprocessingEndpoint
 from .endpoints.event_file_committers import EventFileCommittersEndpoint
 from .endpoints.event_grouping_info import EventGroupingInfoEndpoint
 from .endpoints.event_owners import EventOwnersEndpoint
@@ -41,6 +42,7 @@ from .endpoints.group_events_oldest import GroupEventsOldestEndpoint
 from .endpoints.group_external_issue_details import GroupExternalIssueDetailsEndpoint
 from .endpoints.group_external_issues import GroupExternalIssuesEndpoint
 from .endpoints.group_hashes import GroupHashesEndpoint
+from .endpoints.group_reprocessing import GroupReprocessingEndpoint
 from .endpoints.group_integration_details import GroupIntegrationDetailsEndpoint
 from .endpoints.group_integrations import GroupIntegrationsEndpoint
 from .endpoints.group_notes import GroupNotesEndpoint
@@ -92,6 +94,7 @@ from .endpoints.organization_environments import OrganizationEnvironmentsEndpoin
 from .endpoints.organization_event_details import OrganizationEventDetailsEndpoint
 from .endpoints.organization_eventid import EventIdLookupEndpoint
 from .endpoints.organization_events import OrganizationEventsEndpoint, OrganizationEventsV2Endpoint
+from .endpoints.organization_events_trends import OrganizationEventsTrendsEndpoint
 from .endpoints.organization_events_facets import OrganizationEventsFacetsEndpoint
 from .endpoints.organization_events_meta import (
     OrganizationEventsMetaEndpoint,
@@ -340,6 +343,7 @@ GROUP_URLS = [
         GroupNotesDetailsEndpoint.as_view(),
     ),
     url(r"^(?P<issue_id>[^\/]+)/hashes/$", GroupHashesEndpoint.as_view()),
+    url(r"^(?P<issue_id>[^\/]+)/reprocessing/$", GroupReprocessingEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/stats/$", GroupStatsEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/tags/$", GroupTagsEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/tags/(?P<key>[^/]+)/$", GroupTagKeyDetailsEndpoint.as_view()),
@@ -831,6 +835,11 @@ urlpatterns = [
                     name="sentry-api-0-organization-events-meta",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/events-trends/$",
+                    OrganizationEventsTrendsEndpoint.as_view(),
+                    name="sentry-api-0-organization-events-trends",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/event-baseline/$",
                     OrganizationEventBaseline.as_view(),
                     name="sentry-api-0-organization-event-baseline",
@@ -1264,6 +1273,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/attachments/(?P<attachment_id>[\w-]+)/$",
                     EventAttachmentDetailsEndpoint.as_view(),
                     name="sentry-api-0-event-attachment-details",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/reprocessing/$",
+                    EventReprocessingEndpoint.as_view(),
+                    name="sentry-api-0-event-reprocessing",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/committers/$",

@@ -53,14 +53,5 @@ module.exports = {
 
   testEnvironmentOptions: {
     output: path.resolve(__dirname, '.artifacts', 'visual-snapshots', 'jest'),
-    includeCss: path.resolve(
-      __dirname,
-      'src',
-      'sentry',
-      'static',
-      'sentry',
-      'dist',
-      'sentry.css'
-    ),
   },
 };

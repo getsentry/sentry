@@ -27,6 +27,8 @@ class SelectAsyncField extends SelectField {
      * Field ID
      */
     id: PropTypes.any,
+
+    deprecatedSelectControl: PropTypes.bool,
   };
 
   static defaultProps = {

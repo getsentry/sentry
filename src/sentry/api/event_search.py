@@ -26,7 +26,14 @@ from sentry.search.utils import (
 )
 from sentry.snuba.dataset import Dataset
 from sentry.utils.dates import to_timestamp
-from sentry.utils.snuba import DATASETS, get_json_type, OPERATOR_TO_FUNCTION, SNUBA_AND, SNUBA_OR
+from sentry.utils.snuba import (
+    DATASETS,
+    get_json_type,
+    FUNCTION_TO_OPERATOR,
+    OPERATOR_TO_FUNCTION,
+    SNUBA_AND,
+    SNUBA_OR,
+)
 from sentry.utils.compat import filter, map, zip
 
 
@@ -192,8 +199,8 @@ PROJECT_NAME_ALIAS = "project.name"
 PROJECT_ALIAS = "project"
 ISSUE_ALIAS = "issue"
 ISSUE_ID_ALIAS = "issue.id"
-USER_ALIAS = "user"
 RELEASE_ALIAS = "release"
+USER_DISPLAY_ALIAS = "user.display"
 
 
 class InvalidSearchQuery(Exception):
@@ -774,6 +781,32 @@ def convert_search_filter_to_snuba_query(search_filter, key=None):
         # Skip isNull check on group_id value as we want to
         # allow snuba's prewhere optimizer to find this condition.
         return [name, search_filter.operator, value]
+    elif name == USER_DISPLAY_ALIAS:
+        user_display_expr = FIELD_ALIASES[USER_DISPLAY_ALIAS]["expression"]
+
+        # Handle 'has' condition
+        if search_filter.value.raw_value == "":
+            return [["isNull", [user_display_expr]], search_filter.operator, 1]
+        if search_filter.value.is_wildcard():
+            return [
+                ["match", [user_display_expr, u"'(?i){}'".format(value)]],
+                search_filter.operator,
+                1,
+            ]
+        return [user_display_expr, search_filter.operator, value]
+    elif name == "error.handled":
+        # Treat has filter as equivalent to handled
+        if search_filter.value.raw_value == "":
+            output = 1 if search_filter.operator == "!=" else 0
+            return [["isHandled", []], "=", output]
+        # Null values and 1 are the same, and both indicate a handled error.
+        if value in ("1", 1):
+            return [["isHandled", []], "=", 1]
+        if value in ("0", 0,):
+            return [["notHandled", []], "=", 1]
+        raise InvalidSearchQuery(
+            "Invalid value for error.handled condition. Accepted values are 1, 0"
+        )
     else:
         value = (
             int(to_timestamp(value)) * 1000
@@ -835,21 +868,22 @@ def format_search_filter(term, params):
         project = None
         try:
             project = Project.objects.get(id__in=params.get("project_id", []), slug=value)
-        except Exception:
-            raise InvalidSearchQuery(
-                u"Invalid query. Project {} does not exist or is not an actively selected project.".format(
-                    value
+        except Exception as e:
+            if not isinstance(e, Project.DoesNotExist) or term.operator != "!=":
+                raise InvalidSearchQuery(
+                    u"Invalid query. Project {} does not exist or is not an actively selected project.".format(
+                        value
+                    )
                 )
-            )
+        else:
+            # Create a new search filter with the correct values
+            term = SearchFilter(SearchKey("project_id"), term.operator, SearchValue(project.id))
+            converted_filter = convert_search_filter_to_snuba_query(term)
+            if converted_filter:
+                if term.operator == "=":
+                    project_to_filter = project.id
 
-        # Create a new search filter with the correct values
-        term = SearchFilter(SearchKey("project_id"), term.operator, SearchValue(project.id))
-        converted_filter = convert_search_filter_to_snuba_query(term)
-        if converted_filter:
-            if term.operator == "=":
-                project_to_filter = project.id
-
-            conditions.append(converted_filter)
+                conditions.append(converted_filter)
     elif name == ISSUE_ID_ALIAS and value != "":
         # A blank term value means that this is a has filter
         group_ids = to_list(value)
@@ -864,16 +898,6 @@ def format_search_filter(term, params):
         term = SearchFilter(SearchKey("issue.id"), term.operator, SearchValue(value))
         converted_filter = convert_search_filter_to_snuba_query(term)
         conditions.append(converted_filter)
-    elif name == USER_ALIAS:
-        # If the key is user, do an OR across all the different possible user fields
-        user_conditions = [
-            convert_search_filter_to_snuba_query(term, key=field)
-            for field in FIELD_ALIASES[USER_ALIAS]["fields"]
-        ]
-        if term.operator == "!=" and value != "":
-            conditions.extend(user_conditions)
-        else:
-            conditions.append(user_conditions)
     elif name == RELEASE_ALIAS and params and value == "latest":
         converted_filter = convert_search_filter_to_snuba_query(
             SearchFilter(
@@ -889,14 +913,6 @@ def format_search_filter(term, params):
                 ),
             )
         )
-        if converted_filter:
-            conditions.append(converted_filter)
-    elif name in FIELD_ALIASES and name != PROJECT_ALIAS:
-        if "column_alias" in FIELD_ALIASES[name]:
-            term = SearchFilter(
-                SearchKey(FIELD_ALIASES[name]["column_alias"]), term.operator, term.value
-            )
-        converted_filter = convert_aggregate_filter_to_snuba_query(term, params)
         if converted_filter:
             conditions.append(converted_filter)
     else:
@@ -916,13 +932,41 @@ def convert_condition_to_function(cond):
     return [function, [cond[0], cond[2]]]
 
 
+def convert_function_to_condition(func):
+    operator = FUNCTION_TO_OPERATOR.get(func[0])
+    if not operator:
+        return [func, "=", 1]
+
+    return [func[1][0], operator, func[1][1]]
+
+
 def convert_array_to_tree(operator, terms):
+    """
+    Convert an array of conditions into a binary tree joined by the operator.
+    """
     if len(terms) == 1:
         return terms[0]
     elif len(terms) == 2:
         return [operator, terms]
 
     return [operator, [terms[0], convert_array_to_tree(operator, terms[1:])]]
+
+
+def flatten_condition_tree(tree, condition_function):
+    """
+    Take a binary tree of conditions, and flatten all of the terms using the condition function.
+    E.g. f( and(and(b, c), and(d, e)), and ) -> [b, c, d, e]
+    """
+    stack = [tree]
+    flattened = []
+    while len(stack) > 0:
+        item = stack.pop(0)
+        if item[0] == condition_function:
+            stack.extend(item[1])
+        else:
+            flattened.append(item)
+
+    return flattened
 
 
 def is_condition(term):
@@ -1084,18 +1128,21 @@ def get_filter(query=None, params=None):
         isinstance(term, ParenExpression) or SearchBoolean.is_operator(term)
         for term in parsed_terms
     ):
-        # TODO evanh: We can remove all top level ANDs and extend the conditions/having to
-        # avoid unnecesary nesting, e.g. [["and", [["and", [a, b]], ["and", [c, d]]]]] -> [a, b, c, d]
         (
             condition,
             having,
             found_projects_to_filter,
             group_ids,
         ) = convert_search_boolean_to_snuba_query(parsed_terms, params)
+
         if condition:
-            kwargs["conditions"].append([condition, "=", 1])
+            and_conditions = flatten_condition_tree(condition, SNUBA_AND)
+            for func in and_conditions:
+                kwargs["conditions"].append(convert_function_to_condition(func))
         if having:
-            kwargs["having"].append([having, "=", 1])
+            and_having = flatten_condition_tree(having, SNUBA_AND)
+            for func in and_having:
+                kwargs["having"].append(convert_function_to_condition(func))
         if found_projects_to_filter:
             projects_to_filter = list(set(found_projects_to_filter))
         if group_ids is not None:
@@ -1145,7 +1192,11 @@ def get_filter(query=None, params=None):
 FIELD_ALIASES = {
     "project": {"fields": ["project.id"], "column_alias": "project.id"},
     "issue": {"fields": ["issue.id"], "column_alias": "issue.id"},
-    "user": {"fields": ["user.email", "user.username", "user.ip", "user.id"]},
+    "user.display": {
+        "expression": ["coalesce", ["user.email", "user.username", "user.ip"]],
+        "fields": [["coalesce", ["user.email", "user.username", "user.ip"], "user.display"]],
+        "column_alias": "user.display",
+    },
 }
 
 
@@ -1189,18 +1240,51 @@ class FunctionArg(object):
         return False
 
 
+class NullColumn(FunctionArg):
+    """
+    Convert the provided column to null so that we
+    can drop it. Used to make count() not have a
+    required argument that we ignore.
+    """
+
+    def has_default(self, params):
+        return None
+
+    def normalize(self, value):
+        return None
+
+
 class CountColumn(FunctionArg):
     def has_default(self, params):
         return None
 
     def normalize(self, value):
         if value is None:
+            raise InvalidFunctionArgument("a column is required")
+
+        if value not in FIELD_ALIASES:
             return value
 
-        # If we use an alias inside an aggregate, resolve it here
-        if value in FIELD_ALIASES:
-            value = FIELD_ALIASES[value].get("column_alias", value)
+        alias = FIELD_ALIASES[value]
 
+        # If the alias has an expression prefer that over the column alias
+        # This enables user.display to work in aggregates
+        if "expression" in alias:
+            return alias["expression"]
+
+        return alias.get("column_alias", value)
+
+
+class DateArg(FunctionArg):
+    date_format = "%Y-%m-%dT%H:%M:%S"
+
+    def normalize(self, value):
+        try:
+            datetime.strptime(value, self.date_format)
+        except ValueError:
+            raise InvalidFunctionArgument(
+                u"{} is in the wrong format, expected a date like 2020-03-14T15:14:15".format(value)
+            )
         return value
 
 
@@ -1278,7 +1362,7 @@ FUNCTIONS = {
     "percentile": {
         "name": "percentile",
         "args": [DurationColumnNoLookup("column"), NumberRange("percentile", 0, 1)],
-        "aggregate": [u"quantile({percentile:g})", u"{column}", None],
+        "aggregate": [u"quantile({percentile:g})", ArgValue("column"), None],
         "result_type": "duration",
     },
     "p50": {
@@ -1368,7 +1452,7 @@ FUNCTIONS = {
         "column": [
             "multiply",
             [
-                ["floor", [["divide", [u"{column}", ArgValue("bucket_size")]]]],
+                ["floor", [["divide", [ArgValue("column"), ArgValue("bucket_size")]]]],
                 ArgValue("bucket_size"),
             ],
             None,
@@ -1378,38 +1462,35 @@ FUNCTIONS = {
     "count_unique": {
         "name": "count_unique",
         "args": [CountColumn("column")],
-        "aggregate": ["uniq", u"{column}", None],
+        "aggregate": ["uniq", ArgValue("column"), None],
         "result_type": "integer",
     },
-    # TODO(evanh) Count doesn't accept parameters in the frontend, but we support it here
-    # for backwards compatibility. Once we've migrated existing queries this should get
-    # changed to accept no parameters.
     "count": {
         "name": "count",
-        "args": [CountColumn("column")],
+        "args": [NullColumn("column")],
         "aggregate": ["count", None, None],
         "result_type": "integer",
     },
     "min": {
         "name": "min",
         "args": [NumericColumnNoLookup("column")],
-        "aggregate": ["min", u"{column}", None],
+        "aggregate": ["min", ArgValue("column"), None],
     },
     "max": {
         "name": "max",
         "args": [NumericColumnNoLookup("column")],
-        "aggregate": ["max", u"{column}", None],
+        "aggregate": ["max", ArgValue("column"), None],
     },
     "avg": {
         "name": "avg",
         "args": [DurationColumnNoLookup("column")],
-        "aggregate": ["avg", u"{column}", None],
+        "aggregate": ["avg", ArgValue("column"), None],
         "result_type": "duration",
     },
     "sum": {
         "name": "sum",
         "args": [DurationColumnNoLookup("column")],
-        "aggregate": ["sum", u"{column}", None],
+        "aggregate": ["sum", ArgValue("column"), None],
         "result_type": "duration",
     },
     # Currently only being used by the baseline PoC
@@ -1418,6 +1499,88 @@ FUNCTIONS = {
         "args": [DurationColumn("column"), NumberRange("target", 0, None)],
         "transform": u"abs(minus({column}, {target:g}))",
         "result_type": "duration",
+    },
+    # These range functions for performance trends, these aren't If functions
+    # to avoid allowing arbitrary if statements
+    # Not yet supported in Discover, and shouldn't be added to fields.tsx
+    "percentile_range": {
+        "name": "percentile_range",
+        "args": [
+            DurationColumn("column"),
+            NumberRange("percentile", 0, 1),
+            DateArg("start"),
+            DateArg("end"),
+            NumberRange("index", 1, None),
+        ],
+        "aggregate": [
+            u"quantileIf({percentile:.2f})({column},and(greaterOrEquals(timestamp,toDateTime('{start}')),less(timestamp,toDateTime('{end}'))))",
+            None,
+            "percentile_range_{index:g}",
+        ],
+        "result_type": "duration",
+    },
+    "avg_range": {
+        "name": "avg_range",
+        "args": [
+            DurationColumn("column"),
+            DateArg("start"),
+            DateArg("end"),
+            NumberRange("index", 1, None),
+        ],
+        "aggregate": [
+            u"avgIf({column},and(greaterOrEquals(timestamp,toDateTime('{start}')),less(timestamp,toDateTime('{end}'))))",
+            None,
+            "avg_range_{index:g}",
+        ],
+        "result_type": "duration",
+    },
+    "user_misery_range": {
+        "name": "user_misery_range",
+        "args": [
+            NumberRange("satisfaction", 0, None),
+            DateArg("start"),
+            DateArg("end"),
+            NumberRange("index", 1, None),
+        ],
+        "calculated_args": [{"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0}],
+        "aggregate": [
+            u"uniqIf(user,and(greater(duration,{tolerated:g}),and(greaterOrEquals(timestamp,toDateTime('{start}')),less(timestamp,toDateTime('{end}')))))",
+            None,
+            u"user_misery_range_{index:g}",
+        ],
+        "result_type": "number",
+    },
+    "count_range": {
+        "name": "count_range",
+        "args": [DateArg("start"), DateArg("end"), NumberRange("index", 1, None)],
+        "aggregate": [
+            u"countIf(and(greaterOrEquals(timestamp,toDateTime('{start}')),less(timestamp,toDateTime('{end}'))))",
+            None,
+            "count_range_{index:g}",
+        ],
+        "result_type": "integer",
+    },
+    "percentage": {
+        "name": "percentage",
+        "args": [FunctionArg("numerator"), FunctionArg("denominator")],
+        "aggregate": [
+            u"if(greater({denominator},0),divide({numerator},{denominator}),null)",
+            None,
+            None,
+        ],
+        "result_type": "percentage",
+    },
+    "minus": {
+        "name": "minus",
+        "args": [FunctionArg("minuend"), FunctionArg("subtrahend")],
+        "aggregate": [u"minus", [ArgValue("minuend"), ArgValue("subtrahend")], None],
+        "result_type": "duration",
+    },
+    "absolute_correlation": {
+        "name": "absolute_correlation",
+        "args": [],
+        "aggregate": ["abs", [["corr", ["toUnixTimestamp", ["timestamp"], "duration"]]], None],
+        "result_type": "number",
     },
 }
 
@@ -1457,15 +1620,22 @@ def format_column_arguments(column, arguments):
             args[i] = arguments[args[i].arg]
 
 
-def resolve_function(field, match=None, params=None):
+def parse_function(field, match=None):
     if not match:
         match = FUNCTION_PATTERN.search(field)
 
     if not match or match.group("function") not in FUNCTIONS:
         raise InvalidSearchQuery(u"{} is not a valid function".format(field))
 
+    return (
+        match.group("function"),
+        [c.strip() for c in match.group("columns").split(",") if len(c.strip()) > 0],
+    )
+
+
+def resolve_function(field, match=None, params=None):
+    function, columns = parse_function(field, match)
     function = FUNCTIONS[match.group("function")]
-    columns = [c.strip() for c in match.group("columns").split(",") if len(c.strip()) > 0]
 
     # Some functions can optionally take no parameters (epm(), eps()). In that case use the
     # passed in params to create a default argument if necessary.
@@ -1516,13 +1686,19 @@ def resolve_function(field, match=None, params=None):
         aggregate = deepcopy(function["aggregate"])
 
         aggregate[0] = aggregate[0].format(**arguments)
-        if isinstance(aggregate[1], six.string_types):
-            aggregate[1] = aggregate[1].format(**arguments)
-
+        if isinstance(aggregate[1], (list, tuple)):
+            aggregate[1] = [
+                arguments[agg.arg] if isinstance(agg, ArgValue) else agg for agg in aggregate[1]
+            ]
+        elif isinstance(aggregate[1], ArgValue):
+            arg = aggregate[1].arg
+            aggregate[1] = arguments[arg]
         if aggregate[2] is None:
             aggregate[2] = get_function_alias_with_columns(
                 function["name"], columns if not used_default else []
             )
+        else:
+            aggregate[2] = aggregate[2].format(**arguments)
 
         return ([], [aggregate])
     elif "column" in function:
@@ -1654,7 +1830,7 @@ def resolve_field_list(fields, snuba_filter, auto_fields=True):
         # would be aggregated away.
         if not aggregations and "id" not in columns:
             columns.append("id")
-        if not aggregations and "project.id" not in columns:
+        if "id" in columns and "project.id" not in columns:
             columns.append("project.id")
             project_key = PROJECT_NAME_ALIAS
 
@@ -1701,6 +1877,10 @@ def resolve_field_list(fields, snuba_filter, auto_fields=True):
             if isinstance(column, (list, tuple)):
                 if column[0] == "transform":
                     # When there's a project transform, we already group by project_id
+                    continue
+                if column[2] == USER_DISPLAY_ALIAS:
+                    # user.display needs to be grouped by its coalesce function
+                    groupby.append(column)
                     continue
                 groupby.append(column[2])
             else:

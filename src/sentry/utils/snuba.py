@@ -176,10 +176,41 @@ class QueryTooManySimultaneous(QueryExecutionError):
     """
 
 
+class QuerySizeExceeded(QueryExecutionError):
+    """
+    The generated query has exceeded the maximum length allowed by clickhouse
+    """
+
+
+class QueryExecutionTimeMaximum(QueryExecutionError):
+    """
+    The query has or will take over 30 seconds to run, exceeding the limit
+    that has been set
+    """
+
+
+class DatasetSelectionError(QueryExecutionError):
+    """
+    This query has resulted in needing to check multiple datasets in a way
+    that is not currently handled, clickhouse errors with data being compressed
+    by different methods when this happens
+    """
+
+
+class QueryConnectionFailed(QueryExecutionError):
+    """
+    The connection to clickhouse has failed, and so the query cannot be run
+    """
+
+
 clickhouse_error_codes_map = {
     43: QueryIllegalTypeOfArgument,
-    241: QueryMemoryLimitExceeded,
+    62: QuerySizeExceeded,
+    160: QueryExecutionTimeMaximum,
     202: QueryTooManySimultaneous,
+    241: QueryMemoryLimitExceeded,
+    271: DatasetSelectionError,
+    279: QueryConnectionFailed,
 }
 
 
@@ -378,7 +409,15 @@ def get_query_params_to_update_for_projects(query_params, with_org=False):
         )
 
     # any project will do, as they should all be from the same organization
-    organization_id = Project.objects.get_from_cache(pk=project_ids[0]).organization_id
+    try:
+        # Most of the time the project should exist, so get from cache to keep it fast
+        organization_id = Project.objects.get_from_cache(pk=project_ids[0]).organization_id
+    except Project.DoesNotExist:
+        # But in the case the first project doesn't exist, grab the first non deleted project
+        project = Project.objects.filter(pk__in=project_ids).values("organization_id").first()
+        if project is None:
+            raise UnqualifiedQueryError("All project_ids from the filter no longer exist")
+        organization_id = project.get("organization_id")
 
     params = {"project": project_ids}
     if with_org:
@@ -595,10 +634,11 @@ def bulk_raw_query(snuba_param_list, referrer=None):
         query_params, forward, reverse, thread_hub = params
         try:
             with timer("snuba_query"):
+                referrer = headers.get("referer", "<unknown>")
                 if SNUBA_INFO:
+                    logger.info("{}.body: {}".format(referrer, json.dumps(query_params)))
                     query_params["debug"] = True
                 body = json.dumps(query_params)
-                referrer = headers.get("referer", "<unknown>")
                 with thread_hub.start_span(
                     op="snuba", description=u"query {}".format(referrer)
                 ) as span:
@@ -752,7 +792,11 @@ def nest_groups(data, groups, aggregate_cols):
 
 def resolve_column(dataset):
     def _resolve_column(col):
-        if col is None or col.startswith("tags[") or QUOTED_LITERAL_RE.match(col):
+        if col is None:
+            return col
+        if isinstance(col, six.string_types) and (
+            col.startswith("tags[") or QUOTED_LITERAL_RE.match(col)
+        ):
             return col
 
         # Some dataset specific logic:
@@ -968,12 +1012,28 @@ def resolve_snuba_aliases(snuba_filter, resolve_func, function_translations=None
         resolved.groupby = groupby
 
     aggregations = resolved.aggregations
+    # need to get derived_columns first, so that they don't get resolved as functions
+    derived_columns = derived_columns.union([aggregation[2] for aggregation in aggregations])
     for aggregation in aggregations or []:
-        derived_columns.add(aggregation[2])
         if isinstance(aggregation[1], six.string_types):
             aggregation[1] = resolve_func(aggregation[1])
         elif isinstance(aggregation[1], (set, tuple, list)):
-            aggregation[1] = [resolve_func(col) for col in aggregation[1]]
+            # The aggregation has another function call as its parameter
+            func_index = get_function_index(aggregation[1])
+            if func_index is not None:
+                # Resolve the columns on the nested function, and add a wrapping
+                # list to become a valid query expression.
+                aggregation[1] = [
+                    [aggregation[1][0], [resolve_func(col) for col in aggregation[1][1]]]
+                ]
+            else:
+                # Parameter is a list of fields.
+                aggregation[1] = [
+                    resolve_func(col)
+                    if not isinstance(col, (set, tuple, list)) and col not in derived_columns
+                    else col
+                    for col in aggregation[1]
+                ]
     resolved.aggregations = aggregations
 
     conditions = resolved.conditions

@@ -414,3 +414,16 @@ class StatusActionTest(BaseEventTest):
     def test_slack_bad_payload(self):
         resp = self.client.post("/extensions/slack/action/", data={"nopayload": 0})
         assert resp.status_code == 400
+
+    def test_sentry_docs_link_clicked(self):
+        payload = {
+            "token": options.get("slack.verification-token"),
+            "team": {"id": "TXXXXXXX1", "domain": "example.com"},
+            "user": {"id": self.identity.external_id, "domain": "example"},
+            "type": "block_actions",
+            "actions": [{"value": "sentry_docs_link_clicked"}],
+        }
+        payload = {"payload": json.dumps(payload)}
+
+        resp = self.client.post("/extensions/slack/action/", data=payload)
+        assert resp.status_code == 200

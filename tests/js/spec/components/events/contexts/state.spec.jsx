@@ -23,7 +23,13 @@ describe('StateContext', function() {
   it('renders', () => {
     const wrapper = mount(<StateContextType alias="state" data={STATE_CONTEXT} />);
 
-    expect(wrapper.find('TableSubject.key').text()).toEqual('State (Redux)');
-    expect(wrapper.find('.val').text()).toEqual('{a: abc}');
+    const keys = wrapper.find('TableSubject.key');
+    const values = wrapper.find('.val');
+
+    expect(keys.at(0).text()).toEqual('State (Redux)');
+    expect(keys.at(1).text()).toEqual('otherState');
+
+    expect(values.at(0).text()).toEqual('{a: abc}');
+    expect(values.at(1).text()).toEqual('{b: bcd}');
   });
 });

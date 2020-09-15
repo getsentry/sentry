@@ -88,7 +88,7 @@ def _match_commits_path(commit_file_changes, path):
             #  we want a list of unique commits that tie for longest match
             matching_commits[file_change.commit.id] = (file_change.commit, score)
 
-    return matching_commits.values()
+    return list(matching_commits.values())
 
 
 def _get_commits_committer(commits, author_id):
@@ -258,4 +258,4 @@ def get_serialized_event_file_committers(project, event, frame_limit=25):
 
 
 def dedupe_commits(commits):
-    return {c["id"]: c for c in commits}.values()
+    return list({c["id"]: c for c in commits}.values())

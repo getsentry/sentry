@@ -69,7 +69,7 @@ class TransactionSummary extends React.Component<Props> {
           <Regression />
           <EventRowContent>
             <Content>
-              <ContentTitle>{t('Regressive Event')}</ContentTitle>
+              <ContentTitle>{t('This Event')}</ContentTitle>
               <EventId>
                 <span>{t('ID')}: </span>
                 <StyledLink

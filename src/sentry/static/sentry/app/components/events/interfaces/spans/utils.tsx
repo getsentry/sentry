@@ -250,7 +250,10 @@ export const getHumanDuration = (duration: number): string => {
   // note: duration is assumed to be in seconds
 
   const durationMS = duration * 1000;
-  return `${Number(durationMS.toFixed(2)).toLocaleString()}ms`;
+  return `${durationMS.toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}ms`;
 };
 
 const getLetterIndex = (letter: string): number => {
@@ -304,6 +307,8 @@ export const setBodyUserSelect = (nextValues: UserSelectValues): UserSelectValue
     // MozUserSelect is not typed in TS
     // @ts-ignore
     MozUserSelect: document.body.style.MozUserSelect,
+    // msUserSelect is not typed in TS
+    // @ts-ignore
     msUserSelect: document.body.style.msUserSelect,
     webkitUserSelect: document.body.style.webkitUserSelect,
   };
@@ -312,6 +317,8 @@ export const setBodyUserSelect = (nextValues: UserSelectValues): UserSelectValue
   // MozUserSelect is not typed in TS
   // @ts-ignore
   document.body.style.MozUserSelect = nextValues.MozUserSelect || '';
+  // msUserSelect is not typed in TS
+  // @ts-ignore
   document.body.style.msUserSelect = nextValues.msUserSelect || '';
   document.body.style.webkitUserSelect = nextValues.webkitUserSelect || '';
 
@@ -328,6 +335,7 @@ export function generateRootSpan(trace: ParsedTraceType): RawSpanType {
     op: trace.op,
     description: trace.description,
     data: {},
+    status: trace.rootSpanStatus,
   };
 
   return rootSpan;
@@ -427,6 +435,7 @@ export function parseTrace(event: Readonly<SentryTransactionEvent>): ParsedTrace
   const rootSpanOpName = (traceContext && traceContext.op) || 'transaction';
   const description = traceContext && traceContext.description;
   const parentSpanID = traceContext && traceContext.parent_span_id;
+  const rootSpanStatus = traceContext && traceContext.status;
 
   if (!spanEntry || spans.length <= 0) {
     return {
@@ -436,6 +445,7 @@ export function parseTrace(event: Readonly<SentryTransactionEvent>): ParsedTrace
       traceEndTimestamp: event.endTimestamp,
       traceID,
       rootSpanID,
+      rootSpanStatus,
       parentSpanID,
       numOfSpans: 0,
       spans: [],
@@ -462,6 +472,7 @@ export function parseTrace(event: Readonly<SentryTransactionEvent>): ParsedTrace
     traceEndTimestamp: event.endTimestamp,
     traceID,
     rootSpanID,
+    rootSpanStatus,
     parentSpanID,
     numOfSpans: spans.length,
     spans,

@@ -17,7 +17,7 @@ from sentry.utils.compat.mock import patch
 
 
 class ExportedDataTest(TestCase):
-    TEST_STRING = "A bunch of test data..."
+    TEST_STRING = b"A bunch of test data..."
 
     def setUp(self):
         super(ExportedDataTest, self).setUp()
@@ -45,7 +45,7 @@ class ExportedDataTest(TestCase):
 
     def test_payload_property(self):
         assert isinstance(self.data_export.payload, dict)
-        keys = self.data_export.query_info.keys() + ["export_type"]
+        keys = list(self.data_export.query_info.keys()) + ["export_type"]
         assert sorted(self.data_export.payload.keys()) == sorted(keys)
 
     def test_file_name_property(self):
@@ -56,7 +56,7 @@ class ExportedDataTest(TestCase):
 
     def test_format_date(self):
         assert ExportedData.format_date(self.data_export.date_finished) is None
-        assert isinstance(ExportedData.format_date(self.data_export.date_added), six.binary_type)
+        assert isinstance(ExportedData.format_date(self.data_export.date_added), six.text_type)
 
     def test_delete_file(self):
         # Empty call should have no effect

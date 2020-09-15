@@ -37,7 +37,7 @@ type BaseField = {
   name: string;
   help?: React.ReactNode | ((props: any) => React.ReactNode);
   required?: boolean;
-  placeholder?: string | (() => string);
+  placeholder?: string | ((props: any) => React.ReactNode);
   multiline?: boolean;
   monospace?: boolean;
   visible?: boolean | ((props: any) => boolean);
@@ -107,6 +107,7 @@ type SelectControlType = {type: 'choice' | 'select'} & {
   options?: Array<{label: string; value: any}>; //for new select
   defaultOptions?: Array<{label: string; value: any}> | boolean;
   filterOption?: ReturnType<typeof createFilter>;
+  noOptionsMessage?: () => string;
 };
 
 type TextareaType = {type: 'textarea'} & {

@@ -10,13 +10,12 @@ import {EventQuery} from 'app/actionCreators/events';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {Client} from 'app/api';
-import withApi from 'app/utils/withApi';
 import {getMessage, getTitle} from 'app/utils/events';
 import {Organization, Event, EventTag} from 'app/types';
 import SentryTypes from 'app/sentryTypes';
 import Button from 'app/components/button';
 import Feature from 'app/components/acl/feature';
+import RootSpanStatus from 'app/components/events/rootSpanStatus';
 import OpsBreakdown from 'app/components/events/opsBreakdown';
 import EventMetadata from 'app/components/events/eventMetadata';
 import LoadingError from 'app/components/loadingError';
@@ -31,6 +30,7 @@ import {eventDetailsRoute} from 'app/utils/discover/urls';
 import * as Layout from 'app/components/layouts/thirds';
 import ButtonBar from 'app/components/buttonBar';
 import {FIELD_TAGS} from 'app/utils/discover/fields';
+import LoadingIndicator from 'app/components/loadingIndicator';
 
 import {generateTitle, getExpandedResults} from '../utils';
 import LinkedIssue from './linkedIssue';
@@ -54,7 +54,6 @@ type Props = {
   organization: Organization;
   location: Location;
   params: Params;
-  api: Client;
   eventSlug: string;
   eventView: EventView;
 };
@@ -125,7 +124,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     }
     const eventReference = {...event};
     if (eventReference.id) {
-      delete eventReference.id;
+      delete (eventReference as any).id;
     }
     const tagKey = this.generateTagKey(tag);
     const nextView = getExpandedResults(eventView, {[tagKey]: tag.value}, eventReference);
@@ -143,7 +142,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
   }
 
   renderContent(event: Event) {
-    const {api, organization, location, eventView} = this.props;
+    const {organization, location, eventView} = this.props;
     const {isSidebarVisible} = this.state;
 
     // metrics
@@ -201,33 +200,36 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
         <Layout.Body>
           <Layout.Main fullWidth={!isSidebarVisible}>
             <Projects orgId={organization.slug} slugs={[this.projectId]}>
-              {({projects}) => (
-                <SpanEntryContext.Provider
-                  value={{
-                    getViewChildTransactionTarget: childTransactionProps => {
-                      const childTransactionLink = eventDetailsRoute({
-                        eventSlug: childTransactionProps.eventSlug,
-                        orgSlug: organization.slug,
-                      });
+              {({projects, initiallyLoaded}) =>
+                initiallyLoaded ? (
+                  <SpanEntryContext.Provider
+                    value={{
+                      getViewChildTransactionTarget: childTransactionProps => {
+                        const childTransactionLink = eventDetailsRoute({
+                          eventSlug: childTransactionProps.eventSlug,
+                          orgSlug: organization.slug,
+                        });
 
-                      return {
-                        pathname: childTransactionLink,
-                        query: eventView.generateQueryStringObject(),
-                      };
-                    },
-                  }}
-                >
-                  <BorderlessEventEntries
-                    api={api}
-                    organization={organization}
-                    event={event}
-                    project={projects[0]}
-                    location={location}
-                    showExampleCommit={false}
-                    showTagSummary={false}
-                  />
-                </SpanEntryContext.Provider>
-              )}
+                        return {
+                          pathname: childTransactionLink,
+                          query: eventView.generateQueryStringObject(),
+                        };
+                      },
+                    }}
+                  >
+                    <BorderlessEventEntries
+                      organization={organization}
+                      event={event}
+                      project={projects[0]}
+                      location={location}
+                      showExampleCommit={false}
+                      showTagSummary={false}
+                    />
+                  </SpanEntryContext.Provider>
+                ) : (
+                  <LoadingIndicator />
+                )
+              }
             </Projects>
           </Layout.Main>
           {isSidebarVisible && (
@@ -237,6 +239,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                 organization={organization}
                 projectId={this.projectId}
               />
+              <RootSpanStatus event={event} />
               <OpsBreakdown event={event} />
               {event.groupID && (
                 <LinkedIssue groupId={event.groupID} eventId={event.eventID} />
@@ -314,4 +317,4 @@ const EventSubheading = styled('span')`
   margin-left: ${space(1)};
 `;
 
-export default withApi(EventDetailsContent);
+export default EventDetailsContent;

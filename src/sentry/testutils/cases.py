@@ -14,6 +14,7 @@ __all__ = (
     "AcceptanceTestCase",
     "IntegrationTestCase",
     "SnubaTestCase",
+    "BaseIncidentsTest",
     "IntegrationRepositoryTestCase",
     "ReleaseCommitPatchTest",
     "SetRefsTestCase",
@@ -26,6 +27,7 @@ import pytest
 import requests
 import six
 import inspect
+from uuid import uuid4
 from contextlib import contextmanager
 from sentry.utils.compat import mock
 
@@ -42,8 +44,9 @@ from django.http import HttpRequest
 from django.test import override_settings, TestCase, TransactionTestCase
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
+from django.utils.functional import cached_property
+
 from exam import before, fixture, Exam
-from concurrent.futures import ThreadPoolExecutor
 from sentry.utils.compat.mock import patch
 from pkg_resources import iter_entry_points
 from rest_framework.test import APITestCase as BaseAPITestCase
@@ -79,6 +82,7 @@ from sentry.rules import EventState
 from sentry.tagstore.snuba import SnubaTagStorage
 from sentry.utils import json
 from sentry.utils.auth import SSO_SESSION_KEY
+from sentry.testutils.helpers.datetime import iso_format
 
 from .fixtures import Fixtures
 from .factories import Factories
@@ -655,27 +659,17 @@ class SnubaTestCase(BaseTestCase):
     tests that require snuba.
     """
 
-    init_endpoints = (
-        "/tests/events/drop",
-        "/tests/groupedmessage/drop",
-        "/tests/transactions/drop",
-        "/tests/sessions/drop",
-    )
-
     def setUp(self):
         super(SnubaTestCase, self).setUp()
         self.init_snuba()
 
-    def call_snuba(self, endpoint):
-        return requests.post(settings.SENTRY_SNUBA + endpoint)
+    @pytest.fixture(autouse=True)
+    def initialize(self, reset_snuba, call_snuba):
+        self.call_snuba = call_snuba
 
     def init_snuba(self):
         self.snuba_eventstream = SnubaEventStream()
         self.snuba_tagstore = SnubaTagStorage()
-        assert all(
-            response.status_code == 200
-            for response in ThreadPoolExecutor(4).map(self.call_snuba, self.init_endpoints)
-        )
 
     def store_event(self, *args, **kwargs):
         with mock.patch("sentry.eventstream.insert", self.snuba_eventstream.insert):
@@ -769,6 +763,30 @@ class SnubaTestCase(BaseTestCase):
             ).status_code
             == 200
         )
+
+
+class BaseIncidentsTest(SnubaTestCase):
+    def create_event(self, timestamp, fingerprint=None, user=None):
+        event_id = uuid4().hex
+        if fingerprint is None:
+            fingerprint = event_id
+
+        data = {
+            "event_id": event_id,
+            "fingerprint": [fingerprint],
+            "timestamp": iso_format(timestamp),
+            "type": "error",
+            # This is necessary because event type error should not exist without
+            # an exception being in the payload
+            "exception": [{"type": "Foo"}],
+        }
+        if user:
+            data["user"] = user
+        return self.store_event(data=data, project_id=self.project.id)
+
+    @cached_property
+    def now(self):
+        return timezone.now().replace(minute=0, second=0, microsecond=0)
 
 
 @pytest.mark.snuba

@@ -36,6 +36,7 @@ const mobile = [
   'java-android',
   'cordova',
   'react-native',
+  'flutter',
 ] as const;
 
 const backend = [
@@ -68,11 +69,19 @@ const backend = [
   'python-pyramid',
   'python-tornado',
   'python-rq',
-  'python-awslambda',
   'ruby',
   'ruby-rails',
   'ruby-rack',
   'rust',
+] as const;
+
+const serverless = [
+  'python-awslambda',
+  'python-azurefunctions',
+  'python-gcpfunctions',
+  'node-awslambda',
+  'node-azurefunctions',
+  'node-gcpfunctions',
 ] as const;
 
 const desktop = ['cocoa', 'csharp', 'java', 'electron', 'minidump', 'native'] as const;
@@ -83,6 +92,7 @@ const categoryList = [
   {id: 'server', name: t('Server'), platforms: backend},
   {id: 'mobile', name: t('Mobile'), platforms: mobile},
   {id: 'desktop', name: t('Desktop'), platforms: desktop},
+  {id: 'serverless', name: t('Serverless'), platforms: serverless},
 ] as const;
 
 export const sourceMaps: PlatformKey[] = [
@@ -92,9 +102,7 @@ export const sourceMaps: PlatformKey[] = [
   'electron',
 ];
 
-// TODO(epurkhiser): I've added these since there was a need to have them in
-// the platform key type. However I have not added them anywhere else.
-const tracing = ['python-tracing', 'node-tracing'] as const;
+export const tracing = ['python-tracing', 'node-tracing'] as const;
 
 export type PlatformKey =
   | typeof popular[number]
@@ -103,6 +111,7 @@ export type PlatformKey =
   | typeof backend[number]
   | typeof desktop[number]
   | typeof tracing[number]
+  | typeof serverless[number]
   | 'other';
 
 export default categoryList;

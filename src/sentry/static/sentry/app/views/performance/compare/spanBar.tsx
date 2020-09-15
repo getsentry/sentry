@@ -357,7 +357,7 @@ class SpanBar extends React.Component<Props, State> {
         let label: string = '';
 
         if (baselineDuration === regressionDuration) {
-          label = 'no change';
+          label = 'No change';
         }
 
         if (baselineDuration > regressionDuration) {
@@ -376,20 +376,18 @@ class SpanBar extends React.Component<Props, State> {
           label = t('+ %s slower', duration);
         }
 
-        return <ComparisonReportLabelContainer>{label}</ComparisonReportLabelContainer>;
+        return <NotableComparisonReport>{label}</NotableComparisonReport>;
       }
       case 'baseline': {
         return (
           <ComparisonReportLabelContainer>
-            {t('removed from baseline')}
+            {t('Only in baseline')}
           </ComparisonReportLabelContainer>
         );
       }
       case 'regression': {
         return (
-          <ComparisonReportLabelContainer>
-            {t('missing from regression')}
-          </ComparisonReportLabelContainer>
+          <ComparisonReportLabelContainer>{t('Added')}</ComparisonReportLabelContainer>
         );
       }
       default: {
@@ -526,11 +524,8 @@ const getHatchPattern = ({spanBarHatch}) => {
 
 const ComparisonSpanBarRectangle = styled(SpanBarRectangle)`
   position: absolute;
-  top: 4px;
-  left: 1px;
-
+  left: 0;
   height: 16px;
-
   ${getHatchPattern};
 `;
 
@@ -538,12 +533,12 @@ const ComparisonReportLabelContainer = styled('div')`
   position: absolute;
   user-select: none;
   right: ${space(1)};
-
   line-height: 16px;
-  top: 4px;
-  height: 16px;
-
   font-size: ${p => p.theme.fontSizeExtraSmall};
+`;
+
+const NotableComparisonReport = styled(ComparisonReportLabelContainer)`
+  font-weight: bold;
 `;
 
 export default SpanBar;

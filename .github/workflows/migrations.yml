@@ -18,9 +18,6 @@ jobs:
         # The hostname used to communicate with the PostgreSQL from sentry
         DATABASE_URL: postgresql://postgres:postgres@localhost/sentry
 
-        # Use this to override the django version in the requirements file.
-        DJANGO_VERSION: ">=1.11,<1.12"
-
       services:
         postgres:
           image: postgres:9.6
@@ -38,6 +35,13 @@ jobs:
             --health-retries 5
 
       steps:
+        - name: Install System Dependencies
+          run: |
+            sudo apt-get update
+            sudo apt-get install -y --no-install-recommends \
+              libxmlsec1-dev \
+              libmaxminddb-dev
+
         # Checkout codebase
         - uses: actions/checkout@v1
 
@@ -86,11 +90,6 @@ jobs:
             key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements-*.txt') }}
             restore-keys: |
               ${{ runner.os }}-pip-
-
-        - name: Install System Dependencies
-          run: |
-            sudo apt-get update
-            sudo apt-get install libxmlsec1-dev libmaxminddb-dev
 
         - name: Install Python Dependencies
           env:

@@ -2,6 +2,7 @@ import {Params} from 'react-router/lib/Router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import * as ReactRouter from 'react-router';
+import {stringify} from 'query-string';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 import styled from '@emotion/styled';
@@ -13,7 +14,6 @@ import {t} from 'app/locale';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
-import Banner from 'app/components/banner';
 import Button from 'app/components/button';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import ConfigStore from 'app/stores/configStore';
@@ -32,7 +32,7 @@ import theme from 'app/utils/theme';
 import {DEFAULT_EVENT_VIEW} from './data';
 import {getPrebuiltQueries} from './utils';
 import QueryList from './queryList';
-import BackgroundSpace from './backgroundSpace';
+import Banner from './banner';
 
 const BANNER_DISMISSED_KEY = 'discover-banner-dismissed';
 
@@ -236,40 +236,18 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
     if (bannerDismissed) {
       return null;
     }
-
     const {location, organization} = this.props;
     const eventView = EventView.fromNewQueryWithLocation(DEFAULT_EVENT_VIEW, location);
     const to = eventView.getResultsViewUrlTarget(organization.slug);
+    const resultsUrl = `${to.pathname}?${stringify(to.query)}`;
 
     return (
-      <StyledBanner
-        title={t('Discover Trends')}
-        subtitle={t(
-          'Customize and save queries by search conditions, event fields, and tags'
-        )}
-        backgroundComponent={<BackgroundSpace />}
-        onCloseClick={this.handleClick}
-      >
-        <StarterButton
-          size={this.state.isSmallBanner ? 'xsmall' : undefined}
-          to={to}
-          onClick={() => {
-            trackAnalyticsEvent({
-              eventKey: 'discover_v2.build_new_query',
-              eventName: 'Discoverv2: Build a new Discover Query',
-              organization_id: parseInt(this.props.organization.id, 10),
-            });
-          }}
-        >
-          {t('Build a new query')}
-        </StarterButton>
-        <StarterButton
-          size={this.state.isSmallBanner ? 'xsmall' : undefined}
-          href="https://docs.sentry.io/product/discover-queries/"
-        >
-          {t('Read the docs')}
-        </StarterButton>
-      </StyledBanner>
+      <Banner
+        organization={organization}
+        resultsUrl={resultsUrl}
+        isSmallBanner={this.state.isSmallBanner}
+        onHideBanner={this.handleClick}
+      />
     );
   }
 
@@ -407,18 +385,6 @@ const StyledActions = styled('div')`
 
 const StyledButton = styled(Button)`
   white-space: nowrap;
-`;
-
-const StarterButton = styled(Button)`
-  margin: ${space(1)};
-`;
-
-const StyledBanner = styled(Banner)`
-  max-height: 220px;
-
-  @media (min-width: ${p => p.theme.breakpoints[3]}) {
-    max-height: 260px;
-  }
 `;
 
 export default withOrganization(DiscoverLanding);

@@ -217,7 +217,7 @@ class IsValidOriginTestCase(unittest.TestCase):
         assert result is True
         result = self.isValidOrigin(u"http://l\xf8calhost", [u"*.xn--lcalhost-54a"])
         assert result is True
-        result = self.isValidOrigin("http://l\xc3\xb8calhost", [u"*.xn--lcalhost-54a"])
+        result = self.isValidOrigin(b"http://l\xc3\xb8calhost", [u"*.xn--lcalhost-54a"])
         assert result is True
         result = self.isValidOrigin("http://xn--lcalhost-54a", [u"l\xf8calhost"])
         assert result is True

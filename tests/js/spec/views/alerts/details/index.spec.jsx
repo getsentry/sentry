@@ -18,7 +18,7 @@ describe('IncidentDetails', function() {
 
   const createWrapper = (props, routerCtx) =>
     mountWithTheme(
-      <IncidentDetails params={params} {...props} />,
+      <IncidentDetails params={params} organization={organization} {...props} />,
       routerCtx ?? routerContext
     );
 

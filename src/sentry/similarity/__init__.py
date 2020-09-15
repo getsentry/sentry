@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import six
 import logging
 
 from django.conf import settings
@@ -16,6 +17,7 @@ from sentry.similarity.features import (
     MessageFeature,
     get_application_chunks,
 )
+from sentry.similarity.featuresv2 import GroupingBasedFeatureSet
 from sentry.similarity.signatures import MinHashSignatureBuilder
 from sentry.utils import redis
 from sentry.utils.compat import map
@@ -59,9 +61,9 @@ def get_frame_attributes(frame):
     return attributes
 
 
-def _make_index_backend(cluster=None):
-    if not cluster:
-        cluster_id = getattr(settings, "SENTRY_SIMILARITY_INDEX_REDIS_CLUSTER", "similarity")
+def _make_index_backend(cluster, namespace="sim:1"):
+    if isinstance(cluster, six.string_types):
+        cluster_id = cluster
 
         try:
             cluster = redis.redis_clusters.get(cluster_id)
@@ -72,14 +74,17 @@ def _make_index_backend(cluster=None):
 
     return MetricsWrapper(
         RedisScriptMinHashIndexBackend(
-            cluster, "sim:1", MinHashSignatureBuilder(16, 0xFFFF), 8, 60 * 60 * 24 * 30, 3, 5000
+            cluster, namespace, MinHashSignatureBuilder(16, 0xFFFF), 8, 60 * 60 * 24 * 30, 3, 5000
         ),
         scope_tag_name=None,
     )
 
 
 features = FeatureSet(
-    _make_index_backend(),
+    _make_index_backend(
+        getattr(settings, "SENTRY_SIMILARITY_INDEX_REDIS_CLUSTER", None) or "similarity",
+        namespace="sim:1",
+    ),
     Encoder({Frame: get_frame_attributes}),
     BidirectionalMapping(
         {
@@ -105,4 +110,13 @@ features = FeatureSet(
     },
     expected_extraction_errors=(InterfaceDoesNotExist,),
     expected_encoding_errors=(FrameEncodingError,),
+)
+
+features2 = GroupingBasedFeatureSet(
+    _make_index_backend(
+        getattr(settings, "SENTRY_SIMILARITY2_INDEX_REDIS_CLUSTER", None)
+        or getattr(settings, "SENTRY_SIMILARITY_INDEX_REDIS_CLUSTER", None)
+        or "similarity",
+        namespace="sim:2",
+    )
 )

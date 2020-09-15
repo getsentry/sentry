@@ -58,6 +58,26 @@ class UpdateOrganizationMemberTest(APITestCase):
         assert resp.status_code == 200
         mock_send_invite_email.assert_called_once_with()
 
+    @patch("sentry.utils.ratelimits.for_organization_member_invite")
+    @patch("sentry.models.OrganizationMember.send_invite_email")
+    def test_rate_limited(self, mock_send_invite_email, mock_rate_limit):
+        mock_rate_limit.return_value = True
+
+        organization = self.create_organization(name="foo", owner=self.user)
+        member_om = self.create_member(
+            organization=organization, email="foo@example.com", role="member"
+        )
+
+        path = reverse(
+            "sentry-api-0-organization-member-details", args=[organization.slug, member_om.id]
+        )
+
+        self.login_as(self.user)
+
+        resp = self.client.put(path, data={"reinvite": 1})
+        assert resp.status_code == 429
+        assert not mock_send_invite_email.mock_calls
+
     @patch("sentry.models.OrganizationMember.send_invite_email")
     def test_member_cannot_regenerate_pending_invite(self, mock_send_invite_email):
         self.login_as(user=self.user)

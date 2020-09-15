@@ -118,9 +118,9 @@ class Release(Model):
     @staticmethod
     def is_valid_version(value):
         return not (
-            any(c in value for c in BAD_RELEASE_CHARS)
+            not value
+            or any(c in value for c in BAD_RELEASE_CHARS)
             or value in (".", "..")
-            or not value
             or value.lower() == "latest"
         )
 
@@ -388,7 +388,7 @@ class Release(Model):
         """
 
         # Sort commit list in reverse order
-        commit_list.sort(key=lambda commit: commit.get("timestamp"), reverse=True)
+        commit_list.sort(key=lambda commit: commit.get("timestamp", 0), reverse=True)
 
         # TODO(dcramer): this function could use some cleanup/refactoring as it's a bit unwieldy
         from sentry.models import (
@@ -491,7 +491,8 @@ class Release(Model):
 
                     commit_author_by_commit[commit.id] = author
 
-                    patch_set = data.get("patch_set", [])
+                    # Guard against patch_set being None
+                    patch_set = data.get("patch_set") or []
                     for patched_file in patch_set:
                         try:
                             with transaction.atomic():

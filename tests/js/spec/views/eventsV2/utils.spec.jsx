@@ -263,9 +263,9 @@ describe('getExpandedResults()', function() {
 
     // handles user tag values.
     result = getExpandedResults(view, {user: 'id:12735'}, {});
-    expect(result.query).toEqual('event.type:error user.id:12735');
+    expect(result.query).toEqual('event.type:error user:id:12735');
     result = getExpandedResults(view, {user: 'name:uhoh'}, {});
-    expect(result.query).toEqual('event.type:error user.name:uhoh');
+    expect(result.query).toEqual('event.type:error user:name:uhoh');
 
     // quotes value
     result = getExpandedResults(view, {extra: 'has space'}, {});
@@ -364,7 +364,7 @@ describe('getExpandedResults()', function() {
       tags: [{key: 'user', value: 'id:1234'}],
     };
     let result = getExpandedResults(view, {}, event);
-    expect(result.query).toEqual('event.type:error user.id:1234 title:"something bad"');
+    expect(result.query).toEqual('event.type:error user:id:1234 title:"something bad"');
 
     event = {
       title: 'something bad',
@@ -384,7 +384,7 @@ describe('getExpandedResults()', function() {
       user: 'id:1234',
     };
     const result = getExpandedResults(view, {}, event);
-    expect(result.query).toEqual('event.type:error user.id:1234 title:"something bad"');
+    expect(result.query).toEqual('event.type:error user:id:1234 title:"something bad"');
   });
 
   it('normalizes the timestamp field', () => {
@@ -506,16 +506,15 @@ describe('downloadAsCsv', function() {
   it('handles the user column', function() {
     const result = {
       data: [
-        {message: 'test 0', user: 'baz'},
-        {message: 'test 1', 'user.name': 'foo'},
-        {message: 'test 2', 'user.name': 'bar', 'user.ip': '127.0.0.1'},
-        {message: 'test 3', 'user.email': 'foo@example.com', 'user.username': 'foo'},
-        {message: 'test 4', 'user.ip': '127.0.0.1'},
+        {message: 'test 0', user: 'name:baz'},
+        {message: 'test 1', user: 'id:123'},
+        {message: 'test 2', user: 'email:test@example.com'},
+        {message: 'test 3', user: 'ip:127.0.0.1'},
       ],
     };
     expect(downloadAsCsv(result, [messageColumn, userColumn])).toContain(
       encodeURIComponent(
-        'message,user\r\ntest 0,baz\r\ntest 1,foo\r\ntest 2,bar\r\ntest 3,foo@example.com\r\ntest 4,127.0.0.1'
+        'message,user\r\ntest 0,name:baz\r\ntest 1,id:123\r\ntest 2,email:test@example.com\r\ntest 3,ip:127.0.0.1'
       )
     );
   });

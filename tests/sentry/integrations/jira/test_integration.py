@@ -843,7 +843,7 @@ class JiraIntegrationTest(APITestCase):
         assign_issue_response = responses.calls[1][1]
         assert assign_issue_url in assign_issue_response.url
         assert assign_issue_response.status_code == 200
-        assert assign_issue_response.request.body == '{"accountId": "deadbeef123"}'
+        assert assign_issue_response.request.body == b'{"accountId": "deadbeef123"}'
 
     @responses.activate
     def test_sync_assignee_outbound_no_email(self):
@@ -897,7 +897,7 @@ class JiraIntegrationTest(APITestCase):
         assign_issue_response = responses.calls[2][1]
         assert assign_issue_url in assign_issue_response.url
         assert assign_issue_response.status_code == 200
-        assert assign_issue_response.request.body == '{"accountId": "deadbeef123"}'
+        assert assign_issue_response.request.body == b'{"accountId": "deadbeef123"}'
 
     def test_update_organization_config(self):
         org = self.organization

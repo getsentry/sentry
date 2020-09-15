@@ -36,7 +36,7 @@ type Props = {
    * Custom renderer function for when the feature is not enabled.
    *
    *  - [default] Set this to false to disable rendering anything. If the
-   *    feature is not enabled no children will be rendererd.
+   *    feature is not enabled no children will be rendered.
    *
    *  - Set this to `true` to use the default `ComingSoon` alert component.
    *
@@ -44,7 +44,7 @@ type Props = {
    *
    * When a custom render function is used, the same object that would be
    * passed to `children` if a func is provided there, will be used here,
-   * aditionally `children` will also be passed.
+   * additionally `children` will also be passed.
    */
   renderDisabled?:
     | ((props: FeatureRenderProps & Pick<Props, 'children'>) => React.ReactNode)

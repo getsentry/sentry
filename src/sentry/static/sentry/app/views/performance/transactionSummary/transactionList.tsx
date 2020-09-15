@@ -21,6 +21,7 @@ import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import {getAggregateAlias} from 'app/utils/discover/fields';
 import {generateEventSlug} from 'app/utils/discover/urls';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
+import {getDuration} from 'app/utils/formatters';
 import {decodeScalar} from 'app/utils/queryString';
 import DiscoverQuery, {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
 import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
@@ -28,7 +29,6 @@ import {
   TOP_TRANSACTION_LIMIT,
   TOP_TRANSACTION_FILTERS,
 } from 'app/views/performance/constants';
-import {getHumanDuration} from 'app/components/events/interfaces/spans/utils';
 
 import {GridCell, GridCellNumber} from '../styles';
 import {getTransactionDetailsUrl, getTransactionComparisonUrl} from '../utils';
@@ -223,15 +223,16 @@ class TransactionTable extends React.PureComponent<Props> {
     const tableMeta = tableData?.meta;
     const columnOrder = eventView.getColumns();
     const generateSortLink = () => undefined;
+    const titles = [t('id'), t('user'), t('duration'), t('timestamp')];
 
-    const headerColumns = columnOrder.map((column, index) => (
-      <HeaderCell column={column} tableMeta={tableMeta} key={index}>
+    const headerColumns = titles.map((title, index) => (
+      <HeaderCell column={columnOrder[index]} tableMeta={tableMeta} key={index}>
         {({align}) => {
           return (
             <HeadCellContainer>
               <SortLink
                 align={align}
-                title={column.name}
+                title={title}
                 direction={undefined}
                 canSort={false}
                 generateSortLink={generateSortLink}
@@ -374,7 +375,7 @@ class TransactionTable extends React.PureComponent<Props> {
           <BodyCellContainer key={`${rowIndex}-baseline`} style={{textAlign: 'right'}}>
             <GridCell>
               <Link to={target} onClick={this.handleViewDetailsClick}>
-                {`${getHumanDuration(delta / 1000)} ${relativeSpeed}`}
+                {`${getDuration(delta / 1000, delta < 1000 ? 0 : 2)} ${relativeSpeed}`}
               </Link>
             </GridCell>
           </BodyCellContainer>

@@ -9,13 +9,16 @@ import getDynamicText from 'app/utils/getDynamicText';
 import marked from 'app/utils/marked';
 import platforms from 'app/data/platforms';
 import slugify from 'app/utils/slugify';
+import ExternalLink from 'app/components/links/externalLink';
 import {
-  STORE_CRASH_REPORTS_VALUES,
+  getStoreCrashReportsValues,
   formatStoreCrashReports,
+  SettingScope,
 } from 'app/utils/crashReports';
 import space from 'app/styles/space';
 import {GroupingConfigItem} from 'app/components/events/groupingInfo';
 import {Field} from 'app/views/settings/components/forms/type';
+import Link from 'app/components/links/link';
 
 // Export route to make these forms searchable by label/help
 export const route = '/settings/:orgId/projects/:projectId/';
@@ -49,7 +52,7 @@ const ORG_DISABLED_REASON = t(
 // Check if a field has been set AND IS TRUTHY at the organization level.
 const hasOrgOverride = ({organization, name}) => organization[name];
 
-export const fields: {[key: string]: Field} = {
+export const fields: Record<string, Field> = {
   slug: {
     name: 'slug',
     type: 'string',
@@ -203,17 +206,20 @@ export const fields: {[key: string]: Field} = {
         <div style={{marginBottom: 3}}>
           {tct(
             `This can be used to enhance the grouping algorithm with custom rules.
-        Rules follow the pattern [pattern].`,
+        Rules follow the pattern [pattern]. [docs:Read the docs] for more information.`,
             {
               pattern: <code>matcher:glob [^v]?[+-]flag</code>,
+              docs: (
+                <ExternalLink href="https://docs.sentry.io/platform-redirect/?next=%2Fdata-management%2Fevent-grouping%2Fgrouping-enhancements%2F" />
+              ),
             }
           )}
         </div>
         <pre>
           {'# remove all frames above a certain function from grouping\n' +
-            'function:panic_handler      ^-group\n' +
+            'stack.function:panic_handler      ^-group\n' +
             '# mark all functions following a prefix in-app\n' +
-            'function:mylibrary_*        +app\n'}
+            'stack.function:mylibrary_*        +app\n'}
         </pre>
       </React.Fragment>
     ),
@@ -225,7 +231,7 @@ export const fields: {[key: string]: Field} = {
     type: 'string',
     label: t('Server Side Fingerprinting'),
     placeholder: t(
-      'type:MyException -> fingerprint-value\nfunction:some_panic_function -> fingerprint-value'
+      'error.type:MyException -> fingerprint-value\nstack.function:some_panic_function -> fingerprint-value'
     ),
     multiline: true,
     monospace: true,
@@ -241,17 +247,20 @@ export const fields: {[key: string]: Field} = {
         <div style={{marginBottom: 3}}>
           {tct(
             `This can be used to modify the fingerprinting rules on the server with custom rules.
-        Rules follow the pattern [pattern].`,
+        Rules follow the pattern [pattern]. [docs:Read the docs] for more information.`,
             {
-              pattern: <code>matcher:glob -> fingerprint, values</code>,
+              pattern: <code>matcher:glob -&gt; fingerprint, values</code>,
+              docs: (
+                <ExternalLink href="https://docs.sentry.io/platform-redirect/?next=%2Fdata-management%2Fevent-grouping%2Fserver-side-fingerprinting%2F" />
+              ),
             }
           )}
         </div>
         <pre>
           {'# force all errors of the same type to have the same fingerprint\n' +
-            'type:DatabaseUnavailable -> system-down\n' +
+            'error.type:DatabaseUnavailable -> system-down\n' +
             '# force all memory allocation errors to be grouped together\n' +
-            'family:native function:malloc -> memory-allocation-error\n'}
+            'stack.function:malloc -> memory-allocation-error\n'}
         </pre>
       </React.Fragment>
     ),
@@ -332,14 +341,35 @@ export const fields: {[key: string]: Field} = {
   },
   storeCrashReports: {
     name: 'storeCrashReports',
-    type: 'range',
+    type: 'array',
     label: t('Store Native Crash Reports'),
-    help: t(
-      'Store native crash reports such as Minidumps for improved processing and download in issue details. Overrides organization settings.'
-    ),
+    help: ({organization}) =>
+      tct(
+        'Store native crash reports such as Minidumps for improved processing and download in issue details. Overrides [organizationSettingsLink: organization settings].',
+        {
+          organizationSettingsLink: (
+            <Link to={`/settings/${organization.slug}/security-and-privacy/`} />
+          ),
+        }
+      ),
     visible: ({features}) => features.has('event-attachments'),
-    formatLabel: value => formatStoreCrashReports(value, {inProjectSettings: true}),
-    allowedValues: STORE_CRASH_REPORTS_VALUES,
+    placeholder: ({organization, value}) => {
+      // empty value means that this project should inherit organization settings
+      if (value === '') {
+        return tct('Inherit organization settings ([organizationValue])', {
+          organizationValue: formatStoreCrashReports(organization.storeCrashReports),
+        });
+      }
+
+      // HACK: some organization can have limit of stored crash reports a number that's not in the options (legacy reasons),
+      // we therefore display it in a placeholder
+      return formatStoreCrashReports(value);
+    },
+    choices: ({organization}) =>
+      getStoreCrashReportsValues(SettingScope.Project).map(value => [
+        value,
+        formatStoreCrashReports(value, organization.storeCrashReports),
+      ]),
   },
   allowedDomains: {
     name: 'allowedDomains',

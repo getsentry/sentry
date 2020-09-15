@@ -3,26 +3,68 @@ on:
   push:
     branches:
       - master
+      - releases/**
   pull_request:
 
 jobs:
+    parse-commit-message:
+      if: ${{ github.ref != 'refs/heads/master' }}
+      runs-on: ubuntu-16.04
+      outputs:
+        commit: ${{ steps.commit.outputs.message }}
+      steps:
+        - uses: actions/checkout@v2
+          with:
+            ref: ${{ github.event.pull_request.head.sha }}
+
+        - name: Parse commit message
+          id: commit
+          run: |
+            echo "::set-output name=message::$(git show -s --format=%B)"
+
+    getsentry:
+      needs: parse-commit-message
+      if: ${{ contains(needs.parse-commit-message.outputs.commit, '#test-getsentry') }}
+      runs-on: ubuntu-16.04
+      steps:
+        - name: getsentry token
+          id: getsentry
+          uses: getsentry/action-github-app-token@v1
+          with:
+            app_id: ${{ secrets.SENTRY_INTERNAL_APP_ID }}
+            private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
+
+        # Notify getsentry
+        - name: Dispatch getsentry tests
+          uses: actions/github-script@v3
+          with:
+            github-token: ${{ steps.getsentry.outputs.token }}
+            script: |
+              github.actions.createWorkflowDispatch({
+                owner: 'getsentry',
+                repo: 'getsentry',
+                workflow_id: 'acceptance.yml',
+                ref: 'master',
+                inputs: {
+                  sha: '${{ github.event.pull_request.head.sha }}',
+                }
+              })
+
     jest:
       runs-on: ubuntu-latest
       env:
-        VISUAL_SNAPSHOT_ENABLE: 1
+        VISUAL_HTML_ENABLE: 1
       steps:
         # Checkout codebase
-        - uses: actions/checkout@v1
+        - uses: actions/checkout@v2
+
+        # Install/setup node
+        - uses: volta-cli/action@v1
 
         # See https://github.com/actions/cache/blob/master/examples.md#node---yarn for example
         - name: Get yarn cache directory path
           id: yarn-cache-dir-path
           run: echo "::set-output name=dir::$(yarn cache dir)"
-
-        # Use nvmrc so we don't have yet another place node version is defined
-        - name: Get node version from .nvmrc
-          id: nvmrc
-          run: echo "::set-output name=version::$(cat .nvmrc)"
 
         # yarn cache
         - uses: actions/cache@v1
@@ -33,11 +75,6 @@ jobs:
             restore-keys: |
               ${{ runner.os }}-yarn-
 
-        # Setup node
-        - uses: actions/setup-node@v1
-          with:
-            node-version: ${{ steps.nvmrc.outputs.version }}
-
         - name: Install dependencies
           run: yarn install --frozen-lockfile
 
@@ -45,6 +82,18 @@ jobs:
           run: |
             NODE_ENV=production yarn build-css
             yarn test-ci --forceExit
+
+        - name: Save HTML artifacts
+          uses: actions/upload-artifact@v2
+          with:
+            name: jest-html
+            path: .artifacts/visual-snapshots/jest
+
+        - name: Create Images from HTML
+          uses: getsentry/action-html-to-image@main
+          with:
+            base-path: .artifacts/visual-snapshots/jest
+            css-path: src/sentry/static/sentry/dist/sentry.css
 
         - name: Save snapshots
           if: always()
@@ -68,9 +117,6 @@ jobs:
         SENTRY_SKIP_BACKEND_VALIDATION: 1
         MIGRATIONS_TEST_MIGRATE: 0
 
-        # Use this to override the django version in the requirements file.
-        DJANGO_VERSION: ">=1.11,<1.12"
-
         # Node configuration
         NODE_OPTIONS: --max-old-space-size=4096
         NODE_ENV: development
@@ -91,6 +137,13 @@ jobs:
         VISUAL_SNAPSHOT_ENABLE: 1
 
       steps:
+        - name: Install System Dependencies
+          run: |
+            sudo apt-get update
+            sudo apt-get install -y --no-install-recommends \
+              libxmlsec1-dev \
+              libmaxminddb-dev
+
         # Checkout codebase
         - uses: actions/checkout@v2
 
@@ -114,7 +167,7 @@ jobs:
             echo "::set-output name=yarn-cache-dir::$(yarn cache dir)"
             echo "::set-output name=python-version::2.7"
             echo "::set-output name=matrix-instance-number::$(($MATRIX_INSTANCE+1))"
-
+            echo "::set-output name=acceptance-dir::.artifacts/visual-snapshots/acceptance"
 
         # yarn cache
         - uses: actions/cache@v1
@@ -150,11 +203,6 @@ jobs:
             restore-keys: |
               ${{ runner.os }}-pip-
 
-        - name: Install System Dependencies
-          run: |
-            sudo apt-get update
-            sudo apt-get install libxmlsec1-dev libmaxminddb-dev
-
         - name: Install Javascript Dependencies
           run: |
             yarn install --frozen-lockfile
@@ -186,10 +234,13 @@ jobs:
         - name: Run acceptance tests (#${{ steps.config.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
           if: always()
           run: |
-            mkdir -p .artifacts/visual-snapshots/acceptance
-            mkdir -p .artifacts/visual-snapshots/acceptance-mobile
+            mkdir -p ${{ steps.config.outputs.acceptance-dir }}
+            mkdir -p ${{ steps.config.outputs.acceptance-dir }}-mobile
+            mkdir -p ${{ steps.config.outputs.acceptance-dir }}-tooltips
+            [ "$GITHUB_REF" = "refs/heads/master" ] && export PYTEST_SENTRY_ALWAYS_REPORT=1
             make run-acceptance
           env:
+            PYTEST_SNAPSHOTS_DIR: ${{ steps.config.outputs.acceptance-dir }}
             USE_SNUBA: 1
             TEST_GROUP: ${{ matrix.instance }}
 

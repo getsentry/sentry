@@ -3,12 +3,14 @@ from __future__ import absolute_import
 from contextlib import contextmanager
 import sentry_sdk
 import six
+from django.utils.http import urlquote
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.exceptions import ParseError
 
 
 from sentry import features
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
+from sentry.api.base import LINK_HEADER
 from sentry.api.bases import OrganizationEndpoint, NoProjects
 from sentry.api.event_search import (
     get_filter,
@@ -22,6 +24,7 @@ from sentry.models.group import Group
 from sentry.snuba import discover
 from sentry.utils.compat import map
 from sentry.utils.dates import get_rollup_from_request
+from sentry.utils.http import absolute_uri
 from sentry.utils import snuba
 
 
@@ -123,6 +126,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 (
                     snuba.RateLimitExceeded,
                     snuba.QueryMemoryLimitExceeded,
+                    snuba.QueryExecutionTimeMaximum,
                     snuba.QueryTooManySimultaneous,
                 ),
             ):
@@ -130,9 +134,12 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             elif isinstance(
                 error,
                 (
-                    snuba.UnqualifiedQueryError,
+                    snuba.DatasetSelectionError,
+                    snuba.QueryConnectionFailed,
                     snuba.QueryExecutionError,
+                    snuba.QuerySizeExceeded,
                     snuba.SchemaValidationError,
+                    snuba.UnqualifiedQueryError,
                 ),
             ):
                 sentry_sdk.capture_exception(error)
@@ -142,6 +149,29 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
 
 class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
+    def build_cursor_link(self, request, name, cursor):
+        # The base API function only uses the last query parameter, but this endpoint
+        # needs all the parameters, particularly for the "field" query param.
+        querystring = u"&".join(
+            u"{0}={1}".format(urlquote(query[0]), urlquote(value))
+            for query in request.GET.lists()
+            if query[0] != "cursor"
+            for value in query[1]
+        )
+
+        base_url = absolute_uri(urlquote(request.path))
+        if querystring:
+            base_url = u"{0}?{1}".format(base_url, querystring)
+        else:
+            base_url = base_url + "?"
+
+        return LINK_HEADER.format(
+            uri=base_url,
+            cursor=six.text_type(cursor),
+            name=name,
+            has_results="true" if bool(cursor) else "false",
+        )
+
     def handle_results_with_meta(self, request, organization, project_ids, results):
         with sentry_sdk.start_span(op="discover.endpoint", description="base.handle_results"):
             data = self.handle_data(request, organization, project_ids, results.get("data"))
@@ -171,11 +201,13 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 row["transaction.status"] = SPAN_STATUS_CODE_TO_NAME.get(row["transaction.status"])
 
         fields = request.GET.getlist("field")
-        if "issue" in fields:  # Look up the short ID and return that in the results
-            issue_ids = set(row.get("issue.id") for row in results)
-            issues = Group.issues_mapping(issue_ids, project_ids, organization)
+        has_issues = "issue" in fields
+        if has_issues:  # Look up the short ID and return that in the results
+            if has_issues:
+                issue_ids = set(row.get("issue.id") for row in results)
+                issues = Group.issues_mapping(issue_ids, project_ids, organization)
             for result in results:
-                if "issue.id" in result:
+                if has_issues and "issue.id" in result:
                     result["issue"] = issues.get(result["issue.id"], "unknown")
 
         if not ("project.id" in first_row or "projectid" in first_row):
@@ -189,12 +221,14 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 
         return results
 
-    def get_event_stats_data(self, request, organization, get_event_stats, top_events=False):
+    def get_event_stats_data(
+        self, request, organization, get_event_stats, top_events=False, query_column="count()"
+    ):
         with self.handle_query_errors():
             with sentry_sdk.start_span(
                 op="discover.endpoint", description="base.stats_query_creation"
             ):
-                columns = request.GET.getlist("yAxis", ["count()"])
+                columns = request.GET.getlist("yAxis", [query_column])
                 query = request.GET.get("query")
                 try:
                     params = self.get_filter_params(request, organization)
@@ -241,7 +275,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     else:
                         # Need to get function alias if count is a field, but not the axis
                         results[key] = serializer.serialize(
-                            event_result, get_function_alias(query_columns[0])
+                            event_result, column=get_function_alias(query_columns[0])
                         )
                 return results
             elif len(query_columns) > 1:

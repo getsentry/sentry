@@ -26,6 +26,7 @@ class OnboardingTask(object):
     USER_REPORTS = 8
     ISSUE_TRACKER = 9
     ALERT_RULE = 10
+    FIRST_TRANSACTION = 11
 
 
 class OnboardingTaskStatus(object):
@@ -87,6 +88,7 @@ class OrganizationOnboardingTask(Model):
         (OnboardingTask.USER_REPORTS, "setup_user_reports"),
         (OnboardingTask.ISSUE_TRACKER, "setup_issue_tracker"),
         (OnboardingTask.ALERT_RULE, "setup_alert_rules"),
+        (OnboardingTask.FIRST_TRANSACTION, "setup_transactions"),
     )
 
     STATUS_CHOICES = (
@@ -116,6 +118,7 @@ class OrganizationOnboardingTask(Model):
             OnboardingTask.SOURCEMAPS,
             OnboardingTask.ISSUE_TRACKER,
             OnboardingTask.ALERT_RULE,
+            OnboardingTask.FIRST_TRANSACTION,
         ]
     )
 
@@ -129,6 +132,7 @@ class OrganizationOnboardingTask(Model):
             OnboardingTask.USER_REPORTS,
             OnboardingTask.ISSUE_TRACKER,
             OnboardingTask.ALERT_RULE,
+            OnboardingTask.FIRST_TRANSACTION,
         ]
     )
 

@@ -7,7 +7,11 @@ import IncidentsList from 'app/views/alerts/list';
 import ProjectsStore from 'app/stores/projectsStore';
 
 describe('IncidentsList', function() {
-  const {routerContext, organization} = initializeOrg();
+  const {routerContext, organization} = initializeOrg({
+    organization: {
+      features: ['incidents'],
+    },
+  });
   let incidentsMock;
   let statsMock;
   let projectMock;
@@ -207,7 +211,7 @@ describe('IncidentsList', function() {
 
     expect(
       wrapper
-        .find('ButtonBar')
+        .find('StyledButtonBar')
         .find('Button')
         .at(0)
         .prop('priority')
@@ -239,7 +243,7 @@ describe('IncidentsList', function() {
 
     expect(
       wrapper
-        .find('Actions ButtonBar ButtonBar')
+        .find('StyledButtonBar')
         .find('Button')
         .at(1)
         .prop('priority')
@@ -278,14 +282,14 @@ describe('IncidentsList', function() {
 
     wrapper = await createWrapper({organization: noAccessOrg});
 
-    const addButton = wrapper.find('button[aria-label="Add Alert Rule"]');
+    const addButton = wrapper.find('button[aria-label="Create Alert Rule"]');
     expect(addButton.props()['aria-disabled']).toBe(true);
 
     // Enabled with access
     wrapper = await createWrapper();
 
     // NOTE: A link when not disabled
-    const addLink = wrapper.find('a[aria-label="Add Alert Rule"]');
+    const addLink = wrapper.find('a[aria-label="Create Alert Rule"]');
     expect(addLink.props()['aria-disabled']).toBe(false);
   });
 });

@@ -119,7 +119,7 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
               {tct('[read] and [write] access to [resources] resources', {
                 read: <strong>Read</strong>,
                 write: <strong>Write</strong>,
-                resources: permissions.read.join(', '),
+                resources: permissions.write.join(', '),
               })}
             </Text>
           </Permission>
@@ -130,7 +130,7 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
             <Text key="admin">
               {tct('[admin] access to [resources] resources', {
                 admin: <strong>Admin</strong>,
-                resources: permissions.read.join(', '),
+                resources: permissions.admin.join(', '),
               })}
             </Text>
           </Permission>
