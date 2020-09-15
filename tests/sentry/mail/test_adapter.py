@@ -560,13 +560,20 @@ class MailAdapterRuleNotifyTest(BaseMailAdapterTest, TestCase):
 
 class MailAdapterShouldNotifyTest(BaseMailAdapterTest, TestCase):
     def test_should_notify(self):
-        assert self.adapter.should_notify(self.group)
+        assert self.adapter.should_notify(ActionTargetType.ISSUE_OWNERS, self.group)
+        assert self.adapter.should_notify(ActionTargetType.MEMBER, self.group)
 
     def test_should_not_notify_no_users(self):
         UserOption.objects.set_value(
             user=self.user, key="mail:alert", value=0, project=self.project
         )
-        assert not self.adapter.should_notify(self.group)
+        assert not self.adapter.should_notify(ActionTargetType.ISSUE_OWNERS, self.group)
+
+    def test_should_always_notify_target_member(self):
+        UserOption.objects.set_value(
+            user=self.user, key="mail:alert", value=0, project=self.project
+        )
+        assert self.adapter.should_notify(ActionTargetType.MEMBER, self.group)
 
 
 class MailAdapterGetSendToOwnersTest(BaseMailAdapterTest, TestCase):
