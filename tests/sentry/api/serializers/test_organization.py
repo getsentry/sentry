@@ -38,7 +38,6 @@ class OrganizationSerializerTest(TestCase):
                 "sso-basic",
                 "symbol-sources",
                 "custom-symbol-sources",
-                "releases-v2",
                 "discover-basic",
                 "discover-query",
                 "artifacts-in-settings",
