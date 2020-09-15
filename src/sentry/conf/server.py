@@ -1526,7 +1526,7 @@ SENTRY_DEVSERVICES = {
             # If you have high volume and your search return incomplete results
             # You might want to change this to a higher value (and ensure your host has enough memory)
             "MAX_MEMORY_USAGE_RATIO": "0.3"
-        }
+        },
         "only_if": lambda settings, options: (
             "snuba" in settings.SENTRY_EVENTSTREAM or "kafka" in settings.SENTRY_EVENTSTREAM
         ),
