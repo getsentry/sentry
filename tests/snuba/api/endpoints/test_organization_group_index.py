@@ -648,6 +648,13 @@ class GroupListTest(APITestCase, SnubaTestCase):
             assert response.data[0]["lifetime"] is not None
             assert response.data[0]["filtered"] is not None
 
+    @patch(
+        "sentry.api.helpers.group_index.ratelimiter.is_limited", autospec=True, return_value=True,
+    )
+    def test_ratelimit(self, is_limited):
+        self.login_as(user=self.user)
+        self.get_valid_response(sort_by="date", limit=1, status_code=429)
+
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"
@@ -1541,6 +1548,13 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert tombstone.project == group1.project
         assert tombstone.data == group1.data
 
+    @patch(
+        "sentry.api.helpers.group_index.ratelimiter.is_limited", autospec=True, return_value=True,
+    )
+    def test_ratelimit(self, is_limited):
+        self.login_as(user=self.user)
+        self.get_valid_response(sort_by="date", limit=1, status_code=429)
+
 
 class GroupDeleteTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"
@@ -1556,7 +1570,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
     @patch("sentry.api.helpers.group_index.eventstream")
     @patch("sentry.eventstream")
     def test_delete_by_id(self, mock_eventstream_task, mock_eventstream_api):
-        eventstream_state = object()
+        eventstream_state = {"event_stream_state": uuid4()}
         mock_eventstream_api.start_delete_groups = Mock(return_value=eventstream_state)
 
         group1 = self.create_group(checksum="a" * 32, status=GroupStatus.RESOLVED)
@@ -1661,3 +1675,10 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         for group in groups:
             assert not Group.objects.filter(id=group.id).exists()
             assert not GroupHash.objects.filter(group_id=group.id).exists()
+
+    @patch(
+        "sentry.api.helpers.group_index.ratelimiter.is_limited", autospec=True, return_value=True,
+    )
+    def test_ratelimit(self, is_limited):
+        self.login_as(user=self.user)
+        self.get_valid_response(sort_by="date", limit=1, status_code=429)

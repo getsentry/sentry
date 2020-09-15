@@ -57,6 +57,10 @@ class EventOrGroupExtraDetails extends React.Component {
             avatar={
               project && <ProjectBadge project={project} avatarSize={14} hideName />
             }
+            onClick={event => {
+              // prevent the clicks from propagating so that the short id can be selected
+              event.stopPropagation();
+            }}
           />
         )}
         <StyledTimes lastSeen={lastSeen} firstSeen={firstSeen} />

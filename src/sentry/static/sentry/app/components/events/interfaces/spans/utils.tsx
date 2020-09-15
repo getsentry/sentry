@@ -307,6 +307,8 @@ export const setBodyUserSelect = (nextValues: UserSelectValues): UserSelectValue
     // MozUserSelect is not typed in TS
     // @ts-ignore
     MozUserSelect: document.body.style.MozUserSelect,
+    // msUserSelect is not typed in TS
+    // @ts-ignore
     msUserSelect: document.body.style.msUserSelect,
     webkitUserSelect: document.body.style.webkitUserSelect,
   };
@@ -315,6 +317,8 @@ export const setBodyUserSelect = (nextValues: UserSelectValues): UserSelectValue
   // MozUserSelect is not typed in TS
   // @ts-ignore
   document.body.style.MozUserSelect = nextValues.MozUserSelect || '';
+  // msUserSelect is not typed in TS
+  // @ts-ignore
   document.body.style.msUserSelect = nextValues.msUserSelect || '';
   document.body.style.webkitUserSelect = nextValues.webkitUserSelect || '';
 

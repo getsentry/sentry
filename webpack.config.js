@@ -430,7 +430,7 @@ if (
   if (!IS_UI_DEV_ONLY) {
     // This proxies to local backend server
     const backendAddress = `http://localhost:${SENTRY_BACKEND_PORT}/`;
-    const relayAddress = 'http://127.0.0.1:7999';
+    const relayAddress = 'http://127.0.0.1:7899';
 
     appConfig.devServer = {
       ...appConfig.devServer,

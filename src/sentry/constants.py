@@ -82,7 +82,7 @@ SENTRY_APP_SLUG_MAX_LENGTH = 64
 
 # Maximum number of results we are willing to fetch when calculating rollup
 # Clients should adapt the interval width based on their display width.
-MAX_ROLLUP_POINTS = 4500
+MAX_ROLLUP_POINTS = 10000
 
 
 # Team slugs which may not be used. Generally these are top level URL patterns
@@ -152,6 +152,7 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "_experiment",
         "sentry-apps",
         "resources",
+        "integration-platform",
     )
 )
 
@@ -231,30 +232,23 @@ SENTRY_RULES = (
     "sentry.rules.filters.age_comparison.AgeComparisonFilter",
     "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter",
     "sentry.rules.filters.assigned_to.AssignedToFilter",
+    "sentry.rules.filters.latest_release.LatestReleaseFilter",
     # The following filters are duplicates of their respective conditions and are conditionally shown if the user has issue alert-filters
     "sentry.rules.filters.event_attribute.EventAttributeFilter",
     "sentry.rules.filters.tagged_event.TaggedEventFilter",
     "sentry.rules.filters.level.LevelFilter",
 )
 
-SENTRY_RULES_WITH_MIGRATED_FILTERS = frozenset(
+MIGRATED_CONDITIONS = frozenset(
     [
-        "sentry.mail.actions.NotifyEmailAction",
-        "sentry.rules.actions.notify_event.NotifyEventAction",
-        "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
-        "sentry.rules.conditions.every_event.EveryEventCondition",
-        "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
-        "sentry.rules.conditions.regression_event.RegressionEventCondition",
-        "sentry.rules.conditions.reappeared_event.ReappearedEventCondition",
-        "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
-        "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition",
-        "sentry.rules.filters.age_comparison.AgeComparisonFilter",
-        "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter",
-        "sentry.rules.filters.assigned_to.AssignedToFilter",
-        "sentry.rules.filters.event_attribute.EventAttributeFilter",
-        "sentry.rules.filters.tagged_event.TaggedEventFilter",
-        "sentry.rules.filters.level.LevelFilter",
+        "sentry.rules.conditions.tagged_event.TaggedEventCondition",
+        "sentry.rules.conditions.event_attribute.EventAttributeCondition",
+        "sentry.rules.conditions.level.LevelCondition",
     ]
+)
+
+SENTRY_RULES_WITH_MIGRATED_FILTERS = frozenset(
+    [rule for rule in SENTRY_RULES if rule not in MIGRATED_CONDITIONS]
 )
 
 # methods as defined by http://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html + PATCH

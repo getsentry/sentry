@@ -17,30 +17,16 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
         condition_list = []
         filter_list = []
 
-        has_issue_alerts_targeting = (
-            project.flags.has_issue_alerts_targeting
-            or request.query_params.get("issue_alerts_targeting") == "1"
-        )
-        org_has_filters = features.has("projects:alert-filters", project)
+        project_has_filters = features.has("projects:alert-filters", project)
         # TODO: conditions need to be based on actions
         for rule_type, rule_cls in rules:
             node = rule_cls(project)
             # skip over conditions if they are not in the migrated set for an org with alert-filters
-            if org_has_filters and node.id not in SENTRY_RULES_WITH_MIGRATED_FILTERS:
+            if project_has_filters and node.id not in SENTRY_RULES_WITH_MIGRATED_FILTERS:
                 continue
-            context = {
-                "id": node.id,
-                "label": node.label,
-                "enabled": node.is_enabled(),
-            }
+            context = {"id": node.id, "label": node.label, "enabled": node.is_enabled()}
             if hasattr(node, "prompt"):
                 context["prompt"] = node.prompt
-
-            if (
-                node.id == "sentry.mail.actions.NotifyEmailAction"
-                and not has_issue_alerts_targeting
-            ):
-                continue
 
             if hasattr(node, "form_fields"):
                 context["formFields"] = node.form_fields

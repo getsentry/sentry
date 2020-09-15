@@ -13,8 +13,8 @@ import GroupingActions from 'app/actions/groupingActions';
 import GroupingStore from 'app/stores/groupingStore';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import Switch from 'app/components/switch';
-import Tooltip from 'app/components/tooltip';
+import ButtonBar from 'app/components/buttonBar';
+import Button from 'app/components/button';
 
 import List from './list';
 
@@ -167,27 +167,19 @@ const SimilarStackTrace = createReactClass({
           )}
         </div>
 
-        <Title>{t('Issues with a similar stack trace')}</Title>
-
-        {hasV2 && (
-          <SwitchContainer>
-            💩
-            <Tooltip
-              title={
-                this.state.v2
-                  ? t('Using new algorithm, click to go back')
-                  : t('Using old algorithm, click to try new')
-              }
-            >
-              <Switch
-                size="lg"
-                isActive={this.state.v2}
-                toggle={this.toggleSimilarityVersion}
-              />
-            </Tooltip>
-            ✨
-          </SwitchContainer>
-        )}
+        <HeaderWrapper>
+          <Title>{t('Issues with a similar stack trace')}</Title>
+          {hasV2 && (
+            <ButtonBar merged active={this.state.v2 ? 'new' : 'old'}>
+              <Button barId="old" size="small" onClick={this.toggleSimilarityVersion}>
+                {t('Old Algorithm')}
+              </Button>
+              <Button barId="new" size="small" onClick={this.toggleSimilarityVersion}>
+                {t('New Algorithm')}
+              </Button>
+            </ButtonBar>
+          )}
+        </HeaderWrapper>
 
         {isLoading && <LoadingIndicator />}
         {isError && (
@@ -214,20 +206,13 @@ const SimilarStackTrace = createReactClass({
 
 export default SimilarStackTrace;
 
-const SwitchContainer = styled('div')`
-  text-align: center;
-  line-height: 0;
-  font-size: 24px;
-
-  > * {
-    vertical-align: middle;
-    margin: ${space(1)};
-  }
+const Title = styled('h4')`
+  margin-bottom: 0;
 `;
 
-const Title = styled('h4')`
-  font-size: ${p => p.theme.headerFontSize};
-  color: ${p => p.theme.gray700};
-  font-weight: normal;
+const HeaderWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin-bottom: ${space(2)};
 `;

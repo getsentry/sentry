@@ -7,7 +7,7 @@ import responses
 from copy import deepcopy
 from six.moves.urllib.parse import urlencode
 
-from sentry.models import Integration
+from sentry.models import Integration, Identity, IdentityProvider
 from sentry.testutils import APITestCase
 from sentry.utils.compat.mock import patch
 
@@ -349,6 +349,111 @@ class MsTeamsWebhookTest(APITestCase):
 
         assert resp.status_code == 204
         assert "Click below to unlink your identity" in responses.calls[3].request.body.decode(
+            "utf-8"
+        )
+        assert "Bearer my_token" in responses.calls[3].request.headers["Authorization"]
+
+    @responses.activate
+    @patch("jwt.decode")
+    @patch("time.time")
+    def test_help_command(self, mock_time, mock_decode):
+        other_command = deepcopy(EXAMPLE_UNLINK_COMMAND)
+        other_command["text"] = "Help"
+        access_json = {"expires_in": 86399, "access_token": "my_token"}
+        responses.add(
+            responses.POST,
+            u"https://login.microsoftonline.com/botframework.com/oauth2/v2.0/token",
+            json=access_json,
+        )
+        responses.add(
+            responses.POST,
+            u"https://smba.trafficmanager.net/amer/v3/conversations/%s/activities"
+            % other_command["conversation"]["id"],
+            json={},
+        )
+        mock_time.return_value = 1594839999 + 60
+        mock_decode.return_value = DECODED_TOKEN
+        resp = self.client.post(
+            path=webhook_url,
+            data=other_command,
+            format="json",
+            HTTP_AUTHORIZATION=u"Bearer %s" % TOKEN,
+        )
+
+        assert resp.status_code == 204
+        assert "Please use one of the following commands for Sentry" in responses.calls[
+            3
+        ].request.body.decode("utf-8")
+        assert "Bearer my_token" in responses.calls[3].request.headers["Authorization"]
+
+    @responses.activate
+    @patch("jwt.decode")
+    @patch("time.time")
+    def test_link_command(self, mock_time, mock_decode):
+        other_command = deepcopy(EXAMPLE_UNLINK_COMMAND)
+        other_command["text"] = "link"
+        access_json = {"expires_in": 86399, "access_token": "my_token"}
+        responses.add(
+            responses.POST,
+            u"https://login.microsoftonline.com/botframework.com/oauth2/v2.0/token",
+            json=access_json,
+        )
+        responses.add(
+            responses.POST,
+            u"https://smba.trafficmanager.net/amer/v3/conversations/%s/activities"
+            % other_command["conversation"]["id"],
+            json={},
+        )
+        mock_time.return_value = 1594839999 + 60
+        mock_decode.return_value = DECODED_TOKEN
+        resp = self.client.post(
+            path=webhook_url,
+            data=other_command,
+            format="json",
+            HTTP_AUTHORIZATION=u"Bearer %s" % TOKEN,
+        )
+
+        assert resp.status_code == 204
+        assert "Your Microsoft Teams identity will be linked to your Sentry account" in responses.calls[
+            3
+        ].request.body.decode(
+            "utf-8"
+        )
+        assert "Bearer my_token" in responses.calls[3].request.headers["Authorization"]
+
+    @responses.activate
+    @patch("jwt.decode")
+    @patch("time.time")
+    def test_link_command_already_linked(self, mock_time, mock_decode):
+        other_command = deepcopy(EXAMPLE_UNLINK_COMMAND)
+        other_command["text"] = "link"
+        idp = IdentityProvider.objects.create(type="msteams", external_id=team_id, config={})
+        Identity.objects.create(external_id=other_command["from"]["id"], idp=idp, user=self.user)
+        access_json = {"expires_in": 86399, "access_token": "my_token"}
+        responses.add(
+            responses.POST,
+            u"https://login.microsoftonline.com/botframework.com/oauth2/v2.0/token",
+            json=access_json,
+        )
+        responses.add(
+            responses.POST,
+            u"https://smba.trafficmanager.net/amer/v3/conversations/%s/activities"
+            % other_command["conversation"]["id"],
+            json={},
+        )
+        mock_time.return_value = 1594839999 + 60
+        mock_decode.return_value = DECODED_TOKEN
+        resp = self.client.post(
+            path=webhook_url,
+            data=other_command,
+            format="json",
+            HTTP_AUTHORIZATION=u"Bearer %s" % TOKEN,
+        )
+
+        assert resp.status_code == 204
+        assert "Your Microsoft Teams identity is already linked to a Sentry account" in responses.calls[
+            3
+        ].request.body.decode(
             "utf-8"
         )
         assert "Bearer my_token" in responses.calls[3].request.headers["Authorization"]

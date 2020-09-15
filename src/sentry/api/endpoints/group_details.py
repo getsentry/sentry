@@ -31,6 +31,7 @@ from sentry.models import (
     User,
     UserReport,
 )
+from sentry.api.helpers.group_index import rate_limit_endpoint
 from sentry.plugins.base import plugins
 from sentry.plugins.bases import IssueTrackingPlugin2
 from sentry.signals import issue_deleted
@@ -186,6 +187,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         ]
 
     @attach_scenarios([retrieve_aggregate_scenario])
+    @rate_limit_endpoint(limit=10, window=1)
     def get(self, request, group):
         """
         Retrieve an Issue
@@ -200,6 +202,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         """
         try:
             # TODO(dcramer): handle unauthenticated/public response
+            from sentry.utils import snuba
 
             organization = group.project.organization
             environments = get_environments(request, organization)
@@ -324,11 +327,15 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
 
             metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 200})
             return Response(data)
+        except snuba.RateLimitExceeded:
+            metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 429})
+            raise
         except Exception:
             metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 500})
             raise
 
     @attach_scenarios([update_aggregate_scenario])
+    @rate_limit_endpoint(limit=10, window=1)
     def put(self, request, group):
         """
         Update an Issue
@@ -357,6 +364,8 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         :auth: required
         """
         try:
+            from sentry.utils import snuba
+
             discard = request.data.get("discard")
 
             # TODO(dcramer): we need to implement assignedTo in the bulk mutation
@@ -400,11 +409,15 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 "group.update.http_response", sample_rate=1.0, tags={"status": e.status_code}
             )
             return Response(e.body, status=e.status_code)
+        except snuba.RateLimitExceeded:
+            metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 429})
+            raise
         except Exception:
             metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 500})
             raise
 
     @attach_scenarios([delete_aggregate_scenario])
+    @rate_limit_endpoint(limit=10, window=1)
     def delete(self, request, group):
         """
         Remove an Issue
@@ -416,6 +429,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         :auth: required
         """
         try:
+            from sentry.utils import snuba
             from sentry.tasks.deletion import delete_groups
 
             updated = (
@@ -463,6 +477,9 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 )
             metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 200})
             return Response(status=202)
+        except snuba.RateLimitExceeded:
+            metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 429})
+            raise
         except Exception:
             metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 500})
             raise

@@ -16,6 +16,7 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 
 from sentry.utils.samples import load_data
 from sentry.utils.compat.mock import patch
+from sentry.utils.compat import zip
 from sentry.utils.snuba import (
     RateLimitExceeded,
     QueryIllegalTypeOfArgument,
@@ -271,6 +272,55 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             == "Invalid query. Project morty does not exist or is not an actively selected project."
         )
 
+    def test_not_project_in_query_but_in_header(self):
+        team = self.create_team(organization=self.organization, members=[self.user])
+
+        project = self.create_project(organization=self.organization, teams=[team])
+        project2 = self.create_project(organization=self.organization, teams=[team])
+
+        self.store_event(
+            data={"event_id": "a" * 32, "timestamp": self.min_ago, "fingerprint": ["group1"]},
+            project_id=project.id,
+        )
+        self.store_event(
+            data={"event_id": "b" * 32, "timestamp": self.min_ago, "fingerprint": ["group2"]},
+            project_id=project2.id,
+        )
+
+        query = {
+            "field": ["id", "project.id"],
+            "project": [project.id],
+            "query": "!project:{}".format(project2.slug),
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200
+        assert response.data["data"] == [{"id": "a" * 32, "project.id": project.id}]
+
+    def test_not_project_in_query_with_all_projects(self):
+        team = self.create_team(organization=self.organization, members=[self.user])
+
+        project = self.create_project(organization=self.organization, teams=[team])
+        project2 = self.create_project(organization=self.organization, teams=[team])
+
+        self.store_event(
+            data={"event_id": "a" * 32, "timestamp": self.min_ago, "fingerprint": ["group1"]},
+            project_id=project.id,
+        )
+        self.store_event(
+            data={"event_id": "b" * 32, "timestamp": self.min_ago, "fingerprint": ["group2"]},
+            project_id=project2.id,
+        )
+
+        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        query = {
+            "field": ["id", "project.id"],
+            "project": [-1],
+            "query": "!project:{}".format(project2.slug),
+        }
+        response = self.do_request(query, features=features)
+        assert response.status_code == 200
+        assert response.data["data"] == [{"id": "a" * 32, "project.id": project.id}]
+
     def test_project_condition_used_for_automatic_filters(self):
         project = self.create_project()
         self.store_event(
@@ -289,8 +339,35 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.data["data"][0]["project"] == project.slug
         assert "project.id" not in response.data["data"][0]
 
-    def test_user_search(self):
+    def test_auto_insert_project_name_when_event_id_present(self):
+        project = self.create_project()
+        self.store_event(
+            data={"event_id": "a" * 32, "environment": "staging", "timestamp": self.min_ago},
+            project_id=project.id,
+        )
+        query = {
+            "field": ["id"],
+            "statsPeriod": "1h",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [{"project.name": project.slug, "id": "a" * 32}]
 
+    def test_auto_insert_project_name_when_event_id_present_with_aggregate(self):
+        project = self.create_project()
+        self.store_event(
+            data={"event_id": "a" * 32, "environment": "staging", "timestamp": self.min_ago},
+            project_id=project.id,
+        )
+        query = {
+            "field": ["id", "count()"],
+            "statsPeriod": "1h",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [{"project.name": project.slug, "id": "a" * 32, "count": 1}]
+
+    def test_user_search(self):
         project = self.create_project()
         data = load_data("transaction", timestamp=before_now(minutes=1))
         data["user"] = {
@@ -321,7 +398,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             assert response.data["data"][0]["user"] == "id:123"
 
     def test_has_user(self):
-
         project = self.create_project()
         data = load_data("transaction", timestamp=before_now(minutes=1))
         self.store_event(data, project_id=project.id)
@@ -336,7 +412,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             assert response.data["data"][0]["user"] == "ip:{}".format(data["user"]["ip_address"])
 
     def test_has_issue(self):
-
         project = self.create_project()
         event = self.store_event(
             {"timestamp": iso_format(before_now(minutes=1))}, project_id=project.id
@@ -416,6 +491,46 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert len(response.data["data"]) == 1
         assert response.data["data"][0]["project"] == project2.slug
         assert "project.id" not in response.data["data"][0]
+
+    def test_error_handled_condition(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+        prototype = load_data("android-ndk")
+        events = (
+            ("a" * 32, "not handled", False),
+            ("b" * 32, "was handled", True),
+            ("c" * 32, "undefined", None),
+        )
+        for event in events:
+            prototype["event_id"] = event[0]
+            prototype["message"] = event[1]
+            prototype["exception"]["values"][0]["value"] = event[1]
+            prototype["exception"]["values"][0]["mechanism"]["handled"] = event[2]
+            prototype["timestamp"] = self.two_min_ago
+            self.store_event(data=prototype, project_id=project.id)
+
+        with self.feature("organizations:discover-basic"):
+            query = {
+                "field": ["message", "error.handled"],
+                "query": "error.handled:0",
+                "orderby": "message",
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200
+            assert 1 == len(response.data["data"])
+            assert [0] == response.data["data"][0]["error.handled"]
+
+        with self.feature("organizations:discover-basic"):
+            query = {
+                "field": ["message", "error.handled"],
+                "query": "error.handled:1",
+                "orderby": "message",
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.data
+            assert 2 == len(response.data["data"])
+            assert [None] == response.data["data"][0]["error.handled"]
+            assert [1] == response.data["data"][1]["error.handled"]
 
     def test_implicit_groupby(self):
         project = self.create_project()
@@ -2208,23 +2323,16 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         event_data["timestamp"] = iso_format(before_now(minutes=1))
         event_data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
         event_data["user"]["geo"] = {"country_code": "US", "region": "CA", "city": "San Francisco"}
-        event_data["contexts"]["http"] = {
-            "method": "GET",
-            "referer": "something.something",
-            "url": "https://areyouasimulation.com",
-        }
         self.store_event(event_data, project_id=project.id)
         event_data["type"] = "error"
         self.store_event(event_data, project_id=project.id)
 
         fields = [
-            "http.method",
-            "http.referer",
-            "http.url",
             "os.build",
             "os.kernel_version",
             "device.arch",
-            "device.battery_level",
+            # TODO: battery level is not consistent across both datasets
+            # "device.battery_level",
             "device.brand",
             "device.charging",
             "device.locale",
@@ -2253,6 +2361,49 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 key, value = field.split(".", 1)
                 expected = six.text_type(event_data["contexts"][key][value])
                 assert results[0][field] == expected, field + six.text_type(datum)
+
+    def test_http_fields_between_datasets(self):
+        project = self.create_project()
+        event_data = load_data("android")
+        transaction_data = load_data("transaction")
+        event_data["spans"] = transaction_data["spans"]
+        event_data["contexts"]["trace"] = transaction_data["contexts"]["trace"]
+        event_data["type"] = "transaction"
+        event_data["transaction"] = "/failure_rate/1"
+        event_data["timestamp"] = iso_format(before_now(minutes=1))
+        event_data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
+        event_data["user"]["geo"] = {"country_code": "US", "region": "CA", "city": "San Francisco"}
+        event_data["request"] = transaction_data["request"]
+        self.store_event(event_data, project_id=project.id)
+        event_data["type"] = "error"
+        self.store_event(event_data, project_id=project.id)
+
+        fields = [
+            "http.method",
+            "http.referer",
+            "http.url",
+        ]
+        expected = [
+            "GET",
+            "fixtures.transaction",
+            "http://countries:8010/country_by_code/",
+        ]
+
+        data = [
+            {"field": fields + ["location", "count()"], "query": "event.type:error"},
+            {"field": fields + ["duration", "count()"], "query": "event.type:transaction"},
+        ]
+
+        for datum in data:
+            response = self.do_request(datum)
+
+            assert response.status_code == 200, response.content
+            assert len(response.data["data"]) == 1, datum
+            results = response.data["data"]
+            assert results[0]["count"] == 1, datum
+
+            for (field, exp) in zip(fields, expected):
+                assert results[0][field] == exp, field + six.text_type(datum)
 
     def test_histogram_function(self):
         project = self.create_project()

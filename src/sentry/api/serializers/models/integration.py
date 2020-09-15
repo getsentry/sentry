@@ -69,12 +69,16 @@ class OrganizationIntegrationSerializer(Serializer):
         except NotImplementedError:
             # slack doesn't have an installation implementation
             config_data = obj.config
+            dynamic_display_information = None
         else:
             # just doing this to avoid querying for an object we already have
             installation._org_integration = obj
             config_data = installation.get_config_data()
+            dynamic_display_information = installation.get_dynamic_display_information()
 
         integration.update({"configData": config_data})
+        if dynamic_display_information:
+            integration.update({"dynamicDisplayInformation": dynamic_display_information})
 
         return integration
 

@@ -122,6 +122,10 @@ RELAY_CONFIG_DIR = os.path.normpath(
     os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "config", "relay")
 )
 
+SYMBOLICATOR_CONFIG_DIR = os.path.normpath(
+    os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "config", "symbolicator")
+)
+
 sys.path.insert(0, os.path.normpath(os.path.join(PROJECT_ROOT, os.pardir)))
 
 DATABASES = {
@@ -754,6 +758,7 @@ LOGGING = {
         "sentry_plugins": {"level": "INFO"},
         "sentry.files": {"level": "WARNING"},
         "sentry.minidumps": {"handlers": ["internal"], "propagate": False},
+        "sentry.reprocessing": {"handlers": ["internal"], "propagate": False},
         "sentry.interfaces": {"handlers": ["internal"], "propagate": False},
         # This only needs to go to Sentry for now.
         "sentry.similarity": {"handlers": ["internal"], "propagate": False},
@@ -819,7 +824,7 @@ SENTRY_FEATURES = {
     # Enable the 'discover' interface.
     "organizations:discover": False,
     # Enable attaching arbitrary files to events.
-    "organizations:event-attachments": False,
+    "organizations:event-attachments": True,
     # Allow organizations to configure built-in symbol sources.
     "organizations:symbol-sources": True,
     # Allow organizations to configure custom external symbol sources.
@@ -879,8 +884,6 @@ SENTRY_FEATURES = {
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
-    # Enable the new version of interface/breadcrumbs
-    "organizations:breadcrumbs-v2": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
@@ -895,6 +898,8 @@ SENTRY_FEATURES = {
     "organizations:sso-saml2": True,
     # Enable Rippling SSO functionality.
     "organizations:sso-rippling": False,
+    # Enable trends view for performance.
+    "organizations:trends": False,
     # Enable graph for subscription quota for errors, transactions and
     # attachments
     "organizations:usage-stats-graph": False,
@@ -917,6 +922,8 @@ SENTRY_FEATURES = {
     "projects:plugins": True,
     # Enable functionality for rate-limiting events on projects.
     "projects:rate-limits": True,
+    # Enable version 2 of reprocessing (completely distinct from v1)
+    "projects:reprocessing-v2": False,
     # Enable functionality for sampling of events on projects.
     "projects:sample-events": False,
     # Enable functionality to trigger service hooks upon event ingestion.
@@ -1423,7 +1430,7 @@ SENTRY_WATCHERS = (
 # will split the requests between Relay and Sentry (all store requests will be passed to Relay, and the
 # rest will be forwarded to Sentry)
 SENTRY_USE_RELAY = True
-SENTRY_RELAY_PORT = 7999
+SENTRY_RELAY_PORT = 7899
 
 # The chunk size for attachments in blob store. Should be a power of two.
 SENTRY_ATTACHMENT_BLOB_SIZE = 8 * 1024 * 1024  # 8MB
@@ -1494,6 +1501,8 @@ SENTRY_DEVSERVICES = {
             "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP": "INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT",
             "KAFKA_INTER_BROKER_LISTENER_NAME": "INTERNAL",
             "KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR": "1",
+            "KAFKA_OFFSETS_TOPIC_NUM_PARTITIONS": "1",
+            "KAFKA_LOG_RETENTION_HOURS": "24",
             "KAFKA_MESSAGE_MAX_BYTES": "50000000",
             "KAFKA_MAX_REQUEST_SIZE": "50000000",
         },
@@ -1547,13 +1556,14 @@ SENTRY_DEVSERVICES = {
         "image": "us.gcr.io/sentryio/symbolicator:latest",
         "pull": True,
         "ports": {"3021/tcp": 3021},
-        "command": ["run"],
+        "volumes": {SYMBOLICATOR_CONFIG_DIR: {"bind": "/etc/symbolicator"}},
+        "command": ["run", "--config", "/etc/symbolicator/config.yml"],
         "only_if": lambda settings, options: options.get("symbolicator.enabled"),
     },
     "relay": {
         "image": "us.gcr.io/sentryio/relay:latest",
         "pull": True,
-        "ports": {"7999/tcp": SENTRY_RELAY_PORT},
+        "ports": {"7899/tcp": SENTRY_RELAY_PORT},
         "volumes": {RELAY_CONFIG_DIR: {"bind": "/etc/relay"}},
         "command": ["run", "--config", "/etc/relay"],
         "only_if": lambda settings, options: settings.SENTRY_USE_RELAY,
@@ -1949,7 +1959,10 @@ SENTRY_MAIL_ADAPTER_BACKEND = "sentry.mail.adapter.MailAdapter"
 SENTRY_SYNTHETIC_MONITORING_PROJECT_ID = None
 
 # Similarity cluster to use
+# Similarity-v1: uses hardcoded set of event properties for diffing
 SENTRY_SIMILARITY_INDEX_REDIS_CLUSTER = "default"
+# Similarity-v2: uses grouping components for diffing (None = fallback to setting for v1)
+SENTRY_SIMILARITY2_INDEX_REDIS_CLUSTER = None
 
 # The grouping strategy to use for driving similarity-v2. You can add multiple
 # strategies here to index them all. This is useful for transitioning a
@@ -1963,3 +1976,5 @@ SENTRY_SIMILARITY_GROUPING_CONFIGURATIONS_TO_INDEX = {
 }
 
 SENTRY_USE_UWSGI = True
+
+SENTRY_REPROCESSING_ATTACHMENT_CHUNK_SIZE = 2 ** 20

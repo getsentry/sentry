@@ -6,6 +6,7 @@ import {boolean, number} from '@storybook/addon-knobs';
 
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
+import NavigationButtonGroup from 'app/components/navigationButtonGroup';
 import DropdownButton from 'app/components/dropdownButton';
 import {IconDelete} from 'app/icons/iconDelete';
 
@@ -192,4 +193,17 @@ export const _ButtonBar = withInfo('Buttons in a Bar container')(() => (
 
 _ButtonBar.story = {
   name: 'ButtonBar',
+};
+
+export const _NavigationButtonGroup = withInfo('Navigation Buttons Group')(() => (
+  <NavigationButtonGroup
+    location={{}}
+    hasNext={false}
+    hasPrevious
+    urls={['#', '#', '#', '#']}
+  />
+));
+
+_NavigationButtonGroup.story = {
+  name: 'NavigationButtonGroup',
 };
