@@ -19,8 +19,9 @@ def backfill_file_type(apps, schema_editor):
     EventAttachment = apps.get_model("sentry", "EventAttachment")
     all_event_attachments = EventAttachment.objects.select_related("file").all()
     for event_attachment in RangeQuerySetWrapper(all_event_attachments, step=1000):
-        event_attachment.type = event_attachment.file.type
-        event_attachment.save(update_fields=["type"])
+        if event_attachment.type is None:
+            event_attachment.type = event_attachment.file.type
+            event_attachment.save(update_fields=["type"])
 
 
 class Migration(migrations.Migration):
@@ -37,6 +38,12 @@ class Migration(migrations.Migration):
     #   this is even more important.
     # - Adding columns to highly active tables, even ones that are NULL.
     is_dangerous = True
+
+    # This flag is used to decide whether to run this migration in a transaction or not.
+    # By default we prefer to run in a transaction, but for migrations where you want
+    # to `CREATE INDEX CONCURRENTLY` this needs to be set to False. Typically you'll
+    # want to create an index concurrently when adding one to an existing table.
+    atomic = False
 
     dependencies = [
         ("sentry", "0100_file_type_on_event_attachment"),
