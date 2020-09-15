@@ -10,7 +10,6 @@ statusProvider:
   config:
     contexts:
       - 'onpremise-builder (sentryio)'
-      - 'acceptance'
 targets:
   - name: github
   - name: pypi
