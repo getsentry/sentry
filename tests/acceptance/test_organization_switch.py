@@ -40,7 +40,7 @@ class OrganizationSwitchTest(AcceptanceTestCase, SnubaTestCase):
 
         def get_project_elements_from_project_selector_dropdown():
             selector = '[data-test-id="autocomplete-list"] [data-test-id="badge-display-name"]'
-            self.browser.wait_until(selector, timeout=30)
+            self.browser.wait_until(selector)
 
             return self.browser.find_elements_by_css_selector(selector)
 
