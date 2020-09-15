@@ -70,8 +70,7 @@ class MsTeamsIntegration(IntegrationInstallation):
 
 class MsTeamsIntegrationProvider(IntegrationProvider):
     key = "msteams"
-    name = "Microsoft Teams (development)"
-    requires_feature_flag = True
+    name = "Microsoft Teams"
     can_add = False
     metadata = metadata
     integration_cls = MsTeamsIntegration

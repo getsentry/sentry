@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-from sentry import features
 from sentry.utils.signing import unsign
 
 from .integration_extension_configuration import IntegrationExtensionConfigurationView
@@ -13,9 +12,6 @@ INSTALL_EXPIRATION_TIME = 60 * 60 * 24
 class MsTeamsExtensionConfigurationView(IntegrationExtensionConfigurationView):
     provider = "msteams"
     external_provider_key = "msteams"
-
-    def is_enabled_for_org(self, org, user):
-        return features.has("organizations:integrations-msteams", org, actor=user)
 
     def map_params_to_state(self, params):
         # decode the signed params and add them to whatever params we have

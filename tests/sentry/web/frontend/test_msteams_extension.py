@@ -26,18 +26,18 @@ class MsTeamsExtensionConfigurationTest(TestCase):
 
     @patch("sentry.web.frontend.msteams_extension_configuration.unsign")
     def test_expired_signature(self, mock_unsign):
-        with self.feature(
-            {
-                "organizations:integrations-msteams": True,
-                "organizations:integrations-alert-rule": True,
-            }
-        ):
+        with self.feature({"organizations:integrations-alert-rule": True}):
             mock_unsign.side_effect = SignatureExpired()
             resp = self.hit_configure({"signed_params": "test"})
             assert b"Installation link expired" in resp.content
 
     def test_no_team_plan_feature_flag(self):
-        with self.feature({"organizations:integrations-msteams": True}):
+        with self.feature(
+            {
+                "organizations:integrations-alert-rule": False,
+                "organizations:integrations-chat-unfurl": False,
+            }
+        ):
             resp = self.hit_configure({"signed_params": "test"})
             assert resp.status_code == 302
             assert "/extensions/msteams/link/" in resp.url

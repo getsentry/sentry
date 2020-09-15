@@ -47,7 +47,7 @@ describe('IntegrationListDirectory', function() {
     it('shows installed integrations at the top in order of weight', async function() {
       expect(wrapper.find('SearchBar').exists()).toBeTruthy();
       expect(wrapper.find('PanelBody').exists()).toBeTruthy();
-      expect(wrapper.find('IntegrationRow')).toHaveLength(14);
+      expect(wrapper.find('IntegrationRow')).toHaveLength(13);
 
       [
         'bitbucket',
@@ -59,7 +59,6 @@ describe('IntegrationListDirectory', function() {
         'datadog',
         'fullstory',
         'github_actions',
-        'msteams',
         'netlify',
         'rocketchat',
         'amazon-sqs',
