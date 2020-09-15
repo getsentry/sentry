@@ -151,10 +151,11 @@ class MailAdapter(object):
         """
         return project.get_notification_recipients(self.alert_option_key)
 
-    def should_notify(self, group):
+    def should_notify(self, target_type, group):
         metrics.incr("mail_adapter.should_notify")
-        # only notify if we have users to notify
-        return self.get_sendable_users(group.project)
+        # only notify if we have users to notify. We always want to notify if targeting
+        # a member directly.
+        return target_type == ActionTargetType.MEMBER or self.get_sendable_users(group.project)
 
     def get_send_to(self, project, target_type, target_identifier=None, event=None):
         """
@@ -304,7 +305,7 @@ class MailAdapter(object):
 
         rules = []
         for rule in notification.rules:
-            rule_link = "/organizations/%s/alerts/rules/%s/%s/" % (org.slug, project.slug, rule.id,)
+            rule_link = "/organizations/%s/alerts/rules/%s/%s/" % (org.slug, project.slug, rule.id)
 
             rules.append((rule.label, rule_link))
 
