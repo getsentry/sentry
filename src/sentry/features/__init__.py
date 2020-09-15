@@ -109,6 +109,7 @@ default_manager.add("organizations:invite-members-rate-limits", OrganizationFeat
 #       them alphabetically! The order features are registered is not important.
 
 # Project scoped features
+default_manager.add("projects:alert-filters", ProjectFeature)  # NOQA
 default_manager.add("projects:custom-inbound-filters", ProjectFeature)  # NOQA
 default_manager.add("projects:data-forwarding", ProjectFeature)  # NOQA
 default_manager.add("projects:discard-groups", ProjectFeature)  # NOQA

@@ -21,7 +21,7 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
         # TODO: conditions need to be based on actions
         for rule_type, rule_cls in rules:
             node = rule_cls(project)
-            # skip over conditions if they are not in the migrated set for an org with alert-filters
+            # skip over conditions if they are not in the migrated set for a project with alert-filters
             if project_has_filters and node.id not in SENTRY_RULES_WITH_MIGRATED_FILTERS:
                 continue
             context = {"id": node.id, "label": node.label, "enabled": node.is_enabled()}
