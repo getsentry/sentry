@@ -89,7 +89,7 @@ describe('CreateProject', function() {
 
     node = wrapper.find('PlatformCard').last();
     node.simulate('click');
-    expect(wrapper.find('ProjectNameInput input').props().value).toBe('Ruby');
+    expect(wrapper.find('ProjectNameInput input').props().value).toBe('Rails');
 
     //but not replace it when project name is something else:
     wrapper.setState({projectName: 'another'});
@@ -115,12 +115,12 @@ describe('CreateProject', function() {
             slug: 'testOrg',
             teams: [{slug: 'test', id: '1', name: 'test', hasAccess: true}],
           },
-          location: {query: {platform: 'ruby'}},
+          location: {query: {platform: 'ruby-rails'}},
         },
       ])
     );
 
-    expect(wrapper.find('ProjectNameInput input').props().value).toBe('Ruby');
+    expect(wrapper.find('ProjectNameInput input').props().value).toBe('Rails');
 
     expect(wrapper).toSnapshot();
   });

@@ -47,7 +47,9 @@ class PlatformPicker extends React.Component {
     const categoryMatch = platform =>
       category === 'all' || currentCategory.platforms.includes(platform.id);
 
-    const filtered = platforms.filter(this.state.filter ? subsetMatch : categoryMatch);
+    const filtered = platforms
+      .filter(this.state.filter ? subsetMatch : categoryMatch)
+      .sort((a, b) => a.id.localeCompare(b.id));
 
     return this.props.showOther ? filtered : filtered.filter(({id}) => id !== 'other');
   }
@@ -153,7 +155,8 @@ const NavContainer = styled('div')`
   border-bottom: 1px solid ${p => p.theme.borderLight};
   margin-bottom: ${space(2)};
   display: grid;
-  grid-template-columns: 1fr 300px;
+  grid-gap: ${space(2)};
+  grid-template-columns: 1fr minmax(0, 300px);
   align-items: start;
 `;
 
@@ -182,6 +185,12 @@ const SearchBar = styled('div')`
 const CategoryNav = styled(NavTabs)`
   margin: 0;
   margin-top: 4px;
+  white-space: nowrap;
+
+  > li {
+    float: none;
+    display: inline-block;
+  }
 `;
 
 const PlatformList = styled('div')`
@@ -194,9 +203,6 @@ const PlatformList = styled('div')`
 const StyledPlatformIcon = styled(PlatformIcon)`
   width: 56px;
   height: 56px;
-  font-size: 42px;
-  line-height: 58px;
-  text-align: center;
   margin: ${space(2)};
   border-radius: 5px;
 `;
@@ -216,7 +222,7 @@ const ClearButton = styled(p => (
 
 const PlatformCard = styled(({platform, selected, onClear, ...props}) => (
   <div {...props}>
-    <StyledPlatformIcon platform={platform.id} size="lg" />
+    <StyledPlatformIcon platform={platform.id} withLanguageIcon size="lg" />
 
     <h3>{platform.name}</h3>
     {selected && <ClearButton onClick={onClear} />}
@@ -236,14 +242,15 @@ const PlatformCard = styled(({platform, selected, onClear, ...props}) => (
   }
 
   h3 {
-    display: block;
+    flex-grow: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     width: 100%;
     text-align: center;
     font-size: 15px;
     margin: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    padding: 0 ${space(0.5)};
     line-height: 1.2;
   }
 `;
