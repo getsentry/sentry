@@ -16,7 +16,7 @@ class VercelExtensionConfigurationTest(TestCase):
         self.user = self.create_user()
         self.org = self.create_organization()
 
-        OrganizationMember.objects.create(user=self.user, organization=self.org)
+        OrganizationMember.objects.create(user=self.user, organization=self.org, role="admin")
 
         responses.reset()
         # need oauth mocks
@@ -65,6 +65,17 @@ class VercelExtensionConfigurationTest(TestCase):
 
         # Goes straight to Vercel OAuth
         assert resp.status_code == 302
+
+    def test_logged_in_as_member(self):
+        OrganizationMember.objects.filter(user=self.user, organization=self.org).update(
+            role="member"
+        )
+        self.login_as(self.user)
+
+        resp = self.client.get(self.path, self.params)
+
+        assert resp.status_code == 302
+        assert "/extensions/vercel/link/" in resp.url
 
     def test_logged_in_many_orgs(self):
         self.login_as(self.user)
