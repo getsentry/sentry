@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import pytest
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 
 
@@ -27,6 +28,7 @@ class OrganizationSwitchTest(AcceptanceTestCase, SnubaTestCase):
 
         self.login_as(self.user)
 
+    @pytest.mark.skip(reason="Unstable right now.")
     def test_organization_switches(self):
         def navigate_to_issues_page_and_select_projects(org_slug):
             issues_url = OrganizationSwitchTest.url_creator("issues", org_slug)
