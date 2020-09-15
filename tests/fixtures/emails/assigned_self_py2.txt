@@ -1,11 +1,11 @@
 # Assigned
 
-foo@example.com assigned an issue to foo@example.com
+foo@example.com assigned an issue to themselves
 
 
 ## Issue Details
 
-goose smiling gobbler sterling feline
+buck oriented molly violently broadly glorious ample namely
 
 http://testserver/organizations/organization/issues/1/?referrer=AssignedActivityEmail
 

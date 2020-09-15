@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import six
 import os.path
 
 from six.moves.urllib.parse import urlencode
@@ -36,9 +37,17 @@ EMAILS = (
 
 
 def read_txt_email_fixture(name):
+    # XXX(python3): We have different fixtures for python2 vs python3 tests
+    # because of the differences in how the random module works betwen 2 and 3.
+    # NOTE that we _cannot_ just set the version of the seed, as there are more
+    # differences. See [0].
+    #
+    # [0]: https://stackoverflow.com/questions/55647936/random-randint-shows-different-output-in-python-2-x-and-python-3-x-with-same-see/55648073
+    version_suffix = "_py2" if six.PY2 else ""
+
     # "sso unlinked without password"
     # => "sso_unlinked_without_password.txt"
-    filename = name.replace(" ", "_") + ".txt"
+    filename = name.replace(" ", "_") + version_suffix + ".txt"
     path = join(dirname(__file__), os.pardir, "fixtures", "emails", filename)
 
     fixture = None
@@ -54,7 +63,7 @@ class EmailTestCase(AcceptanceTestCase):
         self.login_as(self.user)
 
     def build_url(self, path, format="html"):
-        return u"{}?{}".format(path, urlencode({"format": format, "seed": "123"}))
+        return u"{}?{}".format(path, urlencode({"format": format, "seed": b"123"}))
 
     def test_emails(self):
         for url, name in EMAILS:
