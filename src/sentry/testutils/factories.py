@@ -924,7 +924,8 @@ class Factories(object):
         target_type=AlertRuleTriggerAction.TargetType.USER,
         target_identifier=None,
         integration=None,
+        sentry_app=None,
     ):
         return create_alert_rule_trigger_action(
-            trigger, type, target_type, target_identifier, integration
+            trigger, type, target_type, target_identifier, integration, sentry_app
         )
