@@ -114,16 +114,16 @@ const GenericField = ({
       // the chrome required tip winds up in weird places
       // for select elements, so just make it look like
       // it's required (with *) and rely on server validation
-      delete fieldProps.required;
+      const {required: _, ...selectProps} = fieldProps;
       if (config.has_autocomplete) {
         // Redeclaring field props here as config has been narrowed to include the correct options for SelectAsyncField
         const selectFieldProps = {
           ...config,
-          ...fieldProps,
+          ...selectProps,
         };
         return <SelectAsyncField deprecatedSelectControl {...selectFieldProps} />;
       }
-      return <SelectField deprecatedSelectControl {...fieldProps} />;
+      return <SelectField deprecatedSelectControl {...selectProps} />;
     default:
       return null;
   }
