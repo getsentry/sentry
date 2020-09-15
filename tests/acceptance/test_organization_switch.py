@@ -40,7 +40,7 @@ class OrganizationSwitchTest(AcceptanceTestCase, SnubaTestCase):
             selector = '[data-test-id="autocomplete-list"] [data-test-id="badge-display-name"]'
             self.browser.wait_until(selector, timeout=30)
 
-            return self.browser.find_element_by_css_selector(selector)
+            return self.browser.find_elements_by_css_selector(selector)
 
         transition_urls = [
             OrganizationSwitchTest.url_creator(page, self.organization.slug)
