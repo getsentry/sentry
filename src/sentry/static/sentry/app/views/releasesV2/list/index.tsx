@@ -24,9 +24,8 @@ import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {defined} from 'app/utils';
 
 import ReleaseListSortOptions from './releaseListSortOptions';
-import ReleasePromo from './releasePromo';
+import ReleaseLanding from './releaseLanding';
 import IntroBanner from './introBanner';
-import SwitchReleasesButton from '../utils/switchReleasesButton';
 import ReleaseCard from './releaseCard';
 
 type RouteParams = {
@@ -197,7 +196,7 @@ class ReleasesList extends AsyncView<Props, State> {
       return <EmptyStateWarning small>{t('There are no releases.')}</EmptyStateWarning>;
     }
 
-    return <ReleasePromo orgSlug={organization.slug} />;
+    return <ReleaseLanding organization={organization} />;
   }
 
   renderInnerBody() {
@@ -258,10 +257,6 @@ class ReleasesList extends AsyncView<Props, State> {
             {this.renderInnerBody()}
 
             <Pagination pageLinks={releasesPageLinks} />
-
-            {!this.shouldShowLoadingIndicator() && (
-              <SwitchReleasesButton version="1" orgId={organization.id} />
-            )}
           </LightWeightNoProjectMessage>
         </PageContent>
       </GlobalSelectionHeader>
