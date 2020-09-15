@@ -1,5 +1,7 @@
 from __future__ import absolute_import, print_function
 
+from django.utils.encoding import force_text, force_bytes
+
 __all__ = ["JavaScriptStacktraceProcessor"]
 
 import logging
@@ -64,7 +66,7 @@ CLEAN_MODULE_RE = re.compile(
 )
 VERSION_RE = re.compile(r"^[a-f0-9]{32}|[a-f0-9]{40}$", re.I)
 NODE_MODULES_RE = re.compile(r"\bnode_modules/")
-SOURCE_MAPPING_URL_RE = re.compile(r"\/\/# sourceMappingURL=(.*)$")
+SOURCE_MAPPING_URL_RE = re.compile(b"//# sourceMappingURL=(.*)$")
 CACHE_CONTROL_RE = re.compile(r"max-age=(\d+)")
 CACHE_CONTROL_MAX = 7200
 CACHE_CONTROL_MIN = 60
@@ -152,8 +154,11 @@ def discover_sourcemap(result):
     # all keys become lowercase so they're normalized
     sourcemap = result.headers.get("sourcemap", result.headers.get("x-sourcemap"))
 
+    # Force the header value to bytes since we'll be manipulating bytes here
+    sourcemap = force_bytes(sourcemap) if sourcemap is not None else None
+
     if not sourcemap:
-        parsed_body = result.body.split("\n")
+        parsed_body = result.body.split(b"\n")
         # Source maps are only going to exist at either the top or bottom of the document.
         # Technically, there isn't anything indicating *where* it should exist, so we
         # are generous and assume it's somewhere either in the first or last 5 lines.
@@ -166,7 +171,7 @@ def discover_sourcemap(result):
         # We want to scan each line sequentially, and the last one found wins
         # This behavior is undocumented, but matches what Chrome and Firefox do.
         for line in possibilities:
-            if line[:21] in ("//# sourceMappingURL=", "//@ sourceMappingURL="):
+            if line[:21] in (b"//# sourceMappingURL=", b"//@ sourceMappingURL="):
                 # We want everything AFTER the indicator, which is 21 chars long
                 sourcemap = line[21:].rstrip()
 
@@ -191,8 +196,8 @@ def discover_sourcemap(result):
         # This comment is completely out of spec and no browser
         # would support this, but we need to strip it to make
         # people happy.
-        if "/*" in sourcemap and sourcemap[-2:] == "*/":
-            index = sourcemap.index("/*")
+        if b"/*" in sourcemap and sourcemap[-2:] == b"*/":
+            index = sourcemap.index(b"/*")
             # comment definitely shouldn't be the first character,
             # so let's just make sure of that.
             if index == 0:
@@ -201,9 +206,9 @@ def discover_sourcemap(result):
                 )
             sourcemap = sourcemap[:index]
         # fix url so its absolute
-        sourcemap = non_standard_url_join(result.url, sourcemap)
+        sourcemap = non_standard_url_join(result.url, force_text(sourcemap))
 
-    return sourcemap
+    return force_text(sourcemap) if sourcemap is not None else None
 
 
 def fetch_release_file(filename, release, dist=None):
@@ -417,7 +422,8 @@ def fetch_sourcemap(url, project=None, release=None, dist=None, allow_scraping=T
     if is_data_uri(url):
         try:
             body = base64.b64decode(
-                url[BASE64_PREAMBLE_LENGTH:] + (b"=" * (-(len(url) - BASE64_PREAMBLE_LENGTH) % 4))
+                force_bytes(url[BASE64_PREAMBLE_LENGTH:])
+                + (b"=" * (-(len(url) - BASE64_PREAMBLE_LENGTH) % 4))
             )
         except TypeError as e:
             raise UnparseableSourcemap({"url": "<base64>", "reason": six.text_type(e)})

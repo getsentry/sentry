@@ -10,8 +10,6 @@ import {EventQuery} from 'app/actionCreators/events';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {Client} from 'app/api';
-import withApi from 'app/utils/withApi';
 import {getMessage, getTitle} from 'app/utils/events';
 import {Organization, Event, EventTag} from 'app/types';
 import SentryTypes from 'app/sentryTypes';
@@ -56,7 +54,6 @@ type Props = {
   organization: Organization;
   location: Location;
   params: Params;
-  api: Client;
   eventSlug: string;
   eventView: EventView;
 };
@@ -127,7 +124,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     }
     const eventReference = {...event};
     if (eventReference.id) {
-      delete eventReference.id;
+      delete (eventReference as any).id;
     }
     const tagKey = this.generateTagKey(tag);
     const nextView = getExpandedResults(eventView, {[tagKey]: tag.value}, eventReference);
@@ -145,7 +142,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
   }
 
   renderContent(event: Event) {
-    const {api, organization, location, eventView} = this.props;
+    const {organization, location, eventView} = this.props;
     const {isSidebarVisible} = this.state;
 
     // metrics
@@ -221,7 +218,6 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                     }}
                   >
                     <BorderlessEventEntries
-                      api={api}
                       organization={organization}
                       event={event}
                       project={projects[0]}
@@ -321,4 +317,4 @@ const EventSubheading = styled('span')`
   margin-left: ${space(1)};
 `;
 
-export default withApi(EventDetailsContent);
+export default EventDetailsContent;

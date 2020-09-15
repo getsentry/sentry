@@ -61,7 +61,16 @@ describe('DropdownAutoCompleteMenu', function() {
 
   it('selects', function() {
     const mock = jest.fn();
-
+    const countries = [
+      {
+        value: 'new zealand',
+        label: <div>New Zealand</div>,
+      },
+      {
+        value: 'australia',
+        label: <div>Australia</div>,
+      },
+    ];
     const wrapper = mountWithTheme(
       <DropdownAutoCompleteMenu
         isOpen
@@ -70,18 +79,10 @@ describe('DropdownAutoCompleteMenu', function() {
             id: 'countries',
             value: 'countries',
             label: 'countries',
-            items: [
-              {
-                value: 'new zealand',
-                label: <div>New Zealand</div>,
-              },
-              {
-                value: 'australia',
-                label: <div>Australia</div>,
-              },
-            ],
+            items: countries,
           },
         ]}
+        onSelect={mock}
       >
         {({selectedItem}) => (selectedItem ? selectedItem.label : 'Click me!')}
       </DropdownAutoCompleteMenu>,
@@ -92,7 +93,13 @@ describe('DropdownAutoCompleteMenu', function() {
       .find('AutoCompleteItem')
       .last()
       .simulate('click');
-    expect(mock).toMatchSnapshot();
+
+    expect(mock).toHaveBeenCalledTimes(1);
+    expect(mock).toHaveBeenCalledWith(
+      {index: 1, ...countries[1]},
+      {highlightedIndex: 0, inputValue: '', isOpen: true, selectedItem: null},
+      expect.anything()
+    );
   });
 
   it('shows empty message when there are no items', function() {

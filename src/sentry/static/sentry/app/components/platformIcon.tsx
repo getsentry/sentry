@@ -1,4 +1,5 @@
 import React from 'react';
+import styled from '@emotion/styled';
 
 const PLATFORM_TO_ICON = {
   apple: 'apple',
@@ -31,6 +32,9 @@ const PLATFORM_TO_ICON = {
   'node-connect': 'nodejs',
   'node-express': 'express',
   'node-koa': 'koa',
+  'node-awslambda': 'aws',
+  'node-azurefunctions': 'azure',
+  'node-gcpfunctions': 'gcp',
   'objective-c': 'apple',
   perl: 'perl',
   php: 'php',
@@ -41,9 +45,9 @@ const PLATFORM_TO_ICON = {
   python: 'python',
   'python-flask': 'flask',
   'python-aiohttp': 'aiohttp',
-  'python-pythonawslambda': 'aws',
-  'python-pythonazurefunctions': 'azure',
-  'python-pythongcpfunctions': 'gcp',
+  'python-awslambda': 'aws',
+  'python-azurefunctions': 'azure',
+  'python-gcpfunctions': 'gcp',
   'python-sanic': 'python',
   'python-bottle': 'bottle',
   'python-celery': 'python',
@@ -75,14 +79,28 @@ export function getIcon(platform: string): string {
   return icon;
 }
 
+const IconContainer = styled('div')`
+  position: relative;
+`;
+
+const LanguageIcon = styled('img')`
+  position: absolute;
+  bottom: -1px;
+  right: -1px;
+  height: 30%;
+  width: 30%;
+  border-radius: 2px;
+`;
+
 type Props = {
   platform: string;
   size?: string;
   width?: string;
   height?: string;
+  withLanguageIcon?: boolean;
 };
 
-const PlatformIcon = ({platform, size, ...props}: Props) => {
+const PlatformIcon = ({platform, size, withLanguageIcon, ...props}: Props) => {
   const width = props.width || size || '1em';
   const height = props.height || size || '1em';
 
@@ -91,6 +109,20 @@ const PlatformIcon = ({platform, size, ...props}: Props) => {
   const iconPath = require(`platformicons/${
     size === 'lg' ? 'svg_80x80' : 'svg'
   }/${icon}.svg`);
+
+  const language = platform.split('-')[0];
+  const langIcon = getIcon(language);
+
+  if (withLanguageIcon && langIcon !== icon && langIcon !== 'default') {
+    const langPath = require(`platformicons/svg/${getIcon(language)}.svg`);
+
+    return (
+      <IconContainer {...props}>
+        <img src={iconPath} width={width} height={height} />
+        <LanguageIcon src={langPath} />
+      </IconContainer>
+    );
+  }
 
   return <img src={iconPath} width={width} height={height} {...props} />;
 };
