@@ -1,9 +1,9 @@
 name: py-deps
 on:
   pull_request:
-    paths:
+    # paths:
       # Matches all python files regardless of directory depth.
-      - requirements*.txt
+      # - requirements*.txt
 
 jobs:
   check-python-deps:
