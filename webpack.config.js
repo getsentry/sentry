@@ -457,8 +457,7 @@ if (
 // to a development index.html -- thus, completely separating the frontend
 // from serving any pages through the backend.
 //
-// THIS IS EXPERIMENTAL and has limitations (e.g. CSRF issues will stop you
-// from writing to the API).
+// THIS IS EXPERIMENTAL and has limitations (e.g. you can't use SSO)
 //
 // Various sentry pages still rely on django to serve html views.
 if (IS_UI_DEV_ONLY) {
