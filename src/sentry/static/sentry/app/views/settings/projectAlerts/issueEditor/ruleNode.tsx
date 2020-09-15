@@ -192,7 +192,7 @@ class RuleNode extends React.Component<Props> {
     if (!node) {
       return (
         <Separator>
-          This node failed to render. It may have migrated to another section of alert
+          This node failed to render. It may have migrated to another section of the alert
           conditions
         </Separator>
       );

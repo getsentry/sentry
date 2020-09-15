@@ -21,9 +21,7 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
             project.flags.has_issue_alerts_targeting
             or request.query_params.get("issue_alerts_targeting") == "1"
         )
-        org_has_filters = features.has(
-            "organizations:alert-filters", project.organization, actor=request.user
-        )
+        org_has_filters = features.has("projects:alert-filters", project)
         # TODO: conditions need to be based on actions
         for rule_type, rule_cls in rules:
             node = rule_cls(project)

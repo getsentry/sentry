@@ -107,8 +107,9 @@ class Project(Model, PendingDeletionMixin):
             ("has_releases", "This Project has sent release data"),
             ("has_issue_alerts_targeting", "This Project has issue alerts targeting"),
             ("has_transactions", "This Project has sent transactions"),
+            ("has_alert_filters", "This Project has filters"),
         ),
-        default=2,
+        default=5,
         null=True,
     )
 
