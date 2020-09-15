@@ -13,7 +13,7 @@ from pkg_resources import resource_string
 from redis.client import Script, StrictRedis
 from redis.connection import ConnectionPool, Encoder
 from redis.exceptions import ConnectionError, BusyLoadingError
-from rediscluster import StrictRedisCluster
+from rediscluster import RedisCluster
 
 from sentry import options
 from sentry.exceptions import InvalidConfiguration
@@ -78,7 +78,7 @@ class _RBCluster(object):
         return "Redis Blaster Cluster"
 
 
-class RetryingStrictRedisCluster(StrictRedisCluster):
+class RetryingRedisCluster(RedisCluster):
     """
     Execute a command with cluster reinitialization retry logic.
 
@@ -118,7 +118,7 @@ class _RedisCluster(object):
         # make TCP connections on boot. Wrap the client in a lazy proxy object.
         def cluster_factory():
             if config.get("is_redis_cluster", False):
-                return RetryingStrictRedisCluster(
+                return RetryingRedisCluster(
                     startup_nodes=hosts,
                     decode_responses=True,
                     skip_full_coverage_check=True,
