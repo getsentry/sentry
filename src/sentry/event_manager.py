@@ -1301,6 +1301,7 @@ def save_attachment(
         group_id=group_id,
         name=attachment.name,
         file=file,
+        type=attachment.type,
     )
 
     track_outcome(
