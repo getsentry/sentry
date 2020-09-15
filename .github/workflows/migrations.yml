@@ -102,7 +102,7 @@ jobs:
             sentry init
 
         - name: Generate SQL for migration
-          uses: getsentry/action-migrations@v1.0.7
+          uses: getsentry/action-migrations@dev
           env:
             SENTRY_LOG_LEVEL: ERROR
             PGPASSWORD: postgres
