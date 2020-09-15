@@ -28,6 +28,7 @@ class CreateAttachmentMixin(object):
             event_id=self.event.event_id,
             project_id=self.event.project_id,
             file=self.file,
+            type=self.file.type,
             name="hello.png",
         )
 
