@@ -1729,6 +1729,17 @@ class GetSnubaQueryArgsTest(TestCase):
         result = get_filter("!last_seen():<=2020-04-01T19:34:52+00:00")
         assert result.having == [["last_seen", ">", 1585769692]]
 
+    def test_release_latest(self):
+        result = get_filter(
+            "release:latest",
+            params={"organization_id": self.organization.id, "project_id": [self.project.id]},
+        )
+        assert result.conditions == [[["isNull", ["release"]], "=", 1]]
+
+        # When organization id isn't included, project_id should unfortunately be an object
+        result = get_filter("release:latest", params={"project_id": [self.project]})
+        assert result.conditions == [[["isNull", ["release"]], "=", 1]]
+
     @pytest.mark.xfail(reason="this breaks issue search so needs to be redone")
     def test_trace_id(self):
         result = get_filter("trace:{}".format("a0fa8803753e40fd8124b21eeb2986b5"))
