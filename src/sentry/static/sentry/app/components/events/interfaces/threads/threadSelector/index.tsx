@@ -66,10 +66,7 @@ const ThreadSelector = ({threads, event, activeThread, onChange}: Props) => {
     <StyledDropdownAutoComplete
       items={getItems()}
       onSelect={item => {
-        const selectedThread = threads.find(thread => thread.id === item.thread.id);
-        if (selectedThread) {
-          handleChange(selectedThread);
-        }
+        handleChange(item.thread);
       }}
       maxHeight={DROPDOWN_MAX_HEIGHT}
       searchPlaceholder={t('Filter Threads')}
