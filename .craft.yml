@@ -7,6 +7,9 @@ changelog: CHANGES
 changelogPolicy: auto
 statusProvider:
   name: github
+  config:
+    contexts:
+      - 'onpremise-builder (sentryio)'
 targets:
   - name: github
   - name: pypi
