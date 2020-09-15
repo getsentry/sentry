@@ -7,8 +7,6 @@
   box-sizing: border-box;
 }
 
-// Body reset
-
 html {
   font-size: 10px;
   -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
@@ -18,7 +16,61 @@ body {
   font-family: @font-family-base;
 }
 
-// Reset fonts for relevant elements
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin: 0 0 20px;
+  line-height: 1.2;
+  font-weight: 600;
+}
+
+h1 {
+  font-size: 3.2rem;
+}
+
+h2 {
+  font-size: 2.8rem;
+}
+
+h3 {
+  font-size: 2.4rem;
+}
+
+h4 {
+  font-size: 2rem;
+}
+
+h5 {
+  font-size: 1.6rem;
+}
+
+h6 {
+  font-size: 1.4rem;
+}
+
+ul,
+ol {
+  margin-top: 0;
+  padding: 0 0 0 20px;
+
+  ul,
+  ol {
+    margin-bottom: 0;
+  }
+}
+
+p,
+ul,
+ol,
+blockquote {
+  padding-top: 0;
+  margin-top: 0;
+  line-height: 1.5;
+}
+
 input,
 button,
 select,
@@ -26,23 +78,6 @@ textarea {
   font-family: inherit;
   font-size: inherit;
   line-height: inherit;
-}
-
-// Links
-
-a {
-  color: @link-color;
-  text-decoration: none;
-
-  &:hover,
-  &:focus {
-    color: @link-hover-color;
-    text-decoration: @link-hover-decoration;
-  }
-
-  &:focus {
-    .tab-focus();
-  }
 }
 
 // Figures
@@ -135,61 +170,6 @@ pre,
   }
 }
 
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-  margin: 0 0 20px;
-  line-height: 1.2;
-  font-weight: 400;
-}
-
-h1 {
-  font-size: 3.2rem;
-}
-
-h2 {
-  font-size: 2.8rem;
-}
-
-h3 {
-  font-size: 2.4rem;
-}
-
-h4 {
-  font-size: 2rem;
-}
-
-h5 {
-  font-size: 1.6rem;
-}
-
-h6 {
-  font-size: 1.4rem;
-}
-
-ul,
-ol {
-  margin-top: 0;
-  padding: 0 0 0 20px;
-
-  ul,
-  ol {
-    margin-bottom: 0;
-  }
-}
-
-p,
-ul,
-ol,
-blockquote {
-  padding-top: 0;
-  margin-top: 0;
-  line-height: 1.5;
-}
-
 /**
  * Links
  * ============================================================================
@@ -208,6 +188,11 @@ a {
 
   &:focus {
     text-decoration: none;
+  }
+
+  &:active,
+  &:hover {
+    outline: 0;
   }
 }
 
@@ -284,27 +269,6 @@ audio:not([controls]) {
 [hidden],
 template {
   display: none;
-}
-
-// Links
-// ==========================================================================
-
-//
-// Remove the gray background color from active links in IE 10.
-//
-
-a {
-  background-color: transparent;
-}
-
-//
-// Improve readability of focused elements when they are also in an
-// active/hover state.
-//
-
-a:active,
-a:hover {
-  outline: 0;
 }
 
 // Text-level semantics
@@ -415,18 +379,6 @@ hr {
 }
 
 //
-// Address odd `em`-unit font size rendering in all browsers.
-//
-
-code,
-kbd,
-pre,
-samp {
-  font-family: monospace, monospace;
-  font-size: 1em;
-}
-
-//
 // Code (inline and block)
 // --------------------------------------------------
 
@@ -435,6 +387,8 @@ code,
 kbd,
 pre,
 samp {
+  font-family: monospace, monospace;
+  font-size: 1em;
   font-family: @font-family-monospace;
 }
 
