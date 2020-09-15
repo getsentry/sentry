@@ -42,7 +42,7 @@ const withCommitters = <P extends DependentProps>(
       const {organization, project, event} = this.props as P & DependentProps;
       const repoData = CommitterStore.get(organization.slug, project.slug, event.id);
 
-      return {...INITIAL_STATE, ...repoData};
+      return {...initialState, ...repoData};
     },
 
     componentDidMount() {
