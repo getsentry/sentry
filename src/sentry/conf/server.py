@@ -118,13 +118,15 @@ else:
 
 NODE_MODULES_ROOT = os.path.normpath(NODE_MODULES_ROOT)
 
-RELAY_CONFIG_DIR = os.path.normpath(
-    os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "config", "relay")
+DEVSERVICES_CONFIG_DIR = os.path.normpath(
+    os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "config")
 )
 
-SYMBOLICATOR_CONFIG_DIR = os.path.normpath(
-    os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "config", "symbolicator")
-)
+CLICKHOUSE_CONFIG_PATH = os.path.join(DEVSERVICES_CONFIG_DIR, "clickhouse", "config.xml")
+
+RELAY_CONFIG_DIR = os.path.join(DEVSERVICES_CONFIG_DIR, "relay")
+
+SYMBOLICATOR_CONFIG_DIR = os.path.join(DEVSERVICES_CONFIG_DIR, "symbolicator")
 
 sys.path.insert(0, os.path.normpath(os.path.join(PROJECT_ROOT, os.pardir)))
 
@@ -1515,7 +1517,16 @@ SENTRY_DEVSERVICES = {
         "image": "yandex/clickhouse-server:20.3.9.70",
         "ports": {"9000/tcp": 9000, "9009/tcp": 9009, "8123/tcp": 8123},
         "ulimits": [{"name": "nofile", "soft": 262144, "hard": 262144}],
-        "volumes": {"clickhouse": {"bind": "/var/lib/clickhouse"}},
+        "volumes": {
+            "clickhouse": {"bind": "/var/lib/clickhouse"},
+            CLICKHOUSE_CONFIG_PATH: {"bind": "/etc/clickhouse-server/config.d/sentry.xml"},
+        },
+        "environment": {
+            # This limits Clickhouse's memory to 30% of the host memory
+            # If you have high volume and your search return incomplete results
+            # You might want to change this to a higher value (and ensure your host has enough memory)
+            "MAX_MEMORY_USAGE_RATIO": "0.3"
+        }
         "only_if": lambda settings, options: (
             "snuba" in settings.SENTRY_EVENTSTREAM or "kafka" in settings.SENTRY_EVENTSTREAM
         ),
