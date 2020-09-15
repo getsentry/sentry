@@ -7,13 +7,14 @@ import {analytics} from 'app/utils/analytics';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import OnboardingPanel from 'app/components/onboardingPanel';
-import withOrganization from 'app/utils/withOrganization';
 import withProject from 'app/utils/withProject';
 import FeatureTourModal, {
   TourStep,
   TourImage,
   TourText,
 } from 'app/components/modals/featureTourModal';
+import AsyncView from 'app/views/asyncView';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
 
 import emptyStateImg from '../../../../images/spot/releases-empty-state.svg';
 import commitImage from '../../../../images/spot/releases-tour-commits.svg';
@@ -67,14 +68,44 @@ const TOUR_STEPS: TourStep[] = [
     ),
   },
 ];
+
 const setupDocs = 'https://docs.sentry.io/product/releases/';
 
-type ReleaseLandingProps = {
+type Props = {
+  organization: Organization;
+  project: Project;
+} & AsyncView['props'];
+
+class ReleaseLanding extends AsyncView<Props> {
+  // if there are no releases in the last 30 days, we want to show releases promo, otherwise empty message
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+    const {slug} = this.props.organization;
+
+    const query = {
+      per_page: 1,
+      summaryStatsPeriod: '30d',
+    };
+
+    return [['releases', `/organizations/${slug}/releases/`, {query}]];
+  }
+
+  renderBody() {
+    const {organization, project} = this.props;
+
+    if (this.state.releases.length === 0) {
+      return <Promo organization={organization} project={project} />;
+    }
+
+    return <EmptyStateWarning small>{t('There are no releases.')}</EmptyStateWarning>;
+  }
+}
+
+type PromoProps = {
   organization: Organization;
   project: Project;
 };
 
-class ReleaseLanding extends React.Component<ReleaseLandingProps> {
+class Promo extends React.Component<PromoProps> {
   componentDidMount() {
     const {organization, project} = this.props;
 
@@ -125,4 +156,4 @@ const ButtonList = styled(ButtonBar)`
   grid-template-columns: repeat(auto-fit, minmax(130px, max-content));
 `;
 
-export default withOrganization(withProject(ReleaseLanding));
+export default withProject(ReleaseLanding);

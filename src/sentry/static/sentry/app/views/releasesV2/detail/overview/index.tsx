@@ -21,7 +21,6 @@ import TotalCrashFreeUsers from './totalCrashFreeUsers';
 import Deploys from './deploys';
 import ReleaseStatsRequest from './releaseStatsRequest';
 import {YAxis} from './chart/releaseChartControls';
-import SwitchReleasesButton from '../../utils/switchReleasesButton';
 import {ReleaseContext} from '..';
 
 type RouteParams = {
@@ -153,8 +152,6 @@ class ReleaseOverview extends AsyncView<Props> {
                       />
                     )}
                   </Side>
-
-                  <SwitchReleasesButton version="1" orgId={organization.id} />
                 </React.Fragment>
               )}
             </ReleaseStatsRequest>
