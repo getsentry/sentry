@@ -33,7 +33,7 @@ class OrganizationSwitchTest(AcceptanceTestCase, SnubaTestCase):
             self.browser.get(issues_url)
             self.browser.wait_until_not(".loading-indicator")
             self.browser.click_when_visible(
-                selector='[data-test-id="global-header-project-selector"]', timeout=10
+                selector='[data-test-id="global-header-project-selector"]', timeout=100000
             )
 
         def get_project_elements_from_project_selector_dropdown():
