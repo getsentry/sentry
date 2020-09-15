@@ -253,7 +253,6 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
     }
 
     @property
-    @abstractmethod
     def dataset(self):
         return snuba.Dataset.Events
 
