@@ -298,7 +298,7 @@ describe('Performance > Trends', function() {
 
       const field = [...trendFunctionFields, ...defaultFields];
 
-      expect(field).toHaveLength(5);
+      expect(field).toHaveLength(8);
 
       // Improved trends call
       expect(trendsMock).toHaveBeenNthCalledWith(

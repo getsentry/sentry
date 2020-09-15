@@ -21,6 +21,9 @@ export enum TrendChangeType {
 
 export enum TrendFunctionField {
   P50 = 'p50()',
+  P75 = 'p75()',
+  P95 = 'p95()',
+  P99 = 'p99()',
   AVG = 'avg(transaction.duration)',
   USER_MISERY = 'user_misery(300)',
 }

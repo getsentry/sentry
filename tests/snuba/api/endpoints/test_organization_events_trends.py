@@ -79,6 +79,138 @@ class OrganizationEventsTrendsEndpointTest(APITestCase, SnubaTestCase):
             [{"count": 2000}],
         ]
 
+    def test_p75(self):
+        with self.feature("organizations:trends"):
+            url = reverse(
+                "sentry-api-0-organization-events-trends",
+                kwargs={"organization_slug": self.project.organization.slug},
+            )
+            response = self.client.get(
+                url,
+                format="json",
+                data={
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "start": iso_format(self.day_ago),
+                    "field": ["project", "transaction"],
+                    "query": "event.type:transaction",
+                    "trendFunction": "p75()",
+                },
+            )
+
+        assert response.status_code == 200, response.content
+
+        events = response.data["events"]
+        result_stats = response.data["stats"]
+
+        assert len(events["data"]) == 1
+        # Shouldn't do an exact match here because we aren't using the stable correlation function
+        assert events["data"][0].pop("absolute_correlation") > 0.2
+        assert events["data"][0] == {
+            "count_range_1": 1,
+            "count_range_2": 3,
+            "transaction": self.prototype["transaction"],
+            "project": self.project.slug,
+            "percentile_range_1": 2000,
+            "percentile_range_2": 6000,
+            "percentage_count_range_2_count_range_1": 3.0,
+            "minus_percentile_range_2_percentile_range_1": 4000.0,
+            "percentage_percentile_range_2_percentile_range_1": 3.0,
+        }
+
+        stats = result_stats["{},{}".format(self.project.slug, self.prototype["transaction"])]
+        assert [attrs for time, attrs in stats["data"]] == [
+            [{"count": 2000}],
+            [{"count": 6000}],
+        ]
+
+    def test_p95(self):
+        with self.feature("organizations:trends"):
+            url = reverse(
+                "sentry-api-0-organization-events-trends",
+                kwargs={"organization_slug": self.project.organization.slug},
+            )
+            response = self.client.get(
+                url,
+                format="json",
+                data={
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "start": iso_format(self.day_ago),
+                    "field": ["project", "transaction"],
+                    "query": "event.type:transaction",
+                    "trendFunction": "p95()",
+                },
+            )
+
+        assert response.status_code == 200, response.content
+
+        events = response.data["events"]
+        result_stats = response.data["stats"]
+
+        assert len(events["data"]) == 1
+        # Shouldn't do an exact match here because we aren't using the stable correlation function
+        assert events["data"][0].pop("absolute_correlation") > 0.2
+        assert events["data"][0] == {
+            "count_range_1": 1,
+            "count_range_2": 3,
+            "transaction": self.prototype["transaction"],
+            "project": self.project.slug,
+            "percentile_range_1": 2000,
+            "percentile_range_2": 9200,
+            "percentage_count_range_2_count_range_1": 3.0,
+            "minus_percentile_range_2_percentile_range_1": 7200.0,
+            "percentage_percentile_range_2_percentile_range_1": 4.6,
+        }
+
+        stats = result_stats["{},{}".format(self.project.slug, self.prototype["transaction"])]
+        assert [attrs for time, attrs in stats["data"]] == [
+            [{"count": 2000}],
+            [{"count": 9200}],
+        ]
+
+    def test_p99(self):
+        with self.feature("organizations:trends"):
+            url = reverse(
+                "sentry-api-0-organization-events-trends",
+                kwargs={"organization_slug": self.project.organization.slug},
+            )
+            response = self.client.get(
+                url,
+                format="json",
+                data={
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "start": iso_format(self.day_ago),
+                    "field": ["project", "transaction"],
+                    "query": "event.type:transaction",
+                    "trendFunction": "p99()",
+                },
+            )
+
+        assert response.status_code == 200, response.content
+
+        events = response.data["events"]
+        result_stats = response.data["stats"]
+
+        assert len(events["data"]) == 1
+        # Shouldn't do an exact match here because we aren't using the stable correlation function
+        assert events["data"][0].pop("absolute_correlation") > 0.2
+        assert events["data"][0] == {
+            "count_range_1": 1,
+            "count_range_2": 3,
+            "transaction": self.prototype["transaction"],
+            "project": self.project.slug,
+            "percentile_range_1": 2000,
+            "percentile_range_2": 9840,
+            "percentage_count_range_2_count_range_1": 3.0,
+            "minus_percentile_range_2_percentile_range_1": 7840.0,
+            "percentage_percentile_range_2_percentile_range_1": 4.92,
+        }
+
+        stats = result_stats["{},{}".format(self.project.slug, self.prototype["transaction"])]
+        assert [attrs for time, attrs in stats["data"]] == [
+            [{"count": 2000}],
+            [{"count": 9840}],
+        ]
+
     def test_avg_trend_function(self):
         with self.feature("organizations:trends"):
             url = reverse(
