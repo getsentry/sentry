@@ -89,10 +89,14 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-
 
+      - run: make setup-pyenv
         # env:
           # PGPASSWORD: postgres
       - name: Install python development dependencies
         run: make install-py-dev
+        # run: |
+          # pip install wheel # GitHub Actions does not have this installed by default (unlike Travis)
+          # pip install -U -e ".[dev]"
 
       - name: Checkout branch
         uses: actions/checkout@v2
