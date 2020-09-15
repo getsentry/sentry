@@ -10,6 +10,12 @@ import withApi from 'app/utils/withApi';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import getStacktraceBody from 'app/utils/getStacktraceBody';
 import SplitDiff from 'app/components/splitDiff';
+import ButtonBar from 'app/components/buttonBar';
+import Button from 'app/components/button';
+import space from 'app/styles/space';
+import {Project} from 'app/types';
+
+import renderGroupingInfo from './groupingDiff';
 
 type Props = {
   api: Client;
@@ -17,7 +23,7 @@ type Props = {
   targetIssueId: string;
 
   orgId: string;
-  projectId: string;
+  project: Project;
 
   baseEventId?: string;
   targetEventId?: string;
@@ -26,6 +32,7 @@ type Props = {
 
 type State = {
   loading: boolean;
+  groupingDiff: boolean;
   baseEvent: Array<string>;
   targetEvent: Array<string>;
   SplitDiffAsync?: typeof SplitDiff;
@@ -42,6 +49,7 @@ class IssueDiff extends React.Component<Props, State> {
 
     this.state = {
       loading: true,
+      groupingDiff: false,
       baseEvent: [],
       targetEvent: [],
 
@@ -52,19 +60,23 @@ class IssueDiff extends React.Component<Props, State> {
   }
 
   componentDidMount() {
+    this.fetchData();
+  }
+
+  fetchData() {
     const {baseIssueId, targetIssueId, baseEventId, targetEventId} = this.props;
 
     // Fetch component and event data
     Promise.all([
       import(/* webpackChunkName: "splitDiff" */ '../splitDiff'),
-      this.fetchData(baseIssueId, baseEventId || 'latest'),
-      this.fetchData(targetIssueId, targetEventId || 'latest'),
+      this.fetchEventData(baseIssueId, baseEventId || 'latest'),
+      this.fetchEventData(targetIssueId, targetEventId || 'latest'),
     ])
       .then(([{default: SplitDiffAsync}, baseEvent, targetEvent]) => {
         this.setState({
           SplitDiffAsync,
-          baseEvent: getStacktraceBody(baseEvent),
-          targetEvent: getStacktraceBody(targetEvent),
+          baseEvent,
+          targetEvent,
           loading: false,
         });
       })
@@ -73,34 +85,60 @@ class IssueDiff extends React.Component<Props, State> {
       });
   }
 
-  getEndpoint(issueId: string, eventId: string) {
-    const {orgId, projectId} = this.props;
+  toggleDiffMode = () => {
+    this.setState(state => ({groupingDiff: !state.groupingDiff, loading: true}), this.fetchData);
+  }
 
-    if (eventId !== 'latest') {
-      return `/projects/${orgId}/${projectId}/events/${eventId}/`;
+  fetchEventData = async (issueId: string, eventId: string) => {
+    const {orgId, project, api} = this.props;
+    const {groupingDiff} = this.state;
+
+    if (eventId === 'latest') {
+      const event = await api.requestPromise(`/issues/${issueId}/events/latest/`);
+      eventId = event.eventID;
     }
 
-    return `/issues/${issueId}/events/${eventId}/`;
-  }
-
-  fetchData(issueId: string, eventId: string) {
-    return this.props.api.requestPromise(this.getEndpoint(issueId, eventId));
-  }
+    if (groupingDiff) {
+      const groupingInfo = await api.requestPromise(
+        `/projects/${orgId}/${project.slug}/events/${eventId}/grouping-info/`
+      );
+      return renderGroupingInfo(groupingInfo);
+    } else {
+      const event = await api.requestPromise(
+        `/projects/${orgId}/${project.slug}/events/${eventId}/`
+      );
+      return getStacktraceBody(event);
+    }
+  };
 
   render() {
-    const {className} = this.props;
-    const DiffComponent = this.state.SplitDiffAsync;
+    const {className, project} = this.props;
+    const {SplitDiffAsync: DiffComponent, loading, groupingDiff, baseEvent, targetEvent} = this.state;
+
+    const showDiffToggle = project.features.includes("similarity-view-v2");
 
     return (
-      <StyledIssueDiff className={className} loading={this.state.loading}>
-        {this.state.loading && <LoadingIndicator />}
-        {!this.state.loading &&
+      <StyledIssueDiff className={className} loading={loading}>
+        {loading && <LoadingIndicator />}
+        {!loading && showDiffToggle && (
+          <HeaderWrapper>
+            <ButtonBar merged active={groupingDiff ? 'grouping' : 'event'}>
+              <Button barId="event" size="small" onClick={this.toggleDiffMode}>
+                {t('Diff stacktrace and message')}
+              </Button>
+              <Button barId="grouping" size="small" onClick={this.toggleDiffMode}>
+                {t('Diff grouping information')}
+              </Button>
+            </ButtonBar>
+          </HeaderWrapper>
+        )}
+        {!loading &&
           DiffComponent &&
-          this.state.baseEvent.map((value, i) => (
+          baseEvent.map((value, i) => (
             <DiffComponent
               key={i}
               base={value}
-              target={this.state.targetEvent[i] || ''}
+              target={targetEvent[i] || ''}
               type="words"
             />
           ))}
@@ -110,7 +148,6 @@ class IssueDiff extends React.Component<Props, State> {
 }
 
 export default withApi(IssueDiff);
-export {IssueDiff};
 
 const getLoadingStyle = p =>
   (p.loading &&
@@ -135,4 +172,10 @@ const StyledIssueDiff = styled('div', {
   flex-direction: column;
 
   ${getLoadingStyle};
+`;
+
+const HeaderWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  margin-bottom: ${space(2)};
 `;
