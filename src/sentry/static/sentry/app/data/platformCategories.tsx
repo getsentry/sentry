@@ -11,6 +11,7 @@ const popular = [
   'php-laravel',
   'php-symfony2',
   'java',
+  'dotnet',
   'csharp',
   'elixir',
   'php',
@@ -27,10 +28,13 @@ const frontend = [
   'javascript-angularjs',
   'javascript-backbone',
   'javascript-ember',
+  'javascript-gatsby',
   'javascript-vue',
 ] as const;
 
 const mobile = [
+  'android',
+  'apple-ios',
   'cocoa-objc',
   'cocoa-swift',
   'java-android',
@@ -41,6 +45,8 @@ const mobile = [
 
 const backend = [
   'csharp',
+  'dotnet',
+  'dotnet-aspnetcore',
   'elixir',
   'go',
   'go-http',
@@ -50,11 +56,13 @@ const backend = [
   'java-log4j2',
   'java-logback',
   'java-logging',
+  'java-spring',
   'native',
   'node',
   'node-express',
   'node-koa',
   'node-connect',
+  'perl',
   'php',
   'php-laravel',
   'php-monolog',
@@ -84,7 +92,15 @@ const serverless = [
   'node-gcpfunctions',
 ] as const;
 
-const desktop = ['cocoa', 'csharp', 'java', 'electron', 'minidump', 'native'] as const;
+const desktop = [
+  'apple-macos',
+  'cocoa',
+  'csharp',
+  'java',
+  'electron',
+  'minidump',
+  'native',
+] as const;
 
 const categoryList = [
   {id: 'popular', name: t('Popular'), platforms: popular},
