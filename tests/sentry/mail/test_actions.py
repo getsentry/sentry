@@ -97,7 +97,7 @@ class NotifyEmailTest(RuleTestCase):
 
     def test_simple(self):
         event = self.get_event()
-        rule = self.get_rule()
+        rule = self.get_rule(data={"targetType": "IssueOwners"})
 
         results = list(rule.after(event=event, state=self.get_state()))
         assert len(results) == 1

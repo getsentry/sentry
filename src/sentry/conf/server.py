@@ -886,8 +886,6 @@ SENTRY_FEATURES = {
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
-    # Enable the new version of interface/breadcrumbs
-    "organizations:breadcrumbs-v2": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
@@ -1505,6 +1503,8 @@ SENTRY_DEVSERVICES = {
             "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP": "INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT",
             "KAFKA_INTER_BROKER_LISTENER_NAME": "INTERNAL",
             "KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR": "1",
+            "KAFKA_OFFSETS_TOPIC_NUM_PARTITIONS": "1",
+            "KAFKA_LOG_RETENTION_HOURS": "24",
             "KAFKA_MESSAGE_MAX_BYTES": "50000000",
             "KAFKA_MAX_REQUEST_SIZE": "50000000",
         },

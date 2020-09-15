@@ -10,7 +10,6 @@ statusProvider:
   config:
     contexts:
       - 'onpremise-builder (sentryio)'
-      - 'continuous-integration/travis-ci/push'
       - 'acceptance'
 targets:
   - name: github
