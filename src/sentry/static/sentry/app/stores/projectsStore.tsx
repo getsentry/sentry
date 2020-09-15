@@ -35,11 +35,14 @@ type ProjectsStoreInterface = {
   getAll: () => Project[];
   getBySlugs: (slug: string[]) => Project[];
   getState: (slugs?: string[]) => State;
-  getById?: (id?: string) => Project;
-  getBySlug?: (slug?: string) => Project;
+  getById: (id?: string) => Project | undefined;
+  getBySlug: (slug?: string) => Project | undefined;
 };
 
 const storeConfig: Reflux.StoreDefinition & Internals & ProjectsStoreInterface = {
+  itemsById: {},
+  loading: true,
+
   init() {
     this.reset();
 
