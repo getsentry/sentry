@@ -38,7 +38,7 @@ class IntegrationExtensionConfigurationView(BaseView):
     def get(self, request, *args, **kwargs):
         if not request.user.is_authenticated():
             configure_uri = u"/extensions/{}/configure/?{}".format(
-                self.provider, urlencode(request.GET.dict())
+                self.provider, urlencode(request.GET.dict()),
             )
 
             redirect_uri = u"{}?{}".format(
