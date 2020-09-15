@@ -692,6 +692,7 @@ export type Group = {
   shortId: string;
   stats: Record<string, GroupStats[]>;
   filtered?: any; // TODO(ts)
+  lifetime?: any; // TODO(ts)
   status: string;
   statusDetails: ResolutionStatusDetails;
   tags: Pick<Tag, 'key' | 'name' | 'totalValues'>[];

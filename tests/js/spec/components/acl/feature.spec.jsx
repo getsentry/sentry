@@ -128,20 +128,17 @@ describe('Feature', function() {
 
     it('handles no org/project', function() {
       const features = ['org-foo', 'project-foo'];
-      mount(
-        <Feature organization={null} project={null} features={features}>
-          {childrenMock}
-        </Feature>,
-        routerContext
-      );
+      mount(<Feature features={features}>{childrenMock}</Feature>, routerContext);
 
-      expect(childrenMock).toHaveBeenCalledWith({
-        hasFeature: false,
-        organization: null,
-        project: null,
-        features,
-        renderDisabled: false,
-      });
+      expect(childrenMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          hasFeature: true,
+          organization,
+          project,
+          features,
+          renderDisabled: false,
+        })
+      );
     });
 
     it('handles features prefixed with org/project', function() {
