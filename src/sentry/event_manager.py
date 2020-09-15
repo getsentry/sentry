@@ -48,6 +48,7 @@ from sentry.models import (
     Project,
     ProjectKey,
     Release,
+    ReleaseCommit,
     ReleaseEnvironment,
     ReleaseProject,
     ReleaseProjectEnvironment,
@@ -110,19 +111,22 @@ def plugin_is_regression(group, event):
 
 
 def has_pending_commit_resolution(group):
-    return (
+    """
+    Checks that the most recent commit that fixes a group has had a chance to release
+    """
+    recent_group_link = (
         GroupLink.objects.filter(
             group_id=group.id,
             linked_type=GroupLink.LinkedType.commit,
             relationship=GroupLink.Relationship.resolves,
         )
-        .extra(
-            where=[
-                "NOT EXISTS(SELECT 1 FROM sentry_releasecommit where commit_id = sentry_grouplink.linked_id)"
-            ]
-        )
-        .exists()
+        .order_by("-datetime")
+        .first()
     )
+    if recent_group_link is None:
+        return False
+
+    return not ReleaseCommit.objects.filter(commit__id=recent_group_link.linked_id).exists()
 
 
 def get_max_crashreports(model, allow_none=False):
