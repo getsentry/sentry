@@ -33,10 +33,10 @@ type ProjectsStoreInterface = {
   removeTeamFromProject: (teamSlug: string, project: Project) => void;
   getWithTeam: (teamSlug: string) => Project[];
   getAll: () => Project[];
-  getById: (id: string | undefined) => Project | undefined;
-  getBySlug: (slug: string | undefined) => Project | undefined;
   getBySlugs: (slug: string[]) => Project[];
   getState: (slugs?: string[]) => State;
+  getById?: (id?: string) => Project;
+  getBySlug?: (slug?: string) => Project;
 };
 
 const storeConfig: Reflux.StoreDefinition & Internals & ProjectsStoreInterface = {
