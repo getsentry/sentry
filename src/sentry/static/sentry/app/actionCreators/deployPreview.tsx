@@ -42,7 +42,7 @@ export function displayExperimentalSpaAlert() {
   AlertActions.addAlert({
     id: 'develop-proxy',
     message: t(
-      'You are developing against production Sentry API. The API is read-only due to CSRF issues, but please be careful.'
+      'You are developing against production Sentry API, please BE CAREFUL, as your changes will affect production data.'
     ),
     type: 'warning',
     neverExpire: true,
