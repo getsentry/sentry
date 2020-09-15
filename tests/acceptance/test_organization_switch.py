@@ -37,9 +37,10 @@ class OrganizationSwitchTest(AcceptanceTestCase, SnubaTestCase):
             )
 
         def get_project_elements_from_project_selector_dropdown():
-            return self.browser.elements(
-                '[data-test-id="autocomplete-list"] [data-test-id="badge-display-name"]'
-            )
+            selector = '[data-test-id="autocomplete-list"] [data-test-id="badge-display-name"]'
+            self.browser.wait_until(selector, timeout=30)
+
+            return self.browser.find_element_by_css_selector(selector)
 
         transition_urls = [
             OrganizationSwitchTest.url_creator(page, self.organization.slug)
