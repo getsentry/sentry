@@ -10,7 +10,7 @@ import styled from '@emotion/styled';
 import {PanelItem} from 'app/components/panels';
 import {valueIsEqual} from 'app/utils';
 import theme from 'app/utils/theme';
-import {IconTelescope} from 'app/icons';
+import {IconOpen} from 'app/icons';
 import AssigneeSelector from 'app/components/assigneeSelector';
 import Count from 'app/components/count';
 import EventOrGroupExtraDetails from 'app/components/eventOrGroupExtraDetails';
@@ -260,7 +260,7 @@ const StreamGroup = createReactClass({
                     <TooltipCount value={data.filtered.count} />
                     <TooltipText>{t('Matching search filters')}</TooltipText>
                     {hasDiscoverQuery && (
-                      <StyledIconTelescope
+                      <StyledIconOpen
                         to={this.getDiscoverUrl(true)}
                         color={theme.blue300}
                       />
@@ -273,10 +273,7 @@ const StreamGroup = createReactClass({
                     {data.filtered ? t(`Without search filters`) : t(`In ${summary}`)}
                   </TooltipText>
                   {hasDiscoverQuery && (
-                    <StyledIconTelescope
-                      to={this.getDiscoverUrl()}
-                      color={theme.blue300}
-                    />
+                    <StyledIconOpen to={this.getDiscoverUrl()} color={theme.blue300} />
                   )}
                 </tr>
                 {data.lifetime && (
@@ -306,7 +303,7 @@ const StreamGroup = createReactClass({
                     <TooltipCount value={data.filtered.userCount} />
                     <TooltipText>{t('Matching search filters')}</TooltipText>
                     {hasDiscoverQuery && (
-                      <StyledIconTelescope
+                      <StyledIconOpen
                         to={this.getDiscoverUrl(true)}
                         color={theme.blue300}
                       />
@@ -319,10 +316,7 @@ const StreamGroup = createReactClass({
                     {data.filtered ? t(`Without search filters`) : t(`In ${summary}`)}
                   </TooltipText>
                   {hasDiscoverQuery && (
-                    <StyledIconTelescope
-                      to={this.getDiscoverUrl()}
-                      color={theme.blue300}
-                    />
+                    <StyledIconOpen to={this.getDiscoverUrl()} color={theme.blue300} />
                   )}
                 </tr>
                 {data.lifetime && (
@@ -405,10 +399,10 @@ const TooltipText = styled('td')`
   padding: ${space(0.5)} ${space(1)};
 `;
 
-const StyledIconTelescope = styled(({to, ...p}) => (
+const StyledIconOpen = styled(({to, ...p}) => (
   <td {...p}>
     <Link title={t('Open in Discover')} to={to} target="_blank">
-      <IconTelescope size="xs" color={p.color} />
+      <IconOpen size="xs" color={p.color} />
     </Link>
   </td>
 ))`
