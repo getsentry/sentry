@@ -89,9 +89,9 @@ def find_histogram_buckets(field, params, conditions):
 
     column = columns[0]
     # TODO evanh: This can be expanded to more fields at a later date, for now keep this limited.
-    if column != "transaction.duration":
+    if column != "transaction.duration" and not column.startswith("measurements."):
         raise InvalidSearchQuery(
-            "histogram(...) can only be used with the transaction.duration column"
+            "histogram(...) can only be used with the transaction.duration or measurements column"
         )
 
     try:
@@ -103,8 +103,8 @@ def find_histogram_buckets(field, params, conditions):
             u"histogram(...) requires a bucket value between 1 and 500, not {}".format(columns[1])
         )
 
-    max_alias = u"max_{}".format(column)
-    min_alias = u"min_{}".format(column)
+    max_alias = u"max_{}".format(column.replace(".", "_"))
+    min_alias = u"min_{}".format(column.replace(".", "_"))
 
     conditions = deepcopy(conditions) if conditions else []
     found = False
