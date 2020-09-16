@@ -106,7 +106,9 @@ class NotifyEmailAction(EventAction):
         extra = {"event_id": event.event_id}
         group = event.group
 
-        if not mail_adapter.should_notify(group=group):
+        target_type = ActionTargetType(self.data["targetType"])
+
+        if not mail_adapter.should_notify(target_type, group=group):
             extra["group_id"] = group.id
             self.logger.info("rule.fail.should_notify", extra=extra)
             return
@@ -114,10 +116,7 @@ class NotifyEmailAction(EventAction):
         metrics.incr("notifications.sent", instance=self.metrics_slug, skip_internal=False)
         yield self.future(
             lambda event, futures: mail_adapter.rule_notify(
-                event,
-                futures,
-                ActionTargetType(self.data["targetType"]),
-                self.data.get("targetIdentifier", None),
+                event, futures, target_type, self.data.get("targetIdentifier", None)
             )
         )
 

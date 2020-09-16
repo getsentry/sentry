@@ -152,7 +152,7 @@ class DiscoverQueryEndpoint(OrganizationEndpoint):
             limit=serialized.get("limit"),
             aggregations=serialized.get("aggregations"),
             rollup=serialized.get("rollup"),
-            filter_keys={"project.id": projects_map.keys()},
+            filter_keys={"project.id": list(projects_map.keys())},
             arrayjoin=serialized.get("arrayjoin"),
             request=request,
             turbo=serialized.get("turbo"),

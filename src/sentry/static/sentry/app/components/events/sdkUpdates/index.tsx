@@ -14,7 +14,7 @@ type Props = {
   };
 };
 
-const SDKUpdates = ({event}: Props) => {
+const SdkUpdates = ({event}: Props) => {
   const {sdkUpdates} = event;
 
   const eventDataSectinContent = sdkUpdates
@@ -44,4 +44,4 @@ const SDKUpdates = ({event}: Props) => {
   );
 };
 
-export default SDKUpdates;
+export default SdkUpdates;
