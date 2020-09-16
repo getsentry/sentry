@@ -10,8 +10,9 @@ export const WEB_VITAL_DETAILS: Record<WebVital, Vital> = {
   [WebVital.FP]: {
     slug: 'fp',
     name: t('First Paint'),
-    // TODO: needs a description and web.dev does not define a failure threshold for this
-    description: t('asdf'),
+    description: t(
+      'First paint refers to the point at which the first pixel renders on a screen after a user navigates to a web page.'
+    ),
     failureThreshold: 4000,
     type: 'duration',
   },
