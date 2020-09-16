@@ -278,6 +278,26 @@ matrix:
       before_script:
         - psql -c 'create database sentry;' -U postgres
 
+
+    - python: 3.6
+      name: 'Snuba Integration with migrations (Py 3, not required)'
+      env: TEST_SUITE=snuba USE_SNUBA=1 MIGRATIONS_TEST_MIGRATE=1
+      services:
+        - docker
+        - memcached
+        - redis-server
+        - postgresql
+      before_install:
+        - *base_install
+        - *start_snuba
+        - docker ps -a
+      install:
+        - python setup.py install_egg_info
+        - pip install -U -e ".[dev]"
+        - sentry init
+      before_script:
+        - psql -c 'create database sentry;' -U postgres
+
     # Deploy 'storybook' (component & style guide)
     - name: 'Storybook Deploy'
       language: generic
@@ -292,6 +312,9 @@ matrix:
       script: yarn run storybook-build
       after_success: .travis/deploy-storybook.sh
       after_failure: skip
+
+  allow_failures:
+    - name: 'Snuba Integration with migrations (Py 3, not required)'
 
 notifications:
   webhooks:
