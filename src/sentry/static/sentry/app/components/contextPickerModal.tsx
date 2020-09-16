@@ -334,7 +334,7 @@ type ContainerProps = Omit<
 };
 
 type ContainerState = {
-  selectedOrganization: string | undefined;
+  selectedOrganization?: string;
   organizations?: Organization[];
 };
 
