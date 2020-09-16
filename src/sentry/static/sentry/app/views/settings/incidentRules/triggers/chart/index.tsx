@@ -168,8 +168,16 @@ class TriggersChart extends React.PureComponent<Props, State> {
             timeseriesData[0].data !== undefined
           ) {
             maxValue = maxBy(timeseriesData[0].data, ({value}) => value);
-            if (aggregateFn !== 'none') {
-              timeseriesData[0].data = chunk(timeseriesData[0].data, 2).map(
+            if (aggregateFn !== 'none' && timeseriesData[0].data.length > 400) {
+              let chunks = 0;
+              if (timeseriesData[0].data.length > 8000) {
+                chunks = 20;
+              } else if (timeseriesData[0].data.length > 4000) {
+                chunks = 10;
+              } else if (timeseriesData[0].data.length > 2000) {
+                chunks = 5;
+              }
+              timeseriesData[0].data = chunk(timeseriesData[0].data, chunks).map(
                 seriesChunk => {
                   return {
                     name: seriesChunk[0].name,
@@ -187,26 +195,28 @@ class TriggersChart extends React.PureComponent<Props, State> {
                   <Feature features={['internal-catchall']} organization={organization}>
                     <ControlsContainer>
                       {/* TODO(scttcper): Remove internal aggregate experiment */}
-                      <AggregationSelectControl
-                        inline={false}
-                        styles={{
-                          control: provided => ({
-                            ...provided,
-                            minHeight: '25px',
-                            height: '25px',
-                          }),
-                        }}
-                        isSearchable={false}
-                        isClearable={false}
-                        disabled={loading || reloading}
-                        name="aggregateFn"
-                        value={aggregateFn}
-                        choices={Object.keys(AGGREGATE_FUNCTIONS).map(fnName => [
-                          fnName,
-                          AGGREGATE_FUNCTION_MAP[fnName],
-                        ])}
-                        onChange={this.handleAggregateFunctionChange}
-                      />
+                      {timeseriesData?.[0] && timeseriesData[0].data.length > 400 && (
+                        <AggregationSelectControl
+                          inline={false}
+                          styles={{
+                            control: provided => ({
+                              ...provided,
+                              minHeight: '25px',
+                              height: '25px',
+                            }),
+                          }}
+                          isSearchable={false}
+                          isClearable={false}
+                          disabled={loading || reloading}
+                          name="aggregateFn"
+                          value={aggregateFn}
+                          choices={Object.keys(AGGREGATE_FUNCTIONS).map(fnName => [
+                            fnName,
+                            AGGREGATE_FUNCTION_MAP[fnName],
+                          ])}
+                          onChange={this.handleAggregateFunctionChange}
+                        />
+                      )}
                       <PeriodSelectControl
                         inline={false}
                         styles={{
