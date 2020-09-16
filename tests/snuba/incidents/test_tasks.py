@@ -92,7 +92,6 @@ class HandleSnubaQueryUpdateTest(TestCase):
         return uuid4().hex
 
     def test(self):
-
         # Full integration test to ensure that when a subscription receives an update
         # the `QuerySubscriptionConsumer` successfully retries the subscription and
         # calls the correct callback, which should result in an incident being created.
