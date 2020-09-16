@@ -121,9 +121,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
             "sentryAppId": sentry_app.id,
         }
 
-        with self.feature(
-            ["organizations:incidents", "organizations:integrations-sentry-app-metric-alerts"]
-        ):
+        with self.feature("organizations:incidents"):
             resp = self.get_valid_response(
                 self.organization.slug, status_code=201, **valid_alert_rule
             )
@@ -141,9 +139,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
             "sentryAppId": 1,
         }
 
-        with self.feature(
-            ["organizations:incidents", "organizations:integrations-sentry-app-metric-alerts"]
-        ):
+        with self.feature("organizations:incidents"):
             self.get_valid_response(self.organization.slug, status_code=400, **valid_alert_rule)
 
     def test_invalid_sentry_app(self):
@@ -156,9 +152,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
             "sentryAppId": "invalid",
         }
 
-        with self.feature(
-            ["organizations:incidents", "organizations:integrations-sentry-app-metric-alerts"]
-        ):
+        with self.feature("organizations:incidents"):
             self.get_valid_response(self.organization.slug, status_code=400, **valid_alert_rule)
 
     def test_no_label(self):
