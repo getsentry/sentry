@@ -35,7 +35,7 @@ class OrganizationSwitchTest(AcceptanceTestCase, SnubaTestCase):
             self.browser.get(issues_url)
             self.browser.wait_until_not(".loading-indicator")
 
-        @TimedRetryPolicy.wrap(timeout=120, exceptions=(TimeoutException,))
+        @TimedRetryPolicy.wrap(timeout=20, exceptions=(TimeoutException,))
         def open_project_selector():
             self.browser.click_when_visible(
                 selector='[data-test-id="global-header-project-selector"]'
