@@ -416,6 +416,7 @@ class PostProcessGroupTest(TestCase):
         assignee = event.group.assignee_set.first()
         assert assignee is None
 
+    # TODO(mark) Remove this after October 16 2020.
     @patch("sentry.tasks.servicehooks.process_service_hook")
     def test_event_parameter_backwards_compat(self, mock_process_service_hook):
         # Ensure that post_process_group still does

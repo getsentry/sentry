@@ -149,7 +149,12 @@ def post_process_group(
             if cache_key:
                 event_processing_store.delete_by_key(cache_key)
             logger.info(
-                "post_process.skipped", extra={"cache_key": cache_key, "reason": "missing_cache"},
+                "post_process.skipped",
+                extra={
+                    "reason": "duplicate",
+                    "project_id": event.project_id,
+                    "event_id": event.event_id,
+                },
             )
             return
 
