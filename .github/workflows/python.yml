@@ -228,6 +228,8 @@ jobs:
       # services configuration
       SENTRY_REDIS_HOST: redis
       DATABASE_URL: postgresql://postgres:postgres@localhost/sentry
+      SENTRY_KAFKA_HOSTS: localhost:9092
+      SENTRY_ZOOKEEPER_HOSTS: localhost:2181
 
       # Number of matrix instances
       TOTAL_TEST_GROUPS: ${{ strategy.job-total }}
