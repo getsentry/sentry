@@ -1,7 +1,8 @@
 from __future__ import absolute_import
 
-import pytest
+from selenium.common.exceptions import TimeoutException
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
+from sentry.utils.retries import TimedRetryPolicy
 
 
 class OrganizationSwitchTest(AcceptanceTestCase, SnubaTestCase):
@@ -28,15 +29,20 @@ class OrganizationSwitchTest(AcceptanceTestCase, SnubaTestCase):
 
         self.login_as(self.user)
 
-    @pytest.mark.skip(reason="Unstable right now.")
     def test_organization_switches(self):
-        def navigate_to_issues_page_and_select_projects(org_slug):
+        def navigate_to_issues_page(org_slug):
             issues_url = OrganizationSwitchTest.url_creator("issues", org_slug)
             self.browser.get(issues_url)
             self.browser.wait_until_not(".loading-indicator")
+
+        @TimedRetryPolicy.wrap(timeout=20, exceptions=(TimeoutException,))
+        def open_project_selector():
             self.browser.click_when_visible(
-                selector='[data-test-id="global-header-project-selector"]', timeout=100000
+                selector='[data-test-id="global-header-project-selector"]'
             )
+            # Check if the automplete-list has shown up, if that fails we
+            # want to retry this step.
+            self.browser.wait_until('[data-test-id="autocomplete-list"]')
 
         def get_project_elements_from_project_selector_dropdown():
             selector = '[data-test-id="autocomplete-list"] [data-test-id="badge-display-name"]'
@@ -53,7 +59,8 @@ class OrganizationSwitchTest(AcceptanceTestCase, SnubaTestCase):
             "organizations:discover"
         ):
             for transition_url in transition_urls:
-                navigate_to_issues_page_and_select_projects(self.organization.slug)
+                navigate_to_issues_page(self.organization.slug)
+                open_project_selector()
                 primary_projects_elements = get_project_elements_from_project_selector_dropdown()
                 OrganizationSwitchTest.expect_projects_element_text_to_match_projects_slug(
                     primary_projects_elements, self.primary_projects
@@ -62,7 +69,8 @@ class OrganizationSwitchTest(AcceptanceTestCase, SnubaTestCase):
                 self.browser.get(transition_url)
                 self.browser.wait_until_not(".loading-indicator")
 
-                navigate_to_issues_page_and_select_projects(self.secondary_organization.slug)
+                navigate_to_issues_page(self.secondary_organization.slug)
+                open_project_selector()
                 secondary_projects_elements = get_project_elements_from_project_selector_dropdown()
 
                 OrganizationSwitchTest.expect_projects_element_text_to_match_projects_slug(

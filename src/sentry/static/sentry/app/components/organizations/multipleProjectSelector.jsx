@@ -223,7 +223,7 @@ export default class MultipleProjectSelector extends React.PureComponent {
       </StyledHeaderItem>
     ) : !isGlobalSelectionReady ? (
       <StyledHeaderItem
-        data-test-id="global-header-project-selector"
+        data-test-id="global-header-project-selector-loading"
         icon={<IconProject />}
         loading
       >
