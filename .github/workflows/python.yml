@@ -311,6 +311,6 @@ jobs:
       - name: Python 3.6 snuba backend w/o migrations (${{ steps.config.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
         if: always()
         run: |
-          py.test tests/snuba/incidents/test_tasks.py -s -vv --cov . --cov-report="xml:.artifacts/snuba.coverage.xml" --junit-xml=".artifacts/snuba.junit.xml"
+          make travis-test-snuba
         env:
           TEST_GROUP: ${{ matrix.instance }}

@@ -34,7 +34,6 @@ from sentry.testutils import TestCase
 class HandleSnubaQueryUpdateTest(TestCase):
     def setUp(self):
         super(HandleSnubaQueryUpdateTest, self).setUp()
-        print("kafka topics", settings.KAFKA_TOPICS)
         self.override_settings_cm = override_settings(
             KAFKA_TOPICS={self.topic: {"cluster": "default", "topic": self.topic}}
         )
@@ -93,7 +92,6 @@ class HandleSnubaQueryUpdateTest(TestCase):
         return uuid4().hex
 
     def test(self):
-        print("start test")
 
         # Full integration test to ensure that when a subscription receives an update
         # the `QuerySubscriptionConsumer` successfully retries the subscription and
@@ -116,9 +114,7 @@ class HandleSnubaQueryUpdateTest(TestCase):
                 "timestamp": "2020-01-01T01:23:45.1234",
             },
         }
-        print("producing")
         self.producer.produce(self.topic, json.dumps(message))
-        print("flushing")
         self.producer.flush()
 
         def active_incident():
@@ -131,10 +127,8 @@ class HandleSnubaQueryUpdateTest(TestCase):
             with self.assertChanges(
                 lambda: active_incident().exists(), before=False, after=True
             ), self.tasks():
-                print("running consumer")
                 consumer.run()
 
-        print("checking mail")
         assert len(mail.outbox) == 1
         handler = EmailActionHandler(self.action, active_incident().get(), self.project)
         message = handler.build_message(
