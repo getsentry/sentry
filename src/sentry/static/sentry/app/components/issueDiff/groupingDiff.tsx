@@ -2,13 +2,13 @@ import {t} from 'app/locale';
 import {EventGroupComponent, EventGroupInfo, EventGroupVariant} from 'app/types';
 
 function renderGroupingInfo(groupingInfo: EventGroupInfo): string[] {
-  return Object.values(groupingInfo).map(renderGroupVariant).flat();
+  return Object.values(groupingInfo)
+    .map(renderGroupVariant)
+    .flat();
 }
 
 function renderGroupVariant(variant: EventGroupVariant): string[] {
-  const title = [
-    t('Type: %s', variant.type)
-  ];
+  const title = [t('Type: %s', variant.type)];
 
   if (variant.hash) {
     title.push(t('Hash: %s', variant.hash));
@@ -32,12 +32,12 @@ function renderComponent(component: EventGroupComponent): string[] {
     return [];
   }
 
-  let title = component.name || "";
+  let title = component.name || '';
   if (component.hint) {
     title += ` (${component.hint})`;
   }
 
-  let rv = [title];
+  const rv = [title];
 
   if (component.values) {
     for (const value of component.values) {
