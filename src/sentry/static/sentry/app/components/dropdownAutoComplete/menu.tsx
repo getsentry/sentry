@@ -346,7 +346,7 @@ const Menu = ({
                     )}
                     {busy && (
                       <BusyMessage>
-                        <EmptyMessage>{t('Searching...')}</EmptyMessage>
+                        <EmptyMessage>{t('Searching\u2026')}</EmptyMessage>
                       </BusyMessage>
                     )}
                     {!busy && (
