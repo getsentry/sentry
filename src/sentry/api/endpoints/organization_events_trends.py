@@ -19,6 +19,18 @@ class OrganizationEventsTrendsEndpoint(OrganizationEventsV2EndpointBase):
             "format": "percentile_range(transaction.duration, 0.5, {start}, {end}, {index})",
             "alias": "percentile_range_",
         },
+        "p75": {
+            "format": "percentile_range(transaction.duration, 0.75, {start}, {end}, {index})",
+            "alias": "percentile_range_",
+        },
+        "p95": {
+            "format": "percentile_range(transaction.duration, 0.95, {start}, {end}, {index})",
+            "alias": "percentile_range_",
+        },
+        "p99": {
+            "format": "percentile_range(transaction.duration, 0.99, {start}, {end}, {index})",
+            "alias": "percentile_range_",
+        },
         "avg": {
             "format": "avg_range(transaction.duration, {start}, {end}, {index})",
             "alias": "avg_range_",

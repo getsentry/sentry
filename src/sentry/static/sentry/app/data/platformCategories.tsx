@@ -11,6 +11,7 @@ const popular = [
   'php-laravel',
   'php-symfony2',
   'java',
+  'dotnet',
   'csharp',
   'elixir',
   'php',
@@ -27,10 +28,13 @@ const frontend = [
   'javascript-angularjs',
   'javascript-backbone',
   'javascript-ember',
+  'javascript-gatsby',
   'javascript-vue',
 ] as const;
 
 const mobile = [
+  'android',
+  'apple-ios',
   'cocoa-objc',
   'cocoa-swift',
   'java-android',
@@ -41,6 +45,8 @@ const mobile = [
 
 const backend = [
   'csharp',
+  'dotnet',
+  'dotnet-aspnetcore',
   'elixir',
   'go',
   'go-http',
@@ -50,11 +56,13 @@ const backend = [
   'java-log4j2',
   'java-logback',
   'java-logging',
+  'java-spring',
   'native',
   'node',
   'node-express',
   'node-koa',
   'node-connect',
+  'perl',
   'php',
   'php-laravel',
   'php-monolog',
@@ -69,14 +77,30 @@ const backend = [
   'python-pyramid',
   'python-tornado',
   'python-rq',
-  'python-awslambda',
   'ruby',
   'ruby-rails',
   'ruby-rack',
   'rust',
 ] as const;
 
-const desktop = ['cocoa', 'csharp', 'java', 'electron', 'minidump', 'native'] as const;
+const serverless = [
+  'python-awslambda',
+  'python-azurefunctions',
+  'python-gcpfunctions',
+  'node-awslambda',
+  'node-azurefunctions',
+  'node-gcpfunctions',
+] as const;
+
+const desktop = [
+  'apple-macos',
+  'cocoa',
+  'csharp',
+  'java',
+  'electron',
+  'minidump',
+  'native',
+] as const;
 
 const categoryList = [
   {id: 'popular', name: t('Popular'), platforms: popular},
@@ -84,6 +108,7 @@ const categoryList = [
   {id: 'server', name: t('Server'), platforms: backend},
   {id: 'mobile', name: t('Mobile'), platforms: mobile},
   {id: 'desktop', name: t('Desktop'), platforms: desktop},
+  {id: 'serverless', name: t('Serverless'), platforms: serverless},
 ] as const;
 
 export const sourceMaps: PlatformKey[] = [
@@ -102,6 +127,7 @@ export type PlatformKey =
   | typeof backend[number]
   | typeof desktop[number]
   | typeof tracing[number]
+  | typeof serverless[number]
   | 'other';
 
 export default categoryList;

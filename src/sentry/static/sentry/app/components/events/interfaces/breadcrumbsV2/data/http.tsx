@@ -6,8 +6,8 @@ import {getMeta} from 'app/components/events/meta/metaProxy';
 import {t} from 'app/locale';
 import {defined} from 'app/utils';
 import Highlight from 'app/components/highlight';
+import AnnotatedText from 'app/components/events/meta/annotatedText';
 
-import getBreadcrumbCustomRendererValue from '../../breadcrumbs/getBreadcrumbCustomRendererValue';
 import {BreadcrumbTypeHTTP} from '../types';
 import Summary from './summary';
 
@@ -45,30 +45,30 @@ const Http = ({breadcrumb, searchTerm}: Props) => {
       kvData={omit(data, ['method', 'url', 'status_code'])}
       searchTerm={searchTerm}
     >
-      {data?.method &&
-        getBreadcrumbCustomRendererValue({
-          value: (
+      {data?.method && (
+        <AnnotatedText
+          value={
             <strong>
               <Highlight text={searchTerm}>{`${data.method} `}</Highlight>
             </strong>
-          ),
-          meta: getMeta(data, 'method'),
-        })}
-      {data?.url &&
-        getBreadcrumbCustomRendererValue({
-          value: renderUrl(data.url),
-          meta: getMeta(data, 'url'),
-        })}
-      {defined(statusCode) &&
-        getBreadcrumbCustomRendererValue({
-          value: (
+          }
+          meta={getMeta(data, 'method')}
+        />
+      )}
+      {data?.url && (
+        <AnnotatedText value={renderUrl(data.url)} meta={getMeta(data, 'url')} />
+      )}
+      {defined(statusCode) && (
+        <AnnotatedText
+          value={
             <Highlight
               data-test-id="http-renderer-status-code"
               text={searchTerm}
             >{` [${statusCode}]`}</Highlight>
-          ),
-          meta: getMeta(data, 'status_code'),
-        })}
+          }
+          meta={getMeta(data, 'status_code')}
+        />
+      )}
     </Summary>
   );
 };
