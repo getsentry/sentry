@@ -101,6 +101,6 @@ class DetailedIncidentSerializer(IncidentSerializer):
             condition = "event.type:transaction"
 
         if condition:
-            query = "{} {}".format(condition, query) if query else condition
+            query = u"{} {}".format(condition, query) if query else condition
 
         return query
