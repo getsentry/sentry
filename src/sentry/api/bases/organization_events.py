@@ -4,7 +4,6 @@ from contextlib import contextmanager
 import sentry_sdk
 import six
 from django.utils.http import urlquote
-from rest_framework.exceptions import PermissionDenied
 from rest_framework.exceptions import ParseError
 
 
@@ -19,10 +18,8 @@ from sentry.api.event_search import (
     get_function_alias,
 )
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
-from sentry.models.project import Project
 from sentry.models.group import Group
 from sentry.snuba import discover
-from sentry.utils.compat import map
 from sentry.utils.dates import get_rollup_from_request
 from sentry.utils.http import absolute_uri
 from sentry.utils import snuba
@@ -61,25 +58,6 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
     def get_snuba_query_args_legacy(self, request, organization):
         params = self.get_filter_params(request, organization)
-
-        group_ids = request.GET.getlist("group")
-        if group_ids:
-            # TODO(mark) This parameter should be removed in the long term.
-            # Instead of using this parameter clients should use `issue.id`
-            # in their query string.
-            try:
-                group_ids = set(map(int, [_f for _f in group_ids if _f]))
-            except ValueError:
-                raise ParseError(detail="Invalid group parameter. Values must be numbers")
-
-            projects = Project.objects.filter(
-                organization=organization, group__id__in=group_ids
-            ).distinct()
-            if any(p for p in projects if not request.access.has_project_access(p)):
-                raise PermissionDenied
-            params["group_ids"] = list(group_ids)
-            params["project_id"] = list(set([p.id for p in projects] + params["project_id"]))
-
         query = request.GET.get("query")
         try:
             _filter = get_filter(query, params)
