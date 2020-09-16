@@ -862,12 +862,8 @@ SENTRY_FEATURES = {
     # Enable integration functionality to work with alert rules (specifically incident
     # management integrations)
     "organizations:integrations-incident-management": True,
-    # Enable the MsTeams integration
-    "organizations:integrations-msteams": False,
     # Allow orgs to install AzureDevops with limited scopes
     "organizations:integrations-vsts-limited-scopes": False,
-    # Use Sentry Apps with Metric Alerts
-    "organizations:integrations-sentry-app-metric-alerts": False,
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
     # Enable experimental performance improvements.

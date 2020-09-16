@@ -31,7 +31,7 @@ type Props = {
 } & RouteComponentProps<{orgId: string}, {}>;
 
 type State = AsyncView['state'] & {
-  member: Member & {roles: MemberRole[]};
+  member: (Member & {roles: MemberRole[]}) | null;
   members: Member[];
   invited: {[key: string]: 'loading' | 'success' | null};
 };
@@ -179,7 +179,7 @@ class OrganizationMembersList extends AsyncView<Props, State> {
               </Button>
               {isOpen && (
                 <StyledMembersFilter
-                  roles={currentMember.roles || MEMBER_ROLES}
+                  roles={currentMember?.roles ?? MEMBER_ROLES}
                   query={value}
                   onChange={(query: string) => handleChange(query)}
                 />

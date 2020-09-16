@@ -184,7 +184,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   }
 
   handleRuleSuccess = (isNew: boolean, rule: IssueAlertRule) => {
-    const {organization} = this.props;
+    const {organization, router} = this.props;
     this.setState({detailedError: null, loading: false, rule});
 
     // The onboarding task will be completed on the server side when the alert
@@ -194,7 +194,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       status: 'complete',
     });
 
-    browserHistory.replace(recreateRoute('rules/', {...this.props, stepBack: -2}));
+    router.push(`/organizations/${organization.slug}/alerts/rules/`);
     addSuccessMessage(isNew ? t('Created alert rule') : t('Updated alert rule'));
   };
 
@@ -267,9 +267,9 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   };
 
   handleCancel = () => {
-    const {router} = this.props;
+    const {organization, router} = this.props;
 
-    router.push(recreateRoute('rules/', {...this.props, stepBack: -2}));
+    router.push(`/organizations/${organization.slug}/alerts/rules/`);
   };
 
   hasError = (field: string) => {

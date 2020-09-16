@@ -26,7 +26,7 @@ class Migration(migrations.Migration):
 
 
     dependencies = [
-        ('sentry', '0101_backfill_file_type_on_event_attachment'),
+        ('sentry', '0102_collect_relay_analytics'),
     ]
 
     operations = [
