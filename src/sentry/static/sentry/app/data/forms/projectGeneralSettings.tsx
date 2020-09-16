@@ -1,10 +1,10 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import PlatformIcon from 'platformicons';
 
 import {extractMultilineFields, convertMultilineFieldValue} from 'app/utils';
 import {t, tct, tn} from 'app/locale';
 import HintPanelItem from 'app/components/panels/hintPanelItem';
-import PlatformIcon from 'app/components/platformIcon';
 import getDynamicText from 'app/utils/getDynamicText';
 import marked from 'app/utils/marked';
 import platforms from 'app/data/platforms';
@@ -75,7 +75,7 @@ export const fields: Record<string, Field> = {
       platforms.map(({id, name}) => [
         id,
         <PlatformWrapper key={id}>
-          <StyledPlatformIcon platform={id} size="20" />
+          <StyledPlatformIcon platform={id} />
           {name}
         </PlatformWrapper>,
       ]),
@@ -425,6 +425,5 @@ const PlatformWrapper = styled('div')`
   align-items: center;
 `;
 const StyledPlatformIcon = styled(PlatformIcon)`
-  border-radius: 3px;
   margin-right: ${space(1)};
 `;
