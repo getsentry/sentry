@@ -334,17 +334,17 @@ type ContainerProps = Omit<
 };
 
 type ContainerState = {
-  organizations?: Organization[];
   selectedOrganization?: string;
+  organizations?: Organization[];
 };
 
 const ContextPickerModalContainer = createReactClass<ContainerProps, ContainerState>({
   displayName: 'ContextPickerModalContainer',
   mixins: [Reflux.connect(OrganizationsStore, 'organizations') as any],
   getInitialState() {
+    const storeState = OrganizationStore.get();
     return {
-      selectedOrganization:
-        OrganizationStore.organization && OrganizationStore.organization.slug,
+      selectedOrganization: storeState.organization?.slug,
     };
   },
 

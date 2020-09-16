@@ -3,9 +3,34 @@ import Reflux from 'reflux';
 import OrganizationActions from 'app/actions/organizationActions';
 import ProjectActions from 'app/actions/projectActions';
 import TeamActions from 'app/actions/teamActions';
+import RequestError from 'app/utils/requestError/requestError';
 import {ORGANIZATION_FETCH_ERROR_TYPES} from 'app/constants';
+import {Organization, Project, Team} from 'app/types';
 
-const OrganizationStore = Reflux.createStore({
+type UpdateOptions = {
+  replace?: boolean;
+};
+
+type OutputState = {
+  organization: Organization | null;
+  loading: boolean;
+  dirty: boolean;
+  errorType?: string | null;
+  error?: RequestError | null;
+};
+
+type OrganizationStoreInterface = {
+  init: () => void;
+  reset: () => void;
+  onUpdate: (org: Organization, options: UpdateOptions) => void;
+  onFetchOrgError: (err: RequestError) => void;
+  onProjectOrTeamChange: () => void;
+  onLoadProjects: (projects: Project[]) => void;
+  onLoadTeams: (teams: Team[]) => void;
+  get: () => OutputState;
+};
+
+const storeConfig: Reflux.StoreDefinition & OrganizationStoreInterface = {
   init() {
     this.reset();
     this.listenTo(OrganizationActions.update, this.onUpdate);
@@ -37,7 +62,7 @@ const OrganizationStore = Reflux.createStore({
     this.trigger(this.get());
   },
 
-  onUpdate(updatedOrg, {replace = false} = {}) {
+  onUpdate(updatedOrg: Organization, {replace = false}: UpdateOptions = {}) {
     this.loading = false;
     this.error = null;
     this.errorType = null;
@@ -46,7 +71,7 @@ const OrganizationStore = Reflux.createStore({
     this.trigger(this.get());
   },
 
-  onFetchOrgError(err) {
+  onFetchOrgError(err: RequestError) {
     this.organization = null;
     this.errorType = null;
 
@@ -67,7 +92,7 @@ const OrganizationStore = Reflux.createStore({
     this.dirty = true;
   },
 
-  onLoadProjects(projects) {
+  onLoadProjects(projects: Project[]) {
     if (this.organization) {
       // sort projects to mimic how they are received from backend
       projects.sort((a, b) => a.slug.localeCompare(b.slug));
@@ -76,7 +101,7 @@ const OrganizationStore = Reflux.createStore({
     }
   },
 
-  onLoadTeams(teams) {
+  onLoadTeams(teams: Team[]) {
     if (this.organization) {
       // sort teams to mimic how they are received from backend
       teams.sort((a, b) => a.slug.localeCompare(b.slug));
@@ -94,6 +119,8 @@ const OrganizationStore = Reflux.createStore({
       dirty: this.dirty,
     };
   },
-});
+};
 
-export default OrganizationStore;
+type OrganizationStore = Reflux.Store & OrganizationStoreInterface;
+
+export default Reflux.createStore(storeConfig) as OrganizationStore;

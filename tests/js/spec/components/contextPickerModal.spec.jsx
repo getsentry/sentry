@@ -184,9 +184,9 @@ describe('ContextPickerModal', function() {
     wrapper.update();
 
     // Should not have anything selected
-    expect(wrapper.find('StyledSelectControl[name="organization"]').prop('value')).toBe(
-      null
-    );
+    expect(
+      wrapper.find('StyledSelectControl[name="organization"]').prop('value')
+    ).toBeUndefined();
 
     // Select org2
     selectByValue(wrapper, org2.slug, {control: true});
