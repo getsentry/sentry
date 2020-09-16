@@ -186,7 +186,6 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
                 logger.info("sentry_plugins.amazon_sqs.skip_oversized", extra=logging_params)
                 return False
 
-            logger.info("sentry_plugins.amazon_sqs.send_message", extra=logging_params)
             sqs_send_message(message)
         except ClientError as e:
             if six.text_type(e).startswith(
