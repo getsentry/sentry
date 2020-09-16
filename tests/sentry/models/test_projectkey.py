@@ -53,3 +53,5 @@ class ProjectKeyTest(TestCase):
             assert key.csp_endpoint == "http://{}/api/1/csp-report/?sentry_key=abc".format(host)
             assert key.minidump_endpoint == "http://{}/api/1/minidump/?sentry_key=abc".format(host)
             assert key.unreal_endpoint == "http://{}/api/1/unreal/abc/".format(host)
+
+    # TODO(ja): Add tests for redirect DSNs

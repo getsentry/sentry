@@ -20,6 +20,7 @@ from sentry.eventstore.models import Event
 from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
+# TODO(ja): Move to test_projectkey and add redirect tests
 class ProjectKeyTest(TestCase):
     def test_get_dsn(self):
         key = ProjectKey(project_id=1, public_key="public", secret_key="secret")

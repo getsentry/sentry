@@ -68,9 +68,12 @@ class RelayProjectConfigsEndpoint(Endpoint):
                 for org_id in six.iterkeys(orgs):
                     OrganizationOption.objects.get_all_values(org_id)
 
+        project_keys = {}
         with Hub.current.start_span(op="relay_fetch_keys"):
-            project_keys = {}
             for key in ProjectKey.objects.filter(project_id__in=project_ids):
+                project_keys.setdefault(key.project_id, []).append(key)
+        with Hub.current.start_span(op="relay_fetch_keys"):
+            for key in ProjectKey.objects.filter(original_project_id__in=project_ids):
                 project_keys.setdefault(key.project_id, []).append(key)
 
         metrics.timing("relay_project_configs.projects_requested", len(project_ids))

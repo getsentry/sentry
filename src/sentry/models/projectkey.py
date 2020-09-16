@@ -37,11 +37,25 @@ class ProjectKeyStatus(object):
 
 class ProjectKeyManager(BaseManager):
     def post_save(self, instance, **kwargs):
+        if instance.original_project_id:
+            schedule_update_config_cache(
+                project_id=instance.original_project_id,
+                generate=True,
+                update_reason="projectkey.post_save",
+            )
+
         schedule_update_config_cache(
             project_id=instance.project_id, generate=True, update_reason="projectkey.post_save"
         )
 
     def post_delete(self, instance, **kwargs):
+        if instance.original_project_id:
+            schedule_update_config_cache(
+                project_id=instance.original_project_id,
+                generate=True,
+                update_reason="projectkey.post_delete",
+            )
+
         schedule_update_config_cache(
             project_id=instance.project_id, generate=True, update_reason="projectkey.post_delete"
         )
@@ -75,6 +89,13 @@ class ProjectKey(Model):
 
     rate_limit_count = BoundedPositiveIntegerField(null=True)
     rate_limit_window = BoundedPositiveIntegerField(null=True)
+
+    # Redirecting a DSN moves it into a new project, but keeps the original
+    # project identifier without foreign key relation ship. The string
+    # representation of the DSN is immutable, even after the original project is
+    # deleted.
+    original_org_id = BoundedPositiveIntegerField(null=True, default=None)
+    original_project_id = BoundedPositiveIntegerField(null=True, default=None, db_index=True)
 
     objects = ProjectKeyManager(
         cache_fields=("public_key", "secret_key"),
@@ -127,6 +148,10 @@ class ProjectKey(Model):
             # which is obviously a DoesNotExist. We catch and rethrow this
             # so anything downstream expecting DoesNotExist works fine
             raise ProjectKey.DoesNotExist("ProjectKey matching query does not exist.")
+        except ProjectKey.DoesNotExist:
+            # Try for redirect DSNs, which are associated with the new project,
+            # but store the old project identifier.
+            return ProjectKey.objects.get(public_key=public_key, original_project_id=project_id)
 
     @classmethod
     def get_default(cls, project):
@@ -171,7 +196,7 @@ class ProjectKey(Model):
             urlparts.scheme,
             key,
             urlparts.netloc + urlparts.path,
-            self.project_id,
+            self.original_project_id or self.project_id,
         )
 
     @property
@@ -181,6 +206,14 @@ class ProjectKey(Model):
     @property
     def organization(self):
         return self.project.organization
+
+    @property
+    def dsn_project_id(self):
+        return self.original_project_id or self.project_id
+
+    @property
+    def dsn_org_id(self):
+        return self.original_org_id or self.project.organization_id
 
     @property
     def dsn_private(self):
@@ -194,23 +227,35 @@ class ProjectKey(Model):
     def csp_endpoint(self):
         endpoint = self.get_endpoint()
 
-        return "%s/api/%s/csp-report/?sentry_key=%s" % (endpoint, self.project_id, self.public_key)
+        return "%s/api/%s/csp-report/?sentry_key=%s" % (
+            endpoint,
+            self.dsn_project_id,
+            self.public_key,
+        )
 
     @property
     def security_endpoint(self):
         endpoint = self.get_endpoint()
 
-        return "%s/api/%s/security/?sentry_key=%s" % (endpoint, self.project_id, self.public_key)
+        return "%s/api/%s/security/?sentry_key=%s" % (
+            endpoint,
+            self.dsn_project_id,
+            self.public_key,
+        )
 
     @property
     def minidump_endpoint(self):
         endpoint = self.get_endpoint()
 
-        return "%s/api/%s/minidump/?sentry_key=%s" % (endpoint, self.project_id, self.public_key)
+        return "%s/api/%s/minidump/?sentry_key=%s" % (
+            endpoint,
+            self.dsn_project_id,
+            self.public_key,
+        )
 
     @property
     def unreal_endpoint(self):
-        return "%s/api/%s/unreal/%s/" % (self.get_endpoint(), self.project_id, self.public_key)
+        return "%s/api/%s/unreal/%s/" % (self.get_endpoint(), self.dsn_project_id, self.public_key)
 
     @property
     def js_sdk_loader_cdn_url(self):
@@ -237,9 +282,7 @@ class ProjectKey(Model):
             if urlparts.scheme and urlparts.netloc:
                 endpoint = "%s://%s.%s%s" % (
                     urlparts.scheme,
-                    settings.SENTRY_ORG_SUBDOMAIN_TEMPLATE.format(
-                        organization_id=self.project.organization_id
-                    ),
+                    settings.SENTRY_ORG_SUBDOMAIN_TEMPLATE.format(self.dsn_org_id),
                     urlparts.netloc,
                     urlparts.path,
                 )
