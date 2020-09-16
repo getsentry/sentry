@@ -45,6 +45,7 @@ const StreamGroup = createReactClass({
     withChart: PropTypes.bool,
     selection: SentryTypes.GlobalSelection.isRequired,
     organization: SentryTypes.Organization.isRequired,
+    useFilteredStats: PropTypes.bool,
   },
 
   mixins: [Reflux.listenTo(GroupStore, 'onGroupChange')],
@@ -55,20 +56,34 @@ const StreamGroup = createReactClass({
       statsPeriod: '24h',
       canSelect: true,
       withChart: true,
+      useFilteredStats: false,
     };
   },
 
   getInitialState() {
+    const data = GroupStore.get(this.props.id);
+
     return {
-      data: GroupStore.get(this.props.id),
+      data: {
+        ...data,
+        filtered: this.props.useFilteredStats ? data.filtered : undefined,
+      },
       showLifetimeStats: false,
     };
   },
 
   componentWillReceiveProps(nextProps) {
-    if (nextProps.id !== this.props.id) {
+    if (
+      nextProps.id !== this.props.id ||
+      nextProps.useFilteredStats !== this.props.useFilteredStats
+    ) {
+      const data = GroupStore.get(this.props.id);
+
       this.setState({
-        data: GroupStore.get(this.props.id),
+        data: {
+          ...data,
+          filtered: nextProps.useFilteredStats ? data.filtered : undefined,
+        },
       });
     }
   },
