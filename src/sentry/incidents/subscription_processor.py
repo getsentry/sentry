@@ -24,6 +24,7 @@ from sentry.incidents.models import (
     TriggerStatus,
 )
 from sentry.incidents.tasks import handle_trigger_action
+from sentry.models import Project
 from sentry.utils import metrics, redis
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.compat import zip
@@ -136,6 +137,12 @@ class SubscriptionProcessor(object):
 
     def process_update(self, subscription_update):
         dataset = self.subscription.snuba_query.dataset
+        try:
+            # Check that the project exists
+            self.subscription.project
+        except Project.DoesNotExist:
+            metrics.incr("incidents.alert_rules.ignore_deleted_project")
+            return
         if dataset == "events" and not features.has(
             "organizations:incidents", self.subscription.project.organization
         ):
