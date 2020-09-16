@@ -527,7 +527,7 @@ class GroupStatsMixin(object):
     }
 
     CUSTOM_SEGMENTS = 29  # for 30 segments use 1/29th intervals
-    CUSTOM_ROLLUP = timedelta(hours=6).total_seconds()  # rollups should be increments of 6hs
+    CUSTOM_ROLLUP_6H = timedelta(hours=6).total_seconds()  # rollups should be increments of 6hs
 
     def query_tsdb(self, group_ids, query_params):
         raise NotImplementedError
@@ -541,14 +541,14 @@ class GroupStatsMixin(object):
                 total_period = (self.stats_period_end - self.stats_period_start).total_seconds()
                 rollup = total_period / self.CUSTOM_SEGMENTS
 
-                if rollup > self.CUSTOM_ROLLUP:
-                    rollup = round(rollup / self.CUSTOM_ROLLUP) * self.CUSTOM_ROLLUP
-                elif (2 * rollup) > self.CUSTOM_ROLLUP:
-                    rollup = self.CUSTOM_ROLLUP / 2
-                elif (3 * rollup) > self.CUSTOM_ROLLUP:
-                    rollup = self.CUSTOM_ROLLUP / 3
-                else:
-                    rollup = self.CUSTOM_ROLLUP / 6
+                if rollup > self.CUSTOM_ROLLUP_6H:
+                    rollup = round(rollup / self.CUSTOM_ROLLUP_6H) * self.CUSTOM_ROLLUP_6H
+                elif (2 * rollup) > self.CUSTOM_ROLLUP_6H:
+                    rollup = self.CUSTOM_ROLLUP_6H / 2  # 3hrs
+                elif (3 * rollup) > self.CUSTOM_ROLLUP_6H:
+                    rollup = self.CUSTOM_ROLLUP_6H / 3  # 2hr
+                elif total_period > timedelta(hours=24).total_seconds():
+                    rollup = self.CUSTOM_ROLLUP_6H / 6  # 1hr
 
                 query_params = {
                     "start": self.stats_period_start,
