@@ -50,12 +50,14 @@ const AVAILABLE_TIME_PERIODS: Record<TimeWindow, TimePeriod[]> = {
     TimePeriod.SIX_HOURS,
     TimePeriod.ONE_DAY,
     TimePeriod.THREE_DAYS,
+    TimePeriod.SEVEN_DAYS,
   ],
   [TimeWindow.FIVE_MINUTES]: [
     TimePeriod.ONE_DAY,
     TimePeriod.THREE_DAYS,
     TimePeriod.SEVEN_DAYS,
     TimePeriod.FOURTEEN_DAYS,
+    TimePeriod.THIRTY_DAYS,
   ],
   [TimeWindow.TEN_MINUTES]: [
     TimePeriod.ONE_DAY,
