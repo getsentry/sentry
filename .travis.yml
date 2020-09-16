@@ -281,7 +281,7 @@ matrix:
 
     - python: 3.6
       name: 'Snuba Integration with migrations (Py 3, not required)'
-      env: TEST_SUITE=snuba USE_SNUBA=1 MIGRATIONS_TEST_MIGRATE=1 SENTRY_PYTHON3=1
+      env: TEST_SUITE=snuba USE_SNUBA=1 MIGRATIONS_TEST_MIGRATE=0 SENTRY_PYTHON3=1
       services:
         - docker
         - memcached

@@ -210,7 +210,7 @@ jobs:
     continue-on-error: true
     strategy:
       matrix:
-        instance: [0, 1]
+        instance: [0]
 
     env:
       SENTRY_PYTHON3: 1
@@ -293,6 +293,6 @@ jobs:
       - name: Python 3.6 snuba backend w/o migrations (${{ steps.config.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
         if: always()
         run: |
-          make travis-test-snuba
+          py.test tests/snuba/eventstream -vv --cov . --cov-report="xml:.artifacts/snuba.coverage.xml" --junit-xml=".artifacts/snuba.junit.xml"
         env:
           TEST_GROUP: ${{ matrix.instance }}
