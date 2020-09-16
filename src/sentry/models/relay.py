@@ -33,7 +33,7 @@ class Relay(Model):
     first_seen = models.DateTimeField(default=None, null=True)
     # not used, functionality replaced by RelayUsage
     last_seen = models.DateTimeField(default=None, null=True)
-    is_internal = models.BooleanField(default=False)
+    is_internal = models.NullBooleanField(default=None)
 
     class Meta:
         app_label = "sentry"
