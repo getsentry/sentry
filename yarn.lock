@@ -13279,7 +13279,16 @@ react-document-title@2.0.3:
     prop-types "^15.5.6"
     react-side-effect "^1.0.2"
 
-react-dom@16.12.0, react-dom@^16.8.3:
+react-dom@17.0.0-rc.0:
+  version "17.0.0-rc.0"
+  resolved "https://registry.yarnpkg.com/react-dom/-/react-dom-17.0.0-rc.0.tgz#237b4cca9cf817329373424bde00736f11fd7541"
+  integrity sha512-Ny2SlnMe+SxWRVDX2aLyWsv3ltbJC0gVyWtedfoJnV2265ePcM8BLY9fJjKb4ZXwcQ+pwZFdsURYarJ5qEEMeQ==
+  dependencies:
+    loose-envify "^1.1.0"
+    object-assign "^4.1.1"
+    scheduler "0.20.0-rc.0"
+
+react-dom@^16.8.3:
   version "16.12.0"
   resolved "https://registry.yarnpkg.com/react-dom/-/react-dom-16.12.0.tgz#0da4b714b8d13c2038c9396b54a92baea633fe11"
   integrity sha512-LMxFfAGrcS3kETtQaCkTKjMiifahaMySFDn71fZUNpPHZQEzmk/GiAeIT8JSOrHB23fnuCOMruL2a8NYlw+8Gw==
@@ -13569,7 +13578,15 @@ react-virtualized@^9.22.2:
     prop-types "^15.7.2"
     react-lifecycles-compat "^3.0.4"
 
-react@16.12.0, react@^16.8.3:
+react@17.0.0-rc.0:
+  version "17.0.0-rc.0"
+  resolved "https://registry.yarnpkg.com/react/-/react-17.0.0-rc.0.tgz#91a4d2085f07b501175a2434bd65b35aa0e95686"
+  integrity sha512-GPOdeCEE5HL9jRh7YIXoqBBxQVTqKtMm7tbH0Q//PJZV9EkFyUSDUglvIO/0i42PuUstEBcmOwlodTV2R9iStg==
+  dependencies:
+    loose-envify "^1.1.0"
+    object-assign "^4.1.1"
+
+react@^16.8.3:
   version "16.12.0"
   resolved "https://registry.yarnpkg.com/react/-/react-16.12.0.tgz#0c0a9c6a142429e3614834d5a778e18aa78a0b83"
   integrity sha512-fglqy3k5E+81pA8s+7K0/T3DBCF0ZDOher1elBFzF7O6arXJgzyu/FW+COxFvAWXJoJN9KIZbT2LXlukwphYTA==
@@ -14398,6 +14415,14 @@ sax@^1.2.4, sax@~1.2.4:
   version "1.2.4"
   resolved "https://registry.yarnpkg.com/sax/-/sax-1.2.4.tgz#2816234e2378bddc4e5354fab5caa895df7100d9"
   integrity sha512-NqVDv9TpANUjFm0N8uM5GxL36UgKi9/atZw+x7YFnQ8ckwFGKrl4xX4yWtrey3UJm5nP1kUbnYgLopqWNSRhWw==
+
+scheduler@0.20.0-rc.0:
+  version "0.20.0-rc.0"
+  resolved "https://registry.yarnpkg.com/scheduler/-/scheduler-0.20.0-rc.0.tgz#9cb397f88f9decea28d159d3aad068b54a6f35e4"
+  integrity sha512-5CZiVhk9xI9VmqaodZH+eO3aKgqYwjZ8uf9lnfRlYEwaB4lbmIq0mzuNY5w52sbPlZP9pifXQaLGudKHMgQZcw==
+  dependencies:
+    loose-envify "^1.1.0"
+    object-assign "^4.1.1"
 
 scheduler@^0.18.0:
   version "0.18.0"
