@@ -31,6 +31,7 @@ export function displayDeployPreviewAlert() {
     ),
     type: 'warning',
     neverExpire: true,
+    noDuplicates: true,
   });
 }
 
@@ -46,5 +47,6 @@ export function displayExperimentalSpaAlert() {
     ),
     type: 'warning',
     neverExpire: true,
+    noDuplicates: true,
   });
 }
