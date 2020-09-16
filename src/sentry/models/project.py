@@ -104,10 +104,10 @@ class Project(Model, PendingDeletionMixin):
     first_event = models.DateTimeField(null=True)
     flags = BitField(
         flags=(
-            ("has_alert_filters", "This Project has filters"),
             ("has_releases", "This Project has sent release data"),
             ("has_issue_alerts_targeting", "This Project has issue alerts targeting"),
             ("has_transactions", "This Project has sent transactions"),
+            ("has_alert_filters", "This Project has filters"),
         ),
         default=10,
         null=True,
