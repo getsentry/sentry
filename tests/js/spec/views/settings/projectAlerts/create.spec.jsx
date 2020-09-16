@@ -1,9 +1,9 @@
-import {browserHistory} from 'react-router';
 import React from 'react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {selectByValue} from 'sentry-test/select-new';
+import {mockRouterPush} from 'sentry-test/mockRouterPush';
 
 import * as memberActionCreators from 'app/actionCreators/members';
 import ProjectAlertsCreate from 'app/views/settings/projectAlerts/create';
@@ -73,7 +73,6 @@ describe('ProjectAlertsCreate', function() {
   ];
 
   beforeEach(async function() {
-    browserHistory.replace = jest.fn();
     memberActionCreators.fetchOrgMembers = jest.fn();
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/rules/configuration/',
@@ -98,7 +97,7 @@ describe('ProjectAlertsCreate', function() {
   });
 
   const createWrapper = (props = {}) => {
-    const {organization, project, routerContext} = initializeOrg(props);
+    const {organization, project, routerContext, router} = initializeOrg(props);
     ProjectsStore.loadInitialData([project]);
     const params = {orgId: organization.slug, projectId: project.slug};
     const wrapper = mountWithTheme(
@@ -110,16 +109,19 @@ describe('ProjectAlertsCreate', function() {
               pathname: `/organizations/org-slug/alerts/rules/${project.slug}/new/`,
             }}
             routes={projectAlertRuleDetailsRoutes}
+            router={router}
           />
         </AlertBuilderProjectProvider>
       </AlertsContainer>,
       routerContext
     );
+    mockRouterPush(wrapper, router);
 
     return {
       wrapper,
       organization,
       project,
+      router,
     };
   };
 
@@ -185,7 +187,7 @@ describe('ProjectAlertsCreate', function() {
       });
 
       it('updates values and saves', async function() {
-        const {wrapper} = createWrapper({
+        const {wrapper, router} = createWrapper({
           organization: {
             features: ['alert-filters'],
           },
@@ -330,9 +332,7 @@ describe('ProjectAlertsCreate', function() {
         );
 
         await tick();
-        expect(browserHistory.replace).toHaveBeenCalledWith(
-          '/organizations/org-slug/alerts/rules/'
-        );
+        expect(router.push).toHaveBeenCalledWith('/organizations/org-slug/alerts/rules/');
       });
     });
   });

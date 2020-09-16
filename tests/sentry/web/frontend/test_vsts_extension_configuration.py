@@ -16,7 +16,7 @@ class VstsExtensionConfigurationTest(TestCase):
         self.user = self.create_user()
         self.org = self.create_organization()
 
-        OrganizationMember.objects.create(user=self.user, organization=self.org)
+        OrganizationMember.objects.create(user=self.user, organization=self.org, role="admin")
 
     def test_logged_in_one_org(self):
         self.login_as(self.user)
