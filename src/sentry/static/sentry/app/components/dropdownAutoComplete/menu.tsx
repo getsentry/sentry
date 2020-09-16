@@ -155,6 +155,7 @@ type Props = {
    * When AutoComplete input changes
    */
   onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
+
   /**
    * When an item is selected (via clicking dropdown, or keyboard navigation)
    */
