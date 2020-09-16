@@ -18,7 +18,7 @@ import {Sort, Field} from 'app/utils/discover/fields';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import Count from 'app/components/count';
-import {Organization} from 'app/types';
+import {Organization, Project} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import {Client} from 'app/api';
 import {getUtcDateString} from 'app/utils/dates';
@@ -32,6 +32,8 @@ import {
   NormalizedTrendsTransaction,
   TrendFunctionField,
   TrendsStats,
+  ProjectTrend,
+  NormalizedProjectTrend,
 } from './types';
 import {BaselineQueryResults} from '../transactionSummary/baselineQuery';
 
@@ -153,15 +155,38 @@ export function transformDeltaSpread(
   );
 }
 
+export function getTrendProjectId(
+  trend: NormalizedTrendsTransaction,
+  projects?: Project[]
+): string | undefined;
+
+export function getTrendProjectId(
+  trend: NormalizedProjectTrend,
+  projects?: Project[]
+): string | undefined;
+
+export function getTrendProjectId(
+  trend: NormalizedTrendsTransaction | NormalizedProjectTrend,
+  projects?: Project[]
+): string | undefined {
+  if (!trend.project || !projects) {
+    return undefined;
+  }
+  const transactionProject = projects.find(project => project.slug === trend.project);
+  return transactionProject?.id;
+}
+
 export function modifyTrendView(
   trendView: TrendView,
   location: Location,
-  trendsType: TrendChangeType
+  trendsType: TrendChangeType,
+  isProjectOnly?: boolean
 ) {
   const trendFunction = getCurrentTrendFunction(location);
 
   const trendFunctionFields = TRENDS_FUNCTIONS.map(({field}) => field);
-  const fields = [...trendFunctionFields, 'transaction', 'project', 'count()'].map(
+  const transactionField = isProjectOnly ? [] : ['transaction'];
+  const fields = [...trendFunctionFields, ...transactionField, 'project', 'count()'].map(
     field => ({
       field,
     })
@@ -307,10 +332,17 @@ export function transformValueDelta(
  * This will normalize the trends transactions while the current trend function and current data are out of sync
  * To minimize extra renders with missing results.
  */
-export function normalizeTrendsTransactions(data: TrendsTransaction[]) {
+export function normalizeTrends(
+  data: Array<TrendsTransaction>
+): Array<NormalizedTrendsTransaction>;
+
+export function normalizeTrends(data: Array<ProjectTrend>): Array<NormalizedProjectTrend>;
+
+export function normalizeTrends(
+  data: Array<TrendsTransaction | ProjectTrend>
+): Array<NormalizedTrendsTransaction | NormalizedProjectTrend> {
   return data.map(row => {
     const {
-      transaction,
       project,
       count_range_1,
       count_range_2,
@@ -329,15 +361,25 @@ export function normalizeTrendsTransactions(data: TrendsTransaction[]) {
       }
     });
 
-    return {
+    const normalized = {
       ...aliasedFields,
-      transaction,
       project,
 
       count_range_1,
       count_range_2,
       percentage_count_range_2_count_range_1,
-    } as NormalizedTrendsTransaction;
+    };
+
+    if ('transaction' in row) {
+      return {
+        ...normalized,
+        transaction: row.transaction,
+      } as NormalizedTrendsTransaction;
+    } else {
+      return {
+        ...normalized,
+      } as NormalizedProjectTrend;
+    }
   });
 }
 
