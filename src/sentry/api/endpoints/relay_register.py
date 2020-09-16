@@ -10,12 +10,11 @@ from django.utils import timezone
 
 from sentry import options
 from sentry.utils import json
-from sentry.models import Relay
+from sentry.models import Relay, RelayUsage
 from sentry.auth.system import is_internal_ip
 from sentry.api.base import Endpoint
 from sentry.api.serializers import serialize
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
-
 
 from sentry_relay import (
     create_register_challenge,
@@ -168,6 +167,7 @@ class RelayRegisterResponseEndpoint(Endpoint):
             )
 
         relay_id = six.text_type(validated["relay_id"])
+        version = six.text_type(validated["version"])
         public_key = validated["public_key"]
 
         if relay_id != get_header_relay_id(request):
@@ -184,8 +184,15 @@ class RelayRegisterResponseEndpoint(Endpoint):
                 relay_id=relay_id, public_key=public_key, is_internal=is_internal
             )
         else:
-            relay.last_seen = timezone.now()
             relay.is_internal = is_internal
             relay.save()
+
+        try:
+            relay_usage = RelayUsage.objects.get(relay_id=relay_id, version=version)
+        except RelayUsage.DoesNotExist:
+            RelayUsage.objects.create(relay_id=relay_id, version=version)
+        else:
+            relay_usage.last_seen = timezone.now()
+            relay_usage.save()
 
         return Response(serialize({"relay_id": relay.relay_id}))

@@ -10,14 +10,30 @@ from django.utils.functional import cached_property
 from sentry_relay import PublicKey
 
 
+class RelayUsage(Model):
+    __core__ = True
+
+    relay_id = models.CharField(max_length=64)
+    version = models.CharField(max_length=32, default="0.0.1")
+    first_seen = models.DateTimeField(default=timezone.now)
+    last_seen = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        unique_together = (("relay_id", "version"),)
+        app_label = "sentry"
+        db_table = "sentry_relayusage"
+
+
 class Relay(Model):
     __core__ = True
 
     relay_id = models.CharField(max_length=64, unique=True)
     public_key = models.CharField(max_length=200)
-    first_seen = models.DateTimeField(default=timezone.now)
-    last_seen = models.DateTimeField(default=timezone.now)
-    is_internal = models.BooleanField(default=False)
+    # not used, functionality replaced by RelayUsage
+    first_seen = models.DateTimeField(default=None, null=True)
+    # not used, functionality replaced by RelayUsage
+    last_seen = models.DateTimeField(default=None, null=True)
+    is_internal = models.NullBooleanField(default=None)
 
     class Meta:
         app_label = "sentry"
