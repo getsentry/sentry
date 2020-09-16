@@ -1,0 +1,75 @@
+"Key": {
+    "type": "object",
+    "required": ["browserSdk", "browserSdkVersion", "dateCreated", "dsn", "id", "isActive", "label", "name", "projectId", "public", "rateLimit", "secret"],
+    "properties": {
+        "browserSdk": {
+            "type": "object",
+            "properties": {
+                "choices": {
+                    "type": "array",
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "browserSdkVersion": {
+            "type": "string"
+        },
+        "dateCreated": {
+            "type": "string"
+        },
+        "dsn": {
+            "type": "object",
+            "required": ["cdn", "csp", "minidump", "public", "secret", "security"],
+            "properties": {
+                "cdn": {
+                    "type": "string"
+                },
+                "csp": {
+                    "type": "string"
+                },
+                "minidump": {
+                    "type": "string"
+                },
+                "public": {
+                    "type": "string"
+                },
+                "secret": {
+                    "type": "string"
+                },
+                "security": {
+                    "type": "string"
+                }
+            }
+        },
+        "id": {
+            "type": "string"
+        },
+        "isActive": {
+            "type": "boolean"
+        },
+        "label": {
+            "type": "string"
+        },
+        "name": {
+            "type": "string"
+        },
+        "projectId": {
+            "type": "integer"
+        },
+        "public": {
+            "type": "string"
+        },
+        "rateLimit": {
+            "type": "string",
+            "nullable": true
+        },
+        "secret": {
+            "type": "string"
+        }
+    }
+}

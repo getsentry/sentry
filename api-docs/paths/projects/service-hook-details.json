@@ -1,0 +1,210 @@
+{
+  "get": {
+    "tags": ["Projects"],
+    "description": "Return a service hook bound to a project.",
+    "operationId": "Retrieve a service hook",
+    "parameters": [
+      {
+        "name": "organization_slug",
+        "in": "path",
+        "description": "The slug of the organization the client keys belong to.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "project_slug",
+        "in": "path",
+        "description": "The slug of the project the client keys belong to.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "hook_id",
+        "in": "path",
+        "description": "The GUID of the service hook.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "responses": {
+      "200": {
+        "description": "Success.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "../../components/schemas/service-hook.json#/ServiceHook"
+            },
+            "example": {
+              "dateCreated": "2018-11-06T21:20:08.143Z",
+              "events": ["event.alert", "event.created"],
+              "id": "4f9d73e63b7144ecb8944c41620a090b",
+              "secret": "8fcac28aaa4c4f5fa572b61d40a8e084364db25fd37449c299e5a41c0504cbc2",
+              "status": "active",
+              "url": "https://example.com/sentry-hook"
+            }
+          }
+        }
+      },
+      "403": {
+        "description": "Forbidden"
+      },
+      "404": {
+        "description": "The requested resource does not exist"
+      }
+    },
+    "security": [
+      {
+        "auth_token": ["project:read"]
+      }
+    ]
+  },
+  "put": {
+    "tags": ["Projects"],
+    "description": "Update a service hook",
+    "operationId": "Update a service hook",
+    "parameters": [
+      {
+        "name": "organization_slug",
+        "in": "path",
+        "description": "The slug of the organization the client keys belong to.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "project_slug",
+        "in": "path",
+        "description": "The slug of the project the client keys belong to.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "hook_id",
+        "in": "path",
+        "description": "The GUID of the service hook.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "requestBody": {
+      "content": {
+        "application/json": {
+          "schema": {
+            "required": ["url", "events"],
+            "type": "object",
+            "properties": {
+              "url": {
+                "type": "string",
+                "description": "The url for the webhook."
+              },
+              "events": {
+                "type": "array",
+                "description": "The events to subscribe to.",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "example": {
+            "events": ["event.alert", "event.created"],
+            "url": "https://example.com/sentry-hook"
+          }
+        }
+      },
+      "required": false
+    },
+    "responses": {
+      "200": {
+        "description": "Success.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "../../components/schemas/service-hook.json#/ServiceHook"
+            },
+            "example": {
+              "dateCreated": "2018-11-06T21:20:08.143Z",
+              "events": ["event.alert", "event.created"],
+              "id": "4f9d73e63b7144ecb8944c41620a090b",
+              "secret": "8fcac28aaa4c4f5fa572b61d40a8e084364db25fd37449c299e5a41c0504cbc2",
+              "status": "active",
+              "url": "https://example.com/sentry-hook"
+            }
+          }
+        }
+      },
+      "403": {
+        "description": "Forbidden"
+      },
+      "404": {
+        "description": "The requested resource does not exist"
+      }
+    },
+    "security": [
+      {
+        "auth_token": ["project:write"]
+      }
+    ]
+  },
+  "delete": {
+    "tags": ["Projects"],
+    "description": "Remove a service hook",
+    "operationId": "Remove a service hook",
+    "parameters": [
+      {
+        "name": "organization_slug",
+        "in": "path",
+        "description": "The slug of the organization the client keys belong to.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "project_slug",
+        "in": "path",
+        "description": "The slug of the project the client keys belong to.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "hook_id",
+        "in": "path",
+        "description": "The GUID of the service hook.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "responses": {
+      "204": {
+        "description": "Success."
+      },
+      "403": {
+        "description": "Forbidden"
+      },
+      "404": {
+        "description": "The requested resource does not exist"
+      }
+    },
+    "security": [
+      {
+        "auth_token": ["project:admin"]
+      }
+    ]
+  }
+}

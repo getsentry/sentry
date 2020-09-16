@@ -1,0 +1,42 @@
+{
+  "get": {
+    "tags": [
+      "Events"
+    ],
+    "description": "Retrieves the details of the oldest event for an issue.",
+    "operationId": "Retrieve the oldest event for an issue",
+    "parameters": [
+      {
+        "name": "issue_id",
+        "in": "path",
+        "description": "The ID of the issue.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "responses": {
+      "200": {
+        "description": "Success.",
+        "content": {
+          "application/json": {
+            "schema": {
+                "$ref": "../../components/schemas/event.json#/EventDetailed"
+            }
+          }
+        }
+      },
+      "403": {
+        "description": "Forbidden"
+      }
+    },
+    "security": [
+      {
+        "auth_token": [
+          "event:read"
+        ]
+      }
+    ]
+  }
+}

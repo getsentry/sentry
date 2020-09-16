@@ -1,0 +1,62 @@
+{
+  "get": {
+    "tags": [
+      "Events"
+    ],
+    "description": "Return a list of events bound to a project.",
+    "operationId": "List a project's events",
+    "parameters": [
+      {
+        "name": "organization_slug",
+        "in": "path",
+        "description": "The slug of the organization the groups belong to.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "project_slug",
+        "in": "path",
+        "description": "The slug of the project the groups belong to.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "full",
+        "in": "query",
+        "description": "If this is set to true then the event payload will include the full event body, including the stacktrace. \nSet to true to enable.",
+        "schema": {
+          "type": "boolean"
+        }
+      }
+    ],
+    "responses": {
+      "200": {
+        "description": "Success.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "../../components/schemas/event.json#/Event"
+              }
+            }
+          }
+        }
+      },
+      "403": {
+        "description": "Forbidden"
+      }
+    },
+    "security": [
+      {
+        "auth_token": [
+          "project:read"
+        ]
+      }
+    ]
+  }
+}

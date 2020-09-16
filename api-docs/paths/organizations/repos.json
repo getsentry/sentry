@@ -1,0 +1,60 @@
+{
+  "get": {
+    "tags": ["Organizations"],
+    "description": "Return a list of version control repositories for a given organization.",
+    "operationId": "List an Organization's Repositories",
+    "parameters": [
+      {
+        "name": "organization_slug",
+        "in": "path",
+        "description": "the organization short name",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "responses": {
+      "200": {
+        "description": "Success.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["dateCreated", "id", "name"],
+                "properties": {
+                  "dateCreated": {
+                    "type": "string"
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "example": [
+              {
+                "dateCreated": "2018-11-06T21:19:58.536Z",
+                "id": "3",
+                "name": "sentry/sentry"
+              }
+            ]
+          }
+        }
+      },
+      "403": {
+        "description": "Forbidden"
+      }
+    },
+    "security": [
+      {
+        "auth_token": ["org: read"]
+      }
+    ]
+  }
+}
