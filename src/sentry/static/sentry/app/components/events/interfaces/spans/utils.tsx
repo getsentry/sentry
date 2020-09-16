@@ -604,6 +604,7 @@ export function isEventFromBrowserJavaScriptSDK(event: SentryTransactionEvent): 
     'sentry.javascript.browser',
     'sentry.javascript.react',
     'sentry.javascript.gatsby',
+    'sentry.javascript.ember',
   ].includes(sdkName.toLowerCase());
 }
 
