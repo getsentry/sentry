@@ -15,7 +15,6 @@ const TooltipStore: TooltipStoreInterface = {
 
   getOpenableSingleTooltips() {
     return this.tooltips.filter(tooltip => {
-      // Filtering out disabled tooltips and lists of tooltips (which cause rendering issues for snapshots) using the internal 'key'
       const _internals =
         (tooltip as any)._reactInternalFiber || (tooltip as any)._reactInternals;
       return (

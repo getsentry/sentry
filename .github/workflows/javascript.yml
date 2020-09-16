@@ -32,7 +32,7 @@ jobs:
                 owner: 'getsentry',
                 repo: 'getsentry',
                 workflow_id: 'javascript.yml',
-                ref: 'master',
+                ref: 'build/gha/run-jest-for-dispatch-workflow',
                 inputs: {
                   'sentry-sha': '${{ github.event.pull_request.head.sha }}',
                 }
