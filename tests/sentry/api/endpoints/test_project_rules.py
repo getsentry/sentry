@@ -370,5 +370,5 @@ class CreateProjectRuleTest(APITestCase):
 
         assert response.status_code == 400
         assert json.loads(response.content) == {
-            "filterMatch": ["Must select a filter match (all, any, none) if filters are supplied"]
+            "filterMatch": ["Must select a filter match (all, any, none) if filters are supplied."]
         }

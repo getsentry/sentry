@@ -4,6 +4,8 @@ import six
 
 from rest_framework import serializers
 
+from sentry import features
+from sentry.constants import MIGRATED_CONDITIONS
 from sentry.models import Environment
 from sentry.rules import rules
 
@@ -115,7 +117,22 @@ class RuleSerializer(serializers.Serializer):
             if not filter_match:
                 raise serializers.ValidationError(
                     {
-                        "filterMatch": u"Must select a filter match (all, any, none) if filters are supplied"
+                        "filterMatch": u"Must select a filter match (all, any, none) if filters are supplied."
+                    }
+                )
+
+        # ensure that if a user has alert-filters enabled, they do not use old conditions
+        project = self.context["project"]
+        conditions = attrs.get("conditions", tuple())
+        project_has_filters = features.has("projects:alert-filters", project)
+        if project_has_filters:
+            old_conditions = [
+                condition for condition in conditions if condition["id"] in MIGRATED_CONDITIONS
+            ]
+            if old_conditions:
+                raise serializers.ValidationError(
+                    {
+                        "conditions": u"Conditions evaluating an event attribute, tag, or level are outdated please use an appropriate filter instead."
                     }
                 )
 
