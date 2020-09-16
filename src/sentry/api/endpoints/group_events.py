@@ -81,6 +81,7 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
         params = {
             "group_ids": [group.id],
             "project_id": [group.project_id],
+            "organization_id": group.project.organization_id,
             "start": start if start else default_start,
             "end": end if end else default_end,
         }

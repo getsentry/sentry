@@ -43,19 +43,19 @@ class EventIdLookupEndpoint(OrganizationEndpoint):
         if len(event_id) != 32:
             return Response({"detail": "Event ID must be 32 characters."}, status=400)
 
-        # Limit to 100req/s
+        # Limit to 1 req/s
         if ratelimiter.is_limited(
             u"api:event-id-lookup:{}".format(
                 md5_text(
                     request.user.id if request.user and request.user.is_authenticated() else ""
                 ).hexdigest()
             ),
-            limit=100,
+            limit=1,
             window=1,
         ):
             return Response(
                 {
-                    "detail": "You are attempting to use this endpoint too quickly. Limit is 100 requests/second."
+                    "detail": "You are attempting to use this endpoint too quickly. Limit is 1 request per second."
                 },
                 status=429,
             )

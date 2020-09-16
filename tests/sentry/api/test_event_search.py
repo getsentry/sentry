@@ -1650,6 +1650,29 @@ class GetSnubaQueryArgsTest(TestCase):
         assert "Invalid value" in six.text_type(err)
         assert "cancelled," in six.text_type(err)
 
+    def test_error_handled(self):
+        result = get_filter("error.handled:1")
+        assert result.conditions == [[["isHandled", []], "=", 1]]
+
+        result = get_filter("error.handled:0")
+        assert result.conditions == [[["notHandled", []], "=", 1]]
+
+        result = get_filter("has:error.handled")
+        assert result.conditions == [[["isHandled", []], "=", 1]]
+
+        result = get_filter("!has:error.handled")
+        assert result.conditions == [[["isHandled", []], "=", 0]]
+
+        with pytest.raises(InvalidSearchQuery):
+            get_filter("error.handled:99")
+
+        # Numeric fields can't be negated.
+        with pytest.raises(InvalidSearchQuery):
+            get_filter("!error.handled:0")
+
+        with pytest.raises(InvalidSearchQuery):
+            get_filter("!error.handled:1")
+
     def test_function_negation(self):
         result = get_filter("!p95():5s")
         assert result.having == [["p95", "!=", 5000.0]]
@@ -1705,6 +1728,17 @@ class GetSnubaQueryArgsTest(TestCase):
 
         result = get_filter("!last_seen():<=2020-04-01T19:34:52+00:00")
         assert result.having == [["last_seen", ">", 1585769692]]
+
+    def test_release_latest(self):
+        result = get_filter(
+            "release:latest",
+            params={"organization_id": self.organization.id, "project_id": [self.project.id]},
+        )
+        assert result.conditions == [[["isNull", ["release"]], "=", 1]]
+
+        # When organization id isn't included, project_id should unfortunately be an object
+        result = get_filter("release:latest", params={"project_id": [self.project]})
+        assert result.conditions == [[["isNull", ["release"]], "=", 1]]
 
     @pytest.mark.xfail(reason="this breaks issue search so needs to be redone")
     def test_trace_id(self):

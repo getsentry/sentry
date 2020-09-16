@@ -4,7 +4,6 @@ import six
 
 import threading
 from time import time
-from binascii import crc32
 
 from datetime import datetime
 from django.db import models
@@ -15,7 +14,7 @@ from sentry.buffer import Buffer
 from sentry.exceptions import InvalidConfiguration
 from sentry.tasks.process_buffer import process_incr, process_pending
 from sentry.utils import json, metrics
-from sentry.utils.compat import pickle
+from sentry.utils.compat import pickle, crc32
 from sentry.utils.hashlib import md5_text
 from sentry.utils.imports import import_string
 from sentry.utils.redis import get_cluster_from_options
@@ -192,7 +191,7 @@ class RedisBuffer(Buffer):
             pipe.hset(key, "s", "1")
 
         pipe.expire(key, self.key_expire)
-        pipe.zadd(pending_key, time(), key)
+        pipe.zadd(pending_key, {key: time()})
         pipe.execute()
 
         metrics.incr(

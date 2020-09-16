@@ -46,6 +46,7 @@ import {
   getCurrentTrendFunction,
   getTrendBaselinesForTransaction,
   getIntervalRatio,
+  StyledIconArrow,
 } from './utils';
 import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
 import {HeaderTitleLegend} from '../styles';
@@ -103,7 +104,7 @@ function getChartTitle(trendChangeType: TrendChangeType): string {
     case TrendChangeType.IMPROVED:
       return t('Most Improved');
     case TrendChangeType.REGRESSION:
-      return t('Worst Regressions');
+      return t('Worst Regressed');
     default:
       throw new Error('No trend type passed');
   }
@@ -339,24 +340,22 @@ function TrendsListItem(props: TrendsListItemProps) {
                 <span>{t('Total Events')}</span>
                 <span>
                   <Count value={transaction.count_range_1} />
-                  {' → '}
+                  <StyledIconArrow direction="right" size="xs" />
                   <Count value={transaction.count_range_2} />
                 </span>
               </TooltipContent>
             }
           >
-            <TransactionLink {...props} />
+            <TransactionLink onClick={() => handleSelectTransaction(transaction)}>
+              {transaction.transaction}
+            </TransactionLink>
           </Tooltip>
           <TransactionMenuContainer>
             <DropdownLink
               caret={false}
               title={
                 <TransactionMenuButton>
-                  <IconEllipsis
-                    size="sm"
-                    data-test-id="trends-item-action"
-                    color="gray600"
-                  />
+                  <IconEllipsis data-test-id="trends-item-action" color="gray600" />
                 </TransactionMenuButton>
               }
             >
@@ -373,11 +372,7 @@ function TrendsListItem(props: TrendsListItemProps) {
             </Tooltip>
           )}
           <ItemTransactionAbsoluteFaster>
-            {transformDeltaSpread(
-              transaction.aggregate_range_1,
-              transaction.aggregate_range_2,
-              currentTrendFunction
-            )}
+            <CompareLink {...props} />
           </ItemTransactionAbsoluteFaster>
         </ItemTransactionNameSecondary>
       </ItemTransactionNameContainer>
@@ -424,9 +419,9 @@ function TrendsListItem(props: TrendsListItemProps) {
   );
 }
 
-type TransactionLinkProps = TrendsListItemProps & {};
+type CompareLinkProps = TrendsListItemProps & {};
 
-const TransactionLink = (props: TransactionLinkProps) => {
+const CompareLink = (props: CompareLinkProps) => {
   const {
     organization,
     trendView: eventView,
@@ -434,6 +429,7 @@ const TransactionLink = (props: TransactionLinkProps) => {
     api,
     statsData,
     location,
+    currentTrendFunction,
   } = props;
   const summaryView = eventView.clone();
   const intervalRatio = getIntervalRatio(location);
@@ -460,7 +456,15 @@ const TransactionLink = (props: TransactionLinkProps) => {
     }
   }
 
-  return <StyledLink onClick={onLinkClick}>{transaction.transaction}</StyledLink>;
+  return (
+    <StyledLink onClick={onLinkClick}>
+      {transformDeltaSpread(
+        transaction.aggregate_range_1,
+        transaction.aggregate_range_2,
+        currentTrendFunction
+      )}
+    </StyledLink>
+  );
 };
 
 type TransactionSummaryLinkProps = TrendsListItemProps & {};
@@ -479,6 +483,11 @@ const TransactionSummaryLink = (props: TransactionSummaryLinkProps) => {
 
   return <StyledSummaryLink to={target}>{t('View Summary')}</StyledSummaryLink>;
 };
+
+const TransactionLink = styled('div')`
+  cursor: pointer;
+  word-break: break-all;
+`;
 
 const ChangedTransactionsContainer = styled('div')``;
 const StyledLink = styled('a')`
@@ -506,13 +515,14 @@ const TransactionMenuButton = styled('button')`
 `;
 const TransactionMenuContainer = styled('div')`
   height: 100%;
-
   display: flex;
   justify-content: center;
   align-items: center;
+  margin-top: 3px;
 `;
 
 const TransactionsList = styled('div')``;
+
 const ListItemContainer = styled('div')`
   display: flex;
   border-top: 1px solid ${p => p.theme.borderLight};
@@ -522,17 +532,16 @@ const ListItemContainer = styled('div')`
 const ItemRadioContainer = styled('div')`
   input:checked::after {
     background-color: ${p => p.color};
-    width: 14px;
-    height: 14px;
   }
 `;
 const ItemTransactionNameContainer = styled('div')`
+  font-size: ${p => p.theme.fontSizeMedium};
   flex-grow: 1;
 `;
 const ItemTransactionName = styled('div')`
   display: flex;
   justify-content: flex-start;
-  align-items: center;
+  align-items: flex-start;
 `;
 const ItemTransactionNameSecondary = styled('div')`
   display: flex;
@@ -542,19 +551,18 @@ const ItemTransactionNameSecondary = styled('div')`
 
 const ItemTransactionAbsoluteFaster = styled('div')`
   color: ${p => p.theme.gray500};
-  font-size: 14px;
-  margin-left: ${space(2)};
+  margin-left: ${space(1)};
 `;
 const ItemTransactionPrimary = styled('div')``;
 const ItemTransactionSecondary = styled('div')`
   color: ${p => p.color};
-  font-size: 14px;
   white-space: nowrap;
 `;
 const ItemTransactionPercentContainer = styled('div')`
   display: flex;
   flex-direction: column;
   align-items: flex-end;
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const TooltipContent = styled('div')`
@@ -564,7 +572,7 @@ const TooltipContent = styled('div')`
 `;
 
 const ContainerTitle = styled('div')`
-  padding-top: ${space(2)};
+  padding-top: ${space(3)};
   padding-left: ${space(2)};
 `;
 

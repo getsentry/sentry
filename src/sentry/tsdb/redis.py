@@ -5,12 +5,12 @@ import logging
 import operator
 import random
 import uuid
-from binascii import crc32
 from collections import defaultdict, namedtuple
 from hashlib import md5
 
 import six
 from django.utils import timezone
+from django.utils.encoding import force_bytes
 from pkg_resources import resource_string
 
 from sentry.tsdb.base import BaseTSDB
@@ -18,8 +18,7 @@ from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.redis import check_cluster_versions, get_cluster_from_options, SentryScript
 from sentry.utils.versioning import Version
 from six.moves import reduce
-from sentry.utils.compat import map
-from sentry.utils.compat import zip
+from sentry.utils.compat import map, zip, crc32
 
 logger = logging.getLogger(__name__)
 
@@ -173,9 +172,7 @@ class RedisTSDB(BaseTSDB):
         if isinstance(model_key, six.integer_types):
             vnode = model_key % self.vnodes
         else:
-            if isinstance(model_key, six.text_type):
-                model_key = model_key.encode("utf-8")
-            vnode = crc32(model_key) % self.vnodes
+            vnode = crc32(force_bytes(model_key)) % self.vnodes
 
         return (
             u"{prefix}{model}:{epoch}:{vnode}".format(
@@ -195,7 +192,21 @@ class RedisTSDB(BaseTSDB):
             # enforce utf-8 encoding
             if isinstance(key, six.text_type):
                 key = key.encode("utf-8")
-            return md5(repr(key)).hexdigest()
+
+            key_repr = repr(key)
+            if six.PY3:
+                # TODO(python3): Once we're fully on py3, we can remove the condition
+                # here and make this the default behaviour.
+                # XXX: Python 3 reprs bytes differently to Python 2. In py2,
+                # `repr("foo")` would produce a bytestring like `"'foo'"`. In Python 3,
+                # we'll end up with a unicode string like `"b'foo'"`. To keep this
+                # compatible between versions, we strip off the `b` from the beginning
+                # of the string and then encode back to bytes so that md5 can hash the
+                # value.
+                key_repr = key_repr[1:].encode("utf-8")
+
+            return md5(key_repr).hexdigest()
+
         return key
 
     def incr(self, model, key, timestamp=None, count=1, environment_id=None):
@@ -727,7 +738,9 @@ class RedisTSDB(BaseTSDB):
         results = {}
         cluster, _ = self.get_cluster(environment_id)
         for key, responses in cluster.execute_commands(commands).items():
-            results[key] = [(member, float(score)) for member, score in responses[0].value]
+            results[key] = [
+                (member.decode("utf-8"), float(score)) for member, score in responses[0].value
+            ]
 
         return results
 
@@ -757,7 +770,7 @@ class RedisTSDB(BaseTSDB):
             ]
 
         def unpack_response(response):
-            return {item: float(score) for item, score in response.value}
+            return {item.decode("utf-8"): float(score) for item, score in response.value}
 
         results = {}
         cluster, _ = self.get_cluster(environment_id)

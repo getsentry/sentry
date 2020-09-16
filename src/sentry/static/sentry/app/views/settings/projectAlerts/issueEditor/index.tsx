@@ -116,16 +116,11 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   }
 
   getEndpoints() {
-    const {params, location} = this.props;
-    const {ruleId, projectId, orgId} = params;
-    const {issue_alerts_targeting = 0} = location.query ?? {};
+    const {ruleId, projectId, orgId} = this.props.params;
 
     const endpoints = [
       ['environments', `/projects/${orgId}/${projectId}/environments/`],
-      [
-        'configs',
-        `/projects/${orgId}/${projectId}/rules/configuration/?issue_alerts_targeting=${issue_alerts_targeting}`,
-      ],
+      ['configs', `/projects/${orgId}/${projectId}/rules/configuration/`],
     ];
 
     if (ruleId) {
@@ -189,7 +184,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   }
 
   handleRuleSuccess = (isNew: boolean, rule: IssueAlertRule) => {
-    const {organization} = this.props;
+    const {organization, router} = this.props;
     this.setState({detailedError: null, loading: false, rule});
 
     // The onboarding task will be completed on the server side when the alert
@@ -199,7 +194,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       status: 'complete',
     });
 
-    browserHistory.replace(recreateRoute('rules/', {...this.props, stepBack: -2}));
+    router.push(`/organizations/${organization.slug}/alerts/rules/`);
     addSuccessMessage(isNew ? t('Created alert rule') : t('Updated alert rule'));
   };
 
@@ -480,7 +475,14 @@ class IssueRuleEditor extends AsyncView<Props, State> {
             </Panel>
 
             <Panel>
-              <PanelHeader>{t('Alert Conditions')}</PanelHeader>
+              <StyledPanelHeader>
+                {t('Alert Conditions')}
+                <PanelHelpText>
+                  {t(
+                    'Conditions are evaluated every time an event is captured by Sentry.'
+                  )}
+                </PanelHelpText>
+              </StyledPanelHeader>
               <PanelBody>
                 {detailedError && (
                   <PanelAlert type="error">
@@ -698,6 +700,19 @@ const StyledForm = styled(Form)`
   position: relative;
 `;
 
+const StyledPanelHeader = styled(PanelHeader)`
+  flex-direction: column;
+  align-items: flex-start;
+`;
+
+const PanelHelpText = styled('div')`
+  color: ${p => p.theme.gray500};
+  font-size: 14px;
+  font-weight: normal;
+  text-transform: none;
+  margin-top: ${space(1)};
+`;
+
 const StyledAlert = styled(Alert)`
   margin-bottom: 0;
 `;
@@ -729,7 +744,7 @@ const StepConnector = styled('div')`
 `;
 
 const StepLead = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${space(0.5)};
 `;
 
 const ChevronContainer = styled('div')`
@@ -740,7 +755,7 @@ const ChevronContainer = styled('div')`
 
 const Badge = styled('span')`
   display: inline-block;
-  min-width: 51px;
+  min-width: 56px;
   background-color: ${p => p.theme.purple400};
   padding: 0 ${space(0.75)};
   border-radius: ${p => p.theme.borderRadius};
@@ -748,7 +763,7 @@ const Badge = styled('span')`
   text-transform: uppercase;
   text-align: center;
   font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: 500;
+  font-weight: 600;
   line-height: 1.5;
 `;
 

@@ -3,16 +3,85 @@ Used for notifying a *specific* plugin
 """
 from __future__ import absolute_import
 
+import logging
 from django import forms
 
+from sentry.api.serializers import serialize
+from sentry.api.serializers.models.app_platform_event import AppPlatformEvent
+from sentry.api.serializers.models.incident import IncidentSerializer
+from sentry.constants import SentryAppInstallationStatus
 from sentry.incidents.logic import get_alertable_sentry_apps
+from sentry.incidents.models import INCIDENT_STATUS, IncidentStatus
+from sentry.integrations.metric_alerts import incident_attachment_info
+from sentry.models import SentryApp, SentryAppInstallation
 from sentry.plugins.base import plugins
 from sentry.rules.actions.base import EventAction
 from sentry.rules.actions.services import PluginService, SentryAppService
-from sentry.models import SentryApp
-from sentry.utils.safe import safe_execute
+from sentry.tasks.sentry_apps import notify_sentry_app, send_and_save_webhook_request
 from sentry.utils import metrics
-from sentry.tasks.sentry_apps import notify_sentry_app
+from sentry.utils.safe import safe_execute
+
+
+logger = logging.getLogger("sentry.integrations.sentry_app")
+
+
+def build_incident_attachment(incident, metric_value=None):
+    from sentry.api.serializers.rest_framework.base import (
+        camel_to_snake_case,
+        convert_dict_key_case,
+    )
+
+    data = incident_attachment_info(incident, metric_value)
+    return {
+        "metric_alert": convert_dict_key_case(
+            serialize(incident, serializer=IncidentSerializer()), camel_to_snake_case
+        ),
+        "description_text": data["text"],
+        "description_title": data["title"],
+        "web_url": data["title_link"],
+    }
+
+
+def send_incident_alert_notification(action, incident, metric_value=None):
+    """
+    When a metric alert is triggered, send incident data to the SentryApp's webhook.
+    :param action: The triggered `AlertRuleTriggerAction`.
+    :param incident: The `Incident` for which to build a payload.
+    :param metric_value: The value of the metric that triggered this alert to
+    fire. If not provided we'll attempt to calculate this ourselves.
+    :return:
+    """
+    sentry_app = action.sentry_app
+    organization = incident.organization
+    metrics.incr("notifications.sent", instance=sentry_app.slug, skip_internal=False)
+
+    try:
+        install = SentryAppInstallation.objects.get(
+            organization=organization.id,
+            sentry_app=sentry_app,
+            status=SentryAppInstallationStatus.INSTALLED,
+        )
+    except SentryAppInstallation.DoesNotExist:
+        logger.info(
+            "metric_alert_webhook.missing_installation",
+            extra={
+                "action": action.id,
+                "incident": incident.id,
+                "organization": organization.slug,
+                "sentry_app_id": sentry_app.id,
+            },
+        )
+        return
+
+    send_and_save_webhook_request(
+        sentry_app,
+        AppPlatformEvent(
+            resource="metric_alert",
+            action=INCIDENT_STATUS[IncidentStatus(incident.status)].lower(),
+            install=install,
+            data=build_incident_attachment(incident, metric_value),
+        ),
+    )
 
 
 class NotifyEventServiceForm(forms.Form):

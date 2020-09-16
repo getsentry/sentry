@@ -430,7 +430,7 @@ if (
   if (!IS_UI_DEV_ONLY) {
     // This proxies to local backend server
     const backendAddress = `http://localhost:${SENTRY_BACKEND_PORT}/`;
-    const relayAddress = 'http://127.0.0.1:7999';
+    const relayAddress = 'http://127.0.0.1:7899';
 
     appConfig.devServer = {
       ...appConfig.devServer,
@@ -457,8 +457,7 @@ if (
 // to a development index.html -- thus, completely separating the frontend
 // from serving any pages through the backend.
 //
-// THIS IS EXPERIMENTAL and has limitations (e.g. CSRF issues will stop you
-// from writing to the API).
+// THIS IS EXPERIMENTAL and has limitations (e.g. you can't use SSO)
 //
 // Various sentry pages still rely on django to serve html views.
 if (IS_UI_DEV_ONLY) {
@@ -474,6 +473,9 @@ if (IS_UI_DEV_ONLY) {
         target: 'https://sentry.io',
         secure: false,
         changeOrigin: true,
+        headers: {
+          Referer: 'https://sentry.io/',
+        },
       },
     ],
     historyApiFallback: {

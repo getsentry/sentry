@@ -31,7 +31,7 @@ function selectTrendFunction(wrapper, field) {
 }
 
 function initializeData(projects, query) {
-  const features = ['transaction-event', 'performance-view', 'internal-catchall'];
+  const features = ['transaction-event', 'performance-view', 'trends'];
   const organization = TestStubs.Organization({
     features,
     projects,
@@ -298,7 +298,7 @@ describe('Performance > Trends', function() {
 
       const field = [...trendFunctionFields, ...defaultFields];
 
-      expect(field).toHaveLength(5);
+      expect(field).toHaveLength(8);
 
       // Improved trends call
       expect(trendsMock).toHaveBeenNthCalledWith(
@@ -309,8 +309,9 @@ describe('Performance > Trends', function() {
             trendFunction: trendFunction.field,
             sort,
             query: expect.stringContaining(aliasedQueryDivide + ':<1'),
-            interval: '30m',
+            interval: '12h',
             field,
+            statsPeriod: '14d',
           }),
         })
       );
@@ -324,8 +325,9 @@ describe('Performance > Trends', function() {
             trendFunction: trendFunction.field,
             sort: '-' + sort,
             query: expect.stringContaining(aliasedQueryDivide + ':>1'),
-            interval: '30m',
+            interval: '12h',
             field,
+            statsPeriod: '14d',
           }),
         })
       );
