@@ -108,7 +108,9 @@ const List = ({
     <React.Fragment>
       {items.map((item, index) => (
         <Row
-          key={index}
+          // Using only the index of the row might not re-render properly,
+          // because the items shift around the list
+          key={`${item.value}-${index}`}
           item={item}
           itemSize={itemSize}
           highlightedIndex={highlightedIndex}

@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import Menu from 'app/components/dropdownAutoComplete/menu';
+import Menu from './menu';
 
 type MenuProps = React.ComponentProps<typeof Menu>;
 

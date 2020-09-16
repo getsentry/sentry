@@ -237,144 +237,140 @@ const Menu = ({
   css,
   closeOnSelect,
   ...props
-}: Props) => {
-  return (
-    <AutoComplete
-      itemToString={() => ''}
-      onSelect={onSelect}
-      inputIsActor={false}
-      onOpen={onOpen}
-      onClose={onClose}
-      disabled={disabled}
-      closeOnSelect={closeOnSelect}
-      resetInputOnClose
-      {...props}
-    >
-      {({
-        getActorProps,
-        getRootProps,
-        getInputProps,
-        getMenuProps,
-        getItemProps,
-        inputValue,
-        selectedItem,
-        highlightedIndex,
-        isOpen,
-        actions,
-      }) => {
-        // This is the value to use to filter (default to value in filter input)
-        const filterValueOrInput: string = filterValue ?? inputValue;
+}: Props) => (
+  <AutoComplete
+    itemToString={() => ''}
+    onSelect={onSelect}
+    inputIsActor={false}
+    onOpen={onOpen}
+    onClose={onClose}
+    disabled={disabled}
+    closeOnSelect={closeOnSelect}
+    resetInputOnClose
+    {...props}
+  >
+    {({
+      getActorProps,
+      getRootProps,
+      getInputProps,
+      getMenuProps,
+      getItemProps,
+      inputValue,
+      selectedItem,
+      highlightedIndex,
+      isOpen,
+      actions,
+    }) => {
+      // This is the value to use to filter (default to value in filter input)
+      const filterValueOrInput: string = filterValue ?? inputValue;
 
-        // Can't search if there are no items
-        const hasItems = items && !!items.length;
+      // Can't search if there are no items
+      const hasItems = items && !!items.length;
 
-        // Only filter results if menu is open and there are items
-        const autoCompleteResults =
-          (isOpen && hasItems && autoCompleteFilter(items, filterValueOrInput)) || [];
+      // Only filter results if menu is open and there are items
+      const autoCompleteResults =
+        (isOpen && hasItems && autoCompleteFilter(items, filterValueOrInput)) || [];
 
-        // Items are loading if null
-        const itemsLoading = items === null;
+      // Items are loading if null
+      const itemsLoading = items === null;
 
-        // Has filtered results
-        const hasResults = !!autoCompleteResults.length;
+      // Has filtered results
+      const hasResults = !!autoCompleteResults.length;
 
-        // No items to display
-        const showNoItems = !busy && !filterValueOrInput && !hasItems;
+      // No items to display
+      const showNoItems = !busy && !filterValueOrInput && !hasItems;
 
-        // Results mean there was an attempt to search
-        const showNoResultsMessage =
-          !busy && !busyItemsStillVisible && filterValueOrInput && !hasResults;
+      // Results mean there was an attempt to search
+      const showNoResultsMessage =
+        !busy && !busyItemsStillVisible && filterValueOrInput && !hasResults;
 
-        // Hide the input when we have no items to filter, only if
-        // emptyHidesInput is set to true.
-        const showInput = !hideInput && (hasItems || !emptyHidesInput);
+      // Hide the input when we have no items to filter, only if
+      // emptyHidesInput is set to true.
+      const showInput = !hideInput && (hasItems || !emptyHidesInput);
 
-        // When virtualization is turned on, we need to pass in the number of
-        // selecteable items for arrow-key limits
-        const itemCount =
-          virtualizedHeight && autoCompleteResults.filter(i => !i.groupLabel).length;
+      // When virtualization is turned on, we need to pass in the number of
+      // selecteable items for arrow-key limits
+      const itemCount =
+        virtualizedHeight && autoCompleteResults.filter(i => !i.groupLabel).length;
 
-        const renderedFooter =
-          typeof menuFooter === 'function' ? menuFooter({actions}) : menuFooter;
+      const renderedFooter =
+        typeof menuFooter === 'function' ? menuFooter({actions}) : menuFooter;
 
-        return (
-          <AutoCompleteRoot {...getRootProps()} className={rootClassName}>
-            {children({
-              getInputProps,
-              getActorProps,
-              actions,
-              isOpen,
-              selectedItem,
-            })}
-            {isOpen && (
-              <BubbleWithMinWidth
-                className={className}
-                {...getMenuProps({
-                  ...menuProps,
-                  style,
-                  css,
-                  itemCount,
-                  blendCorner,
-                  alignMenu,
-                  menuWithArrow,
-                })}
-              >
-                {itemsLoading && <LoadingIndicator mini />}
-                {showInput && (
-                  <InputWrapper>
-                    <StyledInput
-                      autoFocus
-                      placeholder={searchPlaceholder}
-                      {...getInputProps({...inputProps, onChange})}
-                    />
-                    <InputLoadingWrapper>
-                      {(busy || busyItemsStillVisible) && (
-                        <LoadingIndicator size={16} mini />
-                      )}
-                    </InputLoadingWrapper>
-                    {inputActions}
-                  </InputWrapper>
-                )}
-                <div>
-                  {menuHeader && <LabelWithPadding>{menuHeader}</LabelWithPadding>}
-                  <ItemList data-test-id="autocomplete-list" maxHeight={maxHeight}>
-                    {showNoItems && <EmptyMessage>{emptyMessage}</EmptyMessage>}
-                    {showNoResultsMessage && (
-                      <EmptyMessage>
-                        {noResultsMessage ?? `${emptyMessage} ${t('found')}`}
-                      </EmptyMessage>
+      return (
+        <AutoCompleteRoot {...getRootProps()} className={rootClassName}>
+          {children({
+            getInputProps,
+            getActorProps,
+            actions,
+            isOpen,
+            selectedItem,
+          })}
+          {isOpen && (
+            <BubbleWithMinWidth
+              className={className}
+              {...getMenuProps({
+                ...menuProps,
+                style,
+                css,
+                itemCount,
+                blendCorner,
+                alignMenu,
+                menuWithArrow,
+              })}
+            >
+              {itemsLoading && <LoadingIndicator mini />}
+              {showInput && (
+                <InputWrapper>
+                  <StyledInput
+                    autoFocus
+                    placeholder={searchPlaceholder}
+                    {...getInputProps({...inputProps, onChange})}
+                  />
+                  <InputLoadingWrapper>
+                    {(busy || busyItemsStillVisible) && (
+                      <LoadingIndicator size={16} mini />
                     )}
-                    {busy && (
-                      <BusyMessage>
-                        <EmptyMessage>{t('Searching\u2026')}</EmptyMessage>
-                      </BusyMessage>
-                    )}
-                    {!busy && (
-                      <List
-                        items={autoCompleteResults}
-                        maxHeight={maxHeight}
-                        highlightedIndex={highlightedIndex}
-                        inputValue={inputValue}
-                        onScroll={onScroll}
-                        getItemProps={getItemProps}
-                        virtualizedLabelHeight={virtualizedLabelHeight}
-                        virtualizedHeight={virtualizedHeight}
-                        itemSize={itemSize}
-                      />
-                    )}
-                  </ItemList>
-                  {renderedFooter && (
-                    <LabelWithPadding>{renderedFooter}</LabelWithPadding>
+                  </InputLoadingWrapper>
+                  {inputActions}
+                </InputWrapper>
+              )}
+              <div>
+                {menuHeader && <LabelWithPadding>{menuHeader}</LabelWithPadding>}
+                <ItemList data-test-id="autocomplete-list" maxHeight={maxHeight}>
+                  {showNoItems && <EmptyMessage>{emptyMessage}</EmptyMessage>}
+                  {showNoResultsMessage && (
+                    <EmptyMessage>
+                      {noResultsMessage ?? `${emptyMessage} ${t('found')}`}
+                    </EmptyMessage>
                   )}
-                </div>
-              </BubbleWithMinWidth>
-            )}
-          </AutoCompleteRoot>
-        );
-      }}
-    </AutoComplete>
-  );
-};
+                  {busy && (
+                    <BusyMessage>
+                      <EmptyMessage>{t('Searching\u2026')}</EmptyMessage>
+                    </BusyMessage>
+                  )}
+                  {!busy && (
+                    <List
+                      items={autoCompleteResults}
+                      maxHeight={maxHeight}
+                      highlightedIndex={highlightedIndex}
+                      inputValue={inputValue}
+                      onScroll={onScroll}
+                      getItemProps={getItemProps}
+                      virtualizedLabelHeight={virtualizedLabelHeight}
+                      virtualizedHeight={virtualizedHeight}
+                      itemSize={itemSize}
+                    />
+                  )}
+                </ItemList>
+                {renderedFooter && <LabelWithPadding>{renderedFooter}</LabelWithPadding>}
+              </div>
+            </BubbleWithMinWidth>
+          )}
+        </AutoCompleteRoot>
+      );
+    }}
+  </AutoComplete>
+);
 
 export default Menu;
 
