@@ -15,7 +15,6 @@ import SimilarToolbar from './toolbar';
 
 const SimilarItemPropType = PropTypes.shape({
   issue: SentryTypes.Group,
-  project: SentryTypes.Project,
   score: PropTypes.object,
   avgScore: PropTypes.number,
   isBelowThreshold: PropTypes.bool,
@@ -24,6 +23,7 @@ const SimilarItemPropType = PropTypes.shape({
 class List extends React.Component {
   static propTypes = {
     orgId: PropTypes.string.isRequired,
+    project: SentryTypes.Project,
     groupId: PropTypes.string.isRequired,
     onMerge: PropTypes.func.isRequired,
     pageLinks: PropTypes.string,
