@@ -240,7 +240,7 @@ const ProjectTrendContainer = styled('div')`
   margin-top: ${space(1)};
   margin-left: ${space(1)};
 
-  font-size: 14px;
+  font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.gray600};
 `;
 const ButtonContainer = styled('div')`

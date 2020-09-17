@@ -156,16 +156,6 @@ export function transformDeltaSpread(
 }
 
 export function getTrendProjectId(
-  trend: NormalizedTrendsTransaction,
-  projects?: Project[]
-): string | undefined;
-
-export function getTrendProjectId(
-  trend: NormalizedProjectTrend,
-  projects?: Project[]
-): string | undefined;
-
-export function getTrendProjectId(
   trend: NormalizedTrendsTransaction | NormalizedProjectTrend,
   projects?: Project[]
 ): string | undefined {
