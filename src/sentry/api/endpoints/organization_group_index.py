@@ -10,7 +10,6 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventPermission
-from sentry.api.event_search import convert_search_filter_to_snuba_query
 from sentry.api.helpers.group_index import (
     build_query_params_from_request,
     delete_groups,
@@ -37,18 +36,6 @@ search = EventsDatasetSnubaSearchBackend(**settings.SENTRY_SEARCH_OPTIONS)
 
 class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
     permission_classes = (OrganizationEventPermission,)
-    skip_snuba_fields = {
-        "query",
-        "status",
-        "bookmarked_by",
-        "assigned_to",
-        "unassigned",
-        "subscribed_by",
-        "active_at",
-        "first_release",
-        "first_seen",
-        "message",
-    }
 
     def _search(self, request, organization, projects, environments, extra_query_kwargs=None):
         query_kwargs = build_query_params_from_request(
@@ -216,21 +203,20 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
 
         results = list(cursor_result)
 
-        # returns lifetime and filtered stats as well.
-        # TODO: Just pass search filters to serializer and have it convert to snuba?
-        snuba_filters = []
         if has_dynamic_issue_counts:
-            if "search_filters" in query_kwargs and query_kwargs["search_filters"] is not None:
-                snuba_filters = [
-                    convert_search_filter_to_snuba_query(search_filter)
-                    for search_filter in query_kwargs["search_filters"]
-                    if search_filter.key.name not in self.skip_snuba_fields
-                ]
-
-        # TODO: I think the "base" stats were lifetime and should still be if has_dynamic_issue_counts is False.
-        context = serialize(
-            results, request.user, serializer(start=start, end=end, snuba_filters=snuba_filters)
-        )
+            context = serialize(
+                results,
+                request.user,
+                serializer(
+                    start=start,
+                    end=end,
+                    search_filters=query_kwargs["search_filters"]
+                    if "search_filters" in query_kwargs
+                    else None,
+                ),
+            )
+        else:
+            context = serialize(results, request.user, serializer())
 
         # HACK: remove auto resolved entries
         # TODO: We should try to integrate this into the search backend, since
