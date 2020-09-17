@@ -82,17 +82,10 @@ class OrganizationAlertRuleAvailableActionIndexEndpoint(OrganizationEndpoint):
 
             # Add all alertable SentryApps to the list.
             elif registered_type.type == AlertRuleTriggerAction.Type.SENTRY_APP:
-                if features.has(
-                    "organizations:integrations-sentry-app-metric-alerts",
-                    organization,
-                    actor=request.user,
-                ):
-                    actions += [
-                        build_action_response(registered_type, sentry_app=app)
-                        for app in get_alertable_sentry_apps(
-                            organization.id, with_metric_alerts=True
-                        )
-                    ]
+                actions += [
+                    build_action_response(registered_type, sentry_app=app)
+                    for app in get_alertable_sentry_apps(organization.id, with_metric_alerts=True)
+                ]
 
             else:
                 actions.append(build_action_response(registered_type))
