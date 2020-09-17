@@ -14,7 +14,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   children: React.ReactNode;
 };
 
-const ProjectSourceMapsContainer = (props: Props) => {
+function ProjectSourceMapsContainer(props: Props) {
   const {children, organization, project} = props;
   return React.isValidElement(children)
     ? React.cloneElement(children, {organization, project})
