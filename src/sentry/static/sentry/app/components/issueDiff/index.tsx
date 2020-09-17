@@ -107,7 +107,7 @@ class IssueDiff extends React.Component<Props, State> {
     }
 
     const event = await api.requestPromise(
-      `/projects/${orgId}/${project.slug}/events/${eventId}/`
+      `/projects/${orgId}/${project.slug}/events/${paramEventId}/`
     );
     return getStacktraceBody(event);
   };
@@ -155,6 +155,9 @@ class IssueDiff extends React.Component<Props, State> {
 }
 
 export default withApi(IssueDiff);
+
+// required for tests which do not provide API as context
+export {IssueDiff};
 
 const StyledIssueDiff = styled('div', {
   shouldForwardProp: p => isPropValid(p) && p !== 'loading',
