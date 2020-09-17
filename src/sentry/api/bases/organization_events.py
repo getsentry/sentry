@@ -50,12 +50,6 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         if orderby:
             return orderby
 
-    def reference_event(self, request, organization, start, end):
-        fields = request.GET.getlist("field")[:]
-        reference_event_id = request.GET.get("referenceEvent")
-        if reference_event_id:
-            return discover.ReferenceEvent(organization, reference_event_id, fields, start, end)
-
     def get_snuba_query_args_legacy(self, request, organization):
         params = self.get_filter_params(request, organization)
         query = request.GET.get("query")
@@ -233,12 +227,8 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     "eps()": "eps(%d)" % rollup,
                 }
                 query_columns = [column_map.get(column, column) for column in columns]
-                reference_event = self.reference_event(
-                    request, organization, params.get("start"), params.get("end")
-                )
-
             with sentry_sdk.start_span(op="discover.endpoint", description="base.stats_query"):
-                result = get_event_stats(query_columns, query, params, rollup, reference_event)
+                result = get_event_stats(query_columns, query, params, rollup)
 
         serializer = SnubaTSResultSerializer(organization, None, request.user)
 

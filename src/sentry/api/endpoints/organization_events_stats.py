@@ -41,7 +41,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                 elif limit <= 0:
                     return Response({"detail": "If topEvents needs to be at least 1"}, status=400)
 
-        def get_event_stats(query_columns, query, params, rollup, reference_event):
+        def get_event_stats(query_columns, query, params, rollup):
             if top_events:
                 return discover.top_events_timeseries(
                     timeseries_columns=query_columns,
@@ -59,7 +59,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                 query=query,
                 params=params,
                 rollup=rollup,
-                reference_event=reference_event,
                 referrer="api.organization-event-stats",
             )
 

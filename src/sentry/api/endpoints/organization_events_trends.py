@@ -109,7 +109,7 @@ class OrganizationEventsTrendsEndpoint(OrganizationEventsV2EndpointBase):
             )
 
         def on_results(events_results):
-            def get_event_stats(query_columns, query, params, rollup, reference_event):
+            def get_event_stats(query_columns, query, params, rollup):
                 return discover.top_events_timeseries(
                     query_columns,
                     selected_columns,
