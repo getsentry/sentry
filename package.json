@@ -83,6 +83,7 @@
     "jed": "^1.1.0",
     "jquery": "2.2.2",
     "js-cookie": "2.2.1",
+    "json-refs": "^3.0.15",
     "less": "^3.9.0",
     "less-loader": "^4.1.0",
     "lodash": "^4.17.19",
@@ -125,7 +126,6 @@
     "svg-sprite-loader": "^3.9.0",
     "svgo": "^1.0.3",
     "svgo-loader": "^2.1.0",
-    "swagger-ui-watcher": "^2.1.11",
     "typescript": "^4.0",
     "u2f-api": "1.0.10",
     "webpack": "4.42.1",
@@ -205,6 +205,7 @@
     "webpack-profile": "NO_TS_FORK=1 yarn -s webpack --profile --json > stats.json",
     "serve-docs": "swagger-ui-watcher api-docs/openapi.json",
     "build-docs-json": "swagger-ui-watcher api-docs/openapi.json --bundle=api-docs/openapi-derefed.json",
+    "letssee": "node api-docs/index.js api-docs/openapi.json api-docs/openapi-derefed-bloop.json",
     "build-css": "NODE_ENV=production yarn webpack --config=config/webpack.css.config.js",
     "build": "NODE_ENV=production yarn webpack --mode production --display errors-only --output-path=public"
   },
