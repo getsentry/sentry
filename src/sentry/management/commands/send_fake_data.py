@@ -23,7 +23,7 @@ def funcs():
     )
     loggers = itertools.cycle(["root", "foo", "foo.bar"])
     emails = itertools.cycle(["foo@example.com", "bar@example.com", "baz@example.com"])
-    timestamps = range(24 * 60 * 60)
+    timestamps = list(range(24 * 60 * 60))
     random.shuffle(timestamps)
     timestamps = itertools.cycle(timestamps)
 
