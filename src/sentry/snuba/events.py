@@ -263,17 +263,6 @@ class Columns(Enum):
     TRANSACTION_STATUS = Column(
         None, None, "transaction_status", "transaction_status", "transaction.status"
     )
-    MEASUREMENTS_FP = Column(None, None, "measurements.fp", "measurements.fp", "measurements.fp")
-    MEASUREMENTS_FCP = Column(
-        None, None, "measurements.fcp", "measurements.fcp", "measurements.fcp"
-    )
-    MEASUREMENTS_LCP = Column(
-        None, None, "measurements.lcp", "measurements.lcp", "measurements.lcp"
-    )
-    MEASUREMENTS_FID = Column(
-        None, None, "measurements.fid", "measurements.fid", "measurements.fid"
-    )
-    # Tracing context fields.
     TRACE_ID = Column(
         "events.contexts[trace.trace_id]",
         "contexts[trace.trace_id]",

@@ -333,11 +333,12 @@ def get_snuba_column_name(name, dataset=Dataset.Events):
     if not name or name.startswith("tags[") or QUOTED_LITERAL_RE.match(name):
         return name
 
-    # TODO(tonyx): not sure if we need this
-    # if name.startswith("measurements."):
-    #     return u"measurements[{}]".format(name.split(".", 1)[1])
+    if name.startswith("measurements."):
+        default = u"measurements[{}]".format(name.split(".", 1)[1])
+    else:
+        default = u"tags[{}]".format(name)
 
-    return DATASETS[dataset].get(name, u"tags[{}]".format(name))
+    return DATASETS[dataset].get(name, default)
 
 
 def get_function_index(column_expr, depth=0):
@@ -803,9 +804,6 @@ def resolve_column(dataset):
         ):
             return col
 
-        if isinstance(col, six.string_types) and col.startswith("measurements."):
-            return u"measurements[{}]".format(col.split(".", 1)[1])
-
         # Some dataset specific logic:
         if dataset == Dataset.Discover:
             if isinstance(col, (list, tuple)) or col == "project_id":
@@ -818,6 +816,10 @@ def resolve_column(dataset):
 
         if col in DATASETS[dataset]:
             return DATASETS[dataset][col]
+
+        if isinstance(col, six.string_types) and col.startswith("measurements."):
+            return u"measurements[{}]".format(col.split(".", 1)[1])
+
         return u"tags[{}]".format(col)
 
     return _resolve_column
