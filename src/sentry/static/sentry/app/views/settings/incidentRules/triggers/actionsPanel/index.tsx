@@ -344,7 +344,7 @@ class ActionsPanel extends React.PureComponent<Props> {
               icon={<IconAdd isCircled color="gray500" />}
               onClick={this.handleAddAction}
             >
-              Add New Action
+              {t('Add New Action')}
             </Button>
           </StyledPanelItem>
         </PanelBody>
@@ -366,12 +366,12 @@ const PanelItemGrid = styled(PanelItem)`
   align-items: center;
   padding: ${space(1)};
   border-bottom: 0;
-  justify-content: between;
 `;
 
 const PanelItemSelects = styled('div')`
   display: flex;
   width: 100%;
+  margin-right: ${space(1)};
   > * {
     flex: 0 1 200px;
 
@@ -386,7 +386,7 @@ const StyledPanelItem = styled(PanelItem)`
 `;
 
 const RuleRowContainer = styled('div')`
-  background-color: ${p => p.theme.gray100};
+  background-color: ${p => p.theme.backgroundSecondary};
   border-radius: ${p => p.theme.borderRadius};
   border: 1px ${p => p.theme.borderLight} solid;
 `;
