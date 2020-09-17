@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 
 const PLATFORM_TO_ICON = {
   apple: 'apple',
+  'apple-ios': 'apple',
+  'apple-macos': 'apple',
   cocoa: 'apple',
   'cocoa-objc': 'apple',
   'cocoa-swift': 'swift',
