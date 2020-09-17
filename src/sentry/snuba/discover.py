@@ -360,7 +360,7 @@ def transform_results(result, translated_columns, snuba_filter, selected_columns
             for snuba_name, sentry_name in six.iteritems(translated_columns):
                 if sentry_name == col["name"]:
                     with sentry_sdk.start_span(
-                        op="discover.discover", description="transform_results.histogram_zerofill",
+                        op="discover.discover", description="transform_results.histogram_zerofill"
                     ) as span:
                         span.set_data("histogram_function", snuba_name)
                         result["data"] = zerofill_histogram(
@@ -853,10 +853,7 @@ def top_events_timeseries(
         # Using the top events add the order to the results
         for index, item in enumerate(top_events["data"]):
             result_key = create_result_key(item, translated_groupby, issues)
-            results[result_key] = {
-                "order": index,
-                "data": [],
-            }
+            results[result_key] = {"order": index, "data": []}
         for row in result["data"]:
             result_key = create_result_key(row, translated_groupby, issues)
             if result_key in results:
@@ -864,7 +861,7 @@ def top_events_timeseries(
             else:
                 logger.warning(
                     "discover.top-events.timeseries.key-mismatch",
-                    extra={"result_key": result_key, "top_event_keys": results.keys()},
+                    extra={"result_key": result_key, "top_event_keys": list(results.keys())},
                 )
         for key, item in six.iteritems(results):
             results[key] = SnubaTSResult(
