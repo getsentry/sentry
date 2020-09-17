@@ -11,6 +11,7 @@ from sentry.ownership.grammar import Rule, Matcher, Owner, dump_schema
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils.helpers.eventprocessing import write_event_to_cache
 from sentry.tasks.merge import merge_groups
 from sentry.tasks.post_process import post_process_group
 from sentry.utils.compat.mock import Mock, patch, ANY
@@ -30,13 +31,6 @@ class EventMatcher(object):
                 and self.expected_group.id == other.group_id
             )
         return matching_id
-
-
-def get_cache_key(event):
-    cache_data = event.data
-    cache_data["event_id"] = event.event_id
-    cache_data["project"] = event.project_id
-    return event_processing_store.store(cache_data)
 
 
 class PostProcessGroupTest(TestCase):
@@ -61,7 +55,7 @@ class PostProcessGroupTest(TestCase):
             },
             project_id=self.project.id,
         )
-        cache_key = get_cache_key(event)
+        cache_key = write_event_to_cache(event)
         post_process_group(
             event=None,
             is_new=True,
@@ -95,7 +89,7 @@ class PostProcessGroupTest(TestCase):
 
     def test_processing_cache_cleared(self):
         event = self.store_event(data={}, project_id=self.project.id)
-        cache_key = get_cache_key(event)
+        cache_key = write_event_to_cache(event)
 
         post_process_group(
             event=None,
@@ -109,7 +103,7 @@ class PostProcessGroupTest(TestCase):
 
     def test_processing_cache_cleared_with_event_param(self):
         event = self.store_event(data={}, project_id=self.project.id)
-        cache_key = get_cache_key(event)
+        cache_key = write_event_to_cache(event)
 
         post_process_group(
             event=event,
@@ -154,7 +148,7 @@ class PostProcessGroupTest(TestCase):
     @patch("sentry.rules.processor.RuleProcessor")
     def test_rule_processor_backwards_compat(self, mock_processor):
         event = self.store_event(data={}, project_id=self.project.id)
-        cache_key = get_cache_key(event)
+        cache_key = write_event_to_cache(event)
 
         mock_callback = Mock()
         mock_futures = [Mock()]
@@ -178,7 +172,7 @@ class PostProcessGroupTest(TestCase):
     @patch("sentry.rules.processor.RuleProcessor")
     def test_rule_processor(self, mock_processor):
         event = self.store_event(data={"message": "testing"}, project_id=self.project.id)
-        cache_key = get_cache_key(event)
+        cache_key = write_event_to_cache(event)
 
         mock_callback = Mock()
         mock_futures = [Mock()]
@@ -202,7 +196,7 @@ class PostProcessGroupTest(TestCase):
     @patch("sentry.rules.processor.RuleProcessor")
     def test_group_refresh(self, mock_processor):
         event = self.store_event(data={"message": "testing"}, project_id=self.project.id)
-        cache_key = get_cache_key(event)
+        cache_key = write_event_to_cache(event)
 
         group1 = event.group
         group2 = self.create_group(project=self.project)
@@ -234,7 +228,7 @@ class PostProcessGroupTest(TestCase):
     @patch("sentry.rules.processor.RuleProcessor")
     def test_invalidates_snooze(self, mock_processor):
         event = self.store_event(data={"message": "testing"}, project_id=self.project.id)
-        cache_key = get_cache_key(event)
+        cache_key = write_event_to_cache(event)
 
         group = event.group
         snooze = GroupSnooze.objects.create(group=group, until=timezone.now() - timedelta(hours=1))
@@ -251,7 +245,7 @@ class PostProcessGroupTest(TestCase):
 
         mock_processor.assert_called_with(EventMatcher(event), True, False, True, False)
 
-        cache_key = get_cache_key(event)
+        cache_key = write_event_to_cache(event)
         # Check for has_reappeared=True if is_new=False
         post_process_group(
             event=None,
@@ -272,7 +266,7 @@ class PostProcessGroupTest(TestCase):
     @patch("sentry.rules.processor.RuleProcessor")
     def test_maintains_valid_snooze(self, mock_processor):
         event = self.store_event(data={}, project_id=self.project.id)
-        cache_key = get_cache_key(event)
+        cache_key = write_event_to_cache(event)
         group = event.group
         snooze = GroupSnooze.objects.create(group=group, until=timezone.now() + timedelta(hours=1))
 
@@ -311,7 +305,7 @@ class PostProcessGroupTest(TestCase):
             },
             project_id=self.project.id,
         )
-        cache_key = get_cache_key(event)
+        cache_key = write_event_to_cache(event)
         post_process_group(
             event=None,
             is_new=False,
@@ -334,7 +328,7 @@ class PostProcessGroupTest(TestCase):
             },
             project_id=self.project.id,
         )
-        cache_key = get_cache_key(event)
+        cache_key = write_event_to_cache(event)
         post_process_group(
             event=None,
             is_new=False,
@@ -356,7 +350,7 @@ class PostProcessGroupTest(TestCase):
             },
             project_id=self.project.id,
         )
-        cache_key = get_cache_key(event)
+        cache_key = write_event_to_cache(event)
         post_process_group(
             event=None,
             is_new=False,
@@ -377,7 +371,7 @@ class PostProcessGroupTest(TestCase):
             },
             project_id=self.project.id,
         )
-        cache_key = get_cache_key(event)
+        cache_key = write_event_to_cache(event)
         event.group.assignee_set.create(team=self.team, project=self.project)
         post_process_group(
             event=None,
@@ -404,7 +398,7 @@ class PostProcessGroupTest(TestCase):
             },
             project_id=self.project.id,
         )
-        cache_key = get_cache_key(event)
+        cache_key = write_event_to_cache(event)
         post_process_group(
             event=None,
             is_new=False,
@@ -423,7 +417,7 @@ class PostProcessGroupTest(TestCase):
         # what it should when an event parameter is used.
         # This ensures backwards compatibility for self-hosted.
         event = self.store_event(data={}, project_id=self.project.id)
-        cache_key = get_cache_key(event)
+        cache_key = write_event_to_cache(event)
         hook = self.create_service_hook(
             project=self.project,
             organization=self.project.organization,
@@ -448,7 +442,7 @@ class PostProcessGroupTest(TestCase):
     @patch("sentry.tasks.servicehooks.process_service_hook")
     def test_service_hook_fires_on_new_event(self, mock_process_service_hook):
         event = self.store_event(data={}, project_id=self.project.id)
-        cache_key = get_cache_key(event)
+        cache_key = write_event_to_cache(event)
         hook = self.create_service_hook(
             project=self.project,
             organization=self.project.organization,
@@ -474,7 +468,7 @@ class PostProcessGroupTest(TestCase):
     @patch("sentry.rules.processor.RuleProcessor")
     def test_service_hook_fires_on_alert(self, mock_processor, mock_process_service_hook):
         event = self.store_event(data={}, project_id=self.project.id)
-        cache_key = get_cache_key(event)
+        cache_key = write_event_to_cache(event)
 
         mock_callback = Mock()
         mock_futures = [Mock()]
@@ -508,7 +502,7 @@ class PostProcessGroupTest(TestCase):
         self, mock_processor, mock_process_service_hook
     ):
         event = self.store_event(data={}, project_id=self.project.id)
-        cache_key = get_cache_key(event)
+        cache_key = write_event_to_cache(event)
 
         mock_processor.return_value.apply.return_value = []
 
@@ -534,7 +528,7 @@ class PostProcessGroupTest(TestCase):
     @patch("sentry.tasks.servicehooks.process_service_hook")
     def test_service_hook_does_not_fire_without_event(self, mock_process_service_hook):
         event = self.store_event(data={}, project_id=self.project.id)
-        cache_key = get_cache_key(event)
+        cache_key = write_event_to_cache(event)
 
         self.create_service_hook(
             project=self.project, organization=self.project.organization, actor=self.user, events=[]
@@ -555,7 +549,7 @@ class PostProcessGroupTest(TestCase):
     @patch("sentry.tasks.sentry_apps.process_resource_change_bound.delay")
     def test_processes_resource_change_task_on_new_group(self, delay):
         event = self.store_event(data={}, project_id=self.project.id)
-        cache_key = get_cache_key(event)
+        cache_key = write_event_to_cache(event)
         group = event.group
         post_process_group(
             event=None,
@@ -581,7 +575,7 @@ class PostProcessGroupTest(TestCase):
             project_id=self.project.id,
             assert_no_errors=False,
         )
-        cache_key = get_cache_key(event)
+        cache_key = write_event_to_cache(event)
 
         self.create_service_hook(
             project=self.project,
@@ -614,7 +608,7 @@ class PostProcessGroupTest(TestCase):
             project_id=self.project.id,
             assert_no_errors=False,
         )
-        cache_key = get_cache_key(event)
+        cache_key = write_event_to_cache(event)
 
         post_process_group(
             event=None,
@@ -634,7 +628,7 @@ class PostProcessGroupTest(TestCase):
             project_id=self.project.id,
             assert_no_errors=False,
         )
-        cache_key = get_cache_key(event)
+        cache_key = write_event_to_cache(event)
 
         post_process_group(
             event=None,
@@ -660,7 +654,7 @@ class PostProcessGroupTest(TestCase):
             project_id=self.project.id,
             assert_no_errors=False,
         )
-        cache_key = get_cache_key(event)
+        cache_key = write_event_to_cache(event)
 
         self.create_service_hook(
             project=self.project, organization=self.project.organization, actor=self.user, events=[]
