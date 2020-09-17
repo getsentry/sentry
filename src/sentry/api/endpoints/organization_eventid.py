@@ -67,7 +67,7 @@ class EventIdLookupEndpoint(OrganizationEndpoint):
         try:
             snuba_filter = eventstore.Filter(
                 conditions=[["event.type", "!=", "transaction"]],
-                project_ids=project_slugs_by_id.keys(),
+                project_ids=list(project_slugs_by_id.keys()),
                 event_ids=[event_id],
             )
             event = eventstore.get_events(filter=snuba_filter, limit=1)[0]

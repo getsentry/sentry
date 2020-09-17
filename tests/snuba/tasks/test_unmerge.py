@@ -286,7 +286,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
                 project.id, [list(events.keys())[0]], source.id, destination.id
             )
             unmerge.delay(
-                project.id, source.id, destination.id, [events.keys()[0]], None, batch_size=5
+                project.id, source.id, destination.id, [list(events.keys())[0]], None, batch_size=5
             )
             eventstream.end_unmerge(eventstream_state)
 
