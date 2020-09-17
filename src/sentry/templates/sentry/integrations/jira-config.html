@@ -12,99 +12,22 @@
   .container {
     padding: 30px;
   }
-
-  form ul {
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-
-  .aui ul label {
-    color: #333
-  }
-
-  .description {
-    max-width: 400px;
-  }
-
-  .signin {
-    padding-top: 25px;
-  }
   </style>
 </head>
 <body>
   <div class="container">
-    <h2>Sentry Integration Configuration</h2>
-    {% if login_required %}
-      <div class="aui-message aui-message-info">
-        <p>Please login to your Sentry account to access the Sentry Add-on configuration.</p>
-        {% if is_safari %}
-          <p>You may also need to <a href="https://www.whatismybrowser.com/guides/how-to-enable-cookies/safari"  target="_blank">enable 3rd-party cookies in your browser.</a></p>
-        {% else %}
-          <p>You may also need to enable 3rd-party cookies in your browser.</p>
-        {% endif %}
-        <p>You must disable your ad-blocker to install this integration, as it relies on 3rd-party cookies.</p>
-      </div>
-      <div class="signin">
-        <a class="aui-button aui-button-default" href="{{ login_url }}" target="_blank">
-          Sign In to Sentry
-        </a>
-      </div>
-    {% else %}
-      {% if refresh_required %}
+      <h2>Finish Installation</h2>
+      {% if error_message %}
+        {{ error_message }}
+      {% elif refresh_required %}
         <div class="aui-message aui-message-info">
           <p>This page has expired, please refresh to configure your Sentry integration</p>
         </div>
       {% else %}
-        {% if completed %}
-          <div class="aui-message aui-message-success">
-            <p class="title">
-              <strong>Saved!</strong>
-            </p>
-            <p>
-              The Sentry Jira integration is now enabled for the selected
-              organizations. Return to your Sentry organization to finish configuring the
-              integration.
-            </p>
-          </div>
-        {% endif %}
-
-        {% if organizations|length %}
-          <form class="aui top-label" action="" method="post">
-            {% csrf_token %}
-            {% for field in form %}
-              <div class="field-group top-label">
-                {{ field.errors }}
-                {{ field.label_tag }} {{ field }}
-                <div class="description">{{ field.help_text }}</div>
-              </div>
-            {% endfor %}
-            <div class="field-group">
-              <button class="aui-button aui-button-primary" type="submit">
-                  Save Settings
-              </button>
-            </div>
-          </form>
-        {% elif not completed %}
-          <div class="aui-message aui-message-warning">
-            <p>You must be an organization owner or manager in Sentry to complete setup.</p>
-          </div>
-        {% endif %}
-
+        <a target="_blank" href="{{ finish_link}} " class="aui-button-primary aui-button">
+          Click to Finish Installation
+        </a>
       {% endif %}
-    {% endif %}
   </div>
 </body>
-{% if login_required %}
-  <script type="text/javascript">
-    (function() {
-      document.addEventListener('visibilitychange', function() {
-        // see if they've logged in while away from tab
-        if (!document.hidden) {
-          window.location.reload();
-        }
-      });
-    })();
-  </script>
-{% endif %}
 </html>
