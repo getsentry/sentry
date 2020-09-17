@@ -203,9 +203,7 @@
     "storybook": "SENTRY_UI_HOT_RELOAD='' start-storybook -p 9001 -c .storybook",
     "storybook-build": "build-storybook -c .storybook -o docs-ui/.storybook-out --quiet",
     "webpack-profile": "NO_TS_FORK=1 yarn -s webpack --profile --json > stats.json",
-    "serve-docs": "swagger-ui-watcher api-docs/openapi.json",
-    "build-docs-json": "swagger-ui-watcher api-docs/openapi.json --bundle=api-docs/openapi-derefed.json",
-    "letssee": "node api-docs/index.js api-docs/openapi.json api-docs/openapi-derefed-bloop.json",
+    "build-derefed-docs": "node api-docs/index.js api-docs/openapi.json api-docs/openapi-derefed.json",
     "build-css": "NODE_ENV=production yarn webpack --config=config/webpack.css.config.js",
     "build": "NODE_ENV=production yarn webpack --mode production --display errors-only --output-path=public"
   },
