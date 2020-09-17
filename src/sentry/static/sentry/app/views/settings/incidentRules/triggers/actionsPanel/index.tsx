@@ -259,62 +259,79 @@ class ActionsPanel extends React.PureComponent<Props> {
                 );
 
                 return (
-                  <PanelItemGrid key={i}>
-                    <SelectControl
-                      name="select-level"
-                      aria-label={t('Select a status level')}
-                      isDisabled={disabled || loading}
-                      placeholder={t('Select Level')}
-                      onChange={this.handleChangeActionLevel.bind(this, triggerIndex, i)}
-                      value={triggerIndex}
-                      options={levels}
-                    />
+                  <PanelItemWrapper key={i}>
+                    <RuleRowContainer>
+                      <PanelItemGrid>
+                        <PanelItemSelects>
+                          <SelectControl
+                            name="select-level"
+                            aria-label={t('Select a status level')}
+                            isDisabled={disabled || loading}
+                            placeholder={t('Select Level')}
+                            onChange={this.handleChangeActionLevel.bind(
+                              this,
+                              triggerIndex,
+                              i
+                            )}
+                            value={triggerIndex}
+                            options={levels}
+                          />
 
-                    <SelectControl
-                      name="select-action"
-                      aria-label={t('Select an Action')}
-                      isDisabled={disabled || loading}
-                      placeholder={t('Select Action')}
-                      onChange={this.handleChangeActionType.bind(this, triggerIndex, i)}
-                      value={getActionUniqueKey(action)}
-                      options={items ?? []}
-                    />
+                          <SelectControl
+                            name="select-action"
+                            aria-label={t('Select an Action')}
+                            isDisabled={disabled || loading}
+                            placeholder={t('Select Action')}
+                            onChange={this.handleChangeActionType.bind(
+                              this,
+                              triggerIndex,
+                              i
+                            )}
+                            value={getActionUniqueKey(action)}
+                            options={items ?? []}
+                          />
 
-                    {availableAction && availableAction.allowedTargetTypes.length > 1 ? (
-                      <SelectControl
-                        isDisabled={disabled || loading}
-                        value={action.targetType}
-                        options={availableAction?.allowedTargetTypes?.map(
-                          allowedType => ({
-                            value: allowedType,
-                            label: TargetLabel[allowedType],
-                          })
-                        )}
-                        onChange={this.handleChangeTarget.bind(this, triggerIndex, i)}
-                      />
-                    ) : (
-                      <span />
-                    )}
-                    <ActionTargetSelector
-                      action={action}
-                      availableAction={availableAction}
-                      disabled={disabled}
-                      loading={loading}
-                      onChange={this.handleChangeTargetIdentifier.bind(
-                        this,
-                        triggerIndex,
-                        i
-                      )}
-                      organization={organization}
-                      project={project}
-                    />
-                    <DeleteActionButton
-                      triggerIndex={triggerIndex}
-                      index={i}
-                      onClick={this.handleDeleteAction}
-                      disabled={disabled}
-                    />
-                  </PanelItemGrid>
+                          {availableAction &&
+                          availableAction.allowedTargetTypes.length > 1 ? (
+                            <SelectControl
+                              isDisabled={disabled || loading}
+                              value={action.targetType}
+                              options={availableAction?.allowedTargetTypes?.map(
+                                allowedType => ({
+                                  value: allowedType,
+                                  label: TargetLabel[allowedType],
+                                })
+                              )}
+                              onChange={this.handleChangeTarget.bind(
+                                this,
+                                triggerIndex,
+                                i
+                              )}
+                            />
+                          ) : null}
+                          <ActionTargetSelector
+                            action={action}
+                            availableAction={availableAction}
+                            disabled={disabled}
+                            loading={loading}
+                            onChange={this.handleChangeTargetIdentifier.bind(
+                              this,
+                              triggerIndex,
+                              i
+                            )}
+                            organization={organization}
+                            project={project}
+                          />
+                        </PanelItemSelects>
+                        <DeleteActionButton
+                          triggerIndex={triggerIndex}
+                          index={i}
+                          onClick={this.handleDeleteAction}
+                          disabled={disabled}
+                        />
+                      </PanelItemGrid>
+                    </RuleRowContainer>
+                  </PanelItemWrapper>
                 );
               })
             );
@@ -340,17 +357,36 @@ const ActionsPanelWithSpace = styled(ActionsPanel)`
   margin-top: ${space(4)};
 `;
 
-const PanelItemGrid = styled(PanelItem)`
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1fr min-content;
-  align-items: center;
-  grid-gap: ${space(2)};
+const PanelItemWrapper = styled(`div`)`
   padding: ${space(0.5)} ${space(2)} ${space(1)};
+`;
+
+const PanelItemGrid = styled(PanelItem)`
+  display: flex;
+  align-items: center;
+  gap: ${space(2)};
+  padding: ${space(1)};
   border-bottom: 0;
+  justify-content: between;
+`;
+
+const PanelItemSelects = styled('div')`
+  display: flex;
+  width: 100%;
+  gap: 15px;
+  > * {
+    flex: 0 1 200px;
+  }
 `;
 
 const StyledPanelItem = styled(PanelItem)`
   padding: ${space(1)} ${space(2)} ${space(2)};
+`;
+
+const RuleRowContainer = styled('div')`
+  background-color: ${p => p.theme.gray100};
+  border-radius: ${p => p.theme.borderRadius};
+  border: 1px ${p => p.theme.borderLight} solid;
 `;
 
 export default withOrganization(ActionsPanelWithSpace);
