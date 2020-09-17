@@ -54,6 +54,15 @@ class DetailedIncidentSerializerTest(TestCase):
         assert result["alertRule"] == serialize(incident.alert_rule)
         assert result["discoverQuery"] == "event.type:error {}".format(query)
 
+    def test_error_alert_rule_unicode(self):
+        query = u"统一码"
+        incident = self.create_incident(query=query)
+
+        serializer = DetailedIncidentSerializer()
+        result = serialize(incident, serializer=serializer)
+        assert result["alertRule"] == serialize(incident.alert_rule)
+        assert result["discoverQuery"] == u"event.type:error {}".format(query)
+
     def test_transaction_alert_rule(self):
         query = "test query"
         alert_rule = self.create_alert_rule(dataset=QueryDatasets.TRANSACTIONS, query=query)

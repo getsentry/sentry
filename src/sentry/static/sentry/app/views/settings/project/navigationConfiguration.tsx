@@ -65,7 +65,6 @@ export default function getConfiguration({
         {
           path: `${pathPrefix}/source-maps/`,
           title: t('Source Maps'),
-          show: () => organization.features?.includes('artifacts-in-settings'),
         },
         {
           path: `${pathPrefix}/proguard/`,
