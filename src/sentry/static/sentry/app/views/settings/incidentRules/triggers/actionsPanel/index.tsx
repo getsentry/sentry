@@ -344,7 +344,7 @@ class ActionsPanel extends React.PureComponent<Props> {
               icon={<IconAdd isCircled color="gray500" />}
               onClick={this.handleAddAction}
             >
-              Add Item
+              Add New Action
             </Button>
           </StyledPanelItem>
         </PanelBody>
@@ -364,7 +364,6 @@ const PanelItemWrapper = styled(`div`)`
 const PanelItemGrid = styled(PanelItem)`
   display: flex;
   align-items: center;
-  gap: ${space(2)};
   padding: ${space(1)};
   border-bottom: 0;
   justify-content: between;
@@ -373,9 +372,12 @@ const PanelItemGrid = styled(PanelItem)`
 const PanelItemSelects = styled('div')`
   display: flex;
   width: 100%;
-  gap: 15px;
   > * {
     flex: 0 1 200px;
+
+    &:not(:last-child) {
+      margin-right: ${space(1)};
+    }
   }
 `;
 
