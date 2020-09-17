@@ -751,20 +751,17 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
 
     def _get_seen_stats(self, item_list, user):
         filtered_result = super(StreamGroupSerializerSnuba, self)._get_seen_stats(item_list, user)
-        # TODO: fix this hack.
         self.snuba_filters = None
         time_range_result = super(StreamGroupSerializerSnuba, self)._get_seen_stats(item_list, user)
         self.start = None
         self.end = None
         lifetime_result = super(StreamGroupSerializerSnuba, self)._get_seen_stats(item_list, user)
-        #######################
         for item in item_list:
             time_range_result[item].update({"filtered": filtered_result.get(item)})
             time_range_result[item].update({"lifetime": lifetime_result.get(item)})
         return time_range_result
 
     def query_tsdb(self, group_ids, query_params):
-        # TODO: Dont query tsdb here? Might be okay because this is specifically snuba_tsdb and not tsdb the abstraction.
         return snuba_tsdb.get_range(
             model=snuba_tsdb.models.group,
             keys=group_ids,
@@ -778,14 +775,9 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
 
         if self.stats_period:
             filtered_stats = self.get_stats(item_list, user)
-            # TODO: fix this hack.
             self.snuba_filters = None
             stats = self.get_stats(item_list, user)
-            #######################
             for item in item_list:
-                attrs[item].update(
-                    {"lifetime_stats": None}
-                )  # Not needed in current implentation, save query
                 attrs[item].update({"filtered_stats": filtered_stats[item.id]})
                 attrs[item].update({"stats": stats[item.id]})
 
@@ -794,18 +786,16 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
     def serialize(self, obj, attrs, user):
         result = super(StreamGroupSerializerSnuba, self).serialize(obj, attrs, user)
 
-        if self.matching_event_id:
-            result["matchingEventId"] = self.matching_event_id
-
         if self.stats_period:
             result["stats"] = {self.stats_period: attrs["stats"]}
 
-            attrs["lifetime"].update(
-                {"stats": None}
-            )  # Not needed in current implentation, save query
+            attrs["lifetime"].update({"stats": None})  # Not needed in current implementation
             attrs["filtered"].update({"stats": {self.stats_period: attrs["filtered_stats"]}})
 
         result["filtered"] = self._convert_seen_stats(attrs["filtered"])
         result["lifetime"] = self._convert_seen_stats(attrs["lifetime"])
+
+        if self.matching_event_id:
+            result["matchingEventId"] = self.matching_event_id
 
         return result
