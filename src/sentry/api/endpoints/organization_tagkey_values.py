@@ -15,7 +15,7 @@ class OrganizationTagKeyValuesEndpoint(OrganizationEventsEndpointBase):
             return Response({"detail": 'Invalid tag key format for "%s"' % (key,)}, status=400)
 
         try:
-            filter_params = self.get_filter_params(request, organization)
+            filter_params = self.get_snuba_params(request, organization)
         except NoProjects:
             paginator = SequencePaginator([])
         else:
