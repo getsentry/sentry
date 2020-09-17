@@ -1321,13 +1321,11 @@ class DateArg(FunctionArg):
 class NumericColumn(FunctionArg):
     def normalize(self, value):
         snuba_column = SEARCH_MAP.get(value)
+        if not snuba_column and value.startswith("measurements."):
+            return value
         if not snuba_column:
             raise InvalidFunctionArgument(u"{} is not a valid column".format(value))
-        elif (
-            snuba_column not in ["time", "timestamp", "duration"]
-            # all measurements are numeric columns
-            and not snuba_column.startswith("measurements.")
-        ):
+        elif snuba_column not in ["time", "timestamp", "duration"]:
             raise InvalidFunctionArgument(u"{} is not a numeric column".format(value))
         return snuba_column
 
@@ -1341,15 +1339,16 @@ class NumericColumnNoLookup(NumericColumn):
 class DurationColumn(FunctionArg):
     def normalize(self, value):
         snuba_column = SEARCH_MAP.get(value)
-        if not snuba_column:
-            raise InvalidFunctionArgument(u"{} is not a valid column".format(value))
-        elif snuba_column not in [
-            "duration",
+        if not snuba_column and value in [
             "measurements.fp",
             "measurements.fcp",
             "measurements.lcp",
             "measurements.fid",
         ]:
+            return value
+        if not snuba_column:
+            raise InvalidFunctionArgument(u"{} is not a valid column".format(value))
+        elif snuba_column != "duration":
             raise InvalidFunctionArgument(u"{} is not a duration column".format(value))
         return snuba_column
 
