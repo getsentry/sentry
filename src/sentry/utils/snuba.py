@@ -333,7 +333,7 @@ def get_snuba_column_name(name, dataset=Dataset.Events):
     if not name or name.startswith("tags[") or QUOTED_LITERAL_RE.match(name):
         return name
 
-    if name.startswith("measurements."):
+    if is_measurement(name):
         default = u"measurements[{}]".format(name.split(".", 1)[1])
     else:
         default = u"tags[{}]".format(name)
@@ -817,7 +817,7 @@ def resolve_column(dataset):
         if col in DATASETS[dataset]:
             return DATASETS[dataset][col]
 
-        if isinstance(col, six.string_types) and col.startswith("measurements."):
+        if is_measurement(col):
             return u"measurements[{}]".format(col.split(".", 1)[1])
 
         return u"tags[{}]".format(col)
@@ -1292,3 +1292,16 @@ def quantize_time(time, key_hash, duration=300):
         # Use timedelta here so keys are consistent around hour boundaries
         timedelta(seconds=seconds_past_hour)
     )
+
+
+def is_measurement(key):
+    return isinstance(key, six.string_types) and key.startswith("measurements.")
+
+
+def is_duration_measurement(key):
+    return is_measurement(key) and key in [
+        "measurements.fp",
+        "measurements.fcp",
+        "measurements.lcp",
+        "measurements.fid",
+    ]

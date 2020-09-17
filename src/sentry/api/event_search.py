@@ -28,8 +28,10 @@ from sentry.snuba.dataset import Dataset
 from sentry.utils.dates import to_timestamp
 from sentry.utils.snuba import (
     DATASETS,
-    get_json_type,
     FUNCTION_TO_OPERATOR,
+    get_json_type,
+    is_measurement,
+    is_duration_measurement,
     OPERATOR_TO_FUNCTION,
     SNUBA_AND,
     SNUBA_OR,
@@ -246,7 +248,7 @@ class SearchKey(namedtuple("SearchKey", "name")):
 
     @cached_property
     def is_measurement(self):
-        return self.name.startswith("measurements.") and self.name not in SEARCH_MAP
+        return is_measurement(self.name) and self.name not in SEARCH_MAP
 
 
 class AggregateFilter(namedtuple("AggregateFilter", "key operator value")):
@@ -275,15 +277,7 @@ class SearchVisitor(NodeVisitor):
     # A list of mappers that map source keys to a target name. Format is
     # <target_name>: [<list of source names>],
     key_mappings = {}
-    duration_keys = set(
-        [
-            "transaction.duration",
-            "measurements.fp",
-            "measurements.fcp",
-            "measurements.lcp",
-            "measurements.fid",
-        ]
-    )
+    duration_keys = set(["transaction.duration"])
     numeric_keys = set(
         [
             "project_id",
@@ -301,10 +295,6 @@ class SearchVisitor(NodeVisitor):
             "p99",
             "failure_rate",
             "user_misery",
-            "measurements.fp",
-            "measurements.fcp",
-            "measurements.lcp",
-            "measurements.fid",
         ]
     )
     date_keys = set(
@@ -365,6 +355,12 @@ class SearchVisitor(NodeVisitor):
 
         return filter(is_not_space, children)
 
+    def is_numeric_key(self, key):
+        return key in self.numeric_keys or is_measurement(key)
+
+    def is_duration_key(self, key):
+        return key in self.duration_keys or is_duration_measurement(key)
+
     def visit_search(self, node, children):
         return self.flatten(children)
 
@@ -402,7 +398,7 @@ class SearchVisitor(NodeVisitor):
         (search_key, _, operator, search_value) = children
         operator = operator[0] if not isinstance(operator, Node) else "="
 
-        if search_key.name in self.numeric_keys:
+        if self.is_numeric_key(search_key.name):
             try:
                 search_value = SearchValue(int(search_value.text))
             except ValueError:
@@ -432,7 +428,7 @@ class SearchVisitor(NodeVisitor):
                 _, agg_additions = resolve_field(search_key.name, None)
                 if len(agg_additions) > 0:
                     # Extract column and function name out so we can check if we should parse as duration
-                    if agg_additions[0][-2] in self.duration_keys:
+                    if self.is_duration_key(agg_additions[0][-2]):
                         aggregate_value = parse_duration(*search_value.match.groups())
 
             if aggregate_value is None:
@@ -497,7 +493,7 @@ class SearchVisitor(NodeVisitor):
         (search_key, _, operator, search_value) = children
 
         operator = operator[0] if not isinstance(operator, Node) else "="
-        if search_key.name in self.duration_keys:
+        if self.is_duration_key(search_key.name):
             try:
                 search_value = parse_duration(*search_value.match.groups())
             except InvalidQuery as exc:
@@ -586,7 +582,7 @@ class SearchVisitor(NodeVisitor):
         # that the value wasn't in a valid format, so raise here.
         if search_key.name in self.date_keys:
             raise InvalidSearchQuery("Invalid format for date search")
-        if search_key.name in self.numeric_keys:
+        if self.is_numeric_key(search_key.name):
             raise InvalidSearchQuery("Invalid format for numeric search")
 
         return SearchFilter(search_key, operator, search_value)
@@ -1228,13 +1224,10 @@ def get_json_meta_type(field_alias, snuba_type):
         function_definition = FUNCTIONS.get(function_match.group(1))
         if function_definition and function_definition.result_type:
             return function_definition.result_type
-    if "duration" in field_alias or field_alias in [
-        "measurements.fp",
-        "measurements.fcp",
-        "measurements.lcp",
-        "measurements.fid",
-    ]:
+    if "duration" in field_alias or is_duration_measurement(field_alias):
         return "duration"
+    if is_measurement(field_alias):
+        return "number"
     if field_alias == "transaction.status":
         return "string"
     return snuba_json
@@ -1321,7 +1314,7 @@ class DateArg(FunctionArg):
 class NumericColumn(FunctionArg):
     def normalize(self, value):
         snuba_column = SEARCH_MAP.get(value)
-        if not snuba_column and value.startswith("measurements."):
+        if not snuba_column and is_measurement(value):
             return value
         if not snuba_column:
             raise InvalidFunctionArgument(u"{} is not a valid column".format(value))
@@ -1339,12 +1332,7 @@ class NumericColumnNoLookup(NumericColumn):
 class DurationColumn(FunctionArg):
     def normalize(self, value):
         snuba_column = SEARCH_MAP.get(value)
-        if not snuba_column and value in [
-            "measurements.fp",
-            "measurements.fcp",
-            "measurements.lcp",
-            "measurements.fid",
-        ]:
+        if not snuba_column and is_duration_measurement(value):
             return value
         if not snuba_column:
             raise InvalidFunctionArgument(u"{} is not a valid column".format(value))

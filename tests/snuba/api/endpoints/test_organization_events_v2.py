@@ -2485,7 +2485,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert len(response.data["data"]) == 1
         assert response.data["data"][0]["measurements.fp"] == 0.4
 
-    def test_measurements_quantile(self):
+    def test_measurements_aggregations(self):
         data = load_data("transaction")
         data["measurements"] = {"fcp": 0.5}
         self.store_event(data, self.project.id)
@@ -2501,3 +2501,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         data["measurements"] = {"lcp": 0.5}
         self.store_event(data, self.project.id)
         # TODO(tonyx): add test for `>`, `<`, `=`, `!=`, `has`, `!has`
+
+    def test_measurements_aggregation_conditions(self):
+        pass

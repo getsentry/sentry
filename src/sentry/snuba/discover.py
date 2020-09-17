@@ -25,6 +25,7 @@ from sentry.models import Group
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
 from sentry.utils.snuba import (
     Dataset,
+    is_measurement,
     naiveify_datetime,
     raw_query,
     resolve_snuba_aliases,
@@ -89,7 +90,7 @@ def find_histogram_buckets(field, params, conditions):
 
     column = columns[0]
     # TODO evanh: This can be expanded to more fields at a later date, for now keep this limited.
-    if column != "transaction.duration" and not column.startswith("measurements."):
+    if column != "transaction.duration" and not is_measurement(column):
         raise InvalidSearchQuery(
             "histogram(...) can only be used with the transaction.duration or measurements column"
         )
