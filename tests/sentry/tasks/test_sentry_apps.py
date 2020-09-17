@@ -70,7 +70,7 @@ class DictContaining(object):
 
     def _args_match(self, other):
         for key in self.args:
-            if key not in other.keys():
+            if key not in other:
                 return False
         return True
 

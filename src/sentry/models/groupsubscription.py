@@ -154,7 +154,7 @@ class GroupSubscriptionManager(BaseManager):
 
         options = get_user_options(
             "workflow:notifications",
-            users.keys(),
+            list(users.keys()),
             group.project,
             UserOptionValue.participating_only,
         )
