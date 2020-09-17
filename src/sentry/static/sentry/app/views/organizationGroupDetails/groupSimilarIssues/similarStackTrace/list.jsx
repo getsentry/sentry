@@ -57,7 +57,15 @@ class List extends React.Component {
   };
 
   render() {
-    const {orgId, groupId, project, items, filteredItems, pageLinks, onMerge} = this.props;
+    const {
+      orgId,
+      groupId,
+      project,
+      items,
+      filteredItems,
+      pageLinks,
+      onMerge,
+    } = this.props;
     const hasHiddenItems = !!filteredItems.length;
     const hasResults = items.length > 0 || hasHiddenItems;
     const itemsWithFiltered = items.concat(
@@ -76,7 +84,13 @@ class List extends React.Component {
         <SimilarToolbar onMerge={onMerge} />
         <div className="similar-list">
           {itemsWithFiltered.map(item => (
-            <Item key={item.issue.id} orgId={orgId} groupId={groupId} project={project} {...item} />
+            <Item
+              key={item.issue.id}
+              orgId={orgId}
+              groupId={groupId}
+              project={project}
+              {...item}
+            />
           ))}
 
           {hasHiddenItems && !this.state.showAllItems && (

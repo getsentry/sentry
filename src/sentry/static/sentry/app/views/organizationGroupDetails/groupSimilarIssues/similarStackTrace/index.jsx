@@ -147,7 +147,10 @@ const SimilarStackTrace = createReactClass({
   },
 
   render() {
-    const {params: {orgId, groupId}, project} = this.props;
+    const {
+      params: {orgId, groupId},
+      project,
+    } = this.props;
     const hasV2 = this.hasSimilarityV2Feature();
     const isLoading = this.state.loading;
     const isError = this.state.error && !isLoading;

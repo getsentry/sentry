@@ -86,8 +86,11 @@ class IssueDiff extends React.Component<Props, State> {
   }
 
   toggleDiffMode = () => {
-    this.setState(state => ({groupingDiff: !state.groupingDiff, loading: true}), this.fetchData);
-  }
+    this.setState(
+      state => ({groupingDiff: !state.groupingDiff, loading: true}),
+      this.fetchData
+    );
+  };
 
   fetchEventData = async (issueId: string, eventId: string) => {
     const {orgId, project, api} = this.props;
@@ -113,9 +116,15 @@ class IssueDiff extends React.Component<Props, State> {
 
   render() {
     const {className, project} = this.props;
-    const {SplitDiffAsync: DiffComponent, loading, groupingDiff, baseEvent, targetEvent} = this.state;
+    const {
+      SplitDiffAsync: DiffComponent,
+      loading,
+      groupingDiff,
+      baseEvent,
+      targetEvent,
+    } = this.state;
 
-    const showDiffToggle = project.features.includes("similarity-view-v2");
+    const showDiffToggle = project.features.includes('similarity-view-v2');
 
     return (
       <StyledIssueDiff className={className} loading={loading}>
