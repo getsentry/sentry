@@ -159,7 +159,9 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         assert not result["lastEvent"]
 
     def test_get_user_from_email(self):
-        user = User.objects.create(email="Stebe@sentry.io")
+        user = User.objects.create(
+            email="Stebe@sentry.io"
+        )  # upper case so we can test case sensitivity
         UserEmail.get_primary_email(user=user)
         project = self.create_project()
         self.create_member(user=user, organization=project.organization)
