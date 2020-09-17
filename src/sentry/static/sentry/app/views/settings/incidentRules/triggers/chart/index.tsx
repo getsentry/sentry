@@ -92,13 +92,16 @@ const AGGREGATE_FUNCTIONS = {
     seriesChunk.reduce((acc, series) => acc + series.value, 0),
   max: (seriesChunk: SeriesDataUnit[]) =>
     Math.max(...seriesChunk.map(series => series.value)),
+  min: (seriesChunk: SeriesDataUnit[]) =>
+    Math.min(...seriesChunk.map(series => series.value)),
 };
 
 const AGGREGATE_FUNCTION_MAP: Record<keyof typeof AGGREGATE_FUNCTIONS, string> = {
   none: t('None'),
   avg: t('Average'),
   sum: t('Sum'),
-  max: t('Max'),
+  max: t('Maximum'),
+  min: t('Minimum'),
 };
 
 type State = {
