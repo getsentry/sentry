@@ -36,12 +36,12 @@ class JiraDescriptorEndpoint(Endpoint):
                 "apiVersion": 1,
                 "modules": {
                     "postInstallPage": {
-                        "url": "/extensions/jira/configure",
+                        "url": "/extensions/jira/ui-hook",
                         "name": {"value": "Configure Sentry Add-on"},
                         "key": "post-install-sentry",
                     },
                     "configurePage": {
-                        "url": "/extensions/jira/configure",
+                        "url": "/extensions/jira/ui-hook",
                         "name": {"value": "Configure Sentry Add-on"},
                         "key": "configure-sentry",
                     },
