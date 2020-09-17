@@ -77,12 +77,20 @@ class ProjectAlertSettings extends AsyncView {
       params: {orgId, projectId},
     } = this.props;
 
+    const {project} = this.state;
+
     return (
       <React.Fragment>
         <SettingsPageHeader
           title={t('Alerts Settings')}
           action={
-            <Button to={`/organizations/${orgId}/alerts/rules/`} size="small">
+            <Button
+              to={{
+                pathname: `/organizations/${orgId}/alerts/rules/`,
+                query: {project: project.id},
+              }}
+              size="small"
+            >
               {t('View Alert Rules')}
             </Button>
           }
