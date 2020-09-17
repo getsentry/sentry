@@ -12,8 +12,8 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   children: React.ReactNode;
 };
 
-const ReleasesContainer = (props: Props) => {
+function ReleasesContainer(props: Props) {
   return props.children;
-};
+}
 
 export default ReleasesContainer;
