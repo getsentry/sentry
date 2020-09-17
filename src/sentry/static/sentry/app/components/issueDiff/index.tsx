@@ -17,6 +17,11 @@ import {Project} from 'app/types';
 
 import renderGroupingInfo from './groupingDiff';
 
+const defaultProps = {
+  baseEventId: 'latest',
+  targetEventId: 'latest',
+};
+
 type Props = {
   api: Client;
   baseIssueId: string;
@@ -28,10 +33,6 @@ type Props = {
   className?: string;
 } & typeof defaultProps;
 
-const defaultProps = {
-  baseEventId: 'latest',
-  targetEventId: 'latest',
-};
 
 type State = {
   loading: boolean;
