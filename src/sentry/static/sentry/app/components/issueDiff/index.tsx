@@ -21,13 +21,16 @@ type Props = {
   api: Client;
   baseIssueId: string;
   targetIssueId: string;
-
   orgId: string;
   project: Project;
-
   baseEventId?: string;
   targetEventId?: string;
   className?: string;
+} & typeof defaultProps;
+
+const defaultProps = {
+  baseEventId: 'latest',
+  targetEventId: 'latest',
 };
 
 type State = {
@@ -39,25 +42,18 @@ type State = {
 };
 
 class IssueDiff extends React.Component<Props, State> {
-  static defaultProps = {
-    baseEventId: 'latest',
-    targetEventId: 'latest',
+  static defaultProps = defaultProps;
+
+  state: State = {
+    loading: true,
+    groupingDiff: false,
+    baseEvent: [],
+    targetEvent: [],
+
+    // `SplitDiffAsync` is an async-loaded component
+    // This will eventually contain a reference to the exported component from `./splitDiff`
+    SplitDiffAsync: undefined,
   };
-
-  constructor(props: Props) {
-    super(props);
-
-    this.state = {
-      loading: true,
-      groupingDiff: false,
-      baseEvent: [],
-      targetEvent: [],
-
-      // `SplitDiffAsync` is an async-loaded component
-      // This will eventually contain a reference to the exported component from `./splitDiff`
-      SplitDiffAsync: undefined,
-    };
-  }
 
   componentDidMount() {
     this.fetchData();
@@ -69,8 +65,8 @@ class IssueDiff extends React.Component<Props, State> {
     // Fetch component and event data
     Promise.all([
       import(/* webpackChunkName: "splitDiff" */ '../splitDiff'),
-      this.fetchEventData(baseIssueId, baseEventId || 'latest'),
-      this.fetchEventData(targetIssueId, targetEventId || 'latest'),
+      this.fetchEventData(baseIssueId, baseEventId ?? 'latest'),
+      this.fetchEventData(targetIssueId, targetEventId ?? 'latest'),
     ])
       .then(([{default: SplitDiffAsync}, baseEvent, targetEvent]) => {
         this.setState({
@@ -96,22 +92,24 @@ class IssueDiff extends React.Component<Props, State> {
     const {orgId, project, api} = this.props;
     const {groupingDiff} = this.state;
 
+    let paramEventId = eventId;
+
     if (eventId === 'latest') {
       const event = await api.requestPromise(`/issues/${issueId}/events/latest/`);
-      eventId = event.eventID;
+      paramEventId = event.eventID;
     }
 
     if (groupingDiff) {
       const groupingInfo = await api.requestPromise(
-        `/projects/${orgId}/${project.slug}/events/${eventId}/grouping-info/`
+        `/projects/${orgId}/${project.slug}/events/${paramEventId}/grouping-info/`
       );
       return renderGroupingInfo(groupingInfo);
-    } else {
-      const event = await api.requestPromise(
-        `/projects/${orgId}/${project.slug}/events/${eventId}/`
-      );
-      return getStacktraceBody(event);
     }
+
+    const event = await api.requestPromise(
+      `/projects/${orgId}/${project.slug}/events/${eventId}/`
+    );
+    return getStacktraceBody(event);
   };
 
   render() {
@@ -147,7 +145,7 @@ class IssueDiff extends React.Component<Props, State> {
             <DiffComponent
               key={i}
               base={value}
-              target={targetEvent[i] || ''}
+              target={targetEvent[i] ?? ''}
               type="words"
             />
           ))}
@@ -158,29 +156,23 @@ class IssueDiff extends React.Component<Props, State> {
 
 export default withApi(IssueDiff);
 
-const getLoadingStyle = p =>
-  (p.loading &&
-    css`
-      background-color: white;
-      justify-content: center;
-    `) ||
-  '';
-
-type StyledIssueDiffProps = {
-  loading: boolean;
-};
-
 const StyledIssueDiff = styled('div', {
   shouldForwardProp: p => isPropValid(p) && p !== 'loading',
-})<StyledIssueDiffProps>`
-  background-color: #f7f8f9;
+})<Pick<State, 'loading'>>`
+  background-color: ${p => p.theme.backgroundSecondary};
   overflow: auto;
-  padding: 10px;
+  padding: ${space(1)};
   flex: 1;
   display: flex;
   flex-direction: column;
 
-  ${getLoadingStyle};
+  ${
+    p => p.loading &&
+    css`
+      background-color: ${p.theme.background};
+      justify-content: center;
+    ` || ''
+  };
 `;
 
 const HeaderWrapper = styled('div')`

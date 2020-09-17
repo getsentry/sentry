@@ -19,7 +19,7 @@ class MergedList extends React.Component {
     items: PropTypes.arrayOf(SentryTypes.Event),
     pageLinks: PropTypes.string,
     orgId: PropTypes.string.isRequired,
-    project: SentryTypes.Project,
+    project: SentryTypes.Project.isRequired,
   };
 
   renderEmpty = () => (

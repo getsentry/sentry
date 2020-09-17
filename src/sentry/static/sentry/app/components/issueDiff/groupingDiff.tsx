@@ -32,21 +32,19 @@ function renderComponent(component: EventGroupComponent): string[] {
     return [];
   }
 
-  let title = component.name || '';
-  if (component.hint) {
-    title += ` (${component.hint})`;
-  }
-
-  const rv = [title];
+  const {name, hint} = component;
+  const title = name && hint ? `${name} (${hint})` : name;
+  const rv = title ? [title] : [];
 
   if (component.values) {
     for (const value of component.values) {
       if (typeof value === 'string') {
         rv.push(`  ${value}`);
-      } else {
-        for (const line of renderComponent(value)) {
-          rv.push(`  ${line}`);
-        }
+        continue;
+      }
+
+      for (const line of renderComponent(value)) {
+        rv.push(`  ${line}`);
       }
     }
   }

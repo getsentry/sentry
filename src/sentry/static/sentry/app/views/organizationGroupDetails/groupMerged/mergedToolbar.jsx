@@ -20,7 +20,7 @@ const MergedToolbar = createReactClass({
 
   propTypes: {
     orgId: PropTypes.string.isRequired,
-    project: SentryTypes.Project,
+    project: SentryTypes.Project.isRequired,
     groupId: PropTypes.string,
     onUnmerge: PropTypes.func,
     onToggleCollapse: PropTypes.func,
