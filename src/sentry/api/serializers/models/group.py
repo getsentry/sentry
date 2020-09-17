@@ -440,13 +440,9 @@ class GroupSerializerBase(Serializer):
             "id": six.text_type(obj.id),
             "shareId": share_id,
             "shortId": obj.qualified_short_id,
-            "count": six.text_type(attrs["times_seen"]),
-            "userCount": attrs["user_count"],
             "title": obj.title,
             "culprit": obj.culprit,
             "permalink": permalink,
-            "firstSeen": attrs["first_seen"],
-            "lastSeen": attrs["last_seen"],
             "logger": obj.logger or None,
             "level": LOG_LEVELS.get(obj.level, "unknown"),
             "status": status_label,
@@ -468,6 +464,15 @@ class GroupSerializerBase(Serializer):
             "subscriptionDetails": subscription_details,
             "hasSeen": attrs["has_seen"],
             "annotations": attrs["annotations"],
+        }
+        +self._convert_seen_stats(attrs)
+
+    def _convert_seen_stats(self, stats):
+        return {
+            "count": six.text_type(stats["times_seen"]),
+            "userCount": stats["user_count"],
+            "firstSeen": stats["first_seen"],
+            "lastSeen": stats["last_seen"],
         }
 
 
@@ -732,15 +737,14 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         self.start = None
         self.end = None
         lifetime_result = super(StreamGroupSerializerSnuba, self)._get_seen_stats(item_list, user)
-        #
+        #######################
         for item in item_list:
             time_range_result[item].update({"filtered": filtered_result.get(item)})
             time_range_result[item].update({"lifetime": lifetime_result.get(item)})
         return time_range_result
 
     def query_tsdb(self, group_ids, query_params):
-
-        # TODO: Dont query tsdb here? remove its snuba_filter support
+        # TODO: Dont query tsdb here? Might be okay because this is specifically snuba_tsdb and not tsdb the abstraction.
         return snuba_tsdb.get_range(
             model=snuba_tsdb.models.group,
             keys=group_ids,
@@ -757,7 +761,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             # TODO: fix this hack.
             self.snuba_filters = None
             stats = self.get_stats(item_list, user)
-            #
+            #######################
             for item in item_list:
                 attrs[item].update(
                     {"lifetime_stats": None}
@@ -781,17 +785,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             )  # Not needed in current implentation, save query
             attrs["filtered"].update({"stats": {self.stats_period: attrs["filtered_stats"]}})
 
-        # TODO: Fix / clean this up. Maybe modularize the other bit and use it here.
-        attrs["filtered"]["count"] = six.text_type(attrs["filtered"].pop("times_seen"))
-        attrs["filtered"]["firstSeen"] = attrs["filtered"].pop("first_seen")
-        attrs["filtered"]["lastSeen"] = attrs["filtered"].pop("last_seen")
-        attrs["filtered"]["userCount"] = attrs["filtered"].pop("user_count")
+        result["filtered"] = self._convert_seen_stats(attrs["filtered"])
+        result["lifetime"] = self._convert_seen_stats(attrs["lifetime"])
 
-        attrs["lifetime"]["count"] = six.text_type(attrs["lifetime"].pop("times_seen"))
-        attrs["lifetime"]["firstSeen"] = attrs["lifetime"].pop("first_seen")
-        attrs["lifetime"]["lastSeen"] = attrs["lifetime"].pop("last_seen")
-        attrs["lifetime"]["userCount"] = attrs["lifetime"].pop("user_count")
-
-        result["lifetime"] = attrs["lifetime"]
-        result["filtered"] = attrs["filtered"]
         return result
