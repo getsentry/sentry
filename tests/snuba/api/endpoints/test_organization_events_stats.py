@@ -74,10 +74,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
         )
 
         assert response.status_code == 200, response.content
-        assert [attrs for time, attrs in response.data["data"]] == [
-            [{"count": 1}],
-            [{"count": 2}],
-        ]
+        assert [attrs for time, attrs in response.data["data"]] == [[{"count": 1}], [{"count": 2}]]
 
     def test_no_projects(self):
         org = self.create_organization(owner=self.user)
@@ -242,7 +239,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             for minute in range(count):
                 self.store_event(
                     data={
-                        "event_id": six.binary_type(six.text_type(uuid.uuid1()).encode("ascii")),
+                        "event_id": six.text_type(uuid.uuid1()),
                         "message": "very bad",
                         "timestamp": iso_format(
                             self.day_ago + timedelta(hours=hour, minutes=minute)
@@ -281,7 +278,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             for minute in range(count):
                 self.store_event(
                     data={
-                        "event_id": six.binary_type(six.text_type(uuid.uuid1()).encode("ascii")),
+                        "event_id": six.text_type(uuid.uuid1()),
                         "message": "very bad",
                         "timestamp": iso_format(
                             self.day_ago + timedelta(hours=hour, minutes=minute)
@@ -318,7 +315,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             for second in range(count):
                 self.store_event(
                     data={
-                        "event_id": six.binary_type(six.text_type(uuid.uuid1()).encode("ascii")),
+                        "event_id": six.text_type(uuid.uuid1()),
                         "message": "very bad",
                         "timestamp": iso_format(
                             self.day_ago + timedelta(minutes=minute, seconds=second)
@@ -357,7 +354,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             for second in range(count):
                 self.store_event(
                     data={
-                        "event_id": six.binary_type(six.text_type(uuid.uuid1()).encode("ascii")),
+                        "event_id": six.text_type(uuid.uuid1()),
                         "message": "very bad",
                         "timestamp": iso_format(
                             self.day_ago + timedelta(minutes=minute, seconds=second)
@@ -530,10 +527,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
                 },
             )
         assert response.status_code == 200
-        assert [attrs for time, attrs in response.data["data"]] == [
-            [{"count": 0}],
-            [{"count": 1}],
-        ]
+        assert [attrs for time, attrs in response.data["data"]] == [[{"count": 0}], [{"count": 1}]]
 
     @mock.patch("sentry.snuba.discover.timeseries_query", return_value={})
     def test_multiple_yaxis_only_one_query(self, mock_query):
@@ -750,15 +744,15 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         }
         with self.feature("organizations:discover-basic"):
             data["topEvents"] = 50
-            response = self.client.get(self.url, data, format="json",)
+            response = self.client.get(self.url, data, format="json")
             assert response.status_code == 400
 
             data["topEvents"] = 0
-            response = self.client.get(self.url, data, format="json",)
+            response = self.client.get(self.url, data, format="json")
             assert response.status_code == 400
 
             data["topEvents"] = "a"
-            response = self.client.get(self.url, data, format="json",)
+            response = self.client.get(self.url, data, format="json")
             assert response.status_code == 400
 
     def test_top_events_with_projects(self):
@@ -851,10 +845,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
 
         results = data[self.transaction.transaction]
         assert results["order"] == 0
-        assert [attrs for time, attrs in results["data"]] == [
-            [{"count": 3}],
-            [{"count": 0}],
-        ]
+        assert [attrs for time, attrs in results["data"]] == [[{"count": 3}], [{"count": 0}]]
 
     def test_top_events_with_functions_on_different_transactions(self):
         """ Transaction2 has less events, but takes longer so order should be self.transaction then transaction2 """
@@ -885,17 +876,11 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
 
         results = data[self.transaction.transaction]
         assert results["order"] == 1
-        assert [attrs for time, attrs in results["data"]] == [
-            [{"count": 3}],
-            [{"count": 0}],
-        ]
+        assert [attrs for time, attrs in results["data"]] == [[{"count": 3}], [{"count": 0}]]
 
         results = data[transaction2.transaction]
         assert results["order"] == 0
-        assert [attrs for time, attrs in results["data"]] == [
-            [{"count": 1}],
-            [{"count": 0}],
-        ]
+        assert [attrs for time, attrs in results["data"]] == [[{"count": 1}], [{"count": 0}]]
 
     def test_top_events_with_query(self):
         transaction_data = load_data("transaction")
@@ -1078,10 +1063,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
 
         results = data[",".join([self.transaction.transaction, "120000"])]
         assert results["order"] == 0
-        assert [attrs for time, attrs in results["data"]] == [
-            [{"count": 3}],
-            [{"count": 0}],
-        ]
+        assert [attrs for time, attrs in results["data"]] == [[{"count": 3}], [{"count": 0}]]
 
     def test_top_events_with_user(self):
         with self.feature("organizations:discover-basic"):
@@ -1203,10 +1185,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert len(data) == 1
 
         results = data["unknown"]
-        assert [attrs for time, attrs in results["data"]] == [
-            [{"count": 3}],
-            [{"count": 0}],
-        ]
+        assert [attrs for time, attrs in results["data"]] == [[{"count": 3}], [{"count": 0}]]
         assert results["order"] == 0
 
     def test_top_events_with_error_handled(self):
@@ -1252,23 +1231,14 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert len(data) == 3
 
         results = data[""]
-        assert [attrs for time, attrs in results["data"]] == [
-            [{"count": 22}],
-            [{"count": 6}],
-        ]
+        assert [attrs for time, attrs in results["data"]] == [[{"count": 22}], [{"count": 6}]]
         assert results["order"] == 0
 
         results = data["1"]
-        assert [attrs for time, attrs in results["data"]] == [
-            [{"count": 1}],
-            [{"count": 0}],
-        ]
+        assert [attrs for time, attrs in results["data"]] == [[{"count": 1}], [{"count": 0}]]
 
         results = data["0"]
-        assert [attrs for time, attrs in results["data"]] == [
-            [{"count": 1}],
-            [{"count": 0}],
-        ]
+        assert [attrs for time, attrs in results["data"]] == [[{"count": 1}], [{"count": 0}]]
 
     def test_top_events_with_aggregate_condition(self):
         with self.feature("organizations:discover-basic"):
