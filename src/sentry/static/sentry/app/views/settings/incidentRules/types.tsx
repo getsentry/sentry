@@ -64,7 +64,8 @@ export enum TimePeriod {
   SIX_HOURS = '6h',
   ONE_DAY = '1d',
   THREE_DAYS = '3d',
-  SEVEN_DAYS = '7d',
+  // Seven days is actually 10080m but we have a max of 10000 events
+  SEVEN_DAYS = '10000m',
   FOURTEEN_DAYS = '14d',
   THIRTY_DAYS = '30d',
 }
