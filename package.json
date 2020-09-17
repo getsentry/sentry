@@ -162,6 +162,7 @@
     "jest": "24.9.0",
     "jest-canvas-mock": "^2.2.0",
     "jest-junit": "^9.0.0",
+    "js-yaml": "^3.14.0",
     "json-refs": "^3.0.15",
     "mockdate": "3.0.2",
     "object.fromentries": "^2.0.0",
