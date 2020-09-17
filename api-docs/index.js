@@ -39,9 +39,8 @@ function bundle(originalFile) {
         )
           resErrors[k] = v.error;
       }
-
       if (Object.keys(resErrors).length > 0) {
-        return Promise.reject(dictToString(resErrors));
+        return Promise.reject(new Error(dictToString(resErrors)));
       }
 
       return results.resolved;
@@ -51,7 +50,7 @@ function bundle(originalFile) {
       Object.getOwnPropertyNames(e).forEach(function(key) {
         error[key] = e[key];
       });
-      return Promise.reject(dictToString(error));
+      return Promise.reject(new Error(dictToString(error)));
     }
   );
 }
