@@ -18,7 +18,14 @@ const withMeasurements = <P extends InjectedMeasurementsProps>(
 ) =>
   class extends React.Component<Omit<P, keyof InjectedMeasurementsProps>> {
     render() {
-      return <WrappedComponent measurements={MEASUREMENTS} {...(this.props as P)} />;
+      return (
+        <WrappedComponent
+          {...({
+            measurements: MEASUREMENTS,
+            ...this.props,
+          } as P)}
+        />
+      );
     }
   };
 
