@@ -194,7 +194,6 @@ class Sidebar extends React.Component<Props, State> {
       'discover',
       'discover/results', // Team plans do not have query landing page
       'performance',
-      'releasesv2',
     ].map(route => `/organizations/${this.props.organization.slug}/${route}/`);
 
     // Only keep the querystring if the current route matches one of the above
@@ -439,7 +438,6 @@ class Sidebar extends React.Component<Props, State> {
                     label={t('Releases')}
                     to={`/organizations/${organization.slug}/releases/`}
                     id="releases"
-                    isNew
                   />
                   <SidebarItem
                     {...sidebarItemProps}
