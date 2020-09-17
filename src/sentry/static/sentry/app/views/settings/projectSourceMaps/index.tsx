@@ -19,6 +19,6 @@ function ProjectSourceMapsContainer(props: Props) {
   return React.isValidElement(children)
     ? React.cloneElement(children, {organization, project})
     : null;
-};
+}
 
 export default withOrganization(ProjectSourceMapsContainer);
