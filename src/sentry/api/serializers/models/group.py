@@ -43,7 +43,9 @@ from sentry.models import (
     UserOption,
     UserOptionValue,
 )
+from sentry.tagstore.snuba.backend import fix_tag_value_data
 from sentry.tsdb.snuba import SnubaTSDB
+from sentry.utils import snuba
 from sentry.utils.db import attach_foreignkey
 from sentry.utils.safe import safe_execute
 from sentry.utils.compat import map, zip
@@ -644,26 +646,26 @@ class GroupSerializerSnuba(GroupSerializerBase):
         self.end = end
         self.snuba_filters = snuba_filters
 
-    def _get_seen_stats(self, item_list, user):
-        project_ids = list(set([item.project_id for item in item_list]))
-        group_ids = [item.id for item in item_list]
-        user_counts = tagstore.get_groups_user_counts(
-            project_ids,
-            group_ids,
-            environment_ids=self.environment_ids,
-            snuba_filters=self.snuba_filters,
+    def _execute_seen_stats_query(
+        self, item_list, start=None, end=None, conditions=None, filters=None, aggregations=None
+    ):
+        result = snuba.aliased_query(
+            dataset=snuba.Dataset.Events,
             start=self.start,
             end=self.end,
+            groupby=["group_id"],
+            conditions=self.snuba_filters,
+            filter_keys=filters,
+            aggregations=aggregations,
+            referrer="serializers.GroupSerializerSnuba._get_seen_stats",
         )
-
-        seen_data = tagstore.get_group_seen_values_for_environments(
-            project_ids,
-            group_ids,
-            self.environment_ids,
-            snuba_filters=self.snuba_filters,
-            start=self.start,
-            end=self.end,
-        )
+        seen_data = {
+            issue["group_id"]: fix_tag_value_data(
+                dict(filter(lambda key: key[0] != "group_id", six.iteritems(issue)))
+            )
+            for issue in result["data"]
+        }
+        user_counts = {item_id: value["count"] for item_id, value in seen_data.items()}
         last_seen = {item_id: value["last_seen"] for item_id, value in seen_data.items()}
         times_seen = {item_id: value["times_seen"] for item_id, value in seen_data.items()}
         if not self.environment_ids:
@@ -687,6 +689,32 @@ class GroupSerializerSnuba(GroupSerializerBase):
                 "user_count": user_counts.get(item.id, 0),
             }
         return attrs
+
+    def _get_seen_stats(self, item_list, user):
+
+        project_ids = list(set([item.project_id for item in item_list]))
+        group_ids = [item.id for item in item_list]
+
+        filters = {"project_id": project_ids, "group_id": group_ids}
+        if self.environment_ids:
+            filters["environment"] = self.environment_ids
+
+        aggregations = [
+            ["count()", "", "times_seen"],
+            ["min", "timestamp", "first_seen"],
+            ["max", "timestamp", "last_seen"],
+            ["uniq", "tags[sentry:user]", "count"],
+        ]
+
+        results = self._execute_seen_stats_query(
+            item_list,
+            start=self.start,
+            end=self.end,
+            conditions=self.snuba_filters,
+            filters=filters,
+            aggregations=aggregations,
+        )
+        return results
 
 
 class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
@@ -713,6 +741,20 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         self.stats_period_end = stats_period_end
         self.matching_event_id = matching_event_id
 
+    def _get_seen_stats(self, item_list, user):
+        filtered_result = super(StreamGroupSerializerSnuba, self)._get_seen_stats(item_list, user)
+        # TODO: fix this hack.
+        self.snuba_filters = None
+        time_range_result = super(StreamGroupSerializerSnuba, self)._get_seen_stats(item_list, user)
+        self.start = None
+        self.end = None
+        lifetime_result = super(StreamGroupSerializerSnuba, self)._get_seen_stats(item_list, user)
+        #
+        for item in item_list:
+            time_range_result[item].update({"filtered": filtered_result.get(item)})
+            time_range_result[item].update({"lifetime": lifetime_result.get(item)})
+        return time_range_result
+
     def query_tsdb(self, group_ids, query_params):
         return snuba_tsdb.get_range(
             model=snuba_tsdb.models.group,
@@ -726,8 +768,16 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         attrs = super(StreamGroupSerializerSnuba, self).get_attrs(item_list, user)
 
         if self.stats_period:
+            filtered_stats = self.get_stats(item_list, user)
+            # TODO: fix this hack.
+            self.snuba_filters = None
             stats = self.get_stats(item_list, user)
+            #
             for item in item_list:
+                attrs[item].update(
+                    {"lifetime_stats": None}
+                )  # Not needed in current implentation, save query
+                attrs[item].update({"filtered_stats": filtered_stats[item.id]})
                 attrs[item].update({"stats": stats[item.id]})
 
         return attrs
@@ -735,10 +785,27 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
     def serialize(self, obj, attrs, user):
         result = super(StreamGroupSerializerSnuba, self).serialize(obj, attrs, user)
 
-        if self.stats_period:
-            result["stats"] = {self.stats_period: attrs["stats"]}
-
         if self.matching_event_id:
             result["matchingEventId"] = self.matching_event_id
 
+        if self.stats_period:
+            result["stats"] = {self.stats_period: attrs["stats"]}
+
+            attrs["lifetime"].update(
+                {"stats": None}
+            )  # Not needed in current implentation, save query
+            attrs["filtered"].update({"stats": {self.stats_period: attrs["filtered_stats"]}})
+
+        attrs["filtered"]["count"] = six.text_type(attrs["filtered"].pop("times_seen"))
+        attrs["filtered"]["firstSeen"] = attrs["filtered"].pop("first_seen")
+        attrs["filtered"]["lastSeen"] = attrs["filtered"].pop("last_seen")
+        attrs["filtered"]["userCount"] = attrs["filtered"].pop("user_count")
+
+        attrs["lifetime"]["count"] = six.text_type(attrs["lifetime"].pop("times_seen"))
+        attrs["lifetime"]["firstSeen"] = attrs["lifetime"].pop("first_seen")
+        attrs["lifetime"]["lastSeen"] = attrs["lifetime"].pop("last_seen")
+        attrs["lifetime"]["userCount"] = attrs["lifetime"].pop("user_count")
+
+        result["lifetime"] = attrs["lifetime"]
+        result["filtered"] = attrs["filtered"]
         return result

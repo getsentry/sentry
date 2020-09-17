@@ -216,10 +216,10 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
 
         results = list(cursor_result)
 
-        lifetime_stats = serialize(results, request.user, serializer())
-
+        # returns lifetime and filtered stats as well.
+        # TODO: Just pass search filters to serializer and have it convert to snuba?
+        snuba_filters = []
         if has_dynamic_issue_counts:
-            snuba_filters = []
             if "search_filters" in query_kwargs and query_kwargs["search_filters"] is not None:
                 snuba_filters = [
                     convert_search_filter_to_snuba_query(search_filter)
@@ -227,22 +227,10 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                     if search_filter.key.name not in self.skip_snuba_fields
                 ]
 
-            context = serialize(results, request.user, serializer(start=start, end=end))
-            if snuba_filters:
-                filtered_stats = serialize(
-                    results,
-                    request.user,
-                    serializer(start=start, end=end, snuba_filters=snuba_filters),
-                )
-            else:
-                filtered_stats = None
-            for idx, ctx in enumerate(context):
-                ctx["lifetime"] = lifetime_stats[idx]
-                if snuba_filters:
-                    ctx["filtered"] = filtered_stats[idx]
-        else:
-            # context was the lifetime stats previously with no filters/dynamic start-end values
-            context = lifetime_stats
+        # TODO: I think the "base" stats were lifetime and should still be if has_dynamic_issue_counts is False.
+        context = serialize(
+            results, request.user, serializer(start=start, end=end, snuba_filters=snuba_filters)
+        )
 
         # HACK: remove auto resolved entries
         # TODO: We should try to integrate this into the search backend, since
