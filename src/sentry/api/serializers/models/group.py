@@ -660,11 +660,15 @@ class GroupSerializerSnuba(GroupSerializerBase):
         self.environment_ids = environment_ids
         self.start = start
         self.end = end
-        self.snuba_filters = [
-            convert_search_filter_to_snuba_query(search_filter)
-            for search_filter in search_filters
-            if search_filter.key.name not in self.skip_snuba_fields
-        ]
+        self.snuba_filters = (
+            [
+                convert_search_filter_to_snuba_query(search_filter)
+                for search_filter in search_filters
+                if search_filter.key.name not in self.skip_snuba_fields
+            ]
+            if search_filters is not None
+            else []
+        )
 
     def _get_seen_stats(self, item_list, user):
         project_ids = list(set([item.project_id for item in item_list]))
