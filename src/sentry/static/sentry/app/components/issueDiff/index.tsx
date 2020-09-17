@@ -33,7 +33,6 @@ type Props = {
   className?: string;
 } & typeof defaultProps;
 
-
 type State = {
   loading: boolean;
   groupingDiff: boolean;
