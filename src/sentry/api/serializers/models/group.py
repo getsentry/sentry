@@ -646,9 +646,21 @@ class GroupSerializerSnuba(GroupSerializerBase):
         self.end = end
         self.snuba_filters = snuba_filters
 
-    def _execute_seen_stats_query(
-        self, item_list, start=None, end=None, conditions=None, filters=None, aggregations=None
-    ):
+    def _get_seen_stats(self, item_list, user):
+        project_ids = list(set([item.project_id for item in item_list]))
+        group_ids = [item.id for item in item_list]
+
+        filters = {"project_id": project_ids, "group_id": group_ids}
+        if self.environment_ids:
+            filters["environment"] = self.environment_ids
+
+        aggregations = [
+            ["count()", "", "times_seen"],
+            ["min", "timestamp", "first_seen"],
+            ["max", "timestamp", "last_seen"],
+            ["uniq", "tags[sentry:user]", "count"],
+        ]
+
         result = snuba.aliased_query(
             dataset=snuba.Dataset.Events,
             start=self.start,
@@ -689,32 +701,6 @@ class GroupSerializerSnuba(GroupSerializerBase):
                 "user_count": user_counts.get(item.id, 0),
             }
         return attrs
-
-    def _get_seen_stats(self, item_list, user):
-
-        project_ids = list(set([item.project_id for item in item_list]))
-        group_ids = [item.id for item in item_list]
-
-        filters = {"project_id": project_ids, "group_id": group_ids}
-        if self.environment_ids:
-            filters["environment"] = self.environment_ids
-
-        aggregations = [
-            ["count()", "", "times_seen"],
-            ["min", "timestamp", "first_seen"],
-            ["max", "timestamp", "last_seen"],
-            ["uniq", "tags[sentry:user]", "count"],
-        ]
-
-        results = self._execute_seen_stats_query(
-            item_list,
-            start=self.start,
-            end=self.end,
-            conditions=self.snuba_filters,
-            filters=filters,
-            aggregations=aggregations,
-        )
-        return results
 
 
 class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
@@ -796,6 +782,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             )  # Not needed in current implentation, save query
             attrs["filtered"].update({"stats": {self.stats_period: attrs["filtered_stats"]}})
 
+        # TODO: Fix / clean this up. Maybe modularize the other bit and use it here.
         attrs["filtered"]["count"] = six.text_type(attrs["filtered"].pop("times_seen"))
         attrs["filtered"]["firstSeen"] = attrs["filtered"].pop("first_seen")
         attrs["filtered"]["lastSeen"] = attrs["filtered"].pop("last_seen")
