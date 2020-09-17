@@ -1,0 +1,494 @@
+{
+  "get": {
+    "tags": [
+      "Events"
+    ],
+    "description": "Return details on an individual issue. This returns the basic stats for the issue (title, last seen, first seen), some overall numbers (number of comments, user reports) as well as the summarized event data.",
+    "operationId": "Retrieve an issue",
+    "parameters": [
+      {
+        "name": "issue_id",
+        "in": "path",
+        "description": "The ID of the issue to retrieve.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "responses": {
+      "200": {
+        "description": "Success.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "../../components/schemas/issue.json#/IssueDetailed"
+            },
+            "example": {
+              "activity": [
+                {
+                  "data": {},
+                  "dateCreated": "2018-11-06T21:19:55Z",
+                  "id": "0",
+                  "type": "first_seen",
+                  "user": null
+                }
+              ],
+              "annotations": [],
+              "assignedTo": null,
+              "count": "1",
+              "culprit": "raven.scripts.runner in main",
+              "firstRelease": {
+                "authors": [],
+                "commitCount": 0,
+                "data": {},
+                "dateCreated": "2018-11-06T21:19:55.146Z",
+                "dateReleased": null,
+                "deployCount": 0,
+                "firstEvent": "2018-11-06T21:19:55.271Z",
+                "lastCommit": null,
+                "lastDeploy": null,
+                "lastEvent": "2018-11-06T21:19:55.271Z",
+                "newGroups": 0,
+                "owner": null,
+                "projects": [
+                  {
+                    "name": "Pump Station",
+                    "slug": "pump-station"
+                  }
+                ],
+                "ref": null,
+                "shortVersion": "1764232",
+                "url": null,
+                "version": "17642328ead24b51867165985996d04b29310337"
+              },
+              "firstSeen": "2018-11-06T21:19:55Z",
+              "hasSeen": false,
+              "id": "1",
+              "isBookmarked": false,
+              "isPublic": false,
+              "isSubscribed": true,
+              "lastRelease": null,
+              "lastSeen": "2018-11-06T21:19:55Z",
+              "level": "error",
+              "logger": null,
+              "metadata": {
+                "title": "This is an example Python exception"
+              },
+              "numComments": 0,
+              "participants": [],
+              "permalink": "https://sentry.io/the-interstellar-jurisdiction/pump-station/issues/1/",
+              "pluginActions": [],
+              "pluginContexts": [],
+              "pluginIssues": [],
+              "project": {
+                "id": "2",
+                "name": "Pump Station",
+                "slug": "pump-station"
+              },
+              "seenBy": [],
+              "shareId": null,
+              "shortId": "PUMP-STATION-1",
+              "stats": {
+                "24h": [
+                  [
+                    1541451600.0,
+                    557
+                  ],
+                  [
+                    1541455200.0,
+                    473
+                  ],
+                  [
+                    1541458800.0,
+                    914
+                  ],
+                  [
+                    1541462400.0,
+                    991
+                  ],
+                  [
+                    1541466000.0,
+                    925
+                  ],
+                  [
+                    1541469600.0,
+                    881
+                  ],
+                  [
+                    1541473200.0,
+                    182
+                  ],
+                  [
+                    1541476800.0,
+                    490
+                  ],
+                  [
+                    1541480400.0,
+                    820
+                  ],
+                  [
+                    1541484000.0,
+                    322
+                  ],
+                  [
+                    1541487600.0,
+                    836
+                  ],
+                  [
+                    1541491200.0,
+                    565
+                  ],
+                  [
+                    1541494800.0,
+                    758
+                  ],
+                  [
+                    1541498400.0,
+                    880
+                  ],
+                  [
+                    1541502000.0,
+                    677
+                  ],
+                  [
+                    1541505600.0,
+                    381
+                  ],
+                  [
+                    1541509200.0,
+                    814
+                  ],
+                  [
+                    1541512800.0,
+                    329
+                  ],
+                  [
+                    1541516400.0,
+                    446
+                  ],
+                  [
+                    1541520000.0,
+                    731
+                  ],
+                  [
+                    1541523600.0,
+                    111
+                  ],
+                  [
+                    1541527200.0,
+                    926
+                  ],
+                  [
+                    1541530800.0,
+                    772
+                  ],
+                  [
+                    1541534400.0,
+                    400
+                  ],
+                  [
+                    1541538000.0,
+                    943
+                  ]
+                ],
+                "30d": [
+                  [
+                    1538870400.0,
+                    565
+                  ],
+                  [
+                    1538956800.0,
+                    12862
+                  ],
+                  [
+                    1539043200.0,
+                    15617
+                  ],
+                  [
+                    1539129600.0,
+                    10809
+                  ],
+                  [
+                    1539216000.0,
+                    15065
+                  ],
+                  [
+                    1539302400.0,
+                    12927
+                  ],
+                  [
+                    1539388800.0,
+                    12994
+                  ],
+                  [
+                    1539475200.0,
+                    13139
+                  ],
+                  [
+                    1539561600.0,
+                    11838
+                  ],
+                  [
+                    1539648000.0,
+                    12088
+                  ],
+                  [
+                    1539734400.0,
+                    12338
+                  ],
+                  [
+                    1539820800.0,
+                    12768
+                  ],
+                  [
+                    1539907200.0,
+                    12816
+                  ],
+                  [
+                    1539993600.0,
+                    15356
+                  ],
+                  [
+                    1540080000.0,
+                    10910
+                  ],
+                  [
+                    1540166400.0,
+                    12306
+                  ],
+                  [
+                    1540252800.0,
+                    12912
+                  ],
+                  [
+                    1540339200.0,
+                    14700
+                  ],
+                  [
+                    1540425600.0,
+                    11890
+                  ],
+                  [
+                    1540512000.0,
+                    11684
+                  ],
+                  [
+                    1540598400.0,
+                    13510
+                  ],
+                  [
+                    1540684800.0,
+                    12625
+                  ],
+                  [
+                    1540771200.0,
+                    12811
+                  ],
+                  [
+                    1540857600.0,
+                    13180
+                  ],
+                  [
+                    1540944000.0,
+                    14651
+                  ],
+                  [
+                    1541030400.0,
+                    14161
+                  ],
+                  [
+                    1541116800.0,
+                    12612
+                  ],
+                  [
+                    1541203200.0,
+                    14316
+                  ],
+                  [
+                    1541289600.0,
+                    14742
+                  ],
+                  [
+                    1541376000.0,
+                    12505
+                  ],
+                  [
+                    1541462400.0,
+                    14180
+                  ]
+                ]
+              },
+              "status": "unresolved",
+              "statusDetails": {},
+              "subscriptionDetails": null,
+              "tags": [],
+              "title": "This is an example Python exception",
+              "type": "default",
+              "userCount": 0,
+              "userReportCount": 0
+            }
+          }
+        }
+      },
+      "403": {
+        "description": "Forbidden"
+      }
+    },
+    "security": [
+      {
+        "auth_token": [
+          "event:read"
+        ]
+      }
+    ]
+  },
+  "put": {
+    "tags": [
+      "Events"
+    ],
+    "description": "Updates an individual issue's attributes.  Only the attributes submitted are modified.",
+    "operationId": "Update an issue",
+    "parameters": [
+      {
+        "name": "issue_id",
+        "in": "path",
+        "description": "The ID of the group to retrieve.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "requestBody": {
+      "content": {
+        "application/json": {
+          "schema": {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "string",
+                "description": "The new status for the issues. Valid values are `\"resolved\"`, `\"resolvedInNextRelease\"`, `\"unresolved\"`, and `\"ignored\"`.",
+                "example": "unresolved"
+              },
+              "assignedTo": {
+                "type": "string",
+                "description": "The actor id (or username) of the user or team that should be assigned to this issue."
+              },
+              "hasSeen": {
+                "type": "boolean",
+                "description": "In case this API call is invoked with a user context this allows changing of the flag that indicates if the user has seen the event."
+              },
+              "isBookmarked": {
+                "type": "boolean",
+                "description": "In case this API call is invoked with a user context this allows changing of the bookmark flag."
+              },
+              "isSubscribed": {
+                "type": "boolean"
+              },
+              "isPublic": {
+                "type": "boolean",
+                "description": "Sets the issue to public or private."
+              }
+            }
+          }
+        }
+      },
+      "required": true
+    },
+    "responses": {
+      "200": {
+        "description": "Success.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "../../components/schemas/issue.json#/IssueNoStats"
+            },
+            "example": {
+              "annotations": [],
+              "assignedTo": null,
+              "count": "1",
+              "culprit": "raven.scripts.runner in main",
+              "firstSeen": "2018-11-06T21:19:55Z",
+              "hasSeen": false,
+              "id": "1",
+              "isBookmarked": false,
+              "isPublic": false,
+              "isSubscribed": true,
+              "lastSeen": "2018-11-06T21:19:55Z",
+              "level": "error",
+              "logger": null,
+              "metadata": {
+                "title": "This is an example Python exception"
+              },
+              "numComments": 0,
+              "permalink": "https://sentry.io/the-interstellar-jurisdiction/pump-station/issues/1/",
+              "project": {
+                "id": "2",
+                "name": "Pump Station",
+                "slug": "pump-station"
+              },
+              "shareId": null,
+              "shortId": "PUMP-STATION-1",
+              "status": "unresolved",
+              "statusDetails": {},
+              "subscriptionDetails": null,
+              "title": "This is an example Python exception",
+              "type": "default",
+              "userCount": 0
+            }
+          }
+        }
+      },
+      "403": {
+        "description": "Forbidden"
+      },
+      "404": {
+        "description": "The requested resource does not exist"
+      }
+    },
+    "security": [
+      {
+        "auth_token": [
+          "event:write"
+        ]
+      }
+    ]
+  },
+  "delete": {
+    "tags": [
+      "Events"
+    ],
+    "description": "Removes an individual issue.",
+    "operationId": "Remove an Issue",
+    "parameters": [
+      {
+        "name": "issue_id",
+        "in": "path",
+        "description": "The ID of the issue to delete.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "responses": {
+      "202": {
+        "description": "Success."
+      },
+      "403": {
+        "description": "Forbidden"
+      },
+      "404": {
+        "description": "The requested resource does not exist"
+      }
+    },
+    "security": [
+      {
+        "auth_token": [
+          "event:admin"
+        ]
+      }
+    ]
+  }
+}

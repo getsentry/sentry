@@ -1,0 +1,49 @@
+{
+    "get": {
+      "tags": ["Releases"],
+      "description": "List issues to be resolved in a particular release.",
+      "operationId": "List Issues to be Resolved in a Particular Release.",
+      "parameters": [
+        {
+          "name": "organization_slug",
+          "in": "path",
+          "description": "The slug of the organization.",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "project_slug",
+          "in": "path",
+          "description": "The slug of the project.",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "version",
+          "in": "path",
+          "description": "The version identifier of the release.",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Success."
+        },
+        "403": {
+          "description": "Forbidden"
+        }
+      },
+      "security": [
+        {
+          "auth_token": ["project:releases"]
+        }
+      ]
+    }
+  }

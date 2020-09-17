@@ -1,0 +1,193 @@
+{
+  "get": {
+    "tags": ["Releases"],
+    "description": "Retrieve a file for a given release.",
+    "operationId": "Retrieve an Organization Release's File",
+    "parameters": [
+      {
+        "name": "organization_slug",
+        "in": "path",
+        "description": "The slug of the organization.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "version",
+        "in": "path",
+        "description": "The version identifier of the release.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "file_id",
+        "in": "path",
+        "description": "The ID of the file to retrieve.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "responses": {
+      "200": {
+        "description": "Success.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "../../components/schemas/releases/release-file.json#/ReleaseFile"
+            },
+            "example": {
+              "dateCreated": "2018-11-06T21:20:19.150Z",
+              "dist": null,
+              "headers": {
+                "Content-Type": "text/plain; encoding=utf-8"
+              },
+              "id": "1",
+              "name": "/demo/message-for-you.txt",
+              "sha1": "2ef7bde608ce5404e97d5f042f95f89f1c232871",
+              "size": 12
+            }
+          }
+        }
+      },
+      "403": {
+        "description": "Forbidden"
+      }
+    },
+    "security": [
+      {
+        "auth_token": ["project:releases"]
+      }
+    ]
+  },
+  "put": {
+    "tags": ["Releases"],
+    "description": "Upload an organization release file.",
+    "operationId": "Update an Organization Release File.",
+    "parameters": [
+      {
+        "name": "organization_slug",
+        "in": "path",
+        "description": "The slug of the organization.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "version",
+        "in": "path",
+        "description": "The version identifier of the release.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "file_id",
+        "in": "path",
+        "description": "The ID of the file to retrieve.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "requestBody": {
+      "content": {
+        "application/json": {
+          "schema": {
+            "type": "object",
+            "required": ["version", "projects"],
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "The new name (full path) of the file."
+              },
+              "dist": {
+                "type": "string",
+                "description": "The new name of the dist"
+              }
+            }
+          }
+        }
+      }
+    },
+    "responses": {
+      "201": {
+        "description": "Success.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "../../components/schemas/releases/release-file.json#/ReleaseFile"
+            },
+            "example": {
+              "dateCreated": "2018-11-06T21:20:22.894Z",
+              "dist": null,
+              "headers": {
+                "Content-Type": "text/plain; encoding=utf-8"
+              },
+              "id": "3",
+              "name": "/demo/goodbye.txt",
+              "sha1": "94d6b21e962a9fc65889617ec1f17a1e2fe11b65",
+              "size": 15
+            }
+          }
+        }
+      }
+    },
+    "security": [
+      {
+        "auth_token": ["project:releases"]
+      }
+    ]
+  },
+  "delete": {
+    "tags": ["Releases"],
+    "description": "Delete a file for a given release.",
+    "operationId": "Delete an Organization Release's File",
+    "parameters": [
+      {
+        "name": "organization_slug",
+        "in": "path",
+        "description": "The slug of the organization the release belongs to.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "version",
+        "in": "path",
+        "description": "The version identifier of the release.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "file_id",
+        "in": "path",
+        "description": "The ID of the file to delete.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "responses": {
+      "204": {
+        "description": "Success."
+      }
+    },
+    "security": [
+      {
+        "auth_token": ["project:releases"]
+      }
+    ]
+  }
+}

@@ -1,0 +1,266 @@
+{
+  "get": {
+    "tags": ["Organizations"],
+    "description": "This resolves a short ID to the project slug and internal issue ID.",
+    "operationId": "Resolve a Short ID",
+    "parameters": [
+      {
+        "name": "organization_slug",
+        "in": "path",
+        "description": "the slug of the organization the short ID should be looked up in.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "short_id",
+        "in": "path",
+        "description": "the short ID to look up.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "responses": {
+      "200": {
+        "description": "Success.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "required": [
+                "organizationSlug",
+                "projectSlug",
+                "shortId",
+                "group",
+                "groupId"
+              ],
+              "properties": {
+                "organizationSlug": {
+                  "type": "string"
+                },
+                "projectSlug": {
+                  "type": "string"
+                },
+                "shortId": {
+                  "type": "string"
+                },
+                "group": {
+                  "type": "object",
+                  "required": [
+                    "lastSeen",
+                    "numComments",
+                    "userCount",
+                    "culprit",
+                    "title",
+                    "id",
+                    "assignedTo",
+                    "logger",
+                    "type",
+                    "annotations",
+                    "metadata",
+                    "status",
+                    "subscriptionDetails",
+                    "isPublic",
+                    "hasSeen",
+                    "shortId",
+                    "shareId",
+                    "firstSeen",
+                    "count",
+                    "permalink",
+                    "level",
+                    "isSubscribed",
+                    "isBookmarked",
+                    "project",
+                    "statusDetails"
+                  ],
+                  "properties": {
+                    "lastSeen": {
+                      "type": "string"
+                    },
+                    "numComments": {
+                      "type": "integer"
+                    },
+                    "userCount": {
+                      "type": "integer"
+                    },
+                    "culprit": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "assignedTo": {
+                      "type": "object",
+                      "nullable": true,
+                      "properties": {
+                        "type": {
+                          "type": "string"
+                        },
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "logger": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "type": {
+                      "type": "string"
+                    },
+                    "annotations": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "metadata": {
+                      "type": "object",
+                      "properties": {
+                        "function": {
+                          "type": "string"
+                        },
+                        "title": {
+                          "type": "string"
+                        },
+                        "type": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": "string"
+                        },
+                        "filename": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": ["resolved", "unresolved", "ignored"]
+                    },
+                    "subscriptionDetails": {
+                      "type": "object",
+                      "nullable": true,
+                      "properties": {
+                        "reason": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "isPublic": {
+                      "type": "boolean"
+                    },
+                    "hasSeen": {
+                      "type": "boolean"
+                    },
+                    "shortId": {
+                      "type": "string"
+                    },
+                    "shareId": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "firstSeen": {
+                      "type": "string"
+                    },
+                    "count": {
+                      "type": "string"
+                    },
+                    "permalink": {
+                      "type": "string"
+                    },
+                    "level": {
+                      "type": "string"
+                    },
+                    "isSubscribed": {
+                      "type": "boolean"
+                    },
+                    "isBookmarked": {
+                      "type": "boolean"
+                    },
+                    "project": {
+                      "type": "object",
+                      "properties": {
+                        "slug": {
+                          "type": "string"
+                        },
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "statusDetails": {
+                      "type": "object"
+                    }
+                  }
+                },
+                "groupId": {
+                  "type": "string"
+                }
+              }
+            },
+            "example": {
+              "group": {
+                "annotations": [],
+                "assignedTo": null,
+                "count": "1",
+                "culprit": "raven.scripts.runner in main",
+                "firstSeen": "2018-11-06T21:19:55Z",
+                "hasSeen": false,
+                "id": "1",
+                "isBookmarked": false,
+                "isPublic": false,
+                "isSubscribed": true,
+                "lastSeen": "2018-11-06T21:19:55Z",
+                "level": "error",
+                "logger": null,
+                "metadata": {
+                  "title": "This is an example Python exception"
+                },
+                "numComments": 0,
+                "permalink": "https://sentry.io/the-interstellar-jurisdiction/pump-station/issues/1/",
+                "project": {
+                  "id": "2",
+                  "name": "Pump Station",
+                  "slug": "pump-station"
+                },
+                "shareId": null,
+                "shortId": "PUMP-STATION-1",
+                "status": "unresolved",
+                "statusDetails": {},
+                "subscriptionDetails": null,
+                "title": "This is an example Python exception",
+                "type": "default",
+                "userCount": 0
+              },
+              "groupId": "1",
+              "organizationSlug": "the-interstellar-jurisdiction",
+              "projectSlug": "pump-station",
+              "shortId": "PUMP-STATION-1"
+            }
+          }
+        }
+      },
+      "403": {
+        "description": "Forbidden"
+      }
+    },
+    "security": [
+      {
+        "auth_token": ["org: read"]
+      }
+    ]
+  }
+}

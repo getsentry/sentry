@@ -1,0 +1,106 @@
+{
+  "Plugin": {
+    "type": "object",
+    "required": [
+      "assets",
+      "author",
+      "canDisable",
+      "contexts",
+      "description",
+      "doc",
+      "enabled",
+      "hasConfiguration",
+      "id",
+      "isTestable",
+      "metadata",
+      "name",
+      "resourceLinks",
+      "shortName",
+      "slug",
+      "status",
+      "type",
+      "version"
+    ],
+    "properties": {
+      "assets": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "author": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        }
+      },
+      "canDisable": {
+        "type": "boolean"
+      },
+      "contexts": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "description": {
+        "type": "string"
+      },
+      "doc": {
+        "type": "string"
+      },
+      "enabled": {
+        "type": "boolean"
+      },
+      "hasConfiguration": {
+        "type": "boolean"
+      },
+      "id": {
+        "type": "string"
+      },
+      "isTestable": {
+        "type": "boolean"
+      },
+      "metadata": {
+        "type": "object"
+      },
+      "name": {
+        "type": "string"
+      },
+      "resourceLinks": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "title": {
+              "type": "string"
+            },
+            "url": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "shortName": {
+        "type": "string"
+      },
+      "slug": {
+        "type": "string"
+      },
+      "status": {
+        "type": "string"
+      },
+      "type": {
+        "type": "string"
+      },
+      "version": {
+        "type": "string"
+      }
+    }
+  }
+}

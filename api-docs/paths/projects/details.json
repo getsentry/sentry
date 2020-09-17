@@ -1,0 +1,478 @@
+{
+  "get": {
+    "tags": ["Projects"],
+    "description": "Return details on an individual project.",
+    "operationId": "Retrieve a Project",
+    "parameters": [
+      {
+        "name": "organization_slug",
+        "in": "path",
+        "description": "The slug of the organization the project belongs to.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "project_slug",
+        "in": "path",
+        "description": "The slug of the project to retrieve.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "responses": {
+      "200": {
+        "description": "Success.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "../../components/schemas/project.json#/DetailedProject"
+            },
+            "example": {
+              "allowedDomains": ["*"],
+              "avatar": {
+                "avatarType": "letter_avatar",
+                "avatarUuid": null
+              },
+              "color": "#3fbf7f",
+              "dataScrubber": true,
+              "dataScrubberDefaults": true,
+              "dateCreated": "2018-11-06T21:19:55.121Z",
+              "defaultEnvironment": null,
+              "digestsMaxDelay": 1800,
+              "digestsMinDelay": 300,
+              "features": [
+                "releases",
+                "sample-events",
+                "minidump",
+                "servicehooks",
+                "rate-limits",
+                "data-forwarding"
+              ],
+              "firstEvent": null,
+              "hasAccess": true,
+              "id": "2",
+              "isBookmarked": false,
+              "isInternal": false,
+              "isMember": true,
+              "isPublic": false,
+              "latestRelease": {
+                "authors": [],
+                "commitCount": 0,
+                "data": {},
+                "dateCreated": "2018-11-06T21:20:08.033Z",
+                "dateReleased": null,
+                "deployCount": 0,
+                "firstEvent": null,
+                "lastCommit": null,
+                "lastDeploy": null,
+                "lastEvent": null,
+                "newGroups": 0,
+                "owner": null,
+                "projects": [
+                  {
+                    "name": "Pump Station",
+                    "slug": "pump-station"
+                  }
+                ],
+                "ref": "6ba09a7c53235ee8a8fa5ee4c1ca8ca886e7fdbb",
+                "shortVersion": "2.0rc2",
+                "url": null,
+                "version": "2.0rc2"
+              },
+              "name": "Pump Station",
+              "options": {
+                "feedback:branding": true,
+                "filters:blacklisted_ips": "",
+                "filters:error_messages": "",
+                "filters:releases": "",
+                "sentry:csp_ignored_sources": "",
+                "sentry:csp_ignored_sources_defaults": true,
+                "sentry:reprocessing_active": false
+              },
+              "organization": {
+                "avatar": {
+                  "avatarType": "letter_avatar",
+                  "avatarUuid": null
+                },
+                "dateCreated": "2018-11-06T21:19:55.101Z",
+                "id": "2",
+                "isEarlyAdopter": false,
+                "name": "The Interstellar Jurisdiction",
+                "require2FA": false,
+                "slug": "the-interstellar-jurisdiction",
+                "status": {
+                  "id": "active",
+                  "name": "active"
+                }
+              },
+              "platform": null,
+              "platforms": [],
+              "plugins": [
+                {
+                  "assets": [],
+                  "author": {
+                    "name": "Sentry Team",
+                    "url": "https://github.com/getsentry/sentry"
+                  },
+                  "canDisable": true,
+                  "contexts": [],
+                  "description": "Integrates web hooks.",
+                  "doc": "",
+                  "enabled": false,
+                  "hasConfiguration": true,
+                  "id": "webhooks",
+                  "isTestable": true,
+                  "metadata": {},
+                  "name": "WebHooks",
+                  "resourceLinks": [
+                    {
+                      "title": "Bug Tracker",
+                      "url": "https://github.com/getsentry/sentry/issues"
+                    },
+                    {
+                      "title": "Source",
+                      "url": "https://github.com/getsentry/sentry"
+                    }
+                  ],
+                  "shortName": "WebHooks",
+                  "slug": "webhooks",
+                  "status": "unknown",
+                  "type": "notification",
+                  "version": "9.1.0.dev0"
+                }
+              ],
+              "processingIssues": 0,
+              "relayPiiConfig": null,
+              "resolveAge": 0,
+              "safeFields": [],
+              "scrapeJavaScript": true,
+              "scrubIPAddresses": false,
+              "securityToken": "c3072787e20911e8a37988e9fe5cab71",
+              "securityTokenHeader": null,
+              "sensitiveFields": [],
+              "slug": "pump-station",
+              "status": "active",
+              "storeCrashReports": false,
+              "subjectPrefix": "[Sentry] ",
+              "subjectTemplate": "$shortID - $title",
+              "team": {
+                "id": "2",
+                "name": "Powerful Abolitionist",
+                "slug": "powerful-abolitionist"
+              },
+              "teams": [
+                {
+                  "id": "2",
+                  "name": "Powerful Abolitionist",
+                  "slug": "powerful-abolitionist"
+                }
+              ],
+              "verifySSL": false
+            }
+          }
+        }
+      },
+      "403": {
+        "description": "Forbidden"
+      },
+      "404": {
+        "description": "Project not found"
+      }
+    },
+    "security": [
+      {
+        "auth_token": ["project:read"]
+      }
+    ]
+  },
+  "put": {
+    "tags": ["Projects"],
+    "description": "Update various attributes and configurable settings for the given project.  Only supplied values are updated.",
+    "operationId": "Update a Project",
+    "parameters": [
+      {
+        "name": "organization_slug",
+        "in": "path",
+        "description": "The slug of the organization the project belongs to.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "project_slug",
+        "in": "path",
+        "description": "The slug of the project to update.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "requestBody": {
+      "content": {
+        "application/json": {
+          "schema": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "The new name for the project.",
+                "example": "Plane Proxy"
+              },
+              "slug": {
+                "type": "string",
+                "description": "The new slug for the project.",
+                "example": "plane-proxy"
+              },
+              "team": {
+                "type": "string",
+                "description": "The slug of new team for the project. Note, will be deprecated soon when multiple teams can have access to a project.",
+                "example": "the-inflated-philosophers"
+              },
+              "platform": {
+                "type": "string",
+                "description": "The new platform for the project.",
+                "example": "javascript"
+              },
+              "isBookmarked": {
+                "type": "boolean",
+                "description": "In case this API call is invoked with a user context this allows changing of the bookmark flag."
+              },
+              "digestsMinDelay": {
+                "type": "integer",
+                "description": ""
+              },
+              "digestsMaxDelay": {
+                "type": "integer",
+                "description": ""
+              }
+            }
+          },
+          "example": {
+            "name": "Plane Proxy",
+            "platform": "javascript",
+            "slug": "plane-proxy"
+          }
+        }
+      },
+      "required": false
+    },
+    "responses": {
+      "200": {
+        "description": "Success.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "../../components/schemas/project.json#/DetailedProject"
+            },
+            "example": {
+              "allowedDomains": [
+                "http://example.com",
+                "http://example.invalid"
+              ],
+              "avatar": {
+                "avatarType": "letter_avatar",
+                "avatarUuid": null
+              },
+              "color": "#bf803f",
+              "dataScrubber": true,
+              "dataScrubberDefaults": true,
+              "dateCreated": "2018-11-06T21:20:19.624Z",
+              "defaultEnvironment": null,
+              "digestsMaxDelay": 1800,
+              "digestsMinDelay": 300,
+              "features": [
+                "releases",
+                "sample-events",
+                "minidump",
+                "servicehooks",
+                "rate-limits",
+                "data-forwarding"
+              ],
+              "firstEvent": null,
+              "hasAccess": true,
+              "id": "5",
+              "isBookmarked": false,
+              "isInternal": false,
+              "isMember": true,
+              "isPublic": false,
+              "latestRelease": {
+                "authors": [],
+                "commitCount": 0,
+                "data": {},
+                "dateCreated": "2018-11-06T21:20:19.645Z",
+                "dateReleased": null,
+                "deployCount": 0,
+                "firstEvent": "2018-11-06T21:20:19.718Z",
+                "lastCommit": null,
+                "lastDeploy": null,
+                "lastEvent": "2018-11-06T21:20:19.718Z",
+                "newGroups": 0,
+                "owner": null,
+                "projects": [
+                  {
+                    "name": "Plane Proxy",
+                    "slug": "plane-proxy"
+                  }
+                ],
+                "ref": null,
+                "shortVersion": "21c04bd",
+                "url": null,
+                "version": "21c04bd8fa23cfd85f5f5867f18efd2cf13247bc"
+              },
+              "name": "Plane Proxy",
+              "options": {
+                "feedback:branding": true,
+                "filters:blacklisted_ips": "",
+                "filters:error_messages": "",
+                "filters:releases": "",
+                "sentry:csp_ignored_sources": "",
+                "sentry:csp_ignored_sources_defaults": true,
+                "sentry:reprocessing_active": false
+              },
+              "organization": {
+                "avatar": {
+                  "avatarType": "letter_avatar",
+                  "avatarUuid": null
+                },
+                "dateCreated": "2018-11-06T21:19:55.101Z",
+                "id": "2",
+                "isEarlyAdopter": false,
+                "name": "The Interstellar Jurisdiction",
+                "require2FA": false,
+                "slug": "the-interstellar-jurisdiction",
+                "status": {
+                  "id": "active",
+                  "name": "active"
+                }
+              },
+              "platform": "javascript",
+              "platforms": [],
+              "plugins": [
+                {
+                  "assets": [],
+                  "author": {
+                    "name": "Sentry Team",
+                    "url": "https://github.com/getsentry/sentry"
+                  },
+                  "canDisable": true,
+                  "contexts": [],
+                  "description": "Integrates web hooks.",
+                  "doc": "",
+                  "enabled": false,
+                  "hasConfiguration": true,
+                  "id": "webhooks",
+                  "isTestable": true,
+                  "metadata": {},
+                  "name": "WebHooks",
+                  "resourceLinks": [
+                    {
+                      "title": "Bug Tracker",
+                      "url": "https://github.com/getsentry/sentry/issues"
+                    },
+                    {
+                      "title": "Source",
+                      "url": "https://github.com/getsentry/sentry"
+                    }
+                  ],
+                  "shortName": "WebHooks",
+                  "slug": "webhooks",
+                  "status": "unknown",
+                  "type": "notification",
+                  "version": "9.1.0.dev0"
+                }
+              ],
+              "processingIssues": 0,
+              "relayPiiConfig": null,
+              "resolveAge": 0,
+              "safeFields": [],
+              "scrapeJavaScript": true,
+              "scrubIPAddresses": false,
+              "securityToken": "c55a4bdce20911e88eed88e9fe5cab71",
+              "securityTokenHeader": null,
+              "sensitiveFields": [],
+              "slug": "plane-proxy",
+              "status": "active",
+              "storeCrashReports": false,
+              "subjectPrefix": "[Sentry] ",
+              "subjectTemplate": "$shortID - $title",
+              "team": {
+                "id": "2",
+                "name": "Powerful Abolitionist",
+                "slug": "powerful-abolitionist"
+              },
+              "teams": [
+                {
+                  "id": "2",
+                  "name": "Powerful Abolitionist",
+                  "slug": "powerful-abolitionist"
+                }
+              ],
+              "verifySSL": false
+            }
+          }
+        }
+      },
+      "400": {
+        "description": "Bad Input"
+      },
+      "403": {
+        "description": "Forbidden"
+      },
+      "404": {
+        "description": "Project not found"
+      }
+    },
+    "security": [
+      {
+        "auth_token": ["project:write"]
+      }
+    ]
+  },
+  "delete": {
+    "tags": ["Projects"],
+    "description": "Schedules a project for deletion.\n\nDeletion happens asynchronously and therefore is not immediate.\nHowever once deletion has begun the state of a project changes and\nwill be hidden from most public views.",
+    "operationId": "Delete a Project",
+    "parameters": [
+      {
+        "name": "organization_slug",
+        "in": "path",
+        "description": "The slug of the organization the project belongs to.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "project_slug",
+        "in": "path",
+        "description": "The slug of the project to delete.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "responses": {
+      "204": {
+        "description": "Success."
+      },
+      "403": {
+        "description": "Forbidden"
+      },
+      "404": {
+        "description": "Project not found"
+      }
+    },
+    "security": [
+      {
+        "auth_token": ["project:admin"]
+      }
+    ]
+  }
+}

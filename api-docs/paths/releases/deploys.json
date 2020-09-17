@@ -1,0 +1,147 @@
+{
+  "get": {
+    "tags": ["Releases"],
+    "description": "Return a list of deploys for a given release.",
+    "operationId": "List a Release's Deploys",
+    "parameters": [
+      {
+        "name": "organization_slug",
+        "in": "path",
+        "description": "The slug of the organization.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "version",
+        "in": "path",
+        "description": "The version identifier of the release.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "responses": {
+      "200": {
+        "description": "Success.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "../../components/schemas/releases/deploy.json#/Deploy"
+              }
+            },
+            "example": [
+              {
+                "environment": "prod",
+                "name": null,
+                "url": null,
+                "dateStarted": null,
+                "dateFinished": "2020-08-31T19:40:38.651670Z",
+                "id": "1234567"
+              }
+            ]
+          }
+        }
+      },
+      "403": {
+        "description": "Forbidden"
+      }
+    },
+    "security": [
+      {
+        "auth_token": ["project:releases"]
+      }
+    ]
+  },
+  "post": {
+    "tags": ["Releases"],
+    "description": "Create a Deploy.",
+    "operationId": "Create a New Deploy for an Organization.",
+    "parameters": [
+      {
+        "name": "organization_slug",
+        "in": "path",
+        "description": "The slug of the organization.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "version",
+        "in": "path",
+        "description": "The version identifier of the release.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "requestBody": {
+      "content": {
+        "application/json": {
+          "schema": {
+            "type": "object",
+            "required": ["environment"],
+            "properties": {
+              "environment": {
+                "type": "string",
+                "description": "The environment you're deploying to."
+              },
+              "url": {
+                "type": "string",
+                "description": "The optional url that points to the deploy."
+              },
+              "name": {
+                "type": "string",
+                "description": "The optional name of the deploy."
+              },
+              "dateStarted": {
+                "type": "string",
+                "format": "date-time",
+                "description": "An optional date that indicates when the deploy started."
+              },
+              "dateFinished": {
+                "type": "string",
+                "format": "date-time",
+                "description": "An optional date that indicates when the deploy ended. If not provided, the current time is used."
+              }
+            }
+          },
+          "example": {
+              "environment": "prod"
+          }
+        }
+      }
+    },
+    "responses": {
+      "201": {
+        "description": "Success.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "../../components/schemas/releases/deploy.json#/Deploy"
+            },
+            "example": {
+              "environment": "prod",
+              "name": null,
+              "url": null,
+              "dateStarted": null,
+              "dateFinished": "2020-08-31T19:40:38.651670Z",
+              "id": "1234567"
+            }
+          }
+        }
+      }
+    },
+    "security": [
+      {
+        "auth_token": ["project:releases"]
+      }
+    ]
+  }
+}

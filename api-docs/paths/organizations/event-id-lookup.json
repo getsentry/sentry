@@ -1,0 +1,78 @@
+{
+  "get": {
+    "tags": ["Organizations"],
+    "description": "This resolves an event ID to the project slug and internal issue ID and internal event ID.",
+    "operationId": "Resolve an Event ID",
+    "parameters": [
+      {
+        "name": "organization_slug",
+        "in": "path",
+        "description": "the slug of the organization the event ID should be looked up in.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "event_id",
+        "in": "path",
+        "description": "the event ID to look up.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "responses": {
+      "200": {
+        "description": "Success.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "required": [
+                "event",
+                "eventId",
+                "groupId",
+                "organizationSlug",
+                "projectSlug"
+              ],
+              "properties": {
+                "event": {
+                  "type": "object"
+                },
+                "eventId": {
+                  "type": "string"
+                },
+                "groupId": {
+                  "type": "string"
+                },
+                "organizationSlug": {
+                  "type": "string"
+                },
+                "projectSlug": {
+                  "type": "string"
+                }
+              }
+            },
+            "example": {
+              "eventId": "1",
+              "groupId": "1",
+              "organizationSlug": "the-interstellar-jurisdiction",
+              "projectSlug": "pump-station",
+              "event": {}
+            }
+          }
+        }
+      },
+      "403": {
+        "description": "Forbidden"
+      }
+    },
+    "security": [
+      {
+        "auth_token": ["org: read"]
+      }
+    ]
+  }
+}

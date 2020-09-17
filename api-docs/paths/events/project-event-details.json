@@ -1,0 +1,60 @@
+{
+  "get": {
+    "tags": [
+      "Events"
+    ],
+    "description": "Return details on an individual event.",
+    "operationId": "Retrieve an event for a project",
+    "parameters": [
+      {
+        "name": "organization_slug",
+        "in": "path",
+        "description": "The slug of the organization the event belongs to.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "project_slug",
+        "in": "path",
+        "description": "The slug of the project the event belongs to.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "event_id",
+        "in": "path",
+        "description": "The ID of the event to retrieve (either the numeric primary-key or the hexadecimal ID as reported by the client)",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "responses": {
+      "200": {
+        "description": "Success.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "../../components/schemas/event.json#/EventDetailed"
+            }
+          }
+        }
+      },
+      "403": {
+        "description": "Forbidden"
+      }
+    },
+    "security": [
+      {
+        "auth_token": [
+          "project:read"
+        ]
+      }
+    ]
+  }
+}

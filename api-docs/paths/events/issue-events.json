@@ -1,0 +1,53 @@
+{
+  "get": {
+    "tags": [
+      "Events"
+    ],
+    "description": "This endpoint lists an issue's events.",
+    "operationId": "List a issue's events",
+    "parameters": [
+      {
+        "name": "issue_id",
+        "in": "path",
+        "description": "The ID of the issue to retrieve.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "full",
+        "in": "query",
+        "description": "If this is set to true then the event payload will include the full event body, including the stacktrace. \nSet to true to enable.",
+        "schema": {
+          "type": "boolean"
+        }
+      }
+    ],
+    "responses": {
+      "200": {
+        "description": "Success.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "../../components/schemas/event.json#/Event"
+              }
+            }
+          }
+        }
+      },
+      "403": {
+        "description": "Forbidden"
+      }
+    },
+    "security": [
+      {
+        "auth_token": [
+          "event:read"
+        ]
+      }
+    ]
+  }
+}

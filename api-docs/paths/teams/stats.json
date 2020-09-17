@@ -1,0 +1,119 @@
+{
+  "get": {
+    "tags": ["Teams"],
+    "summary": "Caution\nThis endpoint may change in the future without notice.",
+    "description": "Return a set of points representing a normalized timestamp and the number of events seen in the period.\n\nQuery ranges are limited to Sentry’s configured time-series resolutions.",
+    "operationId": "Retrieve Event Counts for a Team",
+    "parameters": [
+      {
+        "name": "organization_slug",
+        "in": "path",
+        "description": "The slug of the organization the team belongs to.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "team_slug",
+        "in": "path",
+        "description": "The slug of the team to get.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "stat",
+        "in": "query",
+        "description": "the name of the stat to query `(\"received\", \"rejected\")`",
+        "schema": {
+          "type": "string",
+          "enum": ["received", "rejected"]
+        }
+      },
+      {
+        "name": "since",
+        "in": "query",
+        "description": "A timestamp to set the start of the query in seconds since UNIX epoch.",
+        "schema": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      {
+        "name": "until",
+        "in": "query",
+        "description": "A timestamp to set the end of the query in seconds since UNIX epoch.",
+        "schema": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      {
+        "name": "resolution",
+        "in": "query",
+        "description": "An explicit resolution to search for (one of `10s`, `1h`, and `1d`).",
+        "schema": {
+          "type": "string",
+          "enum": ["10s", "1h", "1d"]
+        }
+      }
+    ],
+    "responses": {
+      "200": {
+        "description": "Success.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "integer"
+                }
+              }
+            },
+            "example": [
+              [1541455200, 3302],
+              [1541458800, 3832],
+              [1541462400, 3669],
+              [1541466000, 3533],
+              [1541469600, 3499],
+              [1541473200, 3201],
+              [1541476800, 3769],
+              [1541480400, 2706],
+              [1541484000, 2698],
+              [1541487600, 3747],
+              [1541491200, 3261],
+              [1541494800, 2860],
+              [1541498400, 4350],
+              [1541502000, 2924],
+              [1541505600, 3389],
+              [1541509200, 2931],
+              [1541512800, 3132],
+              [1541516400, 3213],
+              [1541520000, 3650],
+              [1541523600, 3096],
+              [1541527200, 3845],
+              [1541530800, 3545],
+              [1541534400, 2880],
+              [1541538000, 4057]
+            ]
+          }
+        }
+      },
+      "403": {
+        "description": "Forbidden"
+      },
+      "404": {
+        "description": "Team not found"
+      }
+    },
+    "security": [
+      {
+        "auth_token": ["team:read"]
+      }
+    ]
+  }
+}
