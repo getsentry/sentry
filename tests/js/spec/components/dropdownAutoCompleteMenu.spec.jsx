@@ -2,7 +2,7 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import DropdownAutoCompleteMenu from 'app/components/dropdownAutoCompleteMenu';
+import DropdownAutoCompleteMenu from 'app/components/dropdownAutoComplete/menu';
 
 describe('DropdownAutoCompleteMenu', function() {
   const routerContext = TestStubs.routerContext();
@@ -105,10 +105,10 @@ describe('DropdownAutoCompleteMenu', function() {
   it('shows empty message when there are no items', function() {
     const wrapper = mountWithTheme(
       <DropdownAutoCompleteMenu
-        emptyHidesInput
-        isOpen
         items={[]}
         emptyMessage="No items!"
+        emptyHidesInput
+        isOpen
       >
         {({selectedItem}) => (selectedItem ? selectedItem.label : 'Click me!')}
       </DropdownAutoCompleteMenu>,

@@ -2,7 +2,7 @@ import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 
 import {Theme} from 'app/utils/theme';
-import {AutoCompleteRoot} from 'app/components/dropdownAutoCompleteMenu';
+import {AutoCompleteRoot} from 'app/components/dropdownAutoComplete/menu';
 import {TimeRangeRoot} from 'app/components/organizations/timeRangeSelector/index';
 
 type Props = {

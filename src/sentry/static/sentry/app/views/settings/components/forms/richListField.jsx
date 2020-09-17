@@ -168,7 +168,6 @@ class RichList extends React.PureComponent {
       <DropdownAutoComplete
         {...this.props.addDropdown}
         disabled={disabled}
-        alignMenu="left"
         onSelect={this.onSelectDropdownItem}
       >
         {({isOpen}) => (

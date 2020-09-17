@@ -246,7 +246,6 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
         {!loading && (
           <DropdownAutoComplete
             maxHeight={400}
-            zIndex={2}
             onOpen={e => {
               // This can be called multiple times and does not always have `event`
               if (!e) {
@@ -260,8 +259,6 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
             onSelect={this.handleAssign}
             itemSize="small"
             searchPlaceholder={t('Filter teams and people')}
-            menuWithArrow
-            emptyHidesInput
             menuHeader={
               assignedTo && (
                 <MenuItemWrapper
@@ -291,6 +288,8 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
                 </MenuItemWrapper>
               </InviteMemberLink>
             }
+            menuWithArrow
+            emptyHidesInput
           >
             {({getActorProps}) => (
               <DropdownButton {...getActorProps({})}>
