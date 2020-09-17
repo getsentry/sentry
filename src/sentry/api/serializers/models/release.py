@@ -78,17 +78,19 @@ def get_users_for_authors(organization_id, authors, user=None):
     # Figure out which email address matches to a user
     users_by_email = {}
     for email in user_emails:
-        if email.email not in users_by_email:
+        # force emails to lower case so we can do case insensitive matching
+        lower_email = email.email.lower()
+        if lower_email not in users_by_email:
             user = users_by_id.get(six.text_type(email.user_id), None)
             # user can be None if there's a user associated
             # with user_email in separate organization
             if user:
-                users_by_email[email.email] = user
+                users_by_email[lower_email] = user
 
     results = {}
     for author in authors:
         results[six.text_type(author.id)] = users_by_email.get(
-            author.email, {"name": author.name, "email": author.email}
+            author.email.lower(), {"name": author.name, "email": author.email}
         )
 
     return results
