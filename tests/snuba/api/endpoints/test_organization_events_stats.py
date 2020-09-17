@@ -91,28 +91,6 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 0
 
-    def test_groupid_filter(self):
-        response = self.client.get(
-            self.url,
-            data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=2)),
-                "interval": "1h",
-                "group": self.group.id,
-            },
-            format="json",
-        )
-
-        assert response.status_code == 200, response.content
-        assert len(response.data["data"])
-
-    def test_groupid_filter_invalid_value(self):
-        url = "%s?group=not-a-number" % (self.url,)
-        with self.feature({"organizations:discover-basic": False}):
-            response = self.client.get(url, format="json")
-
-            assert response.status_code == 400, response.content
-
     def test_user_count(self):
         self.store_event(
             data={
