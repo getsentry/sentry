@@ -23,18 +23,12 @@ def funcs():
     )
     loggers = itertools.cycle(["root", "foo", "foo.bar"])
     emails = itertools.cycle(["foo@example.com", "bar@example.com", "baz@example.com"])
-    timestamps = list(range(24 * 60 * 60))
-    random.shuffle(timestamps)
-    timestamps = itertools.cycle(timestamps)
-
-    # def query(client):
-    #     duration = random.randint(0, 10000) / 1000.0
-    # return client.capture('Query', query=queries.next(),
-    # engine=engine.next(), time_spent=duration, data={'logger':
-    # loggers.next(), 'site': 'sql'})
+    timestamp_max = int(datetime.timedelta(days=1).total_seconds())
 
     def exception(client):
-        timestamp = datetime.datetime.utcnow() - datetime.timedelta(seconds=six.next(timestamps))
+        timestamp = datetime.datetime.utcnow() - datetime.timedelta(
+            seconds=random.randint(0, timestamp_max)
+        )
         try:
             raise six.next(exceptions)
         except Exception:
