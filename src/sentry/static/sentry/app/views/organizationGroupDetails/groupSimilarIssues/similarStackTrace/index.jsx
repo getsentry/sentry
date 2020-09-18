@@ -147,7 +147,10 @@ const SimilarStackTrace = createReactClass({
   },
 
   render() {
-    const {orgId, groupId} = this.props.params;
+    const {
+      params: {orgId, groupId},
+      project,
+    } = this.props;
     const hasV2 = this.hasSimilarityV2Feature();
     const isLoading = this.state.loading;
     const isError = this.state.error && !isLoading;
@@ -195,6 +198,7 @@ const SimilarStackTrace = createReactClass({
             filteredItems={this.state.filteredSimilarItems}
             onMerge={this.handleMerge}
             orgId={orgId}
+            project={project}
             groupId={groupId}
             pageLinks={this.state.similarLinks}
           />

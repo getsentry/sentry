@@ -642,6 +642,7 @@ class IntegrationTestCase(TestCase):
         self.setup_path = reverse(
             "sentry-extension-setup", kwargs={"provider_id": self.provider.key}
         )
+        self.configure_path = u"/extensions/{}/configure/".format(self.provider.key)
 
         self.pipeline.initialize()
         self.save_session()

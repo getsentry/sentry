@@ -236,7 +236,7 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
         if bad_fields:
             raise serializers.ValidationError(
                 "You cannot use the %s attribute(s) with the selected version"
-                % ", ".join(bad_fields)
+                % ", ".join(sorted(bad_fields))
             )
 
 

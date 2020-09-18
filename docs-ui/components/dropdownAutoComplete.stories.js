@@ -89,7 +89,7 @@ export default {
 };
 
 export const Ungrouped = withInfo('The item label can be a component or a string')(() => (
-  <DropdownAutoComplete items={items} alignMenu="left">
+  <DropdownAutoComplete items={items}>
     {({selectedItem}) => (selectedItem ? selectedItem.label : 'Click me!')}
   </DropdownAutoComplete>
 ));
@@ -101,7 +101,6 @@ Ungrouped.story = {
 export const Grouped = withInfo('Group labels can receive a component too')(() => (
   <DropdownAutoComplete
     items={groupedItems}
-    alignMenu="left"
     virtualizedHeight={44}
     virtualizedLabelHeight={28}
   >
@@ -113,17 +112,17 @@ Grouped.story = {
   name: 'grouped',
 };
 
-export const WithDropdownButton = withInfo('Use it with dropdownbutton for maximum fun')(
-  () => (
-    <DropdownAutoComplete items={groupedItems} alignMenu="left">
-      {({isOpen, selectedItem}) => (
-        <DropdownButton isOpen={isOpen}>
-          {selectedItem ? selectedItem.label : 'Click me!'}
-        </DropdownButton>
-      )}
-    </DropdownAutoComplete>
-  )
-);
+export const WithDropdownButton = withInfo(
+  'Use it with dropdownbutton for maximum fun'
+)(() => (
+  <DropdownAutoComplete items={groupedItems}>
+    {({isOpen, selectedItem}) => (
+      <DropdownButton isOpen={isOpen}>
+        {selectedItem ? selectedItem.label : 'Click me!'}
+      </DropdownButton>
+    )}
+  </DropdownAutoComplete>
+));
 
 WithDropdownButton.story = {
   name: 'with dropdownButton',
@@ -133,7 +132,6 @@ export const WithExtraAction = withInfo('Add a call to action button')(() => (
   <DropdownAutoComplete
     items={items}
     action={<Button priority="primary">Now click me!</Button>}
-    alignMenu="left"
   >
     {({isOpen, selectedItem}) => (
       <DropdownButton isOpen={isOpen}>

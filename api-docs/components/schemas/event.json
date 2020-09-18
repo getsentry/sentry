@@ -1,0 +1,8 @@
+{
+  "Event": {
+    "type": "object"
+  },
+  "EventDetailed": {
+    "type": "object"
+  }
+}

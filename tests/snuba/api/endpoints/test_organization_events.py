@@ -570,69 +570,6 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
 
-    def test_group_filtering(self):
-        user = self.create_user()
-        org = self.create_organization(owner=user)
-        self.login_as(user=user)
-
-        team = self.create_team(organization=org, members=[user])
-
-        self.login_as(user=user)
-
-        project = self.create_project(organization=org, teams=[team])
-        events = []
-        for event_id, fingerprint in [
-            ("a" * 32, "put-me-in-group1"),
-            ("b" * 32, "put-me-in-group1"),
-            ("c" * 32, "put-me-in-group2"),
-            ("d" * 32, "put-me-in-group3"),
-        ]:
-            events.append(
-                self.store_event(
-                    data={
-                        "event_id": event_id,
-                        "timestamp": self.min_ago,
-                        "fingerprint": [fingerprint],
-                    },
-                    project_id=project.id,
-                )
-            )
-
-        event_1, event_2, event_3, event_4 = events
-        group_1, group_2, group_3 = event_1.group, event_3.group, event_4.group
-
-        base_url = reverse(
-            "sentry-api-0-organization-events", kwargs={"organization_slug": org.slug}
-        )
-
-        response = self.client.get(base_url, format="json", data={"group": [group_1.id]})
-        assert response.status_code == 200, response.content
-        assert len(response.data) == 2
-        self.assert_events_in_response(response, [event_1.event_id, event_2.event_id])
-
-        response = self.client.get(base_url, format="json", data={"group": [group_3.id]})
-        assert response.status_code == 200, response.content
-        assert len(response.data) == 1
-        self.assert_events_in_response(response, [event_4.event_id])
-
-        response = self.client.get(
-            base_url, format="json", data={"group": [group_1.id, group_3.id]}
-        )
-        assert response.status_code == 200, response.content
-        assert len(response.data) == 3
-        self.assert_events_in_response(
-            response, [event_1.event_id, event_2.event_id, event_4.event_id]
-        )
-
-        response = self.client.get(
-            base_url, format="json", data={"group": [group_1.id, group_2.id, group_3.id]}
-        )
-        assert response.status_code == 200, response.content
-        assert len(response.data) == 4
-        self.assert_events_in_response(
-            response, [event_1.event_id, event_2.event_id, event_3.event_id, event_4.event_id]
-        )
-
     def test_project_id_filter(self):
         team = self.create_team(organization=self.organization, members=[self.user])
         project = self.create_project(organization=self.organization, teams=[team])

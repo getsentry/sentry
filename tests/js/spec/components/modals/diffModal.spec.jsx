@@ -6,12 +6,14 @@ import DiffModal from 'app/components/modals/diffModal';
 
 describe('DiffModal', function() {
   it('renders', function() {
+    const project = TestStubs.ProjectDetails();
+
     const wrapper = mountWithTheme(
       <DiffModal
         orgId="123"
         baseIssueId="123"
         targetIssueId="234"
-        projectId="projectId"
+        project={project}
         Body={({children}) => <div>{children}</div>}
       />
     );

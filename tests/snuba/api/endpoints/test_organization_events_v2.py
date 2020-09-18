@@ -1263,46 +1263,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert len(data) == 1
         assert data[0]["count"] == 0
 
-    def test_reference_event(self):
-        project = self.create_project()
-        reference = self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "transaction": "/example",
-                "message": "how to make fast",
-                "timestamp": self.two_min_ago,
-            },
-            project_id=project.id,
-        )
-        self.store_event(
-            data={
-                "event_id": "b" * 32,
-                "transaction": "/example",
-                "message": "how to make more faster?",
-                "timestamp": self.min_ago,
-            },
-            project_id=project.id,
-        )
-        self.store_event(
-            data={
-                "event_id": "c" * 32,
-                "transaction": "/nomatch",
-                "message": "how to make fast",
-                "timestamp": self.min_ago,
-            },
-            project_id=project.id,
-        )
-        query = {
-            "field": ["transaction", "count()"],
-            "query": "",
-            "referenceEvent": "{}:{}".format(project.slug, reference.event_id),
-        }
-        response = self.do_request(query)
-        assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 1
-        data = response.data["data"]
-        assert data[0]["transaction"] == "/example"
-
     def test_stack_wildcard_condition(self):
         project = self.create_project()
         data = load_data("javascript")

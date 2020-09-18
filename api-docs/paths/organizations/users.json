@@ -1,0 +1,90 @@
+{
+  "get": {
+    "tags": ["Organizations"],
+    "description": "Return a list of users that belong to a given organization.",
+    "operationId": "List an Organization's Users",
+    "parameters": [
+      {
+        "name": "organization_slug",
+        "in": "path",
+        "description": "the slug of the organization the event ID should be looked up in.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "project",
+        "in": "query",
+        "description": "restrict results to users who have access to a given project ID",
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "responses": {
+      "200": {
+        "description": "Success.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "../../components/schemas/users.json#/Users"
+            },
+            "example": [
+              {
+                "dateCreated": "2019-05-09T18:06:01.728Z",
+                "user": {
+                  "username": "testEmail@test.com",
+                  "lastLogin": "2019-09-16T02:56:06.806Z",
+                  "isSuperuser": false,
+                  "isManaged": false,
+                  "lastActive": "2019-10-08T15:05:38.715Z",
+                  "isStaff": false,
+                  "id": "433307",
+                  "isActive": true,
+                  "has2fa": false,
+                  "name": "OtherTest McTestuser",
+                  "avatarUrl": "https:  //secure.gravatar.com/avatar/1eb103c0e899f372a85eb0a44f0a0f42?s=32&d=mm",
+                  "dateJoined": "2019-05-09T18:06:01.443Z",
+                  "emails": [
+                    {
+                      "is_verified": true,
+                      "id": "468229",
+                      "email": "testEmail@test.com"
+                    }
+                  ],
+                  "avatar": {
+                    "avatarUuid": null,
+                    "avatarType": "letter_avatar"
+                  },
+                  "hasPasswordAuth": false,
+                  "email": "testEmail@test.com"
+                },
+                "roleName": "Organization Owner",
+                "expired": false,
+                "id": "9376061",
+                "projects": ["buggy-sentry-project"],
+                "name": "OtherTest McTestuser",
+                "role": "owner",
+                "flags": {
+                  "sso: linked": false,
+                  "sso: invalid": false
+                },
+                "email": "testEmail@test.com",
+                "pending": false
+              }
+            ]
+          }
+        }
+      },
+      "403": {
+        "description": "Forbidden"
+      }
+    },
+    "security": [
+      {
+        "auth_token": ["org: read"]
+      }
+    ]
+  }
+}
