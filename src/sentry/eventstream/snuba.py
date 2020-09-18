@@ -104,14 +104,6 @@ class SnubaProtocolEventStream(EventStream):
         if unexpected_tags:
             logger.error("%r received unexpected tags: %r", self, unexpected_tags)
 
-        # When migrating old data from Sentry 9.0.0 to 9.1.2 to 10, event.datetime and the underlying event.timestamp
-        # may be None. datetime.fromtimestamp will error out because None is not a valid timestamp
-        try:
-            event_datetime = event.datetime
-        except TypeError:
-            event_datetime = received_timestamp
-        print(event_datetime)
-
         self._send(
             project.id,
             "insert",
@@ -125,7 +117,7 @@ class SnubaProtocolEventStream(EventStream):
                     # message but this is what snuba needs at the moment.
                     "message": event.search_message,
                     "platform": event.platform,
-                    "datetime": event_datetime,
+                    "datetime": event.datetime,
                     "data": event_data,
                     "primary_hash": primary_hash,
                     "retention_days": retention_days,
