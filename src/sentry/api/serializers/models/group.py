@@ -537,7 +537,7 @@ class GroupStatsMixin(object):
     def query_tsdb(self, group_ids, query_params):
         raise NotImplementedError
 
-    def get_stats(self, item_list, user):
+    def get_stats(self, item_list, user, **kwargs):
         if self.stats_period:
             # we need to compute stats at 1d (1h resolution), and 14d or a custom given period
             group_ids = [g.id for g in item_list]
@@ -560,7 +560,7 @@ class GroupStatsMixin(object):
                     "rollup": int(interval.total_seconds()),
                 }
 
-            return self.query_tsdb(group_ids, query_params)
+            return self.query_tsdb(group_ids, query_params, **kwargs)
 
 
 class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
@@ -584,7 +584,7 @@ class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
         self.matching_event_id = matching_event_id
         self.matching_event_environment = matching_event_environment
 
-    def query_tsdb(self, group_ids, query_params):
+    def query_tsdb(self, group_ids, query_params, **kwargs):
         try:
             environment = self.environment_func()
         except Environment.DoesNotExist:
@@ -661,7 +661,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
         self.environment_ids = environment_ids
         self.start = start
         self.end = end
-        self.snuba_filters = (
+        self.conditions = (
             [
                 convert_search_filter_to_snuba_query(search_filter)
                 for search_filter in search_filters
@@ -731,7 +731,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
             item_list=item_list,
             start=self.start,
             end=self.end,
-            conditions=self.snuba_filters,
+            conditions=self.conditions,
             environment_ids=self.environment_ids,
         )
 
@@ -770,7 +770,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             start=self.start,
             end=self.end,
         )
-        filtered_result = partial_execute_seen_stats_query(conditions=self.snuba_filters)
+        filtered_result = partial_execute_seen_stats_query(conditions=self.conditions)
         time_range_result = partial_execute_seen_stats_query()
         lifetime_result = partial_execute_seen_stats_query(start=None, end=None)
         for item in item_list:
@@ -778,25 +778,23 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             time_range_result[item].update({"lifetime": lifetime_result.get(item)})
         return time_range_result
 
-    def query_tsdb(self, group_ids, query_params):
+    def query_tsdb(self, group_ids, query_params, conditions=None, environment_ids=None, **kwargs):
         return snuba_tsdb.get_range(
             model=snuba_tsdb.models.group,
             keys=group_ids,
-            environment_ids=self.environment_ids,
-            snuba_filters=self.snuba_filters,
+            environment_ids=environment_ids,
+            conditions=conditions,
             **query_params
         )
 
     def get_attrs(self, item_list, user):
         attrs = super(StreamGroupSerializerSnuba, self).get_attrs(item_list, user)
-
         if self.stats_period:
-            filtered_stats = self.get_stats(item_list, user)
-            # TODO: fix this hack.
-            # At the very least, not losing their values after running this function would be nice.
-            self.snuba_filters = None
-            stats = self.get_stats(item_list, user)
-            #######################
+            partial_get_stats = functools.partial(
+                self.get_stats, item_list=item_list, user=user, environment_ids=self.environment_ids
+            )
+            filtered_stats = partial_get_stats(conditions=self.conditions)
+            stats = partial_get_stats()
             for item in item_list:
                 attrs[item].update({"filtered_stats": filtered_stats[item.id]})
                 attrs[item].update({"stats": stats[item.id]})
