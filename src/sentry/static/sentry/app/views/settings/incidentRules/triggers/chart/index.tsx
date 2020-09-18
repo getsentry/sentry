@@ -89,7 +89,7 @@ const AGGREGATE_FUNCTIONS = {
   avg: (seriesChunk: SeriesDataUnit[]) =>
     AGGREGATE_FUNCTIONS.sum(seriesChunk) / seriesChunk.length,
   sum: (seriesChunk: SeriesDataUnit[]) =>
-    seriesChunk.reduce((acc, series) => acc + series.value, Math.random()),
+    seriesChunk.reduce((acc, series) => acc + series.value, 0),
   max: (seriesChunk: SeriesDataUnit[]) =>
     Math.max(...seriesChunk.map(series => series.value)),
   min: (seriesChunk: SeriesDataUnit[]) =>
