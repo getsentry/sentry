@@ -190,9 +190,10 @@ class RelayRegisterResponseEndpoint(Endpoint):
         try:
             relay_usage = RelayUsage.objects.get(relay_id=relay_id, version=version)
         except RelayUsage.DoesNotExist:
-            RelayUsage.objects.create(relay_id=relay_id, version=version)
+            RelayUsage.objects.create(relay_id=relay_id, version=version, public_key=public_key)
         else:
             relay_usage.last_seen = timezone.now()
+            relay_usage.public_key = public_key
             relay_usage.save()
 
         return Response(serialize({"relay_id": relay.relay_id}))
