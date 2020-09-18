@@ -10,12 +10,13 @@ describe('Label', function() {
       <Label
         text="Unhandled"
         tooltip="An unhandled error was detected in this Issue."
-        textColor="red300"
-        backgroundColor="red100"
+        type="error"
       />
     );
 
     expect(wrapper.text()).toBe('Unhandled');
+    expect(wrapper.find('Background').prop('color')).toBe('red100');
+    expect(wrapper.find('Text').prop('color')).toBe('red300');
     expect(wrapper.find('Tooltip').prop('title')).toBe(
       'An unhandled error was detected in this Issue.'
     );
