@@ -10,6 +10,7 @@ import {SeriesDataUnit} from 'app/types/echarts';
 import {Panel, PanelBody} from 'app/components/panels';
 import Feature from 'app/components/acl/feature';
 import EventsRequest from 'app/components/charts/eventsRequest';
+import Checkbox from 'app/components/checkbox';
 import LoadingMask from 'app/components/loadingMask';
 import Placeholder from 'app/components/placeholder';
 import SelectControl from 'app/components/forms/selectControl';
@@ -85,28 +86,19 @@ const AVAILABLE_TIME_PERIODS: Record<TimeWindow, TimePeriod[]> = {
 };
 
 const AGGREGATE_FUNCTIONS = {
-  none: (seriesChunk: SeriesDataUnit[]) => seriesChunk,
   avg: (seriesChunk: SeriesDataUnit[]) =>
     AGGREGATE_FUNCTIONS.sum(seriesChunk) / seriesChunk.length,
   sum: (seriesChunk: SeriesDataUnit[]) =>
-    seriesChunk.reduce((acc, series) => acc + series.value, 0),
+    seriesChunk.reduce((acc, series) => acc + series.value, Math.random()),
   max: (seriesChunk: SeriesDataUnit[]) =>
     Math.max(...seriesChunk.map(series => series.value)),
   min: (seriesChunk: SeriesDataUnit[]) =>
     Math.min(...seriesChunk.map(series => series.value)),
 };
 
-const AGGREGATE_FUNCTION_MAP: Record<keyof typeof AGGREGATE_FUNCTIONS, string> = {
-  none: t('None'),
-  avg: t('Average'),
-  sum: t('Sum'),
-  max: t('Maximum'),
-  min: t('Minimum'),
-};
-
 type State = {
   statsPeriod: TimePeriod;
-  aggregateFn: keyof typeof AGGREGATE_FUNCTIONS;
+  aggregateGraph: boolean;
 };
 
 /**
@@ -116,18 +108,15 @@ type State = {
 class TriggersChart extends React.PureComponent<Props, State> {
   state: State = {
     statsPeriod: TimePeriod.ONE_DAY,
-    aggregateFn: 'none',
+    aggregateGraph: false,
   };
 
   handleStatsPeriodChange = (statsPeriod: {value: TimePeriod; label: string}) => {
     this.setState({statsPeriod: statsPeriod.value});
   };
 
-  handleAggregateFunctionChange = (aggregateFn: {
-    value: keyof typeof AGGREGATE_FUNCTIONS;
-    label: string;
-  }) => {
-    this.setState({aggregateFn: aggregateFn.value});
+  handleAggregateChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    this.setState({aggregateGraph: event.target.checked});
   };
 
   render() {
@@ -143,7 +132,7 @@ class TriggersChart extends React.PureComponent<Props, State> {
       thresholdType,
       environment,
     } = this.props;
-    const {statsPeriod, aggregateFn} = this.state;
+    const {statsPeriod, aggregateGraph} = this.state;
 
     const statsPeriodOptions = AVAILABLE_TIME_PERIODS[timeWindow];
     const period = statsPeriodOptions.includes(statsPeriod)
@@ -169,7 +158,7 @@ class TriggersChart extends React.PureComponent<Props, State> {
           if (timeseriesData?.[0]?.data !== undefined) {
             maxValue = maxBy(timeseriesData[0].data, ({value}) => value);
             timeseriesLength = timeseriesData[0].data.length;
-            if (aggregateFn !== 'none' && timeseriesLength > 600) {
+            if (aggregateGraph && timeseriesLength > 600) {
               let chunkSize = 2;
               if (timeseriesData[0].data.length > 8000) {
                 chunkSize = 20;
@@ -178,14 +167,29 @@ class TriggersChart extends React.PureComponent<Props, State> {
               } else if (timeseriesData[0].data.length > 2000) {
                 chunkSize = 5;
               }
-              timeseriesData[0].data = chunk(timeseriesData[0].data, chunkSize).map(
-                seriesChunk => {
-                  return {
-                    name: seriesChunk[0].name,
-                    value: AGGREGATE_FUNCTIONS[aggregateFn](seriesChunk),
-                  };
-                }
-              );
+
+              const avgData: SeriesDataUnit[] = [];
+              const minData: SeriesDataUnit[] = [];
+              const maxData: SeriesDataUnit[] = [];
+              chunk(timeseriesData[0].data, chunkSize).forEach(seriesChunk => {
+                avgData.push({
+                  name: seriesChunk[0].name,
+                  value: AGGREGATE_FUNCTIONS.avg(seriesChunk),
+                });
+                minData.push({
+                  name: seriesChunk[0].name,
+                  value: AGGREGATE_FUNCTIONS.min(seriesChunk),
+                });
+                maxData.push({
+                  name: seriesChunk[0].name,
+                  value: AGGREGATE_FUNCTIONS.max(seriesChunk),
+                });
+              });
+              timeseriesData = [
+                {seriesName: t('Minimum'), data: minData},
+                {seriesName: t('Average'), data: avgData},
+                {seriesName: t('Maximum'), data: maxData},
+              ];
             }
           }
 
@@ -197,26 +201,16 @@ class TriggersChart extends React.PureComponent<Props, State> {
                     <Feature features={['internal-catchall']} organization={organization}>
                       {/* TODO(scttcper): Remove internal aggregate experiment */}
                       {timeseriesLength && timeseriesLength > 600 && (
-                        <AggregationSelectControl
-                          inline={false}
-                          styles={{
-                            control: provided => ({
-                              ...provided,
-                              minHeight: '25px',
-                              height: '25px',
-                            }),
-                          }}
-                          isSearchable={false}
-                          isClearable={false}
-                          disabled={loading || reloading}
-                          name="aggregateFn"
-                          value={aggregateFn}
-                          choices={Object.keys(AGGREGATE_FUNCTIONS).map(fnName => [
-                            fnName,
-                            AGGREGATE_FUNCTION_MAP[fnName],
-                          ])}
-                          onChange={this.handleAggregateFunctionChange}
-                        />
+                        <AggregateContainer>
+                          <Checkbox
+                            id="aggregateGraph"
+                            checked={aggregateGraph}
+                            onChange={this.handleAggregateChange}
+                          />
+                          <AggregateLabel htmlFor="aggregateGraph">
+                            {t('Aggregate')}
+                          </AggregateLabel>
+                        </AggregateContainer>
                       )}
                     </Feature>
                     <PeriodSelectControl
@@ -297,13 +291,14 @@ const ControlsContainer = styled('div')`
   margin-bottom: ${space(0.5)};
 `;
 
-const AggregationSelectControl = styled(SelectControl)`
-  display: inline-block;
-  width: 120px;
-  margin-right: ${space(1)};
+const AggregateContainer = styled('div')`
+  display: flex;
+  margin-right: ${space(1.5)};
+`;
+
+const AggregateLabel = styled('label')`
+  margin-left: ${space(1)};
   font-weight: normal;
-  text-transform: none;
-  border: 0;
 `;
 
 const PeriodSelectControl = styled(SelectControl)`
