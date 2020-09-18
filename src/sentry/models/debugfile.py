@@ -50,7 +50,7 @@ class ProjectDebugFileManager(BaseManager):
         ).values("file__checksum")
 
         for values in found:
-            missing.discard(values.values()[0])
+            missing.discard(list(values.values())[0])
 
         return sorted(missing)
 

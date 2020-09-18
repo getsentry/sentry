@@ -146,7 +146,7 @@ class Strategy(object):
                             contributes=False,
                             hint="ignored because %s variant is not used"
                             % (
-                                mandatory_component_hashes.values()[0]
+                                list(mandatory_component_hashes.values())[0]
                                 if len(mandatory_component_hashes) == 1
                                 else "other mandatory"
                             ),

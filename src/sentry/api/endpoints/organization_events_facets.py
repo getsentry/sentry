@@ -58,7 +58,7 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsEndpointBase):
 
                 resp["project"]["topValues"] = filtered_values
 
-        return Response(resp.values())
+        return Response(list(resp.values()))
 
     def _validate_project_ids(self, request, organization, params):
         project_ids = params["project_id"]
