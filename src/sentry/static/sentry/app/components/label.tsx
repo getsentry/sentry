@@ -5,19 +5,29 @@ import space from 'app/styles/space';
 import Tooltip from 'app/components/tooltip';
 import {Color} from 'app/utils/theme';
 
-// TODO(matej): looks like there will be more of these labels in the future.
-// Once all color combinations are designed, maybe it would make sense to
-// refactor this component to accept words like "warning" and "danger"
-// instead of manually passing backgroundColor and textColor.
+function getColors(type: Props['type']): [Color, Color] {
+  switch (type) {
+    case 'warning':
+      return ['orange100', 'orange300'];
+    case 'success':
+      return ['green100', 'green300'];
+    case 'error':
+      return ['red100', 'red300'];
+    case 'info':
+    default:
+      return ['blue100', 'blue300'];
+  }
+}
+
 type Props = {
   text: React.ReactNode;
-  textColor: Color;
-  backgroundColor: Color;
+  type?: 'info' | 'warning' | 'success' | 'error' | 'muted';
   tooltip?: React.ReactNode;
   className?: string;
 };
 
-function Label({text, textColor, backgroundColor, tooltip, className}: Props) {
+function Label({text, type = 'info', tooltip, className}: Props) {
+  const [backgroundColor, textColor] = getColors(type);
   return (
     <Wrapper className={className}>
       <Tooltip title={tooltip} disabled={!tooltip}>

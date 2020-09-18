@@ -15,10 +15,10 @@ export const Default = withInfo(
       <Label
         text="Unhandled"
         tooltip="An unhandled error was detected in this Issue."
-        backgroundColor="red100"
-        textColor="red300"
+        type="error"
       />{' '}
-      <Label text="Texttext" backgroundColor="orange100" textColor="orange300" />
+      <Label text="Texttext" type="success" /> <Label text="Texttext" type="warning" />{' '}
+      <Label text="Texttext" type="info" />
     </React.Fragment>
   );
 });
