@@ -40,7 +40,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase):
         produce_args, produce_kwargs = list(self.kafka_eventstream.producer.produce.call_args)
         assert not produce_args
         assert produce_kwargs["topic"] == "events"
-        assert produce_kwargs["key"] == six.text_type(self.project.id)
+        assert produce_kwargs["key"] == six.text_type(self.project.id).encode("utf-8")
 
         version, type_, payload1, payload2 = json.loads(produce_kwargs["value"])
         assert version == 2
