@@ -47,7 +47,6 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         "active_at",
         "first_release",
         "first_seen",
-        "message",
     }
 
     def _search(self, request, organization, projects, environments, extra_query_kwargs=None):
