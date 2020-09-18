@@ -226,10 +226,10 @@ jobs:
       PYTEST_SENTRY_ALWAYS_REPORT: no
 
       # services configuration
-      SENTRY_REDIS_HOST: redis
+      SENTRY_REDIS_HOST: sentry_redis
       DATABASE_URL: postgresql://postgres:postgres@localhost/sentry
-      SENTRY_KAFKA_HOSTS: localhost:9092
-      SENTRY_ZOOKEEPER_HOSTS: localhost:2181
+      SENTRY_KAFKA_HOSTS: 127.0.0.1:9092
+      SENTRY_ZOOKEEPER_HOSTS: sentry_zookeeper:2181
 
       # Number of matrix instances
       TOTAL_TEST_GROUPS: ${{ strategy.job-total }}
@@ -290,23 +290,7 @@ jobs:
       - name: Start devservices
         run: |
           sentry init
-          docker run \
-            --name sentry_zookeeper \
-            -d --network host \
-            -e ZOOKEEPER_CLIENT_PORT=2181 \
-            confluentinc/cp-zookeeper:4.1.0
-
-          docker run \
-            --name sentry_kafka \
-            -d --network host \
-            -e KAFKA_ZOOKEEPER_CONNECT=127.0.0.1:2181 \
-            -e KAFKA_LISTENERS=INTERNAL://0.0.0.0:9093,EXTERNAL://0.0.0.0:9092 \
-            -e KAFKA_ADVERTISED_LISTENERS=INTERNAL://127.0.0.1:9093,EXTERNAL://127.0.0.1:9092 \
-            -e KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT \
-            -e KAFKA_INTER_BROKER_LISTENER_NAME=INTERNAL \
-            -e KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1 \
-            confluentinc/cp-kafka:5.1.2
-          sentry devservices up postgres redis clickhouse snuba
+          sentry devservices up postgres redis clickhouse snuba zookeeper kafka
 
       - name: Python 3.6 snuba backend w/o migrations (${{ steps.config.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
         if: always()

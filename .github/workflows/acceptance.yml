@@ -125,9 +125,9 @@ jobs:
         PYTEST_ADDOPTS: "--reruns 5"
 
         # services configuration
-        SENTRY_KAFKA_HOSTS: kafka:9093
-        SENTRY_ZOOKEEPER_HOSTS: zookeeper:2182
-        SENTRY_REDIS_HOST: redis
+        SENTRY_KAFKA_HOSTS: 127.0.0.1:9092
+        SENTRY_ZOOKEEPER_HOSTS: sentry_zookeeper:2182
+        SENTRY_REDIS_HOST: sentry_redis
         # The hostname used to communicate with the PostgreSQL from sentry
         DATABASE_URL: postgresql://postgres:postgres@localhost/sentry
 
@@ -218,7 +218,7 @@ jobs:
         - name: Start devservices
           run: |
             sentry init
-            sentry devservices up postgres redis clickhouse snuba
+            sentry devservices up
 
         - name: webpack
           run: |
