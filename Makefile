@@ -100,6 +100,11 @@ test-python-ci:
 	pytest tests/integration tests/sentry --cov . --cov-report="xml:.artifacts/python.coverage.xml" --junit-xml=".artifacts/python.junit.xml" || exit 1
 	@echo ""
 
+test-only-snuba:
+	@echo "--> Running all tests that use snuba"
+	RUN_SNUBA_TESTS_ONLY=1 py.test tests/integration tests/sentry tests/acceptance
+	@echo ""
+
 test-snuba:
 	@echo "--> Running snuba tests"
 	pytest tests/snuba tests/sentry/eventstream/kafka tests/sentry/snuba/test_discover.py -vv --cov . --cov-report="xml:.artifacts/snuba.coverage.xml" --junit-xml=".artifacts/snuba.junit.xml"
