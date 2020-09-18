@@ -7,6 +7,9 @@ import {LightWeightOrganization} from 'app/types';
 import BreakdownBars from 'app/components/charts/breakdownBars';
 import {SectionHeading} from 'app/components/charts/styles';
 import Placeholder from 'app/components/placeholder';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
+import ErrorPanel from 'app/components/charts/errorPanel';
+import {IconWarning} from 'app/icons';
 import QuestionTooltip from 'app/components/questionTooltip';
 import EventView from 'app/utils/discover/eventView';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
@@ -25,7 +28,7 @@ function StatusBreakdown({eventView, location, organization}: Props) {
       {kind: 'function', function: ['count', '', '']},
       {kind: 'field', field: 'transaction.status'},
     ])
-    .withSorts([{kind: 'desc', field: 'count()'}]);
+    .withSorts([{kind: 'desc', field: 'count'}]);
 
   return (
     <Container>
@@ -42,12 +45,19 @@ function StatusBreakdown({eventView, location, organization}: Props) {
         location={location}
         orgSlug={organization.slug}
       >
-        {({isLoading, tableData}) => {
+        {({isLoading, error, tableData}) => {
           if (isLoading) {
-            return <Placeholder height="150px" />;
+            return <Placeholder height="125px" />;
           }
-          if (!tableData) {
-            return 'oh no';
+          if (error) {
+            return (
+              <ErrorPanel height="125px">
+                <IconWarning color="gray500" size="lg" />
+              </ErrorPanel>
+            );
+          }
+          if (!tableData || tableData.data.length === 0) {
+            return <EmptyStateWarning small>{t('No data available')}</EmptyStateWarning>;
           }
           const points = tableData.data.map(row => ({
             label: String(row['transaction.status']),
