@@ -501,8 +501,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         old_sample_size = options.get("snuba.search.hits-sample-size")
         assert options.set("snuba.search.hits-sample-size", 1)
 
-        days = list(range(4))
-        days.reverse()
+        days = reversed(range(4))
 
         self.login_as(user=self.user)
         groups = []
