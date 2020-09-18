@@ -19,3 +19,19 @@ def delete_file(path, checksum, **kwargs):
     with TimedRetryPolicy(60)(lock.acquire):
         if not FileBlob.objects.filter(checksum=checksum).exists():
             get_storage().delete(path)
+
+
+@instrumented_task(
+    name="sentry.tasks.files.delete_unreferenced_blobs",
+    queue="files.delete",
+    default_retry_delay=60 * 5,
+    max_retries=MAX_RETRIES,
+)
+def delete_unreferenced_blobs(blob_ids):
+    from sentry.models import FileBlobIndex, FileBlob
+
+    for blob_id in blob_ids:
+        if FileBlobIndex.objects.filter(blob_id=blob_id).exists():
+            continue
+        # Need to delete the record to ensure django hooks run.
+        FileBlob.objects.get(id=blob_id).delete()
