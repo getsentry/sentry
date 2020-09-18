@@ -1230,14 +1230,15 @@ class ArgValue(object):
 
 
 class FunctionArg(object):
-    def __init__(self, name):
+    def __init__(self, name, has_default=False):
         self.name = name
+        self.has_default = has_default
 
     def normalize(self, value):
         return value
 
-    def has_default(self, params):
-        return False
+    def get_default(self, params):
+        raise InvalidFunctionArgument(u"{} has no defaults".format(self.name))
 
 
 class NullColumn(FunctionArg):
@@ -1247,7 +1248,10 @@ class NullColumn(FunctionArg):
     required argument that we ignore.
     """
 
-    def has_default(self, params):
+    def __init__(self, name):
+        super(NullColumn, self).__init__(name, has_default=True)
+
+    def get_default(self, params):
         return None
 
     def normalize(self, value):
@@ -1255,7 +1259,10 @@ class NullColumn(FunctionArg):
 
 
 class CountColumn(FunctionArg):
-    def has_default(self, params):
+    def __init__(self, name):
+        super(CountColumn, self).__init__(name, has_default=True)
+
+    def get_default(self, params):
         return None
 
     def normalize(self, value):
@@ -1321,8 +1328,8 @@ class DurationColumnNoLookup(DurationColumn):
 
 
 class NumberRange(FunctionArg):
-    def __init__(self, name, start, end):
-        super(NumberRange, self).__init__(name)
+    def __init__(self, name, start, end, has_default=False):
+        super(NumberRange, self).__init__(name, has_default=has_default)
         self.start = start
         self.end = end
 
@@ -1343,7 +1350,10 @@ class NumberRange(FunctionArg):
 
 
 class IntervalDefault(NumberRange):
-    def has_default(self, params):
+    def __init__(self, name, start, end):
+        super(IntervalDefault, self).__init__(name, start, end, has_default=True)
+
+    def get_default(self, params):
         if not params or not params.get("start") or not params.get("end"):
             raise InvalidFunctionArgument("function called without default")
         elif not isinstance(params.get("start"), datetime) or not isinstance(
@@ -1633,28 +1643,60 @@ def parse_function(field, match=None):
     )
 
 
+def count_required_arguments(function):
+    n = 0
+    for arg in function["args"]:
+        if arg.has_default:
+            break
+        n += 1
+    return n
+
+
+def count_total_arguments(function):
+    return len(function["args"])
+
+
+def validate_argument_count(field, function, arguments):
+    """
+    Validate the number of required arguments the function defines against
+    provided arguments. Raise an exception if there is a mismatch in the
+    number of arguments. Do not return any values.
+
+    There are 3 cases:
+        1. provided # of arguments < required # of arguments (bad, raise an error)
+        2. provided # of arguments > total # of arguments (bad, raise an error)
+        3. required # of arguments <= provided # of arguments <= total # of arguments (good)
+    """
+    args_count = len(arguments)
+    total_args_count = count_total_arguments(function)
+    if args_count != total_args_count:
+        required_args_count = count_required_arguments(function)
+        if args_count < required_args_count:
+            raise InvalidSearchQuery(
+                u"{}: expected at least {:g} arguments".format(field, required_args_count)
+            )
+        elif args_count > total_args_count:
+            raise InvalidSearchQuery(
+                u"{}: expected at most {:g} arguments".format(field, total_args_count)
+            )
+
+
 def resolve_function(field, match=None, params=None):
     function, columns = parse_function(field, match)
     function = FUNCTIONS[match.group("function")]
 
-    # Some functions can optionally take no parameters (epm(), eps()). In that case use the
-    # passed in params to create a default argument if necessary.
-    used_default = False
-    if len(columns) == 0 and len(function["args"]) == 1:
+    validate_argument_count(field, function, columns)
+
+    columns_with_defaults = [col for col in columns]
+    for argument in function["args"][len(columns) :]:
+        assert argument.has_default
         try:
-            default = function["args"][0].has_default(params)
+            default = argument.get_default(params)
         except InvalidFunctionArgument as e:
             raise InvalidSearchQuery(u"{}: invalid arguments: {}".format(field, e))
 
         # Hacky, but we expect column arguments to be strings so easiest to convert it back
-        if default is not False:
-            columns = [six.text_type(default) if default else default]
-            used_default = True
-
-    if len(columns) != len(function["args"]):
-        raise InvalidSearchQuery(
-            u"{}: expected {:g} arguments".format(field, len(function["args"]))
-        )
+        columns_with_defaults.append(six.text_type(default) if default else default)
 
     arguments = {}
     for column_value, argument in zip(columns, function["args"]):
@@ -1672,15 +1714,7 @@ def resolve_function(field, match=None, params=None):
         snuba_string = function["transform"].format(**arguments)
         return (
             [],
-            [
-                [
-                    snuba_string,
-                    None,
-                    get_function_alias_with_columns(
-                        function["name"], columns if not used_default else []
-                    ),
-                ]
-            ],
+            [[snuba_string, None, get_function_alias_with_columns(function["name"], columns)]],
         )
     elif "aggregate" in function:
         aggregate = deepcopy(function["aggregate"])
@@ -1694,9 +1728,7 @@ def resolve_function(field, match=None, params=None):
             arg = aggregate[1].arg
             aggregate[1] = arguments[arg]
         if aggregate[2] is None:
-            aggregate[2] = get_function_alias_with_columns(
-                function["name"], columns if not used_default else []
-            )
+            aggregate[2] = get_function_alias_with_columns(function["name"], columns)
         else:
             aggregate[2] = aggregate[2].format(**arguments)
 
@@ -1706,15 +1738,9 @@ def resolve_function(field, match=None, params=None):
         addition = deepcopy(function["column"])
         format_column_arguments(addition, arguments)
         if len(addition) < 3:
-            addition.append(
-                get_function_alias_with_columns(
-                    function["name"], columns if not used_default else []
-                )
-            )
+            addition.append(get_function_alias_with_columns(function["name"], columns))
         elif len(addition) == 3 and addition[2] is None:
-            addition[2] = get_function_alias_with_columns(
-                function["name"], columns if not used_default else []
-            )
+            addition[2] = get_function_alias_with_columns(function["name"], columns)
         return ([addition], [])
 
 
