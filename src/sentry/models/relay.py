@@ -17,7 +17,7 @@ class RelayUsage(Model):
     version = models.CharField(max_length=32, default="0.0.1")
     first_seen = models.DateTimeField(default=timezone.now)
     last_seen = models.DateTimeField(default=timezone.now)
-    public_key = models.CharField(max_length=200, default="", db_index=True)
+    public_key = models.CharField(max_length=200, default="", null=True, db_index=True)
 
     class Meta:
         unique_together = (("relay_id", "version"),)
