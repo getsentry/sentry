@@ -37,7 +37,8 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
                 break
         assert actual is not None, "Could not find {} facet in {}".format(key, response.data)
         assert "topValues" in actual
-        assert sorted(expected) == sorted(actual["topValues"])
+        key = lambda row: row["name"] if row["name"] is not None else ""
+        assert sorted(expected, key=key) == sorted(actual["topValues"], key=key)
 
     def test_performance_view_feature(self):
         with self.feature(

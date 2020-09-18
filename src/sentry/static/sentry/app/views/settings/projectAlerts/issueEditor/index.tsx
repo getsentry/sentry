@@ -267,9 +267,9 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   };
 
   handleCancel = () => {
-    const {router} = this.props;
+    const {organization, router} = this.props;
 
-    router.push(recreateRoute('rules/', {...this.props, stepBack: -2}));
+    router.push(`/organizations/${organization.slug}/alerts/rules/`);
   };
 
   hasError = (field: string) => {
@@ -561,7 +561,12 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                   </StepContainer>
                 </Step>
 
-                <Feature features={['alert-filters']} organization={organization}>
+                <Feature
+                  features={['organizations:alert-filters', 'projects:alert-filters']}
+                  organization={organization}
+                  project={project}
+                  requireAll={false}
+                >
                   <Step>
                     <StepConnector />
 

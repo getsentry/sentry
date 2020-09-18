@@ -129,7 +129,7 @@ class KeyTransactionStatsEndpoint(KeyTransactionBase):
 
         queryset = KeyTransaction.objects.filter(organization=organization, owner=request.user)
 
-        def get_event_stats(query_columns, query, params, rollup, reference_event=None):
+        def get_event_stats(query_columns, query, params, rollup):
             return key_transaction_timeseries_query(
                 selected_columns=query_columns,
                 query=query,
