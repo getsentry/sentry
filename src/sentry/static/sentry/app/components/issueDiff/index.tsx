@@ -15,7 +15,7 @@ import Button from 'app/components/button';
 import space from 'app/styles/space';
 import {Project} from 'app/types';
 
-import renderGroupingInfo from './groupingDiff';
+import renderGroupingInfo from './renderGroupingInfo';
 
 const defaultProps = {
   baseEventId: 'latest',

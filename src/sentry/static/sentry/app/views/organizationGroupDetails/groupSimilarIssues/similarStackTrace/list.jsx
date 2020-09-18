@@ -23,7 +23,7 @@ const SimilarItemPropType = PropTypes.shape({
 class List extends React.Component {
   static propTypes = {
     orgId: PropTypes.string.isRequired,
-    project: SentryTypes.Project,
+    project: SentryTypes.Project.isRequired,
     groupId: PropTypes.string.isRequired,
     onMerge: PropTypes.func.isRequired,
     pageLinks: PropTypes.string,
