@@ -19,7 +19,7 @@ class JiraUiHookView(View):
     def get_response(self, context):
         context["ac_js_src"] = "https://connect-cdn.atl-paas.net/all.js"
         res = render_to_response("sentry/integrations/jira-config.html", context, self.request)
-        # X-Frame-Options is a deprecated for content-securyity policy
+        # X-Frame-Options is a deprecated for content-security-policy
         # but omitting this field breaks things because we will set it to deny if we omit it
         res["X-Frame-Options"] = "ALLOW-FROM %s" % self.request.GET["xdm_e"]
         res["Content-Security-Policy"] = u"frame-ancestors %s" % self.request.GET["xdm_e"]
