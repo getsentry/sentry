@@ -1662,16 +1662,21 @@ def validate_argument_count(field, function, arguments):
     provided arguments. Raise an exception if there is a mismatch in the
     number of arguments. Do not return any values.
 
-    There are 3 cases:
-        1. provided # of arguments < required # of arguments (bad, raise an error)
-        2. provided # of arguments > total # of arguments (bad, raise an error)
-        3. required # of arguments <= provided # of arguments <= total # of arguments (good)
+    There are 4 cases:
+        1. provided # of arguments != required # of arguments AND provided # of arguments != total # of arguments (bad, raise an error)
+        2. provided # of arguments < required # of arguments (bad, raise an error)
+        3. provided # of arguments > total # of arguments (bad, raise an error)
+        4. required # of arguments <= provided # of arguments <= total # of arguments (good, pass the validation)
     """
     args_count = len(arguments)
     total_args_count = count_total_arguments(function)
     if args_count != total_args_count:
         required_args_count = count_required_arguments(function)
-        if args_count < required_args_count:
+        if required_args_count == total_args_count:
+            raise InvalidSearchQuery(
+                u"{}: expected {:g} arguments".format(field, len(function["args"]))
+            )
+        elif args_count < required_args_count:
             raise InvalidSearchQuery(
                 u"{}: expected at least {:g} arguments".format(field, required_args_count)
             )
@@ -1699,7 +1704,7 @@ def resolve_function(field, match=None, params=None):
         columns_with_defaults.append(six.text_type(default) if default else default)
 
     arguments = {}
-    for column_value, argument in zip(columns, function["args"]):
+    for column_value, argument in zip(columns_with_defaults, function["args"]):
         try:
             normalized_value = argument.normalize(column_value)
             arguments[argument.name] = normalized_value

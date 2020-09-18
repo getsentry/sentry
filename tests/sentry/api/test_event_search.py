@@ -14,6 +14,7 @@ from sentry import eventstore
 from sentry.api.event_search import (
     AggregateKey,
     event_search_grammar,
+    FUNCTIONS,
     get_filter,
     resolve_field_list,
     parse_search_query,
@@ -2235,6 +2236,22 @@ class ResolveFieldListTest(unittest.TestCase):
                 "minus_user_misery_range_1_user_misery_range_2",
             ],
         ]
+
+    def test_functions_args_well_defined(self):
+        """
+        Asserts that all functions are well defined.
+
+        A function is said to be not well defined if an optional argument preceeds a non-optional argument.
+        """
+        for function in FUNCTIONS.values():
+            has_default = False
+            for arg in function["args"]:
+                assert (
+                    not has_default or arg.has_default
+                ), "default arguments must not preceed other arguments in function: {}".format(
+                    function["name"]
+                )
+                has_default = arg.has_default
 
     def test_rollup_with_unaggregated_fields(self):
         with pytest.raises(InvalidSearchQuery) as err:
