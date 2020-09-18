@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {Group} from 'app/sentryTypes';
+import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
 import Pagination from 'app/components/pagination';
 import SimilarSpectrum from 'app/components/similarSpectrum';
@@ -14,7 +14,7 @@ import Item from './item';
 import SimilarToolbar from './toolbar';
 
 const SimilarItemPropType = PropTypes.shape({
-  issue: Group,
+  issue: SentryTypes.Group,
   score: PropTypes.object,
   avgScore: PropTypes.number,
   isBelowThreshold: PropTypes.bool,
@@ -23,6 +23,7 @@ const SimilarItemPropType = PropTypes.shape({
 class List extends React.Component {
   static propTypes = {
     orgId: PropTypes.string.isRequired,
+    project: SentryTypes.Project.isRequired,
     groupId: PropTypes.string.isRequired,
     onMerge: PropTypes.func.isRequired,
     pageLinks: PropTypes.string,
@@ -56,7 +57,15 @@ class List extends React.Component {
   };
 
   render() {
-    const {orgId, groupId, items, filteredItems, pageLinks, onMerge} = this.props;
+    const {
+      orgId,
+      groupId,
+      project,
+      items,
+      filteredItems,
+      pageLinks,
+      onMerge,
+    } = this.props;
     const hasHiddenItems = !!filteredItems.length;
     const hasResults = items.length > 0 || hasHiddenItems;
     const itemsWithFiltered = items.concat(
@@ -75,7 +84,13 @@ class List extends React.Component {
         <SimilarToolbar onMerge={onMerge} />
         <div className="similar-list">
           {itemsWithFiltered.map(item => (
-            <Item key={item.issue.id} orgId={orgId} groupId={groupId} {...item} />
+            <Item
+              key={item.issue.id}
+              orgId={orgId}
+              groupId={groupId}
+              project={project}
+              {...item}
+            />
           ))}
 
           {hasHiddenItems && !this.state.showAllItems && (
