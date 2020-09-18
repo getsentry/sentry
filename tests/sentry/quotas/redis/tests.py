@@ -88,8 +88,7 @@ class RedisQuotaTest(TestCase):
     def test_uses_defined_quotas(self):
         self.get_project_quota.return_value = (200, 60)
         self.get_organization_quota.return_value = (300, 60)
-        with self.feature("organizations:releases-v2"):
-            quotas = self.quota.get_quotas(self.project)
+        quotas = self.quota.get_quotas(self.project)
 
         assert quotas[0].id == u"p"
         assert quotas[0].scope == QuotaScope.PROJECT
@@ -101,17 +100,6 @@ class RedisQuotaTest(TestCase):
         assert quotas[1].scope_id == six.text_type(self.organization.id)
         assert quotas[1].limit == 300
         assert quotas[1].window == 60
-
-    def test_sessions_quota(self):
-        self.get_project_quota.return_value = (200, 60)
-        self.get_organization_quota.return_value = (300, 60)
-        with self.feature({"organizations:releases-v2": False}):
-            quotas = self.quota.get_quotas(self.project)
-
-        assert quotas[0].id is None  # should not be counted
-        assert quotas[0].categories == set([DataCategory.SESSION])
-        assert quotas[0].scope == QuotaScope.ORGANIZATION
-        assert quotas[0].limit == 0
 
     @mock.patch("sentry.quotas.redis.is_rate_limited")
     @mock.patch.object(RedisQuota, "get_quotas", return_value=[])

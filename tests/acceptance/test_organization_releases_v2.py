@@ -4,8 +4,6 @@ from django.utils import timezone
 
 from sentry.testutils import AcceptanceTestCase
 
-FEATURE_NAME = "organizations:releases-v2"
-
 
 class OrganizationReleasesV2Test(AcceptanceTestCase):
     def setUp(self):
@@ -24,46 +22,37 @@ class OrganizationReleasesV2Test(AcceptanceTestCase):
         self.path = u"/organizations/{}/releases/".format(self.org.slug)
         self.project.update(first_event=timezone.now())
 
-    def test_no_access(self):
+    def test_list(self):
+        self.create_release(project=self.project, version="1.0")
         self.browser.get(self.path)
         self.browser.wait_until_not(".loading")
-        self.browser.snapshot("organization releases v2 - no access")
-
-    def test_list(self):
-        with self.feature(FEATURE_NAME):
-            self.create_release(project=self.project, version="1.0")
-            self.browser.get(self.path)
-            self.browser.wait_until_not(".loading")
-            self.browser.snapshot("organization releases v2 - with releases")
-            # TODO(releasesV2): add health data
+        self.browser.snapshot("organization releases v2 - with releases")
+        # TODO(releasesV2): add health data
 
     def test_detail(self):
-        with self.feature(FEATURE_NAME):
-            release = self.create_release(project=self.project, version="1.0")
-            self.browser.get(self.path + release.version)
-            self.browser.wait_until_not(".loading")
-            self.browser.wait_until_test_id("release-wrapper")
-            self.browser.snapshot("organization releases v2 - detail")
-            # TODO(releasesV2): add health data
+        release = self.create_release(project=self.project, version="1.0")
+        self.browser.get(self.path + release.version)
+        self.browser.wait_until_not(".loading")
+        self.browser.wait_until_test_id("release-wrapper")
+        self.browser.snapshot("organization releases v2 - detail")
+        # TODO(releasesV2): add health data
 
     def test_detail_pick_project(self):
-        with self.feature(FEATURE_NAME):
-            release = self.create_release(
-                project=self.project, additional_projects=[self.project2], version="1.0"
-            )
-            self.browser.get(self.path + release.version)
-            self.browser.wait_until_not(".loading")
-            assert "Select a project to continue" in self.browser.element(".modal-header").text
+        release = self.create_release(
+            project=self.project, additional_projects=[self.project2], version="1.0"
+        )
+        self.browser.get(self.path + release.version)
+        self.browser.wait_until_not(".loading")
+        assert "Select a project to continue" in self.browser.element(".modal-header").text
 
     # This is snapshotting feature of globalSelectionHeader project picker where we see only specified projects
     # and a custom footer message saying "Only projects with this release are visible."
     def test_detail_global_header(self):
-        with self.feature(FEATURE_NAME):
-            release = self.create_release(
-                project=self.project, additional_projects=[self.project2], version="1.0"
-            )
-            self.browser.get(u"{}?project={}".format(self.path + release.version, self.project.id))
-            self.browser.wait_until_not(".loading")
-            self.browser.click('[data-test-id="global-header-project-selector"]')
-            self.browser.wait_until_test_id("release-wrapper")
-            self.browser.snapshot("organization releases v2 - detail - global project header")
+        release = self.create_release(
+            project=self.project, additional_projects=[self.project2], version="1.0"
+        )
+        self.browser.get(u"{}?project={}".format(self.path + release.version, self.project.id))
+        self.browser.wait_until_not(".loading")
+        self.browser.click('[data-test-id="global-header-project-selector"]')
+        self.browser.wait_until_test_id("release-wrapper")
+        self.browser.snapshot("organization releases v2 - detail - global project header")
