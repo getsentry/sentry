@@ -773,15 +773,10 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             item_list=item_list,
             start=self.start,
             end=self.end,
-            conditions=None,
             environment_ids=self.environment_ids,
         )
         lifetime_result = self._execute_seen_stats_query(
-            item_list=item_list,
-            start=None,
-            end=None,
-            conditions=None,
-            environment_ids=self.environment_ids,
+            item_list=item_list, environment_ids=self.environment_ids,
         )
         for item in item_list:
             time_range_result[item].update({"filtered": filtered_result.get(item)})
