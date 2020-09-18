@@ -36,7 +36,7 @@ const Item = createReactClass({
       message: PropTypes.number,
     }),
     issue: SentryTypes.Group.isRequired,
-    project: SentryTypes.Project,
+    project: SentryTypes.Project.isRequired,
   },
 
   mixins: [Reflux.listenTo(GroupingStore, 'onGroupingUpdate')],
