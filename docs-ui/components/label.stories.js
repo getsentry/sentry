@@ -17,7 +17,7 @@ export const Default = withInfo(
         tooltip="An unhandled error was detected in this Issue."
         backgroundColor="red100"
         textColor="red300"
-      />
+      />{' '}
       <Label text="Texttext" backgroundColor="orange100" textColor="orange300" />
     </React.Fragment>
   );

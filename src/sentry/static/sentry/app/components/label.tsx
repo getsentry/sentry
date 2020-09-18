@@ -14,11 +14,12 @@ type Props = {
   textColor: Color;
   backgroundColor: Color;
   tooltip?: React.ReactNode;
+  className?: string;
 };
 
-function Label({text, textColor, backgroundColor, tooltip}: Props) {
+function Label({text, textColor, backgroundColor, tooltip, className}: Props) {
   return (
-    <Wrapper>
+    <Wrapper className={className}>
       <Tooltip title={tooltip} disabled={!tooltip}>
         <Background color={backgroundColor}>
           <Text color={textColor}>{text}</Text>
@@ -30,7 +31,6 @@ function Label({text, textColor, backgroundColor, tooltip}: Props) {
 
 const Wrapper = styled('div')`
   display: inline-block;
-  margin-right: ${space(0.5)};
   line-height: ${p => p.theme.fontSizeExtraSmall};
 `;
 
