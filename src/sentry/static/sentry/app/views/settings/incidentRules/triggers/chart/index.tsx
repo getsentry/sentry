@@ -165,13 +165,11 @@ class TriggersChart extends React.PureComponent<Props, State> {
       >
         {({loading, reloading, timeseriesData}) => {
           let maxValue: SeriesDataUnit | undefined;
-          if (
-            timeseriesData &&
-            timeseriesData.length &&
-            timeseriesData[0].data !== undefined
-          ) {
+          let timeseriesLength: number | undefined;
+          if (timeseriesData?.[0]?.data !== undefined) {
             maxValue = maxBy(timeseriesData[0].data, ({value}) => value);
-            if (aggregateFn !== 'none' && timeseriesData[0].data.length > 600) {
+            timeseriesLength = timeseriesData[0].data.length;
+            if (aggregateFn !== 'none' && timeseriesLength > 600) {
               let chunkSize = 2;
               if (timeseriesData[0].data.length > 8000) {
                 chunkSize = 20;
@@ -198,7 +196,7 @@ class TriggersChart extends React.PureComponent<Props, State> {
                   <ControlsContainer>
                     <Feature features={['internal-catchall']} organization={organization}>
                       {/* TODO(scttcper): Remove internal aggregate experiment */}
-                      {timeseriesData?.[0] && timeseriesData[0].data.length > 600 && (
+                      {timeseriesLength && timeseriesLength > 600 && (
                         <AggregationSelectControl
                           inline={false}
                           styles={{
