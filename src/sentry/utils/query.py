@@ -187,7 +187,8 @@ def bulk_delete_objects(
         logger.info(
             "object.delete.bulk_executed",
             extra=dict(
-                filters.items() + [("model", model.__name__), ("transaction_id", transaction_id)]
+                list(filters.items())
+                + [("model", model.__name__), ("transaction_id", transaction_id)]
             ),
         )
 
