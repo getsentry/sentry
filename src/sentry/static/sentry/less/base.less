@@ -1,4 +1,148 @@
-// stylelint-disable
+* {
+  box-sizing: border-box;
+}
+
+*:before,
+*:after {
+  box-sizing: border-box;
+}
+
+html {
+  font-family: sans-serif;
+  font-size: 10px;
+  -ms-text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+  height: 100%;
+}
+
+body {
+  font-family: @font-family-base;
+  margin: 0;
+  font-size: 16px;
+  line-height: 24px;
+  color: @gray-darker;
+  background: @white-dark;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin: 0 0 20px;
+  line-height: 1.2;
+  font-weight: 600;
+}
+
+h1 {
+  font-size: 3.2rem;
+}
+
+h2 {
+  font-size: 2.8rem;
+}
+
+h3 {
+  font-size: 2.4rem;
+}
+
+h4 {
+  font-size: 2rem;
+}
+
+h5 {
+  font-size: 1.6rem;
+}
+
+h6 {
+  font-size: 1.4rem;
+}
+
+ul,
+ol {
+  margin-top: 0;
+  padding: 0 0 0 20px;
+
+  ul,
+  ol {
+    margin-bottom: 0;
+  }
+}
+
+p,
+ul,
+ol,
+blockquote {
+  padding-top: 0;
+  margin-top: 0;
+  line-height: 1.5;
+}
+
+input,
+button,
+select,
+textarea {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+//
+// Scaffolding
+// --------------------------------------------------
+
+// Reset the box-sizing
+//
+// Heads up! This reset may cause conflicts with some third-party widgets.
+// For recommendations on resolving such conflicts, see
+// https://getbootstrap.com/docs/3.4/getting-started/#third-box-sizing
+
+// Reset fonts for relevant elements
+input,
+button,
+select,
+textarea {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+// Links
+
+a {
+  color: @link-color;
+  text-decoration: none;
+
+  &:hover,
+  &:focus {
+    color: @link-hover-color;
+    text-decoration: @link-hover-decoration;
+  }
+
+  &:focus {
+    .tab-focus();
+  }
+}
+
+// Figures
+//
+// We reset this here because previously Normalize had no `figure` margins. This
+// ensures we don't break anyone's use of the element.
+
+figure {
+  margin: 0;
+}
+
+// Images
+
+img {
+  vertical-align: middle;
+}
 
 /*! normalize.css v3.0.3 | MIT License | github.com/necolas/normalize.css */
 
@@ -8,19 +152,9 @@
 //    without disabling user zoom.
 //
 
-html {
-  font-family: sans-serif; // 1
-  -ms-text-size-adjust: 100%; // 2
-  -webkit-text-size-adjust: 100%; // 2
-}
-
 //
 // Remove default margin.
 //
-
-body {
-  margin: 0;
-}
 
 // HTML5 display definitions
 // ==========================================================================
@@ -293,9 +427,9 @@ select {
 //
 
 button,
-html input[type="button"], // 1
-input[type="reset"],
-input[type="submit"] {
+  html input[type="button"], // 1
+  input[type="reset"],
+  input[type="submit"] {
   -webkit-appearance: button; // 2
   cursor: pointer; // 3
 }
