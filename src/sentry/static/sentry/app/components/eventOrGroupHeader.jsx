@@ -5,12 +5,15 @@ import styled from '@emotion/styled';
 import {css} from '@emotion/core';
 import capitalize from 'lodash/capitalize';
 
+import {t} from 'app/locale';
 import {IconMute, IconStar} from 'app/icons';
 import SentryTypes from 'app/sentryTypes';
 import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
 import Tooltip from 'app/components/tooltip';
 import {getMessage, getLocation} from 'app/utils/events';
 import GlobalSelectionLink from 'app/components/globalSelectionLink';
+
+import Label from './label';
 
 /**
  * Displays an event or group/issue title (i.e. in Stream)
@@ -104,7 +107,17 @@ class EventOrGroupHeader extends React.Component {
       <div className={className} data-test-id="event-issue-header">
         <Title size={size}>{this.getTitle()}</Title>
         {location && <Location size={size}>{location}</Location>}
-        {message && <Message size={size}>{message}</Message>}
+        {true && (
+          <Message size={size}>
+            <Label
+              text={t('Unhandled')}
+              tooltip={t('An unhandled error was detected in this Issue.')}
+              backgroundColor="red100"
+              textColor="red300"
+            />
+            {message}
+          </Message>
+        )}
       </div>
     );
   }
