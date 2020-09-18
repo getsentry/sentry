@@ -1,5 +1,6 @@
 from __future__ import absolute_import, print_function
 
+import functools
 import itertools
 from collections import defaultdict
 from datetime import timedelta
@@ -762,22 +763,16 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         self.matching_event_id = matching_event_id
 
     def _get_seen_stats(self, item_list, user):
-        filtered_result = self._execute_seen_stats_query(
+        partial_execute_seen_stats_query = functools.partial(
+            self._execute_seen_stats_query,
             item_list=item_list,
+            environment_ids=self.environment_ids,
             start=self.start,
             end=self.end,
-            conditions=self.snuba_filters,
-            environment_ids=self.environment_ids,
         )
-        time_range_result = self._execute_seen_stats_query(
-            item_list=item_list,
-            start=self.start,
-            end=self.end,
-            environment_ids=self.environment_ids,
-        )
-        lifetime_result = self._execute_seen_stats_query(
-            item_list=item_list, environment_ids=self.environment_ids,
-        )
+        filtered_result = partial_execute_seen_stats_query(conditions=self.snuba_filters)
+        time_range_result = partial_execute_seen_stats_query()
+        lifetime_result = partial_execute_seen_stats_query(start=None, end=None)
         for item in item_list:
             time_range_result[item].update({"filtered": filtered_result.get(item)})
             time_range_result[item].update({"lifetime": lifetime_result.get(item)})
