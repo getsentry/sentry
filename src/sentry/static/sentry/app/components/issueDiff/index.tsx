@@ -169,13 +169,11 @@ const StyledIssueDiff = styled('div', {
   display: flex;
   flex-direction: column;
 
-  ${p =>
-    (p.loading &&
-      css`
+  ${p => p.loading &&
+      `
         background-color: ${p.theme.background};
         justify-content: center;
-      `) ||
-    ''};
+      `};
 `;
 
 const HeaderWrapper = styled('div')`
