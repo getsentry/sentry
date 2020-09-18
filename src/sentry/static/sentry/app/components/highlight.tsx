@@ -20,7 +20,8 @@ type Props = Omit<React.HTMLAttributes<HTMLDivElement>, keyof HighlightProps> &
   HighlightProps;
 
 const HighlightComponent = ({className, children, disabled, text}: Props) => {
-  if (!text || disabled) {
+  // There are instances when children is not string in breadcrumbs but not caught by TS
+  if (!text || disabled || typeof children !== 'string') {
     return <React.Fragment>{children}</React.Fragment>;
   }
 
