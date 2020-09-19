@@ -446,7 +446,7 @@ def bulk_fetch_project_latest_releases(projects):
                 release_project_join_sql
             ),
             # guess what, formatting tuples works in psycopg2
-            tuple(six.text_type(i.id) for i in projects),
+            (tuple(six.text_type(i.id) for i in projects),),
         )
     )
 
