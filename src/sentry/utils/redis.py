@@ -14,6 +14,7 @@ from redis.client import Script, StrictRedis
 from redis.connection import ConnectionPool, Encoder
 from redis.exceptions import ConnectionError, BusyLoadingError
 from rediscluster import RedisCluster
+from rediscluster.exceptions import ClusterError
 
 from sentry import options
 from sentry.exceptions import InvalidConfiguration
@@ -93,6 +94,7 @@ class RetryingRedisCluster(RedisCluster):
         except (
             ConnectionError,
             BusyLoadingError,
+            ClusterError,
             KeyError,  # see: https://github.com/Grokzen/redis-py-cluster/issues/287
         ):
             self.connection_pool.nodes.reset()
