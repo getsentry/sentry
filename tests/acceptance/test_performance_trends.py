@@ -91,6 +91,7 @@ class PerformanceTrendsTest(AcceptanceTestCase, SnubaTestCase):
             self.page.wait_until_loaded()
             trend_item = '[data-test-id="trends-list-item"]'
             self.browser.wait_until(trend_item)
+            self.browser.snapshot("performance trends - with data - test")
             self.browser.wait_until('.echarts-for-react svg path[stroke="#4DC771"]')
             self.browser.wait_until('.echarts-for-react svg path[stroke="#FA4747"]')
             self.browser.snapshot("performance trends - with data")
