@@ -281,6 +281,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
                 health_stat=health_stat,
                 health_stats_period=health_stats_period,
                 summary_stats_period=summary_stats_period,
+                environment=filter_params.get("environment"),
             ),
             **paginator_kwargs
         )
