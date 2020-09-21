@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import pytz
+import time
 
 from six.moves.urllib.parse import urlencode
 from mock import patch
@@ -13,25 +14,37 @@ from sentry.utils.samples import load_data
 
 from .page_objects.base import BasePage
 
-FEATURE_NAMES = ("organizations:trends", "organizations:performance-view",)
+FEATURE_NAMES = (
+    "organizations:trends",
+    "organizations:performance-view",
+)
 
 
 def make_nth_transaction(base_event, name, n, start, end):
     event = base_event.copy()
 
     event["transaction"] = name
-    event["event_id"] = "{:02x}".format(n).rjust(32, '0')
+    event["event_id"] = "{:02x}".format(n).rjust(32, "0")
     event["start_timestamp"] = iso_format(start)
     event["timestamp"] = iso_format(end)
 
     return event
 
 
-def make_trend(store_event, project_id, event, name, first_duration, second_duration, number_transactions=2, period_mins=60):
+def make_trend(
+    store_event,
+    project_id,
+    event,
+    name,
+    first_duration,
+    second_duration,
+    number_transactions=2,
+    period_mins=60,
+):
     for i in range(number_transactions):
         time_between = period_mins / number_transactions
         minutes = period_mins - ((i + 1) * time_between) + (time_between / 2)
-        if (i < (number_transactions / 2)):
+        if i < (number_transactions / 2):
             event_start = before_now(minutes=minutes, seconds=first_duration)
         else:
             event_start = before_now(minutes=minutes, seconds=second_duration)
@@ -52,7 +65,14 @@ class PerformanceTrendsTest(AcceptanceTestCase, SnubaTestCase):
         self.login_as(self.user)
         self.path = u"/organizations/{}/performance/?{}".format(
             self.org.slug,
-            urlencode({"view": "TRENDS", "query": "transaction.duration:>0", "statsPeriod": "1h", "project": self.project.id}),
+            urlencode(
+                {
+                    "view": "TRENDS",
+                    "query": "transaction.duration:>0",
+                    "statsPeriod": "1h",
+                    "project": self.project.id,
+                }
+            ),
         )
 
         self.page = BasePage(self.browser)
@@ -62,8 +82,8 @@ class PerformanceTrendsTest(AcceptanceTestCase, SnubaTestCase):
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
 
         base_event = load_data("transaction", timestamp=before_now(minutes=0))
-        make_trend(self.store_event, self.project.id, base_event, 'improvement', 2, 1)
-        make_trend(self.store_event, self.project.id, base_event, 'regression', 1, 2)
+        make_trend(self.store_event, self.project.id, base_event, "improvement", 2, 1)
+        make_trend(self.store_event, self.project.id, base_event, "regression", 1, 3)
 
         self.project.update(flags=F("flags").bitor(Project.flags.has_transactions))
 
@@ -74,4 +94,5 @@ class PerformanceTrendsTest(AcceptanceTestCase, SnubaTestCase):
             self.browser.wait_until(trend_item)
             self.browser.wait_until('.echarts-for-react svg path[stroke="#4DC771"]')
             self.browser.wait_until('.echarts-for-react svg path[stroke="#FA4747"]')
+            time.sleep(2)
             self.browser.snapshot("performance trends - with data")
