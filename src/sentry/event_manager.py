@@ -153,7 +153,7 @@ def get_stored_crashreports(cache_key, event, max_crashreports):
 
     # Fall-through if max_crashreports was bumped to get a more accurate number.
     return EventAttachment.objects.filter(
-        group_id=event.group_id, file__type__in=CRASH_REPORT_TYPES
+        group_id=event.group_id, type__in=CRASH_REPORT_TYPES
     ).count()
 
 
