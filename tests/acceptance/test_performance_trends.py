@@ -31,7 +31,7 @@ def make_trend(store_event, project_id, event, name, first_duration, second_dura
     for i in range(number_transactions):
         time_between = period_mins / number_transactions
         minutes = period_mins - ((i + 1) * time_between) + (time_between / 2)
-        if (i < (number_transactions / 2)):
+        if i < (number_transactions / 2):
             event_start = before_now(minutes=minutes, seconds=first_duration)
         else:
             event_start = before_now(minutes=minutes, seconds=second_duration)
