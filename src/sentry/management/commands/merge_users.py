@@ -45,7 +45,7 @@ class Command(BaseCommand):
                 continue
             members_by_email[member.user.email].append(member.user)
 
-        return members_by_email.values()
+        return list(members_by_email.values())
 
     def _confirm_merge(self, primary_user, other_users):
         message = u"Merge {} into {}? [Yn] ".format(

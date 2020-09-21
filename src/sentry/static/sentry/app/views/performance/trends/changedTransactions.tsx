@@ -102,9 +102,9 @@ function getTransactionProjectId(
 function getChartTitle(trendChangeType: TrendChangeType): string {
   switch (trendChangeType) {
     case TrendChangeType.IMPROVED:
-      return t('Most Improved');
+      return t('Most Improved Transactions');
     case TrendChangeType.REGRESSION:
-      return t('Worst Regressed');
+      return t('Most Regressed Transactions');
     default:
       throw new Error('No trend type passed');
   }

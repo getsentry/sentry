@@ -501,8 +501,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         old_sample_size = options.get("snuba.search.hits-sample-size")
         assert options.set("snuba.search.hits-sample-size", 1)
 
-        days = range(4)
-        days.reverse()
+        days = reversed(range(4))
 
         self.login_as(user=self.user)
         groups = []
@@ -649,7 +648,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             assert response.data[0]["filtered"] is not None
 
     @patch(
-        "sentry.api.helpers.group_index.ratelimiter.is_limited", autospec=True, return_value=True,
+        "sentry.api.helpers.group_index.ratelimiter.is_limited", autospec=True, return_value=True
     )
     def test_ratelimit(self, is_limited):
         self.login_as(user=self.user)
@@ -1271,7 +1270,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             event = self.store_event(
                 data={
                     "fingerprint": ["put-me-in-group-1"],
-                    "user": {"id": six.text_type(i).encode("utf-8")},
+                    "user": {"id": six.text_type(i)},
                     "timestamp": iso_format(self.min_ago + timedelta(seconds=i)),
                 },
                 project_id=self.project.id,
@@ -1549,7 +1548,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert tombstone.data == group1.data
 
     @patch(
-        "sentry.api.helpers.group_index.ratelimiter.is_limited", autospec=True, return_value=True,
+        "sentry.api.helpers.group_index.ratelimiter.is_limited", autospec=True, return_value=True
     )
     def test_ratelimit(self, is_limited):
         self.login_as(user=self.user)
@@ -1677,7 +1676,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
             assert not GroupHash.objects.filter(group_id=group.id).exists()
 
     @patch(
-        "sentry.api.helpers.group_index.ratelimiter.is_limited", autospec=True, return_value=True,
+        "sentry.api.helpers.group_index.ratelimiter.is_limited", autospec=True, return_value=True
     )
     def test_ratelimit(self, is_limited):
         self.login_as(user=self.user)
