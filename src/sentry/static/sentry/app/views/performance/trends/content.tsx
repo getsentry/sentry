@@ -15,6 +15,7 @@ import {getTransactionSearchQuery} from '../utils';
 import {TrendChangeType, TrendView, TrendFunctionField} from './types';
 import {TRENDS_FUNCTIONS, getCurrentTrendFunction, getSelectedQueryKey} from './utils';
 import ChangedTransactions from './changedTransactions';
+import ChangedProjects from './changedProjects';
 
 type Props = {
   organization: Organization;
@@ -101,20 +102,36 @@ class TrendsContent extends React.Component<Props, State> {
             </DropdownControl>
           </TrendsDropdown>
         </StyledSearchContainer>
-        <ChangedTransactionContainer>
-          <ChangedTransactions
-            trendChangeType={TrendChangeType.IMPROVED}
-            previousTrendFunction={previousTrendFunction}
-            trendView={trendView}
-            location={location}
-          />
-          <ChangedTransactions
-            trendChangeType={TrendChangeType.REGRESSION}
-            previousTrendFunction={previousTrendFunction}
-            trendView={trendView}
-            location={location}
-          />
-        </ChangedTransactionContainer>
+        <TrendsLayoutContainer>
+          <TrendsColumn>
+            <ChangedProjects
+              trendChangeType={TrendChangeType.IMPROVED}
+              previousTrendFunction={previousTrendFunction}
+              trendView={trendView}
+              location={location}
+            />
+            <ChangedTransactions
+              trendChangeType={TrendChangeType.IMPROVED}
+              previousTrendFunction={previousTrendFunction}
+              trendView={trendView}
+              location={location}
+            />
+          </TrendsColumn>
+          <TrendsColumn>
+            <ChangedProjects
+              trendChangeType={TrendChangeType.REGRESSION}
+              previousTrendFunction={previousTrendFunction}
+              trendView={trendView}
+              location={location}
+            />
+            <ChangedTransactions
+              trendChangeType={TrendChangeType.REGRESSION}
+              previousTrendFunction={previousTrendFunction}
+              trendView={trendView}
+              location={location}
+            />
+          </TrendsColumn>
+        </TrendsLayoutContainer>
       </Feature>
     );
   }
@@ -134,7 +151,7 @@ const StyledSearchContainer = styled('div')`
   display: flex;
 `;
 
-const ChangedTransactionContainer = styled('div')`
+const TrendsLayoutContainer = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     display: block;
   }
@@ -144,6 +161,10 @@ const ChangedTransactionContainer = styled('div')`
     width: calc(100% - ${space(2)});
     grid-template-columns: 50% 50%;
   }
+`;
+const TrendsColumn = styled('div')`
+  display: flex;
+  flex-direction: column;
 `;
 
 export default TrendsContent;
