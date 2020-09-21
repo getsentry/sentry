@@ -21,8 +21,10 @@ jobs:
         repository: getsentry/sentry-openapi-derefed
         path: sentry-openapi-derefed
 
+    # Install/setup node
+    - uses: volta-cli/action@v1
+
     - name: Build OpenAPI Derefed JSON
-      uses: volta-cli/action@v1
       run: |
         cd sentry
         yarn run build-derefed-docs
