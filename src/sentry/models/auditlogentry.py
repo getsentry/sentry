@@ -14,6 +14,9 @@ from sentry.db.models import (
 from sentry.utils.strings import truncatechars
 
 
+ACTOR_LABEL_LENGTH = 64
+
+
 class AuditLogEntryEvent(object):
     MEMBER_INVITE = 1
     MEMBER_ADD = 2
@@ -103,7 +106,7 @@ class AuditLogEntry(Model):
     __core__ = False
 
     organization = FlexibleForeignKey("sentry.Organization")
-    actor_label = models.CharField(max_length=64, null=True, blank=True)
+    actor_label = models.CharField(max_length=ACTOR_LABEL_LENGTH, null=True, blank=True)
     # if the entry was created via a user
     actor = FlexibleForeignKey("sentry.User", related_name="audit_actors", null=True, blank=True)
     # if the entry was created via an api key
@@ -200,6 +203,8 @@ class AuditLogEntry(Model):
                 self.actor_label = self.actor.username
             else:
                 self.actor_label = self.actor_key.key
+        # trim label to the max length
+        self.actor_label = self.actor_label[:ACTOR_LABEL_LENGTH]
         super(AuditLogEntry, self).save(*args, **kwargs)
 
     def get_actor_name(self):
