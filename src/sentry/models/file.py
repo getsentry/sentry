@@ -435,7 +435,7 @@ class File(Model):
         blob_ids = [blob.id for blob in self.blobs.all()]
         super(File, self).delete(*args, **kwargs)
 
-        delete_unreferenced_blobs.delay(blob_ids)
+        transaction.on_commit(delete_unreferenced_blobs.s(blob_ids).delay)
 
 
 class FileBlobIndex(Model):

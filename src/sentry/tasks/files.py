@@ -33,5 +33,8 @@ def delete_unreferenced_blobs(blob_ids):
     for blob_id in blob_ids:
         if FileBlobIndex.objects.filter(blob_id=blob_id).exists():
             continue
-        # Need to delete the record to ensure django hooks run.
-        FileBlob.objects.get(id=blob_id).delete()
+        try:
+            # Need to delete the record to ensure django hooks run.
+            FileBlob.objects.get(id=blob_id).delete()
+        except FileBlob.DoesNotExist:
+            pass

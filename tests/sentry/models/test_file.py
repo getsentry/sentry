@@ -45,7 +45,7 @@ class FileTest(TestCase):
         baz_file.putfile(fileobj, 3)
 
         baz_id = baz_file.id
-        with self.tasks():
+        with self.tasks(), self.capture_on_commit_callbacks(execute=True):
             baz_file.delete()
 
         # remove all the blobs and blob indexes.
@@ -63,7 +63,7 @@ class FileTest(TestCase):
         raz_file = File.objects.create(name="baz-v2.js", type="default", size=7)
         raz_file.putfile(fileobj, 3)
 
-        with self.tasks():
+        with self.tasks(), self.capture_on_commit_callbacks(execute=True):
             baz_file.delete()
 
         # baz_file blob indexes should be gone
