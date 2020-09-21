@@ -467,7 +467,11 @@ def rate_limit_endpoint(limit=1, window=1):
                     window=window,
                 ):
                     return Response(
-                        {"detail": "You are attempting to use this endpoint too quickly."},
+                        {
+                            "detail": "You are attempting to use this endpoint too quickly. Limit is {}/{}s".format(
+                                limit, window
+                            )
+                        },
                         status=429,
                     )
                 else:

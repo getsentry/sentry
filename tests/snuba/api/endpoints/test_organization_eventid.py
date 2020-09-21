@@ -52,9 +52,7 @@ class EventIdLookupEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 404, response.content
 
     @patch(
-        "sentry.api.endpoints.organization_eventid.ratelimiter.is_limited",
-        autospec=True,
-        return_value=True,
+        "sentry.api.helpers.group_index.ratelimiter.is_limited", autospec=True, return_value=True,
     )
     def test_ratelimit(self, is_limited):
         url = reverse(
