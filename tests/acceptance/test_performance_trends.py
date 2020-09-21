@@ -63,7 +63,7 @@ class PerformanceTrendsTest(AcceptanceTestCase, SnubaTestCase):
 
         base_event = load_data("transaction", timestamp=before_now(minutes=0))
         make_trend(self.store_event, self.project.id, base_event, 'improvement', 2, 1)
-        make_trend(self.store_event, self.project.id, base_event, 'regression', 1, 2)
+        make_trend(self.store_event, self.project.id, base_event, "regression", 1, 2)
 
         self.project.update(flags=F("flags").bitor(Project.flags.has_transactions))
 
