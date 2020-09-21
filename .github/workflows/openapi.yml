@@ -27,6 +27,7 @@ jobs:
     - name: Build OpenAPI Derefed JSON
       run: |
         cd sentry
+        yarn install --frozen-lockfile
         yarn run build-derefed-docs
 
     - name: Copy artifact into getsentry/sentry-api-schema
