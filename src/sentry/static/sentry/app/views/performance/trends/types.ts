@@ -47,9 +47,19 @@ export type TrendsData = {
   stats: TrendsStats;
 };
 
+export type ProjectTrendsDataEvents = {
+  data: ProjectTrend[];
+  meta: any;
+};
+
+export type ProjectTrendsData = {
+  events: ProjectTrendsDataEvents;
+  stats: TrendsStats;
+};
+
 type BaseTrendsTransaction = {
   transaction: string;
-  project?: string;
+  project: string;
   count: number;
 
   count_range_1: number;
@@ -83,9 +93,13 @@ export type TrendsTransaction =
   | TrendsAvgTransaction
   | TrendsUserMiseryTransaction;
 
+export type ProjectTrend = Omit<TrendsTransaction, 'transaction'>;
+
 export type NormalizedTrendsTransaction = BaseTrendsTransaction & {
   aggregate_range_1: number;
   aggregate_range_2: number;
   percentage_aggregate_range_2_aggregate_range_1: number;
   minus_aggregate_range_2_aggregate_range_1: number;
 };
+
+export type NormalizedProjectTrend = Omit<NormalizedTrendsTransaction, 'transaction'>;

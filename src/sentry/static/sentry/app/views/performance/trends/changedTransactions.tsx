@@ -41,12 +41,13 @@ import {
   transformValueDelta,
   transformDeltaSpread,
   modifyTrendView,
-  normalizeTrendsTransactions,
+  normalizeTrends,
   getSelectedQueryKey,
   getCurrentTrendFunction,
   getTrendBaselinesForTransaction,
   getIntervalRatio,
   StyledIconArrow,
+  getTrendProjectId,
 } from './utils';
 import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
 import {HeaderTitleLegend} from '../styles';
@@ -84,19 +85,6 @@ function onTrendsCursor(trendChangeType: TrendChangeType) {
       query: {...query, ...cursorQuery},
     });
   };
-}
-
-function getTransactionProjectId(
-  transaction: NormalizedTrendsTransaction,
-  projects?: Project[]
-): string | undefined {
-  if (!transaction.project || !projects) {
-    return undefined;
-  }
-  const transactionProject = projects.find(
-    project => project.slug === transaction.project
-  );
-  return transactionProject?.id;
 }
 
 function getChartTitle(trendChangeType: TrendChangeType): string {
@@ -174,7 +162,7 @@ function ChangedTransactions(props: Props) {
     >
       {({isLoading, tableData, pageLinks}) => {
         const eventsTrendsData = (tableData as unknown) as TrendsData;
-        const events = normalizeTrendsTransactions(
+        const events = normalizeTrends(
           (eventsTrendsData && eventsTrendsData.events && eventsTrendsData.events.data) ||
             []
         );
@@ -473,7 +461,7 @@ const TransactionSummaryLink = (props: TransactionSummaryLinkProps) => {
   const {organization, trendView: eventView, transaction, projects} = props;
 
   const summaryView = eventView.clone();
-  const projectID = getTransactionProjectId(transaction, projects);
+  const projectID = getTrendProjectId(transaction, projects);
   const target = transactionSummaryRouteWithQuery({
     orgSlug: organization.slug,
     transaction: String(transaction.transaction),

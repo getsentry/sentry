@@ -260,6 +260,32 @@ describe('Performance > Trends', function() {
     }
   });
 
+  it('clicking project trend view transactions changes location', async function() {
+    const projectId = 42;
+    const projects = [TestStubs.Project({id: projectId, slug: 'internal'})];
+    const data = initializeData(projects, {project: ['-1']});
+    const wrapper = mountWithTheme(
+      <PerformanceLanding
+        organization={data.organization}
+        location={data.router.location}
+      />,
+      data.routerContext
+    );
+
+    await tick();
+    wrapper.update();
+
+    const mostImprovedProject = wrapper.find('ChangedProjectsContainer').first();
+    const viewTransactions = mostImprovedProject.find('Button').first();
+    viewTransactions.simulate('click');
+
+    expect(browserHistory.push).toHaveBeenCalledWith({
+      query: expect.objectContaining({
+        project: [projectId],
+      }),
+    });
+  });
+
   it('trend functions in location make api calls', async function() {
     const projects = [TestStubs.Project(), TestStubs.Project()];
     const data = initializeData(projects, {project: ['-1']});
@@ -283,7 +309,7 @@ describe('Performance > Trends', function() {
       wrapper.update();
       await tick();
 
-      expect(trendsMock).toHaveBeenCalledTimes(2);
+      expect(trendsMock).toHaveBeenCalledTimes(4);
 
       const aliasedFieldDivide = getTrendAliasedFieldPercentage(trendFunction.alias);
       const aliasedQueryDivide = getTrendAliasedQueryPercentage(trendFunction.alias);
@@ -293,14 +319,20 @@ describe('Performance > Trends', function() {
           ? getTrendAliasedMinus(trendFunction.alias)
           : aliasedFieldDivide;
 
-      const defaultFields = ['transaction', 'project', 'count()'];
+      const defaultTrendsFields = ['project', 'count()'];
       const trendFunctionFields = TRENDS_FUNCTIONS.map(({field}) => field);
 
-      const field = [...trendFunctionFields, ...defaultFields];
+      const transactionFields = [
+        ...trendFunctionFields,
+        'transaction',
+        ...defaultTrendsFields,
+      ];
+      const projectFields = [...trendFunctionFields, ...defaultTrendsFields];
 
-      expect(field).toHaveLength(8);
+      expect(transactionFields).toHaveLength(8);
+      expect(projectFields).toHaveLength(transactionFields.length - 1);
 
-      // Improved trends call
+      // Improved projects call
       expect(trendsMock).toHaveBeenNthCalledWith(
         1,
         expect.anything(),
@@ -310,15 +342,30 @@ describe('Performance > Trends', function() {
             sort,
             query: expect.stringContaining(aliasedQueryDivide + ':<1'),
             interval: '12h',
-            field,
+            field: projectFields,
             statsPeriod: '14d',
           }),
         })
       );
 
-      // Regression trends call
+      // Improved transactions call
       expect(trendsMock).toHaveBeenNthCalledWith(
         2,
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({
+            trendFunction: trendFunction.field,
+            sort,
+            query: expect.stringContaining(aliasedQueryDivide + ':<1'),
+            interval: '12h',
+            field: transactionFields,
+            statsPeriod: '14d',
+          }),
+        })
+      );
+      // Regression projects call
+      expect(trendsMock).toHaveBeenNthCalledWith(
+        3,
         expect.anything(),
         expect.objectContaining({
           query: expect.objectContaining({
@@ -326,7 +373,23 @@ describe('Performance > Trends', function() {
             sort: '-' + sort,
             query: expect.stringContaining(aliasedQueryDivide + ':>1'),
             interval: '12h',
-            field,
+            field: projectFields,
+            statsPeriod: '14d',
+          }),
+        })
+      );
+
+      // Regression transactions call
+      expect(trendsMock).toHaveBeenNthCalledWith(
+        4,
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({
+            trendFunction: trendFunction.field,
+            sort: '-' + sort,
+            query: expect.stringContaining(aliasedQueryDivide + ':>1'),
+            interval: '12h',
+            field: transactionFields,
             statsPeriod: '14d',
           }),
         })
