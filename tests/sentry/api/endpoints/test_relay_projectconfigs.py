@@ -96,17 +96,11 @@ def add_org_key(default_organization, relay):
 
 
 @pytest.fixture
-def no_internal_networks():
+def no_internal_networks(monkeypatch):
     """
     Disable is_internal_ip functionality (make all requests appear to be from external networks)
     """
-    from sentry.auth import system
-
-    old_internal_networks = system.INTERNAL_NETWORKS
-    system.INTERNAL_NETWORKS = ()
-    yield
-    # restore INTERNAL NETWORKS
-    system.INTERNAL_NETWORKS = old_internal_networks
+    monkeypatch.setattr("sentry.auth.system.INTERNAL_NETWORKS", ())
 
 
 @pytest.mark.django_db
