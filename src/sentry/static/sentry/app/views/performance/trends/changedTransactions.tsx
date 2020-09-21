@@ -311,7 +311,7 @@ function TrendsListItem(props: TrendsListItemProps) {
   );
 
   return (
-    <ListItemContainer data-test-id="trends-list-item">
+    <ListItemContainer data-test-id={'trends-list-item-' + trendChangeType}>
       <ItemRadioContainer color={color}>
         <RadioLineItem index={index} role="radio">
           <Radio
