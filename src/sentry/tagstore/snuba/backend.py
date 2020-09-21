@@ -26,7 +26,6 @@ from sentry.utils import snuba, metrics
 from sentry.utils.hashlib import md5_text
 from sentry.utils.dates import to_timestamp
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
-from sentry.utils.compat import filter
 
 
 SEEN_COLUMN = "timestamp"
@@ -406,11 +405,10 @@ class SnubaTagStorage(TagStorage):
         }
 
     def get_group_seen_values_for_environments(
-        self, project_ids, group_id_list, environment_ids, snuba_filters, start=None, end=None
+        self, project_ids, group_id_list, environment_ids, start=None, end=None
     ):
         # Get the total times seen, first seen, and last seen across multiple environments
         filters = {"project_id": project_ids, "group_id": group_id_list}
-
         if environment_ids:
             filters["environment"] = environment_ids
 
@@ -420,23 +418,17 @@ class SnubaTagStorage(TagStorage):
             ["max", SEEN_COLUMN, "last_seen"],
         ]
 
-        result = snuba.aliased_query(
-            dataset=snuba.Dataset.Events,
+        result = snuba.query(
             start=start,
             end=end,
             groupby=["group_id"],
-            conditions=snuba_filters,
+            conditions=None,
             filter_keys=filters,
             aggregations=aggregations,
             referrer="tagstore.get_group_seen_values_for_environments",
         )
 
-        return {
-            issue["group_id"]: fix_tag_value_data(
-                dict(filter(lambda key: key[0] != "group_id", six.iteritems(issue)))
-            )
-            for issue in result["data"]
-        }
+        return {issue: fix_tag_value_data(data) for issue, data in six.iteritems(result)}
 
     def get_group_tag_value_count(self, project_id, group_id, environment_id, key):
         tag = u"tags[{}]".format(key)
@@ -635,26 +627,23 @@ class SnubaTagStorage(TagStorage):
                 )
         return values
 
-    def get_groups_user_counts(
-        self, project_ids, group_ids, environment_ids, snuba_filters, start=None, end=None
-    ):
+    def get_groups_user_counts(self, project_ids, group_ids, environment_ids, start=None, end=None):
         filters = {"project_id": project_ids, "group_id": group_ids}
         if environment_ids:
             filters["environment"] = environment_ids
         aggregations = [["uniq", "tags[sentry:user]", "count"]]
 
-        result = snuba.aliased_query(
-            dataset=snuba.Dataset.Events,
+        result = snuba.query(
             start=start,
             end=end,
             groupby=["group_id"],
-            conditions=snuba_filters,
+            conditions=None,
             filter_keys=filters,
             aggregations=aggregations,
             referrer="tagstore.get_groups_user_counts",
         )
 
-        return defaultdict(int, {issue["group_id"]: issue["count"] for issue in result["data"]})
+        return defaultdict(int, {k: v for k, v in result.items() if v})
 
     def get_tag_value_paginator(
         self,
