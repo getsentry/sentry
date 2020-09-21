@@ -137,8 +137,6 @@ requires_snuba = (
     "organizations:incidents",
 )
 
-default_manager.add("organizations:performance-trends", OrganizationFeature)  # NOQA
-
 # expose public api
 add = default_manager.add
 get = default_manager.get
