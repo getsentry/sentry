@@ -14,12 +14,12 @@ jobs:
       with:
         path: sentry
 
-    - name: Checkout getsentry/sentry-openapi-derefed
+    - name: Checkout getsentry/sentry-api-schema
       uses: actions/checkout@v2
       with:
         ref: 'main'
-        repository: getsentry/sentry-openapi-derefed
-        path: sentry-openapi-derefed
+        repository: getsentry/sentry-api-schema
+        path: sentry-api-schema
 
     # Install/setup node
     - uses: volta-cli/action@v1
@@ -29,13 +29,13 @@ jobs:
         cd sentry
         yarn run build-derefed-docs
 
-    - name: Copy artifact into getsentry/sentry-openapi-derefed
+    - name: Copy artifact into getsentry/sentry-api-schema
       run: |
-        cp /sentry/api-docs/openapi-derefed.json /sentry-openapi-derefed
+        cp /sentry/api-docs/api-schema.json /sentry-api-schema
 
     - name: Git Commit & Push
       run: |
-        cd sentry-openapi-derefed
+        cd sentry-api-schema
         git config user.name github-actions
         git config user.email github-actions@github.com
         git add .
