@@ -13,7 +13,7 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.snuba import discover
 
 
-class OrganizationEventsTrendsEndpoint(OrganizationEventsV2EndpointBase):
+class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
     trend_columns = {
         "p50": {
             "format": "percentile_range(transaction.duration, 0.5, {start}, {end}, {index})",
@@ -108,6 +108,22 @@ class OrganizationEventsTrendsEndpoint(OrganizationEventsV2EndpointBase):
                 use_aggregate_conditions=True,
             )
 
+        with self.handle_query_errors():
+            return self.paginate(
+                request=request,
+                paginator=GenericOffsetPaginator(data_fn=data_fn),
+                on_results=self.build_result_handler(
+                    request, organization, params, trend_function, selected_columns, orderby
+                ),
+                default_per_page=5,
+                max_per_page=5,
+            )
+
+
+class OrganizationEventsTrendsStatsEndpoint(OrganizationEventsTrendsEndpointBase):
+    def build_result_handler(
+        self, request, organization, params, trend_function, selected_columns, orderby
+    ):
         def on_results(events_results):
             def get_event_stats(query_columns, query, params, rollup):
                 return discover.top_events_timeseries(
@@ -142,11 +158,13 @@ class OrganizationEventsTrendsEndpoint(OrganizationEventsV2EndpointBase):
                 "stats": stats_results,
             }
 
-        with self.handle_query_errors():
-            return self.paginate(
-                request=request,
-                paginator=GenericOffsetPaginator(data_fn=data_fn),
-                on_results=on_results,
-                default_per_page=5,
-                max_per_page=5,
-            )
+        return on_results
+
+
+class OrganizationEventsTrendsEndpoint(OrganizationEventsTrendsEndpointBase):
+    def build_result_handler(
+        self, request, organization, params, trend_function, selected_columns, orderby
+    ):
+        return lambda events_results: self.handle_results_with_meta(
+            request, organization, params["project_id"], events_results
+        )

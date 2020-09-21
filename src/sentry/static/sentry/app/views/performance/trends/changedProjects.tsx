@@ -141,7 +141,7 @@ function ChangedProjects(props: Props) {
     >
       {({isLoading, tableData}) => {
         const eventsTrendsData = (tableData as unknown) as ProjectTrendsData;
-        const trends = eventsTrendsData?.events?.data || [];
+        const trends = eventsTrendsData?.data || [];
         const events = normalizeTrends(trends);
 
         const transactionsList = events && events.slice ? events.slice(0, 5) : [];

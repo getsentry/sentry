@@ -42,6 +42,7 @@ type Props = {
   orgSlug: string;
   keyTransactions?: boolean;
   trendChangeType?: TrendChangeType;
+  trendStats?: boolean;
   limit?: number;
 
   children: (props: ChildrenProps) => React.ReactNode;
@@ -120,12 +121,16 @@ class DiscoverQuery extends React.Component<Props, State> {
     return !isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
   };
 
-  getRoute(keyTransactions, trendsType) {
+  getRoute(keyTransactions, trendsType, trendStats) {
     if (keyTransactions) {
       return 'key-transactions';
     }
     if (trendsType) {
-      return 'events-trends';
+      if (trendStats) {
+        return 'events-trends-stats';
+      } else {
+        return 'events-trends';
+      }
     }
     return 'eventsv2';
   }
@@ -138,13 +143,14 @@ class DiscoverQuery extends React.Component<Props, State> {
       limit,
       keyTransactions,
       trendChangeType,
+      trendStats,
     } = this.props;
 
     if (!eventView.isValid()) {
       return;
     }
 
-    const route = this.getRoute(keyTransactions, trendChangeType);
+    const route = this.getRoute(keyTransactions, trendChangeType, trendStats);
 
     const url = `/organizations/${orgSlug}/${route}/`;
     const tableFetchID = Symbol(`tableFetchID`);
