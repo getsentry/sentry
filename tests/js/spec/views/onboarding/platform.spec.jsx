@@ -18,7 +18,7 @@ describe('OnboardingWelcome', function() {
     );
 
     wrapper
-      .find('[data-test-id="platform-csharp"]')
+      .find('[data-test-id="platform-dotnet"]')
       .first()
       .simulate('click');
 
@@ -31,7 +31,7 @@ describe('OnboardingWelcome', function() {
 
     const wrapper = mountWithTheme(
       <OnboardingPlatform
-        platform="csharp"
+        platform="dotnet"
         onUpdate={onUpdate}
         onReturnToStep={onReturnToStep}
       />,
@@ -59,7 +59,7 @@ describe('OnboardingWelcome', function() {
     expect(getButton().props().disabled).toBe(true);
 
     // Select a platform to create
-    wrapper.setProps({platform: 'csharp'});
+    wrapper.setProps({platform: 'dotnet'});
     TeamStore.loadInitialData([{id: '1', slug: 'team-slug'}]);
     expect(getButton().text()).toEqual('Create Project');
     expect(getButton().props().disabled).toBe(false);
@@ -91,7 +91,7 @@ describe('OnboardingWelcome', function() {
       <OnboardingPlatform
         active
         project={{id: '1', slug: 'test'}}
-        platform="csharp"
+        platform="dotnet"
         onComplete={onComplete}
       />,
       TestStubs.routerContext()
