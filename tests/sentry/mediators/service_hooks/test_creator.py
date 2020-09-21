@@ -16,7 +16,7 @@ class TestCreator(TestCase):
             application=self.sentry_app.application,
             actor=self.sentry_app.proxy_user,
             organization=self.org,
-            projects=[self.project],
+            projects=[],
             events=("event.created",),
             url=self.sentry_app.webhook_url,
         )
@@ -27,7 +27,6 @@ class TestCreator(TestCase):
         service_hook = ServiceHook.objects.get(
             application=self.sentry_app.application,
             actor_id=self.sentry_app.proxy_user.id,
-            project_id=self.project.id,
             url=self.sentry_app.webhook_url,
         )
 
@@ -35,6 +34,7 @@ class TestCreator(TestCase):
         assert service_hook.events == ["event.created"]
         hook_project = ServiceHookProject.objects.get(project_id=self.project.id)
         assert hook_project.service_hook_id == service_hook.id
+        assert not service_hook.project_id
 
     def test_expands_resource_events_to_specific_events(self):
         self.creator.events = ["issue"]
