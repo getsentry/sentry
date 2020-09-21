@@ -545,6 +545,7 @@ def build_message(timestamp, duration, organization, user, reports):
             "report": to_context(organization, interval, reports),
             "user": user,
         },
+        headers={"category": "organization_report_email"},
     )
 
     message.add_users((user.id,))
