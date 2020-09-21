@@ -438,7 +438,7 @@ class GroupSerializerBase(Serializer):
         is_subscribed, subscription_details = self._get_subscription(attrs)
         share_id = attrs["share_id"]
 
-        return {
+        return self._convert_seen_stats(attrs) + {
             "id": six.text_type(obj.id),
             "shareId": share_id,
             "shortId": obj.qualified_short_id,
@@ -467,7 +467,6 @@ class GroupSerializerBase(Serializer):
             "hasSeen": attrs["has_seen"],
             "annotations": attrs["annotations"],
         }
-        +self._convert_seen_stats(attrs)
 
     def _convert_seen_stats(self, stats):
         return {
@@ -654,7 +653,6 @@ class GroupSerializerSnuba(GroupSerializerBase):
         "active_at",
         "first_release",
         "first_seen",
-        "message",
     }
 
     def __init__(self, environment_ids=None, start=None, end=None, search_filters=None):
@@ -747,6 +745,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         start=None,
         end=None,
         search_filters=None,
+        has_dynamic_issue_counts=False,
     ):
         super(StreamGroupSerializerSnuba, self).__init__(
             environment_ids, start, end, search_filters
@@ -761,6 +760,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         self.stats_period_start = stats_period_start
         self.stats_period_end = stats_period_end
         self.matching_event_id = matching_event_id
+        self.has_dynamic_issue_counts = has_dynamic_issue_counts
 
     def _get_seen_stats(self, item_list, user):
         partial_execute_seen_stats_query = functools.partial(
@@ -770,12 +770,21 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             start=self.start,
             end=self.end,
         )
-        filtered_result = partial_execute_seen_stats_query(conditions=self.conditions)
         time_range_result = partial_execute_seen_stats_query()
-        lifetime_result = partial_execute_seen_stats_query(start=None, end=None)
-        for item in item_list:
-            time_range_result[item].update({"filtered": filtered_result.get(item)})
-            time_range_result[item].update({"lifetime": lifetime_result.get(item)})
+        if self.has_dynamic_issue_counts:
+            filtered_result = (
+                partial_execute_seen_stats_query(conditions=self.conditions)
+                if self.conditions
+                else None
+            )
+            lifetime_result = (
+                partial_execute_seen_stats_query(start=None, end=None)
+                if self.start or self.end
+                else None
+            )
+            for item in item_list:
+                time_range_result[item].update({"filtered": filtered_result.get(item)})
+                time_range_result[item].update({"lifetime": lifetime_result.get(item)})
         return time_range_result
 
     def query_tsdb(self, group_ids, query_params, conditions=None, environment_ids=None, **kwargs):
@@ -793,10 +802,14 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             partial_get_stats = functools.partial(
                 self.get_stats, item_list=item_list, user=user, environment_ids=self.environment_ids
             )
-            filtered_stats = partial_get_stats(conditions=self.conditions)
             stats = partial_get_stats()
+            if self.has_dynamic_issue_counts:
+                filtered_stats = (
+                    partial_get_stats(conditions=self.conditions) if self.conditions else None
+                )
             for item in item_list:
-                attrs[item].update({"filtered_stats": filtered_stats[item.id]})
+                if self.has_dynamic_issue_counts:
+                    attrs[item].update({"filtered_stats": filtered_stats[item.id]})
                 attrs[item].update({"stats": stats[item.id]})
 
         return attrs
@@ -806,13 +819,15 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
 
         if self.stats_period:
             result["stats"] = {self.stats_period: attrs["stats"]}
-            attrs["lifetime"].update({"stats": None})  # Not needed in current implentation
-            attrs["filtered"].update({"stats": {self.stats_period: attrs["filtered_stats"]}})
-
-        result["filtered"] = self._convert_seen_stats(attrs["filtered"])
-        result["lifetime"] = self._convert_seen_stats(attrs["lifetime"])
 
         if self.matching_event_id:
             result["matchingEventId"] = self.matching_event_id
+
+        if self.has_dynamic_issue_counts:
+            if self.stats_period:
+                attrs["lifetime"].update({"stats": None})  # Not needed in current implentation
+                attrs["filtered"].update({"stats": {self.stats_period: attrs["filtered_stats"]}})
+            result["filtered"] = self._convert_seen_stats(attrs["filtered"])
+            result["lifetime"] = self._convert_seen_stats(attrs["lifetime"])
 
         return result
