@@ -8,9 +8,9 @@ from sentry.models import RelayUsage
 class RelayUsageSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         return {
-            "relayId": self.relay_id,
-            "version": self.version,
-            "firstSeen": self.first_seen,
-            "lastSeen": self.last_seen,
-            "publicKey": "xxxx",  # TODO return real public key once it is added to the model
+            "relayId": obj.relay_id,
+            "version": obj.version,
+            "firstSeen": obj.first_seen,
+            "lastSeen": obj.last_seen,
+            "publicKey": obj.public_key,
         }

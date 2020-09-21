@@ -27,6 +27,6 @@ class OrganizationRelayHistory(OrganizationEndpoint):
         except OrganizationOption.DoesNotExist:
             return Response([], status=200)
 
-        relay_history = RelayUsage.objects.filter(relay_id__in=keys)
+        relay_history = list(RelayUsage.objects.filter(public_key__in=keys))
 
         return Response(serialize(relay_history, request.user))
