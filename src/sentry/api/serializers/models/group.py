@@ -437,38 +437,37 @@ class GroupSerializerBase(Serializer):
         permalink = self._get_permalink(obj, user)
         is_subscribed, subscription_details = self._get_subscription(attrs)
         share_id = attrs["share_id"]
-
-        return self._convert_seen_stats(attrs).update(
-            {
-                "id": six.text_type(obj.id),
-                "shareId": share_id,
-                "shortId": obj.qualified_short_id,
-                "title": obj.title,
-                "culprit": obj.culprit,
-                "permalink": permalink,
-                "logger": obj.logger or None,
-                "level": LOG_LEVELS.get(obj.level, "unknown"),
-                "status": status_label,
-                "statusDetails": status_details,
-                "isPublic": share_id is not None,
-                "platform": obj.platform,
-                "project": {
-                    "id": six.text_type(obj.project.id),
-                    "name": obj.project.name,
-                    "slug": obj.project.slug,
-                    "platform": obj.project.platform,
-                },
-                "type": obj.get_event_type(),
-                "metadata": obj.get_event_metadata(),
-                "numComments": obj.num_comments,
-                "assignedTo": serialize(attrs["assigned_to"], user, ActorSerializer()),
-                "isBookmarked": attrs["is_bookmarked"],
-                "isSubscribed": is_subscribed,
-                "subscriptionDetails": subscription_details,
-                "hasSeen": attrs["has_seen"],
-                "annotations": attrs["annotations"],
-            }
-        )
+        group_dict = {
+            "id": six.text_type(obj.id),
+            "shareId": share_id,
+            "shortId": obj.qualified_short_id,
+            "title": obj.title,
+            "culprit": obj.culprit,
+            "permalink": permalink,
+            "logger": obj.logger or None,
+            "level": LOG_LEVELS.get(obj.level, "unknown"),
+            "status": status_label,
+            "statusDetails": status_details,
+            "isPublic": share_id is not None,
+            "platform": obj.platform,
+            "project": {
+                "id": six.text_type(obj.project.id),
+                "name": obj.project.name,
+                "slug": obj.project.slug,
+                "platform": obj.project.platform,
+            },
+            "type": obj.get_event_type(),
+            "metadata": obj.get_event_metadata(),
+            "numComments": obj.num_comments,
+            "assignedTo": serialize(attrs["assigned_to"], user, ActorSerializer()),
+            "isBookmarked": attrs["is_bookmarked"],
+            "isSubscribed": is_subscribed,
+            "subscriptionDetails": subscription_details,
+            "hasSeen": attrs["has_seen"],
+            "annotations": attrs["annotations"],
+        }
+        group_dict.update(self._convert_seen_stats(attrs))
+        return group_dict
 
     def _convert_seen_stats(self, stats):
         return {
