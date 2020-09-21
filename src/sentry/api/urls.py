@@ -136,7 +136,7 @@ from .endpoints.organization_projects import (
     OrganizationProjectsCountEndpoint,
 )
 from .endpoints.organization_recent_searches import OrganizationRecentSearchesEndpoint
-from .endpoints.organization_relay_history import OrganizationRelayHistory
+from .endpoints.organization_relay_usage import OrganizationRelayUsage
 from .endpoints.organization_release_assemble import OrganizationReleaseAssembleEndpoint
 from .endpoints.organization_release_commits import OrganizationReleaseCommitsEndpoint
 from .endpoints.organization_release_previous_commits import (
@@ -1124,9 +1124,9 @@ urlpatterns = [
                 ),
                 # relay usage
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/relay_history/$",
-                    OrganizationRelayHistory.as_view(),
-                    name="sentry-api-0-organization-relay-history",
+                    r"^(?P<organization_slug>[^\/]+)/relay_usage/$",
+                    OrganizationRelayUsage.as_view(),
+                    name="sentry-api-0-organization-relay-usage",
                 ),
             ]
         ),

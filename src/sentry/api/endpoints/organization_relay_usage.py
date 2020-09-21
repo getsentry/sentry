@@ -3,11 +3,11 @@ from rest_framework.response import Response
 
 from sentry.api.bases import OrganizationEndpoint, OrganizationPermission
 from sentry.api.serializers import serialize
-from sentry.models import OrganizationOption, RelayUsage
+from sentry.models import RelayUsage
 from sentry import features
 
 
-class OrganizationRelayHistory(OrganizationEndpoint):
+class OrganizationRelayUsage(OrganizationEndpoint):
     permission_classes = (OrganizationPermission,)
 
     def get(self, request, organization):
@@ -16,17 +16,11 @@ class OrganizationRelayHistory(OrganizationEndpoint):
             return Response(status=404)
 
         option_key = "sentry:trusted-relays"
-        try:
-            trusted_relays = OrganizationOption.objects.get(
-                organization=organization, key=option_key
-            )
-            keys = [val.get("public_key") for val in trusted_relays.value]
-            if len(keys) == 0:
-                return Response([], status=200)
-
-        except OrganizationOption.DoesNotExist:
+        trusted_relays = organization.get_option(option_key)
+        if trusted_relays is None or len(trusted_relays) == 0:
             return Response([], status=200)
 
+        keys = [val.get("public_key") for val in trusted_relays]
         relay_history = list(RelayUsage.objects.filter(public_key__in=keys))
 
         return Response(serialize(relay_history, request.user))
