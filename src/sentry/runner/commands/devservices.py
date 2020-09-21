@@ -121,10 +121,10 @@ def up(services, project, exclude, fast):
     for service in exclude:
         if service not in containers:
             click.secho(
-                "Service `{}` is not known or not enabled.\n".format(service), err=True, fg="red",
+                "Service `{}` is not known or not enabled.\n".format(service), err=True, fg="red"
             )
             click.secho(
-                "Services that are available:\n" + "\n".join(containers.keys()) + "\n", err=True,
+                "Services that are available:\n" + "\n".join(containers.keys()) + "\n", err=True
             )
             raise click.Abort()
 
@@ -138,8 +138,7 @@ def up(services, project, exclude, fast):
                     fg="red",
                 )
                 click.secho(
-                    "Services that are available:\n" + "\n".join(containers.keys()) + "\n",
-                    err=True,
+                    "Services that are available:\n" + "\n".join(containers.keys()) + "\n", err=True
                 )
                 raise click.Abort()
             selected_containers[service] = containers[service]
@@ -208,7 +207,7 @@ def _start_service(client, name, containers, project, fast=False, always_start=F
         options["environment"].pop("DEFAULT_BROKERS", None)
         options["command"] = ["devserver", "--no-workers"]
 
-    for key, value in options["environment"].items():
+    for key, value in list(options["environment"].items()):
         options["environment"][key] = value.format(containers=containers)
 
     pull = options.pop("pull", False)
@@ -225,7 +224,7 @@ def _start_service(client, name, containers, project, fast=False, always_start=F
                 click.secho("> Pulling image '%s'" % options["image"], err=True, fg="green")
                 client.images.pull(options["image"])
 
-    for mount in options.get("volumes", {}).keys():
+    for mount in list(options.get("volumes", {}).keys()):
         if "/" not in mount:
             get_or_create(client, "volume", project + "_" + mount)
             options["volumes"][project + "_" + mount] = options["volumes"].pop(mount)
@@ -350,8 +349,7 @@ def rm(project, services):
                     fg="red",
                 )
                 click.secho(
-                    "Services that are available:\n" + "\n".join(containers.keys()) + "\n",
-                    err=True,
+                    "Services that are available:\n" + "\n".join(containers.keys()) + "\n", err=True
                 )
                 raise click.Abort()
             selected_containers[service] = containers[service]
