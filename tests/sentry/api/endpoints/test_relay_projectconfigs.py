@@ -95,6 +95,14 @@ def add_org_key(default_organization, relay):
     )
 
 
+@pytest.fixture
+def no_internal_networks(monkeypatch):
+    """
+    Disable is_internal_ip functionality (make all requests appear to be from external networks)
+    """
+    monkeypatch.setattr("sentry.auth.system.INTERNAL_NETWORKS", ())
+
+
 @pytest.mark.django_db
 def test_internal_relays_should_receive_minimal_configs_if_they_do_not_explicitly_ask_for_full_config(
     call_endpoint, default_project
@@ -163,13 +171,9 @@ def test_internal_relays_should_receive_full_configs(
 
 @pytest.mark.django_db
 def test_trusted_external_relays_should_not_be_able_to_request_full_configs(
-    add_org_key, relay, call_endpoint
+    add_org_key, call_endpoint, no_internal_networks
 ):
-    relay.is_internal = False
-    relay.save()
-
     result, status_code = call_endpoint(full_config=True)
-
     assert status_code == 403
 
 
@@ -241,10 +245,8 @@ def test_trusted_external_relays_should_receive_minimal_configs(
 
 @pytest.mark.django_db
 def test_untrusted_external_relays_should_not_receive_configs(
-    relay, call_endpoint, default_project
+    call_endpoint, default_project, no_internal_networks
 ):
-    relay.is_internal = False
-    relay.save()
 
     result, status_code = call_endpoint(full_config=False)
 

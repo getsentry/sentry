@@ -5,12 +5,24 @@ import six
 from uuid import uuid4
 
 from django.core.urlresolvers import reverse
+from contextlib import contextmanager
 
 from sentry.utils import json
 from sentry.models import Relay
 from sentry.testutils import APITestCase
 
 from sentry_relay import generate_key_pair
+
+
+@contextmanager
+def disable_internal_networks():
+    from sentry.auth import system
+
+    old_internal_networks = system.INTERNAL_NETWORKS
+    system.INTERNAL_NETWORKS = ()
+    yield
+    # restore INTERNAL NETWORKS
+    system.INTERNAL_NETWORKS = old_internal_networks
 
 
 class RelayPublicKeysConfigTest(APITestCase):
@@ -71,7 +83,10 @@ class RelayPublicKeysConfigTest(APITestCase):
         assert keys[self.non_existing_key] is None
 
     def test_get_project_config_external(self):
-        result = self._call_endpoint(self.external_relay)
+
+        with disable_internal_networks():
+            result = self._call_endpoint(self.external_relay)
+
         legacy_keys = result["public_keys"]
         keys = result["relays"]
 
