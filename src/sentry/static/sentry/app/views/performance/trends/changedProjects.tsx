@@ -43,7 +43,7 @@ function getTitle(trendChangeType: TrendChangeType): string {
     case TrendChangeType.IMPROVED:
       return t('Most Improved Project');
     case TrendChangeType.REGRESSION:
-      return t('Worst Regressed Project');
+      return t('Most Regressed Project');
     default:
       throw new Error('No trend type passed');
   }
