@@ -40,7 +40,14 @@ class LoadingIndicator extends React.Component<Props> {
       // https://github.com/facebook/react/issues/10389
       // So we need to set the muted property then trigger play.
       this.videoRef.current.muted = true;
-      this.videoRef.current.play();
+      const playPromise = this.videoRef.current.play();
+
+      // non-chromium Edge doesn't return a promise.
+      if (playPromise && playPromise.catch) {
+        playPromise.catch(() => {
+          // Do nothing. Interrupting this playback is fine.
+        });
+      }
     }
   }
 
