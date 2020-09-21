@@ -138,7 +138,7 @@ class RedisTSDB(BaseTSDB):
         results = defaultdict(list)
         for environment_id in environment_ids:
             results[self.get_cluster(environment_id)].append(environment_id)
-        return results.items()
+        return list(results.items())
 
     def add_environment_parameter(self, key, environment_id):
         if environment_id is not None:
