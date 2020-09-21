@@ -16,7 +16,7 @@ from sentry.api.event_search import convert_search_filter_to_snuba_query
 from sentry.api.paginator import DateTimePaginator, SequencePaginator, Paginator
 from sentry.constants import ALLOWED_FUTURE_DELTA
 from sentry.models import Group
-from sentry.utils import snuba, metrics
+from sentry.utils import json, metrics, snuba
 
 
 def get_search_filter(search_filters, name, operator):
@@ -159,7 +159,7 @@ class AbstractQueryExecutor:
 
         selected_columns = []
         if get_sample:
-            query_hash = md5(repr(conditions)).hexdigest()[:8]
+            query_hash = md5(json.dumps(conditions).encode("utf-8")).hexdigest()[:8]
             selected_columns.append(
                 ("cityHash64", ("'{}'".format(query_hash), "group_id"), "sample")
             )
@@ -253,7 +253,6 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
     }
 
     @property
-    @abstractmethod
     def dataset(self):
         return snuba.Dataset.Events
 

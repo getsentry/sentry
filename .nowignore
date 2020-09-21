@@ -22,3 +22,5 @@
 !docs-ui/**
 !.storybook
 !.storybook/**
+!tests/fixtures/integration-docs
+!tests/fixtures/integration-docs/**

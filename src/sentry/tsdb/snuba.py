@@ -230,7 +230,7 @@ class SnubaTSDB(BaseTSDB):
             keys = list(set(map(lambda x: int(x), keys)))
 
         # 10s is the only rollup under an hour that we support
-        if rollup and rollup == 10 and model in self.lower_rollup_query_settings.keys():
+        if rollup and rollup == 10 and model in self.lower_rollup_query_settings:
             model_query_settings = self.lower_rollup_query_settings.get(model)
         else:
             model_query_settings = self.model_query_settings.get(model)
@@ -339,7 +339,7 @@ class SnubaTSDB(BaseTSDB):
         self, model, keys, start, end, rollup=None, environment_ids=None, conditions=None
     ):
         # 10s is the only rollup under an hour that we support
-        if rollup and rollup == 10 and model in self.lower_rollup_query_settings.keys():
+        if rollup and rollup == 10 and model in self.lower_rollup_query_settings:
             model_query_settings = self.lower_rollup_query_settings.get(model)
         else:
             model_query_settings = self.model_query_settings.get(model)
@@ -502,7 +502,7 @@ class SnubaTSDB(BaseTSDB):
         """
         if isinstance(items, collections.Mapping):
             return (
-                items.keys(),
+                list(items.keys()),
                 list(set.union(*(set(v) for v in items.values())) if items else []),
             )
         elif isinstance(items, (collections.Sequence, collections.Set)):

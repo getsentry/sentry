@@ -10,11 +10,10 @@ statusProvider:
   config:
     contexts:
       - 'onpremise-builder (sentryio)'
-      - 'continuous-integration/travis-ci/push'
-      - 'acceptance'
 targets:
   - name: github
-  - name: pypi
+# Skip publishing to PyPI until we get the 2.1.0 release for https://github.com/Grokzen/redis-py-cluster/
+#  - name: pypi
   - name: docker
     source: us.gcr.io/sentryio/sentry
     target: getsentry/sentry

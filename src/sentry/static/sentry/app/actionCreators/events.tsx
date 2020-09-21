@@ -33,7 +33,6 @@ type Options = {
   query?: string;
   yAxis?: string | string[];
   field?: string[];
-  referenceEvent?: string;
   keyTransactions?: boolean;
   topEvents?: number;
   orderby?: string;
@@ -67,7 +66,6 @@ export const doEventsRequest = (
     query,
     yAxis,
     field,
-    referenceEvent,
     keyTransactions,
     topEvents,
     orderby,
@@ -82,7 +80,6 @@ export const doEventsRequest = (
       query,
       yAxis,
       field,
-      referenceEvent,
       topEvents,
       orderby,
     }).filter(([, value]) => typeof value !== 'undefined')

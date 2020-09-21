@@ -10,7 +10,7 @@ import styled from '@emotion/styled';
 import {PanelItem} from 'app/components/panels';
 import {valueIsEqual} from 'app/utils';
 import theme from 'app/utils/theme';
-import {IconTelescope} from 'app/icons';
+import {IconOpen} from 'app/icons';
 import AssigneeSelector from 'app/components/assigneeSelector';
 import Count from 'app/components/count';
 import EventOrGroupExtraDetails from 'app/components/eventOrGroupExtraDetails';
@@ -23,6 +23,7 @@ import SelectedGroupStore from 'app/stores/selectedGroupStore';
 import space from 'app/styles/space';
 import Tooltip from 'app/components/tooltip';
 import SentryTypes from 'app/sentryTypes';
+import {getRelativeSummary} from 'app/components/organizations/timeRangeSelector/utils';
 import {DEFAULT_STATS_PERIOD, MENU_CLOSE_DELAY} from 'app/constants';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
@@ -44,6 +45,7 @@ const StreamGroup = createReactClass({
     withChart: PropTypes.bool,
     selection: SentryTypes.GlobalSelection.isRequired,
     organization: SentryTypes.Organization.isRequired,
+    useFilteredStats: PropTypes.bool,
   },
 
   mixins: [Reflux.listenTo(GroupStore, 'onGroupChange')],
@@ -54,20 +56,34 @@ const StreamGroup = createReactClass({
       statsPeriod: '24h',
       canSelect: true,
       withChart: true,
+      useFilteredStats: false,
     };
   },
 
   getInitialState() {
+    const data = GroupStore.get(this.props.id);
+
     return {
-      data: GroupStore.get(this.props.id),
+      data: {
+        ...data,
+        filtered: this.props.useFilteredStats ? data.filtered : undefined,
+      },
       showLifetimeStats: false,
     };
   },
 
   componentWillReceiveProps(nextProps) {
-    if (nextProps.id !== this.props.id) {
+    if (
+      nextProps.id !== this.props.id ||
+      nextProps.useFilteredStats !== this.props.useFilteredStats
+    ) {
+      const data = GroupStore.get(this.props.id);
+
       this.setState({
-        data: GroupStore.get(this.props.id),
+        data: {
+          ...data,
+          filtered: nextProps.useFilteredStats ? data.filtered : undefined,
+        },
       });
     }
   },
@@ -176,11 +192,18 @@ const StreamGroup = createReactClass({
       memberList,
       withChart,
       statsPeriod,
+      selection,
       organization,
     } = this.props;
 
     const hasDynamicIssueCounts = organization.features.includes('dynamic-issue-counts');
     const hasDiscoverQuery = organization.features.includes('discover-basic');
+
+    const {period, start, end} = selection.datetime || {};
+    const summary =
+      !!start && !!end
+        ? 'the selected period'
+        : getRelativeSummary(period || DEFAULT_STATS_PERIOD).toLowerCase();
 
     const popperStyle = {maxWidth: 'none'};
 
@@ -252,7 +275,7 @@ const StreamGroup = createReactClass({
                     <TooltipCount value={data.filtered.count} />
                     <TooltipText>{t('Matching search filters')}</TooltipText>
                     {hasDiscoverQuery && (
-                      <StyledIconTelescope
+                      <StyledIconOpen
                         to={this.getDiscoverUrl(true)}
                         color={theme.blue300}
                       />
@@ -261,12 +284,11 @@ const StreamGroup = createReactClass({
                 )}
                 <tr>
                   <TooltipCount value={data.count} />
-                  <TooltipText>{t(`Without search filters`)}</TooltipText>
+                  <TooltipText>
+                    {data.filtered ? t(`Without search filters`) : t(`In ${summary}`)}
+                  </TooltipText>
                   {hasDiscoverQuery && (
-                    <StyledIconTelescope
-                      to={this.getDiscoverUrl()}
-                      color={theme.blue300}
-                    />
+                    <StyledIconOpen to={this.getDiscoverUrl()} color={theme.blue300} />
                   )}
                 </tr>
                 {data.lifetime && (
@@ -296,7 +318,7 @@ const StreamGroup = createReactClass({
                     <TooltipCount value={data.filtered.userCount} />
                     <TooltipText>{t('Matching search filters')}</TooltipText>
                     {hasDiscoverQuery && (
-                      <StyledIconTelescope
+                      <StyledIconOpen
                         to={this.getDiscoverUrl(true)}
                         color={theme.blue300}
                       />
@@ -305,12 +327,11 @@ const StreamGroup = createReactClass({
                 )}
                 <tr>
                   <TooltipCount value={data.userCount} />
-                  <TooltipText>{t(`Without search filters`)}</TooltipText>
+                  <TooltipText>
+                    {data.filtered ? t(`Without search filters`) : t(`In ${summary}`)}
+                  </TooltipText>
                   {hasDiscoverQuery && (
-                    <StyledIconTelescope
-                      to={this.getDiscoverUrl()}
-                      color={theme.blue300}
-                    />
+                    <StyledIconOpen to={this.getDiscoverUrl()} color={theme.blue300} />
                   )}
                 </tr>
                 {data.lifetime && (
@@ -393,10 +414,10 @@ const TooltipText = styled('td')`
   padding: ${space(0.5)} ${space(1)};
 `;
 
-const StyledIconTelescope = styled(({to, ...p}) => (
+const StyledIconOpen = styled(({to, ...p}) => (
   <td {...p}>
     <Link title={t('Open in Discover')} to={to} target="_blank">
-      <IconTelescope size="xs" color={p.color} />
+      <IconOpen size="xs" color={p.color} />
     </Link>
   </td>
 ))`

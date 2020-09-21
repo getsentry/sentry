@@ -501,8 +501,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         old_sample_size = options.get("snuba.search.hits-sample-size")
         assert options.set("snuba.search.hits-sample-size", 1)
 
-        days = range(4)
-        days.reverse()
+        days = reversed(range(4))
 
         self.login_as(user=self.user)
         groups = []
@@ -649,7 +648,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             assert response.data[0]["filtered"] is not None
 
     @patch(
-        "sentry.api.helpers.group_index.ratelimiter.is_limited", autospec=True, return_value=True,
+        "sentry.api.helpers.group_index.ratelimiter.is_limited", autospec=True, return_value=True
     )
     def test_ratelimit(self, is_limited):
         self.login_as(user=self.user)
@@ -1271,7 +1270,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             event = self.store_event(
                 data={
                     "fingerprint": ["put-me-in-group-1"],
-                    "user": {"id": six.text_type(i).encode("utf-8")},
+                    "user": {"id": six.text_type(i)},
                     "timestamp": iso_format(self.min_ago + timedelta(seconds=i)),
                 },
                 project_id=self.project.id,
@@ -1549,7 +1548,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert tombstone.data == group1.data
 
     @patch(
-        "sentry.api.helpers.group_index.ratelimiter.is_limited", autospec=True, return_value=True,
+        "sentry.api.helpers.group_index.ratelimiter.is_limited", autospec=True, return_value=True
     )
     def test_ratelimit(self, is_limited):
         self.login_as(user=self.user)
@@ -1570,7 +1569,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
     @patch("sentry.api.helpers.group_index.eventstream")
     @patch("sentry.eventstream")
     def test_delete_by_id(self, mock_eventstream_task, mock_eventstream_api):
-        eventstream_state = object()
+        eventstream_state = {"event_stream_state": uuid4()}
         mock_eventstream_api.start_delete_groups = Mock(return_value=eventstream_state)
 
         group1 = self.create_group(checksum="a" * 32, status=GroupStatus.RESOLVED)
@@ -1677,7 +1676,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
             assert not GroupHash.objects.filter(group_id=group.id).exists()
 
     @patch(
-        "sentry.api.helpers.group_index.ratelimiter.is_limited", autospec=True, return_value=True,
+        "sentry.api.helpers.group_index.ratelimiter.is_limited", autospec=True, return_value=True
     )
     def test_ratelimit(self, is_limited):
         self.login_as(user=self.user)

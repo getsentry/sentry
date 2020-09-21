@@ -7,7 +7,6 @@ import logging
 
 from collections import namedtuple
 from copy import deepcopy
-from datetime import timedelta
 from math import ceil, floor
 
 from sentry import options
@@ -22,7 +21,7 @@ from sentry.api.event_search import (
 
 from sentry import eventstore
 
-from sentry.models import Project, ProjectStatus, Group
+from sentry.models import Group
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
 from sentry.utils.snuba import (
     Dataset,
@@ -37,10 +36,8 @@ from sentry.utils.snuba import (
 )
 
 __all__ = (
-    "ReferenceEvent",
     "PaginationResult",
     "InvalidSearchQuery",
-    "create_reference_event_conditions",
     "query",
     "key_transaction_query",
     "timeseries_query",
@@ -52,9 +49,6 @@ __all__ = (
 
 
 logger = logging.getLogger(__name__)
-
-ReferenceEvent = namedtuple("ReferenceEvent", ["organization", "slug", "fields", "start", "end"])
-ReferenceEvent.__new__.__defaults__ = (None, None)
 
 PaginationResult = namedtuple("PaginationResult", ["next", "previous", "oldest", "latest"])
 FacetResult = namedtuple("FacetResult", ["key", "value", "count"])
@@ -74,81 +68,6 @@ def is_real_column(col):
         return False
 
     return True
-
-
-def find_reference_event(reference_event):
-    try:
-        project_slug, event_id = reference_event.slug.split(":")
-    except ValueError:
-        raise InvalidSearchQuery("Invalid reference event format")
-
-    column_names = [
-        resolve_discover_column(col) for col in reference_event.fields if is_real_column(col)
-    ]
-    # We don't need to run a query if there are no columns
-    if not column_names:
-        return None
-
-    try:
-        project = Project.objects.get(
-            slug=project_slug,
-            organization=reference_event.organization,
-            status=ProjectStatus.VISIBLE,
-        )
-    except Project.DoesNotExist:
-        raise InvalidSearchQuery("Invalid reference event project")
-
-    start = None
-    end = None
-    if reference_event.start:
-        start = reference_event.start - timedelta(seconds=5)
-    if reference_event.end:
-        end = reference_event.end + timedelta(seconds=5)
-
-    # We use raw_query here because generating conditions from an eventstore
-    # event requires non-trivial translation from the flat list of fields into
-    # structured fields like message, stack, and tags.
-    event = raw_query(
-        selected_columns=column_names,
-        filter_keys={"project_id": [project.id], "event_id": [event_id]},
-        start=start,
-        end=end,
-        dataset=Dataset.Discover,
-        limit=1,
-        referrer="discover.find_reference_event",
-    )
-    if "error" in event or len(event["data"]) != 1:
-        raise InvalidSearchQuery("Unable to find reference event")
-
-    return event["data"][0]
-
-
-def create_reference_event_conditions(reference_event):
-    """
-    Create a list of conditions based on a Reference object.
-
-    This is useful when you want to get results that match an exemplar
-    event. A use case of this is generating pagination links for, or getting
-    timeseries results of the records inside a single aggregated row.
-
-    reference_event (ReferenceEvent) The reference event to build conditions from.
-    """
-    conditions = []
-    event_data = find_reference_event(reference_event)
-    if event_data is None:
-        return conditions
-
-    field_names = [resolve_discover_column(col) for col in reference_event.fields]
-    for (i, field) in enumerate(reference_event.fields):
-        value = event_data.get(field_names[i], None)
-        # If the value is a sequence use the first element as snuba
-        # doesn't support `=` or `IN` operations on fields like exception_frames.filename
-        if isinstance(value, (list, set)) and value:
-            value = value.pop()
-        if value:
-            conditions.append([field, "=", value])
-
-    return conditions
 
 
 # TODO (evanh) This whole function is here because we are using the max value to
@@ -360,7 +279,7 @@ def transform_results(result, translated_columns, snuba_filter, selected_columns
             for snuba_name, sentry_name in six.iteritems(translated_columns):
                 if sentry_name == col["name"]:
                     with sentry_sdk.start_span(
-                        op="discover.discover", description="transform_results.histogram_zerofill",
+                        op="discover.discover", description="transform_results.histogram_zerofill"
                     ) as span:
                         span.set_data("histogram_function", snuba_name)
                         result["data"] = zerofill_histogram(
@@ -382,7 +301,6 @@ def query(
     orderby=None,
     offset=None,
     limit=50,
-    reference_event=None,
     referrer=None,
     auto_fields=False,
     use_aggregate_conditions=False,
@@ -404,8 +322,6 @@ def query(
     orderby (None|str|Sequence[str]) The field to order results by.
     offset (None|int) The record offset to read.
     limit (int) The number of records to fetch.
-    reference_event (ReferenceEvent) A reference event object. Used to generate additional
-                    conditions based on the provided reference.
     referrer (str|None) A referrer string to help locate the origin of this query.
     auto_fields (bool) Set to true to have project + eventid fields automatically added.
     conditions (Sequence[any]) List of conditions that are passed directly to snuba without
@@ -465,11 +381,6 @@ def query(
         snuba_filter.update_with(
             resolve_field_list(selected_columns, snuba_filter, auto_fields=auto_fields)
         )
-
-        if reference_event:
-            ref_conditions = create_reference_event_conditions(reference_event)
-            if ref_conditions:
-                snuba_filter.conditions.extend(ref_conditions)
 
         # Resolve the public aliases into the discover dataset names.
         snuba_filter, translated_columns = resolve_discover_aliases(
@@ -586,18 +497,12 @@ def key_transaction_query(selected_columns, user_query, params, orderby, referre
     )
 
 
-def get_timeseries_snuba_filter(
-    selected_columns, query, params, rollup, reference_event=None, default_count=True
-):
+def get_timeseries_snuba_filter(selected_columns, query, params, rollup, default_count=True):
     snuba_filter = get_filter(query, params)
     if not snuba_filter.start and not snuba_filter.end:
         raise InvalidSearchQuery("Cannot get timeseries result without a start and end.")
 
     snuba_filter.update_with(resolve_field_list(selected_columns, snuba_filter, auto_fields=False))
-    if reference_event:
-        ref_conditions = create_reference_event_conditions(reference_event)
-        if ref_conditions:
-            snuba_filter.conditions.extend(ref_conditions)
 
     # Resolve the public aliases into the discover dataset names.
     snuba_filter, translated_columns = resolve_discover_aliases(snuba_filter)
@@ -660,7 +565,7 @@ def key_transaction_timeseries_query(selected_columns, query, params, rollup, re
         return SnubaTSResult({"data": result}, snuba_filter.start, snuba_filter.end, rollup)
 
 
-def timeseries_query(selected_columns, query, params, rollup, reference_event=None, referrer=None):
+def timeseries_query(selected_columns, query, params, rollup, referrer=None):
     """
     High-level API for doing arbitrary user timeseries queries against events.
 
@@ -678,17 +583,13 @@ def timeseries_query(selected_columns, query, params, rollup, reference_event=No
     query (str) Filter query string to create conditions from.
     params (Dict[str, str]) Filtering parameters with start, end, project_id, environment,
     rollup (int) The bucket width in seconds
-    reference_event (ReferenceEvent) A reference event object. Used to generate additional
-                    conditions based on the provided reference.
     referrer (str|None) A referrer string to help locate the origin of this query.
     """
     with sentry_sdk.start_span(
         op="discover.discover", description="timeseries.filter_transform"
     ) as span:
         span.set_data("query", query)
-        snuba_filter, _ = get_timeseries_snuba_filter(
-            selected_columns, query, params, rollup, reference_event
-        )
+        snuba_filter, _ = get_timeseries_snuba_filter(selected_columns, query, params, rollup)
 
     with sentry_sdk.start_span(op="discover.discover", description="timeseries.snuba_query"):
         result = raw_query(
@@ -853,10 +754,7 @@ def top_events_timeseries(
         # Using the top events add the order to the results
         for index, item in enumerate(top_events["data"]):
             result_key = create_result_key(item, translated_groupby, issues)
-            results[result_key] = {
-                "order": index,
-                "data": [],
-            }
+            results[result_key] = {"order": index, "data": []}
         for row in result["data"]:
             result_key = create_result_key(row, translated_groupby, issues)
             if result_key in results:
@@ -864,7 +762,7 @@ def top_events_timeseries(
             else:
                 logger.warning(
                     "discover.top-events.timeseries.key-mismatch",
-                    extra={"result_key": result_key, "top_event_keys": results.keys()},
+                    extra={"result_key": result_key, "top_event_keys": list(results.keys())},
                 )
         for key, item in six.iteritems(results):
             results[key] = SnubaTSResult(

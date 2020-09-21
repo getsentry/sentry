@@ -908,7 +908,7 @@ def format_search_filter(term, params):
                         value,
                         params["project_id"],
                         params.get("environment_objects"),
-                        params["organization_id"],
+                        params.get("organization_id"),
                     )
                 ),
             )

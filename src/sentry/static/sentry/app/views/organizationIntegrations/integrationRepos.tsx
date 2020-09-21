@@ -171,7 +171,7 @@ export default class IntegrationRepos extends AsyncComponent<Props, State> {
     const menuHeader = <StyledReposLabel>{t('Repositories')}</StyledReposLabel>;
     const onChange = this.state.integrationRepos.searchable
       ? this.handleSearchRepositories
-      : null;
+      : undefined;
 
     return (
       <DropdownAutoComplete
@@ -182,6 +182,7 @@ export default class IntegrationRepos extends AsyncComponent<Props, State> {
         emptyMessage={t('No repositories available')}
         noResultsMessage={t('No repositories found')}
         busy={this.state.dropdownBusy}
+        alignMenu="right"
       >
         {({isOpen}) => (
           <DropdownButton isOpen={isOpen} size="xsmall" busy={this.state.adding}>
