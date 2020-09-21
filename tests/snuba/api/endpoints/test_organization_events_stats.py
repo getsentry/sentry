@@ -63,25 +63,9 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
         )
 
     def test_simple(self):
-        with self.feature("organizations:global-views"):
-            response = self.client.get(
-                self.url,
-                data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=2)),
-                    "interval": "1h",
-                },
-                format="json",
-            )
-
-        assert response.status_code == 200, response.content
-        assert [attrs for time, attrs in response.data["data"]] == [[{"count": 1}], [{"count": 2}]]
-
-    def test_multiple_project_permissions(self):
         response = self.client.get(
             self.url,
             data={
-                "projects": -1,
                 "start": iso_format(self.day_ago),
                 "end": iso_format(self.day_ago + timedelta(hours=2)),
                 "interval": "1h",
@@ -89,7 +73,8 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             format="json",
         )
 
-        assert response.status_code == 400
+        assert response.status_code == 200, response.content
+        assert [attrs for time, attrs in response.data["data"]] == [[{"count": 1}], [{"count": 2}]]
 
     def test_no_projects(self):
         org = self.create_organization(owner=self.user)
@@ -114,17 +99,16 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             },
             project_id=self.project2.id,
         )
-        with self.feature("organizations:global-views"):
-            response = self.client.get(
-                self.url,
-                data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=2)),
-                    "interval": "1h",
-                    "yAxis": "user_count",
-                },
-                format="json",
-            )
+        response = self.client.get(
+            self.url,
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "interval": "1h",
+                "yAxis": "user_count",
+            },
+            format="json",
+        )
         assert response.status_code == 200, response.content
         assert [attrs for time, attrs in response.data["data"]] == [[{"count": 2}], [{"count": 1}]]
 
@@ -159,30 +143,23 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             assert len(response.data["data"]) > 0
 
     def test_with_event_count_flag(self):
-        with self.feature(
-            {"organizations:discover-basic": True, "organizations:global-views": True}
-        ):
-            response = self.client.get(
-                self.url,
-                data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=2)),
-                    "interval": "1h",
-                    "yAxis": "event_count",
-                },
-                format="json",
-            )
+        response = self.client.get(
+            self.url,
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "interval": "1h",
+                "yAxis": "event_count",
+            },
+            format="json",
+        )
 
         assert response.status_code == 200, response.content
         assert [attrs for time, attrs in response.data["data"]] == [[{"count": 1}], [{"count": 2}]]
 
     def test_performance_view_feature(self):
         with self.feature(
-            {
-                "organizations:performance-view": True,
-                "organizations:discover-basic": False,
-                "organizations:global-views": True,
-            }
+            {"organizations:performance-view": True, "organizations:discover-basic": False}
         ):
             response = self.client.get(
                 self.url,
@@ -198,9 +175,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200
 
     def test_aggregate_function_count(self):
-        with self.feature(
-            {"organizations:discover-basic": True, "organizations:global-views": True}
-        ):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(
                 self.url,
                 format="json",
@@ -229,9 +204,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400, response.content
 
     def test_aggregate_function_user_count(self):
-        with self.feature(
-            {"organizations:discover-basic": True, "organizations:global-views": True}
-        ):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(
                 self.url,
                 format="json",
@@ -456,9 +429,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
         assert len(items) >= 3
 
     def test_project_id_query_filter(self):
-        with self.feature(
-            {"organizations:discover-basic": True, "organizations:global-views": True}
-        ):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(
                 self.url,
                 format="json",
@@ -489,9 +460,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200
 
     def test_conditional_filter(self):
-        with self.feature(
-            {"organizations:discover-basic": True, "organizations:global-views": True}
-        ):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(
                 self.url,
                 format="json",
@@ -511,9 +480,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
         assert data[2][1][0]["count"] == 1
 
     def test_simple_multiple_yaxis(self):
-        with self.feature(
-            {"organizations:discover-basic": True, "organizations:global-views": True}
-        ):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(
                 self.url,
                 data={
@@ -736,7 +703,6 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
 
         self.enabled_features = {
             "organizations:discover-basic": True,
-            "organizations:global-views": True,
         }
         self.url = reverse(
             "sentry-api-0-organization-events-stats",

@@ -96,13 +96,12 @@ UNESCAPED_QUOTE_RE = re.compile('(?<!\\\\)"')
 class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase, EnvironmentMixin):
     def get(self, request, organization):
         try:
-            params = self.get_snuba_params(request, organization)
+            # events-meta is still used by events v1 which doesn't require global views
+            params = self.get_snuba_params(request, organization, check_global_views=False)
         except NoProjects:
             return Response([])
 
         with sentry_sdk.start_span(op="discover.endpoint", description="find_lookup_keys") as span:
-            span.set_data("organization", organization)
-
             possible_keys = ["transaction"]
             lookup_keys = {key: request.query_params.get(key) for key in possible_keys}
 

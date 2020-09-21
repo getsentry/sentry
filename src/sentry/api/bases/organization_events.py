@@ -41,8 +41,8 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         except InvalidSearchQuery as e:
             raise ParseError(detail=six.text_type(e))
 
-    def get_snuba_params(self, request, organization):
-        with sentry_sdk.start_span(op="discover.endpoint", description="filter_params") as span:
+    def get_snuba_params(self, request, organization, check_global_views=True):
+        with sentry_sdk.start_span(op="discover.endpoint", description="filter_params"):
             if len(request.GET.getlist("field")) > MAX_FIELDS:
                 raise ParseError(
                     detail="You can view up to {0} fields at a time. Please delete some and try again.".format(
@@ -50,15 +50,15 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                     )
                 )
 
-            span.set_tag("organization", organization)
             params = self.get_filter_params(request, organization)
             params = self.quantize_date_params(request, params)
 
-            has_global_views = features.has(
-                "organizations:global-views", organization, actor=request.user
-            )
-            if not has_global_views and len(params.get("project_id", [])) > 1:
-                raise ParseError(detail="You cannot view events from multiple projects.")
+            if check_global_views:
+                has_global_views = features.has(
+                    "organizations:global-views", organization, actor=request.user
+                )
+                if not has_global_views and len(params.get("project_id", [])) > 1:
+                    raise ParseError(detail="You cannot view events from multiple projects.")
 
             return params
 
@@ -232,7 +232,10 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 query = request.GET.get("query")
                 if params is None:
                     try:
-                        params = self.get_snuba_params(request, organization)
+                        # events-stats is still used by events v1 which doesn't require global views
+                        params = self.get_snuba_params(
+                            request, organization, check_global_views=False
+                        )
                     except NoProjects:
                         return {"data": []}
 

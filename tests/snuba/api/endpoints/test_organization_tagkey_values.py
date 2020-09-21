@@ -171,29 +171,26 @@ class OrganizationTagKeyValuesTest(OrganizationTagKeyTestCase):
         self.store_event(data={"timestamp": iso_format(self.min_ago)}, project_id=other_project.id)
         self.store_event(data={"timestamp": iso_format(self.day_ago)}, project_id=other_project2.id)
 
-        with self.feature("organizations:global-views"):
-            # without the includeTransactions flag, this will continue to search the Events Dataset for the
-            # projects tag, which doesn't exist here
-            self.run_test("project", qs_params={"query": "test"}, expected=[])
+        # without the includeTransactions flag, this will continue to search the Events Dataset for the
+        # projects tag, which doesn't exist here
+        self.run_test("project", qs_params={"query": "test"}, expected=[])
 
-            # with the includeTransactions flag, this will search in the Discover Dataset where project
-            # has special meaning to refer to the sentry project rather than the project tag
-            self.run_test(
-                "project",
-                qs_params={"includeTransactions": "1", "query": "test"},
-                expected=[("test1", 2), ("test2", 1)],
-            )
-            self.run_test(
-                "project",
-                qs_params={"includeTransactions": "1", "query": "1"},
-                expected=[("test1", 2)],
-            )
-            self.run_test(
-                "project", qs_params={"includeTransactions": "1", "query": "test3"}, expected=[]
-            )
-            self.run_test(
-                "project", qs_params={"includeTransactions": "1", "query": "z"}, expected=[]
-            )
+        # with the includeTransactions flag, this will search in the Discover Dataset where project
+        # has special meaning to refer to the sentry project rather than the project tag
+        self.run_test(
+            "project",
+            qs_params={"includeTransactions": "1", "query": "test"},
+            expected=[("test1", 2), ("test2", 1)],
+        )
+        self.run_test(
+            "project",
+            qs_params={"includeTransactions": "1", "query": "1"},
+            expected=[("test1", 2)],
+        )
+        self.run_test(
+            "project", qs_params={"includeTransactions": "1", "query": "test3"}, expected=[]
+        )
+        self.run_test("project", qs_params={"includeTransactions": "1", "query": "z"}, expected=[])
 
     def test_array_column(self):
         for i in range(3):
