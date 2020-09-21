@@ -20,6 +20,7 @@ jobs:
         ref: 'main'
         repository: getsentry/sentry-api-schema
         path: sentry-api-schema
+        token: ${{ secrets.GITHUB_TOKEN }}
 
     # Install/setup node
     - uses: volta-cli/action@v1
@@ -38,8 +39,8 @@ jobs:
     - name: Git Commit & Push
       run: |
         cd sentry-api-schema
-        git config user.name github-actions
-        git config user.email github-actions@github.com
+        git config user.name openapi-getsentry-bot
+        git config user.email bot@getsentry.com
         git add .
         git commit -m "generated"
         git push
