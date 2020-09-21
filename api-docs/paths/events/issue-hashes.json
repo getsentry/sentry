@@ -1,0 +1,60 @@
+{
+  "get": {
+    "tags": [
+      "Events"
+    ],
+    "description": "This endpoint lists an issue's hashes, which are the generated checksums used to aggregate individual events.",
+    "operationId": "List an issue's hashes",
+    "parameters": [
+      {
+        "name": "issue_id",
+        "in": "path",
+        "description": "The ID of the issue to retrieve.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "responses": {
+      "200": {
+        "description": "Success.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "latestEvent": {
+                      "$ref": "../../components/schemas/event.json#/EventDetailed"
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "state": {
+                    "type": "string",
+                    "enum": [
+                      "unlocked",
+                      "locked_in_migration",
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403": {
+        "description": "Forbidden"
+      }
+    },
+    "security": [
+      {
+        "auth_token": [
+          "event:read"
+        ]
+      }
+    ]
+  }
+}

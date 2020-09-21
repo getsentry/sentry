@@ -92,6 +92,6 @@ export default function ActionTargetSelector(props: Props) {
       );
 
     default:
-      return <span />;
+      return null;
   }
 }

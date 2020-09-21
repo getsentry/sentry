@@ -155,7 +155,7 @@ class ActivityMailPreview(object):
     def get_context(self):
         context = self.email.get_base_context()
         context["reason"] = get_random(self.request).choice(
-            GroupSubscriptionReason.descriptions.values()
+            list(GroupSubscriptionReason.descriptions.values())
         )
         context.update(self.email.get_context())
         add_unsubscribe_link(context)

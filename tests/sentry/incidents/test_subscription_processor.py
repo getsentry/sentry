@@ -218,6 +218,13 @@ class ProcessUpdateTest(TestCase):
         )
         # TODO: Check subscription is deleted once we start doing that
 
+    def test_removed_project(self):
+        message = self.build_subscription_update(self.sub)
+        self.project.delete()
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            SubscriptionProcessor(self.sub).process_update(message)
+        self.metrics.incr.assert_called_once_with("incidents.alert_rules.ignore_deleted_project")
+
     def test_no_feature(self):
         message = self.build_subscription_update(self.sub)
         SubscriptionProcessor(self.sub).process_update(message)

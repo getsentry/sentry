@@ -985,7 +985,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             event = self.store_event(
                 data={
                     "fingerprint": ["put-me-in-group-1"],
-                    "user": {"id": six.text_type(i).encode("utf-8")},
+                    "user": {"id": six.text_type(i)},
                     "timestamp": iso_format(self.min_ago + timedelta(seconds=i)),
                 },
                 project_id=self.project.id,

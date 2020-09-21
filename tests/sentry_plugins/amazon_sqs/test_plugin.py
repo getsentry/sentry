@@ -65,15 +65,15 @@ class AmazonSQSPluginTest(PluginTestCase):
         )
         with self.assertRaises(ClientError):
             self.run_test()
-        assert len(logger.info.call_args_list) == 1
+        assert len(logger.info.call_args_list) == 0
 
         mock_client.return_value.send_message.side_effect = ClientError(
             {"Error": {"Code": "AccessDenied", "Message": "Hello"}}, "SendMessage"
         )
         self.run_test()
-        assert len(logger.info.call_args_list) == 3
+        assert len(logger.info.call_args_list) == 1
         assert (
-            logger.info.call_args_list[2][0][0] == "sentry_plugins.amazon_sqs.access_token_invalid"
+            logger.info.call_args_list[0][0][0] == "sentry_plugins.amazon_sqs.access_token_invalid"
         )
 
     @patch("sentry_plugins.amazon_sqs.plugin.logger")
@@ -91,9 +91,9 @@ class AmazonSQSPluginTest(PluginTestCase):
 
         self.run_test()
 
-        assert len(logger.info.call_args_list) == 2
+        assert len(logger.info.call_args_list) == 1
         assert (
-            logger.info.call_args_list[1][0][0]
+            logger.info.call_args_list[0][0][0]
             == "sentry_plugins.amazon_sqs.missing_message_group_id"
         )
 
