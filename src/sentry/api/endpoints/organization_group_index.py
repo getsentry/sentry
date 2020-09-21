@@ -224,6 +224,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                     search_filters=query_kwargs["search_filters"]
                     if "search_filters" in query_kwargs
                     else None,
+                    has_dynamic_issue_counts=True,
                 ),
             )
         else:

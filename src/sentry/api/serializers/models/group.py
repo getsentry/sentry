@@ -794,8 +794,9 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                 else None
             )
             for item in item_list:
-                time_range_result[item].update({"filtered": filtered_result.get(item)})
-                time_range_result[item].update({"lifetime": lifetime_result.get(item)})
+                time_range_result[item].update(
+                    {"filtered": filtered_result.get(item), "lifetime": lifetime_result.get(item)}
+                )
         return time_range_result
 
     def query_tsdb(self, group_ids, query_params, conditions=None, environment_ids=None, **kwargs):
@@ -836,7 +837,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
 
         if self.has_dynamic_issue_counts:
             if self.stats_period:
-                attrs["lifetime"].update({"stats": None})  # Not needed in current implentation
+                attrs["lifetime"].update({"stats": None})  # Not needed in current implementation
                 attrs["filtered"].update({"stats": {self.stats_period: attrs["filtered_stats"]}})
             result["filtered"] = self._convert_seen_stats(attrs["filtered"])
             result["lifetime"] = self._convert_seen_stats(attrs["lifetime"])
