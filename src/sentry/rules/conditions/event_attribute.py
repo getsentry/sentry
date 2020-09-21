@@ -48,6 +48,7 @@ ATTR_CHOICES = [
     "stacktrace.code",
     "stacktrace.module",
     "stacktrace.filename",
+    "stacktrace.abs_path",
 ]
 
 
@@ -68,14 +69,14 @@ class EventAttributeCondition(EventCondition):
     - exception.{type,value}
     - user.{id,ip_address,email,FIELD}
     - http.{method,url}
-    - stacktrace.{code,module,filename}
+    - stacktrace.{code,module,filename,abs_path}
     - extra.{FIELD}
     """
 
     # TODO(dcramer): add support for stacktrace.vars.[name]
 
     form_cls = EventAttributeForm
-    label = u"An event's {attribute} value {match} {value}"
+    label = u"The event's {attribute} value {match} {value}"
 
     form_fields = {
         "attribute": {
@@ -150,11 +151,10 @@ class EventAttributeCondition(EventCondition):
                 stacks = [
                     e.stacktrace for e in event.interfaces["exception"].values if e.stacktrace
                 ]
-
             result = []
             for st in stacks:
                 for frame in st.frames:
-                    if path[1] in ("filename", "module"):
+                    if path[1] in ("filename", "module", "abs_path"):
                         result.append(getattr(frame, path[1]))
                     elif path[1] == "code":
                         if frame.pre_context:

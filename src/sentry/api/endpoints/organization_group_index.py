@@ -5,7 +5,7 @@ import six
 
 from django.conf import settings
 
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import ParseError, PermissionDenied
 from rest_framework.response import Response
 
 from sentry import features
@@ -47,7 +47,6 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         "active_at",
         "first_release",
         "first_seen",
-        "message",
     }
 
     def _search(self, request, organization, projects, environments, extra_query_kwargs=None):
@@ -105,19 +104,35 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         :auth: required
         """
         stats_period = request.GET.get("groupStatsPeriod")
+        try:
+            start, end = get_date_range_from_params(request.GET)
+        except InvalidParams as e:
+            raise ParseError(detail=six.text_type(e))
+
+        has_dynamic_issue_counts = features.has(
+            "organizations:dynamic-issue-counts", organization, actor=request.user
+        )
+
         if stats_period not in (None, "", "24h", "14d"):
             return Response({"detail": ERR_INVALID_STATS_PERIOD}, status=400)
         elif stats_period is None:
-            # default
-            stats_period = "24h"
+            if has_dynamic_issue_counts and start and end:
+                # custom date range
+                stats_period = "auto"
+            else:
+                # default if no dynamic-issue-counts
+                stats_period = "24h"
+
         elif stats_period == "":
             # disable stats
             stats_period = None
 
-        try:
-            start, end = get_date_range_from_params(request.GET)
-        except InvalidParams as e:
-            return Response({"detail": six.text_type(e)}, status=400)
+        if stats_period == "auto":
+            stats_period_start = start
+            stats_period_end = end
+        else:
+            stats_period_start = None
+            stats_period_end = None
 
         environments = self.get_environments(request, organization)
 
@@ -125,6 +140,8 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
             StreamGroupSerializerSnuba,
             environment_ids=[env.id for env in environments],
             stats_period=stats_period,
+            stats_period_start=stats_period_start,
+            stats_period_end=stats_period_end,
         )
 
         projects = self.get_projects(request, organization)
@@ -200,7 +217,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
 
         lifetime_stats = serialize(results, request.user, serializer())
 
-        if features.has("organizations:dynamic-issue-counts", organization, actor=request.user):
+        if has_dynamic_issue_counts:
             snuba_filters = []
             if "search_filters" in query_kwargs and query_kwargs["search_filters"] is not None:
                 snuba_filters = [

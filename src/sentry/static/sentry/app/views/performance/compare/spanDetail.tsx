@@ -125,7 +125,7 @@ const MatchedSpanDetailsContent = (props: {
       />
       <Row
         baselineTitle={t('Baseline Span ID')}
-        regressionTitle={t('Regressive Span ID')}
+        regressionTitle={t("This Event's Span ID")}
         renderBaselineContent={() => baselineSpan.span_id}
         renderRegressionContent={() => regressionSpan.span_id}
       />
@@ -268,9 +268,8 @@ const RowSplitter = styled('div')`
 const SpanBarContainer = styled('div')`
   position: relative;
   height: 16px;
-
-  margin-top: ${space(1)};
-  margin-bottom: ${space(1)};
+  margin-top: ${space(3)};
+  margin-bottom: ${space(2)};
 `;
 
 const SpanBars = (props: {
@@ -363,7 +362,7 @@ const RowContainer = styled('div')`
 `;
 
 const RowTitle = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: 13px;
   font-weight: 600;
 `;
 

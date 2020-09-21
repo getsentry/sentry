@@ -58,7 +58,7 @@ export type UnsavedIssueAlertRule = {
   actions: IssueAlertRuleAction[];
   conditions: IssueAlertRuleCondition[];
   filters: IssueAlertRuleCondition[];
-  environment: null | string;
+  environment?: null | string;
   frequency: number;
   name: string;
 };
@@ -82,3 +82,8 @@ export enum AssigneeTargetType {
   Team = 'Team',
   Member = 'Member',
 }
+
+export type NoteType = {
+  text: string;
+  mentions: string[];
+};

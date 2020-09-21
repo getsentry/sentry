@@ -17,11 +17,7 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.samples import load_data
 from sentry.utils.compat.mock import patch
 from sentry.utils.compat import zip
-from sentry.utils.snuba import (
-    RateLimitExceeded,
-    QueryIllegalTypeOfArgument,
-    QueryExecutionError,
-)
+from sentry.utils.snuba import RateLimitExceeded, QueryIllegalTypeOfArgument, QueryExecutionError
 
 
 class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
@@ -259,11 +255,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             project_id=project.id,
         )
 
-        query = {
-            "field": ["project", "count()"],
-            "query": "project:morty",
-            "statsPeriod": "14d",
-        }
+        query = {"field": ["project", "count()"], "query": "project:morty", "statsPeriod": "14d"}
         response = self.do_request(query)
 
         assert response.status_code == 400, response.content
@@ -345,10 +337,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             data={"event_id": "a" * 32, "environment": "staging", "timestamp": self.min_ago},
             project_id=project.id,
         )
-        query = {
-            "field": ["id"],
-            "statsPeriod": "1h",
-        }
+        query = {"field": ["id"], "statsPeriod": "1h"}
         response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert response.data["data"] == [{"project.name": project.slug, "id": "a" * 32}]
@@ -359,10 +348,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             data={"event_id": "a" * 32, "environment": "staging", "timestamp": self.min_ago},
             project_id=project.id,
         )
-        query = {
-            "field": ["id", "count()"],
-            "statsPeriod": "1h",
-        }
+        query = {"field": ["id", "count()"], "statsPeriod": "1h"}
         response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert response.data["data"] == [{"project.name": project.slug, "id": "a" * 32, "count": 1}]
@@ -492,6 +478,46 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.data["data"][0]["project"] == project2.slug
         assert "project.id" not in response.data["data"][0]
 
+    def test_error_handled_condition(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+        prototype = load_data("android-ndk")
+        events = (
+            ("a" * 32, "not handled", False),
+            ("b" * 32, "was handled", True),
+            ("c" * 32, "undefined", None),
+        )
+        for event in events:
+            prototype["event_id"] = event[0]
+            prototype["message"] = event[1]
+            prototype["exception"]["values"][0]["value"] = event[1]
+            prototype["exception"]["values"][0]["mechanism"]["handled"] = event[2]
+            prototype["timestamp"] = self.two_min_ago
+            self.store_event(data=prototype, project_id=project.id)
+
+        with self.feature("organizations:discover-basic"):
+            query = {
+                "field": ["message", "error.handled"],
+                "query": "error.handled:0",
+                "orderby": "message",
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.data
+            assert 1 == len(response.data["data"])
+            assert [0] == response.data["data"][0]["error.handled"]
+
+        with self.feature("organizations:discover-basic"):
+            query = {
+                "field": ["message", "error.handled"],
+                "query": "error.handled:1",
+                "orderby": "message",
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.data
+            assert 2 == len(response.data["data"])
+            assert [None] == response.data["data"][0]["error.handled"]
+            assert [1] == response.data["data"][1]["error.handled"]
+
     def test_implicit_groupby(self):
         project = self.create_project()
         self.store_event(
@@ -513,16 +539,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 2
         data = response.data["data"]
-        assert data[0] == {
-            "project.id": project.id,
-            "issue.id": event1.group_id,
-            "count_id": 2,
-        }
-        assert data[1] == {
-            "project.id": project.id,
-            "issue.id": event2.group_id,
-            "count_id": 1,
-        }
+        assert data[0] == {"project.id": project.id, "issue.id": event1.group_id, "count_id": 2}
+        assert data[1] == {"project.id": project.id, "issue.id": event2.group_id, "count_id": 1}
         meta = response.data["meta"]
         assert meta["count_id"] == "integer"
 
@@ -577,7 +595,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         query = {"field": ["id"], "sort": "garbage"}
         response = self.do_request(query)
         assert response.status_code == 400
-        assert "order by" in response.content
+        assert "order by" in response.data["detail"]
 
     def test_latest_release_alias(self):
         project = self.create_project()
@@ -636,10 +654,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             project_id=project.id,
         )
 
-        query = {
-            "field": ["issue.id", "count(id)", "count_unique(user)"],
-            "orderby": "issue.id",
-        }
+        query = {"field": ["issue.id", "count(id)", "count_unique(user)"], "orderby": "issue.id"}
         response = self.do_request(query)
 
         assert response.status_code == 200, response.content
@@ -1222,46 +1237,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         data = response.data["data"]
         assert len(data) == 1
         assert data[0]["count"] == 0
-
-    def test_reference_event(self):
-        project = self.create_project()
-        reference = self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "transaction": "/example",
-                "message": "how to make fast",
-                "timestamp": self.two_min_ago,
-            },
-            project_id=project.id,
-        )
-        self.store_event(
-            data={
-                "event_id": "b" * 32,
-                "transaction": "/example",
-                "message": "how to make more faster?",
-                "timestamp": self.min_ago,
-            },
-            project_id=project.id,
-        )
-        self.store_event(
-            data={
-                "event_id": "c" * 32,
-                "transaction": "/nomatch",
-                "message": "how to make fast",
-                "timestamp": self.min_ago,
-            },
-            project_id=project.id,
-        )
-        query = {
-            "field": ["transaction", "count()"],
-            "query": "",
-            "referenceEvent": "{}:{}".format(project.slug, reference.event_id),
-        }
-        response = self.do_request(query)
-        assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 1
-        data = response.data["data"]
-        assert data[0]["transaction"] == "/example"
 
     def test_stack_wildcard_condition(self):
         project = self.create_project()
@@ -2082,10 +2057,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             project_id=project.id,
         )
 
-        query = {
-            "field": ["event.type", "count_unique(issue)"],
-            "query": "count_unique(issue):>1",
-        }
+        query = {"field": ["event.type", "count_unique(issue)"], "query": "count_unique(issue):>1"}
         features = {"organizations:discover-basic": True, "organizations:global-views": True}
         response = self.do_request(query, features=features)
 
@@ -2291,7 +2263,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             "os.build",
             "os.kernel_version",
             "device.arch",
-            "device.battery_level",
+            # TODO: battery level is not consistent across both datasets
+            # "device.battery_level",
             "device.brand",
             "device.charging",
             "device.locale",
@@ -2337,16 +2310,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         event_data["type"] = "error"
         self.store_event(event_data, project_id=project.id)
 
-        fields = [
-            "http.method",
-            "http.referer",
-            "http.url",
-        ]
-        expected = [
-            "GET",
-            "fixtures.transaction",
-            "http://countries:8010/country_by_code/",
-        ]
+        fields = ["http.method", "http.referer", "http.url"]
+        expected = ["GET", "fixtures.transaction", "http://countries:8010/country_by_code/"]
 
         data = [
             {"field": fields + ["location", "count()"], "query": "event.type:error"},

@@ -83,17 +83,14 @@ describe('Access', function() {
     });
 
     it('handles no org/project', function() {
-      mount(
-        <Access organization={null} project={null} access={['org:write']}>
-          {childrenMock}
-        </Access>,
-        routerContext
-      );
+      mount(<Access access={['org:write']}>{childrenMock}</Access>, routerContext);
 
-      expect(childrenMock).toHaveBeenCalledWith({
-        hasAccess: false,
-        hasSuperuser: false,
-      });
+      expect(childrenMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          hasAccess: false,
+          hasSuperuser: false,
+        })
+      );
     });
 
     it('handles no user', function() {

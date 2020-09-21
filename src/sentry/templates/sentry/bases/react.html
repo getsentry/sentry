@@ -1,12 +1,19 @@
 {% extends "sentry/layout.html" %}
 
 {% load sentry_api %}
+{% load sentry_assets %}
 
 {% block body %}
   <div id="blk_router">
     <div class="loading triangle">
       <div class="loading-mask"></div>
-      <div class="loading-indicator"></div>
+
+      <div class="loading-indicator">
+        <video autoplay disablePictureInPicture loop height="150">
+          <source src="{% asset_url "sentry" "images/sentry-loader.mp4" %}" type="video/mp4" />
+        </video>
+      </div>
+
       <div class="loading-message">
         <p>Please wait while we load an obnoxious amount of JavaScript.</p>
         <p><small>You may need to disable adblocking extensions to load Sentry.</small></p>

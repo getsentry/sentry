@@ -1,0 +1,239 @@
+{
+  "get": {
+    "tags": ["Projects"],
+    "description": "Return a list of projects available to the authenticated session.",
+    "operationId": "List your Projects",
+    "responses": {
+      "200": {
+        "description": "Success.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "array",
+              "items": {
+                "required": [
+                  "avatar",
+                  "color",
+                  "dateCreated",
+                  "features",
+                  "firstEvent",
+                  "hasAccess",
+                  "id",
+                  "isBookmarked",
+                  "isInternal",
+                  "isMember",
+                  "isPublic",
+                  "name",
+                  "organization",
+                  "platform",
+                  "slug",
+                  "status"
+                ],
+                "properties": {
+                  "avatar": {
+                    "$ref": "../../components/schemas/avatar.json#/Avatar"
+                  },
+                  "color": {
+                    "type": "string"
+                  },
+                  "dateCreated": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "features": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "firstEvent": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "hasAccess": {
+                    "type": "boolean"
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "isBookmarked": {
+                    "type": "boolean"
+                  },
+                  "isInternal": {
+                    "type": "boolean"
+                  },
+                  "isMember": {
+                    "type": "boolean"
+                  },
+                  "isPublic": {
+                    "type": "boolean"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "organization": {
+                    "$ref": "../../components/schemas/organization.json#/Organization"
+                  },
+                  "platform": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "slug": {
+                    "type": "string"
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "active",
+                      "disabled",
+                      "pending_deletion",
+                      "deletion_in_progress"
+                    ]
+                  }
+                }
+              }
+            },
+            "example": [
+              {
+                "avatar": {
+                  "avatarType": "letter_avatar",
+                  "avatarUuid": null
+                },
+                "color": "#bf6e3f",
+                "dateCreated": "2018-11-06T21:20:08.064Z",
+                "features": [
+                  "servicehooks",
+                  "sample-events",
+                  "data-forwarding",
+                  "rate-limits",
+                  "minidump"
+                ],
+                "firstEvent": null,
+                "hasAccess": true,
+                "id": "4",
+                "isBookmarked": false,
+                "isInternal": false,
+                "isMember": true,
+                "isPublic": false,
+                "name": "The Spoiled Yoghurt",
+                "organization": {
+                  "avatar": {
+                    "avatarType": "letter_avatar",
+                    "avatarUuid": null
+                  },
+                  "dateCreated": "2018-11-06T21:19:55.101Z",
+                  "id": "2",
+                  "isEarlyAdopter": false,
+                  "name": "The Interstellar Jurisdiction",
+                  "require2FA": false,
+                  "slug": "the-interstellar-jurisdiction",
+                  "status": {
+                    "id": "active",
+                    "name": "active"
+                  }
+                },
+                "platform": null,
+                "slug": "the-spoiled-yoghurt",
+                "status": "active"
+              },
+              {
+                "avatar": {
+                  "avatarType": "letter_avatar",
+                  "avatarUuid": null
+                },
+                "color": "#bf5b3f",
+                "dateCreated": "2018-11-06T21:19:58.536Z",
+                "features": [
+                  "releases",
+                  "sample-events",
+                  "minidump",
+                  "servicehooks",
+                  "rate-limits",
+                  "data-forwarding"
+                ],
+                "firstEvent": null,
+                "hasAccess": true,
+                "id": "3",
+                "isBookmarked": false,
+                "isInternal": false,
+                "isMember": true,
+                "isPublic": false,
+                "name": "Prime Mover",
+                "organization": {
+                  "avatar": {
+                    "avatarType": "letter_avatar",
+                    "avatarUuid": null
+                  },
+                  "dateCreated": "2018-11-06T21:19:55.101Z",
+                  "id": "2",
+                  "isEarlyAdopter": false,
+                  "name": "The Interstellar Jurisdiction",
+                  "require2FA": false,
+                  "slug": "the-interstellar-jurisdiction",
+                  "status": {
+                    "id": "active",
+                    "name": "active"
+                  }
+                },
+                "platform": null,
+                "slug": "prime-mover",
+                "status": "active"
+              },
+              {
+                "avatar": {
+                  "avatarType": "letter_avatar",
+                  "avatarUuid": null
+                },
+                "color": "#3fbf7f",
+                "dateCreated": "2018-11-06T21:19:55.121Z",
+                "features": [
+                  "releases",
+                  "sample-events",
+                  "minidump",
+                  "servicehooks",
+                  "rate-limits",
+                  "data-forwarding"
+                ],
+                "firstEvent": null,
+                "hasAccess": true,
+                "id": "2",
+                "isBookmarked": false,
+                "isInternal": false,
+                "isMember": true,
+                "isPublic": false,
+                "name": "Pump Station",
+                "organization": {
+                  "avatar": {
+                    "avatarType": "letter_avatar",
+                    "avatarUuid": null
+                  },
+                  "dateCreated": "2018-11-06T21:19:55.101Z",
+                  "id": "2",
+                  "isEarlyAdopter": false,
+                  "name": "The Interstellar Jurisdiction",
+                  "require2FA": false,
+                  "slug": "the-interstellar-jurisdiction",
+                  "status": {
+                    "id": "active",
+                    "name": "active"
+                  }
+                },
+                "platform": null,
+                "slug": "pump-station",
+                "status": "active"
+              }
+            ]
+          }
+        }
+      },
+      "403": {
+        "description": "Forbidden"
+      }
+    },
+    "security": [
+      {
+        "auth_token": ["project:read"]
+      }
+    ]
+  }
+}

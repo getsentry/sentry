@@ -1,0 +1,57 @@
+{
+  "get": {
+    "tags": ["Organizations"],
+    "description": "Return a list of commits for a given repository.",
+    "operationId": "List a Repository's Commits",
+    "parameters": [
+      {
+        "name": "organization_slug",
+        "in": "path",
+        "description": "the organization short name",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "repo_id",
+        "in": "path",
+        "description": "the repository ID",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "responses": {
+      "200": {
+        "description": "Success.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "../../components/schemas/releases/commit.json#/MinimalCommit"
+              }
+            },
+            "example": [
+              {
+                "dateCreated": "2018-11-06T21:19:58.536Z",
+                "id": "acbafc639127fd89d10f474520104517ff1d709e",
+                "message": "Initial commit from Create Next App"
+              }
+            ]
+          }
+        }
+      },
+      "403": {
+        "description": "Forbidden"
+      }
+    },
+    "security": [
+      {
+        "auth_token": ["org: read"]
+      }
+    ]
+  }
+}

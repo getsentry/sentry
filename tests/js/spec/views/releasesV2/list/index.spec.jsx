@@ -7,9 +7,7 @@ import ProjectsStore from 'app/stores/projectsStore';
 import ReleaseList from 'app/views/releasesV2/list/';
 
 describe('ReleasesV2List', function() {
-  const {organization, routerContext, router} = initializeOrg({
-    organization: {features: ['releases-v2']},
-  });
+  const {organization, routerContext, router} = initializeOrg();
   const props = {
     router,
     organization,
@@ -82,7 +80,7 @@ describe('ReleasesV2List', function() {
       routerContext
     );
     expect(wrapper.find('StyledPanel')).toHaveLength(0);
-    expect(wrapper.find('ReleasePromo').text()).toContain('Demystify Releases');
+    expect(wrapper.find('Promo').text()).toContain('Demystify Releases');
 
     location = {query: {statsPeriod: '30d'}};
     wrapper = mountWithTheme(

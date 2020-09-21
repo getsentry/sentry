@@ -46,6 +46,27 @@ export const TRENDS_FUNCTIONS: TrendFunction[] = [
     legendLabel: 'p50',
   },
   {
+    label: 'Duration (p75)',
+    field: TrendFunctionField.P75,
+    alias: 'percentile_range',
+    chartLabel: 'p75()',
+    legendLabel: 'p75',
+  },
+  {
+    label: 'Duration (p95)',
+    field: TrendFunctionField.P95,
+    alias: 'percentile_range',
+    chartLabel: 'p95()',
+    legendLabel: 'p95',
+  },
+  {
+    label: 'Duration (p99)',
+    field: TrendFunctionField.P99,
+    alias: 'percentile_range',
+    chartLabel: 'p99()',
+    legendLabel: 'p99',
+  },
+  {
     label: 'Duration (average)',
     field: TrendFunctionField.AVG,
     alias: 'avg_range',

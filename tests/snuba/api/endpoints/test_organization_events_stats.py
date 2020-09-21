@@ -74,10 +74,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
         )
 
         assert response.status_code == 200, response.content
-        assert [attrs for time, attrs in response.data["data"]] == [
-            [{"count": 1}],
-            [{"count": 2}],
-        ]
+        assert [attrs for time, attrs in response.data["data"]] == [[{"count": 1}], [{"count": 2}]]
 
     def test_no_projects(self):
         org = self.create_organization(owner=self.user)
@@ -90,28 +87,6 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 0
-
-    def test_groupid_filter(self):
-        response = self.client.get(
-            self.url,
-            data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=2)),
-                "interval": "1h",
-                "group": self.group.id,
-            },
-            format="json",
-        )
-
-        assert response.status_code == 200, response.content
-        assert len(response.data["data"])
-
-    def test_groupid_filter_invalid_value(self):
-        url = "%s?group=not-a-number" % (self.url,)
-        with self.feature({"organizations:discover-basic": False}):
-            response = self.client.get(url, format="json")
-
-            assert response.status_code == 400, response.content
 
     def test_user_count(self):
         self.store_event(
@@ -264,7 +239,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             for minute in range(count):
                 self.store_event(
                     data={
-                        "event_id": six.binary_type(six.text_type(uuid.uuid1()).encode("ascii")),
+                        "event_id": six.text_type(uuid.uuid1()),
                         "message": "very bad",
                         "timestamp": iso_format(
                             self.day_ago + timedelta(hours=hour, minutes=minute)
@@ -303,7 +278,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             for minute in range(count):
                 self.store_event(
                     data={
-                        "event_id": six.binary_type(six.text_type(uuid.uuid1()).encode("ascii")),
+                        "event_id": six.text_type(uuid.uuid1()),
                         "message": "very bad",
                         "timestamp": iso_format(
                             self.day_ago + timedelta(hours=hour, minutes=minute)
@@ -340,7 +315,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             for second in range(count):
                 self.store_event(
                     data={
-                        "event_id": six.binary_type(six.text_type(uuid.uuid1()).encode("ascii")),
+                        "event_id": six.text_type(uuid.uuid1()),
                         "message": "very bad",
                         "timestamp": iso_format(
                             self.day_ago + timedelta(minutes=minute, seconds=second)
@@ -379,7 +354,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             for second in range(count):
                 self.store_event(
                     data={
-                        "event_id": six.binary_type(six.text_type(uuid.uuid1()).encode("ascii")),
+                        "event_id": six.text_type(uuid.uuid1()),
                         "message": "very bad",
                         "timestamp": iso_format(
                             self.day_ago + timedelta(minutes=minute, seconds=second)
@@ -412,78 +387,6 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
 
         for row in rows:
             assert row[1][0]["count"] == 1
-
-    def test_with_field_and_reference_event_invalid(self):
-        with self.feature("organizations:discover-basic"):
-            response = self.client.get(
-                self.url,
-                format="json",
-                data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=2)),
-                    "interval": "1h",
-                    "referenceEvent": "nope-invalid",
-                    "yAxis": "count()",
-                },
-            )
-        assert response.status_code == 400, response.content
-        assert "reference" in response.content
-
-    def test_only_reference_event(self):
-        # Create a new event that message matches events made in setup
-        event = self.store_event(
-            data={
-                "event_id": "e" * 32,
-                "message": "oh my",
-                "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
-                "tags": {"sentry:user": "bob@example.com"},
-                "fingerprint": ["group3"],
-            },
-            project_id=self.project.id,
-        )
-        with self.feature("organizations:discover-basic"):
-            response = self.client.get(
-                self.url,
-                format="json",
-                data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=2)),
-                    "interval": "1h",
-                    "referenceEvent": "%s:%s" % (self.project.slug, event.event_id),
-                    "yAxis": "count()",
-                },
-            )
-        assert response.status_code == 200, response.content
-        # Because we didn't send fields, the reference event is not applied
-        assert [attrs for time, attrs in response.data["data"]] == [[{"count": 2}], [{"count": 2}]]
-
-    def test_field_and_reference_event(self):
-        # Create a new event that message matches events made in setup
-        event = self.store_event(
-            data={
-                "event_id": "e" * 32,
-                "message": "oh my",
-                "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
-                "tags": {"sentry:user": "bob@example.com"},
-                "fingerprint": ["group3"],
-            },
-            project_id=self.project.id,
-        )
-        with self.feature("organizations:discover-basic"):
-            response = self.client.get(
-                self.url,
-                format="json",
-                data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=2)),
-                    "field": ["message", "count()"],
-                    "interval": "1h",
-                    "referenceEvent": "%s:%s" % (self.project.slug, event.event_id),
-                    "yAxis": "count()",
-                },
-            )
-        assert response.status_code == 200, response.content
-        assert [attrs for time, attrs in response.data["data"]] == [[{"count": 1}], [{"count": 1}]]
 
     def test_transaction_events(self):
         prototype = {
@@ -624,10 +527,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
                 },
             )
         assert response.status_code == 200
-        assert [attrs for time, attrs in response.data["data"]] == [
-            [{"count": 0}],
-            [{"count": 1}],
-        ]
+        assert [attrs for time, attrs in response.data["data"]] == [[{"count": 0}], [{"count": 1}]]
 
     @mock.patch("sentry.snuba.discover.timeseries_query", return_value={})
     def test_multiple_yaxis_only_one_query(self, mock_query):
@@ -844,15 +744,15 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         }
         with self.feature("organizations:discover-basic"):
             data["topEvents"] = 50
-            response = self.client.get(self.url, data, format="json",)
+            response = self.client.get(self.url, data, format="json")
             assert response.status_code == 400
 
             data["topEvents"] = 0
-            response = self.client.get(self.url, data, format="json",)
+            response = self.client.get(self.url, data, format="json")
             assert response.status_code == 400
 
             data["topEvents"] = "a"
-            response = self.client.get(self.url, data, format="json",)
+            response = self.client.get(self.url, data, format="json")
             assert response.status_code == 400
 
     def test_top_events_with_projects(self):
@@ -945,10 +845,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
 
         results = data[self.transaction.transaction]
         assert results["order"] == 0
-        assert [attrs for time, attrs in results["data"]] == [
-            [{"count": 3}],
-            [{"count": 0}],
-        ]
+        assert [attrs for time, attrs in results["data"]] == [[{"count": 3}], [{"count": 0}]]
 
     def test_top_events_with_functions_on_different_transactions(self):
         """ Transaction2 has less events, but takes longer so order should be self.transaction then transaction2 """
@@ -979,17 +876,11 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
 
         results = data[self.transaction.transaction]
         assert results["order"] == 1
-        assert [attrs for time, attrs in results["data"]] == [
-            [{"count": 3}],
-            [{"count": 0}],
-        ]
+        assert [attrs for time, attrs in results["data"]] == [[{"count": 3}], [{"count": 0}]]
 
         results = data[transaction2.transaction]
         assert results["order"] == 0
-        assert [attrs for time, attrs in results["data"]] == [
-            [{"count": 1}],
-            [{"count": 0}],
-        ]
+        assert [attrs for time, attrs in results["data"]] == [[{"count": 1}], [{"count": 0}]]
 
     def test_top_events_with_query(self):
         transaction_data = load_data("transaction")
@@ -1172,10 +1063,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
 
         results = data[",".join([self.transaction.transaction, "120000"])]
         assert results["order"] == 0
-        assert [attrs for time, attrs in results["data"]] == [
-            [{"count": 3}],
-            [{"count": 0}],
-        ]
+        assert [attrs for time, attrs in results["data"]] == [[{"count": 3}], [{"count": 0}]]
 
     def test_top_events_with_user(self):
         with self.feature("organizations:discover-basic"):
@@ -1297,10 +1185,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert len(data) == 1
 
         results = data["unknown"]
-        assert [attrs for time, attrs in results["data"]] == [
-            [{"count": 3}],
-            [{"count": 0}],
-        ]
+        assert [attrs for time, attrs in results["data"]] == [[{"count": 3}], [{"count": 0}]]
         assert results["order"] == 0
 
     def test_top_events_with_error_handled(self):
@@ -1346,23 +1231,14 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert len(data) == 3
 
         results = data[""]
-        assert [attrs for time, attrs in results["data"]] == [
-            [{"count": 22}],
-            [{"count": 6}],
-        ]
+        assert [attrs for time, attrs in results["data"]] == [[{"count": 22}], [{"count": 6}]]
         assert results["order"] == 0
 
         results = data["1"]
-        assert [attrs for time, attrs in results["data"]] == [
-            [{"count": 1}],
-            [{"count": 0}],
-        ]
+        assert [attrs for time, attrs in results["data"]] == [[{"count": 1}], [{"count": 0}]]
 
         results = data["0"]
-        assert [attrs for time, attrs in results["data"]] == [
-            [{"count": 1}],
-            [{"count": 0}],
-        ]
+        assert [attrs for time, attrs in results["data"]] == [[{"count": 1}], [{"count": 0}]]
 
     def test_top_events_with_aggregate_condition(self):
         with self.feature("organizations:discover-basic"):

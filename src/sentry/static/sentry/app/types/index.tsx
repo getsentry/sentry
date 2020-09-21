@@ -11,6 +11,9 @@ import {
 import {WIDGET_DISPLAY} from 'app/views/dashboards/constants';
 import {Props as AlertProps} from 'app/components/alert';
 import {Query as DiscoverQuery} from 'app/views/discover/types';
+import {SymbolicatorStatus} from 'app/components/events/interfaces/types';
+
+import {Stacktrace, RawStacktrace, Mechanism} from './stacktrace';
 
 declare global {
   interface Window {
@@ -271,6 +274,33 @@ type EventContexts = {
   trace?: TraceContextType;
 };
 
+type EnableIntegrationSuggestion = {
+  type: 'enableIntegration';
+  integrationName: string;
+  enables: Array<SDKUpdatesSuggestion>;
+  integrationUrl?: string | null;
+};
+
+type UpdateSdkSuggestion = {
+  type: 'updateSdk';
+  sdkName: string;
+  newSdkVersion: string;
+  enables: Array<SDKUpdatesSuggestion>;
+  sdkUrl?: string | null;
+};
+
+type ChangeSdkSuggestion = {
+  type: 'changeSdk';
+  newSdkName: string;
+  enables: Array<SDKUpdatesSuggestion>;
+  sdkUrl?: string | null;
+};
+
+type SDKUpdatesSuggestion =
+  | EnableIntegrationSuggestion
+  | UpdateSdkSuggestion
+  | ChangeSdkSuggestion;
+
 type SentryEventBase = {
   id: string;
   eventID: string;
@@ -289,7 +319,7 @@ type SentryEventBase = {
   dateReceived?: string;
   endTimestamp?: number;
   entries: EntryType[];
-  errors: object[];
+  errors: any[];
 
   previousEventID?: string;
   nextEventID?: string;
@@ -310,12 +340,16 @@ type SentryEventBase = {
     enhancements: string;
   };
 
+  userReport?: any;
+
   crashFile: EventAttachment | null;
 
   sdk?: {
     name: string;
     version: string;
   };
+
+  sdkUpdates?: Array<SDKUpdatesSuggestion>;
 };
 
 export type SentryTransactionEvent = {
@@ -511,7 +545,7 @@ export type GlobalSelection = {
     start: DateString;
     end: DateString;
     period: string;
-    utc: boolean;
+    utc: boolean | null;
   };
 };
 
@@ -570,7 +604,7 @@ export type EnrolledAuthenticator = {
   authId: string;
 };
 
-export type Config = {
+export interface Config {
   languageCode: string;
   csrfCookieName: string;
   features: Set<string>;
@@ -612,7 +646,7 @@ export type Config = {
   distPrefix: string;
   apmSampling: number;
   dsn_requests: string;
-};
+}
 
 export type EventOrGroupType =
   | 'error'
@@ -658,6 +692,7 @@ export type Group = {
   shortId: string;
   stats: Record<string, GroupStats[]>;
   filtered?: any; // TODO(ts)
+  lifetime?: any; // TODO(ts)
   status: string;
   statusDetails: ResolutionStatusDetails;
   tags: Pick<Tag, 'key' | 'name' | 'totalValues'>[];
@@ -1044,6 +1079,11 @@ export type Commit = {
   releases: BaseRelease[];
 };
 
+export type Committer = {
+  author: User;
+  commits: Commit[];
+};
+
 export type CommitFile = {
   id: string;
   author: CommitAuthor;
@@ -1081,7 +1121,7 @@ export type NewQuery = {
   createdBy?: User;
 
   // Query and Table
-  query: string;
+  query?: string;
   fields: Readonly<string[]>;
   widths?: Readonly<string[]>;
   orderby?: string;
@@ -1410,7 +1450,7 @@ export type Widget = {
 
 export type EventGroupInfo = Record<EventGroupVariantKey, EventGroupVariant>;
 
-export type PlatformType = 'java' | 'csharp' | 'other';
+export type PlatformType = 'java' | 'csharp' | 'objc' | 'cocoa' | 'native' | 'other';
 
 export type Frame = {
   filename: string;
@@ -1431,6 +1471,8 @@ export type Frame = {
   origAbsPath?: string;
   mapUrl?: string;
   instructionAddr?: string;
+  trust?: string;
+  symbolicatorStatus?: SymbolicatorStatus;
 };
 
 /**
@@ -1453,4 +1495,14 @@ export type FilesByRepository = {
     authors?: {[email: string]: CommitAuthor};
     types?: Set<string>;
   };
+};
+
+export type ExceptionType = {
+  type: string;
+  value: string;
+  stacktrace: Stacktrace;
+  rawStacktrace: RawStacktrace;
+  mechanism: Mechanism | null;
+  module: string | null;
+  threadId: string | null;
 };

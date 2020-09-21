@@ -26,8 +26,7 @@ class RedisBufferTest(TestCase):
     def test_process_pending_one_batch(self, process_incr):
         self.buf.incr_batch_size = 5
         with self.buf.cluster.map() as client:
-            client.zadd("b:p", 1, "foo")
-            client.zadd("b:p", 2, "bar")
+            client.zadd("b:p", {"foo": 1, "bar": 2})
         self.buf.process_pending()
         assert len(process_incr.apply_async.mock_calls) == 1
         process_incr.apply_async.assert_any_call(kwargs={"batch_keys": ["foo", "bar"]})
@@ -39,9 +38,7 @@ class RedisBufferTest(TestCase):
     def test_process_pending_multiple_batches(self, process_incr):
         self.buf.incr_batch_size = 2
         with self.buf.cluster.map() as client:
-            client.zadd("b:p", 1, "foo")
-            client.zadd("b:p", 2, "bar")
-            client.zadd("b:p", 3, "baz")
+            client.zadd("b:p", {"foo": 1, "bar": 2, "baz": 3})
         self.buf.process_pending()
         assert len(process_incr.apply_async.mock_calls) == 2
         process_incr.apply_async.assert_any_call(kwargs={"batch_keys": ["foo", "bar"]})
@@ -126,9 +123,9 @@ class RedisBufferTest(TestCase):
     def test_process_pending_partitions_none(self, process_pending, process_incr):
         self.buf.pending_partitions = 2
         with self.buf.cluster.map() as client:
-            client.zadd("b:p:0", 1, "foo")
-            client.zadd("b:p:1", 1, "bar")
-            client.zadd("b:p", 1, "baz")
+            client.zadd("b:p:0", {"foo": 1})
+            client.zadd("b:p:1", {"bar": 1})
+            client.zadd("b:p", {"baz": 1})
 
         # On first pass, we are expecting to do:
         # * process the buffer that doesn't have a partition (b:p)
