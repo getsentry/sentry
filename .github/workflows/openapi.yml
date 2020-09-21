@@ -1,0 +1,41 @@
+name: openapi
+
+on:
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  deref_json:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout getsentry/sentry
+      uses: actions/checkout@v2
+      with:
+        path: sentry
+
+    - name: Checkout getsentry/sentry-openapi-derefed
+      uses: actions/checkout@v2
+      with:
+        ref: 'main'
+        repository: getsentry/sentry-openapi-derefed
+        path: sentry-openapi-derefed
+
+    - name: Build OpenAPI Derefed JSON
+      uses: volta-cli/action@v1
+      run: |
+        cd sentry
+        yarn run build-derefed-docs
+
+    - name: Copy artifact into getsentry/sentry-openapi-derefed
+      run: |
+      cp /sentry/api-docs/openapi-derefed.json /sentry-openapi-derefed
+
+    - name: Git Commit & Push
+      run: |
+      cd sentry-openapi-derefed
+      git config user.name github-actions
+      git config user.email github-actions@github.com
+      git add .
+      git commit -m "generated"
+      git push
