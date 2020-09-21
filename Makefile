@@ -212,6 +212,12 @@ test-relay-integration:
 	pytest tests/relay_integration -vv
 	@echo ""
 
+test-api-docs:
+	@echo "--> Generating testing api doc schema"
+	yarn run build-derefed-docs
+	pytest tests/apidocs/endpoints
+	@echo ""
+
 review-python-snapshots:
 	@cargo insta --version &> /dev/null || cargo install cargo-insta
 	@cargo insta review --workspace-root `pwd` -e pysnap
