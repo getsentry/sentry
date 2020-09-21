@@ -3,8 +3,9 @@ from __future__ import absolute_import
 import os
 
 from django.conf import settings
-from django.test.client import RequestFactory
 from openapi_core import create_spec
+from openapi_core.contrib.django import DjangoOpenAPIRequest, DjangoOpenAPIResponse
+from openapi_core.validation.response.validators import ResponseValidator
 
 from sentry.utils import json
 from sentry.testutils import APITestCase
@@ -20,6 +21,11 @@ class APIDocsTestCase(APITestCase):
 
             return create_spec(data)
 
-    def validate_schema(self, response):
-        # TODO(meredith): Use validators to validate
-        pass
+    def validate_schema(self, request, response):
+        result = ResponseValidator(self.create_schema()).validate(
+            DjangoOpenAPIRequest(request),
+            DjangoOpenAPIResponse(response)
+        )
+
+        result.raise_for_errors()
+        assert result.errors == []
