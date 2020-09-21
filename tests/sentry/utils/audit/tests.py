@@ -14,6 +14,8 @@ from sentry.models import (
 from sentry.testutils import TestCase
 from sentry.utils.audit import create_audit_entry
 
+username = "hello" * 20
+
 
 class FakeHttpRequest(object):
     def __init__(self, user):
@@ -23,7 +25,7 @@ class FakeHttpRequest(object):
 
 class CreateAuditEntryTest(TestCase):
     def setUp(self):
-        self.user = self.create_user()
+        self.user = self.create_user(username=username)
         self.req = FakeHttpRequest(self.user)
         self.org = self.create_organization(owner=self.user)
         self.team = self.create_team(organization=self.org)
@@ -68,6 +70,7 @@ class CreateAuditEntryTest(TestCase):
         )
 
         assert entry.actor == self.user
+        assert entry.actor_label == username[:64]  # needs trimming
         assert entry.target_object == self.org.id
         assert entry.event == AuditLogEntryEvent.ORG_REMOVE
 
