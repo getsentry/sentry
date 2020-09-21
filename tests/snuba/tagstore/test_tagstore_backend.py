@@ -602,7 +602,7 @@ class TagStorageTest(TestCase, SnubaTestCase):
 
     def test_get_group_seen_values_for_environments(self):
         assert self.ts.get_group_seen_values_for_environments(
-            [self.proj1.id], [self.proj1group1.id], [self.proj1env1.id], []
+            [self.proj1.id], [self.proj1group1.id], [self.proj1env1.id]
         ) == {
             self.proj1group1.id: {
                 "first_seen": self.now - timedelta(seconds=2),
@@ -617,7 +617,6 @@ class TagStorageTest(TestCase, SnubaTestCase):
                 [self.proj1.id],
                 [self.proj1group1.id],
                 [self.proj1env1.id],
-                [],
                 start=self.now - timedelta(hours=5),
                 end=self.now - timedelta(hours=4),
             )
