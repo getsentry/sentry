@@ -54,7 +54,7 @@ ATTR_CHOICES = [
 
 class EventAttributeForm(forms.Form):
     attribute = forms.ChoiceField((a, a) for a in ATTR_CHOICES)
-    match = forms.ChoiceField(MATCH_CHOICES.items())
+    match = forms.ChoiceField(list(MATCH_CHOICES.items()))
     value = forms.CharField(widget=forms.TextInput(), required=False)
 
 
@@ -84,7 +84,7 @@ class EventAttributeCondition(EventCondition):
             "placeholder": "i.e. exception.type",
             "choices": [[a, a] for a in ATTR_CHOICES],
         },
-        "match": {"type": "choice", "choices": MATCH_CHOICES.items()},
+        "match": {"type": "choice", "choices": list(MATCH_CHOICES.items())},
         "value": {"type": "string", "placeholder": "value"},
     }
 

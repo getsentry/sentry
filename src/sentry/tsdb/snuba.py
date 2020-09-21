@@ -326,7 +326,7 @@ class SnubaTSDB(BaseTSDB):
         if len(groups) > 0:
             group, subgroups = groups[0], groups[1:]
             if isinstance(result, dict):
-                for rk in result.keys():
+                for rk in list(result.keys()):
                     if group == "time":  # Skip over time group
                         self.trim(result[rk], subgroups, keys)
                     elif rk in keys:
@@ -455,15 +455,13 @@ class SnubaTSDB(BaseTSDB):
         #    {group:{timestamp:[top1, ...]}}
         # into
         #    {group: [(timestamp, {top1: score, ...}), ...]}
-        for k in result:
-            result[k] = sorted(
-                [
-                    (timestamp, {v: float(i + 1) for i, v in enumerate(reversed(topk or []))})
-                    for (timestamp, topk) in result[k].items()
-                ]
+        return {
+            k: sorted(
+                (timestamp, {v: float(i + 1) for i, v in enumerate(reversed(topk or []))})
+                for (timestamp, topk) in result[k].items()
             )
-
-        return result
+            for k in result.keys()
+        }
 
     def get_frequency_series(self, model, items, start, end=None, rollup=None, environment_id=None):
         result = self.get_data(

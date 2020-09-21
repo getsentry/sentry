@@ -229,7 +229,7 @@ class InMemoryTSDB(BaseTSDB):
             for timestamp in series:
                 result.update(source[self.normalize_ts_to_rollup(timestamp, rollup)])
 
-        for key, counter in results.items():
+        for key, counter in list(results.items()):
             results[key] = counter.most_common(limit)
 
         return results

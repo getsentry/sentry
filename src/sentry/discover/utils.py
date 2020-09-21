@@ -108,7 +108,7 @@ def transform_aliases_and_query(**kwargs):
         elif isinstance(aggregation[1], (set, tuple, list)):
             aggregation[1] = [get_snuba_column_name(col) for col in aggregation[1]]
 
-    for col in filter_keys.keys():
+    for col in list(filter_keys.keys()):
         name = get_snuba_column_name(col)
         filter_keys[name] = filter_keys.pop(col)
 

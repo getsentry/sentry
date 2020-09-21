@@ -578,7 +578,7 @@ class Runner(object):
                 headers["Content-Type"] = "application/json"
             elif format == "multipart":
                 files = {}
-                for key, value in data.items():
+                for key, value in list(data.items()):
                     if hasattr(value, "read") or isinstance(value, tuple):
                         files[key] = value
                         del data[key]
