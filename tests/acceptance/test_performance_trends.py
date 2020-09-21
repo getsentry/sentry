@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import pytz
-import time
 
 from six.moves.urllib.parse import urlencode
 from mock import patch
@@ -94,5 +93,4 @@ class PerformanceTrendsTest(AcceptanceTestCase, SnubaTestCase):
             self.browser.wait_until(trend_item)
             self.browser.wait_until('.echarts-for-react svg path[stroke="#4DC771"]')
             self.browser.wait_until('.echarts-for-react svg path[stroke="#FA4747"]')
-            time.sleep(2)
             self.browser.snapshot("performance trends - with data")
