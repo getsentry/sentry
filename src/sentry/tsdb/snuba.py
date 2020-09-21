@@ -455,15 +455,13 @@ class SnubaTSDB(BaseTSDB):
         #    {group:{timestamp:[top1, ...]}}
         # into
         #    {group: [(timestamp, {top1: score, ...}), ...]}
-        for k in list(result.keys()):
-            result[k] = sorted(
-                [
-                    (timestamp, {v: float(i + 1) for i, v in enumerate(reversed(topk or []))})
-                    for (timestamp, topk) in result[k].items()
-                ]
+        return {
+            k: sorted(
+                (timestamp, {v: float(i + 1) for i, v in enumerate(reversed(topk or []))})
+                for (timestamp, topk) in result[k].items()
             )
-
-        return result
+            for k in result.keys()
+        }
 
     def get_frequency_series(self, model, items, start, end=None, rollup=None, environment_id=None):
         result = self.get_data(
