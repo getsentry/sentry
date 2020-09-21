@@ -13,7 +13,7 @@ class OrganizationRelayHistory(OrganizationEndpoint):
     def get(self, request, organization):
         has_relays = features.has("organizations:relay", organization, actor=request.user)
         if not has_relays:
-            return Response(status=403)
+            return Response(status=404)
 
         option_key = "sentry:trusted-relays"
         try:
