@@ -32,7 +32,7 @@ jobs:
 
     - name: Copy artifact into getsentry/sentry-api-schema
       run: |
-        cp /sentry/api-docs/api-schema.json /sentry-api-schema
+        cp /sentry/api-docs/openapi-derefed.json /sentry-api-schema
 
     - name: Git Commit & Push
       run: |
