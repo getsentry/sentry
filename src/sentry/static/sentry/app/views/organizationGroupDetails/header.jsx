@@ -24,6 +24,7 @@ import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 
 import GroupActions from './actions';
+import {LabelAndMessageWrapper, UnhandledLabel} from './styles';
 
 const TAB = {
   DETAILS: 'details',
@@ -114,33 +115,35 @@ class GroupHeader extends React.Component {
             <h3>
               <EventOrGroupTitle hasGuideAnchor data={group} />
             </h3>
-
-            <EventMessage
-              message={message}
-              level={group.level}
-              annotations={
-                <React.Fragment>
-                  {group.logger && (
-                    <EventAnnotationWithSpace>
-                      <Link
-                        to={{
-                          pathname: `/organizations/${orgId}/issues/`,
-                          query: {query: 'logger:' + group.logger},
-                        }}
-                      >
-                        {group.logger}
-                      </Link>
-                    </EventAnnotationWithSpace>
-                  )}
-                  {group.annotations.map((annotation, i) => (
-                    <EventAnnotationWithSpace
-                      key={i}
-                      dangerouslySetInnerHTML={{__html: annotation}}
-                    />
-                  ))}
-                </React.Fragment>
-              }
-            />
+            <StyledLabelAndMessageWrapper>
+              {(true || group.isUnhandled) && <UnhandledLabel />}
+              <EventMessage
+                message={message}
+                level={group.level}
+                annotations={
+                  <React.Fragment>
+                    {group.logger && (
+                      <EventAnnotationWithSpace>
+                        <Link
+                          to={{
+                            pathname: `/organizations/${orgId}/issues/`,
+                            query: {query: 'logger:' + group.logger},
+                          }}
+                        >
+                          {group.logger}
+                        </Link>
+                      </EventAnnotationWithSpace>
+                    )}
+                    {group.annotations.map((annotation, i) => (
+                      <EventAnnotationWithSpace
+                        key={i}
+                        dangerouslySetInnerHTML={{__html: annotation}}
+                      />
+                    ))}
+                  </React.Fragment>
+                }
+              />
+            </StyledLabelAndMessageWrapper>
           </div>
 
           <div className="col-sm-5 stats">
@@ -255,6 +258,12 @@ class GroupHeader extends React.Component {
     );
   }
 }
+
+const StyledLabelAndMessageWrapper = styled(LabelAndMessageWrapper)`
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    margin-bottom: ${space(2)};
+  }
+`;
 
 const StyledProjectBadge = styled(ProjectBadge)`
   flex-shrink: 0;

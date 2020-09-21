@@ -11,6 +11,10 @@ import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
 import Tooltip from 'app/components/tooltip';
 import {getMessage, getLocation} from 'app/utils/events';
 import GlobalSelectionLink from 'app/components/globalSelectionLink';
+import {
+  LabelAndMessageWrapper,
+  UnhandledLabel,
+} from 'app/views/organizationGroupDetails/styles';
 
 /**
  * Displays an event or group/issue title (i.e. in Stream)
@@ -99,12 +103,18 @@ class EventOrGroupHeader extends React.Component {
     const {className, size, data} = this.props;
     const location = getLocation(data);
     const message = getMessage(data);
+    const isUnhandled = true; // TODO: api
 
     return (
       <div className={className} data-test-id="event-issue-header">
         <Title size={size}>{this.getTitle()}</Title>
         {location && <Location size={size}>{location}</Location>}
-        {message && <Message size={size}>{message}</Message>}
+        {(message || isUnhandled) && (
+          <StyledLabelAndMessageWrapper>
+            {isUnhandled && <UnhandledLabel />}
+            {message && <Message size={size}>{message}</Message>}
+          </StyledLabelAndMessageWrapper>
+        )}
       </div>
     );
   }
@@ -157,9 +167,12 @@ function Location(props) {
   );
 }
 
+const StyledLabelAndMessageWrapper = styled(LabelAndMessageWrapper)`
+  ${getMargin};
+`;
+
 const Message = styled('div')`
   ${truncateStyles};
-  ${getMargin};
   font-size: 14px;
 `;
 
