@@ -1,8 +1,29 @@
-import $ from 'jquery';
 import Reflux from 'reflux';
 import isArray from 'lodash/isArray';
+import extend from 'lodash/extend';
 
-const EventStore = Reflux.createStore({
+import {Event} from 'app/types';
+
+type Internals = {
+  itemsById: Record<string, Event>;
+  items: Event[];
+};
+
+type EventStoreInterface = {
+  init: () => void;
+  reset: () => void;
+  loadInitialData: (items: Event[]) => void;
+  add: (items: Event[]) => void;
+  remove: (id: string) => void;
+  get: (id: string) => Event | undefined;
+  getAllItemIds: () => string[];
+  getAllItems: () => Event[];
+};
+
+const storeConfig: Reflux.StoreDefinition & Internals & EventStoreInterface = {
+  items: [],
+  itemsById: {},
+
   init() {
     this.reset();
   },
@@ -37,7 +58,7 @@ const EventStore = Reflux.createStore({
 
     items.forEach((item, idx) => {
       if (itemsById[item.id]) {
-        this.items[idx] = $.extend(true, {}, item, itemsById[item.id]);
+        this.items[idx] = extend(true, {}, item, itemsById[item.id]);
         delete itemsById[item.id];
       }
     });
@@ -75,6 +96,8 @@ const EventStore = Reflux.createStore({
   getAllItems() {
     return this.items;
   },
-});
+};
 
-export default EventStore;
+type EventStore = Reflux.Store & EventStoreInterface;
+
+export default Reflux.createStore(storeConfig) as EventStore;
