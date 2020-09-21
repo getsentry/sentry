@@ -233,17 +233,25 @@ class ReleaseSerializer(Serializer):
                 group_counts_by_release.setdefault(release_id, {})[project_id] = new_groups
         return first_seen, last_seen, group_counts_by_release
 
-    def __get_release_data_with_environment(self, project, item_list, environment):
+    def __get_release_data_with_environments(self, project, item_list, environments):
         release_project_envs = ReleaseProjectEnvironment.objects.filter(
-            release__in=item_list, environment=environment
+            release__in=item_list, environment__name__in=environments
         ).select_related("release")
         if project is not None:
             release_project_envs = release_project_envs.filter(project=project)
         first_seen = {}
         last_seen = {}
         for release_project_env in release_project_envs:
-            first_seen[release_project_env.release.version] = release_project_env.first_seen
-            last_seen[release_project_env.release.version] = release_project_env.last_seen
+            if (
+                release_project_env.release.version not in first_seen
+                or first_seen[release_project_env.release.version] > release_project_env.first_seen
+            ):
+                first_seen[release_project_env.release.version] = release_project_env.first_seen
+            if (
+                release_project_env.release.version not in last_seen
+                or last_seen[release_project_env.release.version] < release_project_env.last_seen
+            ):
+                last_seen[release_project_env.release.version] = release_project_env.last_seen
 
         group_counts_by_release = {}
         for project_id, release_id, new_groups in release_project_envs.annotate(
@@ -255,24 +263,32 @@ class ReleaseSerializer(Serializer):
 
     def get_attrs(self, item_list, user, **kwargs):
         project = kwargs.get("project")
+
+        # Some code paths pass an environment object, other pass a list of
+        # environment names.
         environment = kwargs.get("environment")
+        environments = kwargs.get("environments")
+        if not environments:
+            if environment:
+                environments = [environment.name]
+            else:
+                environments = None
+
         with_health_data = kwargs.get("with_health_data", False)
         health_stat = kwargs.get("health_stat", None)
         health_stats_period = kwargs.get("health_stats_period")
         summary_stats_period = kwargs.get("summary_stats_period")
 
-        if environment is None:
+        if environments is None:
             first_seen, last_seen, issue_counts_by_release = self.__get_release_data_no_environment(
                 project, item_list
             )
-            environments = None
         else:
             (
                 first_seen,
                 last_seen,
                 issue_counts_by_release,
-            ) = self.__get_release_data_with_environment(project, item_list, environment)
-            environments = [environment]
+            ) = self.__get_release_data_with_environments(project, item_list, environments)
 
         owners = {
             d["id"]: d for d in serialize(set(i.owner for i in item_list if i.owner_id), user)
