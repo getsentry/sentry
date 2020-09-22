@@ -23,8 +23,7 @@ class APIDocsTestCase(APITestCase):
 
     def validate_schema(self, request, response):
         result = ResponseValidator(self.create_schema()).validate(
-            DjangoOpenAPIRequest(request),
-            DjangoOpenAPIResponse(response)
+            DjangoOpenAPIRequest(request), DjangoOpenAPIResponse(response)
         )
 
         result.raise_for_errors()
