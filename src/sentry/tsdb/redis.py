@@ -791,7 +791,7 @@ class RedisTSDB(BaseTSDB):
         # as positional arguments to the Redis script and later associating the
         # results (which are returned in the same order that the arguments were
         # provided) with the original input values to compose the result.
-        for key, members in items.items():
+        for key, members in list(items.items()):
             items[key] = list(members)
 
         commands = {}

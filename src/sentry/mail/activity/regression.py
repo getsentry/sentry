@@ -29,3 +29,6 @@ class RegressionActivityEmail(ActivityEmail):
             )
 
         return u"{author} marked {an issue} as a regression"
+
+    def get_category(self):
+        return "regression_activity_email"
