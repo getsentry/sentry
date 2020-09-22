@@ -3011,6 +3011,13 @@
   dependencies:
     "@types/react" "*"
 
+"@types/react-dom@^16 || ^17":
+  version "16.9.8"
+  resolved "https://registry.yarnpkg.com/@types/react-dom/-/react-dom-16.9.8.tgz#fe4c1e11dfc67155733dfa6aa65108b4971cb423"
+  integrity sha512-ykkPQ+5nFknnlU6lDd947WbQ6TE3NNzbQAkInC2EKY1qeYdTKp7onFusmYZb+ityzx2YviqT6BXSu+LyWWJwcA==
+  dependencies:
+    "@types/react" "*"
+
 "@types/react-mentions@3.3.0":
   version "3.3.0"
   resolved "https://registry.yarnpkg.com/@types/react-mentions/-/react-mentions-3.3.0.tgz#b446362a1ae20d0c71661c22abd523e8e033220a"
@@ -3078,6 +3085,14 @@
   dependencies:
     "@types/prop-types" "*"
     csstype "^2.2.0"
+
+"@types/react@^16 || ^17":
+  version "16.9.49"
+  resolved "https://registry.yarnpkg.com/@types/react/-/react-16.9.49.tgz#09db021cf8089aba0cdb12a49f8021a69cce4872"
+  integrity sha512-DtLFjSj0OYAdVLBbyjhuV9CdGVHCkHn2R+xr3XkBvK2rS1Y1tkc14XSGjYgm5Fjjr90AxH9tiSzc1pCFMGO06g==
+  dependencies:
+    "@types/prop-types" "*"
+    csstype "^3.0.2"
 
 "@types/reflexbox@^4.0.0":
   version "4.0.0"
@@ -12003,10 +12018,14 @@ pkg-up@2.0.0, pkg-up@^2.0.0:
   dependencies:
     find-up "^2.1.0"
 
-platformicons@3.0.0:
-  version "3.0.0"
-  resolved "https://registry.yarnpkg.com/platformicons/-/platformicons-3.0.0.tgz#49696f922c3e081751195d9561f3f913361a61af"
-  integrity sha512-/upfuKrPteZ8twPeiMnZSgLfI7W5RGEmLpOAazH2fmzntIQAStLM+QFrjD0tZycK8Ma9c4xCZeWZg7YqeJV+Bg==
+platformicons@^3.1.0:
+  version "3.1.0"
+  resolved "https://registry.yarnpkg.com/platformicons/-/platformicons-3.1.0.tgz#a3fa2fba83d3304c06a7c5b4502b34bbb0663505"
+  integrity sha512-HVjDjE/1M2yhL+wt2RHjgjo2g9Yo0y7sJdM4ZHISE7tuPwr43A9TSHOeRgocs1whNayQpIcnLPMCb6MS0/mwVg==
+  dependencies:
+    "@types/node" "*"
+    "@types/react" "^16 || ^17"
+    "@types/react-dom" "^16 || ^17"
 
 pluralize@^7.0.0:
   version "7.0.0"
