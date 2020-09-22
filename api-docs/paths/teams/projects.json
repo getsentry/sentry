@@ -21,11 +21,14 @@
         "schema": {
           "type": "string"
         }
+      },
+      {
+        "$ref": "../../components/parameters/pagination-cursor.json#/PaginationCursor"
       }
     ],
     "responses": {
       "200": {
-        "description": "Success.",
+        "description": "Success",
         "content": {
           "application/json": {
             "schema": {
@@ -125,7 +128,7 @@
               },
               "slug": {
                 "type": "string",
-                "description": "Optionally a slug for the new project. If it’s not provided a slug is generated from the name.",
+                "description": "Optional slug for the new project. If not provided a slug is generated from the name.",
                 "example": "the-spoiled-yoghurt"
               }
             }
@@ -136,7 +139,7 @@
     },
     "responses": {
       "201": {
-        "description": "Created.",
+        "description": "Created",
         "content": {
           "application/json": {
             "schema": {

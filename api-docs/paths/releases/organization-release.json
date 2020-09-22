@@ -25,7 +25,7 @@
     ],
     "responses": {
       "200": {
-        "description": "Success.",
+        "description": "Success",
         "content": {
           "application/json": {
             "schema": {
@@ -60,6 +60,9 @@
       },
       "403": {
         "description": "Forbidden"
+      },
+      "404": {
+        "description": "Not Found"
       }
     },
     "security": [
@@ -70,8 +73,8 @@
   },
   "put": {
     "tags": ["Releases"],
-    "description": "Update a release for a give organization.",
-    "operationId": "Update an Organization's Release.",
+    "description": "Update a release for a given organization.",
+    "operationId": "Update an Organization's Release",
     "parameters": [
       {
         "name": "organization_slug",
@@ -100,11 +103,13 @@
             "properties": {
               "ref": {
                 "type": "string",
-                "description": "An optional commit reference. This is useful if a tagged version has been provided."
+                "description": "An optional commit reference. This is useful if a tagged version has been provided.",
+                "example": "freshtofu"
               },
               "url": {
                 "type": "string",
-                "description": "A URL that points to the release. This can be the path to an online interface to the sourcecode for instance."
+                "description": "A URL that points to the release. This can be the path to an online interface to the source code for instance.",
+                "example": "https://vcshub.invalid/user/project/refs/freshtofu"
               },
               "dateReleased": {
                 "type": "string",
@@ -132,7 +137,7 @@
     },
     "responses": {
       "200": {
-        "description": "Success.",
+        "description": "Success",
         "content": {
           "application/json": {
             "schema": {
@@ -164,6 +169,12 @@
             }
           }
         }
+      },
+      "403": {
+        "description": "Forbidden"
+      },
+      "404": {
+        "description": "Not Found"
       }
     },
     "security": [
@@ -175,7 +186,7 @@
   "delete": {
     "tags": ["Releases"],
     "description": "Delete a release for a given organization.",
-    "operationId": "Delete an Organization's Release.",
+    "operationId": "Delete an Organization's Release",
     "parameters": [
       {
         "name": "organization_slug",
@@ -198,13 +209,13 @@
     ],
     "responses": {
       "204": {
-        "description": "Success."
+        "description": "Success"
       }
     },
     "security": [
-        {
-            "auth_token": ["project:releases"]
-        }
+      {
+        "auth_token": ["project:releases"]
+      }
     ]
   }
 }

@@ -2,7 +2,7 @@
   "get": {
     "tags": ["Projects"],
     "description": "Return a list of service hooks bound to a project.",
-    "operationId": "List a project's service hooks",
+    "operationId": "List a Project's Service Hooks",
     "parameters": [
       {
         "name": "organization_slug",
@@ -21,11 +21,14 @@
         "schema": {
           "type": "string"
         }
+      },
+      {
+        "$ref": "../../components/parameters/pagination-cursor.json#/PaginationCursor"
       }
     ],
     "responses": {
       "200": {
-        "description": "Success.",
+        "description": "Success",
         "content": {
           "application/json": {
             "schema": {
@@ -60,7 +63,7 @@
   "post": {
     "tags": ["Projects"],
     "description": "Register a new service hook on a project.\n\nEvents include:\n\n- event.alert: An alert is generated for an event (via rules).\n- event.created: A new event has been processed.\n\nThis endpoint requires the 'servicehooks' feature to be enabled for your project.",
-    "operationId": "Register a new service hook",
+    "operationId": "Register a New Service Hook",
     "parameters": [
       {
         "name": "organization_slug",
@@ -90,20 +93,18 @@
             "properties": {
               "url": {
                 "type": "string",
-                "description": "The url for the webhook."
+                "description": "The URL for the webhook.",
+                "example": "https://example.com/sentry-hook"
               },
               "events": {
                 "type": "array",
                 "description": "The events to subscribe to.",
+                "example": ["event.alert", "event.created"],
                 "items": {
                   "type": "string"
                 }
               }
             }
-          },
-          "example": {
-            "events": ["event.alert", "event.created"],
-            "url": "https://example.com/sentry-hook"
           }
         }
       },
@@ -111,7 +112,7 @@
     },
     "responses": {
       "201": {
-        "description": "Success.",
+        "description": "Success",
         "content": {
           "application/json": {
             "schema": {

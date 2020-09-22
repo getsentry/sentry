@@ -2,7 +2,7 @@
   "get": {
     "tags": ["Projects"],
     "description": "Return a list of users seen within this project.",
-    "operationId": "List a project's users",
+    "operationId": "List a Project's Users",
     "parameters": [
       {
         "name": "organization_slug",
@@ -33,7 +33,7 @@
     ],
     "responses": {
       "200": {
-        "description": "Success.",
+        "description": "Success",
         "content": {
           "application/json": {
             "schema": {

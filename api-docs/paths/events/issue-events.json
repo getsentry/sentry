@@ -1,10 +1,8 @@
 {
   "get": {
-    "tags": [
-      "Events"
-    ],
+    "tags": ["Events"],
     "description": "This endpoint lists an issue's events.",
-    "operationId": "List a issue's events",
+    "operationId": "List an Issue's Events",
     "parameters": [
       {
         "name": "issue_id",
@@ -26,7 +24,7 @@
     ],
     "responses": {
       "200": {
-        "description": "Success.",
+        "description": "Success",
         "content": {
           "application/json": {
             "schema": {
@@ -34,7 +32,54 @@
               "items": {
                 "$ref": "../../components/schemas/event.json#/Event"
               }
-            }
+            },
+            "example": [
+              {
+                "eventID": "9fac2ceed9344f2bbfdd1fdacb0ed9b1",
+                "tags": [
+                  {
+                    "key": "browser",
+                    "value": "Chrome 60.0"
+                  },
+                  {
+                    "key": "device",
+                    "value": "Other"
+                  },
+                  {
+                    "key": "environment",
+                    "value": "production"
+                  },
+                  {
+                    "value": "fatal",
+                    "key": "level"
+                  },
+                  {
+                    "key": "os",
+                    "value": "Mac OS X 10.12.6"
+                  },
+                  {
+                    "value": "CPython 2.7.16",
+                    "key": "runtime"
+                  },
+                  {
+                    "key": "release",
+                    "value": "17642328ead24b51867165985996d04b29310337"
+                  },
+                  {
+                    "key": "server_name",
+                    "value": "web1.example.com"
+                  }
+                ],
+                "dateCreated": "2020-09-11T17:46:36Z",
+                "user": null,
+                "message": "",
+                "title": "This is an example Python exception",
+                "id": "dfb1a2d057194e76a4186cc8a5271553",
+                "platform": "python",
+                "event.type": "error",
+                "groupID": "1889724436"
+              }
+            ]
           }
         }
       },
@@ -44,9 +89,7 @@
     },
     "security": [
       {
-        "auth_token": [
-          "event:read"
-        ]
+        "auth_token": ["event:read"]
       }
     ]
   }

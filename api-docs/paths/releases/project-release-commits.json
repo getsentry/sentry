@@ -1,8 +1,8 @@
 {
   "get": {
     "tags": ["Releases"],
-    "description": "List an project release's commits.",
-    "operationId": "List an Project Release's Commits",
+    "description": "List a project release's commits.",
+    "operationId": "List a Project Release's Commits",
     "parameters": [
       {
         "name": "organization_slug",
@@ -34,7 +34,7 @@
     ],
     "responses": {
       "200": {
-        "description": "Success.",
+        "description": "Success",
         "content": {
           "application/json": {
             "schema": {
@@ -52,6 +52,12 @@
             ]
           }
         }
+      },
+      "403": {
+        "description": "Forbidden"
+      },
+      "404": {
+        "description": "Not Found"
       }
     },
     "security": [

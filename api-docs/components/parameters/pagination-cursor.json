@@ -1,0 +1,12 @@
+{
+  "PaginationCursor": {
+    "name": "&cursor",
+    "in": "query",
+    "required": false,
+    "description": "A pointer to the last object fetched and its' sort order; used to retrieve the next or previous results.",
+    "x-learn-more": "https://docs.sentry.io/api/pagination/",
+    "schema": {
+      "type": "string"
+    }
+  }
+}

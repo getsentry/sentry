@@ -7,7 +7,7 @@
       {
         "name": "organization_slug",
         "in": "path",
-        "description": "the slug of the organization to look up.",
+        "description": "The slug of the organization to look up.",
         "required": true,
         "schema": {
           "type": "string"
@@ -16,7 +16,7 @@
     ],
     "responses": {
       "200": {
-        "description": "Success.",
+        "description": "Success",
         "content": {
           "application/json": {
             "schema": {
@@ -213,6 +213,9 @@
       },
       "404": {
         "description": "The requested resource does not exist"
+      },
+      "401": {
+        "description": "Unauthorized"
       }
     },
     "security": [
@@ -245,12 +248,12 @@
             "properties": {
               "name": {
                 "type": "string",
-                "description": "an optional new name for the organization.",
+                "description": "An optional new name for the organization.",
                 "example": "Impeccably Designated"
               },
               "slug": {
                 "type": "string",
-                "description": "an optional new slug for the organization. Needs to be available and unique.",
+                "description": "An optional new slug for the organization. Needs to be available and unique.",
                 "example": "impeccably-designated"
               }
             }
@@ -261,7 +264,7 @@
     },
     "responses": {
       "200": {
-        "description": "Success.",
+        "description": "Success",
         "content": {
           "application/json": {
             "schema": {
@@ -343,8 +346,14 @@
       "403": {
         "description": "Forbidden"
       },
+      "401": {
+        "description": "Unauthorized"
+      },
       "404": {
-        "description": "The requested resource does not exist"
+        "description": "Not Found"
+      },
+      "400": {
+        "description": "Bad Input"
       }
     },
     "security": [

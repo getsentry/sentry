@@ -7,7 +7,7 @@
       {
         "name": "organization_slug",
         "in": "path",
-        "description": "the slug of the organization the event ID should be looked up in.",
+        "description": "The slug of the organization the event ID should be looked up in.",
         "required": true,
         "schema": {
           "type": "string"
@@ -16,7 +16,7 @@
       {
         "name": "project",
         "in": "query",
-        "description": "restrict results to users who have access to a given project ID",
+        "description": "Restrict results to users who have access to a given project ID",
         "schema": {
           "type": "string"
         }
@@ -24,7 +24,7 @@
     ],
     "responses": {
       "200": {
-        "description": "Success.",
+        "description": "Success",
         "content": {
           "application/json": {
             "schema": {
@@ -79,6 +79,12 @@
       },
       "403": {
         "description": "Forbidden"
+      },
+      "401": {
+        "description": "Unauthorized"
+      },
+      "404": {
+        "description": "Not Found"
       }
     },
     "security": [

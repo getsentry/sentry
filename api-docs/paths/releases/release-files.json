@@ -25,7 +25,7 @@
     ],
     "responses": {
       "200": {
-        "description": "Success.",
+        "description": "Success",
         "content": {
           "application/json": {
             "schema": {
@@ -49,10 +49,12 @@
             ]
           }
         }
-
       },
       "403": {
         "description": "Forbidden"
+      },
+      "404": {
+        "description": "Not Found"
       }
     },
     "security": [
@@ -64,7 +66,7 @@
   "post": {
     "tags": ["Releases"],
     "description": "Upload a new organization release file.",
-    "operationId": "Upload a New Organization Release File.",
+    "operationId": "Upload a New Organization Release File",
     "parameters": [
       {
         "name": "organization_slug",
@@ -94,16 +96,18 @@
             "properties": {
               "name": {
                 "type": "string",
-                "description": "The name (full path) of the file."
+                "description": "The name (full path) of the file.",
+                "example": "/demo/release.min.js"
               },
               "file": {
                 "type": "string",
                 "format": "binary",
-                "description": "The multipart encoded file."
+                "description": "The multipart encoded file.",
+                "example": "release.min.js"
               },
               "dist": {
                 "type": "string",
-                "description": "The name of the dist"
+                "description": "The name of the dist."
               },
               "header": {
                 "type": "string",
@@ -116,7 +120,13 @@
     },
     "responses": {
       "201": {
-        "description": "Success."
+        "description": "Success"
+      },
+      "403": {
+        "description": "Forbidden"
+      },
+      "404": {
+        "description": "Not Found"
       }
     },
     "security": [

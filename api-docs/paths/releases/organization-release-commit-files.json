@@ -1,37 +1,43 @@
 {
-    "get": {
-        "tags": ["Releases"],
-        "description": "Retrieve files changed in a release's commits",
-        "operationId": "Retrieve Files Changed in a Release's Commits",
-        "parameters": [
-            {
-                "name": "organization_slug",
-                "in": "path",
-                "description": "The slug of the organization the release belongs to.",
-                "required": true,
-                "schema": {
-                    "type": "string"
-                }
-            },
-            {
-                "name": "version",
-                "in": "path",
-                "description": "The version identifier of the release.",
-                "required": true,
-                "schema": {
-                    "type": "string"
-                }
-            }
-        ],
-        "responses": {
-            "200": {
-                "description": "Success."
-            }
-        },
-        "security": [
-            {
-                "auth_token": ["project:releases"]
-            }
-        ]
-    }
+  "get": {
+    "tags": ["Releases"],
+    "description": "Retrieve files changed in a release's commits",
+    "operationId": "Retrieve Files Changed in a Release's Commits",
+    "parameters": [
+      {
+        "name": "organization_slug",
+        "in": "path",
+        "description": "The slug of the organization the release belongs to.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "version",
+        "in": "path",
+        "description": "The version identifier of the release.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "responses": {
+      "200": {
+        "description": "Success"
+      },
+      "403": {
+        "description": "Forbidden"
+      },
+      "404": {
+        "description": "Not Found"
+      }
+    },
+    "security": [
+      {
+        "auth_token": ["project:releases"]
+      }
+    ]
+  }
 }
