@@ -126,6 +126,9 @@ class ActivityEmail(object):
         # use in case context of email changes depending on user
         return {}
 
+    def get_category(self):
+        raise NotImplementedError
+
     def get_headers(self):
         project = self.project
         group = self.group
@@ -138,6 +141,7 @@ class ActivityEmail(object):
                     "X-Sentry-Logger": group.logger,
                     "X-Sentry-Logger-Level": group.get_level_display(),
                     "X-Sentry-Reply-To": group_id_to_email(group.id),
+                    "category": self.get_category(),
                 }
             )
 

@@ -28,3 +28,6 @@ class ResolvedInReleaseActivityEmail(ActivityEmail):
                 },
             )
         return u"{author} marked {an issue} as resolved in an upcoming release"
+
+    def get_category(self):
+        return "resolved_in_release_activity_email"

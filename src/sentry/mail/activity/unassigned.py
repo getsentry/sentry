@@ -9,3 +9,6 @@ class UnassignedActivityEmail(ActivityEmail):
 
     def get_description(self):
         return u"{author} unassigned {an issue}"
+
+    def get_category(self):
+        return "unassigned_activity_email"
