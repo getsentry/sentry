@@ -261,7 +261,9 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
                 project=project,
             )
 
-        with self.feature("organizations:performance-view"):
+        with self.feature(
+            {"organizations:performance-view": True, "organizations:global-views": True}
+        ):
             url = reverse("sentry-api-0-organization-key-transactions", args=[self.org.slug])
             response = self.client.get(
                 url,

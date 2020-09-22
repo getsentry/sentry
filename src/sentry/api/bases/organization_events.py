@@ -20,6 +20,7 @@ from sentry.api.event_search import (
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
 from sentry.models.group import Group
 from sentry.snuba import discover
+from sentry.utils.snuba import MAX_FIELDS
 from sentry.utils.dates import get_rollup_from_request
 from sentry.utils.http import absolute_uri
 from sentry.utils import snuba
@@ -33,12 +34,33 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
     def get_snuba_filter(self, request, organization, params=None):
         if params is None:
-            params = self.get_filter_params(request, organization)
+            params = self.get_snuba_params(request, organization)
         query = request.GET.get("query")
         try:
             return get_filter(query, params)
         except InvalidSearchQuery as e:
             raise ParseError(detail=six.text_type(e))
+
+    def get_snuba_params(self, request, organization, check_global_views=True):
+        with sentry_sdk.start_span(op="discover.endpoint", description="filter_params"):
+            if len(request.GET.getlist("field")) > MAX_FIELDS:
+                raise ParseError(
+                    detail="You can view up to {0} fields at a time. Please delete some and try again.".format(
+                        MAX_FIELDS
+                    )
+                )
+
+            params = self.get_filter_params(request, organization)
+            params = self.quantize_date_params(request, params)
+
+            if check_global_views:
+                has_global_views = features.has(
+                    "organizations:global-views", organization, actor=request.user
+                )
+                if not has_global_views and len(params.get("project_id", [])) > 1:
+                    raise ParseError(detail="You cannot view events from multiple projects.")
+
+            return params
 
     def get_orderby(self, request):
         sort = request.GET.getlist("sort")
@@ -194,7 +216,13 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         return results
 
     def get_event_stats_data(
-        self, request, organization, get_event_stats, top_events=False, query_column="count()"
+        self,
+        request,
+        organization,
+        get_event_stats,
+        top_events=False,
+        query_column="count()",
+        params=None,
     ):
         with self.handle_query_errors():
             with sentry_sdk.start_span(
@@ -202,11 +230,15 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             ):
                 columns = request.GET.getlist("yAxis", [query_column])
                 query = request.GET.get("query")
-                try:
-                    params = self.get_filter_params(request, organization)
-                except NoProjects:
-                    return {"data": []}
-                params = self.quantize_date_params(request, params)
+                if params is None:
+                    try:
+                        # events-stats is still used by events v1 which doesn't require global views
+                        params = self.get_snuba_params(
+                            request, organization, check_global_views=False
+                        )
+                    except NoProjects:
+                        return {"data": []}
+
                 rollup = get_rollup_from_request(
                     request,
                     params,

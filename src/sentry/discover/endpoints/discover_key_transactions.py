@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from django.db import transaction
 from rest_framework.response import Response
 
-from sentry.api.bases import KeyTransactionBase
+from sentry.api.bases import KeyTransactionBase, NoProjects
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.discover.models import KeyTransaction
 from sentry.discover.endpoints.serializers import KeyTransactionSerializer
@@ -74,7 +74,11 @@ class KeyTransactionEndpoint(KeyTransactionBase):
         if not self.has_feature(request, organization):
             return Response(status=404)
 
-        params = self.get_filter_params(request, organization)
+        try:
+            params = self.get_snuba_params(request, organization)
+        except NoProjects:
+            return Response([])
+
         fields = request.GET.getlist("field")[:]
         orderby = self.get_orderby(request)
 

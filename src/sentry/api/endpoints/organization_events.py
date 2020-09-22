@@ -1,11 +1,9 @@
 from __future__ import absolute_import
 
 import logging
-import sentry_sdk
 
 from functools import partial
 from rest_framework.response import Response
-from rest_framework.exceptions import ParseError
 
 from sentry.api.bases import (
     OrganizationEventsEndpointBase,
@@ -15,9 +13,8 @@ from sentry.api.bases import (
 from sentry.api.helpers.events import get_direct_hit_response
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import EventSerializer, serialize, SimpleEventSerializer
-from sentry import eventstore, features
+from sentry import eventstore
 from sentry.snuba import discover
-from sentry.utils.snuba import MAX_FIELDS
 from sentry.models.project import Project
 
 logger = logging.getLogger(__name__)
@@ -91,26 +88,10 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
         if not self.has_feature(organization, request):
             return Response(status=404)
 
-        with sentry_sdk.start_span(op="discover.endpoint", description="filter_params") as span:
-            span.set_tag("organization", organization)
-            try:
-                params = self.get_filter_params(request, organization)
-            except NoProjects:
-                return Response([])
-            params = self.quantize_date_params(request, params)
-
-            has_global_views = features.has(
-                "organizations:global-views", organization, actor=request.user
-            )
-            if not has_global_views and len(params.get("project_id", [])) > 1:
-                raise ParseError(detail="You cannot view events from multiple projects.")
-
-            if len(request.GET.getlist("field")) > MAX_FIELDS:
-                raise ParseError(
-                    detail="You can view up to {0} fields at a time. Please delete some and try again.".format(
-                        MAX_FIELDS
-                    )
-                )
+        try:
+            params = self.get_snuba_params(request, organization)
+        except NoProjects:
+            return Response([])
 
         def data_fn(offset, limit):
             return discover.query(
