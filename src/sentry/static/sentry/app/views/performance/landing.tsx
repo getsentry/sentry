@@ -178,12 +178,16 @@ class PerformanceLanding extends React.Component<Props, State> {
 
     // This is a temporary change for trends to test adding a default count to increase relevancy
     if (viewKey === FilterViews.TRENDS) {
+      const hasStartAndEnd = newQuery.start && newQuery.end;
+      if (!newQuery.statsPeriod && !hasStartAndEnd) {
+        newQuery.statsPeriod = DEFAULT_TRENDS_STATS_PERIOD;
+      }
       if (!newQuery.query) {
         newQuery.query =
           'count():>1000 transaction.duration:>0 p50():>0 avg(transaction.duration):>0';
       }
       if (!newQuery.query.includes('count()')) {
-        newQuery.query += 'count():>1000';
+        newQuery.query += (newQuery.query ? ' ' : '') + 'count():>1000';
       }
       if (!newQuery.query.includes('transaction.duration')) {
         newQuery.query += ' transaction.duration:>0';
@@ -208,6 +212,7 @@ class PerformanceLanding extends React.Component<Props, State> {
                     key={viewKey}
                     barId={viewKey}
                     size="small"
+                    data-test-id={'landing-header-' + viewKey.toLowerCase()}
                     onClick={() => this.handleViewChange(viewKey)}
                   >
                     {this.getViewLabel(viewKey)}
