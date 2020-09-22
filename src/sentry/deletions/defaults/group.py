@@ -57,7 +57,6 @@ class EventDataDeletionTask(BaseDeletionTask):
 
         # Remove EventAttachment and UserReport
         event_ids = [event.event_id for event in events]
-
         EventAttachment.objects.filter(event_id__in=event_ids, project_id=self.project_id).delete()
         UserReport.objects.filter(event_id__in=event_ids, project_id=self.project_id).delete()
 
