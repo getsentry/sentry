@@ -96,9 +96,24 @@ const AGGREGATE_FUNCTIONS = {
     Math.min(...seriesChunk.map(series => series.value)),
 };
 
+/**
+ * Determines the number of datapoints to roll up
+ */
+const getBucketSize = (timeWindow: TimeWindow, dataPoints: number): number => {
+  const MAX_DPS = 720;
+  for (const bucketSize of [5, 10, 15, 30, 60, 120, 240]) {
+    const chunkSize = bucketSize / timeWindow;
+    if (dataPoints / chunkSize <= MAX_DPS) {
+      return bucketSize / timeWindow;
+    }
+  }
+
+  return 2;
+};
+
 type State = {
   statsPeriod: TimePeriod;
-  aggregateGraph: boolean;
+  rollupGraph: boolean;
 };
 
 /**
@@ -108,15 +123,15 @@ type State = {
 class TriggersChart extends React.PureComponent<Props, State> {
   state: State = {
     statsPeriod: TimePeriod.ONE_DAY,
-    aggregateGraph: false,
+    rollupGraph: false,
   };
 
   handleStatsPeriodChange = (statsPeriod: {value: TimePeriod; label: string}) => {
     this.setState({statsPeriod: statsPeriod.value});
   };
 
-  handleAggregateChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    this.setState({aggregateGraph: event.target.checked});
+  handleRollupChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    this.setState({rollupGraph: event.target.checked});
   };
 
   render() {
@@ -132,7 +147,7 @@ class TriggersChart extends React.PureComponent<Props, State> {
       thresholdType,
       environment,
     } = this.props;
-    const {statsPeriod, aggregateGraph} = this.state;
+    const {statsPeriod, rollupGraph} = this.state;
 
     const statsPeriodOptions = AVAILABLE_TIME_PERIODS[timeWindow];
     const period = statsPeriodOptions.includes(statsPeriod)
@@ -158,19 +173,11 @@ class TriggersChart extends React.PureComponent<Props, State> {
           if (timeseriesData?.[0]?.data !== undefined) {
             maxValue = maxBy(timeseriesData[0].data, ({value}) => value);
             timeseriesLength = timeseriesData[0].data.length;
-            if (aggregateGraph && timeseriesLength > 600) {
-              let chunkSize = 2;
-              if (timeseriesData[0].data.length > 8000) {
-                chunkSize = 20;
-              } else if (timeseriesData[0].data.length > 4000) {
-                chunkSize = 10;
-              } else if (timeseriesData[0].data.length > 2000) {
-                chunkSize = 5;
-              }
-
+            if (rollupGraph && timeseriesLength > 600) {
               const avgData: SeriesDataUnit[] = [];
               const minData: SeriesDataUnit[] = [];
               const maxData: SeriesDataUnit[] = [];
+              const chunkSize = getBucketSize(timeWindow, timeseriesData[0].data.length);
               chunk(timeseriesData[0].data, chunkSize).forEach(seriesChunk => {
                 avgData.push({
                   name: seriesChunk[0].name,
@@ -186,6 +193,7 @@ class TriggersChart extends React.PureComponent<Props, State> {
                 });
               });
               timeseriesData = [
+                timeseriesData[0],
                 {seriesName: t('Minimum'), data: minData},
                 {seriesName: t('Average'), data: avgData},
                 {seriesName: t('Maximum'), data: maxData},
@@ -203,12 +211,12 @@ class TriggersChart extends React.PureComponent<Props, State> {
                       {timeseriesLength && timeseriesLength > 600 && (
                         <AggregateContainer>
                           <Checkbox
-                            id="aggregateGraph"
-                            checked={aggregateGraph}
-                            onChange={this.handleAggregateChange}
+                            id="rollupGraph"
+                            checked={rollupGraph}
+                            onChange={this.handleRollupChange}
                           />
-                          <AggregateLabel htmlFor="aggregateGraph">
-                            {t('Aggregate')}
+                          <AggregateLabel htmlFor="rollupGraph">
+                            {t('Rollup')}
                           </AggregateLabel>
                         </AggregateContainer>
                       )}
