@@ -43,7 +43,7 @@ function getTitle(trendChangeType: TrendChangeType): string {
     case TrendChangeType.IMPROVED:
       return t('Most Improved Project');
     case TrendChangeType.REGRESSION:
-      return t('Worst Regressed Project');
+      return t('Most Regressed Project');
     default:
       throw new Error('No trend type passed');
   }
@@ -104,9 +104,7 @@ function getDescription(
 function getNoResultsDescription(trendChangeType: TrendChangeType) {
   return trendChangeType === TrendChangeType.IMPROVED
     ? t('The glass is half empty today. There are only regressions so get back to work.')
-    : t(
-        'The glass is half full today. There are only improvements so get some ice cream.'
-      );
+    : t('The glass is half full today. There are only improvements so good job, buddy.');
 }
 
 function handleViewTransactions(
@@ -220,7 +218,6 @@ const DescriptionContainer = styled('div')`
   display: flex;
   flex-direction: column;
   flex-grow: 1;
-  min-height: 185px;
 `;
 const VisualizationContainer = styled('div')``;
 const ChangedProjectsContainer = styled('div')``;

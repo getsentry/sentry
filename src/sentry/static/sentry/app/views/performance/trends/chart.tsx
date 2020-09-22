@@ -68,12 +68,7 @@ function getLegend() {
     },
     data: [
       {
-        name: 'Present Baseline',
-        icon:
-          'path://M180 1000 l0 -40 200 0 200 0 0 40 0 40 -200 0 -200 0 0 -40z, M810 1000 l0 -40 200 0 200 0 0 40 0 40 -200 0 -200 0 0 -40zm, M1440 1000 l0 -40 200 0 200 0 0 40 0 40 -200 0 -200 0 0 -40z',
-      },
-      {
-        name: 'Past Baseline',
+        name: 'Baseline',
         icon:
           'path://M180 1000 l0 -40 200 0 200 0 0 40 0 40 -200 0 -200 0 0 -40z, M810 1000 l0 -40 200 0 200 0 0 40 0 40 -200 0 -200 0 0 -40zm, M1440 1000 l0 -40 200 0 200 0 0 40 0 40 -200 0 -200 0 0 -40z',
       },
@@ -131,12 +126,12 @@ function getIntervalLine(
   const previousPeriod = {
     ...periodLine,
     markLine: {...periodLine.markLine},
-    seriesName: 'Past Baseline',
+    seriesName: 'Baseline',
   };
   const currentPeriod = {
     ...periodLine,
     markLine: {...periodLine.markLine},
-    seriesName: 'Present Baseline',
+    seriesName: 'Baseline',
   };
   const periodDividingLine = {
     ...periodLine,
