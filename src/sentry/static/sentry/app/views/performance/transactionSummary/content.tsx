@@ -22,6 +22,7 @@ import UserStats from './userStats';
 import TransactionSummaryCharts from './charts';
 import RelatedIssues from './relatedIssues';
 import SidebarCharts from './sidebarCharts';
+import StatusBreakdown from './statusBreakdown';
 
 type Props = {
   location: Location;
@@ -139,6 +140,11 @@ class SummaryContent extends React.Component<Props, State> {
               eventView={eventView}
             />
             <SidebarCharts organization={organization} eventView={eventView} />
+            <StatusBreakdown
+              eventView={eventView}
+              organization={organization}
+              location={location}
+            />
             <Tags
               generateUrl={this.generateTagUrl}
               totalValues={totalValues}

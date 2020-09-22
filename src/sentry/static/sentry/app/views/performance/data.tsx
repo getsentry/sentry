@@ -79,6 +79,10 @@ const PERFORMANCE_TERMS: Record<string, TermFormatter> = {
       "User misery is the percentage of users who are experiencing load times 4x your organization's apdex threshold of %sms.",
       organization.apdexThreshold
     ),
+  statusBreakdown: () =>
+    t(
+      'The breakdown of transaction statuses. This may indicate what type of failure it is.'
+    ),
 };
 
 export function getTermHelp(
