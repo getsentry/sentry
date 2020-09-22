@@ -7,7 +7,7 @@ import {t, tct} from 'app/locale';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import Form from 'app/views/settings/components/forms/form';
-import {fields} from 'app/data/forms/projectGeneralSettings';
+import projectSecurityAndPrivacyGroups from 'app/data/forms/projectSecurityAndPrivacyGroups';
 import ProjectActions from 'app/actions/projectActions';
 import {Organization, Project} from 'app/types';
 import withProject from 'app/utils/withProject';
@@ -54,28 +54,10 @@ class ProjectSecurityAndPrivacy extends React.Component<ProjectSecurityAndPrivac
           onSubmitError={() => addErrorMessage('Unable to save change')}
         >
           <JsonForm
-            title={title}
-            additionalFieldProps={{
-              organization,
-            }}
+            additionalFieldProps={{organization}}
             features={features}
             disabled={!access.has('project:write')}
-            fields={[fields.storeCrashReports]}
-          />
-          <JsonForm
-            title={t('Data Scrubbing')}
-            additionalFieldProps={{
-              organization,
-            }}
-            features={features}
-            disabled={!access.has('project:write')}
-            fields={[
-              fields.dataScrubber,
-              fields.dataScrubberDefaults,
-              fields.scrubIPAddresses,
-              fields.sensitiveFields,
-              fields.safeFields,
-            ]}
+            forms={projectSecurityAndPrivacyGroups}
           />
         </Form>
         <DataScrubbing

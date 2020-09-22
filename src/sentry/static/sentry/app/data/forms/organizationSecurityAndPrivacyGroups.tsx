@@ -7,7 +7,9 @@ import {
 } from 'app/utils/crashReports';
 import {JsonFormObject} from 'app/views/settings/components/forms/type';
 
-const organizationSecurityAndPrivacy: JsonFormObject[] = [
+// Export route to make these forms searchable by label/help
+export const route = '/settings/:orgId/security-and-privacy/';
+export default [
   {
     title: t('Security & Privacy'),
     fields: [
@@ -170,6 +172,4 @@ const organizationSecurityAndPrivacy: JsonFormObject[] = [
       },
     ],
   },
-];
-
-export default organizationSecurityAndPrivacy;
+] as JsonFormObject[];
