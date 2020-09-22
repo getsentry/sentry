@@ -23,6 +23,7 @@ from sentry.utils import redis
 from sentry.utils.compat import map
 from sentry.utils.datastructures import BidirectionalMapping
 from sentry.utils.iterators import shingle
+from sentry import features as feature_flags
 
 logger = logging.getLogger(__name__)
 
@@ -120,3 +121,25 @@ features2 = GroupingBasedFeatureSet(
         namespace="sim:2",
     )
 )
+
+
+def _build_dispatcher(methodname):
+    # TODO: Delete when features2 supersedes features.
+    v1_method = getattr(features, methodname)
+    v2_method = getattr(features2, methodname)
+
+    def inner(project, *args, **kwargs):
+        if feature_flags.has("projects:similarity-indexing", project):
+            v1_method(*args, **kwargs)
+
+        if feature_flags.has("projects:similarity-indexing-v2", project):
+            v2_method(*args, **kwargs)
+
+    inner.__name__ = methodname
+
+    return inner
+
+
+merge = _build_dispatcher("merge")
+record = _build_dispatcher("record")
+delete = _build_dispatcher("delete")

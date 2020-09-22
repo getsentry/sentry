@@ -7,7 +7,7 @@ from django.db.models import F
 
 from sentry import eventstream
 from sentry.app import tsdb
-from sentry.similarity import features
+from sentry import similarity
 from sentry.tasks.base import instrumented_task, track_group_async_operation
 
 logger = logging.getLogger("sentry.merge")
@@ -114,7 +114,7 @@ def merge_groups(
             # work for this group.
             from_object_ids.remove(from_object_id)
 
-            features.merge(new_group, [group], allow_unsafe=True)
+            similarity.merge(group.project, new_group, [group], allow_unsafe=True)
 
             environment_ids = list(
                 Environment.objects.filter(projects=group.project).values_list("id", flat=True)
