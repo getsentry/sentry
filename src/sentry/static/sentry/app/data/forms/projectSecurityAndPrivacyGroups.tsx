@@ -10,6 +10,9 @@ import Link from 'app/components/links/link';
 import {t, tct} from 'app/locale';
 import {JsonFormObject} from 'app/views/settings/components/forms/type';
 
+// Export route to make these forms searchable by label/help
+export const route = '/settings/:orgId/projects/:projectId/security-and-privacy/';
+
 const ORG_DISABLED_REASON = t(
   "This option is enforced by your organization's settings and cannot be customized per-project."
 );
