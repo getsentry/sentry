@@ -270,6 +270,13 @@ class Columns(Enum):
         "measurements.key",
         "measurements_key",
     )
+    MEASUREMENTS_VALUES = Column(
+        "events.measurements.value",
+        "measurements.value",
+        "measurements.value",
+        "measurements.value",
+        "measurements_value",
+    )
     # tracing context fields.
     TRACE_ID = Column(
         "events.contexts[trace.trace_id]",

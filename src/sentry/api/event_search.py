@@ -1624,7 +1624,32 @@ FUNCTIONS = {
                 NumberRange("precision", 0, None),
                 NumberRange("precision_multiplier", 1, None),
             ],
-            "column": [],
+            column=[
+                "multiply",
+                [
+                    [
+                        "floor",
+                        [
+                            [
+                                "divide",
+                                [
+                                    [
+                                        "multiply",
+                                        [
+                                            ["arrayJoin", ["measurements_value"]],
+                                            ArgValue("precision_multiplier"),
+                                        ],
+                                    ],
+                                    ArgValue("bucket_size"),
+                                ],
+                            ],
+                        ],
+                    ],
+                    ArgValue("bucket_size"),
+                ],
+                None,
+            ],
+            result_type="number",
         ),
         # The user facing signature for this function is histogram(<column>, <num_buckets>)
         # Internally, snuba.discover.query() expands the user request into this value by

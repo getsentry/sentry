@@ -258,7 +258,6 @@ def parse_measurements_histogram_function(field):
 
     i += 1
     for column in columns[i:]:
-        # TODO(tonyx): this should be renamed to match the final implementation
         if not is_measurement(column):
             raise InvalidSearchQuery(
                 u"measurements_histogram(...) can only be used with measurements, not {}".format(
@@ -338,7 +337,7 @@ def find_measurements_bounds(measurements_min, measurements_max, measurements, p
     return measurements_min, measurements_max
 
 
-def find_measurements_histogram_buckets(field, params, conditions):
+def generate_measurements_histogram_columns(field, params, conditions):
     """
     This function is based on `find_histogram_buckets`. It uses the min/max values
     to calculate the width of a bucket.
@@ -352,17 +351,39 @@ def find_measurements_histogram_buckets(field, params, conditions):
         args[3],
         args[4:],
     )
+
+    array_join_column = u"array_join(measurements_key)"
+
     bucket_min, bucket_max = find_measurements_bounds(
         bucket_min, bucket_max, measurements, params, conditions
     )
 
-    num_buckets, precision
-    # array_join_strs_column = "array_join_strs({})".format(", ".join(measurements))
+    if bucket_min is None or bucket_max is None:
+        # TODO(tonyx): need to return an empty histogram here
+        pass
 
-    # if bucket_min is None or bucket_max is None:
-    #     return array_join_strs_column
+    precision_multiplier = 10 ** precision
 
-    # return array_join_strs_column
+    # TODO(tonyx): this will cause problems if the min/max is None
+    bucket_size = ceil(precision_multiplier * (bucket_max - bucket_min) / float(num_buckets))
+    if bucket_size == 0.0:
+        bucket_size = 1.0
+
+    # Determine the first bucket that will show up in our results so that we can
+    # zerofill correctly.
+    offset = floor(bucket_min / bucket_size) * bucket_size
+
+    # Determine the first bucket that will show up in our results so that we can
+    # zerofill correctly.
+    offset = floor(bucket_min / bucket_size) * bucket_size
+
+    return (
+        measurements,
+        array_join_column,
+        u"measurements_histogram({:g}, {:.0f}, {:.0f}, {:.0f}, {:.0f})".format(
+            num_buckets, bucket_size, offset, precision, precision_multiplier
+        ),
+    )
 
 
 def resolve_discover_aliases(snuba_filter, function_translations=None):
@@ -514,9 +535,8 @@ def query(
     # We need to run a separate query to be able to properly bucket the values for the histogram
     # Do that here, and format the bucket number in to the columns before passing it through
     # to event search.
-    idx = 0
     function_translations = {}
-    for col in selected_columns:
+    for idx, col in enumerate(selected_columns):
         if col.startswith("histogram("):
             with sentry_sdk.start_span(
                 op="discover.discover", description="query.histogram_calculation"
@@ -545,27 +565,50 @@ def query(
                 op="discover.discover", description="query.measurements_histogram_calculation"
             ) as span:
                 span.set_data("measurements_histogram", col)
-                function_alias = get_function_alias(col)
 
-                # the measurements_histogram only makes sense when we're sorting on the bucket
-                # values due to the way the post processing flattens the table
-                if orderby is None:
-                    raise InvalidSearchQuery(
-                        u"measurements_histogram(...) in selected columns but no order by is specified."
-                    )
+                bin_sentry_name = get_function_alias(col)
 
-                orderby = list(orderby) if isinstance(orderby, (list, tuple)) else [orderby]
-                if len(orderby) != 1 or function_alias != orderby[0]:
-                    raise InvalidSearchQuery(
-                        u"measurements_histogram(...) in selected columns but order by is another column."
-                    )
+                if orderby is not None:
+                    orderby = list(orderby) if isinstance(orderby, (list, tuple)) else [orderby]
+                    for i, ordering in enumerate(orderby):
+                        if bin_sentry_name == ordering.lstrip("-"):
+                            ordering = "{}{}".format(
+                                "-" if ordering.startswith("-") else "", snuba_name
+                            )
+                            orderby[i] = ordering
 
-                measurements_histogram_column = find_measurements_histogram_buckets(
+                measurements, key_column, bin_column = generate_measurements_histogram_columns(
                     col, params, snuba_filter.conditions
                 )
-                measurements_histogram_column
 
-        idx += 1
+                bin_snuba_name = get_function_alias(bin_column)
+                selected_columns[idx] = bin_column
+                function_translations[bin_snuba_name] = bin_sentry_name
+
+                key_sentry_name = u"key_{}".format(bin_sentry_name)
+                key_snuba_name = get_function_alias(key_column)
+                selected_columns.insert(idx + 1, key_column)
+                function_translations[key_snuba_name] = key_sentry_name
+
+                # we append this to the conditions array rather than snuba_filter.conditions
+                # because its already a snuba alias and we do not want this to be translated
+                if conditions is None:
+                    conditions = []
+                conditions.append(
+                    [
+                        key_snuba_name,
+                        "IN",
+                        [measurement.split(".", 1)[1] for measurement in measurements],
+                    ]
+                )
+            break
+
+    # for col in selected_columns:
+    #     # arrayJoin is a function but not an aggregate, so it will be seen as a tag in some places
+    #     # if left alone. Adding it to function_translations here prevents this.
+    #     if col.startswith("array_join("):
+    #         alias = get_function_alias(col)
+    #         function_translations[alias] = alias
 
     with sentry_sdk.start_span(op="discover.discover", description="query.field_translations"):
         if orderby is not None:
