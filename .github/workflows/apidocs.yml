@@ -40,8 +40,6 @@ jobs:
     steps:
       - name: Install System Dependencies
         run: |
-          apt update
-          apt install sudo
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             libxmlsec1-dev \
