@@ -360,7 +360,7 @@ jobs:
           MATRIX_INSTANCE: ${{ matrix.instance }}
         run: |
           # XXX(py3): Minors that aren't latest seem to not be available.
-          echo "::set-output name=python-version::3.6.12"
+          echo "::set-output name=python-version::2.7"
           echo "::set-output name=matrix-instance-number::$(($MATRIX_INSTANCE+1))"
 
       - name: Set up Python ${{ steps.config.outputs.python-version }}
