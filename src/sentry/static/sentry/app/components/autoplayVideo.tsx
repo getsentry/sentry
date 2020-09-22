@@ -21,12 +21,10 @@ class AutoplayVideo extends React.Component<Props> {
       this.videoRef.current.muted = true;
       const playPromise = this.videoRef.current.play();
 
-      // non-chromium Edge doesn't return a promise.
-      if (playPromise && playPromise.catch) {
-        playPromise.catch(() => {
-          // Do nothing. Interrupting this playback is fine.
-        });
-      }
+      // non-chromium Edge and jsdom don't return a promise.
+      playPromise?.catch(() => {
+        // Do nothing. Interrupting this playback is fine.
+      });
     }
   }
   private videoRef = React.createRef<HTMLVideoElement>();
