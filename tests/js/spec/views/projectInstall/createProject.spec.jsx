@@ -154,7 +154,6 @@ describe('CreateProject', function() {
     beforeEach(() => {
       props = {
         ...baseProps,
-        experimentAssignment: '2OptionsV1',
       };
       props.organization.teams = [{slug: 'test', id: '1', name: 'test', hasAccess: true}];
       MockApiClient.addMockResponse({
