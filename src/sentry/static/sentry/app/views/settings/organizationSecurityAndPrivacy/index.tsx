@@ -9,7 +9,7 @@ import AsyncView from 'app/views/asyncView';
 import {Organization} from 'app/types';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {updateOrganization} from 'app/actionCreators/organizations';
-import organizationSecurityAndPrivacy from 'app/data/forms/organizationSecurityAndPrivacy';
+import organizationSecurityAndPrivacyGroups from 'app/data/forms/organizationSecurityAndPrivacyGroups';
 import withOrganization from 'app/utils/withOrganization';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 
@@ -59,7 +59,7 @@ class OrganizationSecurityAndPrivacyContent extends AsyncView<Props> {
         >
           <JsonForm
             features={features}
-            forms={organizationSecurityAndPrivacy}
+            forms={organizationSecurityAndPrivacyGroups}
             disabled={!access.has('org:write')}
           />
         </Form>

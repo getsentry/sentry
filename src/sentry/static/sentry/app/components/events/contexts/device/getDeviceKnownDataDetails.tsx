@@ -3,6 +3,7 @@ import React from 'react';
 import {t} from 'app/locale';
 import {defined} from 'app/utils';
 import DeviceName from 'app/components/deviceName';
+import FileSize from 'app/components/fileSize';
 
 import formatMemory from './formatMemory';
 import formatStorage from './formatStorage';
@@ -103,25 +104,33 @@ function getDeviceKnownDataDetails(data: DeviceData, type: DeviceKnownDataType):
     case DeviceKnownDataType.FREE_STORAGE: {
       return {
         subject: t('Free Storage'),
-        value: data.free_storage,
+        value: data.free_storage ? <FileSize bytes={data.free_storage} /> : undefined,
       };
     }
     case DeviceKnownDataType.STORAGE_SIZE: {
       return {
         subject: t('Storage Size'),
-        value: data.storage_size,
+        value: data.storage_size ? <FileSize bytes={data.storage_size} /> : undefined,
       };
     }
     case DeviceKnownDataType.EXTERNAL_STORAGE_SIZE: {
       return {
         subject: t('External Storage Size'),
-        value: data.external_storage_size,
+        value: data.external_storage_size ? (
+          <FileSize bytes={data.external_storage_size} />
+        ) : (
+          undefined
+        ),
       };
     }
     case DeviceKnownDataType.EXTERNAL_FREE_STORAGE: {
       return {
         subject: t('External Free Storage'),
-        value: data.external_free_storage,
+        value: data.external_free_storage ? (
+          <FileSize bytes={data.external_free_storage} />
+        ) : (
+          undefined
+        ),
       };
     }
     case DeviceKnownDataType.SIMULATOR:
@@ -182,17 +191,17 @@ function getDeviceKnownDataDetails(data: DeviceData, type: DeviceKnownDataType):
     case DeviceKnownDataType.FREE_MEMORY:
       return {
         subject: t('Free Memory'),
-        value: data.free_memory,
+        value: data.free_memory ? <FileSize bytes={data.free_memory} /> : undefined,
       };
     case DeviceKnownDataType.MEMORY_SIZE:
       return {
         subject: t('Memory Size'),
-        value: data.memory_size,
+        value: data.memory_size ? <FileSize bytes={data.memory_size} /> : undefined,
       };
     case DeviceKnownDataType.USABLE_MEMORY:
       return {
         subject: t('Usable Memory'),
-        value: data.usable_memory,
+        value: data.usable_memory ? <FileSize bytes={data.usable_memory} /> : undefined,
       };
     case DeviceKnownDataType.MANUFACTURER:
       return {
