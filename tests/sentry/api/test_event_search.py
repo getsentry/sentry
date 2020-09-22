@@ -14,8 +14,8 @@ from sentry import eventstore
 from sentry.api.event_search import (
     AggregateKey,
     event_search_grammar,
+    Function,
     FunctionArg,
-    FUNCTIONS,
     get_filter,
     resolve_field_list,
     parse_search_query,
@@ -26,7 +26,6 @@ from sentry.api.event_search import (
     SearchKey,
     SearchValue,
     SearchVisitor,
-    validate_argument_count,
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -1962,12 +1961,12 @@ class ResolveFieldListTest(unittest.TestCase):
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["percentile(0.75)"]
             resolve_field_list(fields, eventstore.Filter())
-        assert "percentile(0.75): expected 2 arguments" in six.text_type(err)
+        assert "percentile(0.75): expected 2 argument(s)" in six.text_type(err)
 
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["percentile(0.75,)"]
             resolve_field_list(fields, eventstore.Filter())
-        assert "percentile(0.75,): expected 2 arguments" in six.text_type(err)
+        assert "percentile(0.75,): expected 2 argument(s)" in six.text_type(err)
 
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["percentile(sanchez, 0.75)"]
@@ -2101,7 +2100,7 @@ class ResolveFieldListTest(unittest.TestCase):
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["histogram(transaction.duration, 10)"]
             resolve_field_list(fields, eventstore.Filter())
-        assert "histogram(transaction.duration, 10): expected 4 arguments" in six.text_type(err)
+        assert "histogram(transaction.duration, 10): expected 4 argument(s)" in six.text_type(err)
 
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["histogram(transaction.duration, 1000, 1000, 0)"]
@@ -2239,22 +2238,6 @@ class ResolveFieldListTest(unittest.TestCase):
             ],
         ]
 
-    def test_functions_args_well_defined(self):
-        """
-        Asserts that all functions are well defined. All functions should be well defined or they may not be handled correctly.
-
-        A function is said to be not well defined if an optional argument preceeds a non-optional argument.
-        """
-        for function in FUNCTIONS.values():
-            has_default = False
-            for arg in function["args"]:
-                assert (
-                    not has_default or arg.has_default
-                ), "default arguments must not preceed other arguments in function: {}".format(
-                    function["name"]
-                )
-                has_default = arg.has_default
-
     def test_rollup_with_unaggregated_fields(self):
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["message"]
@@ -2365,7 +2348,7 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["groupby"] == []
 
 
-class ValidateArgumentCountTest(unittest.TestCase):
+class FunctionTest(unittest.TestCase):
     def setUp(self):
         class DefaultFunctionArg(FunctionArg):
             def __init__(self, name, default):
@@ -2375,41 +2358,54 @@ class ValidateArgumentCountTest(unittest.TestCase):
             def get_default(self, params):
                 return self.default
 
-        self.fn_wo_optionals = {"args": [FunctionArg("arg1"), FunctionArg("arg2")]}
-        self.fn_w_optionals = {"args": [FunctionArg("arg1"), DefaultFunctionArg("arg2", "default")]}
+        self.fn_wo_optionals = Function(
+            "wo_optionals", required_args=[FunctionArg("arg1"), FunctionArg("arg2")], transform="",
+        )
+        self.fn_w_optionals = Function(
+            "w_optionals",
+            required_args=[FunctionArg("arg1")],
+            optional_args=[DefaultFunctionArg("arg2", "default")],
+            transform="",
+        )
 
     def test_no_optional_valid(self):
-        validate_argument_count("fn_wo_optionals()", self.fn_wo_optionals, ["arg1", "arg2"])
+        self.fn_wo_optionals.validate_argument_count("fn_wo_optionals()", ["arg1", "arg2"])
 
     def test_no_optional_not_enough_arguments(self):
         with self.assertRaisesRegexp(
-            InvalidSearchQuery, u"fn_wo_optionals\(\): expected 2 arguments"
+            InvalidSearchQuery, u"fn_wo_optionals\(\): expected 2 argument\(s\)"
         ):
-            validate_argument_count("fn_wo_optionals()", self.fn_wo_optionals, ["arg1"])
+            self.fn_wo_optionals.validate_argument_count("fn_wo_optionals()", ["arg1"])
 
     def test_no_optional_too_may_arguments(self):
         with self.assertRaisesRegexp(
-            InvalidSearchQuery, u"fn_wo_optionals\(\): expected 2 arguments"
+            InvalidSearchQuery, u"fn_wo_optionals\(\): expected 2 argument\(s\)"
         ):
-            validate_argument_count(
-                "fn_wo_optionals()", self.fn_wo_optionals, ["arg1", "arg2", "arg3"]
+            self.fn_wo_optionals.validate_argument_count(
+                "fn_wo_optionals()", ["arg1", "arg2", "arg3"]
             )
 
     def test_optional_valid(self):
-        validate_argument_count("fn_w_optionals()", self.fn_w_optionals, ["arg1", "arg2"])
+        self.fn_w_optionals.validate_argument_count("fn_w_optionals()", ["arg1", "arg2"])
         # because the last argument is optional, we dont need to provide it
-        validate_argument_count("fn_w_optionals()", self.fn_w_optionals, ["arg1"])
+        self.fn_w_optionals.validate_argument_count("fn_w_optionals()", ["arg1"])
 
     def test_optional_not_enough_arguments(self):
         with self.assertRaisesRegexp(
-            InvalidSearchQuery, u"fn_w_optionals\(\): expected at least 1 arguments"
+            InvalidSearchQuery, u"fn_w_optionals\(\): expected at least 1 argument\(s\)"
         ):
-            validate_argument_count("fn_w_optionals()", self.fn_w_optionals, [])
+            self.fn_w_optionals.validate_argument_count("fn_w_optionals()", [])
 
     def test_optional_too_many_arguments(self):
         with self.assertRaisesRegexp(
-            InvalidSearchQuery, u"fn_w_optionals\(\): expected at most 2 arguments"
+            InvalidSearchQuery, u"fn_w_optionals\(\): expected at most 2 argument\(s\)"
         ):
-            validate_argument_count(
-                "fn_w_optionals()", self.fn_w_optionals, ["arg1", "arg2", "arg3"]
+            self.fn_w_optionals.validate_argument_count(
+                "fn_w_optionals()", ["arg1", "arg2", "arg3"]
             )
+
+    def test_optional_args_have_default(self):
+        with self.assertRaisesRegexp(
+            AssertionError, u"test: optional argument at index 0 does not have default"
+        ):
+            Function("test", optional_args=[FunctionArg("arg1")])

@@ -1492,15 +1492,15 @@ class Function(object):
             required_args_count = self.required_args_count
             if required_args_count == total_args_count:
                 raise InvalidSearchQuery(
-                    u"{}: expected {:g} arguments".format(field, total_args_count)
+                    u"{}: expected {:g} argument(s)".format(field, total_args_count)
                 )
             elif args_count < required_args_count:
                 raise InvalidSearchQuery(
-                    u"{}: expected at least {:g} arguments".format(field, required_args_count)
+                    u"{}: expected at least {:g} argument(s)".format(field, required_args_count)
                 )
             elif args_count > total_args_count:
                 raise InvalidSearchQuery(
-                    u"{}: expected at most {:g} arguments".format(field, total_args_count)
+                    u"{}: expected at most {:g} argument(s)".format(field, total_args_count)
                 )
 
 
