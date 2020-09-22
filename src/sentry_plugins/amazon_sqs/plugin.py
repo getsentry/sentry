@@ -4,7 +4,7 @@ import logging
 
 import six
 import boto3
-from botocore.client import ClientError
+from botocore.client import ClientError, Config
 
 from sentry_plugins.base import CorePluginMixin
 from sentry.plugins.bases.data_forwarding import DataForwardingPlugin
@@ -148,7 +148,9 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
             )
 
         def s3_put_object(*args, **kwargs):
-            s3_client = boto3.client(service_name="s3", **boto3_args)
+            s3_client = boto3.client(
+                service_name="s3", config=Config(signature_version="s3v4"), **boto3_args
+            )
             return s3_client.put_object(*args, **kwargs)
 
         def sqs_send_message(message):
@@ -186,7 +188,6 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
                 logger.info("sentry_plugins.amazon_sqs.skip_oversized", extra=logging_params)
                 return False
 
-            logger.info("sentry_plugins.amazon_sqs.send_message", extra=logging_params)
             sqs_send_message(message)
         except ClientError as e:
             if six.text_type(e).startswith(

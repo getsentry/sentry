@@ -5,7 +5,6 @@ import six
 
 from time import time
 
-from sentry import features
 from sentry.constants import DataCategory
 from sentry.quotas.base import NotRateLimited, Quota, QuotaConfig, QuotaScope, RateLimited
 from sentry.utils.redis import (
@@ -66,16 +65,6 @@ class RedisQuota(Quota):
             key.project = project
 
         results = []
-
-        if not features.has("organizations:releases-v2", project.organization):
-            results.append(
-                QuotaConfig(
-                    limit=0,
-                    scope=QuotaScope.ORGANIZATION,
-                    categories=[DataCategory.SESSION],
-                    reason_code="sessions_unavailable",
-                )
-            )
 
         pquota = self.get_project_quota(project)
         if pquota[0] is not None:

@@ -50,7 +50,7 @@ FEATURES = [
         Connect your Sentry and Vercel projects to automatically upload source maps and notify Sentry of new releases being deployed.
         """,
         IntegrationFeatures.DEPLOYMENT,
-    ),
+    )
 ]
 
 INSTALL_NOTICE_TEXT = _(
@@ -355,7 +355,7 @@ class VercelIntegrationProvider(IntegrationProvider):
                 extra={"error": six.text_type(err), "external_id": external_id},
             )
             try:
-                details = err.json["messages"][0].values().pop()
+                details = list(err.json["messages"][0].values()).pop()
             except Exception:
                 details = "Unknown Error"
             message = u"Could not create deployment webhook in Vercel: {}".format(details)

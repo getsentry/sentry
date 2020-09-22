@@ -1,0 +1,164 @@
+{
+  "get": {
+    "tags": ["Projects"],
+    "description": "Return a list of user feedback items within this project.",
+    "operationId": "List a Project's User Feedback",
+    "parameters": [
+      {
+        "name": "organization_slug",
+        "in": "path",
+        "description": "The slug of the organization.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "project_slug",
+        "in": "path",
+        "description": "The slug of the project.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "responses": {
+      "200": {
+        "description": "Success",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "../../components/schemas/user-feedback.json#/UserFeedback"
+              }
+            },
+            "example": [
+              {
+                "comments": "It broke!",
+                "dateCreated": "2018-11-06T21:20:11.468Z",
+                "email": "jane@example.com",
+                "event": {
+                  "eventID": "14bad9a2e3774046977a21440ddb39b2",
+                  "id": null
+                },
+                "eventID": "14bad9a2e3774046977a21440ddb39b2",
+                "id": "1",
+                "issue": null,
+                "name": "Jane Smith",
+                "user": null
+              }
+            ]
+          }
+        }
+      },
+      "403": {
+        "description": "Forbidden"
+      }
+    },
+    "security": [
+      {
+        "auth_token": ["project:read"]
+      }
+    ]
+  },
+  "post": {
+    "tags": ["Projects"],
+    "description": "Submit and associate user feedback with an issue.\n\nFeedback must be received by the server no more than 30 minutes after the event was saved.\n\nAdditionally, within 5 minutes of submitting feedback it may also be overwritten. This is useful in situations where you may need to retry sending a request due to network failures.\n\nIf feedback is rejected due to a mutability threshold, a 409 status code will be returned.\n\nNote: Feedback may be submitted with DSN authentication (see auth documentation).",
+    "operationId": "Submit User Feedback",
+    "parameters": [
+      {
+        "name": "organization_slug",
+        "in": "path",
+        "description": "The slug of the organization.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "project_slug",
+        "in": "path",
+        "description": "The slug of the project.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "requestBody": {
+      "content": {
+        "application/json": {
+          "schema": {
+            "required": ["event_id", "name", "email", "comments"],
+            "type": "object",
+            "properties": {
+              "event_id": {
+                "type": "string",
+                "description": "The event ID.",
+                "example": "14bad9a2e3774046977a21440ddb39b2"
+              },
+              "name": {
+                "type": "string",
+                "description": "User's name.",
+                "example": "Jane Smith"
+              },
+              "email": {
+                "type": "string",
+                "description": "User's email address.",
+                "example": "jane@example.com"
+              },
+              "comments": {
+                "type": "string",
+                "description": "Comments supplied by user.",
+                "example": "It broke!"
+              }
+            }
+          }
+        }
+      },
+      "required": false
+    },
+    "responses": {
+      "201": {
+        "description": "Success",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "../../components/schemas/user-feedback.json#/UserFeedback"
+            },
+            "example": {
+              "comments": "It broke!",
+              "dateCreated": "2018-11-06T21:20:11.468Z",
+              "email": "jane@example.com",
+              "event": {
+                "eventID": "14bad9a2e3774046977a21440ddb39b2",
+                "id": null
+              },
+              "eventID": "14bad9a2e3774046977a21440ddb39b2",
+              "id": "1",
+              "issue": null,
+              "name": "Jane Smith",
+              "user": null
+            }
+          }
+        }
+      },
+      "403": {
+        "description": "Forbidden"
+      },
+      "404": {
+        "description": "The requested resource does not exist"
+      }
+    },
+    "security": [
+      {
+        "auth_token": ["project:write"]
+      },
+      {
+        "dsn": []
+      }
+    ]
+  }
+}

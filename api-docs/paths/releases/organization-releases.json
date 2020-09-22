@@ -1,0 +1,281 @@
+{
+  "get": {
+    "tags": ["Releases"],
+    "description": "Return a list of releases for a given organization.",
+    "operationId": "List an Organization's Releases",
+    "parameters": [
+      {
+        "name": "organization_slug",
+        "in": "path",
+        "description": "The slug of the organization.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "query",
+        "in": "query",
+        "description": "This parameter can be used to create a \"starts with\" filter for the version.",
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "responses": {
+      "200": {
+        "description": "Success",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "../../components/schemas/releases/organization-release.json#/OrganizationRelease"
+              }
+            },
+            "example": [
+              {
+                "authors": [],
+                "commitCount": 0,
+                "data": {},
+                "dateCreated": "2018-11-06T21:20:08.033Z",
+                "dateReleased": null,
+                "deployCount": 0,
+                "firstEvent": null,
+                "lastCommit": null,
+                "lastDeploy": null,
+                "lastEvent": null,
+                "newGroups": 0,
+                "owner": null,
+                "projects": [
+                  {
+                    "name": "Pump Station",
+                    "slug": "pump-station"
+                  }
+                ],
+                "ref": "6ba09a7c53235ee8a8fa5ee4c1ca8ca886e7fdbb",
+                "shortVersion": "2.0rc2",
+                "url": null,
+                "version": "2.0rc2"
+              },
+              {
+                "authors": [],
+                "commitCount": 0,
+                "data": {},
+                "dateCreated": "2018-11-06T21:19:58.559Z",
+                "dateReleased": null,
+                "deployCount": 0,
+                "firstEvent": "2018-11-06T21:19:58.639Z",
+                "lastCommit": null,
+                "lastDeploy": null,
+                "lastEvent": "2018-11-06T21:19:58.639Z",
+                "newGroups": 0,
+                "owner": null,
+                "projects": [
+                  {
+                    "name": "Prime Mover",
+                    "slug": "prime-mover"
+                  }
+                ],
+                "ref": null,
+                "shortVersion": "2b6af31",
+                "url": null,
+                "version": "2b6af31b2edccc73a629108b17344dfe20858780"
+              }
+            ]
+          }
+        }
+      },
+      "401": {
+        "description": "Permission Denied"
+      },
+      "403": {
+        "description": "Forbidden"
+      },
+      "404": {
+        "description": "Not Found"
+      }
+    },
+    "security": [
+      {
+        "auth_token": ["project:releases"]
+      }
+    ]
+  },
+  "post": {
+    "tags": ["Releases"],
+    "description": "Create a new release for the given Organization.  Releases are used by\nSentry to improve its error reporting abilities by correlating\nfirst seen events with the release that might have introduced the\nproblem.\nReleases are also necessary for source maps and other debug features\nthat require manual upload for functioning well.",
+    "operationId": "Create a New Release for an Organization",
+    "parameters": [
+      {
+        "name": "organization_slug",
+        "in": "path",
+        "description": "The slug of the organization.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "requestBody": {
+      "content": {
+        "application/json": {
+          "schema": {
+            "type": "object",
+            "required": ["version", "projects"],
+            "properties": {
+              "version": {
+                "type": "string",
+                "description": "A version identifier for this release. Can be a version number, a commit hash, etc.",
+                "example": "2.0rc2"
+              },
+              "ref": {
+                "type": "string",
+                "description": "An optional commit reference. This is useful if a tagged version has been provided.",
+                "example": "6ba09a7c53235ee8a8fa5ee4c1ca8ca886e7fdbb"
+              },
+              "url": {
+                "type": "string",
+                "description": "A URL that points to the release. This can be the path to an online interface to the source code for instance"
+              },
+              "projects": {
+                "type": "array",
+                "description": "A list of project slugs that are involved in this release.",
+                "example": ["pump-station"],
+                "items": {
+                  "type": "string"
+                }
+              },
+              "dateReleased": {
+                "type": "string",
+                "format": "date-time",
+                "description": "An optional date that indicates when the release went live. If not provided the current time is assumed."
+              },
+              "commits": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "patch_set": {
+                      "type": "array",
+                      "description": "A list of the files that have been changed in the commit. Specifying the patch_set is necessary to power suspect commits and suggested assignees.",
+                      "items": {
+                        "type": "object",
+                        "required": ["path", "type"],
+                        "properties": {
+                          "path": {
+                            "type": "string",
+                            "description": "The path to the file. Both forward and backward slashes are supported."
+                          },
+                          "type": {
+                            "type": "string",
+                            "enum": ["A", "M", "D"],
+                            "description": "The type of change that happened in the commit."
+                          }
+                        }
+                      }
+                    },
+                    "repository": {
+                      "type": "string",
+                      "description": "The full name of the repository the commit belongs to. If this field is not given Sentry will generate a name in the form: u'organization-<organization_id>' (i.e. if the organization id is 123, then the generated repository name will be u'organization-123)."
+                    },
+                    "author_name": {
+                      "type": "string",
+                      "description": "The name of the commit author."
+                    },
+                    "author_email": {
+                      "type": "string",
+                      "description": "The email of the commit author. The commit author's email is required to enable the suggested assignee feature."
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "The commit timestamp is used to sort the commits given. If a timestamp is not included, the commits will remain sorted in the order given."
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "The commit message."
+                    },
+                    "id": {
+                      "type": "string",
+                      "description": "The commit ID (the commit SHA)."
+                    }
+                  }
+                },
+                "description": "An optional list of commit data to be associated with the release. Commits must include parameters `id` (the SHA of the commit), and can optionally include `repository`, `message`, `patch_set`, `author_name`, `author_email`, and `timestamp`."
+              },
+              "refs": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "repository": {
+                      "type": "string",
+                      "description": "The full name of the repository the commit belongs to."
+                    },
+                    "commit": {
+                      "type": "string",
+                      "description": "The current release's commit."
+                    },
+                    "previousCommit": {
+                      "type": "string",
+                      "description": "The previous release's commit."
+                    }
+                  }
+                },
+                "description": "An optional way to indicate the start and end commits for each repository included in a release. Head commits must include parameters `repository` and `commit` (the HEAD sha). They can optionally include `previousCommit` (the sha of the HEAD of the previous release), which should be specified if this is the first time you've sent commit data. `commit` may contain a range in the form of `previousCommit..commit`."
+              }
+            }
+          }
+        }
+      }
+    },
+    "responses": {
+      "201": {
+        "description": "Success",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "../../components/schemas/releases/organization-release.json#/OrganizationRelease"
+            },
+            "example": {
+              "authors": [],
+              "commitCount": 0,
+              "data": {},
+              "dateCreated": "2019-01-03T00:12:55.109Z",
+              "dateReleased": null,
+              "deployCount": 0,
+              "firstEvent": null,
+              "lastCommit": null,
+              "lastDeploy": null,
+              "lastEvent": null,
+              "newGroups": 0,
+              "owner": null,
+              "projects": [
+                {
+                  "name": "Pump Station",
+                  "slug": "pump-station"
+                }
+              ],
+              "ref": "6ba09a7c53235ee8a8fa5ee4c1ca8ca886e7fdbb",
+              "shortVersion": "2.0rc2",
+              "url": null,
+              "version": "2.0rc2"
+            }
+          }
+        }
+      },
+      "400": {
+        "description": "Bad Input"
+      },
+      "403": {
+        "description": "Forbidden"
+      }
+    },
+    "security": [
+      {
+        "auth_token": ["project:releases"]
+      }
+    ]
+  }
+}

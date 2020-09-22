@@ -7,9 +7,7 @@ import ProjectsStore from 'app/stores/projectsStore';
 import ReleaseList from 'app/views/releasesV2/list/';
 
 describe('ReleasesV2List', function() {
-  const {organization, routerContext, router} = initializeOrg({
-    organization: {features: ['releases-v2']},
-  });
+  const {organization, routerContext, router} = initializeOrg();
   const props = {
     router,
     organization,

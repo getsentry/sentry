@@ -9,13 +9,12 @@ from django.conf import settings
 from django.utils import timezone
 
 from sentry import options
+from sentry.api.authentication import is_internal_relay
 from sentry.utils import json
-from sentry.models import Relay
-from sentry.auth.system import is_internal_ip
+from sentry.models import Relay, RelayUsage
 from sentry.api.base import Endpoint
 from sentry.api.serializers import serialize
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
-
 
 from sentry_relay import (
     create_register_challenge,
@@ -37,16 +36,6 @@ class RelayRegisterChallengeSerializer(RelayIdSerializer):
 
 class RelayRegisterResponseSerializer(RelayIdSerializer):
     token = serializers.CharField(required=True)
-
-
-def is_internal_relay(request, public_key):
-    """
-    Checks if the relay is allowed to register, otherwise raises an exception
-    """
-    if settings.DEBUG or public_key in settings.SENTRY_RELAY_WHITELIST_PK:
-        return True
-
-    return is_internal_ip(request)
 
 
 class RelayRegisterChallengeEndpoint(Endpoint):
@@ -168,6 +157,7 @@ class RelayRegisterResponseEndpoint(Endpoint):
             )
 
         relay_id = six.text_type(validated["relay_id"])
+        version = six.text_type(validated["version"])
         public_key = validated["public_key"]
 
         if relay_id != get_header_relay_id(request):
@@ -184,8 +174,16 @@ class RelayRegisterResponseEndpoint(Endpoint):
                 relay_id=relay_id, public_key=public_key, is_internal=is_internal
             )
         else:
-            relay.last_seen = timezone.now()
             relay.is_internal = is_internal
             relay.save()
+
+        try:
+            relay_usage = RelayUsage.objects.get(relay_id=relay_id, version=version)
+        except RelayUsage.DoesNotExist:
+            RelayUsage.objects.create(relay_id=relay_id, version=version, public_key=public_key)
+        else:
+            relay_usage.last_seen = timezone.now()
+            relay_usage.public_key = public_key
+            relay_usage.save()
 
         return Response(serialize({"relay_id": relay.relay_id}))

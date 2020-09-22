@@ -1,0 +1,242 @@
+{
+  "get": {
+    "tags": ["Teams"],
+    "description": "Returns a list of teams bound to a organization.",
+    "operationId": "List an Organization's Teams",
+    "parameters": [
+      {
+        "name": "organization_slug",
+        "in": "path",
+        "description": "The slug of the organization for which the teams should be listed.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "$ref": "../../components/parameters/pagination-cursor.json#/PaginationCursor"
+      }
+    ],
+    "responses": {
+      "200": {
+        "description": "Success",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "../../components/schemas/team.json#/TeamWithProjects"
+              }
+            },
+            "example": [
+              {
+                "avatar": {
+                  "avatarType": "letter_avatar",
+                  "avatarUuid": null
+                },
+                "dateCreated": "2018-11-06T21:20:08.115Z",
+                "hasAccess": true,
+                "id": "3",
+                "isMember": true,
+                "isPending": false,
+                "memberCount": 1,
+                "name": "Ancient Gabelers",
+                "projects": [],
+                "slug": "ancient-gabelers"
+              },
+              {
+                "avatar": {
+                  "avatarType": "letter_avatar",
+                  "avatarUuid": null
+                },
+                "dateCreated": "2018-11-06T21:19:55.114Z",
+                "hasAccess": true,
+                "id": "2",
+                "isMember": true,
+                "isPending": false,
+                "memberCount": 1,
+                "name": "Powerful Abolitionist",
+                "projects": [
+                  {
+                    "avatar": {
+                      "avatarType": "letter_avatar",
+                      "avatarUuid": null
+                    },
+                    "color": "#bf5b3f",
+                    "dateCreated": "2018-11-06T21:19:58.536Z",
+                    "features": [
+                      "releases",
+                      "sample-events",
+                      "minidump",
+                      "servicehooks",
+                      "rate-limits",
+                      "data-forwarding"
+                    ],
+                    "firstEvent": null,
+                    "hasAccess": true,
+                    "id": "3",
+                    "isBookmarked": false,
+                    "isInternal": false,
+                    "isMember": true,
+                    "isPublic": false,
+                    "name": "Prime Mover",
+                    "platform": null,
+                    "slug": "prime-mover",
+                    "status": "active"
+                  },
+                  {
+                    "avatar": {
+                      "avatarType": "letter_avatar",
+                      "avatarUuid": null
+                    },
+                    "color": "#3fbf7f",
+                    "dateCreated": "2018-11-06T21:19:55.121Z",
+                    "features": [
+                      "releases",
+                      "sample-events",
+                      "minidump",
+                      "servicehooks",
+                      "rate-limits",
+                      "data-forwarding"
+                    ],
+                    "firstEvent": null,
+                    "hasAccess": true,
+                    "id": "2",
+                    "isBookmarked": false,
+                    "isInternal": false,
+                    "isMember": true,
+                    "isPublic": false,
+                    "name": "Pump Station",
+                    "platform": null,
+                    "slug": "pump-station",
+                    "status": "active"
+                  },
+                  {
+                    "avatar": {
+                      "avatarType": "letter_avatar",
+                      "avatarUuid": null
+                    },
+                    "color": "#bf6e3f",
+                    "dateCreated": "2018-11-06T21:20:08.064Z",
+                    "features": [
+                      "servicehooks",
+                      "sample-events",
+                      "data-forwarding",
+                      "rate-limits",
+                      "minidump"
+                    ],
+                    "firstEvent": null,
+                    "hasAccess": true,
+                    "id": "4",
+                    "isBookmarked": false,
+                    "isInternal": false,
+                    "isMember": true,
+                    "isPublic": false,
+                    "name": "The Spoiled Yoghurt",
+                    "platform": null,
+                    "slug": "the-spoiled-yoghurt",
+                    "status": "active"
+                  }
+                ],
+                "slug": "powerful-abolitionist"
+              }
+            ]
+          }
+        }
+      },
+      "401": {
+        "description": "Permission Denied"
+      },
+      "403": {
+        "description": "Forbidden"
+      },
+      "404": {
+        "description": "Not Found"
+      }
+    },
+    "security": [
+      {
+        "auth_token": ["team:read"]
+      }
+    ]
+  },
+  "post": {
+    "tags": ["Teams"],
+    "description": "Create a new team bound to an organization. Only the name of the team is needed to create it, the slug can be auto generated.",
+    "operationId": "Create a New Team",
+    "parameters": [
+      {
+        "name": "organization_slug",
+        "in": "path",
+        "description": "The slug of the organization the team should be created for.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "requestBody": {
+      "content": {
+        "application/json": {
+          "schema": {
+            "required": ["name"],
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "The name of the team.",
+                "example": "Ancient Gabelers"
+              },
+              "slug": {
+                "type": "string",
+                "description": "The optional slug for this team. If not provided it will be auto generated from the name",
+                "example": "ancient-gabelers"
+              }
+            }
+          }
+        }
+      },
+      "required": true
+    },
+    "responses": {
+      "201": {
+        "description": "Success",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "../../components/schemas/team.json#/Team"
+            },
+            "example": {
+              "memberCount": 0,
+              "name": "Ancient Gabelers",
+              "isMember": false,
+              "hasAccess": true,
+              "isPending": false,
+              "dateCreated": "2020-08-19T21:46:47.877073Z",
+              "id": "542610",
+              "avatar": {
+                "avatarUuid": null,
+                "avatarType": "letter_avatar"
+              },
+              "slug": "ancient-gabelers"
+            }
+          }
+        }
+      },
+      "400": {
+        "description": "Bad input"
+      },
+      "403": {
+        "description": "Forbidden"
+      },
+      "409": {
+        "description": "Team slug already exists"
+      }
+    },
+    "security": [
+      {
+        "auth_token": ["team:write"]
+      }
+    ]
+  }
+}

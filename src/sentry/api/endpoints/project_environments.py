@@ -67,7 +67,7 @@ class ProjectEnvironmentsEndpoint(ProjectEndpoint):
             return Response(
                 {
                     "detail": u"Invalid value for 'visibility', valid values are: {!r}".format(
-                        environment_visibility_filter_options.keys()
+                        sorted(environment_visibility_filter_options.keys())
                     )
                 },
                 status=400,

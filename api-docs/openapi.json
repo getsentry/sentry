@@ -1,0 +1,213 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "API Reference",
+    "description": "Sentry Public API",
+    "termsOfService": "http://sentry.io/terms/",
+    "contact": {
+      "email": "partners@sentry.io"
+    },
+    "license": {
+      "name": "Apache 2.0",
+      "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+    },
+    "version": "v0"
+  },
+  "servers": [
+    {
+      "url": "https://sentry.io/"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Teams",
+      "description": "Endpoints for teams",
+      "externalDocs": {
+        "description": "Found an error? Let us know.",
+        "url": "https://github.com/getsentry/sentry-docs/issues/new/?title=API%20Documentation%20Error:%20/api/teams/&template=api_error_template.md"
+      }
+    },
+    {
+      "name": "Organizations",
+      "description": "Endpoints for organizations",
+      "externalDocs": {
+        "description": "Found an error? Let us know.",
+        "url": "https://github.com/getsentry/sentry-docs/issues/new/?title=API%20Documentation%20Error:%20/api/organizations/&template=api_error_template.md"
+      }
+    },
+    {
+      "name": "Projects",
+      "description": "Endpoints for projects",
+      "externalDocs": {
+        "description": "Found an error? Let us know.",
+        "url": "https://github.com/getsentry/sentry-docs/issues/new/?title=API%20Documentation%20Error:%20/api/projects/&template=api_error_template.md"
+      }
+    },
+    {
+      "name": "Events",
+      "x-sidebar-name": "Events & Issues",
+      "description": "Endpoints for events and issues",
+      "externalDocs": {
+        "description": "Found an error? Let us know.",
+        "url": "https://github.com/getsentry/sentry-docs/issues/new/?title=API%20Documentation%20Error:%20/api/events/&template=api_error_template.md"
+      }
+    },
+    {
+      "name": "Releases",
+      "description": "Endpoints for releases",
+      "externalDocs": {
+        "description": "Found an error? Let us know.",
+        "url": "https://github.com/getsentry/sentry-docs/issues/new/?title=API%20Documentation%20Error:%20/api/releases/&template=api_error_template.md"
+      }
+    }
+  ],
+  "paths": {
+    "/api/0/organizations/{organization_slug}/teams/": {
+      "$ref": "paths/teams/index.json"
+    },
+    "/api/0/teams/{organization_slug}/{team_slug}/": {
+      "$ref": "paths/teams/by-slug.json"
+    },
+    "/api/0/teams/{organization_slug}/{team_slug}/projects/": {
+      "$ref": "paths/teams/projects.json"
+    },
+    "/api/0/teams/{organization_slug}/{team_slug}/stats/": {
+      "$ref": "paths/teams/stats.json"
+    },
+    "/api/0/organizations/": {
+      "$ref": "paths/organizations/index.json"
+    },
+    "/api/0/organizations/{organization_slug}/eventids/{event_id}/": {
+      "$ref": "paths/organizations/event-id-lookup.json"
+    },
+    "/api/0/organizations/{organization_slug}/": {
+      "$ref": "paths/organizations/details.json"
+    },
+    "/api/0/organizations/{organization_slug}/projects/": {
+      "$ref": "paths/organizations/projects.json"
+    },
+    "/api/0/organizations/{organization_slug}/repos/": {
+      "$ref": "paths/organizations/repos.json"
+    },
+    "/api/0/organizations/{organization_slug}/repos/{repo_id}/commits/": {
+      "$ref": "paths/organizations/repo-commits.json"
+    },
+    "/api/0/organizations/{organization_slug}/stats/": {
+      "$ref": "paths/organizations/stats.json"
+    },
+    "/api/0/organizations/{organization_slug}/users/": {
+      "$ref": "paths/organizations/users.json"
+    },
+    "/api/0/organizations/{organization_slug}/shortids/{short_id}/": {
+      "$ref": "paths/organizations/shortid.json"
+    },
+    "/api/0/projects/": {
+      "$ref": "paths/projects/index.json"
+    },
+    "/api/0/projects/{organization_slug}/{project_slug}/": {
+      "$ref": "paths/projects/details.json"
+    },
+    "/api/0/projects/{organization_slug}/{project_slug}/files/dsyms/": {
+      "$ref": "paths/projects/dsyms.json"
+    },
+    "/api/0/projects/{organization_slug}/{project_slug}/users/": {
+      "$ref": "paths/projects/users.json"
+    },
+    "/api/0/projects/{organization_slug}/{project_slug}/tags/{key}/values/": {
+      "$ref": "paths/projects/tag-values.json"
+    },
+    "/api/0/projects/{organization_slug}/{project_slug}/stats/": {
+      "$ref": "paths/projects/stats.json"
+    },
+    "/api/0/projects/{organization_slug}/{project_slug}/user-feedback/": {
+      "$ref": "paths/projects/user-feedback.json"
+    },
+    "/api/0/projects/{organization_slug}/{project_slug}/keys/": {
+      "$ref": "paths/projects/keys.json"
+    },
+    "/api/0/projects/{organization_slug}/{project_slug}/keys/{key_id}/": {
+      "$ref": "paths/projects/key-details.json"
+    },
+    "/api/0/projects/{organization_slug}/{project_slug}/hooks/": {
+      "$ref": "paths/projects/service-hooks.json"
+    },
+    "/api/0/projects/{organization_slug}/{project_slug}/hooks/{hook_id}/": {
+      "$ref": "paths/projects/service-hook-details.json"
+    },
+    "/api/0/projects/{organization_slug}/{project_slug}/events/{event_id}/": {
+      "$ref": "paths/events/project-event-details.json"
+    },
+    "/api/0/projects/{organization_slug}/{project_slug}/events/": {
+      "$ref": "paths/events/project-events.json"
+    },
+    "/api/0/projects/{organization_slug}/{project_slug}/issues/": {
+      "$ref": "paths/events/project-issues.json"
+    },
+    "/api/0/issues/{issue_id}/tags/{key}/values/": {
+      "$ref": "paths/events/tag-values.json"
+    },
+    "/api/0/issues/{issue_id}/tags/{key}/": {
+      "$ref": "paths/events/tag-details.json"
+    },
+    "/api/0/issues/{issue_id}/hashes/": {
+      "$ref": "paths/events/issue-hashes.json"
+    },
+    "/api/0/issues/{issue_id}/events/oldest/": {
+      "$ref": "paths/events/oldest-event.json"
+    },
+    "/api/0/issues/{issue_id}/events/latest/": {
+      "$ref": "paths/events/latest-event.json"
+    },
+    "/api/0/issues/{issue_id}/events/": {
+      "$ref": "paths/events/issue-events.json"
+    },
+    "/api/0/issues/{issue_id}/": {
+      "$ref": "paths/events/issue-details.json"
+    },
+    "/api/0/organizations/{organization_slug}/releases/": {
+      "$ref": "paths/releases/organization-releases.json"
+    },
+    "/api/0/organizations/{organization_slug}/releases/{version}/": {
+      "$ref": "paths/releases/organization-release.json"
+    },
+    "/api/0/organizations/{organization_slug}/releases/{version}/files/": {
+      "$ref": "paths/releases/release-files.json"
+    },
+    "/api/0/projects/{organization_slug}/{project_slug}/releases/{version}/files/": {
+      "$ref": "paths/releases/project-release-files.json"
+    },
+    "/api/0/organizations/{organization_slug}/releases/{version}/files/{file_id}/": {
+      "$ref": "paths/releases/release-file.json"
+    },
+    "/api/0/projects/{organization_slug}/{project_slug}/releases/{version}/files/{file_id}/": {
+      "$ref": "paths/releases/project-release-file.json"
+    },
+    "/api/0/organizations/{organization_slug}/releases/{version}/commits/": {
+      "$ref": "paths/releases/organization-release-commits.json"
+    },
+    "/api/0/projects/{organization_slug}/{project_slug}/releases/{version}/commits/": {
+      "$ref": "paths/releases/project-release-commits.json"
+    },
+    "/api/0/organizations/{organization_slug}/releases/{version}/commitfiles/": {
+      "$ref": "paths/releases/organization-release-commit-files.json"
+    },
+    "/api/0/projects/{organization_slug}/{project_slug}/releases/{version}/resolved/": {
+      "$ref": "paths/releases/project-issues-resolved-in-release.json"
+    },
+    "/api/0/organizations/{organization_slug}/releases/{version}/deploys/": {
+      "$ref": "paths/releases/deploys.json"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "auth_token": {
+        "type": "http",
+        "scheme": "bearer"
+      },
+      "dsn": {
+        "type": "http",
+        "scheme": "DSN"
+      }
+    }
+  }
+}

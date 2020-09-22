@@ -1,0 +1,221 @@
+{
+  "get": {
+    "tags": ["Releases"],
+    "description": "Return a release for a given organization.",
+    "operationId": "Retrieve an Organization's Releases",
+    "parameters": [
+      {
+        "name": "organization_slug",
+        "in": "path",
+        "description": "The slug of the organization the release belongs to.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "version",
+        "in": "path",
+        "description": "The version identifier of the release.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "responses": {
+      "200": {
+        "description": "Success",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "../../components/schemas/releases/organization-release.json#/OrganizationRelease"
+            },
+            "example": {
+              "authors": [],
+              "commitCount": 0,
+              "data": {},
+              "dateCreated": "2018-11-06T21:20:08.033Z",
+              "dateReleased": null,
+              "deployCount": 0,
+              "firstEvent": null,
+              "lastCommit": null,
+              "lastDeploy": null,
+              "lastEvent": null,
+              "newGroups": 0,
+              "owner": null,
+              "projects": [
+                {
+                  "name": "Pump Station",
+                  "slug": "pump-station"
+                }
+              ],
+              "ref": "6ba09a7c53235ee8a8fa5ee4c1ca8ca886e7fdbb",
+              "shortVersion": "2.0rc2",
+              "url": null,
+              "version": "2.0rc2"
+            }
+          }
+        }
+      },
+      "403": {
+        "description": "Forbidden"
+      },
+      "404": {
+        "description": "Not Found"
+      }
+    },
+    "security": [
+      {
+        "auth_token": ["project:releases"]
+      }
+    ]
+  },
+  "put": {
+    "tags": ["Releases"],
+    "description": "Update a release for a given organization.",
+    "operationId": "Update an Organization's Release",
+    "parameters": [
+      {
+        "name": "organization_slug",
+        "in": "path",
+        "description": "The slug of the organization the release belongs to.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "version",
+        "in": "path",
+        "description": "The version identifier of the release.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "requestBody": {
+      "content": {
+        "application/json": {
+          "schema": {
+            "type": "object",
+            "properties": {
+              "ref": {
+                "type": "string",
+                "description": "An optional commit reference. This is useful if a tagged version has been provided.",
+                "example": "freshtofu"
+              },
+              "url": {
+                "type": "string",
+                "description": "A URL that points to the release. This can be the path to an online interface to the source code for instance.",
+                "example": "https://vcshub.invalid/user/project/refs/freshtofu"
+              },
+              "dateReleased": {
+                "type": "string",
+                "format": "date-time",
+                "description": "An optional date that indicates when the release went live. If not provided the current time is assumed."
+              },
+              "commits": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                },
+                "description": "An optional list of commit data to be associated with the release. Commits must include parameters `id` (the sha of the commit), and can optionally include `repository`, `message`, `author_name`, `author_email`, and `timestamp`."
+              },
+              "refs": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                },
+                "description": "An optional way to indicate the start and end commits for each repository included in a release. Head commits must include parameters `repository` and `commit` (the HEAD sha). They can optionally include `previousCommit` (the sha of the HEAD of the previous release), which should be specified if this is the first time you've sent commit data."
+              }
+            }
+          }
+        }
+      }
+    },
+    "responses": {
+      "200": {
+        "description": "Success",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "../../components/schemas/releases/organization-release.json#/OrganizationRelease"
+            },
+            "example": {
+              "authors": [],
+              "commitCount": 0,
+              "data": {},
+              "dateCreated": "2019-01-03T00:12:55.109Z",
+              "dateReleased": null,
+              "deployCount": 0,
+              "firstEvent": null,
+              "lastCommit": null,
+              "lastDeploy": null,
+              "lastEvent": null,
+              "newGroups": 0,
+              "owner": null,
+              "projects": [
+                {
+                  "name": "Pump Station",
+                  "slug": "pump-station"
+                }
+              ],
+              "ref": "6ba09a7c53235ee8a8fa5ee4c1ca8ca886e7fdbb",
+              "shortVersion": "2.0rc2",
+              "url": null,
+              "version": "2.0rc2"
+            }
+          }
+        }
+      },
+      "403": {
+        "description": "Forbidden"
+      },
+      "404": {
+        "description": "Not Found"
+      }
+    },
+    "security": [
+      {
+        "auth_token": ["project:releases"]
+      }
+    ]
+  },
+  "delete": {
+    "tags": ["Releases"],
+    "description": "Delete a release for a given organization.",
+    "operationId": "Delete an Organization's Release",
+    "parameters": [
+      {
+        "name": "organization_slug",
+        "in": "path",
+        "description": "The slug of the organization the release belongs to.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "version",
+        "in": "path",
+        "description": "The version identifier of the release.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "responses": {
+      "204": {
+        "description": "Success"
+      }
+    },
+    "security": [
+      {
+        "auth_token": ["project:releases"]
+      }
+    ]
+  }
+}
