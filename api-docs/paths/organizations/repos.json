@@ -7,7 +7,7 @@
       {
         "name": "organization_slug",
         "in": "path",
-        "description": "the organization short name",
+        "description": "The organization short name.",
         "required": true,
         "schema": {
           "type": "string"
@@ -16,7 +16,7 @@
     ],
     "responses": {
       "200": {
-        "description": "Success.",
+        "description": "Success",
         "content": {
           "application/json": {
             "schema": {
@@ -49,6 +49,9 @@
       },
       "403": {
         "description": "Forbidden"
+      },
+      "404": {
+        "description": "Not Found"
       }
     },
     "security": [
