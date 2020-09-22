@@ -4,7 +4,7 @@ import os
 
 from django.core.files.base import ContentFile
 
-from sentry.models import File, FileBlob
+from sentry.models import File, FileBlob, FileBlobIndex
 from sentry.testutils import TestCase
 from sentry.utils.compat import map
 
@@ -39,6 +39,39 @@ class FileBlobTest(TestCase):
 
 
 class FileTest(TestCase):
+    def test_delete_also_removes_blobs(self):
+        fileobj = ContentFile("foo bar".encode("utf-8"))
+        baz_file = File.objects.create(name="baz.js", type="default", size=7)
+        baz_file.putfile(fileobj, 3)
+
+        baz_id = baz_file.id
+        with self.tasks(), self.capture_on_commit_callbacks(execute=True):
+            baz_file.delete()
+
+        # remove all the blobs and blob indexes.
+        assert FileBlobIndex.objects.filter(file_id=baz_id).count() == 0
+        assert FileBlob.objects.count() == 0
+
+    def test_delete_does_not_remove_shared_blobs(self):
+        fileobj = ContentFile("foo bar".encode("utf-8"))
+        baz_file = File.objects.create(name="baz-v1.js", type="default", size=7)
+        baz_file.putfile(fileobj, 3)
+        baz_id = baz_file.id
+
+        # Rewind the file so we can use it again.
+        fileobj.seek(0)
+        raz_file = File.objects.create(name="baz-v2.js", type="default", size=7)
+        raz_file.putfile(fileobj, 3)
+
+        with self.tasks(), self.capture_on_commit_callbacks(execute=True):
+            baz_file.delete()
+
+        # baz_file blob indexes should be gone
+        assert FileBlobIndex.objects.filter(file_id=baz_id).count() == 0
+
+        # Check that raz_file blob indexes are there.
+        assert len(raz_file.blobs.all()) == 3
+
     def test_file_handling(self):
         fileobj = ContentFile("foo bar".encode("utf-8"))
         file1 = File.objects.create(name="baz.js", type="default", size=7)
