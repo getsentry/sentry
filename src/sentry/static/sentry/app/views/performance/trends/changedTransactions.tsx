@@ -5,6 +5,7 @@ import {browserHistory} from 'react-router';
 
 import {Panel} from 'app/components/panels';
 import Pagination from 'app/components/pagination';
+import LoadingIndicator from 'app/components/loadingIndicator';
 import withOrganization from 'app/utils/withOrganization';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import {Organization, Project, AvatarProject} from 'app/types';
@@ -195,50 +196,60 @@ function ChangedTransactions(props: Props) {
                   <QuestionTooltip size="sm" position="top" title={titleTooltipContent} />
                 </HeaderTitleLegend>
               </ContainerTitle>
-              {transactionsList.length ? (
-                <React.Fragment>
-                  <ChartContainer>
-                    <Chart
-                      statsData={statsData}
-                      query={trendView.query}
-                      project={trendView.project}
-                      environment={trendView.environment}
-                      start={trendView.start}
-                      end={trendView.end}
-                      statsPeriod={trendView.statsPeriod}
-                      transaction={selectedTransaction}
-                      isLoading={isLoading}
-                      {...props}
-                    />
-                  </ChartContainer>
-                  <TransactionsList>
-                    {transactionsList.map((transaction, index) => (
-                      <TrendsListItem
-                        api={api}
-                        currentTrendFunction={currentTrendFunction}
-                        trendView={props.trendView}
-                        organization={organization}
-                        transaction={transaction}
-                        key={transaction.transaction}
-                        index={index}
-                        trendChangeType={trendChangeType}
-                        transactions={transactionsList}
-                        location={location}
-                        projects={projects}
-                        statsData={statsData}
-                        handleSelectTransaction={handleChangeSelected(
-                          location,
-                          trendChangeType,
-                          transactionsList
-                        )}
-                      />
-                    ))}
-                  </TransactionsList>
-                </React.Fragment>
+              {isLoading ? (
+                <LoadingIndicator
+                  style={{
+                    margin: '237px auto',
+                  }}
+                />
               ) : (
-                <EmptyStateContainer>
-                  <EmptyStateWarning small>{t('No results')}</EmptyStateWarning>
-                </EmptyStateContainer>
+                <React.Fragment>
+                  {transactionsList.length ? (
+                    <React.Fragment>
+                      <ChartContainer>
+                        <Chart
+                          statsData={statsData}
+                          query={trendView.query}
+                          project={trendView.project}
+                          environment={trendView.environment}
+                          start={trendView.start}
+                          end={trendView.end}
+                          statsPeriod={trendView.statsPeriod}
+                          transaction={selectedTransaction}
+                          isLoading={isLoading}
+                          {...props}
+                        />
+                      </ChartContainer>
+                      <TransactionsList>
+                        {transactionsList.map((transaction, index) => (
+                          <TrendsListItem
+                            api={api}
+                            currentTrendFunction={currentTrendFunction}
+                            trendView={props.trendView}
+                            organization={organization}
+                            transaction={transaction}
+                            key={transaction.transaction}
+                            index={index}
+                            trendChangeType={trendChangeType}
+                            transactions={transactionsList}
+                            location={location}
+                            projects={projects}
+                            statsData={statsData}
+                            handleSelectTransaction={handleChangeSelected(
+                              location,
+                              trendChangeType,
+                              transactionsList
+                            )}
+                          />
+                        ))}
+                      </TransactionsList>
+                    </React.Fragment>
+                  ) : (
+                    <EmptyStateContainer>
+                      <EmptyStateWarning small>{t('No results')}</EmptyStateWarning>
+                    </EmptyStateContainer>
+                  )}
+                </React.Fragment>
               )}
             </StyledPanel>
             <Pagination pageLinks={pageLinks} onCursor={onCursor} />
