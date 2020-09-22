@@ -52,5 +52,10 @@ class PerformanceOverviewTest(AcceptanceTestCase):
         with self.feature(FEATURE_NAMES):
             self.browser.get(self.path)
             self.page.wait_until_loaded()
-            self.browser.wait_until('[data-test-id="grid-editable"] td')
+
+            # This test is flakey in that we sometimes load this page before the event is processed
+            # depend on pytest-retry to reload the page
+            self.browser.wait_until_not(
+                '[data-test-id="grid-editable"] [data-test-id="empty-state"]', timeout=2
+            )
             self.browser.snapshot("performance overview - with data")
