@@ -197,7 +197,11 @@ function ChangedTransactions(props: Props) {
                 </HeaderTitleLegend>
               </ContainerTitle>
               {isLoading ? (
-                <LoadingIndicator />
+                <LoadingIndicator
+                  style={{
+                    margin: '237px auto',
+                  }}
+                />
               ) : (
                 <React.Fragment>
                   {transactionsList.length ? (
