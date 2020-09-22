@@ -719,8 +719,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
             first_seen = {
                 ge["group_id"]: ge["first_seen__min"]
                 for ge in GroupEnvironment.objects.filter(
-                    group_id__in=[item.id for item in item_list],
-                    environment_id__in=environment_ids,
+                    group_id__in=[item.id for item in item_list], environment_id__in=environment_ids
                 )
                 .values("group_id")
                 .annotate(Min("first_seen"))
@@ -824,7 +823,9 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                 )
             for item in item_list:
                 if self.has_dynamic_issue_counts:
-                    attrs[item].update({"filtered_stats": filtered_stats[item.id]})
+                    attrs[item].update(
+                        {"filtered_stats": filtered_stats[item.id] if filtered_stats else {}}
+                    )
                 attrs[item].update({"stats": stats[item.id]})
 
         return attrs
