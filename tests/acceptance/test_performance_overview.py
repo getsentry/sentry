@@ -52,4 +52,5 @@ class PerformanceOverviewTest(AcceptanceTestCase):
         with self.feature(FEATURE_NAMES):
             self.browser.get(self.path)
             self.page.wait_until_loaded()
+            self.wait_until('[data-test-id="grid-editable"] td')
             self.browser.snapshot("performance overview - with data")
