@@ -3,17 +3,18 @@ from __future__ import absolute_import
 
 import click
 import docker
-import json
 import os
 import six
 import zlib
-from datetime import datetime
 from contextlib import contextmanager
+from datetime import datetime
+from subprocess import Popen
+
+from sentry.conf.server import SENTRY_DEVSERVICES
 from sentry.runner.commands.devservices import get_docker_client, get_or_create
+from sentry.utils import json
 from sentry.utils.apidocs import MockUtils, iter_scenarios, iter_endpoints, get_sections
 from sentry.utils.integrationdocs import sync_docs
-from sentry.conf.server import SENTRY_DEVSERVICES
-from subprocess import Popen
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 OUTPUT_PATH = "/usr/src/output"
@@ -84,7 +85,7 @@ def apidoc_containers():
 
     # Massage our list into some shared settings instead of repeating
     # it for each definition.
-    for name, options in containers.items():
+    for name, options in list(containers.items()):
         options["network"] = namespace
         options["detach"] = True
         options["name"] = namespace + "_" + name

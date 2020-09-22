@@ -25,7 +25,7 @@
     ],
     "responses": {
       "200": {
-        "description": "Success.",
+        "description": "Success",
         "content": {
           "application/json": {
             "schema": {
@@ -264,7 +264,7 @@
     },
     "responses": {
       "200": {
-        "description": "Success.",
+        "description": "Success",
         "content": {
           "application/json": {
             "schema": {
@@ -460,7 +460,7 @@
     ],
     "responses": {
       "204": {
-        "description": "Success."
+        "description": "Success"
       },
       "403": {
         "description": "Forbidden"

@@ -3,9 +3,14 @@
     "tags": ["Projects"],
     "description": "Return a list of projects available to the authenticated session.",
     "operationId": "List your Projects",
+    "parameters": [
+      {
+        "$ref": "../../components/parameters/pagination-cursor.json#/PaginationCursor"
+      }
+    ],
     "responses": {
       "200": {
-        "description": "Success.",
+        "description": "Success",
         "content": {
           "application/json": {
             "schema": {

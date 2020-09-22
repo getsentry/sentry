@@ -19,6 +19,7 @@ const popular = [
   'node',
   'react-native',
   'javascript-angular',
+  'javascript-vue',
 ] as const;
 
 const frontend = [
@@ -35,23 +36,20 @@ const frontend = [
 const mobile = [
   'android',
   'apple-ios',
-  'cocoa-objc',
-  'cocoa-swift',
-  'java-android',
   'cordova',
+  'javascript-cordova',
   'react-native',
   'flutter',
 ] as const;
 
 const backend = [
-  'csharp',
   'dotnet',
   'dotnet-aspnetcore',
   'elixir',
   'go',
   'go-http',
-  'java-appengine',
   'java',
+  'java-appengine',
   'java-log4j',
   'java-log4j2',
   'java-logback',
@@ -94,12 +92,15 @@ const serverless = [
 
 const desktop = [
   'apple-macos',
-  'cocoa',
-  'csharp',
+  'dotnet',
   'java',
   'electron',
-  'minidump',
+  'javascript-electron',
   'native',
+  'native-crashpad',
+  'native-breakpad',
+  'native-minidump',
+  'minidump',
 ] as const;
 
 const categoryList = [

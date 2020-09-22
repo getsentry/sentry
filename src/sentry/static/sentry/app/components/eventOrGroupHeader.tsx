@@ -1,12 +1,12 @@
-import PropTypes from 'prop-types';
 import React from 'react';
-import {withRouter} from 'react-router';
+import {Link, withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import {css} from '@emotion/core';
 import capitalize from 'lodash/capitalize';
 
+import {tct} from 'app/locale';
+import {Event, Group, Level} from 'app/types';
 import {IconMute, IconStar} from 'app/icons';
-import SentryTypes from 'app/sentryTypes';
 import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
 import Tooltip from 'app/components/tooltip';
 import {getMessage, getLocation} from 'app/utils/events';
@@ -16,22 +16,24 @@ import {
   UnhandledLabel,
 } from 'app/views/organizationGroupDetails/styles';
 
+type DefaultProps = {
+  includeLink: boolean;
+  size: 'small' | 'normal';
+};
+
+type Props = WithRouterProps<{orgId: string}> & {
+  data: Event | Group;
+  hideIcons?: boolean;
+  hideLevel?: boolean;
+  query?: string;
+  className?: string;
+} & DefaultProps;
+
 /**
  * Displays an event or group/issue title (i.e. in Stream)
  */
-class EventOrGroupHeader extends React.Component {
-  static propTypes = {
-    params: PropTypes.object,
-    /** Either an issue or event **/
-    data: PropTypes.oneOfType([SentryTypes.Event, SentryTypes.Group]),
-    includeLink: PropTypes.bool,
-    hideIcons: PropTypes.bool,
-    hideLevel: PropTypes.bool,
-    query: PropTypes.string,
-    size: PropTypes.oneOf(['small', 'normal']),
-  };
-
-  static defaultProps = {
+class EventOrGroupHeader extends React.Component<Props> {
+  static defaultProps: DefaultProps = {
     includeLink: true,
     size: 'normal',
   };
@@ -41,11 +43,11 @@ class EventOrGroupHeader extends React.Component {
 
     const orgId = params?.orgId;
 
-    const {id, level, groupID} = data || {};
-    const isEvent = !!data.eventID;
+    const {id, level, status, isBookmarked, hasSeen} = data as Group;
+    const {eventID, groupID} = data as Event;
 
-    const props = {};
-    let Wrapper;
+    let Wrapper: 'span' | typeof GlobalSelectionLink;
+    const props: React.ComponentProps<Link> | React.HTMLAttributes<HTMLSpanElement> = {};
 
     const basePath = `/organizations/${orgId}/issues/`;
 
@@ -56,9 +58,9 @@ class EventOrGroupHeader extends React.Component {
         ...(location.query.project !== undefined ? {} : {_allp: 1}), //This appends _allp to the URL parameters if they have no project selected ("all" projects included in results). This is so that when we enter the issue details page and lock them to a project, we can properly take them back to the issue list page with no project selected (and not the locked project selected)
       };
 
-      props.to = {
-        pathname: `${basePath}${isEvent ? groupID : id}/${
-          isEvent ? `events/${data.eventID}/` : ''
+      (props as React.ComponentProps<Link>).to = {
+        pathname: `${basePath}${eventID ? groupID : id}/${
+          eventID ? `events/${eventID}/` : ''
         }`,
         query,
       };
@@ -71,30 +73,27 @@ class EventOrGroupHeader extends React.Component {
     return (
       <Wrapper
         {...props}
-        data-test-id={data.status === 'resolved' ? 'resolved-issue' : null}
-        style={data.status === 'resolved' ? {textDecoration: 'line-through'} : null}
+        data-test-id={status === 'resolved' ? 'resolved-issue' : null}
+        style={status === 'resolved' ? {textDecoration: 'line-through'} : undefined}
       >
         {!hideLevel && level && (
-          <GroupLevel level={data.level}>
+          <GroupLevel level={level}>
             <Tooltip title={`Error level: ${capitalize(level)}`}>
               <span />
             </Tooltip>
           </GroupLevel>
         )}
-        {!hideIcons && data.status === 'ignored' && (
+        {!hideIcons && status === 'ignored' && (
           <IconWrapper>
             <IconMute color="red400" />
           </IconWrapper>
         )}
-        {!hideIcons && data.isBookmarked && (
+        {!hideIcons && isBookmarked && (
           <IconWrapper>
             <IconStar isSolid color="orange300" />
           </IconWrapper>
         )}
-        <EventOrGroupTitle
-          {...this.props}
-          style={{fontWeight: data.hasSeen ? 400 : 600}}
-        />
+        <EventOrGroupTitle {...this.props} style={{fontWeight: hasSeen ? 400 : 600}} />
       </Wrapper>
     );
   }
@@ -139,7 +138,7 @@ const Title = styled('div')`
   ${truncateStyles};
   ${getMargin};
   & em {
-    font-size: 14px;
+    font-size: ${p => p.theme.fontSizeMedium};
     font-style: normal;
     font-weight: 300;
     color: ${p => p.theme.gray600};
@@ -151,7 +150,7 @@ const LocationWrapper = styled('div')`
   ${getMargin};
   direction: rtl;
   text-align: left;
-  font-size: 14px;
+  font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.gray600};
   span {
     direction: ltr;
@@ -162,7 +161,9 @@ function Location(props) {
   const {children, ...rest} = props;
   return (
     <LocationWrapper {...rest}>
-      in <span>{children}</span>
+      {tct('in [location]', {
+        location: <span>{children}</span>,
+      })}
     </LocationWrapper>
   );
 }
@@ -173,7 +174,7 @@ const StyledLabelAndMessageWrapper = styled(LabelAndMessageWrapper)`
 
 const Message = styled('div')`
   ${truncateStyles};
-  font-size: 14px;
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const IconWrapper = styled('span')`
@@ -183,7 +184,7 @@ const IconWrapper = styled('span')`
   margin-right: 5px;
 `;
 
-const GroupLevel = styled('div')`
+const GroupLevel = styled('div')<{level: Level}>`
   position: absolute;
   left: -1px;
   width: 9px;

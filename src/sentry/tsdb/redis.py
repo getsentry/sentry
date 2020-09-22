@@ -138,7 +138,7 @@ class RedisTSDB(BaseTSDB):
         results = defaultdict(list)
         for environment_id in environment_ids:
             results[self.get_cluster(environment_id)].append(environment_id)
-        return results.items()
+        return list(results.items())
 
     def add_environment_parameter(self, key, environment_id):
         if environment_id is not None:
@@ -791,7 +791,7 @@ class RedisTSDB(BaseTSDB):
         # as positional arguments to the Redis script and later associating the
         # results (which are returned in the same order that the arguments were
         # provided) with the original input values to compose the result.
-        for key, members in items.items():
+        for key, members in list(items.items()):
             items[key] = list(members)
 
         commands = {}
