@@ -270,7 +270,7 @@ class SourceField extends React.Component<Props, State> {
       fieldValues[fieldValues.length - 1] = [lastFieldValue, suggestion];
     }
 
-    if (lastFieldValue?.type === 'string') {
+    if (lastFieldValue?.type === 'string' && !lastFieldValue?.value) {
       fieldValues[fieldValues.length - 1] = suggestion;
     }
 
@@ -325,12 +325,12 @@ class SourceField extends React.Component<Props, State> {
   handleClickSuggestionItem = (suggestion: SourceSuggestion) => () => {
     const fieldValues = this.getNewFieldValues(suggestion);
     this.setState(
-      {
-        fieldValues,
+      prevState => ({
+        fieldValues: fieldValues ?? prevState.fieldValues,
         activeSuggestion: 0,
         showSuggestions: false,
         hideCaret: false,
-      },
+      }),
       this.changeParentValue
     );
   };
