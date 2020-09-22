@@ -14,7 +14,6 @@ from sentry.api.event_search import (
     FIELD_ALIASES,
     get_filter,
     get_function_alias,
-    get_function_alias_with_columns,
     is_function,
     InvalidSearchQuery,
     parse_function,
@@ -200,6 +199,15 @@ def zerofill_histogram(results, column_meta, orderby, sentry_function_alias, snu
 
 
 def parse_measurements_histogram_function(field):
+    """
+    Parses the `measurements_histogram` function from a string into its arguments.
+    It has the following signature:
+
+    :param int num_buckets: The desired_number of buckets.
+    :param int|null bucket_min: The minimum value of the histogram. Use `null` to compute one.
+    :param int|null bucket_max: The maximum value of the histogram. Use `null` to compute one.
+    :param int precision: The number of decimal places to use.
+    """
     try:
         _, columns = parse_function(field)
     except InvalidSearchQuery:
@@ -207,11 +215,11 @@ def parse_measurements_histogram_function(field):
             u"received {}, expected measurements_histogram function".format(field)
         )
 
-    min_args = 5
-    if len(columns) < min_args:
+    total_args = 4
+    if len(columns) < total_args:
         raise InvalidSearchQuery(
-            u"measurements_histogram(...) expects at least {} column arguments, received {:g} arguments".format(
-                min_args, len(columns)
+            u"measurements_histogram(...) expects {} column arguments, received {:g} arguments".format(
+                total_args, len(columns)
             )
         )
 
@@ -245,7 +253,7 @@ def parse_measurements_histogram_function(field):
 
     i += 1
     try:
-        precision = 0 if columns[i] == "null" else int(columns[i])
+        precision = int(columns[i])
         # only allow up to 2 decimal places of precision
         if precision < 0 or precision > 2:
             raise Exception()
@@ -256,21 +264,12 @@ def parse_measurements_histogram_function(field):
             )
         )
 
-    i += 1
-    for column in columns[i:]:
-        if not is_measurement(column):
-            raise InvalidSearchQuery(
-                u"measurements_histogram(...) can only be used with measurements, not {}".format(
-                    column
-                )
-            )
-
-    args = [num_buckets, bucket_min, bucket_max, precision]
-    args.extend(columns[i:])
-    return args
+    return [num_buckets, bucket_min, bucket_max, precision]
 
 
-def find_measurements_bounds(measurements_min, measurements_max, measurements, params, conditions):
+def find_measurements_bounds(
+    measurements_min, measurements_max, params, conditions, snuba_alias, snuba_conditions
+):
     if measurements_min is None or measurements_max is None:
         conditions = deepcopy(conditions) if conditions else []
         for cond in conditions:
@@ -279,33 +278,29 @@ def find_measurements_bounds(measurements_min, measurements_max, measurements, p
         else:
             conditions.append(["event.type", "=", "transaction"])
         snuba_filter = eventstore.Filter(conditions=conditions)
-        snuba_filter.aggregations = []
+        snuba_filter, _ = resolve_discover_aliases(snuba_filter)
+
+        aggregations = []
 
         if measurements_min is None:
-            snuba_filter.aggregations.extend(
-                [
-                    ["min", measurement, get_function_alias_with_columns("min", [measurement])]
-                    for measurement in measurements
-                ]
-            )
+            aggregations.append(["min", [["arrayJoin", ["measurements.value"]]], "min"])
 
         if measurements_max is None:
-            snuba_filter.aggregations.extend(
-                [
-                    ["max", measurement, get_function_alias_with_columns("max", [measurement])]
-                    for measurement in measurements
-                ]
-            )
+            aggregations.append(["max", [["arrayJoin", ["measurements.value"]]], "max"])
 
-        snuba_filter, _ = resolve_discover_aliases(snuba_filter)
+        snuba_alias = snuba_alias if snuba_alias else "array_join_measurements_join"
+        selected_columns = [["arrayJoin", ["measurements.key"], snuba_alias]]
+        snuba_conditions = snuba_conditions if snuba_conditions else []
 
         results = raw_query(
             filter_keys={"project_id": params.get("project_id")},
             start=params.get("start"),
             end=params.get("end"),
             dataset=Dataset.Discover,
-            conditions=snuba_filter.conditions,
-            aggregations=snuba_filter.aggregations,
+            conditions=snuba_filter.conditions + snuba_conditions,
+            aggregations=aggregations,
+            selected_columns=selected_columns,
+            groupby=[snuba_alias],
         )
 
         if not results["data"]:
@@ -313,58 +308,59 @@ def find_measurements_bounds(measurements_min, measurements_max, measurements, p
             # this means we want to create a single empty bucket as the resulting histogram
             return None, None
 
-        # now that we know there is data, we know that there must be only a single row containing
-        # all the aggregates, so we can scan through them looking for the missing min/max values
-
         if measurements_min is None:
-            for measurement in measurements:
-                alias = get_function_alias_with_columns("min", [measurement])
-                proposed_min = results["data"][0][alias]
+            for row in results["data"]:
                 if measurements_min is None or (
-                    proposed_min is not None and measurements_min > proposed_min
+                    row["min"] is not None and measurements_min > row["min"]
                 ):
-                    measurements_min = proposed_min
+                    measurements_min = row["min"]
 
         if measurements_max is None:
-            for measurement in measurements:
-                alias = get_function_alias_with_columns("max", [measurement])
-                proposed_max = results["data"][0][alias]
+            for row in results["data"]:
                 if measurements_max is None or (
-                    proposed_max is not None and measurements_max < proposed_max
+                    row["max"] is not None and measurements_max < row["max"]
                 ):
-                    measurements_max = proposed_max
+                    measurements_max = row["max"]
 
     return measurements_min, measurements_max
 
 
-def generate_measurements_histogram_columns(field, params, conditions):
+def generate_measurements_histogram_column(
+    field, params, conditions, snuba_alias, snuba_conditions
+):
     """
-    This function is based on `find_histogram_buckets`. It uses the min/max values
-    to calculate the width of a bucket.
+    Generates the columns for the measurements_histogram function. This uses the available
+    information to calculate attributes of the histogram such as bucket width that are
+    needed. This is based on `find_histogram_buckets`. It uses the min/max values to
+    calculate the width of a bucket.
+
     NOTE: This function only supports measurements. Any other columns will not work.
+
+    :param str field: The measurements_histogram function string from the frontend.
+        Expected to be of the form `measurements_histogram(num_buckets, min, max, precision)`.
+    :param Dict[str, str] params: Filtering parameters with start, end, project_id, environment
+    :param Sequence[any] conditions: List of conditions that need to be processed before being
+        passed to snuba
+    :params str snuba_alias: The alias to use for the arrayJoin(measurements.key) column. This
+        should be set when there is another `arrayJoin(measurements.key)` in the selected columns.
+        If not set, a default will be generated.
+    :param Sequence[any] snuba_conditions: List of conditions that are passed directly to snuba
+        without any additional processing. If `snuba_alias` is set, `snuba_conditions` should
+        probably contain a condition to filter the desired keys.
     """
     args = parse_measurements_histogram_function(field)
-    num_buckets, bucket_min, bucket_max, precision, measurements = (
-        args[0],
-        args[1],
-        args[2],
-        args[3],
-        args[4:],
-    )
-
-    array_join_column = u"array_join(measurements_key)"
+    num_buckets, bucket_min, bucket_max, precision = args[0], args[1], args[2], args[3]
 
     bucket_min, bucket_max = find_measurements_bounds(
-        bucket_min, bucket_max, measurements, params, conditions
+        bucket_min, bucket_max, params, conditions, snuba_alias, snuba_conditions
     )
 
+    # finding the bounds might result in None if there isn't sufficient data
     if bucket_min is None or bucket_max is None:
-        # TODO(tonyx): need to return an empty histogram here
-        pass
+        return u"measurements_histogram(1, 1, 0, 0, 1)"
 
     precision_multiplier = 10 ** precision
 
-    # TODO(tonyx): this will cause problems if the min/max is None
     bucket_size = ceil(precision_multiplier * (bucket_max - bucket_min) / float(num_buckets))
     if bucket_size == 0.0:
         bucket_size = 1.0
@@ -377,12 +373,8 @@ def generate_measurements_histogram_columns(field, params, conditions):
     # zerofill correctly.
     offset = floor(bucket_min / bucket_size) * bucket_size
 
-    return (
-        measurements,
-        array_join_column,
-        u"measurements_histogram({:g}, {:.0f}, {:.0f}, {:.0f}, {:.0f})".format(
-            num_buckets, bucket_size, offset, precision, precision_multiplier
-        ),
+    return u"measurements_histogram({:g}, {:.0f}, {:.0f}, {:.0f}, {:.0f})".format(
+        num_buckets, bucket_size, offset, precision, precision_multiplier
     )
 
 
@@ -532,10 +524,31 @@ def query(
         if not use_aggregate_conditions:
             snuba_filter.having = []
 
+    function_translations = {}
+
+    measurements_join_snuba_name = None
+    for idx, col in enumerate(selected_columns):
+        func_prefix = "measurements_join("
+        if col.startswith(func_prefix):
+            sentry_name = get_function_alias(col)
+            snuba_column = "array_join(measurements_key)"
+            measurements_join_snuba_name = get_function_alias(snuba_column)
+            selected_columns[idx] = snuba_column
+            function_translations[measurements_join_snuba_name] = sentry_name
+
+            measurements = col[len(func_prefix) : -1]
+            measurements = [m.strip() for m in measurements.split(",")]
+            measurements = [m.split(".", 1)[1] for m in measurements]
+
+            if conditions is None:
+                conditions = []
+            conditions.append([measurements_join_snuba_name, "IN", measurements])
+
+            break
+
     # We need to run a separate query to be able to properly bucket the values for the histogram
     # Do that here, and format the bucket number in to the columns before passing it through
     # to event search.
-    function_translations = {}
     for idx, col in enumerate(selected_columns):
         if col.startswith("histogram("):
             with sentry_sdk.start_span(
@@ -566,41 +579,23 @@ def query(
             ) as span:
                 span.set_data("measurements_histogram", col)
 
-                bin_sentry_name = get_function_alias(col)
+                measurements_histogram_column = generate_measurements_histogram_column(
+                    col, params, snuba_filter.conditions, measurements_join_snuba_name, conditions
+                )
+                sentry_name = get_function_alias(col)
+                snuba_name = get_function_alias(measurements_histogram_column)
+                selected_columns[idx] = measurements_histogram_column
+                function_translations[snuba_name] = sentry_name
 
                 if orderby is not None:
                     orderby = list(orderby) if isinstance(orderby, (list, tuple)) else [orderby]
                     for i, ordering in enumerate(orderby):
-                        if bin_sentry_name == ordering.lstrip("-"):
+                        if sentry_name == ordering.lstrip("-"):
                             ordering = "{}{}".format(
                                 "-" if ordering.startswith("-") else "", snuba_name
                             )
                             orderby[i] = ordering
 
-                measurements, key_column, bin_column = generate_measurements_histogram_columns(
-                    col, params, snuba_filter.conditions
-                )
-
-                bin_snuba_name = get_function_alias(bin_column)
-                selected_columns[idx] = bin_column
-                function_translations[bin_snuba_name] = bin_sentry_name
-
-                key_sentry_name = u"key_{}".format(bin_sentry_name)
-                key_snuba_name = get_function_alias(key_column)
-                selected_columns.insert(idx + 1, key_column)
-                function_translations[key_snuba_name] = key_sentry_name
-
-                # we append this to the conditions array rather than snuba_filter.conditions
-                # because its already a snuba alias and we do not want this to be translated
-                if conditions is None:
-                    conditions = []
-                conditions.append(
-                    [
-                        key_snuba_name,
-                        "IN",
-                        [measurement.split(".", 1)[1] for measurement in measurements],
-                    ]
-                )
             break
 
     # for col in selected_columns:
