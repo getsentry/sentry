@@ -25,12 +25,6 @@ export const experimentList = [
     parameter: 'exposed',
     assignments: [0, 1],
   },
-  {
-    key: 'MetricAlertsTypeChooser',
-    type: ExperimentType.Organization,
-    parameter: 'variant',
-    assignments: ['boolean', 'flowChoice', unassignedValue],
-  },
 ] as const;
 
 export const experimentConfig = experimentList.reduce(
