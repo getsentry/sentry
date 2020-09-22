@@ -55,7 +55,7 @@ rfc3339-validator==0.1.2
 rfc3986-validator==0.1.1
 # [end] jsonschema format validators
 sentry-relay>=0.8.0,<0.9.0
-sentry-sdk>=0.16.4,<0.17.0
+sentry-sdk>=0.17.7,<0.18.0
 simplejson>=3.11.0,<3.12.0
 six>=1.11.0,<1.12.0
 sqlparse>=0.2.0,<0.3.0
