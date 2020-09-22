@@ -34,7 +34,7 @@ MATCH_CHOICES = OrderedDict(
 
 class TaggedEventForm(forms.Form):
     key = forms.CharField(widget=forms.TextInput())
-    match = forms.ChoiceField(MATCH_CHOICES.items(), widget=forms.Select())
+    match = forms.ChoiceField(list(MATCH_CHOICES.items()), widget=forms.Select())
     value = forms.CharField(widget=forms.TextInput(), required=False)
 
     def clean(self):
@@ -53,7 +53,7 @@ class TaggedEventCondition(EventCondition):
 
     form_fields = {
         "key": {"type": "string", "placeholder": "key"},
-        "match": {"type": "choice", "choices": MATCH_CHOICES.items()},
+        "match": {"type": "choice", "choices": list(MATCH_CHOICES.items())},
         "value": {"type": "string", "placeholder": "value"},
     }
 

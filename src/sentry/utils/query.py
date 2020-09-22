@@ -186,9 +186,7 @@ def bulk_delete_objects(
     if has_more and logger is not None and _leaf_re.search(model.__name__) is None:
         logger.info(
             "object.delete.bulk_executed",
-            extra=dict(
-                filters.items() + [("model", model.__name__), ("transaction_id", transaction_id)]
-            ),
+            extra=dict(filters, model=model.__name__, transaction_id=transaction_id),
         )
 
     return has_more
