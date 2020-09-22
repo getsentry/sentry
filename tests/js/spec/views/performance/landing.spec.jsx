@@ -5,7 +5,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ProjectsStore from 'app/stores/projectsStore';
-import PerformanceLanding from 'app/views/performance/landing';
+import PerformanceLanding, {FilterViews} from 'app/views/performance/landing';
 
 const FEATURES = ['transaction-event', 'performance-view'];
 
@@ -20,6 +20,27 @@ function initializeData(projects, query) {
       location: {
         query: query || {},
       },
+    },
+  });
+  ProjectsStore.loadInitialData(initialData.organization.projects);
+  return initialData;
+}
+
+function initializeTrendsData(query) {
+  const features = [...FEATURES, 'trends'];
+  const projects = [
+    TestStubs.Project({id: '1', firstTransactionEvent: false}),
+    TestStubs.Project({id: '2', firstTransactionEvent: true}),
+  ];
+  const organization = TestStubs.Organization({
+    features,
+    projects,
+  });
+
+  const initialData = initializeOrg({
+    organization,
+    router: {
+      location: {query},
     },
   });
   ProjectsStore.loadInitialData(initialData.organization.projects);
@@ -89,6 +110,13 @@ describe('Performance > Landing', function() {
       url: '/organizations/org-slug/events-meta/',
       body: {
         count: 2,
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-trends/',
+      body: {
+        stats: {},
+        events: {meta: {}, data: []},
       },
     });
   });
@@ -196,23 +224,7 @@ describe('Performance > Landing', function() {
   });
 
   it('Sets default period when navigating to trends when stats period is not set', async function() {
-    const features = [...FEATURES, 'trends'];
-    const projects = [
-      TestStubs.Project({id: '1', firstTransactionEvent: false}),
-      TestStubs.Project({id: '2', firstTransactionEvent: true}),
-    ];
-    const organization = TestStubs.Organization({
-      features,
-      projects,
-    });
-
-    const data = initializeOrg({
-      organization,
-      router: {
-        location: {query: {query: 'tag:value'}},
-      },
-    });
-
+    const data = initializeTrendsData({query: 'tag:value'});
     const wrapper = mountWithTheme(
       <PerformanceLanding
         organization={data.organization}
@@ -238,23 +250,9 @@ describe('Performance > Landing', function() {
   });
 
   it('Navigating to trends does not modify statsPeriod when already set', async function() {
-    const features = [...FEATURES, 'trends'];
-    const projects = [
-      TestStubs.Project({id: '1', firstTransactionEvent: false}),
-      TestStubs.Project({id: '2', firstTransactionEvent: true}),
-    ];
-    const organization = TestStubs.Organization({
-      features,
-      projects,
-    });
-
-    const data = initializeOrg({
-      organization,
-      router: {
-        location: {
-          query: {query: 'count():>500 transaction.duration:>10', statsPeriod: '24h'},
-        },
-      },
+    const data = initializeTrendsData({
+      query: 'count():>500 transaction.duration:>10',
+      statsPeriod: '24h',
     });
 
     const wrapper = mountWithTheme(
@@ -276,6 +274,35 @@ describe('Performance > Landing', function() {
           query: 'count():>500 transaction.duration:>10',
           statsPeriod: '24h',
           view: 'TRENDS',
+        },
+      })
+    );
+  });
+
+  it('Navigating away from trends will reset query', async function() {
+    const data = initializeTrendsData({view: FilterViews.TRENDS});
+
+    const wrapper = mountWithTheme(
+      <PerformanceLanding
+        organization={data.organization}
+        location={data.router.location}
+      />,
+      data.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    const byTransactionLink = wrapper
+      .find('[data-test-id="landing-header-all_transactions"]')
+      .at(0);
+    byTransactionLink.simulate('click');
+
+    expect(browserHistory.push).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        query: {
+          query: '',
+          view: 'ALL_TRANSACTIONS',
         },
       })
     );
