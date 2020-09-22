@@ -136,6 +136,7 @@ from .endpoints.organization_projects import (
     OrganizationProjectsCountEndpoint,
 )
 from .endpoints.organization_recent_searches import OrganizationRecentSearchesEndpoint
+from .endpoints.organization_relay_usage import OrganizationRelayUsage
 from .endpoints.organization_release_assemble import OrganizationReleaseAssembleEndpoint
 from .endpoints.organization_release_commits import OrganizationReleaseCommitsEndpoint
 from .endpoints.organization_release_previous_commits import (
@@ -1120,6 +1121,12 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/join-request/$",
                     OrganizationJoinRequestEndpoint.as_view(),
                     name="sentry-api-0-organization-join-request",
+                ),
+                # relay usage
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/relay_usage/$",
+                    OrganizationRelayUsage.as_view(),
+                    name="sentry-api-0-organization-relay-usage",
                 ),
             ]
         ),

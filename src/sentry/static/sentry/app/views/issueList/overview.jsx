@@ -540,6 +540,7 @@ const IssueListOverview = createReactClass({
           query={this.getQuery()}
           hasGuideAnchor={hasGuideAnchor}
           memberList={members}
+          useFilteredStats
         />
       );
     });

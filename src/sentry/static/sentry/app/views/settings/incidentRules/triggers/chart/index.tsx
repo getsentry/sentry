@@ -165,22 +165,20 @@ class TriggersChart extends React.PureComponent<Props, State> {
       >
         {({loading, reloading, timeseriesData}) => {
           let maxValue: SeriesDataUnit | undefined;
-          if (
-            timeseriesData &&
-            timeseriesData.length &&
-            timeseriesData[0].data !== undefined
-          ) {
+          let timeseriesLength: number | undefined;
+          if (timeseriesData?.[0]?.data !== undefined) {
             maxValue = maxBy(timeseriesData[0].data, ({value}) => value);
-            if (aggregateFn !== 'none' && timeseriesData[0].data.length > 400) {
-              let chunks = 0;
+            timeseriesLength = timeseriesData[0].data.length;
+            if (aggregateFn !== 'none' && timeseriesLength > 600) {
+              let chunkSize = 2;
               if (timeseriesData[0].data.length > 8000) {
-                chunks = 20;
+                chunkSize = 20;
               } else if (timeseriesData[0].data.length > 4000) {
-                chunks = 10;
+                chunkSize = 10;
               } else if (timeseriesData[0].data.length > 2000) {
-                chunks = 5;
+                chunkSize = 5;
               }
-              timeseriesData[0].data = chunk(timeseriesData[0].data, chunks).map(
+              timeseriesData[0].data = chunk(timeseriesData[0].data, chunkSize).map(
                 seriesChunk => {
                   return {
                     name: seriesChunk[0].name,
@@ -195,10 +193,10 @@ class TriggersChart extends React.PureComponent<Props, State> {
             <StickyWrapper>
               <StyledPanel>
                 <PanelBody withPadding>
-                  <Feature features={['internal-catchall']} organization={organization}>
-                    <ControlsContainer>
+                  <ControlsContainer>
+                    <Feature features={['internal-catchall']} organization={organization}>
                       {/* TODO(scttcper): Remove internal aggregate experiment */}
-                      {timeseriesData?.[0] && timeseriesData[0].data.length > 400 && (
+                      {timeseriesLength && timeseriesLength > 600 && (
                         <AggregationSelectControl
                           inline={false}
                           styles={{
@@ -220,28 +218,28 @@ class TriggersChart extends React.PureComponent<Props, State> {
                           onChange={this.handleAggregateFunctionChange}
                         />
                       )}
-                      <PeriodSelectControl
-                        inline={false}
-                        styles={{
-                          control: provided => ({
-                            ...provided,
-                            minHeight: '25px',
-                            height: '25px',
-                          }),
-                        }}
-                        isSearchable={false}
-                        isClearable={false}
-                        disabled={loading || reloading}
-                        name="statsPeriod"
-                        value={period}
-                        choices={statsPeriodOptions.map(timePeriod => [
-                          timePeriod,
-                          TIME_PERIOD_MAP[timePeriod],
-                        ])}
-                        onChange={this.handleStatsPeriodChange}
-                      />
-                    </ControlsContainer>
-                  </Feature>
+                    </Feature>
+                    <PeriodSelectControl
+                      inline={false}
+                      styles={{
+                        control: provided => ({
+                          ...provided,
+                          minHeight: '25px',
+                          height: '25px',
+                        }),
+                      }}
+                      isSearchable={false}
+                      isClearable={false}
+                      disabled={loading || reloading}
+                      name="statsPeriod"
+                      value={period}
+                      choices={statsPeriodOptions.map(timePeriod => [
+                        timePeriod,
+                        TIME_PERIOD_MAP[timePeriod],
+                      ])}
+                      onChange={this.handleStatsPeriodChange}
+                    />
+                  </ControlsContainer>
 
                   {loading || reloading ? (
                     <ChartPlaceholder />
@@ -296,6 +294,7 @@ const StyledPanel = styled(Panel)`
 const ControlsContainer = styled('div')`
   display: flex;
   justify-content: flex-end;
+  margin-bottom: ${space(0.5)};
 `;
 
 const AggregationSelectControl = styled(SelectControl)`

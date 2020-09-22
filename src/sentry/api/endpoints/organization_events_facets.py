@@ -54,4 +54,4 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsV2EndpointBase):
 
                 resp["project"]["topValues"] = filtered_values
 
-        return Response(resp.values())
+        return Response(list(resp.values()))

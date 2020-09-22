@@ -15,6 +15,7 @@ from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.faux import faux
 from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils.helpers.eventprocessing import write_event_to_cache
 from sentry.utils.http import absolute_uri
 from sentry.receivers.sentry_apps import *  # NOQA
 from sentry.utils import json
@@ -191,7 +192,11 @@ class TestProcessResourceChange(TestCase):
         event = self.store_event(data={}, project_id=self.project.id)
         with self.tasks():
             post_process_group(
-                event=event, is_new=True, is_regression=False, is_new_group_environment=False
+                event=event,
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=False,
+                cache_key=write_event_to_cache(event),
             )
 
         data = json.loads(faux(safe_urlopen).kwargs["data"])
@@ -252,7 +257,11 @@ class TestProcessResourceChange(TestCase):
 
         with self.tasks():
             post_process_group(
-                event=event, is_new=False, is_regression=False, is_new_group_environment=False
+                event=event,
+                is_new=False,
+                is_regression=False,
+                is_new_group_environment=False,
+                cache_key=write_event_to_cache(event),
             )
 
         data = json.loads(faux(safe_urlopen).kwargs["data"])
@@ -291,7 +300,11 @@ class TestProcessResourceChange(TestCase):
 
         with self.tasks():
             post_process_group(
-                event=event, is_new=False, is_regression=False, is_new_group_environment=False
+                event=event,
+                is_new=False,
+                is_regression=False,
+                is_new_group_environment=False,
+                cache_key=write_event_to_cache(event),
             )
 
         assert not safe_urlopen.called

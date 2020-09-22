@@ -250,7 +250,7 @@ class Group(Model):
     project = FlexibleForeignKey("sentry.Project")
     logger = models.CharField(max_length=64, blank=True, default=DEFAULT_LOGGER_NAME, db_index=True)
     level = BoundedPositiveIntegerField(
-        choices=LOG_LEVELS.items(), default=logging.ERROR, blank=True, db_index=True
+        choices=list(LOG_LEVELS.items()), default=logging.ERROR, blank=True, db_index=True
     )
     message = models.TextField()
     culprit = models.CharField(
@@ -470,11 +470,7 @@ class Group(Model):
 
     def count_users_seen(self):
         return tagstore.get_groups_user_counts(
-            [self.project_id],
-            [self.id],
-            environment_ids=None,
-            snuba_filters=None,
-            start=self.first_seen,
+            [self.project_id], [self.id], environment_ids=None, start=self.first_seen,
         )[self.id]
 
     @classmethod

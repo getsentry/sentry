@@ -36,6 +36,7 @@ const Item = createReactClass({
       message: PropTypes.number,
     }),
     issue: SentryTypes.Group.isRequired,
+    project: SentryTypes.Project.isRequired,
   },
 
   mixins: [Reflux.listenTo(GroupingStore, 'onGroupingUpdate')],
@@ -74,11 +75,11 @@ const Item = createReactClass({
   },
 
   handleShowDiff(e) {
-    const {orgId, groupId, issue} = this.props;
+    const {orgId, groupId, issue, project} = this.props;
     openDiffModal({
       baseIssueId: groupId,
       targetIssueId: issue.id,
-      projectId: issue.project.slug,
+      project,
       orgId,
     });
 
