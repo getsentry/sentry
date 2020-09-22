@@ -4,6 +4,28 @@ import ProjectActions from 'app/actions/projectActions';
 import OrganizationActions from 'app/actions/organizationActions';
 import OrganizationsActions from 'app/actions/organizationsActions';
 import NavigationActions from 'app/actions/navigationActions';
+import {LightWeightOrganization, Organization, Project} from 'app/types';
+
+type OrgTypes = LightWeightOrganization | Organization | null;
+
+type State = {
+  project: Project | null;
+  lastProject: Project | null;
+  organization: OrgTypes;
+  environment: string | string[] | null;
+  lastRoute: string | null;
+};
+
+type LatestContextStoreInterface = {
+  state: State;
+  reset: () => void;
+
+  onSetLastRoute: (route: string) => void;
+  onUpdateOrganization: (organization: OrgTypes) => void;
+  onSetActiveOrganization: (organization: OrgTypes) => void;
+  onSetActiveProject: (organization: Project | null) => void;
+  onUpdateProject: (organization: Project | null) => void;
+};
 
 // Keeps track of last usable project/org
 // this currently won't track when users navigate out of a org/project completely,
@@ -11,7 +33,15 @@ import NavigationActions from 'app/actions/navigationActions';
 //
 // Only keep slug so that people don't get the idea to access org/project data here
 // Org/project data is currently in organizationsStore/projectsStore
-const LatestContextStore = Reflux.createStore({
+const storeConfig: Reflux.StoreDefinition & LatestContextStoreInterface = {
+  state: {
+    project: null,
+    lastProject: null,
+    organization: null,
+    environment: null,
+    lastRoute: null,
+  },
+
   getInitialState() {
     return this.state;
   },
@@ -111,6 +141,8 @@ const LatestContextStore = Reflux.createStore({
     };
     this.trigger(this.state);
   },
-});
+};
 
-export default LatestContextStore;
+type LatestContextStore = Reflux.Store & LatestContextStoreInterface;
+
+export default Reflux.createStore(storeConfig) as LatestContextStore;
