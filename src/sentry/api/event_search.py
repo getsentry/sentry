@@ -1407,6 +1407,8 @@ class Function(object):
         self.aggregate = aggregate
         self.transform = transform
 
+        self.validate()
+
     @property
     def required_args_count(self):
         return len(self.required_args)
@@ -1438,7 +1440,7 @@ class Function(object):
                 raise InvalidSearchQuery(u"{}: invalid arguments: {}".format(field, e))
 
             # Hacky, but we expect column arguments to be strings so easiest to convert it back
-            columns.append(six.text_type(default))
+            columns.append(six.text_type(default) if default else default)
 
         arguments = {}
 
@@ -1459,7 +1461,18 @@ class Function(object):
         return arguments
 
     def validate(self):
-        pass
+        # assert that all optional args have defaults available
+        for i, arg in enumerate(self.optional_args):
+            assert (
+                arg.has_default
+            ), u"{}: optional argument at index {} does not have default".format(self.name, i)
+
+        # assert that the function has only one of the following specified
+        # `column`, `aggregate`, or `transform`
+        assert (
+            sum([self.column is not None, self.aggregate is not None, self.transform is not None])
+            == 1
+        ), u"{}: only one of column, aggregate, or transform is allowed".format(self.name)
 
     def validate_argument_count(self, field, arguments):
         """
@@ -1579,7 +1592,7 @@ FUNCTIONS = {
         ),
         Function(
             "count_unique",
-            required_args=[CountColumn("column")],
+            optional_args=[CountColumn("column")],
             aggregate=["uniq", ArgValue("column"), None],
             result_type="integer",
         ),
@@ -1638,9 +1651,9 @@ FUNCTIONS = {
             result_type="duration",
         ),
         Function(
-            "user_misery_range",
+            "avg_range",
             required_args=[
-                NumberRange("satisfaction", 0, None),
+                DurationColumn("column"),
                 DateArg("start"),
                 DateArg("end"),
                 NumberRange("index", 1, None),
@@ -1649,6 +1662,22 @@ FUNCTIONS = {
                 u"avgIf({column},and(greaterOrEquals(timestamp,toDateTime('{start}')),less(timestamp,toDateTime('{end}'))))",
                 None,
                 "avg_range_{index:g}",
+            ],
+            result_type="duration",
+        ),
+        Function(
+            "user_misery_range",
+            required_args=[
+                NumberRange("satisfaction", 0, None),
+                DateArg("start"),
+                DateArg("end"),
+                NumberRange("index", 1, None),
+            ],
+            calculated_args=[{"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0}],
+            aggregate=[
+                u"uniqIf(user,and(greater(duration,{tolerated:g}),and(greaterOrEquals(timestamp,toDateTime('{start}')),less(timestamp,toDateTime('{end}')))))",
+                None,
+                "user_misery_range_{index:g}",
             ],
             result_type="duration",
         ),
