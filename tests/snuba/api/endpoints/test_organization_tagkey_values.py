@@ -183,7 +183,9 @@ class OrganizationTagKeyValuesTest(OrganizationTagKeyTestCase):
             expected=[("test1", 2), ("test2", 1)],
         )
         self.run_test(
-            "project", qs_params={"includeTransactions": "1", "query": "1"}, expected=[("test1", 2)]
+            "project",
+            qs_params={"includeTransactions": "1", "query": "1"},
+            expected=[("test1", 2)],
         )
         self.run_test(
             "project", qs_params={"includeTransactions": "1", "query": "test3"}, expected=[]

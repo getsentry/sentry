@@ -50,19 +50,13 @@ class OrganizationEventsTrendsEndpoint(OrganizationEventsV2EndpointBase):
         if not self.has_feature(organization, request):
             return Response(status=404)
 
-        with sentry_sdk.start_span(op="discover.endpoint", description="filter_params") as span:
-            span.set_tag("organization", organization)
-            try:
-                params = self.get_filter_params(request, organization)
-            except NoProjects:
-                return Response([])
-            params = self.quantize_date_params(request, params)
+        try:
+            params = self.get_snuba_params(request, organization)
+        except NoProjects:
+            return Response([])
 
-            has_global_views = features.has(
-                "organizations:global-views", organization, actor=request.user
-            )
-            if not has_global_views and len(params.get("project_id", [])) > 1:
-                raise ParseError(detail="You cannot view events from multiple projects.")
+        with sentry_sdk.start_span(op="discover.endpoint", description="trend_dates") as span:
+            span.set_tag("organization", organization)
 
             middle = params["start"] + timedelta(
                 seconds=(params["end"] - params["start"]).total_seconds() * 0.5
@@ -130,6 +124,7 @@ class OrganizationEventsTrendsEndpoint(OrganizationEventsV2EndpointBase):
                     get_event_stats,
                     top_events=True,
                     query_column=trend_function,
+                    params=params,
                 )
                 if len(events_results["data"]) > 0
                 else {}
