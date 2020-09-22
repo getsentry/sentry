@@ -109,8 +109,6 @@ class GroupDeletionTask(ModelDeletionTask):
     def delete_instance(self, instance):
         from sentry import similarity
 
-        assert not self.skip_models or similarity.features not in self.skip_models
-
         if not self.skip_models or similarity not in self.skip_models:
             similarity.delete(instance)
 
