@@ -1,7 +1,8 @@
 import React from 'react';
 import isEqual from 'lodash/isEqual';
+import {RouteComponentProps} from 'react-router/lib/Router';
 
-import SentryTypes from 'app/sentryTypes';
+import {Group, Organization, Project, UserReport} from 'app/types';
 import EventUserFeedback from 'app/components/events/userFeedback';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -12,27 +13,38 @@ import UserFeedbackEmpty from 'app/views/userFeedback/userFeedbackEmpty';
 
 import {fetchGroupUserReports} from './utils';
 
-class GroupUserFeedback extends React.Component {
-  static propTypes = {
-    organization: SentryTypes.Organization.isRequired,
-    group: SentryTypes.Group.isRequired,
-  };
+type RouteParams = {
+  orgId: string;
+  groupId: string;
+};
 
-  constructor(props) {
-    super(props);
-    this.state = {
-      loading: true,
-      error: false,
-      reportList: [],
-      pageLinks: '',
-    };
-  }
+type Props = RouteComponentProps<RouteParams, {}> & {
+  group: Group;
+  organization: Organization;
+  project: Project;
+  environments: string[];
+};
+
+type State = {
+  loading: boolean;
+  error: boolean;
+  reportList: UserReport[];
+  pageLinks: string | null | undefined;
+};
+
+class GroupUserFeedback extends React.Component<Props, State> {
+  state: State = {
+    loading: true,
+    error: false,
+    reportList: [],
+    pageLinks: '',
+  };
 
   componentDidMount() {
     this.fetchData();
   }
 
-  componentDidUpdate(prevProps) {
+  componentDidUpdate(prevProps: Props) {
     if (!isEqual(prevProps.params, this.props.params)) {
       this.fetchData();
     }
@@ -50,7 +62,7 @@ class GroupUserFeedback extends React.Component {
           error: false,
           loading: false,
           reportList: data,
-          pageLinks: jqXHR.getResponseHeader('Link'),
+          pageLinks: jqXHR?.getResponseHeader('Link'),
         });
       })
       .catch(() => {
@@ -62,12 +74,12 @@ class GroupUserFeedback extends React.Component {
   };
 
   render() {
-    const {reportList} = this.state;
+    const {reportList, loading, error} = this.state;
     const {organization, group} = this.props;
 
-    if (this.state.loading) {
+    if (loading) {
       return <LoadingIndicator />;
-    } else if (this.state.error) {
+    } else if (error) {
       return <LoadingError onRetry={this.fetchData} />;
     }
 
