@@ -325,12 +325,12 @@ class SourceField extends React.Component<Props, State> {
   handleClickSuggestionItem = (suggestion: SourceSuggestion) => () => {
     const fieldValues = this.getNewFieldValues(suggestion);
     this.setState(
-      prevState => ({
-        fieldValues: fieldValues ?? prevState.fieldValues,
+      {
+        fieldValues,
         activeSuggestion: 0,
         showSuggestions: false,
         hideCaret: false,
-      }),
+      },
       this.changeParentValue
     );
   };
