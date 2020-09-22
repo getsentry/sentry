@@ -21,7 +21,7 @@ from django.utils import timezone
 
 from sentry.app import locks
 from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, JSONField, Model
-from sentry.tasks.files import delete_file as delete_file_task
+from sentry.tasks.files import delete_file as delete_file_task, delete_unreferenced_blobs
 from sentry.utils import metrics
 from sentry.utils.retries import TimedRetryPolicy
 
@@ -430,6 +430,12 @@ class File(Model):
         tf.flush()
         tf.seek(0)
         return tf
+
+    def delete(self, *args, **kwargs):
+        blob_ids = [blob.id for blob in self.blobs.all()]
+        super(File, self).delete(*args, **kwargs)
+
+        transaction.on_commit(delete_unreferenced_blobs.s(blob_ids).delay)
 
 
 class FileBlobIndex(Model):
