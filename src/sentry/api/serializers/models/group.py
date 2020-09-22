@@ -795,7 +795,10 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             )
             for item in item_list:
                 time_range_result[item].update(
-                    {"filtered": filtered_result.get(item), "lifetime": lifetime_result.get(item)}
+                    {
+                        "filtered": filtered_result.get(item) if filtered_result else None,
+                        "lifetime": lifetime_result.get(item) if lifetime_result else None,
+                    }
                 )
         return time_range_result
 
