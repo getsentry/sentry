@@ -14,8 +14,10 @@ from sentry.api.event_search import (
     FIELD_ALIASES,
     get_filter,
     get_function_alias,
+    get_function_alias_with_columns,
     is_function,
     InvalidSearchQuery,
+    parse_function,
     resolve_field_list,
 )
 
@@ -197,6 +199,172 @@ def zerofill_histogram(results, column_meta, orderby, sentry_function_alias, snu
     return new_results
 
 
+def parse_measurements_histogram_function(field):
+    try:
+        _, columns = parse_function(field)
+    except InvalidSearchQuery:
+        raise InvalidSearchQuery(
+            u"received {}, expected measurements_histogram function".format(field)
+        )
+
+    min_args = 5
+    if len(columns) < min_args:
+        raise InvalidSearchQuery(
+            u"measurements_histogram(...) expects at least {} column arguments, received {:g} arguments".format(
+                min_args, len(columns)
+            )
+        )
+
+    i = 0
+    try:
+        num_buckets = int(columns[i])
+        if num_buckets < 1 or num_buckets > 500:
+            raise Exception()
+    except Exception:
+        raise InvalidSearchQuery(
+            u"measurements_histogram(...) requires a bucket value between 1 and 500, not {}".format(
+                columns[i]
+            )
+        )
+
+    i += 1
+    try:
+        bucket_min = None if columns[i] == "null" else float(columns[i])
+    except Exception:
+        raise InvalidSearchQuery(
+            u"measurements_histogram(...) requires a min integer value, not {}".format(columns[i])
+        )
+
+    i += 1
+    try:
+        bucket_max = None if columns[i] == "null" else float(columns[i])
+    except Exception:
+        raise InvalidSearchQuery(
+            u"measurements_histogram(...) requires a max integer value, not {}".format(columns[i])
+        )
+
+    i += 1
+    try:
+        precision = 0 if columns[i] == "null" else int(columns[i])
+        # only allow up to 2 decimal places of precision
+        if precision < 0 or precision > 2:
+            raise Exception()
+    except Exception:
+        raise InvalidSearchQuery(
+            u"measurements_histogram(...) requires a precision value between 0 and 2, not {}".format(
+                columns[i]
+            )
+        )
+
+    i += 1
+    for column in columns[i:]:
+        # TODO(tonyx): this should be renamed to match the final implementation
+        if not is_measurement(column):
+            raise InvalidSearchQuery(
+                u"measurements_histogram(...) can only be used with measurements, not {}".format(
+                    column
+                )
+            )
+
+    args = [num_buckets, bucket_min, bucket_max, precision]
+    args.extend(columns[i:])
+    return args
+
+
+def find_measurements_bounds(measurements_min, measurements_max, measurements, params, conditions):
+    if measurements_min is None or measurements_max is None:
+        conditions = deepcopy(conditions) if conditions else []
+        for cond in conditions:
+            if len(cond) == 3 and (cond[0], cond[1], cond[2]) == ("event.type", "=", "transaction"):
+                break
+        else:
+            conditions.append(["event.type", "=", "transaction"])
+        snuba_filter = eventstore.Filter(conditions=conditions)
+        snuba_filter.aggregations = []
+
+        if measurements_min is None:
+            snuba_filter.aggregations.extend(
+                [
+                    ["min", measurement, get_function_alias_with_columns("min", [measurement])]
+                    for measurement in measurements
+                ]
+            )
+
+        if measurements_max is None:
+            snuba_filter.aggregations.extend(
+                [
+                    ["max", measurement, get_function_alias_with_columns("max", [measurement])]
+                    for measurement in measurements
+                ]
+            )
+
+        snuba_filter, _ = resolve_discover_aliases(snuba_filter)
+
+        results = raw_query(
+            filter_keys={"project_id": params.get("project_id")},
+            start=params.get("start"),
+            end=params.get("end"),
+            dataset=Dataset.Discover,
+            conditions=snuba_filter.conditions,
+            aggregations=snuba_filter.aggregations,
+        )
+
+        if not results["data"]:
+            # if there is no data, we can't compute the min/max, so we return None
+            # this means we want to create a single empty bucket as the resulting histogram
+            return None, None
+
+        # now that we know there is data, we know that there must be only a single row containing
+        # all the aggregates, so we can scan through them looking for the missing min/max values
+
+        if measurements_min is None:
+            for measurement in measurements:
+                alias = get_function_alias_with_columns("min", [measurement])
+                proposed_min = results["data"][0][alias]
+                if measurements_min is None or (
+                    proposed_min is not None and measurements_min > proposed_min
+                ):
+                    measurements_min = proposed_min
+
+        if measurements_max is None:
+            for measurement in measurements:
+                alias = get_function_alias_with_columns("max", [measurement])
+                proposed_max = results["data"][0][alias]
+                if measurements_max is None or (
+                    proposed_max is not None and measurements_max < proposed_max
+                ):
+                    measurements_max = proposed_max
+
+    return measurements_min, measurements_max
+
+
+def find_measurements_histogram_buckets(field, params, conditions):
+    """
+    This function is based on `find_histogram_buckets`. It uses the min/max values
+    to calculate the width of a bucket.
+    NOTE: This function only supports measurements. Any other columns will not work.
+    """
+    args = parse_measurements_histogram_function(field)
+    num_buckets, bucket_min, bucket_max, precision, measurements = (
+        args[0],
+        args[1],
+        args[2],
+        args[3],
+        args[4:],
+    )
+    bucket_min, bucket_max = find_measurements_bounds(
+        bucket_min, bucket_max, measurements, params, conditions
+    )
+
+    num_buckets, precision
+    # array_join_strs_column = "array_join_strs({})".format(", ".join(measurements))
+
+    # if bucket_min is None or bucket_max is None:
+    #     return array_join_strs_column
+
+    # return array_join_strs_column
+
+
 def resolve_discover_aliases(snuba_filter, function_translations=None):
     """
     Resolve the public schema aliases to the discover dataset.
@@ -371,6 +539,31 @@ def query(
                             orderby[i] = ordering
 
             break
+
+        if col.startswith("measurements_histogram("):
+            with sentry_sdk.start_span(
+                op="discover.discover", description="query.measurements_histogram_calculation"
+            ) as span:
+                span.set_data("measurements_histogram", col)
+                function_alias = get_function_alias(col)
+
+                # the measurements_histogram only makes sense when we're sorting on the bucket
+                # values due to the way the post processing flattens the table
+                if orderby is None:
+                    raise InvalidSearchQuery(
+                        u"measurements_histogram(...) in selected columns but no order by is specified."
+                    )
+
+                orderby = list(orderby) if isinstance(orderby, (list, tuple)) else [orderby]
+                if len(orderby) != 1 or function_alias != orderby[0]:
+                    raise InvalidSearchQuery(
+                        u"measurements_histogram(...) in selected columns but order by is another column."
+                    )
+
+                measurements_histogram_column = find_measurements_histogram_buckets(
+                    col, params, snuba_filter.conditions
+                )
+                measurements_histogram_column
 
         idx += 1
 
