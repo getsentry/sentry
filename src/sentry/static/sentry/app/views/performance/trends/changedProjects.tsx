@@ -158,9 +158,9 @@ function ChangedProjects(props: Props) {
               </StyledHeaderTitleLegend>
             </div>
             {isLoading ? (
-              <LoadingIndicatorContainer>
+              <EmptyContainer>
                 <LoadingIndicator mini />
-              </LoadingIndicatorContainer>
+              </EmptyContainer>
             ) : (
               <React.Fragment>
                 {transactionsList.length ? (
@@ -211,11 +211,11 @@ const TrendsProjectPanel = styled(Panel)`
   margin: 0;
 `;
 
-const LoadingIndicatorContainer = styled('div')`
+const EmptyContainer = styled('div')`
   display: flex;
-  align-items: center;
   justify-content: center;
-  height: 100%;
+  grid-column: 1/3;
+  grid-row: 2/4;
 `;
 
 const ProjectTrendContainer = styled('div')`
