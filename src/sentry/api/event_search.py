@@ -1444,11 +1444,10 @@ class Function(object):
 
         arguments = {}
 
-        # normalize the arguments before putting it in a dict
+        # normalize the arguments before putting them in a dict
         for column_value, argument in zip(columns, self.args):
             try:
-                normalized_value = argument.normalize(column_value)
-                arguments[argument.name] = normalized_value
+                arguments[argument.name] = argument.normalize(column_value)
             except InvalidFunctionArgument as e:
                 raise InvalidSearchQuery(
                     u"{}: {} argument invalid: {}".format(field, argument.name, e)
