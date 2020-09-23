@@ -36,7 +36,7 @@ jobs:
       run: |
         cd sentry
         yarn install --frozen-lockfile
-        yarn run build-derefed-docs
+        yarn run build-derefed-docs sentry/api-docs/openapi-derefed.json
 
     - name: Copy artifact into getsentry/sentry-api-schema
       run: |
