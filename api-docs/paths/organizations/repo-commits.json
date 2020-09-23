@@ -7,7 +7,7 @@
       {
         "name": "organization_slug",
         "in": "path",
-        "description": "the organization short name",
+        "description": "The organization short name.",
         "required": true,
         "schema": {
           "type": "string"
@@ -16,7 +16,7 @@
       {
         "name": "repo_id",
         "in": "path",
-        "description": "the repository ID",
+        "description": "The repository ID.",
         "required": true,
         "schema": {
           "type": "string"
@@ -25,7 +25,7 @@
     ],
     "responses": {
       "200": {
-        "description": "Success.",
+        "description": "Success",
         "content": {
           "application/json": {
             "schema": {
@@ -46,6 +46,12 @@
       },
       "403": {
         "description": "Forbidden"
+      },
+      "401": {
+        "description": "Unauthorized"
+      },
+      "404": {
+        "description": "Not Found"
       }
     },
     "security": [

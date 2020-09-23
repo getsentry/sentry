@@ -3,6 +3,7 @@ import React from 'react';
 import classNames from 'classnames';
 import {withProfiler} from '@sentry/react';
 
+
 type Props = {
   overlay?: boolean;
   dark?: boolean;
@@ -17,6 +18,7 @@ type Props = {
   style?: React.CSSProperties;
   children?: React.ReactNode;
 };
+
 
 function renderLogoSpinner() {
   // If you update this also its sibling in sentry/bases/react.html and app/index.html
@@ -37,6 +39,7 @@ function renderLogoSpinner() {
     </svg>
   );
 }
+
 
 function LoadingIndicator(props: Props) {
   const {
@@ -83,7 +86,6 @@ function LoadingIndicator(props: Props) {
           {finished ? <div className="checkmark draw" style={style} /> : null}
         </div>
       )}
-
       {!hideMessage && <div className="loading-message">{children}</div>}
     </div>
   );

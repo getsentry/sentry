@@ -12,3 +12,6 @@ class NoteActivityEmail(ActivityEmail):
 
     def get_html_template(self):
         return "sentry/emails/activity/note.html"
+
+    def get_category(self):
+        return "note_activity_email"

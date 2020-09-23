@@ -8,6 +8,7 @@ import AutoSelectText from 'app/components/autoSelectText';
 type Props = {
   shortId: string;
   avatar?: React.ReactNode;
+  onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
 };
 
 export default class ShortId extends React.Component<Props> {

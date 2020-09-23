@@ -23,12 +23,26 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase):
         )
 
     def test_simple(self):
+
+        self.store_event(data={"timestamp": iso_format(self.min_ago)}, project_id=self.project.id)
+
+        response = self.client.get(self.url, format="json")
+
+        assert response.status_code == 200, response.content
+        assert response.data["count"] == 1
+
+    def test_multiple_projects(self):
         project2 = self.create_project()
 
         self.store_event(data={"timestamp": iso_format(self.min_ago)}, project_id=self.project.id)
         self.store_event(data={"timestamp": iso_format(self.min_ago)}, project_id=project2.id)
 
         response = self.client.get(self.url, format="json")
+
+        assert response.status_code == 400, response.content
+
+        with self.feature("organizations:global-views"):
+            response = self.client.get(self.url, format="json")
 
         assert response.status_code == 200, response.content
         assert response.data["count"] == 2

@@ -3,7 +3,7 @@
     "tags": ["Projects"],
     "summary": "Caution\nThis endpoint may change in the future without  notice.",
     "description": "Return a set of points representing a normalized timestamp and the\nnumber of events seen in the period.\n\nQuery ranges are limited to Sentry's configured time-series resolutions.",
-    "operationId": "Retrieve event counts for a project",
+    "operationId": "Retrieve Event Counts for a Project",
     "parameters": [
       {
         "name": "organization_slug",
@@ -26,7 +26,7 @@
       {
         "name": "stat",
         "in": "query",
-        "description": "The name of the stat to query `(\"received\", \"rejected\", \"blacklisted\", \"generated\")`",
+        "description": "The name of the stat to query `(\"received\", \"rejected\", \"blacklisted\", \"generated\")`.",
         "schema": {
           "type": "string",
           "enum": ["received", "rejected", "blacklisted", "generated"]
@@ -62,7 +62,7 @@
     ],
     "responses": {
       "200": {
-        "description": "Success.",
+        "description": "Success",
         "content": {
           "application/json": {
             "schema": {
