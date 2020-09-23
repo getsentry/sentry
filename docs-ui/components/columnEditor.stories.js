@@ -8,7 +8,7 @@ import GlobalModal from 'app/components/globalModal';
 import ColumnEditModal, {modalCss} from 'app/views/eventsV2/table/columnEditModal';
 
 export default {
-  title: 'Discover/ColumnEditor',
+  title: 'Features/Discover/ColumnEditor',
 };
 
 export const All = withInfo({

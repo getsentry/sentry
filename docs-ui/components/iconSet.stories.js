@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import * as newIconset from 'app/icons';
 
 export default {
-  title: 'Style/Icons',
+  title: 'Core/Style/Icons',
 };
 
 export const IconSet = withInfo('Replace `InlineSvg` with icon components')(() => {
