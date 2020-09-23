@@ -198,7 +198,7 @@ class PerformanceLanding extends React.Component<Props, State> {
       viewKey !== FilterViews.TRENDS && location.query.view === FilterViews.TRENDS;
 
     if (isNavigatingAwayFromTrends) {
-      // This stops errors for occuring when navigating to others views since we are appending aggregates to the trends view
+      // This stops errors from occurring when navigating to other views since we are appending aggregates to the trends view
       newQuery.query = '';
     }
 
