@@ -34,7 +34,7 @@
             </tr>
           {% endif %}
           {% if user_data %}
-            {% for key, value in user_data.iteritems %}
+            {% for key, value in user_data.items %}
               <tr>
                 <th>{{ key|titlize }}</th>
                 <td class="code">{{ value }}</td>

@@ -1,0 +1,29 @@
+Notifications for example
+June 2, 2016, 11:55 a.m. UTC to July 11, 2016, 2:02 p.m. UTC
+
+Rule #1
+
+* MolluskRelatedError: active only ghoul purely superb cleanly goshawk honest crawdad widely (8393 events, 5815 users)
+  http://testserver/organizations/example/issues/7/?referrer=digest_email
+
+* ObviouslyError: crack modest cattle possibly jennet (6183 events, 1689 users)
+  http://testserver/organizations/example/issues/14/?referrer=digest_email
+
+* central wealthy moray vertically correct novel nominally enormously condor united (4912 events, 2089 users)
+  http://testserver/organizations/example/issues/15/?referrer=digest_email
+
+* NaturallyError: routinely premium trivially obviously trusty close dassie adapting (3999 events, 9572 users)
+  http://testserver/organizations/example/issues/12/?referrer=digest_email
+
+* DinosaurError: seahorse initially enabling perfectly deciding (3612 events, 1376 users)
+  http://testserver/organizations/example/issues/9/?referrer=digest_email
+
+* FranklyHumaneGiraffeError: monkey wasp handy kindly stable precisely gator adapted current (2358 events, 7906 users)
+  http://testserver/organizations/example/issues/2/?referrer=digest_email
+
+* muskox possum nicely satyr awaited (1064 events, 8920 users)
+  http://testserver/organizations/example/issues/4/?referrer=digest_email
+
+
+
+Unsubscribe: javascript:alert("This is a preview page, what did you expect to happen?");
