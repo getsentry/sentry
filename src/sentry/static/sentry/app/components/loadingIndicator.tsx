@@ -3,6 +3,8 @@ import React from 'react';
 import classNames from 'classnames';
 import {withProfiler} from '@sentry/react';
 
+import AutoplayVideo from 'app/components/autoplayVideo';
+
 import spinnerVideo from '../../images/sentry-loader.mp4';
 
 type Props = {
@@ -20,100 +22,67 @@ type Props = {
   children?: React.ReactNode;
 };
 
-class LoadingIndicator extends React.Component<Props> {
-  static propTypes = {
-    overlay: PropTypes.bool,
-    dark: PropTypes.bool,
-    mini: PropTypes.bool,
-    triangle: PropTypes.bool,
-    finished: PropTypes.bool,
-    relative: PropTypes.bool,
-    hideMessage: PropTypes.bool,
-    size: PropTypes.number,
-    hideSpinner: PropTypes.bool,
-  };
+function LoadingIndicator(props: Props) {
+  const {
+    hideMessage,
+    mini,
+    triangle,
+    overlay,
+    dark,
+    children,
+    finished,
+    className,
+    style,
+    relative,
+    size,
+    hideSpinner,
+  } = props;
+  const cx = classNames(className, {
+    overlay,
+    dark,
+    loading: true,
+    mini,
+    triangle,
+  });
 
-  componentDidMount() {
-    if (this.videoRef.current) {
-      // Set muted as more browsers allow autoplay with muted video.
-      // We can't use the muted prop because of a react bug.
-      // https://github.com/facebook/react/issues/10389
-      // So we need to set the muted property then trigger play.
-      this.videoRef.current.muted = true;
-      const playPromise = this.videoRef.current.play();
+  const loadingCx = classNames({
+    relative,
+    'loading-indicator': true,
+    'load-complete': finished,
+  });
 
-      // non-chromium Edge doesn't return a promise.
-      if (playPromise && playPromise.catch) {
-        playPromise.catch(() => {
-          // Do nothing. Interrupting this playback is fine.
-        });
-      }
-    }
+  let loadingStyle = {};
+  if (size) {
+    loadingStyle = {
+      width: size,
+      height: size,
+    };
   }
 
-  private videoRef = React.createRef<HTMLVideoElement>();
+  return (
+    <div className={cx} style={style}>
+      {!hideSpinner && (
+        <div className={loadingCx} style={loadingStyle}>
+          {triangle && <AutoplayVideo src={spinnerVideo} height="150" />}
+          {finished ? <div className="checkmark draw" style={style} /> : null}
+        </div>
+      )}
 
-  render() {
-    const {
-      hideMessage,
-      mini,
-      triangle,
-      overlay,
-      dark,
-      children,
-      finished,
-      className,
-      style,
-      relative,
-      size,
-      hideSpinner,
-    } = this.props;
-    const cx = classNames(className, {
-      overlay,
-      dark,
-      loading: true,
-      mini,
-      triangle,
-    });
-
-    const loadingCx = classNames({
-      relative,
-      'loading-indicator': true,
-      'load-complete': finished,
-    });
-
-    let loadingStyle = {};
-    if (size) {
-      loadingStyle = {
-        width: size,
-        height: size,
-      };
-    }
-
-    return (
-      <div className={cx} style={style}>
-        {!hideSpinner && (
-          <div className={loadingCx} style={loadingStyle}>
-            {triangle && (
-              <video
-                ref={this.videoRef}
-                playsInline
-                disablePictureInPicture
-                loop
-                height="150"
-              >
-                <source src={spinnerVideo} type="video/mp4" />
-              </video>
-            )}
-            {finished ? <div className="checkmark draw" style={style} /> : null}
-          </div>
-        )}
-
-        {!hideMessage && <div className="loading-message">{children}</div>}
-      </div>
-    );
-  }
+      {!hideMessage && <div className="loading-message">{children}</div>}
+    </div>
+  );
 }
+LoadingIndicator.propTypes = {
+  overlay: PropTypes.bool,
+  dark: PropTypes.bool,
+  mini: PropTypes.bool,
+  triangle: PropTypes.bool,
+  finished: PropTypes.bool,
+  relative: PropTypes.bool,
+  hideMessage: PropTypes.bool,
+  size: PropTypes.number,
+  hideSpinner: PropTypes.bool,
+};
 
 export default withProfiler(LoadingIndicator, {
   includeUpdates: false,
