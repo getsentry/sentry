@@ -214,6 +214,8 @@ const EmptyContainer = styled('div')`
 `;
 
 const ProjectTrendContainer = styled('div')`
+  font-size: ${p => p.theme.fontSizeMedium};
+  color: ${p => p.theme.gray600};
   grid-column: 1/2;
 `;
 
