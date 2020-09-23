@@ -66,7 +66,7 @@
   },
   "put": {
     "tags": ["Projects"],
-    "description": "Update a service hook",
+    "description": "Update a service hook.",
     "operationId": "Update a Service Hook",
     "parameters": [
       {
@@ -142,6 +142,9 @@
           }
         }
       },
+      "400": {
+        "description": "Bad Input"
+      },
       "403": {
         "description": "Forbidden"
       },
@@ -157,7 +160,7 @@
   },
   "delete": {
     "tags": ["Projects"],
-    "description": "Remove a service hook",
+    "description": "Remove a service hook.",
     "operationId": "Remove a Service Hook",
     "parameters": [
       {
