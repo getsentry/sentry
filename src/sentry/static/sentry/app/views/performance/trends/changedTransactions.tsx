@@ -512,7 +512,7 @@ const StyledSummaryLink = styled(Link)`
 `;
 
 const StyledEmptyStateWarning = styled(EmptyStateWarning)`
-  min-height: 200px;
+  min-height: 300px;
   justify-content: center;
 `;
 

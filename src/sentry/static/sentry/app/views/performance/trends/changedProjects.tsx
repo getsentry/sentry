@@ -10,6 +10,7 @@ import withApi from 'app/utils/withApi';
 import withProjects from 'app/utils/withProjects';
 import withOrganization from 'app/utils/withOrganization';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {Client} from 'app/api';
@@ -101,12 +102,6 @@ function getDescription(
   });
 }
 
-function getNoResultsDescription(trendChangeType: TrendChangeType) {
-  return trendChangeType === TrendChangeType.IMPROVED
-    ? t('The glass is half empty today. There are only regressions so get back to work.')
-    : t('The glass is half full today. There are only improvements so good job, buddy.');
-}
-
 function handleViewTransactions(
   projectTrend: NormalizedProjectTrend,
   projects: Project[],
@@ -170,9 +165,9 @@ function ChangedProjects(props: Props) {
                     </ProjectTrendContainer>
                   </React.Fragment>
                 ) : (
-                  <ProjectTrendContainer>
-                    {getNoResultsDescription(trendChangeType)}
-                  </ProjectTrendContainer>
+                  <EmptyContainer>
+                    <EmptyStateWarning small>{t('No results')}</EmptyStateWarning>
+                  </EmptyContainer>
                 )}
                 {projectTrend && (
                   <ProjectTrendAction>
@@ -219,8 +214,6 @@ const EmptyContainer = styled('div')`
 `;
 
 const ProjectTrendContainer = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.gray600};
   grid-column: 1/2;
 `;
 
