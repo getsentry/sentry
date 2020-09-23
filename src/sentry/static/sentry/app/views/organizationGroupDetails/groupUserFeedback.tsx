@@ -79,7 +79,9 @@ class GroupUserFeedback extends React.Component<Props, State> {
 
     if (loading) {
       return <LoadingIndicator />;
-    } else if (error) {
+    }
+
+    if (error) {
       return <LoadingError onRetry={this.fetchData} />;
     }
 
