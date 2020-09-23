@@ -2489,25 +2489,47 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
-        # we dont care about the value here provided it's a number
-        # in py2, `None > 0` results in False
-        # in py3, `None > 0` results in a TypeError
-        assert response.data["data"][0]["measurements.fp"] > 0
-        assert response.data["data"][0]["measurements.fcp"] > 0
-        assert response.data["data"][0]["measurements.lcp"] > 0
-        assert response.data["data"][0]["measurements.fid"] > 0
+        assert response.data["data"][0]["measurements.fp"] == data["measurements"]["fcp"]["value"]
+        assert response.data["data"][0]["measurements.fcp"] == data["measurements"]["fcp"]["value"]
+        assert response.data["data"][0]["measurements.lcp"] == data["measurements"]["lcp"]["value"]
+        assert response.data["data"][0]["measurements.fid"] == data["measurements"]["fid"]["value"]
 
     def test_measurements_aggregations(self):
         data = load_data("transaction")
         self.store_event(data, self.project.id)
 
         # should try all the potential aggregates
-        query = {"field": ["percentile(measurements.fcp, 0.5)"]}
+        query = {
+            "field": [
+                "percentile(measurements.fcp, 0.5)",
+                "count_unique(measurements.fcp)",
+                "min(measurements.fcp)",
+                "max(measurements.fcp)",
+                "avg(measurements.fcp)",
+                "sum(measurements.fcp)",
+            ],
+        }
         response = self.do_request(query)
 
         assert response.status_code == 200, response.content
-        # assert len(response.data["data"]) == 1
-        # assert response.data["data"][0]["percentile_measurements_fcp_0_5"] == 0.5
+        assert len(response.data["data"]) == 1
+        assert (
+            response.data["data"][0]["percentile_measurements_fcp_0_5"]
+            == data["measurements"]["fcp"]["value"]
+        )
+        assert response.data["data"][0]["count_unique_measurements_fcp"] == 1
+        assert (
+            response.data["data"][0]["min_measurements_fcp"] == data["measurements"]["fcp"]["value"]
+        )
+        assert (
+            response.data["data"][0]["max_measurements_fcp"] == data["measurements"]["fcp"]["value"]
+        )
+        assert (
+            response.data["data"][0]["avg_measurements_fcp"] == data["measurements"]["fcp"]["value"]
+        )
+        assert (
+            response.data["data"][0]["sum_measurements_fcp"] == data["measurements"]["fcp"]["value"]
+        )
 
     # def test_measurements_conditions(self):
     #     data = load_data("transaction")
