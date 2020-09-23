@@ -27,6 +27,7 @@ import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
 import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
+import {decodeScalar} from 'app/utils/queryString';
 
 import {generatePerformanceEventView, DEFAULT_STATS_PERIOD} from './data';
 import Table from './table';
@@ -176,22 +177,27 @@ class PerformanceLanding extends React.Component<Props, State> {
       ...location.query,
     };
 
+    const query = decodeScalar(location.query.query) || '';
+    const conditions = tokenizeSearch(query);
+
     // This is a temporary change for trends to test adding a default count to increase relevancy
     if (viewKey === FilterViews.TRENDS) {
       const hasStartAndEnd = newQuery.start && newQuery.end;
       if (!newQuery.statsPeriod && !hasStartAndEnd) {
         newQuery.statsPeriod = DEFAULT_TRENDS_STATS_PERIOD;
       }
-      if (!newQuery.query) {
-        newQuery.query =
-          'count():>1000 transaction.duration:>0 p50():>0 avg(transaction.duration):>0';
+      if (!query) {
+        conditions.setTag('count()', ['>1000']);
+        conditions.setTag('transaction.duration', ['>0']);
       }
-      if (!newQuery.query.includes('count()')) {
-        newQuery.query += (newQuery.query ? ' ' : '') + 'count():>1000';
+      if (!query.includes('count()')) {
+        conditions.setTag('count()', ['>1000']);
       }
-      if (!newQuery.query.includes('transaction.duration')) {
-        newQuery.query += ' transaction.duration:>0';
+      if (!query.includes('transaction.duration')) {
+        conditions.setTag('transaction.duration', ['>0']);
       }
+
+      newQuery.query = stringifyQueryObject(conditions);
     }
 
     const isNavigatingAwayFromTrends =
@@ -199,7 +205,10 @@ class PerformanceLanding extends React.Component<Props, State> {
 
     if (isNavigatingAwayFromTrends) {
       // This stops errors for occuring when navigating to others views since we are appending aggregates to the trends view
-      newQuery.query = '';
+      conditions.removeTag('count()');
+      conditions.removeTag('transaction.duration');
+
+      newQuery.query = stringifyQueryObject(conditions);
     }
 
     ReactRouter.browserHistory.push({
