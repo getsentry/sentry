@@ -84,7 +84,7 @@ let targetDirValue;
 const argv = process.argv.slice(2);
 
 originalFile = argv[0];
-const derefedFile = process.env.DEREFED_JSON_FILE || 'tests/apidocs/openapi-derefed.json';
+const derefedFile = argv[1] || 'tests/apidocs/openapi-derefed.json';
 
 try {
   if (!path.isAbsolute(originalFile)) {
