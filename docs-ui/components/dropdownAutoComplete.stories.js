@@ -85,7 +85,7 @@ const groupedItems = [
 ];
 
 export default {
-  title: 'UI/Dropdowns/DropdownAutoComplete',
+  title: 'Core/Dropdowns/DropdownAutoComplete',
 };
 
 export const Ungrouped = withInfo('The item label can be a component or a string')(() => (

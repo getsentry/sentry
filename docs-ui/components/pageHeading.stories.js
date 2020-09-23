@@ -4,7 +4,7 @@ import {withInfo} from '@storybook/addon-info';
 import PageHeading from 'app/components/pageHeading';
 
 export default {
-  title: 'UI/PageHeading',
+  title: 'Layouts/PageHeading',
 };
 
 export const Default = withInfo(

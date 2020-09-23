@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {IconAdd, IconArrow, IconBookmark, IconGroup, IconPin} from 'app/icons';
 
 export default {
-  title: 'Style/Icons',
+  title: 'Core/Style/Icons',
 };
 
 export const IconProps = withInfo('Props you can assign to the icon components')(() => {

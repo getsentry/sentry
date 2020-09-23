@@ -5,7 +5,7 @@ import {withInfo} from '@storybook/addon-info';
 import DetailedError from 'app/components/errors/detailedError';
 
 export default {
-  title: 'UI/DetailedError',
+  title: 'Layouts/DetailedError',
 };
 
 export const Default = withInfo('Displays a detailed error message')(() => (

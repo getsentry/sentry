@@ -4,7 +4,7 @@ import {withInfo} from '@storybook/addon-info';
 import Text from 'app/components/text';
 
 export default {
-  title: 'Style/Text',
+  title: 'Core/Style/Text',
 };
 
 export const Default = withInfo('On-demand styling for native dom elements')(() => (

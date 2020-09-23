@@ -5,7 +5,7 @@ import {IconBusiness} from 'app/icons/iconBusiness';
 import {List, ListItem} from 'app/components/list';
 
 export default {
-  title: 'UI/List',
+  title: 'Core/List',
 };
 
 export const Default = withInfo('Default message goes here')(() => (

@@ -4,7 +4,7 @@ import {withInfo} from '@storybook/addon-info';
 import {Form as LegacyForm, PasswordField, BooleanField} from 'app/components/forms';
 
 export default {
-  title: 'Forms/Old/Fields',
+  title: 'Core/Forms/Old/Fields',
 };
 
 export const _PasswordField = withInfo({

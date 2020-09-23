@@ -35,7 +35,7 @@ const dummy = [
 ];
 
 export default {
-  title: 'UI/BulkController',
+  title: 'Core/Tables/BulkController',
 };
 
 export const _BulkController = withInfo({

@@ -4,7 +4,7 @@ import {withInfo} from '@storybook/addon-info';
 import StackedBarChart from 'app/components/stackedBarChart';
 
 export default {
-  title: 'Charts/StackedBarChart (old)',
+  title: 'DataVisualization/Charts/StackedBarChart (old)',
 };
 
 export const _StackedBarChart = withInfo('An older, non ECharts chart')(() => (

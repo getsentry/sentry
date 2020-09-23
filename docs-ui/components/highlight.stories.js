@@ -4,7 +4,7 @@ import {withInfo} from '@storybook/addon-info';
 import Highlight from 'app/components/highlight';
 
 export default {
-  title: 'Utility/Highlight',
+  title: 'Utilities/Highlight',
 };
 
 export const HighlightASubstring = withInfo(

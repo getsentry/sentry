@@ -6,7 +6,7 @@ import {withInfo} from '@storybook/addon-info';
 import U2fEnrolledDetails from 'app/views/settings/account/accountSecurity/components/u2fEnrolledDetails';
 
 export default {
-  title: 'Other/U2fEnrolledDetails',
+  title: 'UI/U2fEnrolledDetails',
 };
 
 export const U2FEnrolledDetails = withInfo('U2f details after enrollment', {

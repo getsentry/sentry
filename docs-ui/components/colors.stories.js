@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import theme, {aliases} from 'app/utils/theme';
 
 export default {
-  title: 'Style/Colors',
+  title: 'Core/Style/Colors',
 };
 
 const DESCRIPTIONS = {

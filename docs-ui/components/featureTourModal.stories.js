@@ -8,7 +8,7 @@ import GlobalModal from 'app/components/globalModal';
 import FeatureTourModal from 'app/components/modals/featureTourModal';
 
 export default {
-  title: 'UI/Modals',
+  title: 'Layouts/Modals',
 };
 
 const steps = [

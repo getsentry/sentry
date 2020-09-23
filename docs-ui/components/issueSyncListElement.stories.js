@@ -6,7 +6,7 @@ import space from 'app/styles/space';
 import IssueSyncListElement from 'app/components/issueSyncListElement';
 
 export default {
-  title: 'Issues/IssueSyncListElement',
+  title: 'Features/Issues/IssueSyncListElement',
 };
 
 export const WithoutIssueAdded = withInfo('No issue id or url has been passed')(() => (

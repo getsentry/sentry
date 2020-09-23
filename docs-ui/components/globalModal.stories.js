@@ -6,7 +6,7 @@ import Button from 'app/components/button';
 import {openModal} from 'app/actionCreators/modal';
 
 export default {
-  title: 'UI/Modals',
+  title: 'Layouts/Modals',
 };
 
 export const _GlobalModal = withInfo('Call `openModal` action creator to open a modal', {
