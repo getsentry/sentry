@@ -29,7 +29,7 @@ type State = {
   loading: boolean;
   error: boolean;
   reportList: UserReport[];
-  pageLinks: string | null | undefined;
+  pageLinks?: string | null;
 };
 
 class GroupUserFeedback extends React.Component<Props, State> {
