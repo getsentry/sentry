@@ -16,7 +16,7 @@ const options = [
 ];
 
 export default {
-  title: 'Charts/OptionSelector',
+  title: 'DataVis/Charts/OptionSelector',
 };
 
 export const Default = withInfo('Selector control for chart controls')(() => (

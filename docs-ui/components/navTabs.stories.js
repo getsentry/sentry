@@ -4,7 +4,7 @@ import {withInfo} from '@storybook/addon-info';
 import NavTabs from 'app/components/navTabs';
 
 export default {
-  title: 'UI/NavTabs',
+  title: 'Core/NavTabs',
 };
 
 export const Default = withInfo('NavTabs')(() => {

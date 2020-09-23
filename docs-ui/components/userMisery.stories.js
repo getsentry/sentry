@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import UserMisery from 'app/components/userMisery';
 
 export default {
-  title: 'Other/ScoreBar/UserMisery',
+  title: 'DataVis/ScoreBar/UserMisery',
 };
 
 export const Default = withInfo(

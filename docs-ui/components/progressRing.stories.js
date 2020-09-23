@@ -30,7 +30,7 @@ class Ticker extends React.Component {
 }
 
 export default {
-  title: 'UI/ProgressRing',
+  title: 'DataVis/Charts/ProgressRing',
 };
 
 export const Default = withInfo('Circle style progress bar ')(() => {

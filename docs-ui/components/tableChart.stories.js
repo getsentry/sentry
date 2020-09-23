@@ -5,7 +5,7 @@ import {number, text, boolean, array} from '@storybook/addon-knobs';
 import TableChart from 'app/components/charts/tableChart';
 
 export default {
-  title: 'Charts/TableChart',
+  title: 'DataVis/Charts/TableChart',
 };
 
 export const _TableChart = withInfo(

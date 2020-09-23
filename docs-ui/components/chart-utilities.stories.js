@@ -7,7 +7,7 @@ import ChartZoom from 'app/components/charts/chartZoom';
 import LineChart from 'app/components/charts/lineChart';
 
 export default {
-  title: 'Charts/Utilities',
+  title: 'DataVis/Charts/Utilities',
 };
 
 export const _ChartZoom = withInfo(`This is a strongly opinionated component that takes a render prop through "children".

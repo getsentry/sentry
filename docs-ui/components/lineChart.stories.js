@@ -4,7 +4,7 @@ import {withInfo} from '@storybook/addon-info';
 import LineChart from 'app/components/charts/lineChart';
 
 export default {
-  title: 'Charts/LineChart',
+  title: 'DataVis/Charts/LineChart',
 };
 
 export const Default = withInfo('Line Chart')(() => {
