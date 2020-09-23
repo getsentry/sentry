@@ -46,7 +46,6 @@ jobs:
     - name: Git Commit & Push
       run: |
         cd sentry-api-schema
-        git remote -v
         if [ -n "$(git status --porcelain)" ]; then
           git config user.name openapi-getsentry-bot
           git config user.email bot@getsentry.com
