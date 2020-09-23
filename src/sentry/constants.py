@@ -247,10 +247,6 @@ MIGRATED_CONDITIONS = frozenset(
     ]
 )
 
-SENTRY_RULES_WITH_MIGRATED_FILTERS = frozenset(
-    [rule for rule in SENTRY_RULES if rule not in MIGRATED_CONDITIONS]
-)
-
 # methods as defined by http://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html + PATCH
 HTTP_METHODS = ("GET", "POST", "PUT", "OPTIONS", "HEAD", "DELETE", "TRACE", "CONNECT", "PATCH")
 
