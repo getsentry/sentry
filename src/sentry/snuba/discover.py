@@ -378,6 +378,72 @@ def generate_measurements_histogram_column(
     )
 
 
+def zerofill_measurements_histogram(meta, data, orderby, bin_sentry_name, bin_snuba_name):
+    measurements = []
+    key_sentry_name = None
+    for col in meta:
+        if col["name"].startswith("measurements_join"):
+            key_sentry_name = col["name"]
+            # the measurements_join alias looks like `measurements_join_measurements_fp_measurements_fcp`
+            # so we can extract the measurements names from this
+            parts = col["name"].split("_")
+            for i in range(3, len(parts), 2):
+                measurements.append(parts[i])
+            break
+    else:
+        # there isn't an accompanying `measurements_join` column
+        # TODO(tonyx): zerofill this case
+        return data
+
+    parts = [int(part) for part in bin_snuba_name.split("_")[2:]]
+    num_buckets, bucket_size, offset, precision, precision_multiplier = parts
+
+    if len(data) == len(measurements) * num_buckets:
+        return data
+
+    bucket_maps = {measurement: {} for measurement in measurements}
+    for row in data:
+        bucket_maps[row[key_sentry_name]][int(row[bin_sentry_name])] = row
+
+    def build_data(measurement, bucket):
+        row = {col["name"]: "" if col.get("type") == "String" else 0 for col in meta}
+        row[key_sentry_name] = measurement
+        row[bin_sentry_name] = bucket
+        return row
+
+    for measurement in measurements:
+        for i in range(num_buckets):
+            bucket = offset + (bucket_size * i)
+            if bucket not in bucket_maps[measurement]:
+                bucket_maps[measurement][bucket] = build_data(measurement, bucket)
+
+    is_sorted, is_reversed = False, False
+    if orderby:
+        for o in orderby:
+            if o.lstrip("-") == bin_snuba_name:
+                is_sorted = True
+                is_reversed = o.startswith("-")
+                break
+
+    if is_sorted:
+        new_data = []
+        start, stop, step = (num_buckets - 1, 0, -1) if is_reversed else (0, num_buckets, 1)
+        for i in range(start, stop, step):
+            bucket = offset + (bucket_size * i)
+            for measurement in measurements:
+                if bucket in bucket_maps[measurement]:
+                    new_data.append(bucket_maps[measurement][bucket])
+    else:
+        new_data = data
+        exists = set((row[key_sentry_name], int(row[bin_sentry_name])) for row in data)
+        for measurement in measurements:
+            for bucket in bucket_maps[measurement]:
+                if (measurement, bucket) not in exists:
+                    new_data.append(bucket_maps[measurement][bucket])
+
+    return new_data
+
+
 def resolve_discover_aliases(snuba_filter, function_translations=None):
     """
     Resolve the public schema aliases to the discover dataset.
@@ -472,6 +538,23 @@ def transform_results(result, translated_columns, snuba_filter, selected_columns
                             snuba_name,
                         )
             break
+
+        if col["name"].startswith("measurements_histogram"):
+            # The column name here has been translated, we need the original name
+            for snuba_name, sentry_name in six.iteritems(translated_columns):
+                if sentry_name == col["name"]:
+                    with sentry_sdk.start_span(
+                        op="discover.discover",
+                        description="transform_results.measurements_histogram_zerofill",
+                    ) as span:
+                        span.set_data("measurements_histogram_function", snuba_name)
+                        result["data"] = zerofill_measurements_histogram(
+                            result["meta"],
+                            result["data"],
+                            snuba_filter.orderby,
+                            sentry_name,
+                            snuba_name,
+                        )
 
     return result
 
