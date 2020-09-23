@@ -14,6 +14,8 @@ from sentry import eventstore
 from sentry.api.event_search import (
     AggregateKey,
     event_search_grammar,
+    Function,
+    FunctionArg,
     get_filter,
     resolve_field_list,
     parse_search_query,
@@ -1959,12 +1961,12 @@ class ResolveFieldListTest(unittest.TestCase):
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["percentile(0.75)"]
             resolve_field_list(fields, eventstore.Filter())
-        assert "percentile(0.75): expected 2 arguments" in six.text_type(err)
+        assert "percentile(0.75): expected 2 argument(s)" in six.text_type(err)
 
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["percentile(0.75,)"]
             resolve_field_list(fields, eventstore.Filter())
-        assert "percentile(0.75,): expected 2 arguments" in six.text_type(err)
+        assert "percentile(0.75,): expected 2 argument(s)" in six.text_type(err)
 
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["percentile(sanchez, 0.75)"]
@@ -2098,7 +2100,7 @@ class ResolveFieldListTest(unittest.TestCase):
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["histogram(transaction.duration, 10)"]
             resolve_field_list(fields, eventstore.Filter())
-        assert "histogram(transaction.duration, 10): expected 4 arguments" in six.text_type(err)
+        assert "histogram(transaction.duration, 10): expected 4 argument(s)" in six.text_type(err)
 
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["histogram(transaction.duration, 1000, 1000, 0)"]
@@ -2344,3 +2346,98 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["orderby"] == ["-user.display"]
         assert result["aggregations"] == []
         assert result["groupby"] == []
+
+
+class DefaultFunctionArg(FunctionArg):
+    def __init__(self, name, default):
+        super(DefaultFunctionArg, self).__init__(name, has_default=True)
+        self.default = default
+
+    def get_default(self, params):
+        return self.default
+
+
+class FunctionTest(unittest.TestCase):
+    def setUp(self):
+        self.fn_wo_optionals = Function(
+            "wo_optionals", required_args=[FunctionArg("arg1"), FunctionArg("arg2")], transform="",
+        )
+        self.fn_w_optionals = Function(
+            "w_optionals",
+            required_args=[FunctionArg("arg1")],
+            optional_args=[DefaultFunctionArg("arg2", "default")],
+            transform="",
+        )
+
+    def test_no_optional_valid(self):
+        self.fn_wo_optionals.validate_argument_count("fn_wo_optionals()", ["arg1", "arg2"])
+
+    def test_no_optional_not_enough_arguments(self):
+        with self.assertRaisesRegexp(
+            InvalidSearchQuery, u"fn_wo_optionals\(\): expected 2 argument\(s\)"
+        ):
+            self.fn_wo_optionals.validate_argument_count("fn_wo_optionals()", ["arg1"])
+
+    def test_no_optional_too_may_arguments(self):
+        with self.assertRaisesRegexp(
+            InvalidSearchQuery, u"fn_wo_optionals\(\): expected 2 argument\(s\)"
+        ):
+            self.fn_wo_optionals.validate_argument_count(
+                "fn_wo_optionals()", ["arg1", "arg2", "arg3"]
+            )
+
+    def test_optional_valid(self):
+        self.fn_w_optionals.validate_argument_count("fn_w_optionals()", ["arg1", "arg2"])
+        # because the last argument is optional, we dont need to provide it
+        self.fn_w_optionals.validate_argument_count("fn_w_optionals()", ["arg1"])
+
+    def test_optional_not_enough_arguments(self):
+        with self.assertRaisesRegexp(
+            InvalidSearchQuery, u"fn_w_optionals\(\): expected at least 1 argument\(s\)"
+        ):
+            self.fn_w_optionals.validate_argument_count("fn_w_optionals()", [])
+
+    def test_optional_too_many_arguments(self):
+        with self.assertRaisesRegexp(
+            InvalidSearchQuery, u"fn_w_optionals\(\): expected at most 2 argument\(s\)"
+        ):
+            self.fn_w_optionals.validate_argument_count(
+                "fn_w_optionals()", ["arg1", "arg2", "arg3"]
+            )
+
+    def test_optional_args_have_default(self):
+        with self.assertRaisesRegexp(
+            AssertionError, u"test: optional argument at index 0 does not have default"
+        ):
+            Function("test", optional_args=[FunctionArg("arg1")])
+
+    def test_defining_duplicate_args(self):
+        with self.assertRaisesRegexp(
+            AssertionError, u"test: argument arg1 specified more than once"
+        ):
+            Function(
+                "test",
+                required_args=[FunctionArg("arg1")],
+                optional_args=[DefaultFunctionArg("arg1", "default")],
+                transform="",
+            )
+
+        with self.assertRaisesRegexp(
+            AssertionError, u"test: argument arg1 specified more than once"
+        ):
+            Function(
+                "test",
+                required_args=[FunctionArg("arg1")],
+                calculated_args=[{"name": "arg1", "fn": lambda x: x}],
+                transform="",
+            )
+
+        with self.assertRaisesRegexp(
+            AssertionError, u"test: argument arg1 specified more than once"
+        ):
+            Function(
+                "test",
+                optional_args=[DefaultFunctionArg("arg1", "default")],
+                calculated_args=[{"name": "arg1", "fn": lambda x: x}],
+                transform="",
+            )

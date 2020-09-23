@@ -5,7 +5,7 @@ import {text} from '@storybook/addon-knobs';
 import FileIcon from 'app/components/fileIcon';
 
 export default {
-  title: 'Style/Icons',
+  title: 'Core/Style/Icons',
 };
 
 export const _FileIcon = withInfo(

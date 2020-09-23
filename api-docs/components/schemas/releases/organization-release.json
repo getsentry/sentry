@@ -57,8 +57,7 @@
         "nullable": true
       },
       "lastDeploy": {
-        "type": "string",
-        "format": "date-time",
+        "$ref": "deploy.json#/Deploy",
         "nullable": true
       },
       "lastEvent": {

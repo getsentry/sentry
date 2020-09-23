@@ -5,7 +5,7 @@ import {withInfo} from '@storybook/addon-info';
 import Badge from 'app/components/badge';
 
 export default {
-  title: 'UI/Badge',
+  title: 'Core/Badges+Tags/Badge',
 };
 
 export const Default = withInfo('Used to display numbers in a "badge"')(() => (

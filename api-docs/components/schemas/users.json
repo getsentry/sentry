@@ -149,5 +149,40 @@
         "type": "string"
       }
     }
+  },
+  "EventUser": {
+    "type": "object",
+    "nullable": true,
+    "required": ["username", "name", "ip_address", "email", "data", "id"],
+    "properties": {
+      "username": {
+        "type": "string",
+        "nullable": true
+      },
+      "name": {
+        "type": "string",
+        "nullable": true
+      },
+      "ip_address": {
+        "type": "string",
+        "nullable": true
+      },
+      "email": {
+        "type": "string",
+        "nullable": true
+      },
+      "data": {
+        "type": "object",
+        "nullable": true,
+        "properties": {
+          "isStaff": {
+            "type": "boolean"
+          }
+        }
+      },
+      "id": {
+        "type": "string"
+      }
+    }
   }
 }

@@ -4,7 +4,7 @@ import {withInfo} from '@storybook/addon-info';
 import ExternalLink from 'app/components/links/externalLink';
 
 export default {
-  title: 'UI/Links/ExternalLink',
+  title: 'Core/Links/ExternalLink',
 };
 
 export const Default = withInfo(
