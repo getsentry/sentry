@@ -4,7 +4,7 @@ import {withInfo} from '@storybook/addon-info';
 import TextOverflow from 'app/components/textOverflow';
 
 export default {
-  title: 'Style/Text',
+  title: 'Core/Style/Text',
 };
 
 export const _TextOverflow = withInfo(

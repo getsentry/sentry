@@ -2,10 +2,10 @@ import React from 'react';
 import {withInfo} from '@storybook/addon-info';
 
 import Tooltip from 'app/components/tooltip';
-import Tag from 'app/views/settings/components/tag';
+import Tag from 'app/components/tag';
 
 export default {
-  title: 'UI/Tags',
+  title: 'Core/Badges+Tags/Tag',
 };
 
 export const Default = withInfo(
@@ -49,6 +49,25 @@ export const Beta = withInfo(
 
 Beta.story = {
   name: 'beta',
+};
+
+export const New = withInfo(
+  'An attention grabbing thing. Use this to communicate shiny new functionality.'
+)(() => (
+  <Tooltip
+    title="This feature is new and may change in the future."
+    tooltipOptions={{
+      placement: 'right',
+    }}
+  >
+    <span>
+      <Tag priority="new">new</Tag>
+    </span>
+  </Tooltip>
+));
+
+New.story = {
+  name: 'new',
 };
 
 export const Small = withInfo(

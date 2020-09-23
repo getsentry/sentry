@@ -6,7 +6,7 @@ import Confirm from 'app/components/confirm';
 import Button from 'app/components/button';
 
 export default {
-  title: 'UI/Confirm',
+  title: 'Core/Buttons/Confirm',
 };
 
 export const _Confirm = withInfo({

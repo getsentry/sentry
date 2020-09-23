@@ -17,7 +17,7 @@ const user = {
 };
 
 export default {
-  title: 'UI/Activity/Item',
+  title: 'Core/_Activity/Item',
 };
 
 export const DefaultActivityItem = withInfo(

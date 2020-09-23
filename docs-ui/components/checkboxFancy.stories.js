@@ -6,7 +6,7 @@ import styled from '@emotion/styled';
 import CheckboxFancy from 'app/components/checkboxFancy/checkboxFancy';
 
 export default {
-  title: 'Style/Icons',
+  title: 'Core/Style/Icons',
 };
 
 export const _CheckboxFancy = withInfo('A fancy looking checkbox')(() => {
