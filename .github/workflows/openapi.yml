@@ -47,8 +47,12 @@ jobs:
       run: |
         cd sentry-api-schema
         git remote -v
-        git config user.name openapi-getsentry-bot
-        git config user.email bot@getsentry.com
-        git add .
-        git commit -m "generated"
-        git push origin main
+        if [ -n "$(git status --porcelain)" ]; then
+          git config user.name openapi-getsentry-bot
+          git config user.email bot@getsentry.com
+          git add .
+          git commit -m "generated"
+          git push origin main
+        else
+          echo "no changes";
+        fi
