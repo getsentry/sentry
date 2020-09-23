@@ -168,6 +168,8 @@ class SnubaUtilsTest(TestCase):
         assert get_snuba_column_name("tags[sentry:user]") == "tags[sentry:user]"
         assert get_snuba_column_name("organization") == "tags[organization]"
         assert get_snuba_column_name("unknown-key") == "tags[unknown-key]"
+        assert get_snuba_column_name("measurements_key") == "measurements.key"
+        assert get_snuba_column_name("measurements.key") == "measurements[key]"
 
 
 class PrepareQueryParamsTest(TestCase):

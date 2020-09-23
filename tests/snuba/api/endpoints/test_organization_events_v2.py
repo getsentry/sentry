@@ -25,6 +25,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         super(OrganizationEventsV2EndpointTest, self).setUp()
         self.min_ago = iso_format(before_now(minutes=1))
         self.two_min_ago = iso_format(before_now(minutes=2))
+        self.transaction_data = load_data("transaction", timestamp=before_now(minutes=1))
 
     def do_request(self, query, features=None):
         if features is None:
@@ -2476,8 +2477,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 )
 
     def test_measurements_query(self):
-        data = load_data("transaction")
-        self.store_event(data, self.project.id)
+        self.store_event(self.transaction_data, self.project.id)
         query = {
             "field": [
                 "measurements.fp",
@@ -2489,14 +2489,25 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
-        assert response.data["data"][0]["measurements.fp"] == data["measurements"]["fcp"]["value"]
-        assert response.data["data"][0]["measurements.fcp"] == data["measurements"]["fcp"]["value"]
-        assert response.data["data"][0]["measurements.lcp"] == data["measurements"]["lcp"]["value"]
-        assert response.data["data"][0]["measurements.fid"] == data["measurements"]["fid"]["value"]
+        assert (
+            response.data["data"][0]["measurements.fp"]
+            == self.transaction_data["measurements"]["fcp"]["value"]
+        )
+        assert (
+            response.data["data"][0]["measurements.fcp"]
+            == self.transaction_data["measurements"]["fcp"]["value"]
+        )
+        assert (
+            response.data["data"][0]["measurements.lcp"]
+            == self.transaction_data["measurements"]["lcp"]["value"]
+        )
+        assert (
+            response.data["data"][0]["measurements.fid"]
+            == self.transaction_data["measurements"]["fid"]["value"]
+        )
 
     def test_measurements_aggregations(self):
-        data = load_data("transaction")
-        self.store_event(data, self.project.id)
+        self.store_event(self.transaction_data, self.project.id)
 
         # should try all the potential aggregates
         query = {
@@ -2515,27 +2526,133 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert len(response.data["data"]) == 1
         assert (
             response.data["data"][0]["percentile_measurements_fcp_0_5"]
-            == data["measurements"]["fcp"]["value"]
+            == self.transaction_data["measurements"]["fcp"]["value"]
         )
         assert response.data["data"][0]["count_unique_measurements_fcp"] == 1
         assert (
-            response.data["data"][0]["min_measurements_fcp"] == data["measurements"]["fcp"]["value"]
+            response.data["data"][0]["min_measurements_fcp"]
+            == self.transaction_data["measurements"]["fcp"]["value"]
         )
         assert (
-            response.data["data"][0]["max_measurements_fcp"] == data["measurements"]["fcp"]["value"]
+            response.data["data"][0]["max_measurements_fcp"]
+            == self.transaction_data["measurements"]["fcp"]["value"]
         )
         assert (
-            response.data["data"][0]["avg_measurements_fcp"] == data["measurements"]["fcp"]["value"]
+            response.data["data"][0]["avg_measurements_fcp"]
+            == self.transaction_data["measurements"]["fcp"]["value"]
         )
         assert (
-            response.data["data"][0]["sum_measurements_fcp"] == data["measurements"]["fcp"]["value"]
+            response.data["data"][0]["sum_measurements_fcp"]
+            == self.transaction_data["measurements"]["fcp"]["value"]
         )
 
-    # def test_measurements_conditions(self):
-    #     data = load_data("transaction")
-    #     data["measurements"] = {"lcp": 0.5}
-    #     self.store_event(data, self.project.id)
-    #     # TODO(tonyx): add test for `>`, `<`, `=`, `!=`, `has`, `!has`
+    def get_measurement_condition_response(self, query_str, field):
+        query = {
+            "field": ["transaction", "count()"] + (field if field else []),
+            "query": query_str,
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        return response
 
-    # def test_measurements_aggregation_conditions(self):
-    #     pass
+    def assert_measurement_condition_without_results(self, query_str, field=None):
+        response = self.get_measurement_condition_response(query_str, field)
+        assert len(response.data["data"]) == 0
+
+    def assert_measurement_condition_with_results(self, query_str, field=None):
+        response = self.get_measurement_condition_response(query_str, field)
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["transaction"] == self.transaction_data["metadata"]["title"]
+        assert response.data["data"][0]["count"] == 1
+
+    def test_measurements_conditions(self):
+        self.store_event(self.transaction_data, self.project.id)
+
+        # the conditions only work with integer values at the moment
+        fcp = int(self.transaction_data["measurements"]["fcp"]["value"])
+
+        # ============================== Equality ==============================
+        # The parser only works with integer values in these conditions right now
+        # so we cannot filter for equality on floating point values.
+
+        # ============================== Greater Than ==============================
+        self.assert_measurement_condition_with_results("measurements.fcp:>{}".format(fcp - 1))
+        self.assert_measurement_condition_without_results("measurements.fcp:>{}".format(fcp + 1))
+
+        # ============================== Less Than ==============================
+        self.assert_measurement_condition_with_results("measurements.fcp:<{}".format(fcp + 1))
+        self.assert_measurement_condition_without_results("measurements.fcp:<{}".format(fcp - 1))
+
+        # ============================== Has/!Has ==============================
+        self.assert_measurement_condition_with_results("has:measurements.fcp")
+        self.assert_measurement_condition_without_results("!has:measurements.fcp")
+
+    def test_measurements_aggregation_conditions(self):
+        self.store_event(self.transaction_data, self.project.id)
+
+        # the conditions only work with integer values at the moment
+        fcp = int(self.transaction_data["measurements"]["fcp"]["value"])
+
+        # ============================== percentile ==============================
+        p50 = "percentile(measurements.fcp, 0.5)"
+        self.assert_measurement_condition_with_results("{}:>{}".format(p50, fcp - 1), field=[p50])
+        self.assert_measurement_condition_without_results(
+            "{}:>{}".format(p50, fcp + 1), field=[p50]
+        )
+        self.assert_measurement_condition_with_results("{}:<{}".format(p50, fcp + 1), field=[p50])
+        self.assert_measurement_condition_without_results(
+            "{}:<{}".format(p50, fcp - 1), field=[p50]
+        )
+
+        # ============================== percentile ==============================
+        count_unique = "count_unique(measurements.fcp)"
+        self.assert_measurement_condition_with_results(
+            "{}:1".format(count_unique), field=[count_unique]
+        )
+        self.assert_measurement_condition_without_results(
+            "{}:0".format(count_unique), field=[count_unique]
+        )
+
+        # ============================== min ==============================
+        min = "min(measurements.fcp)"
+        self.assert_measurement_condition_with_results("{}:>{}".format(min, fcp - 1), field=[min])
+        self.assert_measurement_condition_without_results(
+            "{}:>{}".format(min, fcp + 1), field=[min]
+        )
+        self.assert_measurement_condition_with_results("{}:<{}".format(min, fcp + 1), field=[min])
+        self.assert_measurement_condition_without_results(
+            "{}:<{}".format(min, fcp - 1), field=[min]
+        )
+
+        # ============================== max ==============================
+        max = "max(measurements.fcp)"
+        self.assert_measurement_condition_with_results("{}:>{}".format(max, fcp - 1), field=[max])
+        self.assert_measurement_condition_without_results(
+            "{}:>{}".format(max, fcp + 1), field=[max]
+        )
+        self.assert_measurement_condition_with_results("{}:<{}".format(max, fcp + 1), field=[max])
+        self.assert_measurement_condition_without_results(
+            "{}:<{}".format(max, fcp - 1), field=[max]
+        )
+
+        # ============================== avg ==============================
+        avg = "avg(measurements.fcp)"
+        self.assert_measurement_condition_with_results("{}:>{}".format(avg, fcp - 1), field=[avg])
+        self.assert_measurement_condition_without_results(
+            "{}:>{}".format(avg, fcp + 1), field=[avg]
+        )
+        self.assert_measurement_condition_with_results("{}:<{}".format(avg, fcp + 1), field=[avg])
+        self.assert_measurement_condition_without_results(
+            "{}:<{}".format(avg, fcp - 1), field=[avg]
+        )
+
+        # ============================== sum ==============================
+        sum = "sum(measurements.fcp)"
+        self.assert_measurement_condition_with_results("{}:>{}".format(sum, fcp - 1), field=[sum])
+        self.assert_measurement_condition_without_results(
+            "{}:>{}".format(sum, fcp + 1), field=[sum]
+        )
+        self.assert_measurement_condition_with_results("{}:<{}".format(sum, fcp + 1), field=[sum])
+        self.assert_measurement_condition_without_results(
+            "{}:<{}".format(sum, fcp - 1), field=[sum]
+        )

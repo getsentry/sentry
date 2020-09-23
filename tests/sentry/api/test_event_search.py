@@ -57,6 +57,8 @@ def test_get_json_meta_type():
     assert get_json_meta_type("count_thing", "UInt64") == "integer"
     assert get_json_meta_type("count_thing", "String") == "string"
     assert get_json_meta_type("count_thing", "Nullable(String)") == "string"
+    assert get_json_meta_type("measurements.size", "Float64") == "number"
+    assert get_json_meta_type("measurements.fp", "Float64") == "duration"
 
 
 class ParseSearchQueryTest(unittest.TestCase):
@@ -652,6 +654,107 @@ class ParseSearchQueryTest(unittest.TestCase):
     def test_invalid_aggregate_column_with_duration_filter(self):
         with self.assertRaises(InvalidSearchQuery, regex="not a duration column"):
             parse_search_query("avg(stack.colno):>500s")
+
+    def test_numeric_measurements_filter(self):
+        # NOTE: can only filter on integers right now
+        assert parse_search_query("measurements.size:10") == [
+            SearchFilter(
+                key=SearchKey(name="measurements.size"),
+                operator="=",
+                value=SearchValue(raw_value=10),
+            )
+        ]
+
+        assert parse_search_query("measurements.size:>10") == [
+            SearchFilter(
+                key=SearchKey(name="measurements.size"),
+                operator=">",
+                value=SearchValue(raw_value=10),
+            )
+        ]
+
+        assert parse_search_query("measurements.size:<10") == [
+            SearchFilter(
+                key=SearchKey(name="measurements.size"),
+                operator="<",
+                value=SearchValue(raw_value=10),
+            )
+        ]
+
+    def test_numeric_aggregate_measurements_filter(self):
+        assert parse_search_query("min(measurements.size):3") == [
+            SearchFilter(
+                key=SearchKey(name="min(measurements.size)"),
+                operator="=",
+                value=SearchValue(raw_value=3),
+            )
+        ]
+
+        assert parse_search_query("min(measurements.size):>3") == [
+            SearchFilter(
+                key=SearchKey(name="min(measurements.size)"),
+                operator=">",
+                value=SearchValue(raw_value=3),
+            )
+        ]
+
+        assert parse_search_query("min(measurements.size):<3") == [
+            SearchFilter(
+                key=SearchKey(name="min(measurements.size)"),
+                operator="<",
+                value=SearchValue(raw_value=3),
+            )
+        ]
+
+    def test_duration_measurements_filter(self):
+        assert parse_search_query("measurements.fp:1.5s") == [
+            SearchFilter(
+                key=SearchKey(name="measurements.fp"),
+                operator="=",
+                value=SearchValue(raw_value=1500),
+            )
+        ]
+
+        assert parse_search_query("measurements.fp:>1.5s") == [
+            SearchFilter(
+                key=SearchKey(name="measurements.fp"),
+                operator=">",
+                value=SearchValue(raw_value=1500),
+            )
+        ]
+
+        assert parse_search_query("measurements.fp:<1.5s") == [
+            SearchFilter(
+                key=SearchKey(name="measurements.fp"),
+                operator="<",
+                value=SearchValue(raw_value=1500),
+            )
+        ]
+
+    def test_duration_aggregate_measurements_filter(self):
+        assert parse_search_query("percentile(measurements.fp, 0.5):3.3s") == [
+            SearchFilter(
+                key=SearchKey(name="percentile(measurements.fp, 0.5)"),
+                operator="=",
+                value=SearchValue(raw_value=3300),
+            )
+        ]
+
+        assert parse_search_query("percentile(measurements.fp, 0.5):>3.3s") == [
+            SearchFilter(
+                key=SearchKey(name="percentile(measurements.fp, 0.5)"),
+                operator=">",
+                value=SearchValue(raw_value=3300),
+            )
+        ]
+
+        assert parse_search_query("percentile(measurements.fp, 0.5):<3.3s") == [
+            SearchFilter(
+                key=SearchKey(name="percentile(measurements.fp, 0.5)"),
+                operator="<",
+                value=SearchValue(raw_value=3300),
+            )
+        ]
 
     def test_aggregate_rel_time_filter(self):
         now = timezone.now()
