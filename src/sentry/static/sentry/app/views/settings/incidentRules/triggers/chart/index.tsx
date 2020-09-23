@@ -216,7 +216,8 @@ class TriggersChart extends React.PureComponent<Props, State> {
                             onChange={this.handleRollupChange}
                           />
                           <AggregateLabel htmlFor="rollupGraph">
-                            {t('Rollup')}
+                            {/* TODO(scttcper): remove (sentry only) */}
+                            {t('Rollup')} (Sentry only)
                           </AggregateLabel>
                         </AggregateContainer>
                       )}
