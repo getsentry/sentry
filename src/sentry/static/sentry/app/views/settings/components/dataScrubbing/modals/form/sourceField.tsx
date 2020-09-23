@@ -270,7 +270,7 @@ class SourceField extends React.Component<Props, State> {
       fieldValues[fieldValues.length - 1] = [lastFieldValue, suggestion];
     }
 
-    if (lastFieldValue?.type === 'string') {
+    if (lastFieldValue?.type === 'string' && !lastFieldValue?.value) {
       fieldValues[fieldValues.length - 1] = suggestion;
     }
 
