@@ -35,37 +35,33 @@ const ReleaseChartControls = ({
   hasHealthData,
   hasDiscover,
 }: Props) => {
-  const yAxisOptions: SelectValue<YAxis>[] = [];
-
-  if (hasHealthData) {
-    yAxisOptions.push(
-      ...[
-        {
-          value: YAxis.SESSIONS,
-          label: t('Session Count'),
-        },
-        {
-          value: YAxis.SESSION_DURATION,
-          label: t('Session Duration'),
-        },
-        {
-          value: YAxis.USERS,
-          label: t('User Count'),
-        },
-        {
-          value: YAxis.CRASH_FREE,
-          label: t('Crash Free Rate'),
-        },
-      ]
-    );
-  }
-
-  if (hasDiscover) {
-    yAxisOptions.push({
+  const yAxisOptions: SelectValue<YAxis>[] = [
+    {
+      value: YAxis.SESSIONS,
+      label: t('Session Count'),
+      disabled: !hasHealthData,
+    },
+    {
+      value: YAxis.SESSION_DURATION,
+      label: t('Session Duration'),
+      disabled: !hasHealthData,
+    },
+    {
+      value: YAxis.USERS,
+      label: t('User Count'),
+      disabled: !hasHealthData,
+    },
+    {
+      value: YAxis.CRASH_FREE,
+      label: t('Crash Free Rate'),
+      disabled: !hasHealthData,
+    },
+    {
       value: YAxis.EVENTS,
       label: t('Event Count'),
-    });
-  }
+      disabled: !hasDiscover,
+    },
+  ];
 
   const getSummaryHeading = () => {
     switch (yAxis) {
@@ -90,15 +86,13 @@ const ReleaseChartControls = ({
         <SectionValue key="total-value">{summary}</SectionValue>
       </InlineContainer>
 
-      {yAxisOptions.length > 1 && (
-        <OptionSelector
-          title={t('Y-Axis')}
-          selected={yAxis}
-          options={yAxisOptions}
-          onChange={onYAxisChange as (value: string) => void}
-          menuWidth="150px"
-        />
-      )}
+      <OptionSelector
+        title={t('Y-Axis')}
+        selected={yAxis}
+        options={yAxisOptions}
+        onChange={onYAxisChange as (value: string) => void}
+        menuWidth="150px"
+      />
     </StyledChartControls>
   );
 };
