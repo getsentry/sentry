@@ -44,7 +44,9 @@ class OrganizationEventsTrendsEndpoint(OrganizationEventsV2EndpointBase):
     }
 
     def has_feature(self, organization, request):
-        return features.has("organizations:trends", organization, actor=request.user)
+        return features.has(
+            "organizations:trends", organization, actor=request.user
+        ) or features.has("organizations:internal-catchall", organization, actor=request.user)
 
     def get(self, request, organization):
         if not self.has_feature(organization, request):
