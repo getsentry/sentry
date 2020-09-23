@@ -264,7 +264,7 @@ def parse_measurements_histogram_function(field):
             )
         )
 
-    return [num_buckets, bucket_min, bucket_max, precision]
+    return num_buckets, bucket_min, bucket_max, precision
 
 
 def find_measurements_bounds(
@@ -680,13 +680,6 @@ def query(
                             orderby[i] = ordering
 
             break
-
-    # for col in selected_columns:
-    #     # arrayJoin is a function but not an aggregate, so it will be seen as a tag in some places
-    #     # if left alone. Adding it to function_translations here prevents this.
-    #     if col.startswith("array_join("):
-    #         alias = get_function_alias(col)
-    #         function_translations[alias] = alias
 
     with sentry_sdk.start_span(op="discover.discover", description="query.field_translations"):
         if orderby is not None:

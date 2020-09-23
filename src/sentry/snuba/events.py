@@ -277,7 +277,7 @@ class Columns(Enum):
         "measurements.value",
         "measurements_value",
     )
-    # tracing context fields.
+    # Tracing context fields.
     TRACE_ID = Column(
         "events.contexts[trace.trace_id]",
         "contexts[trace.trace_id]",
