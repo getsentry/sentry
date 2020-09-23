@@ -349,7 +349,7 @@ function TrendsListItem(props: TrendsListItemProps) {
         <DropdownLink
           caret={false}
           title={
-            <Button
+            <StyledButton
               size="zero"
               borderless
               icon={<IconEllipsis data-test-id="trends-item-action" />}
@@ -492,6 +492,10 @@ const ChartContainer = styled('div')`
 const StyledHeaderTitleLegend = styled(HeaderTitleLegend)`
   padding: 0;
   margin: ${space(3)};
+`;
+
+const StyledButton = styled(Button)`
+  vertical-align: middle;
 `;
 
 const TransactionName = styled('div')`
