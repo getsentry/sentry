@@ -60,7 +60,7 @@ function EventOrGroupExtraDetails({data, showAssignee, params}: Props) {
             to={{
               pathname: issuesPath,
               query: {
-                query: 'logger:' + logger,
+                query: `logger:${logger}`,
               },
             }}
           >
