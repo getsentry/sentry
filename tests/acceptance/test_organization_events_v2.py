@@ -90,7 +90,7 @@ def generate_transaction():
     }
 
     def build_span_tree(span_tree, spans, parent_span_id):
-        for span_id, child in span_tree.items():
+        for span_id, child in sorted(span_tree.items(), key=lambda item: item[0]):
             span = copy.deepcopy(reference_span)
             # non-leaf node span
             span["parent_span_id"] = parent_span_id.ljust(16, "0")
@@ -357,7 +357,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
         # of traversal buttons.
         child_event = generate_transaction()
         child_event["event_id"] = "b" * 32
-        child_event["contexts"]["trace"]["parent_span_id"] = event_data["spans"][5]["span_id"]
+        child_event["contexts"]["trace"]["parent_span_id"] = event_data["spans"][4]["span_id"]
         child_event["transaction"] = "z-child-transaction"
         child_event["spans"] = child_event["spans"][0:3]
         self.store_event(data=child_event, project_id=self.project.id, assert_no_errors=True)
