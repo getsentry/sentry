@@ -192,7 +192,7 @@ describe('Performance > Trends', function() {
     wrapper.update();
 
     wrapper
-      .find('TransactionMenuButton')
+      .find('DropdownLink')
       .first()
       .simulate('click');
 
@@ -223,7 +223,7 @@ describe('Performance > Trends', function() {
     wrapper.update();
 
     const firstTransaction = wrapper.find('TrendsListItem').first();
-    const transactionLink = firstTransaction.find('StyledLink').first();
+    const transactionLink = firstTransaction.find('StyledSummaryLink').first();
     transactionLink.simulate('click');
 
     await tick();
@@ -275,7 +275,7 @@ describe('Performance > Trends', function() {
     await tick();
     wrapper.update();
 
-    const mostImprovedProject = wrapper.find('ChangedProjectsContainer').first();
+    const mostImprovedProject = wrapper.find('TrendsProjectPanel').first();
     const viewTransactions = mostImprovedProject.find('Button').first();
     viewTransactions.simulate('click');
 
