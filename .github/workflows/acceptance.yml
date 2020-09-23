@@ -110,7 +110,6 @@ jobs:
           instance: [0, 1, 2]
 
       env:
-        SENTRY_PYTHON3: 1
         PIP_DISABLE_PIP_VERSION_CHECK: on
         # PIP_QUIET: 1
 
@@ -166,7 +165,7 @@ jobs:
             MATRIX_INSTANCE: ${{ matrix.instance }}
           run: |
             echo "::set-output name=yarn-cache-dir::$(yarn cache dir)"
-            echo "::set-output name=python-version::3.6.12"
+            echo "::set-output name=python-version::2.7"
             echo "::set-output name=matrix-instance-number::$(($MATRIX_INSTANCE+1))"
             echo "::set-output name=acceptance-dir::.artifacts/visual-snapshots/acceptance"
 
