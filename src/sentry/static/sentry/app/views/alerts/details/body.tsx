@@ -54,7 +54,7 @@ export default class DetailsBody extends React.Component<Props> {
     thresholdType: AlertRuleThresholdType,
     isAlert: boolean = false
   ) {
-    if (!value || typeof value !== 'number') {
+    if (!defined(value)) {
       return '';
     }
 
