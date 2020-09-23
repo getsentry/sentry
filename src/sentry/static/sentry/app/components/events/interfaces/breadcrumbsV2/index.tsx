@@ -191,7 +191,7 @@ class Breadcrumbs extends React.Component<Props, State> {
     const levelTag = (event.tags || []).find(tag => tag.key === 'level');
 
     return {
-      type: BreadcrumbType.ERROR,
+      type: BreadcrumbType.INFO,
       level: (levelTag?.value as BreadcrumbLevelType) || BreadcrumbLevelType.UNDEFINED,
       category: 'message',
       message: event.message,
