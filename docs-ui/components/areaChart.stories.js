@@ -4,7 +4,7 @@ import {withInfo} from '@storybook/addon-info';
 import AreaChart from 'app/components/charts/areaChart';
 
 export default {
-  title: 'DataVis/Charts/AreaChart',
+  title: 'DataVisualization/Charts/AreaChart',
 };
 
 export const _AreaChart = withInfo('Stacked AreaChart with previous period')(() => {

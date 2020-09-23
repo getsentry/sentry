@@ -5,7 +5,7 @@ import {number, boolean} from '@storybook/addon-knobs';
 import CircleIndicator from 'app/components/circleIndicator';
 
 export default {
-  title: 'DataVis/CircleIndicator',
+  title: 'DataVisualization/CircleIndicator',
 };
 
 export const Default = withInfo('Description')(() => {

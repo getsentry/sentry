@@ -5,7 +5,7 @@ import {number, boolean, array, color} from '@storybook/addon-knobs';
 import ScoreBar from 'app/components/scoreBar';
 
 export default {
-  title: 'DataVis/ScoreBar',
+  title: 'DataVisualization/ScoreBar',
 };
 
 export const Horizontal = withInfo('Description')(() => (
