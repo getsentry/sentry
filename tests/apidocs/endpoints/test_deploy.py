@@ -48,4 +48,4 @@ class ReleaseDeploysDocs(APIDocsTestCase):
         response = self.client.post(self.url, data)
         request = RequestFactory().post(self.url, data)
 
-        self.validate_schema(response, request)
+        self.validate_schema(request, response)
