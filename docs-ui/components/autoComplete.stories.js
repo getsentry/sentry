@@ -16,7 +16,7 @@ const items = [
 ];
 
 export default {
-  title: 'Forms/AutoComplete',
+  title: 'Core/Forms/AutoComplete',
 };
 
 export const Input = withInfo('Autocomplete on an input')(() => (
