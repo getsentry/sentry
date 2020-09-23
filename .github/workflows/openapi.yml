@@ -46,8 +46,9 @@ jobs:
     - name: Git Commit & Push
       run: |
         cd sentry-api-schema
+        git remote -v
         git config user.name openapi-getsentry-bot
         git config user.email bot@getsentry.com
         git add .
         git commit -m "generated"
-        git push
+        git push origin main
