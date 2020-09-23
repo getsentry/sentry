@@ -2500,22 +2500,12 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
     def test_measurements_aggregations(self):
         data = load_data("transaction")
         self.store_event(data, self.project.id)
+
         # should try all the potential aggregates
-        # query = {
-        #     "field": [
-        #         "percentile(measurements.fcp, 0.5)"
-        #     ]
-        # }
-        # query = {
-        #     "field": [
-        #         "measurements.fp",
-        #         "measurements.fcp",
-        #         "measurements.lcp",
-        #         "measurements.fid",
-        #     ]
-        # }
-        # response = self.do_request(query)
-        # assert response.status_code == 200, response.content
+        query = {"field": ["percentile(measurements.fcp, 0.5)"]}
+        response = self.do_request(query)
+
+        assert response.status_code == 200, response.content
         # assert len(response.data["data"]) == 1
         # assert response.data["data"][0]["percentile_measurements_fcp_0_5"] == 0.5
 
