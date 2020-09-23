@@ -3,13 +3,14 @@ from __future__ import absolute_import
 import functools
 import six
 from collections import defaultdict, Iterable, OrderedDict
+from copy import deepcopy
 from dateutil.parser import parse as parse_datetime
 from pytz import UTC
 
 from django.core.cache import cache
 
 from sentry import options
-from sentry.api.event_search import PROJECT_ALIAS
+from sentry.api.event_search import FIELD_ALIASES, PROJECT_ALIAS, USER_DISPLAY_ALIAS
 from sentry.models import Project
 from sentry.api.utils import default_start_end_dates
 from sentry.snuba.dataset import Dataset
@@ -745,13 +746,24 @@ class SnubaTagStorage(TagStorage):
             snuba_key = "project_id"
             dataset = Dataset.Discover
         else:
-            if snuba_key in BLACKLISTED_COLUMNS:
-                snuba_key = "tags[%s]" % (key,)
+            snuba_name = snuba_key
+
+            is_user_alias = include_transactions and key == USER_DISPLAY_ALIAS
+            if is_user_alias:
+                # user.alias is a pseudo column in discover. It is computed by coalescing
+                # together multiple user attributes. Here we get the coalese function used,
+                # and resolve it to the corresponding snuba query
+                dataset = Dataset.Discover
+                resolver = snuba.resolve_column(dataset)
+                snuba_name = deepcopy(FIELD_ALIASES[USER_DISPLAY_ALIAS]["fields"][0])
+                snuba.resolve_complex_column(snuba_name, resolver)
+            elif snuba_name in BLACKLISTED_COLUMNS:
+                snuba_name = "tags[%s]" % (key,)
 
             if query:
-                conditions.append([snuba_key, "LIKE", u"%{}%".format(query)])
+                conditions.append([snuba_name, "LIKE", u"%{}%".format(query)])
             else:
-                conditions.append([snuba_key, "!=", ""])
+                conditions.append([snuba_name, "!=", ""])
 
         filters = {"project_id": projects}
         if environments:
