@@ -250,7 +250,7 @@ const StreamGroup = createReactClass({
           flex="1"
         >
           <EventOrGroupHeader data={data} query={query} />
-          <EventOrGroupExtraDetails {...data} />
+          <EventOrGroupExtraDetails data={data} />
         </GroupSummary>
         {hasGuideAnchor && <GuideAnchor target="issue_stream" />}
         {withChart && (
