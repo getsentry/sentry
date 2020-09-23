@@ -55,9 +55,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
         except NoProjects:
             return Response([])
 
-        with sentry_sdk.start_span(op="discover.endpoint", description="trend_dates") as span:
-            span.set_tag("organization", organization)
-
+        with sentry_sdk.start_span(op="discover.endpoint", description="trend_dates"):
             middle = params["start"] + timedelta(
                 seconds=(params["end"] - params["start"]).total_seconds() * 0.5
             )
