@@ -1473,6 +1473,20 @@ class Function(object):
             == 1
         ), u"{}: only one of column, aggregate, or transform is allowed".format(self.name)
 
+        # assert that no duplicate argument names are used
+        names = set()
+        for arg in self.args:
+            assert arg.name not in names, u"{}: argument {} specified more than once".format(
+                self.name, arg.name
+            )
+            names.add(arg.name)
+
+        for calculation in self.calculated_args:
+            assert (
+                calculation["name"] not in names
+            ), u"{}: argument {} specified more than once".format(self.name, calculation["name"])
+            names.add(calculation["name"])
+
     def validate_argument_count(self, field, arguments):
         """
         Validate the number of required arguments the function defines against

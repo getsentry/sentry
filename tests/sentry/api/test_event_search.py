@@ -2348,16 +2348,17 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["groupby"] == []
 
 
+class DefaultFunctionArg(FunctionArg):
+    def __init__(self, name, default):
+        super(DefaultFunctionArg, self).__init__(name, has_default=True)
+        self.default = default
+
+    def get_default(self, params):
+        return self.default
+
+
 class FunctionTest(unittest.TestCase):
     def setUp(self):
-        class DefaultFunctionArg(FunctionArg):
-            def __init__(self, name, default):
-                super(DefaultFunctionArg, self).__init__(name, has_default=True)
-                self.default = default
-
-            def get_default(self, params):
-                return self.default
-
         self.fn_wo_optionals = Function(
             "wo_optionals", required_args=[FunctionArg("arg1"), FunctionArg("arg2")], transform="",
         )
@@ -2409,3 +2410,34 @@ class FunctionTest(unittest.TestCase):
             AssertionError, u"test: optional argument at index 0 does not have default"
         ):
             Function("test", optional_args=[FunctionArg("arg1")])
+
+    def test_defining_duplicate_args(self):
+        with self.assertRaisesRegexp(
+            AssertionError, u"test: argument arg1 specified more than once"
+        ):
+            Function(
+                "test",
+                required_args=[FunctionArg("arg1")],
+                optional_args=[DefaultFunctionArg("arg1", "default")],
+                transform="",
+            )
+
+        with self.assertRaisesRegexp(
+            AssertionError, u"test: argument arg1 specified more than once"
+        ):
+            Function(
+                "test",
+                required_args=[FunctionArg("arg1")],
+                calculated_args=[{"name": "arg1", "fn": lambda x: x}],
+                transform="",
+            )
+
+        with self.assertRaisesRegexp(
+            AssertionError, u"test: argument arg1 specified more than once"
+        ):
+            Function(
+                "test",
+                optional_args=[DefaultFunctionArg("arg1", "default")],
+                calculated_args=[{"name": "arg1", "fn": lambda x: x}],
+                transform="",
+            )
