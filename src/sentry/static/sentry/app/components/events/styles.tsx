@@ -47,7 +47,7 @@ export const BannerContainer = styled('div')<BannerProps>`
 
 export const BannerSummary = styled('p')`
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   padding: ${space(2)} ${space(4)} ${space(2)} 40px;
   margin-bottom: 0;
 
@@ -57,6 +57,7 @@ export const BannerSummary = styled('p')`
     flex-shrink: 0;
     flex-grow: 0;
     margin-right: ${space(1)};
+    margin-top: 2px;
   }
 
   & > span {
