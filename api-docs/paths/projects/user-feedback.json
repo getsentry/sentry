@@ -55,6 +55,9 @@
       },
       "403": {
         "description": "Forbidden"
+      },
+      "404": {
+        "description": "Not Found"
       }
     },
     "security": [
@@ -145,11 +148,17 @@
           }
         }
       },
+      "400": {
+        "description": "Bad Input"
+      },
       "403": {
         "description": "Forbidden"
       },
       "404": {
         "description": "The requested resource does not exist"
+      },
+      "409": {
+        "description": "Conflict"
       }
     },
     "security": [
