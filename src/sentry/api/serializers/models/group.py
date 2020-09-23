@@ -526,7 +526,17 @@ class GroupStatsMixin(object):
         "24h": StatsPeriod(24, timedelta(hours=1)),
     }
 
+    CUSTOM_ROLLUP_CHOICES = {
+        "1h": timedelta(hours=1).total_seconds(),
+        "2h": timedelta(hours=2).total_seconds(),
+        "3h": timedelta(hours=3).total_seconds(),
+        "6h": timedelta(hours=6).total_seconds(),
+        "12h": timedelta(hours=12).total_seconds(),
+        "24h": timedelta(hours=24).total_seconds(),
+    }
+
     CUSTOM_SEGMENTS = 29  # for 30 segments use 1/29th intervals
+    CUSTOM_SEGMENTS_12H = 35  # for 12h 36 segments, otherwise 15-16-17 bars is too few
     CUSTOM_ROLLUP_6H = timedelta(hours=6).total_seconds()  # rollups should be increments of 6hs
 
     def query_tsdb(self, group_ids, query_params):
@@ -539,16 +549,25 @@ class GroupStatsMixin(object):
 
             if self.stats_period == "auto":
                 total_period = (self.stats_period_end - self.stats_period_start).total_seconds()
-                rollup = total_period / self.CUSTOM_SEGMENTS
-
-                if rollup > self.CUSTOM_ROLLUP_6H:
-                    rollup = round(rollup / self.CUSTOM_ROLLUP_6H) * self.CUSTOM_ROLLUP_6H
-                elif (2 * rollup) > self.CUSTOM_ROLLUP_6H:
-                    rollup = self.CUSTOM_ROLLUP_6H / 2  # 3hrs
-                elif (3 * rollup) > self.CUSTOM_ROLLUP_6H:
-                    rollup = self.CUSTOM_ROLLUP_6H / 3  # 2hr
-                elif total_period > timedelta(hours=24).total_seconds():
-                    rollup = self.CUSTOM_ROLLUP_6H / 6  # 1hr
+                if total_period < timedelta(hours=24).total_seconds():
+                    rollup = total_period / self.CUSTOM_SEGMENTS
+                elif total_period < self.CUSTOM_SEGMENTS * self.CUSTOM_ROLLUP_CHOICES["1h"]:
+                    rollup = self.CUSTOM_ROLLUP_CHOICES["1h"]
+                elif total_period < self.CUSTOM_SEGMENTS * self.CUSTOM_ROLLUP_CHOICES["2h"]:
+                    rollup = self.CUSTOM_ROLLUP_CHOICES["2h"]
+                elif total_period < self.CUSTOM_SEGMENTS * self.CUSTOM_ROLLUP_CHOICES["3h"]:
+                    rollup = self.CUSTOM_ROLLUP_CHOICES["3h"]
+                elif total_period < self.CUSTOM_SEGMENTS * self.CUSTOM_ROLLUP_CHOICES["6h"]:
+                    rollup = self.CUSTOM_ROLLUP_CHOICES["6h"]
+                elif (
+                    total_period < self.CUSTOM_SEGMENTS_12H * self.CUSTOM_ROLLUP_CHOICES["12h"]
+                ):  # 36 segments is ok
+                    rollup = self.CUSTOM_ROLLUP_CHOICES["12h"]
+                elif total_period < self.CUSTOM_SEGMENTS * self.CUSTOM_ROLLUP_CHOICES["24h"]:
+                    rollup = self.CUSTOM_ROLLUP_CHOICES["24h"]
+                else:
+                    delta_day = self.CUSTOM_ROLLUP_CHOICES["24h"]
+                    rollup = round(total_period / (self.CUSTOM_SEGMENTS * delta_day)) * delta_day
 
                 query_params = {
                     "start": self.stats_period_start,
