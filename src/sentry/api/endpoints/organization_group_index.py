@@ -10,7 +10,6 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventPermission
-from sentry.api.event_search import convert_search_filter_to_snuba_query
 from sentry.api.helpers.group_index import (
     build_query_params_from_request,
     delete_groups,
@@ -215,33 +214,21 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
 
         results = list(cursor_result)
 
-        lifetime_stats = serialize(results, request.user, serializer())
-
         if has_dynamic_issue_counts:
-            snuba_filters = []
-            if "search_filters" in query_kwargs and query_kwargs["search_filters"] is not None:
-                snuba_filters = [
-                    convert_search_filter_to_snuba_query(search_filter)
-                    for search_filter in query_kwargs["search_filters"]
-                    if search_filter.key.name not in self.skip_snuba_fields
-                ]
-
-            context = serialize(results, request.user, serializer(start=start, end=end))
-            if snuba_filters:
-                filtered_stats = serialize(
-                    results,
-                    request.user,
-                    serializer(start=start, end=end, snuba_filters=snuba_filters),
-                )
-            else:
-                filtered_stats = None
-            for idx, ctx in enumerate(context):
-                ctx["lifetime"] = lifetime_stats[idx]
-                if snuba_filters:
-                    ctx["filtered"] = filtered_stats[idx]
+            context = serialize(
+                results,
+                request.user,
+                serializer(
+                    start=start,
+                    end=end,
+                    search_filters=query_kwargs["search_filters"]
+                    if "search_filters" in query_kwargs
+                    else None,
+                    has_dynamic_issue_counts=True,
+                ),
+            )
         else:
-            # context was the lifetime stats previously with no filters/dynamic start-end values
-            context = lifetime_stats
+            context = serialize(results, request.user, serializer())
 
         # HACK: remove auto resolved entries
         # TODO: We should try to integrate this into the search backend, since

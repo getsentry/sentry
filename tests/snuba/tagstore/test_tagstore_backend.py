@@ -306,7 +306,6 @@ class TagStorageTest(TestCase, SnubaTestCase):
             project_ids=[self.proj1.id],
             group_ids=[self.proj1group1.id, self.proj1group2.id],
             environment_ids=[self.proj1env1.id],
-            snuba_filters=None,
         ) == {self.proj1group1.id: 2, self.proj1group2.id: 1}
 
         # test filtering by date range where there shouldn't be results
@@ -315,7 +314,6 @@ class TagStorageTest(TestCase, SnubaTestCase):
                 project_ids=[self.proj1.id],
                 group_ids=[self.proj1group1.id, self.proj1group2.id],
                 environment_ids=[self.proj1env1.id],
-                snuba_filters=None,
                 start=self.now - timedelta(days=5),
                 end=self.now - timedelta(days=4),
             )
@@ -604,7 +602,7 @@ class TagStorageTest(TestCase, SnubaTestCase):
 
     def test_get_group_seen_values_for_environments(self):
         assert self.ts.get_group_seen_values_for_environments(
-            [self.proj1.id], [self.proj1group1.id], [self.proj1env1.id], []
+            [self.proj1.id], [self.proj1group1.id], [self.proj1env1.id]
         ) == {
             self.proj1group1.id: {
                 "first_seen": self.now - timedelta(seconds=2),
@@ -619,7 +617,6 @@ class TagStorageTest(TestCase, SnubaTestCase):
                 [self.proj1.id],
                 [self.proj1group1.id],
                 [self.proj1env1.id],
-                [],
                 start=self.now - timedelta(hours=5),
                 end=self.now - timedelta(hours=4),
             )
