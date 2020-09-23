@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from datetime import timedelta
 from django.core.urlresolvers import reverse
 from exam import fixture
 
@@ -213,6 +214,52 @@ class OrganizationTagKeyValuesTest(OrganizationTagKeyTestCase):
         self.run_test("timestamp", qs_params={"query": "z"}, expected=[])
         self.run_test("time", expected=[])
         self.run_test("time", qs_params={"query": "z"}, expected=[])
+
+    def test_user_display(self):
+        self.store_event(
+            data={
+                "timestamp": iso_format(self.day_ago - timedelta(minutes=1)),
+                "user": {"email": "foo@example.com", "ip_address": "127.0.0.1"},
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "timestamp": iso_format(self.day_ago - timedelta(minutes=2)),
+                "user": {"username": "bazz", "ip_address": "192.168.0.1"},
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "timestamp": iso_format(self.day_ago - timedelta(minutes=3)),
+                "user": {"ip_address": "127.0.0.1"},
+            },
+            project_id=self.project.id,
+        )
+        self.run_test(
+            "user.display",
+            qs_params={"includeTransactions": "1"},
+            expected=[("foo@example.com", 1), ("bazz", 1), ("127.0.0.1", 1)],
+        )
+        self.run_test(
+            "user.display",
+            qs_params={"includeTransactions": "1", "query": "foo"},
+            expected=[("foo@example.com", 1)],
+        )
+        self.run_test(
+            "user.display",
+            qs_params={"includeTransactions": "1", "query": "zz"},
+            expected=[("bazz", 1)],
+        )
+        self.run_test(
+            "user.display",
+            qs_params={"includeTransactions": "1", "query": "1"},
+            expected=[("127.0.0.1", 1)],
+        )
+        self.run_test(
+            "user.display", qs_params={"includeTransactions": "1", "query": "bar"}, expected=[]
+        )
 
 
 class TransactionTagKeyValues(OrganizationTagKeyTestCase):
