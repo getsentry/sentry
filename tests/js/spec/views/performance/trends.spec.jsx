@@ -192,7 +192,7 @@ describe('Performance > Trends', function() {
     wrapper.update();
 
     wrapper
-      .find('TransactionMenuButton')
+      .find('DropdownLink')
       .first()
       .simulate('click');
 
@@ -223,7 +223,7 @@ describe('Performance > Trends', function() {
     wrapper.update();
 
     const firstTransaction = wrapper.find('TrendsListItem').first();
-    const transactionLink = firstTransaction.find('StyledLink').first();
+    const transactionLink = firstTransaction.find('CompareLink').first();
     transactionLink.simulate('click');
 
     await tick();
@@ -275,7 +275,7 @@ describe('Performance > Trends', function() {
     await tick();
     wrapper.update();
 
-    const mostImprovedProject = wrapper.find('ChangedProjectsContainer').first();
+    const mostImprovedProject = wrapper.find('TrendsProjectPanel').first();
     const viewTransactions = mostImprovedProject.find('Button').first();
     viewTransactions.simulate('click');
 
@@ -348,24 +348,9 @@ describe('Performance > Trends', function() {
         })
       );
 
-      // Improved transactions call
-      expect(trendsMock).toHaveBeenNthCalledWith(
-        2,
-        expect.anything(),
-        expect.objectContaining({
-          query: expect.objectContaining({
-            trendFunction: trendFunction.field,
-            sort,
-            query: expect.stringContaining(aliasedQueryDivide + ':<1'),
-            interval: '12h',
-            field: transactionFields,
-            statsPeriod: '14d',
-          }),
-        })
-      );
       // Regression projects call
       expect(trendsMock).toHaveBeenNthCalledWith(
-        3,
+        2,
         expect.anything(),
         expect.objectContaining({
           query: expect.objectContaining({
@@ -374,6 +359,22 @@ describe('Performance > Trends', function() {
             query: expect.stringContaining(aliasedQueryDivide + ':>1'),
             interval: '12h',
             field: projectFields,
+            statsPeriod: '14d',
+          }),
+        })
+      );
+
+      // Improved transactions call
+      expect(trendsMock).toHaveBeenNthCalledWith(
+        3,
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({
+            trendFunction: trendFunction.field,
+            sort,
+            query: expect.stringContaining(aliasedQueryDivide + ':<1'),
+            interval: '12h',
+            field: transactionFields,
             statsPeriod: '14d',
           }),
         })
