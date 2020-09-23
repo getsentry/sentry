@@ -168,8 +168,18 @@ class SnubaUtilsTest(TestCase):
         assert get_snuba_column_name("tags[sentry:user]") == "tags[sentry:user]"
         assert get_snuba_column_name("organization") == "tags[organization]"
         assert get_snuba_column_name("unknown-key") == "tags[unknown-key]"
-        assert get_snuba_column_name("measurements_key") == "measurements.key"
-        assert get_snuba_column_name("measurements.key") == "measurements[key]"
+
+        # measurements are not available on the Events dataset, so it's seen as a tag
+        assert get_snuba_column_name("measurements_key", Dataset.Events) == "tags[measurements_key]"
+        assert get_snuba_column_name("measurements.key", Dataset.Events) == "tags[measurements.key]"
+
+        # measurements are available on the Discover and Transactions dataset, so its parsed as such
+        assert get_snuba_column_name("measurements_key", Dataset.Discover) == "measurements.key"
+        assert get_snuba_column_name("measurements_key", Dataset.Transactions) == "measurements.key"
+        assert get_snuba_column_name("measurements.key", Dataset.Discover) == "measurements[key]"
+        assert (
+            get_snuba_column_name("measurements.key", Dataset.Transactions) == "measurements[key]"
+        )
 
 
 class PrepareQueryParamsTest(TestCase):

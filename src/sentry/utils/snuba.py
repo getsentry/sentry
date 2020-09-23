@@ -54,6 +54,8 @@ SAFE_FUNCTION_RE = re.compile(r"-?[a-zA-Z_][a-zA-Z0-9_]*$")
 # doesn't include new lines,
 QUOTED_LITERAL_RE = re.compile(r"^'[\s\S]*'$")
 
+MEASUREMENTS_KEY_RE = re.compile(r"^measurements\.([a-zA-Z0-9-_.]+)$")
+
 # Global Snuba request option override dictionary. Only intended
 # to be used with the `options_override` contextmanager below.
 # NOT THREAD SAFE!
@@ -333,8 +335,9 @@ def get_snuba_column_name(name, dataset=Dataset.Events):
     if not name or name.startswith("tags[") or QUOTED_LITERAL_RE.match(name):
         return name
 
-    if is_measurement(name):
-        default = u"measurements[{}]".format(name.split(".", 1)[1])
+    match = MEASUREMENTS_KEY_RE.match(name)
+    if "measurements_key" in DATASETS[dataset] and match:
+        default = u"measurements[{}]".format(match.group(1))
     else:
         default = u"tags[{}]".format(name)
 
@@ -817,8 +820,9 @@ def resolve_column(dataset):
         if col in DATASETS[dataset]:
             return DATASETS[dataset][col]
 
-        if is_measurement(col):
-            return u"measurements[{}]".format(col.split(".", 1)[1])
+        match = MEASUREMENTS_KEY_RE.match(col)
+        if "measurements_key" in DATASETS[dataset] and match:
+            return u"measurements[{}]".format(match.group(1))
 
         return u"tags[{}]".format(col)
 
@@ -1295,7 +1299,7 @@ def quantize_time(time, key_hash, duration=300):
 
 
 def is_measurement(key):
-    return isinstance(key, six.string_types) and key.startswith("measurements.")
+    return isinstance(key, six.string_types) and MEASUREMENTS_KEY_RE.match(key)
 
 
 def is_duration_measurement(key):

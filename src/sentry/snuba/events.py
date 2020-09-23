@@ -264,18 +264,10 @@ class Columns(Enum):
         None, None, "transaction_status", "transaction_status", "transaction.status"
     )
     MEASUREMENTS_KEYS = Column(
-        "events.measurements.key",
-        "measurements.key",
-        "measurements.key",
-        "measurements.key",
-        "measurements_key",
+        None, None, "measurements.key", "measurements.key", "measurements_key",
     )
     MEASUREMENTS_VALUES = Column(
-        "events.measurements.value",
-        "measurements.value",
-        "measurements.value",
-        "measurements.value",
-        "measurements_value",
+        None, None, "measurements.value", "measurements.value", "measurements_value",
     )
     # Tracing context fields.
     TRACE_ID = Column(

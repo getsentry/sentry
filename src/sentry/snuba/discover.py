@@ -625,6 +625,7 @@ def query(
 
             if conditions is None:
                 conditions = []
+            # `IN` is not supported from the front end, so we insert the condition here
             conditions.append([measurements_join_snuba_name, "IN", measurements])
 
             break
