@@ -95,7 +95,7 @@ class InviteMembers extends React.Component<Props, State> {
             apiMethod="POST"
             submitLabel={t('Invite Member')}
             onSubmitSuccess={this.handleSubmitSuccess}
-            initialData={{teams: [project?.teams[0]?.slug]}}
+            initialData={{teams: [project?.teams?.[0]?.slug]}}
             {...formProps}
           >
             <HelpText>
