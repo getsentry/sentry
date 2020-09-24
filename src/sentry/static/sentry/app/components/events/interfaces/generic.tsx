@@ -1,7 +1,6 @@
 import PropTypes from 'prop-types';
 import React, {Component} from 'react';
 
-import SentryTypes from 'app/sentryTypes';
 import ButtonBar from 'app/components/buttonBar';
 import Button from 'app/components/button';
 import EventDataSection from 'app/components/events/eventDataSection';
@@ -18,9 +17,19 @@ function getView(view, data) {
       throw new TypeError(`Invalid view: ${view}`);
   }
 }
-export default class GenericInterface extends Component {
+
+type Props = {
+  type: string;
+  data: {[name: string]: any};
+};
+
+type State = {
+  view: string;
+  data?: {[name: string]: any};
+};
+
+export default class GenericInterface extends Component<Props, State> {
   static propTypes = {
-    event: SentryTypes.Event.isRequired,
     type: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
   };
@@ -34,6 +43,10 @@ export default class GenericInterface extends Component {
     };
   }
 
+  state: State = {
+    view: 'report',
+  };
+
   toggleView = value => {
     this.setState({
       view: value,
@@ -42,7 +55,7 @@ export default class GenericInterface extends Component {
 
   render() {
     const {view, data} = this.state;
-    const {event, type} = this.props;
+    const {type} = this.props;
 
     const title = (
       <div>
@@ -65,7 +78,7 @@ export default class GenericInterface extends Component {
     const children = getView(view, data);
 
     return (
-      <EventDataSection event={event} type={type} title={title} wrapTitle={false}>
+      <EventDataSection type={type} title={title} wrapTitle={false}>
         {children}
       </EventDataSection>
     );
