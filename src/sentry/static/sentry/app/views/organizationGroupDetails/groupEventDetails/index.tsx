@@ -39,8 +39,9 @@ export class GroupEventDetailsContainer extends React.Component<Props, State> {
   state = OrganizationEnvironmentsStore.get();
 
   componentDidMount() {
-    this.environmentUnsubscribe = OrganizationEnvironmentsStore.listen(data =>
-      this.setState(data)
+    this.environmentUnsubscribe = OrganizationEnvironmentsStore.listen(
+      data => this.setState(data),
+      undefined
     );
     const {environments, error} = OrganizationEnvironmentsStore.get();
     if (!environments && !error) {
