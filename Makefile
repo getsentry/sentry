@@ -126,12 +126,7 @@ fetch-release-registry:
 
 run-acceptance:
 	@echo "--> Running acceptance tests"
-ifndef TEST_GROUP
 	py.test tests/acceptance --cov . --cov-report="xml:.artifacts/acceptance.coverage.xml" --junit-xml=".artifacts/acceptance.junit.xml" --html=".artifacts/acceptance.pytest.html" --self-contained-html
-else
-	py.test tests/acceptance -m group_$(TEST_GROUP) --cov . --cov-report="xml:.artifacts/acceptance.coverage.xml" --junit-xml=".artifacts/acceptance.junit.xml" --html=".artifacts/acceptance.pytest.html" --self-contained-html
-endif
-
 	@echo ""
 
 test-cli:
@@ -164,20 +159,12 @@ test-js-ci: node-version-check
 test-python:
 	@echo "--> Running Python tests"
 	# This gets called by getsentry
-ifndef TEST_GROUP
 	py.test tests/integration tests/sentry
-else
-	py.test tests/integration tests/sentry -m group_$(TEST_GROUP)
-endif
 
 test-python-ci:
 	make build-platform-assets
 	@echo "--> Running CI Python tests"
-ifndef TEST_GROUP
 	py.test tests/integration tests/sentry --cov . --cov-report="xml:.artifacts/python.coverage.xml" --junit-xml=".artifacts/python.junit.xml" || exit 1
-else
-	py.test tests/integration tests/sentry -m group_$(TEST_GROUP) --cov . --cov-report="xml:.artifacts/python.coverage.xml" --junit-xml=".artifacts/python.junit.xml" || exit 1
-endif
 	@echo ""
 
 test-snuba:
@@ -199,12 +186,7 @@ test-plugins:
 	@echo "--> Building static assets"
 	@$(WEBPACK) --display errors-only
 	@echo "--> Running plugin tests"
-
-ifndef TEST_GROUP
 	py.test tests/sentry_plugins -vv --cov . --cov-report="xml:.artifacts/plugins.coverage.xml" --junit-xml=".artifacts/plugins.junit.xml" || exit 1
-else
-	py.test tests/sentry_plugins -m group_$(TEST_GROUP) -vv --cov . --cov-report="xml:.artifacts/plugins.coverage.xml" --junit-xml=".artifacts/plugins.junit.xml" || exit 1
-endif
 	@echo ""
 
 test-relay-integration:
@@ -215,6 +197,8 @@ test-relay-integration:
 test-api-docs:
 	@echo "--> Generating testing api doc schema"
 	yarn run build-derefed-docs
+	@echo "--> Validating endpoints' examples against schemas"
+	yarn run validate-api-examples
 	pytest tests/apidocs/endpoints
 	@echo ""
 
