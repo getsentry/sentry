@@ -77,7 +77,7 @@ class TransactionList extends React.Component<WrapperProps> {
   renderTable(sortedEventView: EventView) {
     const {eventView, location, organization, transactionName} = this.props;
 
-    if (!organization.features.includes('internal-catchall')) {
+    if (!organization.features.includes('transaction-comparison')) {
       return (
         <DiscoverQuery
           location={location}
@@ -245,7 +245,7 @@ class TransactionTable extends React.PureComponent<Props> {
 
     // add baseline transaction column
 
-    if (organization.features.includes('internal-catchall')) {
+    if (organization.features.includes('transaction-comparison')) {
       headerColumns.push(
         <HeadCellContainer key="baseline">
           <SortLink
@@ -347,7 +347,7 @@ class TransactionTable extends React.PureComponent<Props> {
 
     // add baseline transaction column
 
-    if (organization.features.includes('internal-catchall')) {
+    if (organization.features.includes('transaction-comparison')) {
       if (baselineTransaction) {
         const currentTransactionDuration: number =
           Number(row['transaction.duration']) || 0;
