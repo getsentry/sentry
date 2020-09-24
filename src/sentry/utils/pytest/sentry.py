@@ -41,9 +41,17 @@ def pytest_configure(config):
                     "HOST": "127.0.0.1",
                 }
             )
+            settings.DATABASES["file"] = settings.DATABASES["default"].copy()
+            settings.DATABASES["file"]["NAME"] = "sentry_file"
             # postgres requires running full migration all the time
             # since it has to install stored functions which come from
             # an actual migration.
+            settings.DATABASE_ROUTERS = ("sentry.routers.MultiDatabaseRouter",)
+
+            # patch TestCase to account for multiple databases
+            from django.test import TestCase
+
+            TestCase.multi_db = True
         else:
             raise RuntimeError("oops, wrong database: %r" % test_db)
 
