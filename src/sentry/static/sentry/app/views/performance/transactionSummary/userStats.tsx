@@ -12,7 +12,7 @@ import {SectionHeading} from 'app/components/charts/styles';
 import UserMisery from 'app/components/userMisery';
 
 type Props = {
-  totals: Record<string, number> | undefined;
+  totals: Record<string, number>;
   location: Location;
   organization: Organization;
 };

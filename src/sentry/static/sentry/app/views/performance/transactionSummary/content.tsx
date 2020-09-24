@@ -29,7 +29,7 @@ type Props = {
   eventView: EventView;
   transactionName: string;
   organization: Organization;
-  totalValues: Record<string, number> | undefined;
+  totalValues: Record<string, number>;
   projects: Project[];
 };
 
@@ -89,7 +89,7 @@ class SummaryContent extends React.Component<Props, State> {
     } = this.props;
     const {incompatibleAlertNotice} = this.state;
     const query = decodeScalar(location.query.query) || '';
-    const totalCount = totalValues ? totalValues.count : null;
+    const totalCount = totalValues.count;
     const slowDuration = totalValues?.p95;
 
     return (

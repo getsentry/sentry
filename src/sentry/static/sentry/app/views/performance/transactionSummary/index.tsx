@@ -43,7 +43,7 @@ type State = {
 
 // Used to cast the totals request to numbers
 // as React.ReactText
-type TotalValues = Record<string, number> | undefined;
+type TotalValues = Record<string, number>;
 
 class TransactionSummary extends React.Component<Props, State> {
   state: State = {
@@ -148,12 +148,10 @@ class TransactionSummary extends React.Component<Props, State> {
                 location={location}
               >
                 {({tableData, isLoading}) => {
-                  const totals = (tableData && tableData.data.length
-                    ? tableData.data[0]
-                    : undefined) as TotalValues;
-                  if (isLoading) {
+                  if (isLoading || !tableData?.data) {
                     return <LoadingIndicator />;
                   }
+                  const totals = tableData.data[0] as TotalValues;
                   return (
                     <SummaryContent
                       location={location}

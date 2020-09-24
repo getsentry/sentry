@@ -81,7 +81,7 @@ describe('Performance > TransactionSummary', function() {
         body: {
           meta: {
             count: 'number',
-            apdex: 'number',
+            apdex_300: 'number',
             user_misery_300: 'number',
             count_unique_user: 'number',
             p95: 'number',
@@ -89,7 +89,7 @@ describe('Performance > TransactionSummary', function() {
           data: [
             {
               count: 2,
-              apdex: 0.6,
+              apdex_300: 0.6,
               user_misery_300: 122,
               count_unique_user: 1,
               p95: 750.123,
