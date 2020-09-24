@@ -26,6 +26,7 @@ import os.path
 import pytest
 import requests
 import six
+import time
 import inspect
 from uuid import uuid4
 from contextlib import contextmanager
@@ -53,6 +54,7 @@ from rest_framework.test import APITestCase as BaseAPITestCase
 from six.moves.urllib.parse import urlencode
 
 from sentry import auth
+from sentry import eventstore
 from sentry.auth.providers.dummy import DummyProvider
 from sentry.auth.superuser import (
     Superuser,
@@ -678,6 +680,17 @@ class SnubaTestCase(BaseTestCase):
             stored_group = stored_event.group
             if stored_group is not None:
                 self.store_group(stored_group)
+            # Verify that events have settled in snuba's storage.
+            # While snuba is synchronous, clickhouse isn't entirely synchronous.
+            attempt = 0
+            while attempt < 10:
+                did_store = eventstore.get_event_by_id(
+                    stored_event.project_id, stored_event.event_id
+                )
+                if did_store:
+                    break
+                attempt += 1
+                time.sleep(0.05)
             return stored_event
 
     def store_session(self, session):
