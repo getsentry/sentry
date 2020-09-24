@@ -562,3 +562,19 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 2
+
+    # def test_measurements_histogram_orderby(self):
+    #     with self.feature("organizations:discover"):
+    #         url = reverse("sentry-api-0-discover-query", args=[self.org.slug])
+    #         response = self.client.post(
+    #             url,
+    #             {
+    #                 "projects": [self.project.id],
+    #                 "fields": ["measurements_histogram(50, measurements.fp, measurements.fcp)"],
+    #                 "start": None,
+    #                 "end": None,
+    #             },
+    #         )
+    #         response
+
+    #     assert False
