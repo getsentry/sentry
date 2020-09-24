@@ -1,11 +1,13 @@
 from __future__ import absolute_import
 
+import responses
 import six
 
 from django.core.urlresolvers import reverse
 
 from sentry.models import Environment, Integration, Rule, RuleActivity, RuleActivityType, RuleStatus
 from sentry.testutils import APITestCase
+from sentry.utils import json
 
 
 class ProjectRuleDetailsTest(APITestCase):
@@ -324,6 +326,79 @@ class UpdateProjectRuleTest(APITestCase):
         assert rule.label == "hello world"
         assert rule.environment_id is None
 
+    @responses.activate
+    def test_update_channel_slack(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        integration = Integration.objects.create(
+            provider="slack",
+            name="Awesome Team",
+            external_id="TXXXXXXX1",
+            metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
+        )
+        integration.add_organization(project.organization, self.user)
+
+        conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
+
+        actions = [
+            {
+                "channel_id": "old_channel_id",
+                "workspace": integration.id,
+                "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+                "channel": "#old_channel_name",
+            }
+        ]
+
+        rule = Rule.objects.create(
+            project=project, data={"conditions": [conditions], "actions": [actions]},
+        )
+
+        actions[0]["channel"] = "#new_channel_name"
+
+        url = reverse(
+            "sentry-api-0-project-rule-details",
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_slug": project.slug,
+                "rule_id": rule.id,
+            },
+        )
+
+        channels = {
+            "ok": "true",
+            "channels": [
+                {"name": "old_channel_name", "id": "old_channel_id"},
+                {"name": "new_channel_name", "id": "new_channel_id"},
+            ],
+        }
+
+        responses.add(
+            method=responses.GET,
+            url="https://slack.com/api/channels.list",
+            status=200,
+            content_type="application/json",
+            body=json.dumps(channels),
+        )
+
+        response = self.client.put(
+            url,
+            data={
+                "name": "#new_channel_name",
+                "actionMatch": "any",
+                "filterMatch": "any",
+                "actions": actions,
+                "conditions": conditions,
+                "frequency": 30,
+            },
+            format="json",
+        )
+
+        assert response.status_code == 200, response.content
+        rule = Rule.objects.get(id=response.data["id"])
+        assert rule.label == "#new_channel_name"
+        assert rule.data["actions"][0]["channel_id"] == "new_channel_id"
+
     def test_slack_channel_id_saved(self):
         self.login_as(user=self.user)
 
@@ -362,7 +437,7 @@ class UpdateProjectRuleTest(APITestCase):
                         "name": "Send a notification to the funinthesun Slack workspace to #team-team-team and show tags [] in notification",
                         "workspace": integration.id,
                         "channel": "#team-team-team",
-                        "channel_id": "CSVK0921",
+                        "input_channel_id": "CSVK0921",
                     }
                 ],
                 "conditions": [
