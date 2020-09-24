@@ -7,7 +7,18 @@ import * as qs from 'query-string';
 import {extractSelectionParameters} from 'app/components/organizations/globalSelectionHeader/utils';
 
 type Props = {
+  /**
+   * Location that is being linked to
+   */
   to: LocationDescriptor;
+  /**
+   * Styles applied to the component's root
+   */
+  className?: string;
+  /**
+   * Inline styles
+   */
+  style?: React.CSSProperties;
 };
 
 /**
