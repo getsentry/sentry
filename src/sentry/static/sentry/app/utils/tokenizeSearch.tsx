@@ -69,7 +69,7 @@ export class QueryResults {
         }
       }
 
-      if (tokenState === TokenType.QUERY) {
+      if (tokenState === TokenType.QUERY && token.length) {
         this.addQuery(token);
       } else if (tokenState === TokenType.TAG) {
         this.addStringTag(token);
@@ -138,9 +138,11 @@ export class QueryResults {
     // to see if that open paren corresponds to a closed paren with one or fewer items inside.
     // If it does, delete those parens, and loop again until there are no more parens to delete.
     let parensToDelete: number[] = [];
-    const cleanParens = (_, idx) => !parensToDelete.includes(idx);
+    const cleanParens = (_, idx: number) => !parensToDelete.includes(idx);
     do {
-      this.tokens = this.tokens.filter(cleanParens);
+      if (parensToDelete.length) {
+        this.tokens = this.tokens.filter(cleanParens);
+      }
       parensToDelete = [];
 
       for (let i = 0; i < this.tokens.length; i++) {
@@ -164,7 +166,7 @@ export class QueryResults {
             }
             alreadySeen = true;
           } else if (isOp(nextToken) && nextToken.value === ')') {
-            // We found another paren with zero or one term inside. Delete the pair.
+            // We found another paren with zero or one terms inside. Delete the pair.
             parensToDelete = [i, j];
             break;
           }
