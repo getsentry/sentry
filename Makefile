@@ -215,6 +215,8 @@ test-relay-integration:
 test-api-docs:
 	@echo "--> Generating testing api doc schema"
 	yarn run build-derefed-docs
+	@echo "--> Validating endpoints' examples against schemas"
+	yarn run validate-api-examples
 	pytest tests/apidocs/endpoints
 	@echo ""
 
