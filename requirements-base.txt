@@ -43,7 +43,7 @@ python3-saml>=1.4.0,<1.5
 python-u2flib-server>=5.0.0,<6.0.0
 PyYAML>=5.3,<5.4
 qrcode>=6.1.0,<6.2.0
-rb>=1.7.0,<2.0.0
+rb @ https://github.com/getsentry/rb/archive/cc79931e752f6455bc5a66d27bc42b7c26478e74.zip#egg=rb
 # redis-py-cluster==2.1.0 isn't released yet, so just pinning to the current latest commit
 # in the repo.
 redis-py-cluster @ https://github.com/Grokzen/redis-py-cluster/archive/d3ef787e033e0bbf97d0b3d17fc46cb5ae36d660.zip#egg=redis-py-cluster

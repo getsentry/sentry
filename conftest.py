@@ -51,8 +51,6 @@ def install_sentry_plugins():
 
 
 def pytest_collection_modifyitems(config, items):
-    # Modification so that GHA tests run
-    pass
     for item in items:
         total_groups = int(os.environ.get("TOTAL_TEST_GROUPS", 1))
         # TODO(joshuarli): six 1.12.0 adds ensure_binary: six.ensure_binary(item.location[0])
