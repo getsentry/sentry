@@ -51,13 +51,13 @@ function getFilterOptions({p95}: {p95: number}): FilterOption[] {
       query: [['transaction.duration', `<=${p95.toFixed(0)}`]],
       sort: {kind: 'desc', field: 'transaction.duration'},
       value: 'slow',
-      label: t('p95 Transactions'),
+      label: t('Slow Transactions (p95)'),
     },
     {
       query: null,
       sort: {kind: 'desc', field: 'transaction.duration'},
-      value: 'slowest',
-      label: t('Slowest Transactions'),
+      value: 'outlier',
+      label: t('Outlier Transactions (p100)'),
     },
     {
       query: null,
