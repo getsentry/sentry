@@ -276,7 +276,7 @@ describe('Performance > Trends', function() {
     wrapper.update();
 
     const mostImprovedProject = wrapper.find('TrendsProjectPanel').first();
-    const viewTransactions = mostImprovedProject.find('Button').first();
+    const viewTransactions = mostImprovedProject.find('StyledProjectButton').first();
     viewTransactions.simulate('click');
 
     expect(browserHistory.push).toHaveBeenCalledWith({
