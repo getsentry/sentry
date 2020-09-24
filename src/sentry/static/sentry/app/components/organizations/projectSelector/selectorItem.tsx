@@ -75,8 +75,8 @@ class ProjectSelectorItem extends React.PureComponent<Props, State> {
     children,
     features,
   }: {
-    features: string[];
     children: React.ReactNode;
+    features: string[];
   }) {
     return (
       <Hovercard
