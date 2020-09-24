@@ -1347,13 +1347,6 @@ class DurationColumnNoLookup(DurationColumn):
         return value
 
 
-class StringArrayColumn(FunctionArg):
-    def normalize(self, value):
-        if value in ["tags_key", "tags_value", "measurements_key"]:
-            return value
-        raise InvalidFunctionArgument(u"{} is not a valid string array column".format(value))
-
-
 class NumberRange(FunctionArg):
     def __init__(self, name, start, end, has_default=False):
         super(NumberRange, self).__init__(name, has_default=has_default)
@@ -1609,48 +1602,6 @@ FUNCTIONS = {
             result_type="number",
         ),
         Function("failure_rate", transform="failure_rate()", result_type="percentage",),
-        Function(
-            "array_join",
-            required_args=[StringArrayColumn("column")],
-            column=["arrayJoin", [ArgValue("column")], None],
-        ),
-        Function(
-            "measurements_histogram",
-            required_args=[
-                NumberRange("num_buckets", 1, 500),
-                NumberRange("bucket_size", 0, None),
-                NumberRange("start_offset", 0, None),
-                # the precision is unused in the query itself, but in the postprocessing
-                NumberRange("precision", 0, None),
-                NumberRange("precision_multiplier", 1, None),
-            ],
-            column=[
-                "multiply",
-                [
-                    [
-                        "floor",
-                        [
-                            [
-                                "divide",
-                                [
-                                    [
-                                        "multiply",
-                                        [
-                                            ["arrayJoin", ["measurements_value"]],
-                                            ArgValue("precision_multiplier"),
-                                        ],
-                                    ],
-                                    ArgValue("bucket_size"),
-                                ],
-                            ],
-                        ],
-                    ],
-                    ArgValue("bucket_size"),
-                ],
-                None,
-            ],
-            result_type="number",
-        ),
         # The user facing signature for this function is histogram(<column>, <num_buckets>)
         # Internally, snuba.discover.query() expands the user request into this value by
         # calculating the bucket size and start_offset.
