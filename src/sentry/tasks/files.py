@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from django.db import IntegrityError
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.deletion import MAX_RETRIES
 
@@ -36,5 +37,7 @@ def delete_unreferenced_blobs(blob_ids):
         try:
             # Need to delete the record to ensure django hooks run.
             FileBlob.objects.get(id=blob_id).delete()
-        except FileBlob.DoesNotExist:
+        except (IntegrityError, FileBlob.DoesNotExist):
+            # Do nothing if the blob was deleted in another task, or
+            # if had another reference added concurrently.
             pass
