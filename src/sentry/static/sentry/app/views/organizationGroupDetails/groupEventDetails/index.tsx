@@ -33,10 +33,7 @@ type Props = RouteComponentProps<
   event: Event;
 };
 
-type State = {
-  environments: Environment[];
-  error: Error;
-};
+type State = typeof OrganizationEnvironmentsStore['state'];
 
 export class GroupEventDetailsContainer extends React.Component<Props, State> {
   state = OrganizationEnvironmentsStore.get();
