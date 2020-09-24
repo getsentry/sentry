@@ -47,6 +47,15 @@ class IntegrationRepositoryProvider(object):
             organization_id=organization.id, name=result["name"], integration_id=None
         ).first()
         if repo:
+            if self.logger:
+                self.logger.info(
+                    "repository.update",
+                    extra={
+                        "organization_id": organization.id,
+                        "repo_name": result["name"],
+                        "old_provider": repo.provider,
+                    },
+                )
             # update from params
             for field_name, field_value in six.iteritems(repo_update_params):
                 setattr(repo, field_name, field_value)
