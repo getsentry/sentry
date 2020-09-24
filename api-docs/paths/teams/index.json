@@ -189,7 +189,7 @@
               },
               "slug": {
                 "type": "string",
-                "description": "The optional slug for this team. If not provided it will be auto generated from the name",
+                "description": "The optional slug for this team. If not provided it will be auto generated from the name.",
                 "example": "ancient-gabelers"
               }
             }
