@@ -896,6 +896,8 @@ SENTRY_FEATURES = {
     "organizations:sso-saml2": True,
     # Enable Rippling SSO functionality.
     "organizations:sso-rippling": False,
+    # Enable transaction comparison view for performance.
+    "organizations:transaction-comparison": False,
     # Enable trends view for performance.
     "organizations:trends": False,
     # Enable graph for subscription quota for errors, transactions and
