@@ -90,7 +90,7 @@ class SummaryContent extends React.Component<Props, State> {
     const {incompatibleAlertNotice} = this.state;
     const query = decodeScalar(location.query.query) || '';
     const totalCount = totalValues ? totalValues.count : null;
-    const slowDuration = totalValues ? totalValues.p95 : undefined;
+    const slowDuration = totalValues?.p95;
 
     return (
       <React.Fragment>
