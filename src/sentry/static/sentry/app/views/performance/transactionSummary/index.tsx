@@ -17,6 +17,7 @@ import {isAggregateField} from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
 import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
+import LoadingIndicator from 'app/components/loadingIndicator';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
@@ -146,10 +147,13 @@ class TransactionSummary extends React.Component<Props, State> {
                 orgSlug={organization.slug}
                 location={location}
               >
-                {({tableData}) => {
+                {({tableData, isLoading}) => {
                   const totals = (tableData && tableData.data.length
                     ? tableData.data[0]
                     : undefined) as TotalValues;
+                  if (isLoading) {
+                    return <LoadingIndicator />;
+                  }
                   return (
                     <SummaryContent
                       location={location}
