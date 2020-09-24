@@ -117,9 +117,7 @@ def test_with_attachments(default_project, task_runner, missing_chunks, monkeypa
         )
 
     persisted_attachments = list(
-        EventAttachment.objects.filter(project_id=project_id, event_id=event_id).select_related(
-            "file"
-        )
+        EventAttachment.objects.filter(project_id=project_id, event_id=event_id)
     )
 
     if not missing_chunks:
@@ -187,11 +185,7 @@ def test_individual_attachments(
         projects={default_project.id: default_project},
     )
 
-    attachments = list(
-        EventAttachment.objects.filter(project_id=project_id, event_id=event_id).select_related(
-            "file"
-        )
-    )
+    attachments = list(EventAttachment.objects.filter(project_id=project_id, event_id=event_id))
 
     if not event_attachments:
         assert not attachments

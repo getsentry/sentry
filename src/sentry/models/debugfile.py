@@ -71,10 +71,8 @@ class ProjectDebugFileManager(BaseManager):
         """
         features = frozenset(features) if features is not None else frozenset()
 
-        difs = (
-            ProjectDebugFile.objects.filter(project=project, debug_id__in=debug_ids)
-            .select_related("file")
-            .order_by("-id")
+        difs = ProjectDebugFile.objects.filter(project=project, debug_id__in=debug_ids).order_by(
+            "-id"
         )
 
         difs_by_id = {}
@@ -165,11 +163,7 @@ def clean_redundant_difs(project, debug_id):
     file is considered redundant if there is a newer file with the same debug
     identifier and the same or a superset of its features.
     """
-    difs = (
-        ProjectDebugFile.objects.filter(project=project, debug_id=debug_id)
-        .select_related("file")
-        .order_by("-id")
-    )
+    difs = ProjectDebugFile.objects.filter(project=project, debug_id=debug_id).order_by("-id")
 
     all_features = set()
     for i, dif in enumerate(difs):
@@ -211,8 +205,7 @@ def create_dif_from_id(project, meta, fileobj=None, file=None):
         raise RuntimeError("missing file object")
 
     dif = (
-        ProjectDebugFile.objects.select_related("file")
-        .filter(
+        ProjectDebugFile.objects.filter(
             project=project, debug_id=meta.debug_id, file__checksum=checksum, data__isnull=False
         )
         .order_by("-id")
