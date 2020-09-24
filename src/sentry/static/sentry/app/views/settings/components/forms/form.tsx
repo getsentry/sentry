@@ -22,7 +22,7 @@ type RenderFunc = (props: RenderProps) => React.ReactNode;
 type Props = {
   apiMethod?: APIRequestMethod;
   apiEndpoint?: string;
-  children: React.ReactNode | RenderFunc;
+  children?: React.ReactNode | RenderFunc;
   className?: string;
   cancelLabel?: string;
   submitDisabled?: boolean;
