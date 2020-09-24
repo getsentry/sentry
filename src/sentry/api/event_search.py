@@ -1640,8 +1640,8 @@ FUNCTIONS = {
         # Currently only being used by the baseline PoC
         Function(
             "absolute_delta",
-            required_args=[DurationColumn("column"), NumberRange("target", 0, None)],
-            transform=u"abs(minus({column}, {target:g}))",
+            required_args=[DurationColumnNoLookup("column"), NumberRange("target", 0, None)],
+            column=["abs", [["minus", [ArgValue("column"), ArgValue("target")]]], None],
             result_type="duration",
         ),
         # These range functions for performance trends, these aren't If functions
