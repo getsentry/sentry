@@ -35,10 +35,15 @@ def delete_unreferenced_blobs(blob_ids):
         if FileBlobIndex.objects.filter(blob_id=blob_id).exists():
             continue
         try:
-            with transaction.atomic():
-                # Need to delete the record to ensure django hooks run.
-                FileBlob.objects.get(id=blob_id).delete()
-        except (IntegrityError, FileBlob.DoesNotExist):
-            # Do nothing if the blob was deleted in another task, or
-            # if had another reference added concurrently.
+            blob = FileBlob.objects.get(id=blob_id)
+        except FileBlob.DoesNotExist:
             pass
+        else:
+            try:
+                with transaction.atomic():
+                    # Need to delete the record to ensure django hooks run.
+                    blob.delete()
+            except IntegrityError:
+                # Do nothing if the blob was deleted in another task, or
+                # if had another reference added concurrently.
+                pass
