@@ -109,7 +109,7 @@ class ProjectDebugFile(Model):
     file = FlexibleForeignKey("sentry.File")
     object_name = models.TextField()
     cpu_name = models.CharField(max_length=40)
-    project = FlexibleForeignKey("sentry.Project", null=True)
+    project = FlexibleForeignKey("sentry.Project", null=True, db_constraint=False)
     debug_id = models.CharField(max_length=64, db_column=u"uuid")
     code_id = models.CharField(max_length=64, null=True)
     data = JSONField(null=True)

@@ -28,7 +28,7 @@ class ReleaseFile(Model):
     # DEPRECATED
     project_id = BoundedPositiveIntegerField(null=True)
     release = FlexibleForeignKey("sentry.Release")
-    file = FlexibleForeignKey("sentry.File")
+    file = FlexibleForeignKey("sentry.File", db_constraint=False)
     ident = models.CharField(max_length=40)
     name = models.TextField()
     dist = FlexibleForeignKey("sentry.Distribution", null=True)

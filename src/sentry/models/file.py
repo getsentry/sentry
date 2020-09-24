@@ -612,7 +612,7 @@ class FileBlobOwner(Model):
     __core__ = False
 
     blob = FlexibleForeignKey("sentry.FileBlob")
-    organization = FlexibleForeignKey("sentry.Organization")
+    organization = FlexibleForeignKey("sentry.Organization", db_constraint=False)
 
     class Meta:
         app_label = "sentry"
