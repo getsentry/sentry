@@ -171,16 +171,14 @@ function ChangedProjects(props: Props) {
                   </EmptyContainer>
                 )}
                 {projectTrend && (
-                  <ProjectTrendAction>
-                    <Button
-                      onClick={() =>
-                        handleViewTransactions(projectTrend, projects, location)
-                      }
-                      size="small"
-                    >
-                      {t('View Transactions')}
-                    </Button>
-                  </ProjectTrendAction>
+                  <StyledProjectButton
+                    onClick={() =>
+                      handleViewTransactions(projectTrend, projects, location)
+                    }
+                    size="small"
+                  >
+                    {t('View Transactions')}
+                  </StyledProjectButton>
                 )}
               </React.Fragment>
             )}
@@ -220,9 +218,9 @@ const ProjectTrendContainer = styled('div')`
   grid-column: 1/2;
 `;
 
-const ProjectTrendAction = styled('div')`
-  display: flex;
-  align-items: flex-end;
+const StyledProjectButton = styled(Button)`
+  align-self: end;
+  justify-self: start;
 `;
 
 function getVisualization(
