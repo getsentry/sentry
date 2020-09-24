@@ -18,38 +18,75 @@ import HeaderCell from 'app/views/eventsV2/table/headerCell';
 import EventView, {MetaType} from 'app/utils/discover/eventView';
 import SortLink from 'app/components/gridEditable/sortLink';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
-import {getAggregateAlias} from 'app/utils/discover/fields';
+import {getAggregateAlias, Sort} from 'app/utils/discover/fields';
 import {generateEventSlug} from 'app/utils/discover/urls';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {getDuration} from 'app/utils/formatters';
 import {decodeScalar} from 'app/utils/queryString';
 import DiscoverQuery, {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
 import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
-import {
-  TOP_TRANSACTION_LIMIT,
-  TOP_TRANSACTION_FILTERS,
-} from 'app/views/performance/constants';
 
 import {GridCell, GridCellNumber} from '../styles';
 import {getTransactionDetailsUrl, getTransactionComparisonUrl} from '../utils';
 import BaselineQuery, {BaselineQueryResults} from './baselineQuery';
+
+const TOP_TRANSACTION_LIMIT = 5;
+
+type FilterOption = {
+  query: [string, string][] | null;
+  sort: Sort;
+  value: string;
+  label: string;
+};
+
+function getFilterOptions({p95}: {p95: number}): FilterOption[] {
+  return [
+    {
+      query: null,
+      sort: {kind: 'asc', field: 'transaction.duration'},
+      value: 'fastest',
+      label: t('Fastest Transactions'),
+    },
+    {
+      query: [['transaction.duration', `<=${p95.toFixed(0)}`]],
+      sort: {kind: 'desc', field: 'transaction.duration'},
+      value: 'slow',
+      label: t('Slow Transactions (p95)'),
+    },
+    {
+      query: null,
+      sort: {kind: 'desc', field: 'transaction.duration'},
+      value: 'outlier',
+      label: t('Outlier Transactions (p100)'),
+    },
+    {
+      query: null,
+      sort: {kind: 'desc', field: 'timestamp'},
+      value: 'recent',
+      label: t('Recent Transactions'),
+    },
+  ];
+}
+
+function getTransactionSort(
+  location: Location,
+  p95: number
+): {selected: FilterOption; options: FilterOption[]} {
+  const options = getFilterOptions({p95});
+  const urlParam = decodeScalar(location.query.showTransactions) || 'slow';
+  const selected = options.find(opt => opt.value === urlParam) || options[0];
+  return {selected, options};
+}
 
 type WrapperProps = {
   eventView: EventView;
   location: Location;
   organization: Organization;
   transactionName: string;
+  slowDuration: number | undefined;
 };
 
 class TransactionList extends React.Component<WrapperProps> {
-  getTransactionSort(location: Location) {
-    const urlParam = decodeScalar(location.query.showTransactions) || 'slowest';
-    const option =
-      TOP_TRANSACTION_FILTERS.find(opt => opt.value === urlParam) ||
-      TOP_TRANSACTION_FILTERS[0];
-    return option;
-  }
-
   handleTransactionFilterChange = (value: string) => {
     const {location, organization} = this.props;
     trackAnalyticsEvent({
@@ -131,24 +168,29 @@ class TransactionList extends React.Component<WrapperProps> {
   }
 
   render() {
-    const {eventView, location, organization} = this.props;
-    const activeFilter = this.getTransactionSort(location);
-    const sortedEventView = eventView.withSorts([activeFilter.sort]);
+    const {eventView, location, organization, slowDuration} = this.props;
+    const {selected, options} = getTransactionSort(location, slowDuration || 0);
+    const sortedEventView = eventView.withSorts([selected.sort]);
+    if (selected.query) {
+      const query = tokenizeSearch(sortedEventView.query);
+      selected.query.forEach(item => query.setTag(item[0], [item[1]]));
+      sortedEventView.query = stringifyQueryObject(query);
+    }
 
     return (
       <React.Fragment>
         <Header>
           <DropdownControl
             data-test-id="filter-transactions"
-            label={activeFilter.label}
+            label={selected.label}
             buttonProps={{prefix: t('Filter'), size: 'small'}}
           >
-            {TOP_TRANSACTION_FILTERS.map(({value, label}) => (
+            {options.map(({value, label}) => (
               <DropdownItem
                 key={value}
                 onSelect={this.handleTransactionFilterChange}
                 eventKey={value}
-                isActive={value === activeFilter.value}
+                isActive={value === selected.value}
               >
                 {label}
               </DropdownItem>
