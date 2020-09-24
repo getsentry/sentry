@@ -128,6 +128,11 @@ export class QueryResults {
     return this.tagValues[key];
   }
 
+  hasTags(key: string) {
+    const tags = this.getTags(key);
+    return tags && tags.length;
+  }
+
   removeTag(key: string) {
     this.tokens = this.tokens.filter(token => token.key !== key);
     delete this.tagValues[key];
