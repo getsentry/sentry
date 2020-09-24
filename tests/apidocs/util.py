@@ -13,9 +13,7 @@ from sentry.testutils import APITestCase
 
 class APIDocsTestCase(APITestCase):
     def create_schema(self):
-        path = os.path.join(
-            os.path.dirname(__file__), "..", "..", "api-docs", "openapi-derefed.json"
-        )
+        path = os.path.join(os.path.dirname(__file__), "openapi-derefed.json")
         with open(path, "r") as json_file:
             data = json.load(json_file)
             data["servers"][0]["url"] = settings.SENTRY_OPTIONS["system.url-prefix"]
