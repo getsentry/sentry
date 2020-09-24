@@ -35,7 +35,7 @@ CACHE_TIMEOUT = 3600
 
 class IngestConsumerWorker(AbstractBatchWorker):
     def process_message(self, message):
-        message = msgpack.unpackb(message.value(), use_list=False)
+        message = msgpack.unpackb(message.value(), use_list=False, raw=False)
         return message
 
     def flush_batch(self, batch):
