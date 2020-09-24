@@ -37,9 +37,9 @@ import TrendsContent from './trends/content';
 import {modifyTrendsViewDefaultPeriod, DEFAULT_TRENDS_STATS_PERIOD} from './trends/utils';
 
 export enum FilterViews {
+  TRENDS = 'TRENDS',
   ALL_TRANSACTIONS = 'ALL_TRANSACTIONS',
   KEY_TRANSACTIONS = 'KEY_TRANSACTIONS',
-  TRENDS = 'TRENDS',
 }
 
 const VIEWS = Object.values(FilterViews).filter(view => view !== 'TRENDS');
@@ -160,11 +160,14 @@ class PerformanceLanding extends React.Component<Props, State> {
     return stringifyQueryObject(parsed);
   }
 
-  getCurrentView(): string {
+  getCurrentView(hasTrendsFeature?: boolean): string {
     const {location} = this.props;
     const currentView = location.query.view as FilterViews;
     if (Object.values(FilterViews).includes(currentView)) {
       return currentView;
+    }
+    if (hasTrendsFeature) {
+      return FilterViews.TRENDS;
     }
     return FilterViews.ALL_TRANSACTIONS;
   }
@@ -201,7 +204,7 @@ class PerformanceLanding extends React.Component<Props, State> {
       <Feature features={['trends', 'internal-catchall']} requireAll={false}>
         {({hasFeature}) =>
           hasFeature ? (
-            <ButtonBar merged active={this.getCurrentView()}>
+            <ButtonBar merged active={this.getCurrentView(hasFeature)}>
               {VIEWS_WITH_TRENDS.map(viewKey => {
                 return (
                   <Button
@@ -268,7 +271,7 @@ class PerformanceLanding extends React.Component<Props, State> {
 
   render() {
     const {organization, location, router, projects} = this.props;
-    const currentView = this.getCurrentView();
+    const currentView = this.getCurrentView(organization.features.includes('trends'));
     const isTrendsView = currentView === FilterViews.TRENDS;
     const eventView = isTrendsView
       ? modifyTrendsViewDefaultPeriod(this.state.eventView, location)

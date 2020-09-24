@@ -354,10 +354,10 @@ class SpanBar extends React.Component<Props, State> {
         const baselineDuration = getSpanDuration(span.baselineSpan);
         const regressionDuration = getSpanDuration(span.regressionSpan);
 
-        let label: string = '';
+        let label;
 
         if (baselineDuration === regressionDuration) {
-          label = 'No change';
+          label = <ComparisonLabel>{t('No change')}</ComparisonLabel>;
         }
 
         if (baselineDuration > regressionDuration) {
@@ -365,7 +365,9 @@ class SpanBar extends React.Component<Props, State> {
             Math.abs(baselineDuration - regressionDuration)
           );
 
-          label = t('- %s faster', duration);
+          label = (
+            <NotableComparisonLabel>{t('- %s faster', duration)}</NotableComparisonLabel>
+          );
         }
 
         if (baselineDuration < regressionDuration) {
@@ -373,22 +375,18 @@ class SpanBar extends React.Component<Props, State> {
             Math.abs(baselineDuration - regressionDuration)
           );
 
-          label = t('+ %s slower', duration);
+          label = (
+            <NotableComparisonLabel>{t('+ %s slower', duration)}</NotableComparisonLabel>
+          );
         }
 
-        return <NotableComparisonReport>{label}</NotableComparisonReport>;
+        return label;
       }
       case 'baseline': {
-        return (
-          <ComparisonReportLabelContainer>
-            {t('Only in baseline')}
-          </ComparisonReportLabelContainer>
-        );
+        return <ComparisonLabel>{t('Only in baseline')}</ComparisonLabel>;
       }
       case 'regression': {
-        return (
-          <ComparisonReportLabelContainer>{t('Added')}</ComparisonReportLabelContainer>
-        );
+        return <ComparisonLabel>{t('Only in this event')}</ComparisonLabel>;
       }
       default: {
         const _exhaustiveCheck: never = span;
@@ -529,7 +527,7 @@ const ComparisonSpanBarRectangle = styled(SpanBarRectangle)`
   ${getHatchPattern};
 `;
 
-const ComparisonReportLabelContainer = styled('div')`
+const ComparisonLabel = styled('div')`
   position: absolute;
   user-select: none;
   right: ${space(1)};
@@ -537,7 +535,7 @@ const ComparisonReportLabelContainer = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraSmall};
 `;
 
-const NotableComparisonReport = styled(ComparisonReportLabelContainer)`
+const NotableComparisonLabel = styled(ComparisonLabel)`
   font-weight: bold;
 `;
 

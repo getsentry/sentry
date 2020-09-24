@@ -93,7 +93,7 @@ def backfill_eventstream(apps, schema_editor):
             processed += 1
         except Exception as error:
             print(
-                "An error occured while trying to instert the following event: {}\n.----\n{}".format(
+                "An error occured while trying to migrate the following event: {}\n.----\n{}".format(
                     event, error
                 )
             )
