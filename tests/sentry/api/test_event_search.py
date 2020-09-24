@@ -2032,12 +2032,23 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["groupby"] == []
 
     def test_absolute_delta_function(self):
-        fields = ["absolute_delta(transaction.duration,100)"]
+        fields = ["absolute_delta(transaction.duration,100)", "id"]
         result = resolve_field_list(fields, eventstore.Filter())
-        assert result["selected_columns"] == []
-        assert result["aggregations"] == [
-            ["abs(minus(duration, 100))", None, "absolute_delta_transaction_duration_100"],
+        assert result["selected_columns"] == [
+            [
+                "abs",
+                [["minus", ["transaction.duration", 100.0]]],
+                "absolute_delta_transaction_duration_100",
+            ],
+            "id",
+            "project.id",
+            [
+                "transform",
+                [["toString", ["project_id"]], ["array", []], ["array", []], "''"],
+                "`project.name`",
+            ],
         ]
+        assert result["aggregations"] == []
         assert result["groupby"] == []
 
         with pytest.raises(InvalidSearchQuery) as err:

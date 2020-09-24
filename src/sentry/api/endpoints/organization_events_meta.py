@@ -75,7 +75,7 @@ class OrganizationEventBaseline(OrganizationEventsEndpointBase):
                     delta_column,
                 ],
                 # Find the most recent transaction that's closest to the baseline value
-                # id as the last item for consistent results
+                # id is the last item of the orderby for consistent results
                 orderby=[get_function_alias(delta_column), "-timestamp", "id"],
                 params=params,
                 query=request.GET.get("query"),
