@@ -190,10 +190,10 @@ class PerformanceLanding extends React.Component<Props, State> {
         conditions.setTag('count()', ['>1000']);
         conditions.setTag('transaction.duration', ['>0']);
       }
-      if (!query.includes('count()')) {
+      if (!conditions.hasTags('count()')) {
         conditions.setTag('count()', ['>1000']);
       }
-      if (!conditions.getTags('transaction.duration')) {
+      if (!conditions.hasTags('transaction.duration')) {
         conditions.setTag('transaction.duration', ['>0']);
       }
 
