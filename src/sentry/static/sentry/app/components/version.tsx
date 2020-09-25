@@ -65,7 +65,6 @@ const Version = ({
   className,
   location,
 }: WithRouterProps & Props) => {
-  const LinkComponent = preserveGlobalSelection ? GlobalSelectionLink : Link;
   const versionToDisplay = formatVersion(version, withPackage);
 
   let releaseDetailProjectId: null | undefined | string | string[];
@@ -79,19 +78,28 @@ const Version = ({
 
   const renderVersion = () => {
     if (anchor && organization?.slug) {
-      return (
-        <LinkComponent
-          to={{
-            pathname: `/organizations/${organization?.slug}/releases/${encodeURIComponent(
-              version
-            )}/`,
-            query: releaseDetailProjectId ? {project: releaseDetailProjectId} : undefined,
-          }}
-          className={className}
-        >
-          <VersionText truncate={truncate}>{versionToDisplay}</VersionText>
-        </LinkComponent>
-      );
+      const props = {
+        to: {
+          pathname: `/organizations/${organization?.slug}/releases/${encodeURIComponent(
+            version
+          )}/`,
+          query: releaseDetailProjectId ? {project: releaseDetailProjectId} : undefined,
+        },
+        className,
+      };
+      if (preserveGlobalSelection) {
+        return (
+          <GlobalSelectionLink {...props}>
+            <VersionText truncate={truncate}>{versionToDisplay}</VersionText>
+          </GlobalSelectionLink>
+        );
+      } else {
+        return (
+          <Link {...props}>
+            <VersionText truncate={truncate}>{versionToDisplay}</VersionText>
+          </Link>
+        );
+      }
     }
 
     return (
