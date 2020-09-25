@@ -388,7 +388,10 @@ function TrendsListItem(props: TrendsListItemProps) {
             <ProjectAvatar project={project} />
           </Tooltip>
         )}
-        <CompareLink {...props} />
+
+        <Tooltip title={t('Compare baselines')}>
+          <CompareLink {...props} />
+        </Tooltip>
       </ItemTransactionDurationChange>
       <ItemTransactionStatus color={color}>
         {currentTrendFunction === TrendFunctionField.USER_MISERY ? (
