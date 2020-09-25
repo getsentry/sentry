@@ -45,6 +45,7 @@ __all__ = (
     "get_facets",
     "transform_results",
     "zerofill",
+    "measurements_histogram_query",
 )
 
 
@@ -943,5 +944,153 @@ def get_facets(query, params, limit=10, referrer=None):
                     for r in tag_values["data"]
                 ]
             )
+
+    return results
+
+
+HistogramParams = namedtuple(
+    "HistogramParams", ["num_buckets", "bucket_size", "start_offset", "multiplier"]
+)
+
+
+def measurements_histogram_query(
+    measurements,
+    user_query,
+    params,
+    num_buckets,
+    min_value=None,
+    max_value=None,
+    precision=0,
+    referrer=None,
+):
+    key_col = "array_join(measurements_key)"
+    histogram_params = find_measurements_histogram_params(
+        measurements, num_buckets, min_value, max_value, precision, user_query, params
+    )
+    histogram_col = get_measurements_histogram_col(histogram_params)
+
+    results = query(
+        selected_columns=[key_col, histogram_col, "count()"],
+        conditions=[[get_function_alias(key_col), "IN", measurements]],
+        query=user_query,
+        params=params,
+        # the zerofill step assumes it's ordered by the bin then name
+        orderby=[get_function_alias(histogram_col), get_function_alias(key_col)],
+        limit=len(measurements) * num_buckets,
+        referrer=referrer,
+        auto_fields=True,
+        use_aggregate_conditions=True,
+    )
+
+    return zerofill_measurements_histogram(measurements, key_col, histogram_params, results)
+
+
+def get_measurements_histogram_col(params):
+    return u"measurements_histogram({:d}, {:d}, {:d}, {:d})".format(*params)
+
+
+def find_measurements_histogram_params(
+    measurements, num_buckets, min_value, max_value, precision, query, params
+):
+    min_value, max_value = find_measurements_min_max(
+        measurements, min_value, max_value, query, params
+    )
+
+    # finding the bounds might result in None if there isn't sufficient data
+    if min_value is None or max_value is None:
+        return HistogramParams(1, 1, 0, 1)
+
+    multiplier = int(10 ** precision)
+
+    bucket_size = int(ceil(multiplier * (max_value - min_value) / float(num_buckets)))
+    if bucket_size == 0:
+        bucket_size = 1
+
+    # Determine the first bucket that will show up in
+    # our results so that we can zerofill correctly.
+    start_offset = int(floor(min_value / bucket_size) * bucket_size)
+
+    return HistogramParams(num_buckets, bucket_size, start_offset, multiplier)
+
+
+def find_measurements_min_max(measurements, min_value, max_value, user_query, params):
+    # if both are already specified, there is no work to be done
+    if min_value is not None and max_value is not None:
+        return min_value, max_value
+
+    min_columns, max_columns = [], []
+    for measurement in measurements:
+        if min_value is None:
+            min_columns.append("min(measurements.{})".format(measurement))
+        if max_value is None:
+            max_columns.append("max(measurements.{})".format(measurement))
+
+    results = query(
+        selected_columns=min_columns + max_columns,
+        query=user_query,
+        params=params,
+        limit=1,
+        referrer="api.organization-events-measurements-min-max",
+        auto_fields=True,
+        use_aggregate_conditions=True,
+    )
+    # there should be exactly 1 row in the results
+    data = results["data"][0]
+
+    for min_column in min_columns:
+        value = data[get_function_alias(min_column)]
+        if value is None:
+            continue
+        if min_value is None or value < min_value:
+            min_value = value
+
+    for max_column in max_columns:
+        value = data[get_function_alias(max_column)]
+        if value is None:
+            continue
+        if max_value is None or value > max_value:
+            max_value = value
+
+    return min_value, max_value
+
+
+def zerofill_measurements_histogram(measurements, key_col, histogram_params, results):
+    data = results["data"]
+
+    if len(data) == len(measurements) * histogram_params.num_buckets:
+        return results
+
+    measurements_name = get_function_alias(key_col)
+    measurements_bin = get_function_alias(get_measurements_histogram_col(histogram_params))
+
+    measurements = sorted(measurements)
+
+    new_data = []
+
+    idx = 0
+    for i in range(histogram_params.num_buckets):
+        bucket = histogram_params.start_offset + histogram_params.bucket_size * i
+        for measurement in measurements:
+            if (
+                idx >= len(data)
+                or data[idx][measurements_name] != measurement
+                or data[idx][measurements_bin] != bucket
+            ):
+                new_data.append(
+                    {measurements_name: measurement, measurements_bin: bucket, "count": 0}
+                )
+            else:
+                new_data.append(data[idx])
+                idx += 1
+
+            # make sure to adjust for the precision if necessary
+            if histogram_params.multiplier > 1:
+                new_data[-1][measurements_bin] /= float(histogram_params.multiplier)
+
+    if idx != len(data):
+        # the rows mismatch, something's wrong here
+        pass
+
+    results["data"] = new_data
 
     return results
