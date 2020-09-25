@@ -16,7 +16,7 @@ export const Overview = withInfo({
       <Tag>default</Tag>
     </div>
     <div>
-      <Tag priority="error">error</Tag> is the warning
+      <Tag priority="error">error</Tag>
     </div>
     <div>
       <Tag priority="warning">warning</Tag>
