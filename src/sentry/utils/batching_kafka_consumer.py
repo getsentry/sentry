@@ -14,6 +14,7 @@ from confluent_kafka import (
     OFFSET_STORED,
     OFFSET_INVALID,
 )
+from confluent_kafka.admin import AdminClient
 
 from django.conf import settings
 
@@ -168,14 +169,14 @@ class BatchingKafkaConsumer(object):
         sample_rate = self.__metrics_sample_rates.get(metric, settings.SENTRY_METRICS_SAMPLE_RATE)
         return self.__metrics.timing(metric, value, tags=tags, sample_rate=sample_rate)
 
-    def _wait_for_topics(self, consumer, topics):
+    def _wait_for_topics(self, admin_client, topics):
         """
         Make sure that the provided topics exist and have non-zero partitions in them.
         """
         for topic in topics:
             while True:
-                result = consumer.list_topics(topic).topics
-                topic_metadata = result.get(topic)
+                result = admin_client.list_topics(topic=topic)
+                topic_metadata = result.topics.get(topic)
                 if topic_metadata and topic_metadata.partitions:
                     logger.debug("Topic '%s' is ready", topic)
                     break
@@ -206,7 +207,13 @@ class BatchingKafkaConsumer(object):
         if settings.KAFKA_CONSUMER_AUTO_CREATE_TOPICS:
             # This is required for confluent-kafka>=1.5.0, otherwise the topics will
             # not be automatically created.
-            consumer_config["allow.auto.create.topics"] = "true"
+            admin_client = AdminClient(
+                {
+                    "bootstrap.servers": consumer_config["bootstrap.servers"],
+                    "allow.auto.create.topics": "true",
+                }
+            )
+            self._wait_for_topics(admin_client, topics)
 
         consumer = Consumer(consumer_config)
 
@@ -221,9 +228,6 @@ class BatchingKafkaConsumer(object):
         consumer.subscribe(
             topics, on_assign=on_partitions_assigned, on_revoke=on_partitions_revoked
         )
-
-        if settings.KAFKA_CONSUMER_AUTO_CREATE_TOPICS:
-            self._wait_for_topics(consumer, topics)
 
         return consumer
 
