@@ -189,7 +189,7 @@ const StreamGroup = createReactClass({
     const {period, start, end} = selection.datetime || {};
     const summary =
       !!start && !!end
-        ? 'the selected period'
+        ? 'time range'
         : getRelativeSummary(period || DEFAULT_STATS_PERIOD).toLowerCase();
 
     const primaryCount =
@@ -237,7 +237,7 @@ const StreamGroup = createReactClass({
             {({isOpen, getRootProps, getActorProps, getMenuProps}) => {
               const topLevelCx = classNames('dropdown', {
                 'anchor-middle': true,
-                open: isOpen,
+                open: isOpen && hasDynamicIssueCounts,
               });
 
               return (
@@ -257,38 +257,32 @@ const StreamGroup = createReactClass({
                       )}
                     </div>
                   </span>
-                  {isOpen && (
-                    <ul {...getMenuProps({className: 'dropdown-menu inverted'})}>
-                      {data.filtered && (
-                        <React.Fragment>
-                          <StyledMenuItem to={this.getDiscoverUrl(true)}>
-                            <MenuItemText>{t('Matching search filters')}</MenuItemText>
-                            <MenuItemCount value={data.filtered.count} />
-                          </StyledMenuItem>
-                          <MenuItem divider />
-                        </React.Fragment>
-                      )}
+                  <ul {...getMenuProps({className: 'dropdown-menu inverted'})}>
+                    {data.filtered && (
+                      <React.Fragment>
+                        <StyledMenuItem to={this.getDiscoverUrl(true)}>
+                          <MenuItemText>{t('Matching search filters')}</MenuItemText>
+                          <MenuItemCount value={data.filtered.count} />
+                        </StyledMenuItem>
+                        <MenuItem divider />
+                      </React.Fragment>
+                    )}
 
-                      <StyledMenuItem to={this.getDiscoverUrl()}>
-                        <MenuItemText>
-                          {data.filtered
-                            ? t(`Without search filters`)
-                            : t(`In ${summary}`)}
-                        </MenuItemText>
-                        <MenuItemCount value={data.count} />
-                      </StyledMenuItem>
+                    <StyledMenuItem to={this.getDiscoverUrl()}>
+                      <MenuItemText>{t(`Total in ${summary}`)}</MenuItemText>
+                      <MenuItemCount value={data.count} />
+                    </StyledMenuItem>
 
-                      {data.lifetime && (
-                        <React.Fragment>
-                          <MenuItem divider />
-                          <StyledMenuItem>
-                            <MenuItemText>{t('Since issue began')}</MenuItemText>
-                            <MenuItemCount value={data.lifetime.count} />
-                          </StyledMenuItem>
-                        </React.Fragment>
-                      )}
-                    </ul>
-                  )}
+                    {data.lifetime && (
+                      <React.Fragment>
+                        <MenuItem divider />
+                        <StyledMenuItem>
+                          <MenuItemText>{t('Since issue began')}</MenuItemText>
+                          <MenuItemCount value={data.lifetime.count} />
+                        </StyledMenuItem>
+                      </React.Fragment>
+                    )}
+                  </ul>
                 </span>
               );
             }}
@@ -299,7 +293,7 @@ const StreamGroup = createReactClass({
             {({isOpen, getRootProps, getActorProps, getMenuProps}) => {
               const topLevelCx = classNames('dropdown', {
                 'anchor-middle': true,
-                open: isOpen,
+                open: isOpen && hasDynamicIssueCounts,
               });
 
               return (
@@ -316,38 +310,32 @@ const StreamGroup = createReactClass({
                       )}
                     </div>
                   </span>
-                  {isOpen && (
-                    <ul {...getMenuProps({className: 'dropdown-menu inverted'})}>
-                      {data.filtered && (
-                        <React.Fragment>
-                          <StyledMenuItem to={this.getDiscoverUrl(true)}>
-                            <MenuItemText>{t('Matching search filters')}</MenuItemText>
-                            <MenuItemCount value={data.filtered.userCount} />
-                          </StyledMenuItem>
-                          <MenuItem divider />
-                        </React.Fragment>
-                      )}
+                  <ul {...getMenuProps({className: 'dropdown-menu inverted'})}>
+                    {data.filtered && (
+                      <React.Fragment>
+                        <StyledMenuItem to={this.getDiscoverUrl(true)}>
+                          <MenuItemText>{t('Matching search filters')}</MenuItemText>
+                          <MenuItemCount value={data.filtered.userCount} />
+                        </StyledMenuItem>
+                        <MenuItem divider />
+                      </React.Fragment>
+                    )}
 
-                      <StyledMenuItem to={this.getDiscoverUrl()}>
-                        <MenuItemText>
-                          {data.filtered
-                            ? t(`Without search filters`)
-                            : t(`In ${summary}`)}
-                        </MenuItemText>
-                        <MenuItemCount value={data.userCount} />
-                      </StyledMenuItem>
+                    <StyledMenuItem to={this.getDiscoverUrl()}>
+                      <MenuItemText>{t(`Total in ${summary}`)}</MenuItemText>
+                      <MenuItemCount value={data.userCount} />
+                    </StyledMenuItem>
 
-                      {data.lifetime && (
-                        <React.Fragment>
-                          <MenuItem divider />
-                          <StyledMenuItem>
-                            <MenuItemText>{t('Since issue began')}</MenuItemText>
-                            <MenuItemCount value={data.lifetime.userCount} />
-                          </StyledMenuItem>
-                        </React.Fragment>
-                      )}
-                    </ul>
-                  )}
+                    {data.lifetime && (
+                      <React.Fragment>
+                        <MenuItem divider />
+                        <StyledMenuItem>
+                          <MenuItemText>{t('Since issue began')}</MenuItemText>
+                          <MenuItemCount value={data.lifetime.userCount} />
+                        </StyledMenuItem>
+                      </React.Fragment>
+                    )}
+                  </ul>
                 </span>
               );
             }}
