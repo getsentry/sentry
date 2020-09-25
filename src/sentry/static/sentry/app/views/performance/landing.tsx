@@ -8,6 +8,7 @@ import {Client} from 'app/api';
 import {t} from 'app/locale';
 import {GlobalSelection, Organization, Project} from 'app/types';
 import {loadOrganizationTags} from 'app/actionCreators/tags';
+import {updateDateTime} from 'app/actionCreators/globalSelection';
 import SearchBar from 'app/views/events/searchBar';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
@@ -61,6 +62,13 @@ type State = {
   eventView: EventView;
   error: string | undefined;
 };
+
+function isStatsPeriodDefault(
+  statsPeriod: string | undefined,
+  defaultPeriod: string
+): boolean {
+  return !statsPeriod || defaultPeriod === statsPeriod;
+}
 
 class PerformanceLanding extends React.Component<Props, State> {
   static getDerivedStateFromProps(nextProps: Props, prevState: State): State {
@@ -181,30 +189,30 @@ class PerformanceLanding extends React.Component<Props, State> {
     };
 
     const query = decodeScalar(location.query.query) || '';
+    const statsPeriod = decodeScalar(location.query.statsPeriod);
     const conditions = tokenizeSearch(query);
 
-    // This is a temporary change for trends to test adding a default count to increase relevancy
-    if (viewKey === FilterViews.TRENDS) {
-      const hasStartAndEnd = newQuery.start && newQuery.end;
-      if (!newQuery.statsPeriod && !hasStartAndEnd) {
-        newQuery.statsPeriod = DEFAULT_TRENDS_STATS_PERIOD;
-      }
-      if (!query) {
-        conditions.setTag('count()', ['>1000']);
-        conditions.setTag('transaction.duration', ['>0']);
-      }
-      if (!conditions.hasTags('count()')) {
-        conditions.setTag('count()', ['>1000']);
-      }
-      if (!conditions.hasTags('transaction.duration')) {
-        conditions.setTag('transaction.duration', ['>0']);
-      }
+    const currentView = location.query.view;
 
-      newQuery.query = stringifyQueryObject(conditions);
+    const newDefaultPeriod =
+      viewKey === FilterViews.TRENDS ? DEFAULT_TRENDS_STATS_PERIOD : DEFAULT_STATS_PERIOD;
+
+    const hasStartAndEnd = newQuery.start && newQuery.end;
+
+    if (isStatsPeriodDefault(statsPeriod, newDefaultPeriod) && !hasStartAndEnd) {
+      /**
+       * Resets stats period to default of the tab you are navigating to
+       * on tab change as tabs have different default periods.
+       */
+      updateDateTime({
+        start: null,
+        end: null,
+        utc: false,
+        period: newDefaultPeriod,
+      });
     }
 
-    const isNavigatingAwayFromTrends =
-      viewKey !== FilterViews.TRENDS && location.query.view === FilterViews.TRENDS;
+    const isNavigatingAwayFromTrends = viewKey !== FilterViews.TRENDS && currentView;
 
     if (isNavigatingAwayFromTrends) {
       // This stops errors from occurring when navigating to other views since we are appending aggregates to the trends view

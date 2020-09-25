@@ -223,7 +223,7 @@ describe('Performance > Landing', function() {
     );
   });
 
-  it('Sets default period when navigating to trends when stats period is not set', async function() {
+  it('Default period is set for trends when stats period is not set', async function() {
     const data = initializeTrendsData({query: 'tag:value'});
     const wrapper = mountWithTheme(
       <PerformanceLanding
@@ -235,14 +235,12 @@ describe('Performance > Landing', function() {
     await tick();
     wrapper.update();
 
-    const trendsLink = wrapper.find('[data-test-id="landing-header-trends"]').at(0);
-    trendsLink.simulate('click');
-
-    expect(browserHistory.push).toHaveBeenCalledWith(
+    expect(browserHistory.push).toHaveBeenCalledTimes(1);
+    expect(browserHistory.push).toHaveBeenNthCalledWith(
+      1,
       expect.objectContaining({
         query: {
           query: 'tag:value count():>1000 transaction.duration:>0',
-          statsPeriod: '14d',
           view: 'TRENDS',
         },
       })
@@ -279,6 +277,76 @@ describe('Performance > Landing', function() {
     );
   });
 
+  it('Default page (transactions) without trends feature will not update filters if none are set', async function() {
+    const projects = [
+      TestStubs.Project({id: 1, firstTransactionEvent: false}),
+      TestStubs.Project({id: 2, firstTransactionEvent: true}),
+    ];
+    const data = initializeData(projects, {view: undefined});
+
+    const wrapper = mountWithTheme(
+      <PerformanceLanding
+        organization={data.organization}
+        location={data.router.location}
+      />,
+      data.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    expect(browserHistory.push).toHaveBeenCalledTimes(0);
+  });
+
+  it('Default page (trends) with trends feature will update filters if none are set', async function() {
+    const data = initializeTrendsData({view: undefined});
+
+    const wrapper = mountWithTheme(
+      <PerformanceLanding
+        organization={data.organization}
+        location={data.router.location}
+      />,
+      data.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    expect(browserHistory.push).toHaveBeenCalledTimes(1);
+    expect(browserHistory.push).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        query: {
+          query: 'count():>1000 transaction.duration:>0',
+          view: 'TRENDS',
+        },
+      })
+    );
+  });
+
+  it('Default page (trends) with trends feature will add filters to an existing query', async function() {
+    const data = initializeTrendsData({view: undefined, query: 'device.family:Mac'});
+
+    const wrapper = mountWithTheme(
+      <PerformanceLanding
+        organization={data.organization}
+        location={data.router.location}
+      />,
+      data.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    expect(browserHistory.push).toHaveBeenCalledTimes(1);
+    expect(browserHistory.push).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        query: {
+          query: 'device.family:Mac count():>1000 transaction.duration:>0',
+          view: 'TRENDS',
+        },
+      })
+    );
+  });
+
   it('Navigating away from trends will reset query', async function() {
     const data = initializeTrendsData({view: FilterViews.TRENDS});
 
@@ -292,13 +360,25 @@ describe('Performance > Landing', function() {
     await tick();
     wrapper.update();
 
+    expect(browserHistory.push).toHaveBeenCalledTimes(1);
+    expect(browserHistory.push).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        query: {
+          query: 'count():>1000 transaction.duration:>0',
+          view: 'TRENDS',
+        },
+      })
+    );
+
     const byTransactionLink = wrapper
       .find('[data-test-id="landing-header-all_transactions"]')
       .at(0);
     byTransactionLink.simulate('click');
 
+    expect(browserHistory.push).toHaveBeenCalledTimes(2);
     expect(browserHistory.push).toHaveBeenNthCalledWith(
-      1,
+      2,
       expect.objectContaining({
         query: {
           query: '',

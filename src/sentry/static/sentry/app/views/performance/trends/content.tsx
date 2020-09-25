@@ -10,12 +10,15 @@ import {t} from 'app/locale';
 import Feature from 'app/components/acl/feature';
 import SearchBar from 'app/views/events/searchBar';
 import space from 'app/styles/space';
+import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {decodeScalar} from 'app/utils/queryString';
 
 import {getTransactionSearchQuery} from '../utils';
 import {TrendChangeType, TrendView, TrendFunctionField} from './types';
 import {TRENDS_FUNCTIONS, getCurrentTrendFunction, getSelectedQueryKey} from './utils';
 import ChangedTransactions from './changedTransactions';
 import ChangedProjects from './changedProjects';
+import {FilterViews} from '../landing';
 
 type Props = {
   organization: Organization;
@@ -28,7 +31,42 @@ type State = {
 };
 
 class TrendsContent extends React.Component<Props, State> {
+  constructor(props) {
+    super(props);
+
+    const {location} = props;
+
+    const queryString = decodeScalar(location.query.query) || '';
+
+    const conditions = tokenizeSearch(queryString);
+
+    if (!queryString) {
+      conditions.setTag('count()', ['>1000']);
+      conditions.setTag('transaction.duration', ['>0']);
+    }
+    if (!conditions.hasTags('count()')) {
+      conditions.setTag('count()', ['>1000']);
+    }
+    if (!conditions.hasTags('transaction.duration')) {
+      conditions.setTag('transaction.duration', ['>0']);
+    }
+
+    const query = stringifyQueryObject(conditions);
+    props.eventView.query = query;
+
+    browserHistory.push({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        cursor: undefined,
+        query: String(query).trim() || undefined,
+        view: FilterViews.TRENDS,
+      },
+    });
+  }
+
   state: State = {};
+
   handleSearch = (searchQuery: string) => {
     const {location} = this.props;
 
@@ -69,10 +107,11 @@ class TrendsContent extends React.Component<Props, State> {
   render() {
     const {organization, eventView, location} = this.props;
     const {previousTrendFunction} = this.state;
+
     const trendView = eventView.clone() as TrendView;
     const currentTrendFunction = getCurrentTrendFunction(location);
-
     const query = getTransactionSearchQuery(location);
+
     return (
       <Feature features={['trends', 'internal-catchall']} requireAll={false}>
         <StyledSearchContainer>
