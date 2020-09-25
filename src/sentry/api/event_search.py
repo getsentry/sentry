@@ -1623,9 +1623,7 @@ FUNCTIONS = {
                 NumberRange("num_buckets", 1, 500),
                 NumberRange("bucket_size", 0, None),
                 NumberRange("start_offset", 0, None),
-                # the precision is unused in the query itself, but in the postprocessing
-                NumberRange("precision", 0, None),
-                NumberRange("precision_multiplier", 1, None),
+                NumberRange("multiplier", 1, None),
             ],
             column=[
                 "multiply",
@@ -1640,7 +1638,7 @@ FUNCTIONS = {
                                         "multiply",
                                         [
                                             ["arrayJoin", ["measurements_value"]],
-                                            ArgValue("precision_multiplier"),
+                                            ArgValue("multiplier"),
                                         ],
                                     ],
                                     ArgValue("bucket_size"),
