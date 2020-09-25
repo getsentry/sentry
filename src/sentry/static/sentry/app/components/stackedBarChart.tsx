@@ -33,7 +33,7 @@ type DefaultProps = {
    */
   points: Points;
   secondaryPoints: Points;
-  showSecondaryPoints?: boolean;
+  showSecondaryPoints: boolean;
   series: Series;
   markers: Marker[];
   barClasses: string[];
@@ -107,6 +107,7 @@ class StackedBarChart extends React.Component<Props, State> {
     label: '',
     points: [],
     secondaryPoints: [],
+    showSecondaryPoints: false,
     series: [],
     markers: [],
     barClasses: ['chart-bar'],
