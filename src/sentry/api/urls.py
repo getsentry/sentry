@@ -1339,10 +1339,12 @@ urlpatterns = [
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/hooks/$",
                     ProjectServiceHooksEndpoint.as_view(),
+                    name="sentry-api-0-service-hooks",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/hooks/(?P<hook_id>[^\/]+)/$",
                     ProjectServiceHookDetailsEndpoint.as_view(),
+                    name="sentry-api-0-project-service-hook-details",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/hooks/(?P<hook_id>[^\/]+)/stats/$",
@@ -1498,9 +1500,13 @@ urlpatterns = [
                     name="sentry-api-0-project-user-details",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/(?:user-feedback|user-reports)/$",
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/(?:user-feedback)/$",
                     ProjectUserReportsEndpoint.as_view(),
                     name="sentry-api-0-project-user-reports",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/(?:user-reports)/$",
+                    ProjectUserReportsEndpoint.as_view(),
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/user-stats/$",
