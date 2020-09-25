@@ -37,40 +37,23 @@ class OrganizationEventsMeasurementsHistogramEndpoint(OrganizationEventsV2Endpoi
         except NoProjects:
             return Response([])
 
-        try:
-            num_buckets = int(request.GET.get("num_buckets", 10))
-        except ValueError:
-            raise ParseError(u"Invalid number of buckets specified.")
-
-        query = request.GET.get("query")
-        measurements = request.GET.getlist("measurement")
-
-        # this precision parameter can be exposed to control the number
-        # of decimal places of precision we desire in the histogram bins
-        precision = 0
-
         with sentry_sdk.start_span(
             op="discover.endpoint", description="measurements_histogram"
         ) as span:
             span.set_tag("organization", organization)
 
-            histogram_params = self.find_histogram_params(
-                num_buckets, precision, self.normalize_measurements(measurements), params, query,
-            )
+            measurements = request.GET.getlist("measurement")
+            histogram_params = self.find_histogram_params(request, params, measurements)
             histogram_col = get_histogram_col(histogram_params)
-
-            key_snuba_name = get_function_alias(KEY_COL)
-
-            selected_columns = [KEY_COL, histogram_col, "count()"]
 
             def data_fn(offset, limit):
                 return discover.query(
-                    selected_columns=selected_columns,
-                    conditions=[[key_snuba_name, "IN", measurements]],
-                    query=query,
+                    selected_columns=[KEY_COL, histogram_col, "count()"],
+                    conditions=[[get_function_alias(KEY_COL), "IN", measurements]],
+                    query=request.GET.get("query"),
                     params=params,
                     # the zerofill step assumes its order by the bin then name
-                    orderby=[get_function_alias(histogram_col), key_snuba_name],
+                    orderby=[get_function_alias(histogram_col), get_function_alias(KEY_COL)],
                     offset=offset,
                     limit=limit,
                     referrer=request.GET.get(
@@ -92,29 +75,57 @@ class OrganizationEventsMeasurementsHistogramEndpoint(OrganizationEventsV2Endpoi
                         histogram_params,
                         results,
                     ),
-                    # # of results is equal to # of measurements X # of buckets
+                    # the # of results is equal to # of measurements X # of buckets
                     default_per_page=len(measurements) * histogram_params.num_buckets,
                     max_per_page=200,
                 )
 
-    def find_histogram_params(self, num_buckets, precision, measurements, params, query):
-        measurements_min, measurements_max = self.find_min_max(measurements, params, query)
+    def find_histogram_params(self, request, params, measurements):
+        try:
+            num_buckets = int(request.GET.get("num_buckets", 10))
+        except ValueError:
+            raise ParseError(u"Invalid number of buckets specified.")
+
+        try:
+            min_value = request.GET.get("min")
+            if min_value is not None:
+                min_value = int(min_value)
+        except ValueError:
+            raise ParseError(u"Invalid minimum specified.")
+
+        try:
+            max_value = request.GET.get("max")
+            if max_value is not None:
+                max_value = int(max_value)
+        except ValueError:
+            raise ParseError(u"Invalid maximum specified.")
+
+        try:
+            precision = int(request.GET.get("precision", 0))
+        except ValueError:
+            raise ParseError(u"Invalid precision specified.")
+
+        min_value, max_value = self.find_min_max(
+            self.normalize_measurements(measurements),
+            min_value,
+            max_value,
+            params,
+            request.GET.get("query"),
+        )
 
         # finding the bounds might result in None if there isn't sufficient data
-        if measurements_min is None or measurements_max is None:
+        if min_value is None or max_value is None:
             return HistogramParams(1, 1, 0, 1)
 
         multiplier = int(10 ** precision)
 
-        bucket_size = int(
-            ceil(multiplier * (measurements_max - measurements_min) / float(num_buckets))
-        )
+        bucket_size = int(ceil(multiplier * (max_value - min_value) / float(num_buckets)))
         if bucket_size == 0:
             bucket_size = 1
 
         # Determine the first bucket that will show up in
         # our results so that we can zerofill correctly.
-        start_offset = int(floor(measurements_min / bucket_size) * bucket_size)
+        start_offset = int(floor(min_value / bucket_size) * bucket_size)
 
         return HistogramParams(num_buckets, bucket_size, start_offset, multiplier)
 
@@ -156,10 +167,13 @@ class OrganizationEventsMeasurementsHistogramEndpoint(OrganizationEventsV2Endpoi
                         new_data.append(data[idx])
                         idx += 1
 
+                    # make sure to adjust for the precision if necessary
                     if histogram_params.multiplier > 1:
                         new_data[-1][measurements_bin] /= float(histogram_params.multiplier)
 
-            # at this point idx == len(data)
+            if idx != len(data):
+                # the rows mismatch, something's wrong here
+                pass
 
             results["data"] = new_data
 
@@ -170,22 +184,26 @@ class OrganizationEventsMeasurementsHistogramEndpoint(OrganizationEventsV2Endpoi
 
         for key in measurements:
             measurement = u"measurements.{}".format(key)
-
             if not is_measurement(measurement):
                 raise ParseError(u"{} is not a valid measurement.".format(key))
-
             formatted_measurements.append(measurement)
 
         return formatted_measurements
 
-    def find_min_max(self, measurements, params, query):
+    def find_min_max(self, measurements, measurements_min, measurements_max, params, query):
         with sentry_sdk.start_span(
             op="discover.endpoint", description="measurements_histogram_min_max"
         ):
+            # if both are already specified, there is no work to be done
+            if measurements_min is not None and measurements_max is not None:
+                return measurements_min, measurements_max
+
             min_columns, max_columns = [], []
             for measurement in measurements:
-                min_columns.append("min({})".format(measurement))
-                max_columns.append("max({})".format(measurement))
+                if measurements_min is None:
+                    min_columns.append("min({})".format(measurement))
+                if measurements_max is None:
+                    max_columns.append("max({})".format(measurement))
 
             meta_results = discover.query(
                 selected_columns=min_columns + max_columns,
@@ -199,7 +217,6 @@ class OrganizationEventsMeasurementsHistogramEndpoint(OrganizationEventsV2Endpoi
             # there should be exactly 1 row in the results
             data = meta_results["data"][0]
 
-            measurements_min = None
             for min_column in min_columns:
                 value = data[get_function_alias(min_column)]
                 if value is None:
@@ -207,7 +224,6 @@ class OrganizationEventsMeasurementsHistogramEndpoint(OrganizationEventsV2Endpoi
                 if measurements_min is None or value < measurements_min:
                     measurements_min = value
 
-            measurements_max = None
             for max_column in max_columns:
                 value = data[get_function_alias(max_column)]
                 if value is None:
