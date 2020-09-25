@@ -24,7 +24,7 @@ function getView(view, data) {
 
 type Props = {
   event: Event;
-  data: {[key: string]: any};
+  data: Record<string, any>;
 };
 
 export default class CspInterface extends React.Component<Props> {
