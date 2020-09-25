@@ -14,6 +14,7 @@ from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
+@pytest.mark.skip
 @pytest.mark.django_db
 @pytest.mark.parametrize("change_groups", (True, False), ids=("new_group", "same_group"))
 @pytest.mark.parametrize(
