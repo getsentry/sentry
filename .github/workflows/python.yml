@@ -125,7 +125,6 @@ jobs:
       PYTEST_SENTRY_ALWAYS_REPORT: no
 
       # services configuration
-      SENTRY_REDIS_HOST: redis
       DATABASE_URL: postgresql://postgres:postgres@localhost/sentry
 
       # Number of matrix instances
@@ -226,10 +225,9 @@ jobs:
       PYTEST_SENTRY_ALWAYS_REPORT: no
 
       # services configuration
-      SENTRY_REDIS_HOST: sentry_redis
       DATABASE_URL: postgresql://postgres:postgres@localhost/sentry
       SENTRY_KAFKA_HOSTS: 127.0.0.1:9092
-      SENTRY_ZOOKEEPER_HOSTS: sentry_zookeeper:2181
+      SENTRY_ZOOKEEPER_HOSTS: 127.0.0.1:2181
 
       # Number of matrix instances
       TOTAL_TEST_GROUPS: ${{ strategy.job-total }}
