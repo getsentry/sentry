@@ -9,7 +9,7 @@ export default {
 };
 
 export const Overview = withInfo({
-  text: 'An overview of all the different buttons and states',
+  text: 'An overview of all the different tags and states',
 })(() => (
   <React.Fragment>
     <div>
