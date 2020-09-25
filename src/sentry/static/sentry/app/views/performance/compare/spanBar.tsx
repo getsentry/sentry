@@ -442,15 +442,17 @@ class SpanBar extends React.Component<Props, State> {
             this.toggleDisplayDetail();
           }}
         >
-          <ComparisonSpanBarRectangle
-            spanBarHatch={spanBarStyles.background.hatch ?? false}
-            style={{
-              backgroundColor: spanBarStyles.background.color,
-              width: spanBarStyles.background.width,
-              display: hideSpanBarColumn ? 'none' : 'block',
-            }}
-          />
-          {foregroundSpanBar}
+          <SpanContainer>
+            <ComparisonSpanBarRectangle
+              spanBarHatch={spanBarStyles.background.hatch ?? false}
+              style={{
+                backgroundColor: spanBarStyles.background.color,
+                width: spanBarStyles.background.width,
+                display: hideSpanBarColumn ? 'none' : 'block',
+              }}
+            />
+            {foregroundSpanBar}
+          </SpanContainer>
           {this.renderComparisonReportLabel()}
         </SpanRowCell>
         {!this.state.showDetail && (
@@ -533,6 +535,11 @@ const ComparisonLabel = styled('div')`
   right: ${space(1)};
   line-height: 16px;
   font-size: ${p => p.theme.fontSizeExtraSmall};
+`;
+
+const SpanContainer = styled('div')`
+  position: relative;
+  margin-right: 120px;
 `;
 
 const NotableComparisonLabel = styled(ComparisonLabel)`
