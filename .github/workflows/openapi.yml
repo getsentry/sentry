@@ -1,7 +1,7 @@
 name: openapi
 
 on:
-  pull_request:
+  push:
     branches:
       - master
 
