@@ -21,6 +21,7 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 import {formatPercentage, getDuration} from 'app/utils/formatters';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import {t} from 'app/locale';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import withProjects from 'app/utils/withProjects';
 import {IconEllipsis} from 'app/icons';
 import MenuItem from 'app/components/menuItem';
@@ -438,6 +439,12 @@ const CompareLink = (props: CompareLinkProps) => {
       transaction
     );
     if (baselines) {
+      trackAnalyticsEvent({
+        eventKey: 'performance_views.trends.compare_baselines',
+        eventName: 'Performance Views: Comparing baselines',
+        organization_id: parseInt(organization.id, 10),
+      });
+
       const {previousPeriod, currentPeriod} = baselines;
       const comparisonString = `${previousPeriod.project}:${previousPeriod.id}/${currentPeriod.project}:${currentPeriod.id}`;
       browserHistory.push({
