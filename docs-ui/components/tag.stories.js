@@ -8,6 +8,43 @@ export default {
   title: 'Core/Badges+Tags/Tag',
 };
 
+export const Overview = withInfo({
+  text: 'An overview of all the different buttons and states',
+})(() => (
+  <React.Fragment>
+    <div>
+      <Tag>default</Tag>
+    </div>
+    <div>
+      <Tag priority="error">error</Tag> is the warning
+    </div>
+    <div>
+      <Tag priority="warning">warning</Tag>
+    </div>
+    <div>
+      <Tag priority="success">success</Tag>
+    </div>
+    <div>
+      <Tooltip
+        title="This feature is in beta and may change in the future."
+        tooltipOptions={{
+          placement: 'right',
+        }}
+      >
+        <span>
+          <Tag priority="beta">beta</Tag>
+        </span>
+      </Tooltip>
+    </div>
+    <div>
+      <Tag priority="new">new</Tag>
+    </div>
+    <div>
+      <Tag priority="alpha">alpha</Tag>
+    </div>
+  </React.Fragment>
+));
+
 export const Default = withInfo(
   'A basic tag-like thing. If you pass no type, it will be gray'
 )(() => <Tag>Development</Tag>);
