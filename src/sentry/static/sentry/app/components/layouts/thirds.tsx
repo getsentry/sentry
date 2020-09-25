@@ -7,10 +7,14 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
  * Base container for 66/33 containers.
  */
 export const Body = styled('div')`
-  padding: ${space(2)} ${space(4)};
+  padding: ${space(2)} ${space(2)};
   margin: 0;
   background-color: ${p => p.theme.white};
   flex-grow: 1;
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    padding: ${space(2)} ${space(4)};
+  }
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     display: grid;
@@ -93,6 +97,10 @@ export const Header = styled('div')`
 
   background-color: transparent;
   border-bottom: 1px solid ${p => p.theme.borderDark};
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    padding: ${space(2)} ${space(2)} 0 ${space(2)};
+  }
 
   @media (max-width: ${p => p.theme.breakpoints[1]}) {
     flex-direction: column;
