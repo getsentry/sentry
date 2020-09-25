@@ -24,7 +24,7 @@ def get_histogram_col(params):
     return u"measurements_histogram({:d}, {:d}, {:d}, {:d})".format(*params)
 
 
-ARRAY_JOIN_MEASUREMENTS_KEY = "array_join(measurements_key)"
+KEY_COL = "array_join(measurements_key)"
 
 
 class OrganizationEventsMeasurementsHistogramEndpoint(OrganizationEventsV2EndpointBase):
@@ -55,20 +55,13 @@ class OrganizationEventsMeasurementsHistogramEndpoint(OrganizationEventsV2Endpoi
             span.set_tag("organization", organization)
 
             histogram_params = self.find_histogram_params(
-                num_buckets,
-                precision,
-                self.normalize_measurement_names(measurements),
-                params,
-                query,
+                num_buckets, precision, self.normalize_measurements(measurements), params, query,
             )
-            # histogram_col_format = u"measurements_histogram({:g}, {:.0f}, {:.0f}, {:.0f})"
-            # histogram_col = histogram_col_format.format(*histogram_params)
             histogram_col = get_histogram_col(histogram_params)
 
-            key_col = ARRAY_JOIN_MEASUREMENTS_KEY
-            key_snuba_name = get_function_alias(key_col)
+            key_snuba_name = get_function_alias(KEY_COL)
 
-            selected_columns = [key_col, histogram_col, "count()"]
+            selected_columns = [KEY_COL, histogram_col, "count()"]
 
             def data_fn(offset, limit):
                 return discover.query(
@@ -128,10 +121,10 @@ class OrganizationEventsMeasurementsHistogramEndpoint(OrganizationEventsV2Endpoi
     def handle_results(
         self, request, organization, project_ids, measurements, histogram_params, results
     ):
-        results = self.zerofill_and_adjust_results(request, measurements, histogram_params, results)
+        results = self.zerofill_and_adjust_results(measurements, histogram_params, results)
         return self.handle_results_with_meta(request, organization, project_ids, results)
 
-    def zerofill_and_adjust_histograms(self, measurements, histogram_params, results):
+    def zerofill_and_adjust_results(self, measurements, histogram_params, results):
         with sentry_sdk.start_span(
             op="discover.endpoint", description="measurements_histogram_zerofill"
         ):
@@ -140,7 +133,7 @@ class OrganizationEventsMeasurementsHistogramEndpoint(OrganizationEventsV2Endpoi
             if len(data) == len(measurements) * histogram_params.num_buckets:
                 return results
 
-            measurements_name = get_function_alias(ARRAY_JOIN_MEASUREMENTS_KEY)
+            measurements_name = get_function_alias(KEY_COL)
             measurements_bin = get_function_alias(get_histogram_col(histogram_params))
 
             measurements = sorted(measurements)
@@ -172,7 +165,7 @@ class OrganizationEventsMeasurementsHistogramEndpoint(OrganizationEventsV2Endpoi
 
             return results
 
-    def normalize_measurement_names(self, measurements):
+    def normalize_measurements(self, measurements):
         formatted_measurements = []
 
         for key in measurements:
