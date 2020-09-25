@@ -43,7 +43,7 @@ jobs:
         cp sentry/api-docs/openapi-derefed.json sentry-api-schema
 
     - name: Git Commit & Push
-    - uses: stefanzweifel/git-auto-commit-action@v4
+      uses: stefanzweifel/git-auto-commit-action@v4
       with:
         branch: main
         commit_message: Generated
