@@ -381,6 +381,7 @@ const IssueListActions = createReactClass({
       queryCount,
       query,
       realtimeActive,
+      selection,
       statsPeriod,
     } = this.props;
     const issues = this.state.selectedIds;
@@ -565,7 +566,7 @@ const IssueListActions = createReactClass({
                   active={statsPeriod === 'auto'}
                   onClick={this.handleSelectStatsPeriod.bind(this, 'auto')}
                 >
-                  {t('Auto')}
+                  {selection.datetime.period || t('Custom')}
                 </GraphToggle>
               ) : (
                 <GraphToggle
