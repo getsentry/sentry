@@ -69,11 +69,7 @@ export function decodeColumnOrder(
       }
       column.isSortable = aggregate && aggregate.isSortable;
     } else if (col.kind === 'field') {
-      // TODO(tonyx): this needs a more robust solution
-      // also not all measurements are durations, some are numbers
-      column.type = col.field.startsWith('measurements.')
-        ? 'duration'
-        : FIELDS[col.field];
+      column.type = FIELDS[col.field];
     }
     column.column = col;
 
@@ -405,7 +401,6 @@ function generateExpandedConditions(
 type FieldGeneratorOpts = {
   organization: LightWeightOrganization;
   tagKeys?: string[] | null;
-  measurementKeys?: string[] | null;
   aggregations?: Record<string, Aggregation>;
   fields?: Record<string, ColumnType>;
 };
@@ -413,7 +408,6 @@ type FieldGeneratorOpts = {
 export function generateFieldOptions({
   organization,
   tagKeys,
-  measurementKeys,
   aggregations = AGGREGATIONS,
   fields = FIELDS,
 }: FieldGeneratorOpts) {
@@ -479,19 +473,6 @@ export function generateFieldOptions({
         value: {
           kind: FieldValueKind.TAG,
           meta: {name: tagValue, dataType: 'string'},
-        },
-      };
-    });
-  }
-
-  if (measurementKeys !== undefined && measurementKeys !== null) {
-    measurementKeys.forEach(measurement => {
-      fieldOptions[`measurement:${measurement}`] = {
-        label: measurement,
-        value: {
-          kind: FieldValueKind.MEASUREMENT,
-          // TODO(tonyx): not all measurements are durations, some are numbers
-          meta: {name: measurement, dataType: 'duration'},
         },
       };
     });
