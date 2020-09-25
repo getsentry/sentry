@@ -25,7 +25,9 @@ class AvatarBase(Model):
 
     FILE_TYPE = None
 
-    file = FlexibleForeignKey("sentry.File", unique=True, null=True, on_delete=models.SET_NULL)
+    file = FlexibleForeignKey(
+        "sentry.File", unique=True, null=True, on_delete=models.SET_NULL, db_constraint=False
+    )
     ident = models.CharField(max_length=32, unique=True, db_index=True)
 
     class Meta:

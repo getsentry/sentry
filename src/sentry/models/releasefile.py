@@ -24,14 +24,14 @@ class ReleaseFile(Model):
     """
     __core__ = False
 
-    organization = FlexibleForeignKey("sentry.Organization")
+    organization = FlexibleForeignKey("sentry.Organization", db_constraint=False)
     # DEPRECATED
     project_id = BoundedPositiveIntegerField(null=True)
-    release = FlexibleForeignKey("sentry.Release")
-    file = FlexibleForeignKey("sentry.File", db_constraint=False)
+    release = FlexibleForeignKey("sentry.Release", db_constraint=False)
+    file = FlexibleForeignKey("sentry.File")
     ident = models.CharField(max_length=40)
     name = models.TextField()
-    dist = FlexibleForeignKey("sentry.Distribution", null=True)
+    dist = FlexibleForeignKey("sentry.Distribution", null=True, db_constraint=False)
 
     __repr__ = sane_repr("release", "ident")
 
