@@ -371,7 +371,7 @@ class StackedBarChart extends React.Component<Props, State> {
       const pct2 = y2 && calcPct(y2, i);
 
       const pt = (
-        <RectGroup key={i}>
+        <RectGroup key={i} showSecondaryPoints={showSecondaryPoints}>
           <rect
             x={index * pointWidth + '%'}
             y={100.0 - pct - prevPct + '%'}
@@ -543,8 +543,8 @@ const CircleSvg = styled('svg')<{size: number; offset: number; left: number}>`
   }
 `;
 
-const RectGroup = styled('g')`
-  opacity: 0.7;
+const RectGroup = styled('g')<{showSecondaryPoints: boolean}>`
+  opacity: ${p => (p.showSecondaryPoints ? 0.7 : 1)};
 
   &:hover {
     opacity: 1;
