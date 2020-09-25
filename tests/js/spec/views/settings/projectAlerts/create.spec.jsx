@@ -214,7 +214,7 @@ describe('ProjectAlertsCreate', function() {
         selectByValue(
           wrapper,
           'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
-          {selector: 'Select[placeholder="Add optional trigger..."]'}
+          {selector: 'Select[placeholder="Add optional condition..."]'}
         );
 
         wrapper
@@ -227,7 +227,7 @@ describe('ProjectAlertsCreate', function() {
         selectByValue(
           wrapper,
           'sentry.rules.conditions.tagged_event.TaggedEventCondition',
-          {selector: 'Select[placeholder="Add optional trigger..."]'}
+          {selector: 'Select[placeholder="Add optional condition..."]'}
         );
 
         // Edit new Condition
