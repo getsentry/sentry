@@ -15,7 +15,7 @@ const BarChart = ({points = [], secondaryPoints = [], ...rest}: Props) => {
   const formattedPoints = points.map(point => ({
     x: point.x,
     y: [point.y],
-    color: theme.purple400,
+    color: secondaryPoints.length ? theme.purple400 : undefined,
   }));
   const formattedSecondaryPoints = secondaryPoints.map(point => ({
     x: point.x,
