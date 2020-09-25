@@ -86,13 +86,9 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
             return self.respond({"detail": "Event not found"}, status=404)
 
         try:
-            attachment = (
-                EventAttachment.objects.filter(
-                    project_id=project.id, event_id=event.event_id, id=attachment_id
-                )
-                .select_related("file")
-                .get()
-            )
+            attachment = EventAttachment.objects.filter(
+                project_id=project.id, event_id=event.event_id, id=attachment_id
+            ).get()
         except EventAttachment.DoesNotExist:
             return self.respond({"detail": "Attachment not found"}, status=404)
 
@@ -127,13 +123,9 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
             return self.respond(status=404)
 
         try:
-            attachment = (
-                EventAttachment.objects.filter(
-                    project_id=project.id, event_id=event_id, id=attachment_id
-                )
-                .select_related("file")
-                .get()
-            )
+            attachment = EventAttachment.objects.filter(
+                project_id=project.id, event_id=event_id, id=attachment_id
+            ).get()
         except EventAttachment.DoesNotExist:
             return self.respond({"detail": "Attachment not found"}, status=404)
 

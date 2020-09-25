@@ -7,7 +7,7 @@ import logging
 import posixpath
 
 from django.db import transaction
-from django.db.models import Q, Count
+from django.db.models import Q
 from django.http import StreamingHttpResponse, HttpResponse, Http404
 from rest_framework.response import Response
 from symbolic import normalize_debug_id, SymbolicError
@@ -405,12 +405,10 @@ class SourceMapsEndpoint(ProjectEndpoint):
             }
 
         def serialize_results(results):
-            file_counts = (
-                Release.objects.filter(id__in=[r["id"] for r in results])
-                .annotate(count=Count("releasefile"))
-                .values("count", "id")
-            )
-            file_count_map = {r["id"]: r["count"] for r in file_counts}
+            file_count_map = {
+                release.id: ReleaseFile.objects.filter(release=release).count()
+                for release in Release.objects.filter(id__in=[r["id"] for r in results])
+            }
             return serialize(
                 [expose_release(r, file_count_map[r["id"]]) for r in results], request.user
             )
