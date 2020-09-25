@@ -169,20 +169,40 @@ class BatchingKafkaConsumer(object):
         sample_rate = self.__metrics_sample_rates.get(metric, settings.SENTRY_METRICS_SAMPLE_RATE)
         return self.__metrics.timing(metric, value, tags=tags, sample_rate=sample_rate)
 
-    def _wait_for_topics(self, admin_client, topics):
+    def _wait_for_topics(self, admin_client, topics, timeout=10):
         """
         Make sure that the provided topics exist and have non-zero partitions in them.
         """
         for topic in topics:
+            start = time.time()
+            last_error = None
+
             while True:
+                if time.time() > start + timeout:
+                    raise RuntimeError(
+                        "Timeout when waiting for Kafka topic '%s' to become available, last error: %s".format(
+                            topic, last_error
+                        )
+                    )
+
                 result = admin_client.list_topics(topic=topic)
                 topic_metadata = result.topics.get(topic)
-                if topic_metadata and topic_metadata.partitions:
+                if topic_metadata and topic_metadata.partitions and not topic_metadata.error:
                     logger.debug("Topic '%s' is ready", topic)
                     break
-                else:
-                    logger.warn("Topic '%s' or its partitions not ready, retrying...", topic)
+                elif topic_metadata.error in {
+                    KafkaError.UNKNOWN_TOPIC_OR_PART,
+                    KafkaError.LEADER_NOT_AVAILABLE,
+                }:
+                    last_error = topic_metadata.error
+                    logger.warn("Topic '%s' or its partitions are not ready, retrying...", topic)
                     time.sleep(0.1)
+                    continue
+                else:
+                    raise RuntimeError(
+                        "Unknown error when waiting for Kafka topic '%s': %s"
+                        % (topic, topic_metadata.error)
+                    )
 
     def create_consumer(
         self,
