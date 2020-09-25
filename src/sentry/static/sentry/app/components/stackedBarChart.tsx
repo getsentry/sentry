@@ -371,7 +371,7 @@ class StackedBarChart extends React.Component<Props, State> {
       const pct2 = y2 && calcPct(y2, i);
 
       const pt = (
-        <React.Fragment key={i}>
+        <RectGroup key={i}>
           <rect
             x={index * pointWidth + '%'}
             y={100.0 - pct - prevPct + '%'}
@@ -402,7 +402,7 @@ class StackedBarChart extends React.Component<Props, State> {
               {y2}
             </rect>
           )}
-        </React.Fragment>
+        </RectGroup>
       );
       prevPct += pct;
       if (pct2) prevPct2 += pct2;
@@ -540,6 +540,14 @@ const CircleSvg = styled('svg')<{size: number; offset: number; left: number}>`
 
   &:hover circle {
     fill: ${p => p.theme.purple400};
+  }
+`;
+
+const RectGroup = styled('g')`
+  opacity: 0.7;
+
+  &:hover {
+    opacity: 1;
   }
 `;
 
