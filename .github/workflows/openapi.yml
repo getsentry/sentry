@@ -43,10 +43,9 @@ jobs:
         cp sentry/api-docs/openapi-derefed.json sentry-api-schema
 
     - name: Git Commit & Push
-      run: |
-        cd sentry-api-schema
       uses: stefanzweifel/git-auto-commit-action@v4
       with:
+        repository: sentry-api-schema
         branch: main
         commit_message: Generated
         commit_user_email: bot@getsentry.com
