@@ -1352,7 +1352,7 @@ class DurationColumnNoLookup(DurationColumn):
 
 class StringArrayColumn(FunctionArg):
     def normalize(self, value):
-        if value in ["tags_key", "tags_value", "measurements_key"]:
+        if value in ["tags.key", "tags.value", "measurements_key"]:
             return value
         raise InvalidFunctionArgument(u"{} is not a valid string array column".format(value))
 
