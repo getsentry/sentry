@@ -82,9 +82,10 @@ function getDescription(
     absoluteChange < 1000 ? 0 : 2
   );
 
-  const period = trendView.statsPeriod
-    ? DEFAULT_RELATIVE_PERIODS[trendView.statsPeriod].toLowerCase()
-    : t('given timeframe');
+  const period =
+    trendView.statsPeriod && DEFAULT_RELATIVE_PERIODS[trendView.statsPeriod]
+      ? DEFAULT_RELATIVE_PERIODS[trendView.statsPeriod].toLowerCase()
+      : t('given timeframe');
 
   const improvedTemplate =
     'In the [period], [project] sped up by [absoluteChangeDuration] (a [percent] decrease in duration). See the top transactions that made that happen.';
