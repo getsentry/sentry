@@ -21,7 +21,7 @@ HistogramParams = namedtuple(
 
 
 def get_histogram_col(params):
-    return u"measurements_histogram({:g}, {:.0f}, {:.0f}, {:.0f})".format(*params)
+    return u"measurements_histogram({:d}, {:d}, {:d}, {:d})".format(*params)
 
 
 ARRAY_JOIN_MEASUREMENTS_KEY = "array_join(measurements_key)"
