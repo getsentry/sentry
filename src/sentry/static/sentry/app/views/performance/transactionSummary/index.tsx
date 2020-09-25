@@ -194,8 +194,8 @@ function generateSummaryEventView(
   const query = decodeScalar(location.query.query) || '';
   const conditions = tokenizeSearch(query);
   conditions
-    .setTag('event.type', ['transaction'])
-    .setTag('transaction', [transactionName]);
+    .setTagValues('event.type', ['transaction'])
+    .setTagValues('transaction', [transactionName]);
 
   Object.keys(conditions.tagValues).forEach(field => {
     if (isAggregateField(field)) conditions.removeTag(field);
@@ -203,7 +203,7 @@ function generateSummaryEventView(
 
   // Handle duration filters from the latency chart
   if (location.query.startDuration || location.query.endDuration) {
-    conditions.setTag(
+    conditions.setTagValues(
       'transaction.duration',
       [
         decodeScalar(location.query.startDuration),

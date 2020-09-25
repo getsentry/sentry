@@ -392,7 +392,7 @@ function generateExpandedConditions(
       continue;
     }
 
-    parsedQuery.setTag(key, [conditions[key]]);
+    parsedQuery.setTagValues(key, [conditions[key]]);
   }
 
   return stringifyQueryObject(parsedQuery);

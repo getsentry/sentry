@@ -190,14 +190,14 @@ class PerformanceLanding extends React.Component<Props, State> {
         newQuery.statsPeriod = DEFAULT_TRENDS_STATS_PERIOD;
       }
       if (!query) {
-        conditions.setTag('count()', ['>1000']);
-        conditions.setTag('transaction.duration', ['>0']);
+        conditions.setTagValues('count()', ['>1000']);
+        conditions.setTagValues('transaction.duration', ['>0']);
       }
-      if (!conditions.hasTags('count()')) {
-        conditions.setTag('count()', ['>1000']);
+      if (!conditions.hasTag('count()')) {
+        conditions.setTagValues('count()', ['>1000']);
       }
-      if (!conditions.hasTags('transaction.duration')) {
-        conditions.setTag('transaction.duration', ['>0']);
+      if (!conditions.hasTag('transaction.duration')) {
+        conditions.setTagValues('transaction.duration', ['>0']);
       }
 
       newQuery.query = stringifyQueryObject(conditions);
