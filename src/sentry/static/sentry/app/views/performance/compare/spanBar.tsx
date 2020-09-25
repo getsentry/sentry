@@ -270,7 +270,7 @@ class SpanBar extends React.Component<Props, State> {
       }
 
       // there is a "padding" of 1px on either side of the span rectangle
-      return `max(1px, calc(${width} - 2px))`;
+      return `max(1px, calc(${width} - 120px))`;
     }
 
     switch (span.comparisonResult) {
