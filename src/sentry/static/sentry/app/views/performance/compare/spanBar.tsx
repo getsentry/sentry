@@ -270,7 +270,7 @@ class SpanBar extends React.Component<Props, State> {
       }
 
       // there is a "padding" of 1px on either side of the span rectangle
-      return `max(1px, calc(${width} - 2px))`;
+      return `max(1px, calc(${width} - 120px))`;
     }
 
     switch (span.comparisonResult) {
@@ -451,8 +451,8 @@ class SpanBar extends React.Component<Props, State> {
             }}
           />
           {foregroundSpanBar}
-          {this.renderComparisonReportLabel()}
         </SpanRowCell>
+        {this.renderComparisonReportLabel()}
         {!this.state.showDetail && (
           <DividerLineGhostContainer
             style={{
@@ -531,7 +531,6 @@ const ComparisonLabel = styled('div')`
   position: absolute;
   user-select: none;
   right: ${space(1)};
-  line-height: 16px;
   font-size: ${p => p.theme.fontSizeExtraSmall};
 `;
 
