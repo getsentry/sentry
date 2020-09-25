@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-from collections import namedtuple
-
 import sentry_sdk
 
 from rest_framework.response import Response
@@ -9,18 +7,6 @@ from rest_framework.exceptions import ParseError
 
 from sentry.api.bases import OrganizationEventsV2EndpointBase, NoProjects
 from sentry.snuba import discover
-
-
-HistogramParams = namedtuple(
-    "HistogramParams", ["num_buckets", "bucket_size", "start_offset", "multiplier"]
-)
-
-
-def get_histogram_col(params):
-    return u"measurements_histogram({:d}, {:d}, {:d}, {:d})".format(*params)
-
-
-KEY_COL = "array_join(measurements_key)"
 
 
 class OrganizationEventsMeasurementsHistogramEndpoint(OrganizationEventsV2EndpointBase):
@@ -37,32 +23,6 @@ class OrganizationEventsMeasurementsHistogramEndpoint(OrganizationEventsV2Endpoi
         if not measurements:
             raise ParseError(u"No measurements specified")
 
-        query = request.GET.get("query")
-
-        try:
-            num_buckets = int(request.GET.get("num_buckets"))
-        except ValueError:
-            raise ParseError(u"Invalid number of buckets specified.")
-
-        try:
-            min_value = request.GET.get("min")
-            if min_value is not None:
-                min_value = int(min_value)
-        except ValueError:
-            raise ParseError(u"Invalid minimum specified.")
-
-        try:
-            max_value = request.GET.get("max")
-            if max_value is not None:
-                max_value = int(max_value)
-        except ValueError:
-            raise ParseError(u"Invalid maximum specified.")
-
-        try:
-            precision = int(request.GET.get("precision", 0))
-        except ValueError:
-            raise ParseError(u"Invalid precision specified.")
-
         with sentry_sdk.start_span(
             op="discover.endpoint", description="measurements_histogram"
         ) as span:
@@ -70,12 +30,12 @@ class OrganizationEventsMeasurementsHistogramEndpoint(OrganizationEventsV2Endpoi
 
             results = discover.measurements_histogram_query(
                 measurements,
-                query,
+                request.GET.get("query"),
                 params,
-                num_buckets,
-                min_value,
-                max_value,
-                precision,
+                self.get_int_param(request, "num_buckets"),
+                self.get_int_param(request, "min", allow_none=True),
+                self.get_int_param(request, "max", allow_none=True),
+                self.get_int_param(request, "precision", default=0),
                 "api.organization-events-measurements-histogram",
             )
 
@@ -84,3 +44,18 @@ class OrganizationEventsMeasurementsHistogramEndpoint(OrganizationEventsV2Endpoi
             )
 
             return Response(results_with_meta)
+
+    def get_int_param(self, request, param, allow_none=False, default=None):
+        raw_value = request.GET.get(param, default)
+        try:
+            if raw_value is not None:
+                value = int(raw_value)
+            elif not allow_none:
+                raise ParseError(u"Missing value for paramter {}.".format(param))
+            else:
+                value = None
+            return value
+        except ValueError:
+            raise ParseError(
+                u"Invalid value for parameter {} specified: {}.".format(param, raw_value)
+            )
