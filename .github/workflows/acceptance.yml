@@ -218,7 +218,7 @@ jobs:
         - name: Start devservices
           run: |
             sentry init
-            sentry devservices up
+            sentry devservices up postgres redis clickhouse snuba kafka zookeeper
 
         - name: webpack
           run: |
@@ -371,7 +371,7 @@ jobs:
         - name: Start devservices
           run: |
             sentry init
-            sentry devservices up postgres redis clickhouse snuba
+            sentry devservices up postgres redis clickhouse snuba kafka zookeeper
 
         - name: webpack
           run: |
