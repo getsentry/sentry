@@ -1,5 +1,11 @@
-// Converts arg from a `select2` choices array to a `react-select` `options` array
-const convertFromSelect2Choices = choices => {
+import {SelectValue} from 'app/types';
+
+type Choices = string[] | [string, string][] | any;
+
+/**
+ * Converts arg from a `select2` choices array to a `react-select` `options` array
+ */
+const convertFromSelect2Choices = (choices: Choices): SelectValue<any>[] | null => {
   if (!Array.isArray(choices)) {
     return null;
   }
