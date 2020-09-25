@@ -219,7 +219,11 @@ class UserDetailsEndpoint(UserEndpoint):
                 organization__in=remaining_org_ids, user=user
             ).delete()
 
-        logging_data = {"actor_id": request.user.id, "ip_address": request.META["REMOTE_ADDR"]}
+        logging_data = {
+            "actor_id": request.user.id,
+            "ip_address": request.META["REMOTE_ADDR"],
+            "user_id": user.id,
+        }
 
         hard_delete = serializer.validated_data.get("hardDelete", False)
 
