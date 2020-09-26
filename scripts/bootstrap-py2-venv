@@ -43,6 +43,7 @@ if ! [[ "$(python2.7 -V 2>&1)" = "Python $(awk -v ORS='' 'FNR == 1' .python-vers
     abort "Your python2.7 version isn't as expected. Please run: make setup-pyenv"
 fi
 
+python2.7 -m pip install -U pip         || { echo "bootstrap failed!"; return 1; }
 python2.7 -m pip install -U virtualenv  || { echo "bootstrap failed!"; return 1; }
 python2.7 -m virtualenv .venv           || { echo "bootstrap failed!"; return 1; }
 source .venv/bin/activate               || { echo "bootstrap failed!"; return 1; }
