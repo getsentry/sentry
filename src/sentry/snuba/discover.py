@@ -948,9 +948,7 @@ def get_facets(query, params, limit=10, referrer=None):
     return results
 
 
-HistogramParams = namedtuple(
-    "HistogramParams", ["num_buckets", "bucket_size", "start_offset", "multiplier"]
-)
+HistogramParams = namedtuple("HistogramParams", ["bucket_size", "start_offset", "multiplier"])
 
 
 def measurements_histogram_query(
@@ -982,11 +980,13 @@ def measurements_histogram_query(
         use_aggregate_conditions=True,
     )
 
-    return zerofill_measurements_histogram(measurements, key_col, histogram_params, results)
+    return normalize_measurements_histogram(
+        measurements, num_buckets, key_col, histogram_params, results
+    )
 
 
 def get_measurements_histogram_col(params):
-    return u"measurements_histogram({:d}, {:d}, {:d}, {:d})".format(*params)
+    return u"measurements_histogram({:d}, {:d}, {:d})".format(*params)
 
 
 def find_measurements_histogram_params(
@@ -996,21 +996,25 @@ def find_measurements_histogram_params(
         measurements, min_value, max_value, query, params
     )
 
-    # finding the bounds might result in None if there isn't sufficient data
-    if min_value is None or max_value is None:
-        return HistogramParams(1, 1, 0, 1)
-
     multiplier = int(10 ** precision)
 
-    bucket_size = int(ceil(multiplier * (max_value - min_value) / float(num_buckets)))
+    # finding the bounds might result in None if there isn't sufficient data
+    if min_value is None or max_value is None:
+        return HistogramParams(1, 0, multiplier)
+
+    scaled_min = int(floor(multiplier * min_value))
+    scaled_max = int(ceil(multiplier * max_value))
+
+    # align the first bin with the minimum value
+    start_offset = scaled_min
+
+    bucket_size = int(ceil((scaled_max - scaled_min) / float(num_buckets)))
     if bucket_size == 0:
         bucket_size = 1
+    if start_offset + num_buckets * bucket_size <= max_value:
+        bucket_size += 1
 
-    # Determine the first bucket that will show up in
-    # our results so that we can zerofill correctly.
-    start_offset = int(floor(min_value / bucket_size) * bucket_size)
-
-    return HistogramParams(num_buckets, bucket_size, start_offset, multiplier)
+    return HistogramParams(bucket_size, start_offset, multiplier)
 
 
 def find_measurements_min_max(measurements, min_value, max_value, user_query, params):
@@ -1054,10 +1058,10 @@ def find_measurements_min_max(measurements, min_value, max_value, user_query, pa
     return min_value, max_value
 
 
-def zerofill_measurements_histogram(measurements, key_col, histogram_params, results):
+def normalize_measurements_histogram(measurements, num_buckets, key_col, histogram_params, results):
     data = results["data"]
 
-    if len(data) == len(measurements) * histogram_params.num_buckets:
+    if len(data) == len(measurements) * num_buckets:
         return results
 
     measurements_name = get_function_alias(key_col)
@@ -1068,28 +1072,29 @@ def zerofill_measurements_histogram(measurements, key_col, histogram_params, res
     new_data = []
 
     idx = 0
-    for i in range(histogram_params.num_buckets):
+    for i in range(num_buckets):
         bucket = histogram_params.start_offset + histogram_params.bucket_size * i
         for measurement in measurements:
+            # we want to rename the columns here
+            row = {"histogram_key": measurement, "histogram_bin": bucket}
             if (
                 idx >= len(data)
                 or data[idx][measurements_name] != measurement
                 or data[idx][measurements_bin] != bucket
             ):
-                new_data.append(
-                    {measurements_name: measurement, measurements_bin: bucket, "count": 0}
-                )
+                row["count"] = 0
             else:
-                new_data.append(data[idx])
+                row["count"] = data[idx]["count"]
                 idx += 1
+            new_data.append(row)
 
             # make sure to adjust for the precision if necessary
             if histogram_params.multiplier > 1:
-                new_data[-1][measurements_bin] /= float(histogram_params.multiplier)
+                new_data[-1]["histogram_bin"] /= float(histogram_params.multiplier)
 
-    if idx != len(data):
+    if idx < len(data):
         # the rows mismatch, something's wrong here
-        pass
+        raise Exception(u"{} unconsumed rows remaining.".format(len(data) - idx))
 
     results["data"] = new_data
 

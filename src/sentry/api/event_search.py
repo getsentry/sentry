@@ -1620,33 +1620,44 @@ FUNCTIONS = {
         Function(
             "measurements_histogram",
             required_args=[
-                NumberRange("num_buckets", 1, 500),
                 NumberRange("bucket_size", 0, None),
                 NumberRange("start_offset", 0, None),
                 NumberRange("multiplier", 1, None),
             ],
             column=[
-                "multiply",
+                "plus",
                 [
                     [
-                        "floor",
+                        "multiply",
                         [
                             [
-                                "divide",
+                                "floor",
                                 [
                                     [
-                                        "multiply",
+                                        "divide",
                                         [
-                                            ["arrayJoin", ["measurements_value"]],
-                                            ArgValue("multiplier"),
+                                            [
+                                                "minus",
+                                                [
+                                                    [
+                                                        "multiply",
+                                                        [
+                                                            ["arrayJoin", ["measurements_value"]],
+                                                            ArgValue("multiplier"),
+                                                        ],
+                                                    ],
+                                                    ArgValue("start_offset"),
+                                                ],
+                                            ],
+                                            ArgValue("bucket_size"),
                                         ],
                                     ],
-                                    ArgValue("bucket_size"),
                                 ],
                             ],
+                            ArgValue("bucket_size"),
                         ],
                     ],
-                    ArgValue("bucket_size"),
+                    ArgValue("start_offset"),
                 ],
                 None,
             ],
@@ -1819,7 +1830,7 @@ def get_function_alias(field):
 
 
 def get_function_alias_with_columns(function_name, columns):
-    columns = "_".join(columns).replace(".", "_")
+    columns = "_".join(columns).replace(".", "_").replace("-", "")
     return u"{}_{}".format(function_name, columns).rstrip("_")
 
 

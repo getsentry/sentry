@@ -21,7 +21,7 @@ class OrganizationEventsMeasurementsHistogramEndpoint(OrganizationEventsV2Endpoi
 
         measurements = request.GET.getlist("measurement")
         if not measurements:
-            raise ParseError(u"No measurements specified")
+            raise ParseError(detail=u"Missing value for parameter measurements.")
 
         with sentry_sdk.start_span(
             op="discover.endpoint", description="measurements_histogram"
@@ -51,11 +51,11 @@ class OrganizationEventsMeasurementsHistogramEndpoint(OrganizationEventsV2Endpoi
             if raw_value is not None:
                 value = int(raw_value)
             elif not allow_none:
-                raise ParseError(u"Missing value for paramter {}.".format(param))
+                raise ParseError(detail=u"Missing value for parameter {}.".format(param))
             else:
                 value = None
             return value
         except ValueError:
             raise ParseError(
-                u"Invalid value for parameter {} specified: {}.".format(param, raw_value)
+                detail=u"Invalid value for parameter {} specified: {}".format(param, raw_value)
             )
