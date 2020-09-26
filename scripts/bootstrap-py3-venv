@@ -22,12 +22,12 @@ command -v direnv >/dev/null || {
     return 1
 }
 
-unset SENTRY_PYTHON3
+export SENTRY_PYTHON3=1
 
 gitroot="$(git rev-parse --show-toplevel)"
 cd "$gitroot"
 
-if [[ -f .venv/bin/activate ]]; then
+if [[ -f .venv3/bin/activate ]]; then
     echo "You seem to have a virtualenv already. This script is meant to start one from scratch. Continue (y/N)?"
     read resp
     case "$resp" in
@@ -37,15 +37,15 @@ if [[ -f .venv/bin/activate ]]; then
 fi
 
 deactivate 2>/dev/null || true
-rm -rf .venv/
+rm -rf .venv3/
 
-if ! [[ "$(python2.7 -V 2>&1)" = "Python $(awk -v ORS='' 'FNR == 1' .python-version)" ]]; then
-    abort "Your python2.7 version isn't as expected. Please run: make setup-pyenv"
+if ! [[ "$(python3 -V 2>&1)" = "Python $(awk -v ORS='' 'FNR == 2' .python-version)" ]]; then
+    abort "Your python3 version isn't as expected. Please run: make setup-pyenv"
 fi
 
-python2.7 -m pip install -U virtualenv  || { echo "bootstrap failed!"; return 1; }
-python2.7 -m virtualenv .venv           || { echo "bootstrap failed!"; return 1; }
-source .venv/bin/activate               || { echo "bootstrap failed!"; return 1; }
+python3 -m pip install -U virtualenv    || { echo "bootstrap failed!"; return 1; }
+python3 -m virtualenv .venv3            || { echo "bootstrap failed!"; return 1; }
+source .venv3/bin/activate              || { echo "bootstrap failed!"; return 1; }
 make setup-git                          || { echo "bootstrap failed!"; return 1; }
 make install-py-dev                     || { echo "bootstrap failed!"; return 1; }
 deactivate                              || { echo "bootstrap failed!"; return 1; }
