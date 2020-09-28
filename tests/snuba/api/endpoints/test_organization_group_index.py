@@ -627,10 +627,8 @@ class GroupListTest(APITestCase, SnubaTestCase):
             assert len(response.data) == 2
             assert int(response.data[0]["id"]) == group2.id
             assert response.data[0]["lifetime"] is not None
-            assert response.data[0]["filtered"] is not None
+            assert response.data[0]["filtered"] is None
             assert response.data[0]["lifetime"]["stats"] is None
-            assert response.data[0]["filtered"]["stats"] is not None
-            assert response.data[0]["filtered"]["stats"] == response.data[0]["stats"]
 
             assert response.data[0]["lifetime"]["count"] == "4"
             assert response.data[0]["lifetime"]["firstSeen"] == parse_datetime(

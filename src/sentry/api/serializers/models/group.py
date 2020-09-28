@@ -786,7 +786,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             filtered_result = (
                 partial_execute_seen_stats_query(conditions=self.conditions)
                 if self.conditions
-                else time_range_result
+                else None
             )
             lifetime_result = (
                 partial_execute_seen_stats_query(start=None, end=None)
@@ -795,7 +795,10 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             )
             for item in item_list:
                 time_range_result[item].update(
-                    {"filtered": filtered_result.get(item), "lifetime": lifetime_result.get(item)}
+                    {
+                        "filtered": filtered_result.get(item) if self.conditions else None,
+                        "lifetime": lifetime_result.get(item),
+                    }
                 )
         return time_range_result
 
@@ -817,10 +820,10 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             stats = partial_get_stats()
             if self.has_dynamic_issue_counts:
                 filtered_stats = (
-                    partial_get_stats(conditions=self.conditions) if self.conditions else stats
+                    partial_get_stats(conditions=self.conditions) if self.conditions else None
                 )
             for item in item_list:
-                if self.has_dynamic_issue_counts:
+                if self.has_dynamic_issue_counts and self.conditions:
                     attrs[item].update({"filtered_stats": filtered_stats[item.id]})
                 attrs[item].update({"stats": stats[item.id]})
 
@@ -836,10 +839,17 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             result["matchingEventId"] = self.matching_event_id
 
         if self.has_dynamic_issue_counts:
-            result["filtered"] = self._convert_seen_stats(attrs["filtered"])
             result["lifetime"] = self._convert_seen_stats(attrs["lifetime"])
             if self.stats_period:
                 result["lifetime"].update({"stats": None})  # Not needed in current implementation
-                result["filtered"].update({"stats": {self.stats_period: attrs["filtered_stats"]}})
+
+            if self.conditions:
+                result["filtered"] = self._convert_seen_stats(attrs["filtered"])
+                if self.stats_period:
+                    result["filtered"].update(
+                        {"stats": {self.stats_period: attrs["filtered_stats"]}}
+                    )
+            else:
+                result["filtered"] = None
 
         return result
