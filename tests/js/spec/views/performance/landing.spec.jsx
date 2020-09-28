@@ -6,6 +6,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ProjectsStore from 'app/stores/projectsStore';
 import PerformanceLanding, {FilterViews} from 'app/views/performance/landing';
+import * as globalSelection from 'app/actionCreators/globalSelection';
 
 const FEATURES = ['transaction-event', 'performance-view'];
 
@@ -26,7 +27,7 @@ function initializeData(projects, query) {
   return initialData;
 }
 
-function initializeTrendsData(query) {
+function initializeTrendsData(query, addDefaultQuery = true) {
   const features = [...FEATURES, 'trends'];
   const projects = [
     TestStubs.Project({id: '1', firstTransactionEvent: false}),
@@ -37,10 +38,21 @@ function initializeTrendsData(query) {
     projects,
   });
 
+  const otherTrendsQuery = addDefaultQuery
+    ? {
+        query: 'count():>1000 transaction.duration:>0',
+      }
+    : {};
+
   const initialData = initializeOrg({
     organization,
     router: {
-      location: {query},
+      location: {
+        query: {
+          ...otherTrendsQuery,
+          ...query,
+        },
+      },
     },
   });
   ProjectsStore.loadInitialData(initialData.organization.projects);
@@ -49,7 +61,9 @@ function initializeTrendsData(query) {
 
 describe('Performance > Landing', function() {
   beforeEach(function() {
-    browserHistory.push.mockReset();
+    browserHistory.push = jest.fn();
+    jest.spyOn(globalSelection, 'updateDateTime');
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
@@ -124,6 +138,7 @@ describe('Performance > Landing', function() {
   afterEach(function() {
     MockApiClient.clearMockResponses();
     ProjectsStore.reset();
+    globalSelection.updateDateTime.mockRestore();
   });
 
   it('renders basic UI elements', async function() {
@@ -223,8 +238,8 @@ describe('Performance > Landing', function() {
     );
   });
 
-  it('Default period is set for trends when stats period is not set', async function() {
-    const data = initializeTrendsData({query: 'tag:value'});
+  it('Default period for trends does not call updateDateTime', async function() {
+    const data = initializeTrendsData({query: 'tag:value'}, false);
     const wrapper = mountWithTheme(
       <PerformanceLanding
         organization={data.organization}
@@ -234,17 +249,7 @@ describe('Performance > Landing', function() {
     );
     await tick();
     wrapper.update();
-
-    expect(browserHistory.push).toHaveBeenCalledTimes(1);
-    expect(browserHistory.push).toHaveBeenNthCalledWith(
-      1,
-      expect.objectContaining({
-        query: {
-          query: 'tag:value count():>1000 transaction.duration:>0',
-          view: 'TRENDS',
-        },
-      })
-    );
+    expect(globalSelection.updateDateTime).toHaveBeenCalledTimes(0);
   });
 
   it('Navigating to trends does not modify statsPeriod when already set', async function() {
@@ -265,6 +270,8 @@ describe('Performance > Landing', function() {
 
     const trendsLink = wrapper.find('[data-test-id="landing-header-trends"]').at(0);
     trendsLink.simulate('click');
+
+    expect(globalSelection.updateDateTime).toHaveBeenCalledTimes(0);
 
     expect(browserHistory.push).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -298,7 +305,7 @@ describe('Performance > Landing', function() {
   });
 
   it('Default page (trends) with trends feature will update filters if none are set', async function() {
-    const data = initializeTrendsData({view: undefined});
+    const data = initializeTrendsData({view: undefined}, false);
 
     const wrapper = mountWithTheme(
       <PerformanceLanding
@@ -310,7 +317,6 @@ describe('Performance > Landing', function() {
     await tick();
     wrapper.update();
 
-    expect(browserHistory.push).toHaveBeenCalledTimes(1);
     expect(browserHistory.push).toHaveBeenNthCalledWith(
       1,
       expect.objectContaining({
@@ -322,8 +328,11 @@ describe('Performance > Landing', function() {
     );
   });
 
-  it('Default page (trends) with trends feature will add filters to an existing query', async function() {
-    const data = initializeTrendsData({view: undefined, query: 'device.family:Mac'});
+  it('Tags are added to an existing query if navigating to trends', async function() {
+    const data = initializeTrendsData(
+      {view: FilterViews.ALL_TRANSACTIONS, query: 'device.family:Mac'},
+      false
+    );
 
     const wrapper = mountWithTheme(
       <PerformanceLanding
@@ -335,9 +344,10 @@ describe('Performance > Landing', function() {
     await tick();
     wrapper.update();
 
-    expect(browserHistory.push).toHaveBeenCalledTimes(1);
-    expect(browserHistory.push).toHaveBeenNthCalledWith(
-      1,
+    const trendsLink = wrapper.find('[data-test-id="landing-header-trends"]').at(0);
+    trendsLink.simulate('click');
+
+    expect(browserHistory.push).toHaveBeenCalledWith(
       expect.objectContaining({
         query: {
           query: 'device.family:Mac count():>1000 transaction.duration:>0',
@@ -347,8 +357,14 @@ describe('Performance > Landing', function() {
     );
   });
 
-  it('Navigating away from trends will reset query', async function() {
-    const data = initializeTrendsData({view: FilterViews.TRENDS});
+  it('Navigating away from trends will remove extra tags from query', async function() {
+    const data = initializeTrendsData(
+      {
+        view: FilterViews.TRENDS,
+        query: 'device.family:Mac count():>1000 transaction.duration:>0',
+      },
+      false
+    );
 
     const wrapper = mountWithTheme(
       <PerformanceLanding
@@ -357,31 +373,21 @@ describe('Performance > Landing', function() {
       />,
       data.routerContext
     );
+
     await tick();
     wrapper.update();
 
-    expect(browserHistory.push).toHaveBeenCalledTimes(1);
-    expect(browserHistory.push).toHaveBeenNthCalledWith(
-      1,
-      expect.objectContaining({
-        query: {
-          query: 'count():>1000 transaction.duration:>0',
-          view: 'TRENDS',
-        },
-      })
-    );
+    browserHistory.push.mockReset();
 
     const byTransactionLink = wrapper
       .find('[data-test-id="landing-header-all_transactions"]')
       .at(0);
     byTransactionLink.simulate('click');
 
-    expect(browserHistory.push).toHaveBeenCalledTimes(2);
-    expect(browserHistory.push).toHaveBeenNthCalledWith(
-      2,
+    expect(browserHistory.push).toHaveBeenCalledWith(
       expect.objectContaining({
         query: {
-          query: '',
+          query: 'device.family:Mac',
           view: 'ALL_TRANSACTIONS',
         },
       })

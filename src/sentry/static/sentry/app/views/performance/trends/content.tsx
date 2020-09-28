@@ -41,40 +41,6 @@ function hasMultipleProjects(selection: GlobalSelection) {
 }
 
 class TrendsContent extends React.Component<Props, State> {
-  constructor(props) {
-    super(props);
-
-    const {location} = props;
-
-    const queryString = decodeScalar(location.query.query) || '';
-
-    const conditions = tokenizeSearch(queryString);
-
-    if (!queryString) {
-      conditions.setTag('count()', ['>1000']);
-      conditions.setTag('transaction.duration', ['>0']);
-    }
-    if (!conditions.hasTags('count()')) {
-      conditions.setTag('count()', ['>1000']);
-    }
-    if (!conditions.hasTags('transaction.duration')) {
-      conditions.setTag('transaction.duration', ['>0']);
-    }
-
-    const query = stringifyQueryObject(conditions);
-    props.eventView.query = query;
-
-    browserHistory.push({
-      pathname: location.pathname,
-      query: {
-        ...location.query,
-        cursor: undefined,
-        query: String(query).trim() || undefined,
-        view: FilterViews.TRENDS,
-      },
-    });
-  }
-
   state: State = {};
 
   handleSearch = (searchQuery: string) => {
@@ -125,66 +91,102 @@ class TrendsContent extends React.Component<Props, State> {
 
     return (
       <Feature features={['trends', 'internal-catchall']} requireAll={false}>
-        <StyledSearchContainer>
-          <StyledSearchBar
-            organization={organization}
-            projectIds={trendView.project}
-            query={query}
-            fields={trendView.fields}
-            onSearch={this.handleSearch}
-          />
-          <TrendsDropdown>
-            <DropdownControl
-              buttonProps={{prefix: t('Display')}}
-              label={currentTrendFunction.label}
-            >
-              {TRENDS_FUNCTIONS.map(({label, field}) => (
-                <DropdownItem
-                  key={field}
-                  onSelect={this.handleTrendFunctionChange}
-                  eventKey={field}
-                  data-test-id={field}
-                  isActive={field === currentTrendFunction.field}
-                >
-                  {label}
-                </DropdownItem>
-              ))}
-            </DropdownControl>
-          </TrendsDropdown>
-        </StyledSearchContainer>
-        <TrendsLayoutContainer>
-          {showChangedProjects && (
-            <ChangedProjects
+        <DefaultTrends location={location} eventView={eventView}>
+          <StyledSearchContainer>
+            <StyledSearchBar
+              organization={organization}
+              projectIds={trendView.project}
+              query={query}
+              fields={trendView.fields}
+              onSearch={this.handleSearch}
+            />
+            <TrendsDropdown>
+              <DropdownControl
+                buttonProps={{prefix: t('Display')}}
+                label={currentTrendFunction.label}
+              >
+                {TRENDS_FUNCTIONS.map(({label, field}) => (
+                  <DropdownItem
+                    key={field}
+                    onSelect={this.handleTrendFunctionChange}
+                    eventKey={field}
+                    data-test-id={field}
+                    isActive={field === currentTrendFunction.field}
+                  >
+                    {label}
+                  </DropdownItem>
+                ))}
+              </DropdownControl>
+            </TrendsDropdown>
+          </StyledSearchContainer>
+          <TrendsLayoutContainer>
+            {showChangedProjects && (
+              <ChangedProjects
+                trendChangeType={TrendChangeType.IMPROVED}
+                previousTrendFunction={previousTrendFunction}
+                trendView={trendView}
+                location={location}
+              />
+            )}
+            {showChangedProjects && (
+              <ChangedProjects
+                trendChangeType={TrendChangeType.REGRESSION}
+                previousTrendFunction={previousTrendFunction}
+                trendView={trendView}
+                location={location}
+              />
+            )}
+            <ChangedTransactions
               trendChangeType={TrendChangeType.IMPROVED}
               previousTrendFunction={previousTrendFunction}
               trendView={trendView}
               location={location}
             />
-          )}
-          {showChangedProjects && (
-            <ChangedProjects
+            <ChangedTransactions
               trendChangeType={TrendChangeType.REGRESSION}
               previousTrendFunction={previousTrendFunction}
               trendView={trendView}
               location={location}
             />
-          )}
-          <ChangedTransactions
-            trendChangeType={TrendChangeType.IMPROVED}
-            previousTrendFunction={previousTrendFunction}
-            trendView={trendView}
-            location={location}
-          />
-          <ChangedTransactions
-            trendChangeType={TrendChangeType.REGRESSION}
-            previousTrendFunction={previousTrendFunction}
-            trendView={trendView}
-            location={location}
-          />
-        </TrendsLayoutContainer>
+          </TrendsLayoutContainer>
+        </DefaultTrends>
       </Feature>
     );
   }
+}
+
+type DefaultTrendsProps = {
+  children: React.ReactNode[];
+  location: Location;
+  eventView: EventView;
+};
+
+function DefaultTrends(props: DefaultTrendsProps) {
+  const {children, location, eventView} = props;
+
+  const queryString = decodeScalar(location.query.query) || '';
+  const conditions = tokenizeSearch(queryString);
+
+  if (queryString) {
+    return <React.Fragment>{children}</React.Fragment>;
+  } else {
+    conditions.setTag('count()', ['>1000']);
+    conditions.setTag('transaction.duration', ['>0']);
+  }
+
+  const query = stringifyQueryObject(conditions);
+  eventView.query = query;
+
+  browserHistory.push({
+    pathname: location.pathname,
+    query: {
+      ...location.query,
+      cursor: undefined,
+      query: String(query).trim() || undefined,
+      view: FilterViews.TRENDS,
+    },
+  });
+  return null;
 }
 
 const StyledSearchBar = styled(SearchBar)`

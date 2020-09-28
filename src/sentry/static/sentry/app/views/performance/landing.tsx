@@ -1,6 +1,6 @@
 import React from 'react';
 import {Location} from 'history';
-import * as ReactRouter from 'react-router';
+import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
@@ -52,7 +52,7 @@ type Props = {
   organization: Organization;
   selection: GlobalSelection;
   location: Location;
-  router: ReactRouter.InjectedRouter;
+  router: InjectedRouter;
   projects: Project[];
   loadingProjects: boolean;
   demoMode?: boolean;
@@ -132,7 +132,7 @@ class PerformanceLanding extends React.Component<Props, State> {
       organization_id: parseInt(organization.id, 10),
     });
 
-    ReactRouter.browserHistory.push({
+    browserHistory.push({
       pathname: location.pathname,
       query: {
         ...location.query,
@@ -199,7 +199,7 @@ class PerformanceLanding extends React.Component<Props, State> {
 
     const hasStartAndEnd = newQuery.start && newQuery.end;
 
-    if (isStatsPeriodDefault(statsPeriod, newDefaultPeriod) && !hasStartAndEnd) {
+    if (!hasStartAndEnd && isStatsPeriodDefault(statsPeriod, newDefaultPeriod)) {
       /**
        * Resets stats period to default of the tab you are navigating to
        * on tab change as tabs have different default periods.
@@ -212,6 +212,17 @@ class PerformanceLanding extends React.Component<Props, State> {
       });
     }
 
+    if (viewKey === FilterViews.TRENDS) {
+      if (!conditions.hasTags('count()')) {
+        conditions.setTag('count()', ['>1000']);
+      }
+      if (!conditions.hasTags('transaction.duration')) {
+        conditions.setTag('transaction.duration', ['>0']);
+      }
+
+      newQuery.query = stringifyQueryObject(conditions);
+    }
+
     const isNavigatingAwayFromTrends = viewKey !== FilterViews.TRENDS && currentView;
 
     if (isNavigatingAwayFromTrends) {
@@ -222,7 +233,7 @@ class PerformanceLanding extends React.Component<Props, State> {
       newQuery.query = stringifyQueryObject(conditions);
     }
 
-    ReactRouter.browserHistory.push({
+    browserHistory.push({
       pathname: location.pathname,
       query: {...newQuery, view: viewKey},
     });
