@@ -9,7 +9,7 @@ from django.db.models import Sum
 from sentry import tagstore
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.db.models.query import in_iexact
-from sentry.snuba.sessions import get_release_health_data_overview
+from sentry.snuba.sessions import get_release_health_data_overview, check_has_health_data
 from sentry.models import (
     Commit,
     CommitAuthor,
@@ -323,8 +323,12 @@ class ReleaseSerializer(Serializer):
                 environments=environments,
                 stat=health_stat,
             )
+            has_health_data = None
         else:
             health_data = None
+            has_health_data = check_has_health_data(
+                [(pr["project__id"], pr["release__version"]) for pr in project_releases]
+            )
 
         for pr in project_releases:
             pr_rv = {
@@ -337,6 +341,14 @@ class ReleaseSerializer(Serializer):
             }
             if health_data is not None:
                 pr_rv["health_data"] = health_data.get((pr["project__id"], pr["release__version"]))
+                pr_rv["has_health_data"] = (pr_rv["health_data"] or {}).get(
+                    "has_health_data", False
+                )
+            else:
+                pr_rv["has_health_data"] = (
+                    pr["project__id"],
+                    pr["release__version"],
+                ) in has_health_data
             release_projects[pr["release_id"]].append(pr_rv)
 
         result = {}
@@ -384,6 +396,7 @@ class ReleaseSerializer(Serializer):
                 "totalSessions24h": data["total_sessions_24h"],
                 "adoption": data["adoption"],
                 "stats": data.get("stats"),
+                # XXX: legacy key, should be removed later.
                 "hasHealthData": data["has_health_data"],
             }
 
@@ -395,6 +408,7 @@ class ReleaseSerializer(Serializer):
                 "newGroups": project["new_groups"],
                 "platform": project["platform"],
                 "platforms": project["platforms"],
+                "hasHealthData": project["has_health_data"],
             }
             if "health_data" in project:
                 rv["healthData"] = expose_health_data(project["health_data"])
