@@ -2,7 +2,6 @@
 
 from __future__ import absolute_import
 
-from django.core.urlresolvers import reverse
 from django.test.client import RequestFactory
 from django.utils import timezone
 
@@ -27,10 +26,7 @@ class ProjectUserFeedbackDocs(APIDocsTestCase):
             date_added=timezone.now(), group=group, project=project, event_id=event.event_id,
         )
 
-        self.url = reverse(
-            "sentry-api-0-project-user-reports",
-            kwargs={"organization_slug": organization.slug, "project_slug": project.slug},
-        )
+        self.url = u"/api/0/projects/{}/{}/user-feedback/".format(organization.slug, project.slug)
 
         self.login_as(user=self.user)
 
