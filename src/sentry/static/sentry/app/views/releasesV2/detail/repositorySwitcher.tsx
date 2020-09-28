@@ -39,10 +39,7 @@ class RepositorySwitcher extends React.PureComponent<Props, State> {
 
     router.push({
       ...location,
-      query: {
-        ...location.query,
-        activeRepo,
-      },
+      query: {...location.query, cursor: undefined, activeRepo},
     });
   };
 
