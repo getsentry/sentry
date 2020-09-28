@@ -42,8 +42,6 @@ class OrganizationEventsMeasurementsHistogramEndpoint(OrganizationEventsV2Endpoi
                 request.GET.get("query"),
                 params,
                 self.get_int_param(request, "numBuckets", minimum=1),
-                self.get_int_param(request, "min", allow_none=True),
-                self.get_int_param(request, "max", allow_none=True),
                 # don't allow for too many decimal places of precision
                 self.get_int_param(request, "precision", default=0, minimum=0, maximum=4),
                 "api.organization-events-measurements-histogram",

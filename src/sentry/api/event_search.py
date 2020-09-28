@@ -1616,6 +1616,7 @@ FUNCTIONS = {
             "array_join",
             required_args=[StringArrayColumn("column")],
             column=["arrayJoin", [ArgValue("column")], None],
+            result_type="string",
         ),
         Function(
             "measurements_histogram",

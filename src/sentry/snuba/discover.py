@@ -952,45 +952,22 @@ HistogramParams = namedtuple("HistogramParams", ["bucket_size", "start_offset", 
 
 
 def measurements_histogram_query(
-    measurements,
-    user_query,
-    params,
-    num_buckets,
-    min_value=None,
-    max_value=None,
-    precision=0,
-    referrer=None,
+    measurements, user_query, params, num_buckets, precision=0, referrer=None,
 ):
-    computed_min_value, computed_max_value = find_measurements_min_max(
-        measurements, min_value, max_value, user_query, params
-    )
+    min_value, max_value = find_measurements_min_max(measurements, user_query, params)
 
     key_col = "array_join(measurements_key)"
     histogram_params = find_measurements_histogram_params(
-        measurements,
-        num_buckets,
-        computed_min_value,
-        computed_max_value,
-        precision,
-        user_query,
-        params,
+        measurements, num_buckets, min_value, max_value, precision, user_query, params,
     )
     histogram_col = get_measurements_histogram_col(histogram_params)
 
-    conditions = [
-        [get_function_alias(key_col), "IN", measurements],
-    ]
-    if min_value is not None:
-        conditions.append([get_function_alias(histogram_col), ">=", min_value])
-    if max_value is not None:
-        conditions.append([get_function_alias(histogram_col), "<=", max_value])
-
     results = query(
         selected_columns=[key_col, histogram_col, "count()"],
-        conditions=conditions,
+        conditions=[[get_function_alias(key_col), "IN", measurements]],
         query=user_query,
         params=params,
-        # the zerofill step assumes it's ordered by the bin then name
+        # the zerofill step assumes it is ordered by the bin then name
         orderby=[get_function_alias(histogram_col), get_function_alias(key_col)],
         limit=len(measurements) * num_buckets,
         referrer=referrer,
@@ -1037,17 +1014,11 @@ def find_measurements_histogram_params(
     return HistogramParams(bucket_size, start_offset, multiplier)
 
 
-def find_measurements_min_max(measurements, min_value, max_value, user_query, params):
-    # if both are already specified, there is no work to be done
-    if min_value is not None and max_value is not None:
-        return min_value, max_value
-
+def find_measurements_min_max(measurements, user_query, params):
     min_columns, max_columns = [], []
     for measurement in measurements:
-        if min_value is None:
-            min_columns.append("min(measurements.{})".format(measurement))
-        if max_value is None:
-            max_columns.append("max(measurements.{})".format(measurement))
+        min_columns.append("min(measurements.{})".format(measurement))
+        max_columns.append("max(measurements.{})".format(measurement))
 
     results = query(
         selected_columns=min_columns + max_columns,
@@ -1061,6 +1032,7 @@ def find_measurements_min_max(measurements, min_value, max_value, user_query, pa
     # there should be exactly 1 row in the results
     data = results["data"][0]
 
+    min_value = None
     for min_column in min_columns:
         value = data[get_function_alias(min_column)]
         if value is None:
@@ -1068,6 +1040,7 @@ def find_measurements_min_max(measurements, min_value, max_value, user_query, pa
         if min_value is None or value < min_value:
             min_value = value
 
+    max_value = None
     for max_column in max_columns:
         value = data[get_function_alias(max_column)]
         if value is None:
