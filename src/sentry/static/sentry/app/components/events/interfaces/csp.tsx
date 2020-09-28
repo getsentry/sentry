@@ -1,13 +1,13 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import SentryTypes from 'app/sentryTypes';
 import ButtonBar from 'app/components/buttonBar';
 import Button from 'app/components/button';
 import EventDataSection from 'app/components/events/eventDataSection';
 import CSPContent from 'app/components/events/interfaces/cspContent';
 import CSPHelp from 'app/components/events/interfaces/cspHelp';
 import {t} from 'app/locale';
+import {Event} from 'app/types';
 
 function getView(view, data) {
   switch (view) {
@@ -22,9 +22,13 @@ function getView(view, data) {
   }
 }
 
-export default class CspInterface extends React.Component {
+type Props = {
+  event: Event;
+  data: Record<string, any>;
+};
+
+export default class CspInterface extends React.Component<Props> {
   static propTypes = {
-    event: SentryTypes.Event.isRequired,
     data: PropTypes.object.isRequired,
   };
 
@@ -38,7 +42,7 @@ export default class CspInterface extends React.Component {
 
   render() {
     const {view} = this.state;
-    const {event, data} = this.props;
+    const {data} = this.props;
 
     const cleanData =
       data.original_policy !== 'string'
@@ -71,7 +75,6 @@ export default class CspInterface extends React.Component {
 
     return (
       <EventDataSection
-        event={event}
         type="csp"
         title={<h3>{t('CSP Report')}</h3>}
         actions={actions}

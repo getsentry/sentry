@@ -3,7 +3,11 @@ import React from 'react';
 
 import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValueList';
 
-class CSPContent extends React.Component {
+type Props = {
+  data: Record<string, any>;
+};
+
+class CSPContent extends React.Component<Props> {
   static propTypes = {
     data: PropTypes.object.isRequired,
   };
