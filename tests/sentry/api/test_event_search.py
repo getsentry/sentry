@@ -657,52 +657,52 @@ class ParseSearchQueryTest(unittest.TestCase):
 
     def test_numeric_measurements_filter(self):
         # NOTE: can only filter on integers right now
-        assert parse_search_query("measurements.size:10") == [
+        assert parse_search_query("measurements.size:3.1415") == [
             SearchFilter(
                 key=SearchKey(name="measurements.size"),
                 operator="=",
-                value=SearchValue(raw_value=10),
+                value=SearchValue(raw_value=3.1415),
             )
         ]
 
-        assert parse_search_query("measurements.size:>10") == [
+        assert parse_search_query("measurements.size:>3.1415") == [
             SearchFilter(
                 key=SearchKey(name="measurements.size"),
                 operator=">",
-                value=SearchValue(raw_value=10),
+                value=SearchValue(raw_value=3.1415),
             )
         ]
 
-        assert parse_search_query("measurements.size:<10") == [
+        assert parse_search_query("measurements.size:<3.1415") == [
             SearchFilter(
                 key=SearchKey(name="measurements.size"),
                 operator="<",
-                value=SearchValue(raw_value=10),
+                value=SearchValue(raw_value=3.1415),
             )
         ]
 
     def test_numeric_aggregate_measurements_filter(self):
-        assert parse_search_query("min(measurements.size):3") == [
+        assert parse_search_query("min(measurements.size):3.1415") == [
             SearchFilter(
                 key=SearchKey(name="min(measurements.size)"),
                 operator="=",
-                value=SearchValue(raw_value=3),
+                value=SearchValue(raw_value=3.1415),
             )
         ]
 
-        assert parse_search_query("min(measurements.size):>3") == [
+        assert parse_search_query("min(measurements.size):>3.1415") == [
             SearchFilter(
                 key=SearchKey(name="min(measurements.size)"),
                 operator=">",
-                value=SearchValue(raw_value=3),
+                value=SearchValue(raw_value=3.1415),
             )
         ]
 
-        assert parse_search_query("min(measurements.size):<3") == [
+        assert parse_search_query("min(measurements.size):<3.1415") == [
             SearchFilter(
                 key=SearchKey(name="min(measurements.size)"),
                 operator="<",
-                value=SearchValue(raw_value=3),
+                value=SearchValue(raw_value=3.1415),
             )
         ]
 
