@@ -5,7 +5,6 @@ import {withInfo} from '@storybook/addon-info';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import Breadcrumbs from 'app/components/breadcrumbs';
-import NavTabs from 'app/components/navTabs';
 import Link from 'app/components/links/link';
 import * as Layout from 'app/components/layouts/thirds';
 import space from 'app/styles/space';
@@ -161,7 +160,7 @@ export const _6633WithTabNavigation = withInfo('Two column layout with tab navig
     <Container>
       <BorderlessHeader>
         <Layout.HeaderContent>
-          <Layout.Title>Alerts</Layout.Title>
+          <StyledLayoutTitle>Alerts</StyledLayoutTitle>
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           <ButtonBar gap={1}>
@@ -171,14 +170,14 @@ export const _6633WithTabNavigation = withInfo('Two column layout with tab navig
         </Layout.HeaderActions>
       </BorderlessHeader>
       <TabLayoutHeader>
-        <StyledNavTabs underlined>
+        <Layout.HeaderNavTabs underlined>
           <li className="active">
             <Link to="#">Active</Link>
           </li>
           <li>
             <Link to="#">Inactive</Link>
           </li>
-        </StyledNavTabs>
+        </Layout.HeaderNavTabs>
       </TabLayoutHeader>
       <Layout.Body>
         <Layout.Main>
@@ -207,15 +206,8 @@ const MarginedButtonBar = styled(ButtonBar)`
   margin-bottom: ${space(1)};
 `;
 
-const StyledNavTabs = styled(NavTabs)`
-  margin: 0;
-  border-bottom: 0 !important;
-  li {
-    margin-right: ${space(0.5)};
-  }
-  li > a {
-    padding: ${space(1)} ${space(2)};
-  }
+const StyledLayoutTitle = styled(Layout.Title)`
+  margin-top: ${space(0.5)};
 `;
 
 const BorderlessHeader = styled(Layout.Header)`

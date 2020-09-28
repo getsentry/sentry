@@ -2,12 +2,13 @@ import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
+import NavTabs from 'app/components/navTabs';
 
 /**
  * Base container for 66/33 containers.
  */
 export const Body = styled('div')`
-  padding: ${space(2)} ${space(2)};
+  padding: ${space(2)};
   margin: 0;
   background-color: ${p => p.theme.white};
   flex-grow: 1;
@@ -104,6 +105,20 @@ export const Header = styled('div')`
 
   @media (max-width: ${p => p.theme.breakpoints[1]}) {
     flex-direction: column;
+  }
+`;
+
+/**
+ * Styled Nav Tabs for use inside a Layout.Header component
+ */
+export const HeaderNavTabs = styled(NavTabs)`
+  margin: 0;
+  border-bottom: 0 !important;
+  li {
+    margin-right: ${space(0.5)};
+  }
+  li > a {
+    padding: ${space(1)} ${space(2)};
   }
 `;
 
