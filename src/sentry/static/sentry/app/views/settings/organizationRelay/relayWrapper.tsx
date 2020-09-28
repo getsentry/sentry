@@ -38,7 +38,7 @@ type State = AsyncComponent['state'] & {
   relays: Array<Relay>;
 };
 
-class Relays extends AsyncComponent<Props, State> {
+class RelayWrapper extends AsyncComponent<Props, State> {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
@@ -114,7 +114,7 @@ class Relays extends AsyncComponent<Props, State> {
 
   renderBody() {
     const {relays} = this.state;
-    const title = t('Relays');
+    const title = t('Relay');
 
     return (
       <React.Fragment>
@@ -193,7 +193,7 @@ class Relays extends AsyncComponent<Props, State> {
   }
 }
 
-export default Relays;
+export default RelayWrapper;
 
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: repeat(3, auto) max-content;

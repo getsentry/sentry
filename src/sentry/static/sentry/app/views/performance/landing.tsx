@@ -182,7 +182,7 @@ class PerformanceLanding extends React.Component<Props, State> {
   }
 
   handleViewChange(viewKey: FilterViews) {
-    const {location} = this.props;
+    const {location, organization} = this.props;
 
     const newQuery = {
       ...location.query,
@@ -211,6 +211,13 @@ class PerformanceLanding extends React.Component<Props, State> {
         period: newDefaultPeriod,
       });
     }
+
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.change_view',
+      eventName: 'Performance Views: Change View',
+      organization_id: parseInt(organization.id, 10),
+      view_name: viewKey,
+    });
 
     if (viewKey === FilterViews.TRENDS) {
       if (!conditions.hasTags('count()')) {

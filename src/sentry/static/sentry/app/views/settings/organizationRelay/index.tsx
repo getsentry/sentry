@@ -6,9 +6,9 @@ import {PanelAlert} from 'app/components/panels';
 import {t} from 'app/locale';
 import withOrganization from 'app/utils/withOrganization';
 
-import Relays from './relays';
+import RelayWrapper from './relayWrapper';
 
-const OrganizationRelays = ({organization, ...props}: Relays['props']) => (
+const OrganizationRelay = ({organization, ...props}: RelayWrapper['props']) => (
   <Feature
     features={['relay']}
     organization={organization}
@@ -16,12 +16,12 @@ const OrganizationRelays = ({organization, ...props}: Relays['props']) => (
       <FeatureDisabled
         alert={PanelAlert}
         features={organization.features}
-        featureName={t('Relays')}
+        featureName={t('Relay')}
       />
     )}
   >
-    <Relays organization={organization} {...props} />
+    <RelayWrapper organization={organization} {...props} />
   </Feature>
 );
 
-export default withOrganization(OrganizationRelays);
+export default withOrganization(OrganizationRelay);
