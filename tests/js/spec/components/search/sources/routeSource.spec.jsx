@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mount} from 'sentry-test/enzyme';
+import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {RouteSource} from 'app/components/search/sources/routeSource';
 
@@ -9,7 +10,13 @@ describe('RouteSource', function() {
 
   it('can find a route', async function() {
     const mock = jest.fn().mockReturnValue(null);
-    wrapper = mount(<RouteSource query="password">{mock}</RouteSource>);
+
+    const {organization, project} = initializeOrg();
+    wrapper = mount(
+      <RouteSource query="password" {...{organization, project}}>
+        {mock}
+      </RouteSource>
+    );
 
     await tick();
     wrapper.update();
@@ -26,7 +33,12 @@ describe('RouteSource', function() {
 
   it('does not find any form field ', async function() {
     const mock = jest.fn().mockReturnValue(null);
-    wrapper = mount(<RouteSource query="invalid">{mock}</RouteSource>);
+    const {organization, project} = initializeOrg();
+    wrapper = mount(
+      <RouteSource query="invalid" {...{organization, project}}>
+        {mock}
+      </RouteSource>
+    );
 
     await tick();
     wrapper.update();
