@@ -12,10 +12,11 @@ import TextOverflow from 'app/components/textOverflow';
 type Props = {
   filename: string;
   authors: CommitAuthor[];
+  className?: string;
 };
 
-const FileChange = ({filename, authors}: Props) => (
-  <FileItem>
+const FileChange = ({filename, authors, className}: Props) => (
+  <FileItem className={className}>
     <Filename>
       <StyledFileIcon fileName={filename} />
       <TextOverflow>{filename}</TextOverflow>

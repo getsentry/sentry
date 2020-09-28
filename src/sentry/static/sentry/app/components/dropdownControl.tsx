@@ -42,6 +42,8 @@ type Props = DefaultProps & {
    * actor (opener) component
    */
   blendWithActor?: boolean;
+
+  className?: string;
 };
 
 /*
@@ -75,11 +77,12 @@ class DropdownControl extends React.Component<Props> {
       alignRight,
       menuWidth,
       blendWithActor,
+      className,
     } = this.props;
     const alignMenu = alignRight ? 'right' : 'left';
 
     return (
-      <Container>
+      <Container className={className}>
         <DropdownMenu alwaysRenderMenu={alwaysRenderMenu}>
           {({isOpen, getMenuProps, getActorProps}) => (
             <React.Fragment>
@@ -89,9 +92,9 @@ class DropdownControl extends React.Component<Props> {
                 alignMenu={alignMenu}
                 width={menuWidth}
                 isOpen={isOpen}
-                blendCorner
                 blendWithActor={blendWithActor}
                 theme={theme}
+                blendCorner
               >
                 {children}
               </Content>

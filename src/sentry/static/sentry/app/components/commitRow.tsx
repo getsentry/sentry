@@ -26,7 +26,7 @@ class CommitRow extends React.Component<Props> {
     customAvatar: PropTypes.node,
   };
 
-  renderMessage(message: string): string {
+  renderMessage(message: Commit['message']): string {
     if (!message) {
       return t('No message provided');
     }

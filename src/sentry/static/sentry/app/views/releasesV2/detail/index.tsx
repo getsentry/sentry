@@ -26,7 +26,6 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import {IconInfo, IconWarning} from 'app/icons';
 import space from 'app/styles/space';
 import Alert from 'app/components/alert';
-import {Body} from 'app/components/layouts/thirds';
 
 import ReleaseHeader from './releaseHeader';
 import PickProjectToContinue from './pickProjectToContinue';
@@ -253,6 +252,10 @@ const ProjectsFooterMessage = styled('div')`
   align-items: center;
   grid-template-columns: min-content 1fr;
   grid-gap: ${space(1)};
+`;
+
+const Body = styled('div')`
+  padding: ${space(2)} ${space(4)};
 `;
 
 export {ReleasesV2DetailContainer, ReleaseContext};
