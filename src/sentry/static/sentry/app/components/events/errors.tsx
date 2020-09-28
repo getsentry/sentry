@@ -63,31 +63,7 @@ class EventErrors extends React.Component<Props, State> {
 
   uniqueErrors = (errors: any[]) => uniqWith(errors, isEqual);
 
-  onReprocessEvent = async () => {
-    const {api, orgId, project, event} = this.props;
-    const endpoint = `/projects/${orgId}/${project.slug}/events/${event.id}/reprocessing/`;
-
-    addLoadingMessage(t('Reprocessing event\u2026'));
-
-    try {
-      await api.requestPromise(endpoint, {
-        method: 'POST',
-      });
-    } catch {
-      clearIndicators();
-      addErrorMessage(
-        t('Failed to start reprocessing. The event is likely too far in the past.')
-      );
-      return;
-    }
-
-    clearIndicators();
-    browserHistory.push(
-      `/organizations/${orgId}/issues/?query=tags[original_event_id]:${event.id}`
-    );
-  };
-
-  onReprocessGroup = async (issueId: string) => {
+  onReprocessGroup = async (issueId: string, maxEvents: number | null) => {
     const {api, orgId} = this.props;
     const endpoint = `/organizations/${orgId}/issues/${issueId}/reprocessing/`;
 
@@ -96,6 +72,7 @@ class EventErrors extends React.Component<Props, State> {
     try {
       await api.requestPromise(endpoint, {
         method: 'POST',
+        data: {maxEvents},
       });
     } catch {
       clearIndicators();
@@ -129,7 +106,7 @@ class EventErrors extends React.Component<Props, State> {
           <ul>
             <li>
               {t(
-                'Sentry will duplicate events in your project (for now) and not delete the old versions.'
+                'Sentry will duplicate events in your project, assign new event IDs and delete the old issue. Eventually we will not assign new event IDs.'
               )}
             </li>
             <li>
@@ -139,24 +116,25 @@ class EventErrors extends React.Component<Props, State> {
             </li>
             <li>
               {t(
-                'If an event is reprocessed but did not change, we will not create the new version and not bill you for it (for now).'
-              )}
-            </li>
-            <li>
-              {t(
                 'If you have provided missing symbols please wait at least 1 hour before attempting to re-process. This is a limitation we will try to get rid of.'
               )}
             </li>
+            <li>{t('Reprocessed events will not trigger issue alerts for now.')}</li>
           </ul>
         </Body>
         <Footer>
           <ButtonBar gap={1}>
             {issueId && (
-              <Button onClick={() => this.onReprocessGroup(issueId)}>
-                {t('Reprocess all events in issue')}
-              </Button>
+              <React.Fragment>
+                <Button onClick={() => this.onReprocessGroup(issueId, null)}>
+                  {t('Reprocess all events in issue')}
+                </Button>
+
+                <Button onClick={() => this.onReprocessGroup(issueId, 20)}>
+                  {t('Reprocess the last 20 events in issue (delete the rest)')}
+                </Button>
+              </React.Fragment>
             )}
-            <Button onClick={this.onReprocessEvent}>{t('Reprocess single event')}</Button>
             <Button onClick={closeModal}>{t('Cancel')}</Button>
           </ButtonBar>
         </Footer>
