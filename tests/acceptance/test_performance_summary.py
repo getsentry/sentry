@@ -5,7 +5,7 @@ import pytz
 from six.moves.urllib.parse import urlencode
 from mock import patch
 
-from sentry.testutils import AcceptanceTestCase
+from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.samples import load_data
 
@@ -19,7 +19,7 @@ def make_event(event_data):
     return event_data
 
 
-class PerformanceSummaryTest(AcceptanceTestCase):
+class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super(PerformanceSummaryTest, self).setUp()
         self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
@@ -43,6 +43,7 @@ class PerformanceSummaryTest(AcceptanceTestCase):
         # Create a transaction
         event = make_event(load_data("transaction", timestamp=before_now(minutes=1)))
         self.store_event(data=event, project_id=self.project.id)
+        self.wait_for_event_count(self.project.id, 1)
 
         self.store_event(
             data={
