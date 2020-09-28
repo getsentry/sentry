@@ -8,6 +8,7 @@ import EventView from 'app/utils/discover/eventView';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import {t} from 'app/locale';
 import Feature from 'app/components/acl/feature';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import SearchBar from 'app/views/events/searchBar';
 import space from 'app/styles/space';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
@@ -53,13 +54,20 @@ class TrendsContent extends React.Component<Props, State> {
   };
 
   handleTrendFunctionChange = (field: string) => {
-    const {location} = this.props;
+    const {organization, location} = this.props;
 
     const offsets = {};
 
     Object.values(TrendChangeType).forEach(trendChangeType => {
       const queryKey = getSelectedQueryKey(trendChangeType);
       offsets[queryKey] = 0;
+    });
+
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.trends.change_function',
+      eventName: 'Performance Views: Change Function',
+      organization_id: parseInt(organization.id, 10),
+      function_name: field,
     });
 
     this.setState({
