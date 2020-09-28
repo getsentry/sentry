@@ -32,10 +32,9 @@ type State = {
 };
 
 function hasMultipleProjects(selection: GlobalSelection) {
-  return (
-    selection.projects &&
-    (selection.projects.length > 1 || selection.projects[0] === ALL_ACCESS_PROJECTS)
-  );
+  const myProjectsSelected = selection.projects.length === 0;
+  const allProjectsSelected = selection.projects[0] === ALL_ACCESS_PROJECTS;
+  return myProjectsSelected || allProjectsSelected || selection.projects.length > 1;
 }
 
 class TrendsContent extends React.Component<Props, State> {
