@@ -8,6 +8,9 @@ from rest_framework.exceptions import ParseError
 from sentry.api.bases import OrganizationEventsV2EndpointBase, NoProjects
 from sentry.snuba import discover
 
+# The maximum number of measurements allowed to be queried at at time
+MAX_MEASUREMENTS = 4
+
 
 class OrganizationEventsMeasurementsHistogramEndpoint(OrganizationEventsV2EndpointBase):
     def get(self, request, organization):
@@ -21,7 +24,13 @@ class OrganizationEventsMeasurementsHistogramEndpoint(OrganizationEventsV2Endpoi
 
         measurements = request.GET.getlist("measurement")
         if not measurements:
-            raise ParseError(detail=u"Missing value for parameter measurements.")
+            raise ParseError(detail=u"Missing value for measurements.")
+        if len(measurements) > MAX_MEASUREMENTS:
+            raise ParseError(
+                detail=u"Too many measurements specified, maximum allowed is {}.".format(
+                    MAX_MEASUREMENTS
+                )
+            )
 
         with sentry_sdk.start_span(
             op="discover.endpoint", description="measurements_histogram"
@@ -32,10 +41,11 @@ class OrganizationEventsMeasurementsHistogramEndpoint(OrganizationEventsV2Endpoi
                 measurements,
                 request.GET.get("query"),
                 params,
-                self.get_int_param(request, "num_buckets"),
+                self.get_int_param(request, "num_buckets", minimum=1),
                 self.get_int_param(request, "min", allow_none=True),
                 self.get_int_param(request, "max", allow_none=True),
-                self.get_int_param(request, "precision", default=0),
+                # don't allow for too many decimal places of precision
+                self.get_int_param(request, "precision", default=0, minimum=0, maximum=4),
                 "api.organization-events-measurements-histogram",
             )
 
@@ -45,17 +55,47 @@ class OrganizationEventsMeasurementsHistogramEndpoint(OrganizationEventsV2Endpoi
 
             return Response(results_with_meta)
 
-    def get_int_param(self, request, param, allow_none=False, default=None):
+    def get_int_param(
+        self, request, param, allow_none=False, default=None, minimum=None, maximum=None
+    ):
         raw_value = request.GET.get(param, default)
+
         try:
             if raw_value is not None:
                 value = int(raw_value)
+                if (minimum is not None and value < minimum) or (
+                    maximum is not None and value > maximum
+                ):
+                    return value
             elif not allow_none:
-                raise ParseError(detail=u"Missing value for parameter {}.".format(param))
+                raise ParseError(detail=u"Missing value for {}.".format(param))
             else:
-                value = None
-            return value
+                return None
         except ValueError:
+            # let this fall through and do all the error handling outside of the try except block
+            pass
+
+        if minimum is not None and maximum is not None:
             raise ParseError(
-                detail=u"Invalid value for parameter {} specified: {}".format(param, raw_value)
+                detail=u"Invalid value for {}. Expected to be between {} and {} got {}".format(
+                    param, minimum, maximum, raw_value
+                )
+            )
+        elif minimum is not None:
+            raise ParseError(
+                detail=u"Invalid value for {}. Expected to be at least {} got {}.".format(
+                    param, minimum, raw_value
+                )
+            )
+        elif maximum is not None:
+            raise ParseError(
+                detail=u"Invalid value for {}. Expected to be at most {} got {}.".format(
+                    param, maximum, raw_value
+                )
+            )
+        else:
+            raise ParseError(
+                detail=u"Invalid value for {}. Expected to be an integer got {}.".format(
+                    param, raw_value
+                )
             )

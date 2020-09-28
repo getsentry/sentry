@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import random
-import pytest
 
 from collections import namedtuple
 from copy import deepcopy
@@ -98,7 +97,21 @@ class OrganizationEventsMeasurementsHistogramEndpointTest(APITestCase, SnubaTest
 
         response = self.do_request(query)
         assert response.status_code == 400
-        assert "Missing value for parameter measurements." in response.data["detail"]
+        assert "Missing value for measurements." in response.data["detail"]
+
+    def test_bad_params_too_many_measurements(self):
+        query = {
+            "project": [self.project.id],
+            "measurement": ["foo", "bar", "baz", "qux", "quux"],
+            "num_buckets": 10,
+            "min": 0,
+            "max": 100,
+            "precision": 0,
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 400
+        assert "Too many measurements specified, maximum allowed is 4." in response.data["detail"]
 
     def test_bad_params_missing_num_buckets(self):
         query = {
@@ -107,7 +120,7 @@ class OrganizationEventsMeasurementsHistogramEndpointTest(APITestCase, SnubaTest
         }
         response = self.do_request(query)
         assert response.status_code == 400
-        assert "Missing value for parameter num_buckets." in response.data["detail"]
+        assert "Missing value for num_buckets." in response.data["detail"]
 
     def test_bad_params_invalid_num_buckets(self):
         query = {
@@ -117,11 +130,11 @@ class OrganizationEventsMeasurementsHistogramEndpointTest(APITestCase, SnubaTest
         }
         response = self.do_request(query)
         assert response.status_code == 400
-        assert "Invalid value for parameter num_buckets specified: baz" in response.data["detail"]
+        assert (
+            "Invalid value for num_buckets. Expected to be at least 1 got baz."
+            in response.data["detail"]
+        )
 
-    @pytest.mark.xfail(
-        reason="This should be translated to a client error rather than a server error"
-    )
     def test_bad_params_invalid_negative_num_buckets(self):
         query = {
             "project": [self.project.id],
@@ -130,8 +143,12 @@ class OrganizationEventsMeasurementsHistogramEndpointTest(APITestCase, SnubaTest
         }
         response = self.do_request(query)
         assert response.status_code == 400
+        assert (
+            "Invalid value for num_buckets. Expected to be at least 1 got -1"
+            in response.data["detail"]
+        )
 
-    def test_bad_params_bad_min(self):
+    def test_bad_params_invalid_min(self):
         query = {
             "project": [self.project.id],
             "measurement": ["foo", "bar"],
@@ -141,9 +158,11 @@ class OrganizationEventsMeasurementsHistogramEndpointTest(APITestCase, SnubaTest
 
         response = self.do_request(query)
         assert response.status_code == 400
-        assert "Invalid value for parameter min specified: baz" in response.data["detail"]
+        assert (
+            "Invalid value for min. Expected to be an integer got baz." in response.data["detail"]
+        )
 
-    def test_bad_params_bad_max(self):
+    def test_bad_params_invalid_max(self):
         query = {
             "project": [self.project.id],
             "measurement": ["foo", "bar"],
@@ -153,12 +172,11 @@ class OrganizationEventsMeasurementsHistogramEndpointTest(APITestCase, SnubaTest
 
         response = self.do_request(query)
         assert response.status_code == 400
-        assert "Invalid value for parameter max specified: baz" in response.data["detail"]
+        assert (
+            "Invalid value for max. Expected to be an integer got baz." in response.data["detail"]
+        )
 
-    @pytest.mark.xfail(
-        reason="This should be translated to a client error rather than a server error"
-    )
-    def test_bad_params_bad_precision(self):
+    def test_bad_params_invalid_precision(self):
         query = {
             "project": [self.project.id],
             "measurement": ["foo", "bar"],
@@ -168,6 +186,10 @@ class OrganizationEventsMeasurementsHistogramEndpointTest(APITestCase, SnubaTest
 
         response = self.do_request(query)
         assert response.status_code == 400
+        assert (
+            "Invalid value for precision. Expected to be between 0 and 4 got -1"
+            in response.data["detail"]
+        )
 
     def test_histogram_empty(self):
         specs = [(i, i + 1, [("foo", 0), ("bar", 0)]) for i in range(5)]
@@ -355,7 +377,7 @@ class OrganizationEventsMeasurementsHistogramEndpointTest(APITestCase, SnubaTest
         assert response.data["data"] == self.as_response_data(specs)
 
     def test_histogram_increased_precision_large_buckets(self):
-        # range is [10.00, 59.99] so it is divided into 5 buckets of width 10
+        # range is [10.0000, 59.9999] so it is divided into 5 buckets of width 10
         specs = [
             (10.0000, 10.0000, [("foo", 1)]),
             (20.0000, 30.0000, [("foo", 0)]),
