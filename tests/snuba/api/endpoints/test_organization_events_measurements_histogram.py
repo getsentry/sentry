@@ -25,22 +25,20 @@ class OrganizationEventsMeasurementsHistogramEndpointTest(APITestCase, SnubaTest
         self.data = load_data("transaction")
 
     def populate_measurements(self, specs):
-        # import pdb
         start = before_now(minutes=5)
         for spec in specs:
             spec = HistogramSpec(*spec)
             for measurement, count in spec.measurements:
-                for _ in range(count):
-                    seconds = random.randint(0, 120)
+                for i in range(count):
                     data = deepcopy(self.data)
+
                     data["timestamp"] = iso_format(start)
-                    data["start_timestamp"] = iso_format(start - timedelta(seconds=seconds))
+                    data["start_timestamp"] = iso_format(start - timedelta(seconds=i))
                     value = random.random() * (spec.end - spec.start) + spec.start
                     data["transaction"] = "/measurement/{}/value/{}".format(measurement, value)
+
                     data["measurements"] = {measurement: {"value": value}}
-                    # pdb.set_trace()
                     self.store_event(data, self.project.id)
-        # pdb.set_trace()
 
     def as_response_data(self, specs):
         data = []
@@ -51,14 +49,6 @@ class OrganizationEventsMeasurementsHistogramEndpointTest(APITestCase, SnubaTest
                     {"histogram_key": measurement, "histogram_bin": spec.start, "count": count}
                 )
         return data
-
-    # def magic(self, response, specs, error=True):
-    #     import json
-
-    #     print(json.dumps(response.data["data"]))
-    #     print(json.dumps(self.as_response_data(specs)))
-    #     if error:
-    #         assert False
 
     def do_request(self, query, features=None):
         if features is None:
@@ -227,17 +217,6 @@ class OrganizationEventsMeasurementsHistogramEndpointTest(APITestCase, SnubaTest
         response = self.do_request(query)
         assert response.status_code == 200
         assert response.data["data"] == self.as_response_data(specs)
-
-        # n = sum(x[1] for spec in specs for x in spec[2])
-        # features = {"organizations:discover-basic": True}
-        # self.login_as(user=self.user)
-        # url = reverse(
-        #     "sentry-api-0-organization-eventsv2",
-        #     kwargs={"organization_slug": self.organization.slug},
-        # )
-        # with self.feature(features):
-        #     response = self.client.get(url, {"field": ["count()"]}, format="json")
-        # assert response.data["data"][0]["count"] == n
 
     def test_histogram_large_buckets(self):
         # make sure that it works for large width buckets
@@ -424,17 +403,15 @@ class OrganizationEventsMeasurementsHistogramEndpointTest(APITestCase, SnubaTest
 
     def test_histogram_max_value_on_edge(self):
         # range is [11, 21] so it is divided into 5 buckets of width 3
-        # because buckets of width 2 will exclude 21
+        # because using buckets of width 2 will exclude 21
         specs = [
             (11, 11, [("bar", 0), ("baz", 0), ("foo", 1)]),
-            (14, 17, [("bar", 0), ("baz", 0), ("foo", 0)]),
-            (17, 20, [("bar", 0), ("baz", 0), ("foo", 0)]),
+            (13, 15, [("bar", 0), ("baz", 0), ("foo", 0)]),
+            (15, 17, [("bar", 0), ("baz", 0), ("foo", 0)]),
+            (17, 19, [("bar", 0), ("baz", 0), ("foo", 0)]),
             (21, 21, [("bar", 1), ("baz", 1), ("foo", 1)]),
-            (23, 26, [("bar", 0), ("baz", 0), ("foo", 0)]),
         ]
         self.populate_measurements(specs)
-        specs[0] = (11, 14, specs[0][2])
-        specs[3] = (20, 23, specs[3][2])
 
         query = {
             "project": [self.project.id],
@@ -442,6 +419,13 @@ class OrganizationEventsMeasurementsHistogramEndpointTest(APITestCase, SnubaTest
             "num_buckets": 5,
         }
 
+        specs = [
+            (11, 14, [("bar", 0), ("baz", 0), ("foo", 1)]),
+            (14, 17, [("bar", 0), ("baz", 0), ("foo", 0)]),
+            (17, 20, [("bar", 0), ("baz", 0), ("foo", 0)]),
+            (20, 23, [("bar", 1), ("baz", 1), ("foo", 1)]),
+            (23, 26, [("bar", 0), ("baz", 0), ("foo", 0)]),
+        ]
         response = self.do_request(query)
         assert response.status_code == 200
         assert response.data["data"] == self.as_response_data(specs)

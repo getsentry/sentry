@@ -1002,6 +1002,9 @@ def find_measurements_histogram_params(
     if min_value is None or max_value is None:
         return HistogramParams(1, 0, multiplier)
 
+    # A single bucket in a histogram has contains values from [start, end),
+    # meaning that start is inclusive and end is exclusive
+
     scaled_min = int(floor(multiplier * min_value))
     scaled_max = int(ceil(multiplier * max_value))
 
@@ -1011,6 +1014,9 @@ def find_measurements_histogram_params(
     bucket_size = int(ceil((scaled_max - scaled_min) / float(num_buckets)))
     if bucket_size == 0:
         bucket_size = 1
+    # Sometimes the max value lies on the bucket boundary, and since the end
+    # of the bucket is exclusive, it gets excluded. To account for that, we
+    # increase the width of the buckets to cover the max value.
     if start_offset + num_buckets * bucket_size <= max_value:
         bucket_size += 1
 
@@ -1059,16 +1065,10 @@ def find_measurements_min_max(measurements, min_value, max_value, user_query, pa
 
 
 def normalize_measurements_histogram(measurements, num_buckets, key_col, histogram_params, results):
-    data = results["data"]
-
-    if len(data) == len(measurements) * num_buckets:
-        return results
-
+    measurements = sorted(measurements)
     measurements_name = get_function_alias(key_col)
     measurements_bin = get_function_alias(get_measurements_histogram_col(histogram_params))
-
-    measurements = sorted(measurements)
-
+    data = results["data"]
     new_data = []
 
     idx = 0
