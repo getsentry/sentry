@@ -5,9 +5,8 @@ import omit from 'lodash/omit';
 
 import theme from 'app/utils/theme';
 import {openModal} from 'app/actionCreators/modal';
-import {PanelTable} from 'app/components/panels';
+import {Panel, PanelTable} from 'app/components/panels';
 import {t, tct} from 'app/locale';
-import AsyncComponent from 'app/components/asyncComponent';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import {Organization, Relay} from 'app/types';
 import ExternalLink from 'app/components/links/externalLink';
@@ -16,14 +15,15 @@ import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import TextOverflow from 'app/components/textOverflow';
 import Clipboard from 'app/components/clipboard';
-import {IconAdd, IconCopy, IconEdit, IconDelete} from 'app/icons';
+import {IconAdd, IconTelescope, IconEdit, IconCopy, IconDelete} from 'app/icons';
 import DateTime from 'app/components/dateTime';
 import space from 'app/styles/space';
 import {defined} from 'app/utils';
 import Tooltip from 'app/components/tooltip';
 import QuestionTooltip from 'app/components/questionTooltip';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
+import AsyncView from 'app/views/asyncView';
 
 import Add from './modals/add';
 import Edit from './modals/edit';
@@ -34,11 +34,15 @@ type Props = {
   organization: Organization;
 } & RouteComponentProps<{orgId: string}, {}>;
 
-type State = AsyncComponent['state'] & {
+type State = {
   relays: Array<Relay>;
-};
+} & AsyncView['state'];
 
-class RelayWrapper extends AsyncComponent<Props, State> {
+class RelayWrapper extends AsyncView<Props, State> {
+  getTitle() {
+    return t('Relay');
+  }
+
   getDefaultState() {
     return {
       ...super.getDefaultState(),
@@ -114,13 +118,11 @@ class RelayWrapper extends AsyncComponent<Props, State> {
 
   renderBody() {
     const {relays} = this.state;
-    const title = t('Relay');
 
     return (
       <React.Fragment>
-        <SentryDocumentTitle title={title} objSlug={this.props.organization.slug} />
         <SettingsPageHeader
-          title={title}
+          title={t('Relay')}
           action={
             <Button
               priority="primary"
@@ -128,72 +130,102 @@ class RelayWrapper extends AsyncComponent<Props, State> {
               icon={<IconAdd size="xs" isCircled />}
               onClick={this.handleOpenAddDialog}
             >
-              {t('New Relay Key')}
+              {t('Register Key')}
             </Button>
           }
         />
         <TextBlock>
-          {tct(
-            `Relay is a relay service built by Sentry. You can run this on-premise for your SDKs or server to customize data scrubbing, buffering retries and more. You can generate Relay keys for access. For more on how to set this up, read the [link:docs].`,
-            {
-              link: <ExternalLink href={RELAY_DOCS_LINK} />,
-            }
-          )}
-        </TextBlock>
-        <StyledPanelTable
-          isEmpty={relays.length === 0}
-          emptyMessage={t('No relays keys have been added yet.')}
-          headers={[t('Display Name'), t('Relay Key'), t('Date Created'), '']}
-        >
-          {relays.map(({publicKey: key, name, created, description}) => {
-            const maskedKey = '*************************';
-            return (
-              <React.Fragment key={key}>
-                <Name>
-                  <Text>{name}</Text>
-                  {description && (
-                    <QuestionTooltip position="top" size="sm" title={description} />
-                  )}
-                </Name>
-                <KeyWrapper>
-                  <Key content={maskedKey}>{maskedKey}</Key>
-                  <IconWrapper>
-                    <Clipboard value={key}>
-                      <Tooltip title={t('Click to copy')} containerDisplayMode="flex">
-                        <IconCopy color="gray500" />
-                      </Tooltip>
-                    </Clipboard>
-                  </IconWrapper>
-                </KeyWrapper>
-                <Text>
-                  {!defined(created) ? t('Unknown') : <DateTime date={created} />}
-                </Text>
-                <Actions>
-                  <Button
-                    size="small"
-                    title={t('Edit Key')}
-                    label={t('Edit Key')}
-                    icon={<IconEdit size="sm" />}
-                    onClick={this.handleOpenEditDialog(key)}
-                  />
-                  <Button
-                    size="small"
-                    title={t('Delete Key')}
-                    label={t('Delete Key')}
-                    onClick={this.handleDelete(key)}
-                    icon={<IconDelete size="sm" />}
-                  />
-                </Actions>
-              </React.Fragment>
-            );
+          {tct(`Go to [link:Relay Documentation] for setup and details.`, {
+            link: <ExternalLink href={RELAY_DOCS_LINK} />,
           })}
-        </StyledPanelTable>
+        </TextBlock>
+        {!relays.length ? (
+          <Panel>
+            <EmptyMessage
+              icon={<IconTelescope size="xl" />}
+              title={t('The middle layer between your app and Sentry!')}
+              description={t(
+                'Scrub all personal information before it arrives in Sentry. Relay impove’s event reponse time and acts as a proxy for organizations that restrict HTTP communication.'
+              )}
+              action={
+                <EmptyMessageActions>
+                  <Button href={RELAY_DOCS_LINK} target="_blank">
+                    {t('Go to docs')}
+                  </Button>
+                  <Button
+                    priority="primary"
+                    icon={<IconAdd isCircled />}
+                    onClick={this.handleOpenAddDialog}
+                  >
+                    {t('Register Key')}
+                  </Button>
+                </EmptyMessageActions>
+              }
+            />
+          </Panel>
+        ) : (
+          <StyledPanelTable
+            isEmpty={relays.length === 0}
+            emptyMessage={t('No relays keys have been added yet.')}
+            headers={[t('Display Name'), t('Relay Key'), t('Date Created'), '']}
+          >
+            {relays.map(({publicKey: key, name, created, description}) => {
+              const maskedKey = '*************************';
+              return (
+                <React.Fragment key={key}>
+                  <Name>
+                    <Text>{name}</Text>
+                    {description && (
+                      <QuestionTooltip position="top" size="sm" title={description} />
+                    )}
+                  </Name>
+                  <KeyWrapper>
+                    <Key content={maskedKey}>{maskedKey}</Key>
+                    <IconWrapper>
+                      <Clipboard value={key}>
+                        <Tooltip title={t('Click to copy')} containerDisplayMode="flex">
+                          <IconCopy color="gray500" />
+                        </Tooltip>
+                      </Clipboard>
+                    </IconWrapper>
+                  </KeyWrapper>
+                  <Text>
+                    {!defined(created) ? t('Unknown') : <DateTime date={created} />}
+                  </Text>
+                  <Actions>
+                    <Button
+                      size="small"
+                      title={t('Edit Key')}
+                      label={t('Edit Key')}
+                      icon={<IconEdit size="sm" />}
+                      onClick={this.handleOpenEditDialog(key)}
+                    />
+                    <Button
+                      size="small"
+                      title={t('Delete Key')}
+                      label={t('Delete Key')}
+                      onClick={this.handleDelete(key)}
+                      icon={<IconDelete size="sm" />}
+                    />
+                  </Actions>
+                </React.Fragment>
+              );
+            })}
+          </StyledPanelTable>
+        )}
       </React.Fragment>
     );
   }
 }
 
 export default RelayWrapper;
+
+const EmptyMessageActions = styled('div')`
+  display: grid;
+  grid-template-columns: max-content max-content;
+  grid-gap: ${space(1)};
+  align-items: center;
+`;
 
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: repeat(3, auto) max-content;
