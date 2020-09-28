@@ -8,23 +8,41 @@ import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValue
 import {t} from 'app/locale';
 import {EventError} from 'app/sentryTypes';
 
+type Error = {
+  type: string;
+  message: string;
+  data: {
+    name?: string;
+    message?: string;
+    image_path?: string;
+    image_name?: string;
+    server_time?: string;
+    sdk_time?: string;
+  };
+};
+
 const keyMapping = {
   image_uuid: 'Debug ID',
   image_name: 'File Name',
   image_path: 'File Path',
 };
 
-class EventErrorItem extends React.Component {
+type Props = {
+  error: Error;
+};
+
+type State = {
+  isOpen: boolean;
+};
+
+class EventErrorItem extends React.Component<Props, State> {
   static propTypes = {
     error: EventError.isRequired,
   };
 
-  constructor(...args) {
-    super(...args);
-    this.state = {
-      isOpen: false,
-    };
-  }
+  state: State = {
+    isOpen: false,
+  };
 
   shouldComponentUpdate(_nextProps, nextState) {
     return this.state.isOpen !== nextState.isOpen;

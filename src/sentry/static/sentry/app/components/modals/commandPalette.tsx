@@ -1,31 +1,23 @@
 import {ClassNames, css} from '@emotion/core';
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import {ModalBody} from 'react-bootstrap';
 
+import Input from 'app/views/settings/components/forms/controls/input';
 import {analytics} from 'app/utils/analytics';
 import {t} from 'app/locale';
 import Search from 'app/components/search';
 import theme from 'app/utils/theme';
+import space from 'app/styles/space';
 
-class CommandPaletteModal extends React.Component {
-  static propTypes = {
-    closeModal: PropTypes.func,
-    onClose: PropTypes.func,
-    Body: PropTypes.oneOfType([PropTypes.func, PropTypes.node]).isRequired,
-  };
+type Props = {
+  Body: typeof ModalBody;
+};
 
+class CommandPalette extends React.Component<Props> {
   componentDidMount() {
-    analytics('omnisearch.open');
+    analytics('omnisearch.open', {});
   }
-
-  handleSuccess = data => {
-    if (this.props.onClose) {
-      this.props.onClose(data);
-    }
-
-    this.props.closeModal();
-  };
 
   render() {
     const {Body} = this.props;
@@ -35,7 +27,7 @@ class CommandPaletteModal extends React.Component {
         <ClassNames>
           {({css: injectedCss}) => (
             <Search
-              {...this.props}
+              isOpen
               entryPoint="command_palette"
               minSearch={1}
               maxResults={10}
@@ -50,9 +42,8 @@ class CommandPaletteModal extends React.Component {
               `}
               renderInput={({getInputProps}) => (
                 <InputWrapper>
-                  <Input
+                  <StyledInput
                     autoFocus
-                    ref={ref => (this.searchInput = ref)}
                     {...getInputProps({
                       type: 'text',
                       placeholder: t('Search for projects, teams, settings, etc...'),
@@ -68,7 +59,7 @@ class CommandPaletteModal extends React.Component {
   }
 }
 
-export default CommandPaletteModal;
+export default CommandPalette;
 
 export const modalCss = css`
   .modal-content {
@@ -77,17 +68,23 @@ export const modalCss = css`
 `;
 
 const InputWrapper = styled('div')`
-  padding: 2px;
+  padding: ${space(0.25)};
 `;
 
-const Input = styled('input')`
+const StyledInput = styled(Input)`
   width: 100%;
-  padding: 8px;
-  border: none;
+  padding: ${space(1)};
   border-radius: 8px;
-  outline: none;
 
-  &:focus {
+  outline: none;
+  border: none;
+  box-shadow: none;
+
+  :focus,
+  :active,
+  :hover {
     outline: none;
+    border: none;
+    box-shadow: none;
   }
 `;

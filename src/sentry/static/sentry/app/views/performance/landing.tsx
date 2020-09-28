@@ -27,6 +27,7 @@ import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
 import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
+import {decodeScalar} from 'app/utils/queryString';
 
 import {generatePerformanceEventView, DEFAULT_STATS_PERIOD} from './data';
 import Table from './table';
@@ -37,9 +38,9 @@ import TrendsContent from './trends/content';
 import {modifyTrendsViewDefaultPeriod, DEFAULT_TRENDS_STATS_PERIOD} from './trends/utils';
 
 export enum FilterViews {
+  TRENDS = 'TRENDS',
   ALL_TRANSACTIONS = 'ALL_TRANSACTIONS',
   KEY_TRANSACTIONS = 'KEY_TRANSACTIONS',
-  TRENDS = 'TRENDS',
 }
 
 const VIEWS = Object.values(FilterViews).filter(view => view !== 'TRENDS');
@@ -160,11 +161,14 @@ class PerformanceLanding extends React.Component<Props, State> {
     return stringifyQueryObject(parsed);
   }
 
-  getCurrentView(): string {
+  getCurrentView(hasTrendsFeature?: boolean): string {
     const {location} = this.props;
     const currentView = location.query.view as FilterViews;
     if (Object.values(FilterViews).includes(currentView)) {
       return currentView;
+    }
+    if (hasTrendsFeature) {
+      return FilterViews.TRENDS;
     }
     return FilterViews.ALL_TRANSACTIONS;
   }
@@ -176,18 +180,38 @@ class PerformanceLanding extends React.Component<Props, State> {
       ...location.query,
     };
 
+    const query = decodeScalar(location.query.query) || '';
+    const conditions = tokenizeSearch(query);
+
     // This is a temporary change for trends to test adding a default count to increase relevancy
     if (viewKey === FilterViews.TRENDS) {
-      if (!newQuery.query) {
-        newQuery.query =
-          'count():>1000 transaction.duration:>0 p50():>0 avg(transaction.duration):>0';
+      const hasStartAndEnd = newQuery.start && newQuery.end;
+      if (!newQuery.statsPeriod && !hasStartAndEnd) {
+        newQuery.statsPeriod = DEFAULT_TRENDS_STATS_PERIOD;
       }
-      if (!newQuery.query.includes('count()')) {
-        newQuery.query += 'count():>1000';
+      if (!query) {
+        conditions.setTag('count()', ['>1000']);
+        conditions.setTag('transaction.duration', ['>0']);
       }
-      if (!newQuery.query.includes('transaction.duration')) {
-        newQuery.query += ' transaction.duration:>0';
+      if (!conditions.hasTags('count()')) {
+        conditions.setTag('count()', ['>1000']);
       }
+      if (!conditions.hasTags('transaction.duration')) {
+        conditions.setTag('transaction.duration', ['>0']);
+      }
+
+      newQuery.query = stringifyQueryObject(conditions);
+    }
+
+    const isNavigatingAwayFromTrends =
+      viewKey !== FilterViews.TRENDS && location.query.view === FilterViews.TRENDS;
+
+    if (isNavigatingAwayFromTrends) {
+      // This stops errors from occurring when navigating to other views since we are appending aggregates to the trends view
+      conditions.removeTag('count()');
+      conditions.removeTag('transaction.duration');
+
+      newQuery.query = stringifyQueryObject(conditions);
     }
 
     ReactRouter.browserHistory.push({
@@ -201,13 +225,14 @@ class PerformanceLanding extends React.Component<Props, State> {
       <Feature features={['trends', 'internal-catchall']} requireAll={false}>
         {({hasFeature}) =>
           hasFeature ? (
-            <ButtonBar merged active={this.getCurrentView()}>
+            <ButtonBar merged active={this.getCurrentView(hasFeature)}>
               {VIEWS_WITH_TRENDS.map(viewKey => {
                 return (
                   <Button
                     key={viewKey}
                     barId={viewKey}
                     size="small"
+                    data-test-id={'landing-header-' + viewKey.toLowerCase()}
                     onClick={() => this.handleViewChange(viewKey)}
                   >
                     {this.getViewLabel(viewKey)}
@@ -268,7 +293,7 @@ class PerformanceLanding extends React.Component<Props, State> {
 
   render() {
     const {organization, location, router, projects} = this.props;
-    const currentView = this.getCurrentView();
+    const currentView = this.getCurrentView(organization.features.includes('trends'));
     const isTrendsView = currentView === FilterViews.TRENDS;
     const eventView = isTrendsView
       ? modifyTrendsViewDefaultPeriod(this.state.eventView, location)

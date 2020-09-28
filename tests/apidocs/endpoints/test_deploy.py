@@ -12,9 +12,9 @@ from tests.apidocs.util import APIDocsTestCase
 
 
 class ReleaseDeploysDocs(APIDocsTestCase):
-    def test_simple(self):
+    def setUp(self):
         project = self.create_project(name="foo")
-        release = Release.objects.create(organization_id=project.organization_id, version="1",)
+        release = Release.objects.create(organization_id=project.organization_id, version="1")
         release.add_project(project)
         Deploy.objects.create(
             environment_id=Environment.objects.create(
@@ -32,19 +32,26 @@ class ReleaseDeploysDocs(APIDocsTestCase):
             release=release,
         )
 
-        url = reverse(
+        self.url = reverse(
             "sentry-api-0-organization-release-deploys",
             kwargs={"organization_slug": project.organization.slug, "version": release.version},
         )
 
         self.login_as(user=self.user)
 
+    def test_get(self):
+        response = self.client.get(self.url)
+        request = RequestFactory().get(self.url)
+
+        self.validate_schema(request, response)
+
+    def test_post(self):
         data = {
             "name": "foo",
             "environment": "production",
             "url": "https://www.example.com",
         }
-        response = self.client.post(url, data)
-        request = RequestFactory().post(url, data)
+        response = self.client.post(self.url, data)
+        request = RequestFactory().post(self.url, data)
 
-        self.validate_schema(response, request)
+        self.validate_schema(request, response)
