@@ -41,7 +41,7 @@ class OrganizationEventsMeasurementsHistogramEndpoint(OrganizationEventsV2Endpoi
                 measurements,
                 request.GET.get("query"),
                 params,
-                self.get_int_param(request, "num_buckets", minimum=1),
+                self.get_int_param(request, "numBuckets", minimum=1),
                 self.get_int_param(request, "min", allow_none=True),
                 self.get_int_param(request, "max", allow_none=True),
                 # don't allow for too many decimal places of precision
@@ -63,9 +63,7 @@ class OrganizationEventsMeasurementsHistogramEndpoint(OrganizationEventsV2Endpoi
         try:
             if raw_value is not None:
                 value = int(raw_value)
-                if (minimum is not None and value < minimum) or (
-                    maximum is not None and value > maximum
-                ):
+                if (minimum is None or minimum <= value) and (maximum is None or maximum >= value):
                     return value
             elif not allow_none:
                 raise ParseError(detail=u"Missing value for {}.".format(param))

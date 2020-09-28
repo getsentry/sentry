@@ -70,7 +70,7 @@ class OrganizationEventsMeasurementsHistogramEndpointTest(APITestCase, SnubaTest
         query = {
             "project": [self.project.id],
             "measurement": ["foo", "bar"],
-            "num_buckets": 10,
+            "numBuckets": 10,
         }
 
         response = self.do_request(query)
@@ -80,7 +80,7 @@ class OrganizationEventsMeasurementsHistogramEndpointTest(APITestCase, SnubaTest
         query = {
             "project": [self.project.id],
             "measurement": ["foo", "bar"],
-            "num_buckets": 10,
+            "numBuckets": 10,
             "min": 0,
             "max": 100,
             "precision": 0,
@@ -92,7 +92,7 @@ class OrganizationEventsMeasurementsHistogramEndpointTest(APITestCase, SnubaTest
     def test_bad_params_missing_measurement(self):
         query = {
             "project": [self.project.id],
-            "num_buckets": 10,
+            "numBuckets": 10,
         }
 
         response = self.do_request(query)
@@ -103,7 +103,7 @@ class OrganizationEventsMeasurementsHistogramEndpointTest(APITestCase, SnubaTest
         query = {
             "project": [self.project.id],
             "measurement": ["foo", "bar", "baz", "qux", "quux"],
-            "num_buckets": 10,
+            "numBuckets": 10,
             "min": 0,
             "max": 100,
             "precision": 0,
@@ -113,38 +113,38 @@ class OrganizationEventsMeasurementsHistogramEndpointTest(APITestCase, SnubaTest
         assert response.status_code == 400
         assert "Too many measurements specified, maximum allowed is 4." in response.data["detail"]
 
-    def test_bad_params_missing_num_buckets(self):
+    def test_bad_params_missing_numBuckets(self):
         query = {
             "project": [self.project.id],
             "measurement": ["foo", "bar"],
         }
         response = self.do_request(query)
         assert response.status_code == 400
-        assert "Missing value for num_buckets." in response.data["detail"]
+        assert "Missing value for numBuckets." in response.data["detail"]
 
-    def test_bad_params_invalid_num_buckets(self):
+    def test_bad_params_invalid_numBuckets(self):
         query = {
             "project": [self.project.id],
             "measurement": ["foo", "bar"],
-            "num_buckets": "baz",
+            "numBuckets": "baz",
         }
         response = self.do_request(query)
         assert response.status_code == 400
         assert (
-            "Invalid value for num_buckets. Expected to be at least 1 got baz."
+            "Invalid value for numBuckets. Expected to be at least 1 got baz."
             in response.data["detail"]
         )
 
-    def test_bad_params_invalid_negative_num_buckets(self):
+    def test_bad_params_invalid_negative_numBuckets(self):
         query = {
             "project": [self.project.id],
             "measurement": ["foo", "bar"],
-            "num_buckets": -1,
+            "numBuckets": -1,
         }
         response = self.do_request(query)
         assert response.status_code == 400
         assert (
-            "Invalid value for num_buckets. Expected to be at least 1 got -1"
+            "Invalid value for numBuckets. Expected to be at least 1 got -1"
             in response.data["detail"]
         )
 
@@ -152,7 +152,7 @@ class OrganizationEventsMeasurementsHistogramEndpointTest(APITestCase, SnubaTest
         query = {
             "project": [self.project.id],
             "measurement": ["foo", "bar"],
-            "num_buckets": 10,
+            "numBuckets": 10,
             "min": "baz",
         }
 
@@ -166,7 +166,7 @@ class OrganizationEventsMeasurementsHistogramEndpointTest(APITestCase, SnubaTest
         query = {
             "project": [self.project.id],
             "measurement": ["foo", "bar"],
-            "num_buckets": 10,
+            "numBuckets": 10,
             "max": "baz",
         }
 
@@ -180,7 +180,7 @@ class OrganizationEventsMeasurementsHistogramEndpointTest(APITestCase, SnubaTest
         query = {
             "project": [self.project.id],
             "measurement": ["foo", "bar"],
-            "num_buckets": 10,
+            "numBuckets": 10,
             "precision": -1,
         }
 
@@ -197,7 +197,7 @@ class OrganizationEventsMeasurementsHistogramEndpointTest(APITestCase, SnubaTest
         query = {
             "project": [self.project.id],
             "measurement": ["foo", "bar"],
-            "num_buckets": 5,
+            "numBuckets": 5,
         }
 
         response = self.do_request(query)
@@ -210,7 +210,7 @@ class OrganizationEventsMeasurementsHistogramEndpointTest(APITestCase, SnubaTest
         query = {
             "project": [self.project.id],
             "measurement": ["foo", "bar"],
-            "num_buckets": 10,
+            "numBuckets": 10,
             "min": 10,
             "max": 19,
         }
@@ -233,7 +233,7 @@ class OrganizationEventsMeasurementsHistogramEndpointTest(APITestCase, SnubaTest
         query = {
             "project": [self.project.id],
             "measurement": ["foo"],
-            "num_buckets": 5,
+            "numBuckets": 5,
         }
 
         response = self.do_request(query)
@@ -257,7 +257,7 @@ class OrganizationEventsMeasurementsHistogramEndpointTest(APITestCase, SnubaTest
         query = {
             "project": [self.project.id],
             "measurement": ["foo"],
-            "num_buckets": 5,
+            "numBuckets": 5,
         }
 
         response = self.do_request(query)
@@ -278,7 +278,7 @@ class OrganizationEventsMeasurementsHistogramEndpointTest(APITestCase, SnubaTest
         query = {
             "project": [self.project.id],
             "measurement": ["foo"],
-            "num_buckets": 5,
+            "numBuckets": 5,
         }
 
         response = self.do_request(query)
@@ -301,7 +301,7 @@ class OrganizationEventsMeasurementsHistogramEndpointTest(APITestCase, SnubaTest
         query = {
             "project": [self.project.id],
             "measurement": ["foo"],
-            "num_buckets": 5,
+            "numBuckets": 5,
         }
 
         response = self.do_request(query)
@@ -322,7 +322,7 @@ class OrganizationEventsMeasurementsHistogramEndpointTest(APITestCase, SnubaTest
         query = {
             "project": [self.project.id],
             "measurement": ["foo"],
-            "num_buckets": 5,
+            "numBuckets": 5,
         }
 
         response = self.do_request(query)
@@ -345,7 +345,7 @@ class OrganizationEventsMeasurementsHistogramEndpointTest(APITestCase, SnubaTest
         query = {
             "project": [self.project.id],
             "measurement": ["foo"],
-            "num_buckets": 5,
+            "numBuckets": 5,
         }
 
         response = self.do_request(query)
@@ -368,7 +368,7 @@ class OrganizationEventsMeasurementsHistogramEndpointTest(APITestCase, SnubaTest
         query = {
             "project": [self.project.id],
             "measurement": ["foo"],
-            "num_buckets": 5,
+            "numBuckets": 5,
             "precision": 2,
         }
 
@@ -392,7 +392,7 @@ class OrganizationEventsMeasurementsHistogramEndpointTest(APITestCase, SnubaTest
         query = {
             "project": [self.project.id],
             "measurement": ["foo"],
-            "num_buckets": 5,
+            "numBuckets": 5,
             "precision": 4,
         }
 
@@ -416,7 +416,7 @@ class OrganizationEventsMeasurementsHistogramEndpointTest(APITestCase, SnubaTest
         query = {
             "project": [self.project.id],
             "measurement": ["bar", "baz", "foo"],
-            "num_buckets": 5,
+            "numBuckets": 5,
         }
 
         response = self.do_request(query)
@@ -438,7 +438,7 @@ class OrganizationEventsMeasurementsHistogramEndpointTest(APITestCase, SnubaTest
         query = {
             "project": [self.project.id],
             "measurement": ["bar", "baz", "foo"],
-            "num_buckets": 5,
+            "numBuckets": 5,
         }
 
         specs = [
@@ -447,6 +447,37 @@ class OrganizationEventsMeasurementsHistogramEndpointTest(APITestCase, SnubaTest
             (17, 20, [("bar", 0), ("baz", 0), ("foo", 0)]),
             (20, 23, [("bar", 1), ("baz", 1), ("foo", 1)]),
             (23, 26, [("bar", 0), ("baz", 0), ("foo", 0)]),
+        ]
+        response = self.do_request(query)
+        assert response.status_code == 200
+        assert response.data["data"] == self.as_response_data(specs)
+
+    def test_histogram_filtered_with_min_max(self):
+        # range is [0, 5), but min/max is [1,4] so split into 3 buckets of width 2
+        specs = [
+            (0, 1, [("foo", 1)]),
+            (1, 2, [("foo", 1)]),
+            (2, 3, [("foo", 0)]),
+            (3, 4, [("foo", 1)]),
+            (4, 5, [("foo", 0)]),
+            (5, 6, [("foo", 1)]),
+        ]
+        self.populate_measurements(specs)
+
+        query = {
+            "project": [self.project.id],
+            "measurement": ["foo"],
+            "numBuckets": 3,
+            "min": 1,
+            "max": 4,
+        }
+
+        specs = [
+            (1, 3, [("foo", 1)]),
+            (3, 5, [("foo", 1)]),
+            # Event though its greater than the max, this bucket exists because of the
+            # bucket size. However, notice that it is expected to be empty.
+            (5, 7, [("foo", 0)]),
         ]
         response = self.do_request(query)
         assert response.status_code == 200

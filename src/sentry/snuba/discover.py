@@ -961,15 +961,33 @@ def measurements_histogram_query(
     precision=0,
     referrer=None,
 ):
+    computed_min_value, computed_max_value = find_measurements_min_max(
+        measurements, min_value, max_value, user_query, params
+    )
+
     key_col = "array_join(measurements_key)"
     histogram_params = find_measurements_histogram_params(
-        measurements, num_buckets, min_value, max_value, precision, user_query, params
+        measurements,
+        num_buckets,
+        computed_min_value,
+        computed_max_value,
+        precision,
+        user_query,
+        params,
     )
     histogram_col = get_measurements_histogram_col(histogram_params)
 
+    conditions = [
+        [get_function_alias(key_col), "IN", measurements],
+    ]
+    if min_value is not None:
+        conditions.append([get_function_alias(histogram_col), ">=", min_value])
+    if max_value is not None:
+        conditions.append([get_function_alias(histogram_col), "<=", max_value])
+
     results = query(
         selected_columns=[key_col, histogram_col, "count()"],
-        conditions=[[get_function_alias(key_col), "IN", measurements]],
+        conditions=conditions,
         query=user_query,
         params=params,
         # the zerofill step assumes it's ordered by the bin then name
@@ -992,10 +1010,6 @@ def get_measurements_histogram_col(params):
 def find_measurements_histogram_params(
     measurements, num_buckets, min_value, max_value, precision, query, params
 ):
-    min_value, max_value = find_measurements_min_max(
-        measurements, min_value, max_value, query, params
-    )
-
     multiplier = int(10 ** precision)
 
     # finding the bounds might result in None if there isn't sufficient data
@@ -1093,8 +1107,8 @@ def normalize_measurements_histogram(measurements, num_buckets, key_col, histogr
                 new_data[-1]["histogram_bin"] /= float(histogram_params.multiplier)
 
     if idx < len(data):
-        # the rows mismatch, something's wrong here
-        raise Exception(u"{} unconsumed rows remaining.".format(len(data) - idx))
+        # There are some unconsumed rows here, something is wrong here.
+        raise Exception(u"{}/{} unconsumed rows detected.".format(len(data) - idx, len(data)))
 
     results["data"] = new_data
 
