@@ -34,7 +34,7 @@ type Props = {
 
 type State = {
   loading: boolean;
-  assignedTo: User;
+  assignedTo: User | undefined;
   memberList: User[] | undefined;
 };
 
@@ -81,7 +81,7 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
   },
 
   componentWillReceiveProps(nextProps) {
-    const loading = GroupStore.hasStatus(nextProps.id, 'assignTo');
+    const loading = nextProps.id && GroupStore.hasStatus(nextProps.id, 'assignTo');
     if (nextProps.id !== this.props.id || loading !== this.state.loading) {
       const group = GroupStore.get(this.props.id);
       this.setState({
@@ -120,7 +120,13 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
   },
 
   assignableTeams() {
+    if (!this.props.id) {
+      return [];
+    }
     const group = GroupStore.get(this.props.id);
+    if (!group) {
+      return [];
+    }
 
     return (
       ProjectsStore.getBySlug(group.project.slug) || {
@@ -143,7 +149,7 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
     const group = GroupStore.get(this.props.id);
     this.setState({
       assignedTo: group && group.assignedTo,
-      loading: GroupStore.hasStatus(this.props.id, 'assignTo'),
+      loading: this.props.id && GroupStore.hasStatus(this.props.id, 'assignTo'),
     });
   },
 

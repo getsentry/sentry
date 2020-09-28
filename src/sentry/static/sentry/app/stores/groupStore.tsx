@@ -2,58 +2,122 @@ import isArray from 'lodash/isArray';
 import isUndefined from 'lodash/isUndefined';
 import Reflux from 'reflux';
 
+import {Activity, Group} from 'app/types';
 import GroupActions from 'app/actions/groupActions';
 import IndicatorStore from 'app/stores/indicatorStore';
 import {t} from 'app/locale';
 
 function showAlert(msg, type) {
-  IndicatorStore.add(msg, type, {
+  IndicatorStore.addMessage(msg, type, {
     duration: 4000,
   });
 }
 
+// TODO(ts) Type this any better.
+type Change = [string, string, any];
+
 class PendingChangeQueue {
-  constructor() {
-    this.changes = [];
+  changes: Change[] = [];
+
+  getForItem(itemId: string) {
+    return this.changes.filter((change: Change) => change[1] === itemId);
   }
 
-  getForItem(itemId) {
-    return this.changes.filter(change => change[1] === itemId);
-  }
-
-  push(changeId, itemId, data) {
+  push(changeId: string, itemId: string, data: any) {
     this.changes.push([changeId, itemId, data]);
   }
 
-  remove(changeId, itemId) {
+  remove(changeId: string, itemId?: string) {
     this.changes = this.changes.filter(
       change => change[0] !== changeId || change[1] !== itemId
     );
   }
 
-  forEach() {
-    this.changes.forEach.apply(this.changes, arguments);
+  forEach(...args) {
+    this.changes.forEach.apply(this.changes, args);
   }
 }
 
-const GroupStore = Reflux.createStore({
+type State = {
+  items: any[];
+  statuses: Record<string, any[]>;
+};
+
+type Internals = {
+  state: State;
+  pendingChanges: PendingChangeQueue;
+
+  indexOfActivity: (groupId: string, id: string) => number;
+  addActivity: (groupId: string, data: Activity, index?: number) => void;
+  updateActivity: (groupId: string, id: string, data: Partial<Activity>) => void;
+  removeActivity: (groupId: string, id: string) => number;
+};
+
+type GroupStoreInterface = Reflux.StoreDefinition & {
+  init: () => void;
+  reset: () => void;
+  loadInitialData: (items: Group[]) => void;
+  add: (items: Group[]) => void;
+  remove: (itemId: string) => void;
+  addStatus: (id: string, status: string) => void;
+  clearStatus: (id: string, status: string) => void;
+  hasStatus: (id: string, status: string) => boolean;
+  get: (id: string) => Group | undefined;
+  getAllItemIds: () => string[];
+  getAllItems: () => Group[];
+  onAssignTo: (changeId: string, itemId: string, data: any) => void;
+  onAssignToError: (changeId: string, itemId: string, error: Error) => void;
+  onAssignToSuccess: (changeId: string, itemId: string, response: any) => void;
+  onDelete: (changeId: string, itemIds: string[]) => void;
+  onDeleteSuccess: (changeId: string, itemIds: string[], response: any) => void;
+  onDeleteError: (changeId: string, itemIds: string[], error: Error) => void;
+  onDiscard: (changeId: string, itemId: string) => void;
+  onDiscardError: (changeId: string, itemId: string, response: any) => void;
+  onDiscardSuccess: (changeId: string, itemId: string, response: any) => void;
+  onMerge: (changeId: string, itemIds: string[]) => void;
+  onMergeError: (changeId: string, itemIds: string[], response: any) => void;
+  onMergeSuccess: (changeId: string, itemIds: string[], response: any) => void;
+  onUpdate: (changeId: string, itemIds: string[], data: any) => void;
+  onUpdateSuccess: (
+    changeId: string,
+    itemIds: string[],
+    response: Partial<Group>
+  ) => void;
+  onUpdateError: (
+    changeId: string,
+    itemIds: string[],
+    error: Error,
+    silent: boolean
+  ) => void;
+};
+
+type GroupStore = Reflux.Store & GroupStoreInterface;
+
+const storeConfig: Reflux.StoreDefinition & Internals & GroupStoreInterface = {
   listenables: [GroupActions],
+
+  state: {
+    items: [],
+    statuses: {},
+  },
+
+  pendingChanges: new PendingChangeQueue(),
 
   init() {
     this.reset();
   },
 
   reset() {
+    this.pendingChanges = new PendingChangeQueue();
     this.items = [];
     this.statuses = {};
-    this.pendingChanges = new PendingChangeQueue();
   },
 
   // TODO(dcramer): this should actually come from an action of some sorts
   loadInitialData(items) {
     this.reset();
 
-    const itemIds = new Set();
+    const itemIds = new Set<string>();
     items.forEach(item => {
       itemIds.add(item.id);
       this.items.push(item);
@@ -68,7 +132,7 @@ const GroupStore = Reflux.createStore({
     }
 
     const itemsById = {};
-    const itemIds = new Set();
+    const itemIds = new Set<string>();
     items.forEach(item => {
       itemsById[item.id] = item;
       itemIds.add(item.id);
@@ -197,8 +261,10 @@ const GroupStore = Reflux.createStore({
   },
 
   get(id) {
-    const pendingForId = [];
-    this.pendingChanges.forEach(change => {
+    // TODO(ts) This needs to be constrained further. It was left as any
+    // because the PendingChanges signatures and this were not aligned.
+    const pendingForId: any[] = [];
+    this.pendingChanges.forEach((change: any) => {
       if (change.id === id) {
         pendingForId.push(change);
       }
@@ -418,6 +484,6 @@ const GroupStore = Reflux.createStore({
     this.pendingChanges.remove(changeId);
     this.trigger(new Set(itemIds));
   },
-});
+};
 
-export default GroupStore;
+export default Reflux.createStore(storeConfig) as GroupStore;

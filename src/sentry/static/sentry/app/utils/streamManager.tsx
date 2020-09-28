@@ -6,10 +6,23 @@ const removeFromList = (item, list) => {
   }
 };
 
+type Options = {
+  limit?: number;
+};
+
+type IdThing = {
+  id: string;
+};
+
 class StreamManager {
+  private idList: string[] = [];
+  private limit: number;
+  private store: any;
+
   // TODO(dcramer): this should listen to changes on GroupStore and remove
   // items that are removed there
-  constructor(store, options = {}) {
+  // TODO(ts) Add better typing for store. Generally this is GroupStore, but it could be other things.
+  constructor(store: any, options: Options = {}) {
     this.idList = [];
     this.store = store;
     this.limit = options.limit || 1000;
@@ -20,8 +33,8 @@ class StreamManager {
     excess.forEach(this.store.remove);
   }
 
-  push(items = []) {
-    items = [].concat(items);
+  push(items: IdThing[] = []) {
+    items = [...items];
     if (items.length === 0) {
       return this;
     }
@@ -30,7 +43,7 @@ class StreamManager {
 
     items.forEach(item => removeFromList(item.id, this.idList));
     const ids = items.map(item => item.id);
-    this.idList = [].concat(this.idList, ids);
+    this.idList = [...this.idList, ...ids];
 
     this.trim();
     this.store.add(items);
@@ -44,15 +57,15 @@ class StreamManager {
       .sort((a, b) => this.idList.indexOf(a.id) - this.idList.indexOf(b.id));
   }
 
-  unshift(items = []) {
-    items = [].concat(items);
+  unshift(items: IdThing[] = []) {
+    items = [...items];
     if (items.length === 0) {
       return this;
     }
 
     items.forEach(item => removeFromList(item.id, this.idList));
     const ids = items.map(item => item.id);
-    this.idList = [].concat(ids, this.idList);
+    this.idList = [...ids, ...this.idList];
 
     this.trim();
     this.store.add(items);
