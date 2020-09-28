@@ -196,6 +196,7 @@ def process_pending_incident_snapshots():
     has passed it's target_run_date.
     """
     from sentry.incidents.logic import create_incident_snapshot
+    from sentry.utils.snuba import UnqualifiedQueryError
 
     batch_size = 50
 
@@ -218,5 +219,8 @@ def process_pending_incident_snapshots():
                     incident.status == IncidentStatus.CLOSED.value
                     and not IncidentSnapshot.objects.filter(incident=incident).exists()
                 ):
-                    create_incident_snapshot(incident, windowed_stats=True)
+                    try:
+                        create_incident_snapshot(incident, windowed_stats=True)
+                    except UnqualifiedQueryError:
+                        pass
                 pending_snapshot.delete()

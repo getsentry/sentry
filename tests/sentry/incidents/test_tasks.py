@@ -277,3 +277,20 @@ class ProcessPendingIncidentSnapshots(TestCase):
         assert IncidentSnapshot.objects.filter(incident=incident).exists()
         assert IncidentSnapshot.objects.filter(incident=incident).count() == 1
         assert IncidentSnapshot.objects.all().count() == 1
+
+    def test_abort_because_missing_project(self):
+        project_to_burn = self.create_project(name="Burn", slug="burn", teams=[self.team])
+        incident = self.create_incident(
+            title="incident1", projects=[project_to_burn], status=IncidentStatus.CLOSED.value
+        )
+        pending_1 = PendingIncidentSnapshot.objects.create(
+            incident=incident, target_run_date=timezone.now()
+        )
+        assert IncidentSnapshot.objects.all().count() == 0
+        project_to_burn.delete()
+        with self.tasks():
+            process_pending_incident_snapshots()
+        assert not PendingIncidentSnapshot.objects.filter(id=pending_1.id).exists()
+        assert not IncidentSnapshot.objects.filter(incident=incident).exists()
+        assert IncidentSnapshot.objects.filter(incident=incident).count() == 0
+        assert IncidentSnapshot.objects.all().count() == 0
