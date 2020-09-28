@@ -63,30 +63,6 @@ class EventErrors extends React.Component<Props, State> {
 
   uniqueErrors = (errors: any[]) => uniqWith(errors, isEqual);
 
-  onReprocessEvent = async () => {
-    const {api, orgId, project, event} = this.props;
-    const endpoint = `/projects/${orgId}/${project.slug}/events/${event.id}/reprocessing/`;
-
-    addLoadingMessage(t('Reprocessing event\u2026'));
-
-    try {
-      await api.requestPromise(endpoint, {
-        method: 'POST',
-      });
-    } catch {
-      clearIndicators();
-      addErrorMessage(
-        t('Failed to start reprocessing. The event is likely too far in the past.')
-      );
-      return;
-    }
-
-    clearIndicators();
-    browserHistory.push(
-      `/organizations/${orgId}/issues/?query=tags[original_event_id]:${event.id}`
-    );
-  };
-
   onReprocessGroup = async (issueId: string) => {
     const {api, orgId} = this.props;
     const endpoint = `/organizations/${orgId}/issues/${issueId}/reprocessing/`;
@@ -156,7 +132,6 @@ class EventErrors extends React.Component<Props, State> {
                 {t('Reprocess all events in issue')}
               </Button>
             )}
-            <Button onClick={this.onReprocessEvent}>{t('Reprocess single event')}</Button>
             <Button onClick={closeModal}>{t('Cancel')}</Button>
           </ButtonBar>
         </Footer>
