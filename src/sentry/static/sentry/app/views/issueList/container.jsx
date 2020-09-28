@@ -32,6 +32,11 @@ class IssueListContainer extends React.Component {
       ? 'cold-start'
       : 'warm-start';
     metric.mark({name: 'page-issue-list-start', data: {start_type: startType}});
+    metric.createSpan({
+      op: 'load',
+      description: 'issue-list-load',
+      label: 'issue-list-load',
+    });
   }
 
   getTitle() {

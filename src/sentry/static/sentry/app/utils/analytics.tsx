@@ -1,3 +1,5 @@
+import * as Sentry from '@sentry/react';
+
 import HookStore from 'app/stores/hookStore';
 import {Hooks} from 'app/types/hooks';
 
@@ -112,6 +114,33 @@ type RecordMetric = Hooks['metrics:event'] & {
      */
     noCleanup?: boolean;
   }) => void;
+
+  createSpan: (opts: {
+    /**
+     * Name of the span operation
+     */
+    op: string;
+    /**
+     * Description of the span
+     */
+    description: string;
+    /**
+     * Key used to refer to the span later
+     */
+    key: string;
+  }) => void;
+
+  endSpan: (opts: {
+    /**
+     * Key used to retrieve the span to be deleted
+     */
+    key: string;
+  }) => void;
+
+  /**
+   * Ends the current transaction if it exists
+   */
+  endTransaction: () => void;
 };
 
 /**
@@ -194,5 +223,38 @@ metric.measure = function metricMeasure({name, start, end, data = {}, noCleanup}
     performance.clearMarks(start);
     performance.clearMarks(endMarkName);
     metricDataStore.delete(start);
+  }
+};
+
+/**
+ * Used to pass data between createSpan and endSpan
+ */
+const spanDataStore = new Map<string, object>();
+
+const getCurrentTransaction = () => {
+  return Sentry.getCurrentHub()
+    .getScope()
+    ?.getTransaction();
+};
+
+metric.createSpan = ({op, description, key}) => {
+  const transaction = getCurrentTransaction();
+  if (transaction) {
+    const span = transaction.startChild({op, description});
+    spanDataStore[key] = span;
+  }
+};
+
+metric.endSpan = ({key}) => {
+  const span = spanDataStore[key];
+  if (span) {
+    span.finish();
+  }
+};
+
+metric.endTransaction = () => {
+  const transaction = getCurrentTransaction();
+  if (transaction) {
+    transaction.finish();
   }
 };
