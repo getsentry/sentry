@@ -16,6 +16,7 @@ import {TrendFunctionField} from 'app/views/performance/trends/types';
 
 const trendsViewQuery = {
   view: 'TRENDS',
+  query: 'count():>1000 transaction.duration:>0',
 };
 
 function selectTrendFunction(wrapper, field) {
@@ -151,6 +152,7 @@ describe('Performance > Trends', function() {
       />,
       data.routerContext
     );
+
     await tick();
     wrapper.update();
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import {Location} from 'history';
-import * as ReactRouter from 'react-router';
+import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
@@ -8,6 +8,7 @@ import {Client} from 'app/api';
 import {t} from 'app/locale';
 import {GlobalSelection, Organization, Project} from 'app/types';
 import {loadOrganizationTags} from 'app/actionCreators/tags';
+import {updateDateTime} from 'app/actionCreators/globalSelection';
 import SearchBar from 'app/views/events/searchBar';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
@@ -51,7 +52,7 @@ type Props = {
   organization: Organization;
   selection: GlobalSelection;
   location: Location;
-  router: ReactRouter.InjectedRouter;
+  router: InjectedRouter;
   projects: Project[];
   loadingProjects: boolean;
   demoMode?: boolean;
@@ -61,6 +62,13 @@ type State = {
   eventView: EventView;
   error: string | undefined;
 };
+
+function isStatsPeriodDefault(
+  statsPeriod: string | undefined,
+  defaultPeriod: string
+): boolean {
+  return !statsPeriod || defaultPeriod === statsPeriod;
+}
 
 class PerformanceLanding extends React.Component<Props, State> {
   static getDerivedStateFromProps(nextProps: Props, prevState: State): State {
@@ -124,7 +132,7 @@ class PerformanceLanding extends React.Component<Props, State> {
       organization_id: parseInt(organization.id, 10),
     });
 
-    ReactRouter.browserHistory.push({
+    browserHistory.push({
       pathname: location.pathname,
       query: {
         ...location.query,
@@ -181,7 +189,28 @@ class PerformanceLanding extends React.Component<Props, State> {
     };
 
     const query = decodeScalar(location.query.query) || '';
+    const statsPeriod = decodeScalar(location.query.statsPeriod);
     const conditions = tokenizeSearch(query);
+
+    const currentView = location.query.view;
+
+    const newDefaultPeriod =
+      viewKey === FilterViews.TRENDS ? DEFAULT_TRENDS_STATS_PERIOD : DEFAULT_STATS_PERIOD;
+
+    const hasStartAndEnd = newQuery.start && newQuery.end;
+
+    if (!hasStartAndEnd && isStatsPeriodDefault(statsPeriod, newDefaultPeriod)) {
+      /**
+       * Resets stats period to default of the tab you are navigating to
+       * on tab change as tabs have different default periods.
+       */
+      updateDateTime({
+        start: null,
+        end: null,
+        utc: false,
+        period: newDefaultPeriod,
+      });
+    }
 
     trackAnalyticsEvent({
       eventKey: 'performance_views.change_view',
@@ -190,16 +219,7 @@ class PerformanceLanding extends React.Component<Props, State> {
       view_name: viewKey,
     });
 
-    // This is a temporary change for trends to test adding a default count to increase relevancy
     if (viewKey === FilterViews.TRENDS) {
-      const hasStartAndEnd = newQuery.start && newQuery.end;
-      if (!newQuery.statsPeriod && !hasStartAndEnd) {
-        newQuery.statsPeriod = DEFAULT_TRENDS_STATS_PERIOD;
-      }
-      if (!query) {
-        conditions.setTag('count()', ['>1000']);
-        conditions.setTag('transaction.duration', ['>0']);
-      }
       if (!conditions.hasTags('count()')) {
         conditions.setTag('count()', ['>1000']);
       }
@@ -210,8 +230,7 @@ class PerformanceLanding extends React.Component<Props, State> {
       newQuery.query = stringifyQueryObject(conditions);
     }
 
-    const isNavigatingAwayFromTrends =
-      viewKey !== FilterViews.TRENDS && location.query.view === FilterViews.TRENDS;
+    const isNavigatingAwayFromTrends = viewKey !== FilterViews.TRENDS && currentView;
 
     if (isNavigatingAwayFromTrends) {
       // This stops errors from occurring when navigating to other views since we are appending aggregates to the trends view
@@ -221,7 +240,7 @@ class PerformanceLanding extends React.Component<Props, State> {
       newQuery.query = stringifyQueryObject(conditions);
     }
 
-    ReactRouter.browserHistory.push({
+    browserHistory.push({
       pathname: location.pathname,
       query: {...newQuery, view: viewKey},
     });
