@@ -6,25 +6,25 @@ import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import styled from '@emotion/styled';
+import classNames from 'classnames';
 
 import {PanelItem} from 'app/components/panels';
 import {valueIsEqual} from 'app/utils';
-import theme from 'app/utils/theme';
-import {IconOpen} from 'app/icons';
 import AssigneeSelector from 'app/components/assigneeSelector';
 import Count from 'app/components/count';
+import DropdownMenu from 'app/components/dropdownMenu';
 import EventOrGroupExtraDetails from 'app/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from 'app/components/eventOrGroupHeader';
 import GroupChart from 'app/components/stream/groupChart';
 import GroupCheckBox from 'app/components/stream/groupCheckBox';
 import GroupStore from 'app/stores/groupStore';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
+import MenuItem from 'app/components/menuItem';
 import SelectedGroupStore from 'app/stores/selectedGroupStore';
 import space from 'app/styles/space';
-import Tooltip from 'app/components/tooltip';
 import SentryTypes from 'app/sentryTypes';
 import {getRelativeSummary} from 'app/components/organizations/timeRangeSelector/utils';
-import {DEFAULT_STATS_PERIOD, MENU_CLOSE_DELAY} from 'app/constants';
+import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import EventView from 'app/utils/discover/eventView';
@@ -68,7 +68,6 @@ const StreamGroup = createReactClass({
         ...data,
         filtered: this.props.useFilteredStats ? data.filtered : undefined,
       },
-      showLifetimeStats: false,
     };
   },
 
@@ -95,7 +94,7 @@ const StreamGroup = createReactClass({
     if (!valueIsEqual(this.state.data, nextState.data)) {
       return true;
     }
-    return this.state.showLifetimeStats !== nextState.showLifetimeStats;
+    return false;
   },
 
   componentWillUnmount() {
@@ -127,22 +126,11 @@ const StreamGroup = createReactClass({
     SelectedGroupStore.toggleSelect(this.state.data.id);
   },
 
-  toggleShowLifetimeStats(showLifetimeStats) {
-    if (this.hoverWait) {
-      clearTimeout(this.hoverWait);
-    }
-
-    this.hoverWait = setTimeout(
-      () => this.setState({showLifetimeStats}),
-      MENU_CLOSE_DELAY
-    );
-
-    this.setState({showLifetimeStats});
-  },
-
   getDiscoverUrl(filtered) {
     const {organization, query, selection} = this.props;
     const {data} = this.state;
+
+    // TODO: @taylangocmen when there is no discover query open events page
 
     const {period, start, end} = selection.datetime || {};
 
@@ -184,7 +172,7 @@ const StreamGroup = createReactClass({
   },
 
   render() {
-    const {data, showLifetimeStats} = this.state;
+    const {data} = this.state;
     const {
       query,
       hasGuideAnchor,
@@ -197,15 +185,12 @@ const StreamGroup = createReactClass({
     } = this.props;
 
     const hasDynamicIssueCounts = organization.features.includes('dynamic-issue-counts');
-    const hasDiscoverQuery = organization.features.includes('discover-basic');
 
     const {period, start, end} = selection.datetime || {};
     const summary =
       !!start && !!end
-        ? 'the selected period'
+        ? 'time range'
         : getRelativeSummary(period || DEFAULT_STATS_PERIOD).toLowerCase();
-
-    const popperStyle = {maxWidth: 'none'};
 
     const primaryCount =
       data.filtered && hasDynamicIssueCounts ? data.filtered.count : data.count;
@@ -216,28 +201,12 @@ const StreamGroup = createReactClass({
     const secondaryUserCount =
       data.filtered && hasDynamicIssueCounts ? data.userCount : undefined;
 
-    const mouseEventHandlers = hasDynamicIssueCounts
-      ? {
-          onMouseEnter: () => this.toggleShowLifetimeStats(true),
-          onMouseLeave: () => this.toggleShowLifetimeStats(false),
-        }
-      : {};
-
-    // TODO: @taylangocmen discover links on telescopes
-    // TODO: @taylangocmen sort rows when clicked on a column
-    // TODO: @taylangocmen onboarding callouts when for when feature ships
-
     const showSecondaryPoints = Boolean(
-      showLifetimeStats &&
-        withChart &&
-        data &&
-        data.filtered &&
-        hasDynamicIssueCounts &&
-        statsPeriod
+      withChart && data && data.filtered && hasDynamicIssueCounts && statsPeriod
     );
 
     return (
-      <Group data-test-id="group" onClick={this.toggleSelect} {...mouseEventHandlers}>
+      <Group data-test-id="group" onClick={this.toggleSelect}>
         {canSelect && (
           <GroupCheckbox ml={2}>
             <GroupCheckBox id={data.id} />
@@ -264,90 +233,113 @@ const StreamGroup = createReactClass({
           </Box>
         )}
         <Flex width={[40, 60, 80, 80]} mx={2} justifyContent="flex-end">
-          <Tooltip
-            disabled={!hasDynamicIssueCounts}
-            popperStyle={popperStyle}
-            isHoverable
-            title={
-              <TooltipContent>
-                {data.filtered && (
-                  <tr>
-                    <TooltipCount value={data.filtered.count} />
-                    <TooltipText>{t('Matching search filters')}</TooltipText>
-                    {hasDiscoverQuery && (
-                      <StyledIconOpen
-                        to={this.getDiscoverUrl(true)}
-                        color={theme.blue300}
+          <DropdownMenu isNestedDropdown>
+            {({isOpen, getRootProps, getActorProps, getMenuProps}) => {
+              const topLevelCx = classNames('dropdown', {
+                'anchor-middle': true,
+                open: isOpen && hasDynamicIssueCounts,
+              });
+
+              return (
+                <span
+                  {...getRootProps({
+                    className: topLevelCx,
+                  })}
+                >
+                  <span {...getActorProps({})}>
+                    <div className="dropdown-actor-title">
+                      <PrimaryCount
+                        value={primaryCount}
+                        filtered={secondaryCount !== undefined}
                       />
+                      {secondaryCount !== undefined && (
+                        <SecondaryCount value={secondaryCount} />
+                      )}
+                    </div>
+                  </span>
+                  <ul {...getMenuProps({className: 'dropdown-menu inverted'})}>
+                    {data.filtered && (
+                      <React.Fragment>
+                        <StyledMenuItem to={this.getDiscoverUrl(true)}>
+                          <MenuItemText>{t('Matching search filters')}</MenuItemText>
+                          <MenuItemCount value={data.filtered.count} />
+                        </StyledMenuItem>
+                        <MenuItem divider />
+                      </React.Fragment>
                     )}
-                  </tr>
-                )}
-                <tr>
-                  <TooltipCount value={data.count} />
-                  <TooltipText>
-                    {data.filtered ? t(`Without search filters`) : t(`In ${summary}`)}
-                  </TooltipText>
-                  {hasDiscoverQuery && (
-                    <StyledIconOpen to={this.getDiscoverUrl()} color={theme.blue300} />
-                  )}
-                </tr>
-                {data.lifetime && (
-                  <tr>
-                    <TooltipCount value={data.lifetime.count} />
-                    <TooltipText>{t('Since issue began')}</TooltipText>
-                  </tr>
-                )}
-              </TooltipContent>
-            }
-          >
-            <PrimaryCount value={primaryCount} />
-            {showLifetimeStats && secondaryCount !== undefined && (
-              <SecondaryCount value={secondaryCount} />
-            )}
-          </Tooltip>
+
+                    <StyledMenuItem to={this.getDiscoverUrl()}>
+                      <MenuItemText>{t(`Total in ${summary}`)}</MenuItemText>
+                      <MenuItemCount value={data.count} />
+                    </StyledMenuItem>
+
+                    {data.lifetime && (
+                      <React.Fragment>
+                        <MenuItem divider />
+                        <StyledMenuItem>
+                          <MenuItemText>{t('Since issue began')}</MenuItemText>
+                          <MenuItemCount value={data.lifetime.count} />
+                        </StyledMenuItem>
+                      </React.Fragment>
+                    )}
+                  </ul>
+                </span>
+              );
+            }}
+          </DropdownMenu>
         </Flex>
         <Flex width={[40, 60, 80, 80]} mx={2} justifyContent="flex-end">
-          <Tooltip
-            disabled={!hasDynamicIssueCounts}
-            popperStyle={popperStyle}
-            isHoverable
-            title={
-              <TooltipContent>
-                {data.filtered && (
-                  <tr>
-                    <TooltipCount value={data.filtered.userCount} />
-                    <TooltipText>{t('Matching search filters')}</TooltipText>
-                    {hasDiscoverQuery && (
-                      <StyledIconOpen
-                        to={this.getDiscoverUrl(true)}
-                        color={theme.blue300}
-                      />
+          <DropdownMenu isNestedDropdown>
+            {({isOpen, getRootProps, getActorProps, getMenuProps}) => {
+              const topLevelCx = classNames('dropdown', {
+                'anchor-middle': true,
+                open: isOpen && hasDynamicIssueCounts,
+              });
+
+              return (
+                <span
+                  {...getRootProps({
+                    className: topLevelCx,
+                  })}
+                >
+                  <span {...getActorProps({})}>
+                    <div className="dropdown-actor-title">
+                      <PrimaryCount value={primaryUserCount} />
+                      {secondaryUserCount !== undefined && (
+                        <SecondaryCount dark value={secondaryUserCount} />
+                      )}
+                    </div>
+                  </span>
+                  <ul {...getMenuProps({className: 'dropdown-menu inverted'})}>
+                    {data.filtered && (
+                      <React.Fragment>
+                        <StyledMenuItem to={this.getDiscoverUrl(true)}>
+                          <MenuItemText>{t('Matching search filters')}</MenuItemText>
+                          <MenuItemCount value={data.filtered.userCount} />
+                        </StyledMenuItem>
+                        <MenuItem divider />
+                      </React.Fragment>
                     )}
-                  </tr>
-                )}
-                <tr>
-                  <TooltipCount value={data.userCount} />
-                  <TooltipText>
-                    {data.filtered ? t(`Without search filters`) : t(`In ${summary}`)}
-                  </TooltipText>
-                  {hasDiscoverQuery && (
-                    <StyledIconOpen to={this.getDiscoverUrl()} color={theme.blue300} />
-                  )}
-                </tr>
-                {data.lifetime && (
-                  <tr>
-                    <TooltipCount value={data.lifetime.userCount} />
-                    <TooltipText>{t('Since issue began')}</TooltipText>
-                  </tr>
-                )}
-              </TooltipContent>
-            }
-          >
-            <PrimaryCount value={primaryUserCount} />
-            {showLifetimeStats && secondaryUserCount !== undefined && (
-              <SecondaryCount value={secondaryUserCount} />
-            )}
-          </Tooltip>
+
+                    <StyledMenuItem to={this.getDiscoverUrl()}>
+                      <MenuItemText>{t(`Total in ${summary}`)}</MenuItemText>
+                      <MenuItemCount value={data.userCount} />
+                    </StyledMenuItem>
+
+                    {data.lifetime && (
+                      <React.Fragment>
+                        <MenuItem divider />
+                        <StyledMenuItem>
+                          <MenuItemText>{t('Since issue began')}</MenuItemText>
+                          <MenuItemCount value={data.lifetime.userCount} />
+                        </StyledMenuItem>
+                      </React.Fragment>
+                    )}
+                  </ul>
+                </span>
+              );
+            }}
+          </DropdownMenu>
         </Flex>
         <Box width={80} mx={2} className="hidden-xs hidden-sm">
           <AssigneeSelector id={data.id} memberList={memberList} />
@@ -377,51 +369,53 @@ const GroupCheckbox = styled(Box)`
 
 const PrimaryCount = styled(Count)`
   font-size: ${p => p.theme.fontSizeExtraLarge};
-  color: ${p => p.theme.gray700};
+  color: ${p => (p.filtered ? p.theme.purple400 : p.theme.gray700)};
 `;
 
 const SecondaryCount = styled(({value, ...p}) => <Count {...p} value={value} />)`
-  position: absolute;
   font-size: ${p => p.theme.fontSizeExtraLarge};
-  color: ${p => p.theme.gray500};
+  color: ${p => (p.dark ? p.theme.gray700 : p.theme.gray500)};
 
   :before {
     content: '/';
+    color: ${p => p.theme.gray500};
   }
 `;
 
-const TooltipContent = styled(({children, ...p}) => (
-  <table {...p}>
-    <tbody>{children}</tbody>
-  </table>
+const StyledMenuItem = styled(({to, children, ...p}) => (
+  <MenuItem noAnchor>
+    {to ? (
+      <Link to={to}>
+        <div {...p}>{children}</div>
+      </Link>
+    ) : (
+      <div className="dropdown-toggle">
+        <div {...p}>{children}</div>
+      </div>
+    )}
+  </MenuItem>
 ))`
   margin: 0;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
 `;
 
-const TooltipCount = styled(({value, ...p}) => (
-  <td {...p}>
+const MenuItemCount = styled(({value, ...p}) => (
+  <div {...p}>
     <Count value={value} />
-  </td>
+  </div>
 ))`
   text-align: right;
   font-weight: bold;
-  padding: ${space(0.5)};
+  padding-left: ${space(1)};
 `;
 
-const TooltipText = styled('td')`
+const MenuItemText = styled('div')`
+  white-space: nowrap;
   font-weight: normal;
   text-align: left;
-  padding: ${space(0.5)} ${space(1)};
-`;
-
-const StyledIconOpen = styled(({to, ...p}) => (
-  <td {...p}>
-    <Link title={t('Open in Discover')} to={to} target="_blank">
-      <IconOpen size="xs" color={p.color} />
-    </Link>
-  </td>
-))`
-  padding: ${space(0.5)};
+  padding-right: ${space(1)};
 `;
 
 export default withGlobalSelection(withOrganization(StreamGroup));
