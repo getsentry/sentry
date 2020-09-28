@@ -14,6 +14,7 @@ from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
 
+from sentry.utils import json
 from sentry.utils.samples import load_data
 from sentry.utils.compat.mock import patch
 from sentry.utils.compat import zip
@@ -2568,12 +2569,14 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
     def test_measurements_conditions(self):
         self.store_event(self.transaction_data, self.project.id)
 
-        # the conditions only work with integer values at the moment
-        fcp = int(self.transaction_data["measurements"]["fcp"]["value"])
+        fcp = self.transaction_data["measurements"]["fcp"]["value"]
 
         # equality condition
-        # The parser only works with integer values in these conditions right now
-        # so we cannot filter for equality on floating point values.
+        # We use json dumps here to ensure precision when converting from float to str
+        # This is necessary because equality on floating point values need to be precise
+        self.assert_measurement_condition_with_results(
+            "measurements.fcp:{}".format(json.dumps(fcp))
+        )
 
         # greater than condition
         self.assert_measurement_condition_with_results("measurements.fcp:>{}".format(fcp - 1))
@@ -2590,8 +2593,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
     def test_measurements_aggregation_conditions(self):
         self.store_event(self.transaction_data, self.project.id)
 
-        # the conditions only work with integer values at the moment
-        fcp = int(self.transaction_data["measurements"]["fcp"]["value"])
+        fcp = self.transaction_data["measurements"]["fcp"]["value"]
         functions = [
             "percentile(measurements.fcp, 0.5)",
             "min(measurements.fcp)",
