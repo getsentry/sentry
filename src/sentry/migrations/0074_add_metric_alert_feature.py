@@ -23,15 +23,66 @@ class Migration(migrations.Migration):
     # want to create an index concurrently when adding one to an existing table.
     atomic = True
 
-
-    dependencies = [
-        ('sentry', '0073_migrate_alert_query_model'),
-    ]
+    dependencies = [("sentry", "0073_migrate_alert_query_model")]
 
     operations = [
         migrations.AlterField(
-            model_name='featureadoption',
-            name='feature_id',
-            field=models.PositiveIntegerField(choices=[(0, b'Python'), (1, b'JavaScript'), (2, b'Node.js'), (3, b'Ruby'), (4, b'Java'), (5, b'Cocoa'), (6, b'Objective-C'), (7, b'PHP'), (8, b'Go'), (9, b'C#'), (10, b'Perl'), (11, b'Elixir'), (12, b'CFML'), (13, b'Groovy'), (14, b'CSP Reports'), (20, b'Flask'), (21, b'Django'), (22, b'Celery'), (23, b'Bottle'), (24, b'Pylons'), (25, b'Tornado'), (26, b'web.py'), (27, b'Zope'), (40, b'First Event'), (41, b'Release Tracking'), (42, b'Environment Tracking'), (43, b'User Tracking'), (44, b'Custom Tags'), (45, b'Source Maps'), (46, b'User Feedback'), (48, b'Breadcrumbs'), (49, b'Resolve with Commit'), (60, b'First Project'), (61, b'Invite Team'), (62, b'Assign Issue'), (63, b'Resolve in Next Release'), (64, b'Advanced Search'), (65, b'Saved Search'), (66, b'Inbound Filters'), (67, b'Alert Rules'), (68, b'Issue Tracker Integration'), (69, b'Notification Integration'), (70, b'Delete and Discard Future Events'), (71, b'Link a Repository'), (72, b'Ownership Rules'), (73, b'Ignore Issue'), (80, b'SSO'), (81, b'Data Scrubbers'), (90, b'Create Release Using API'), (91, b'Create Deploy Using API'), (92, b'Metric Alert Rules')]),
-        ),
+            model_name="featureadoption",
+            name="feature_id",
+            field=models.PositiveIntegerField(
+                choices=[
+                    (0, b"Python"),
+                    (1, b"JavaScript"),
+                    (2, b"Node.js"),
+                    (3, b"Ruby"),
+                    (4, b"Java"),
+                    (5, b"Cocoa"),
+                    (6, b"Objective-C"),
+                    (7, b"PHP"),
+                    (8, b"Go"),
+                    (9, b"C#"),
+                    (10, b"Perl"),
+                    (11, b"Elixir"),
+                    (12, b"CFML"),
+                    (13, b"Groovy"),
+                    (14, b"CSP Reports"),
+                    (20, b"Flask"),
+                    (21, b"Django"),
+                    (22, b"Celery"),
+                    (23, b"Bottle"),
+                    (24, b"Pylons"),
+                    (25, b"Tornado"),
+                    (26, b"web.py"),
+                    (27, b"Zope"),
+                    (40, b"First Event"),
+                    (41, b"Release Tracking"),
+                    (42, b"Environment Tracking"),
+                    (43, b"User Tracking"),
+                    (44, b"Custom Tags"),
+                    (45, b"Source Maps"),
+                    (46, b"User Feedback"),
+                    (48, b"Breadcrumbs"),
+                    (49, b"Resolve with Commit"),
+                    (60, b"First Project"),
+                    (61, b"Invite Team"),
+                    (62, b"Assign Issue"),
+                    (63, b"Resolve in Next Release"),
+                    (64, b"Advanced Search"),
+                    (65, b"Saved Search"),
+                    (66, b"Inbound Filters"),
+                    (67, b"Alert Rules"),
+                    (68, b"Issue Tracker Integration"),
+                    (69, b"Notification Integration"),
+                    (70, b"Delete and Discard Future Events"),
+                    (71, b"Link a Repository"),
+                    (72, b"Ownership Rules"),
+                    (73, b"Ignore Issue"),
+                    (80, b"SSO"),
+                    (81, b"Data Scrubbers"),
+                    (90, b"Create Release Using API"),
+                    (91, b"Create Deploy Using API"),
+                    (92, b"Metric Alert Rules"),
+                ]
+            ),
+        )
     ]

@@ -33,15 +33,20 @@ class Migration(migrations.Migration):
     # want to create an index concurrently when adding one to an existing table.
     atomic = True
 
-
-    dependencies = [
-        ('sentry', '0063_drop_alertrule_constraint'),
-    ]
+    dependencies = [("sentry", "0063_drop_alertrule_constraint")]
 
     operations = [
         migrations.AlterField(
-            model_name='project',
-            name='flags',
-            field=bitfield.models.BitField(((b'has_releases', b'This Project has sent release data'), (b'has_issue_alerts_targeting', b'This Project has issue alerts targeting'), (b'has_transactions', b'This Project has sent transactions')), default=0, null=True),
-        ),
+            model_name="project",
+            name="flags",
+            field=bitfield.models.BitField(
+                (
+                    (b"has_releases", b"This Project has sent release data"),
+                    (b"has_issue_alerts_targeting", b"This Project has issue alerts targeting"),
+                    (b"has_transactions", b"This Project has sent transactions"),
+                ),
+                default=0,
+                null=True,
+            ),
+        )
     ]

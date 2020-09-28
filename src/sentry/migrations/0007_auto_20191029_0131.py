@@ -19,20 +19,17 @@ class Migration(migrations.Migration):
     # - Adding columns to highly active tables, even ones that are NULL.
     is_dangerous = False
 
-
-    dependencies = [
-        ('sentry', '0006_sentryapp_date_published'),
-    ]
+    dependencies = [("sentry", "0006_sentryapp_date_published")]
 
     operations = [
         migrations.AlterField(
-            model_name='organization',
-            name='default_role',
-            field=models.CharField(default=b'member', max_length=32),
+            model_name="organization",
+            name="default_role",
+            field=models.CharField(default=b"member", max_length=32),
         ),
         migrations.AlterField(
-            model_name='organizationmember',
-            name='role',
-            field=models.CharField(default=b'member', max_length=32),
+            model_name="organizationmember",
+            name="role",
+            field=models.CharField(default=b"member", max_length=32),
         ),
     ]
