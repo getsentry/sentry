@@ -117,7 +117,7 @@ jobs:
   # - TEST_SUITE=cli
 
   test-py3-simple-no-migrations:
-    name: '(required) python3.6 backend (simple, no migrations)'
+    name: 'python3.6 backend (simple, no migrations)'
     runs-on: ubuntu-16.04
     strategy:
       matrix:
@@ -208,7 +208,7 @@ jobs:
           TEST_GROUP: ${{ matrix.instance }}
 
   test-py3-snuba:
-    name: 'py3 snuba [ignore fails]'
+    name: 'python3.6 backend (snuba)'
     runs-on: ubuntu-16.04
     strategy:
       matrix:
