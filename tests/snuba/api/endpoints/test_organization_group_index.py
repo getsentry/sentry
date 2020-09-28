@@ -505,7 +505,11 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
         groups = []
+
         for day in days:
+            patched_params_update.side_effect = [
+                (self.organization.id, {"project": [self.project.id]})
+            ]
             group = self.store_event(
                 data={
                     "timestamp": iso_format(before_now(days=day)),
