@@ -24,6 +24,7 @@ class APIDocsTestCase(APITestCase):
     def validate_schema(self, request, response):
         assert 200 <= response.status_code < 300, response.status_code
 
+        response["Content-Type"] = "application/json"
         result = ResponseValidator(self.create_schema()).validate(
             DjangoOpenAPIRequest(request), DjangoOpenAPIResponse(response)
         )
