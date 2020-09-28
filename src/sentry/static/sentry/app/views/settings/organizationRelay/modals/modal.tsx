@@ -10,6 +10,7 @@ type Props = {
   title: string;
   content: React.ReactElement;
   disabled: boolean;
+  btnSaveLabel: string;
 } & ModalRenderProps;
 
 const Modal = ({
@@ -21,6 +22,7 @@ const Modal = ({
   Body,
   Footer,
   closeModal,
+  btnSaveLabel,
 }: Props) => (
   <React.Fragment>
     <Header closeButton>{title}</Header>
@@ -29,7 +31,7 @@ const Modal = ({
       <ButtonBar gap={1.5}>
         <Button onClick={closeModal}>{t('Cancel')}</Button>
         <Button onClick={onSave} disabled={disabled} priority="primary">
-          {t('Save Key')}
+          {btnSaveLabel}
         </Button>
       </ButtonBar>
     </Footer>
