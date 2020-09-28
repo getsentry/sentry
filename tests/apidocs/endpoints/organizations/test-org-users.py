@@ -11,6 +11,7 @@ from tests.apidocs.util import APIDocsTestCase
 class OrganizationUsersDocs(APIDocsTestCase):
     def setUp(self):
         organization = self.create_organization()
+        self.create_user(email="colleen@sentry.io")
 
         self.url = reverse(
             "sentry-api-0-organization-users", kwargs={"organization_slug": organization.slug},
