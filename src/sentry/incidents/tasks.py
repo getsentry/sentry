@@ -10,6 +10,7 @@ from sentry.incidents.models import (
     AlertRuleTriggerAction,
     AlertRuleStatus,
     Incident,
+    IncidentProject,
     PendingIncidentSnapshot,
     IncidentSnapshot,
     IncidentActivity,
@@ -196,7 +197,6 @@ def process_pending_incident_snapshots():
     has passed it's target_run_date.
     """
     from sentry.incidents.logic import create_incident_snapshot
-    from sentry.utils.snuba import UnqualifiedQueryError
 
     batch_size = 50
 
@@ -219,8 +219,11 @@ def process_pending_incident_snapshots():
                     incident.status == IncidentStatus.CLOSED.value
                     and not IncidentSnapshot.objects.filter(incident=incident).exists()
                 ):
-                    try:
+                    project_ids = list(
+                        IncidentProject.objects.filter(incident=incident).values_list(
+                            "project_id", flat=True
+                        )
+                    )
+                    if project_ids:
                         create_incident_snapshot(incident, windowed_stats=True)
-                    except UnqualifiedQueryError:
-                        pass
                 pending_snapshot.delete()
