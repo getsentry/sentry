@@ -105,7 +105,7 @@ class EventErrors extends React.Component<Props, State> {
           <ul>
             <li>
               {t(
-                'Sentry will duplicate events in your project (for now) and not delete the old versions.'
+                'Sentry will duplicate events in your project and not delete the old versions. We will fix this eventually by mutating events in-place and migrate group data in a similar way issue merging/unmerging does.'
               )}
             </li>
             <li>
@@ -123,6 +123,7 @@ class EventErrors extends React.Component<Props, State> {
                 'If you have provided missing symbols please wait at least 1 hour before attempting to re-process. This is a limitation we will try to get rid of.'
               )}
             </li>
+            <li>{t('Reprocessed events will not trigger issue alerts for now.')}</li>
           </ul>
         </Body>
         <Footer>
