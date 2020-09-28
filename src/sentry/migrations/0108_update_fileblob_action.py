@@ -27,7 +27,7 @@ class Migration(migrations.Migration):
 
 
     dependencies = [
-        ('sentry', '0106_service_hook_project_id_nullable'),
+        ('sentry', '0107_remove_spaces_from_slugs'),
     ]
 
     operations = [
