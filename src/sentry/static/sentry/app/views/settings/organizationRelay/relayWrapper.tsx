@@ -165,8 +165,6 @@ class RelayWrapper extends AsyncView<Props, State> {
           </Panel>
         ) : (
           <StyledPanelTable
-            isEmpty={relays.length === 0}
-            emptyMessage={t('No relays keys have been added yet.')}
             headers={[t('Display Name'), t('Relay Key'), t('Date Created'), '']}
           >
             {relays.map(({publicKey: key, name, created, description}) => {
