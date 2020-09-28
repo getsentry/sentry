@@ -32,6 +32,7 @@ class ProjectTags extends AsyncView<Props, State> {
       tags: [],
     };
   }
+
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {projectId, orgId} = this.props.params;
     return [['tags', `/projects/${orgId}/${projectId}/tags/`]];

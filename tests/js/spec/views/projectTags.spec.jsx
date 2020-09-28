@@ -75,7 +75,7 @@ describe('ProjectTags', function() {
       .find('.modal button:contains("Confirm")')
       .click();
 
-    await tick(); // Wait the handleDelete function
+    await tick(); // Wait for the handleDelete function
 
     wrapper.update();
 
