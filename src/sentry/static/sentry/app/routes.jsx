@@ -698,11 +698,11 @@ function routes() {
       />
 
       <Route
-        name={t('Relays')}
-        path="relays/"
+        name={t('Relay')}
+        path="relay/"
         componentPromise={() =>
           import(
-            /* webpackChunkName: "OrganizationRelays" */ 'app/views/settings/organizationRelays'
+            /* webpackChunkName: "organizationRelay" */ 'app/views/settings/organizationRelay'
           )
         }
         component={errorHandler(LazyLoad)}
