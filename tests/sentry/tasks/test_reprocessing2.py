@@ -174,3 +174,33 @@ def test_concurrent_events_go_into_new_group(
 
     assert event2.group_id == event3.group_id
     assert event.get_hashes() == event2.get_hashes() == event3.get_hashes()
+
+
+@pytest.mark.django_db
+@pytest.mark.snuba
+def test_max_events(
+    default_project,
+    reset_snuba,
+    register_event_preprocessor,
+    process_and_save,
+    task_runner,
+    monkeypatch,
+):
+    @register_event_preprocessor
+    def event_preprocessor(data):
+        extra = data.setdefault("extra", {})
+        extra.setdefault("processing_counter", 0)
+        extra["processing_counter"] += 1
+        return data
+
+    event_id = process_and_save({"message": "hello world"})
+
+    event = eventstore.get_event_by_id(default_project.id, event_id)
+
+    # Make sure it never gets called
+    monkeypatch.setattr("sentry.tasks.reprocessing2.reprocess_event", None)
+
+    with task_runner():
+        reprocess_group(default_project.id, event.group_id, max_events=0)
+
+    assert is_group_finished(event.group_id)

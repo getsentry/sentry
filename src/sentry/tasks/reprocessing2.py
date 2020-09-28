@@ -18,24 +18,28 @@ GROUP_REPROCESSING_CHUNK_SIZE = 100
 def reprocess_group(project_id, group_id, offset=0, start_time=None, max_events=None):
     from sentry.reprocessing2 import start_group_reprocessing
 
-    start_group_reprocessing(project_id, group_id)
+    start_group_reprocessing(project_id, group_id, max_events=max_events)
 
     if start_time is None:
         start_time = time.time()
 
-    limit = GROUP_REPROCESSING_CHUNK_SIZE
-    if max_events is not None:
-        limit = min(limit, max_events)
+    if max_events is not None and max_events <= 0:
+        events = []
+    else:
+        limit = GROUP_REPROCESSING_CHUNK_SIZE
 
-    events = list(
-        eventstore.get_unfetched_events(
-            eventstore.Filter(project_ids=[project_id], group_ids=[group_id],),
-            limit=limit,
-            orderby=["-timestamp"],
-            offset=offset,
-            referrer="reprocessing2.reprocess_group",
+        if max_events is not None:
+            limit = min(limit, max_events)
+
+        events = list(
+            eventstore.get_unfetched_events(
+                eventstore.Filter(project_ids=[project_id], group_ids=[group_id],),
+                limit=limit,
+                orderby=["-timestamp"],
+                offset=offset,
+                referrer="reprocessing2.reprocess_group",
+            )
         )
-    )
 
     if not events:
         wait_group_reprocessed.delay(project_id=project_id, group_id=group_id)
@@ -48,9 +52,6 @@ def reprocess_group(project_id, group_id, offset=0, start_time=None, max_events=
 
     if max_events is not None:
         max_events -= len(events)
-
-        if max_events <= 0:
-            return
 
     reprocess_group.delay(
         project_id=project_id,
@@ -83,7 +84,7 @@ def wait_group_reprocessed(project_id, group_id):
     from sentry.reprocessing2 import is_group_finished
 
     if is_group_finished(group_id):
-        delete_old_group.delay(group_id=group_id)
+        delete_old_group.delay(project_id=project_id, group_id=group_id)
     else:
         wait_group_reprocessed.apply_async(
             kwargs={"project_id": project_id, "group_id": group_id}, countdown=60 * 5
@@ -91,7 +92,7 @@ def wait_group_reprocessed(project_id, group_id):
 
 
 @instrumented_task(
-    name="sentry.tasks.reprocessing2.wait_group_reprocessed",
+    name="sentry.tasks.reprocessing2.delete_old_group",
     queue="events.reprocessing.preprocess_event",
     time_limit=(60 * 5) + 5,
     soft_time_limit=60 * 5,

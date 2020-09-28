@@ -200,7 +200,7 @@ def mark_event_reprocessed(data):
     _get_sync_redis_client().decr(key)
 
 
-def start_group_reprocessing(project_id, group_id):
+def start_group_reprocessing(project_id, group_id, max_events=None):
     from sentry.models.group import Group, GroupStatus
     from sentry.models.grouphash import GroupHash
     from django.db import transaction
@@ -218,10 +218,13 @@ def start_group_reprocessing(project_id, group_id):
         dataset=snuba.Dataset.Events,  # from
         conditions=[["group_id", "=", group_id], ["project_id", "=", project_id]],  # where
         referrer="reprocessing2.start_group_reprocessing",
-    )
+    )["data"][0]["times_seen"]
+
+    if max_events is not None:
+        event_count = min(event_count, max_events)
 
     key = _get_sync_counter_key(group_id)
-    _get_sync_redis_client().setex(key, event_count["data"][0]["times_seen"], _REDIS_SYNC_TTL)
+    _get_sync_redis_client().setex(key, _REDIS_SYNC_TTL, event_count)
 
 
 def is_group_finished(group_id):
