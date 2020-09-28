@@ -1303,7 +1303,7 @@ def is_measurement(key):
 
 
 def is_duration_measurement(key):
-    return is_measurement(key) and key in [
+    return key in [
         "measurements.fp",
         "measurements.fcp",
         "measurements.lcp",

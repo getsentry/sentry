@@ -2571,19 +2571,19 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         # the conditions only work with integer values at the moment
         fcp = int(self.transaction_data["measurements"]["fcp"]["value"])
 
-        # ============================== Equality ==============================
+        # equality condition
         # The parser only works with integer values in these conditions right now
         # so we cannot filter for equality on floating point values.
 
-        # ============================== Greater Than ==============================
+        # greater than condition
         self.assert_measurement_condition_with_results("measurements.fcp:>{}".format(fcp - 1))
         self.assert_measurement_condition_without_results("measurements.fcp:>{}".format(fcp + 1))
 
-        # ============================== Less Than ==============================
+        # less than condition
         self.assert_measurement_condition_with_results("measurements.fcp:<{}".format(fcp + 1))
         self.assert_measurement_condition_without_results("measurements.fcp:<{}".format(fcp - 1))
 
-        # ============================== Has/!Has ==============================
+        # has condition
         self.assert_measurement_condition_with_results("has:measurements.fcp")
         self.assert_measurement_condition_without_results("!has:measurements.fcp")
 
@@ -2592,67 +2592,32 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         # the conditions only work with integer values at the moment
         fcp = int(self.transaction_data["measurements"]["fcp"]["value"])
+        functions = [
+            "percentile(measurements.fcp, 0.5)",
+            "min(measurements.fcp)",
+            "max(measurements.fcp)",
+            "avg(measurements.fcp)",
+            "sum(measurements.fcp)",
+        ]
 
-        # ============================== percentile ==============================
-        p50 = "percentile(measurements.fcp, 0.5)"
-        self.assert_measurement_condition_with_results("{}:>{}".format(p50, fcp - 1), field=[p50])
-        self.assert_measurement_condition_without_results(
-            "{}:>{}".format(p50, fcp + 1), field=[p50]
-        )
-        self.assert_measurement_condition_with_results("{}:<{}".format(p50, fcp + 1), field=[p50])
-        self.assert_measurement_condition_without_results(
-            "{}:<{}".format(p50, fcp - 1), field=[p50]
-        )
+        for function in functions:
+            self.assert_measurement_condition_with_results(
+                "{}:>{}".format(function, fcp - 1), field=[function]
+            )
+            self.assert_measurement_condition_without_results(
+                "{}:>{}".format(function, fcp + 1), field=[function]
+            )
+            self.assert_measurement_condition_with_results(
+                "{}:<{}".format(function, fcp + 1), field=[function]
+            )
+            self.assert_measurement_condition_without_results(
+                "{}:<{}".format(function, fcp - 1), field=[function]
+            )
 
-        # ============================== percentile ==============================
         count_unique = "count_unique(measurements.fcp)"
         self.assert_measurement_condition_with_results(
             "{}:1".format(count_unique), field=[count_unique]
         )
         self.assert_measurement_condition_without_results(
             "{}:0".format(count_unique), field=[count_unique]
-        )
-
-        # ============================== min ==============================
-        min = "min(measurements.fcp)"
-        self.assert_measurement_condition_with_results("{}:>{}".format(min, fcp - 1), field=[min])
-        self.assert_measurement_condition_without_results(
-            "{}:>{}".format(min, fcp + 1), field=[min]
-        )
-        self.assert_measurement_condition_with_results("{}:<{}".format(min, fcp + 1), field=[min])
-        self.assert_measurement_condition_without_results(
-            "{}:<{}".format(min, fcp - 1), field=[min]
-        )
-
-        # ============================== max ==============================
-        max = "max(measurements.fcp)"
-        self.assert_measurement_condition_with_results("{}:>{}".format(max, fcp - 1), field=[max])
-        self.assert_measurement_condition_without_results(
-            "{}:>{}".format(max, fcp + 1), field=[max]
-        )
-        self.assert_measurement_condition_with_results("{}:<{}".format(max, fcp + 1), field=[max])
-        self.assert_measurement_condition_without_results(
-            "{}:<{}".format(max, fcp - 1), field=[max]
-        )
-
-        # ============================== avg ==============================
-        avg = "avg(measurements.fcp)"
-        self.assert_measurement_condition_with_results("{}:>{}".format(avg, fcp - 1), field=[avg])
-        self.assert_measurement_condition_without_results(
-            "{}:>{}".format(avg, fcp + 1), field=[avg]
-        )
-        self.assert_measurement_condition_with_results("{}:<{}".format(avg, fcp + 1), field=[avg])
-        self.assert_measurement_condition_without_results(
-            "{}:<{}".format(avg, fcp - 1), field=[avg]
-        )
-
-        # ============================== sum ==============================
-        sum = "sum(measurements.fcp)"
-        self.assert_measurement_condition_with_results("{}:>{}".format(sum, fcp - 1), field=[sum])
-        self.assert_measurement_condition_without_results(
-            "{}:>{}".format(sum, fcp + 1), field=[sum]
-        )
-        self.assert_measurement_condition_with_results("{}:<{}".format(sum, fcp + 1), field=[sum])
-        self.assert_measurement_condition_without_results(
-            "{}:<{}".format(sum, fcp - 1), field=[sum]
         )
