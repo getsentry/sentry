@@ -25,6 +25,7 @@ type Props = RouteComponentProps<{projectId: string; orgId: string}, {}> &
 type State = {
   tags: Array<TagWithTopValues>;
 } & AsyncView['state'];
+
 class ProjectTags extends AsyncView<Props, State> {
   getDefaultState(): State {
     return {
