@@ -180,6 +180,10 @@ class SnubaUtilsTest(TestCase):
         assert (
             get_snuba_column_name("measurements.key", Dataset.Transactions) == "measurements[key]"
         )
+        assert get_snuba_column_name("measurements.KEY", Dataset.Discover) == "measurements[key]"
+        assert (
+            get_snuba_column_name("measurements.KEY", Dataset.Transactions) == "measurements[key]"
+        )
 
 
 class PrepareQueryParamsTest(TestCase):

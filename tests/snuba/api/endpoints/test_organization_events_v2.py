@@ -2490,22 +2490,30 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
-        assert (
-            response.data["data"][0]["measurements.fp"]
-            == self.transaction_data["measurements"]["fcp"]["value"]
-        )
-        assert (
-            response.data["data"][0]["measurements.fcp"]
-            == self.transaction_data["measurements"]["fcp"]["value"]
-        )
-        assert (
-            response.data["data"][0]["measurements.lcp"]
-            == self.transaction_data["measurements"]["lcp"]["value"]
-        )
-        assert (
-            response.data["data"][0]["measurements.fid"]
-            == self.transaction_data["measurements"]["fid"]["value"]
-        )
+        for field in query["field"]:
+            measure = field.split(".", 1)[1]
+            assert (
+                response.data["data"][0][field]
+                == self.transaction_data["measurements"][measure]["value"]
+            )
+
+        query = {
+            "field": [
+                "measurements.fP",
+                "measurements.Fcp",
+                "measurements.LcP",
+                "measurements.FID",
+            ]
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        for field in query["field"]:
+            measure = field.split(".", 1)[1].lower()
+            assert (
+                response.data["data"][0][field]
+                == self.transaction_data["measurements"][measure]["value"]
+            )
 
     def test_measurements_aggregations(self):
         self.store_event(self.transaction_data, self.project.id)

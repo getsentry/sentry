@@ -337,7 +337,7 @@ def get_snuba_column_name(name, dataset=Dataset.Events):
 
     match = MEASUREMENTS_KEY_RE.match(name)
     if "measurements_key" in DATASETS[dataset] and match:
-        default = u"measurements[{}]".format(match.group(1))
+        default = u"measurements[{}]".format(match.group(1).lower())
     else:
         default = u"tags[{}]".format(name)
 
@@ -822,7 +822,7 @@ def resolve_column(dataset):
 
         match = MEASUREMENTS_KEY_RE.match(col)
         if "measurements_key" in DATASETS[dataset] and match:
-            return u"measurements[{}]".format(match.group(1))
+            return u"measurements[{}]".format(match.group(1).lower())
 
         return u"tags[{}]".format(col)
 
