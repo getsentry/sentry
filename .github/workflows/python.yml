@@ -210,7 +210,6 @@ jobs:
   test-py3-snuba:
     name: 'py3 snuba [ignore fails]'
     runs-on: ubuntu-16.04
-    continue-on-error: true
     strategy:
       matrix:
         instance: [0]
