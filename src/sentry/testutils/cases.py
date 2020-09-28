@@ -680,20 +680,27 @@ class SnubaTestCase(BaseTestCase):
             stored_group = stored_event.group
             if stored_group is not None:
                 self.store_group(stored_group)
-            # Verify that events have settled in snuba's storage.
-            # While snuba is synchronous, clickhouse isn't entirely synchronous.
-            attempt = 0
-            while attempt < 10:
-                did_store = eventstore.get_event_by_id(
-                    stored_event.project_id, stored_event.event_id
-                )
-                if did_store:
-                    break
-                attempt += 1
-                time.sleep(0.05)
-            if attempt == 10:
-                assert False, "Could not ensure event was persisted within 10 attempts"
             return stored_event
+
+    def wait_for_event_count(self, project_id, total, attempts=2):
+        """
+        Wait until the event count reaches the provided value or until attempts is reached.
+
+        Useful when you're storing several events and need to ensure that snuba/clickhouse
+        state has settled.
+        """
+        # Verify that events have settled in snuba's storage.
+        # While snuba is synchronous, clickhouse isn't entirely synchronous.
+        attempt = 0
+        snuba_filter = eventstore.Filter(project_ids=[project_id])
+        while attempt < attempts:
+            events = eventstore.get_events(snuba_filter)
+            if len(events) >= total:
+                break
+            attempt += 1
+            time.sleep(0.05)
+        if attempt == 10:
+            assert False, "Could not ensure event was persisted within 10 attempts"
 
     def store_session(self, session):
         assert (
