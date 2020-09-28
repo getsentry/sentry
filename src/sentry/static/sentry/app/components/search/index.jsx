@@ -256,7 +256,8 @@ const DropdownBox = styled('div')`
   right: 0;
   width: 400px;
   border-radius: 5px;
-  overflow: hidden;
+  overflow: auto;
+  max-height: 60vh;
 `;
 
 const SearchWrapper = styled('div')`
