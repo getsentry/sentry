@@ -10,8 +10,7 @@ import Button from 'app/components/button';
 import DiscoverButton from 'app/components/discoverButton';
 import GroupList from 'app/components/issues/groupList';
 import space from 'app/styles/space';
-import {Panel, PanelBody} from 'app/components/panels';
-import EmptyStateWarning from 'app/components/emptyStateWarning';
+import {Panel} from 'app/components/panels';
 import {DEFAULT_RELATIVE_PERIODS} from 'app/constants';
 import {GlobalSelection} from 'app/types';
 import Feature from 'app/components/acl/feature';
@@ -20,6 +19,7 @@ import ButtonBar from 'app/components/buttonBar';
 import {stringifyQueryObject, QueryResults} from 'app/utils/tokenizeSearch';
 
 import {getReleaseEventView} from './chart/utils';
+import EmptyState from '../emptyState';
 
 enum IssuesType {
   NEW = 'new',
@@ -145,26 +145,23 @@ class Issues extends React.Component<Props, State> {
       : t('given timeframe');
 
     return (
-      <Panel>
-        <PanelBody>
-          <EmptyStateWarning small withIcon={false}>
-            {issuesType === IssuesType.NEW &&
-              tct('No new issues in this release for the [timePeriod].', {
-                timePeriod: displayedPeriod,
-              })}
-            {issuesType === IssuesType.UNHANDLED &&
-              tct('No unhandled issues in this release for the [timePeriod].', {
-                timePeriod: displayedPeriod,
-              })}
-            {issuesType === IssuesType.RESOLVED &&
-              t('No resolved issues in this release.')}
-            {issuesType === IssuesType.ALL &&
-              tct('No issues in this release for the [timePeriod].', {
-                timePeriod: displayedPeriod,
-              })}
-          </EmptyStateWarning>
-        </PanelBody>
-      </Panel>
+      <EmptyState withIcon={false}>
+        <React.Fragment>
+          {issuesType === IssuesType.NEW &&
+            tct('No new issues in this release for the [timePeriod].', {
+              timePeriod: displayedPeriod,
+            })}
+          {issuesType === IssuesType.UNHANDLED &&
+            tct('No unhandled issues in this release for the [timePeriod].', {
+              timePeriod: displayedPeriod,
+            })}
+          {issuesType === IssuesType.RESOLVED && t('No resolved issues in this release.')}
+          {issuesType === IssuesType.ALL &&
+            tct('No issues in this release for the [timePeriod].', {
+              timePeriod: displayedPeriod,
+            })}
+        </React.Fragment>
+      </EmptyState>
     );
   };
 
