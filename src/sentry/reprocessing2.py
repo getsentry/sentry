@@ -201,9 +201,6 @@ def mark_event_reprocessed(data):
 
 
 def start_group_reprocessing(project_id, group_id):
-    # Get event counts of issue (for all environments etc). This was copypasted
-    # and simplified from groupserializer.
-
     from sentry.models.group import Group, GroupStatus
     from sentry.models.grouphash import GroupHash
     from django.db import transaction
@@ -214,6 +211,8 @@ def start_group_reprocessing(project_id, group_id):
         # different group.
         GroupHash.objects.filter(group_id=group_id).delete()
 
+    # Get event counts of issue (for all environments etc). This was copypasted
+    # and simplified from groupserializer.
     event_count = snuba.aliased_query(
         aggregations=[["count()", "", "times_seen"]],  # select
         dataset=snuba.Dataset.Events,  # from
