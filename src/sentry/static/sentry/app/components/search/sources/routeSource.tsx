@@ -167,7 +167,7 @@ class RouteSource extends React.Component<Props, State> {
               ...item,
               sourceType: 'route',
               resultType: 'route',
-              to: `${replaceRouterParams(item.path, params)}`,
+              to: replaceRouterParams(item.path, params),
             },
             ...rest,
           } as Result)
