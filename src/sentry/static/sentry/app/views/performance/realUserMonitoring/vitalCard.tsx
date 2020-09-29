@@ -6,12 +6,12 @@ import BarChart from 'app/components/charts/barChart';
 import MarkArea from 'app/components/charts/components/markArea';
 import MarkLine from 'app/components/charts/components/markLine';
 import MarkPoint from 'app/components/charts/components/markPoint';
+import Tag from 'app/components/tag';
 import {FIRE_SVG} from 'app/icons/iconFire';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {formatFloat, getDuration} from 'app/utils/formatters';
 import theme from 'app/utils/theme';
-import Tag from 'app/views/settings/components/tag';
 
 import {Card, CardSummary, CardSectionHeading, StatNumber, Description} from './styles';
 import {HistogramData, Vital, Rectangle, Point} from './types';
@@ -59,7 +59,11 @@ class VitalCard extends React.Component<Props, State> {
   };
 
   static getDerivedStateFromProps(nextProps: Props, prevState: State) {
-    const {chartData} = nextProps;
+    const {isLoading, error, chartData} = nextProps;
+
+    if (isLoading || error === null) {
+      return {...prevState};
+    }
 
     const refDataRect = getReferenceRect(chartData);
     if (

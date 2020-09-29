@@ -43,10 +43,6 @@ class TransactionVitals extends React.Component<Props> {
 
     const colors = [...theme.charts.getColorPalette(vitals.length - 1)].reverse();
 
-    // TODO remove this
-    const max = 10000;
-    const min = 0;
-
     return (
       <DiscoverQuery
         location={location}
@@ -61,16 +57,15 @@ class TransactionVitals extends React.Component<Props> {
                 location={location}
                 organization={organization}
                 eventView={eventView}
-                measures={vitals}
-                min={min}
-                max={max}
+                numBuckets={50}
+                measurements={vitals.map(vital => WEB_VITAL_DETAILS[vital].slug)}
               >
                 {results => {
                   return (
                     <React.Fragment>
                       {vitals.map((vital, index) => {
                         const error =
-                          summaryResults.error !== null || results.errors.length > 0;
+                          summaryResults.error !== null || results.error !== null;
                         const alias = getAggregateAlias(
                           `percentile(${vital}, ${PERCENTILE})`
                         );
@@ -83,7 +78,7 @@ class TransactionVitals extends React.Component<Props> {
                             error={error}
                             vital={WEB_VITAL_DETAILS[vital]}
                             summary={summary as number | null}
-                            chartData={results.histogram[vital]!}
+                            chartData={results.histograms[vital] ?? []}
                             colors={[colors[index]]}
                           />
                         );
