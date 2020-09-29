@@ -4,9 +4,9 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import ProjectsStore from 'app/stores/projectsStore';
-import ReleaseList from 'app/views/releasesV2/list/';
+import ReleaseList from 'app/views/releases/list/';
 
-describe('ReleasesV2List', function() {
+describe('ReleaseList', function() {
   const {organization, routerContext, router} = initializeOrg();
   const props = {
     router,
@@ -30,9 +30,9 @@ describe('ReleasesV2List', function() {
     endpointMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
       body: [
-        TestStubs.ReleaseV2({version: '1.0.0'}),
-        TestStubs.ReleaseV2({version: '1.0.1'}),
-        TestStubs.ReleaseV2({version: 'af4f231ec9a8'}, {hasHealthData: false}),
+        TestStubs.Release({version: '1.0.0'}),
+        TestStubs.Release({version: '1.0.1'}),
+        TestStubs.Release({version: 'af4f231ec9a8'}, {hasHealthData: false}),
       ],
     });
 
