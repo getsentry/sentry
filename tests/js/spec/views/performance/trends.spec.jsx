@@ -16,6 +16,7 @@ import {TrendFunctionField} from 'app/views/performance/trends/types';
 
 const trendsViewQuery = {
   view: 'TRENDS',
+  query: 'count():>1000 transaction.duration:>0',
 };
 
 function selectTrendFunction(wrapper, field) {
@@ -151,6 +152,7 @@ describe('Performance > Trends', function() {
       />,
       data.routerContext
     );
+
     await tick();
     wrapper.update();
 
@@ -192,7 +194,7 @@ describe('Performance > Trends', function() {
     wrapper.update();
 
     wrapper
-      .find('TransactionMenuButton')
+      .find('DropdownLink')
       .first()
       .simulate('click');
 
@@ -223,7 +225,7 @@ describe('Performance > Trends', function() {
     wrapper.update();
 
     const firstTransaction = wrapper.find('TrendsListItem').first();
-    const transactionLink = firstTransaction.find('StyledLink').first();
+    const transactionLink = firstTransaction.find('CompareLink').first();
     transactionLink.simulate('click');
 
     await tick();
@@ -275,8 +277,8 @@ describe('Performance > Trends', function() {
     await tick();
     wrapper.update();
 
-    const mostImprovedProject = wrapper.find('ChangedProjectsContainer').first();
-    const viewTransactions = mostImprovedProject.find('Button').first();
+    const mostImprovedProject = wrapper.find('TrendsProjectPanel').first();
+    const viewTransactions = mostImprovedProject.find('StyledProjectButton').first();
     viewTransactions.simulate('click');
 
     expect(browserHistory.push).toHaveBeenCalledWith({
@@ -284,6 +286,28 @@ describe('Performance > Trends', function() {
         project: [projectId],
       }),
     });
+  });
+
+  it('viewing a single project will hide the changed project widgets', async function() {
+    const projectId = 42;
+    const projects = [TestStubs.Project({id: projectId, slug: 'internal'})];
+    const data = initializeData(projects, {project: ['42']});
+    const wrapper = mountWithTheme(
+      <PerformanceLanding
+        organization={data.organization}
+        location={data.router.location}
+      />,
+      data.routerContext
+    );
+
+    await tick();
+    wrapper.update();
+
+    const changedProjects = wrapper.find('ChangedProjects');
+    const changedTransactions = wrapper.find('ChangedTransactions');
+
+    expect(changedProjects).toHaveLength(0);
+    expect(changedTransactions).toHaveLength(2);
   });
 
   it('trend functions in location make api calls', async function() {
@@ -348,24 +372,9 @@ describe('Performance > Trends', function() {
         })
       );
 
-      // Improved transactions call
-      expect(trendsMock).toHaveBeenNthCalledWith(
-        2,
-        expect.anything(),
-        expect.objectContaining({
-          query: expect.objectContaining({
-            trendFunction: trendFunction.field,
-            sort,
-            query: expect.stringContaining(aliasedQueryDivide + ':<1'),
-            interval: '12h',
-            field: transactionFields,
-            statsPeriod: '14d',
-          }),
-        })
-      );
       // Regression projects call
       expect(trendsMock).toHaveBeenNthCalledWith(
-        3,
+        2,
         expect.anything(),
         expect.objectContaining({
           query: expect.objectContaining({
@@ -374,6 +383,22 @@ describe('Performance > Trends', function() {
             query: expect.stringContaining(aliasedQueryDivide + ':>1'),
             interval: '12h',
             field: projectFields,
+            statsPeriod: '14d',
+          }),
+        })
+      );
+
+      // Improved transactions call
+      expect(trendsMock).toHaveBeenNthCalledWith(
+        3,
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({
+            trendFunction: trendFunction.field,
+            sort,
+            query: expect.stringContaining(aliasedQueryDivide + ':<1'),
+            interval: '12h',
+            field: transactionFields,
             statsPeriod: '14d',
           }),
         })

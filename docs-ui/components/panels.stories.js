@@ -16,7 +16,7 @@ import Field from 'app/views/settings/components/forms/field';
 import {_BulkController} from './bulkController.stories';
 
 export default {
-  title: 'UI/Panels',
+  title: 'Core/Tables/Panels',
 };
 
 export const BasicPanel = withInfo({

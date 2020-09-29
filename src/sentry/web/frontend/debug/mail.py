@@ -93,7 +93,7 @@ def make_group_generator(random, project):
         last_seen = random.randint(first_seen, first_seen + (60 * 60 * 24 * 30))
 
         culprit = make_culprit(random)
-        level = random.choice(LOG_LEVELS.keys())
+        level = random.choice(list(LOG_LEVELS.keys()))
         message = make_message(random)
 
         group = Group(
@@ -356,7 +356,10 @@ def digest(request):
                 Record(
                     event.event_id,
                     Notification(
-                        event, random.sample(state["rules"], random.randint(1, len(state["rules"])))
+                        event,
+                        random.sample(
+                            list(state["rules"].keys()), random.randint(1, len(state["rules"]))
+                        ),
                     ),
                     to_timestamp(event.datetime),
                 )

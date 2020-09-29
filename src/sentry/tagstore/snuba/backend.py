@@ -3,13 +3,14 @@ from __future__ import absolute_import
 import functools
 import six
 from collections import defaultdict, Iterable, OrderedDict
+from copy import deepcopy
 from dateutil.parser import parse as parse_datetime
 from pytz import UTC
 
 from django.core.cache import cache
 
 from sentry import options
-from sentry.api.event_search import PROJECT_ALIAS
+from sentry.api.event_search import FIELD_ALIASES, PROJECT_ALIAS, USER_DISPLAY_ALIAS
 from sentry.models import Project
 from sentry.api.utils import default_start_end_dates
 from sentry.snuba.dataset import Dataset
@@ -26,7 +27,6 @@ from sentry.utils import snuba, metrics
 from sentry.utils.hashlib import md5_text
 from sentry.utils.dates import to_timestamp
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
-from sentry.utils.compat import filter
 
 
 SEEN_COLUMN = "timestamp"
@@ -406,11 +406,10 @@ class SnubaTagStorage(TagStorage):
         }
 
     def get_group_seen_values_for_environments(
-        self, project_ids, group_id_list, environment_ids, snuba_filters, start=None, end=None
+        self, project_ids, group_id_list, environment_ids, start=None, end=None
     ):
         # Get the total times seen, first seen, and last seen across multiple environments
         filters = {"project_id": project_ids, "group_id": group_id_list}
-
         if environment_ids:
             filters["environment"] = environment_ids
 
@@ -420,23 +419,17 @@ class SnubaTagStorage(TagStorage):
             ["max", SEEN_COLUMN, "last_seen"],
         ]
 
-        result = snuba.aliased_query(
-            dataset=snuba.Dataset.Events,
+        result = snuba.query(
             start=start,
             end=end,
             groupby=["group_id"],
-            conditions=snuba_filters,
+            conditions=None,
             filter_keys=filters,
             aggregations=aggregations,
             referrer="tagstore.get_group_seen_values_for_environments",
         )
 
-        return {
-            issue["group_id"]: fix_tag_value_data(
-                dict(filter(lambda key: key[0] != "group_id", six.iteritems(issue)))
-            )
-            for issue in result["data"]
-        }
+        return {issue: fix_tag_value_data(data) for issue, data in six.iteritems(result)}
 
     def get_group_tag_value_count(self, project_id, group_id, environment_id, key):
         tag = u"tags[{}]".format(key)
@@ -635,26 +628,23 @@ class SnubaTagStorage(TagStorage):
                 )
         return values
 
-    def get_groups_user_counts(
-        self, project_ids, group_ids, environment_ids, snuba_filters, start=None, end=None
-    ):
+    def get_groups_user_counts(self, project_ids, group_ids, environment_ids, start=None, end=None):
         filters = {"project_id": project_ids, "group_id": group_ids}
         if environment_ids:
             filters["environment"] = environment_ids
         aggregations = [["uniq", "tags[sentry:user]", "count"]]
 
-        result = snuba.aliased_query(
-            dataset=snuba.Dataset.Events,
+        result = snuba.query(
             start=start,
             end=end,
             groupby=["group_id"],
-            conditions=snuba_filters,
+            conditions=None,
             filter_keys=filters,
             aggregations=aggregations,
             referrer="tagstore.get_groups_user_counts",
         )
 
-        return defaultdict(int, {issue["group_id"]: issue["count"] for issue in result["data"]})
+        return defaultdict(int, {k: v for k, v in result.items() if v})
 
     def get_tag_value_paginator(
         self,
@@ -756,13 +746,24 @@ class SnubaTagStorage(TagStorage):
             snuba_key = "project_id"
             dataset = Dataset.Discover
         else:
-            if snuba_key in BLACKLISTED_COLUMNS:
-                snuba_key = "tags[%s]" % (key,)
+            snuba_name = snuba_key
+
+            is_user_alias = include_transactions and key == USER_DISPLAY_ALIAS
+            if is_user_alias:
+                # user.alias is a pseudo column in discover. It is computed by coalescing
+                # together multiple user attributes. Here we get the coalese function used,
+                # and resolve it to the corresponding snuba query
+                dataset = Dataset.Discover
+                resolver = snuba.resolve_column(dataset)
+                snuba_name = deepcopy(FIELD_ALIASES[USER_DISPLAY_ALIAS]["fields"][0])
+                snuba.resolve_complex_column(snuba_name, resolver)
+            elif snuba_name in BLACKLISTED_COLUMNS:
+                snuba_name = "tags[%s]" % (key,)
 
             if query:
-                conditions.append([snuba_key, "LIKE", u"%{}%".format(query)])
+                conditions.append([snuba_name, "LIKE", u"%{}%".format(query)])
             else:
-                conditions.append([snuba_key, "!=", ""])
+                conditions.append([snuba_name, "!=", ""])
 
         filters = {"project_id": projects}
         if environments:

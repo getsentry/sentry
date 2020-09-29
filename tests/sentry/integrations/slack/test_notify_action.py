@@ -336,7 +336,7 @@ class SlackNotifyActionTest(RuleTestCase):
             data={
                 "workspace": self.integration.id,
                 "channel": "#my-channel",
-                "channel_id": "C2349874",
+                "input_channel_id": "C2349874",
                 "tags": "",
             }
         )

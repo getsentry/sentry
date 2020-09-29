@@ -104,7 +104,7 @@
   },
   "post": {
     "tags": ["Releases"],
-    "description": "Create a new release for the given Organization.  Releases are used by\nSentry to improve its error reporting abilities by correlating\nfirst seen events with the release that might have introduced the\nproblem.\nReleases are also necessary for source maps and other debug features\nthat require manual upload for functioning well.",
+    "description": "Create a new release for the given organization.  Releases are used by\nSentry to improve its error reporting abilities by correlating\nfirst seen events with the release that might have introduced the\nproblem.\nReleases are also necessary for source maps and other debug features\nthat require manual upload for functioning well.",
     "operationId": "Create a New Release for an Organization",
     "parameters": [
       {
