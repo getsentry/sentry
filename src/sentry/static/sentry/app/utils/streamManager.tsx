@@ -10,7 +10,10 @@ type Options = {
   limit?: number;
 };
 
-type IdThing = {
+/**
+ * Minimal type shape for objects that can be managed inside StreamManager.
+ */
+type IdShape = {
   id: string;
 };
 
@@ -33,7 +36,7 @@ class StreamManager {
     excess.forEach(this.store.remove);
   }
 
-  push(items: IdThing[] = []) {
+  push(items: IdShape[] = []) {
     items = [...items];
     if (items.length === 0) {
       return this;
@@ -57,7 +60,7 @@ class StreamManager {
       .sort((a, b) => this.idList.indexOf(a.id) - this.idList.indexOf(b.id));
   }
 
-  unshift(items: IdThing[] = []) {
+  unshift(items: IdShape[] = []) {
     items = [...items];
     if (items.length === 0) {
       return this;

@@ -38,13 +38,9 @@ class PendingChangeQueue {
   }
 }
 
-type State = {
-  items: any[];
-  statuses: Record<string, any[]>;
-};
-
 type Internals = {
-  state: State;
+  items: any[];
+  statuses: Record<string, Record<string, boolean>>;
   pendingChanges: PendingChangeQueue;
 
   indexOfActivity: (groupId: string, id: string) => number;
@@ -95,13 +91,9 @@ type GroupStore = Reflux.Store & GroupStoreInterface;
 
 const storeConfig: Reflux.StoreDefinition & Internals & GroupStoreInterface = {
   listenables: [GroupActions],
-
-  state: {
-    items: [],
-    statuses: {},
-  },
-
   pendingChanges: new PendingChangeQueue(),
+  items: [],
+  statuses: {},
 
   init() {
     this.reset();
