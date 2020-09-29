@@ -35,7 +35,7 @@ const SidebarHelp = ({orientation, collapsed, hidePanel, organization}: Props) =
         {isOpen && (
           <HelpMenu {...getMenuProps({})}>
             <Hook name="sidebar:help-menu" organization={organization} />
-            <SidebarMenuItem onClick={openHelpSearchModal}>
+            <SidebarMenuItem onClick={() => openHelpSearchModal({organization})}>
               {t('Search Docs and FAQs')}
             </SidebarMenuItem>
             <SidebarMenuItem href="https://forum.sentry.io/">

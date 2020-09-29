@@ -38,6 +38,7 @@ const validHookNames = new Set<HookName>([
   'feature-disabled:sso-rippling',
   'feature-disabled:sso-saml2',
   'footer',
+  'help-modal:footer',
   'integrations:feature-gates',
   'member-invite-modal:customization',
   'metrics:event',
