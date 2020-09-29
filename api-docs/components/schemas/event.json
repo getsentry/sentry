@@ -272,8 +272,16 @@
         "type": "object"
       },
       "release": {
-        "$ref": "releases/organization-release.json#/OrganizationRelease",
-        "nullable": true
+        "type": "object",
+        "nullable": true,
+        "oneOf": [
+          {
+            "$ref": "releases/organization-release.json#/OrganizationRelease"
+          },
+          {
+            "$ref": "null.json#/NullValue"
+          }
+        ]
       },
       "groupID": {
         "type": "string"
