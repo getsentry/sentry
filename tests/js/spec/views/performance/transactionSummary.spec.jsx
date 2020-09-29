@@ -21,6 +21,7 @@ function initializeData() {
         query: {
           transaction: '/performance',
           project: 1,
+          transactionCursor: '1:0:0',
         },
       },
     },
@@ -107,6 +108,11 @@ describe('Performance > TransactionSummary', function() {
     MockApiClient.addMockResponse(
       {
         url: '/organizations/org-slug/eventsv2/',
+        headers: {
+          Link:
+            '<http://localhost/api/0/organizations/org-slug/eventsv2/?cursor=2:0:0>; rel="next"; results="true"; cursor="2:0:0",' +
+            '<http://localhost/api/0/organizations/org-slug/eventsv2/?cursor=1:0:0>; rel="previous"; results="false"; cursor="1:0:0"',
+        },
         body: {
           meta: {
             id: 'string',
@@ -258,6 +264,7 @@ describe('Performance > TransactionSummary', function() {
         project: 1,
         statsPeriod: '14d',
         query: 'user.email:uhoh*',
+        transactionCursor: '1:0:0',
       },
     });
   });
@@ -315,6 +322,36 @@ describe('Performance > TransactionSummary', function() {
         transaction: '/performance',
         project: 1,
         showTransactions: 'slow',
+        transactionCursor: undefined,
+      },
+    });
+  });
+
+  it('renders pagination buttons', async function() {
+    const initialData = initializeData();
+    const wrapper = mountWithTheme(
+      <TransactionSummary
+        organization={initialData.organization}
+        location={initialData.router.location}
+      />,
+      initialData.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    const pagination = wrapper.find('Pagination');
+    expect(pagination).toHaveLength(1);
+
+    // Click the 'next' button'
+    pagination.find('button[aria-label="Next"]').simulate('click');
+
+    // Check the navigation.
+    expect(browserHistory.push).toHaveBeenCalledWith({
+      pathname: undefined,
+      query: {
+        transaction: '/performance',
+        project: 1,
+        transactionCursor: '2:0:0',
       },
     });
   });
