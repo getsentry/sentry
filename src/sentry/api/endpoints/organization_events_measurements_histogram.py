@@ -2,14 +2,20 @@ from __future__ import absolute_import
 
 import sentry_sdk
 
+from rest_framework import serializers
 from rest_framework.response import Response
-from rest_framework.exceptions import ParseError
 
 from sentry.api.bases import OrganizationEventsV2EndpointBase, NoProjects
 from sentry.snuba import discover
 
 # The maximum number of measurements allowed to be queried at at time
 MAX_MEASUREMENTS = 4
+
+
+class MeasurementsHistogramSerializer(serializers.Serializer):
+    num_buckets = serializers.IntegerField(min_value=1)
+    precision = serializers.IntegerField(default=0, min_value=0, max_value=4)
+    measurement = serializers.ListField(allow_empty=False, max_length=4)
 
 
 class OrganizationEventsMeasurementsHistogramEndpoint(OrganizationEventsV2EndpointBase):
@@ -22,76 +28,28 @@ class OrganizationEventsMeasurementsHistogramEndpoint(OrganizationEventsV2Endpoi
         except NoProjects:
             return Response([])
 
-        measurements = request.GET.getlist("measurement")
-        if not measurements:
-            raise ParseError(detail=u"Missing value for measurements.")
-        if len(measurements) > MAX_MEASUREMENTS:
-            raise ParseError(
-                detail=u"Too many measurements specified, maximum allowed is {}.".format(
-                    MAX_MEASUREMENTS
-                )
-            )
-
         with sentry_sdk.start_span(
             op="discover.endpoint", description="measurements_histogram"
         ) as span:
             span.set_tag("organization", organization)
 
-            results = discover.measurements_histogram_query(
-                measurements,
-                request.GET.get("query"),
-                params,
-                self.get_int_param(request, "numBuckets", minimum=1),
-                # don't allow for too many decimal places of precision
-                self.get_int_param(request, "precision", default=0, minimum=0, maximum=4),
-                "api.organization-events-measurements-histogram",
-            )
+            serializer = MeasurementsHistogramSerializer(data=request.GET)
+            if serializer.is_valid():
+                data = serializer.validated_data
 
-            results_with_meta = self.handle_results_with_meta(
-                request, organization, params["project_id"], results
-            )
+                results = discover.measurements_histogram_query(
+                    data["measurement"],
+                    request.GET.get("query"),
+                    params,
+                    data["num_buckets"],
+                    data["precision"],
+                    "api.organization-events-measurements-histogram",
+                )
 
-            return Response(results_with_meta)
+                results_with_meta = self.handle_results_with_meta(
+                    request, organization, params["project_id"], results
+                )
 
-    def get_int_param(
-        self, request, param, allow_none=False, default=None, minimum=None, maximum=None
-    ):
-        raw_value = request.GET.get(param, default)
-
-        try:
-            if raw_value is not None:
-                value = int(raw_value)
-                if (minimum is None or minimum <= value) and (maximum is None or maximum >= value):
-                    return value
-            elif not allow_none:
-                raise ParseError(detail=u"Missing value for {}.".format(param))
+                return Response(results_with_meta)
             else:
-                return None
-        except ValueError:
-            # let this fall through and do all the error handling outside of the try except block
-            pass
-
-        if minimum is not None and maximum is not None:
-            raise ParseError(
-                detail=u"Invalid value for {}. Expected to be between {} and {} got {}".format(
-                    param, minimum, maximum, raw_value
-                )
-            )
-        elif minimum is not None:
-            raise ParseError(
-                detail=u"Invalid value for {}. Expected to be at least {} got {}.".format(
-                    param, minimum, raw_value
-                )
-            )
-        elif maximum is not None:
-            raise ParseError(
-                detail=u"Invalid value for {}. Expected to be at most {} got {}.".format(
-                    param, maximum, raw_value
-                )
-            )
-        else:
-            raise ParseError(
-                detail=u"Invalid value for {}. Expected to be an integer got {}.".format(
-                    param, raw_value
-                )
-            )
+                return Response(serializer.errors, status=400)

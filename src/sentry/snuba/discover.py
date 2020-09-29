@@ -23,6 +23,7 @@ from sentry import eventstore
 
 from sentry.models import Group
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
+from sentry.utils.compat import filter
 from sentry.utils.snuba import (
     Dataset,
     naiveify_datetime,
@@ -993,7 +994,7 @@ def find_measurements_histogram_params(
     if min_value is None or max_value is None:
         return HistogramParams(1, 0, multiplier)
 
-    # A single bucket in a histogram has contains values from [start, end),
+    # A single bucket in a histogram contains values from [start, end),
     # meaning that start is inclusive and end is exclusive
 
     scaled_min = int(floor(multiplier * min_value))
@@ -1003,8 +1004,10 @@ def find_measurements_histogram_params(
     start_offset = scaled_min
 
     bucket_size = int(ceil((scaled_max - scaled_min) / float(num_buckets)))
+
     if bucket_size == 0:
         bucket_size = 1
+
     # Sometimes the max value lies on the bucket boundary, and since the end
     # of the bucket is exclusive, it gets excluded. To account for that, we
     # increase the width of the buckets to cover the max value.
@@ -1029,32 +1032,31 @@ def find_measurements_min_max(measurements, user_query, params):
         auto_fields=True,
         use_aggregate_conditions=True,
     )
-    # there should be exactly 1 row in the results
-    data = results["data"][0]
 
-    min_value = None
-    for min_column in min_columns:
-        value = data[get_function_alias(min_column)]
-        if value is None:
-            continue
-        if min_value is None or value < min_value:
-            min_value = value
+    data = results.get("data")
 
-    max_value = None
-    for max_column in max_columns:
-        value = data[get_function_alias(max_column)]
-        if value is None:
-            continue
-        if max_value is None or value > max_value:
-            max_value = value
+    # there should be exactly 1 row in the results, but if something went wrong here,
+    # we force the min/max to be None to coerce an empty histogram
+    if data is None or len(data) != 1:
+        return None, None
+
+    row = data[0]
+
+    min_values = [row[get_function_alias(column)] for column in min_columns]
+    min_values = list(filter(lambda v: v is not None, min_values))
+    min_value = min(min_values) if min_values else None
+
+    max_values = [row[get_function_alias(column)] for column in max_columns]
+    max_values = list(filter(lambda v: v is not None, max_values))
+    max_value = max(max_values) if max_values else None
 
     return min_value, max_value
 
 
 def normalize_measurements_histogram(measurements, num_buckets, key_col, histogram_params, results):
     measurements = sorted(measurements)
-    measurements_name = get_function_alias(key_col)
-    measurements_bin = get_function_alias(get_measurements_histogram_col(histogram_params))
+    key_name = get_function_alias(key_col)
+    bin_name = get_function_alias(get_measurements_histogram_col(histogram_params))
     data = results["data"]
     new_data = []
 
@@ -1063,11 +1065,11 @@ def normalize_measurements_histogram(measurements, num_buckets, key_col, histogr
         bucket = histogram_params.start_offset + histogram_params.bucket_size * i
         for measurement in measurements:
             # we want to rename the columns here
-            row = {"histogram_key": measurement, "histogram_bin": bucket}
+            row = {"key": measurement, "bin": bucket}
             if (
                 idx >= len(data)
-                or data[idx][measurements_name] != measurement
-                or data[idx][measurements_bin] != bucket
+                or data[idx][key_name] != measurement
+                or data[idx][bin_name] != bucket
             ):
                 row["count"] = 0
             else:
@@ -1077,7 +1079,7 @@ def normalize_measurements_histogram(measurements, num_buckets, key_col, histogr
 
             # make sure to adjust for the precision if necessary
             if histogram_params.multiplier > 1:
-                new_data[-1]["histogram_bin"] /= float(histogram_params.multiplier)
+                new_data[-1]["bin"] /= float(histogram_params.multiplier)
 
     if idx < len(data):
         # There are some unconsumed rows here, something is wrong here.
