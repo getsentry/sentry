@@ -13,8 +13,8 @@ function showAlert(msg, type) {
   });
 }
 
-// TODO(ts) Type this any better.
-type Change = [changeId: string, itemId:string, data:any];
+// TODO(ts) Type the data field better.
+type Change = [changeId: string, itemId: string, data: any];
 
 class PendingChangeQueue {
   changes: Change[] = [];
