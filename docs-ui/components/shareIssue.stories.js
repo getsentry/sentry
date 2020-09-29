@@ -15,25 +15,25 @@ export const Default = withInfo('todo')(() => {
 
   function Parent({children, ...props}) {
     const [isShared, setShared] = useState(false);
-    const [isBusy, setBusy] = useState(false);
+    const [loading, setLoading] = useState(false);
 
     function toggleShare() {
       toggleAction();
-      setBusy(true);
+      setLoading(true);
       setTimeout(() => {
         setShared(!isShared);
-        setBusy(false);
+        setLoading(false);
       }, 1000);
     }
 
-    return <div {...props}>{children({isShared, isBusy, toggleShare})}</div>;
+    return <div {...props}>{children({isShared, loading, toggleShare})}</div>;
   }
 
   return (
     <Parent>
-      {({isShared, isBusy, toggleShare}) => (
+      {({isShared, loading, toggleShare}) => (
         <ShareIssue
-          isBusy={isBusy}
+          loading={loading}
           isShared={isShared}
           shareUrl={text(
             'shareUrl',

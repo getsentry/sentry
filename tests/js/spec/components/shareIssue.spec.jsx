@@ -9,7 +9,7 @@ describe('ShareIssue', () => {
     const wrapper = mountWithTheme(
       <ShareIssue
         isShared={false}
-        isBusy={false}
+        loading={false}
         onToggle={() => {}}
         onReshare={() => {}}
       />
@@ -21,7 +21,7 @@ describe('ShareIssue', () => {
     const wrapper = mountWithTheme(
       <ShareIssue
         isShared
-        isBusy={false}
+        loading={false}
         onToggle={() => {}}
         onReshare={() => {}}
         shareUrl="http://sentry.io/share/test/"
@@ -32,23 +32,38 @@ describe('ShareIssue', () => {
 
   it('renders when busy', () => {
     const wrapper = mountWithTheme(
-      <ShareIssue isBusy isShared={false} onToggle={() => {}} onReshare={() => {}} />
+      <ShareIssue loading isShared={false} onToggle={() => {}} onReshare={() => {}} />
     );
     expect(wrapper).toSnapshot();
   });
 
-  it('triggers onToggle callback', () => {
+  it('call onToggle on open', () => {
     const toggleFn = jest.fn();
     const wrapper = mountWithTheme(
       <ShareIssue
-        isBusy={false}
         isShared={false}
+        loading={false}
         onToggle={toggleFn}
         onReshare={() => {}}
       />
     );
-    wrapper.find('DropdownLink').simulate('click');
+    wrapper.find('.dropdown-actor').simulate('click');
+    expect(toggleFn).toHaveBeenCalledTimes(1);
+  });
+
+  it('call onToggle on switch', () => {
+    const toggleFn = jest.fn();
+    const wrapper = mountWithTheme(
+      <ShareIssue
+        isShared={false}
+        loading={false}
+        onToggle={toggleFn}
+        onReshare={() => {}}
+      />
+    );
+    wrapper.find('.dropdown-actor').simulate('click');
+    expect(toggleFn).toHaveBeenCalledTimes(1);
     wrapper.find('Switch').simulate('click');
-    expect(toggleFn).toHaveBeenCalled();
+    expect(toggleFn).toHaveBeenCalledTimes(2);
   });
 });

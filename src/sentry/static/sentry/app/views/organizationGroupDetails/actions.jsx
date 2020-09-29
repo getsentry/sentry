@@ -305,7 +305,7 @@ const GroupDetailsActions = createReactClass({
         {orgFeatures.has('shared-issues') && (
           <div className="btn-group">
             <ShareIssue
-              isBusy={this.state.shareBusy}
+              loading={this.state.shareBusy}
               isShared={group.isPublic}
               shareUrl={this.getShareUrl(group.shareId)}
               onToggle={this.onToggleShare}

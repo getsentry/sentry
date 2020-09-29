@@ -15,8 +15,6 @@ import SpreadLayout from 'app/components/spreadLayout';
 import Switch from 'app/components/switch';
 
 type ContainerProps = {
-  isBusy: boolean;
-  isShared: boolean;
   shareUrl: string;
   onConfirming: () => void;
   onConfirm: () => void;
@@ -38,18 +36,17 @@ class ShareUrlContainer extends React.Component<ContainerProps> {
   };
 
   render() {
-    const {isShared, isBusy, shareUrl, onConfirming, onCancel, onConfirm} = this.props;
-    const url = !isBusy && isShared ? shareUrl : 'Not shared';
+    const {shareUrl, onConfirming, onCancel, onConfirm} = this.props;
 
     return (
       <UrlContainer>
-        <StyledTextContainer isShared={isShared}>
+        <StyledTextContainer>
           <StyledAutoSelectText ref={ref => this.handleUrlMount(ref)}>
-            {url}
+            {shareUrl}
           </StyledAutoSelectText>
         </StyledTextContainer>
 
-        <Clipboard hideUnsupported value={url}>
+        <Clipboard hideUnsupported value={shareUrl}>
           <ClipboardButton
             title={t('Copy to clipboard')}
             borderless
@@ -78,7 +75,7 @@ class ShareUrlContainer extends React.Component<ContainerProps> {
 }
 
 type Props = {
-  isBusy: boolean;
+  loading: boolean;
   /**
    * Link is public
    */
@@ -93,7 +90,7 @@ type Props = {
 
 class ShareIssue extends React.Component<Props> {
   static propTypes = {
-    isBusy: PropTypes.bool.isRequired,
+    loading: PropTypes.bool.isRequired,
     isShared: PropTypes.bool,
     shareUrl: PropTypes.string,
     onToggle: PropTypes.func.isRequired,
@@ -108,8 +105,8 @@ class ShareIssue extends React.Component<Props> {
   };
 
   handleOpen = () => {
-    const {isBusy, isShared, onToggle} = this.props;
-    if (!isBusy && !isShared) {
+    const {loading, isShared, onToggle} = this.props;
+    if (!loading && !isShared) {
       // Starts sharing as soon as dropdown is opened
       onToggle();
     }
@@ -120,7 +117,7 @@ class ShareIssue extends React.Component<Props> {
   handleConfirmReshare = () => (this.hasConfirmModal = true);
 
   render() {
-    const {isBusy, isShared = false, shareUrl, onReshare} = this.props;
+    const {loading, isShared = false, shareUrl, onReshare} = this.props;
 
     return (
       <DropdownLink
@@ -128,7 +125,7 @@ class ShareIssue extends React.Component<Props> {
         shouldIgnoreClickOutside={() => this.hasConfirmModal}
         title={
           <DropdownTitleContent>
-            <IndicatorDot active={isShared} />
+            <IndicatorDot isShared={isShared} />
             {t('Share')}
           </DropdownTitleContent>
         }
@@ -136,21 +133,19 @@ class ShareIssue extends React.Component<Props> {
         keepMenuOpen
       >
         <StyledList>
-          <SpreadLayout style={{marginBottom: isBusy || isShared ? 12 : undefined}}>
+          <SpreadLayout style={{marginBottom: loading || isShared ? 12 : undefined}}>
             <SmallHeading>{t('Enable public share link')}</SmallHeading>
             <Switch isActive={isShared} size="sm" toggle={this.handleToggleShare} />
           </SpreadLayout>
 
-          {isBusy && (
+          {loading && (
             <LoadingContainer>
               <LoadingIndicator mini />
             </LoadingContainer>
           )}
 
-          {!isBusy && isShared && shareUrl && (
+          {!loading && isShared && shareUrl && (
             <ShareUrlContainer
-              isBusy={isBusy}
-              isShared={isShared}
               shareUrl={shareUrl}
               onCancel={this.handleConfirmCancel}
               onConfirming={this.handleConfirmReshare}
@@ -193,13 +188,13 @@ const SmallHeading = styled('h6')`
   white-space: nowrap;
 `;
 
-const IndicatorDot = styled('span')<{active: boolean}>`
+const IndicatorDot = styled('span')<{isShared: boolean}>`
   display: inline-block;
   margin-right: ${space(0.5)};
   border-radius: 50%;
   width: 10px;
   height: 10px;
-  background: ${p => (p.active ? '#57be8c' : '#dfdbe4')};
+  background: ${p => (p.isShared ? '#57be8c' : '#dfdbe4')};
 `;
 
 const StyledAutoSelectText = styled(AutoSelectText)<
@@ -213,11 +208,11 @@ const StyledAutoSelectText = styled(AutoSelectText)<
   overflow: hidden;
 `;
 
-const StyledTextContainer = styled('div')<{isShared: boolean}>`
+const StyledTextContainer = styled('div')`
   position: relative;
   display: flex;
   flex: 1;
-  background-color: ${p => (!p.isShared ? '#f9f7f9' : 'transparent')};
+  background-color: transparent;
   border-right: 1px solid ${p => p.theme.borderDark};
   max-width: 288px;
 `;
