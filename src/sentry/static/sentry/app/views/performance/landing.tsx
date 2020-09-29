@@ -27,7 +27,11 @@ import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
-import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
+import {
+  tokenizeSearch,
+  stringifyQueryObject,
+  QueryResults,
+} from 'app/utils/tokenizeSearch';
 import {decodeScalar} from 'app/utils/queryString';
 
 import {generatePerformanceEventView, DEFAULT_STATS_PERIOD} from './data';
@@ -220,14 +224,22 @@ class PerformanceLanding extends React.Component<Props, State> {
     });
 
     if (viewKey === FilterViews.TRENDS) {
-      if (!conditions.hasTags('count()')) {
-        conditions.setTag('count()', ['>1000']);
-      }
-      if (!conditions.hasTags('transaction.duration')) {
-        conditions.setTag('transaction.duration', ['>0']);
-      }
+      const modifiedConditions = new QueryResults([]);
 
-      newQuery.query = stringifyQueryObject(conditions);
+      if (conditions.hasTags('count()')) {
+        modifiedConditions.setTag('count()', conditions.getTags('count()'));
+      } else {
+        modifiedConditions.setTag('count()', ['>1000']);
+      }
+      if (conditions.hasTags('transaction.duration')) {
+        modifiedConditions.setTag(
+          'transaction.duration',
+          conditions.getTags('transaction.duration')
+        );
+      } else {
+        modifiedConditions.setTag('transaction.duration', ['>0']);
+      }
+      newQuery.query = stringifyQueryObject(modifiedConditions);
     }
 
     const isNavigatingAwayFromTrends = viewKey !== FilterViews.TRENDS && currentView;

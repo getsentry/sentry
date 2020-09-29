@@ -168,32 +168,37 @@ type DefaultTrendsProps = {
   eventView: EventView;
 };
 
-function DefaultTrends(props: DefaultTrendsProps) {
-  const {children, location, eventView} = props;
+class DefaultTrends extends React.Component<DefaultTrendsProps> {
+  hasPushedDefaults = false;
 
-  const queryString = decodeScalar(location.query.query) || '';
-  const conditions = tokenizeSearch(queryString);
+  render() {
+    const {children, location, eventView} = this.props;
 
-  if (queryString) {
-    return <React.Fragment>{children}</React.Fragment>;
-  } else {
-    conditions.setTag('count()', ['>1000']);
-    conditions.setTag('transaction.duration', ['>0']);
+    const queryString = decodeScalar(location.query.query);
+    const conditions = tokenizeSearch(queryString || '');
+
+    if (queryString || this.hasPushedDefaults) {
+      return <React.Fragment>{children}</React.Fragment>;
+    } else {
+      conditions.setTag('count()', ['>1000']);
+      conditions.setTag('transaction.duration', ['>0']);
+    }
+
+    const query = stringifyQueryObject(conditions);
+    eventView.query = query;
+
+    browserHistory.push({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        cursor: undefined,
+        query: String(query).trim() || undefined,
+        view: FilterViews.TRENDS,
+      },
+    });
+    this.hasPushedDefaults = true;
+    return null;
   }
-
-  const query = stringifyQueryObject(conditions);
-  eventView.query = query;
-
-  browserHistory.push({
-    pathname: location.pathname,
-    query: {
-      ...location.query,
-      cursor: undefined,
-      query: String(query).trim() || undefined,
-      view: FilterViews.TRENDS,
-    },
-  });
-  return null;
 }
 
 const StyledSearchBar = styled(SearchBar)`
