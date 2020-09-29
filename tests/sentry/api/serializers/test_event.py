@@ -199,6 +199,8 @@ class EventSerializerTest(TestCase):
         assert "dateCreated" not in result
         assert "crashFile" not in result
         assert "fingerprints" not in result
+        assert "measurements" in result
+        assert result["measurements"] == event_data["measurements"]
 
     def test_transaction_event_empty_spans(self):
         event_data = load_data("transaction")

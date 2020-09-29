@@ -115,6 +115,11 @@ export const trendOffsetQueryKeys = {
   [TrendChangeType.REGRESSION]: 'regressionOffset',
 };
 
+export const trendCursorNames = {
+  [TrendChangeType.IMPROVED]: 'improvedCursor',
+  [TrendChangeType.REGRESSION]: 'regressionCursor',
+};
+
 export function getCurrentTrendFunction(location: Location): TrendFunction {
   const trendFunctionField = decodeScalar(location?.query?.trendFunction);
   const trendFunction = TRENDS_FUNCTIONS.find(({field}) => field === trendFunctionField);

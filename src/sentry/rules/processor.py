@@ -86,11 +86,6 @@ class RuleProcessor(object):
         rule_condition_list = rule.data.get("conditions", ())
         frequency = rule.data.get("frequency") or Rule.DEFAULT_FREQUENCY
 
-        # XXX(dcramer): if theres no condition should we really skip it,
-        # or should we just apply it blindly?
-        if not rule_condition_list:
-            return
-
         if (
             rule.environment_id is not None
             and self.event.get_environment().id != rule.environment_id
@@ -115,30 +110,33 @@ class RuleProcessor(object):
             else:
                 filter_list.append(rule_cond)
 
-        if not condition_list:
-            return
+        # if conditions exist evaluate them, otherwise move to the filters section
+        if condition_list:
+            condition_iter = (self.condition_matches(c, state, rule) for c in condition_list)
 
-        condition_iter = (self.condition_matches(c, state, rule) for c in condition_list)
-        filter_iter = (self.condition_matches(f, state, rule) for f in filter_list)
+            condition_func = self.get_match_function(condition_match)
+            if condition_func:
+                condition_passed = condition_func(condition_iter)
+            else:
+                self.logger.error(
+                    "Unsupported condition_match %r for rule %d", condition_match, rule.id
+                )
+                return
 
-        condition_func = self.get_match_function(condition_match)
-        if condition_func:
-            condition_passed = condition_func(condition_iter)
+            if not condition_passed:
+                return
+
+        # if filters exist evaluate them, otherwise pass
+        if filter_list:
+            filter_iter = (self.condition_matches(f, state, rule) for f in filter_list)
+            filter_func = self.get_match_function(filter_match)
+            if filter_func:
+                passed = filter_func(filter_iter)
+            else:
+                self.logger.error("Unsupported filter_match %r for rule %d", filter_match, rule.id)
+                return
         else:
-            self.logger.error(
-                "Unsupported condition_match %r for rule %d", condition_match, rule.id
-            )
-            return
-
-        if not condition_passed:
-            return
-
-        filter_func = self.get_match_function(filter_match)
-        if filter_func:
-            passed = filter_func(filter_iter)
-        else:
-            self.logger.error("Unsupported filter_match %r for rule %d", filter_match, rule.id)
-            return
+            passed = True
 
         if passed:
             passed = (

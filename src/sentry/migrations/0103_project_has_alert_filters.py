@@ -24,19 +24,28 @@ class Migration(migrations.Migration):
     # want to create an index concurrently when adding one to an existing table.
     atomic = True
 
-
-    dependencies = [
-        ('sentry', '0102_collect_relay_analytics'),
-    ]
+    dependencies = [("sentry", "0102_collect_relay_analytics")]
 
     operations = [
         migrations.SeparateDatabaseAndState(
             state_operations=[
                 migrations.AlterField(
-                    model_name='project',
-                    name='flags',
-                    field=bitfield.models.BitField(((b'has_releases', b'This Project has sent release data'), (b'has_issue_alerts_targeting', b'This Project has issue alerts targeting'), (b'has_transactions', b'This Project has sent transactions'), (b'has_alert_filters', b'This Project has filters')), default=10, null=True),
-                ),
+                    model_name="project",
+                    name="flags",
+                    field=bitfield.models.BitField(
+                        (
+                            ("has_releases", "This Project has sent release data"),
+                            (
+                                "has_issue_alerts_targeting",
+                                "This Project has issue alerts targeting",
+                            ),
+                            ("has_transactions", "This Project has sent transactions"),
+                            ("has_alert_filters", "This Project has filters"),
+                        ),
+                        default=10,
+                        null=True,
+                    ),
+                )
             ]
         )
     ]
