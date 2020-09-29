@@ -87,7 +87,7 @@ class GithubAuth(BaseOAuth2):
     # Look at http://developer.github.com/v3/oauth/
     SCOPE_VAR_NAME = "GITHUB_EXTENDED_PERMISSIONS"
 
-    GITHUB_ORGANIZATION = getattr(settings, "GITHUB_ORGANIZATION", None)
+    GITHUB_ORGANIZATION = settingsGITHUB_ORGANIZATION
 
     def user_data(self, access_token, *args, **kwargs):
         """Loads user data from service"""

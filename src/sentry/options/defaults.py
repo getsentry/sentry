@@ -137,6 +137,15 @@ register("github-app.private-key", default="")
 register("github-app.client-id", flags=FLAG_PRIORITIZE_DISK)
 register("github-app.client-secret", flags=FLAG_PRIORITIZE_DISK)
 
+# GitHub Auth
+register("github-login.client-id", default="", flags=FLAG_PRIORITIZE_DISK)
+register("github-login.client-secret", default="", flags=FLAG_PRIORITIZE_DISK)
+register("github-login.reqire-verified-email", type=Bool, default=False, flags=FLAG_PRIORITIZE_DISK)
+register("github-login.base-domain", default="github.com", flags=FLAG_PRIORITIZE_DISK)
+register("github-login.api-domain", default="api.github.com", flags=FLAG_PRIORITIZE_DISK)
+register("github-login.extended-permissions", type=list, default=[], flags=FLAG_PRIORITIZE_DISK)
+register("github-login.organization", flags=FLAG_PRIORITIZE_DISK)
+
 # VSTS Integration
 register("vsts.client-id", flags=FLAG_PRIORITIZE_DISK)
 register("vsts.client-secret", flags=FLAG_PRIORITIZE_DISK)
