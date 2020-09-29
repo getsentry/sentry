@@ -132,7 +132,7 @@ class ShareIssue extends React.Component<Props> {
         onOpen={this.handleOpen}
         keepMenuOpen
       >
-        <StyledList>
+        <DropdownContent>
           <SpreadLayout style={{marginBottom: loading || isShared ? 12 : undefined}}>
             <SmallHeading>{t('Enable public share link')}</SmallHeading>
             <Switch isActive={isShared} size="sm" toggle={this.handleToggleShare} />
@@ -152,7 +152,7 @@ class ShareIssue extends React.Component<Props> {
               onConfirm={onReshare}
             />
           )}
-        </StyledList>
+        </DropdownContent>
       </DropdownLink>
     );
   }
@@ -178,13 +178,13 @@ const DropdownTitleContent = styled('div')`
   margin-right: ${space(0.5)};
 `;
 
-const StyledList = styled('li')`
-  padding: 12px 18px;
+const DropdownContent = styled('li')`
+  padding: ${space(1.5)} ${space(2)};
 `;
 
 const SmallHeading = styled('h6')`
   margin: 0;
-  padding-right: 30px;
+  padding-right: ${space(4)};
   white-space: nowrap;
 `;
 
@@ -194,7 +194,7 @@ const IndicatorDot = styled('span')<{isShared: boolean}>`
   border-radius: 50%;
   width: 10px;
   height: 10px;
-  background: ${p => (p.isShared ? '#57be8c' : '#dfdbe4')};
+  background: ${p => (p.isShared ? p.theme.green400 : p.theme.borderDark)};
 `;
 
 const StyledAutoSelectText = styled(AutoSelectText)<
