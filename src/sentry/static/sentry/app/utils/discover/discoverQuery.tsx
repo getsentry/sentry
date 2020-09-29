@@ -37,13 +37,24 @@ type ChildrenProps = {
 
 type Props = {
   api: Client;
+  /**
+   * Used as the default source for cursor values.
+   */
   location: Location;
   eventView: EventView;
   orgSlug: string;
   keyTransactions?: boolean;
   trendChangeType?: TrendChangeType;
   isTrendsProject?: boolean;
+  /**
+   * Record limit to get.
+   */
   limit?: number;
+  /**
+   * Explicit cursor value if you aren't using `location.query.cursor` because there are
+   * multiple paginated results on the page.
+   */
+  cursor?: string;
 
   children: (props: ChildrenProps) => React.ReactNode;
 };
@@ -100,7 +111,8 @@ class DiscoverQuery extends React.Component<Props, State> {
     return (
       !isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload) ||
       this.shouldRefetchTrendData(prevProps) ||
-      prevProps.limit !== this.props.limit
+      prevProps.limit !== this.props.limit ||
+      prevProps.cursor !== this.props.cursor
     );
   };
 
@@ -137,6 +149,7 @@ class DiscoverQuery extends React.Component<Props, State> {
       orgSlug,
       location,
       limit,
+      cursor,
       keyTransactions,
       trendChangeType,
     } = this.props;
@@ -159,6 +172,9 @@ class DiscoverQuery extends React.Component<Props, State> {
 
     if (limit) {
       apiPayload.per_page = limit;
+    }
+    if (cursor) {
+      apiPayload.cursor = cursor;
     }
 
     this.props.api
