@@ -34,8 +34,8 @@ type Props = {
 
 type State = {
   loading: boolean;
-  assignedTo: User | undefined;
-  memberList: User[] | undefined;
+  assignedTo?: User;
+  memberList?: User[];
 };
 
 const AssigneeSelectorComponent = createReactClass<Props, State>({
@@ -80,7 +80,7 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
     };
   },
 
-  componentWillReceiveProps(nextProps) {
+  componentWillReceiveProps(nextProps: Props) {
     const loading = nextProps.id && GroupStore.hasStatus(nextProps.id, 'assignTo');
     if (nextProps.id !== this.props.id || loading !== this.state.loading) {
       const group = GroupStore.get(this.props.id);

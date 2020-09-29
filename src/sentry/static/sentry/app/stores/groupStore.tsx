@@ -33,7 +33,7 @@ class PendingChangeQueue {
     );
   }
 
-  forEach(...args) {
+  forEach(...args: any[]) {
     this.changes.forEach.apply(this.changes, args);
   }
 }
