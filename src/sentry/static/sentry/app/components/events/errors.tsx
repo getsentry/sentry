@@ -17,11 +17,14 @@ import {Client} from 'app/api';
 import EventErrorItem from 'app/components/events/errorItem';
 import {Event, AvatarProject, Project} from 'app/types';
 import {IconWarning} from 'app/icons';
-import {t, tn} from 'app/locale';
+import {t, tct, tn} from 'app/locale';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
+import NumberField from 'app/components/forms/numberField';
+import Alert from 'app/components/alert';
 
 import {BannerContainer, BannerSummary} from './styles';
+import ExternalLink from '../links/externalLink';
 
 const MAX_ERRORS = 100;
 
@@ -57,13 +60,24 @@ class EventErrors extends React.Component<Props, State> {
     return this.props.event.id !== nextProps.event.id;
   }
 
+  maxEventInput = React.createRef();
+
   toggle = () => {
     this.setState(state => ({isOpen: !state.isOpen}));
   };
 
   uniqueErrors = (errors: any[]) => uniqWith(errors, isEqual);
 
-  onReprocessGroup = async (issueId: string, maxEvents: number | null) => {
+  onReprocessGroup = async () => {
+    const {issueId} = this.props;
+    if (!issueId) {
+      throw Error(
+        'Assertion failed: Modal should not be possible to open if not in issue view.'
+      );
+    }
+
+    const maxEvents = parseInt(this.maxEventInput.current.value, 10);
+
     const {api, orgId} = this.props;
     const endpoint = `/organizations/${orgId}/issues/${issueId}/reprocessing/`;
 
@@ -92,8 +106,7 @@ class EventErrors extends React.Component<Props, State> {
     openModal(this.renderReprocessModal);
   };
 
-  renderReprocessModal = ({Body, closeModal, Footer}) => {
-    const {issueId} = this.props;
+  renderReprocessModal = ({Body, closeModal}) => {
     return (
       <React.Fragment>
         <Body>
@@ -105,45 +118,61 @@ class EventErrors extends React.Component<Props, State> {
 
           <ul>
             <li>
-              {t(
-                'Sentry will duplicate events in your project, assign new event IDs and delete the old issue. Eventually we will not assign new event IDs.'
+              {tct(
+                'Sentry will [strong:duplicate events in your project, assign new event IDs and delete the old issue.] This may temporarily affect event counts in graphs all across the product. Eventually we will not assign new event IDs.',
+                {strong: <strong />}
               )}
             </li>
             <li>
-              {t(
-                'Reprocessing one or multiple events counts against your quota, but bypasses rate limits.'
+              {tct(
+                'Reprocessing one or multiple events [strong:counts against your quota], but bypasses rate limits.',
+                {strong: <strong />}
               )}
             </li>
             <li>
-              {t(
-                'If you have provided missing symbols please wait at least 1 hour before attempting to re-process. This is a limitation we will try to get rid of.'
+              {tct(
+                'If you have provided missing symbols [strong:please wait at least 1 hour before attempting to re-process.] This is a limitation we will try to get rid of.',
+                {strong: <strong />}
               )}
             </li>
-            <li>{t('Reprocessed events will not trigger issue alerts for now.')}</li>
+            <li>
+              {tct(
+                'Reprocessed events will not trigger issue alerts, and reprocessed events will not be subject to [link:data forwarding].',
+                {
+                  fwd: (
+                    <ExternalLink href="https://docs.sentry.io/platform-redirect/?next=/data-management/data-forwarding/" />
+                  ),
+                }
+              )}
+            </li>
           </ul>
-        </Body>
-        <Footer>
-          <ButtonBar gap={1}>
-            {issueId && (
-              <React.Fragment>
-                <Button onClick={() => this.onReprocessGroup(issueId, null)}>
-                  {t('Reprocess all events in issue')}
-                </Button>
 
-                <Button onClick={() => this.onReprocessGroup(issueId, 20)}>
-                  {t('Reprocess the last 20 events in issue (delete the rest)')}
-                </Button>
-              </React.Fragment>
+          <Alert type="warning">
+            {t(
+              'Reprocessing is still in open beta. Make sure you understand what the above means for you, and beware of bugs.'
             )}
-            <Button onClick={closeModal}>{t('Cancel')}</Button>
-          </ButtonBar>
-        </Footer>
+          </Alert>
+
+          <form onSubmit={this.onReprocessGroup}>
+            <NumberField
+              label={t('Reprocess n latest events, delete the rest')}
+              placeholder={t('all')}
+              ref={this.maxEventInput}
+            />
+            <ButtonBar gap={1}>
+              <Button type="submit" priority="primary">
+                {t('Reprocess')}
+              </Button>
+              <Button onClick={closeModal}>{t('Cancel')}</Button>
+            </ButtonBar>
+          </form>
+        </Body>
       </React.Fragment>
     );
   };
 
   render() {
-    const {event, project} = this.props;
+    const {event, project, issueId} = this.props;
     // XXX: uniqueErrors is not performant with large datasets
     const errors =
       event.errors.length > MAX_ERRORS ? event.errors : this.uniqueErrors(event.errors);
@@ -173,7 +202,7 @@ class EventErrors extends React.Component<Props, State> {
             <EventErrorItem key={errorIdx} error={error} />
           ))}
 
-          {(project as Project)?.features?.includes('reprocessing-v2') && (
+          {(project as Project)?.features?.includes('reprocessing-v2') && issueId && (
             <Button size="xsmall" onClick={this.onReprocessStart}>
               {t('Try again')}
             </Button>
