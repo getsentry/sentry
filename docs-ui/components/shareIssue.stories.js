@@ -14,27 +14,27 @@ export const Default = withInfo('todo')(() => {
   const toggleAction = action('Toggle');
 
   function Parent({children, ...props}) {
-    const [isSharing, setSharing] = useState(false);
+    const [isShared, setShared] = useState(false);
     const [isBusy, setBusy] = useState(false);
 
     function toggleShare() {
       toggleAction();
       setBusy(true);
       setTimeout(() => {
+        setShared(!isShared);
         setBusy(false);
-        setSharing(!isSharing);
       }, 1000);
     }
 
-    return <div {...props}>{children({isSharing, isBusy, toggleShare})}</div>;
+    return <div {...props}>{children({isShared, isBusy, toggleShare})}</div>;
   }
 
   return (
     <Parent>
-      {({isSharing, isBusy, toggleShare}) => (
+      {({isShared, isBusy, toggleShare}) => (
         <ShareIssue
           isBusy={isBusy}
-          isShared={isSharing}
+          isShared={isShared}
           shareUrl={text(
             'shareUrl',
             'https://sentry.io/share/issue/veryveryverylongurl/'

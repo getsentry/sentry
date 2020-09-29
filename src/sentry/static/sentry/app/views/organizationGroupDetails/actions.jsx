@@ -131,15 +131,18 @@ const GroupDetailsActions = createReactClass({
     return {ignoreModal: null, shareBusy: false};
   },
 
-  getShareUrl(shareId, absolute) {
+  componentWillReceiveProps(nextProps) {
+    if (this.state.shareBusy && nextProps.group.shareId !== this.props.group.shareId) {
+      this.setState({shareBusy: false});
+    }
+  },
+
+  getShareUrl(shareId) {
     if (!shareId) {
       return '';
     }
 
     const path = `/share/issue/${shareId}/`;
-    if (!absolute) {
-      return path;
-    }
     const {host, protocol} = window.location;
     return `${protocol}//${host}${path}`;
   },
@@ -220,7 +223,8 @@ const GroupDetailsActions = createReactClass({
           addErrorMessage(t('Error sharing'));
         },
         complete: () => {
-          this.setState({shareBusy: false});
+          // shareBusy marked false in componentWillReceiveProps to sync
+          // busy state update with shareId update
         },
       }
     );
@@ -303,7 +307,7 @@ const GroupDetailsActions = createReactClass({
             <ShareIssue
               isBusy={this.state.shareBusy}
               isShared={group.isPublic}
-              shareUrl={this.getShareUrl(group.shareId, true)}
+              shareUrl={this.getShareUrl(group.shareId)}
               onToggle={this.onToggleShare}
               onReshare={() => this.onShare(true)}
             />

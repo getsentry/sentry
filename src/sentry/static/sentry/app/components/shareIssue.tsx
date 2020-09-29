@@ -79,9 +79,15 @@ class ShareUrlContainer extends React.Component<ContainerProps> {
 
 type Props = {
   isBusy: boolean;
+  /**
+   * Link is public
+   */
   isShared?: boolean;
-  shareUrl?: string;
+  shareUrl?: string | null;
   onToggle: () => void;
+  /**
+   * Called when refreshing an existing link
+   */
   onReshare: () => void;
 };
 
@@ -101,6 +107,14 @@ class ShareIssue extends React.Component<Props> {
     this.props.onToggle();
   };
 
+  handleOpen = () => {
+    const {isBusy, isShared, onToggle} = this.props;
+    if (!isBusy && !isShared) {
+      // Starts sharing as soon as dropdown is opened
+      onToggle();
+    }
+  };
+
   // State of confirm modal so we can keep dropdown menu opn
   handleConfirmCancel = () => (this.hasConfirmModal = false);
   handleConfirmReshare = () => (this.hasConfirmModal = true);
@@ -118,6 +132,7 @@ class ShareIssue extends React.Component<Props> {
             {t('Share')}
           </DropdownTitleContent>
         }
+        onOpen={this.handleOpen}
         keepMenuOpen
       >
         <StyledList>
