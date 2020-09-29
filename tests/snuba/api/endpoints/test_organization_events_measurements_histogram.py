@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import pytest
 import random
 
 from collections import namedtuple
@@ -265,6 +266,7 @@ class OrganizationEventsMeasurementsHistogramEndpointTest(APITestCase, SnubaTest
         assert response.status_code == 200
         assert response.data["data"] == self.as_response_data(specs)
 
+    @pytest.mark.xfail(reason="snuba does not allow - in alias names")
     def test_histogram_negative_values(self):
         # range is [-9, -4), so it is divided into 5 buckets of width 1
         specs = [
@@ -286,6 +288,7 @@ class OrganizationEventsMeasurementsHistogramEndpointTest(APITestCase, SnubaTest
         assert response.status_code == 200
         assert response.data["data"] == self.as_response_data(specs)
 
+    @pytest.mark.xfail(reason="snuba does not allow - in alias names")
     def test_histogram_positive_and_negative_values(self):
         # range is [-50, 49], so it is divided into 5 buckets of width 10
         specs = [

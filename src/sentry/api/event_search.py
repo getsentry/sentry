@@ -1831,7 +1831,7 @@ def get_function_alias(field):
 
 
 def get_function_alias_with_columns(function_name, columns):
-    columns = "_".join(columns).replace(".", "_").replace("-", "")
+    columns = "_".join(columns).replace(".", "_")
     return u"{}_{}".format(function_name, columns).rstrip("_")
 
 
