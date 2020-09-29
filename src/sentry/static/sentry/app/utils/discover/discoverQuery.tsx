@@ -42,6 +42,7 @@ type Props = {
   orgSlug: string;
   keyTransactions?: boolean;
   trendChangeType?: TrendChangeType;
+  isTrendsProject?: boolean;
   limit?: number;
 
   children: (props: ChildrenProps) => React.ReactNode;
@@ -197,20 +198,24 @@ class DiscoverQuery extends React.Component<Props, State> {
     apiPayload: EventQuery & LocationQuery & TrendsQuery,
     location: Location
   ) => {
-    const {trendChangeType, eventView} = this.props;
+    const {trendChangeType, eventView, isTrendsProject} = this.props;
     if (trendChangeType) {
       delete apiPayload.cursor;
-      if (
-        trendChangeType === TrendChangeType.IMPROVED &&
-        location?.query?.improvedCursor
-      ) {
-        apiPayload.cursor = location?.query?.improvedCursor;
-      } else if (
-        trendChangeType === TrendChangeType.REGRESSION &&
-        location?.query?.regressionCursor
-      ) {
-        apiPayload.cursor = location?.query?.regressionCursor;
+
+      if (!isTrendsProject) {
+        if (
+          trendChangeType === TrendChangeType.IMPROVED &&
+          location?.query?.improvedCursor
+        ) {
+          apiPayload.cursor = location?.query?.improvedCursor;
+        } else if (
+          trendChangeType === TrendChangeType.REGRESSION &&
+          location?.query?.regressionCursor
+        ) {
+          apiPayload.cursor = location?.query?.regressionCursor;
+        }
       }
+
       const trendFunction = getCurrentTrendFunction(location);
       apiPayload.trendFunction = trendFunction.field;
       apiPayload.interval = eventView.interval;

@@ -133,6 +133,7 @@ function ChangedProjects(props: Props) {
       location={location}
       trendChangeType={trendChangeType}
       limit={1}
+      isTrendsProject
     >
       {({isLoading, tableData}) => {
         const eventsTrendsData = (tableData as unknown) as ProjectTrendsData;
