@@ -36,8 +36,8 @@ class StreamManager {
     excess.forEach(this.store.remove);
   }
 
-  push(items: IdShape[] = []) {
-    items = [...items];
+  push(items: IdShape | IdShape[] = []) {
+    items = Array.isArray(items) ? items : [items];
     if (items.length === 0) {
       return this;
     }
@@ -60,8 +60,8 @@ class StreamManager {
       .sort((a, b) => this.idList.indexOf(a.id) - this.idList.indexOf(b.id));
   }
 
-  unshift(items: IdShape[] = []) {
-    items = [...items];
+  unshift(items: IdShape | IdShape[] = []) {
+    items = Array.isArray(items) ? items : [items];
     if (items.length === 0) {
       return this;
     }
