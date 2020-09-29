@@ -2,6 +2,9 @@
 
 from __future__ import absolute_import
 
+import six
+from django.utils.encoding import force_text
+
 from sentry.utils.compat import mock, pickle
 
 from datetime import datetime
@@ -98,24 +101,29 @@ class RedisBufferTest(TestCase):
         filters = {"pk": 1, "datetime": now}
         self.buf.incr(model, columns, filters, extra={"foo": "bar", "datetime": now})
         result = client.hgetall("foo")
+        # Force keys to strings
+        result = {force_text(k): v for k, v in six.iteritems(result)}
+
         f = result.pop("f")
         assert pickle.loads(f) == {"pk": 1, "datetime": now}
         assert pickle.loads(result.pop("e+datetime")) == now
         assert pickle.loads(result.pop("e+foo")) == "bar"
-        assert result == {"i+times_seen": "1", "m": "mock.mock.Mock"}
+        assert result == {"i+times_seen": b"1", "m": b"mock.mock.Mock"}
 
         pending = client.zrange("b:p", 0, -1)
-        assert pending == ["foo"]
+        assert pending == [b"foo"]
         self.buf.incr(model, columns, filters, extra={"foo": "baz", "datetime": now})
         result = client.hgetall("foo")
+        # Force keys to strings
+        result = {force_text(k): v for k, v in six.iteritems(result)}
         f = result.pop("f")
         assert pickle.loads(f) == {"pk": 1, "datetime": now}
         assert pickle.loads(result.pop("e+datetime")) == now
         assert pickle.loads(result.pop("e+foo")) == "baz"
-        assert result == {"i+times_seen": "2", "m": "mock.mock.Mock"}
+        assert result == {"i+times_seen": b"2", "m": b"mock.mock.Mock"}
 
         pending = client.zrange("b:p", 0, -1)
-        assert pending == ["foo"]
+        assert pending == [b"foo"]
 
     @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
     @mock.patch("sentry.buffer.redis.process_incr")

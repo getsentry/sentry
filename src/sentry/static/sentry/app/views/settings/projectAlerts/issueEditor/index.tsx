@@ -480,14 +480,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
             </Panel>
 
             <Panel>
-              <StyledPanelHeader>
-                {t('Alert Conditions')}
-                <PanelHelpText>
-                  {t(
-                    'Conditions are evaluated every time an event is captured by Sentry.'
-                  )}
-                </PanelHelpText>
-              </StyledPanelHeader>
+              <PanelHeader>{t('Alert Conditions')}</PanelHeader>
               <PanelBody>
                 {detailedError && (
                   <PanelAlert type="error">
@@ -510,18 +503,15 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                       />
                     </ChevronContainer>
 
-                    <StepContent>
-                      <StepLead>
-                        {tct(
-                          '[when:When] an issue meets [selector] of the following conditions',
-                          {
-                            when: <Badge />,
-                            selector: (
-                              <Feature
-                                features={['projects:alert-filters']}
-                                project={project}
-                              >
-                                {({hasFeature}) => (
+                    <Feature features={['projects:alert-filters']} project={project}>
+                      {({hasFeature}) => (
+                        <StepContent>
+                          <StepLead>
+                            {tct(
+                              '[when:When] an event is captured by Sentry and [selector] of the following happens',
+                              {
+                                when: <Badge />,
+                                selector: (
                                   <EmbeddedWrapper>
                                     <EmbeddedSelectField
                                       className={classNames({
@@ -551,31 +541,35 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                                       disabled={!hasAccess}
                                     />
                                   </EmbeddedWrapper>
-                                )}
-                              </Feature>
-                            ),
-                          }
-                        )}
-                      </StepLead>
-                      <RuleNodeList
-                        nodes={this.state.configs?.conditions ?? null}
-                        items={conditions ?? []}
-                        placeholder={t('Add a condition...')}
-                        onPropertyChange={this.handleChangeConditionProperty}
-                        onAddRow={this.handleAddCondition}
-                        onDeleteRow={this.handleDeleteCondition}
-                        organization={organization}
-                        project={project}
-                        disabled={!hasAccess}
-                        error={
-                          this.hasError('conditions') && (
-                            <StyledAlert type="error">
-                              {this.state.detailedError?.conditions[0]}
-                            </StyledAlert>
-                          )
-                        }
-                      />
-                    </StepContent>
+                                ),
+                              }
+                            )}
+                          </StepLead>
+                          <RuleNodeList
+                            nodes={this.state.configs?.conditions ?? null}
+                            items={conditions ?? []}
+                            placeholder={
+                              hasFeature
+                                ? t('Add optional trigger...')
+                                : t('Add optional condition...')
+                            }
+                            onPropertyChange={this.handleChangeConditionProperty}
+                            onAddRow={this.handleAddCondition}
+                            onDeleteRow={this.handleDeleteCondition}
+                            organization={organization}
+                            project={project}
+                            disabled={!hasAccess}
+                            error={
+                              this.hasError('conditions') && (
+                                <StyledAlert type="error">
+                                  {this.state.detailedError?.conditions[0]}
+                                </StyledAlert>
+                              )
+                            }
+                          />
+                        </StepContent>
+                      )}
+                    </Feature>
                   </StepContainer>
                 </Step>
 
@@ -600,7 +594,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
                       <StepContent>
                         <StepLead>
-                          {tct('[if:If] that issue has [selector] of these properties', {
+                          {tct('[if:If] [selector] of these filters match', {
                             if: <Badge />,
                             selector: (
                               <EmbeddedWrapper>
@@ -632,7 +626,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                         <RuleNodeList
                           nodes={this.state.configs?.filters ?? null}
                           items={filters ?? []}
-                          placeholder={t('Add a filter...')}
+                          placeholder={t('Add optional filter...')}
                           onPropertyChange={this.handleChangeFilterProperty}
                           onAddRow={this.handleAddFilter}
                           onDeleteRow={this.handleDeleteFilter}
@@ -672,7 +666,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                       <RuleNodeList
                         nodes={this.state.configs?.actions ?? null}
                         items={actions ?? []}
-                        placeholder={t('Add an action...')}
+                        placeholder={t('Add action...')}
                         onPropertyChange={this.handleChangeActionProperty}
                         onAddRow={this.handleAddAction}
                         onDeleteRow={this.handleDeleteAction}
@@ -721,19 +715,6 @@ export default withProject(withOrganization(IssueRuleEditor));
 
 const StyledForm = styled(Form)`
   position: relative;
-`;
-
-const StyledPanelHeader = styled(PanelHeader)`
-  flex-direction: column;
-  align-items: flex-start;
-`;
-
-const PanelHelpText = styled('div')`
-  color: ${p => p.theme.gray500};
-  font-size: 14px;
-  font-weight: normal;
-  text-transform: none;
-  margin-top: ${space(1)};
 `;
 
 const StyledAlert = styled(Alert)`

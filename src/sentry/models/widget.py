@@ -1,5 +1,6 @@
 from __future__ import absolute_import, print_function
 
+import six
 from django.db import models
 from django.utils import timezone
 
@@ -18,7 +19,7 @@ class TypesClass(object):
 
     @classmethod
     def as_choices(cls):
-        return cls.TYPES
+        return [(k, six.text_type(v)) for k, v in cls.TYPES]
 
     @classmethod
     def get_type_name(cls, num):
