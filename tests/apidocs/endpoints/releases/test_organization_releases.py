@@ -47,7 +47,6 @@ class OrganizationReleasesDocsTest(APIDocsTestCase):
         request = RequestFactory().get(self.url)
 
         self.validate_schema(request, response)
-        pass
 
     def test_post(self):
         data = {"version": "1.2.1", "projects": [self.project3.slug, self.project2.slug]}

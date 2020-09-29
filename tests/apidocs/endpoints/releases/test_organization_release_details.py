@@ -48,7 +48,6 @@ class OrganizationReleaseDetailsDocsTest(APIDocsTestCase):
         request = RequestFactory().get(self.url)
 
         self.validate_schema(request, response)
-        pass
 
     def test_put(self):
         data = {"projects": [self.project3.slug]}
