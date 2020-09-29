@@ -30,9 +30,7 @@ GITHUB_ACCESS_TOKEN_URL = "https://{0}/login/oauth/access_token".format(GITHUB_B
 GITHUB_USER_DATA_URL = "https://{0}/user".format(GITHUB_API_DOMAIN)
 
 # GitHub organization configuration
-GITHUB_ORGANIZATION_MEMBER_OF_URL = "https://{0}/orgs/{org}/members/{username}".format(
-    GITHUB_API_DOMAIN
-)
+GITHUB_ORGANIZATION_MEMBER_OF_URL = "https://%s/orgs/{org}/members/{username}" % GITHUB_API_DOMAIN
 
 
 class GithubBackend(OAuthBackend):
