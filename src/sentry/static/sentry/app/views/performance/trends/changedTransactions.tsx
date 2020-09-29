@@ -55,6 +55,7 @@ import {
 } from './utils';
 import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
 import {HeaderTitleLegend} from '../styles';
+import {getTransactionComparisonUrl} from '../utils';
 
 type Props = {
   api: Client;
@@ -426,7 +427,6 @@ const CompareLink = (props: CompareLinkProps) => {
     location,
     currentTrendFunction,
   } = props;
-  const summaryView = eventView.clone();
   const intervalRatio = getIntervalRatio(location);
 
   async function onLinkClick() {
@@ -446,14 +446,16 @@ const CompareLink = (props: CompareLinkProps) => {
       });
 
       const {previousPeriod, currentPeriod} = baselines;
-      const comparisonString = `${previousPeriod.project}:${previousPeriod.id}/${currentPeriod.project}:${currentPeriod.id}`;
-      browserHistory.push({
-        pathname: `/organizations/${organization.slug}/performance/compare/${comparisonString}/`,
-        query: {
-          ...summaryView.generateQueryStringObject(),
-          transaction: String(transaction.transaction),
-        },
+
+      const target = getTransactionComparisonUrl({
+        organization,
+        baselineEventSlug: `${previousPeriod.project}:${previousPeriod.id}`,
+        regressionEventSlug: `${currentPeriod.project}:${currentPeriod.id}`,
+        transaction: transaction.transaction,
+        query: location.query,
       });
+
+      browserHistory.push(target);
     }
   }
 
