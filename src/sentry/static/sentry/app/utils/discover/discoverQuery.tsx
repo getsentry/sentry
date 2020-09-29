@@ -215,18 +215,6 @@ class DiscoverQuery extends React.Component<Props, State> {
   ) => {
     const {trendChangeType, eventView} = this.props;
     if (trendChangeType) {
-      delete apiPayload.cursor;
-      if (
-        trendChangeType === TrendChangeType.IMPROVED &&
-        location?.query?.improvedCursor
-      ) {
-        apiPayload.cursor = location?.query?.improvedCursor;
-      } else if (
-        trendChangeType === TrendChangeType.REGRESSION &&
-        location?.query?.regressionCursor
-      ) {
-        apiPayload.cursor = location?.query?.regressionCursor;
-      }
       const trendFunction = getCurrentTrendFunction(location);
       apiPayload.trendFunction = trendFunction.field;
       apiPayload.interval = eventView.interval;

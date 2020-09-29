@@ -52,6 +52,7 @@ import {
   getIntervalRatio,
   StyledIconArrow,
   getTrendProjectId,
+  trendCursorNames,
 } from './utils';
 import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
 import {HeaderTitleLegend} from '../styles';
@@ -156,6 +157,7 @@ function ChangedTransactions(props: Props) {
   modifyTrendView(trendView, location, trendChangeType);
 
   const onCursor = onTrendsCursor(trendChangeType);
+  const cursor = decodeScalar(location.query[trendCursorNames[trendChangeType]]);
 
   return (
     <DiscoverQuery
@@ -163,6 +165,7 @@ function ChangedTransactions(props: Props) {
       orgSlug={organization.slug}
       location={location}
       trendChangeType={trendChangeType}
+      cursor={cursor}
       limit={5}
     >
       {({isLoading, tableData, pageLinks}) => {
