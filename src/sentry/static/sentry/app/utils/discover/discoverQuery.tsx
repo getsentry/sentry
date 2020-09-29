@@ -205,14 +205,14 @@ class DiscoverQuery extends React.Component<Props, State> {
       if (!isTrendsProject) {
         if (
           trendChangeType === TrendChangeType.IMPROVED &&
-          location?.query?.improvedCursor
+          location.query.improvedCursor
         ) {
-          apiPayload.cursor = location?.query?.improvedCursor;
+          apiPayload.cursor = location.query.improvedCursor;
         } else if (
           trendChangeType === TrendChangeType.REGRESSION &&
-          location?.query?.regressionCursor
+          location.query.regressionCursor
         ) {
-          apiPayload.cursor = location?.query?.regressionCursor;
+          apiPayload.cursor = location.query.regressionCursor;
         }
       }
 
