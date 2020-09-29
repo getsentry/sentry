@@ -147,7 +147,7 @@ options_mapper = {
 # integration.
 if settings.SENTRY_SINGLE_ORGANIZATION:
     options_mapper.update(
-        {"github-app.client-id": "GITHUB_APP_ID", "github-app.client-secret": "GITHUB_API_SECRET",}
+        {"github-app.client-id": "GITHUB_APP_ID", "github-app.client-secret": "GITHUB_API_SECRET"}
     )
 
 
