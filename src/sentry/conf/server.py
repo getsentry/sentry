@@ -1649,6 +1649,20 @@ EMAIL_USE_TLS = DEAD
 SERVER_EMAIL = DEAD
 EMAIL_SUBJECT_PREFIX = DEAD
 
+# Shared btw Auth Provider and Social Auth Plugin
+GITHUB_APP_ID = DEAD
+GITHUB_API_SECRET = DEAD
+
+# Used by Auth Provider
+GITHUB_REQUIRE_VERIFIED_EMAIL = DEAD
+GITHUB_API_DOMAIN = DEAD
+GITHUB_BASE_DOMAIN = DEAD
+
+# Used by Social Auth Plugin
+GITHUB_EXTENDED_PERMISSIONS = DEAD
+GITHUB_ORGANIZATION = DEAD
+
+
 SUDO_URL = "sentry-sudo"
 
 # Endpoint to https://github.com/getsentry/sentry-release-registry, used for

@@ -132,6 +132,13 @@ options_mapper = {
     "mail.use-tls": "EMAIL_USE_TLS",
     "mail.from": "SERVER_EMAIL",
     "mail.subject-prefix": "EMAIL_SUBJECT_PREFIX",
+    "github-app.client-id": "GITHUB_APP_ID",
+    "github-app.client-secret": "GITHUB_API_SECRET",
+    "github-app.require-verified-email": "GITHUB_REQUIRE_VERIFIED_EMAIL",
+    "github-app.base-domain": "GITHUB_BASE_DOMAIN",
+    "github-app.api-domain": "GITHUB_API_DOMAIN",
+    "github-app.extended-permissions": "GITHUB_EXTENDED_PERMISSIONS",
+    "github-app.organization": "GITHUB_ORGANIZATION",
 }
 
 
