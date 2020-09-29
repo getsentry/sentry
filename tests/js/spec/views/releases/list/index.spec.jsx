@@ -4,9 +4,9 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import ProjectsStore from 'app/stores/projectsStore';
-import ReleaseList from 'app/views/releases/list/';
+import ReleasesList from 'app/views/releases/list/';
 
-describe('ReleaseList', function() {
+describe('ReleasesList', function() {
   const {organization, routerContext, router} = initializeOrg();
   const props = {
     router,
@@ -41,7 +41,7 @@ describe('ReleaseList', function() {
       body: [],
     });
 
-    wrapper = mountWithTheme(<ReleaseList {...props} />, routerContext);
+    wrapper = mountWithTheme(<ReleasesList {...props} />, routerContext);
     await tick();
     wrapper.update();
   });
@@ -76,7 +76,7 @@ describe('ReleaseList', function() {
 
     location = {query: {}};
     wrapper = mountWithTheme(
-      <ReleaseList {...props} location={location} />,
+      <ReleasesList {...props} location={location} />,
       routerContext
     );
     expect(wrapper.find('StyledPanel')).toHaveLength(0);
@@ -84,7 +84,7 @@ describe('ReleaseList', function() {
 
     location = {query: {statsPeriod: '30d'}};
     wrapper = mountWithTheme(
-      <ReleaseList {...props} location={location} />,
+      <ReleasesList {...props} location={location} />,
       routerContext
     );
     expect(wrapper.find('StyledPanel')).toHaveLength(0);
@@ -92,7 +92,7 @@ describe('ReleaseList', function() {
 
     location = {query: {query: 'abc'}};
     wrapper = mountWithTheme(
-      <ReleaseList {...props} location={location} />,
+      <ReleasesList {...props} location={location} />,
       routerContext
     );
     expect(wrapper.find('EmptyMessage').text()).toEqual(
@@ -101,7 +101,7 @@ describe('ReleaseList', function() {
 
     location = {query: {sort: 'sessions', statsPeriod: '7d'}};
     wrapper = mountWithTheme(
-      <ReleaseList {...props} location={location} />,
+      <ReleasesList {...props} location={location} />,
       routerContext
     );
     expect(wrapper.find('EmptyMessage').text()).toEqual(
@@ -110,7 +110,7 @@ describe('ReleaseList', function() {
 
     location = {query: {sort: 'users_24h', statsPeriod: '7d'}};
     wrapper = mountWithTheme(
-      <ReleaseList {...props} location={location} />,
+      <ReleasesList {...props} location={location} />,
       routerContext
     );
     expect(wrapper.find('EmptyMessage').text()).toEqual(
