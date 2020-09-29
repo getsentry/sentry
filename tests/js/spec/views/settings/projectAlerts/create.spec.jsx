@@ -214,7 +214,7 @@ describe('ProjectAlertsCreate', function() {
         selectByValue(
           wrapper,
           'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
-          {selector: 'Select[placeholder="Add a condition..."]'}
+          {selector: 'Select[placeholder="Add optional condition..."]'}
         );
 
         wrapper
@@ -227,7 +227,7 @@ describe('ProjectAlertsCreate', function() {
         selectByValue(
           wrapper,
           'sentry.rules.conditions.tagged_event.TaggedEventCondition',
-          {selector: 'Select[placeholder="Add a condition..."]'}
+          {selector: 'Select[placeholder="Add optional condition..."]'}
         );
 
         // Edit new Condition
@@ -247,7 +247,7 @@ describe('ProjectAlertsCreate', function() {
         selectByValue(
           wrapper,
           'sentry.rules.filters.age_comparison.AgeComparisonFilter',
-          {selector: 'Select[placeholder="Add a filter..."]'}
+          {selector: 'Select[placeholder="Add optional filter..."]'}
         );
 
         wrapper
@@ -260,7 +260,7 @@ describe('ProjectAlertsCreate', function() {
         selectByValue(
           wrapper,
           'sentry.rules.filters.age_comparison.AgeComparisonFilter',
-          {selector: 'Select[placeholder="Add a filter..."]'}
+          {selector: 'Select[placeholder="Add optional filter..."]'}
         );
 
         const filterRuleNode = wrapper.find('RuleNode').at(1);
@@ -271,7 +271,7 @@ describe('ProjectAlertsCreate', function() {
 
         // Add an action and remove it
         selectByValue(wrapper, 'sentry.rules.actions.notify_event.NotifyEventAction', {
-          selector: 'Select[placeholder="Add an action..."]',
+          selector: 'Select[placeholder="Add action..."]',
         });
 
         wrapper
@@ -285,7 +285,7 @@ describe('ProjectAlertsCreate', function() {
           wrapper,
           'sentry.rules.actions.notify_event_service.NotifyEventServiceAction',
           {
-            selector: 'Select[placeholder="Add an action..."]',
+            selector: 'Select[placeholder="Add action..."]',
           }
         );
 

@@ -8,3 +8,6 @@ class EveryEventCondition(EventCondition):
 
     def passes(self, event, state):
         return True
+
+    def is_enabled(self):
+        return False

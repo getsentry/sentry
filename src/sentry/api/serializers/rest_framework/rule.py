@@ -71,7 +71,7 @@ class RuleSerializer(serializers.Serializer):
         choices=(("all", "all"), ("any", "any"), ("none", "none")), required=False
     )
     actions = ListField(child=RuleNodeField(type="action/event"))
-    conditions = ListField(child=RuleNodeField(type="condition/event"))
+    conditions = ListField(child=RuleNodeField(type="condition/event"), required=False)
     filters = ListField(child=RuleNodeField(type="filter/event"), required=False)
     frequency = serializers.IntegerField(min_value=5, max_value=60 * 24 * 30)
 
@@ -87,11 +87,6 @@ class RuleSerializer(serializers.Serializer):
             raise serializers.ValidationError(u"This environment has not been created.")
 
         return environment
-
-    def validate_conditions(self, value):
-        if not value:
-            raise serializers.ValidationError(u"Must select a condition.")
-        return value
 
     def validate_actions(self, value):
         if not value:
