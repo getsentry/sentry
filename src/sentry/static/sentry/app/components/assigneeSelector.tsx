@@ -123,7 +123,7 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
     const group = GroupStore.get(this.props.id);
 
     return (
-      ProjectsStore.getBySlug(group.project.slug) || {
+      (group && ProjectsStore.getBySlug(group.project.slug)) || {
         teams: [],
       }
     ).teams
