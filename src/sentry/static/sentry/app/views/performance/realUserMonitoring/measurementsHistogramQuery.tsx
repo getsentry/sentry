@@ -10,8 +10,8 @@ import withApi from 'app/utils/withApi';
 import {HistogramData} from './types';
 
 type RawHistogramData = {
-  histogram_key: string;
-  histogram_bin: number;
+  key: string;
+  bin: number;
   count: number;
 };
 
@@ -84,7 +84,7 @@ class MeasurementsHistogramQuery extends React.Component<Props, State> {
       'per_page',
     ]);
     const apiPayload = Object.assign(
-      {measurement: measurements, numBuckets},
+      {measurement: measurements, num_buckets: numBuckets},
       baseApiPayload
     );
 
@@ -131,8 +131,8 @@ class MeasurementsHistogramQuery extends React.Component<Props, State> {
     }, {});
 
     data.forEach(row => {
-      histogramData[`measurements.${row.histogram_key}`].push({
-        histogram: row.histogram_bin,
+      histogramData[`measurements.${row.key}`].push({
+        histogram: row.bin,
         count: row.count,
       });
     });
