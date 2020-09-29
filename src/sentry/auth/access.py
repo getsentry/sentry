@@ -281,9 +281,7 @@ def from_request(request, organization=None, scopes=None):
     """
     # TODO: validate scopes argument is not used and then remove
     if scopes is not None:
-        import traceback
-
-        logger.info("from_request.non_none_scopes: %s" % traceback.format_exc())
+        logger.info("from_request.non_none_scopes")
 
     if not organization:
         return from_user(request.user, organization=organization, scopes=scopes)
@@ -362,9 +360,7 @@ def from_user(user, organization=None, scopes=None):
     """
     # TODO: validate scopes argument is not used and then remove
     if scopes is not None:
-        import traceback
-
-        logger.info("from_user.non_none_scopes: %s" % traceback.format_exc())
+        logger.info("from_user.non_none_scopes")
 
     if not user or user.is_anonymous() or not user.is_active:
         return DEFAULT
@@ -395,9 +391,7 @@ def from_member(member, scopes=None):
 
     # TODO: validate scopes argument is not used and then remove
     if scopes is not None:
-        import traceback
-
-        logger.info("from_member.non_none_scopes: %s" % traceback.format_exc())
+        logger.info("from_member.non_none_scopes")
 
     team_list = member.get_teams()
     with sentry_sdk.start_span(op="get_project_access_in_teams") as span:
