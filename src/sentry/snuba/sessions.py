@@ -321,9 +321,12 @@ def get_release_health_data_overview(
                 (parse_snuba_datetime(x["bucketed_started"]) - stats_start).total_seconds()
                 / stats_rollup
             )
-            rv[x["project_id"], x["release"]]["stats"][health_stats_period][time_bucket][1] = x[
-                stat
-            ]
+            key = (x["project_id"], x["release"])
+            # Sometimes this might return a release we haven't seen yet or it might
+            # return a time bucket that did not exist yet at the time of the initial
+            # query.  In that case, just skip it.
+            if key in rv and time_bucket in rv[key]["stats"][health_stats_period]:
+                rv[key]["stats"][health_stats_period][time_bucket][1] = x[stat]
 
     return rv
 
