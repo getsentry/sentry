@@ -141,4 +141,5 @@ get = default_manager.get
 has = default_manager.has
 all = default_manager.all
 add_handler = default_manager.add_handler
+add_entity_handler = default_manager.add_entity_handler
 has_for_batch = default_manager.has_for_batch

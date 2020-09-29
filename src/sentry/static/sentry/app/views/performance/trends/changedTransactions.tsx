@@ -21,6 +21,7 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 import {formatPercentage, getDuration} from 'app/utils/formatters';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import {t} from 'app/locale';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import withProjects from 'app/utils/withProjects';
 import {IconEllipsis} from 'app/icons';
 import MenuItem from 'app/components/menuItem';
@@ -54,6 +55,7 @@ import {
 } from './utils';
 import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
 import {HeaderTitleLegend} from '../styles';
+import {getTransactionComparisonUrl} from '../utils';
 
 type Props = {
   api: Client;
@@ -425,7 +427,6 @@ const CompareLink = (props: CompareLinkProps) => {
     location,
     currentTrendFunction,
   } = props;
-  const summaryView = eventView.clone();
   const intervalRatio = getIntervalRatio(location);
 
   async function onLinkClick() {
@@ -438,15 +439,23 @@ const CompareLink = (props: CompareLinkProps) => {
       transaction
     );
     if (baselines) {
-      const {previousPeriod, currentPeriod} = baselines;
-      const comparisonString = `${previousPeriod.project}:${previousPeriod.id}/${currentPeriod.project}:${currentPeriod.id}`;
-      browserHistory.push({
-        pathname: `/organizations/${organization.slug}/performance/compare/${comparisonString}/`,
-        query: {
-          ...summaryView.generateQueryStringObject(),
-          transaction: String(transaction.transaction),
-        },
+      trackAnalyticsEvent({
+        eventKey: 'performance_views.trends.compare_baselines',
+        eventName: 'Performance Views: Comparing baselines',
+        organization_id: parseInt(organization.id, 10),
       });
+
+      const {previousPeriod, currentPeriod} = baselines;
+
+      const target = getTransactionComparisonUrl({
+        organization,
+        baselineEventSlug: `${previousPeriod.project}:${previousPeriod.id}`,
+        regressionEventSlug: `${currentPeriod.project}:${currentPeriod.id}`,
+        transaction: transaction.transaction,
+        query: location.query,
+      });
+
+      browserHistory.push(target);
     }
   }
 
