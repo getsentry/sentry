@@ -45,7 +45,7 @@ class Migration(migrations.Migration):
                 (
                     "query_type",
                     sentry.db.models.fields.bounded.BoundedPositiveIntegerField(
-                        choices=[(0, b"DISCOVER_V1"), (1, b"BILLING_REPORT"), (2, b"ISSUE_BY_TAG")]
+                        choices=[(0, "DISCOVER_V1"), (1, "BILLING_REPORT"), (2, "ISSUE_BY_TAG")]
                     ),
                 ),
                 ("query_info", sentry.db.models.fields.jsonfield.JSONField(default=dict)),

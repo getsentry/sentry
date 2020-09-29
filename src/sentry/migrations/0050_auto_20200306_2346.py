@@ -31,7 +31,7 @@ class Migration(migrations.Migration):
             model_name="exporteddata",
             name="query_type",
             field=sentry.db.models.fields.bounded.BoundedPositiveIntegerField(
-                choices=[(0, b"Issues-by-Tag"), (1, b"Discover")]
+                choices=[(0, "Issues-by-Tag"), (1, "Discover")]
             ),
         )
     ]

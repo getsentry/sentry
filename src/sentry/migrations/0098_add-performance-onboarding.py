@@ -32,17 +32,17 @@ class Migration(migrations.Migration):
             name="task",
             field=sentry.db.models.fields.bounded.BoundedPositiveIntegerField(
                 choices=[
-                    (1, b"create_project"),
-                    (2, b"send_first_event"),
-                    (3, b"invite_member"),
-                    (4, b"setup_second_platform"),
-                    (5, b"setup_user_context"),
-                    (6, b"setup_release_tracking"),
-                    (7, b"setup_sourcemaps"),
-                    (8, b"setup_user_reports"),
-                    (9, b"setup_issue_tracker"),
-                    (10, b"setup_alert_rules"),
-                    (11, b"setup_transactions"),
+                    (1, "create_project"),
+                    (2, "send_first_event"),
+                    (3, "invite_member"),
+                    (4, "setup_second_platform"),
+                    (5, "setup_user_context"),
+                    (6, "setup_release_tracking"),
+                    (7, "setup_sourcemaps"),
+                    (8, "setup_user_reports"),
+                    (9, "setup_issue_tracker"),
+                    (10, "setup_alert_rules"),
+                    (11, "setup_transactions"),
                 ]
             ),
         )

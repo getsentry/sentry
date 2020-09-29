@@ -31,19 +31,19 @@ class Migration(migrations.Migration):
             model_name="pagerdutyserviceproject",
             name="organization_integration",
             field=sentry.db.models.fields.bounded.BoundedBigIntegerField(
-                db_column=b"organization_integration_id", db_index=True, null=True
+                db_column="organization_integration_id", db_index=True, null=True
             ),
         ),
         migrations.AlterField(
             model_name="pagerdutyserviceproject",
             name="pagerduty_service",
             field=sentry.db.models.fields.bounded.BoundedBigIntegerField(
-                db_column=b"pagerduty_service_id", db_index=True
+                db_column="pagerduty_service_id", db_index=True
             ),
         ),
         migrations.AlterField(
             model_name="pagerdutyserviceproject",
             name="project",
-            field=sentry.db.models.fields.bounded.BoundedBigIntegerField(db_column=b"project_id"),
+            field=sentry.db.models.fields.bounded.BoundedBigIntegerField(db_column="project_id"),
         ),
     ]

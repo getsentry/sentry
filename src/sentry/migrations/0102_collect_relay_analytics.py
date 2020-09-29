@@ -38,7 +38,7 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 ("relay_id", models.CharField(max_length=64)),
-                ("version", models.CharField(default=b"0.0.1", max_length=32)),
+                ("version", models.CharField(default="0.0.1", max_length=32)),
                 ("first_seen", models.DateTimeField(default=django.utils.timezone.now)),
                 ("last_seen", models.DateTimeField(default=django.utils.timezone.now)),
             ],

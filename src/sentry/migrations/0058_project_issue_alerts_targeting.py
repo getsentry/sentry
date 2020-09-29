@@ -32,8 +32,8 @@ class Migration(migrations.Migration):
             name="flags",
             field=bitfield.models.BitField(
                 (
-                    (b"has_releases", b"This Project has sent release data"),
-                    (b"has_issue_alerts_targeting", b"This Project has issue alerts targeting"),
+                    ("has_releases", "This Project has sent release data"),
+                    ("has_issue_alerts_targeting", "This Project has issue alerts targeting"),
                 ),
                 default=0,
                 null=True,

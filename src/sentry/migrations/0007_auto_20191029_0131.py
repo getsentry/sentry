@@ -25,11 +25,11 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="organization",
             name="default_role",
-            field=models.CharField(default=b"member", max_length=32),
+            field=models.CharField(default="member", max_length=32),
         ),
         migrations.AlterField(
             model_name="organizationmember",
             name="role",
-            field=models.CharField(default=b"member", max_length=32),
+            field=models.CharField(default="member", max_length=32),
         ),
     ]

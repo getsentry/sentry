@@ -31,12 +31,12 @@ class Migration(migrations.Migration):
             model_name="incidentsuspectcommit",
             name="commit",
             field=sentry.db.models.fields.bounded.BoundedBigIntegerField(
-                db_column=b"commit_id", db_index=True
+                db_column="commit_id", db_index=True
             ),
         ),
         migrations.AlterField(
             model_name="incidentsuspectcommit",
             name="incident",
-            field=sentry.db.models.fields.bounded.BoundedBigIntegerField(db_column=b"incident_id"),
+            field=sentry.db.models.fields.bounded.BoundedBigIntegerField(db_column="incident_id"),
         ),
     ]

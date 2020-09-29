@@ -15,7 +15,7 @@ class GroupRelease(Model):
     project_id = BoundedPositiveIntegerField(db_index=True)
     group_id = BoundedPositiveIntegerField()
     release_id = BoundedPositiveIntegerField(db_index=True)
-    environment = models.CharField(max_length=64, default="")
+    environment = models.CharField(max_length=64, default=u"")
     first_seen = models.DateTimeField(default=timezone.now)
     last_seen = models.DateTimeField(default=timezone.now, db_index=True)
 
