@@ -8,10 +8,10 @@ import EventView from 'app/utils/discover/eventView';
 import {getAggregateAlias} from 'app/utils/discover/fields';
 import theme from 'app/utils/theme';
 
-import {PERCENTILE, WEB_VITAL_DETAILS} from './constants';
+import {NUM_BUCKETS, PERCENTILE, WEB_VITAL_DETAILS} from './constants';
 import {WebVital} from './types';
 import VitalCard from './vitalCard';
-import MeasuresHistogramQuery from './measuresHistogramQuery';
+import MeasurementsHistogramQuery from './measurementsHistogramQuery';
 
 type Props = {
   organization: Organization;
@@ -53,11 +53,11 @@ class TransactionVitals extends React.Component<Props> {
         {summaryResults => {
           return (
             <Panel>
-              <MeasuresHistogramQuery
+              <MeasurementsHistogramQuery
                 location={location}
                 organization={organization}
                 eventView={eventView}
-                numBuckets={50}
+                numBuckets={NUM_BUCKETS}
                 measurements={vitals.map(vital => WEB_VITAL_DETAILS[vital].slug)}
               >
                 {results => {
@@ -86,7 +86,7 @@ class TransactionVitals extends React.Component<Props> {
                     </React.Fragment>
                   );
                 }}
-              </MeasuresHistogramQuery>
+              </MeasurementsHistogramQuery>
             </Panel>
           );
         }}

@@ -2,7 +2,7 @@ import {t} from 'app/locale';
 
 import {Vital, WebVital} from './types';
 
-export const NUM_BUCKETS = 50;
+export const NUM_BUCKETS = 100;
 
 export const PERCENTILE = 0.75;
 

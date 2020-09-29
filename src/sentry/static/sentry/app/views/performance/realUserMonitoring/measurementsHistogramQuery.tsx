@@ -4,7 +4,7 @@ import omit from 'lodash/omit';
 
 import {Client} from 'app/api';
 import {Organization} from 'app/types';
-import EventView from 'app/utils/discover/eventView';
+import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
 import withApi from 'app/utils/withApi';
 
 import {HistogramData} from './types';
@@ -26,6 +26,7 @@ type Props = {
   location: Location;
   organization: Organization;
   eventView: EventView;
+  // these measurement names should NOT be prefixed with `measurements.`
   measurements: string[];
   numBuckets: number;
   children: (props: ChildrenProps) => React.ReactNode;
@@ -35,12 +36,7 @@ type State = {
   fetchId: symbol | null;
 } & ChildrenProps;
 
-/**
- * This class is a stub for the measurements data. It simply generates some
- * random data for the time being. It should be replaced with queries that
- * retrieve the true data from the backend.
- */
-class MeasuresQuery extends React.Component<Props, State> {
+class MeasurementsHistogramQuery extends React.Component<Props, State> {
   state: State = {
     isLoading: true,
     fetchId: null,
@@ -50,6 +46,26 @@ class MeasuresQuery extends React.Component<Props, State> {
 
   componentDidMount() {
     this.fetchData();
+  }
+
+  componentDidUpdate(prevProps: Props) {
+    // Reload data if we aren't already loading,
+    const refetchCondition = !this.state.isLoading && this.shouldRefetchData(prevProps);
+
+    // or if we've moved from an invalid view state to a valid one,
+    const eventViewValidation =
+      !prevProps.eventView.isValid() && this.props.eventView.isValid();
+
+    if (refetchCondition || eventViewValidation) {
+      this.fetchData();
+    }
+  }
+
+  shouldRefetchData(prevProps: Props): boolean {
+    const thisAPIPayload = this.props.eventView.getEventsAPIPayload(this.props.location);
+    const otherAPIPayload = prevProps.eventView.getEventsAPIPayload(prevProps.location);
+
+    return !isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
   }
 
   fetchData = () => {
@@ -82,26 +98,28 @@ class MeasuresQuery extends React.Component<Props, State> {
           ...apiPayload,
         },
       })
-      .then(([data, _status, _jqXHR]) => {
-        if (this.state.fetchId !== fetchId) {
-          return;
-        }
+      .then(
+        ([data, _status, _jqXHR]) => {
+          if (this.state.fetchId !== fetchId) {
+            return;
+          }
 
-        this.setState({
-          isLoading: false,
-          fetchId: null,
-          error: null,
-          histograms: this.formatData(data.data),
-        });
-      })
-      .catch(err => {
-        this.setState({
-          isLoading: false,
-          fetchId: null,
-          error: err?.responseJSON?.detail ?? null,
-          histograms: {},
-        });
-      });
+          this.setState({
+            isLoading: false,
+            fetchId: null,
+            error: null,
+            histograms: this.formatData(data.data),
+          });
+        },
+        err => {
+          this.setState({
+            isLoading: false,
+            fetchId: null,
+            error: err?.responseJSON?.detail ?? null,
+            histograms: {},
+          });
+        }
+      );
   };
 
   formatData(data: RawHistogramData[]): Record<string, HistogramData[]> {
@@ -134,4 +152,4 @@ class MeasuresQuery extends React.Component<Props, State> {
   }
 }
 
-export default withApi(MeasuresQuery);
+export default withApi(MeasurementsHistogramQuery);

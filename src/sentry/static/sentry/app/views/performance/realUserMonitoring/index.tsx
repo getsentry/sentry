@@ -111,6 +111,7 @@ function generateRumEventView(
   const conditions = tokenizeSearch(query);
   conditions
     .setTag('event.type', ['transaction'])
+    .setTag('transaction.op', ['pageload'])
     .setTag('transaction', [transactionName]);
 
   Object.keys(conditions.tagValues).forEach(field => {
