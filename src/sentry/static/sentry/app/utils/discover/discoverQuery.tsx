@@ -45,7 +45,6 @@ type Props = {
   orgSlug: string;
   keyTransactions?: boolean;
   trendChangeType?: TrendChangeType;
-  isTrendsProject?: boolean;
   /**
    * Record limit to get.
    */
@@ -214,24 +213,8 @@ class DiscoverQuery extends React.Component<Props, State> {
     apiPayload: EventQuery & LocationQuery & TrendsQuery,
     location: Location
   ) => {
-    const {trendChangeType, eventView, isTrendsProject} = this.props;
+    const {trendChangeType, eventView} = this.props;
     if (trendChangeType) {
-      delete apiPayload.cursor;
-
-      if (!isTrendsProject) {
-        if (
-          trendChangeType === TrendChangeType.IMPROVED &&
-          location.query.improvedCursor
-        ) {
-          apiPayload.cursor = location.query.improvedCursor;
-        } else if (
-          trendChangeType === TrendChangeType.REGRESSION &&
-          location.query.regressionCursor
-        ) {
-          apiPayload.cursor = location.query.regressionCursor;
-        }
-      }
-
       const trendFunction = getCurrentTrendFunction(location);
       apiPayload.trendFunction = trendFunction.field;
       apiPayload.interval = eventView.interval;
