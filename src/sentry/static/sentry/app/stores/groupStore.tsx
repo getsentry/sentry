@@ -14,7 +14,7 @@ function showAlert(msg, type) {
 }
 
 // TODO(ts) Type this any better.
-type Change = [string, string, any];
+type Change = [changeId: string, itemId:string, data:any];
 
 class PendingChangeQueue {
   changes: Change[] = [];
@@ -23,8 +23,8 @@ class PendingChangeQueue {
     return this.changes.filter((change: Change) => change[1] === itemId);
   }
 
-  push(changeId: string, itemId: string, data: any) {
-    this.changes.push([changeId, itemId, data]);
+  push(...change: Change) {
+    this.changes.push(change);
   }
 
   remove(changeId: string, itemId?: string) {
@@ -61,7 +61,7 @@ type GroupStoreInterface = Reflux.StoreDefinition & {
   get: (id: string) => Group | undefined;
   getAllItemIds: () => string[];
   getAllItems: () => Group[];
-  onAssignTo: (changeId: string, itemId: string, data: any) => void;
+  onAssignTo: (...change: Change) => void;
   onAssignToError: (changeId: string, itemId: string, error: Error) => void;
   onAssignToSuccess: (changeId: string, itemId: string, response: any) => void;
   onDelete: (changeId: string, itemIds: string[]) => void;
