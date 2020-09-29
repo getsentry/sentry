@@ -115,32 +115,27 @@ type RecordMetric = Hooks['metrics:event'] & {
     noCleanup?: boolean;
   }) => void;
 
-  createSpan: (opts: {
+  startTransaction: (opts: {
     /**
-     * Name of the span operation
+     * Name of transaction
      */
-    op: string;
+    name: string;
     /**
-     * Description of the span
+     * Optional trace id, defaults to current tx trace
      */
-    description: string;
+    traceId?: string;
     /**
-     * Key used to refer to the span later
+     * Optional op code
      */
-    key: string;
+    op?: string;
   }) => void;
 
-  endSpan: (opts: {
+  endTransaction: (opts: {
     /**
-     * Key used to retrieve the span to be deleted
+     * Name of the transaction to end
      */
-    key: string;
+    name: string;
   }) => void;
-
-  /**
-   * Ends the current transaction if it exists
-   */
-  endTransaction: () => void;
 };
 
 /**
@@ -227,9 +222,9 @@ metric.measure = function metricMeasure({name, start, end, data = {}, noCleanup}
 };
 
 /**
- * Used to pass data between createSpan and endSpan
+ * Used to pass data between startTransaction and endTransaction
  */
-const spanDataStore = new Map<string, object>();
+const transactionDataStore = new Map<string, object>();
 
 const getCurrentTransaction = () => {
   return Sentry.getCurrentHub()
@@ -237,23 +232,16 @@ const getCurrentTransaction = () => {
     ?.getTransaction();
 };
 
-metric.createSpan = ({op, description, key}) => {
-  const transaction = getCurrentTransaction();
-  if (transaction) {
-    const span = transaction.startChild({op, description});
-    spanDataStore[key] = span;
+metric.startTransaction = ({name, traceId, op}) => {
+  if (!traceId) {
+    traceId = getCurrentTransaction()?.traceId;
   }
+  const transaction = Sentry.startTransaction({name, op, traceId});
+  transactionDataStore[name] = transaction;
 };
 
-metric.endSpan = ({key}) => {
-  const span = spanDataStore[key];
-  if (span) {
-    span.finish();
-  }
-};
-
-metric.endTransaction = () => {
-  const transaction = getCurrentTransaction();
+metric.endTransaction = ({name}) => {
+  const transaction = transactionDataStore[name];
   if (transaction) {
     transaction.finish();
   }

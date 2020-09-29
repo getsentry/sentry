@@ -28,14 +28,12 @@ class IssueListContainer extends React.Component {
    * lightweight organization
    */
   startMetricCollection() {
-    const startType = isLightweightOrganization(this.props.organization)
-      ? 'cold-start'
-      : 'warm-start';
+    const isLightWeight = isLightweightOrganization(this.props.organization);
+    const startType = isLightWeight ? 'cold-start' : 'warm-start';
     metric.mark({name: 'page-issue-list-start', data: {start_type: startType}});
-    metric.createSpan({
-      op: 'load',
-      description: 'issue-list-load',
-      label: 'issue-list-load',
+    metric.startTransaction({
+      name: 'issue-list.load',
+      op: isLightWeight ? 'pageload' : 'navigation',
     });
   }
 

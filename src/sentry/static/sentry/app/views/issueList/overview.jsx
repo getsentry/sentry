@@ -130,8 +130,7 @@ const IssueListOverview = createReactClass({
               .toString(),
           },
         });
-        metric.endSpan({label: 'issue-list-load'});
-        metric.endTransaction();
+        metric.endTransaction({name: 'issue-list.load'});
       }
     }
 
