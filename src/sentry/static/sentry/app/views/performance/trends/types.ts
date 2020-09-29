@@ -103,7 +103,7 @@ export type NormalizedTrendsTransaction = BaseTrendsTransaction & {
   percentage_aggregate_range_2_aggregate_range_1: number;
   minus_aggregate_range_2_aggregate_range_1: number;
 
-  received_at: Readonly<moment.MomentInput>;
+  received_at: Readonly<moment.Moment>;
 };
 
 export type NormalizedProjectTrend = Omit<NormalizedTrendsTransaction, 'transaction'>;
