@@ -1739,6 +1739,427 @@ class QueryTransformTest(TestCase):
         assert results["data"][-1]["histogram_transaction_duration_10"] == 64733000000
         assert results["data"][-1]["count"] == 1
 
+    @patch("sentry.snuba.discover.raw_query")
+    def test_measurements_histogram_min_max(self, mock_query):
+        # no rows returned from snuba
+        mock_query.side_effect = [{"meta": [], "data": []}]
+        values = discover.find_measurements_min_max(["foo"], "", {"project_id": [self.project.id]})
+        assert values == (None, None)
+
+        # more than 2 rows returned snuba
+        mock_query.side_effect = [{"meta": [], "data": [{}, {}]}]
+        values = discover.find_measurements_min_max(["foo"], "", {"project_id": [self.project.id]})
+        assert values == (None, None)
+
+        # None rows are returned from snuba
+        mock_query.side_effect = [
+            {
+                "meta": [{"name": "min_measurements_foo"}, {"name": "max_measurements_foo"}],
+                "data": [{"min_measurements_foo": None, "max_measurements_foo": None}],
+            },
+        ]
+        values = discover.find_measurements_min_max(["foo"], "", {"project_id": [self.project.id]})
+        assert values == (None, None)
+
+        # single min/max returned from snuba
+        mock_query.side_effect = [
+            {
+                "meta": [{"name": "min_measurements_foo"}, {"name": "max_measurements_foo"}],
+                "data": [{"min_measurements_foo": 1.23, "max_measurements_foo": 3.45}],
+            },
+        ]
+        values = discover.find_measurements_min_max(["foo"], "", {"project_id": [self.project.id]})
+        assert values == (1.23, 3.45)
+
+        # multiple min/max returned from snuba
+        mock_query.side_effect = [
+            {
+                "meta": [
+                    {"name": "min_measurements_foo"},
+                    {"name": "min_measurements_bar"},
+                    {"name": "min_measurements_baz"},
+                    {"name": "max_measurements_foo"},
+                    {"name": "max_measurements_bar"},
+                    {"name": "max_measurements_baz"},
+                ],
+                "data": [
+                    {
+                        "min_measurements_foo": 1.23,
+                        "min_measurements_bar": 1.34,
+                        "min_measurements_baz": 1.45,
+                        "max_measurements_foo": 3.45,
+                        "max_measurements_bar": 3.56,
+                        "max_measurements_baz": 3.67,
+                    }
+                ],
+            },
+        ]
+        values = discover.find_measurements_min_max(
+            ["foo", "bar", "baz"], "", {"project_id": [self.project.id]}
+        )
+        assert values == (1.23, 3.67)
+
+        # multiple min/max with some Nones returned from snuba
+        mock_query.side_effect = [
+            {
+                "meta": [
+                    {"name": "min_measurements_foo"},
+                    {"name": "min_measurements_bar"},
+                    {"name": "min_measurements_baz"},
+                    {"name": "max_measurements_foo"},
+                    {"name": "max_measurements_bar"},
+                    {"name": "max_measurements_baz"},
+                ],
+                "data": [
+                    {
+                        "min_measurements_foo": 1.23,
+                        "min_measurements_bar": None,
+                        "min_measurements_baz": 1.45,
+                        "max_measurements_foo": 3.45,
+                        "max_measurements_bar": None,
+                        "max_measurements_baz": 3.67,
+                    }
+                ],
+            },
+        ]
+        values = discover.find_measurements_min_max(
+            ["foo", "bar", "baz"], "", {"project_id": [self.project.id]}
+        )
+        assert values == (1.23, 3.67)
+
+    def test_measurements_histogram_params(self):
+        # min and max is None
+        assert discover.find_measurements_histogram_params(1, None, None, 0) == (1, 0, 1)
+        # min is None
+        assert discover.find_measurements_histogram_params(1, None, 1, 1) == (1, 0, 10)
+        # max is None
+        assert discover.find_measurements_histogram_params(1, 1, None, 2) == (1, 0, 100)
+
+        assert discover.find_measurements_histogram_params(10, 0, 9, 0) == (1, 0, 1)
+        assert discover.find_measurements_histogram_params(10, 0, 10, 0) == (2, 0, 1)
+        assert discover.find_measurements_histogram_params(10, 0, 99, 0) == (10, 0, 1)
+        assert discover.find_measurements_histogram_params(10, 0, 100, 0) == (11, 0, 1)
+        assert discover.find_measurements_histogram_params(5, 10, 19, 1) == (19, 100, 10)
+        assert discover.find_measurements_histogram_params(5, 10, 19.9, 1) == (20, 100, 10)
+        assert discover.find_measurements_histogram_params(10, 10, 20, 0) == (2, 10, 1)
+        assert discover.find_measurements_histogram_params(10, 10, 20, 1) == (11, 100, 10)
+        assert discover.find_measurements_histogram_params(10, 10, 20, 2) == (101, 1000, 100)
+
+    def test_measurements_histogram_normalization_empty(self):
+        results = {"data": []}
+        normalized_results = discover.normalize_measurements_histogram(
+            ["foo"], 3, "array_join(measurements_key)", discover.HistogramParams(1, 0, 1), results,
+        )
+        assert normalized_results == {
+            "data": [
+                {"key": "foo", "bin": 0, "count": 0},
+                {"key": "foo", "bin": 1, "count": 0},
+                {"key": "foo", "bin": 2, "count": 0},
+            ],
+        }
+
+    def test_measurements_histogram_normalization_empty_multiple(self):
+        results = {"data": []}
+        normalized_results = discover.normalize_measurements_histogram(
+            ["bar", "foo"],
+            3,
+            "array_join(measurements_key)",
+            discover.HistogramParams(1, 0, 1),
+            results,
+        )
+        assert normalized_results == {
+            "data": [
+                {"key": "bar", "bin": 0, "count": 0},
+                {"key": "foo", "bin": 0, "count": 0},
+                {"key": "bar", "bin": 1, "count": 0},
+                {"key": "foo", "bin": 1, "count": 0},
+                {"key": "bar", "bin": 2, "count": 0},
+                {"key": "foo", "bin": 2, "count": 0},
+            ],
+        }
+
+    def test_measurements_histogram_normalization_full(self):
+        results = {
+            "data": [
+                {
+                    "array_join_measurements_key": "foo",
+                    "measurements_histogram_1_0_1": 0,
+                    "count": 3,
+                },
+                {
+                    "array_join_measurements_key": "foo",
+                    "measurements_histogram_1_0_1": 1,
+                    "count": 2,
+                },
+                {
+                    "array_join_measurements_key": "foo",
+                    "measurements_histogram_1_0_1": 2,
+                    "count": 1,
+                },
+            ]
+        }
+        normalized_results = discover.normalize_measurements_histogram(
+            ["foo"], 3, "array_join(measurements_key)", discover.HistogramParams(1, 0, 1), results,
+        )
+        assert normalized_results == {
+            "data": [
+                {"key": "foo", "bin": 0, "count": 3},
+                {"key": "foo", "bin": 1, "count": 2},
+                {"key": "foo", "bin": 2, "count": 1},
+            ],
+        }
+
+    def test_measurements_histogram_normalization_full_multiple(self):
+        results = {
+            "data": [
+                {
+                    "array_join_measurements_key": "bar",
+                    "measurements_histogram_1_0_1": 0,
+                    "count": 1,
+                },
+                {
+                    "array_join_measurements_key": "foo",
+                    "measurements_histogram_1_0_1": 0,
+                    "count": 3,
+                },
+                {
+                    "array_join_measurements_key": "bar",
+                    "measurements_histogram_1_0_1": 1,
+                    "count": 2,
+                },
+                {
+                    "array_join_measurements_key": "foo",
+                    "measurements_histogram_1_0_1": 1,
+                    "count": 2,
+                },
+                {
+                    "array_join_measurements_key": "bar",
+                    "measurements_histogram_1_0_1": 2,
+                    "count": 3,
+                },
+                {
+                    "array_join_measurements_key": "foo",
+                    "measurements_histogram_1_0_1": 2,
+                    "count": 1,
+                },
+            ]
+        }
+        normalized_results = discover.normalize_measurements_histogram(
+            ["bar", "foo"],
+            3,
+            "array_join(measurements_key)",
+            discover.HistogramParams(1, 0, 1),
+            results,
+        )
+        assert normalized_results == {
+            "data": [
+                {"key": "bar", "bin": 0, "count": 1},
+                {"key": "foo", "bin": 0, "count": 3},
+                {"key": "bar", "bin": 1, "count": 2},
+                {"key": "foo", "bin": 1, "count": 2},
+                {"key": "bar", "bin": 2, "count": 3},
+                {"key": "foo", "bin": 2, "count": 1},
+            ],
+        }
+
+    def test_measurements_histogram_normalization_partial(self):
+        results = {
+            "data": [
+                {
+                    "array_join_measurements_key": "foo",
+                    "measurements_histogram_1_0_1": 0,
+                    "count": 3,
+                },
+            ]
+        }
+        normalized_results = discover.normalize_measurements_histogram(
+            ["foo"], 3, "array_join(measurements_key)", discover.HistogramParams(1, 0, 1), results,
+        )
+        assert normalized_results == {
+            "data": [
+                {"key": "foo", "bin": 0, "count": 3},
+                {"key": "foo", "bin": 1, "count": 0},
+                {"key": "foo", "bin": 2, "count": 0},
+            ],
+        }
+
+    def test_measurements_histogram_normalization_partial_multiple(self):
+        results = {
+            "data": [
+                {
+                    "array_join_measurements_key": "foo",
+                    "measurements_histogram_1_0_1": 0,
+                    "count": 3,
+                },
+                {
+                    "array_join_measurements_key": "bar",
+                    "measurements_histogram_1_0_1": 2,
+                    "count": 3,
+                },
+            ]
+        }
+        normalized_results = discover.normalize_measurements_histogram(
+            ["bar", "foo"],
+            3,
+            "array_join(measurements_key)",
+            discover.HistogramParams(1, 0, 1),
+            results,
+        )
+        assert normalized_results == {
+            "data": [
+                {"key": "bar", "bin": 0, "count": 0},
+                {"key": "foo", "bin": 0, "count": 3},
+                {"key": "bar", "bin": 1, "count": 0},
+                {"key": "foo", "bin": 1, "count": 0},
+                {"key": "bar", "bin": 2, "count": 3},
+                {"key": "foo", "bin": 2, "count": 0},
+            ],
+        }
+
+    def test_measurements_histogram_normalization_ignore_unexpected_rows(self):
+        results = {
+            "data": [
+                {
+                    "array_join_measurements_key": "foo",
+                    "measurements_histogram_1_0_1": 0,
+                    "count": 3,
+                },
+                # this row shouldn't be used because "baz" isn't an expected measurement
+                {
+                    "array_join_measurements_key": "baz",
+                    "measurements_histogram_1_0_1": 1,
+                    "count": 3,
+                },
+                {
+                    "array_join_measurements_key": "bar",
+                    "measurements_histogram_1_0_1": 2,
+                    "count": 3,
+                },
+                # this row shouldn't be used because 3 isn't an expected bin
+                {
+                    "array_join_measurements_key": "bar",
+                    "measurements_histogram_1_0_1": 3,
+                    "count": 3,
+                },
+            ]
+        }
+        normalized_results = discover.normalize_measurements_histogram(
+            ["bar", "foo"],
+            3,
+            "array_join(measurements_key)",
+            discover.HistogramParams(1, 0, 1),
+            results,
+        )
+        assert normalized_results == {
+            "data": [
+                {"key": "bar", "bin": 0, "count": 0},
+                {"key": "foo", "bin": 0, "count": 3},
+                {"key": "bar", "bin": 1, "count": 0},
+                {"key": "foo", "bin": 1, "count": 0},
+                {"key": "bar", "bin": 2, "count": 3},
+                {"key": "foo", "bin": 2, "count": 0},
+            ],
+        }
+
+    def test_measurements_histogram_normalization_adjust_for_precision(self):
+        results = {
+            "data": [
+                {
+                    "array_join_measurements_key": "foo",
+                    "measurements_histogram_25_0_100": 0,
+                    "count": 3,
+                },
+                {
+                    "array_join_measurements_key": "foo",
+                    "measurements_histogram_25_0_100": 25,
+                    "count": 2,
+                },
+                {
+                    "array_join_measurements_key": "foo",
+                    "measurements_histogram_25_0_100": 50,
+                    "count": 1,
+                },
+                {
+                    "array_join_measurements_key": "foo",
+                    "measurements_histogram_25_0_100": 75,
+                    "count": 1,
+                },
+            ]
+        }
+        normalized_results = discover.normalize_measurements_histogram(
+            ["foo"],
+            4,
+            "array_join(measurements_key)",
+            discover.HistogramParams(25, 0, 100),
+            results,
+        )
+        assert normalized_results == {
+            "data": [
+                {"key": "foo", "bin": 0, "count": 3},
+                {"key": "foo", "bin": 0.25, "count": 2},
+                {"key": "foo", "bin": 0.50, "count": 1},
+                {"key": "foo", "bin": 0.75, "count": 1},
+            ],
+        }
+
+    @patch("sentry.snuba.discover.raw_query")
+    def test_measurements_histogram(self, mock_query):
+        mock_query.side_effect = [
+            {
+                "meta": [{"name": "min_measurements_foo"}, {"name": "max_measurements_foo"}],
+                "data": [
+                    {
+                        "min_measurements_bar": 2,
+                        "min_measurements_foo": 0,
+                        "max_measurements_bar": 2,
+                        "max_measurements_foo": 2,
+                    }
+                ],
+            },
+            {
+                "meta": [
+                    {"name": "array_join_measurements_key"},
+                    {"name": "measurements_histogram_1_0_1"},
+                    {"name": "count"},
+                ],
+                "data": [
+                    {
+                        "array_join_measurements_key": "bar",
+                        "measurements_histogram_1_0_1": 0,
+                        "count": 3,
+                    },
+                    {
+                        "array_join_measurements_key": "foo",
+                        "measurements_histogram_1_0_1": 0,
+                        "count": 3,
+                    },
+                    {
+                        "array_join_measurements_key": "foo",
+                        "measurements_histogram_1_0_1": 2,
+                        "count": 1,
+                    },
+                ],
+            },
+        ]
+        results = discover.measurements_histogram_query(
+            ["bar", "foo"], "", {"project_id": [self.project.id]}, 3, 0
+        )
+        assert results == {
+            "meta": [
+                {"name": "array_join_measurements_key"},
+                {"name": "measurements_histogram_1_0_1"},
+                {"name": "count"},
+            ],
+            "data": [
+                {"key": "bar", "bin": 0, "count": 3},
+                {"key": "foo", "bin": 0, "count": 3},
+                {"key": "bar", "bin": 1, "count": 0},
+                {"key": "foo", "bin": 1, "count": 0},
+                {"key": "bar", "bin": 2, "count": 0},
+                {"key": "foo", "bin": 2, "count": 1},
+            ],
+        }
+
 
 class TimeseriesQueryTest(SnubaTestCase, TestCase):
     def setUp(self):

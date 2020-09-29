@@ -959,7 +959,7 @@ def measurements_histogram_query(
 
     key_col = "array_join(measurements_key)"
     histogram_params = find_measurements_histogram_params(
-        measurements, num_buckets, min_value, max_value, precision, user_query, params,
+        num_buckets, min_value, max_value, precision
     )
     histogram_col = get_measurements_histogram_col(histogram_params)
 
@@ -985,9 +985,7 @@ def get_measurements_histogram_col(params):
     return u"measurements_histogram({:d}, {:d}, {:d})".format(*params)
 
 
-def find_measurements_histogram_params(
-    measurements, num_buckets, min_value, max_value, precision, query, params
-):
+def find_measurements_histogram_params(num_buckets, min_value, max_value, precision):
     multiplier = int(10 ** precision)
 
     # finding the bounds might result in None if there isn't sufficient data
@@ -997,13 +995,13 @@ def find_measurements_histogram_params(
     # A single bucket in a histogram contains values from [start, end),
     # meaning that start is inclusive and end is exclusive
 
-    scaled_min = int(floor(multiplier * min_value))
-    scaled_max = int(ceil(multiplier * max_value))
+    scaled_min = multiplier * min_value
+    scaled_max = multiplier * max_value
 
     # align the first bin with the minimum value
-    start_offset = scaled_min
+    start_offset = int(floor(scaled_min))
 
-    bucket_size = int(ceil((scaled_max - scaled_min) / float(num_buckets)))
+    bucket_size = int(ceil((int(ceil(scaled_max)) - int(floor(scaled_min))) / float(num_buckets)))
 
     if bucket_size == 0:
         bucket_size = 1
@@ -1011,7 +1009,7 @@ def find_measurements_histogram_params(
     # Sometimes the max value lies on the bucket boundary, and since the end
     # of the bucket is exclusive, it gets excluded. To account for that, we
     # increase the width of the buckets to cover the max value.
-    if start_offset + num_buckets * bucket_size <= max_value:
+    if start_offset + num_buckets * bucket_size <= scaled_max:
         bucket_size += 1
 
     return HistogramParams(bucket_size, start_offset, multiplier)
@@ -1058,32 +1056,31 @@ def normalize_measurements_histogram(measurements, num_buckets, key_col, histogr
     key_name = get_function_alias(key_col)
     bin_name = get_function_alias(get_measurements_histogram_col(histogram_params))
     data = results["data"]
-    new_data = []
 
-    idx = 0
+    bucket_maps = {m: {} for m in measurements}
+    for row in data:
+        measurement = row[key_name]
+        # we expect the bin the be an integer, this is because all floating
+        # point values are rounded during the calculation
+        bucket = int(row[bin_name])
+        # ignore unexpected measurements
+        if measurement in bucket_maps:
+            bucket_maps[measurement][bucket] = row["count"]
+
+    new_data = []
     for i in range(num_buckets):
         bucket = histogram_params.start_offset + histogram_params.bucket_size * i
         for measurement in measurements:
             # we want to rename the columns here
-            row = {"key": measurement, "bin": bucket}
-            if (
-                idx >= len(data)
-                or data[idx][key_name] != measurement
-                or data[idx][bin_name] != bucket
-            ):
-                row["count"] = 0
-            else:
-                row["count"] = data[idx]["count"]
-                idx += 1
-            new_data.append(row)
-
+            row = {
+                "key": measurement,
+                "bin": bucket,
+                "count": bucket_maps[measurement].get(bucket, 0),
+            }
             # make sure to adjust for the precision if necessary
             if histogram_params.multiplier > 1:
-                new_data[-1]["bin"] /= float(histogram_params.multiplier)
-
-    if idx < len(data):
-        # There are some unconsumed rows here, something is wrong here.
-        raise Exception(u"{}/{} unconsumed rows detected.".format(len(data) - idx, len(data)))
+                row["bin"] /= float(histogram_params.multiplier)
+            new_data.append(row)
 
     results["data"] = new_data
 
