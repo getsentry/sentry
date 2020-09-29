@@ -13,7 +13,7 @@ class UserAvatar(AvatarBase):
     and contains their preferences for avatar type.
     """
 
-    AVATAR_TYPES = ((0, "letter_avatar"), (1, "upload"), (2, "gravatar"))
+    AVATAR_TYPES = ((0, u"letter_avatar"), (1, u"upload"), (2, u"gravatar"))
 
     FILE_TYPE = "avatar.file"
 

@@ -20,20 +20,19 @@ class Migration(migrations.Migration):
     # - Adding columns to highly active tables, even ones that are NULL.
     is_dangerous = False
 
-
-    dependencies = [
-        ('sentry', '0012_remove_pagerdutyservice_service_id'),
-    ]
+    dependencies = [("sentry", "0012_remove_pagerdutyservice_service_id")]
 
     operations = [
         migrations.AlterField(
-            model_name='sentryappwebhookerror',
-            name='organization',
-            field=sentry.db.models.fields.bounded.BoundedBigIntegerField(db_column=b'organization_id'),
+            model_name="sentryappwebhookerror",
+            name="organization",
+            field=sentry.db.models.fields.bounded.BoundedBigIntegerField(
+                db_column="organization_id"
+            ),
         ),
         migrations.AlterField(
-            model_name='sentryappwebhookerror',
-            name='sentry_app',
-            field=sentry.db.models.fields.bounded.BoundedBigIntegerField(db_column=b'sentry_app_id'),
+            model_name="sentryappwebhookerror",
+            name="sentry_app",
+            field=sentry.db.models.fields.bounded.BoundedBigIntegerField(db_column="sentry_app_id"),
         ),
     ]

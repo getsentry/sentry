@@ -37,9 +37,9 @@ class Migration(migrations.Migration):
                     (
                         "flags",
                         bitfield.models.BitField(
-                            (b"FLAG_0", b"FLAG_1", b"FLAG_2", b"FLAG_3"),
+                            ("FLAG_0", "FLAG_1", "FLAG_2", "FLAG_3"),
                             default=3,
-                            db_column=b"another_name",
+                            db_column="another_name",
                         ),
                     ),
                 ],
@@ -84,7 +84,7 @@ class Migration(migrations.Migration):
                     (
                         "json",
                         sentry.db.models.fields.jsonfield.JSONField(
-                            null=True, verbose_name=b"test", blank=True
+                            null=True, verbose_name="test", blank=True
                         ),
                     ),
                 ],
@@ -101,7 +101,7 @@ class Migration(migrations.Migration):
                     (
                         "json",
                         sentry.db.models.fields.jsonfield.JSONField(
-                            default={b"sukasuka": b"YAAAAAZ"}
+                            default={"sukasuka": "YAAAAAZ"}
                         ),
                     ),
                 ],

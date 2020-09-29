@@ -40,8 +40,8 @@ class Migration(migrations.Migration):
             name="flags",
             field=bitfield.models.BitField(
                 (
-                    (b"has_releases", b"This Project has sent release data"),
-                    (b"has_sourcemaps", b"This Project has processed source maps"),
+                    ("has_releases", "This Project has sent release data"),
+                    ("has_sourcemaps", "This Project has processed source maps"),
                 ),
                 default=0,
                 null=True,

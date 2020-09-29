@@ -40,7 +40,7 @@ class Migration(migrations.Migration):
             model_name="project",
             name="flags",
             field=bitfield.models.BitField(
-                ((b"has_releases", b"This Project has sent release data"),), default=0, null=True
+                (("has_releases", "This Project has sent release data"),), default=0, null=True
             ),
         )
     ]

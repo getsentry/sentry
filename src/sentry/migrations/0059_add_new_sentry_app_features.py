@@ -24,22 +24,23 @@ class Migration(migrations.Migration):
     # want to create an index concurrently when adding one to an existing table.
     atomic = True
 
-    dependencies = [
-        ('sentry', '0058_project_issue_alerts_targeting'),
-    ]
+    dependencies = [("sentry", "0058_project_issue_alerts_targeting")]
 
     operations = [
         migrations.AlterField(
-            model_name='integrationfeature',
-            name='feature',
+            model_name="integrationfeature",
+            name="feature",
             field=sentry.db.models.fields.bounded.BoundedPositiveIntegerField(
-                choices=[(0, b'integrations-api'),
-                         (1, b'integrations-issue-link'),
-                         (2, b'integrations-stacktrace-link'),
-                         (3, b'integrations-event-hooks'),
-                         (4, b'integrations-project-management'),
-                         (5, b'integrations-incident-management'),
-                         (6, b'integrations-feature-flag')],
-                default=0),
-        ),
+                choices=[
+                    (0, "integrations-api"),
+                    (1, "integrations-issue-link"),
+                    (2, "integrations-stacktrace-link"),
+                    (3, "integrations-event-hooks"),
+                    (4, "integrations-project-management"),
+                    (5, "integrations-incident-management"),
+                    (6, "integrations-feature-flag"),
+                ],
+                default=0,
+            ),
+        )
     ]

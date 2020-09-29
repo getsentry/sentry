@@ -59,7 +59,7 @@ class ServiceHook(Model):
     status = BoundedPositiveIntegerField(
         default=0, choices=ObjectStatus.as_choices(), db_index=True
     )
-    version = BoundedPositiveIntegerField(default=0, choices=((0, "0"),))
+    version = BoundedPositiveIntegerField(default=0, choices=((0, u"0"),))
     date_added = models.DateTimeField(default=timezone.now)
 
     objects = BaseManager(cache_fields=("guid",))

@@ -47,7 +47,7 @@ class User(BaseModel, AbstractBaseUser):
     username = models.CharField(_("username"), max_length=128, unique=True)
     # this column is called first_name for legacy reasons, but it is the entire
     # display name
-    name = models.CharField(_("name"), max_length=200, blank=True, db_column="first_name")
+    name = models.CharField(_("name"), max_length=200, blank=True, db_column=u"first_name")
     email = models.EmailField(_("email address"), blank=True, max_length=75)
     is_staff = models.BooleanField(
         _("staff status"),
@@ -103,7 +103,7 @@ class User(BaseModel, AbstractBaseUser):
 
     flags = BitField(
         flags=(
-            ("newsletter_consent_prompt", "Do we need to ask this user for newsletter consent?"),
+            (u"newsletter_consent_prompt", u"Do we need to ask this user for newsletter consent?"),
         ),
         default=0,
         null=True,
@@ -114,7 +114,7 @@ class User(BaseModel, AbstractBaseUser):
     date_joined = models.DateTimeField(_("date joined"), default=timezone.now)
     last_active = models.DateTimeField(_("last active"), default=timezone.now, null=True)
 
-    objects = UserManager(cache_fields=["pk"])
+    objects = UserManager(cache_fields=[u"pk"])
 
     USERNAME_FIELD = "username"
     REQUIRED_FIELDS = ["email"]

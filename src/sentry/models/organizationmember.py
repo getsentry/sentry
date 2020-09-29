@@ -92,9 +92,9 @@ class OrganizationMember(Model):
         settings.AUTH_USER_MODEL, null=True, blank=True, related_name="sentry_orgmember_set"
     )
     email = models.EmailField(null=True, blank=True, max_length=75)
-    role = models.CharField(max_length=32, default=roles.get_default().id)
+    role = models.CharField(max_length=32, default=six.text_type(roles.get_default().id))
     flags = BitField(
-        flags=(("sso:linked", "sso:linked"), ("sso:invalid", "sso:invalid")), default=0
+        flags=((u"sso:linked", u"sso:linked"), (u"sso:invalid", u"sso:invalid")), default=0
     )
     token = models.CharField(max_length=64, null=True, blank=True, unique=True)
     date_added = models.DateTimeField(default=timezone.now)
