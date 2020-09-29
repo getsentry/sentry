@@ -278,6 +278,7 @@ class EventSerializer(Serializer):
         return {
             "startTimestamp": obj.data.get("start_timestamp"),
             "endTimestamp": obj.data.get("timestamp"),
+            "measurements": obj.data.get("measurements"),
         }
 
     def __serialize_error_attrs(self, attrs, obj):
