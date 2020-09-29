@@ -13,11 +13,18 @@ import {
   getTrendAliasedMinus,
 } from 'app/views/performance/trends/utils';
 import {TrendFunctionField} from 'app/views/performance/trends/types';
+import {getUtcDateString} from 'app/utils/dates';
 
 const trendsViewQuery = {
   view: 'TRENDS',
   query: 'count():>1000 transaction.duration:>0',
 };
+
+jest.mock('moment', () => {
+  const moment = jest.requireActual('moment');
+  moment.now = jest.fn().mockReturnValue(1601251200000);
+  return moment;
+});
 
 function selectTrendFunction(wrapper, field) {
   const menu = wrapper.find('TrendsDropdown DropdownMenu');
@@ -209,9 +216,9 @@ describe('Performance > Trends', function() {
     expect(summaryLink.props().to.query.project).toEqual(1);
   });
 
-  it('transaction link calls comparison view', async function() {
+  it('transaction link with stats period calls comparison view', async function() {
     const projects = [TestStubs.Project({id: 1, slug: 'internal'}), TestStubs.Project()];
-    const data = initializeData(projects, {project: ['1']});
+    const data = initializeData(projects, {project: ['1'], statsPeriod: '30d'});
 
     const wrapper = mountWithTheme(
       <PerformanceLanding
@@ -231,12 +238,85 @@ describe('Performance > Trends', function() {
     await tick();
     wrapper.update();
 
+    expect(baselineMock).toHaveBeenNthCalledWith(
+      1,
+      '/organizations/org-slug/event-baseline/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          baselineValue: 863,
+          start: '2020-08-29T00:00:00',
+          end: '2020-09-13T00:00:00',
+        }),
+      })
+    );
+    expect(baselineMock).toHaveBeenNthCalledWith(
+      2,
+      '/organizations/org-slug/event-baseline/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          baselineValue: 1660,
+          start: '2020-09-13T00:00:00',
+          end: '2020-09-28T00:00:00',
+        }),
+      })
+    );
     expect(baselineMock).toHaveBeenCalledTimes(2);
     expect(browserHistory.push).toHaveBeenCalledWith({
       pathname:
         '/organizations/org-slug/performance/compare/sentry:66877921c6ff440b8b891d3734f074e7/sentry:66877921c6ff440b8b891d3734f074e7/',
       query: expect.anything(),
     });
+  });
+
+  it('transaction link with start and end calls comparison view', async function() {
+    const projects = [TestStubs.Project({id: 1, slug: 'internal'}), TestStubs.Project()];
+    const data = initializeData(projects, {
+      project: ['1'],
+      start: getUtcDateString(1601164800000),
+      end: getUtcDateString(1601251200000),
+    });
+
+    const wrapper = mountWithTheme(
+      <PerformanceLanding
+        organization={data.organization}
+        location={data.router.location}
+      />,
+      data.routerContext
+    );
+
+    await tick();
+    wrapper.update();
+
+    const firstTransaction = wrapper.find('TrendsListItem').first();
+    const transactionLink = firstTransaction.find('CompareLink').first();
+    transactionLink.simulate('click');
+
+    await tick();
+    wrapper.update();
+
+    expect(baselineMock).toHaveBeenNthCalledWith(
+      1,
+      '/organizations/org-slug/event-baseline/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          baselineValue: 863,
+          start: '2020-09-27T00:00:00',
+          end: '2020-09-27T12:00:00',
+        }),
+      })
+    );
+    expect(baselineMock).toHaveBeenNthCalledWith(
+      2,
+      '/organizations/org-slug/event-baseline/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          baselineValue: 1660,
+          start: '2020-09-27T12:00:00',
+          end: '2020-09-28T00:00:00',
+        }),
+      })
+    );
+    expect(baselineMock).toHaveBeenCalledTimes(2);
   });
 
   it('choosing a trend function changes location', async function() {

@@ -426,7 +426,6 @@ const CompareLink = (props: CompareLinkProps) => {
     trendView: eventView,
     transaction,
     api,
-    statsData,
     location,
     currentTrendFunction,
   } = props;
@@ -437,7 +436,6 @@ const CompareLink = (props: CompareLinkProps) => {
       api,
       organization,
       eventView,
-      statsData,
       intervalRatio,
       transaction
     );

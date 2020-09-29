@@ -1,3 +1,5 @@
+import moment from 'moment';
+
 import EventView from 'app/utils/discover/eventView';
 import {EventsStatsData} from 'app/types';
 
@@ -100,6 +102,8 @@ export type NormalizedTrendsTransaction = BaseTrendsTransaction & {
   aggregate_range_2: number;
   percentage_aggregate_range_2_aggregate_range_1: number;
   minus_aggregate_range_2_aggregate_range_1: number;
+
+  received_at: Readonly<moment.Moment>;
 };
 
 export type NormalizedProjectTrend = Omit<NormalizedTrendsTransaction, 'transaction'>;
