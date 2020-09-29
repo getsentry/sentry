@@ -25,7 +25,7 @@
     ],
     "responses": {
       "200": {
-        "description": "Success.",
+        "description": "Success",
         "content": {
           "application/json": {
             "schema": {
@@ -49,6 +49,9 @@
       },
       "403": {
         "description": "Forbidden"
+      },
+      "404": {
+        "description": "Not Found"
       }
     },
     "security": [
@@ -59,8 +62,8 @@
   },
   "post": {
     "tags": ["Releases"],
-    "description": "Create a Deploy.",
-    "operationId": "Create a New Deploy for an Organization.",
+    "description": "Create a deploy.",
+    "operationId": "Create a New Deploy for an Organization",
     "parameters": [
       {
         "name": "organization_slug",
@@ -90,11 +93,12 @@
             "properties": {
               "environment": {
                 "type": "string",
-                "description": "The environment you're deploying to."
+                "description": "The environment you're deploying to.",
+                "example": "prod"
               },
               "url": {
                 "type": "string",
-                "description": "The optional url that points to the deploy."
+                "description": "The optional URL that points to the deploy."
               },
               "name": {
                 "type": "string",
@@ -111,16 +115,13 @@
                 "description": "An optional date that indicates when the deploy ended. If not provided, the current time is used."
               }
             }
-          },
-          "example": {
-              "environment": "prod"
           }
         }
       }
     },
     "responses": {
       "201": {
-        "description": "Success.",
+        "description": "Success",
         "content": {
           "application/json": {
             "schema": {
@@ -136,6 +137,15 @@
             }
           }
         }
+      },
+      "208": {
+        "description": "Already Reported"
+      },
+      "403": {
+        "description": "Forbidden"
+      },
+      "404": {
+        "description": "Not Found"
       }
     },
     "security": [

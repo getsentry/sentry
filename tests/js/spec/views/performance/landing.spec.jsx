@@ -1,15 +1,18 @@
 import React from 'react';
+import {browserHistory} from 'react-router';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ProjectsStore from 'app/stores/projectsStore';
-import PerformanceLanding from 'app/views/performance/landing';
+import PerformanceLanding, {FilterViews} from 'app/views/performance/landing';
+import * as globalSelection from 'app/actionCreators/globalSelection';
+
+const FEATURES = ['transaction-event', 'performance-view'];
 
 function initializeData(projects, query) {
-  const features = ['transaction-event', 'performance-view'];
   const organization = TestStubs.Organization({
-    features,
+    features: FEATURES,
     projects,
   });
   const initialData = initializeOrg({
@@ -24,8 +27,43 @@ function initializeData(projects, query) {
   return initialData;
 }
 
+function initializeTrendsData(query, addDefaultQuery = true) {
+  const features = [...FEATURES, 'trends'];
+  const projects = [
+    TestStubs.Project({id: '1', firstTransactionEvent: false}),
+    TestStubs.Project({id: '2', firstTransactionEvent: true}),
+  ];
+  const organization = TestStubs.Organization({
+    features,
+    projects,
+  });
+
+  const otherTrendsQuery = addDefaultQuery
+    ? {
+        query: 'count():>1000 transaction.duration:>0',
+      }
+    : {};
+
+  const initialData = initializeOrg({
+    organization,
+    router: {
+      location: {
+        query: {
+          ...otherTrendsQuery,
+          ...query,
+        },
+      },
+    },
+  });
+  ProjectsStore.loadInitialData(initialData.organization.projects);
+  return initialData;
+}
+
 describe('Performance > Landing', function() {
   beforeEach(function() {
+    browserHistory.push = jest.fn();
+    jest.spyOn(globalSelection, 'updateDateTime');
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
@@ -88,11 +126,19 @@ describe('Performance > Landing', function() {
         count: 2,
       },
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-trends/',
+      body: {
+        stats: {},
+        events: {meta: {}, data: []},
+      },
+    });
   });
 
   afterEach(function() {
     MockApiClient.clearMockResponses();
     ProjectsStore.reset();
+    globalSelection.updateDateTime.mockRestore();
   });
 
   it('renders basic UI elements', async function() {
@@ -188,6 +234,162 @@ describe('Performance > Landing', function() {
           transaction: '/apple/cart',
           query: 'sentry:yes',
         }),
+      })
+    );
+  });
+
+  it('Default period for trends does not call updateDateTime', async function() {
+    const data = initializeTrendsData({query: 'tag:value'}, false);
+    const wrapper = mountWithTheme(
+      <PerformanceLanding
+        organization={data.organization}
+        location={data.router.location}
+      />,
+      data.routerContext
+    );
+    await tick();
+    wrapper.update();
+    expect(globalSelection.updateDateTime).toHaveBeenCalledTimes(0);
+  });
+
+  it('Navigating to trends does not modify statsPeriod when already set', async function() {
+    const data = initializeTrendsData({
+      query: 'count():>500 transaction.duration:>10',
+      statsPeriod: '24h',
+    });
+
+    const wrapper = mountWithTheme(
+      <PerformanceLanding
+        organization={data.organization}
+        location={data.router.location}
+      />,
+      data.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    const trendsLink = wrapper.find('[data-test-id="landing-header-trends"]').at(0);
+    trendsLink.simulate('click');
+
+    expect(globalSelection.updateDateTime).toHaveBeenCalledTimes(0);
+
+    expect(browserHistory.push).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: {
+          query: 'count():>500 transaction.duration:>10',
+          statsPeriod: '24h',
+          view: 'TRENDS',
+        },
+      })
+    );
+  });
+
+  it('Default page (transactions) without trends feature will not update filters if none are set', async function() {
+    const projects = [
+      TestStubs.Project({id: 1, firstTransactionEvent: false}),
+      TestStubs.Project({id: 2, firstTransactionEvent: true}),
+    ];
+    const data = initializeData(projects, {view: undefined});
+
+    const wrapper = mountWithTheme(
+      <PerformanceLanding
+        organization={data.organization}
+        location={data.router.location}
+      />,
+      data.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    expect(browserHistory.push).toHaveBeenCalledTimes(0);
+  });
+
+  it('Default page (trends) with trends feature will update filters if none are set', async function() {
+    const data = initializeTrendsData({view: undefined}, false);
+
+    const wrapper = mountWithTheme(
+      <PerformanceLanding
+        organization={data.organization}
+        location={data.router.location}
+      />,
+      data.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    expect(browserHistory.push).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        query: {
+          query: 'count():>1000 transaction.duration:>0',
+          view: 'TRENDS',
+        },
+      })
+    );
+  });
+
+  it('Tags are added to an existing query if navigating to trends', async function() {
+    const data = initializeTrendsData(
+      {view: FilterViews.ALL_TRANSACTIONS, query: 'device.family:Mac'},
+      false
+    );
+
+    const wrapper = mountWithTheme(
+      <PerformanceLanding
+        organization={data.organization}
+        location={data.router.location}
+      />,
+      data.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    const trendsLink = wrapper.find('[data-test-id="landing-header-trends"]').at(0);
+    trendsLink.simulate('click');
+
+    expect(browserHistory.push).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: {
+          query: 'device.family:Mac count():>1000 transaction.duration:>0',
+          view: 'TRENDS',
+        },
+      })
+    );
+  });
+
+  it('Navigating away from trends will remove extra tags from query', async function() {
+    const data = initializeTrendsData(
+      {
+        view: FilterViews.TRENDS,
+        query: 'device.family:Mac count():>1000 transaction.duration:>0',
+      },
+      false
+    );
+
+    const wrapper = mountWithTheme(
+      <PerformanceLanding
+        organization={data.organization}
+        location={data.router.location}
+      />,
+      data.routerContext
+    );
+
+    await tick();
+    wrapper.update();
+
+    browserHistory.push.mockReset();
+
+    const byTransactionLink = wrapper
+      .find('[data-test-id="landing-header-all_transactions"]')
+      .at(0);
+    byTransactionLink.simulate('click');
+
+    expect(browserHistory.push).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: {
+          query: 'device.family:Mac',
+          view: 'ALL_TRANSACTIONS',
+        },
       })
     );
   });

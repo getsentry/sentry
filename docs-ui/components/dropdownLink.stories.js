@@ -5,7 +5,7 @@ import DropdownLink from 'app/components/dropdownLink';
 import MenuItem from 'app/components/menuItem';
 
 export default {
-  title: 'UI/Dropdowns/DropdownLink',
+  title: 'Core/Dropdowns/DropdownLink',
 };
 
 export const AnchorLeftDefault = withInfo('Anchors to left side')(() => (

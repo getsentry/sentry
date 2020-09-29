@@ -6,7 +6,7 @@ import PercentageAreaChart from 'app/components/charts/percentageAreaChart';
 const TOTAL = 6;
 
 export default {
-  title: 'Charts/PercentageAreaChart',
+  title: 'DataVisualization/Charts/PercentageAreaChart',
 };
 
 export const _PercentageAreaChart = withInfo('Stacked PercentageArea')(() => {

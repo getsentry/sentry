@@ -2,7 +2,7 @@
   "put": {
     "tags": ["Projects"],
     "description": "Update a client key.  This can be used to rename a key.",
-    "operationId": "Update a client Key",
+    "operationId": "Update a Client Key",
     "parameters": [
       {
         "name": "organization_slug",
@@ -40,12 +40,10 @@
             "properties": {
               "name": {
                 "type": "string",
-                "description": "The new name for the client key."
+                "description": "The new name for the client key.",
+                "example": "Fluffy Key"
               }
             }
-          },
-          "example": {
-            "name": "Fluffy Key"
           }
         }
       },
@@ -53,7 +51,7 @@
     },
     "responses": {
       "200": {
-        "description": "Success.",
+        "description": "Success",
         "content": {
           "application/json": {
             "schema": {
@@ -78,8 +76,8 @@
               },
               "id": "cec9dfceb0b74c1c9a5e3c135585f364",
               "isActive": true,
-              "label": "Fabulous Key",
-              "name": "Fabulous Key",
+              "label": "Fluffy Key",
+              "name": "Fluffy Key",
               "projectId": 2,
               "public": "cec9dfceb0b74c1c9a5e3c135585f364",
               "rateLimit": null,
@@ -107,7 +105,7 @@
   "delete": {
     "tags": ["Projects"],
     "description": "Delete a client key.",
-    "operationId": "Delete a client Key",
+    "operationId": "Delete a Client Key",
     "parameters": [
       {
         "name": "organization_slug",
@@ -139,7 +137,7 @@
     ],
     "responses": {
       "204": {
-        "description": "Success."
+        "description": "Success"
       },
       "403": {
         "description": "Forbidden"

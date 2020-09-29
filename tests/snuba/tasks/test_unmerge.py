@@ -28,6 +28,7 @@ from sentry.testutils import SnubaTestCase, TestCase
 from sentry.utils.dates import to_timestamp
 from sentry.utils import redis
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.features import with_feature
 from sentry.tasks.merge import merge_groups
 
 from six.moves import xrange
@@ -169,6 +170,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             "first_release": None,
         }
 
+    @with_feature("projects:similarity-indexing")
     def test_unmerge(self):
         now = before_now(minutes=5).replace(microsecond=0, tzinfo=pytz.utc)
 

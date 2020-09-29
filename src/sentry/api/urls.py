@@ -201,6 +201,7 @@ from .endpoints.project_processingissues import (
     ProjectProcessingIssuesFixEndpoint,
 )
 from .endpoints.project_release_commits import ProjectReleaseCommitsEndpoint
+from .endpoints.project_release_repositories import ProjectReleaseRepositories
 from .endpoints.project_release_details import ProjectReleaseDetailsEndpoint
 from .endpoints.project_release_file_details import ProjectReleaseFileDetailsEndpoint
 from .endpoints.project_release_stats import ProjectReleaseStatsEndpoint
@@ -1347,10 +1348,12 @@ urlpatterns = [
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/hooks/$",
                     ProjectServiceHooksEndpoint.as_view(),
+                    name="sentry-api-0-service-hooks",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/hooks/(?P<hook_id>[^\/]+)/$",
                     ProjectServiceHookDetailsEndpoint.as_view(),
+                    name="sentry-api-0-project-service-hook-details",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/hooks/(?P<hook_id>[^\/]+)/stats/$",
@@ -1409,6 +1412,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/commits/$",
                     ProjectReleaseCommitsEndpoint.as_view(),
                     name="sentry-api-0-project-release-commits",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/repositories/$",
+                    ProjectReleaseRepositories.as_view(),
+                    name="sentry-api-0-project-release-repositories",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/resolved/$",

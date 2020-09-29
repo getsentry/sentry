@@ -2,7 +2,7 @@
   "get": {
     "tags": ["Projects"],
     "description": "Return a list of user feedback items within this project.",
-    "operationId": "List a project's user feedback",
+    "operationId": "List a Project's User Feedback",
     "parameters": [
       {
         "name": "organization_slug",
@@ -25,7 +25,7 @@
     ],
     "responses": {
       "200": {
-        "description": "Success.",
+        "description": "Success",
         "content": {
           "application/json": {
             "schema": {
@@ -55,6 +55,9 @@
       },
       "403": {
         "description": "Forbidden"
+      },
+      "404": {
+        "description": "Not Found"
       }
     },
     "security": [
@@ -66,7 +69,7 @@
   "post": {
     "tags": ["Projects"],
     "description": "Submit and associate user feedback with an issue.\n\nFeedback must be received by the server no more than 30 minutes after the event was saved.\n\nAdditionally, within 5 minutes of submitting feedback it may also be overwritten. This is useful in situations where you may need to retry sending a request due to network failures.\n\nIf feedback is rejected due to a mutability threshold, a 409 status code will be returned.\n\nNote: Feedback may be submitted with DSN authentication (see auth documentation).",
-    "operationId": "Submit user feedback",
+    "operationId": "Submit User Feedback",
     "parameters": [
       {
         "name": "organization_slug",
@@ -96,27 +99,25 @@
             "properties": {
               "event_id": {
                 "type": "string",
-                "description": "The event ID."
+                "description": "The event ID.",
+                "example": "14bad9a2e3774046977a21440ddb39b2"
               },
               "name": {
                 "type": "string",
-                "description": "User's name."
+                "description": "User's name.",
+                "example": "Jane Smith"
               },
               "email": {
                 "type": "string",
-                "description": "User's email address."
+                "description": "User's email address.",
+                "example": "jane@example.com"
               },
               "comments": {
                 "type": "string",
-                "description": "Comments supplied by user."
+                "description": "Comments supplied by user.",
+                "example": "It broke!"
               }
             }
-          },
-          "example": {
-            "comments": "It broke!",
-            "email": "jane@example.com",
-            "event_id": "14bad9a2e3774046977a21440ddb39b2",
-            "name": "Jane Smith"
           }
         }
       },
@@ -124,7 +125,7 @@
     },
     "responses": {
       "201": {
-        "description": "Success.",
+        "description": "Success",
         "content": {
           "application/json": {
             "schema": {
@@ -147,11 +148,17 @@
           }
         }
       },
+      "400": {
+        "description": "Bad Input"
+      },
       "403": {
         "description": "Forbidden"
       },
       "404": {
         "description": "The requested resource does not exist"
+      },
+      "409": {
+        "description": "Conflict"
       }
     },
     "security": [

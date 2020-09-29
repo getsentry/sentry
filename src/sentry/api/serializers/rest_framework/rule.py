@@ -136,6 +136,14 @@ class RuleSerializer(serializers.Serializer):
                     }
                 )
 
+        # ensure that if a user has alert-filters enabled, they do not use a 'none' match on conditions
+        if project_has_filters and attrs.get("actionMatch") == "none":
+            raise serializers.ValidationError(
+                {
+                    "conditions": u"The 'none' match on conditions is outdated and no longer supported."
+                }
+            )
+
         return attrs
 
     def save(self, rule):

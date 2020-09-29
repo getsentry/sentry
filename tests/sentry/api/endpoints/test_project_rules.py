@@ -176,7 +176,7 @@ class CreateProjectRuleTest(APITestCase):
                         "name": "Send a notification to the funinthesun Slack workspace to #team-team-team and show tags [] in notification",
                         "workspace": integration.id,
                         "channel": "#team-team-team",
-                        "channel_id": "CSVK0921",
+                        "input_channel_id": "CSVK0921",
                     }
                 ],
                 "conditions": [

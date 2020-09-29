@@ -509,7 +509,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             data={
                 "event_id": "d" * 32,
                 "message": "not good",
-                "timestamp": iso_format(before_now(minutes=10)),
+                "timestamp": iso_format(self.day_ago - timedelta(minutes=10)),
                 "fingerprint": ["group3"],
             },
             project_id=self.project.id,
@@ -521,8 +521,8 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
                 format="json",
                 data={
                     "project": self.project.id,
-                    "end": iso_format(before_now()),
-                    "start": iso_format(before_now(hours=24)),
+                    "end": iso_format(self.day_ago),
+                    "start": iso_format(self.day_ago - timedelta(hours=24)),
                     "query": 'message:"not good"',
                     "interval": "1d",
                     "yAxis": "count()",

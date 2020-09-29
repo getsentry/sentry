@@ -24,7 +24,7 @@
     ],
     "responses": {
       "200": {
-        "description": "Success.",
+        "description": "Success",
         "content": {
           "application/json": {
             "schema": {
@@ -86,8 +86,14 @@
           }
         }
       },
+      "401": {
+        "description": "Permission Denied"
+      },
       "403": {
         "description": "Forbidden"
+      },
+      "404": {
+        "description": "Not Found"
       }
     },
     "security": [
@@ -98,8 +104,8 @@
   },
   "post": {
     "tags": ["Releases"],
-    "description": "Create a new release for the given Organization.  Releases are used by\nSentry to improve its error reporting abilities by correlating\nfirst seen events with the release that might have introduced the\nproblem.\nReleases are also necessary for sourcemaps and other debug features\nthat require manual upload for functioning well.",
-    "operationId": "Create a New Release for an Organization.",
+    "description": "Create a new release for the given organization.  Releases are used by\nSentry to improve its error reporting abilities by correlating\nfirst seen events with the release that might have introduced the\nproblem.\nReleases are also necessary for source maps and other debug features\nthat require manual upload for functioning well.",
+    "operationId": "Create a New Release for an Organization",
     "parameters": [
       {
         "name": "organization_slug",
@@ -120,19 +126,22 @@
             "properties": {
               "version": {
                 "type": "string",
-                "description": "A version identifier for this release. Can be a version number, a commit hash etc."
+                "description": "A version identifier for this release. Can be a version number, a commit hash, etc.",
+                "example": "2.0rc2"
               },
               "ref": {
                 "type": "string",
-                "description": "An optional commit reference. This is useful if a tagged version has been provided."
+                "description": "An optional commit reference. This is useful if a tagged version has been provided.",
+                "example": "6ba09a7c53235ee8a8fa5ee4c1ca8ca886e7fdbb"
               },
               "url": {
                 "type": "string",
-                "description": "A URL that points to the release. This can be the path to an online interface to the sourcecode for instance"
+                "description": "A URL that points to the release. This can be the path to an online interface to the source code for instance"
               },
               "projects": {
                 "type": "array",
                 "description": "A list of project slugs that are involved in this release.",
+                "example": ["pump-station"],
                 "items": {
                   "type": "string"
                 }
@@ -189,12 +198,11 @@
                     },
                     "id": {
                       "type": "string",
-                      "description": "The commit id (the commit sha)."
-
+                      "description": "The commit ID (the commit SHA)."
                     }
                   }
                 },
-                "description": "An optional list of commit data to be associated with the release. Commits must include parameters `id` (the sha of the commit), and can optionally include `repository`, `message`, `patch_set`, `author_name`, `author_email`, and `timestamp`."
+                "description": "An optional list of commit data to be associated with the release. Commits must include parameters `id` (the SHA of the commit), and can optionally include `repository`, `message`, `patch_set`, `author_name`, `author_email`, and `timestamp`."
               },
               "refs": {
                 "type": "array",
@@ -218,18 +226,13 @@
                 "description": "An optional way to indicate the start and end commits for each repository included in a release. Head commits must include parameters `repository` and `commit` (the HEAD sha). They can optionally include `previousCommit` (the sha of the HEAD of the previous release), which should be specified if this is the first time you've sent commit data. `commit` may contain a range in the form of `previousCommit..commit`."
               }
             }
-          },
-          "example": {
-            "version": "2.0rc2",
-            "ref": "6ba09a7c53235ee8a8fa5ee4c1ca8ca886e7fdbb",
-            "projects": ["pump-station"]
           }
         }
       }
     },
     "responses": {
       "201": {
-        "description": "Success.",
+        "description": "Success",
         "content": {
           "application/json": {
             "schema": {
@@ -261,6 +264,12 @@
             }
           }
         }
+      },
+      "400": {
+        "description": "Bad Input"
+      },
+      "403": {
+        "description": "Forbidden"
       }
     },
     "security": [

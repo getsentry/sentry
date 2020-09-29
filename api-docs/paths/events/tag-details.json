@@ -1,10 +1,8 @@
 {
   "get": {
-    "tags": [
-      "Events"
-    ],
+    "tags": ["Events"],
     "description": "Returns details for given tag key related to an issue.",
-    "operationId": "Retrieve tag details",
+    "operationId": "Retrieve Tag Details",
     "parameters": [
       {
         "name": "issue_id",
@@ -27,28 +25,24 @@
     ],
     "responses": {
       "200": {
-        "description": "Success.",
+        "description": "Success",
         "content": {
           "application/json": {
             "schema": {
-                "type": "object",
-                "required": [
-                  "key", "totalValues"
-                ],
-                "properties": {
-                  "key": {
-                    "type": "string"
-                  },
-                  "totalValues": {
-                    "type": "integer"
-                  }
+              "type": "object",
+              "required": ["key", "totalValues"],
+              "properties": {
+                "key": {
+                  "type": "string"
                 },
-              "example": [
-                {
-                  "key": "ice_cream",
-                  "totalValues": 6
+                "totalValues": {
+                  "type": "integer"
                 }
-              ]
+              }
+            },
+            "example": {
+              "key": "ice_cream",
+              "totalValues": 6
             }
           }
         }
@@ -59,9 +53,7 @@
     },
     "security": [
       {
-        "auth_token": [
-          "event:read"
-        ]
+        "auth_token": ["event:read"]
       }
     ]
   }

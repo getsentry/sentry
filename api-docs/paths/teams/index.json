@@ -12,11 +12,14 @@
         "schema": {
           "type": "string"
         }
+      },
+      {
+        "$ref": "../../components/parameters/pagination-cursor.json#/PaginationCursor"
       }
     ],
     "responses": {
       "200": {
-        "description": "Success.",
+        "description": "Success",
         "content": {
           "application/json": {
             "schema": {
@@ -141,8 +144,14 @@
           }
         }
       },
+      "401": {
+        "description": "Permission Denied"
+      },
       "403": {
         "description": "Forbidden"
+      },
+      "404": {
+        "description": "Not Found"
       }
     },
     "security": [
@@ -180,7 +189,7 @@
               },
               "slug": {
                 "type": "string",
-                "description": "The optional slug for this team. If not provided it will be auto generated from the name",
+                "description": "The optional slug for this team. If not provided it will be auto generated from the name.",
                 "example": "ancient-gabelers"
               }
             }
@@ -191,7 +200,7 @@
     },
     "responses": {
       "201": {
-        "description": "Success.",
+        "description": "Success",
         "content": {
           "application/json": {
             "schema": {

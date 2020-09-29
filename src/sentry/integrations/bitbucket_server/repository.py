@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import logging
 import six
 
 from datetime import datetime
@@ -15,6 +16,7 @@ from sentry.utils.hashlib import md5_text
 
 class BitbucketServerRepositoryProvider(IntegrationRepositoryProvider):
     name = "Bitbucket Server"
+    logger = logging.getLogger("sentry.integrations.bitbucket_server")
 
     def get_installation(self, integration_id, organization_id):
         if integration_id is None:
