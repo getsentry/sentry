@@ -13,8 +13,8 @@ function showAlert(msg, type) {
   });
 }
 
-// TODO(ts) Type the data field better.
-type Change = [changeId: string, itemId: string, data: any];
+// TODO(ts) Type this any better.
+type Change = [string, string, any];
 
 class PendingChangeQueue {
   changes: Change[] = [];
@@ -23,8 +23,8 @@ class PendingChangeQueue {
     return this.changes.filter((change: Change) => change[1] === itemId);
   }
 
-  push(...change: Change) {
-    this.changes.push(change);
+  push(changeId: string, itemId: string, data: any) {
+    this.changes.push([changeId, itemId, data]);
   }
 
   remove(changeId: string, itemId?: string) {
@@ -61,7 +61,7 @@ type GroupStoreInterface = Reflux.StoreDefinition & {
   get: (id: string) => Group | undefined;
   getAllItemIds: () => string[];
   getAllItems: () => Group[];
-  onAssignTo: (...change: Change) => void;
+  onAssignTo: (changeId: string, itemId: string, data: any) => void;
   onAssignToError: (changeId: string, itemId: string, error: Error) => void;
   onAssignToSuccess: (changeId: string, itemId: string, response: any) => void;
   onDelete: (changeId: string, itemIds: string[]) => void;
