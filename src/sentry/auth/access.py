@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 __all__ = ["from_user", "from_member", "DEFAULT"]
 
+import logging
 import warnings
 
 from django.conf import settings
@@ -22,6 +23,8 @@ from sentry.models import (
     UserPermission,
     Team,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def _sso_params(member):
@@ -271,6 +274,17 @@ class NoAccess(BaseAccess):
 
 
 def from_request(request, organization=None, scopes=None):
+    """
+    Returns the an Access object corresponding to the permissions associated with this request
+    and a particular organization. The user of the request could be an actual user
+    or it could be a sentry app
+    """
+    # TODO: validate scopes argument is not used and then remove
+    if scopes is not None:
+        import traceback
+
+        logger.info("from_request.non_none_scopes: %s" % traceback.format_exc())
+
     if not organization:
         return from_user(request.user, organization=organization, scopes=scopes)
 
@@ -305,15 +319,15 @@ def from_request(request, organization=None, scopes=None):
             role=role,
         )
 
-    # TODO: from_auth does not take scopes as a parameter so this fails for anon user
-    if hasattr(request, "auth") and not request.user.is_authenticated():
-        return from_auth(request.auth, scopes=scopes)
-
     return from_user(request.user, organization, scopes=scopes)
 
 
 # only used internally
 def _from_sentry_app(user, organization=None):
+    """
+    Returns an Access object for the Sentry App associated with the user and an organization.
+    Should return no access if the Sentry App is not installed on that organization
+    """
     if not organization:
         return NoAccess()
 
@@ -322,6 +336,7 @@ def _from_sentry_app(user, organization=None):
     if not sentry_app.is_installed_on(organization):
         return NoAccess()
 
+    # TODO: Eventually we may want to scope installations to a set of projects
     team_list = list(Team.objects.filter(organization=organization))
     project_list = list(
         Project.objects.filter(status=ProjectStatus.VISIBLE, teams__in=team_list).distinct()
@@ -341,6 +356,16 @@ def _from_sentry_app(user, organization=None):
 
 
 def from_user(user, organization=None, scopes=None):
+    """
+    Returns an Access object associated with a user and an organization
+    based on the membership of that user and their access level
+    """
+    # TODO: validate scopes argument is not used and then remove
+    if scopes is not None:
+        import traceback
+
+        logger.info("from_user.non_none_scopes: %s" % traceback.format_exc())
+
     if not user or user.is_anonymous() or not user.is_active:
         return DEFAULT
 
@@ -359,9 +384,20 @@ def from_user(user, organization=None, scopes=None):
 
 
 def from_member(member, scopes=None):
+    """
+    Return the Access object associated with an OrganizationMember object.
+    This corresponds to the projects and teams associated with that member
+    and the scopes associated with that member
+    """
     # TODO(dcramer): we want to optimize this access pattern as its several
     # network hops and needed in a lot of places
     requires_sso, sso_is_valid = _sso_params(member)
+
+    # TODO: validate scopes argument is not used and then remove
+    if scopes is not None:
+        import traceback
+
+        logger.info("from_member.non_none_scopes: %s" % traceback.format_exc())
 
     team_list = member.get_teams()
     with sentry_sdk.start_span(op="get_project_access_in_teams") as span:
@@ -375,7 +411,6 @@ def from_member(member, scopes=None):
         scopes = set(scopes) & member.get_scopes()
     else:
         scopes = member.get_scopes()
-
     return Access(
         is_active=True,
         requires_sso=requires_sso,
