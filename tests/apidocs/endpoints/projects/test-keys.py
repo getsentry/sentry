@@ -10,7 +10,6 @@ from tests.apidocs.util import APIDocsTestCase
 
 class ProjectKeysDocs(APIDocsTestCase):
     def setUp(self):
-        self.create_project_key(project=self.project)
 
         self.url = reverse(
             "sentry-api-0-project-keys",

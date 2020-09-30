@@ -10,7 +10,7 @@ from tests.apidocs.util import APIDocsTestCase
 
 class OrganizationUsersDocs(APIDocsTestCase):
     def setUp(self):
-        organization = self.create_organization()
+        organization = self.create_organization(owner=self.user, name="Rowdy Tiger")
         self.create_user(email="colleen@sentry.io")
 
         self.url = reverse(
