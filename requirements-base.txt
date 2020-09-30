@@ -28,7 +28,6 @@ lxml>=4.3.3,<4.4.0
 maxminddb==1.5.4
 mistune>0.7,<0.9
 mmh3>=2.3.1,<2.4
-msgpack>=0.6.1,<0.7.0
 parsimonious==0.8.0
 petname>=2.6,<2.7
 phonenumberslite>=8.11.0,<8.12.0
@@ -65,6 +64,25 @@ ua-parser>=0.10.0,<0.11.0
 unidiff>=0.5.4
 urllib3==1.24.2
 uwsgi>2.0.0,<2.1.0
+
+# msgpack>=1.0.0 correctly encodes / decodes byte types in python3 as the
+# msgpack bin type. It could NOT do this in python 2. However, 1.0 also drops
+# support for python 2, so we must use a conditional here.
+#
+# XXX: compatibility note
+#
+# If we were serializing byte data in python 2 (which would encode it as the
+# msgpack str type) using msgpack<1.0 and deserializing in python 3 using
+# msgpack>=1.0, we would result in our byte data being decoded as strings.
+#
+# We DO NOT have to deal with this, as we currently do not encode byte data in
+# python.
+#
+# We DO encode byte data in relay, but it will be correctly encoded as the
+# msgpack bin type. Both versions of msgpack will decode this to the native
+# 'byte' type (bytes in python3, str in python2).
+msgpack>=0.6.1,<0.7.0; python_version < '3.0'
+msgpack>=1.0.0,<1.1.0; python_version >= '3.0'
 
 # celery
 # We specifically pin to 3.5.0.4 to avoid the issue in
