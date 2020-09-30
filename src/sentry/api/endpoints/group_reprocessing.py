@@ -33,9 +33,18 @@ class GroupReprocessingEndpoint(GroupEndpoint):
         """
 
         if not features.has("projects:reprocessing-v2", group.project, actor=request.user):
-            return self.respond(status=404)
+            return self.respond(
+                {"error": "This project does not have the reprocessing v2 feature"}, status=404,
+            )
 
-        max_events = int(request.data.get("maxEvents") or 0) or None
+        max_events = request.data.get("maxEvents")
+        if max_events:
+            max_events = int(max_events)
+
+            if max_events <= 0:
+                return self.respond({"error": "maxEvents must be at least 1"}, status=400,)
+        else:
+            max_events = None
 
         reprocess_group.delay(project_id=group.project_id, group_id=group.id, max_events=max_events)
         return self.respond(status=200)

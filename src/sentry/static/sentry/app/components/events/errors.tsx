@@ -7,29 +7,21 @@ import {browserHistory} from 'react-router';
 
 import {openModal} from 'app/actionCreators/modal';
 import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  clearIndicators,
-} from 'app/actionCreators/indicator';
-import {Client} from 'app/api';
 import EventErrorItem from 'app/components/events/errorItem';
 import {Event, AvatarProject, Project} from 'app/types';
 import {IconWarning} from 'app/icons';
 import {t, tct, tn} from 'app/locale';
 import space from 'app/styles/space';
-import withApi from 'app/utils/withApi';
 import NumberField from 'app/components/forms/numberField';
+import ApiForm from 'app/components/forms/apiForm';
 import Alert from 'app/components/alert';
+import ExternalLink from 'app/components/links/externalLink';
 
 import {BannerContainer, BannerSummary} from './styles';
-import ExternalLink from '../links/externalLink';
 
 const MAX_ERRORS = 100;
 
 type Props = {
-  api: Client;
   event: Event;
   orgId: string;
   project: AvatarProject | Project;
@@ -42,7 +34,6 @@ type State = {
 
 class EventErrors extends React.Component<Props, State> {
   static propTypes: any = {
-    api: PropTypes.object.isRequired,
     event: PropTypes.object.isRequired,
     orgId: PropTypes.string.isRequired,
     project: PropTypes.object.isRequired,
@@ -60,43 +51,14 @@ class EventErrors extends React.Component<Props, State> {
     return this.props.event.id !== nextProps.event.id;
   }
 
-  maxEventInput = React.createRef();
-
   toggle = () => {
     this.setState(state => ({isOpen: !state.isOpen}));
   };
 
   uniqueErrors = (errors: any[]) => uniqWith(errors, isEqual);
 
-  onReprocessGroup = async () => {
-    const {issueId} = this.props;
-    if (!issueId) {
-      throw Error(
-        'Assertion failed: Modal should not be possible to open if not in issue view.'
-      );
-    }
-
-    const maxEvents = parseInt(this.maxEventInput.current.value, 10);
-
-    const {api, orgId} = this.props;
-    const endpoint = `/organizations/${orgId}/issues/${issueId}/reprocessing/`;
-
-    addLoadingMessage(t('Reprocessing issue\u2026'));
-
-    try {
-      await api.requestPromise(endpoint, {
-        method: 'POST',
-        data: {maxEvents},
-      });
-    } catch {
-      clearIndicators();
-      addErrorMessage(
-        t('Failed to start reprocessing. The event is likely too far in the past.')
-      );
-      return;
-    }
-
-    clearIndicators();
+  onReprocessGroup = () => {
+    const {orgId, issueId} = this.props;
     browserHistory.push(
       `/organizations/${orgId}/issues/?query=tags[original_group_id]:${issueId}`
     );
@@ -107,6 +69,8 @@ class EventErrors extends React.Component<Props, State> {
   };
 
   renderReprocessModal = ({Body, closeModal}) => {
+    const {orgId, issueId} = this.props;
+
     return (
       <React.Fragment>
         <Body>
@@ -153,19 +117,24 @@ class EventErrors extends React.Component<Props, State> {
             )}
           </Alert>
 
-          <form onSubmit={this.onReprocessGroup}>
+          <ApiForm
+            apiEndpoint={`/organizations/${orgId}/issues/${issueId}/reprocessing/`}
+            apiMethod="POST"
+            footerClass="modal-footer"
+            onSubmitSuccess={this.onReprocessGroup}
+            submitLabel={t('Reprocess')}
+            submitLoadingMessage={t('Reprocessing\u2026')}
+            submitErrorMessage={t('Failed to reprocess. Please check your input.')}
+            hideErrors
+            onCancel={closeModal}
+          >
             <NumberField
+              name="maxEvents"
               label={t('Reprocess n latest events, delete the rest')}
-              placeholder={t('all')}
-              ref={this.maxEventInput}
+              placeholder={t('all events')}
+              min={1}
             />
-            <ButtonBar gap={1}>
-              <Button type="submit" priority="primary">
-                {t('Reprocess')}
-              </Button>
-              <Button onClick={closeModal}>{t('Cancel')}</Button>
-            </ButtonBar>
-          </form>
+          </ApiForm>
         </Body>
       </React.Fragment>
     );
@@ -249,4 +218,4 @@ const ErrorList = styled('ul')`
   }
 `;
 
-export default withApi<Props>(EventErrors);
+export default EventErrors;
