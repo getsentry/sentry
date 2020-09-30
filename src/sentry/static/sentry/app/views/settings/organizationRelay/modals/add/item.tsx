@@ -14,7 +14,7 @@ const Item = ({title, subtitle, children}: Props) => (
   <StyledListItem>
     {title}
     {subtitle && <small>{subtitle}</small>}
-    {children}
+    <div>{children}</div>
   </StyledListItem>
 );
 
@@ -22,5 +22,5 @@ export default Item;
 
 const StyledListItem = styled(ListItem)`
   display: grid;
-  grid-gap: ${space(1)};
+  grid-gap: ${space(1.5)};
 `;
