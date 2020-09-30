@@ -10,9 +10,6 @@ from tests.apidocs.util import APIDocsTestCase
 
 class ProjectIndexDocs(APIDocsTestCase):
     def setUp(self):
-        organization = self.create_organization()
-        self.create_project(name="foo", organization=organization, teams=[])
-
         self.url = reverse("sentry-api-0-projects")
 
         self.login_as(user=self.user)

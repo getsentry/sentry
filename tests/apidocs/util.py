@@ -9,6 +9,7 @@ from openapi_core.validation.response.validators import ResponseValidator
 
 from sentry.utils import json
 from sentry.testutils import APITestCase
+from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
 class APIDocsTestCase(APITestCase):
@@ -31,3 +32,16 @@ class APIDocsTestCase(APITestCase):
 
         result.raise_for_errors()
         assert result.errors == []
+
+    def create_event(self, name, **kwargs):
+        # Somewhat sane default data.
+        data = {
+            "event_id": (name * 32)[:32],
+            "fingerprint": ["1"],
+            "sdk": {"version": "5.17.0", "name": "sentry.javascript.browser"},
+            "timestamp": iso_format(before_now(seconds=1)),
+            "user": {"id": 1, "email": self.user.email},
+        }
+        data.update(kwargs)
+
+        return self.store_event(data=data, project_id=self.project.id)

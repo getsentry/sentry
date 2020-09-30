@@ -6,24 +6,14 @@ from django.core.urlresolvers import reverse
 from django.test.client import RequestFactory
 
 from tests.apidocs.util import APIDocsTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
 class OrganizationShortIDDocs(APIDocsTestCase):
     def setUp(self):
-        organization = self.create_organization()
-        project = self.create_project(name="foo", organization=organization, teams=[])
-        event = self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "message": "oh no",
-                "timestamp": iso_format(before_now(seconds=1)),
-            },
-            project_id=project.id,
-        )
+        event = self.create_event("a", message="oh no")
         self.url = reverse(
             "sentry-api-0-short-id-lookup",
-            kwargs={"organization_slug": organization.slug, "short_id": event.group.short_id},
+            kwargs={"organization_slug": self.organization.slug, "short_id": event.group.short_id},
         )
 
         self.login_as(user=self.user)

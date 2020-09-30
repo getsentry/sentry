@@ -10,13 +10,12 @@ from tests.apidocs.util import APIDocsTestCase
 
 class ProjectKeyDetailsDocs(APIDocsTestCase):
     def setUp(self):
-        organization = self.create_organization()
         key = self.create_project_key(project=self.project)
 
         self.url = reverse(
             "sentry-api-0-project-key-details",
             kwargs={
-                "organization_slug": organization.slug,
+                "organization_slug": self.organization.slug,
                 "project_slug": self.project.slug,
                 "key_id": key.id,
             },

@@ -5,25 +5,20 @@ from __future__ import absolute_import
 from django.core.urlresolvers import reverse
 from django.test.client import RequestFactory
 
-from sentry.testutils.helpers.datetime import before_now, iso_format
 from tests.apidocs.util import APIDocsTestCase
 
 
 class ProjectTagKeyValuesDocs(APIDocsTestCase):
     def setUp(self):
-        project = self.create_project()
-        self.store_event(
-            data={"tags": {"foo": "bar"}, "timestamp": iso_format(before_now(seconds=1))},
-            project_id=project.id,
-        )
+        self.create_event("b")
 
         self.login_as(user=self.user)
 
         self.url = reverse(
             "sentry-api-0-project-tagkey-values",
             kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
                 "key": "foo",
             },
         )

@@ -4,33 +4,13 @@ from __future__ import absolute_import
 
 from django.test.client import RequestFactory
 
-from sentry.testutils.helpers.datetime import before_now, iso_format
 from tests.apidocs.util import APIDocsTestCase
 
 
 class ProjectGroupEventBase(APIDocsTestCase):
     def setUp(self):
-        min_ago = before_now(minutes=1)
-        event = self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "fingerprint": ["1"],
-                "timestamp": iso_format(min_ago),
-                "user": {"id": 1, "email": self.user.email},
-                "sdk": {"version": "5.17.0", "name": "sentry.javascript.browser"},
-            },
-            project_id=self.project.id,
-        )
-        self.store_event(
-            data={
-                "event_id": "b" * 32,
-                "fingerprint": ["1"],
-                "timestamp": iso_format(min_ago),
-                "user": {"id": 1, "email": self.user.email},
-                "sdk": {"version": "5.17.0", "name": "sentry.javascript.browser"},
-            },
-            project_id=self.project.id,
-        )
+        event = self.create_event("a")
+        self.create_event("b")
 
         self.group_id = event.group.id
 

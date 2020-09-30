@@ -6,27 +6,20 @@ from django.test.client import RequestFactory
 from django.utils import timezone
 
 from tests.apidocs.util import APIDocsTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
 class ProjectUserFeedbackDocs(APIDocsTestCase):
     def setUp(self):
-        organization = self.create_organization()
-        project = self.create_project(name="foo", organization=organization, teams=[])
-        event = self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "message": "oh no",
-                "timestamp": iso_format(before_now(seconds=1)),
-            },
-            project_id=project.id,
-        )
-        group = self.create_group(project=project, message="Foo bar")
+        event = self.create_event("a", message="oh no")
+        group = self.create_group(project=self.project, message="Foo bar")
+        self.event_id = event.event_id
         self.create_userreport(
-            date_added=timezone.now(), group=group, project=project, event_id=event.event_id,
+            date_added=timezone.now(), group=group, project=self.project, event_id=self.event_id,
         )
 
-        self.url = u"/api/0/projects/{}/{}/user-feedback/".format(organization.slug, project.slug)
+        self.url = u"/api/0/projects/{}/{}/user-feedback/".format(
+            self.organization.slug, self.project.slug
+        )
 
         self.login_as(user=self.user)
 
@@ -38,7 +31,7 @@ class ProjectUserFeedbackDocs(APIDocsTestCase):
 
     def test_post(self):
         data = {
-            "event_id": self.event.event_id,
+            "event_id": self.event_id,
             "name": "Hellboy",
             "email": "hellboy@sentry.io",
             "comments": "It broke!",
