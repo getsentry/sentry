@@ -209,8 +209,9 @@ jobs:
           TEST_GROUP: ${{ matrix.instance }}
 
   test-py3-snuba:
-    name: 'python3.6 backend (snuba)'
+    name: '[ignore fails] python3.6 backend (snuba)'
     runs-on: ubuntu-16.04
+    continue-on-error: true
     strategy:
       matrix:
         instance: [0]
