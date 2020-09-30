@@ -158,11 +158,11 @@ class TransactionList extends React.Component<WrapperProps> {
         limit={TOP_TRANSACTION_LIMIT}
         cursor={cursor}
       >
-        {({isLoading, tableData}) => (
-          <React.Fragment>
-            <BaselineQuery eventView={eventView} orgSlug={organization.slug}>
-              {baselineQueryProps => {
-                return (
+        {({isLoading, tableData, pageLinks}) => (
+          <BaselineQuery eventView={eventView} orgSlug={organization.slug}>
+            {baselineQueryProps => {
+              return (
+                <React.Fragment>
                   <TransactionTable
                     organization={organization}
                     location={location}
@@ -172,10 +172,11 @@ class TransactionList extends React.Component<WrapperProps> {
                     isLoading={isLoading || baselineQueryProps.isLoading}
                     baselineTransaction={baselineQueryProps.results}
                   />
-                );
-              }}
-            </BaselineQuery>
-          </React.Fragment>
+                  <StyledPagination pageLinks={pageLinks} onCursor={this.handleCursor} />
+                </React.Fragment>
+              );
+            }}
+          </BaselineQuery>
         )}
       </DiscoverQuery>
     );
