@@ -979,7 +979,7 @@ urlpatterns = [
                 url(
                     r"^(?P<organization_slug>[^\/]+)/projects-count/$",
                     OrganizationProjectsCountEndpoint.as_view(),
-                    name="sentry-api-0-organization-projects",
+                    name="sentry-api-0-organization-projects-count",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/sent-first-event/$",

@@ -133,6 +133,13 @@ describe('Performance > Landing', function() {
         events: {meta: {}, data: []},
       },
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-trends-stats/',
+      body: {
+        stats: {},
+        events: {meta: {}, data: []},
+      },
+    });
   });
 
   afterEach(function() {
@@ -328,7 +335,7 @@ describe('Performance > Landing', function() {
     );
   });
 
-  it('Tags are added to an existing query if navigating to trends', async function() {
+  it('Tags are replaced with trends default query if navigating to trends', async function() {
     const data = initializeTrendsData(
       {view: FilterViews.ALL_TRANSACTIONS, query: 'device.family:Mac'},
       false
@@ -350,7 +357,7 @@ describe('Performance > Landing', function() {
     expect(browserHistory.push).toHaveBeenCalledWith(
       expect.objectContaining({
         query: {
-          query: 'device.family:Mac count():>1000 transaction.duration:>0',
+          query: 'count():>1000 transaction.duration:>0',
           view: 'TRENDS',
         },
       })

@@ -10,6 +10,7 @@ from sentry.stacktraces.platform import get_behavior_family_for_platform
 from sentry.grouping.utils import get_rule_bool
 from sentry.utils.safe import get_path
 from sentry.utils.glob import glob_match
+from sentry.utils.strings import unescape_string
 
 
 VERSION = 1
@@ -420,7 +421,7 @@ class FingerprintingVisitor(NodeVisitor):
         return argument
 
     def visit_quoted(self, node, children):
-        return node.text[1:-1].encode("ascii", "backslashreplace").decode("unicode-escape")
+        return unescape_string(node.text[1:-1])
 
     def visit_unquoted(self, node, children):
         return node.text

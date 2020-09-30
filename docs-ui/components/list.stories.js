@@ -2,7 +2,7 @@ import React from 'react';
 import {withInfo} from '@storybook/addon-info';
 
 import {IconBusiness} from 'app/icons/iconBusiness';
-import {List, ListItem} from 'app/components/list';
+import {List, ListItem, OrderedList} from 'app/components/list';
 
 export default {
   title: 'Core/List',
@@ -20,10 +20,10 @@ export const Default = withInfo('Default message goes here')(() => (
       <ListItem icon={<IconBusiness color="orange400" size="sm" />}>Item 2</ListItem>
       <ListItem icon={<IconBusiness color="orange400" size="sm" />}>Item 3</ListItem>
     </List>
-    <List as="ol">
+    <OrderedList>
       <ListItem>Item 1</ListItem>
       <ListItem>Item 2</ListItem>
       <ListItem>Item 3</ListItem>
-    </List>
+    </OrderedList>
   </React.Fragment>
 ));

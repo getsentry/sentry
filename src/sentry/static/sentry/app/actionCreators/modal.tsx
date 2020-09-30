@@ -150,13 +150,17 @@ export async function redirectToProject(newProjectSlug: string) {
   openModal(deps => <Modal {...deps} slug={newProjectSlug} />, {});
 }
 
-export async function openHelpSearchModal() {
+type HelpSearchModalOptipons = {
+  organization: Organization;
+};
+
+export async function openHelpSearchModal(options: HelpSearchModalOptipons) {
   const mod = await import(
     /* webpackChunkName: "HelpSearchModal" */ 'app/components/modals/helpSearchModal'
   );
   const {default: Modal, modalCss} = mod;
 
-  openModal(deps => <Modal {...deps} />, {modalCss});
+  openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }
 
 export type SentryAppDetailsModalOptions = {

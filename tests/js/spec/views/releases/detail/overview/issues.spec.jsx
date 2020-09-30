@@ -3,9 +3,9 @@ import React from 'react';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import Issues from 'app/views/releasesV2/detail/overview/issues';
+import Issues from 'app/views/releases/detail/overview/issues';
 
-describe('ReleasesV2 Issues', function() {
+describe('Release Issues', function() {
   let newIssuesEndpoint,
     resolvedIssuesEndpoint,
     unhandledIssuesEndpoint,
