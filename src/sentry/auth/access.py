@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 __all__ = ["from_user", "from_member", "DEFAULT"]
 
-import logging
 import warnings
 
 from django.conf import settings
@@ -23,8 +22,6 @@ from sentry.models import (
     UserPermission,
     Team,
 )
-
-logger = logging.getLogger(__name__)
 
 
 def _sso_params(member):
@@ -279,10 +276,6 @@ def from_request(request, organization=None, scopes=None):
     and a particular organization. The user of the request could be an actual user
     or it could be a sentry app
     """
-    # TODO: validate scopes argument is not used and then remove
-    if scopes is not None:
-        logger.info("from_request.non_none_scopes")
-
     if not organization:
         return from_user(request.user, organization=organization, scopes=scopes)
 
@@ -358,10 +351,6 @@ def from_user(user, organization=None, scopes=None):
     Returns an Access object associated with a user and an organization
     based on the membership of that user and their access level
     """
-    # TODO: validate scopes argument is not used and then remove
-    if scopes is not None:
-        logger.info("from_user.non_none_scopes")
-
     if not user or user.is_anonymous() or not user.is_active:
         return DEFAULT
 
@@ -388,10 +377,6 @@ def from_member(member, scopes=None):
     # TODO(dcramer): we want to optimize this access pattern as its several
     # network hops and needed in a lot of places
     requires_sso, sso_is_valid = _sso_params(member)
-
-    # TODO: validate scopes argument is not used and then remove
-    if scopes is not None:
-        logger.info("from_member.non_none_scopes")
 
     team_list = member.get_teams()
     with sentry_sdk.start_span(op="get_project_access_in_teams") as span:
