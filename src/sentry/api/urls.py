@@ -94,7 +94,10 @@ from .endpoints.organization_environments import OrganizationEnvironmentsEndpoin
 from .endpoints.organization_event_details import OrganizationEventDetailsEndpoint
 from .endpoints.organization_eventid import EventIdLookupEndpoint
 from .endpoints.organization_events import OrganizationEventsEndpoint, OrganizationEventsV2Endpoint
-from .endpoints.organization_events_trends import OrganizationEventsTrendsEndpoint
+from .endpoints.organization_events_trends import (
+    OrganizationEventsTrendsEndpoint,
+    OrganizationEventsTrendsStatsEndpoint,
+)
 from .endpoints.organization_events_facets import OrganizationEventsFacetsEndpoint
 from .endpoints.organization_events_meta import (
     OrganizationEventsMetaEndpoint,
@@ -842,6 +845,11 @@ urlpatterns = [
                     name="sentry-api-0-organization-events-trends",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/events-trends-stats/$",
+                    OrganizationEventsTrendsStatsEndpoint.as_view(),
+                    name="sentry-api-0-organization-events-trends-stats",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/event-baseline/$",
                     OrganizationEventBaseline.as_view(),
                     name="sentry-api-0-organization-event-baseline",
@@ -971,7 +979,7 @@ urlpatterns = [
                 url(
                     r"^(?P<organization_slug>[^\/]+)/projects-count/$",
                     OrganizationProjectsCountEndpoint.as_view(),
-                    name="sentry-api-0-organization-projects",
+                    name="sentry-api-0-organization-projects-count",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/sent-first-event/$",
@@ -1340,10 +1348,12 @@ urlpatterns = [
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/hooks/$",
                     ProjectServiceHooksEndpoint.as_view(),
+                    name="sentry-api-0-service-hooks",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/hooks/(?P<hook_id>[^\/]+)/$",
                     ProjectServiceHookDetailsEndpoint.as_view(),
+                    name="sentry-api-0-project-service-hook-details",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/hooks/(?P<hook_id>[^\/]+)/stats/$",

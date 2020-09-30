@@ -130,7 +130,7 @@ jobs:
 
       SENTRY_LIGHT_BUILD: 1
       SENTRY_SKIP_BACKEND_VALIDATION: 1
-
+      MIGRATIONS_TEST_MIGRATE: 1
       PYTEST_SENTRY_DSN: https://6fd5cfea2d4d46b182ad214ac7810508@sentry.io/2423079
       # XXX(py3): Reruns are disabled for until all tests are passing.
       PYTEST_ADDOPTS: ""
@@ -201,7 +201,7 @@ jobs:
           sentry init
           sentry devservices up postgres redis clickhouse snuba
 
-      - name: Test shard (${{ steps.config.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
+      - name: Python 3.6 backend w/o migrations (${{ steps.config.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
         if: always()
         run: |
           make travis-test-postgres
@@ -223,6 +223,7 @@ jobs:
       USE_SNUBA: 1
       SENTRY_LIGHT_BUILD: 1
       SENTRY_SKIP_BACKEND_VALIDATION: 1
+      MIGRATIONS_TEST_MIGRATE: 1
 
       PYTEST_SENTRY_DSN: https://6fd5cfea2d4d46b182ad214ac7810508@sentry.io/2423079
       # XXX(py3): Reruns are disabled for until all tests are passing.
@@ -312,7 +313,7 @@ jobs:
             confluentinc/cp-kafka:5.1.2
           sentry devservices up postgres redis clickhouse snuba
 
-      - name: Python 3.6 snuba backend w/o migrations (${{ steps.config.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
+      - name: Python 3.6 snuba backend (${{ steps.config.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
         if: always()
         run: |
           make travis-test-snuba

@@ -23,7 +23,7 @@ class Edit extends ModalManager<Props, State> {
   }
 
   getTitle() {
-    return t('Edit Relay Key');
+    return t('Edit Key');
   }
 
   getData() {

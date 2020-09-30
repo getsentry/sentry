@@ -47,6 +47,7 @@ const Form = ({values, onChange, errors, onValidate, disables, onValidateKey}: P
         <Input
           type="text"
           name="name"
+          placeholder={t('Display Name')}
           onChange={handleChange('name')}
           value={values.name}
           onBlur={onValidate('name')}
@@ -55,7 +56,7 @@ const Form = ({values, onChange, errors, onValidate, disables, onValidateKey}: P
       </Field>
 
       {disables.publicKey ? (
-        <Field flexibleControlStateSize label={t('Relay Key')} inline={false} stacked>
+        <Field flexibleControlStateSize label={t('Public Key')} inline={false} stacked>
           <TextCopyInput onCopy={onCopy(values.publicKey)}>
             {values.publicKey}
           </TextCopyInput>
@@ -65,12 +66,12 @@ const Form = ({values, onChange, errors, onValidate, disables, onValidateKey}: P
           flexibleControlStateSize
           label={
             <Label>
-              <div>{t('Relay Key')}</div>
+              <div>{t('Public Key')}</div>
               <QuestionTooltip
                 position="top"
                 size="sm"
                 title={t(
-                  'Only enter the Relay Key value from your credentials file. Never share the Secret key with Sentry or any third party'
+                  'Only enter the Public Key value from your credentials file. Never share the Secret key with Sentry or any third party'
                 )}
               />
             </Label>
@@ -82,6 +83,7 @@ const Form = ({values, onChange, errors, onValidate, disables, onValidateKey}: P
           <Input
             type="text"
             name="publicKey"
+            placeholder={t('Public Key')}
             onChange={handleChange('publicKey')}
             value={values.publicKey}
             onBlur={onValidateKey}
@@ -96,6 +98,7 @@ const Form = ({values, onChange, errors, onValidate, disables, onValidateKey}: P
       >
         <Textarea
           name="description"
+          placeholder={t('Description')}
           onChange={handleChange('description')}
           value={values.description}
           disabled={disables.description}

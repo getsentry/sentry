@@ -73,6 +73,10 @@ class DialogManager<
     throw new Error('Not implemented');
   }
 
+  getBtnSaveLabel(): string | undefined {
+    return undefined;
+  }
+
   setValidForm(isFormValid: boolean) {
     this.setState({isFormValid});
   }
@@ -192,25 +196,37 @@ class DialogManager<
     this.handleValidate('publicKey')();
   };
 
+  getForm() {
+    const {values, errors, disables} = this.state;
+    return (
+      <Form
+        onChange={this.handleChange}
+        onValidate={this.handleValidate}
+        onValidateKey={this.handleValidateKey}
+        errors={errors}
+        values={values}
+        disables={disables}
+      />
+    );
+  }
+
+  getContent(): React.ReactElement {
+    return this.getForm();
+  }
+
   render() {
-    const {values, errors, title, isFormValid, disables} = this.state;
+    const {title, isFormValid} = this.state;
+    const btnSaveLabel = this.getBtnSaveLabel();
+    const content = this.getContent();
 
     return (
       <Modal
         {...this.props}
         title={title}
         onSave={this.handleSave}
+        btnSaveLabel={btnSaveLabel}
         disabled={!isFormValid}
-        content={
-          <Form
-            onChange={this.handleChange}
-            onValidate={this.handleValidate}
-            onValidateKey={this.handleValidateKey}
-            errors={errors}
-            values={values}
-            disables={disables}
-          />
-        }
+        content={content}
       />
     );
   }

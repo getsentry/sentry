@@ -52,9 +52,11 @@ import {
   getIntervalRatio,
   StyledIconArrow,
   getTrendProjectId,
+  trendCursorNames,
 } from './utils';
 import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
 import {HeaderTitleLegend} from '../styles';
+import {getTransactionComparisonUrl} from '../utils';
 
 type Props = {
   api: Client;
@@ -84,6 +86,10 @@ function onTrendsCursor(trendChangeType: TrendChangeType) {
     } else if (trendChangeType === TrendChangeType.REGRESSION) {
       cursorQuery.regressionCursor = cursor;
     }
+
+    const selectedQueryKey = getSelectedQueryKey(trendChangeType);
+    delete query[selectedQueryKey];
+
     browserHistory.push({
       pathname: path,
       query: {...query, ...cursorQuery},
@@ -108,31 +114,33 @@ function getSelectedTransaction(
   transactions?: NormalizedTrendsTransaction[]
 ): NormalizedTrendsTransaction | undefined {
   const queryKey = getSelectedQueryKey(trendChangeType);
-  const offsetString = decodeScalar(location.query[queryKey]);
-  const offset = offsetString ? parseInt(offsetString, 10) : 0;
-  if (!transactions || !transactions.length || offset >= transactions.length) {
+  const selectedTransactionName = decodeScalar(location.query[queryKey]);
+
+  if (!transactions) {
     return undefined;
   }
 
-  const transaction = transactions[offset];
-  return transaction;
+  const selectedTransaction = transactions.find(
+    transaction => transaction.transaction === selectedTransactionName
+  );
+
+  if (selectedTransaction) {
+    return selectedTransaction;
+  }
+
+  return transactions.length > 0 ? transactions[0] : undefined;
 }
 
-function handleChangeSelected(
-  location: Location,
-  trendChangeType: TrendChangeType,
-  transactions?: NormalizedTrendsTransaction[]
-) {
+function handleChangeSelected(location: Location, trendChangeType: TrendChangeType) {
   return function updateSelected(transaction?: NormalizedTrendsTransaction) {
-    const queryKey = getSelectedQueryKey(trendChangeType);
-    const offset = transaction ? transactions?.indexOf(transaction) : -1;
+    const selectedQueryKey = getSelectedQueryKey(trendChangeType);
     const query = {
       ...location.query,
     };
-    if (!offset || offset < 0) {
-      delete query[queryKey];
+    if (!transaction) {
+      delete query[selectedQueryKey];
     } else {
-      query[queryKey] = String(offset);
+      query[selectedQueryKey] = transaction?.transaction;
     }
     browserHistory.push({
       pathname: location.pathname,
@@ -155,6 +163,7 @@ function ChangedTransactions(props: Props) {
   modifyTrendView(trendView, location, trendChangeType);
 
   const onCursor = onTrendsCursor(trendChangeType);
+  const cursor = decodeScalar(location.query[trendCursorNames[trendChangeType]]);
 
   return (
     <DiscoverQuery
@@ -162,7 +171,9 @@ function ChangedTransactions(props: Props) {
       orgSlug={organization.slug}
       location={location}
       trendChangeType={trendChangeType}
+      cursor={cursor}
       limit={5}
+      trendStats
     >
       {({isLoading, tableData, pageLinks}) => {
         const eventsTrendsData = (tableData as unknown) as TrendsData;
@@ -237,8 +248,7 @@ function ChangedTransactions(props: Props) {
                           statsData={statsData}
                           handleSelectTransaction={handleChangeSelected(
                             location,
-                            trendChangeType,
-                            transactionsList
+                            trendChangeType
                           )}
                         />
                       ))}
@@ -422,11 +432,9 @@ const CompareLink = (props: CompareLinkProps) => {
     trendView: eventView,
     transaction,
     api,
-    statsData,
     location,
     currentTrendFunction,
   } = props;
-  const summaryView = eventView.clone();
   const intervalRatio = getIntervalRatio(location);
 
   async function onLinkClick() {
@@ -434,7 +442,6 @@ const CompareLink = (props: CompareLinkProps) => {
       api,
       organization,
       eventView,
-      statsData,
       intervalRatio,
       transaction
     );
@@ -446,14 +453,16 @@ const CompareLink = (props: CompareLinkProps) => {
       });
 
       const {previousPeriod, currentPeriod} = baselines;
-      const comparisonString = `${previousPeriod.project}:${previousPeriod.id}/${currentPeriod.project}:${currentPeriod.id}`;
-      browserHistory.push({
-        pathname: `/organizations/${organization.slug}/performance/compare/${comparisonString}/`,
-        query: {
-          ...summaryView.generateQueryStringObject(),
-          transaction: String(transaction.transaction),
-        },
+
+      const target = getTransactionComparisonUrl({
+        organization,
+        baselineEventSlug: `${previousPeriod.project}:${previousPeriod.id}`,
+        regressionEventSlug: `${currentPeriod.project}:${currentPeriod.id}`,
+        transaction: transaction.transaction,
+        query: location.query,
       });
+
+      browserHistory.push(target);
     }
   }
 

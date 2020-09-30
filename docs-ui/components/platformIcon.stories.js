@@ -1,8 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import PlatformIcon from 'platformicons';
 import {withInfo} from '@storybook/addon-info';
-
-import PlatformIcon from 'app/components/platformIcon';
 
 const StyledPlatformIcon = styled(PlatformIcon)`
   margin: 0 15px 15px 0;
