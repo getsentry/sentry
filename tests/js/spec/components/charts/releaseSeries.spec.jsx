@@ -62,6 +62,23 @@ describe('ReleaseSeries', function() {
     );
   });
 
+  it('fetches releases with environment conditions', async function() {
+    const wrapper = mount(
+      <ReleaseSeries environments={['dev', 'test']}>{renderFunc}</ReleaseSeries>,
+      routerContext
+    );
+
+    await tick();
+    wrapper.update();
+
+    expect(releasesMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: {environment: ['dev', 'test']},
+      })
+    );
+  });
+
   it('fetches releases with start and end date strings', async function() {
     const wrapper = mount(
       <ReleaseSeries start="2020-01-01" end="2020-01-31">
@@ -157,9 +174,9 @@ describe('ReleaseSeries', function() {
             markLine: expect.objectContaining({
               data: [
                 expect.objectContaining({
-                  name: '92eccef279d9',
-                  value: '92eccef279d9',
-                  xAxis: 1530206345000,
+                  name: '1.2.0, sentry-android-shop',
+                  value: '1.2.0, sentry-android-shop',
+                  xAxis: 1584921600000,
                 }),
               ],
             }),

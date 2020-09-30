@@ -65,7 +65,6 @@ export default function getConfiguration({
         {
           path: `${pathPrefix}/source-maps/`,
           title: t('Source Maps'),
-          show: () => organization.features?.includes('artifacts-in-settings'),
         },
         {
           path: `${pathPrefix}/proguard/`,
@@ -76,7 +75,7 @@ export default function getConfiguration({
           path: `${pathPrefix}/security-and-privacy/`,
           title: t('Security & Privacy'),
           description: t(
-            'Configuration related to dealing with sensitive data and other security settings. (Data Scrubbing, Data Privacy, Data Scrubbing)'
+            'Configuration related to dealing with sensitive data and other security settings. (Data Scrubbing, Data Privacy, Data Scrubbing) for a project'
           ),
         },
 
@@ -108,7 +107,7 @@ export default function getConfiguration({
       items: [
         {
           path: `${pathPrefix}/install/`,
-          title: t('Error Tracking'),
+          title: t('Instrumentation'),
         },
         {
           path: `${pathPrefix}/keys/`,

@@ -438,13 +438,15 @@ def bulk_fetch_project_latest_releases(projects):
             ) as release_id,
             p.id as project_id
             FROM sentry_project p
-            WHERE p.id IN ({})
+            WHERE p.id IN %s
         ) as lr
         JOIN sentry_release r
         ON r.id = lr.release_id
-        """.format(
-                release_project_join_sql, ", ".join(six.text_type(i.id) for i in projects)
-            )
+            """.format(
+                release_project_join_sql
+            ),
+            # formatting tuples works specifically in psycopg2
+            (tuple(six.text_type(i.id) for i in projects),),
         )
     )
 
@@ -578,7 +580,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 "dataScrubberDefaults": bool(attrs["options"].get("sentry:scrub_defaults", True)),
                 "safeFields": attrs["options"].get("sentry:safe_fields", []),
                 "storeCrashReports": convert_crashreport_count(
-                    attrs["options"].get("sentry:store_crash_reports")
+                    attrs["options"].get("sentry:store_crash_reports"), allow_none=True
                 ),
                 "sensitiveFields": attrs["options"].get("sentry:sensitive_fields", []),
                 "subjectTemplate": attrs["options"].get("mail:subject_template")

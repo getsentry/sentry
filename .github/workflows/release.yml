@@ -29,23 +29,30 @@ jobs:
             echo "Open release-blocking issues found, cancelling release...";
             curl -sf -X POST -H 'Accept: application/vnd.github.v3+json' -H 'Authorization: token ${{ secrets.GITHUB_TOKEN }}' https://api.github.com/repos/$GITHUB_REPOSITORY/actions/runs/${{ github.run_id }}/cancel;
           fi
-      - id: calver
-        if: ${{ !github.event.inputs.version }}
+      - id: set-version
         run: |
-          DATE_PART=$(date +'%y.%-m')
-          declare -i PATCH_VERSION=0
-          while curl -sf -o /dev/null "https://api.github.com/repos/$GITHUB_REPOSITORY/git/ref/tags/$DATE_PART.$PATCH_VERSION"; do
-            PATCH_VERSION+=1
-          done
-          echo "::set-output name=version::${DATE_PART}.${PATCH_VERSION}"
+          if [[ -n '${{ github.event.inputs.version }}' ]]; then
+            echo '::set-env name=RELEASE_VERSION::${{ github.event.inputs.version }}';
+          else
+            DATE_PART=$(date +'%y.%-m')
+            declare -i PATCH_VERSION=0
+            while curl -sf -o /dev/null "https://api.github.com/repos/$GITHUB_REPOSITORY/git/ref/tags/$DATE_PART.$PATCH_VERSION"; do
+              PATCH_VERSION+=1
+            done
+            echo "::set-env name=RELEASE_VERSION::${DATE_PART}.${PATCH_VERSION}"
+          fi
       - uses: actions/checkout@v2
         with:
           token: ${{ secrets.GH_SENTRY_BOT_PAT }}
+      - id: set-git-user
+        run: |
+          git config user.name getsentry-bot
+          git config user.email bot@getsentry.com
       - uses: getsentry/craft@master
         if: ${{ !github.event.inputs.skip_prepare }}
         with:
           action: prepare
-          version: ${{ github.event.inputs.version || steps.calver.outputs.version }}
+          version: ${{ env.RELEASE_VERSION }}
         env:
           DRY_RUN: ${{ github.event.inputs.dry_run }}
           GIT_COMMITTER_NAME: getsentry-bot
@@ -59,12 +66,9 @@ jobs:
       - uses: getsentry/craft@master
         with:
           action: publish
-          version: ${{ github.event.inputs.version || steps.calver.outputs.version }}
+          version: ${{ env.RELEASE_VERSION }}
         env:
           DRY_RUN: ${{ github.event.inputs.dry_run }}
-          GIT_COMMITTER_NAME: getsentry-bot
-          GIT_AUTHOR_NAME: getsentry-bot
-          EMAIL: bot@getsentry.com
           GITHUB_API_TOKEN: ${{ secrets.GH_SENTRY_BOT_PAT }}
           ZEUS_API_TOKEN: ${{ secrets.ZEUS_API_TOKEN }}
           TWINE_USERNAME: '__token__'
@@ -73,10 +77,6 @@ jobs:
           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
       - id: next-dev-version
         if: ${{ !github.event.inputs.dry_run }}
-        env:
-          GIT_COMMITTER_NAME: getsentry-bot
-          GIT_AUTHOR_NAME: getsentry-bot
-          EMAIL: bot@getsentry.com
         run: |
-          ./scripts/bump-version.sh '' $(date -d "$(echo '${{ github.event.inputs.version || steps.calver.outputs.version }}' | sed -e 's/^\([0-9]\{2\}\)\.\([0-9]\{1,2\}\)\.[0-9]\+$/20\1-\2-1/') 1 month" +%y.%-m.0.dev0)
+          ./scripts/bump-version.sh '' $(date -d "$(echo $RELEASE_VERSION | sed -e 's/^\([0-9]\{2\}\)\.\([0-9]\{1,2\}\)\.[0-9]\+$/20\1-\2-1/') 1 month" +%y.%-m.0.dev0)
           git diff --quiet || git commit -anm 'meta: Bump new development version' && git push

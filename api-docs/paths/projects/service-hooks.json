@@ -1,0 +1,145 @@
+{
+  "get": {
+    "tags": ["Projects"],
+    "description": "Return a list of service hooks bound to a project.",
+    "operationId": "List a Project's Service Hooks",
+    "parameters": [
+      {
+        "name": "organization_slug",
+        "in": "path",
+        "description": "The slug of the organization the client keys belong to.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "project_slug",
+        "in": "path",
+        "description": "The slug of the project the client keys belong to.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "$ref": "../../components/parameters/pagination-cursor.json#/PaginationCursor"
+      }
+    ],
+    "responses": {
+      "200": {
+        "description": "Success",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "../../components/schemas/service-hook.json#/ServiceHook"
+              }
+            },
+            "example": [
+              {
+                "dateCreated": "2018-11-06T21:20:08.143Z",
+                "events": ["event.alert", "event.created"],
+                "id": "4f9d73e63b7144ecb8944c41620a090b",
+                "secret": "8fcac28aaa4c4f5fa572b61d40a8e084364db25fd37449c299e5a41c0504cbc2",
+                "status": "active",
+                "url": "https://example.com/sentry-hook"
+              }
+            ]
+          }
+        }
+      },
+      "403": {
+        "description": "You do not have that feature enabled"
+      }
+    },
+    "security": [
+      {
+        "auth_token": ["project:read"]
+      }
+    ]
+  },
+  "post": {
+    "tags": ["Projects"],
+    "description": "Register a new service hook on a project.\n\nEvents include:\n\n- event.alert: An alert is generated for an event (via rules).\n- event.created: A new event has been processed.\n\nThis endpoint requires the 'servicehooks' feature to be enabled for your project.",
+    "operationId": "Register a New Service Hook",
+    "parameters": [
+      {
+        "name": "organization_slug",
+        "in": "path",
+        "description": "The slug of the organization the client keys belong to.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "project_slug",
+        "in": "path",
+        "description": "The slug of the project the client keys belong to.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "requestBody": {
+      "content": {
+        "application/json": {
+          "schema": {
+            "required": ["url", "events"],
+            "type": "object",
+            "properties": {
+              "url": {
+                "type": "string",
+                "description": "The URL for the webhook.",
+                "example": "https://example.com/sentry-hook"
+              },
+              "events": {
+                "type": "array",
+                "description": "The events to subscribe to.",
+                "example": ["event.alert", "event.created"],
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "required": true
+    },
+    "responses": {
+      "201": {
+        "description": "Success",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "../../components/schemas/service-hook.json#/ServiceHook"
+            },
+            "example": {
+              "dateCreated": "2018-11-06T21:20:08.143Z",
+              "events": ["event.alert", "event.created"],
+              "id": "4f9d73e63b7144ecb8944c41620a090b",
+              "secret": "8fcac28aaa4c4f5fa572b61d40a8e084364db25fd37449c299e5a41c0504cbc2",
+              "status": "active",
+              "url": "https://example.com/sentry-hook"
+            }
+          }
+        }
+      },
+      "403": {
+        "description": "You do not have that feature enabled"
+      },
+      "404": {
+        "description": "The requested resource does not exist"
+      }
+    },
+    "security": [
+      {
+        "auth_token": ["project:write"]
+      }
+    ]
+  }
+}

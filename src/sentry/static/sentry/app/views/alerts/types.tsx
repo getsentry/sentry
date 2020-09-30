@@ -54,11 +54,6 @@ export type ActivityType = ActivityTypeDraft & {
   value: string | null;
 };
 
-export type NoteType = {
-  text: string;
-  mentions: [string, string][];
-};
-
 export enum IncidentType {
   DETECTED,
   CREATED,

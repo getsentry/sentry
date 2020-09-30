@@ -57,7 +57,7 @@ describe('Incident Rules Create', function() {
           interval: '1m',
           project: [2],
           query: 'event.type:error',
-          statsPeriod: '12h',
+          statsPeriod: '1d',
           yAxis: 'count()',
         },
       })

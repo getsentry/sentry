@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
 import {t} from 'app/locale';
-import {Organization, Tag} from 'app/types';
+import {Organization, TagCollection} from 'app/types';
 import {metric} from 'app/utils/analytics';
 import withApi from 'app/utils/withApi';
 import withTags from 'app/utils/withTags';
@@ -20,7 +20,7 @@ type TableProps = {
   eventView: EventView;
   organization: Organization;
   showTags: boolean;
-  tags: {[key: string]: Tag};
+  tags: TagCollection;
   setError: (msg: string, code: number) => void;
   title: string;
   onChangeShowTags: () => void;

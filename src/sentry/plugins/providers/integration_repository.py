@@ -8,6 +8,7 @@ from rest_framework.response import Response
 
 from sentry import analytics
 from sentry.api.serializers import serialize
+from sentry.constants import ObjectStatus
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.models import Repository, Integration
 from sentry.signals import repo_linked
@@ -33,37 +34,55 @@ class IntegrationRepositoryProvider(object):
         except Exception as e:
             return self.handle_api_error(e)
 
-        try:
-            with transaction.atomic():
-                repo = Repository.objects.create(
-                    organization_id=organization.id,
-                    name=result["name"],
-                    external_id=result.get("external_id"),
-                    url=result.get("url"),
-                    config=result.get("config") or {},
-                    provider=self.id,
-                    integration_id=result.get("integration_id"),
+        repo_update_params = {
+            "external_id": result.get("external_id"),
+            "url": result.get("url"),
+            "config": result.get("config") or {},
+            "provider": self.id,
+            "integration_id": result.get("integration_id"),
+        }
+
+        # first check if there is a repository without an integration that matches
+        repo = Repository.objects.filter(
+            organization_id=organization.id, name=result["name"], integration_id=None
+        ).first()
+        if repo:
+            if self.logger:
+                self.logger.info(
+                    "repository.update",
+                    extra={
+                        "organization_id": organization.id,
+                        "repo_name": result["name"],
+                        "old_provider": repo.provider,
+                    },
                 )
-        except IntegrityError:
-            # Try to delete webhook we just created
-            try:
-                repo = Repository(
-                    organization_id=organization.id,
-                    name=result["name"],
-                    external_id=result.get("external_id"),
-                    url=result.get("url"),
-                    config=result.get("config") or {},
-                    provider=self.id,
-                    integration_id=result.get("integration_id"),
-                )
-                self.on_delete_repository(repo)
-            except IntegrationError:
-                pass
-            return Response(
-                {"errors": {"__all__": "A repository with that name already exists"}}, status=400
-            )
+            # update from params
+            for field_name, field_value in six.iteritems(repo_update_params):
+                setattr(repo, field_name, field_value)
+            # also update the status if it was in a bad state
+            repo.status = ObjectStatus.VISIBLE
+            repo.save()
         else:
-            repo_linked.send_robust(repo=repo, user=request.user, sender=self.__class__)
+            try:
+                with transaction.atomic():
+                    repo = Repository.objects.create(
+                        organization_id=organization.id, name=result["name"], **repo_update_params
+                    )
+            except IntegrityError:
+                # Try to delete webhook we just created
+                try:
+                    repo = Repository(
+                        organization_id=organization.id, name=result["name"], **repo_update_params
+                    )
+                    self.on_delete_repository(repo)
+                except IntegrationError:
+                    pass
+                return Response(
+                    {"errors": {"__all__": "A repository with that name already exists"}},
+                    status=400,
+                )
+            else:
+                repo_linked.send_robust(repo=repo, user=request.user, sender=self.__class__)
 
         analytics.record(
             "integration.repo.added",

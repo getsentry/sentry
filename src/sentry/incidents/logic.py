@@ -11,7 +11,7 @@ from django.utils import timezone
 
 from sentry import analytics
 from sentry.api.event_search import get_filter, resolve_field
-from sentry.constants import SentryAppInstallationStatus
+from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
 from sentry.incidents import tasks
 from sentry.incidents.models import (
     AlertRule,
@@ -867,7 +867,7 @@ def delete_alert_rule(alert_rule, user=None):
         if incidents:
             alert_rule.update(status=AlertRuleStatus.SNAPSHOT.value)
             AlertRuleActivity.objects.create(
-                alert_rule=alert_rule, user=user, type=AlertRuleActivityType.DELETED.value,
+                alert_rule=alert_rule, user=user, type=AlertRuleActivityType.DELETED.value
             )
         else:
             alert_rule.delete()
@@ -1042,7 +1042,7 @@ def get_subscriptions_from_alert_rule(alert_rule, projects):
 
 
 def create_alert_rule_trigger_action(
-    trigger, type, target_type, target_identifier=None, integration=None
+    trigger, type, target_type, target_identifier=None, integration=None, sentry_app=None
 ):
     """
     Creates an AlertRuleTriggerAction
@@ -1052,6 +1052,7 @@ def create_alert_rule_trigger_action(
     :param target_identifier: (Optional) The identifier of the target
     :param target_display: (Optional) Human readable name for the target
     :param integration: (Optional) The Integration related to this action.
+    :param sentry_app: (Optional) The Sentry App related to this action.
     :return: The created action
     """
 
@@ -1063,6 +1064,10 @@ def create_alert_rule_trigger_action(
         target_identifier, target_display = get_target_identifier_display_for_integration(
             type.value, target_identifier, trigger.alert_rule.organization, integration.id
         )
+    elif type == AlertRuleTriggerAction.Type.SENTRY_APP:
+        target_identifier, target_display = get_alert_rule_trigger_action_sentry_app(
+            trigger.alert_rule.organization, sentry_app.id
+        )
 
     return AlertRuleTriggerAction.objects.create(
         alert_rule_trigger=trigger,
@@ -1071,11 +1076,17 @@ def create_alert_rule_trigger_action(
         target_identifier=target_identifier,
         target_display=target_display,
         integration=integration,
+        sentry_app=sentry_app,
     )
 
 
 def update_alert_rule_trigger_action(
-    trigger_action, type=None, target_type=None, target_identifier=None, integration=None
+    trigger_action,
+    type=None,
+    target_type=None,
+    target_identifier=None,
+    integration=None,
+    sentry_app=None,
 ):
     """
     Updates values on an AlertRuleTriggerAction
@@ -1083,8 +1094,8 @@ def update_alert_rule_trigger_action(
     :param type: Which sort of action to take
     :param target_type: Which type of target to send to
     :param target_identifier: The identifier of the target
-    :param target_display: Human readable name for the target
-    :param integration: The Integration related to this action.
+    :param integration: (Optional) The Integration related to this action.
+    :param sentry_app: (Optional) The SentryApp related to this action.
     :return:
     """
     updated_fields = {}
@@ -1094,6 +1105,8 @@ def update_alert_rule_trigger_action(
         updated_fields["target_type"] = target_type.value
     if integration is not None:
         updated_fields["integration"] = integration
+    if sentry_app is not None:
+        updated_fields["sentry_app"] = sentry_app
     if target_identifier is not None:
         type = updated_fields.get("type", trigger_action.type)
 
@@ -1102,9 +1115,19 @@ def update_alert_rule_trigger_action(
             organization = trigger_action.alert_rule_trigger.alert_rule.organization
 
             target_identifier, target_display = get_target_identifier_display_for_integration(
-                type, target_identifier, organization, integration.id,
+                type, target_identifier, organization, integration.id
             )
             updated_fields["target_display"] = target_display
+
+        elif type == AlertRuleTriggerAction.Type.SENTRY_APP.value:
+            sentry_app = updated_fields.get("sentry_app", trigger_action.sentry_app)
+            organization = trigger_action.alert_rule_trigger.alert_rule.organization
+
+            target_identifier, target_display = get_alert_rule_trigger_action_sentry_app(
+                organization, sentry_app.id
+            )
+            updated_fields["target_display"] = target_display
+
         updated_fields["target_identifier"] = target_identifier
     trigger_action.update(**updated_fields)
     return trigger_action
@@ -1181,6 +1204,15 @@ def get_alert_rule_trigger_action_pagerduty_service(target_value, organization, 
     return (service.id, service.service_name)
 
 
+def get_alert_rule_trigger_action_sentry_app(organization, sentry_app_id):
+    try:
+        sentry_app = SentryApp.objects.get(id=sentry_app_id, owner=organization)
+    except SentryApp.DoesNotExist:
+        raise InvalidTriggerActionError("No SentryApp found.")
+
+    return sentry_app.id, sentry_app.name
+
+
 def delete_alert_rule_trigger_action(trigger_action):
     """
     Deletes a AlertRuleTriggerAction
@@ -1206,12 +1238,16 @@ def get_available_action_integrations_for_org(organization):
     return Integration.objects.filter(organizations=organization, provider__in=providers)
 
 
-def get_alertable_sentry_apps(organization_id):
-    return SentryApp.objects.filter(
+def get_alertable_sentry_apps(organization_id, with_metric_alerts=False):
+    query = SentryApp.objects.filter(
         installations__organization_id=organization_id,
         is_alertable=True,
         installations__status=SentryAppInstallationStatus.INSTALLED,
-    ).distinct()
+    )
+
+    if with_metric_alerts:
+        query = query.exclude(status=SentryAppStatus.PUBLISHED)
+    return query.distinct()
 
 
 def get_pagerduty_services(organization, integration_id):
@@ -1248,13 +1284,13 @@ def get_column_from_aggregate(aggregate):
 
 def check_aggregate_column_support(aggregate):
     column = get_column_from_aggregate(aggregate)
-    return column is None or column in SUPPORTED_COLUMNS or column in TRANSLATABLE_COLUMNS.keys()
+    return column is None or column in SUPPORTED_COLUMNS or column in TRANSLATABLE_COLUMNS
 
 
 def translate_aggregate_field(aggregate, reverse=False):
     column = get_column_from_aggregate(aggregate)
     if not reverse:
-        if column in TRANSLATABLE_COLUMNS.keys():
+        if column in TRANSLATABLE_COLUMNS:
             return aggregate.replace(column, TRANSLATABLE_COLUMNS[column])
     else:
         if column is not None:

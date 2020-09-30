@@ -926,30 +926,33 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
             search_filter_query="last_seen:>=%s foo" % date_to_query_format(timezone.now()),
             sort_by="date",
         )
+        query_mock.call_args[1]["aggregations"].sort()
         assert query_mock.call_args == mock.call(
             orderby=["-last_seen", "group_id"],
             aggregations=[
-                ["uniq", "group_id", "total"],
                 ["multiply(toUInt64(max(timestamp)), 1000)", "", "last_seen"],
+                ["uniq", "group_id", "total"],
             ],
             having=[["last_seen", ">=", Any(int)]],
             **common_args
         )
 
         self.make_query(search_filter_query="foo", sort_by="priority")
+        query_mock.call_args[1]["aggregations"].sort()
         assert query_mock.call_args == mock.call(
             orderby=["-priority", "group_id"],
             aggregations=[
-                ["toUInt64(plus(multiply(log(times_seen), 600), last_seen))", "", "priority"],
                 ["count()", "", "times_seen"],
-                ["uniq", "group_id", "total"],
                 ["multiply(toUInt64(max(timestamp)), 1000)", "", "last_seen"],
+                ["toUInt64(plus(multiply(log(times_seen), 600), last_seen))", "", "priority"],
+                ["uniq", "group_id", "total"],
             ],
             having=[],
             **common_args
         )
 
         self.make_query(search_filter_query="times_seen:5 foo", sort_by="freq")
+        query_mock.call_args[1]["aggregations"].sort()
         assert query_mock.call_args == mock.call(
             orderby=["-times_seen", "group_id"],
             aggregations=[["count()", "", "times_seen"], ["uniq", "group_id", "total"]],
@@ -958,6 +961,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         )
 
         self.make_query(search_filter_query="foo", sort_by="user")
+        query_mock.call_args[1]["aggregations"].sort()
         assert query_mock.call_args == mock.call(
             orderby=["-user_count", "group_id"],
             aggregations=[
@@ -1017,7 +1021,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         for i in range(400):
             event = self.store_event(
                 data={
-                    "event_id": md5("event {}".format(i)).hexdigest(),
+                    "event_id": md5("event {}".format(i).encode("utf-8")).hexdigest(),
                     "fingerprint": ["put-me-in-group{}".format(i)],
                     "timestamp": iso_format(self.base_datetime - timedelta(days=21)),
                     "message": "group {} event".format(i),
@@ -1418,7 +1422,9 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
                 continue
             test_query("has:%s" % key)
             test_query("!has:%s" % key)
-            if key in IssueSearchVisitor.numeric_keys:
+            if key == "error.handled":
+                val = 1
+            elif key in IssueSearchVisitor.numeric_keys:
                 val = "123"
             elif key in IssueSearchVisitor.date_keys:
                 val = "2019-01-01"

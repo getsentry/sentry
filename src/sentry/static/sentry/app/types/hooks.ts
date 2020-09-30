@@ -112,6 +112,7 @@ export type InterfaceChromeHooks = {
   'sidebar:organization-dropdown-menu': GenericOrganizationComponentHook;
   'sidebar:bottom-items': SidebarBottomItemsHook;
   'sidebar:item-label': SidebarItemLabelHook;
+  'help-modal:footer': HelpModalFooterHook;
 };
 
 /**
@@ -301,6 +302,14 @@ type SidebarProps = Pick<
 type SidebarBottomItemsHook = (
   opts: SidebarProps & {organization: Organization}
 ) => React.ReactNode;
+
+/**
+ * Provides augmentation of the help modal footer
+ */
+type HelpModalFooterHook = (opts: {
+  closeModal: () => void;
+  organization: Organization;
+}) => React.ReactNode;
 
 /**
  * Wrapper component to allow for customization of the onboarding member

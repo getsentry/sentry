@@ -1,0 +1,106 @@
+{
+  "OrganizationRelease": {
+    "type": "object",
+    "required": [
+      "authors",
+      "commitCount",
+      "data",
+      "dateCreated",
+      "dateReleased",
+      "deployCount",
+      "firstEvent",
+      "lastCommit",
+      "lastDeploy",
+      "lastEvent",
+      "newGroups",
+      "owner",
+      "projects",
+      "ref",
+      "shortVersion",
+      "version",
+      "url"
+    ],
+    "properties": {
+      "authors": {
+        "type": "array",
+        "items": {
+          "type": "object"
+        }
+      },
+      "commitCount": {
+        "type": "integer",
+        "format": "int64"
+      },
+      "data": {
+        "type": "object"
+      },
+      "dateCreated": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "dateReleased": {
+        "type": "string",
+        "format": "date-time",
+        "nullable": true
+      },
+      "deployCount": {
+        "type": "integer",
+        "format": "int64"
+      },
+      "firstEvent": {
+        "type": "string",
+        "format": "date-time",
+        "nullable": true
+      },
+      "lastCommit": {
+        "type": "object",
+        "nullable": true
+      },
+      "lastDeploy": {
+        "$ref": "deploy.json#/Deploy",
+        "nullable": true
+      },
+      "lastEvent": {
+        "type": "string",
+        "format": "date-time",
+        "nullable": true
+      },
+      "newGroups": {
+        "type": "integer",
+        "format": "int64"
+      },
+      "owner": {
+        "type": "object",
+        "nullable": true
+      },
+      "projects": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "slug": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "ref": {
+        "type": "string",
+        "nullable": true
+      },
+      "shortVersion": {
+        "type": "string"
+      },
+      "version": {
+        "type": "string"
+      },
+      "url": {
+        "type": "string",
+        "nullable": true
+      }
+    }
+  }
+}

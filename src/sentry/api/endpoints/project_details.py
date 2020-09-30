@@ -112,7 +112,9 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     dataScrubberDefaults = serializers.BooleanField(required=False)
     sensitiveFields = ListField(child=serializers.CharField(), required=False)
     safeFields = ListField(child=serializers.CharField(), required=False)
-    storeCrashReports = serializers.IntegerField(min_value=-1, max_value=20, required=False)
+    storeCrashReports = serializers.IntegerField(
+        min_value=-1, max_value=20, required=False, allow_null=True
+    )
     relayPiiConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     builtinSymbolSources = ListField(child=serializers.CharField(), required=False)
     symbolSources = serializers.CharField(required=False, allow_blank=True, allow_null=True)
@@ -462,9 +464,13 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if result.get("safeFields") is not None:
             if project.update_option("sentry:safe_fields", result["safeFields"]):
                 changed_proj_settings["sentry:safe_fields"] = result["safeFields"]
-        if result.get("storeCrashReports") is not None:
-            if project.update_option("sentry:store_crash_reports", result["storeCrashReports"]):
+        if "storeCrashReports" in result is not None:
+            if project.get_option("sentry:store_crash_reports") != result["storeCrashReports"]:
                 changed_proj_settings["sentry:store_crash_reports"] = result["storeCrashReports"]
+                if result["storeCrashReports"] is None:
+                    project.delete_option("sentry:store_crash_reports")
+                else:
+                    project.update_option("sentry:store_crash_reports", result["storeCrashReports"])
         if result.get("relayPiiConfig") is not None:
             if project.update_option("sentry:relay_pii_config", result["relayPiiConfig"]):
                 changed_proj_settings["sentry:relay_pii_config"] = (
@@ -530,7 +536,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             if "sentry:store_crash_reports" in options:
                 project.update_option(
                     "sentry:store_crash_reports",
-                    convert_crashreport_count(options["sentry:store_crash_reports"]),
+                    convert_crashreport_count(
+                        options["sentry:store_crash_reports"], allow_none=True
+                    ),
                 )
             if "sentry:relay_pii_config" in options:
                 project.update_option(

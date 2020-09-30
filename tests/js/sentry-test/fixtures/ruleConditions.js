@@ -14,7 +14,7 @@ const UNIQUE_USER_FREQUENCY_CONDITION =
 export const MOCK_RESP_VERBOSE = [
   {
     id: 'sentry.rules.conditions.every_event.EveryEventCondition',
-    label: 'An event is seen',
+    label: 'An event occurs',
   },
   {
     id: 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',

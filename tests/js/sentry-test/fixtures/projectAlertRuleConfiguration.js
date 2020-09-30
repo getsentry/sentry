@@ -4,7 +4,7 @@ export function ProjectAlertRuleConfiguration(params = {}) {
       {
         enabled: true,
         id: 'sentry.rules.conditions.every_event.EveryEventCondition',
-        label: 'An event is seen',
+        label: 'An event occurs',
       },
       {
         enabled: true,

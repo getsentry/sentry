@@ -1,0 +1,200 @@
+{
+  "get": {
+    "tags": ["Teams"],
+    "description": "Return a list of projects bound to a team.",
+    "operationId": "List a Team's Projects",
+    "parameters": [
+      {
+        "name": "organization_slug",
+        "in": "path",
+        "description": "The slug of the organization the team belongs to.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "team_slug",
+        "in": "path",
+        "description": "The slug of the team to get.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "$ref": "../../components/parameters/pagination-cursor.json#/PaginationCursor"
+      }
+    ],
+    "responses": {
+      "200": {
+        "description": "Success",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "../../components/schemas/project.json#/TeamProjects"
+              }
+            },
+            "example": [
+              {
+                "slug": "the-spoiled-yoghurt",
+                "name": "The Spoiled Yoghurt",
+                "hasAccess": true,
+                "teams": [
+                  {
+                    "id": "542609",
+                    "name": "Powerful Abolitionist",
+                    "slug": "powerful-abolitionist"
+                  }
+                ],
+                "platform": null,
+                "firstEvent": null,
+                "isMember": false,
+                "team": {
+                  "id": "542609",
+                  "name": "Powerful Abolitionist",
+                  "slug": "powerful-abolitionist"
+                },
+                "dateCreated": "2020-08-20T14:36:34.171255Z",
+                "isBookmarked": false,
+                "id": "5398494",
+                "latestDeploys": null,
+                "features": [
+                  "custom-inbound-filters",
+                  "discard-groups",
+                  "rate-limits",
+                  "data-forwarding",
+                  "similarity-view",
+                  "issue-alerts-targeting",
+                  "servicehooks",
+                  "minidump",
+                  "similarity-indexing"
+                ]
+              }
+            ]
+          }
+        }
+      },
+      "403": {
+        "description": "Forbidden"
+      },
+      "404": {
+        "description": "Team not found"
+      }
+    },
+    "security": [
+      {
+        "auth_token": ["project:read"]
+      }
+    ]
+  },
+  "post": {
+    "tags": ["Teams"],
+    "description": "Create a new project bound to a team.",
+    "operationId": "Create a New Project",
+    "parameters": [
+      {
+        "name": "organization_slug",
+        "in": "path",
+        "description": "The slug of the organization the team belongs to.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "team_slug",
+        "in": "path",
+        "description": "The slug of the team to create a new project for.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "requestBody": {
+      "content": {
+        "application/json": {
+          "schema": {
+            "required": ["name"],
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "The name for the new project.",
+                "example": "The Spoiled Yoghurt"
+              },
+              "slug": {
+                "type": "string",
+                "description": "Optional slug for the new project. If not provided a slug is generated from the name.",
+                "example": "the-spoiled-yoghurt"
+              }
+            }
+          }
+        }
+      },
+      "required": true
+    },
+    "responses": {
+      "201": {
+        "description": "Created",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "../../components/schemas/project.json#/Project"
+            },
+            "example": {
+              "status": "active",
+              "name": "The Spoiled Yoghurt",
+              "color": "#bf6e3f",
+              "isInternal": false,
+              "isPublic": false,
+              "slug": "the-spoiled-yoghurt",
+              "platform": null,
+              "hasAccess": true,
+              "firstEvent": null,
+              "avatar": {
+                "avatarUuid": null,
+                "avatarType": "letter_avatar"
+              },
+              "isMember": false,
+              "dateCreated": "2020-08-20T14:36:34.171255Z",
+              "isBookmarked": false,
+              "id": "5398494",
+              "features": [
+                "custom-inbound-filters",
+                "discard-groups",
+                "rate-limits",
+                "data-forwarding",
+                "similarity-view",
+                "issue-alerts-targeting",
+                "servicehooks",
+                "minidump",
+                "similarity-indexing"
+              ]
+            }
+          }
+        }
+      },
+      "400": {
+        "description": "Bad input"
+      },
+      "403": {
+        "description": "Forbidden"
+      },
+      "404": {
+        "description": "Team not found"
+      },
+      "409": {
+        "description": "Team already exists"
+      }
+    },
+    "security": [
+      {
+        "auth_token": ["project:write"]
+      }
+    ]
+  }
+}

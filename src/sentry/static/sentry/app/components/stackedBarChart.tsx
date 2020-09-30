@@ -11,10 +11,10 @@ import {use24Hours, getTimeFormat} from 'app/utils/dates';
 import theme from 'app/utils/theme';
 import {formatFloat} from 'app/utils/formatters';
 
-type Point = {x: number; y: number[]; label?: string};
+type Point = {x: number; y: number[]; label?: string; color?: string};
 type Points = Point[];
 type Series = Array<{
-  data: Array<{x: number; y: number}>;
+  data: Array<{x: number; y: number; color?: string}>;
   label?: string;
   color?: string;
 }>;
@@ -32,6 +32,8 @@ type DefaultProps = {
    * @deprecated
    */
   points: Points;
+  secondaryPoints: Points;
+  showSecondaryPoints: boolean;
   series: Series;
   markers: Marker[];
   barClasses: string[];
@@ -56,7 +58,9 @@ type Props = DefaultProps & {
 
 type State = {
   series: Series;
+  secondarySeries: Series;
   pointIndex: Record<number, Point>;
+  secondaryPointIndex: Record<number, Point>;
   interval: number | null;
 };
 
@@ -102,6 +106,8 @@ class StackedBarChart extends React.Component<Props, State> {
   static defaultProps: DefaultProps = {
     label: '',
     points: [],
+    secondaryPoints: [],
+    showSecondaryPoints: false,
     series: [],
     markers: [],
     barClasses: ['chart-bar'],
@@ -114,6 +120,7 @@ class StackedBarChart extends React.Component<Props, State> {
 
     // massage points
     let series = props.series;
+    let secondarySeries: Series = [];
 
     if (props.points?.length) {
       if (series?.length) {
@@ -121,11 +128,16 @@ class StackedBarChart extends React.Component<Props, State> {
       }
 
       series = this.pointsToSeries(props.points);
+      if (props.secondaryPoints.length) {
+        secondarySeries = this.pointsToSeries(props.secondaryPoints);
+      }
     }
 
     this.state = {
       series,
+      secondarySeries,
       pointIndex: this.pointIndex(series),
+      secondaryPointIndex: this.pointIndex(secondarySeries),
       interval: this.getInterval(series),
     };
   }
@@ -133,17 +145,22 @@ class StackedBarChart extends React.Component<Props, State> {
   UNSAFE_componentWillReceiveProps(nextProps: Props) {
     if (nextProps.points || nextProps.series) {
       let series = nextProps.series;
+      let secondarySeries = this.state.secondarySeries;
       if (nextProps.points.length) {
         if (series.length) {
           throw new Error('Only one of [points|series] should be specified.');
         }
 
         series = this.pointsToSeries(nextProps.points);
+        if (nextProps.secondaryPoints.length)
+          secondarySeries = this.pointsToSeries(nextProps.secondaryPoints);
       }
 
       this.setState({
         series,
+        secondarySeries,
         pointIndex: this.pointIndex(series),
+        secondaryPointIndex: this.pointIndex(secondarySeries),
         interval: this.getInterval(series),
       });
     }
@@ -166,7 +183,7 @@ class StackedBarChart extends React.Component<Props, State> {
         if (!series[yIdx]) {
           series[yIdx] = {data: []};
         }
-        series[yIdx].data.push({x: p.x, y});
+        series[yIdx].data.push({x: p.x, y, color: p.color});
       });
     });
     return series;
@@ -177,7 +194,7 @@ class StackedBarChart extends React.Component<Props, State> {
     series.forEach(s => {
       s.data.forEach(p => {
         if (!points[p.x]) {
-          points[p.x] = {y: [], x: p.x};
+          points[p.x] = {y: [], x: p.x, color: p.color};
         }
         points[p.x].y.push(p.y);
       });
@@ -216,7 +233,7 @@ class StackedBarChart extends React.Component<Props, State> {
     return (
       <span>
         {timeMoment.format(format)}
-        &#8594
+        &#8594;
         {nextMoment.format(format)}
       </span>
     );
@@ -244,7 +261,7 @@ class StackedBarChart extends React.Component<Props, State> {
   maxPointValue(): number {
     return Math.max(
       10,
-      this.state.series
+      (this.state.secondarySeries.length ? this.state.secondarySeries : this.state.series)
         .map(s => Math.max(...s.data.map(p => p.y)))
         .reduce((a, b) => a + b, 0)
     );
@@ -272,7 +289,7 @@ class StackedBarChart extends React.Component<Props, State> {
         viewBox="0 0 10 10"
         size={10}
       >
-        <Tooltip title={title} position="bottom">
+        <Tooltip title={title} position="bottom" disableForVisualTest>
           <circle
             data-test-id="chart-column"
             r="4"
@@ -327,38 +344,69 @@ class StackedBarChart extends React.Component<Props, State> {
 
   renderChartColumn(
     point: Point,
+    secondaryPoint: Point | null,
     maxval: number,
     pointWidth: number,
     index: number,
     _totalPoints: number
   ): React.ReactNode {
-    const totalY = point.y.reduce((a, b) => a + b);
+    const {showSecondaryPoints} = this.props;
+
+    const totalY = (secondaryPoint ? secondaryPoint : point).y.reduce((a, b) => a + b);
     const totalPct = totalY / maxval;
     // we leave a little extra space for bars with min-heights.
     const maxPercentage = 99;
 
-    let prevPct = 0;
-    const pts = point.y.map((y, i) => {
-      const pct = Math.max(
+    const calcPct = (y, i) =>
+      Math.max(
         totalY && formatFloat((y / totalY) * totalPct * maxPercentage, 2),
         this.getMinHeight(i)
       );
 
+    let prevPct = 0;
+    let prevPct2 = 0;
+    const pts = point.y.map((y, i) => {
+      const pct = calcPct(y, i);
+
+      const y2 = secondaryPoint && secondaryPoint.y[i];
+      const pct2 = y2 && calcPct(y2, i);
+
       const pt = (
-        <rect
-          key={i}
-          x={index * pointWidth + '%'}
-          y={100.0 - pct - prevPct + '%'}
-          width={pointWidth - this.props.gap + '%'}
-          data-test-id="chart-column"
-          height={pct + '%'}
-          fill={this.state.series[i].color}
-          className={classNames(this.props.barClasses[i], 'barchart-rect')}
-        >
-          {y}
-        </rect>
+        <RectGroup key={i} showSecondaryPoints={showSecondaryPoints}>
+          <rect
+            x={index * pointWidth + '%'}
+            y={100.0 - pct - prevPct + '%'}
+            width={pointWidth - this.props.gap + '%'}
+            data-test-id="chart-column"
+            height={pct + '%'}
+            fill={point.color}
+            className={classNames(
+              this.props.barClasses[i],
+              point.color ? '' : 'barchart-rect'
+            )}
+          >
+            {y}
+          </rect>
+          {showSecondaryPoints && pct2 && secondaryPoint && (
+            <rect
+              x={index * pointWidth + '%'}
+              y={100.0 - pct2 - prevPct2 + '%'}
+              width={pointWidth - this.props.gap + '%'}
+              data-test-id="chart-column"
+              height={pct2 - pct + '%'}
+              fill={secondaryPoint.color}
+              className={classNames(
+                this.props.barClasses[i],
+                secondaryPoint.color ? '' : 'barchart-rect'
+              )}
+            >
+              {y2}
+            </rect>
+          )}
+        </RectGroup>
       );
       prevPct += pct;
+      if (pct2) prevPct2 += pct2;
       return pt;
     });
 
@@ -398,7 +446,7 @@ class StackedBarChart extends React.Component<Props, State> {
     const points = Object.keys(pointIndex)
       .map(k => {
         const p = pointIndex[k];
-        return {x: p.x, y: p.y};
+        return {x: p.x, y: p.y, color: p.color};
       })
       .sort((a, b) => a.x - b.x);
 
@@ -413,8 +461,19 @@ class StackedBarChart extends React.Component<Props, State> {
         );
       }
 
+      const secondaryPoint = this.props.secondaryPoints.length
+        ? this.props.secondaryPoints[index]
+        : null;
+
       children.push(
-        this.renderChartColumn(point, maxval, pointWidth, index, totalPoints)
+        this.renderChartColumn(
+          point,
+          secondaryPoint,
+          maxval,
+          pointWidth,
+          index,
+          totalPoints
+        )
       );
     });
 
@@ -482,6 +541,14 @@ const CircleSvg = styled('svg')<{size: number; offset: number; left: number}>`
 
   &:hover circle {
     fill: ${p => p.theme.purple400};
+  }
+`;
+
+const RectGroup = styled('g')<{showSecondaryPoints: boolean}>`
+  opacity: ${p => (p.showSecondaryPoints ? 0.7 : 1)};
+
+  &:hover {
+    opacity: 1;
   }
 `;
 

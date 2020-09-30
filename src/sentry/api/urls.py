@@ -29,6 +29,7 @@ from .endpoints.debug_files import (
 from .endpoints.event_apple_crash_report import EventAppleCrashReportEndpoint
 from .endpoints.event_attachment_details import EventAttachmentDetailsEndpoint
 from .endpoints.event_attachments import EventAttachmentsEndpoint
+from .endpoints.event_reprocessing import EventReprocessingEndpoint
 from .endpoints.event_file_committers import EventFileCommittersEndpoint
 from .endpoints.event_grouping_info import EventGroupingInfoEndpoint
 from .endpoints.event_owners import EventOwnersEndpoint
@@ -41,6 +42,7 @@ from .endpoints.group_events_oldest import GroupEventsOldestEndpoint
 from .endpoints.group_external_issue_details import GroupExternalIssueDetailsEndpoint
 from .endpoints.group_external_issues import GroupExternalIssuesEndpoint
 from .endpoints.group_hashes import GroupHashesEndpoint
+from .endpoints.group_reprocessing import GroupReprocessingEndpoint
 from .endpoints.group_integration_details import GroupIntegrationDetailsEndpoint
 from .endpoints.group_integrations import GroupIntegrationsEndpoint
 from .endpoints.group_notes import GroupNotesEndpoint
@@ -134,6 +136,7 @@ from .endpoints.organization_projects import (
     OrganizationProjectsCountEndpoint,
 )
 from .endpoints.organization_recent_searches import OrganizationRecentSearchesEndpoint
+from .endpoints.organization_relay_usage import OrganizationRelayUsage
 from .endpoints.organization_release_assemble import OrganizationReleaseAssembleEndpoint
 from .endpoints.organization_release_commits import OrganizationReleaseCommitsEndpoint
 from .endpoints.organization_release_previous_commits import (
@@ -195,6 +198,7 @@ from .endpoints.project_processingissues import (
     ProjectProcessingIssuesFixEndpoint,
 )
 from .endpoints.project_release_commits import ProjectReleaseCommitsEndpoint
+from .endpoints.project_release_repositories import ProjectReleaseRepositories
 from .endpoints.project_release_details import ProjectReleaseDetailsEndpoint
 from .endpoints.project_release_file_details import ProjectReleaseFileDetailsEndpoint
 from .endpoints.project_release_stats import ProjectReleaseStatsEndpoint
@@ -341,6 +345,7 @@ GROUP_URLS = [
         GroupNotesDetailsEndpoint.as_view(),
     ),
     url(r"^(?P<issue_id>[^\/]+)/hashes/$", GroupHashesEndpoint.as_view()),
+    url(r"^(?P<issue_id>[^\/]+)/reprocessing/$", GroupReprocessingEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/stats/$", GroupStatsEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/tags/$", GroupTagsEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/tags/(?P<key>[^/]+)/$", GroupTagKeyDetailsEndpoint.as_view()),
@@ -966,7 +971,7 @@ urlpatterns = [
                 url(
                     r"^(?P<organization_slug>[^\/]+)/projects-count/$",
                     OrganizationProjectsCountEndpoint.as_view(),
-                    name="sentry-api-0-organization-projects",
+                    name="sentry-api-0-organization-projects-count",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/sent-first-event/$",
@@ -1117,6 +1122,12 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/join-request/$",
                     OrganizationJoinRequestEndpoint.as_view(),
                     name="sentry-api-0-organization-join-request",
+                ),
+                # relay usage
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/relay_usage/$",
+                    OrganizationRelayUsage.as_view(),
+                    name="sentry-api-0-organization-relay-usage",
                 ),
             ]
         ),
@@ -1272,6 +1283,11 @@ urlpatterns = [
                     name="sentry-api-0-event-attachment-details",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/reprocessing/$",
+                    EventReprocessingEndpoint.as_view(),
+                    name="sentry-api-0-event-reprocessing",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/committers/$",
                     EventFileCommittersEndpoint.as_view(),
                     name="sentry-api-0-event-file-committers",
@@ -1324,10 +1340,12 @@ urlpatterns = [
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/hooks/$",
                     ProjectServiceHooksEndpoint.as_view(),
+                    name="sentry-api-0-service-hooks",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/hooks/(?P<hook_id>[^\/]+)/$",
                     ProjectServiceHookDetailsEndpoint.as_view(),
+                    name="sentry-api-0-project-service-hook-details",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/hooks/(?P<hook_id>[^\/]+)/stats/$",
@@ -1386,6 +1404,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/commits/$",
                     ProjectReleaseCommitsEndpoint.as_view(),
                     name="sentry-api-0-project-release-commits",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/repositories/$",
+                    ProjectReleaseRepositories.as_view(),
+                    name="sentry-api-0-project-release-repositories",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/resolved/$",

@@ -28,7 +28,7 @@ class DataExportDetailsTest(APITestCase):
             response = self.get_valid_response(self.organization.slug, self.data_export.id)
         assert response.data["id"] == self.data_export.id
         assert response.data["user"] == {
-            "id": six.text_type(self.user.id).encode("utf-8"),
+            "id": six.text_type(self.user.id),
             "email": self.user.email,
             "username": self.user.username,
         }

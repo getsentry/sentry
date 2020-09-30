@@ -1,9 +1,9 @@
 beautifulsoup4>=4.7.1,<4.8
 boto3>=1.4.1,<1.4.6
 botocore<1.5.71
-celery==4.1.1
+celery==4.4.7
 click>=5.0,<7.0
-confluent-kafka==0.11.5
+confluent-kafka==1.5.0
 croniter>=0.3.34,<0.4.0
 datadog>=0.15.0,<0.31.0
 django-crispy-forms==1.7.2
@@ -36,23 +36,24 @@ Pillow>=6.2.2,<7.0.0
 progressbar2>=3.32,<3.33
 psycopg2-binary>=2.7.0,<2.9.0
 PyJWT>=1.5.0,<1.6.0
+pyrsistent==0.16.0 # TODO(py3): 0.17.0 requires python3, see https://github.com/tobgu/pyrsistent/issues/205
 python-dateutil>=2.0.0,<3.0.0
 python-memcached>=1.53,<2.0.0
 python3-saml>=1.4.0,<1.5
 python-u2flib-server>=5.0.0,<6.0.0
 PyYAML>=5.3,<5.4
 qrcode>=6.1.0,<6.2.0
-rb>=1.7.0,<2.0.0
-redis-py-cluster==1.3.6
-redis==2.10.6
+rb>=1.8.0,<2.0.0
+redis-py-cluster==2.1.0
+redis==3.3.11
 requests-oauthlib==1.2.0
 requests[security]>=2.20.0,<2.21.0
 # [start] jsonschema format validators
 rfc3339-validator==0.1.2
 rfc3986-validator==0.1.1
 # [end] jsonschema format validators
-sentry-relay>=0.5.12,<0.6.0
-sentry-sdk>=0.16.4,<0.17.0
+sentry-relay>=0.8.1,<0.9.0
+sentry-sdk>=0.17.7,<0.18.0
 simplejson>=3.11.0,<3.12.0
 six>=1.11.0,<1.12.0
 sqlparse>=0.2.0,<0.3.0
@@ -69,8 +70,8 @@ uwsgi>2.0.0,<2.1.0
 # We specifically pin to 3.5.0.4 to avoid the issue in
 # https://github.com/celery/billiard/issues/260. Once we upgrade to Celery 4.3+ we can
 # use a newer version of billiard that has a proper fix.
-billiard==3.5.0.4
-kombu==4.2.2.post1
+billiard==3.6.3
+kombu==4.6.11
 
 # not directly used, but provides a speedup for redis
 hiredis==0.3.1

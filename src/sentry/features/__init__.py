@@ -56,9 +56,7 @@ default_manager.add("organizations:create")
 default_manager.add("organizations:advanced-search", OrganizationFeature)  # NOQA
 default_manager.add("organizations:android-mappings", OrganizationFeature)  # NOQA
 default_manager.add("organizations:api-keys", OrganizationFeature)  # NOQA
-default_manager.add("organizations:artifacts-in-settings", OrganizationFeature)  # NOQA
 default_manager.add("organizations:boolean-search", OrganizationFeature)  # NOQA
-default_manager.add("organizations:breadcrumbs-v2", OrganizationFeature)  # NOQA
 default_manager.add("organizations:related-events", OrganizationFeature)  # NOQA
 default_manager.add("organizations:alert-filters", OrganizationFeature)  # NOQA
 default_manager.add("organizations:custom-symbol-sources", OrganizationFeature)  # NOQA
@@ -77,7 +75,6 @@ default_manager.add("organizations:integrations-issue-sync", OrganizationFeature
 default_manager.add("organizations:integrations-alert-rule", OrganizationFeature)  # NOQA
 default_manager.add("organizations:integrations-chat-unfurl", OrganizationFeature)  # NOQA
 default_manager.add("organizations:integrations-incident-management", OrganizationFeature)  # NOQA
-default_manager.add("organizations:integrations-msteams", OrganizationFeature)  # NOQA
 default_manager.add("organizations:integrations-vsts-limited-scopes", OrganizationFeature)  # NOQA
 default_manager.add("organizations:internal-catchall", OrganizationFeature)  # NOQA
 default_manager.add("organizations:invite-members", OrganizationFeature)  # NOQA
@@ -88,7 +85,6 @@ default_manager.add("organizations:org-saved-searches", OrganizationFeature)  # 
 default_manager.add("organizations:org-subdomains", OrganizationFeature)  # NOQA
 default_manager.add("organizations:performance-view", OrganizationFeature)  # NOQA
 default_manager.add("organizations:relay", OrganizationFeature)  # NOQA
-default_manager.add("organizations:releases-v2", OrganizationFeature)  # NOQA
 default_manager.add("organizations:rule-page", OrganizationFeature)  # NOQA
 default_manager.add("organizations:set-grouping-config", OrganizationFeature)  # NOQA
 default_manager.add("organizations:slack-migration", OrganizationFeature)  # NOQA
@@ -96,7 +92,10 @@ default_manager.add("organizations:sso-basic", OrganizationFeature)  # NOQA
 default_manager.add("organizations:sso-rippling", OrganizationFeature)  # NOQA
 default_manager.add("organizations:sso-saml2", OrganizationFeature)  # NOQA
 default_manager.add("organizations:symbol-sources", OrganizationFeature)  # NOQA
+default_manager.add("organizations:transaction-comparison", OrganizationFeature)  # NOQA
+default_manager.add("organizations:trends", OrganizationFeature)  # NOQA
 default_manager.add("organizations:usage-stats-graph", OrganizationFeature)  # NOQA
+default_manager.add("organizations:dynamic-issue-counts", OrganizationFeature)  # NOQA
 # XXX(mark) Don't use this feature it is going away soon.
 default_manager.add("organizations:transaction-events", OrganizationFeature)  # NOQA
 default_manager.add("organizations:invite-members-rate-limits", OrganizationFeature)  # NOQA
@@ -105,6 +104,7 @@ default_manager.add("organizations:invite-members-rate-limits", OrganizationFeat
 #       them alphabetically! The order features are registered is not important.
 
 # Project scoped features
+default_manager.add("projects:alert-filters", ProjectFeature)  # NOQA
 default_manager.add("projects:custom-inbound-filters", ProjectFeature)  # NOQA
 default_manager.add("projects:data-forwarding", ProjectFeature)  # NOQA
 default_manager.add("projects:discard-groups", ProjectFeature)  # NOQA
@@ -117,6 +117,7 @@ default_manager.add("projects:similarity-view", ProjectFeature)  # NOQA
 default_manager.add("projects:similarity-indexing", ProjectFeature)  # NOQA
 default_manager.add("projects:similarity-view-v2", ProjectFeature)  # NOQA
 default_manager.add("projects:similarity-indexing-v2", ProjectFeature)  # NOQA
+default_manager.add("projects:reprocessing-v2", ProjectFeature)  # NOQA
 
 # Project plugin features
 default_manager.add("projects:plugins", ProjectPluginFeature)  # NOQA
@@ -138,4 +139,5 @@ get = default_manager.get
 has = default_manager.has
 all = default_manager.all
 add_handler = default_manager.add_handler
+add_entity_handler = default_manager.add_entity_handler
 has_for_batch = default_manager.has_for_batch

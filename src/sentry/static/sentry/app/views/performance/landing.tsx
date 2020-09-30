@@ -1,6 +1,6 @@
 import React from 'react';
 import {Location} from 'history';
-import * as ReactRouter from 'react-router';
+import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
@@ -8,6 +8,7 @@ import {Client} from 'app/api';
 import {t} from 'app/locale';
 import {GlobalSelection, Organization, Project} from 'app/types';
 import {loadOrganizationTags} from 'app/actionCreators/tags';
+import {updateDateTime} from 'app/actionCreators/globalSelection';
 import SearchBar from 'app/views/events/searchBar';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
@@ -26,7 +27,12 @@ import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
-import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
+import {
+  tokenizeSearch,
+  stringifyQueryObject,
+  QueryResults,
+} from 'app/utils/tokenizeSearch';
+import {decodeScalar} from 'app/utils/queryString';
 
 import {generatePerformanceEventView, DEFAULT_STATS_PERIOD} from './data';
 import Table from './table';
@@ -34,11 +40,12 @@ import Charts from './charts/index';
 import Onboarding from './onboarding';
 import {addRoutePerformanceContext, getTransactionSearchQuery} from './utils';
 import TrendsContent from './trends/content';
+import {modifyTrendsViewDefaultPeriod, DEFAULT_TRENDS_STATS_PERIOD} from './trends/utils';
 
 export enum FilterViews {
+  TRENDS = 'TRENDS',
   ALL_TRANSACTIONS = 'ALL_TRANSACTIONS',
   KEY_TRANSACTIONS = 'KEY_TRANSACTIONS',
-  TRENDS = 'TRENDS',
 }
 
 const VIEWS = Object.values(FilterViews).filter(view => view !== 'TRENDS');
@@ -49,7 +56,7 @@ type Props = {
   organization: Organization;
   selection: GlobalSelection;
   location: Location;
-  router: ReactRouter.InjectedRouter;
+  router: InjectedRouter;
   projects: Project[];
   loadingProjects: boolean;
   demoMode?: boolean;
@@ -59,6 +66,13 @@ type State = {
   eventView: EventView;
   error: string | undefined;
 };
+
+function isStatsPeriodDefault(
+  statsPeriod: string | undefined,
+  defaultPeriod: string
+): boolean {
+  return !statsPeriod || defaultPeriod === statsPeriod;
+}
 
 class PerformanceLanding extends React.Component<Props, State> {
   static getDerivedStateFromProps(nextProps: Props, prevState: State): State {
@@ -122,7 +136,7 @@ class PerformanceLanding extends React.Component<Props, State> {
       organization_id: parseInt(organization.id, 10),
     });
 
-    ReactRouter.browserHistory.push({
+    browserHistory.push({
       pathname: location.pathname,
       query: {
         ...location.query,
@@ -139,7 +153,7 @@ class PerformanceLanding extends React.Component<Props, State> {
       case FilterViews.KEY_TRANSACTIONS:
         return t('By Key Transaction');
       case FilterViews.TRENDS:
-        return t('Trends');
+        return t('By Trends');
       default:
         throw Error(`Unknown view: ${currentView}`);
     }
@@ -159,32 +173,86 @@ class PerformanceLanding extends React.Component<Props, State> {
     return stringifyQueryObject(parsed);
   }
 
-  getCurrentView(): string {
+  getCurrentView(hasTrendsFeature?: boolean): string {
     const {location} = this.props;
     const currentView = location.query.view as FilterViews;
     if (Object.values(FilterViews).includes(currentView)) {
       return currentView;
     }
+    if (hasTrendsFeature) {
+      return FilterViews.TRENDS;
+    }
     return FilterViews.ALL_TRANSACTIONS;
   }
 
   handleViewChange(viewKey: FilterViews) {
-    const {location} = this.props;
+    const {location, organization} = this.props;
 
     const newQuery = {
       ...location.query,
     };
 
-    // This is a temporary change for trends to test adding a default count to increase relevancy
-    if (viewKey === FilterViews.TRENDS) {
-      if (!newQuery.query) {
-        newQuery.query = 'count():>1000';
-      } else if (!newQuery.query.includes('count()')) {
-        newQuery.query += 'count():>1000';
-      }
+    const query = decodeScalar(location.query.query) || '';
+    const statsPeriod = decodeScalar(location.query.statsPeriod);
+    const conditions = tokenizeSearch(query);
+
+    const currentView = location.query.view;
+
+    const newDefaultPeriod =
+      viewKey === FilterViews.TRENDS ? DEFAULT_TRENDS_STATS_PERIOD : DEFAULT_STATS_PERIOD;
+
+    const hasStartAndEnd = newQuery.start && newQuery.end;
+
+    if (!hasStartAndEnd && isStatsPeriodDefault(statsPeriod, newDefaultPeriod)) {
+      /**
+       * Resets stats period to default of the tab you are navigating to
+       * on tab change as tabs have different default periods.
+       */
+      updateDateTime({
+        start: null,
+        end: null,
+        utc: false,
+        period: newDefaultPeriod,
+      });
     }
 
-    ReactRouter.browserHistory.push({
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.change_view',
+      eventName: 'Performance Views: Change View',
+      organization_id: parseInt(organization.id, 10),
+      view_name: viewKey,
+    });
+
+    if (viewKey === FilterViews.TRENDS) {
+      const modifiedConditions = new QueryResults([]);
+
+      if (conditions.hasTags('count()')) {
+        modifiedConditions.setTag('count()', conditions.getTags('count()'));
+      } else {
+        modifiedConditions.setTag('count()', ['>1000']);
+      }
+      if (conditions.hasTags('transaction.duration')) {
+        modifiedConditions.setTag(
+          'transaction.duration',
+          conditions.getTags('transaction.duration')
+        );
+      } else {
+        modifiedConditions.setTag('transaction.duration', ['>0']);
+      }
+      newQuery.query = stringifyQueryObject(modifiedConditions);
+    }
+
+    const isNavigatingAwayFromTrends = viewKey !== FilterViews.TRENDS && currentView;
+
+    if (isNavigatingAwayFromTrends) {
+      // This stops errors from occurring when navigating to other views since we are appending aggregates to the trends view
+      conditions.removeTag('count()');
+      conditions.removeTag('transaction.duration');
+
+      newQuery.query = stringifyQueryObject(conditions);
+    }
+
+    browserHistory.push({
       pathname: location.pathname,
       query: {...newQuery, view: viewKey},
     });
@@ -192,16 +260,17 @@ class PerformanceLanding extends React.Component<Props, State> {
 
   renderHeaderButtons() {
     return (
-      <Feature features={['internal-catchall']}>
+      <Feature features={['trends', 'internal-catchall']} requireAll={false}>
         {({hasFeature}) =>
           hasFeature ? (
-            <ButtonBar merged active={this.getCurrentView()}>
+            <ButtonBar merged active={this.getCurrentView(hasFeature)}>
               {VIEWS_WITH_TRENDS.map(viewKey => {
                 return (
                   <Button
                     key={viewKey}
                     barId={viewKey}
                     size="small"
+                    data-test-id={'landing-header-' + viewKey.toLowerCase()}
                     onClick={() => this.handleViewChange(viewKey)}
                   >
                     {this.getViewLabel(viewKey)}
@@ -262,11 +331,14 @@ class PerformanceLanding extends React.Component<Props, State> {
 
   render() {
     const {organization, location, router, projects} = this.props;
-    const {eventView} = this.state;
+    const currentView = this.getCurrentView(organization.features.includes('trends'));
+    const isTrendsView = currentView === FilterViews.TRENDS;
+    const eventView = isTrendsView
+      ? modifyTrendsViewDefaultPeriod(this.state.eventView, location)
+      : this.state.eventView;
     const showOnboarding = this.shouldShowOnboarding();
     const filterString = getTransactionSearchQuery(location);
     const summaryConditions = this.getSummaryConditions(filterString);
-    const currentView = this.getCurrentView();
 
     return (
       <SentryDocumentTitle title={t('Performance')} objSlug={organization.slug}>
@@ -276,7 +348,7 @@ class PerformanceLanding extends React.Component<Props, State> {
               start: null,
               end: null,
               utc: false,
-              period: DEFAULT_STATS_PERIOD,
+              period: isTrendsView ? DEFAULT_TRENDS_STATS_PERIOD : DEFAULT_STATS_PERIOD,
             },
           }}
         >

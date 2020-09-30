@@ -11,7 +11,7 @@ import Panel from 'app/components/panels/panel';
 import space from 'app/styles/space';
 import {isRenderFunc} from 'app/utils/isRenderFunc';
 
-type Data = {};
+type Data = Record<string, any>;
 
 type RenderProps = {
   model: FormModel;
@@ -22,7 +22,7 @@ type RenderFunc = (props: RenderProps) => React.ReactNode;
 type Props = {
   apiMethod?: APIRequestMethod;
   apiEndpoint?: string;
-  children: React.ReactNode | RenderFunc;
+  children?: React.ReactNode | RenderFunc;
   className?: string;
   cancelLabel?: string;
   submitDisabled?: boolean;

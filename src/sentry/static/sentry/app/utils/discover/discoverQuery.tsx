@@ -16,6 +16,7 @@ import {getCurrentTrendFunction} from 'app/views/performance/trends/utils';
  * An individual row in a DiscoverQuery result
  */
 export type TableDataRow = {
+  id: string;
   [key: string]: React.ReactText;
 };
 
@@ -23,8 +24,8 @@ export type TableDataRow = {
  * A DiscoverQuery result including rows and metadata.
  */
 export type TableData = {
-  meta?: MetaType;
   data: Array<TableDataRow>;
+  meta?: MetaType;
 };
 
 type ChildrenProps = {
@@ -36,12 +37,23 @@ type ChildrenProps = {
 
 type Props = {
   api: Client;
+  /**
+   * Used as the default source for cursor values.
+   */
   location: Location;
   eventView: EventView;
   orgSlug: string;
   keyTransactions?: boolean;
   trendChangeType?: TrendChangeType;
+  /**
+   * Record limit to get.
+   */
   limit?: number;
+  /**
+   * Explicit cursor value if you aren't using `location.query.cursor` because there are
+   * multiple paginated results on the page.
+   */
+  cursor?: string;
 
   children: (props: ChildrenProps) => React.ReactNode;
 };
@@ -97,8 +109,27 @@ class DiscoverQuery extends React.Component<Props, State> {
 
     return (
       !isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload) ||
-      prevProps.limit !== this.props.limit
+      this.shouldRefetchTrendData(prevProps) ||
+      prevProps.limit !== this.props.limit ||
+      prevProps.cursor !== this.props.cursor
     );
+  };
+
+  shouldRefetchTrendData = (prevProps: Props): boolean => {
+    if (!this.props.trendChangeType) {
+      return false;
+    }
+
+    const thisAPIPayload = this.modifyTrendsPayload(
+      this.props.eventView.getEventsAPIPayload(this.props.location),
+      this.props.location
+    );
+    const otherAPIPayload = this.modifyTrendsPayload(
+      prevProps.eventView.getEventsAPIPayload(prevProps.location),
+      prevProps.location
+    );
+
+    return !isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
   };
 
   getRoute(keyTransactions, trendsType) {
@@ -117,6 +148,7 @@ class DiscoverQuery extends React.Component<Props, State> {
       orgSlug,
       location,
       limit,
+      cursor,
       keyTransactions,
       trendChangeType,
     } = this.props;
@@ -133,12 +165,15 @@ class DiscoverQuery extends React.Component<Props, State> {
       LocationQuery &
       TrendsQuery = eventView.getEventsAPIPayload(location);
 
-    this.modifyTrendsPayload(apiPayload);
+    this.modifyTrendsPayload(apiPayload, location);
 
     this.setState({isLoading: true, tableFetchID});
 
     if (limit) {
       apiPayload.per_page = limit;
+    }
+    if (cursor) {
+      apiPayload.cursor = cursor;
     }
 
     this.props.api
@@ -174,13 +209,17 @@ class DiscoverQuery extends React.Component<Props, State> {
       });
   };
 
-  modifyTrendsPayload = (apiPayload: EventQuery & LocationQuery & TrendsQuery) => {
-    const {trendChangeType, location, eventView} = this.props;
+  modifyTrendsPayload = (
+    apiPayload: EventQuery & LocationQuery & TrendsQuery,
+    location: Location
+  ) => {
+    const {trendChangeType, eventView} = this.props;
     if (trendChangeType) {
       const trendFunction = getCurrentTrendFunction(location);
       apiPayload.trendFunction = trendFunction.field;
       apiPayload.interval = eventView.interval;
     }
+    return apiPayload;
   };
 
   render() {

@@ -2,7 +2,7 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import Tag from 'app/views/settings/components/tag';
+import Tag from 'app/components/tag';
 
 describe('Tag', function() {
   it('renders', function() {

@@ -218,6 +218,13 @@ class ProcessUpdateTest(TestCase):
         )
         # TODO: Check subscription is deleted once we start doing that
 
+    def test_removed_project(self):
+        message = self.build_subscription_update(self.sub)
+        self.project.delete()
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            SubscriptionProcessor(self.sub).process_update(message)
+        self.metrics.incr.assert_called_once_with("incidents.alert_rules.ignore_deleted_project")
+
     def test_no_feature(self):
         message = self.build_subscription_update(self.sub)
         SubscriptionProcessor(self.sub).process_update(message)
@@ -417,6 +424,43 @@ class ProcessUpdateTest(TestCase):
         self.assert_trigger_counts(processor, self.trigger, 0, 0)
         self.assert_no_active_incident(rule)
         self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.RESOLVED)
+        self.assert_actions_resolved_for_incident(incident, [self.action])
+
+    def test_auto_resolve_percent_boundary(self):
+        # Verify that we resolve an alert rule automatically even if no resolve
+        # threshold is set
+        rule = self.rule
+        rule.update(resolve_threshold=None)
+        trigger = self.trigger
+        trigger.update(alert_threshold=0.5)
+        processor = self.send_update(rule, trigger.alert_threshold + 0.1, timedelta(minutes=-2))
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        incident = self.assert_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
+        self.assert_actions_fired_for_incident(incident, [self.action])
+
+        processor = self.send_update(rule, trigger.alert_threshold, timedelta(minutes=-1))
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.RESOLVED)
+        self.assert_actions_resolved_for_incident(incident, [self.action])
+
+    def test_auto_resolve_boundary(self):
+        # Verify that we resolve an alert rule automatically if the value hits the
+        # original alert trigger value
+        rule = self.rule
+        rule.update(resolve_threshold=None)
+        trigger = self.trigger
+        processor = self.send_update(rule, trigger.alert_threshold + 1, timedelta(minutes=-2))
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        incident = self.assert_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
+        self.assert_actions_fired_for_incident(incident, [self.action])
+
+        processor = self.send_update(rule, trigger.alert_threshold, timedelta(minutes=-1))
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.RESOLVED)
         self.assert_actions_resolved_for_incident(incident, [self.action])
 
     def test_auto_resolve_reversed(self):

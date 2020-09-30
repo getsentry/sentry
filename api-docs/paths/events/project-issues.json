@@ -1,0 +1,352 @@
+{
+  "get": {
+    "tags": ["Events"],
+    "description": "Return a list of issues (groups) bound to a project.  All parameters are supplied as query string parameters. \n\n A default query of ``is:unresolved`` is applied. To return results with other statuses send an new query value (i.e. ``?query=`` for all results).\n\nThe ``statsPeriod`` parameter can be used to select the timeline stats which should be present. Possible values are: ``\"\"`` (disable),``\"24h\"``, ``\"14d\"``",
+    "operationId": "List a Project's Issues",
+    "parameters": [
+      {
+        "name": "organization_slug",
+        "in": "path",
+        "description": "The slug of the organization the issues belong to.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "project_slug",
+        "in": "path",
+        "description": "The slug of the project the issues belong to.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "statsPeriod",
+        "in": "query",
+        "description": "An optional stat period (can be one of `\"24h\"`, `\"14d\"`, and `\"\"`).",
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "shortIdLookup",
+        "in": "query",
+        "description": "If this is set to true then short IDs are looked up by this function as well. This can cause the return value of the function to return an event issue of a different project which is why this is an opt-in. Set to 1 to enable.",
+        "schema": {
+          "type": "boolean"
+        }
+      },
+      {
+        "name": "query",
+        "in": "query",
+        "description": "An optional Sentry structured search query. If not provided an implied `\"is:unresolved\"` is assumed.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "$ref": "../../components/parameters/pagination-cursor.json#/PaginationCursor"
+      }
+    ],
+    "responses": {
+      "200": {
+        "description": "Success",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "../../components/schemas/issue.json#/Issue"
+              }
+            },
+            "example": [
+              {
+                "annotations": [],
+                "assignedTo": null,
+                "count": "1",
+                "culprit": "raven.scripts.runner in main",
+                "firstSeen": "2018-11-06T21:19:55Z",
+                "hasSeen": false,
+                "id": "1",
+                "isBookmarked": false,
+                "isPublic": false,
+                "isSubscribed": true,
+                "lastSeen": "2018-11-06T21:19:55Z",
+                "level": "error",
+                "logger": null,
+                "metadata": {
+                  "title": "This is an example Python exception"
+                },
+                "numComments": 0,
+                "permalink": "https://sentry.io/the-interstellar-jurisdiction/pump-station/issues/1/",
+                "project": {
+                  "id": "2",
+                  "name": "Pump Station",
+                  "slug": "pump-station"
+                },
+                "shareId": null,
+                "shortId": "PUMP-STATION-1",
+                "stats": {
+                  "24h": [
+                    [1541455200.0, 473],
+                    [1541458800.0, 914],
+                    [1541462400.0, 991],
+                    [1541466000.0, 925],
+                    [1541469600.0, 881],
+                    [1541473200.0, 182],
+                    [1541476800.0, 490],
+                    [1541480400.0, 820],
+                    [1541484000.0, 322],
+                    [1541487600.0, 836],
+                    [1541491200.0, 565],
+                    [1541494800.0, 758],
+                    [1541498400.0, 880],
+                    [1541502000.0, 677],
+                    [1541505600.0, 381],
+                    [1541509200.0, 814],
+                    [1541512800.0, 329],
+                    [1541516400.0, 446],
+                    [1541520000.0, 731],
+                    [1541523600.0, 111],
+                    [1541527200.0, 926],
+                    [1541530800.0, 772],
+                    [1541534400.0, 400],
+                    [1541538000.0, 943]
+                  ]
+                },
+                "status": "unresolved",
+                "statusDetails": {},
+                "subscriptionDetails": null,
+                "title": "This is an example Python exception",
+                "type": "default",
+                "userCount": 0
+              }
+            ]
+          }
+        }
+      },
+      "403": {
+        "description": "Forbidden"
+      }
+    },
+    "security": [
+      {
+        "auth_token": ["project:read"]
+      }
+    ]
+  },
+  "put": {
+    "tags": ["Events"],
+    "description": "Bulk mutate various attributes on issues.  The list of issues to modify is given through the `id` query parameter.  It is repeated for each issue that should be modified.\n\n- For non-status updates, the `id` query parameter is required.\n- For status updates, the `id` query parameter may be omitted\nfor a batch \"update all\" query.\n- An optional `status` query parameter may be used to restrict\nmutations to only events with the given status.\n\nThe following attributes can be modified and are supplied as JSON object in the body:\n\nIf any ids are out of scope this operation will succeed without any data mutation.",
+    "operationId": "Bulk Mutate a List of Issues",
+    "parameters": [
+      {
+        "name": "organization_slug",
+        "in": "path",
+        "description": "The slug of the organization the issues belong to.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "project_slug",
+        "in": "path",
+        "description": "The slug of the project the issues belong to.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "id",
+        "in": "query",
+        "description": "A list of IDs of the issues to be mutated. This parameter shall be repeated for each issue. It is optional only if a status is mutated in which case an implicit update all is assumed.",
+        "required": false,
+        "schema": {
+          "type": "integer"
+        }
+      },
+      {
+        "name": "status",
+        "in": "query",
+        "description": "Optionally limits the query to issues of the specified status. Valid values are `\"resolved\"`, `\"unresolved\"` and `\"ignored\"`.",
+        "required": false,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "requestBody": {
+      "content": {
+        "application/json": {
+          "schema": {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "string",
+                "description": "The new status for the issues. Valid values are `\"resolved\"`, `\"resolvedInNextRelease\"`, `\"unresolved\"`, and `\"ignored\"`.",
+                "example": "unresolved"
+              },
+              "statusDetails": {
+                "type": "object",
+                "properties": {
+                  "inRelease": {
+                    "type": "string"
+                  },
+                  "inNextRelease": {
+                    "type": "boolean"
+                  },
+                  "inCommit": {
+                    "type": "string"
+                  },
+                  "ignoreDuration": {
+                    "type": "integer"
+                  },
+                  "ignoreCount": {
+                    "type": "integer"
+                  },
+                  "ignoreWindow": {
+                    "type": "integer"
+                  },
+                  "ignoreUserCount": {
+                    "type": "integer"
+                  },
+                  "ignoreUserWindow": {
+                    "type": "integer"
+                  }
+                },
+                "description": "Additional details about the resolution. Valid values are `\"inRelease\"`, `\"inNextRelease\"`, `\"inCommit\"`, `\"ignoreDuration\"`, `\"ignoreCount\"`, `\"ignoreWindow\"`, `\"ignoreUserCount\"`, and `\"ignoreUserWindow\"`."
+              },
+              "ignoreDuration": {
+                "type": "integer",
+                "description": "The number of minutes to ignore this issue."
+              },
+              "isPublic": {
+                "type": "boolean",
+                "description": "Sets the issue to public or private.",
+                "example": false
+              },
+              "merge": {
+                "type": "boolean",
+                "description": "Allows to merge or unmerge different issues."
+              },
+              "assignedTo": {
+                "type": "string",
+                "description": "The actor id (or username) of the user or team that should be assigned to this issue."
+              },
+              "hasSeen": {
+                "type": "boolean",
+                "description": "In case this API call is invoked with a user context this allows changing of the flag that indicates if the user has seen the event."
+              },
+              "isBookmarked": {
+                "type": "boolean",
+                "description": "In case this API call is invoked with a user context this allows changing of the bookmark flag."
+              }
+            }
+          },
+          "example": {
+            "isPublic": false,
+            "status": "unresolved"
+          }
+        }
+      },
+      "required": true
+    },
+    "responses": {
+      "200": {
+        "description": "Success",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "required": ["isPublic", "status", "statusDetails"],
+              "properties": {
+                "isPublic": {
+                  "type": "boolean"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": ["resolved", "unresolved", "ignored"]
+                },
+                "statusDetails": {
+                  "type": "object"
+                }
+              }
+            },
+            "example": {
+              "isPublic": false,
+              "status": "unresolved",
+              "statusDetails": {}
+            }
+          }
+        }
+      },
+      "400": {
+        "description": "Bad Input"
+      },
+      "403": {
+        "description": "Forbidden"
+      },
+      "404": {
+        "description": "The requested resource does not exist"
+      }
+    },
+    "security": [
+      {
+        "auth_token": ["project:write"]
+      }
+    ]
+  },
+  "delete": {
+    "tags": ["Events"],
+    "description": "Permanently remove the given issues. The list of issues to modify is given through the `id` query parameter.  It is repeated for each issue that should be removed.\n\nOnly queries by 'id' are accepted.\n\nIf any ids are out of scope this operation will succeed without any data mutation.",
+    "operationId": "Bulk Remove a List of Issues",
+    "parameters": [
+      {
+        "name": "organization_slug",
+        "in": "path",
+        "description": "The slug of the organization the issues belong to.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "project_slug",
+        "in": "path",
+        "description": "The slug of the project the issues belong to.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "id",
+        "in": "query",
+        "description": "A list of IDs of the issues to be removed. This parameter shall be repeated for each issue.",
+        "schema": {
+          "type": "integer"
+        }
+      }
+    ],
+    "responses": {
+      "204": {
+        "description": "Success"
+      },
+      "403": {
+        "description": "Forbidden"
+      },
+      "404": {
+        "description": "Project not found"
+      }
+    },
+    "security": [
+      {
+        "auth_token": ["project:admin"]
+      }
+    ]
+  }
+}

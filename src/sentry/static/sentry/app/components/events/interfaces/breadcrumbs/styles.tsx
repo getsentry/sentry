@@ -1,54 +1,90 @@
 import styled from '@emotion/styled';
 import {css} from '@emotion/core';
 
-import {Color} from 'app/utils/theme';
+import theme, {Color} from 'app/utils/theme';
 import space from 'app/styles/space';
 
-// TODO(style): the color #fffcfb and  #e7c0bc are not yet in theme and no similar theme's color was found.
-const BreadCrumb = styled('li')<{hasError?: boolean}>`
-  font-size: ${p => p.theme.fontSizeMedium};
-  position: relative;
-  padding: ${space(1)} ${space(3)} ${space(0.75)} ${space(3)} !important;
-  display: grid;
-  grid-template-columns: 26px 1fr 50px;
-  grid-gap: ${space(1.5)};
-  :before {
-    content: '';
-    display: block;
-    width: 2px;
-    top: 0;
-    bottom: 0;
-    left: 32px;
-    background: ${p => p.theme.borderLight};
-    position: absolute;
-  }
-  border-bottom: 1px solid ${p => p.theme.borderLight};
-  :last-child:before {
-    bottom: calc(100% - ${space(1)});
-  }
-  ${p =>
-    p.hasError &&
-    css`
-      background: #fffcfb;
-      border: 1px solid #e7c0bc;
-      margin: -1px;
-    `}
-`;
-
-const BreadCrumbIconWrapper = styled('div')<{color?: Color; borderColor?: Color}>`
+const IconWrapper = styled('div', {
+  shouldForwardProp: prop => prop !== 'color',
+})<{
+  color?: Color | React.CSSProperties['color'];
+  size?: number;
+}>`
   display: flex;
   align-items: center;
   justify-content: center;
   width: 26px;
   height: 26px;
   background: ${p => p.theme.white};
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  box-shadow: ${p => p.theme.dropShadowLightest};
   border-radius: 32px;
-  z-index: 1;
+  z-index: ${p => p.theme.zIndex.breadcrumbs.iconWrapper};
   position: relative;
-  color: ${p => (p.color ? p.theme[p.color] : 'inherit')};
-  border-color: ${p => (p.borderColor ? p.theme[p.borderColor] : 'currentColor')};
-  border: 1px solid ${p => (p.color ? p.theme[p.color] : p.theme.gray500)};
+  border: 1px solid ${p => p.theme.borderDark};
+  color: ${p => p.theme.gray800};
+  ${p =>
+    p.color &&
+    `
+      color: ${p.theme[p.color] || p.color};
+      border-color: ${p.theme[p.color] || p.color};
+    `}
 `;
 
-export {BreadCrumb, BreadCrumbIconWrapper};
+const GridCell = styled('div')<{
+  hasError?: boolean;
+  isLastItem?: boolean;
+}>`
+  height: 100%;
+  position: relative;
+  white-space: pre-wrap;
+  word-break: break-all;
+  border-bottom: 1px solid ${p => p.theme.borderLight};
+  padding: ${space(1)};
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    padding: ${space(1)} ${space(2)};
+  }
+  ${p =>
+    p.hasError &&
+    `
+      background: #fffcfb;
+      border-bottom: 1px solid ${p.theme.red400};
+      :after {
+        content: '';
+        position: absolute;
+        top: -1px;
+        left: 0;
+        height: 1px;
+        width: 100%;
+        background: ${p.theme.red400};
+      }
+    `}
+  ${p => p.isLastItem && `border-bottom: none`};
+`;
+
+const GridCellLeft = styled(GridCell)`
+  align-items: center;
+  line-height: 1;
+  padding: ${space(1)} ${space(0.5)} ${space(1)} ${space(1)};
+  :before {
+    content: '';
+    display: block;
+    width: 1px;
+    top: 0;
+    bottom: 0;
+    left: 21px;
+    background: ${p => (p.hasError ? p.theme.red400 : p.theme.gray300)};
+    position: absolute;
+    @media (min-width: ${p => p.theme.breakpoints[0]}) {
+      left: 29px;
+    }
+  }
+`;
+
+const aroundContentStyle = css`
+  border: 1px solid ${theme.borderDark};
+  border-radius: ${theme.borderRadius};
+  box-shadow: ${theme.dropShadowLightest};
+  z-index: 1;
+`;
+
+export {GridCell, GridCellLeft, IconWrapper, aroundContentStyle};

@@ -2,7 +2,9 @@
 
 from __future__ import absolute_import
 
-from sentry.grouping.fingerprinting import FingerprintingRules
+import pytest
+
+from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
 
 from tests.sentry.grouping import with_fingerprint_input
 
@@ -13,6 +15,76 @@ def test_basic_parsing(insta_snapshot):
 # This is a config
 type:DatabaseUnavailable                        -> DatabaseUnavailable
 function:assertion_failed module:foo            -> AssertionFailed, foo
+app:true                                        -> aha
+app:true                                        -> {{ default }}
+!path:**/foo/**                                 -> everything
+!"path":**/foo/**                               -> everything
+logger:sentry.*                                 -> logger-, {{ logger }}
+message:"\\x\\xff"                              -> stuff
+"""
+    )
+    assert rules._to_config_structure() == {
+        "rules": [
+            {"matchers": [["type", "DatabaseUnavailable"]], "fingerprint": ["DatabaseUnavailable"]},
+            {
+                "matchers": [["function", "assertion_failed"], ["module", "foo"]],
+                "fingerprint": ["AssertionFailed", "foo"],
+            },
+            {"matchers": [["app", "true"]], "fingerprint": ["aha"]},
+            {"matchers": [["app", "true"]], "fingerprint": ["{{ default }}"]},
+            {"matchers": [["!path", "**/foo/**"]], "fingerprint": ["everything"]},
+            {"matchers": [["!path", "**/foo/**"]], "fingerprint": ["everything"]},
+            {"matchers": [["logger", "sentry.*"]], "fingerprint": ["logger-", "{{ logger }}"]},
+            {"matchers": [["message", u"\\x\xff"]], "fingerprint": ["stuff"]},
+        ],
+        "version": 1,
+    }
+
+    assert (
+        FingerprintingRules._from_config_structure(
+            rules._to_config_structure()
+        )._to_config_structure()
+        == rules._to_config_structure()
+    )
+
+
+def test_parsing_errors():
+    with pytest.raises(InvalidFingerprintingConfig):
+        FingerprintingRules.from_config_string("invalid.message:foo -> bar")
+
+
+def test_automatic_argument_splitting():
+    rules = FingerprintingRules.from_config_string(
+        """
+logger:test -> logger-{{ logger }}
+logger:test -> logger-, {{ logger }}
+logger:test2 -> logger-{{ logger }}-{{ level }}
+logger:test2 -> logger-, {{ logger }}, -, {{ level }}
+"""
+    )
+    assert rules._to_config_structure() == {
+        "rules": [
+            {"matchers": [["logger", "test"]], "fingerprint": ["logger-", "{{ logger }}"]},
+            {"matchers": [["logger", "test"]], "fingerprint": ["logger-", "{{ logger }}"]},
+            {
+                "matchers": [["logger", "test2"]],
+                "fingerprint": ["logger-", "{{ logger }}", "-", "{{ level }}"],
+            },
+            {
+                "matchers": [["logger", "test2"]],
+                "fingerprint": ["logger-", "{{ logger }}", "-", "{{ level }}"],
+            },
+        ],
+        "version": 1,
+    }
+
+
+def test_discover_field_parsing(insta_snapshot):
+    rules = FingerprintingRules.from_config_string(
+        """
+# This is a config
+error.type:DatabaseUnavailable                        -> DatabaseUnavailable
+stack.function:assertion_failed stack.module:foo      -> AssertionFailed, foo
 app:true                                        -> aha
 app:true                                        -> {{ default }}
 """

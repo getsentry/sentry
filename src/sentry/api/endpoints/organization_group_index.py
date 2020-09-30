@@ -5,7 +5,7 @@ import six
 
 from django.conf import settings
 
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import ParseError, PermissionDenied
 from rest_framework.response import Response
 
 from sentry import features
@@ -14,6 +14,7 @@ from sentry.api.helpers.group_index import (
     build_query_params_from_request,
     delete_groups,
     get_by_short_id,
+    rate_limit_endpoint,
     update_groups,
     ValidationError,
 )
@@ -35,6 +36,17 @@ search = EventsDatasetSnubaSearchBackend(**settings.SENTRY_SEARCH_OPTIONS)
 
 class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
     permission_classes = (OrganizationEventPermission,)
+    skip_snuba_fields = {
+        "query",
+        "status",
+        "bookmarked_by",
+        "assigned_to",
+        "unassigned",
+        "subscribed_by",
+        "active_at",
+        "first_release",
+        "first_seen",
+    }
 
     def _search(self, request, organization, projects, environments, extra_query_kwargs=None):
         query_kwargs = build_query_params_from_request(
@@ -48,6 +60,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         result = search.query(**query_kwargs)
         return result, query_kwargs
 
+    @rate_limit_endpoint(limit=10, window=1)
     def get(self, request, organization):
         """
         List an Organization's Issues
@@ -90,14 +103,35 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         :auth: required
         """
         stats_period = request.GET.get("groupStatsPeriod")
+        try:
+            start, end = get_date_range_from_params(request.GET)
+        except InvalidParams as e:
+            raise ParseError(detail=six.text_type(e))
+
+        has_dynamic_issue_counts = features.has(
+            "organizations:dynamic-issue-counts", organization, actor=request.user
+        )
+
         if stats_period not in (None, "", "24h", "14d"):
             return Response({"detail": ERR_INVALID_STATS_PERIOD}, status=400)
         elif stats_period is None:
-            # default
-            stats_period = "24h"
+            if has_dynamic_issue_counts and start and end:
+                # custom date range
+                stats_period = "auto"
+            else:
+                # default if no dynamic-issue-counts
+                stats_period = "24h"
+
         elif stats_period == "":
             # disable stats
             stats_period = None
+
+        if stats_period == "auto":
+            stats_period_start = start
+            stats_period_end = end
+        else:
+            stats_period_start = None
+            stats_period_end = None
 
         environments = self.get_environments(request, organization)
 
@@ -105,6 +139,8 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
             StreamGroupSerializerSnuba,
             environment_ids=[env.id for env in environments],
             stats_period=stats_period,
+            stats_period_start=stats_period_start,
+            stats_period_end=stats_period_end,
         )
 
         projects = self.get_projects(request, organization)
@@ -166,11 +202,6 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
             return Response(serialize(groups, request.user, serializer()))
 
         try:
-            start, end = get_date_range_from_params(request.GET)
-        except InvalidParams as e:
-            return Response({"detail": six.text_type(e)}, status=400)
-
-        try:
             cursor_result, query_kwargs = self._search(
                 request,
                 organization,
@@ -183,7 +214,21 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
 
         results = list(cursor_result)
 
-        context = serialize(results, request.user, serializer())
+        if has_dynamic_issue_counts:
+            context = serialize(
+                results,
+                request.user,
+                serializer(
+                    start=start,
+                    end=end,
+                    search_filters=query_kwargs["search_filters"]
+                    if "search_filters" in query_kwargs
+                    else None,
+                    has_dynamic_issue_counts=True,
+                ),
+            )
+        else:
+            context = serialize(results, request.user, serializer())
 
         # HACK: remove auto resolved entries
         # TODO: We should try to integrate this into the search backend, since
@@ -201,9 +246,9 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         self.add_cursor_headers(request, response, cursor_result)
 
         # TODO(jess): add metrics that are similar to project endpoint here
-
         return response
 
+    @rate_limit_endpoint(limit=10, window=1)
     def put(self, request, organization):
         """
         Bulk Mutate a List of Issues
@@ -265,7 +310,6 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                                      the bookmark flag.
         :auth: required
         """
-
         projects = self.get_projects(request, organization)
         if len(projects) > 1 and not features.has(
             "organizations:global-views", organization, actor=request.user
@@ -283,6 +327,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         )
         return update_groups(request, projects, organization.id, search_fn)
 
+    @rate_limit_endpoint(limit=10, window=1)
     def delete(self, request, organization):
         """
         Bulk Remove a List of Issues

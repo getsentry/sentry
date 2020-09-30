@@ -82,7 +82,7 @@ SENTRY_APP_SLUG_MAX_LENGTH = 64
 
 # Maximum number of results we are willing to fetch when calculating rollup
 # Clients should adapt the interval width based on their display width.
-MAX_ROLLUP_POINTS = 4500
+MAX_ROLLUP_POINTS = 10000
 
 
 # Team slugs which may not be used. Generally these are top level URL patterns
@@ -151,6 +151,8 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "careers",
         "_experiment",
         "sentry-apps",
+        "resources",
+        "integration-platform",
     )
 )
 
@@ -230,6 +232,19 @@ SENTRY_RULES = (
     "sentry.rules.filters.age_comparison.AgeComparisonFilter",
     "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter",
     "sentry.rules.filters.assigned_to.AssignedToFilter",
+    "sentry.rules.filters.latest_release.LatestReleaseFilter",
+    # The following filters are duplicates of their respective conditions and are conditionally shown if the user has issue alert-filters
+    "sentry.rules.filters.event_attribute.EventAttributeFilter",
+    "sentry.rules.filters.tagged_event.TaggedEventFilter",
+    "sentry.rules.filters.level.LevelFilter",
+)
+
+MIGRATED_CONDITIONS = frozenset(
+    [
+        "sentry.rules.conditions.tagged_event.TaggedEventCondition",
+        "sentry.rules.conditions.event_attribute.EventAttributeCondition",
+        "sentry.rules.conditions.level.LevelCondition",
+    ]
 )
 
 # methods as defined by http://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html + PATCH
@@ -393,10 +408,10 @@ class ObjectStatus(object):
     @classmethod
     def as_choices(cls):
         return (
-            (cls.ACTIVE, "active"),
-            (cls.DISABLED, "disabled"),
-            (cls.PENDING_DELETION, "pending_deletion"),
-            (cls.DELETION_IN_PROGRESS, "deletion_in_progress"),
+            (cls.ACTIVE, u"active"),
+            (cls.DISABLED, u"disabled"),
+            (cls.PENDING_DELETION, u"pending_deletion"),
+            (cls.DELETION_IN_PROGRESS, u"deletion_in_progress"),
         )
 
 
@@ -411,9 +426,9 @@ class SentryAppStatus(object):
     @classmethod
     def as_choices(cls):
         return (
-            (cls.UNPUBLISHED, cls.UNPUBLISHED_STR),
-            (cls.PUBLISHED, cls.PUBLISHED_STR),
-            (cls.INTERNAL, cls.INTERNAL_STR),
+            (cls.UNPUBLISHED, six.text_type(cls.UNPUBLISHED_STR)),
+            (cls.PUBLISHED, six.text_type(cls.PUBLISHED_STR)),
+            (cls.INTERNAL, six.text_type(cls.INTERNAL_STR)),
         )
 
     @classmethod
@@ -434,7 +449,10 @@ class SentryAppInstallationStatus(object):
 
     @classmethod
     def as_choices(cls):
-        return ((cls.PENDING, cls.PENDING_STR), (cls.INSTALLED, cls.INSTALLED_STR))
+        return (
+            (cls.PENDING, six.text_type(cls.PENDING_STR)),
+            (cls.INSTALLED, six.text_type(cls.INSTALLED_STR)),
+        )
 
     @classmethod
     def as_str(cls, status):
