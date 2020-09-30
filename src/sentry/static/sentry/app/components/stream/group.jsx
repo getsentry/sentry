@@ -145,11 +145,10 @@ const StreamGroup = createReactClass({
     const {organization, query, selection} = this.props;
     const {data} = this.state;
 
-    // TODO: @taylangocmen when there is no discover query open events page
+    // when there is no discover feature open events page
+    const hasDiscoverQuery = organization.features.includes('discover-basic');
 
-    const {period, start, end} = selection.datetime || {};
-
-    const discoveryQueryTerms = [];
+    const queryTerms = [];
 
     if (filtered && query) {
       const queryObj = queryToObj(query);
@@ -158,32 +157,47 @@ const StreamGroup = createReactClass({
           const queryVal = queryObj[queryTag].includes(' ')
             ? `"${queryObj[queryTag]}"`
             : queryObj[queryTag];
-          discoveryQueryTerms.push(`${queryTag}:${queryVal}`);
+          queryTerms.push(`${queryTag}:${queryVal}`);
         }
+
+      if (!hasDiscoverQuery && queryObj.__text) queryTerms.push(queryObj.__text);
     }
 
-    const additionalQuery =
-      (discoveryQueryTerms.length ? ' ' : '') + discoveryQueryTerms.join(' ');
+    const commonQuery = {projects: [data.project.id]};
 
-    const discoverQuery = {
-      id: undefined,
-      name: data.title || data.type,
-      fields: ['title', 'release', 'environment', 'user', 'timestamp'],
-      orderby: '-timestamp',
-      query: `issue.id:${data.id}${additionalQuery}`,
-      projects: [data.project.id],
-      version: 2,
-    };
+    const searchQuery = (queryTerms.length ? ' ' : '') + queryTerms.join(' ');
 
-    if (!!start && !!end) {
-      discoverQuery.start = start;
-      discoverQuery.end = end;
+    if (hasDiscoverQuery) {
+      const {period, start, end} = selection.datetime || {};
+
+      const discoverQuery = {
+        ...commonQuery,
+        id: undefined,
+        name: data.title || data.type,
+        fields: ['title', 'release', 'environment', 'user', 'timestamp'],
+        orderby: '-timestamp',
+        query: `issue.id:${data.id}${searchQuery}`,
+        version: 2,
+      };
+
+      if (!!start && !!end) {
+        discoverQuery.start = start;
+        discoverQuery.end = end;
+      } else {
+        discoverQuery.range = period || DEFAULT_STATS_PERIOD;
+      }
+
+      const discoverView = EventView.fromSavedQuery(discoverQuery);
+      return discoverView.getResultsViewUrlTarget(organization.slug);
     } else {
-      discoverQuery.range = period || DEFAULT_STATS_PERIOD;
+      return {
+        pathname: `/organizations/${organization.slug}/issues/${data.id}/events/`,
+        query: {
+          ...commonQuery,
+          query: searchQuery,
+        },
+      };
     }
-
-    const discoverView = EventView.fromSavedQuery(discoverQuery);
-    return discoverView.getResultsViewUrlTarget(organization.slug);
   },
 
   render() {
