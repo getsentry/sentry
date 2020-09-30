@@ -385,7 +385,7 @@ const SecondaryCount = styled(({value, ...p}) => <Count {...p} value={value} />)
 const StyledMenuItem = styled(({to, children, ...p}) => (
   <MenuItem noAnchor>
     {to ? (
-      <Link to={to}>
+      <Link to={to} target="_blank">
         <div {...p}>{children}</div>
       </Link>
     ) : (
