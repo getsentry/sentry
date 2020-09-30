@@ -1,3 +1,4 @@
+/* global exports */
 Object.defineProperty(exports, '__esModule', {value: true});
 const tslib_1 = require('tslib');
 const hub_1 = require('@sentry/hub');
@@ -30,8 +31,8 @@ function captureException(exception) {
   let syntheticException;
   try {
     throw new Error('Sentry syntheticException');
-  } catch (exception) {
-    syntheticException = exception;
+  } catch (error) {
+    syntheticException = error;
   }
   return callOnHub('captureException', exception, {
     originalException: exception,
