@@ -6,6 +6,7 @@ import {Organization} from 'app/types';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
 import {getAggregateAlias} from 'app/utils/discover/fields';
+import {decodeScalar} from 'app/utils/queryString';
 import theme from 'app/utils/theme';
 
 import {NUM_BUCKETS, PERCENTILE, WEB_VITAL_DETAILS} from './constants';
@@ -59,6 +60,8 @@ class TransactionVitals extends React.Component<Props> {
                 eventView={eventView}
                 numBuckets={NUM_BUCKETS}
                 measurements={vitals.map(vital => WEB_VITAL_DETAILS[vital].slug)}
+                min={decodeScalar(location.query.startMeasurements)}
+                max={decodeScalar(location.query.endMeasurements)}
               >
                 {results => {
                   return (
@@ -74,6 +77,7 @@ class TransactionVitals extends React.Component<Props> {
                         return (
                           <VitalCard
                             key={vital}
+                            location={location}
                             isLoading={summaryResults.isLoading || results.isLoading}
                             error={error}
                             vital={WEB_VITAL_DETAILS[vital]}

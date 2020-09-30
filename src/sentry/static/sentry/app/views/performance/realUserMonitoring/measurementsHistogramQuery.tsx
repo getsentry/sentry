@@ -30,6 +30,8 @@ type Props = {
   measurements: string[];
   numBuckets: number;
   children: (props: ChildrenProps) => React.ReactNode;
+  min?: string;
+  max?: string;
 };
 
 type State = {
@@ -56,7 +58,10 @@ class MeasurementsHistogramQuery extends React.Component<Props, State> {
     const eventViewValidation =
       !prevProps.eventView.isValid() && this.props.eventView.isValid();
 
-    if (refetchCondition || eventViewValidation) {
+    const minMaxChanged =
+      prevProps.min !== this.props.min || prevProps.max !== this.props.max;
+
+    if (refetchCondition || eventViewValidation || minMaxChanged) {
       this.fetchData();
     }
   }
@@ -69,7 +74,15 @@ class MeasurementsHistogramQuery extends React.Component<Props, State> {
   }
 
   fetchData = () => {
-    const {eventView, location, organization, measurements, numBuckets} = this.props;
+    const {
+      eventView,
+      location,
+      organization,
+      measurements,
+      numBuckets,
+      min,
+      max,
+    } = this.props;
 
     if (!eventView.isValid()) {
       return;
@@ -78,15 +91,18 @@ class MeasurementsHistogramQuery extends React.Component<Props, State> {
     const url = `/organizations/${organization.slug}/events-measurements-histogram/`;
     const fetchId = Symbol('fetchId');
 
-    const baseApiPayload = omit(eventView.getEventsAPIPayload(location), [
+    const baseApiPayload = {
+      measurement: measurements,
+      num_buckets: numBuckets,
+      min,
+      max,
+    };
+    const additionalApiPayload = omit(eventView.getEventsAPIPayload(location), [
       'field',
       'sort',
       'per_page',
     ]);
-    const apiPayload = Object.assign(
-      {measurement: measurements, num_buckets: numBuckets},
-      baseApiPayload
-    );
+    const apiPayload = Object.assign(baseApiPayload, additionalApiPayload);
 
     this.setState({isLoading: true, fetchId});
 

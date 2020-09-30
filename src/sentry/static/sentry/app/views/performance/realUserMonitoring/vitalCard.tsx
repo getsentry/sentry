@@ -1,8 +1,10 @@
 import React from 'react';
+import {Location} from 'history';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
 import BarChart from 'app/components/charts/barChart';
+import BarChartZoom from 'app/components/charts/barChartZoom';
 import MarkArea from 'app/components/charts/components/markArea';
 import MarkLine from 'app/components/charts/components/markLine';
 import MarkPoint from 'app/components/charts/components/markPoint';
@@ -13,10 +15,12 @@ import space from 'app/styles/space';
 import {formatFloat, getDuration} from 'app/utils/formatters';
 import theme from 'app/utils/theme';
 
+import {NUM_BUCKETS} from './constants';
 import {Card, CardSummary, CardSectionHeading, StatNumber, Description} from './styles';
 import {HistogramData, Vital, Rectangle, Point} from './types';
 
 type Props = {
+  location: Location;
   isLoading: boolean;
   error: boolean;
   vital: Vital;
@@ -162,8 +166,10 @@ class VitalCard extends React.Component<Props, State> {
     }
   };
 
+  handleDataZoomCancelled = () => {};
+
   renderHistogram() {
-    const {colors} = this.props;
+    const {location, colors} = this.props;
 
     const series = this.getTransformedData();
 
@@ -185,14 +191,27 @@ class VitalCard extends React.Component<Props, State> {
     const yAxis = {type: 'value', max};
 
     return (
-      <BarChart
-        series={[series]}
-        xAxis={xAxis}
-        yAxis={yAxis}
-        colors={colors}
-        onFinished={this.handleFinished}
-        grid={{left: space(3), right: space(3), top: space(3), bottom: space(1.5)}}
-      />
+      <BarChartZoom
+        minZoomWidth={NUM_BUCKETS}
+        location={location}
+        paramStart="startMeasurements"
+        paramEnd="endMeasurements"
+        xAxisIndex={[0]}
+        buckets={this.computeBuckets()}
+        onDataZoomCancelled={this.handleDataZoomCancelled}
+      >
+        {zoomRenderProps => (
+          <BarChart
+            series={[series]}
+            xAxis={xAxis}
+            yAxis={yAxis}
+            colors={colors}
+            onFinished={this.handleFinished}
+            grid={{left: space(3), right: space(3), top: space(3), bottom: space(1.5)}}
+            {...zoomRenderProps}
+          />
+        )}
+      </BarChartZoom>
     );
   }
 
@@ -202,6 +221,19 @@ class VitalCard extends React.Component<Props, State> {
     // buckets to get the width. The value of each histogram function indicates
     // the beginning of the bucket.
     return chartData.length > 2 ? chartData[1].histogram - chartData[0].histogram : 0;
+  }
+
+  computeBuckets() {
+    const {chartData} = this.props;
+    const bucketWidth = this.bucketWidth();
+
+    return chartData.map(item => {
+      const bucket = item.histogram;
+      return {
+        start: bucket,
+        end: bucket + bucketWidth,
+      };
+    });
   }
 
   getTransformedData() {
