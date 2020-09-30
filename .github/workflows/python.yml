@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - master
+      - releases/**
   pull_request:
     paths:
       # Matches all python files regardless of directory depth.
