@@ -57,7 +57,7 @@ def backfill_eventstream(apps, schema_editor):
             # missing. This adds it back
             if not event.data.data.get("timestamp"):
                 # Python 2.7 way to convert datetime to timestamp.
-                timestamp = ((e.datetime.replace(tzinfo=None) - e.datetime.utcoffset()) - datetime(1970, 1, 1)).total_seconds()
+                timestamp = ((event.datetime.replace(tzinfo=None) - event.datetime.utcoffset()) - datetime(1970, 1, 1)).total_seconds()
                 event.data.data['timestamp'] = timestamp
         eventstore.bind_nodes(_events, "data")
 
