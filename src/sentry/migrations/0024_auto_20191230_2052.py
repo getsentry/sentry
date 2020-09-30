@@ -53,18 +53,12 @@ def backfill_eventstream(apps, schema_editor):
         for event in _events:
             event.project = projects.get(event.project_id)
             event.group = groups.get(event.group_id)
-        eventstore.bind_nodes(_events, "data")
-
-    def _attach_timestamp(_events):
-        """
-        When migrating old data from Sentry 9.0.0 to 9.1.2 to 10 in rapid succession, the event timestamp may be missing.
-        This function exists to attach the timestamp if its missing
-        """
-        for event in _events:
+            #When migrating old data from Sentry 9.0.0 to 9.1.2 to 10 in rapid succession, the event timestamp may be
+            # missing. This adds it back
             if not event.data.data.get("timestamp"):
                 # Python 2.7 way to convert datetime to timestamp.
                 timestamp = ((e.datetime.replace(tzinfo=None) - e.datetime.utcoffset()) - datetime(1970, 1, 1)).total_seconds()
-                e.data.data['timestamp'] = timestamp
+                event.data.data['timestamp'] = timestamp
         eventstore.bind_nodes(_events, "data")
 
     if skip_backfill:
@@ -81,7 +75,7 @@ def backfill_eventstream(apps, schema_editor):
     print("Events to process: {}\n".format(count))
 
     processed = 0
-    for e in RangeQuerySetWrapper(events, step=100, callbacks=(_attach_related, _attach_timestamp,)):
+    for e in RangeQuerySetWrapper(events, step=100, callbacks=(_attach_related,)):
         event = NewEvent(
             project_id=e.project_id, event_id=e.event_id, group_id=e.group_id, data=e.data.data
         )
