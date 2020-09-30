@@ -93,9 +93,10 @@ class GroupSerializerBase(Serializer):
     def _get_group_snuba_stats(self, item_list, seen_stats):
         filter_keys = {}
 
-        # Try to figure out form the seen stats what a reasonable time frame is
-        # to look into stats.  We try to pick 1 day before the earliest last
-        # seen, but at least 14 days but never more than 90 days.
+        # Try to figure out what is a reasonable time frame to look into stats,
+        # based on a given "seen stats".  We try to pick a day prior to the earliest last seen,
+        # but it has to be at least 14 days, and not more than 90 days ago.
+        # Fallback to the 30 days ago if we are not able to calculate the value.
         last_seen = None
         for item in seen_stats.values():
             if last_seen is None or last_seen > item["last_seen"]:
