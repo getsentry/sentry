@@ -6,15 +6,15 @@ import {ListItem} from 'app/components/list';
 
 type Props = {
   title: React.ReactNode;
-  content: React.ReactElement;
+  children: React.ReactElement;
   subtitle?: React.ReactNode;
 };
 
-const Item = ({title, subtitle, content}: Props) => (
+const Item = ({title, subtitle, children}: Props) => (
   <StyledListItem>
     {title}
     {subtitle && <small>{subtitle}</small>}
-    {content}
+    {children}
   </StyledListItem>
 );
 

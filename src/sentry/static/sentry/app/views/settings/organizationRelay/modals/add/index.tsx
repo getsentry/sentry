@@ -36,8 +36,9 @@ class Add extends ModalManager {
             ),
           })}
           subtitle={t('Within your terminal.')}
-          content={<Terminal command="./relay config init" />}
-        />
+        >
+          <Terminal command="./relay config init" />
+        </Item>
         <Item
           title={tct(
             'Go to the file [jsonFile: credentials.json] to find the public key and enter it below.',
@@ -47,8 +48,9 @@ class Add extends ModalManager {
               ),
             }
           )}
-          content={super.getForm()}
-        />
+        >
+          {super.getForm()}
+        </Item>
       </StyledOrderedList>
     );
   }
