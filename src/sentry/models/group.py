@@ -252,13 +252,18 @@ class Group(Model):
     __core__ = False
 
     project = FlexibleForeignKey("sentry.Project")
-    logger = models.CharField(max_length=64, blank=True, default=DEFAULT_LOGGER_NAME, db_index=True)
+    logger = models.CharField(
+        max_length=64, blank=True, default=six.text_type(DEFAULT_LOGGER_NAME), db_index=True
+    )
     level = BoundedPositiveIntegerField(
-        choices=list(LOG_LEVELS.items()), default=logging.ERROR, blank=True, db_index=True
+        choices=[(key, six.text_type(val)) for key, val in sorted(LOG_LEVELS.items())],
+        default=logging.ERROR,
+        blank=True,
+        db_index=True,
     )
     message = models.TextField()
     culprit = models.CharField(
-        max_length=MAX_CULPRIT_LENGTH, blank=True, null=True, db_column="view"
+        max_length=MAX_CULPRIT_LENGTH, blank=True, null=True, db_column=u"view"
     )
     num_comments = BoundedPositiveIntegerField(default=0, null=True)
     platform = models.CharField(max_length=64, null=True)
@@ -474,7 +479,7 @@ class Group(Model):
 
     def count_users_seen(self):
         return tagstore.get_groups_user_counts(
-            [self.project_id], [self.id], environment_ids=None, start=self.first_seen,
+            [self.project_id], [self.id], environment_ids=None, start=self.first_seen
         )[self.id]
 
     @classmethod
