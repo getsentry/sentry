@@ -125,8 +125,8 @@ class RouteError extends React.Component<Props> {
             })}
           </li>
           <li>
-            {tct(`If all else fails, [link:create an issue] with more details.`, {
-              link: <a href="http://github.com/getsentry/sentry/issues" />,
+            {tct(`If all else fails, [link:contact us] with more details.`, {
+              link: <a href="https://github.com/getsentry/sentry/issues/new/choose" />,
             })}
           </li>
         </ul>
