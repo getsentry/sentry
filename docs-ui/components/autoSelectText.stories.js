@@ -8,9 +8,7 @@ export default {
 };
 
 export const Default = withInfo('Select text on click')(() => (
-  <div>
-    <AutoSelectText>Click to highlight text</AutoSelectText>
-  </div>
+  <AutoSelectText>Click to highlight text</AutoSelectText>
 ));
 
 Default.story = {
