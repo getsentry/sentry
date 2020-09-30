@@ -6,10 +6,10 @@ import EventOrGroupExtraDetails from 'app/components/eventOrGroupExtraDetails';
 
 import {initializeOrg} from '../../sentry-test/initializeOrg';
 
-describe('EventOrGroupExtraDetails', function() {
+describe('EventOrGroupExtraDetails', function () {
   const {routerContext} = initializeOrg();
 
-  it('renders last and first seen', function() {
+  it('renders last and first seen', function () {
     const component = mountWithTheme(
       <EventOrGroupExtraDetails
         data={{
@@ -26,7 +26,7 @@ describe('EventOrGroupExtraDetails', function() {
     expect(component).toSnapshot();
   });
 
-  it('renders only first seen', function() {
+  it('renders only first seen', function () {
     const component = mountWithTheme(
       <EventOrGroupExtraDetails
         data={{
@@ -42,7 +42,7 @@ describe('EventOrGroupExtraDetails', function() {
     expect(component).toSnapshot();
   });
 
-  it('renders only last seen', function() {
+  it('renders only last seen', function () {
     const component = mountWithTheme(
       <EventOrGroupExtraDetails
         data={{
@@ -58,7 +58,7 @@ describe('EventOrGroupExtraDetails', function() {
     expect(component).toSnapshot();
   });
 
-  it('renders all details', function() {
+  it('renders all details', function () {
     const component = mountWithTheme(
       <EventOrGroupExtraDetails
         data={{
@@ -83,7 +83,7 @@ describe('EventOrGroupExtraDetails', function() {
     expect(component).toSnapshot();
   });
 
-  it('renders assignee and status', function() {
+  it('renders assignee and status', function () {
     const component = mountWithTheme(
       <EventOrGroupExtraDetails
         data={{
@@ -110,7 +110,7 @@ describe('EventOrGroupExtraDetails', function() {
     expect(component).toSnapshot();
   });
 
-  it('details when mentioned', function() {
+  it('details when mentioned', function () {
     const component = mountWithTheme(
       <EventOrGroupExtraDetails
         data={{

@@ -5,8 +5,8 @@ import {
   TokenType,
 } from 'app/utils/tokenizeSearch';
 
-describe('utils/tokenizeSearch', function() {
-  describe('tokenizeSearch()', function() {
+describe('utils/tokenizeSearch', function () {
+  describe('tokenizeSearch()', function () {
     const cases = [
       {
         name: 'should convert a basic query string to a query object',
@@ -187,8 +187,8 @@ describe('utils/tokenizeSearch', function() {
     }
   });
 
-  describe('QueryResults operations', function() {
-    it('add tokens to query object', function() {
+  describe('QueryResults operations', function () {
+    it('add tokens to query object', function () {
       const results = new QueryResults([]);
 
       results.addStringTag('a:a');
@@ -207,7 +207,7 @@ describe('utils/tokenizeSearch', function() {
       expect(results.formatString()).toEqual('a:a b:b c:c1 c:c2 d:d d:d2');
     });
 
-    it('add text searches to query object', function() {
+    it('add text searches to query object', function () {
       const results = new QueryResults(['a:a']);
 
       results.addQuery('b');
@@ -227,7 +227,7 @@ describe('utils/tokenizeSearch', function() {
       expect(results.query).toEqual(['x', 'y']);
     });
 
-    it('add ops to query object', function() {
+    it('add ops to query object', function () {
       const results = new QueryResults(['x', 'a:a', 'y']);
 
       results.addOp('OR');
@@ -236,30 +236,25 @@ describe('utils/tokenizeSearch', function() {
       results.addQuery('z');
       expect(results.formatString()).toEqual('x a:a y OR z');
 
-      results
-        .addOp('(')
-        .addStringTag('b:b')
-        .addOp('AND')
-        .addStringTag('c:c')
-        .addOp(')');
+      results.addOp('(').addStringTag('b:b').addOp('AND').addStringTag('c:c').addOp(')');
       expect(results.formatString()).toEqual('x a:a y OR z ( b:b AND c:c )');
     });
 
-    it('adds tags to query', function() {
+    it('adds tags to query', function () {
       const results = new QueryResults(['tag:value']);
 
       results.addStringTag('new:too');
       expect(results.formatString()).toEqual('tag:value new:too');
     });
 
-    it('setTag() replaces tags', function() {
+    it('setTag() replaces tags', function () {
       const results = new QueryResults(['tag:value']);
 
       results.setTag('tag', ['too']);
       expect(results.formatString()).toEqual('tag:too');
     });
 
-    it('setTag() replaces tags in OR', function() {
+    it('setTag() replaces tags in OR', function () {
       let results = new QueryResults([
         '(',
         'transaction:xyz',
@@ -276,7 +271,7 @@ describe('utils/tokenizeSearch', function() {
       expect(results.formatString()).toEqual('transaction:def');
     });
 
-    it('removes tags from query object', function() {
+    it('removes tags from query object', function () {
       let results = new QueryResults(['x', 'a:a', 'b:b']);
       results.removeTag('a');
       expect(results.formatString()).toEqual('x b:b');
@@ -315,7 +310,7 @@ describe('utils/tokenizeSearch', function() {
     });
   });
 
-  describe('stringifyQueryObject()', function() {
+  describe('stringifyQueryObject()', function () {
     const cases = [
       {
         name: 'should convert a basic object to a query string',

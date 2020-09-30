@@ -5,10 +5,10 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {RouteSource} from 'app/components/search/sources/routeSource';
 
-describe('RouteSource', function() {
+describe('RouteSource', function () {
   let wrapper;
 
-  it('can find a route', async function() {
+  it('can find a route', async function () {
     const mock = jest.fn().mockReturnValue(null);
 
     const {organization, project} = initializeOrg();
@@ -31,7 +31,7 @@ describe('RouteSource', function() {
     });
   });
 
-  it('does not find any form field ', async function() {
+  it('does not find any form field ', async function () {
     const mock = jest.fn().mockReturnValue(null);
     const {organization, project} = initializeOrg();
     wrapper = mount(

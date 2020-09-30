@@ -4,8 +4,8 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import SpreadLayout from 'app/components/spreadLayout';
 
-describe('SpreadLayout', function() {
-  it('renders with one child', function() {
+describe('SpreadLayout', function () {
+  it('renders with one child', function () {
     const component = mountWithTheme(
       <SpreadLayout>
         <div>child</div>
@@ -15,7 +15,7 @@ describe('SpreadLayout', function() {
     expect(component).toSnapshot();
   });
 
-  it('renders with multiple children', function() {
+  it('renders with multiple children', function () {
     const component = mountWithTheme(
       <SpreadLayout>
         <div>child #1</div>

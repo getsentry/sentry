@@ -25,7 +25,7 @@ export default {
   DefaultIssuePlugin,
 
   add: registry.add.bind(registry),
-  addContext: function(id, component) {
+  addContext: function (id, component) {
     contexts[id] = component;
   },
   contexts,

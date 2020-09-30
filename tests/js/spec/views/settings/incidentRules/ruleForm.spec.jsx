@@ -5,7 +5,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import RuleFormContainer from 'app/views/settings/incidentRules/ruleForm';
 
-describe('Incident Rules Form', function() {
+describe('Incident Rules Form', function () {
   const {organization, project, routerContext} = initializeOrg();
   const createWrapper = props =>
     mountWithTheme(
@@ -18,7 +18,7 @@ describe('Incident Rules Form', function() {
       routerContext
     );
 
-  beforeEach(function() {
+  beforeEach(function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
@@ -49,9 +49,9 @@ describe('Incident Rules Form', function() {
     });
   });
 
-  describe('Creating a new rule', function() {
+  describe('Creating a new rule', function () {
     let createRule;
-    beforeEach(function() {
+    beforeEach(function () {
       createRule = MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/alert-rules/',
         method: 'POST',
@@ -61,7 +61,7 @@ describe('Incident Rules Form', function() {
     /**
      * Note this isn't necessarily the desired behavior, as it is just documenting the behavior
      */
-    it('creates a rule', async function() {
+    it('creates a rule', async function () {
       const rule = TestStubs.IncidentRule();
       const wrapper = createWrapper({
         rule: {
@@ -88,12 +88,12 @@ describe('Incident Rules Form', function() {
     });
   });
 
-  describe('Editing a rule', function() {
+  describe('Editing a rule', function () {
     let editRule;
     let editTrigger;
     const rule = TestStubs.IncidentRule();
 
-    beforeEach(function() {
+    beforeEach(function () {
       editRule = MockApiClient.addMockResponse({
         url: `/projects/org-slug/project-slug/alert-rules/${rule.id}/`,
         method: 'PUT',
@@ -105,12 +105,12 @@ describe('Incident Rules Form', function() {
         body: TestStubs.IncidentTrigger({id: 1}),
       });
     });
-    afterEach(function() {
+    afterEach(function () {
       editRule.mockReset();
       editTrigger.mockReset();
     });
 
-    it('edits metric', async function() {
+    it('edits metric', async function () {
       const wrapper = createWrapper({
         ruleId: rule.id,
         rule,

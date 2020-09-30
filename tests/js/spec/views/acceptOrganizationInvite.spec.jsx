@@ -15,8 +15,8 @@ const addMock = body =>
     body,
   });
 
-describe('AcceptOrganizationInvite', function() {
-  it('can accept invitation', async function() {
+describe('AcceptOrganizationInvite', function () {
+  it('can accept invitation', async function () {
     addMock({
       orgSlug: 'test-org',
       needsAuthentication: false,
@@ -49,7 +49,7 @@ describe('AcceptOrganizationInvite', function() {
     expect(browserHistory.replace).toHaveBeenCalledWith('/test-org/');
   });
 
-  it('requires authentication to join', function() {
+  it('requires authentication to join', function () {
     addMock({
       orgSlug: 'test-org',
       needsAuthentication: true,
@@ -75,7 +75,7 @@ describe('AcceptOrganizationInvite', function() {
     expect(wrapper.find('[data-test-id="link-with-existing"]').exists()).toBe(true);
   });
 
-  it('suggests sso authentication to login', function() {
+  it('suggests sso authentication to login', function () {
     addMock({
       orgSlug: 'test-org',
       needsAuthentication: true,
@@ -101,7 +101,7 @@ describe('AcceptOrganizationInvite', function() {
     expect(wrapper.find('[data-test-id="link-with-existing"]').exists()).toBe(true);
   });
 
-  it('enforce required sso authentication', function() {
+  it('enforce required sso authentication', function () {
     addMock({
       orgSlug: 'test-org',
       needsAuthentication: true,
@@ -127,7 +127,7 @@ describe('AcceptOrganizationInvite', function() {
     expect(wrapper.find('[data-test-id="link-with-existing"]').exists()).toBe(false);
   });
 
-  it('shows a logout button for existing members', async function() {
+  it('shows a logout button for existing members', async function () {
     addMock({
       orgSlug: 'test-org',
       needsAuthentication: false,
@@ -159,7 +159,7 @@ describe('AcceptOrganizationInvite', function() {
     window.location.replace = replace;
   });
 
-  it('shows 2fa warning', function() {
+  it('shows 2fa warning', function () {
     addMock({
       orgSlug: 'test-org',
       needsAuthentication: false,

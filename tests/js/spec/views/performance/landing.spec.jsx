@@ -59,8 +59,8 @@ function initializeTrendsData(query, addDefaultQuery = true) {
   return initialData;
 }
 
-describe('Performance > Landing', function() {
-  beforeEach(function() {
+describe('Performance > Landing', function () {
+  beforeEach(function () {
     browserHistory.push = jest.fn();
     jest.spyOn(globalSelection, 'updateDateTime');
 
@@ -135,13 +135,13 @@ describe('Performance > Landing', function() {
     });
   });
 
-  afterEach(function() {
+  afterEach(function () {
     MockApiClient.clearMockResponses();
     ProjectsStore.reset();
     globalSelection.updateDateTime.mockRestore();
   });
 
-  it('renders basic UI elements', async function() {
+  it('renders basic UI elements', async function () {
     const projects = [TestStubs.Project({firstTransactionEvent: true})];
     const data = initializeData(projects, {});
 
@@ -166,7 +166,7 @@ describe('Performance > Landing', function() {
     expect(wrapper.find('Table')).toHaveLength(1);
   });
 
-  it('renders onboarding state when the selected project has no events', async function() {
+  it('renders onboarding state when the selected project has no events', async function () {
     const projects = [
       TestStubs.Project({id: 1, firstTransactionEvent: false}),
       TestStubs.Project({id: 2, firstTransactionEvent: true}),
@@ -191,7 +191,7 @@ describe('Performance > Landing', function() {
     expect(wrapper.find('Table')).toHaveLength(0);
   });
 
-  it('does not render onboarding for "my projects"', async function() {
+  it('does not render onboarding for "my projects"', async function () {
     const projects = [
       TestStubs.Project({id: '1', firstTransactionEvent: false}),
       TestStubs.Project({id: '2', firstTransactionEvent: true}),
@@ -211,7 +211,7 @@ describe('Performance > Landing', function() {
     expect(wrapper.find('Onboarding')).toHaveLength(0);
   });
 
-  it('forwards conditions to transaction summary', async function() {
+  it('forwards conditions to transaction summary', async function () {
     const projects = [TestStubs.Project({id: '1', firstTransactionEvent: true})];
     const data = initializeData(projects, {project: ['1'], query: 'sentry:yes'});
 
@@ -238,7 +238,7 @@ describe('Performance > Landing', function() {
     );
   });
 
-  it('Default period for trends does not call updateDateTime', async function() {
+  it('Default period for trends does not call updateDateTime', async function () {
     const data = initializeTrendsData({query: 'tag:value'}, false);
     const wrapper = mountWithTheme(
       <PerformanceLanding
@@ -252,7 +252,7 @@ describe('Performance > Landing', function() {
     expect(globalSelection.updateDateTime).toHaveBeenCalledTimes(0);
   });
 
-  it('Navigating to trends does not modify statsPeriod when already set', async function() {
+  it('Navigating to trends does not modify statsPeriod when already set', async function () {
     const data = initializeTrendsData({
       query: 'count():>500 transaction.duration:>10',
       statsPeriod: '24h',
@@ -284,7 +284,7 @@ describe('Performance > Landing', function() {
     );
   });
 
-  it('Default page (transactions) without trends feature will not update filters if none are set', async function() {
+  it('Default page (transactions) without trends feature will not update filters if none are set', async function () {
     const projects = [
       TestStubs.Project({id: 1, firstTransactionEvent: false}),
       TestStubs.Project({id: 2, firstTransactionEvent: true}),
@@ -304,7 +304,7 @@ describe('Performance > Landing', function() {
     expect(browserHistory.push).toHaveBeenCalledTimes(0);
   });
 
-  it('Default page (trends) with trends feature will update filters if none are set', async function() {
+  it('Default page (trends) with trends feature will update filters if none are set', async function () {
     const data = initializeTrendsData({view: undefined}, false);
 
     const wrapper = mountWithTheme(
@@ -328,7 +328,7 @@ describe('Performance > Landing', function() {
     );
   });
 
-  it('Tags are replaced with trends default query if navigating to trends', async function() {
+  it('Tags are replaced with trends default query if navigating to trends', async function () {
     const data = initializeTrendsData(
       {view: FilterViews.ALL_TRANSACTIONS, query: 'device.family:Mac'},
       false
@@ -357,7 +357,7 @@ describe('Performance > Landing', function() {
     );
   });
 
-  it('Navigating away from trends will remove extra tags from query', async function() {
+  it('Navigating away from trends will remove extra tags from query', async function () {
     const data = initializeTrendsData(
       {
         view: FilterViews.TRENDS,

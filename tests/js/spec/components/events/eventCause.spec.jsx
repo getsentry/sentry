@@ -6,7 +6,7 @@ import {Client} from 'app/api';
 import EventCause from 'app/components/events/eventCause';
 import CommitterStore from 'app/stores/committerStore';
 
-describe('EventCause', function() {
+describe('EventCause', function () {
   const organization = TestStubs.Organization();
   const project = TestStubs.Project();
   const event = TestStubs.Event();
@@ -18,12 +18,12 @@ describe('EventCause', function() {
     group: TestStubs.Group(),
   };
 
-  afterEach(function() {
+  afterEach(function () {
     Client.clearMockResponses();
     CommitterStore.reset();
   });
 
-  beforeEach(function() {
+  beforeEach(function () {
     Client.addMockResponse({
       method: 'GET',
       url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`,
@@ -67,7 +67,7 @@ describe('EventCause', function() {
     });
   });
 
-  it('renders', async function() {
+  it('renders', async function () {
     const wrapper = mountWithTheme(
       <EventCause
         organization={organization}
@@ -88,7 +88,7 @@ describe('EventCause', function() {
     expect(wrapper.find('Hovercard').exists()).toBe(false);
   });
 
-  it('expands', async function() {
+  it('expands', async function () {
     const wrapper = mountWithTheme(
       <EventCause
         organization={organization}
@@ -114,7 +114,7 @@ describe('EventCause', function() {
     expect(wrapper.find('CommitRow')).toHaveLength(1);
   });
 
-  it('shows unassociated email warning', async function() {
+  it('shows unassociated email warning', async function () {
     Client.addMockResponse({
       method: 'GET',
       url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`,

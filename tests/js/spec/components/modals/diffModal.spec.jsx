@@ -4,8 +4,8 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import DiffModal from 'app/components/modals/diffModal';
 
-describe('DiffModal', function() {
-  it('renders', function() {
+describe('DiffModal', function () {
+  it('renders', function () {
     const project = TestStubs.ProjectDetails();
 
     const wrapper = mountWithTheme(

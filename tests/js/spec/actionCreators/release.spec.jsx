@@ -2,7 +2,7 @@ import {getProjectRelease, getReleaseDeploys} from 'app/actionCreators/release';
 import ReleaseActions from 'app/actions/releaseActions';
 import ReleaseStore, {getReleaseStoreKey} from 'app/stores/releaseStore';
 
-describe('ReleaseActionCreator', function() {
+describe('ReleaseActionCreator', function () {
   const orgSlug = 'myOrg';
   const projectSlug = 'myProject';
   const releaseVersion = 'myRelease';
