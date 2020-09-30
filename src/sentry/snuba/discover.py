@@ -953,13 +953,25 @@ HistogramParams = namedtuple("HistogramParams", ["bucket_size", "start_offset", 
 
 
 def measurements_histogram_query(
-    measurements, user_query, params, num_buckets, precision=0, referrer=None,
+    measurements,
+    user_query,
+    params,
+    num_buckets,
+    precision=0,
+    min_value=None,
+    max_value=None,
+    referrer=None,
 ):
-    min_value, max_value = find_measurements_min_max(measurements, user_query, params)
+    multiplier = int(10 ** precision)
+    if max_value is not None:
+        max_value -= 0.1 / multiplier
+    min_value, max_value = find_measurements_min_max(
+        measurements, min_value, max_value, user_query, params
+    )
 
     key_col = "array_join(measurements_key)"
     histogram_params = find_measurements_histogram_params(
-        num_buckets, min_value, max_value, precision
+        num_buckets, min_value, max_value, multiplier
     )
     histogram_col = get_measurements_histogram_col(histogram_params)
 
@@ -985,9 +997,7 @@ def get_measurements_histogram_col(params):
     return u"measurements_histogram({:d}, {:d}, {:d})".format(*params)
 
 
-def find_measurements_histogram_params(num_buckets, min_value, max_value, precision):
-    multiplier = int(10 ** precision)
-
+def find_measurements_histogram_params(num_buckets, min_value, max_value, multiplier):
     # finding the bounds might result in None if there isn't sufficient data
     if min_value is None or max_value is None:
         return HistogramParams(1, 0, multiplier)
@@ -1001,7 +1011,7 @@ def find_measurements_histogram_params(num_buckets, min_value, max_value, precis
     # align the first bin with the minimum value
     start_offset = int(floor(scaled_min))
 
-    bucket_size = int(ceil((int(ceil(scaled_max)) - int(floor(scaled_min))) / float(num_buckets)))
+    bucket_size = int(ceil((scaled_max - scaled_min) / float(num_buckets)))
 
     if bucket_size == 0:
         bucket_size = 1
@@ -1015,11 +1025,16 @@ def find_measurements_histogram_params(num_buckets, min_value, max_value, precis
     return HistogramParams(bucket_size, start_offset, multiplier)
 
 
-def find_measurements_min_max(measurements, user_query, params):
+def find_measurements_min_max(measurements, min_value, max_value, user_query, params):
+    if min_value is not None and max_value is not None:
+        return min_value, max_value
+
     min_columns, max_columns = [], []
     for measurement in measurements:
-        min_columns.append("min(measurements.{})".format(measurement))
-        max_columns.append("max(measurements.{})".format(measurement))
+        if min_value is None:
+            min_columns.append("min(measurements.{})".format(measurement))
+        if max_value is None:
+            max_columns.append("max(measurements.{})".format(measurement))
 
     results = query(
         selected_columns=min_columns + max_columns,
@@ -1040,13 +1055,15 @@ def find_measurements_min_max(measurements, user_query, params):
 
     row = data[0]
 
-    min_values = [row[get_function_alias(column)] for column in min_columns]
-    min_values = list(filter(lambda v: v is not None, min_values))
-    min_value = min(min_values) if min_values else None
+    if min_value is None:
+        min_values = [row[get_function_alias(column)] for column in min_columns]
+        min_values = list(filter(lambda v: v is not None, min_values))
+        min_value = min(min_values) if min_values else None
 
-    max_values = [row[get_function_alias(column)] for column in max_columns]
-    max_values = list(filter(lambda v: v is not None, max_values))
-    max_value = max(max_values) if max_values else None
+    if max_value is None:
+        max_values = [row[get_function_alias(column)] for column in max_columns]
+        max_values = list(filter(lambda v: v is not None, max_values))
+        max_value = max(max_values) if max_values else None
 
     return min_value, max_value
 

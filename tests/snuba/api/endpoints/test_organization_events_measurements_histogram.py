@@ -80,9 +80,9 @@ class OrganizationEventsMeasurementsHistogramEndpointTest(APITestCase, SnubaTest
             "project": [self.project.id],
             "measurement": ["foo", "bar"],
             "num_buckets": 10,
-            "min": 0,
-            "max": 100,
             "precision": 0,
+            "min": 0,
+            "max": 10,
         }
 
         response = self.do_request(query)
@@ -207,6 +207,29 @@ class OrganizationEventsMeasurementsHistogramEndpointTest(APITestCase, SnubaTest
             "project": [self.project.id],
             "measurement": ["foo"],
             "num_buckets": 5,
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200
+        assert response.data["data"] == self.as_response_data(specs)
+
+    def test_histogram_simple_using_min_max(self):
+        # range is [0, 5), so it is divided into 5 buckets of width 1
+        specs = [
+            (0, 1, [("foo", 1)]),
+            (1, 2, [("foo", 1)]),
+            (2, 3, [("foo", 1)]),
+            (3, 4, [("foo", 0)]),
+            (4, 5, [("foo", 1)]),
+        ]
+        self.populate_measurements(specs)
+
+        query = {
+            "project": [self.project.id],
+            "measurement": ["foo"],
+            "num_buckets": 5,
+            "min": 0,
+            "max": 5,
         }
 
         response = self.do_request(query)

@@ -1743,12 +1743,16 @@ class QueryTransformTest(TestCase):
     def test_measurements_histogram_min_max(self, mock_query):
         # no rows returned from snuba
         mock_query.side_effect = [{"meta": [], "data": []}]
-        values = discover.find_measurements_min_max(["foo"], "", {"project_id": [self.project.id]})
+        values = discover.find_measurements_min_max(
+            ["foo"], None, None, "", {"project_id": [self.project.id]}
+        )
         assert values == (None, None)
 
         # more than 2 rows returned snuba
         mock_query.side_effect = [{"meta": [], "data": [{}, {}]}]
-        values = discover.find_measurements_min_max(["foo"], "", {"project_id": [self.project.id]})
+        values = discover.find_measurements_min_max(
+            ["foo"], None, None, "", {"project_id": [self.project.id]}
+        )
         assert values == (None, None)
 
         # None rows are returned from snuba
@@ -1758,7 +1762,9 @@ class QueryTransformTest(TestCase):
                 "data": [{"min_measurements_foo": None, "max_measurements_foo": None}],
             },
         ]
-        values = discover.find_measurements_min_max(["foo"], "", {"project_id": [self.project.id]})
+        values = discover.find_measurements_min_max(
+            ["foo"], None, None, "", {"project_id": [self.project.id]}
+        )
         assert values == (None, None)
 
         # single min/max returned from snuba
@@ -1768,7 +1774,9 @@ class QueryTransformTest(TestCase):
                 "data": [{"min_measurements_foo": 1.23, "max_measurements_foo": 3.45}],
             },
         ]
-        values = discover.find_measurements_min_max(["foo"], "", {"project_id": [self.project.id]})
+        values = discover.find_measurements_min_max(
+            ["foo"], None, None, "", {"project_id": [self.project.id]}
+        )
         assert values == (1.23, 3.45)
 
         # multiple min/max returned from snuba
@@ -1795,7 +1803,7 @@ class QueryTransformTest(TestCase):
             },
         ]
         values = discover.find_measurements_min_max(
-            ["foo", "bar", "baz"], "", {"project_id": [self.project.id]}
+            ["foo", "bar", "baz"], None, None, "", {"project_id": [self.project.id]}
         )
         assert values == (1.23, 3.67)
 
@@ -1823,27 +1831,27 @@ class QueryTransformTest(TestCase):
             },
         ]
         values = discover.find_measurements_min_max(
-            ["foo", "bar", "baz"], "", {"project_id": [self.project.id]}
+            ["foo", "bar", "baz"], None, None, "", {"project_id": [self.project.id]}
         )
         assert values == (1.23, 3.67)
 
     def test_measurements_histogram_params(self):
         # min and max is None
-        assert discover.find_measurements_histogram_params(1, None, None, 0) == (1, 0, 1)
+        assert discover.find_measurements_histogram_params(1, None, None, 1) == (1, 0, 1)
         # min is None
-        assert discover.find_measurements_histogram_params(1, None, 1, 1) == (1, 0, 10)
+        assert discover.find_measurements_histogram_params(1, None, 1, 10) == (1, 0, 10)
         # max is None
-        assert discover.find_measurements_histogram_params(1, 1, None, 2) == (1, 0, 100)
+        assert discover.find_measurements_histogram_params(1, 1, None, 100) == (1, 0, 100)
 
-        assert discover.find_measurements_histogram_params(10, 0, 9, 0) == (1, 0, 1)
-        assert discover.find_measurements_histogram_params(10, 0, 10, 0) == (2, 0, 1)
-        assert discover.find_measurements_histogram_params(10, 0, 99, 0) == (10, 0, 1)
-        assert discover.find_measurements_histogram_params(10, 0, 100, 0) == (11, 0, 1)
-        assert discover.find_measurements_histogram_params(5, 10, 19, 1) == (19, 100, 10)
-        assert discover.find_measurements_histogram_params(5, 10, 19.9, 1) == (20, 100, 10)
-        assert discover.find_measurements_histogram_params(10, 10, 20, 0) == (2, 10, 1)
-        assert discover.find_measurements_histogram_params(10, 10, 20, 1) == (11, 100, 10)
-        assert discover.find_measurements_histogram_params(10, 10, 20, 2) == (101, 1000, 100)
+        assert discover.find_measurements_histogram_params(10, 0, 9, 1) == (1, 0, 1)
+        assert discover.find_measurements_histogram_params(10, 0, 10, 1) == (2, 0, 1)
+        assert discover.find_measurements_histogram_params(10, 0, 99, 1) == (10, 0, 1)
+        assert discover.find_measurements_histogram_params(10, 0, 100, 1) == (11, 0, 1)
+        assert discover.find_measurements_histogram_params(5, 10, 19, 10) == (19, 100, 10)
+        assert discover.find_measurements_histogram_params(5, 10, 19.9, 10) == (20, 100, 10)
+        assert discover.find_measurements_histogram_params(10, 10, 20, 1) == (2, 10, 1)
+        assert discover.find_measurements_histogram_params(10, 10, 20, 10) == (11, 100, 10)
+        assert discover.find_measurements_histogram_params(10, 10, 20, 100) == (101, 1000, 100)
 
     def test_measurements_histogram_normalization_empty(self):
         results = {"data": []}

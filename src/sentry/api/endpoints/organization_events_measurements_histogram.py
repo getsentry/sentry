@@ -16,6 +16,8 @@ class MeasurementsHistogramSerializer(serializers.Serializer):
     num_buckets = serializers.IntegerField(min_value=1)
     precision = serializers.IntegerField(default=0, min_value=0, max_value=4)
     measurement = serializers.ListField(allow_empty=False, max_length=4)
+    min = serializers.IntegerField(required=False)
+    max = serializers.IntegerField(required=False)
 
 
 class OrganizationEventsMeasurementsHistogramEndpoint(OrganizationEventsV2EndpointBase):
@@ -43,6 +45,8 @@ class OrganizationEventsMeasurementsHistogramEndpoint(OrganizationEventsV2Endpoi
                     params,
                     data["num_buckets"],
                     data["precision"],
+                    data.get("min"),
+                    data.get("max"),
                     "api.organization-events-measurements-histogram",
                 )
 
