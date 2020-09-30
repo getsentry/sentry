@@ -20,6 +20,7 @@ from sentry.utils.compat import implements_to_string
 from sentry.utils.glob import glob_match
 from sentry.utils.safe import get_path
 from sentry.utils.compat import zip
+from sentry.utils.strings import unescape_string
 
 
 # Grammar is defined in EBNF syntax.
@@ -603,7 +604,7 @@ class EnhancmentsVisitor(NodeVisitor):
         return int(node.text)
 
     def visit_quoted(self, node, children):
-        return node.text[1:-1].encode("ascii", "backslashreplace").decode("unicode-escape")
+        return unescape_string(node.text[1:-1])
 
     def visit_unquoted(self, node, children):
         return node.text
