@@ -49,6 +49,7 @@ const StyledEventMessage = styled(EventMessage)`
   align-items: center;
   position: relative;
   line-height: 1.2;
+  overflow: hidden;
 `;
 
 const StyledErrorLevel = styled(ErrorLevel)`

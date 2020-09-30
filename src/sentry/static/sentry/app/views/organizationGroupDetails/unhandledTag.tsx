@@ -7,6 +7,10 @@ import Tag from 'app/components/tag';
 import Feature from 'app/components/acl/feature';
 import Tooltip from 'app/components/tooltip';
 
+const TagWrapper = styled('div')`
+  margin-right: ${space(1)};
+`;
+
 const TagAndMessageWrapper = styled('div')`
   display: flex;
   align-items: center;
@@ -15,14 +19,15 @@ const TagAndMessageWrapper = styled('div')`
 // TODO(matej): remove "unhandled-issue-flag" feature flag once testing is over (otherwise this won't ever be rendered in a shared event)
 const UnhandledTag = styled(props => (
   <Feature features={['unhandled-issue-flag']}>
-    <Tooltip title={t('An unhandled error was detected in this Issue.')}>
-      <Tag priority="error" {...props}>
-        {t('Unhandled')}
-      </Tag>
-    </Tooltip>
+    <TagWrapper>
+      <Tooltip title={t('An unhandled error was detected in this Issue.')}>
+        <Tag priority="error" {...props}>
+          {t('Unhandled')}
+        </Tag>
+      </Tooltip>
+    </TagWrapper>
   </Feature>
 ))`
-  margin-right: ${space(1)};
   background-color: ${p => p.theme.red300};
   text-transform: none;
 `;
