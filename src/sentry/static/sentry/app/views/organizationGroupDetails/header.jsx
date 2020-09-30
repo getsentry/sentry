@@ -24,7 +24,7 @@ import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 
 import GroupActions from './actions';
-import {LabelAndMessageWrapper, UnhandledLabel} from './styles';
+import UnhandledTag, {TagAndMessageWrapper} from './unhandledTag';
 
 const TAB = {
   DETAILS: 'details',
@@ -115,8 +115,8 @@ class GroupHeader extends React.Component {
             <h3>
               <EventOrGroupTitle hasGuideAnchor data={group} />
             </h3>
-            <StyledLabelAndMessageWrapper>
-              {(true || group.isUnhandled) && <UnhandledLabel />}
+            <StyledTagAndMessageWrapper>
+              {group.isUnhandled && <UnhandledTag />}
               <EventMessage
                 message={message}
                 level={group.level}
@@ -143,7 +143,7 @@ class GroupHeader extends React.Component {
                   </React.Fragment>
                 }
               />
-            </StyledLabelAndMessageWrapper>
+            </StyledTagAndMessageWrapper>
           </div>
 
           <div className="col-sm-5 stats">
@@ -259,7 +259,7 @@ class GroupHeader extends React.Component {
   }
 }
 
-const StyledLabelAndMessageWrapper = styled(LabelAndMessageWrapper)`
+const StyledTagAndMessageWrapper = styled(TagAndMessageWrapper)`
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     margin-bottom: ${space(2)};
   }

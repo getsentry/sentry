@@ -11,10 +11,9 @@ import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
 import Tooltip from 'app/components/tooltip';
 import {getMessage, getLocation} from 'app/utils/events';
 import GlobalSelectionLink from 'app/components/globalSelectionLink';
-import {
-  LabelAndMessageWrapper,
-  UnhandledLabel,
-} from 'app/views/organizationGroupDetails/styles';
+import UnhandledTag, {
+  TagAndMessageWrapper,
+} from 'app/views/organizationGroupDetails/unhandledTag';
 
 type DefaultProps = {
   includeLink: boolean;
@@ -106,17 +105,17 @@ class EventOrGroupHeader extends React.Component<Props> {
     const {className, size, data} = this.props;
     const location = getLocation(data);
     const message = getMessage(data);
-    const isUnhandled = true; // TODO: api
+    const {isUnhandled} = data as Group;
 
     return (
       <div className={className} data-test-id="event-issue-header">
         <Title size={size}>{this.getTitle()}</Title>
         {location && <Location size={size}>{location}</Location>}
         {(message || isUnhandled) && (
-          <StyledLabelAndMessageWrapper>
-            {isUnhandled && <UnhandledLabel />}
-            {message && <Message size={size}>{message}</Message>}
-          </StyledLabelAndMessageWrapper>
+          <StyledTagAndMessageWrapper size={size}>
+            {isUnhandled && <UnhandledTag />}
+            {message && <Message>{message}</Message>}
+          </StyledTagAndMessageWrapper>
         )}
       </div>
     );
@@ -172,7 +171,7 @@ function Location(props) {
   );
 }
 
-const StyledLabelAndMessageWrapper = styled(LabelAndMessageWrapper)`
+const StyledTagAndMessageWrapper = styled(TagAndMessageWrapper)`
   ${getMargin};
 `;
 

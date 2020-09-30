@@ -6,7 +6,9 @@ import space from 'app/styles/space';
 import {Group} from 'app/types';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 
-import {LabelAndMessageWrapper, UnhandledLabel} from '../organizationGroupDetails/styles';
+import UnhandledTag, {
+  TagAndMessageWrapper,
+} from '../organizationGroupDetails/unhandledTag';
 
 type Props = {
   group: Group;
@@ -16,10 +18,10 @@ const SharedGroupHeader = ({group}: Props) => (
   <Wrapper>
     <Details>
       <Title>{group.title}</Title>
-      <LabelAndMessageWrapper>
-        {(true || (group as any).isUnhandled) && <UnhandledLabel />}
+      <TagAndMessageWrapper>
+        {group.isUnhandled && <UnhandledTag />}
         <EventMessage message={group.culprit} />
-      </LabelAndMessageWrapper>
+      </TagAndMessageWrapper>
     </Details>
   </Wrapper>
 );
