@@ -36,9 +36,7 @@ class OrganizationEventsMeasurementsHistogramEndpoint(OrganizationEventsV2Endpoi
 
         with sentry_sdk.start_span(
             op="discover.endpoint", description="measurements_histogram"
-        ) as span:
-            span.set_tag("organization", organization)
-
+        ):
             serializer = MeasurementsHistogramSerializer(data=request.GET)
             if serializer.is_valid():
                 data = serializer.validated_data
