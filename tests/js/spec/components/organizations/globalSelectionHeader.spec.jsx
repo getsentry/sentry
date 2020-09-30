@@ -1183,7 +1183,9 @@ describe('GlobalSelectionHeader', function() {
 
       const projectSelector = wrapper.find('MultipleProjectSelector');
 
-      expect(projectSelector.find('PlatformIcon').props().platform).toEqual('javascript');
+      expect(projectSelector.find('StyledPlatformIcon').props().platform).toEqual(
+        'javascript'
+      );
 
       expect(projectSelector.find('Content').text()).toEqual('javascript');
     });
@@ -1213,7 +1215,7 @@ describe('GlobalSelectionHeader', function() {
 
       // assert title and icons
       const title = wrapper.find('MultipleProjectSelector Content');
-      const icons = wrapper.find('MultipleProjectSelector PlatformIcon');
+      const icons = wrapper.find('MultipleProjectSelector StyledPlatformIcon');
       expect(title.text()).toBe('javascript, other, php, python, rust, swift');
       expect(icons.length).toBe(5);
       expect(icons.at(3).props().platform).toBe('rust');
