@@ -4,6 +4,7 @@ from __future__ import absolute_import
 
 import os.path
 from base64 import b64encode
+from django.utils.encoding import force_bytes
 
 import responses
 
@@ -148,7 +149,7 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
             },
         }
 
-        mock_fetch_file.return_value.body = "\n".join("hello world")
+        mock_fetch_file.return_value.body = force_bytes("\n".join("hello world"))
         mock_fetch_file.return_value.encoding = None
         mock_fetch_file.return_value.headers = {}
 
@@ -207,7 +208,7 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         mock_discover_sourcemap.return_value = BASE64_SOURCEMAP
 
         mock_fetch_file.return_value.url = "http://example.com/test.min.js"
-        mock_fetch_file.return_value.body = "\n".join("<generated source>")
+        mock_fetch_file.return_value.body = force_bytes("\n".join("<generated source>"))
         mock_fetch_file.return_value.encoding = None
 
         event = self.post_and_retrieve_event(data)
