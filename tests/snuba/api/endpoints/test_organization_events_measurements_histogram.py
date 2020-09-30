@@ -50,7 +50,7 @@ class OrganizationEventsMeasurementsHistogramEndpointTest(APITestCase, SnubaTest
 
     def do_request(self, query, features=None):
         if features is None:
-            features = {"organizations:discover-basic": True}
+            features = {"organizations:discover-basic": True, "organizations:measurements": True}
         self.login_as(user=self.user)
         url = reverse(
             "sentry-api-0-organization-events-measurements-histogram",
