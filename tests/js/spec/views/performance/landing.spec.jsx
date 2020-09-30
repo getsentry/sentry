@@ -133,6 +133,13 @@ describe('Performance > Landing', function() {
         events: {meta: {}, data: []},
       },
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-trends-stats/',
+      body: {
+        stats: {},
+        events: {meta: {}, data: []},
+      },
+    });
   });
 
   afterEach(function() {
