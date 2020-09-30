@@ -54,7 +54,7 @@ type State = {
   deploys: Deploy[];
 } & AsyncView['state'];
 
-class ReleasesV2Detail extends AsyncView<Props, State> {
+class ReleasesDetail extends AsyncView<Props, State> {
   shouldReload = true;
 
   getTitle() {
@@ -156,7 +156,7 @@ class ReleasesV2Detail extends AsyncView<Props, State> {
   }
 }
 
-class ReleasesV2DetailContainer extends AsyncComponent<Omit<Props, 'releaseMeta'>> {
+class ReleasesDetailContainer extends AsyncComponent<Omit<Props, 'releaseMeta'>> {
   shouldReload = true;
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
@@ -237,7 +237,7 @@ class ReleasesV2DetailContainer extends AsyncComponent<Omit<Props, 'releaseMeta'
         showProjectSettingsLink
         projectsFooterMessage={this.renderProjectsFooterMessage()}
       >
-        <ReleasesV2Detail {...this.props} releaseMeta={releaseMeta} />
+        <ReleasesDetail {...this.props} releaseMeta={releaseMeta} />
       </GlobalSelectionHeader>
     );
   }
@@ -258,5 +258,5 @@ const Body = styled('div')`
   padding: ${space(2)} ${space(4)};
 `;
 
-export {ReleasesV2DetailContainer, ReleaseContext};
-export default withGlobalSelection(withOrganization(ReleasesV2DetailContainer));
+export {ReleasesDetailContainer, ReleaseContext};
+export default withGlobalSelection(withOrganization(ReleasesDetailContainer));

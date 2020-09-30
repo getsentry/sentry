@@ -163,10 +163,7 @@ describe('OverviewDashboard', function() {
             [
               'if',
               [
-                [
-                  'in',
-                  ['release', 'tuple', ["'92eccef279d966b2319f0802fa4b22b430a5f72b'"]],
-                ],
+                ['in', ['release', 'tuple', ["'sentry-android-shop@1.2.0'"]]],
                 'release',
                 "'other'",
               ],
@@ -221,10 +218,7 @@ describe('OverviewDashboard', function() {
             [
               'if',
               [
-                [
-                  'in',
-                  ['release', 'tuple', ["'92eccef279d966b2319f0802fa4b22b430a5f72b'"]],
-                ],
+                ['in', ['release', 'tuple', ["'sentry-android-shop@1.2.0'"]]],
                 'release',
                 "'other'",
               ],

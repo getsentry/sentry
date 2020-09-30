@@ -174,9 +174,9 @@ describe('ReleaseSeries', function() {
             markLine: expect.objectContaining({
               data: [
                 expect.objectContaining({
-                  name: '92eccef279d9',
-                  value: '92eccef279d9',
-                  xAxis: 1530206345000,
+                  name: '1.2.0, sentry-android-shop',
+                  value: '1.2.0, sentry-android-shop',
+                  xAxis: 1584921600000,
                 }),
               ],
             }),

@@ -5,9 +5,9 @@ from django.utils import timezone
 from sentry.testutils import AcceptanceTestCase
 
 
-class OrganizationReleasesV2Test(AcceptanceTestCase):
+class OrganizationReleasesTest(AcceptanceTestCase):
     def setUp(self):
-        super(OrganizationReleasesV2Test, self).setUp()
+        super(OrganizationReleasesTest, self).setUp()
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
         self.team = self.create_team(
@@ -26,16 +26,16 @@ class OrganizationReleasesV2Test(AcceptanceTestCase):
         self.create_release(project=self.project, version="1.0")
         self.browser.get(self.path)
         self.browser.wait_until_not(".loading")
-        self.browser.snapshot("organization releases v2 - with releases")
-        # TODO(releasesV2): add health data
+        self.browser.snapshot("organization releases - with releases")
+        # TODO(releases): add health data
 
     def test_detail(self):
         release = self.create_release(project=self.project, version="1.0")
         self.browser.get(self.path + release.version)
         self.browser.wait_until_not(".loading")
         self.browser.wait_until_test_id("release-wrapper")
-        self.browser.snapshot("organization releases v2 - detail")
-        # TODO(releasesV2): add health data
+        self.browser.snapshot("organization releases - detail")
+        # TODO(releases): add health data
 
     def test_detail_pick_project(self):
         release = self.create_release(
@@ -55,4 +55,4 @@ class OrganizationReleasesV2Test(AcceptanceTestCase):
         self.browser.wait_until_not(".loading")
         self.browser.click('[data-test-id="global-header-project-selector"]')
         self.browser.wait_until_test_id("release-wrapper")
-        self.browser.snapshot("organization releases v2 - detail - global project header")
+        self.browser.snapshot("organization releases - detail - global project header")
