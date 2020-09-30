@@ -3,16 +3,16 @@ from __future__ import absolute_import
 from django.core.urlresolvers import reverse
 from django.test.client import RequestFactory
 
-from sentry.models import Commit, CommitFileChange, Release, ReleaseCommit, Repository
+from sentry.models import Commit, CommitFileChange, ReleaseCommit
 from tests.apidocs.util import APIDocsTestCase
 
 
 class CommitFileChangeDocsTest(APIDocsTestCase):
     def setUp(self):
         project = self.create_project(name="foo")
-        release = Release.objects.create(organization_id=project.organization_id, version="1")
+        release = self.create_release(project=project, version="1")
         release.add_project(project)
-        repo = Repository.objects.create(organization_id=project.organization_id, name=project.name)
+        repo = self.create_repo(project=project, name=project.name)
         commit = Commit.objects.create(
             organization_id=project.organization_id, repository_id=repo.id, key="a" * 40
         )

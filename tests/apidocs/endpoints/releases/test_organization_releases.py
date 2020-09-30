@@ -12,10 +12,8 @@ from tests.apidocs.util import APIDocsTestCase
 class OrganizationReleasesDocsTest(APIDocsTestCase):
     def setUp(self):
         user = self.create_user(is_staff=False, is_superuser=False)
-        org = self.organization
-        org2 = self.create_organization()
-        org.flags.allow_joinleave = False
-        org.save()
+        org = self.create_organization(owner=user, name="blah")
+        org2 = self.create_organization(owner=user, name="bloop")
 
         team1 = self.create_team(organization=org)
         team2 = self.create_team(organization=org)
@@ -23,8 +21,6 @@ class OrganizationReleasesDocsTest(APIDocsTestCase):
         self.project1 = self.create_project(teams=[team1], organization=org)
         self.project2 = self.create_project(teams=[team2], organization=org2)
         self.project3 = self.create_project(teams=[team1], organization=org)
-
-        self.create_member(teams=[team1], user=user, organization=org)
 
         self.login_as(user=user)
 
@@ -49,7 +45,7 @@ class OrganizationReleasesDocsTest(APIDocsTestCase):
         self.validate_schema(request, response)
 
     def test_post(self):
-        data = {"version": "1.2.1", "projects": [self.project3.slug, self.project2.slug]}
+        data = {"version": "1.2.1", "projects": [self.project3.slug]}
         response = self.client.post(self.url, data)
         request = RequestFactory().post(self.url, data)
 

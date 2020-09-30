@@ -5,7 +5,6 @@ from datetime import datetime
 from django.core.urlresolvers import reverse
 from django.test.client import RequestFactory
 
-from sentry.models import Release
 from tests.apidocs.util import APIDocsTestCase
 
 
@@ -27,20 +26,13 @@ class OrganizationReleaseDetailsDocsTest(APIDocsTestCase):
         self.create_member(teams=[team1], user=user, organization=org)
 
         self.login_as(user=user)
-
-        release1 = Release.objects.create(
-            organization_id=org.id, version="1", date_added=datetime(2013, 8, 13, 3, 8, 24, 880386)
+        release = self.create_release(
+            project=self.project1, version="1", date_added=datetime(2013, 8, 13, 3, 8, 24, 880386)
         )
-        release1.add_project(self.project1)
-
-        release2 = Release.objects.create(
-            organization_id=org2.id, version="2", date_added=datetime(2013, 8, 14, 3, 8, 24, 880386)
-        )
-        release2.add_project(self.project2)
 
         self.url = reverse(
             "sentry-api-0-organization-release-details",
-            kwargs={"organization_slug": org.slug, "version": release1.version},
+            kwargs={"organization_slug": org.slug, "version": release.version},
         )
 
     def test_get(self):
