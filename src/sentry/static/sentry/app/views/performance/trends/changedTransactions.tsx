@@ -173,6 +173,7 @@ function ChangedTransactions(props: Props) {
       trendChangeType={trendChangeType}
       cursor={cursor}
       limit={5}
+      trendStats
     >
       {({isLoading, tableData, pageLinks}) => {
         const eventsTrendsData = (tableData as unknown) as TrendsData;
