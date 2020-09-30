@@ -37,7 +37,7 @@ export const Default = withInfo('todo')(() => {
           isShared={isShared}
           shareUrl={text(
             'shareUrl',
-            'https://sentry.io/share/issue/veryveryverylongurl/'
+            'https://sentry.io/share/issue/thisisanexampleshareurl/'
           )}
           onToggle={toggleShare}
           onReshare={action('Reshare')}

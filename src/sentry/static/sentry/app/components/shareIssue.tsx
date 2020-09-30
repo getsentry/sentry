@@ -11,8 +11,8 @@ import Clipboard from 'app/components/clipboard';
 import Confirm from 'app/components/confirm';
 import DropdownLink from 'app/components/dropdownLink';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import SpreadLayout from 'app/components/spreadLayout';
 import Switch from 'app/components/switch';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 
 type ContainerProps = {
   shareUrl: string;
@@ -21,15 +21,17 @@ type ContainerProps = {
   onCancel: () => void;
 };
 
+type UrlRef = AutoSelectText | null;
+
 class ShareUrlContainer extends React.Component<ContainerProps> {
-  urlRef?: AutoSelectText | null;
+  urlRef?: UrlRef;
 
   // Select URL when its container is clicked
   handleCopyClick = () => {
     this.urlRef?.selectText();
   };
 
-  handleUrlMount = (ref: AutoSelectText | null) => {
+  handleUrlMount = (ref: UrlRef) => {
     this.urlRef = ref;
     // Always select url if it's available
     this.urlRef?.selectText();
@@ -52,9 +54,8 @@ class ShareUrlContainer extends React.Component<ContainerProps> {
             borderless
             size="xsmall"
             onClick={this.handleCopyClick}
-          >
-            <IconCopy />
-          </ClipboardButton>
+            icon={<IconCopy />}
+          />
         </Clipboard>
 
         <Confirm
@@ -65,9 +66,12 @@ class ShareUrlContainer extends React.Component<ContainerProps> {
           onConfirming={onConfirming}
           onConfirm={onConfirm}
         >
-          <RegenerateButton title={t('Regenerate URL')} borderless size="xsmall">
-            <IconRefresh />
-          </RegenerateButton>
+          <ReshareButton
+            title={t('Generate new URL')}
+            borderless
+            size="xsmall"
+            icon={<IconRefresh />}
+          />
         </Confirm>
       </UrlContainer>
     );
@@ -76,16 +80,16 @@ class ShareUrlContainer extends React.Component<ContainerProps> {
 
 type Props = {
   loading: boolean;
-  /**
-   * Link is public
-   */
-  isShared?: boolean;
-  shareUrl?: string | null;
   onToggle: () => void;
   /**
    * Called when refreshing an existing link
    */
   onReshare: () => void;
+  /**
+   * Link is public
+   */
+  isShared?: boolean;
+  shareUrl?: string | null;
 };
 
 class ShareIssue extends React.Component<Props> {
@@ -117,7 +121,7 @@ class ShareIssue extends React.Component<Props> {
   handleConfirmReshare = () => (this.hasConfirmModal = true);
 
   render() {
-    const {loading, isShared = false, shareUrl, onReshare} = this.props;
+    const {loading, isShared, shareUrl, onReshare} = this.props;
 
     return (
       <DropdownLink
@@ -133,10 +137,10 @@ class ShareIssue extends React.Component<Props> {
         keepMenuOpen
       >
         <DropdownContent>
-          <SpreadLayout style={{marginBottom: loading || isShared ? 12 : undefined}}>
-            <SmallHeading>{t('Enable public share link')}</SmallHeading>
+          <Header>
+            <Title>{t('Enable public share link')}</Title>
             <Switch isActive={isShared} size="sm" toggle={this.handleToggleShare} />
-          </SpreadLayout>
+          </Header>
 
           {loading && (
             <LoadingContainer>
@@ -180,15 +184,24 @@ const DropdownTitleContent = styled('div')`
 
 const DropdownContent = styled('li')`
   padding: ${space(1.5)} ${space(2)};
+
+  > div:not(:last-of-type) {
+    margin-bottom: ${space(1.5)};
+  }
 `;
 
-const SmallHeading = styled('h6')`
+const Header = styled('div')`
+  display: flex;
+  justify-content: space-between;
+`;
+
+const Title = styled('h6')`
   margin: 0;
   padding-right: ${space(4)};
   white-space: nowrap;
 `;
 
-const IndicatorDot = styled('span')<{isShared: boolean}>`
+const IndicatorDot = styled('span')<{isShared?: boolean}>`
   display: inline-block;
   margin-right: ${space(0.5)};
   border-radius: 50%;
@@ -201,11 +214,8 @@ const StyledAutoSelectText = styled(AutoSelectText)<
   React.ComponentPropsWithRef<typeof AutoSelectText>
 >`
   flex: 1;
-  border: none;
-  padding: 4px 6px 4px 10px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  overflow: hidden;
+  padding: ${space(0.5)} 0 ${space(0.5)} ${space(0.75)};
+  ${overflowEllipsis}
 `;
 
 const StyledTextContainer = styled('div')`
@@ -227,6 +237,6 @@ const ClipboardButton = styled(Button)`
   }
 `;
 
-const RegenerateButton = styled(Button)`
+const ReshareButton = styled(Button)`
   height: 100%;
 `;
