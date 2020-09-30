@@ -16,7 +16,7 @@ from django.conf import settings
 from django.core.files.base import File as FileObj
 from django.core.files.base import ContentFile
 from django.core.files.storage import get_storage_class
-from django.db import models, transaction, IntegrityError
+from django.db import models, transaction, IntegrityError, router
 from django.utils import timezone
 
 from sentry.app import locks
@@ -151,7 +151,7 @@ class FileBlob(Model):
             if organization is None:
                 return
             try:
-                with transaction.atomic():
+                with transaction.atomic(using=router.db_for_write(File)):
                     FileBlobOwner.objects.create(organization=organization, blob=blob)
             except IntegrityError:
                 pass
@@ -402,7 +402,7 @@ class File(Model):
         contents.
         """
         tf = tempfile.NamedTemporaryFile()
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(File)):
             file_blobs = FileBlob.objects.filter(id__in=file_blob_ids).all()
 
             # Ensure blobs are in the order and duplication as provided
@@ -440,7 +440,8 @@ class File(Model):
         transaction.on_commit(
             lambda: delete_unreferenced_blobs.apply_async(
                 kwargs={"blob_ids": blob_ids}, countdown=60 * 5
-            )
+            ),
+            using=router.db_for_write(File),
         )
 
 

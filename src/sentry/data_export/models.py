@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import logging
 from django.conf import settings
 from django.core.urlresolvers import reverse
-from django.db import models
+from django.db import models, router
 from django.utils import timezone
 from django.utils.encoding import force_text
 
@@ -71,6 +71,11 @@ class ExportedData(Model):
     def delete_file(self):
         if self.file:
             self.file.delete()
+            # In multiple databases setup where sentry.File is in different
+            # database, the on_delete=SET_NULL will not work
+            if router.db_for_write(ExportedData) != router.db_for_write(self.file.__class__):
+                self.file = None
+                self.save(update_fields=["file"])
 
     def delete(self, *args, **kwargs):
         self.delete_file()

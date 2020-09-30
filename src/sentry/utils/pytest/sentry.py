@@ -46,6 +46,7 @@ def pytest_configure(config):
             # postgres requires running full migration all the time
             # since it has to install stored functions which come from
             # an actual migration.
+
             settings.DATABASE_ROUTERS = ("sentry.routers.MultiDatabaseRouter",)
 
             # patch TestCase to account for multiple databases

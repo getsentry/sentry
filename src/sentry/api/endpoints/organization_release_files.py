@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import re
 import logging
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, transaction, router
 from rest_framework.response import Response
 
 from sentry.api.base import DocSection
@@ -150,7 +150,7 @@ class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint):
         file.putfile(fileobj, logger=logger)
 
         try:
-            with transaction.atomic():
+            with transaction.atomic(using=router.db_for_write(ReleaseFile)):
                 releasefile = ReleaseFile.objects.create(
                     organization_id=release.organization_id,
                     release=release,

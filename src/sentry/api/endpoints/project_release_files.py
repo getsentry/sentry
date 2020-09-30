@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import re
 import logging
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, transaction, router
 from django.db.models import Q
 from six import BytesIO
 from rest_framework.response import Response
@@ -175,7 +175,7 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint):
         file.putfile(fileobj, logger=logger)
 
         try:
-            with transaction.atomic():
+            with transaction.atomic(using=router.db_for_write(ReleaseFile)):
                 releasefile = ReleaseFile.objects.create(
                     organization_id=release.organization_id,
                     release=release,
