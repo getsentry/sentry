@@ -1,5 +1,4 @@
-// eslint-disable-next-line sentry/no-react-hooks
-import React, {useState} from 'react';
+import React from 'react';
 import {action} from '@storybook/addon-actions';
 import {text} from '@storybook/addon-knobs';
 import {withInfo} from '@storybook/addon-info';
@@ -10,27 +9,28 @@ export default {
   title: 'Features/Issues/Share Issue',
 };
 
-export const Default = withInfo('todo')(() => {
-  const toggleAction = action('Toggle');
+class ShareSimulator extends React.Component {
+  state = {isShared: false, loading: false};
+  toggleAction = action('Toggle');
 
-  function Parent({children, ...props}) {
-    const [isShared, setShared] = useState(false);
-    const [loading, setLoading] = useState(false);
+  toggleShare() {
+    this.toggleAction();
+    this.setState({loading: true});
 
-    function toggleShare() {
-      toggleAction();
-      setLoading(true);
-      setTimeout(() => {
-        setShared(!isShared);
-        setLoading(false);
-      }, 1000);
-    }
-
-    return <div {...props}>{children({isShared, loading, toggleShare})}</div>;
+    // Simulate loading
+    setTimeout(() => {
+      this.setState(state => ({loading: false, isShared: !state.isShared}));
+    }, 1000);
   }
 
+  render() {
+    return this.props.children({...this.state, toggleShare: () => this.toggleShare()});
+  }
+}
+
+export const Default = withInfo('todo')(() => {
   return (
-    <Parent>
+    <ShareSimulator>
       {({isShared, loading, toggleShare}) => (
         <ShareIssue
           loading={loading}
@@ -43,7 +43,7 @@ export const Default = withInfo('todo')(() => {
           onReshare={action('Reshare')}
         />
       )}
-    </Parent>
+    </ShareSimulator>
   );
 });
 
