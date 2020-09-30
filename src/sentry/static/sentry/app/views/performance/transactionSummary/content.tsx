@@ -29,7 +29,7 @@ type Props = {
   eventView: EventView;
   transactionName: string;
   organization: Organization;
-  totalValues: number | null;
+  totalValues: Record<string, number>;
   projects: Project[];
 };
 
@@ -89,6 +89,8 @@ class SummaryContent extends React.Component<Props, State> {
     } = this.props;
     const {incompatibleAlertNotice} = this.state;
     const query = decodeScalar(location.query.query) || '';
+    const totalCount = totalValues.count;
+    const slowDuration = totalValues?.p95;
 
     return (
       <React.Fragment>
@@ -116,13 +118,14 @@ class SummaryContent extends React.Component<Props, State> {
               organization={organization}
               location={location}
               eventView={eventView}
-              totalValues={totalValues}
+              totalValues={totalCount}
             />
             <TransactionList
               organization={organization}
               transactionName={transactionName}
               location={location}
               eventView={eventView}
+              slowDuration={slowDuration}
             />
             <RelatedIssues
               organization={organization}
@@ -137,7 +140,7 @@ class SummaryContent extends React.Component<Props, State> {
             <UserStats
               organization={organization}
               location={location}
-              eventView={eventView}
+              totals={totalValues}
             />
             <SidebarCharts organization={organization} eventView={eventView} />
             <StatusBreakdown
@@ -147,7 +150,7 @@ class SummaryContent extends React.Component<Props, State> {
             />
             <Tags
               generateUrl={this.generateTagUrl}
-              totalValues={totalValues}
+              totalValues={totalCount}
               eventView={eventView}
               organization={organization}
               location={location}

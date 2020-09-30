@@ -1072,8 +1072,7 @@ export type Deploy = {
 
 export type Commit = {
   id: string;
-  key: string;
-  message: string;
+  message: string | null;
   dateCreated: string;
   repository?: Repository;
   author?: User;
@@ -1274,18 +1273,22 @@ export type TagValue = {
   ipAddress?: string;
 } & AvatarUser;
 
+type Topvalue = {
+  count: number;
+  firstSeen: string;
+  key: string;
+  lastSeen: string;
+  name: string;
+  value: string;
+};
+
 export type TagWithTopValues = {
+  topValues: Array<Topvalue>;
   key: string;
   name: string;
-  topValues: Array<{
-    count: number;
-    firstSeen: string;
-    key: string;
-    lastSeen: string;
-    name: string;
-    value: string;
-  }>;
   totalValues: number;
+  uniqueValues: number;
+  canDelete: boolean;
 };
 
 export type Level = 'error' | 'fatal' | 'info' | 'warning' | 'sample';

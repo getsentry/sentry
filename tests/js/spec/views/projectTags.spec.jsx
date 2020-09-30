@@ -62,7 +62,7 @@ describe('ProjectTags', function() {
     expect(wrapper).toSnapshot();
   });
 
-  it('deletes tag', function() {
+  it('deletes tag', async function() {
     const tags = wrapper.state('tags').length;
 
     wrapper
@@ -74,6 +74,8 @@ describe('ProjectTags', function() {
     $(document.body)
       .find('.modal button:contains("Confirm")')
       .click();
+
+    await tick(); // Wait for the handleDelete function
 
     wrapper.update();
 

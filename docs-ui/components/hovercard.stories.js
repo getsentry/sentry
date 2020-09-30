@@ -23,7 +23,7 @@ const tipColorOptions = {
 };
 
 export default {
-  title: 'UI/Hovercard',
+  title: 'Core/Tooltips/Hovercard',
 };
 
 export const _Hovercard = withInfo(

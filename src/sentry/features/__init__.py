@@ -92,12 +92,11 @@ default_manager.add("organizations:sso-basic", OrganizationFeature)  # NOQA
 default_manager.add("organizations:sso-rippling", OrganizationFeature)  # NOQA
 default_manager.add("organizations:sso-saml2", OrganizationFeature)  # NOQA
 default_manager.add("organizations:symbol-sources", OrganizationFeature)  # NOQA
+default_manager.add("organizations:transaction-comparison", OrganizationFeature)  # NOQA
 default_manager.add("organizations:trends", OrganizationFeature)  # NOQA
 default_manager.add("organizations:usage-stats-graph", OrganizationFeature)  # NOQA
 default_manager.add("organizations:dynamic-issue-counts", OrganizationFeature)  # NOQA
 # XXX(mark) Don't use this feature it is going away soon.
-default_manager.add("organizations:releases-v2", OrganizationFeature)  # NOQA
-default_manager.add("organizations:artifacts-in-settings", OrganizationFeature)  # NOQA
 default_manager.add("organizations:transaction-events", OrganizationFeature)  # NOQA
 default_manager.add("organizations:invite-members-rate-limits", OrganizationFeature)  # NOQA
 
@@ -140,4 +139,5 @@ get = default_manager.get
 has = default_manager.has
 all = default_manager.all
 add_handler = default_manager.add_handler
+add_entity_handler = default_manager.add_entity_handler
 has_for_batch = default_manager.has_for_batch

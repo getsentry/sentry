@@ -4,21 +4,21 @@ import {browserHistory} from 'react-router';
 import {Location} from 'history';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
-import * as Sentry from '@sentry/react';
 
 import {Client} from 'app/api';
 import {t} from 'app/locale';
-import {fetchTotalCount} from 'app/actionCreators/events';
 import {loadOrganizationTags} from 'app/actionCreators/tags';
 import {Organization, Project, GlobalSelection} from 'app/types';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import {PageContent} from 'app/styles/organization';
-import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
+import EventView from 'app/utils/discover/eventView';
 import {isAggregateField} from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
 import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
@@ -39,8 +39,11 @@ type Props = {
 
 type State = {
   eventView: EventView | undefined;
-  totalValues: number | null;
 };
+
+// Used to cast the totals request to numbers
+// as React.ReactText
+type TotalValues = Record<string, number>;
 
 class TransactionSummary extends React.Component<Props, State> {
   state: State = {
@@ -48,7 +51,6 @@ class TransactionSummary extends React.Component<Props, State> {
       this.props.location,
       getTransactionName(this.props)
     ),
-    totalValues: null,
   };
 
   static getDerivedStateFromProps(nextProps: Props, prevState: State): State {
@@ -63,22 +65,12 @@ class TransactionSummary extends React.Component<Props, State> {
 
   componentDidMount() {
     const {api, organization, selection} = this.props;
-    this.fetchTotalCount();
     loadOrganizationTags(api, organization.slug, selection);
     addRoutePerformanceContext(selection);
   }
 
-  componentDidUpdate(prevProps: Props, prevState: State) {
-    const {api, organization, location, selection} = this.props;
-    const {eventView} = this.state;
-
-    if (eventView && prevState.eventView) {
-      const currentQuery = eventView.getEventsAPIPayload(location);
-      const prevQuery = prevState.eventView.getEventsAPIPayload(prevProps.location);
-      if (!isAPIPayloadSimilar(currentQuery, prevQuery)) {
-        this.fetchTotalCount();
-      }
-    }
+  componentDidUpdate(prevProps: Props) {
+    const {api, organization, selection} = this.props;
 
     if (
       !isEqual(prevProps.selection.projects, selection.projects) ||
@@ -86,26 +78,6 @@ class TransactionSummary extends React.Component<Props, State> {
     ) {
       loadOrganizationTags(api, organization.slug, selection);
       addRoutePerformanceContext(selection);
-    }
-  }
-
-  async fetchTotalCount() {
-    const {api, organization, location} = this.props;
-    const {eventView} = this.state;
-    if (!eventView || !eventView.isValid()) {
-      return;
-    }
-
-    this.setState({totalValues: null});
-    try {
-      const totals = await fetchTotalCount(
-        api,
-        organization.slug,
-        eventView.getEventsAPIPayload(location)
-      );
-      this.setState({totalValues: totals});
-    } catch (err) {
-      Sentry.captureException(err);
     }
   }
 
@@ -121,9 +93,36 @@ class TransactionSummary extends React.Component<Props, State> {
     return [t('Summary'), t('Performance')].join(' - ');
   }
 
+  getTotalsEventView(organization: Organization, eventView: EventView) {
+    const threshold = organization.apdexThreshold.toString();
+
+    return eventView.withColumns([
+      {
+        kind: 'function',
+        function: ['apdex', threshold, undefined],
+      },
+      {
+        kind: 'function',
+        function: ['user_misery', threshold, undefined],
+      },
+      {
+        kind: 'function',
+        function: ['p95', '', undefined],
+      },
+      {
+        kind: 'function',
+        function: ['count', '', undefined],
+      },
+      {
+        kind: 'function',
+        function: ['count_unique', 'user', undefined],
+      },
+    ]);
+  }
+
   render() {
     const {organization, location} = this.props;
-    const {eventView, totalValues} = this.state;
+    const {eventView} = this.state;
     const transactionName = getTransactionName(this.props);
     if (!eventView || transactionName === undefined) {
       // If there is no transaction name, redirect to the Performance landing page
@@ -136,19 +135,34 @@ class TransactionSummary extends React.Component<Props, State> {
       });
       return null;
     }
+    const totalsView = this.getTotalsEventView(organization, eventView);
 
     return (
       <SentryDocumentTitle title={this.getDocumentTitle()} objSlug={organization.slug}>
         <GlobalSelectionHeader>
           <StyledPageContent>
             <LightWeightNoProjectMessage organization={organization}>
-              <SummaryContent
+              <DiscoverQuery
+                eventView={totalsView}
+                orgSlug={organization.slug}
                 location={location}
-                organization={organization}
-                eventView={eventView}
-                transactionName={transactionName}
-                totalValues={totalValues}
-              />
+              >
+                {({tableData, isLoading}) => {
+                  if (isLoading || !tableData?.data) {
+                    return <LoadingIndicator />;
+                  }
+                  const totals = tableData.data[0] as TotalValues;
+                  return (
+                    <SummaryContent
+                      location={location}
+                      organization={organization}
+                      eventView={eventView}
+                      transactionName={transactionName}
+                      totalValues={totals}
+                    />
+                  );
+                }}
+              </DiscoverQuery>
             </LightWeightNoProjectMessage>
           </StyledPageContent>
         </GlobalSelectionHeader>

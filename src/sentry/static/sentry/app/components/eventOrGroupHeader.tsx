@@ -1,5 +1,5 @@
 import React from 'react';
-import {Link, withRouter, WithRouterProps} from 'react-router';
+import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import {css} from '@emotion/core';
 import capitalize from 'lodash/capitalize';
@@ -38,44 +38,12 @@ class EventOrGroupHeader extends React.Component<Props> {
     size: 'normal',
   };
 
-  getTitle() {
-    const {hideIcons, hideLevel, includeLink, data, params, location} = this.props;
-
-    const orgId = params?.orgId;
-
-    const {id, level, status, isBookmarked, hasSeen} = data as Group;
-    const {eventID, groupID} = data as Event;
-
-    let Wrapper: 'span' | typeof GlobalSelectionLink;
-    const props: React.ComponentProps<Link> | React.HTMLAttributes<HTMLSpanElement> = {};
-
-    const basePath = `/organizations/${orgId}/issues/`;
-
-    if (includeLink) {
-      const query = {
-        query: this.props.query,
-        ...(location.query.sort !== undefined ? {sort: location.query.sort} : {}), // This adds sort to the query if one was selected from the issues list page
-        ...(location.query.project !== undefined ? {} : {_allp: 1}), //This appends _allp to the URL parameters if they have no project selected ("all" projects included in results). This is so that when we enter the issue details page and lock them to a project, we can properly take them back to the issue list page with no project selected (and not the locked project selected)
-      };
-
-      (props as React.ComponentProps<Link>).to = {
-        pathname: `${basePath}${eventID ? groupID : id}/${
-          eventID ? `events/${eventID}/` : ''
-        }`,
-        query,
-      };
-
-      Wrapper = GlobalSelectionLink;
-    } else {
-      Wrapper = 'span';
-    }
+  getTitleChildren() {
+    const {hideIcons, hideLevel, data} = this.props;
+    const {level, status, isBookmarked, hasSeen} = data as Group;
 
     return (
-      <Wrapper
-        {...props}
-        data-test-id={status === 'resolved' ? 'resolved-issue' : null}
-        style={status === 'resolved' ? {textDecoration: 'line-through'} : undefined}
-      >
+      <React.Fragment>
         {!hideLevel && level && (
           <GroupLevel level={level}>
             <Tooltip title={`Error level: ${capitalize(level)}`}>
@@ -94,8 +62,44 @@ class EventOrGroupHeader extends React.Component<Props> {
           </IconWrapper>
         )}
         <EventOrGroupTitle {...this.props} style={{fontWeight: hasSeen ? 400 : 600}} />
-      </Wrapper>
+      </React.Fragment>
     );
+  }
+
+  getTitle() {
+    const {includeLink, data, params, location} = this.props;
+
+    const orgId = params?.orgId;
+
+    const {id, status} = data as Group;
+    const {eventID, groupID} = data as Event;
+
+    const props = {
+      'data-test-id': status === 'resolved' ? 'resolved-issue' : null,
+      style: status === 'resolved' ? {textDecoration: 'line-through'} : undefined,
+    };
+
+    if (includeLink) {
+      return (
+        <GlobalSelectionLink
+          {...props}
+          to={{
+            pathname: `/organizations/${orgId}/issues/${eventID ? groupID : id}/${
+              eventID ? `events/${eventID}/` : ''
+            }`,
+            query: {
+              query: this.props.query,
+              ...(location.query.sort !== undefined ? {sort: location.query.sort} : {}), // This adds sort to the query if one was selected from the issues list page
+              ...(location.query.project !== undefined ? {} : {_allp: 1}), //This appends _allp to the URL parameters if they have no project selected ("all" projects included in results). This is so that when we enter the issue details page and lock them to a project, we can properly take them back to the issue list page with no project selected (and not the locked project selected)
+            },
+          }}
+        >
+          {this.getTitleChildren()}
+        </GlobalSelectionLink>
+      );
+    } else {
+      return <span {...props}>{this.getTitleChildren()}</span>;
+    }
   }
 
   render() {

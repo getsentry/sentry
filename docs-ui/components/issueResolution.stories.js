@@ -23,7 +23,7 @@ const RESOLVED_IN_COMMIT = {
 };
 
 export default {
-  title: 'Issues/ResolutionBox & MutedBox',
+  title: 'Features/Issues/ResolutionBox & MutedBox',
 };
 
 export const ResolvedStates = withInfo('Basic resolution & resolved by commit')(() => (

@@ -43,10 +43,8 @@ python3-saml>=1.4.0,<1.5
 python-u2flib-server>=5.0.0,<6.0.0
 PyYAML>=5.3,<5.4
 qrcode>=6.1.0,<6.2.0
-rb>=1.7.0,<2.0.0
-# redis-py-cluster==2.1.0 isn't released yet, so just pinning to the current latest commit
-# in the repo.
-redis-py-cluster @ https://github.com/Grokzen/redis-py-cluster/archive/d3ef787e033e0bbf97d0b3d17fc46cb5ae36d660.zip#egg=redis-py-cluster
+rb>=1.8.0,<2.0.0
+redis-py-cluster==2.1.0
 redis==3.3.11
 requests-oauthlib==1.2.0
 requests[security]>=2.20.0,<2.21.0
@@ -54,7 +52,7 @@ requests[security]>=2.20.0,<2.21.0
 rfc3339-validator==0.1.2
 rfc3986-validator==0.1.1
 # [end] jsonschema format validators
-sentry-relay>=0.8.0,<0.9.0
+sentry-relay>=0.8.1,<0.9.0
 sentry-sdk>=0.17.7,<0.18.0
 simplejson>=3.11.0,<3.12.0
 six>=1.11.0,<1.12.0
