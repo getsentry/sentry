@@ -160,7 +160,9 @@ const StreamGroup = createReactClass({
           queryTerms.push(`${queryTag}:${queryVal}`);
         }
 
-      if (!hasDiscoverQuery && queryObj.__text) queryTerms.push(queryObj.__text);
+      if (!hasDiscoverQuery && queryObj.__text) {
+        queryTerms.push(queryObj.__text);
+      }
     }
 
     const commonQuery = {projects: [data.project.id]};
@@ -189,15 +191,15 @@ const StreamGroup = createReactClass({
 
       const discoverView = EventView.fromSavedQuery(discoverQuery);
       return discoverView.getResultsViewUrlTarget(organization.slug);
-    } else {
-      return {
-        pathname: `/organizations/${organization.slug}/issues/${data.id}/events/`,
-        query: {
-          ...commonQuery,
-          query: searchQuery,
-        },
-      };
     }
+
+    return {
+      pathname: `/organizations/${organization.slug}/issues/${data.id}/events/`,
+      query: {
+        ...commonQuery,
+        query: searchQuery,
+      },
+    };
   },
 
   render() {
