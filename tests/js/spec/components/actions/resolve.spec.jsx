@@ -208,12 +208,12 @@ describe('ResolveActions', function() {
 
     expect(wrapper.find('CustomResolutionModal Select').prop('options')).toEqual([
       expect.objectContaining({
-        value: '92eccef279d966b2319f0802fa4b22b430a5f72b',
+        value: 'sentry-android-shop@1.2.0',
         label: expect.anything(),
       }),
     ]);
 
-    wrapper.find('input[id="version"]').simulate('change', {target: {value: '9'}});
+    wrapper.find('input[id="version"]').simulate('change', {target: {value: '1.2.0'}});
 
     await tick();
     wrapper.update();
@@ -224,7 +224,7 @@ describe('ResolveActions', function() {
     expect(onUpdate).toHaveBeenCalledWith({
       status: 'resolved',
       statusDetails: {
-        inRelease: '92eccef279d966b2319f0802fa4b22b430a5f72b',
+        inRelease: 'sentry-android-shop@1.2.0',
       },
     });
   });
