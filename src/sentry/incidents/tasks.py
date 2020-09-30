@@ -219,11 +219,6 @@ def process_pending_incident_snapshots():
                     incident.status == IncidentStatus.CLOSED.value
                     and not IncidentSnapshot.objects.filter(incident=incident).exists()
                 ):
-                    project_ids = list(
-                        IncidentProject.objects.filter(incident=incident).values_list(
-                            "project_id", flat=True
-                        )
-                    )
-                    if project_ids:
+                    if IncidentProject.objects.filter(incident=incident).exists():
                         create_incident_snapshot(incident, windowed_stats=True)
                 pending_snapshot.delete()
