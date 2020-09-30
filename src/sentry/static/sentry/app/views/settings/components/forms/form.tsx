@@ -51,6 +51,7 @@ type Props = {
     e: React.FormEvent,
     model: FormModel
   ) => void;
+  onPreSubmit?: () => void;
 } & Pick<FormOptions, 'onSubmitSuccess' | 'onSubmitError' | 'onFieldChange'>;
 
 type Context = {
@@ -148,6 +149,8 @@ export default class Form extends React.Component<Props> {
     if (this.model.isSaving) {
       return;
     }
+
+    this.props.onPreSubmit?.();
 
     if (this.props.onSubmit) {
       this.props.onSubmit(
