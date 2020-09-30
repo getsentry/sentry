@@ -125,7 +125,8 @@ export function assignToActor({id, actor}: AssignToActorParams) {
     });
 }
 
-export function deleteNote(api: Client, group: Group, id: string, oldText: string) {
+export function deleteNote(api: Client, group: Group, id: string, _oldText: string) {
+  const restore = group.activity.find(activity => activity.id === id);
   const index = GroupStore.removeActivity(group.id, id);
   if (index === -1) {
     // I dunno, the id wasn't found in the GroupStore
@@ -136,9 +137,7 @@ export function deleteNote(api: Client, group: Group, id: string, oldText: strin
     method: 'DELETE',
   });
 
-  promise.catch(() =>
-    GroupStore.addActivity(group.id, {id, data: {text: oldText}}, index)
-  );
+  promise.catch(() => GroupStore.addActivity(group.id, restore, index));
 
   return promise;
 }

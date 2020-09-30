@@ -193,14 +193,16 @@ class GroupDetails extends React.Component<Props, State> {
     }
   }
 
-  listener = GroupStore.listen(itemIds => this.onGroupChange(itemIds));
+  listener = GroupStore.listen(itemIds => this.onGroupChange(itemIds), undefined);
 
   onGroupChange(itemIds: Set<string>) {
     const id = this.props.params.groupId;
     if (itemIds.has(id)) {
       const group = GroupStore.get(id);
       if (group) {
-        if (group.stale) {
+        // TODO(ts) This needs a better approach. issueActions is splicing attributes onto
+        // group objects to cheat here.
+        if ((group as Group & {stale?: boolean}).stale) {
           this.fetchData();
           return;
         }
