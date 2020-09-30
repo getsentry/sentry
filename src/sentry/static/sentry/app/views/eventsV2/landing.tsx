@@ -37,8 +37,8 @@ import Banner from './banner';
 const BANNER_DISMISSED_KEY = 'discover-banner-dismissed';
 
 const SORT_OPTIONS: SelectValue<string>[] = [
-  {label: t('Recently Edited'), value: '-dateUpdated'},
   {label: t('My Queries'), value: 'myqueries'},
+  {label: t('Recently Edited'), value: '-dateUpdated'},
   {label: t('Query Name (A-Z)'), value: 'name'},
   {label: t('Date Created (Newest)'), value: '-dateCreated'},
   {label: t('Date Created (Oldest)'), value: 'dateCreated'},
@@ -115,9 +115,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
   getActiveSort() {
     const {location} = this.props;
 
-    const urlSort = location.query.sort
-      ? decodeScalar(location.query.sort)
-      : '-dateUpdated';
+    const urlSort = location.query.sort ? decodeScalar(location.query.sort) : 'myqueries';
     return SORT_OPTIONS.find(item => item.value === urlSort) || SORT_OPTIONS[0];
   }
 
@@ -220,6 +218,12 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
 
   handleSortChange = (value: string) => {
     const {location} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'discover_v2.change_sort',
+      eventName: 'Discoverv2: Sort By Changed',
+      organization_id: parseInt(this.props.organization.id, 10),
+      sort: value,
+    });
     ReactRouter.browserHistory.push({
       pathname: location.pathname,
       query: {
