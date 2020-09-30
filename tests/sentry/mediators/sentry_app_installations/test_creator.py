@@ -74,7 +74,7 @@ class TestCreator(TestCase):
     def test_notifies_service(self, run):
         with self.tasks():
             responses.add(responses.POST, "https://example.com/webhook")
-            install = self.creator.call()
+            install = Creator.run(organization=self.org, slug="nulldb", user=self.user)
             run.assert_called_once_with(install=install, user=self.user, action="created")
 
     @responses.activate

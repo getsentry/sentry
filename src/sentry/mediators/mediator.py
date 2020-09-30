@@ -145,7 +145,8 @@ class Mediator(object):
                 result = obj.call()
                 obj.audit()
                 obj.record_analytics()
-                return result
+        obj.post_install()
+        return result
 
     def __init__(self, *args, **kwargs):
         self.kwargs = kwargs
@@ -159,6 +160,10 @@ class Mediator(object):
 
     def record_analytics(self):
         # used to record data to Amplitude
+        pass
+
+    def post_install(self):
+        # used to call any hooks that have to happen after the transaction has been committed
         pass
 
     def call(self):
