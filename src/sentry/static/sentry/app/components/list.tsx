@@ -1,17 +1,23 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import {css} from '@emotion/core';
 
 import theme from 'app/utils/theme';
 import space from 'app/styles/space';
 
-export const List = styled('ul')`
+const listStyle = css`
   list-style: none;
   padding: 0;
   margin-bottom: ${space(2)};
+`;
 
-  ol& {
-    counter-reset: numberedList;
-  }
+export const List = styled('ul')`
+  ${listStyle};
+`;
+
+export const OrderedList = styled('ol')`
+  ${listStyle};
+  counter-reset: numberedList;
 `;
 
 type ListItemProps = {
@@ -66,7 +72,7 @@ export const ListItem = styled(({icon, className, children}: ListItemProps) => (
       p.icon &&
       `
       & > ${IconWrapper} {
-        top: 4px;
+        top: ${space(0.5)};
       }
 
       &:before {
