@@ -10,7 +10,7 @@ type Props = {
   title: string;
   content: React.ReactElement;
   disabled: boolean;
-  btnSaveLabel: string;
+  btnSaveLabel?: string;
 } & ModalRenderProps;
 
 const Modal = ({
@@ -22,7 +22,7 @@ const Modal = ({
   Body,
   Footer,
   closeModal,
-  btnSaveLabel,
+  btnSaveLabel = t('Save'),
 }: Props) => (
   <React.Fragment>
     <Header closeButton>{title}</Header>

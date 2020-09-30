@@ -73,8 +73,8 @@ class DialogManager<
     throw new Error('Not implemented');
   }
 
-  getBtnSaveLabel(): string {
-    return t('Save');
+  getBtnSaveLabel(): string | undefined {
+    return undefined;
   }
 
   setValidForm(isFormValid: boolean) {
