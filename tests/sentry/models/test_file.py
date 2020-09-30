@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import os
 
 from django.core.files.base import ContentFile
+from django.db import router
 
 from sentry.models import File, FileBlob, FileBlobIndex
 from sentry.testutils import TestCase
@@ -45,7 +46,9 @@ class FileTest(TestCase):
         baz_file.putfile(fileobj, 3)
 
         baz_id = baz_file.id
-        with self.tasks(), self.capture_on_commit_callbacks(execute=True):
+        with self.tasks(), self.capture_on_commit_callbacks(
+            using=router.db_for_write(File), execute=True
+        ):
             baz_file.delete()
 
         # remove all the blobs and blob indexes.
