@@ -109,14 +109,6 @@ jobs:
           # Below will exit with non-zero status if model changes are missing migrations
           sentry django makemigrations -n ci_test --check --dry-run --no-input || (echo '::error::Error: Migration required -- to generate a migration, run `sentry django makemigrations -n <some_name>`' && exit 1)
 
-  # TODO(joshuarli):
-  # More jobs. Also, python2 equivalents as well.
-  # - kakfa+zookeeper devservices necessary for what test suites?
-  # - MIGRATIONS_TEST_MIGRATE=1
-  # - TEST_SUITE=relay-integration
-  # - TEST_SUITE=symbolicator
-  # - TEST_SUITE=cli
-
   test-py3-simple-no-migrations:
     name: 'python3.6 backend (simple, no migrations)'
     runs-on: ubuntu-16.04
