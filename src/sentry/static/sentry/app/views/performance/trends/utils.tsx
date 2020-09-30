@@ -110,9 +110,9 @@ export const trendToColor = {
   [TrendChangeType.REGRESSION]: theme.red400,
 };
 
-export const trendOffsetQueryKeys = {
-  [TrendChangeType.IMPROVED]: 'improvedOffset',
-  [TrendChangeType.REGRESSION]: 'regressionOffset',
+export const trendSelectedQueryKeys = {
+  [TrendChangeType.IMPROVED]: 'improvedSelected',
+  [TrendChangeType.REGRESSION]: 'regressionSelected',
 };
 
 export const trendCursorNames = {
@@ -405,7 +405,7 @@ export function getTrendAliasedMinus(alias: string) {
 }
 
 export function getSelectedQueryKey(trendChangeType: TrendChangeType) {
-  return trendOffsetQueryKeys[trendChangeType];
+  return trendSelectedQueryKeys[trendChangeType];
 }
 
 /**

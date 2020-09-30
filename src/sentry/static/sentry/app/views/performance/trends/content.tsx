@@ -63,7 +63,7 @@ class TrendsContent extends React.Component<Props, State> {
 
     Object.values(TrendChangeType).forEach(trendChangeType => {
       const queryKey = getSelectedQueryKey(trendChangeType);
-      offsets[queryKey] = 0;
+      offsets[queryKey] = undefined;
     });
 
     trackAnalyticsEvent({
