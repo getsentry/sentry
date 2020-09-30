@@ -10,17 +10,17 @@ from tests.apidocs.util import APIDocsTestCase
 
 class ProjectServiceHooksDocs(APIDocsTestCase):
     def setUp(self):
-        organization = self.create_organization()
-        project = self.create_project(name="foo", organization=organization, teams=[])
-        self.create_service_hook(project=project, events=("event.created",))
-        self.create_service_hook(project=project, events=("event.alert",))
+        self.create_service_hook(project=self.project, events=("event.created",))
+        self.create_service_hook(project=self.project, events=("event.alert",))
 
         self.url = reverse(
             "sentry-api-0-service-hooks",
-            kwargs={"organization_slug": organization.slug, "project_slug": project.slug},
+            kwargs={"organization_slug": self.organization.slug, "project_slug": self.project.slug},
         )
 
         self.login_as(user=self.user)
+
+        print("URL", self.url)
 
     def test_get(self):
         response = self.client.get(self.url)

@@ -4,20 +4,13 @@ from __future__ import absolute_import
 
 from django.test.client import RequestFactory
 
-from sentry.testutils.helpers.datetime import before_now, iso_format
 from tests.apidocs.util import APIDocsTestCase
 
 
 class GroupTagKeyValuesDocs(APIDocsTestCase):
     def setUp(self):
         key, value = "foo", "bar"
-
-        project = self.create_project()
-
-        event = self.store_event(
-            data={"tags": {key: value}, "timestamp": iso_format(before_now(seconds=1))},
-            project_id=project.id,
-        )
+        event = self.create_event("a", tags={key: value})
         group = event.group
 
         self.login_as(user=self.user)

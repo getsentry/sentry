@@ -10,12 +10,9 @@ from tests.apidocs.util import APIDocsTestCase
 
 class ProjectUsersDocs(APIDocsTestCase):
     def setUp(self):
-        organization = self.create_organization()
-        project = self.create_project(name="foo", organization=organization, teams=[])
-
         self.url = reverse(
             "sentry-api-0-project-users",
-            kwargs={"organization_slug": organization.slug, "project_slug": project.slug},
+            kwargs={"organization_slug": self.organization.slug, "project_slug": self.project.slug},
         )
 
         self.login_as(user=self.user)
