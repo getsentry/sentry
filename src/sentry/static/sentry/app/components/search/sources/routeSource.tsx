@@ -125,12 +125,6 @@ class RouteSource extends React.Component<Props, State> {
   async createSearch() {
     const {project, organization} = this.props;
 
-    // Can't search routes without org and project
-    if (!project || !organization) {
-      this.setState({fuzzy: null});
-      return;
-    }
-
     const context = {
       project,
       organization,

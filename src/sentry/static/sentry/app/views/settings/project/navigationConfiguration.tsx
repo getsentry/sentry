@@ -3,8 +3,8 @@ import {NavigationSection} from 'app/views/settings/types';
 import {Organization, Project} from 'app/types';
 
 type ConfigParams = {
-  organization: Organization;
-  project: Project;
+  organization?: Organization;
+  project?: Project;
 };
 
 const pathPrefix = '/settings/:orgId/projects/:projectId';
@@ -69,7 +69,7 @@ export default function getConfiguration({
         {
           path: `${pathPrefix}/proguard/`,
           title: t('ProGuard'),
-          show: () => organization.features?.includes('android-mappings'),
+          show: () => !!organization?.features?.includes('android-mappings'),
         },
         {
           path: `${pathPrefix}/security-and-privacy/`,
