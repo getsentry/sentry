@@ -145,7 +145,7 @@ class RelayWrapper extends AsyncView<Props, State> {
               icon={<IconTelescope size="xl" />}
               title={t('The middle layer between your app and Sentry!')}
               description={t(
-                'Scrub all personally identifiable information before it arrives in Sentry. Relay improves event response time and acts as a proxy for organizations with restricted HTTP communication.'
+                'Scrub all personally identifiable information before it arrives at Sentry. Relay improves event response time and acts as a proxy for organizations with restricted HTTP communication.'
               )}
               action={
                 <EmptyMessageActions>
