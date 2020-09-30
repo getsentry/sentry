@@ -56,7 +56,7 @@ def backfill_eventstream(apps, schema_editor):
             event.group = groups.get(event.group_id)
             # When migrating old data from Sentry 9.0.0 to 9.1.2 to 10 in rapid succession, the event timestamp may be
             # missing. This adds it back
-            if not event.data.data.get("timestamp"):
+            if "timestamp" not in event.data.data:
                 event.data.data['timestamp'] = to_timestamp(event.datetime)
         eventstore.bind_nodes(_events, "data")
 
