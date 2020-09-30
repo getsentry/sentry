@@ -11,6 +11,7 @@ from django.utils import timezone
 
 from sentry import options
 from sentry.eventstore.models import Event as NewEvent
+from sentry.utils.dates import to_timestamp
 
 
 def backfill_eventstream(apps, schema_editor):
@@ -53,12 +54,10 @@ def backfill_eventstream(apps, schema_editor):
         for event in _events:
             event.project = projects.get(event.project_id)
             event.group = groups.get(event.group_id)
-            #When migrating old data from Sentry 9.0.0 to 9.1.2 to 10 in rapid succession, the event timestamp may be
+            # When migrating old data from Sentry 9.0.0 to 9.1.2 to 10 in rapid succession, the event timestamp may be
             # missing. This adds it back
             if not event.data.data.get("timestamp"):
-                # Python 2.7 way to convert datetime to timestamp.
-                timestamp = ((event.datetime.replace(tzinfo=None) - event.datetime.utcoffset()) - datetime(1970, 1, 1)).total_seconds()
-                event.data.data['timestamp'] = timestamp
+                event.data.data['timestamp'] = to_timestamp(event.datetime)
         eventstore.bind_nodes(_events, "data")
 
     if skip_backfill:
