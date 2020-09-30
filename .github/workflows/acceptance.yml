@@ -266,7 +266,7 @@ jobs:
 
         SENTRY_LIGHT_BUILD: 1
         SENTRY_SKIP_BACKEND_VALIDATION: 1
-        MIGRATIONS_TEST_MIGRATE: 0
+        MIGRATIONS_TEST_MIGRATE: 1
 
         # Node configuration
         NODE_OPTIONS: --max-old-space-size=4096

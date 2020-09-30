@@ -110,7 +110,7 @@ class ProjectDebugFile(Model):
     object_name = models.TextField()
     cpu_name = models.CharField(max_length=40)
     project = FlexibleForeignKey("sentry.Project", null=True)
-    debug_id = models.CharField(max_length=64, db_column="uuid")
+    debug_id = models.CharField(max_length=64, db_column=u"uuid")
     code_id = models.CharField(max_length=64, null=True)
     data = JSONField(null=True)
     objects = ProjectDebugFileManager()
