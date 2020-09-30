@@ -325,7 +325,7 @@ def get_release_health_data_overview(
             # Sometimes this might return a release we haven't seen yet or it might
             # return a time bucket that did not exist yet at the time of the initial
             # query.  In that case, just skip it.
-            if key in rv and time_bucket in rv[key]["stats"][health_stats_period]:
+            if key in rv and time_bucket < len(rv[key]["stats"][health_stats_period]):
                 rv[key]["stats"][health_stats_period][time_bucket][1] = x[stat]
 
     return rv
