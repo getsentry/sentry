@@ -15,7 +15,7 @@ from django.utils import timezone
 
 import sentry_sdk
 
-from sentry import tagstore, tsdb
+from sentry import tagstore, tsdb, features
 from sentry.app import env
 from sentry.api.event_search import convert_search_filter_to_snuba_query
 from sentry.api.serializers import Serializer, register, serialize
@@ -45,6 +45,7 @@ from sentry.models import (
     User,
     UserOption,
     UserOptionValue,
+    Organization,
 )
 from sentry.tagstore.snuba.backend import fix_tag_value_data
 from sentry.tsdb.snuba import SnubaTSDB
@@ -297,6 +298,11 @@ class GroupSerializerBase(Serializer):
 
         # should only have 1 org at this point
         organization_id = organization_id_list[0]
+        organization = Organization.objects.get_from_cache(id=organization_id)
+
+        has_unhandled_flag = features.has(
+            "organizations:unhandled-issue-flag", organization, actor=user
+        )
 
         # find all the integration installs that have issue tracking
         for integration in Integration.objects.filter(organizations=organization_id):
@@ -375,8 +381,10 @@ class GroupSerializerBase(Serializer):
                 "resolution_type": resolution_type,
                 "resolution_actor": resolution_actor,
                 "share_id": share_ids.get(item.id),
-                "is_unhandled": bool(snuba_stats.get(item.id, {}).get("unhandled")),
             }
+
+            if has_unhandled_flag:
+                result[item]["is_unhandled"] = bool(snuba_stats.get(item.id, {}).get("unhandled"))
 
             result[item].update(seen_stats.get(item, {}))
         return result
@@ -504,11 +512,15 @@ class GroupSerializerBase(Serializer):
             "assignedTo": serialize(attrs["assigned_to"], user, ActorSerializer()),
             "isBookmarked": attrs["is_bookmarked"],
             "isSubscribed": is_subscribed,
-            "isUnhandled": attrs["is_unhandled"],
             "subscriptionDetails": subscription_details,
             "hasSeen": attrs["has_seen"],
             "annotations": attrs["annotations"],
         }
+
+        # This attribute is currently feature gated
+        if "is_unhandled" in attrs:
+            group_dict["isUnhandled"] = attrs["is_unhandled"]
+
         group_dict.update(self._convert_seen_stats(attrs))
         return group_dict
 
