@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import keydown from 'react-keydown';
 import styled from '@emotion/styled';
+import PlatformIcon from 'platformicons';
 
 import {analytics} from 'app/utils/analytics';
 import {inputStyles} from 'app/styles/input';
@@ -12,7 +13,6 @@ import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import ExternalLink from 'app/components/links/externalLink';
 import ListLink from 'app/components/links/listLink';
 import NavTabs from 'app/components/navTabs';
-import PlatformIcon from 'app/components/platformIcon';
 import categoryList from 'app/data/platformCategories';
 import platforms from 'app/data/platforms';
 import space from 'app/styles/space';
@@ -201,10 +201,7 @@ const PlatformList = styled('div')`
 `;
 
 const StyledPlatformIcon = styled(PlatformIcon)`
-  width: 56px;
-  height: 56px;
   margin: ${space(2)};
-  border-radius: 5px;
 `;
 
 const ClearButton = styled(p => (
@@ -222,7 +219,13 @@ const ClearButton = styled(p => (
 
 const PlatformCard = styled(({platform, selected, onClear, ...props}) => (
   <div {...props}>
-    <StyledPlatformIcon platform={platform.id} withLanguageIcon size="lg" />
+    <StyledPlatformIcon
+      platform={platform.id}
+      size={56}
+      radius={5}
+      withLanguageIcon
+      format="lg"
+    />
 
     <h3>{platform.name}</h3>
     {selected && <ClearButton onClick={onClear} />}
