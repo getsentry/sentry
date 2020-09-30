@@ -1406,6 +1406,7 @@ class Function(object):
         aggregate=None,
         transform=None,
         result_type=None,
+        private=False,
     ):
         """
         Specifies a function interface that must be followed when defining new functions
@@ -1426,6 +1427,7 @@ class Function(object):
             will be filled into the string using `.format(...)`.
         :param str result_type: The resulting type of this function. Can be any of the following
             (duration, string, number, integer, percentage, date).
+        :param boolean private: Whether or not the function should be exposed to the end user.
         """
 
         self.name = name
@@ -1436,6 +1438,7 @@ class Function(object):
         self.column = column
         self.aggregate = aggregate
         self.transform = transform
+        self.private = private
 
         self.validate()
 
@@ -1621,10 +1624,13 @@ FUNCTIONS = {
         Function(
             "measurements_histogram",
             required_args=[
+                # the bucket_size and start_offset should already be adjusted
+                # using the multiplier before it is passed here
                 NumberRange("bucket_size", 0, None),
                 NumberRange("start_offset", 0, None),
                 NumberRange("multiplier", 1, None),
             ],
+            # floor((x * multiplier - start_offset) / bucket_size) * bucket_size + start_offset
             column=[
                 "plus",
                 [

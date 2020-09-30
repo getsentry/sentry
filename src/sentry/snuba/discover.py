@@ -962,6 +962,24 @@ def measurements_histogram_query(
     max_value=None,
     referrer=None,
 ):
+    """
+    API for generating histograms specifically for measurements.
+
+    This function allows you to generate histograms for multiple measurements
+    at once. The resulting histograms will have their bins aligned.
+
+    :param [str] measurements: The list of measurements for which you want to
+        generate the histograms for.
+    :param str user_query: Filter query string to create conditions from.
+    :param {str: str} params: Filtering parameters with start, end, project_id, environment
+    :param int num_buckets: The number of buckets the histogram should contain.
+    :param int precision: The number of decimal places to preserve, default 0.
+    :param float min_value: The minimum value allowed to be in the histogram.
+        If left unspecified, it is queried using `user_query` and `params`.
+    :param float max_value: The maximum value allowed to be in the histogram.
+        If left unspecified, it is queried using `user_query` and `params`.
+    """
+
     multiplier = int(10 ** precision)
     if max_value is not None:
         max_value -= 0.1 / multiplier
@@ -998,12 +1016,19 @@ def get_measurements_histogram_col(params):
 
 
 def find_measurements_histogram_params(num_buckets, min_value, max_value, multiplier):
+    """
+    Compute the parameters to use for measurements histogram. Using the provided
+    arguments, ensure that the generated histogram encapsolates the desired range.
+
+    :param int num_buckets: The number of buckets the histogram should contain.
+    :param float min_value: The minimum value allowed to be in the histogram inclusive.
+    :param float max_value: The maximum value allowed to be in the histogram inclusive.
+    :param int multipler: The multiplier we should use to preserve the desired precision.
+    """
+
     # finding the bounds might result in None if there isn't sufficient data
     if min_value is None or max_value is None:
         return HistogramParams(1, 0, multiplier)
-
-    # A single bucket in a histogram contains values from [start, end),
-    # meaning that start is inclusive and end is exclusive
 
     scaled_min = multiplier * min_value
     scaled_max = multiplier * max_value
@@ -1026,6 +1051,20 @@ def find_measurements_histogram_params(num_buckets, min_value, max_value, multip
 
 
 def find_measurements_min_max(measurements, min_value, max_value, user_query, params):
+    """
+    Find the min/max value of the specified measurements. If either min/max is already
+    specified, it will be used and not queried for.
+
+    :param [str] measurements: The list of measurements for which you want to
+        generate the histograms for.
+    :param float min_value: The minimum value allowed to be in the histogram.
+        If left unspecified, it is queried using `user_query` and `params`.
+    :param float max_value: The maximum value allowed to be in the histogram.
+        If left unspecified, it is queried using `user_query` and `params`.
+    :param str user_query: Filter query string to create conditions from.
+    :param {str: str} params: Filtering parameters with start, end, project_id, environment
+    """
+
     if min_value is not None and max_value is not None:
         return min_value, max_value
 
@@ -1069,6 +1108,19 @@ def find_measurements_min_max(measurements, min_value, max_value, user_query, pa
 
 
 def normalize_measurements_histogram(measurements, num_buckets, key_col, histogram_params, results):
+    """
+    Normalizes the histogram results by renaming the columns to key and bin
+    and make sure to zerofill any missing values.
+
+    :param [str] measurements: The list of measurements for which you want to
+        generate the histograms for.
+    :param int num_buckets: The number of buckets the histogram should contain.
+    :param str key_col: The column of the key name.
+    :param HistogramParms histogram_params: This histogram paramters used.
+    :param any results: The results from the histogram query that may be missing
+        bins and needs to be normalized.
+    """
+
     measurements = sorted(measurements)
     key_name = get_function_alias(key_col)
     bin_name = get_function_alias(get_measurements_histogram_col(histogram_params))

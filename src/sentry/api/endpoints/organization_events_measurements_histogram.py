@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import sentry_sdk
 
+from sentry import features
 from rest_framework import serializers
 from rest_framework.response import Response
 
@@ -16,12 +17,12 @@ class MeasurementsHistogramSerializer(serializers.Serializer):
     num_buckets = serializers.IntegerField(min_value=1)
     precision = serializers.IntegerField(default=0, min_value=0, max_value=4)
     measurement = serializers.ListField(allow_empty=False, max_length=4)
-    min = serializers.IntegerField(required=False)
-    max = serializers.IntegerField(required=False)
+    min = serializers.FloatField(required=False)
+    max = serializers.FloatField(required=False)
 
 
 class OrganizationEventsMeasurementsHistogramEndpoint(OrganizationEventsV2EndpointBase):
-    def has_feature(self, request, organization):
+    def has_feature(self, organization, request):
         return features.has("organizations:measurements", organization, actor=request.user)
 
     def get(self, request, organization):
@@ -42,16 +43,17 @@ class OrganizationEventsMeasurementsHistogramEndpoint(OrganizationEventsV2Endpoi
             if serializer.is_valid():
                 data = serializer.validated_data
 
-                results = discover.measurements_histogram_query(
-                    data["measurement"],
-                    request.GET.get("query"),
-                    params,
-                    data["num_buckets"],
-                    data["precision"],
-                    data.get("min"),
-                    data.get("max"),
-                    "api.organization-events-measurements-histogram",
-                )
+                with self.handle_query_errors():
+                    results = discover.measurements_histogram_query(
+                        data["measurement"],
+                        request.GET.get("query"),
+                        params,
+                        data["num_buckets"],
+                        data["precision"],
+                        data.get("min"),
+                        data.get("max"),
+                        "api.organization-events-measurements-histogram",
+                    )
 
                 results_with_meta = self.handle_results_with_meta(
                     request, organization, params["project_id"], results

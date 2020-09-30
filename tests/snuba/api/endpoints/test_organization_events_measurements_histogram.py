@@ -179,6 +179,34 @@ class OrganizationEventsMeasurementsHistogramEndpointTest(APITestCase, SnubaTest
             "precision": ["Ensure this value is less than or equal to 4."],
         }
 
+    def test_bad_params_invalid_min(self):
+        query = {
+            "project": [self.project.id],
+            "measurement": ["foo", "bar"],
+            "num_buckets": 10,
+            "min": "qux",
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 400
+        assert response.data == {
+            "min": ["A valid number is required."],
+        }
+
+    def test_bad_params_invalid_max(self):
+        query = {
+            "project": [self.project.id],
+            "measurement": ["foo", "bar"],
+            "num_buckets": 10,
+            "max": "qux",
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 400
+        assert response.data == {
+            "max": ["A valid number is required."],
+        }
+
     def test_histogram_empty(self):
         specs = [(i, i + 1, [("foo", 0), ("bar", 0)]) for i in range(5)]
 
@@ -373,6 +401,32 @@ class OrganizationEventsMeasurementsHistogramEndpointTest(APITestCase, SnubaTest
         response = self.do_request(query)
         assert response.status_code == 200
         assert response.data["data"] == self.as_response_data(specs)
+
+    def test_histogram_increased_precision_with_min_max(self):
+        # range is [1.25, 2.24], so it is divided into 5 buckets of width 0.25
+        specs = [
+            (1.00, 1.25, [("foo", 3)]),
+            (1.25, 1.25, [("foo", 0)]),
+            (1.50, 1.75, [("foo", 0)]),
+            (1.75, 1.75, [("foo", 0)]),
+            (2.00, 2.25, [("foo", 1)]),
+        ]
+        self.populate_measurements(specs)
+        specs[1] = (1.25, 1.50, specs[1][2])
+        specs[3] = (1.75, 2.00, specs[1][2])
+
+        query = {
+            "project": [self.project.id],
+            "measurement": ["foo"],
+            "num_buckets": 3,
+            "precision": 2,
+            "min": 1.25,
+            "max": 2.00,
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200
+        assert response.data["data"] == self.as_response_data(specs[1:4])
 
     def test_histogram_increased_precision_large_buckets(self):
         # range is [10.0000, 59.9999] so it is divided into 5 buckets of width 10
