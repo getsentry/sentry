@@ -28,7 +28,9 @@ const NotFound = () => (
       </li>
       <li>
         {tct('If all else fails, [link:contact us] with more details', {
-          link: <ExternalLink href="https://github.com/getsentry/sentry/issues/new/choose" />,
+          link: (
+            <ExternalLink href="https://github.com/getsentry/sentry/issues/new/choose" />
+          ),
         })}
       </li>
     </ul>
