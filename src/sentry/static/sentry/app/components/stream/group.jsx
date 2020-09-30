@@ -32,6 +32,21 @@ import {t} from 'app/locale';
 import Link from 'app/components/links/link';
 import {queryToObj} from 'app/utils/stream';
 
+const DiscoveryExclusionFields = [
+  'query',
+  'status',
+  'bookmarked_by',
+  'assigned',
+  'assigned_to',
+  'unassigned',
+  'subscribed_by',
+  'active_at',
+  'first_release',
+  'first_seen',
+  'is',
+  '__text',
+];
+
 const StreamGroup = createReactClass({
   displayName: 'StreamGroup',
 
@@ -139,7 +154,7 @@ const StreamGroup = createReactClass({
     if (filtered && query) {
       const queryObj = queryToObj(query);
       for (const queryTag in queryObj)
-        if (!['is', '__text'].includes(queryTag)) {
+        if (!DiscoveryExclusionFields.includes(queryTag)) {
           const queryVal = queryObj[queryTag].includes(' ')
             ? `"${queryObj[queryTag]}"`
             : queryObj[queryTag];
