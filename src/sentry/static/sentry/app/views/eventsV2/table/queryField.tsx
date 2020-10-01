@@ -67,6 +67,7 @@ class QueryField extends React.Component<Props> {
 
     switch (value.kind) {
       case FieldValueKind.TAG:
+      case FieldValueKind.MEASUREMENT:
       case FieldValueKind.FIELD:
         fieldValue = {kind: 'field', field: value.meta.name};
         break;
@@ -90,7 +91,7 @@ class QueryField extends React.Component<Props> {
           return;
         }
         if (param.kind === 'column') {
-          const field = this.getFieldOrTagValue(fieldValue.function[i + 1]);
+          const field = this.getFieldOrTagOrMeasurementValue(fieldValue.function[i + 1]);
           if (field === null) {
             fieldValue.function[i + 1] = param.defaultValue || '';
           } else if (
@@ -150,7 +151,7 @@ class QueryField extends React.Component<Props> {
     this.props.onChange(fieldValue);
   }
 
-  getFieldOrTagValue(name: string | undefined): FieldValue | null {
+  getFieldOrTagOrMeasurementValue(name: string | undefined): FieldValue | null {
     const {fieldOptions} = this.props;
     if (name === undefined) {
       return null;
@@ -160,6 +161,12 @@ class QueryField extends React.Component<Props> {
     if (fieldOptions[fieldName]) {
       return fieldOptions[fieldName].value;
     }
+
+    const measurementName = `measurement:${name}`;
+    if (fieldOptions[measurementName]) {
+      return fieldOptions[measurementName].value;
+    }
+
     const tagName =
       name.indexOf('tags[') === 0
         ? `tag:${name.replace(/tags\[(.*?)\]/, '$1')}`
@@ -198,7 +205,7 @@ class QueryField extends React.Component<Props> {
     }
 
     if (fieldValue.kind === 'field') {
-      field = this.getFieldOrTagValue(fieldValue.field);
+      field = this.getFieldOrTagOrMeasurementValue(fieldValue.field);
       fieldOptions = this.appendFieldIfUnknown(fieldOptions, field);
     }
 
@@ -213,7 +220,9 @@ class QueryField extends React.Component<Props> {
       parameterDescriptions = field.meta.parameters.map(
         (param, index: number): ParameterDescription => {
           if (param.kind === 'column') {
-            const fieldParameter = this.getFieldOrTagValue(fieldValue.function[1]);
+            const fieldParameter = this.getFieldOrTagOrMeasurementValue(
+              fieldValue.function[1]
+            );
             fieldOptions = this.appendFieldIfUnknown(fieldOptions, fieldParameter);
             return {
               kind: 'column',
@@ -222,7 +231,8 @@ class QueryField extends React.Component<Props> {
               options: Object.values(fieldOptions).filter(
                 ({value}) =>
                   (value.kind === FieldValueKind.FIELD ||
-                    value.kind === FieldValueKind.TAG) &&
+                    value.kind === FieldValueKind.TAG ||
+                    value.kind === FieldValueKind.MEASUREMENT) &&
                   param.columnTypes.includes(value.meta.dataType)
               ),
             };
@@ -386,12 +396,18 @@ class QueryField extends React.Component<Props> {
               <components.Option label={label} {...(props as any)}>
                 <span data-test-id="label">{label}</span>
                 {data.value.kind === FieldValueKind.TAG && <Badge text="tag" />}
+                {data.value.kind === FieldValueKind.MEASUREMENT && (
+                  <Badge text="measurement" />
+                )}
               </components.Option>
             ),
             SingleValue: ({data, ...props}: SingleValueProps<OptionType>) => (
               <components.SingleValue data={data} {...(props as any)}>
                 <span data-test-id="label">{data.label}</span>
                 {data.value.kind === FieldValueKind.TAG && <Badge text="tag" />}
+                {data.value.kind === FieldValueKind.MEASUREMENT && (
+                  <Badge text="measurement" />
+                )}
               </components.SingleValue>
             ),
           }}

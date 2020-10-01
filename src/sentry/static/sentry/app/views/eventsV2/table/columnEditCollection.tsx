@@ -24,6 +24,7 @@ type Props = {
   columns: Column[];
   organization: LightWeightOrganization;
   tagKeys: null | string[];
+  measurementKeys: null | string[];
   // Fired when columns are added/removed/modified
   onChange: (columns: Column[]) => void;
 };
@@ -73,7 +74,10 @@ class ColumnEditCollection extends React.Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    if (this.props.tagKeys !== prevProps.tagKeys) {
+    if (
+      this.props.tagKeys !== prevProps.tagKeys ||
+      this.props.measurementKeys !== prevProps.measurementKeys
+    ) {
       this.syncFields();
     }
   }
@@ -93,6 +97,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
     return generateFieldOptions({
       organization: this.props.organization,
       tagKeys: this.props.tagKeys,
+      measurementKeys: this.props.measurementKeys,
     });
   }
 
