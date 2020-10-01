@@ -152,6 +152,7 @@ export async function redirectToProject(newProjectSlug: string) {
 
 type HelpSearchModalOptipons = {
   organization: Organization;
+  placeholder?: string;
 };
 
 export async function openHelpSearchModal(options: HelpSearchModalOptipons) {

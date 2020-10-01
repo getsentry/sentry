@@ -7,11 +7,11 @@ import OrganizationAuditLog from 'app/views/settings/organizationAuditLog';
 
 jest.mock('jquery');
 
-describe('OrganizationAuditLog', function() {
+describe('OrganizationAuditLog', function () {
   const org = TestStubs.Organization();
   const ENDPOINT = `/organizations/${org.slug}/audit-logs/`;
 
-  beforeEach(function() {
+  beforeEach(function () {
     Client.clearMockResponses();
     Client.addMockResponse({
       url: ENDPOINT,
@@ -19,7 +19,7 @@ describe('OrganizationAuditLog', function() {
     });
   });
 
-  it('renders', function(done) {
+  it('renders', function (done) {
     const wrapper = mountWithTheme(
       <OrganizationAuditLog location={{query: ''}} params={{orgId: org.slug}} />,
       TestStubs.routerContext()
@@ -33,22 +33,16 @@ describe('OrganizationAuditLog', function() {
     });
   });
 
-  it('displays whether an action was done by a superuser', function() {
+  it('displays whether an action was done by a superuser', function () {
     const wrapper = mountWithTheme(
       <OrganizationAuditLog location={{query: ''}} params={{orgId: org.slug}} />,
       TestStubs.routerContext()
     );
-    expect(
-      wrapper
-        .find('div[data-test-id="actor-name"]')
-        .at(0)
-        .text()
-    ).toEqual(expect.stringContaining('(Sentry Staff)'));
-    expect(
-      wrapper
-        .find('div[data-test-id="actor-name"]')
-        .at(1)
-        .text()
-    ).toEqual(expect.not.stringContaining('(Sentry Staff)'));
+    expect(wrapper.find('div[data-test-id="actor-name"]').at(0).text()).toEqual(
+      expect.stringContaining('(Sentry Staff)')
+    );
+    expect(wrapper.find('div[data-test-id="actor-name"]').at(1).text()).toEqual(
+      expect.not.stringContaining('(Sentry Staff)')
+    );
   });
 });

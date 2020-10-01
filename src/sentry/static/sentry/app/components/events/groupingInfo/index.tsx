@@ -71,9 +71,9 @@ class EventGroupingInfo extends AsyncComponent<Props, State> {
       .join(', ');
 
     return (
-      <SummaryGroupedBy data-test-id="loaded-grouping-info">{`(${t(
-        'grouped by'
-      )} ${groupedBy || t('nothing')})`}</SummaryGroupedBy>
+      <SummaryGroupedBy data-test-id="loaded-grouping-info">{`(${t('grouped by')} ${
+        groupedBy || t('nothing')
+      })`}</SummaryGroupedBy>
     );
   }
 

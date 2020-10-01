@@ -2,7 +2,7 @@ import {getRepositories} from 'app/actionCreators/repositories';
 import RepositoryActions from 'app/actions/repositoryActions';
 import RepositoryStore from 'app/stores/repositoryStore';
 
-describe('RepositoryActionCreator', function() {
+describe('RepositoryActionCreator', function () {
   const orgSlug = 'myOrg';
   const repoUrl = `/organizations/${orgSlug}/repos/`;
 
