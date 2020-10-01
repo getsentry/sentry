@@ -80,8 +80,9 @@ export class ApiTokens extends AsyncView {
       <div>
         <SettingsPageHeader title="Auth Tokens" action={action} />
         <AlertLink
-          to={`/settings/${(organization && organization.slug) ||
-            ''}/developer-settings/new-internal`}
+          to={`/settings/${
+            (organization && organization.slug) || ''
+          }/developer-settings/new-internal`}
         >
           {t(
             "Auth Tokens are tied to the logged in user, meaning they'll stop working if the user leaves the organization! We suggest using internal integrations to create/manage tokens tied to the organization instead."

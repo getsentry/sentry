@@ -14,8 +14,8 @@ const childContextTypes = {
   location: PropTypes.object,
 };
 
-describe('OrganizationApiKeyDetails', function() {
-  beforeEach(function() {
+describe('OrganizationApiKeyDetails', function () {
+  beforeEach(function () {
     Client.clearMockResponses();
     Client.addMockResponse({
       url: '/organizations/org-slug/api-keys/',
@@ -29,7 +29,7 @@ describe('OrganizationApiKeyDetails', function() {
     });
   });
 
-  it('renders', function() {
+  it('renders', function () {
     const wrapper = mount(
       <OrganizationApiKeyDetails params={{apiKey: 1, orgId: 'org-slug'}} />,
       {

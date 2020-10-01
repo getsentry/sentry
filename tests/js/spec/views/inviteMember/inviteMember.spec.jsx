@@ -9,10 +9,10 @@ import ConfigStore from 'app/stores/configStore';
 jest.mock('app/api');
 jest.mock('jquery');
 
-describe('InviteMember', function() {
+describe('InviteMember', function () {
   let organization, baseProps, teams, baseContext;
 
-  beforeEach(function() {
+  beforeEach(function () {
     organization = TestStubs.Organization({
       id: '1',
       slug: 'testOrg',
@@ -55,7 +55,7 @@ describe('InviteMember', function() {
     });
   });
 
-  it('should render loading', function() {
+  it('should render loading', function () {
     const wrapper = shallow(<InviteMember {...baseProps} />, {
       ...baseContext,
       disableLifecycleMethods: true,
@@ -63,7 +63,7 @@ describe('InviteMember', function() {
     expect(wrapper).toSnapshot();
   });
 
-  it('should render no team select when there is only one option', function() {
+  it('should render no team select when there is only one option', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/testOrg/members/me/',
       body: {
@@ -89,7 +89,7 @@ describe('InviteMember', function() {
     expect(wrapper.state('selectedTeams').has(team[0].slug)).toBe(true);
   });
 
-  it('should use invite/add language based on config', function() {
+  it('should use invite/add language based on config', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/testOrg/members/me/',
       body: {
@@ -119,7 +119,7 @@ describe('InviteMember', function() {
     expect(wrapper.find('TextBlock')).toSnapshot();
   });
 
-  it('should redirect when no roles available', function() {
+  it('should redirect when no roles available', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/testOrg/members/me/',
       body: {
@@ -167,7 +167,7 @@ describe('InviteMember', function() {
     expect(pushMock).toHaveBeenCalledWith('/organizations/testOrg/members/');
   });
 
-  it('should render roles when available and allowed, and handle submitting', function() {
+  it('should render roles when available and allowed, and handle submitting', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/testOrg/members/me/',
       body: {
@@ -208,7 +208,7 @@ describe('InviteMember', function() {
     expect(mock).toHaveBeenCalledTimes(3);
   });
 
-  it('shows an error when submitting an invalid email', async function() {
+  it('shows an error when submitting an invalid email', async function () {
     MockApiClient.addMockResponse({
       url: '/organizations/testOrg/members/me/',
       body: {
@@ -254,7 +254,7 @@ describe('InviteMember', function() {
     expect(wrapper.find('.has-error .error').text()).toBe('Enter a valid email address.');
   });
 
-  it('allows teams to be removed', async function() {
+  it('allows teams to be removed', async function () {
     MockApiClient.addMockResponse({
       url: '/organizations/testOrg/members/me/',
       body: {
@@ -284,10 +284,7 @@ describe('InviteMember', function() {
     wrapper.find('TeamSelect DropdownButton').simulate('click');
 
     // Click the first item
-    wrapper
-      .find('TeamSelect TeamDropdownElement')
-      .first()
-      .simulate('click');
+    wrapper.find('TeamSelect TeamDropdownElement').first().simulate('click');
 
     // Remove our one team
     const button = wrapper.find('TeamSelect TeamRow Button');
@@ -307,7 +304,7 @@ describe('InviteMember', function() {
     );
   });
 
-  it('allows teams to be added', async function() {
+  it('allows teams to be added', async function () {
     MockApiClient.addMockResponse({
       url: '/organizations/testOrg/members/me/',
       body: {
@@ -337,10 +334,7 @@ describe('InviteMember', function() {
     wrapper.find('TeamSelect DropdownButton').simulate('click');
 
     // Click the first item
-    wrapper
-      .find('TeamSelect TeamDropdownElement')
-      .first()
-      .simulate('click');
+    wrapper.find('TeamSelect TeamDropdownElement').first().simulate('click');
 
     // Save Member
     wrapper.find('Button[priority="primary"]').simulate('click');

@@ -4,11 +4,11 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import FrameLine from 'app/components/events/interfaces/frame/frameLine';
 
-describe('Frame', function() {
+describe('Frame', function () {
   let data;
 
-  describe('renderOriginalSourceInfo()', function() {
-    beforeEach(function() {
+  describe('renderOriginalSourceInfo()', function () {
+    beforeEach(function () {
       data = {
         origAbsPath: 'https://beta.getsentry.com/_static/sentry/dist/vendor.js',
         origColNo: 2503,
@@ -20,7 +20,7 @@ describe('Frame', function() {
       };
     });
 
-    it('should render the source map information as a HTML string', function() {
+    it('should render the source map information as a HTML string', function () {
       const frame = mountWithTheme(<FrameLine data={data} components={[]} />);
 
       expect(frame.find('Tooltip')).toSnapshot();
