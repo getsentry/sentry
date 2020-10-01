@@ -4,17 +4,17 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import SimilarScoreCard from 'app/components/similarScoreCard';
 
-describe('SimilarScoreCard', function() {
-  beforeEach(function() {});
+describe('SimilarScoreCard', function () {
+  beforeEach(function () {});
 
-  afterEach(function() {});
+  afterEach(function () {});
 
-  it('renders', function() {
+  it('renders', function () {
     const wrapper = mountWithTheme(<SimilarScoreCard />);
     expect(wrapper).toSnapshot();
   });
 
-  it('renders with score list', function() {
+  it('renders with score list', function () {
     const wrapper = mountWithTheme(
       <SimilarScoreCard
         scoreList={[

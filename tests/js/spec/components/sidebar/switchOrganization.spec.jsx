@@ -4,11 +4,11 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {SwitchOrganization} from 'app/components/sidebar/sidebarDropdown/switchOrganization';
 
-describe('SwitchOrganization', function() {
+describe('SwitchOrganization', function () {
   const routerContext = TestStubs.routerContext();
   const {organization} = routerContext.context;
 
-  it('can list organizations', function() {
+  it('can list organizations', function () {
     jest.useFakeTimers();
     const wrapper = mountWithTheme(
       <SwitchOrganization
@@ -25,7 +25,7 @@ describe('SwitchOrganization', function() {
     jest.useRealTimers();
   });
 
-  it('shows "Create an Org" if they have permission', function() {
+  it('shows "Create an Org" if they have permission', function () {
     jest.useFakeTimers();
     const wrapper = mountWithTheme(
       <SwitchOrganization
@@ -44,7 +44,7 @@ describe('SwitchOrganization', function() {
     jest.useRealTimers();
   });
 
-  it('does not have "Create an Org" if they do not have permission', function() {
+  it('does not have "Create an Org" if they do not have permission', function () {
     jest.useFakeTimers();
     const wrapper = mountWithTheme(
       <SwitchOrganization

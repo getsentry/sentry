@@ -5,7 +5,7 @@ import moment from 'moment';
 import ResultGrid from 'app/components/resultGrid';
 import {t} from 'app/locale';
 
-export const prettyDate = function(x) {
+export const prettyDate = function (x) {
   return moment(x).format('ll');
 };
 

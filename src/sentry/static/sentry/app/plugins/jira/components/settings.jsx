@@ -9,9 +9,9 @@ class Settings extends BasePlugin.DefaultSettings {
   constructor(props) {
     super(props);
     this.PAGE_FIELD_LIST = {
-      '0': ['instance_url', 'username', 'password'],
-      '1': ['default_project'],
-      '2': ['ignored_fields', 'default_priority', 'default_issue_type', 'auto_create'],
+      0: ['instance_url', 'username', 'password'],
+      1: ['default_project'],
+      2: ['ignored_fields', 'default_priority', 'default_issue_type', 'auto_create'],
     };
 
     this.back = this.back.bind(this);
