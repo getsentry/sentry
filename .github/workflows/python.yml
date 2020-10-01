@@ -1,5 +1,9 @@
 name: python
 on:
+  push:
+    branches:
+      - master
+      - releases/**
   pull_request:
     paths:
       # Matches all python files regardless of directory depth.
@@ -8,6 +12,8 @@ on:
 
 jobs:
   check-missing-migration:
+    # Not necessary for this job to run on the push branches.
+    if: ${{ github.ref != 'refs/heads/master' || contains(github.ref, 'releases/') }}
     name: Check Migration Required
     runs-on: ubuntu-16.04
 
@@ -105,9 +111,8 @@ jobs:
           sentry django makemigrations -n ci_test --check --dry-run --no-input || (echo '::error::Error: Migration required -- to generate a migration, run `sentry django makemigrations -n <some_name>`' && exit 1)
 
   test-py3:
-    name: 'py3 [ignore fails]'
+    name: 'python3.6 backend'
     runs-on: ubuntu-16.04
-    continue-on-error: true
     strategy:
       matrix:
         instance: [0, 1, 2, 3]
@@ -189,14 +194,7 @@ jobs:
           sentry init
           sentry devservices up postgres redis clickhouse snuba
 
-      # When we have a full backend test matrix for py3, make a py2 one with new rb as well.
-      # TODO(joshuarli):
-      # - kakfa+zookeeper devservices necessary for what test suites?
-      # - is `docker exec sentry_snuba snuba migrate` needed?
-      # - TEST_SUITE=relay-integration
-      # - TEST_SUITE=symbolicator
-      # - TEST_SUITE=cli
-      - name: Python 3.6 backend w/o migrations (${{ steps.config.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
+      - name: Python 3.6 backend (${{ steps.config.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
         if: always()
         run: |
           make travis-test-postgres
@@ -204,7 +202,7 @@ jobs:
           TEST_GROUP: ${{ matrix.instance }}
 
   test-py3-snuba:
-    name: 'py3 snuba [ignore fails]'
+    name: '[ignore fails] python3.6 backend (snuba)'
     runs-on: ubuntu-16.04
     continue-on-error: true
     strategy:
