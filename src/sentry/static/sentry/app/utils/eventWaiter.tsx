@@ -109,14 +109,14 @@ class EventWaiter extends React.Component<Props, State> {
       firstIssue = issues.find((issue: Group) => issue.firstSeen === firstEvent) || true;
 
       recordAnalyticsFirstEvent({
-        key: 'first_event_recieved',
+        key: 'first_event_received',
         organization,
         project,
       });
     } else {
       firstIssue = firstEvent;
       recordAnalyticsFirstEvent({
-        key: 'first_transaction_recieved',
+        key: 'first_transaction_received',
         organization,
         project,
       });
