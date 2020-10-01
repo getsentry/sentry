@@ -37,25 +37,13 @@ class ProjectKeyStatus(object):
 
 class ProjectKeyManager(BaseManager):
     def post_save(self, instance, **kwargs):
-        if instance.original_project_id:
-            schedule_update_config_cache(
-                project_id=instance.original_project_id,
-                generate=True,
-                update_reason="projectkey.post_save",
-            )
-
+        # TODO: Update all old projects
         schedule_update_config_cache(
             project_id=instance.project_id, generate=True, update_reason="projectkey.post_save"
         )
 
     def post_delete(self, instance, **kwargs):
-        if instance.original_project_id:
-            schedule_update_config_cache(
-                project_id=instance.original_project_id,
-                generate=True,
-                update_reason="projectkey.post_delete",
-            )
-
+        # TODO: Update all old projects
         schedule_update_config_cache(
             project_id=instance.project_id, generate=True, update_reason="projectkey.post_delete"
         )
@@ -89,13 +77,6 @@ class ProjectKey(Model):
 
     rate_limit_count = BoundedPositiveIntegerField(null=True)
     rate_limit_window = BoundedPositiveIntegerField(null=True)
-
-    # Redirecting a DSN moves it into a new project, but keeps the original
-    # project identifier without foreign key relation ship. The string
-    # representation of the DSN is immutable, even after the original project is
-    # deleted.
-    original_org_id = BoundedPositiveIntegerField(null=True, default=None)
-    original_project_id = BoundedPositiveIntegerField(null=True, default=None, db_index=True)
 
     objects = ProjectKeyManager(
         cache_fields=("public_key", "secret_key"),
@@ -149,9 +130,12 @@ class ProjectKey(Model):
             # so anything downstream expecting DoesNotExist works fine
             raise ProjectKey.DoesNotExist("ProjectKey matching query does not exist.")
         except ProjectKey.DoesNotExist:
-            # Try for redirect DSNs, which are associated with the new project,
-            # but store the old project identifier.
-            return ProjectKey.objects.get(public_key=public_key, original_project_id=project_id)
+            # Try for a redirect DSN. For every redirect, there is an entry in
+            # ProjectKeyRedirect pointing to the final key. Note that this
+            # cannot be cached and always performs a database query.
+            return ProjectKey.objects.get(
+                public_key=public_key, redirect_set__from_project_id=project_id
+            )
 
     @classmethod
     def get_default(cls, project):
@@ -196,7 +180,7 @@ class ProjectKey(Model):
             urlparts.scheme,
             key,
             urlparts.netloc + urlparts.path,
-            self.original_project_id or self.project_id,
+            self.dsn_project_id,
         )
 
     @property
@@ -204,8 +188,24 @@ class ProjectKey(Model):
         return self.project.organization_id
 
     @property
+    def original_org_id(self):
+        return self.data.get("original_org_id")
+
+    @original_org_id.setter
+    def original_org_id(self, value):
+        self.data["original_org_id"] = value
+
+    @property
     def organization(self):
         return self.project.organization
+
+    @property
+    def original_project_id(self):
+        return self.data.get("original_project_id")
+
+    @original_project_id.setter
+    def original_project_id(self, value):
+        self.data["original_project_id"] = value
 
     @property
     def dsn_project_id(self):

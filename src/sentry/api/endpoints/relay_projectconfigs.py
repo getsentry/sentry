@@ -73,7 +73,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
             for key in ProjectKey.objects.filter(project_id__in=project_ids):
                 project_keys.setdefault(key.project_id, []).append(key)
         with Hub.current.start_span(op="relay_fetch_keys"):
-            for key in ProjectKey.objects.filter(original_project_id__in=project_ids):
+            for key in ProjectKey.objects.filter(redirect_set__from_project_id__in=project_ids):
                 project_keys.setdefault(key.project_id, []).append(key)
 
         metrics.timing("relay_project_configs.projects_requested", len(project_ids))
@@ -86,6 +86,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
 
             project = projects.get(int(project_id))
             if project is None:
+                # TODO: Check if the request is for a redirect DSN.
                 continue
 
             organization = orgs.get(project.organization_id)

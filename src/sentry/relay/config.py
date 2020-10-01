@@ -39,7 +39,7 @@ def get_public_key_configs(project, full_config, project_keys=None):
             key["numericId"] = project_key.id
 
         # Turn it around: Relay requires redirect keys in the original project.
-        if project_key.original_project_id == project.id:
+        if project_key.project_id != project.id:
             key["redirectProjectId"] = project_key.project_id
 
         public_keys.append(key)
@@ -127,7 +127,7 @@ def get_project_config(project, full_config=True, project_keys=None):
                 "datascrubbingSettings": get_datascrubbing_settings(project),
             },
             "organizationId": project.organization_id,
-            "projectId": project.id,  # XXX: Unused by Relay, required by Python store
+            "projectId": project.id,
         }
 
     if not full_config:

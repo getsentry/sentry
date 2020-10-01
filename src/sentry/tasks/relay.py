@@ -61,7 +61,10 @@ def update_config_cache(generate, organization_id=None, project_id=None, update_
 
     if generate:
         project_keys = {}
-        for key in ProjectKey.objects.filter(project_id__in=[project.id for project in projects]):
+        project_ids = [project.id for project in projects]
+        for key in ProjectKey.objects.filter(project_id__in=project_ids):
+            project_keys.setdefault(key.project_id, []).append(key)
+        for key in ProjectKey.objects.filter(redirect_set__from_project_id__in=project_ids):
             project_keys.setdefault(key.project_id, []).append(key)
 
         project_configs = {}
