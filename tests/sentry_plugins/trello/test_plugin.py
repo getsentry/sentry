@@ -1,9 +1,10 @@
 from __future__ import absolute_import
 
 import responses
-
+from six.moves.urllib.parse import urlparse, parse_qsl
 from exam import fixture
 from django.test import RequestFactory
+
 from sentry.testutils import PluginTestCase
 from sentry.utils import json
 
@@ -215,10 +216,20 @@ class TrelloPluginApiTests(TrelloPluginTestBase):
         }
 
         request = responses.calls[0].request
-        assert (
-            request.url
-            == "https://api.trello.com/1/search?cards_limit=100&partial=true&card_fields=name%2CshortLink%2CidShort&key=39g&query=Key&modelTypes=cards&token=7c8951d1&idOrganizations=f187"
-        )
+        url = urlparse(request.url)
+        query = dict(parse_qsl(url.query))
+
+        assert url.path == "/1/search"
+        assert query == {
+            "cards_limit": "100",
+            "partial": "true",
+            "modelTypes": "cards",
+            "token": "7c8951d1",
+            "card_fields": "name,shortLink,idShort",
+            "key": "39g",
+            "query": "Key",
+            "idOrganizations": "f187",
+        }
 
     @responses.activate
     def test_view_autocomplete_no_org(self):
@@ -248,7 +259,16 @@ class TrelloPluginApiTests(TrelloPluginTestBase):
         }
 
         request = responses.calls[0].request
-        assert (
-            request.url
-            == "https://api.trello.com/1/search?cards_limit=100&partial=true&modelTypes=cards&token=7c8951d1&card_fields=name%2CshortLink%2CidShort&key=39g&query=Key"
-        )
+        url = urlparse(request.url)
+        query = dict(parse_qsl(url.query))
+
+        assert url.path == "/1/search"
+        assert query == {
+            "cards_limit": "100",
+            "partial": "true",
+            "modelTypes": "cards",
+            "token": "7c8951d1",
+            "card_fields": "name,shortLink,idShort",
+            "key": "39g",
+            "query": "Key",
+        }
