@@ -787,7 +787,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
         }
         user_counts = {item_id: value["count"] for item_id, value in seen_data.items()}
         last_seen = {item_id: value["last_seen"] for item_id, value in seen_data.items()}
-        if not environment_ids:
+        if not environment_ids and not start and not end and not conditions:
             first_seen = {item.id: item.first_seen for item in item_list}
             times_seen = {item.id: item.times_seen for item in item_list}
         else:
