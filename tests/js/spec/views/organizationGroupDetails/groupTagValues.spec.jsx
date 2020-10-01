@@ -39,10 +39,7 @@ describe('GroupTagValues', () => {
     await tick();
     wrapper.update();
 
-    wrapper
-      .find('Link')
-      .first()
-      .simulate('click', {button: 0});
+    wrapper.find('Link').first().simulate('click', {button: 0});
 
     expect(router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/issues/',

@@ -21,8 +21,8 @@ const Message = () => (
   </React.Fragment>
 );
 
-const CongratsRobotsVideo = React.lazy(() =>
-  import(/* webpackChunkName: "CongratsRobotsVideo" */ './congratsRobots')
+const CongratsRobotsVideo = React.lazy(
+  () => import(/* webpackChunkName: "CongratsRobotsVideo" */ './congratsRobots')
 );
 
 /**

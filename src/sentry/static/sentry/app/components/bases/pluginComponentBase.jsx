@@ -11,7 +11,7 @@ import {
 } from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 
-const callbackWithArgs = function(callback, ...args) {
+const callbackWithArgs = function (callback, ...args) {
   if (isFunction(callback)) {
     callback = callback.bind(this, ...args);
   } else {

@@ -1,22 +1,25 @@
-Object.defineProperty(exports, "__esModule", { value: true });
-var tslib_1 = require("tslib");
-var hub_1 = require("@sentry/hub");
+/* global exports */
+Object.defineProperty(exports, '__esModule', {value: true});
+const tslib_1 = require('tslib');
+const hub_1 = require('@sentry/hub');
 /**
  * This calls a function on the current hub.
  * @param method function to call on hub.
  * @param args to pass to function.
  */
 function callOnHub(method) {
-    var args = [];
-    for (var _i = 1; _i < arguments.length; _i++) {
-        args[_i - 1] = arguments[_i];
-    }
-    var hub = hub_1.getCurrentHub();
-    if (hub && hub[method]) {
-        // tslint:disable-next-line:no-unsafe-any
-        return hub[method].apply(hub, tslib_1.__spread(args));
-    }
-    throw new Error("No hub defined or " + method + " was not found on the hub, please open a bug report.");
+  const args = [];
+  for (let _i = 1; _i < arguments.length; _i++) {
+    args[_i - 1] = arguments[_i];
+  }
+  const hub = hub_1.getCurrentHub();
+  if (hub && hub[method]) {
+    // tslint:disable-next-line:no-unsafe-any
+    return hub[method].apply(hub, tslib_1.__spread(args));
+  }
+  throw new Error(
+    'No hub defined or ' + method + ' was not found on the hub, please open a bug report.'
+  );
 }
 /**
  * Captures an exception event and sends it to Sentry.
@@ -25,17 +28,16 @@ function callOnHub(method) {
  * @returns The generated eventId.
  */
 function captureException(exception) {
-    var syntheticException;
-    try {
-        throw new Error('Sentry syntheticException');
-    }
-    catch (exception) {
-        syntheticException = exception;
-    }
-    return callOnHub('captureException', exception, {
-        originalException: exception,
-        syntheticException: syntheticException,
-    });
+  let syntheticException;
+  try {
+    throw new Error('Sentry syntheticException');
+  } catch (error) {
+    syntheticException = error;
+  }
+  return callOnHub('captureException', exception, {
+    originalException: exception,
+    syntheticException,
+  });
 }
 exports.captureException = captureException;
 /**
@@ -46,17 +48,16 @@ exports.captureException = captureException;
  * @returns The generated eventId.
  */
 function captureMessage(message, level) {
-    var syntheticException;
-    try {
-        throw new Error(message);
-    }
-    catch (exception) {
-        syntheticException = exception;
-    }
-    return callOnHub('captureMessage', message, level, {
-        originalException: message,
-        syntheticException: syntheticException,
-    });
+  let syntheticException;
+  try {
+    throw new Error(message);
+  } catch (exception) {
+    syntheticException = exception;
+  }
+  return callOnHub('captureMessage', message, level, {
+    originalException: message,
+    syntheticException,
+  });
 }
 exports.captureMessage = captureMessage;
 /**
@@ -66,7 +67,7 @@ exports.captureMessage = captureMessage;
  * @returns The generated eventId.
  */
 function captureEvent(event) {
-    return callOnHub('captureEvent', event);
+  return callOnHub('captureEvent', event);
 }
 exports.captureEvent = captureEvent;
 /**
@@ -78,7 +79,7 @@ exports.captureEvent = captureEvent;
  * @param breadcrumb The breadcrumb to record.
  */
 function addBreadcrumb(breadcrumb) {
-    callOnHub('addBreadcrumb', breadcrumb);
+  callOnHub('addBreadcrumb', breadcrumb);
 }
 exports.addBreadcrumb = addBreadcrumb;
 /**
@@ -86,7 +87,7 @@ exports.addBreadcrumb = addBreadcrumb;
  * @param callback Callback function that receives Scope.
  */
 function configureScope(callback) {
-    callOnHub('configureScope', callback);
+  callOnHub('configureScope', callback);
 }
 exports.configureScope = configureScope;
 /**
@@ -103,7 +104,7 @@ exports.configureScope = configureScope;
  * @param callback that will be enclosed into push/popScope.
  */
 function withScope(callback) {
-    callOnHub('withScope', callback);
+  callOnHub('withScope', callback);
 }
 exports.withScope = withScope;
 /**
@@ -116,11 +117,11 @@ exports.withScope = withScope;
  * @param args Arguments to pass to the client/fontend.
  */
 function _callOnClient(method) {
-    var args = [];
-    for (var _i = 1; _i < arguments.length; _i++) {
-        args[_i - 1] = arguments[_i];
-    }
-    callOnHub.apply(void 0, tslib_1.__spread(['_invokeClient', method], args));
+  const args = [];
+  for (let _i = 1; _i < arguments.length; _i++) {
+    args[_i - 1] = arguments[_i];
+  }
+  callOnHub.apply(void 0, tslib_1.__spread(['_invokeClient', method], args));
 }
 exports._callOnClient = _callOnClient;
 //# sourceMappingURL=index.js.map

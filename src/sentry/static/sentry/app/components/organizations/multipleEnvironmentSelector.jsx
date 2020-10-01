@@ -184,7 +184,7 @@ class MultipleEnvironmentSelector extends React.PureComponent {
   getEnvironments() {
     const {projects, selectedProjects} = this.props;
     let environments = [];
-    projects.forEach(function(project) {
+    projects.forEach(function (project) {
       const projectId = parseInt(project.id, 10);
 
       // Include environments from:

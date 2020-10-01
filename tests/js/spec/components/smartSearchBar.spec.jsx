@@ -7,40 +7,40 @@ import {SmartSearchBar} from 'app/components/smartSearchBar';
 import {addSpace, removeSpace} from 'app/components/smartSearchBar/utils';
 import TagStore from 'app/stores/tagStore';
 
-describe('addSpace()', function() {
-  it('should add a space when there is no trailing space', function() {
+describe('addSpace()', function () {
+  it('should add a space when there is no trailing space', function () {
     expect(addSpace('one')).toEqual('one ');
   });
 
-  it('should not add another space when there is already one', function() {
+  it('should not add another space when there is already one', function () {
     expect(addSpace('one ')).toEqual('one ');
   });
 
-  it('should leave the empty string alone', function() {
+  it('should leave the empty string alone', function () {
     expect(addSpace('')).toEqual('');
   });
 });
 
-describe('removeSpace()', function() {
-  it('should remove a trailing space', function() {
+describe('removeSpace()', function () {
+  it('should remove a trailing space', function () {
     expect(removeSpace('one ')).toEqual('one');
   });
 
-  it('should not remove the last character if it is not a space', function() {
+  it('should not remove the last character if it is not a space', function () {
     expect(removeSpace('one')).toEqual('one');
   });
 
-  it('should leave the empty string alone', function() {
+  it('should leave the empty string alone', function () {
     expect(removeSpace('')).toEqual('');
   });
 });
 
-describe('SmartSearchBar', function() {
+describe('SmartSearchBar', function () {
   let options, organization, supportedTags;
   let environmentTagValuesMock;
   const tagValuesMock = jest.fn(() => Promise.resolve([]));
 
-  beforeEach(function() {
+  beforeEach(function () {
     TagStore.reset();
     TagStore.onLoadTagsSuccess(TestStubs.Tags());
     tagValuesMock.mockClear();
@@ -77,11 +77,11 @@ describe('SmartSearchBar', function() {
     });
   });
 
-  afterEach(function() {
+  afterEach(function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('quotes in values with spaces when autocompleting', async function() {
+  it('quotes in values with spaces when autocompleting', async function () {
     jest.useRealTimers();
     const getTagValuesMock = jest.fn().mockImplementation(() => {
       return Promise.resolve(['this is filled with spaces']);
@@ -115,7 +115,7 @@ describe('SmartSearchBar', function() {
     );
   });
 
-  it('escapes quotes in values properly when autocompleting', async function() {
+  it('escapes quotes in values properly when autocompleting', async function () {
     jest.useRealTimers();
     const getTagValuesMock = jest.fn().mockImplementation(() => {
       return Promise.resolve(['this " is " filled " with " quotes']);
@@ -149,7 +149,7 @@ describe('SmartSearchBar', function() {
     );
   });
 
-  it('does not preventDefault when there are no search items and is loading and enter is pressed', async function() {
+  it('does not preventDefault when there are no search items and is loading and enter is pressed', async function () {
     jest.useRealTimers();
     const getTagValuesMock = jest.fn().mockImplementation(() => {
       return new Promise(() => {});
@@ -181,7 +181,7 @@ describe('SmartSearchBar', function() {
     expect(preventDefault).not.toHaveBeenCalled();
   });
 
-  it('calls preventDefault when there are existing search items and is loading and enter is pressed', async function() {
+  it('calls preventDefault when there are existing search items and is loading and enter is pressed', async function () {
     jest.useRealTimers();
     const getTagValuesMock = jest.fn().mockImplementation(() => {
       return new Promise(() => {});
@@ -222,8 +222,8 @@ describe('SmartSearchBar', function() {
     expect(preventDefault).toHaveBeenCalled();
   });
 
-  describe('componentWillReceiveProps()', function() {
-    it('should add a space when setting state.query', function() {
+  describe('componentWillReceiveProps()', function () {
+    it('should add a space when setting state.query', function () {
       const searchBar = mountWithTheme(
         <SmartSearchBar
           organization={organization}
@@ -236,7 +236,7 @@ describe('SmartSearchBar', function() {
       expect(searchBar.state().query).toEqual('one ');
     });
 
-    it('should update state.query if props.query is updated from outside', function() {
+    it('should update state.query if props.query is updated from outside', function () {
       const searchBar = mountWithTheme(
         <SmartSearchBar
           organization={organization}
@@ -251,7 +251,7 @@ describe('SmartSearchBar', function() {
       expect(searchBar.state().query).toEqual('two ');
     });
 
-    it('should not reset user input if a noop props change happens', function() {
+    it('should not reset user input if a noop props change happens', function () {
       const searchBar = mountWithTheme(
         <SmartSearchBar
           organization={organization}
@@ -267,7 +267,7 @@ describe('SmartSearchBar', function() {
       expect(searchBar.state().query).toEqual('two');
     });
 
-    it('should reset user input if a meaningful props change happens', function() {
+    it('should reset user input if a meaningful props change happens', function () {
       const searchBar = mountWithTheme(
         <SmartSearchBar
           organization={organization}
@@ -284,8 +284,8 @@ describe('SmartSearchBar', function() {
     });
   });
 
-  describe('getQueryTerms()', function() {
-    it('should extract query terms from a query string', function() {
+  describe('getQueryTerms()', function () {
+    it('should extract query terms from a query string', function () {
       let query = 'tagname: ';
       expect(SmartSearchBar.getQueryTerms(query, query.length)).toEqual(['tagname:']);
 
@@ -302,8 +302,8 @@ describe('SmartSearchBar', function() {
     });
   });
 
-  describe('getLastTermIndex()', function() {
-    it('should provide the index of the last query term, given cursor index', function() {
+  describe('getLastTermIndex()', function () {
+    it('should provide the index of the last query term, given cursor index', function () {
       let query = 'tagname:';
       expect(SmartSearchBar.getLastTermIndex(query, 0)).toEqual(8);
 
@@ -315,8 +315,8 @@ describe('SmartSearchBar', function() {
     });
   });
 
-  describe('clearSearch()', function() {
-    it('clears the query', function() {
+  describe('clearSearch()', function () {
+    it('clears the query', function () {
       const props = {
         organization,
         query: 'is:unresolved ruby',
@@ -330,7 +330,7 @@ describe('SmartSearchBar', function() {
       expect(searchBar.state.query).toEqual('');
     });
 
-    it('calls onSearch()', async function() {
+    it('calls onSearch()', async function () {
       const props = {
         organization,
         query: 'is:unresolved ruby',
@@ -345,8 +345,8 @@ describe('SmartSearchBar', function() {
     });
   });
 
-  describe('onQueryFocus()', function() {
-    it('displays the drop down', function() {
+  describe('onQueryFocus()', function () {
+    it('displays the drop down', function () {
       const searchBar = mountWithTheme(
         <SmartSearchBar
           organization={organization}
@@ -362,7 +362,7 @@ describe('SmartSearchBar', function() {
       expect(searchBar.state.dropdownVisible).toBe(true);
     });
 
-    it('displays dropdown in hasPinnedSearch mode', function() {
+    it('displays dropdown in hasPinnedSearch mode', function () {
       const searchBar = mountWithTheme(
         <SmartSearchBar
           organization={organization}
@@ -380,8 +380,8 @@ describe('SmartSearchBar', function() {
     });
   });
 
-  describe('onQueryBlur()', function() {
-    it('hides the drop down', function() {
+  describe('onQueryBlur()', function () {
+    it('hides the drop down', function () {
       const searchBar = mountWithTheme(
         <SmartSearchBar organization={organization} supportedTags={supportedTags} />,
         options
@@ -396,9 +396,9 @@ describe('SmartSearchBar', function() {
     });
   });
 
-  describe('onKeyUp()', function() {
-    describe('escape', function() {
-      it('blurs the input', function() {
+  describe('onKeyUp()', function () {
+    describe('escape', function () {
+      it('blurs the input', function () {
         const wrapper = mountWithTheme(
           <SmartSearchBar organization={organization} supportedTags={supportedTags} />,
           options
@@ -415,8 +415,8 @@ describe('SmartSearchBar', function() {
     });
   });
 
-  describe('render()', function() {
-    it('invokes onSearch() when submitting the form', function() {
+  describe('render()', function () {
+    it('invokes onSearch() when submitting the form', function () {
       const stubbedOnSearch = jest.fn();
       const wrapper = mountWithTheme(
         <SmartSearchBar
@@ -435,7 +435,7 @@ describe('SmartSearchBar', function() {
       expect(stubbedOnSearch).toHaveBeenCalledWith('is:unresolved');
     });
 
-    it('invokes onSearch() when search is cleared', async function() {
+    it('invokes onSearch() when search is cleared', async function () {
       jest.useRealTimers();
       const props = {
         organization,
@@ -451,7 +451,7 @@ describe('SmartSearchBar', function() {
       expect(props.onSearch).toHaveBeenCalledWith('');
     });
 
-    it('invokes onSearch() on submit in hasPinnedSearch mode', function() {
+    it('invokes onSearch() on submit in hasPinnedSearch mode', function () {
       const stubbedOnSearch = jest.fn();
       const wrapper = mountWithTheme(
         <SmartSearchBar
@@ -470,7 +470,7 @@ describe('SmartSearchBar', function() {
     });
   });
 
-  it('handles an empty query', function() {
+  it('handles an empty query', function () {
     const props = {
       query: '',
       defaultQuery: 'is:unresolved',
@@ -481,11 +481,11 @@ describe('SmartSearchBar', function() {
     expect(wrapper.state('query')).toEqual('');
   });
 
-  describe('updateAutoCompleteItems()', function() {
-    beforeEach(function() {
+  describe('updateAutoCompleteItems()', function () {
+    beforeEach(function () {
       jest.useFakeTimers();
     });
-    it('sets state when empty', function() {
+    it('sets state when empty', function () {
       const props = {
         query: '',
         organization,
@@ -498,7 +498,7 @@ describe('SmartSearchBar', function() {
       expect(searchBar.state.activeSearchItem).toEqual(-1);
     });
 
-    it('sets state when incomplete tag', async function() {
+    it('sets state when incomplete tag', async function () {
       const props = {
         query: 'fu',
         organization,
@@ -517,7 +517,7 @@ describe('SmartSearchBar', function() {
       expect(searchBar.state.activeSearchItem).toEqual(-1);
     });
 
-    it('sets state when incomplete tag has negation operator', async function() {
+    it('sets state when incomplete tag has negation operator', async function () {
       const props = {
         query: '!fu',
         organization,
@@ -536,7 +536,7 @@ describe('SmartSearchBar', function() {
       expect(searchBar.state.activeSearchItem).toEqual(-1);
     });
 
-    it('sets state when incomplete tag as second input', async function() {
+    it('sets state when incomplete tag as second input', async function () {
       const props = {
         query: 'is:unresolved fu',
         organization,
@@ -556,7 +556,7 @@ describe('SmartSearchBar', function() {
       expect(searchBar.state.activeSearchItem).toEqual(-1);
     });
 
-    it('does not request values when tag is environments', function() {
+    it('does not request values when tag is environments', function () {
       const props = {
         query: 'environment:production',
         excludeEnvironment: true,
@@ -569,7 +569,7 @@ describe('SmartSearchBar', function() {
       expect(environmentTagValuesMock).not.toHaveBeenCalled();
     });
 
-    it('does not request values when tag is `timesSeen`', function() {
+    it('does not request values when tag is `timesSeen`', function () {
       // This should never get called
       const mock = MockApiClient.addMockResponse({
         url: '/projects/123/456/tags/timesSeen/values/',
@@ -589,7 +589,7 @@ describe('SmartSearchBar', function() {
       expect(mock).not.toHaveBeenCalled();
     });
 
-    it('requests values when tag is `firstRelease`', function() {
+    it('requests values when tag is `firstRelease`', function () {
       const mock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/releases/',
         body: [],
@@ -622,8 +622,8 @@ describe('SmartSearchBar', function() {
     });
   });
 
-  describe('onAutoComplete()', function() {
-    it('completes terms from the list', function() {
+  describe('onAutoComplete()', function () {
+    it('completes terms from the list', function () {
       const props = {
         query: 'event.type:error ',
         organization,
@@ -634,7 +634,7 @@ describe('SmartSearchBar', function() {
       expect(searchBar.state.query).toEqual('event.type:error myTag:');
     });
 
-    it('completes values if cursor is not at the end', function() {
+    it('completes values if cursor is not at the end', function () {
       const props = {
         query: 'id: event.type:error ',
         organization,
@@ -646,7 +646,7 @@ describe('SmartSearchBar', function() {
       expect(searchBar.state.query).toEqual('id:12345 event.type:error ');
     });
 
-    it('completes values if cursor is at the end', function() {
+    it('completes values if cursor is at the end', function () {
       const props = {
         query: 'event.type:error id:',
         organization,
@@ -658,7 +658,7 @@ describe('SmartSearchBar', function() {
       expect(searchBar.state.query).toEqual('event.type:error id:12345 ');
     });
 
-    it('keeps the negation operator is present', function() {
+    it('keeps the negation operator is present', function () {
       const props = {
         query: '',
         organization,
@@ -675,7 +675,7 @@ describe('SmartSearchBar', function() {
       expect(searchBar.state.query).toEqual('event.type:error !title:');
     });
 
-    it('removes wildcard', function() {
+    it('removes wildcard', function () {
       const props = {
         query: '',
         organization,
@@ -700,7 +700,7 @@ describe('SmartSearchBar', function() {
       expect(searchBar.state.query).toEqual('event.type:error');
     });
 
-    it('handles special case for user tag', function() {
+    it('handles special case for user tag', function () {
       const props = {
         query: '',
         organization,
@@ -723,9 +723,9 @@ describe('SmartSearchBar', function() {
     });
   });
 
-  describe('onTogglePinnedSearch()', function() {
+  describe('onTogglePinnedSearch()', function () {
     let pinRequest, unpinRequest;
-    beforeEach(function() {
+    beforeEach(function () {
       pinRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/pinned-searches/',
         method: 'PUT',
@@ -743,7 +743,7 @@ describe('SmartSearchBar', function() {
       });
     });
 
-    it('does not pin when query is empty', async function() {
+    it('does not pin when query is empty', async function () {
       const wrapper = mountWithTheme(
         <SmartSearchBar
           api={new Client()}
@@ -761,7 +761,7 @@ describe('SmartSearchBar', function() {
       expect(pinRequest).not.toHaveBeenCalled();
     });
 
-    it('adds pins', async function() {
+    it('adds pins', async function () {
       const wrapper = mountWithTheme(
         <SmartSearchBar
           api={new Client()}
@@ -780,7 +780,7 @@ describe('SmartSearchBar', function() {
       expect(unpinRequest).not.toHaveBeenCalled();
     });
 
-    it('removes pins', async function() {
+    it('removes pins', async function () {
       const pinnedSearch = TestStubs.Search({isPinned: true});
       const wrapper = mountWithTheme(
         <SmartSearchBar

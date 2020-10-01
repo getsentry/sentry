@@ -32,7 +32,7 @@ const IssueListSidebar = createReactClass({
     return {
       tags: {},
       query: '',
-      onQueryChange: function() {},
+      onQueryChange: function () {},
     };
   },
 
@@ -74,11 +74,11 @@ const IssueListSidebar = createReactClass({
     );
   },
 
-  onTextChange: function(evt) {
+  onTextChange: function (evt) {
     this.setState({textFilter: evt.target.value});
   },
 
-  debouncedTextChange: debounce(function(text) {
+  debouncedTextChange: debounce(function (text) {
     this.setState(
       {
         queryObj: {...this.state.queryObj, __text: text},

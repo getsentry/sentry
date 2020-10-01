@@ -11,12 +11,12 @@ jest.mock('app/actionCreators/plugins', () => ({
   fetchPlugins: jest.fn().mockResolvedValue([]),
 }));
 
-describe('ProjectReleaseTracking', function() {
+describe('ProjectReleaseTracking', function () {
   const org = TestStubs.Organization();
   const project = TestStubs.Project();
   const url = `/projects/${org.slug}/${project.slug}/releases/token/`;
 
-  beforeEach(function() {
+  beforeEach(function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/plugins/`,
@@ -33,7 +33,7 @@ describe('ProjectReleaseTracking', function() {
     });
   });
 
-  it('renders with token', function() {
+  it('renders with token', function () {
     const wrapper = mountWithTheme(
       <ProjectReleaseTracking
         organization={org}
@@ -47,7 +47,7 @@ describe('ProjectReleaseTracking', function() {
     expect(wrapper.find('TextCopyInput').prop('children')).toBe('token token token');
   });
 
-  it('can regenerate token', function(done) {
+  it('can regenerate token', function (done) {
     const wrapper = mountWithTheme(
       <ProjectReleaseTracking
         organization={org}
@@ -85,7 +85,7 @@ describe('ProjectReleaseTracking', function() {
     }, 1);
   });
 
-  it('fetches new plugins when project changes', function() {
+  it('fetches new plugins when project changes', function () {
     const wrapper = mountWithTheme(
       <ProjectReleaseTrackingContainer
         organization={org}

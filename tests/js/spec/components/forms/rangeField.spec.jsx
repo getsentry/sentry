@@ -4,15 +4,15 @@ import {shallow} from 'sentry-test/enzyme';
 
 import {RangeField} from 'app/components/forms';
 
-describe('RangeField', function() {
-  describe('render()', function() {
-    it('renders', function() {
+describe('RangeField', function () {
+  describe('render()', function () {
+    it('renders', function () {
       shallow(<RangeField name="fieldName" />, {
         disableLifecycleMethods: true,
       });
     });
 
-    it('renders with optional attributes', function() {
+    it('renders with optional attributes', function () {
       shallow(
         <RangeField
           name="fieldName"
@@ -26,13 +26,13 @@ describe('RangeField', function() {
       );
     });
 
-    it('renders with value', function() {
+    it('renders with value', function () {
       shallow(<RangeField name="fieldName" value={2} />, {
         disableLifecycleMethods: true,
       });
     });
 
-    it('renders with form context', function() {
+    it('renders with form context', function () {
       shallow(<RangeField name="fieldName" />, {
         disableLifecycleMethods: true,
         context: {
@@ -46,7 +46,7 @@ describe('RangeField', function() {
       });
     });
 
-    it('renders with value=0 in form context', function() {
+    it('renders with value=0 in form context', function () {
       const wrapper = shallow(<RangeField name="fieldName" />, {
         disableLifecycleMethods: true,
         context: {

@@ -31,18 +31,10 @@ describe('HttpRenderer', () => {
 
       expect(annotatedTexts.length).toEqual(3);
 
-      expect(
-        annotatedTexts
-          .at(0)
-          .find('strong')
-          .text()
-      ).toEqual('POST ');
+      expect(annotatedTexts.at(0).find('strong').text()).toEqual('POST ');
 
       expect(
-        annotatedTexts
-          .at(1)
-          .find('a[data-test-id="http-renderer-external-link"]')
-          .text()
+        annotatedTexts.at(1).find('a[data-test-id="http-renderer-external-link"]').text()
       ).toEqual('http://example.com/foo');
 
       expect(

@@ -7,15 +7,15 @@ import {
 } from 'app/actionCreators/savedSearches';
 import {Client} from 'app/api';
 
-describe('SavedSearchesStore', function() {
+describe('SavedSearchesStore', function () {
   let api;
 
-  beforeAll(async function() {
+  beforeAll(async function () {
     api = new Client();
     await SavedSearchesStore.reset();
   });
 
-  beforeEach(function() {
+  beforeEach(function () {
     Client.addMockResponse({
       url: '/organizations/org-1/searches/',
       body: TestStubs.Searches(),
@@ -31,13 +31,13 @@ describe('SavedSearchesStore', function() {
     });
   });
 
-  afterEach(async function() {
+  afterEach(async function () {
     Client.clearMockResponses();
     SavedSearchesStore.reset();
     await tick();
   });
 
-  it('get', function() {
+  it('get', function () {
     expect(SavedSearchesStore.get()).toEqual({
       hasError: false,
       isLoading: true,
@@ -45,7 +45,7 @@ describe('SavedSearchesStore', function() {
     });
   });
 
-  it('fetching saved searches updates store', async function() {
+  it('fetching saved searches updates store', async function () {
     await fetchSavedSearches(api, 'org-1', {});
     await tick();
 
@@ -53,7 +53,7 @@ describe('SavedSearchesStore', function() {
     expect(SavedSearchesStore.get().isLoading).toBe(false);
   });
 
-  it('failed fetches do not corrupt store', async function() {
+  it('failed fetches do not corrupt store', async function () {
     Client.addMockResponse({
       url: '/organizations/org-1/searches/',
       body: '',
@@ -65,7 +65,7 @@ describe('SavedSearchesStore', function() {
     expect(SavedSearchesStore.get().isLoading).toBe(false);
   });
 
-  it('creates a new pin search', async function() {
+  it('creates a new pin search', async function () {
     await fetchSavedSearches(api, 'org-1', {});
     await tick();
 
@@ -95,7 +95,7 @@ describe('SavedSearchesStore', function() {
     );
   });
 
-  it('changes pinned search from a custom search to an existing search', async function() {
+  it('changes pinned search from a custom search to an existing search', async function () {
     const searches = TestStubs.Searches();
 
     Client.addMockResponse({
@@ -151,7 +151,7 @@ describe('SavedSearchesStore', function() {
     expect(SavedSearchesStore.get().savedSearches).toHaveLength(2);
   });
 
-  it('changes pinned search from an existing search to another existing search', async function() {
+  it('changes pinned search from an existing search to another existing search', async function () {
     const searches = TestStubs.Searches();
 
     Client.addMockResponse({
@@ -206,7 +206,7 @@ describe('SavedSearchesStore', function() {
     );
   });
 
-  it('unpins a user custom search (not global, and not org custom)', async function() {
+  it('unpins a user custom search (not global, and not org custom)', async function () {
     const searches = TestStubs.Searches();
 
     Client.addMockResponse({
@@ -252,7 +252,7 @@ describe('SavedSearchesStore', function() {
     );
   });
 
-  it('unpins an existing global saved search', async function() {
+  it('unpins an existing global saved search', async function () {
     const searches = TestStubs.Searches();
 
     Client.addMockResponse({
@@ -289,7 +289,7 @@ describe('SavedSearchesStore', function() {
     );
   });
 
-  it('unpins an existing org saved search', async function() {
+  it('unpins an existing org saved search', async function () {
     const searches = TestStubs.Searches();
 
     Client.addMockResponse({
@@ -329,7 +329,7 @@ describe('SavedSearchesStore', function() {
     );
   });
 
-  it('removes deleted saved searches', async function() {
+  it('removes deleted saved searches', async function () {
     await fetchSavedSearches(api, 'org-1', {});
     await tick();
 

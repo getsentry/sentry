@@ -163,7 +163,7 @@ describe('SentryAppExternalIssueForm Async Field', () => {
   });
 
   describe('renders', () => {
-    it('renders each required_fields field', async function() {
+    it('renders each required_fields field', async function () {
       const mockGetOptions = Client.addMockResponse({
         method: 'GET',
         url:

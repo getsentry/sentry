@@ -13,15 +13,15 @@ jest.mock('app/actionCreators/modal', () => ({
   openCreateTeamModal: jest.fn(),
 }));
 
-describe('OrganizationTeams', function() {
-  beforeEach(function() {
+describe('OrganizationTeams', function () {
+  beforeEach(function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/stats/',
       body: [],
     });
   });
 
-  describe('Open Membership', function() {
+  describe('Open Membership', function () {
     const {organization, project, routerContext} = initializeOrg({
       organization: {
         openMembership: true,
@@ -44,7 +44,7 @@ describe('OrganizationTeams', function() {
         routerContext
       );
 
-    it('opens "create team modal" when creating a new team from header', async function() {
+    it('opens "create team modal" when creating a new team from header', async function () {
       const wrapper = createWrapper();
 
       // Click "Create Team" in Panel Header
@@ -60,7 +60,7 @@ describe('OrganizationTeams', function() {
       );
     });
 
-    it('can join team and have link to details', function() {
+    it('can join team and have link to details', function () {
       const wrapper = createWrapper({
         allTeams: [TestStubs.Team({hasAccess: true, isMember: false})],
         access: new Set([]),
@@ -72,7 +72,7 @@ describe('OrganizationTeams', function() {
     });
   });
 
-  describe('Closed Membership', function() {
+  describe('Closed Membership', function () {
     const {organization, project, routerContext} = initializeOrg({
       organization: {
         openMembership: false,
@@ -93,7 +93,7 @@ describe('OrganizationTeams', function() {
         routerContext
       );
 
-    it('can request access to team and does not have link to details', function() {
+    it('can request access to team and does not have link to details', function () {
       const wrapper = createWrapper({
         allTeams: [TestStubs.Team({hasAccess: false, isMember: false})],
         access: new Set([]),
@@ -104,7 +104,7 @@ describe('OrganizationTeams', function() {
       expect(wrapper.find('Link')).toHaveLength(0);
     });
 
-    it('can leave team when you are a member', function() {
+    it('can leave team when you are a member', function () {
       const wrapper = createWrapper({
         allTeams: [TestStubs.Team({hasAccess: true, isMember: true})],
         access: new Set([]),

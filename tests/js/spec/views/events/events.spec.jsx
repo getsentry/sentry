@@ -30,7 +30,7 @@ const pageTwoLinks = generatePageLinks(100, 100);
 
 const EventsWithRouter = withRouter(Events);
 
-describe('EventsErrors', function() {
+describe('EventsErrors', function () {
   const {organization, projects, router, routerContext} = initializeOrg({
     projects: [{isMember: true}, {isMember: true, slug: 'new-project', id: 3}],
     organization: {
@@ -49,7 +49,7 @@ describe('EventsErrors', function() {
   let eventsStatsMock;
   let eventsMetaMock;
 
-  beforeAll(function() {
+  beforeAll(function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/releases/`,
       body: [],
@@ -73,7 +73,7 @@ describe('EventsErrors', function() {
     });
   });
 
-  beforeEach(function() {
+  beforeEach(function () {
     // Search bar makes this request when mounted
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
@@ -97,7 +97,7 @@ describe('EventsErrors', function() {
     });
   });
 
-  it('renders with errors', async function() {
+  it('renders with errors', async function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       statusCode: 500,
@@ -120,7 +120,7 @@ describe('EventsErrors', function() {
     expect(wrapper.find('RouteError')).toHaveLength(1);
   });
 
-  it('renders events table', async function() {
+  it('renders events table', async function () {
     const wrapper = mountWithTheme(
       <Events organization={organization} location={{query: {}}} />,
       routerContext
@@ -135,7 +135,7 @@ describe('EventsErrors', function() {
     expect(wrapper.find('IdBadge')).toHaveLength(2);
   });
 
-  it('renders TotalEventCount with internal flag', async function() {
+  it('renders TotalEventCount with internal flag', async function () {
     const newOrg = TestStubs.Organization({
       ...organization,
       features: [...organization.features, 'internal-catchall'],
@@ -155,7 +155,7 @@ describe('EventsErrors', function() {
 
   // This tests the component's `shouldComponentUpdate`
   // Use `search` to compare instead of `query` because that's what we check in `AsyncComponent`
-  it('location.query changes updates events table', async function() {
+  it('location.query changes updates events table', async function () {
     const wrapper = mountWithTheme(
       <EventsWithRouter
         organization={organization}
@@ -207,13 +207,13 @@ describe('EventsErrors', function() {
     );
   });
 
-  describe('Events Integration', function() {
+  describe('Events Integration', function () {
     let chartRender;
     let tableRender;
     let wrapper;
     let newParams;
 
-    beforeEach(async function() {
+    beforeEach(async function () {
       const newLocation = {
         ...router.location,
         query: {
@@ -255,7 +255,7 @@ describe('EventsErrors', function() {
       tableRender = jest.spyOn(wrapper.find('EventsTable').instance(), 'render');
     });
 
-    afterAll(function() {
+    afterAll(function () {
       if (chartRender) {
         chartRender.mockRestore();
       }
@@ -263,7 +263,7 @@ describe('EventsErrors', function() {
       tableRender.mockRestore();
     });
 
-    it('zooms using chart', async function() {
+    it('zooms using chart', async function () {
       expect(tableRender).toHaveBeenCalledTimes(0);
 
       await tick();
@@ -302,7 +302,7 @@ describe('EventsErrors', function() {
   });
 });
 
-describe('EventsContainer', function() {
+describe('EventsContainer', function () {
   let wrapper;
   let eventsMock;
   let eventsStatsMock;
@@ -325,14 +325,14 @@ describe('EventsContainer', function() {
     },
   });
 
-  beforeAll(function() {
+  beforeAll(function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/environments/`,
       body: TestStubs.Environments(),
     });
   });
 
-  beforeEach(async function() {
+  beforeEach(async function () {
     // Search bar makes this request when mounted
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
@@ -373,12 +373,12 @@ describe('EventsContainer', function() {
     mockRouterPush(wrapper, router);
   });
 
-  afterEach(async function() {
+  afterEach(async function () {
     ProjectsStore.reset();
     await tick();
   });
 
-  it('performs the correct queries when there is a search query', async function() {
+  it('performs the correct queries when there is a search query', async function () {
     wrapper.find('SmartSearchBar input').simulate('change', {target: {value: 'http'}});
     wrapper.find('SmartSearchBar input').simulate('submit');
 
@@ -414,7 +414,7 @@ describe('EventsContainer', function() {
     );
   });
 
-  it('updates when changing projects', async function() {
+  it('updates when changing projects', async function () {
     // Project id = 2 should be first selected because of ProjectsStore.getAll sorting by slug
     expect(wrapper.find('MultipleProjectSelector').prop('value')).toEqual([2]);
 
@@ -444,7 +444,7 @@ describe('EventsContainer', function() {
     );
   });
 
-  it('handles direct event hit', async function() {
+  it('handles direct event hit', async function () {
     const eventId = 'a'.repeat(32);
 
     browserHistory.replace = jest.fn();
@@ -470,18 +470,18 @@ describe('EventsContainer', function() {
   });
 });
 
-describe('parseRowFromLinks', function() {
-  it('calculates rows for first page', function() {
+describe('parseRowFromLinks', function () {
+  it('calculates rows for first page', function () {
     expect(parseRowFromLinks(pageOneLinks, 10)).toBe('1-10');
     expect(parseRowFromLinks(pageOneLinks, 100)).toBe('1-100');
   });
 
-  it('calculates rows for the second page', function() {
+  it('calculates rows for the second page', function () {
     expect(parseRowFromLinks(pageTwoLinks, 10)).toBe('101-110');
     expect(parseRowFromLinks(pageTwoLinks, 100)).toBe('101-200');
   });
 
-  it('calculates rows for variable number of pages and window sizes', function() {
+  it('calculates rows for variable number of pages and window sizes', function () {
     let currentWindowSize = 1;
 
     while (currentWindowSize <= 100) {

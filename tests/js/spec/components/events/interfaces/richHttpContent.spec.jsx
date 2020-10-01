@@ -4,13 +4,13 @@ import {mountWithTheme, shallow} from 'sentry-test/enzyme';
 
 import RichHttpContent from 'app/components/events/interfaces/richHttpContent/richHttpContent';
 
-describe('RichHttpContent', function() {
+describe('RichHttpContent', function () {
   let data;
 
-  afterEach(function() {});
+  afterEach(function () {});
 
-  describe('getBodySection', function() {
-    it('should return plain-text when given unrecognized inferred Content-Type', function() {
+  describe('getBodySection', function () {
+    it('should return plain-text when given unrecognized inferred Content-Type', function () {
       data = {
         query: '',
         data: 'helloworld',
@@ -25,7 +25,7 @@ describe('RichHttpContent', function() {
       ).toBeTruthy();
     });
 
-    it('should return a KeyValueList element when inferred Content-Type is x-www-form-urlencoded', function() {
+    it('should return a KeyValueList element when inferred Content-Type is x-www-form-urlencoded', function () {
       data = {
         query: '',
         data: {foo: ['bar'], bar: ['baz']},
@@ -40,7 +40,7 @@ describe('RichHttpContent', function() {
       ).toBeTruthy();
     });
 
-    it('should return a ContextData element when inferred Content-Type is application/json', function() {
+    it('should return a ContextData element when inferred Content-Type is application/json', function () {
       data = {
         query: '',
         data: {foo: 'bar'},
@@ -55,7 +55,7 @@ describe('RichHttpContent', function() {
       ).toBeTruthy();
     });
 
-    it('should not blow up in a malformed uri', function() {
+    it('should not blow up in a malformed uri', function () {
       // > decodeURIComponent('a%AFc')
       // URIError: URI malformed
       data = {
@@ -68,7 +68,7 @@ describe('RichHttpContent', function() {
       expect(() => shallow(<RichHttpContent data={data} />)).not.toThrow(URIError);
     });
 
-    it("should not cause an invariant violation if data.data isn't a string", function() {
+    it("should not cause an invariant violation if data.data isn't a string", function () {
       data = {
         query: '',
         data: [{foo: 'bar', baz: 1}],

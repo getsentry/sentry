@@ -637,8 +637,9 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
           if (spanNumber > spanNumberToStopMoving) {
             // if the last span bar appears on the minimap, we do not want the minimap
             // to keep panning upwards
-            minimapSlider.style.top = `-${spanNumberToStopMoving *
-              MINIMAP_SPAN_BAR_HEIGHT}px`;
+            minimapSlider.style.top = `-${
+              spanNumberToStopMoving * MINIMAP_SPAN_BAR_HEIGHT
+            }px`;
             return;
           }
 

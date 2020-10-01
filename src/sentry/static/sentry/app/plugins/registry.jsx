@@ -30,7 +30,7 @@ export default class Registry {
   load(data, callback) {
     // TODO(dcramer): we should probably register all valid plugins
     let remainingAssets = data.assets.length;
-    const finishLoad = function() {
+    const finishLoad = function () {
       if (!defined(this.plugins[data.id])) {
         if (data.type === 'issue-tracking') {
           this.plugins[data.id] = DefaultIssuePlugin;
@@ -49,14 +49,14 @@ export default class Registry {
       return;
     }
 
-    const onAssetLoaded = function() {
+    const onAssetLoaded = function () {
       remainingAssets--;
       if (remainingAssets === 0) {
         finishLoad();
       }
     };
 
-    const onAssetFailed = function(asset) {
+    const onAssetFailed = function (asset) {
       remainingAssets--;
       console.error('[plugins] Failed to load asset ' + asset.url);
       if (remainingAssets === 0) {

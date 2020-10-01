@@ -5,7 +5,7 @@ import {mount} from 'sentry-test/enzyme';
 import CommitterStore from 'app/stores/committerStore';
 import withCommitters from 'app/utils/withCommitters';
 
-describe('withCommitters HoC', function() {
+describe('withCommitters HoC', function () {
   const organization = TestStubs.Organization();
   const project = TestStubs.Project();
   const event = TestStubs.Event();

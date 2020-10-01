@@ -71,12 +71,7 @@ describe('OrganizationRuleList', () => {
         query: {query: 'slug:earth'},
       })
     );
-    expect(
-      items
-        .at(0)
-        .find('IdBadge')
-        .prop('project')
-    ).toMatchObject({
+    expect(items.at(0).find('IdBadge').prop('project')).toMatchObject({
       slug: 'earth',
     });
   });

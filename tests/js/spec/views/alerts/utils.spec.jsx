@@ -3,7 +3,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {Dataset} from 'app/views/settings/incidentRules/types';
 import {getIncidentDiscoverUrl} from 'app/views/alerts/utils';
 
-describe('Alert utils', function() {
+describe('Alert utils', function () {
   const {org, projects} = initializeOrg();
 
   const mockStats = {
@@ -15,8 +15,8 @@ describe('Alert utils', function() {
     },
   };
 
-  describe('getIncidentDiscoverUrl', function() {
-    it('creates a discover query url for errors', function() {
+  describe('getIncidentDiscoverUrl', function () {
+    it('creates a discover query url for errors', function () {
       const incident = {
         title: 'Test error alert',
         discoverQuery: 'id:test',
@@ -50,7 +50,7 @@ describe('Alert utils', function() {
       });
     });
 
-    it('creates a discover query url for transactions', function() {
+    it('creates a discover query url for transactions', function () {
       const incident = {
         title: 'Test transaction alert',
         discoverQuery: 'id:test',

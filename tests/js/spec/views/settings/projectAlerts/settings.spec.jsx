@@ -6,12 +6,12 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {Client} from 'app/api';
 import ProjectAlertSettings from 'app/views/settings/projectAlerts/settings';
 
-describe('ProjectAlertSettings', function() {
+describe('ProjectAlertSettings', function () {
   let organization;
   let project;
   let routerContext;
 
-  beforeEach(function() {
+  beforeEach(function () {
     ({organization, project, routerContext} = initializeOrg());
 
     Client.addMockResponse({
@@ -26,7 +26,7 @@ describe('ProjectAlertSettings', function() {
     });
   });
 
-  it('renders', function() {
+  it('renders', function () {
     const wrapper = mountWithTheme(
       <ProjectAlertSettings
         canEditRule

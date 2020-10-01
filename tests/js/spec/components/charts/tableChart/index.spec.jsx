@@ -4,14 +4,14 @@ import {mount} from 'sentry-test/enzyme';
 
 import TableChart from 'app/components/charts/tableChart';
 
-describe('TableChart', function() {
+describe('TableChart', function () {
   const renderer = jest.fn(() => null);
 
-  beforeEach(function() {
+  beforeEach(function () {
     renderer.mockClear();
   });
 
-  it('calculates row and column totals and passes to renderers', function() {
+  it('calculates row and column totals and passes to renderers', function () {
     const ERROR_TYPE_DATA = [
       ['TypeError', 50, 40, 30],
       ['SyntaxError', 40, 30, 20],
@@ -49,7 +49,7 @@ describe('TableChart', function() {
     );
   });
 
-  it('calculates totals with multiple non-data columns', function() {
+  it('calculates totals with multiple non-data columns', function () {
     const ERROR_TYPE_DATA = [
       ['TypeError', 'Label', 50, 40, 30],
       ['SyntaxError', 'Label', 40, 30, 20],
@@ -88,7 +88,7 @@ describe('TableChart', function() {
     );
   });
 
-  it('renders percentage bar on correct rows', function() {
+  it('renders percentage bar on correct rows', function () {
     const ERROR_TYPE_DATA = [
       ['TypeError', 50, 40, 30],
       ['SyntaxError', 40, 30, 20],
@@ -108,7 +108,7 @@ describe('TableChart', function() {
     expect(wrapper.find('TableChartRow')).toHaveLength(3);
   });
 
-  it('renders headers', function() {
+  it('renders headers', function () {
     const headers = ['Foo', 'Bar', 'Baz'];
     mount(
       <TableChart
@@ -128,7 +128,7 @@ describe('TableChart', function() {
     );
   });
 
-  it('renders headers with row total column', function() {
+  it('renders headers with row total column', function () {
     mount(
       <TableChart
         title="Error Type"
@@ -148,7 +148,7 @@ describe('TableChart', function() {
     );
   });
 
-  it('renders correct cells', function() {
+  it('renders correct cells', function () {
     const ERROR_TYPE_DATA = [
       ['TypeError', 50, 40, 30],
       ['SyntaxError', 40, 30, 20],

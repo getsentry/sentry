@@ -2,9 +2,7 @@ import {t} from 'app/locale';
 import {EventGroupComponent, EventGroupInfo, EventGroupVariant} from 'app/types';
 
 function renderGroupingInfo(groupingInfo: EventGroupInfo): string[] {
-  return Object.values(groupingInfo)
-    .map(renderGroupVariant)
-    .flat();
+  return Object.values(groupingInfo).map(renderGroupVariant).flat();
 }
 
 function renderGroupVariant(variant: EventGroupVariant): string[] {

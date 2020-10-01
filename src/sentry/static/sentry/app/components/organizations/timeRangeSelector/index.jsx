@@ -32,9 +32,7 @@ import {IconCalendar} from 'app/icons';
 const getDateWithTimezoneInUtc = (date, utc) =>
   moment
     .tz(
-      moment(date)
-        .local()
-        .format('YYYY-MM-DD HH:mm:ss'),
+      moment(date).local().format('YYYY-MM-DD HH:mm:ss'),
       utc ? 'UTC' : getUserTimezone()
     )
     .utc()

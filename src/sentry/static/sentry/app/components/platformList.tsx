@@ -35,11 +35,7 @@ const PlatformList = ({
     <StyledPlatformIcon key={platform + index} platform={platform} size={size} />
   );
 
-  const getIcons = (items: PlatformKey[]) =>
-    items
-      .slice()
-      .reverse()
-      .map(getIcon);
+  const getIcons = (items: PlatformKey[]) => items.slice().reverse().map(getIcon);
 
   const platformsPreview = platforms.slice(0, max);
   return (

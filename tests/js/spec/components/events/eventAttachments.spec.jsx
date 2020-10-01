@@ -5,10 +5,10 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import EventAttachments from 'app/components/events/eventAttachments';
 
-describe('EventAttachments', function() {
+describe('EventAttachments', function () {
   const {routerContext, organization, project} = initializeOrg();
 
-  it('shows attachments limit reached notice', function() {
+  it('shows attachments limit reached notice', function () {
     const props = {
       orgId: organization.slug,
       projectId: project.slug,
@@ -31,7 +31,7 @@ describe('EventAttachments', function() {
     );
   });
 
-  it('does not render anything if no attachments (nor stripped) are available', function() {
+  it('does not render anything if no attachments (nor stripped) are available', function () {
     const props = {
       orgId: organization.slug,
       projectId: project.slug,

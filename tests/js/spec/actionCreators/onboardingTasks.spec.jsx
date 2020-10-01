@@ -2,14 +2,14 @@ import {updateOnboardingTask} from 'app/actionCreators/onboardingTasks';
 import OrganizationActions from 'app/actions/organizationActions';
 import ConfigStore from 'app/stores/configStore';
 
-describe('actionCreators/onboardingTasks', function() {
+describe('actionCreators/onboardingTasks', function () {
   const api = new MockApiClient();
   const user = ConfigStore.get('user');
 
   jest.spyOn(OrganizationActions, 'update');
 
-  describe('updateOnboardingTask', function() {
-    it('Adds the task to the organization when task does not exists', async function() {
+  describe('updateOnboardingTask', function () {
+    it('Adds the task to the organization when task does not exists', async function () {
       const detailedOrg = TestStubs.Organization({
         teams: [TestStubs.Team()],
         projects: [TestStubs.Project()],
@@ -37,7 +37,7 @@ describe('actionCreators/onboardingTasks', function() {
       });
     });
 
-    it('Updates existing onboarding task', async function() {
+    it('Updates existing onboarding task', async function () {
       const detailedOrg = TestStubs.Organization({
         teams: [TestStubs.Team()],
         projects: [TestStubs.Project()],
@@ -68,7 +68,7 @@ describe('actionCreators/onboardingTasks', function() {
       });
     });
 
-    it('Does not make API request without api object', async function() {
+    it('Does not make API request without api object', async function () {
       const detailedOrg = TestStubs.Organization({
         teams: [TestStubs.Team()],
         projects: [TestStubs.Project()],

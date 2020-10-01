@@ -26,7 +26,7 @@ type Props = {
   data: TraceKnownData;
 };
 
-const InnerTrace = withOrganization(function({organization, event, data}: Props) {
+const InnerTrace = withOrganization(function ({organization, event, data}: Props) {
   return (
     <ErrorBoundary mini>
       <KeyValueList

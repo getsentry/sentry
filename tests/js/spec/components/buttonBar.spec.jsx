@@ -5,7 +5,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 
-describe('ButtonBar', function() {
+describe('ButtonBar', function () {
   const createWrapper = () =>
     mountWithTheme(
       <ButtonBar active="2" merged>
@@ -16,23 +16,13 @@ describe('ButtonBar', function() {
       </ButtonBar>
     );
 
-  it('has "Second Button" as the active button in the bar', function() {
+  it('has "Second Button" as the active button in the bar', function () {
     const wrapper = createWrapper();
-    expect(
-      wrapper
-        .find('Button')
-        .at(1)
-        .prop('priority')
-    ).toBe('primary');
+    expect(wrapper.find('Button').at(1).prop('priority')).toBe('primary');
   });
 
-  it('does not pass `barId` down to the button', function() {
+  it('does not pass `barId` down to the button', function () {
     const wrapper = createWrapper();
-    expect(
-      wrapper
-        .find('Button')
-        .at(1)
-        .prop('barId')
-    ).toBeUndefined();
+    expect(wrapper.find('Button').at(1).prop('barId')).toBeUndefined();
   });
 });

@@ -36,7 +36,7 @@ import {generateTitle, getExpandedResults} from '../utils';
 import LinkedIssue from './linkedIssue';
 import DiscoverBreadcrumb from '../breadcrumb';
 
-const slugValidator = function(
+const slugValidator = function (
   props: {[key: string]: any},
   propName: string,
   componentName: string

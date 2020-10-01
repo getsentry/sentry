@@ -1,9 +1,9 @@
 import {getEventsUrlFromDiscoverQueryWithConditions} from 'app/views/dashboards/utils/getEventsUrlFromDiscoverQueryWithConditions';
 
-describe('getEventsUrlFromDiscoverQueryWithConditions', function() {
+describe('getEventsUrlFromDiscoverQueryWithConditions', function () {
   const organization = TestStubs.Organization();
 
-  it('single field', function() {
+  it('single field', function () {
     const query = {
       fields: ['browser.name'],
       conditions: [],
@@ -29,7 +29,7 @@ describe('getEventsUrlFromDiscoverQueryWithConditions', function() {
     );
   });
 
-  it('multiple fields', function() {
+  it('multiple fields', function () {
     const query = {
       fields: ['browser.name', 'device'],
       conditions: [],
@@ -55,7 +55,7 @@ describe('getEventsUrlFromDiscoverQueryWithConditions', function() {
     );
   });
 
-  it('handles null values and spaces', function() {
+  it('handles null values and spaces', function () {
     const query = {
       fields: ['browser.name', 'device'],
       conditions: [],

@@ -4,8 +4,8 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import OrganizationStats from 'app/views/organizationStats/organizationStatsDetails';
 
-describe('OrganizationStats', function() {
-  it('renders', function() {
+describe('OrganizationStats', function () {
+  it('renders', function () {
     const organization = TestStubs.Organization();
     const props = {
       statsLoading: false,
@@ -28,7 +28,7 @@ describe('OrganizationStats', function() {
     expect(wrapper.find('Alert[data-test-id="performance-usage"]').exists()).toBe(false);
   });
 
-  it('renders alert for performance feature', function() {
+  it('renders alert for performance feature', function () {
     const organization = TestStubs.Organization({features: ['performance-view']});
     const props = {
       statsLoading: false,

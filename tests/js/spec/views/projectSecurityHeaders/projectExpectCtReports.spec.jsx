@@ -4,12 +4,12 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ProjectExpectCtReports from 'app/views/settings/projectSecurityHeaders/expectCt';
 
-describe('ProjectExpectCtReports', function() {
+describe('ProjectExpectCtReports', function () {
   const org = TestStubs.Organization();
   const project = TestStubs.Project();
   const url = `/projects/${org.slug}/${project.slug}/expect-ct/`;
 
-  beforeEach(function() {
+  beforeEach(function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/keys/`,
@@ -18,7 +18,7 @@ describe('ProjectExpectCtReports', function() {
     });
   });
 
-  it('renders', function() {
+  it('renders', function () {
     const wrapper = mountWithTheme(
       <ProjectExpectCtReports
         organization={org}

@@ -30,7 +30,7 @@ jest.mock('app/utils/localStorage', () => ({
   setItem: jest.fn(),
 }));
 
-describe('GlobalSelectionHeader', function() {
+describe('GlobalSelectionHeader', function () {
   const {organization, router, routerContext} = initializeOrg({
     organization: {features: ['global-views']},
     projects: [
@@ -50,7 +50,7 @@ describe('GlobalSelectionHeader', function() {
     },
   });
 
-  beforeAll(function() {
+  beforeAll(function () {
     jest.spyOn(globalActions, 'updateDateTime');
     jest.spyOn(globalActions, 'updateEnvironments');
     jest.spyOn(globalActions, 'updateProjects');
@@ -58,7 +58,7 @@ describe('GlobalSelectionHeader', function() {
     jest.spyOn(globalActions, 'updateParamsWithoutHistory');
   });
 
-  beforeEach(function() {
+  beforeEach(function () {
     MockApiClient.clearMockResponses();
     jest.spyOn(ProjectsStore, 'getState').mockImplementation(() => ({
       projects: organization.projects,
@@ -72,7 +72,7 @@ describe('GlobalSelectionHeader', function() {
     });
   });
 
-  afterEach(function() {
+  afterEach(function () {
     [
       globalActions.updateDateTime,
       globalActions.updateProjects,
@@ -86,7 +86,7 @@ describe('GlobalSelectionHeader', function() {
     GlobalSelectionStore.reset();
   });
 
-  it('does not update router if there is custom routing', function() {
+  it('does not update router if there is custom routing', function () {
     mountWithTheme(
       <GlobalSelectionHeader organization={organization} hasCustomRouting />,
       routerContext
@@ -94,7 +94,7 @@ describe('GlobalSelectionHeader', function() {
     expect(router.push).not.toHaveBeenCalled();
   });
 
-  it('does not update router if org in URL params is different than org in context/props', function() {
+  it('does not update router if org in URL params is different than org in context/props', function () {
     mountWithTheme(
       <GlobalSelectionHeader organization={organization} hasCustomRouting />,
       {
@@ -108,13 +108,13 @@ describe('GlobalSelectionHeader', function() {
     expect(router.push).not.toHaveBeenCalled();
   });
 
-  it('does not replace URL with values from store when mounted with no query params', function() {
+  it('does not replace URL with values from store when mounted with no query params', function () {
     mountWithTheme(<GlobalSelectionHeader organization={organization} />, routerContext);
 
     expect(router.replace).not.toHaveBeenCalled();
   });
 
-  it('only updates GlobalSelection store when mounted with query params', async function() {
+  it('only updates GlobalSelection store when mounted with query params', async function () {
     mountWithTheme(
       <GlobalSelectionHeader
         organization={organization}
@@ -141,7 +141,7 @@ describe('GlobalSelectionHeader', function() {
     });
   });
 
-  it('updates environments when switching projects', async function() {
+  it('updates environments when switching projects', async function () {
     const wrapper = mountWithTheme(
       <GlobalSelectionHeader
         organization={organization}
@@ -157,14 +157,8 @@ describe('GlobalSelectionHeader', function() {
 
     // Open dropdown and select both projects
     wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
-    wrapper
-      .find('MultipleProjectSelector CheckboxFancy')
-      .at(0)
-      .simulate('click');
-    wrapper
-      .find('MultipleProjectSelector CheckboxFancy')
-      .at(1)
-      .simulate('click');
+    wrapper.find('MultipleProjectSelector CheckboxFancy').at(0).simulate('click');
+    wrapper.find('MultipleProjectSelector CheckboxFancy').at(1).simulate('click');
     wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
 
     await tick();
@@ -175,10 +169,7 @@ describe('GlobalSelectionHeader', function() {
 
     // Select environment
     wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
-    wrapper
-      .find('MultipleEnvironmentSelector CheckboxFancy')
-      .at(1)
-      .simulate('click');
+    wrapper.find('MultipleEnvironmentSelector CheckboxFancy').at(1).simulate('click');
     wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
     await tick();
 
@@ -202,10 +193,7 @@ describe('GlobalSelectionHeader', function() {
 
     // Now change projects, first project has no environments
     wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
-    wrapper
-      .find('MultipleProjectSelector CheckboxFancy')
-      .at(1)
-      .simulate('click');
+    wrapper.find('MultipleProjectSelector CheckboxFancy').at(1).simulate('click');
 
     wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
 
@@ -228,7 +216,7 @@ describe('GlobalSelectionHeader', function() {
     );
   });
 
-  it('shows environments for non-member projects', async function() {
+  it('shows environments for non-member projects', async function () {
     const initialData = initializeOrg({
       organization: {features: ['global-views']},
       projects: [
@@ -264,7 +252,7 @@ describe('GlobalSelectionHeader', function() {
     expect(checkboxes.text()).toBe('staging');
   });
 
-  it('updates GlobalSelection store with default period', async function() {
+  it('updates GlobalSelection store with default period', async function () {
     mountWithTheme(
       <GlobalSelectionHeader organization={organization} />,
       changeQuery(routerContext, {
@@ -291,7 +279,7 @@ describe('GlobalSelectionHeader', function() {
     expect(router.replace).not.toHaveBeenCalled();
   });
 
-  it('updates GlobalSelection store with empty dates in URL', async function() {
+  it('updates GlobalSelection store with empty dates in URL', async function () {
     mountWithTheme(
       <GlobalSelectionHeader organization={organization} />,
       changeQuery(routerContext, {
@@ -316,7 +304,7 @@ describe('GlobalSelectionHeader', function() {
     });
   });
 
-  it('resets start&end if showAbsolute prop is false', async function() {
+  it('resets start&end if showAbsolute prop is false', async function () {
     mountWithTheme(
       <GlobalSelectionHeader organization={organization} showAbsolute={false} />,
       changeQuery(routerContext, {
@@ -345,7 +333,7 @@ describe('GlobalSelectionHeader', function() {
   /**
    * I don't think this test is really applicable anymore
    */
-  it('does not update store if url params have not changed', async function() {
+  it('does not update store if url params have not changed', async function () {
     const wrapper = mountWithTheme(
       <GlobalSelectionHeader organization={organization} />,
       changeQuery(routerContext, {
@@ -387,7 +375,7 @@ describe('GlobalSelectionHeader', function() {
     });
   });
 
-  it('loads from local storage when no URL parameters', async function() {
+  it('loads from local storage when no URL parameters', async function () {
     getItem.mockImplementation(() =>
       JSON.stringify({projects: [3], environments: ['staging']})
     );
@@ -420,7 +408,7 @@ describe('GlobalSelectionHeader', function() {
     );
   });
 
-  it('does not load from local storage when there are URL params', async function() {
+  it('does not load from local storage when there are URL params', async function () {
     getItem.mockImplementation(() =>
       JSON.stringify({projects: [3], environments: ['staging']})
     );
@@ -448,7 +436,7 @@ describe('GlobalSelectionHeader', function() {
     expect(initializationObj.router.replace).not.toHaveBeenCalled();
   });
 
-  it('updates store when there are query params in URL', async function() {
+  it('updates store when there are query params in URL', async function () {
     const initializationObj = initializeOrg({
       organization: {
         features: ['global-views'],
@@ -472,7 +460,7 @@ describe('GlobalSelectionHeader', function() {
     expect(initializationObj.router.replace).not.toHaveBeenCalled();
   });
 
-  it('updates store with default values when there are no query params in URL', async function() {
+  it('updates store with default values when there are no query params in URL', async function () {
     const initializationObj = initializeOrg({
       organization: {
         features: ['global-views'],
@@ -512,8 +500,8 @@ describe('GlobalSelectionHeader', function() {
    * views so that they depend on GSH enforcing a single project first IF they don't have required feature
    * (and no project id in URL).
    */
-  describe('Single project selection mode', function() {
-    it('does not do anything while organization is switching in single project', async function() {
+  describe('Single project selection mode', function () {
+    it('does not do anything while organization is switching in single project', async function () {
       const initialData = initializeOrg({
         organization: {slug: 'old-org-slug'},
         router: {
@@ -571,7 +559,7 @@ describe('GlobalSelectionHeader', function() {
       );
     });
 
-    it('selects first project if more than one is requested', function() {
+    it('selects first project if more than one is requested', function () {
       const initializationObj = initializeOrg({
         router: {
           params: {orgId: 'org-slug'}, // we need this to be set to make sure org in context is same as current org in URL
@@ -591,7 +579,7 @@ describe('GlobalSelectionHeader', function() {
       );
     });
 
-    it('selects first project if none (i.e. all) is requested', async function() {
+    it('selects first project if none (i.e. all) is requested', async function () {
       const project = TestStubs.Project({id: '3'});
       const org = TestStubs.Organization({projects: [project]});
       jest
@@ -619,9 +607,9 @@ describe('GlobalSelectionHeader', function() {
     });
   });
 
-  describe('forceProject selection mode', function() {
+  describe('forceProject selection mode', function () {
     let wrapper;
-    beforeEach(function() {
+    beforeEach(function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
         body: [],
@@ -652,12 +640,12 @@ describe('GlobalSelectionHeader', function() {
       );
     });
 
-    it('renders a back button to the forced project', function() {
+    it('renders a back button to the forced project', function () {
       const back = wrapper.find('BackButtonWrapper');
       expect(back).toHaveLength(1);
     });
 
-    it('renders only environments from the forced project', async function() {
+    it('renders only environments from the forced project', async function () {
       await wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
       await wrapper.update();
 
@@ -667,8 +655,8 @@ describe('GlobalSelectionHeader', function() {
     });
   });
 
-  describe('without global-views (multi-project feature)', function() {
-    describe('without existing URL params', function() {
+  describe('without global-views (multi-project feature)', function () {
+    describe('without existing URL params', function () {
       let wrapper;
       const initialData = initializeOrg({
         projects: [
@@ -694,7 +682,7 @@ describe('GlobalSelectionHeader', function() {
         return wrapper;
       };
 
-      beforeEach(function() {
+      beforeEach(function () {
         jest.spyOn(ProjectsStore, 'getState').mockImplementation(() => ({
           projects: initialData.organization.projects,
           loading: false,
@@ -703,7 +691,7 @@ describe('GlobalSelectionHeader', function() {
         initialData.router.replace.mockClear();
       });
 
-      it('uses first project in org projects when mounting', async function() {
+      it('uses first project in org projects when mounting', async function () {
         createWrapper();
 
         await tick();
@@ -715,7 +703,7 @@ describe('GlobalSelectionHeader', function() {
         });
       });
 
-      it('appends projectId to URL when `forceProject` becomes available (async)', async function() {
+      it('appends projectId to URL when `forceProject` becomes available (async)', async function () {
         const mockProjectsStoreState = {
           projects: [],
           loading: true,
@@ -746,7 +734,7 @@ describe('GlobalSelectionHeader', function() {
         expect(initialData.router.replace).toHaveBeenCalledTimes(1);
       });
 
-      it('does not append projectId to URL when `forceProject` becomes available but project id already exists in URL', async function() {
+      it('does not append projectId to URL when `forceProject` becomes available but project id already exists in URL', async function () {
         // forceProject generally starts undefined
         createWrapper({shouldForceProject: true});
 
@@ -770,7 +758,7 @@ describe('GlobalSelectionHeader', function() {
         expect(initialData.router.replace).not.toHaveBeenCalled();
       });
 
-      it('appends projectId to URL when mounted with `forceProject`', async function() {
+      it('appends projectId to URL when mounted with `forceProject`', async function () {
         // forceProject generally starts undefined
         createWrapper({
           shouldForceProject: true,
@@ -786,7 +774,7 @@ describe('GlobalSelectionHeader', function() {
       });
     });
 
-    describe('with existing URL params', function() {
+    describe('with existing URL params', function () {
       let wrapper;
       const initialData = initializeOrg({
         projects: [
@@ -815,12 +803,12 @@ describe('GlobalSelectionHeader', function() {
         return wrapper;
       };
 
-      beforeEach(function() {
+      beforeEach(function () {
         initialData.router.push.mockClear();
         initialData.router.replace.mockClear();
       });
 
-      it('appends projectId to URL when mounted with `forceProject`', async function() {
+      it('appends projectId to URL when mounted with `forceProject`', async function () {
         // forceProject generally starts undefined
         createWrapper({
           shouldForceProject: true,
@@ -837,8 +825,8 @@ describe('GlobalSelectionHeader', function() {
     });
   });
 
-  describe('with global-views (multi-project feature)', function() {
-    describe('without existing URL params', function() {
+  describe('with global-views (multi-project feature)', function () {
+    describe('without existing URL params', function () {
       let wrapper;
       const initialData = initializeOrg({
         organization: {features: ['global-views']},
@@ -868,7 +856,7 @@ describe('GlobalSelectionHeader', function() {
         return wrapper;
       };
 
-      beforeEach(function() {
+      beforeEach(function () {
         jest.spyOn(ProjectsStore, 'getState').mockImplementation(() => ({
           projects: initialData.organization.projects,
           loading: false,
@@ -877,7 +865,7 @@ describe('GlobalSelectionHeader', function() {
         initialData.router.replace.mockClear();
       });
 
-      it('does not use first project in org projects when mounting (and without localStorage data)', async function() {
+      it('does not use first project in org projects when mounting (and without localStorage data)', async function () {
         createWrapper();
 
         await tick();
@@ -886,7 +874,7 @@ describe('GlobalSelectionHeader', function() {
         expect(initialData.router.replace).not.toHaveBeenCalled();
       });
 
-      it('does not append projectId to URL when `loadingProjects` changes and finishes loading', async function() {
+      it('does not append projectId to URL when `loadingProjects` changes and finishes loading', async function () {
         const mockProjectsStoreState = {
           projects: [],
           loading: true,
@@ -907,7 +895,7 @@ describe('GlobalSelectionHeader', function() {
         expect(initialData.router.replace).not.toHaveBeenCalled();
       });
 
-      it('appends projectId to URL when `forceProject` becomes available (async)', async function() {
+      it('appends projectId to URL when `forceProject` becomes available (async)', async function () {
         const mockProjectsStoreState = {
           projects: [],
           loading: true,
@@ -940,7 +928,7 @@ describe('GlobalSelectionHeader', function() {
         expect(initialData.router.replace).toHaveBeenCalledTimes(1);
       });
 
-      it('does not append projectId to URL when `forceProject` becomes available but project id already exists in URL', async function() {
+      it('does not append projectId to URL when `forceProject` becomes available but project id already exists in URL', async function () {
         // forceProject generally starts undefined
         createWrapper(
           {shouldForceProject: true},
@@ -960,9 +948,9 @@ describe('GlobalSelectionHeader', function() {
     });
   });
 
-  describe('projects list', function() {
+  describe('projects list', function () {
     let wrapper, memberProject, nonMemberProject, initialData;
-    beforeEach(function() {
+    beforeEach(function () {
       memberProject = TestStubs.Project({id: '3', isMember: true});
       nonMemberProject = TestStubs.Project({id: '4', isMember: false});
       initialData = initializeOrg({
@@ -988,13 +976,13 @@ describe('GlobalSelectionHeader', function() {
       );
     });
 
-    it('gets member projects', function() {
+    it('gets member projects', function () {
       expect(wrapper.find('MultipleProjectSelector').prop('projects')).toEqual([
         memberProject,
       ]);
     });
 
-    it('gets all projects if superuser', function() {
+    it('gets all projects if superuser', function () {
       ConfigStore.config = {
         user: {
           isSuperuser: true,
@@ -1015,7 +1003,7 @@ describe('GlobalSelectionHeader', function() {
       ]);
     });
 
-    it('shows "My Projects" button', async function() {
+    it('shows "My Projects" button', async function () {
       initialData.organization.features.push('global-views');
       wrapper = mountWithTheme(
         <GlobalSelectionHeader
@@ -1036,14 +1024,11 @@ describe('GlobalSelectionHeader', function() {
       expect(projectSelector.find('AutoCompleteItem')).toHaveLength(2);
       // My projects in the footer
       expect(
-        projectSelector
-          .find('SelectorFooterControls Button')
-          .first()
-          .text()
+        projectSelector.find('SelectorFooterControls Button').first().text()
       ).toEqual('View My Projects');
     });
 
-    it('shows "All Projects" button based on features', async function() {
+    it('shows "All Projects" button based on features', async function () {
       initialData.organization.features.push('global-views');
       initialData.organization.features.push('open-membership');
       wrapper = mountWithTheme(
@@ -1064,14 +1049,11 @@ describe('GlobalSelectionHeader', function() {
       expect(projectSelector.find('AutoCompleteItem')).toHaveLength(2);
       // All projects in the footer
       expect(
-        projectSelector
-          .find('SelectorFooterControls Button')
-          .first()
-          .text()
+        projectSelector.find('SelectorFooterControls Button').first().text()
       ).toEqual('View All Projects');
     });
 
-    it('shows "All Projects" button based on role', async function() {
+    it('shows "All Projects" button based on role', async function () {
       initialData.organization.features.push('global-views');
       initialData.organization.role = 'owner';
       wrapper = mountWithTheme(
@@ -1092,14 +1074,11 @@ describe('GlobalSelectionHeader', function() {
       expect(projectSelector.find('AutoCompleteItem')).toHaveLength(2);
       // All projects in the footer
       expect(
-        projectSelector
-          .find('SelectorFooterControls Button')
-          .first()
-          .text()
+        projectSelector.find('SelectorFooterControls Button').first().text()
       ).toEqual('View All Projects');
     });
 
-    it('shows "My Projects" when "all projects" is selected', async function() {
+    it('shows "My Projects" when "all projects" is selected', async function () {
       initialData.organization.features.push('global-views');
       initialData.organization.role = 'owner';
 
@@ -1120,15 +1099,12 @@ describe('GlobalSelectionHeader', function() {
 
       // My projects in the footer
       expect(
-        projectSelector
-          .find('SelectorFooterControls Button')
-          .first()
-          .text()
+        projectSelector.find('SelectorFooterControls Button').first().text()
       ).toEqual('View My Projects');
     });
   });
 
-  describe('project icons', function() {
+  describe('project icons', function () {
     const initialData = initializeOrg({
       organization: {features: ['global-views']},
       projects: [
@@ -1142,14 +1118,14 @@ describe('GlobalSelectionHeader', function() {
       ],
     });
 
-    beforeEach(function() {
+    beforeEach(function () {
       jest.spyOn(ProjectsStore, 'getState').mockImplementation(() => ({
         projects: initialData.organization.projects,
         loading: false,
       }));
     });
 
-    it('shows IconProject when no projects are selected', async function() {
+    it('shows IconProject when no projects are selected', async function () {
       const wrapper = mountWithTheme(
         <GlobalSelectionHeader
           organization={initialData.organization}
@@ -1169,7 +1145,7 @@ describe('GlobalSelectionHeader', function() {
       expect(projectSelector.find('Content').text()).toEqual('All Projects');
     });
 
-    it('shows PlatformIcon when one project is selected', async function() {
+    it('shows PlatformIcon when one project is selected', async function () {
       const wrapper = mountWithTheme(
         <GlobalSelectionHeader
           organization={initialData.organization}
@@ -1190,7 +1166,7 @@ describe('GlobalSelectionHeader', function() {
       expect(projectSelector.find('Content').text()).toEqual('javascript');
     });
 
-    it('shows multiple PlatformIcons when multiple projects are selected, no more than 5', async function() {
+    it('shows multiple PlatformIcons when multiple projects are selected, no more than 5', async function () {
       const wrapper = mountWithTheme(
         <GlobalSelectionHeader
           organization={initialData.organization}

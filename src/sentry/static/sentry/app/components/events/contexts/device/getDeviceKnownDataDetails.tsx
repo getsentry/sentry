@@ -39,9 +39,7 @@ function getDeviceKnownDataDetails(data: DeviceData, type: DeviceKnownDataType):
             <DeviceName
               value={`${data.model} ${data?.model_id ? `(${data.model_id})` : ''}`}
             />
-          ) : (
-            undefined
-          ),
+          ) : undefined,
       };
     case DeviceKnownDataType.RENDERED_MODEL:
       return {
@@ -118,9 +116,7 @@ function getDeviceKnownDataDetails(data: DeviceData, type: DeviceKnownDataType):
         subject: t('External Storage Size'),
         value: data.external_storage_size ? (
           <FileSize bytes={data.external_storage_size} />
-        ) : (
-          undefined
-        ),
+        ) : undefined,
       };
     }
     case DeviceKnownDataType.EXTERNAL_FREE_STORAGE: {
@@ -128,9 +124,7 @@ function getDeviceKnownDataDetails(data: DeviceData, type: DeviceKnownDataType):
         subject: t('External Free Storage'),
         value: data.external_free_storage ? (
           <FileSize bytes={data.external_free_storage} />
-        ) : (
-          undefined
-        ),
+        ) : undefined,
       };
     }
     case DeviceKnownDataType.SIMULATOR:

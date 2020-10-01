@@ -1,6 +1,6 @@
 import TagStore from 'app/stores/tagStore';
 
-describe('TagStore', function() {
+describe('TagStore', function () {
   beforeEach(() => {
     TagStore.reset();
   });
@@ -35,7 +35,7 @@ describe('TagStore', function() {
     });
   });
 
-  describe('getIssueAttributes()', function() {
+  describe('getIssueAttributes()', function () {
     it('should populate the has tag with values', () => {
       TagStore.onLoadTagsSuccess([
         {
@@ -71,7 +71,7 @@ describe('TagStore', function() {
     });
   });
 
-  describe('getBuiltInTags()', function() {
+  describe('getBuiltInTags()', function () {
     it('should be a map of built in properties', () => {
       const tags = TagStore.getBuiltInTags();
       expect(tags.location).toEqual({

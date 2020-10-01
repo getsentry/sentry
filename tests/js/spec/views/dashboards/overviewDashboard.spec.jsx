@@ -10,7 +10,7 @@ import ProjectsStore from 'app/stores/projectsStore';
 
 jest.mock('app/utils/withLatestContext');
 
-describe('OverviewDashboard', function() {
+describe('OverviewDashboard', function () {
   let wrapper;
   let discoverMock;
   let releasesMock;
@@ -43,7 +43,7 @@ describe('OverviewDashboard', function() {
     mockRouterPush(wrapper, router);
   };
 
-  beforeEach(function() {
+  beforeEach(function () {
     ProjectsStore.loadInitialData(projects);
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
@@ -68,7 +68,7 @@ describe('OverviewDashboard', function() {
     });
   });
 
-  afterEach(function() {
+  afterEach(function () {
     router.push.mockRestore();
     MockApiClient.clearMockResponses();
     if (wrapper) {
@@ -78,7 +78,7 @@ describe('OverviewDashboard', function() {
     releasesMock.mockRestore();
   });
 
-  it('renders and updates "recentReleases" constraint ', async function() {
+  it('renders and updates "recentReleases" constraint ', async function () {
     const eventsByReleaseWidget = TestStubs.Widget({
       discover: [
         {

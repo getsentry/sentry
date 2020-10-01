@@ -159,10 +159,10 @@ const ResultGrid = createReactClass({
       sortOptions: [],
       filters: {},
       defaultSort: '',
-      keyForRow: function(row) {
+      keyForRow: function (row) {
         return row.id;
       },
-      columnsForRow: function() {
+      columnsForRow: function () {
         return [];
       },
       defaultParams: {

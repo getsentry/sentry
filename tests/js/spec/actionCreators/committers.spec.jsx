@@ -2,7 +2,7 @@ import {getCommitters} from 'app/actionCreators/committers';
 import CommitterActions from 'app/actions/committerActions';
 import CommitterStore, {getCommitterStoreKey} from 'app/stores/committerStore';
 
-describe('CommitterActionCreator', function() {
+describe('CommitterActionCreator', function () {
   const organization = TestStubs.Organization();
   const project = TestStubs.Project();
   const event = TestStubs.Event();

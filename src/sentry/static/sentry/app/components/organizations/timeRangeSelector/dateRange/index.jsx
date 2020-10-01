@@ -24,10 +24,7 @@ import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 
 class DateRange extends React.Component {
-  static getTimeStringFromDate = date =>
-    moment(date)
-      .local()
-      .format('HH:mm');
+  static getTimeStringFromDate = date => moment(date).local().format('HH:mm');
 
   static propTypes = {
     /**

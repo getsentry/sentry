@@ -8,8 +8,8 @@ const handledVsUnhandled = {
 
   title: 'Handled vs. Unhandled',
   fieldLabelMap: {
-    '0': 'Unhandled',
-    '1': 'Handled',
+    0: 'Unhandled',
+    1: 'Handled',
     null: 'Unknown',
   },
 };

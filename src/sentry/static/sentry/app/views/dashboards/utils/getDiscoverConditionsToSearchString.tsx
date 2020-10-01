@@ -35,8 +35,5 @@ function getDiscoverConditionToSearchString(condition: Condition) {
 }
 
 export function getDiscoverConditionsToSearchString(conditions: Condition[] = []) {
-  return conditions
-    .map(getDiscoverConditionToSearchString)
-    .join(' ')
-    .trim();
+  return conditions.map(getDiscoverConditionToSearchString).join(' ').trim();
 }

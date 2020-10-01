@@ -5,11 +5,11 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import OrganizationActivity from 'app/views/organizationActivity';
 
-describe('OrganizationActivity', function() {
+describe('OrganizationActivity', function () {
   const {router, organization, routerContext} = initializeOrg();
   let params = {};
 
-  beforeEach(function() {
+  beforeEach(function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/activity/',
       body: [
@@ -29,13 +29,13 @@ describe('OrganizationActivity', function() {
     };
   });
 
-  it('renders', function() {
+  it('renders', function () {
     const wrapper = mount(<OrganizationActivity {...params} />, routerContext);
 
     expect(wrapper.find('ActivityItem')).toHaveLength(2);
   });
 
-  it('renders empty', function() {
+  it('renders empty', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/activity/',
       body: [],
@@ -46,7 +46,7 @@ describe('OrganizationActivity', function() {
     expect(wrapper.find('EmptyStateWarning')).toHaveLength(1);
   });
 
-  it('renders not found', function() {
+  it('renders not found', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/activity/',
       body: [],

@@ -172,8 +172,9 @@ async function createShortIdLookupResult(shortIdLookupPromise) {
   const issue = shortIdLookup && shortIdLookup.group;
   return {
     item: {
-      title: `${(issue && issue.metadata && issue.metadata.type) ||
-        shortIdLookup.shortId}`,
+      title: `${
+        (issue && issue.metadata && issue.metadata.type) || shortIdLookup.shortId
+      }`,
       description: `${(issue && issue.metadata && issue.metadata.value) || t('Issue')}`,
       model: shortIdLookup.group,
       sourceType: 'issue',

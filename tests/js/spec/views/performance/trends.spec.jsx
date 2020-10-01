@@ -56,11 +56,11 @@ function initializeData(projects, query) {
   return initialData;
 }
 
-describe('Performance > Trends', function() {
+describe('Performance > Trends', function () {
   let trendsMock;
   let trendsStatsMock;
   let baselineMock;
-  beforeEach(function() {
+  beforeEach(function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
@@ -185,12 +185,12 @@ describe('Performance > Trends', function() {
     });
   });
 
-  afterEach(function() {
+  afterEach(function () {
     MockApiClient.clearMockResponses();
     ProjectsStore.reset();
   });
 
-  it('renders basic UI elements', async function() {
+  it('renders basic UI elements', async function () {
     const projects = [TestStubs.Project()];
     const data = initializeData(projects, {});
 
@@ -210,7 +210,7 @@ describe('Performance > Trends', function() {
     expect(wrapper.find('ChangedTransactions')).toHaveLength(2);
   });
 
-  it('transaction list items are rendered', async function() {
+  it('transaction list items are rendered', async function () {
     const projects = [TestStubs.Project()];
     const data = initializeData(projects, {project: ['-1']});
 
@@ -227,7 +227,7 @@ describe('Performance > Trends', function() {
     expect(wrapper.find('TrendsListItem')).toHaveLength(4);
   });
 
-  it('view summary menu action links to the correct view', async function() {
+  it('view summary menu action links to the correct view', async function () {
     const projects = [TestStubs.Project({id: 1, slug: 'internal'}), TestStubs.Project()];
     const data = initializeData(projects, {project: ['1']});
 
@@ -242,10 +242,7 @@ describe('Performance > Trends', function() {
     await tick();
     wrapper.update();
 
-    wrapper
-      .find('DropdownLink')
-      .first()
-      .simulate('click');
+    wrapper.find('DropdownLink').first().simulate('click');
 
     const firstTransaction = wrapper.find('TrendsListItem').first();
     const summaryLink = firstTransaction.find('StyledSummaryLink');
@@ -258,7 +255,7 @@ describe('Performance > Trends', function() {
     expect(summaryLink.props().to.query.project).toEqual(1);
   });
 
-  it('transaction link with stats period calls comparison view', async function() {
+  it('transaction link with stats period calls comparison view', async function () {
     const projects = [TestStubs.Project({id: 1, slug: 'internal'}), TestStubs.Project()];
     const data = initializeData(projects, {project: ['1'], statsPeriod: '30d'});
 
@@ -310,7 +307,7 @@ describe('Performance > Trends', function() {
     });
   });
 
-  it('transaction link with start and end calls comparison view', async function() {
+  it('transaction link with start and end calls comparison view', async function () {
     const projects = [TestStubs.Project({id: 1, slug: 'internal'}), TestStubs.Project()];
     const data = initializeData(projects, {
       project: ['1'],
@@ -361,7 +358,7 @@ describe('Performance > Trends', function() {
     expect(baselineMock).toHaveBeenCalledTimes(2);
   });
 
-  it('choosing a trend function changes location', async function() {
+  it('choosing a trend function changes location', async function () {
     const projects = [TestStubs.Project()];
     const data = initializeData(projects, {project: ['-1']});
     const wrapper = mountWithTheme(
@@ -384,7 +381,7 @@ describe('Performance > Trends', function() {
     }
   });
 
-  it('clicking project trend view transactions changes location', async function() {
+  it('clicking project trend view transactions changes location', async function () {
     const projectId = 42;
     const projects = [TestStubs.Project({id: projectId, slug: 'internal'})];
     const data = initializeData(projects, {project: ['-1']});
@@ -410,7 +407,7 @@ describe('Performance > Trends', function() {
     });
   });
 
-  it('viewing a single project will hide the changed project widgets', async function() {
+  it('viewing a single project will hide the changed project widgets', async function () {
     const projectId = 42;
     const projects = [TestStubs.Project({id: projectId, slug: 'internal'})];
     const data = initializeData(projects, {project: ['42']});
@@ -432,7 +429,7 @@ describe('Performance > Trends', function() {
     expect(changedTransactions).toHaveLength(2);
   });
 
-  it('trend functions in location make api calls', async function() {
+  it('trend functions in location make api calls', async function () {
     const projects = [TestStubs.Project(), TestStubs.Project()];
     const data = initializeData(projects, {project: ['-1']});
 

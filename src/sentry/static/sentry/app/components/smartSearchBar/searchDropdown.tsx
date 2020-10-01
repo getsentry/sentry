@@ -19,7 +19,7 @@ type Props = {
 class SearchDropdown extends React.PureComponent<Props> {
   static defaultProps = {
     searchSubstring: '',
-    onClick: function() {},
+    onClick: function () {},
   };
 
   renderDescription = (item: SearchItem) => {

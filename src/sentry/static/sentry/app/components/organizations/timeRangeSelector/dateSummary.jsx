@@ -30,9 +30,7 @@ class DateSummary extends React.Component {
   };
 
   getFormattedDate(date, format) {
-    return moment(date)
-      .local()
-      .format(format);
+    return moment(date).local().format(format);
   }
 
   formatDate(date) {

@@ -5,7 +5,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {ExportQueryType} from 'app/components/dataExport';
 import DataDownload, {DownloadStatus} from 'app/views/dataExport/dataDownload';
 
-describe('DataDownload', function() {
+describe('DataDownload', function () {
   beforeEach(MockApiClient.clearMockResponses);
   const dateExpired = new Date();
   const organization = TestStubs.Organization();
@@ -20,13 +20,13 @@ describe('DataDownload', function() {
       statusCode,
     });
 
-  it('should send a request to the data export endpoint', function() {
+  it('should send a request to the data export endpoint', function () {
     const getValid = getDataExportDetails(DownloadStatus.Valid);
     mountWithTheme(<DataDownload params={mockRouteParams} />);
     expect(getValid).toHaveBeenCalled();
   });
 
-  it("should render the 'Error' view when appropriate", function() {
+  it("should render the 'Error' view when appropriate", function () {
     const errors = {
       download: {
         status: 403,
@@ -42,7 +42,7 @@ describe('DataDownload', function() {
     expect(wrapper.state('errors').download.status).toBe(403);
   });
 
-  it("should render the 'Early' view when appropriate", function() {
+  it("should render the 'Early' view when appropriate", function () {
     const status = DownloadStatus.Early;
     getDataExportDetails({status});
     const wrapper = mountWithTheme(<DataDownload params={mockRouteParams} />);
@@ -51,7 +51,7 @@ describe('DataDownload', function() {
     expect(wrapper.find('Header').text()).toBe('What are you doing here?');
   });
 
-  it("should render the 'Expired' view when appropriate", function() {
+  it("should render the 'Expired' view when appropriate", function () {
     const status = DownloadStatus.Expired;
     const response = {status, query: {type: ExportQueryType.IssuesByTag}};
     getDataExportDetails(response);
@@ -65,7 +65,7 @@ describe('DataDownload', function() {
     );
   });
 
-  it("should render the 'Valid' view when appropriate", function() {
+  it("should render the 'Valid' view when appropriate", function () {
     const status = DownloadStatus.Valid;
     getDataExportDetails({dateExpired, status});
     const wrapper = mountWithTheme(<DataDownload params={mockRouteParams} />);
@@ -79,7 +79,7 @@ describe('DataDownload', function() {
     expect(wrapper.find('DateTime').prop('date')).toEqual(new Date(dateExpired));
   });
 
-  it('should render the Open in Discover button when needed', function() {
+  it('should render the Open in Discover button when needed', function () {
     const status = DownloadStatus.Valid;
     getDataExportDetails({
       dateExpired,
@@ -94,7 +94,7 @@ describe('DataDownload', function() {
     expect(buttonWrapper.exists()).toBeTruthy();
   });
 
-  it('should not render the Open in Discover button when not needed', function() {
+  it('should not render the Open in Discover button when not needed', function () {
     const status = DownloadStatus.Valid;
     getDataExportDetails({
       dateExpired,

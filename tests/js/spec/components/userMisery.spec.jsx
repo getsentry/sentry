@@ -5,12 +5,12 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import ScoreBar from 'app/components/scoreBar';
 import UserMisery from 'app/components/userMisery';
 
-describe('UserMisery', function() {
-  beforeEach(function() {});
+describe('UserMisery', function () {
+  beforeEach(function () {});
 
-  afterEach(function() {});
+  afterEach(function () {});
 
-  it('renders no bars when miserable users is zero', function() {
+  it('renders no bars when miserable users is zero', function () {
     const wrapper = mountWithTheme(
       <UserMisery
         bars={10}
@@ -23,7 +23,7 @@ describe('UserMisery', function() {
     expect(wrapper.find(ScoreBar).props().score).toEqual(0);
   });
 
-  it('renders one bar when miserable users are close to zero', function() {
+  it('renders one bar when miserable users are close to zero', function () {
     const wrapper = mountWithTheme(
       <UserMisery
         bars={10}

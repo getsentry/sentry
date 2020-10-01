@@ -5,7 +5,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import Issues from 'app/views/releases/detail/overview/issues';
 
-describe('Release Issues', function() {
+describe('Release Issues', function () {
   let newIssuesEndpoint,
     resolvedIssuesEndpoint,
     unhandledIssuesEndpoint,
@@ -18,7 +18,7 @@ describe('Release Issues', function() {
     location: {href: ''},
   };
 
-  beforeEach(function() {
+  beforeEach(function () {
     MockApiClient.clearMockResponses();
 
     MockApiClient.addMockResponse({
@@ -46,17 +46,14 @@ describe('Release Issues', function() {
   });
 
   const filterIssues = (wrapper, filter) => {
-    wrapper
-      .find('DropdownControl')
-      .first()
-      .simulate('click');
+    wrapper.find('DropdownControl').first().simulate('click');
 
     wrapper
       .find(`StyledDropdownItem[data-test-id="filter-${filter}"] span`)
       .simulate('click');
   };
 
-  it('shows an empty state', async function() {
+  it('shows an empty state', async function () {
     const wrapper = mountWithTheme(<Issues {...props} />);
     const wrapper2 = mountWithTheme(
       <Issues {...props} selection={{datetime: {period: '24h'}}} />
@@ -80,7 +77,7 @@ describe('Release Issues', function() {
     );
   });
 
-  it('filters the issues', async function() {
+  it('filters the issues', async function () {
     const wrapper = mountWithTheme(<Issues {...props} />);
 
     const filterOptions = wrapper.find('DropdownControl StyledDropdownItem');
@@ -101,7 +98,7 @@ describe('Release Issues', function() {
     expect(allIssuesEndpoint).toHaveBeenCalledTimes(1);
   });
 
-  it('renders link to Discover', function() {
+  it('renders link to Discover', function () {
     const initializationObj = initializeOrg({
       organization: {
         features: ['discover-basic'],
@@ -135,7 +132,7 @@ describe('Release Issues', function() {
     expect(wrapperNoAccess.find('Link[data-test-id="discover-button"]').length).toBe(0);
   });
 
-  it('renders link to Issues', function() {
+  it('renders link to Issues', function () {
     const wrapper = mountWithTheme(<Issues {...props} />);
 
     expect(wrapper.find('Link[data-test-id="issues-button"]').prop('to')).toEqual({

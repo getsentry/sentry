@@ -31,10 +31,10 @@ class UserFeedbackEmpty extends React.Component<Props> {
   componentDidMount() {
     const {organization, projectIds} = this.props;
 
-    window.sentryEmbedCallback = function(embed) {
+    window.sentryEmbedCallback = function (embed) {
       // Mock the embed's submit xhr to always be successful
       // NOTE: this will not have errors if the form is empty
-      embed.submit = function(_body) {
+      embed.submit = function (_body) {
         this._submitInProgress = true;
         setTimeout(() => {
           this._submitInProgress = false;

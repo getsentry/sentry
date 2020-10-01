@@ -6,8 +6,8 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {openHelpSearchModal} from 'app/actionCreators/modal';
 import App from 'app/views/app';
 
-describe('Docs Search Modal', function() {
-  beforeEach(function() {
+describe('Docs Search Modal', function () {
+  beforeEach(function () {
     MockApiClient.clearMockResponses();
 
     MockApiClient.addMockResponse({
@@ -53,7 +53,7 @@ describe('Docs Search Modal', function() {
     });
   });
 
-  it('can open help search modal', async function() {
+  it('can open help search modal', async function () {
     const {routerContext} = initializeOrg();
 
     const wrapper = mountWithTheme(

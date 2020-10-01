@@ -7,10 +7,10 @@ import {ProjectCard} from 'app/views/projectsDashboard/projectCard';
 // NOTE: Unmocking debounce so that the actionCreator never fires
 jest.unmock('lodash/debounce');
 
-describe('ProjectCard', function() {
+describe('ProjectCard', function () {
   let wrapper;
 
-  beforeEach(function() {
+  beforeEach(function () {
     wrapper = mountWithTheme(
       <ProjectCard
         organization={TestStubs.Organization()}
@@ -27,15 +27,15 @@ describe('ProjectCard', function() {
     );
   });
 
-  afterEach(function() {
+  afterEach(function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders', function() {
+  it('renders', function () {
     expect(wrapper).toSnapshot();
   });
 
-  it('renders latest 2 deploys', function() {
+  it('renders latest 2 deploys', function () {
     const latestDeploys = {
       beta: {
         dateFinished: '2018-05-10T20:56:40.092Z',
@@ -74,17 +74,17 @@ describe('ProjectCard', function() {
     expect(wrapper.find('Environment[children="staging"]')).toHaveLength(0);
   });
 
-  it('renders empty state if no deploys', function() {
+  it('renders empty state if no deploys', function () {
     expect(wrapper.find('NoDeploys')).toHaveLength(1);
   });
 
-  it('renders with platform', function() {
+  it('renders with platform', function () {
     expect(wrapper.find('PlatformList')).toHaveLength(1);
     const icons = wrapper.find('StyledPlatformIcon');
     expect(icons.first().prop('platform')).toBe('javascript');
   });
 
-  it('renders loading placeholder card if there are no stats', function() {
+  it('renders loading placeholder card if there are no stats', function () {
     wrapper = mountWithTheme(
       <ProjectCard
         organization={TestStubs.Organization()}

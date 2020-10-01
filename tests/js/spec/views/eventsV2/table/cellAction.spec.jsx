@@ -27,7 +27,7 @@ function makeWrapper(eventView, handleCellAction, columnIndex = 0, data = defaul
   );
 }
 
-describe('Discover -> CellAction', function() {
+describe('Discover -> CellAction', function () {
   const location = {
     query: {
       id: '42',
@@ -46,14 +46,14 @@ describe('Discover -> CellAction', function() {
   };
   const view = EventView.fromLocation(location);
 
-  describe('hover menu button', function() {
+  describe('hover menu button', function () {
     const wrapper = makeWrapper(view);
 
-    it('shows no menu by default', function() {
+    it('shows no menu by default', function () {
       expect(wrapper.find('MenuButton')).toHaveLength(0);
     });
 
-    it('shows a menu on hover, and hides again', function() {
+    it('shows a menu on hover, and hides again', function () {
       wrapper.find('Container').simulate('mouseEnter');
       expect(wrapper.find('MenuButton')).toHaveLength(1);
 
@@ -62,11 +62,11 @@ describe('Discover -> CellAction', function() {
     });
   });
 
-  describe('opening the menu', function() {
+  describe('opening the menu', function () {
     const wrapper = makeWrapper(view);
     wrapper.find('Container').simulate('mouseEnter');
 
-    it('toggles the menu on click', function() {
+    it('toggles the menu on click', function () {
       // Button should be rendered.
       expect(wrapper.find('MenuButton')).toHaveLength(1);
       wrapper.find('MenuButton').simulate('click');
@@ -76,10 +76,10 @@ describe('Discover -> CellAction', function() {
     });
   });
 
-  describe('per cell actions', function() {
+  describe('per cell actions', function () {
     let wrapper;
     let handleCellAction;
-    beforeEach(function() {
+    beforeEach(function () {
       handleCellAction = jest.fn();
       wrapper = makeWrapper(view, handleCellAction);
       // Show button and menu.
@@ -87,19 +87,19 @@ describe('Discover -> CellAction', function() {
       wrapper.find('MenuButton').simulate('click');
     });
 
-    it('add button appends condition', function() {
+    it('add button appends condition', function () {
       wrapper.find('button[data-test-id="add-to-filter"]').simulate('click');
 
       expect(handleCellAction).toHaveBeenCalledWith('add', 'best-transaction');
     });
 
-    it('exclude button adds condition', function() {
+    it('exclude button adds condition', function () {
       wrapper.find('button[data-test-id="exclude-from-filter"]').simulate('click');
 
       expect(handleCellAction).toHaveBeenCalledWith('exclude', 'best-transaction');
     });
 
-    it('exclude button appends exclusions', function() {
+    it('exclude button appends exclusions', function () {
       const excludeView = EventView.fromLocation({
         query: {...location.query, query: '!transaction:nope'},
       });
@@ -112,13 +112,13 @@ describe('Discover -> CellAction', function() {
       expect(handleCellAction).toHaveBeenCalledWith('exclude', 'best-transaction');
     });
 
-    it('go to summary button goes to transaction summary page', function() {
+    it('go to summary button goes to transaction summary page', function () {
       wrapper.find('button[data-test-id="transaction-summary"]').simulate('click');
 
       expect(handleCellAction).toHaveBeenCalledWith('transaction', 'best-transaction');
     });
 
-    it('go to release button goes to release health page', function() {
+    it('go to release button goes to release health page', function () {
       wrapper = makeWrapper(view, handleCellAction, 3);
       // Show button and menu.
       wrapper.find('Container').simulate('mouseEnter');
@@ -132,7 +132,7 @@ describe('Discover -> CellAction', function() {
       );
     });
 
-    it('greater than button adds condition', function() {
+    it('greater than button adds condition', function () {
       wrapper = makeWrapper(view, handleCellAction, 2);
       // Show button and menu.
       wrapper.find('Container').simulate('mouseEnter');
@@ -146,7 +146,7 @@ describe('Discover -> CellAction', function() {
       );
     });
 
-    it('less than button adds condition', function() {
+    it('less than button adds condition', function () {
       wrapper = makeWrapper(view, handleCellAction, 2);
       // Show button and menu.
       wrapper.find('Container').simulate('mouseEnter');
@@ -160,7 +160,7 @@ describe('Discover -> CellAction', function() {
       );
     });
 
-    it('show appropriate actions for string cells', function() {
+    it('show appropriate actions for string cells', function () {
       wrapper = makeWrapper(view, handleCellAction, 0);
       wrapper.find('Container').simulate('mouseEnter');
       wrapper.find('MenuButton').simulate('click');
@@ -176,7 +176,7 @@ describe('Discover -> CellAction', function() {
       ).toBeFalsy();
     });
 
-    it('show appropriate actions for string cells with null values', function() {
+    it('show appropriate actions for string cells with null values', function () {
       wrapper = makeWrapper(view, handleCellAction, 4);
       wrapper.find('Container').simulate('mouseEnter');
       wrapper.find('MenuButton').simulate('click');
@@ -186,7 +186,7 @@ describe('Discover -> CellAction', function() {
       ).toBeTruthy();
     });
 
-    it('show appropriate actions for number cells', function() {
+    it('show appropriate actions for number cells', function () {
       wrapper = makeWrapper(view, handleCellAction, 1);
       wrapper.find('Container').simulate('mouseEnter');
       wrapper.find('MenuButton').simulate('click');
@@ -202,7 +202,7 @@ describe('Discover -> CellAction', function() {
       ).toBeTruthy();
     });
 
-    it('show appropriate actions for date cells', function() {
+    it('show appropriate actions for date cells', function () {
       wrapper = makeWrapper(view, handleCellAction, 2);
       wrapper.find('Container').simulate('mouseEnter');
       wrapper.find('MenuButton').simulate('click');
@@ -218,7 +218,7 @@ describe('Discover -> CellAction', function() {
       ).toBeTruthy();
     });
 
-    it('show appropriate actions for release cells', function() {
+    it('show appropriate actions for release cells', function () {
       wrapper = makeWrapper(view, handleCellAction, 3);
       wrapper.find('Container').simulate('mouseEnter');
       wrapper.find('MenuButton').simulate('click');
@@ -235,8 +235,8 @@ describe('Discover -> CellAction', function() {
   });
 });
 
-describe('updateQuery()', function() {
-  it('modifies the query with has/!has', function() {
+describe('updateQuery()', function () {
+  it('modifies the query with has/!has', function () {
     const results = new QueryResults([]);
     updateQuery(results, Actions.ADD, 'a', null);
     expect(results.formatString()).toEqual('!has:a');
@@ -246,7 +246,7 @@ describe('updateQuery()', function() {
     expect(results.formatString()).toEqual('!has:a');
   });
 
-  it('modifies the query with additions', function() {
+  it('modifies the query with additions', function () {
     const results = new QueryResults([]);
     updateQuery(results, Actions.ADD, 'a', '1');
     expect(results.formatString()).toEqual('a:1');
@@ -256,7 +256,7 @@ describe('updateQuery()', function() {
     expect(results.formatString()).toEqual('b:1 a:2');
   });
 
-  it('modifies the query with exclusions', function() {
+  it('modifies the query with exclusions', function () {
     const results = new QueryResults([]);
     updateQuery(results, Actions.EXCLUDE, 'a', '1');
     expect(results.formatString()).toEqual('!a:1');
@@ -266,7 +266,7 @@ describe('updateQuery()', function() {
     expect(results.formatString()).toEqual('!a:1 !b:1 !a:2');
   });
 
-  it('modifies the query with a mix of additions and exclusions', function() {
+  it('modifies the query with a mix of additions and exclusions', function () {
     const results = new QueryResults([]);
     updateQuery(results, Actions.ADD, 'a', '1');
     expect(results.formatString()).toEqual('a:1');
@@ -282,7 +282,7 @@ describe('updateQuery()', function() {
     expect(results.formatString()).toEqual('a:5 b:6');
   });
 
-  it('modifies the query with greater/less than', function() {
+  it('modifies the query with greater/less than', function () {
     const results = new QueryResults([]);
     updateQuery(results, Actions.SHOW_GREATER_THAN, 'a', 1);
     expect(results.formatString()).toEqual('a:>1');
@@ -294,14 +294,14 @@ describe('updateQuery()', function() {
     expect(results.formatString()).toEqual('a:<4');
   });
 
-  it('does not error for special actions', function() {
+  it('does not error for special actions', function () {
     const results = new QueryResults([]);
     updateQuery(results, Actions.TRANSACTION, '', '');
     updateQuery(results, Actions.RELEASE, '', '');
     updateQuery(results, Actions.DRILLDOWN, '', '');
   });
 
-  it('errors for unknown actions', function() {
+  it('errors for unknown actions', function () {
     const results = new QueryResults([]);
     expect(() => updateQuery(results, 'unknown', '', '')).toThrow();
   });

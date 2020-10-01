@@ -5,16 +5,16 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {Client} from 'app/api';
 import IntegrationRow from 'app/views/organizationIntegrations/integrationRow';
 
-describe('IntegrationRow', function() {
-  beforeEach(function() {
+describe('IntegrationRow', function () {
+  beforeEach(function () {
     Client.clearMockResponses();
   });
 
   const org = TestStubs.Organization();
   const routerContext = TestStubs.routerContext();
 
-  describe('SentryApp', function() {
-    it('is an internal SentryApp', async function() {
+  describe('SentryApp', function () {
+    it('is an internal SentryApp', async function () {
       const wrapper = mountWithTheme(
         <IntegrationRow
           organization={org}
@@ -41,7 +41,7 @@ describe('IntegrationRow', function() {
       expect(wrapper.find('PublishStatus').props().status).toEqual('internal');
     });
 
-    it('is a published SentryApp', async function() {
+    it('is a published SentryApp', async function () {
       const wrapper = mountWithTheme(
         <IntegrationRow
           organization={org}
@@ -64,8 +64,8 @@ describe('IntegrationRow', function() {
       expect(wrapper.find('PublishStatus').exists()).toEqual(false);
     });
   });
-  describe('First Party Integration', function() {
-    it('has been installed (1 configuration)', async function() {
+  describe('First Party Integration', function () {
+    it('has been installed (1 configuration)', async function () {
       const wrapper = mountWithTheme(
         <IntegrationRow
           organization={org}
@@ -89,7 +89,7 @@ describe('IntegrationRow', function() {
       expect(wrapper.find('StyledLink').props().children).toEqual('1 Configuration');
     });
 
-    it('has been installed (3 configurations)', async function() {
+    it('has been installed (3 configurations)', async function () {
       const wrapper = mountWithTheme(
         <IntegrationRow
           organization={org}
@@ -113,7 +113,7 @@ describe('IntegrationRow', function() {
       expect(wrapper.find('StyledLink').props().children).toEqual('3 Configurations');
     });
 
-    it('has not been installed', async function() {
+    it('has not been installed', async function () {
       const wrapper = mountWithTheme(
         <IntegrationRow
           organization={org}
@@ -137,8 +137,8 @@ describe('IntegrationRow', function() {
       expect(wrapper.find('StyledLink').exists()).toEqual(false);
     });
   });
-  describe('Plugin', function() {
-    it('has been installed (1 project)', async function() {
+  describe('Plugin', function () {
+    it('has been installed (1 project)', async function () {
       const wrapper = mountWithTheme(
         <IntegrationRow
           organization={org}
@@ -162,7 +162,7 @@ describe('IntegrationRow', function() {
       expect(wrapper.find('StyledLink').props().children).toEqual('1 Configuration');
     });
 
-    it('has been installed (3 projects)', async function() {
+    it('has been installed (3 projects)', async function () {
       const wrapper = mountWithTheme(
         <IntegrationRow
           organization={org}
@@ -186,7 +186,7 @@ describe('IntegrationRow', function() {
       expect(wrapper.find('StyledLink').props().children).toEqual('3 Configurations');
     });
 
-    it('has not been installed', async function() {
+    it('has not been installed', async function () {
       const wrapper = mountWithTheme(
         <IntegrationRow
           organization={org}
