@@ -132,7 +132,23 @@ options_mapper = {
     "mail.use-tls": "EMAIL_USE_TLS",
     "mail.from": "SERVER_EMAIL",
     "mail.subject-prefix": "EMAIL_SUBJECT_PREFIX",
+    "github-login.client-id": "GITHUB_APP_ID",
+    "github-login.client-secret": "GITHUB_API_SECRET",
+    "github-login.require-verified-email": "GITHUB_REQUIRE_VERIFIED_EMAIL",
+    "github-login.base-domain": "GITHUB_BASE_DOMAIN",
+    "github-login.api-domain": "GITHUB_API_DOMAIN",
+    "github-login.extended-permissions": "GITHUB_EXTENDED_PERMISSIONS",
+    "github-login.organization": "GITHUB_ORGANIZATION",
 }
+
+
+# Just reuse the integration app for Single Org / Self-Hosted as
+# it doesn't make much sense to use 2 separate apps for SSO and
+# integration.
+if settings.SENTRY_SINGLE_ORGANIZATION:
+    options_mapper.update(
+        {"github-app.client-id": "GITHUB_APP_ID", "github-app.client-secret": "GITHUB_API_SECRET"}
+    )
 
 
 def bootstrap_options(settings, config=None):
