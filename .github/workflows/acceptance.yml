@@ -230,7 +230,7 @@ jobs:
 
     visual-diff:
       if: ${{ github.ref != 'refs/heads/master' }}
-      needs: [acceptance, jest]
+      needs: [py3-acceptance, jest]
       runs-on: ubuntu-16.04
 
       steps:
