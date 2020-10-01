@@ -43,7 +43,8 @@ class APIDocsTestCase(APITestCase):
             "fingerprint": ["1"],
             "sdk": {"version": "5.17.0", "name": "sentry.javascript.browser"},
             "timestamp": iso_format(before_now(seconds=1)),
-            "user": {"id": 1, "email": self.user.email},
+            "user": {"id": self.user.id, "email": self.user.email},
+            "release": name,
         }
         data.update(kwargs)
 

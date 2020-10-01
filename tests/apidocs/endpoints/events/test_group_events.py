@@ -4,13 +4,27 @@ from __future__ import absolute_import
 
 from django.test.client import RequestFactory
 
+from sentry.testutils.helpers.datetime import iso_format, before_now
 from tests.apidocs.util import APIDocsTestCase
 
 
 class ProjectGroupEventBase(APIDocsTestCase):
     def setUp(self):
-        event = self.create_event("a")
-        self.create_event("b")
+        first_release = {
+            "firstEvent": before_now(minutes=3),
+            "lastEvent": before_now(minutes=2, seconds=30),
+        }
+        last_release = {
+            "firstEvent": before_now(minutes=1, seconds=30),
+            "lastEvent": before_now(minutes=1),
+        }
+
+        for timestamp in first_release.values():
+            self.create_event("a", release="1.0", timestamp=iso_format(timestamp))
+        self.create_event("b", release="1.1")
+
+        for timestamp in last_release.values():
+            event = self.create_event("c", release="1.0a", timestamp=iso_format(timestamp))
 
         self.group_id = event.group.id
 

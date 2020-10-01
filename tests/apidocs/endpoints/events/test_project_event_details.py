@@ -16,7 +16,7 @@ class ProjectEventDetailsDocs(APIDocsTestCase):
         event = self.create_event("b")
         self.create_event("c")
 
-        self.create_event("d")
+        self.create_event("d", fingerprint=["group-2"])
 
         self.url = reverse(
             self.endpoint,

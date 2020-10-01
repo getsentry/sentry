@@ -18,7 +18,7 @@ class ProjectEventsDocs(APIDocsTestCase):
         self.url = reverse(
             self.endpoint,
             kwargs={
-                "organization_slug": self.project.organization.slug,
+                "organization_slug": self.organization.slug,
                 "project_slug": self.project.slug,
             },
         )

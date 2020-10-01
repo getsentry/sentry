@@ -11,11 +11,10 @@ class GroupTagKeyValuesDocs(APIDocsTestCase):
     def setUp(self):
         key, value = "foo", "bar"
         event = self.create_event("a", tags={key: value})
-        group = event.group
 
         self.login_as(user=self.user)
 
-        self.url = u"/api/0/issues/{}/tags/{}/values/".format(group.id, key)
+        self.url = u"/api/0/issues/{}/tags/{}/values/".format(event.group_id, key)
 
     def test_get(self):
         response = self.client.get(self.url)
