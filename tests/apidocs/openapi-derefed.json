@@ -3369,21 +3369,42 @@
                       "slug": {
                         "type": "string"
                       },
-                      "team": {
-                        "type": "object",
-                        "required": ["id", "name", "slug"],
-                        "properties": {
-                          "id": {
-                            "type": "string"
-                          },
-                          "name": {
-                            "type": "string"
-                          },
-                          "slug": {
-                            "type": "string"
-                          }
-                        }
-                      },
+                        "team": {
+                            "type": "object",
+                            "nullable": true,
+                            "oneOf": [
+                              {
+                              "type": "object",
+                              "required": ["id", "name", "slug"],
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": "string"
+                                },
+                                "slug": {
+                                  "type": "string"
+                                }
+                              }
+                              },
+                              {
+                              "nullable": true,
+                              "not": {
+                                "anyOf": [
+                                  { "type": "string" },
+                                  { "type": "number" },
+                                  { "type": "boolean" },
+                                  { "type": "object" },
+                                  {
+                                    "type": "array",
+                                    "items": {}
+                                  }
+                                ]
+                              }
+                              }
+                            ]
+                        },
                       "teams": {
                         "type": "array",
                         "items": {
@@ -4049,7 +4070,8 @@
                           "type": "integer"
                         },
                         "culprit": {
-                          "type": "string"
+                          "type": "string",
+                          "nullable": true
                         },
                         "title": {
                           "type": "string"
