@@ -17,7 +17,7 @@ const WaitingActivity = ({onRefresh}: Props) => (
     <EmptyMessage
       title={t('Waiting on Activity!')}
       description={tct('Run relay in your terminal with [command]', {
-        command: <Code text="relay run" />,
+        command: <Code>{'relay run'}</Code>,
       })}
       action={
         <Button icon={<IconRefresh />} onClick={onRefresh}>
