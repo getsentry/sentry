@@ -345,7 +345,7 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         )
         assert result["userCount"] == 1
         assert iso_format(result["lastSeen"]) == iso_format(self.week_ago)
-        assert iso_format(result["firstSeen"]) == iso_format(group_env.first_seen)
+        assert iso_format(result["firstSeen"]) == iso_format(self.week_ago)
         assert result["count"] == "1"
 
 
