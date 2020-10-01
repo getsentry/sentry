@@ -607,11 +607,6 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
             self.login_as(user=self.user)
             response = self.get_response(sort_by="date", limit=10, query="server:example.com")
-            group_test = Group.objects.get(id=group2.id)
-            print("group2:", group2)
-            print("group2.times_seen:", group2.times_seen)
-            print("group_test:", group_test)
-            print("group_test.times_seen:", group_test.times_seen)
 
             assert response.status_code == 200
             assert len(response.data) == 2
