@@ -220,7 +220,7 @@ class VitalCard extends React.Component<Props, State> {
     // We can assume that all buckets are of equal width, use the first two
     // buckets to get the width. The value of each histogram function indicates
     // the beginning of the bucket.
-    return chartData.length > 2 ? chartData[1].histogram - chartData[0].histogram : 0;
+    return chartData.length >= 2 ? chartData[1].histogram - chartData[0].histogram : 0;
   }
 
   computeBuckets() {
