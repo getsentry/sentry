@@ -243,12 +243,14 @@ class VitalCard extends React.Component<Props, State> {
     const seriesData = chartData.map(item => {
       const bucket = item.histogram;
       const midPoint = bucketWidth > 1 ? Math.ceil(bucket + bucketWidth / 2) : bucket;
+      const name =
+        vital.type === 'duration'
+          ? formatDuration(midPoint)
+          : formatFloat(midPoint, 2).toLocaleString();
+
       return {
         value: item.count,
-        name:
-          vital.type === 'duration'
-            ? getDuration(midPoint / 1000, 2)
-            : formatFloat(midPoint, 2).toLocaleString(),
+        name,
       };
     });
 
@@ -445,5 +447,15 @@ const StyledTag = styled(Tag)<TagProps>`
   text-transform: uppercase;
   font-weight: 500;
 `;
+
+function formatDuration(duration: number) {
+  // assume duration is in milliseconds.
+
+  if (duration <= 1000) {
+    return getDuration(duration / 1000, 2, true);
+  }
+
+  return getDuration(duration / 1000, 3, true);
+}
 
 export default VitalCard;
