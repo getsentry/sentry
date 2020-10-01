@@ -1350,6 +1350,13 @@ class DurationColumnNoLookup(DurationColumn):
         return value
 
 
+class StringArrayColumn(FunctionArg):
+    def normalize(self, value):
+        if value in ["tags.key", "tags.value", "measurements_key"]:
+            return value
+        raise InvalidFunctionArgument(u"{} is not a valid string array column".format(value))
+
+
 class NumberRange(FunctionArg):
     def __init__(self, name, start, end, has_default=False):
         super(NumberRange, self).__init__(name, has_default=has_default)
@@ -1605,6 +1612,61 @@ FUNCTIONS = {
             result_type="number",
         ),
         Function("failure_rate", transform="failure_rate()", result_type="percentage",),
+        Function(
+            "array_join",
+            required_args=[StringArrayColumn("column")],
+            column=["arrayJoin", [ArgValue("column")], None],
+            result_type="string",
+        ),
+        Function(
+            "measurements_histogram",
+            required_args=[
+                # the bucket_size and start_offset should already be adjusted
+                # using the multiplier before it is passed here
+                NumberRange("bucket_size", 0, None),
+                NumberRange("start_offset", 0, None),
+                NumberRange("multiplier", 1, None),
+            ],
+            # floor((x * multiplier - start_offset) / bucket_size) * bucket_size + start_offset
+            column=[
+                "plus",
+                [
+                    [
+                        "multiply",
+                        [
+                            [
+                                "floor",
+                                [
+                                    [
+                                        "divide",
+                                        [
+                                            [
+                                                "minus",
+                                                [
+                                                    [
+                                                        "multiply",
+                                                        [
+                                                            ["arrayJoin", ["measurements_value"]],
+                                                            ArgValue("multiplier"),
+                                                        ],
+                                                    ],
+                                                    ArgValue("start_offset"),
+                                                ],
+                                            ],
+                                            ArgValue("bucket_size"),
+                                        ],
+                                    ],
+                                ],
+                            ],
+                            ArgValue("bucket_size"),
+                        ],
+                    ],
+                    ArgValue("start_offset"),
+                ],
+                None,
+            ],
+            result_type="number",
+        ),
         # The user facing signature for this function is histogram(<column>, <num_buckets>)
         # Internally, snuba.discover.query() expands the user request into this value by
         # calculating the bucket size and start_offset.
