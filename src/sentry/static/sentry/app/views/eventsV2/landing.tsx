@@ -166,11 +166,11 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    const isBannerHidden = isBannerHidden();
-    if (isBannerHidden !== this.state.isBannerHidden) {
+    const isHidden = isBannerHidden();
+    if (isHidden !== this.state.isBannerHidden) {
       // eslint-disable-next-line react/no-did-update-set-state
       this.setState({
-        isBannerHidden,
+        isBannerHidden: isHidden,
       });
     }
     const PAYLOAD_KEYS = ['sort', 'cursor', 'query'] as const;
