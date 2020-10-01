@@ -969,7 +969,7 @@ def measurements_histogram_query(
     at once. The resulting histograms will have their bins aligned.
 
     :param [str] measurements: The list of measurements for which you want to
-        generate the histograms for.
+        generate histograms for.
     :param str user_query: Filter query string to create conditions from.
     :param {str: str} params: Filtering parameters with start, end, project_id, environment
     :param int num_buckets: The number of buckets the histogram should contain.
@@ -1128,7 +1128,7 @@ def normalize_measurements_histogram(measurements, num_buckets, key_col, histogr
         generate the histograms for.
     :param int num_buckets: The number of buckets the histogram should contain.
     :param str key_col: The column of the key name.
-    :param HistogramParms histogram_params: This histogram paramters used.
+    :param HistogramParms histogram_params: The histogram parameters used.
     :param any results: The results from the histogram query that may be missing
         bins and needs to be normalized.
     """

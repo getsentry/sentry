@@ -14,9 +14,10 @@ MAX_MEASUREMENTS = 4
 
 
 class MeasurementsHistogramSerializer(serializers.Serializer):
+    query = serializers.Field(required=False)
+    measurement = serializers.ListField(allow_empty=False, max_length=MAX_MEASUREMENTS)
     num_buckets = serializers.IntegerField(min_value=1)
     precision = serializers.IntegerField(default=0, min_value=0, max_value=4)
-    measurement = serializers.ListField(allow_empty=False, max_length=MAX_MEASUREMENTS)
     min = serializers.FloatField(required=False)
     max = serializers.FloatField(required=False)
 
@@ -34,9 +35,7 @@ class OrganizationEventsMeasurementsHistogramEndpoint(OrganizationEventsV2Endpoi
         except NoProjects:
             return Response([])
 
-        with sentry_sdk.start_span(
-            op="discover.endpoint", description="measurements_histogram"
-        ):
+        with sentry_sdk.start_span(op="discover.endpoint", description="measurements_histogram"):
             serializer = MeasurementsHistogramSerializer(data=request.GET)
             if serializer.is_valid():
                 data = serializer.validated_data
@@ -44,7 +43,7 @@ class OrganizationEventsMeasurementsHistogramEndpoint(OrganizationEventsV2Endpoi
                 with self.handle_query_errors():
                     results = discover.measurements_histogram_query(
                         data["measurement"],
-                        request.GET.get("query"),
+                        data.get("query"),
                         params,
                         data["num_buckets"],
                         data["precision"],
