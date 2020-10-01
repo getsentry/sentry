@@ -111,11 +111,11 @@ jobs:
           sentry django makemigrations -n ci_test --check --dry-run --no-input || (echo '::error::Error: Migration required -- to generate a migration, run `sentry django makemigrations -n <some_name>`' && exit 1)
 
   test-py3:
-    name: 'python3.6 backend'
+    name: '3.6 backend'
     runs-on: ubuntu-16.04
     strategy:
       matrix:
-        instance: [0, 1, 2, 3]
+        instance: [0, 1, 2]
 
     env:
       SENTRY_PYTHON3: 1
@@ -202,7 +202,7 @@ jobs:
           TEST_GROUP: ${{ matrix.instance }}
 
   test-py3-snuba:
-    name: '[ignore fails] python3.6 backend (snuba)'
+    name: '[ignore fails] 3.6 backend (snuba)'
     runs-on: ubuntu-16.04
     continue-on-error: true
     strategy:
