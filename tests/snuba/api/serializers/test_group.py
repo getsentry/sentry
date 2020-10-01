@@ -313,7 +313,7 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         result = serialize(group, serializer=GroupSerializerSnuba(environment_ids=[]))
         assert result["count"] == "3"
         assert iso_format(result["lastSeen"]) == iso_format(self.min_ago)
-        assert iso_format(result["firstSeen"]) == group.first_seen
+        assert result["firstSeen"] == group.first_seen
 
         # update this to something different to make sure it's being used
         group_env = GroupEnvironment.objects.get(group_id=group_id, environment_id=environment.id)
