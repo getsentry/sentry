@@ -132,7 +132,7 @@ def test_basic(
     assert not Group.objects.filter(id=old_event.group_id).exists()
     assert not eventstore.get_event_by_id(default_project.id, old_event.event_id)
 
-    assert is_group_finished(event.group_id)
+    assert is_group_finished(old_event.group_id)
 
 
 @pytest.mark.django_db
