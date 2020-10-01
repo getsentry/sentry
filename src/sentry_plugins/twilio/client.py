@@ -1,5 +1,8 @@
 from __future__ import absolute_import
 
+from base64 import b64encode
+from django.utils.encoding import force_bytes
+
 from sentry_plugins.client import ApiClient
 
 
@@ -16,7 +19,7 @@ class TwilioApiClient(ApiClient):
         super(TwilioApiClient, self).__init__()
 
     def basic_auth(self, user, password):
-        return "Basic " + (user + ":" + password).encode("base64").replace("\n", "")
+        return b"Basic " + b64encode(force_bytes(user + ":" + password))
 
     def request(self, data):
         endpoint = self.twilio_messages_endpoint.format(self.account_sid)

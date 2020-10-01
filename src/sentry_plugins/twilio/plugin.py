@@ -163,7 +163,7 @@ class TwilioPlugin(CorePluginMixin, NotificationPlugin):
             return
         project = group.project
 
-        body = "Sentry [{0}] {1}: {2}".format(
+        body = b"Sentry [%s] %s: %s" % (
             project.name.encode("utf-8"),
             event.group.get_level_display().upper().encode("utf-8"),
             event.title.encode("utf-8").splitlines()[0],
