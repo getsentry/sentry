@@ -333,8 +333,6 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         assert iso_format(group_env2.first_seen) > iso_format(group_env.first_seen)
         assert result["userCount"] == 3
 
-        # test userCount, count, lastSeen filtering correctly by time
-        # firstSeen should still be from GroupEnvironment
         result = serialize(
             group,
             serializer=GroupSerializerSnuba(
