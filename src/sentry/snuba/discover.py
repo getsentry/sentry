@@ -982,6 +982,8 @@ def measurements_histogram_query(
 
     multiplier = int(10 ** precision)
     if max_value is not None:
+        # We want the specified max_value to be exclusive, and the queried max_value
+        # to be inclusive. So we adjust the specified max_value using the multiplier.
         max_value -= 0.1 / multiplier
     min_value, max_value = find_measurements_min_max(
         measurements, min_value, max_value, user_query, params
@@ -993,9 +995,20 @@ def measurements_histogram_query(
     )
     histogram_col = get_measurements_histogram_col(histogram_params)
 
+    min_bin = compute_measurements_histogram_bin(min_value, histogram_params)
+    max_bin = compute_measurements_histogram_bin(max_value, histogram_params)
+
+    conditions = [[get_function_alias(key_col), "IN", measurements]]
+
+    # make sure to bound the bins as to not get too many results
+    if min_bin is not None:
+        conditions.append([get_function_alias(histogram_col), ">=", min_bin])
+    if max_bin is not None:
+        conditions.append([get_function_alias(histogram_col), "<=", max_bin])
+
     results = query(
         selected_columns=[key_col, histogram_col, "count()"],
-        conditions=[[get_function_alias(key_col), "IN", measurements]],
+        conditions=conditions,
         query=user_query,
         params=params,
         # the zerofill step assumes it is ordered by the bin then name
@@ -1013,6 +1026,13 @@ def measurements_histogram_query(
 
 def get_measurements_histogram_col(params):
     return u"measurements_histogram({:d}, {:d}, {:d})".format(*params)
+
+
+def compute_measurements_histogram_bin(value, params):
+    if value is None:
+        return None
+    bucket_size, start_offset, multiplier = params
+    return floor((value * multiplier - start_offset) / bucket_size) * bucket_size + start_offset
 
 
 def find_measurements_histogram_params(num_buckets, min_value, max_value, multiplier):
@@ -1124,7 +1144,20 @@ def normalize_measurements_histogram(measurements, num_buckets, key_col, histogr
     measurements = sorted(measurements)
     key_name = get_function_alias(key_col)
     bin_name = get_function_alias(get_measurements_histogram_col(histogram_params))
+
+    # adjust the meta for the renamed columns
+    meta = results["meta"]
+    new_meta = []
+
+    meta_map = {key_name: "key", bin_name: "bin"}
+    for col in meta:
+        new_meta.append({"type": col["type"], "name": meta_map.get(col["name"], col["name"])})
+
+    results["meta"] = new_meta
+
+    # zerofill and rename the columns while making sure to adjust for precision
     data = results["data"]
+    new_data = []
 
     bucket_maps = {m: {} for m in measurements}
     for row in data:
@@ -1136,7 +1169,6 @@ def normalize_measurements_histogram(measurements, num_buckets, key_col, histogr
         if measurement in bucket_maps:
             bucket_maps[measurement][bucket] = row["count"]
 
-    new_data = []
     for i in range(num_buckets):
         bucket = histogram_params.start_offset + histogram_params.bucket_size * i
         for measurement in measurements:

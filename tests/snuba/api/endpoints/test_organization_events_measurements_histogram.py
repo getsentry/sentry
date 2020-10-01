@@ -288,7 +288,7 @@ class OrganizationEventsMeasurementsHistogramEndpointTest(APITestCase, SnubaTest
         assert response.status_code == 200
         assert response.data["data"] == self.as_response_data(specs)
 
-    def test_histogram_non_zero_min(self):
+    def test_histogram_non_zero_offset(self):
         # range is [10, 15), so it is divided into 5 buckets of width 1
         specs = [
             (10, 11, [("foo", 1)]),
@@ -303,6 +303,34 @@ class OrganizationEventsMeasurementsHistogramEndpointTest(APITestCase, SnubaTest
             "project": [self.project.id],
             "measurement": ["foo"],
             "num_buckets": 5,
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200
+        assert response.data["data"] == self.as_response_data(specs)
+
+    def test_histogram_extra_data(self):
+        # range is [11, 16), so it is divided into 5 buckets of width 1
+        # make sure every bin has some value
+        specs = [
+            (10, 11, [("foo", 1)]),
+            (11, 12, [("foo", 1)]),
+            (12, 13, [("foo", 1)]),
+            (13, 14, [("foo", 1)]),
+            (14, 15, [("foo", 1)]),
+            (15, 16, [("foo", 1)]),
+            (16, 17, [("foo", 1)]),
+        ]
+        self.populate_measurements(specs)
+        del specs[-1]
+        del specs[0]
+
+        query = {
+            "project": [self.project.id],
+            "measurement": ["foo"],
+            "num_buckets": 5,
+            "min": 11,
+            "max": 16,
         }
 
         response = self.do_request(query)
