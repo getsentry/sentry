@@ -144,28 +144,17 @@ jobs:
               libxmlsec1-dev \
               libmaxminddb-dev
 
-        # Checkout codebase
         - uses: actions/checkout@v2
 
-        # Install node
         - uses: volta-cli/action@v1
 
-        # Yarn
-        #   - See https://github.com/actions/cache/blob/master/examples.md#node---yarn for example
-        # Python
-        #   Use `.python-version` to avoid duplication
-        #   XXX: can't actually read from .python-version because GitHub Actions
-        #   does not support our version (2.7.16)
-        #
-        #   XXX: Using `2.7` as GHA image only seems to keep one minor version around and will break
-        #   CI if we pin it to a specific patch version.
         - name: Set up outputs
           id: config
           env:
             MATRIX_INSTANCE: ${{ matrix.instance }}
           run: |
             echo "::set-output name=yarn-cache-dir::$(yarn cache dir)"
-            echo "::set-output name=python-version::2.7"
+            echo "::set-output name=python-version::$(awk 'FNR == 1' .python-version)"
             echo "::set-output name=matrix-instance-number::$(($MATRIX_INSTANCE+1))"
             echo "::set-output name=acceptance-dir::.artifacts/visual-snapshots/acceptance"
 
@@ -180,7 +169,7 @@ jobs:
 
         # setup python
         - name: Set up Python ${{ steps.config.outputs.python-version }}
-          uses: actions/setup-python@v1
+          uses: actions/setup-python@v2
           with:
             python-version: ${{ steps.config.outputs.python-version}}
 
@@ -294,32 +283,20 @@ jobs:
               libxmlsec1-dev \
               libmaxminddb-dev
 
-        # Checkout codebase
         - uses: actions/checkout@v2
 
-        # Install node
         - uses: volta-cli/action@v1
 
-        # Yarn
-        #   - See https://github.com/actions/cache/blob/master/examples.md#node---yarn for example
-        # Python
-        #   Use `.python-version` to avoid duplication
-        #   XXX: can't actually read from .python-version because GitHub Actions
-        #   does not support our version (2.7.16)
-        #
-        #   XXX: Using `2.7` as GHA image only seems to keep one minor version around and will break
-        #   CI if we pin it to a specific patch version.
         - name: Set up outputs
           id: config
           env:
             MATRIX_INSTANCE: ${{ matrix.instance }}
           run: |
             echo "::set-output name=yarn-cache-dir::$(yarn cache dir)"
-            echo "::set-output name=python-version::3.6.12"
+            echo "::set-output name=python-version::$(awk 'FNR == 2' .python-version)"
             echo "::set-output name=matrix-instance-number::$(($MATRIX_INSTANCE+1))"
             echo "::set-output name=acceptance-dir::.artifacts/visual-snapshots/acceptance"
 
-        # yarn cache
         - uses: actions/cache@v1
           id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
           with:
@@ -328,18 +305,15 @@ jobs:
             restore-keys: |
               ${{ runner.os }}-yarn-
 
-        # setup python
         - name: Set up Python ${{ steps.config.outputs.python-version }}
-          uses: actions/setup-python@v1
+          uses: actions/setup-python@v2
           with:
             python-version: ${{ steps.config.outputs.python-version}}
 
-        # setup pip
         - name: Install pip
           run: |
             pip install --no-cache-dir --upgrade "pip>=20.0.2"
 
-        # pip cache
         - name: Get pip cache dir
           id: pip-cache
           run: |
