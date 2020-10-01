@@ -59,11 +59,6 @@ const ACTION_MATCH_CHOICES: Array<[IssueAlertRule['actionMatch'], string]> = [
   ['none', t('none')],
 ];
 
-const ACTION_MATCH_CHOICES_MIGRATED: Array<[IssueAlertRule['actionMatch'], string]> = [
-  ['all', t('all')],
-  ['any', t('any')],
-];
-
 const defaultRule: UnsavedIssueAlertRule = {
   actionMatch: 'all',
   filterMatch: 'all',
@@ -530,11 +525,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                                       name="actionMatch"
                                       required
                                       flexibleControlStateSize
-                                      choices={
-                                        hasFeature
-                                          ? ACTION_MATCH_CHOICES_MIGRATED
-                                          : ACTION_MATCH_CHOICES
-                                      }
+                                      choices={ACTION_MATCH_CHOICES}
                                       onChange={val =>
                                         this.handleChange('actionMatch', val)
                                       }
