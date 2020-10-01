@@ -2165,7 +2165,20 @@
                         },
                         "errors": {
                           "type": "array",
-                          "items": {}
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "message": {
+                                "type": "string"
+                              },
+                              "type": {
+                                "type": "string"
+                              },
+                              "data": {
+                                "type": "object"
+                              }
+                            }
+                          }
                         },
                         "eventID": {
                           "type": "string"
@@ -2643,22 +2656,51 @@
                           },
                           "team": {
                             "type": "object",
-                            "required": [
-                              "id",
-                              "name",
-                              "slug"
-                            ],
-                            "properties": {
-                              "id": {
-                                "type": "string"
+                            "nullable": true,
+                            "oneOf": [
+                              {
+                                "type": "object",
+                                "required": [
+                                  "id",
+                                  "name",
+                                  "slug"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "slug": {
+                                    "type": "string"
+                                  }
+                                }
                               },
-                              "name": {
-                                "type": "string"
-                              },
-                              "slug": {
-                                "type": "string"
+                              {
+                                "nullable": true,
+                                "not": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "number"
+                                    },
+                                    {
+                                      "type": "boolean"
+                                    },
+                                    {
+                                      "type": "object"
+                                    },
+                                    {
+                                      "type": "array",
+                                      "items": {}
+                                    }
+                                  ]
+                                }
                               }
-                            }
+                            ]
                           },
                           "teams": {
                             "type": "array",
@@ -3224,22 +3266,51 @@
                           },
                           "team": {
                             "type": "object",
-                            "required": [
-                              "id",
-                              "name",
-                              "slug"
-                            ],
-                            "properties": {
-                              "id": {
-                                "type": "string"
+                            "nullable": true,
+                            "oneOf": [
+                              {
+                                "type": "object",
+                                "required": [
+                                  "id",
+                                  "name",
+                                  "slug"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "slug": {
+                                    "type": "string"
+                                  }
+                                }
                               },
-                              "name": {
-                                "type": "string"
-                              },
-                              "slug": {
-                                "type": "string"
+                              {
+                                "nullable": true,
+                                "not": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "number"
+                                    },
+                                    {
+                                      "type": "boolean"
+                                    },
+                                    {
+                                      "type": "object"
+                                    },
+                                    {
+                                      "type": "array",
+                                      "items": {}
+                                    }
+                                  ]
+                                }
                               }
-                            }
+                            ]
                           },
                           "teams": {
                             "type": "array",
@@ -3562,22 +3633,51 @@
                       },
                       "team": {
                         "type": "object",
-                        "required": [
-                          "id",
-                          "name",
-                          "slug"
-                        ],
-                        "properties": {
-                          "id": {
-                            "type": "string"
+                        "nullable": true,
+                        "oneOf": [
+                          {
+                            "type": "object",
+                            "required": [
+                              "id",
+                              "name",
+                              "slug"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "slug": {
+                                "type": "string"
+                              }
+                            }
                           },
-                          "name": {
-                            "type": "string"
-                          },
-                          "slug": {
-                            "type": "string"
+                          {
+                            "nullable": true,
+                            "not": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "boolean"
+                                },
+                                {
+                                  "type": "object"
+                                },
+                                {
+                                  "type": "array",
+                                  "items": {}
+                                }
+                              ]
+                            }
                           }
-                        }
+                        ]
                       },
                       "teams": {
                         "type": "array",
@@ -4359,7 +4459,8 @@
                           "type": "integer"
                         },
                         "culprit": {
-                          "type": "string"
+                          "type": "string",
+                          "nullable": true
                         },
                         "title": {
                           "type": "string"
@@ -5017,6 +5118,7 @@
                     },
                     "latestRelease": {
                       "type": "object",
+                      "nullable": true,
                       "required": [
                         "authors",
                         "commitCount",
@@ -5253,6 +5355,7 @@
                           },
                           "author": {
                             "type": "object",
+                            "nullable": true,
                             "properties": {
                               "name": {
                                 "type": "string"
@@ -5297,6 +5400,7 @@
                           },
                           "resourceLinks": {
                             "type": "array",
+                            "nullable": true,
                             "items": {
                               "type": "object",
                               "properties": {
@@ -5322,7 +5426,8 @@
                             "type": "string"
                           },
                           "version": {
-                            "type": "string"
+                            "type": "string",
+                            "nullable": true
                           }
                         }
                       }
@@ -5781,6 +5886,7 @@
                     },
                     "latestRelease": {
                       "type": "object",
+                      "nullable": true,
                       "required": [
                         "authors",
                         "commitCount",
@@ -6017,6 +6123,7 @@
                           },
                           "author": {
                             "type": "object",
+                            "nullable": true,
                             "properties": {
                               "name": {
                                 "type": "string"
@@ -6061,6 +6168,7 @@
                           },
                           "resourceLinks": {
                             "type": "array",
+                            "nullable": true,
                             "items": {
                               "type": "object",
                               "properties": {
@@ -6086,7 +6194,8 @@
                             "type": "string"
                           },
                           "version": {
-                            "type": "string"
+                            "type": "string",
+                            "nullable": true
                           }
                         }
                       }
@@ -7028,7 +7137,7 @@
                         "type": "string"
                       },
                       "user": {
-                        "type": "string",
+                        "type": "object",
                         "nullable": true
                       }
                     }
@@ -7133,7 +7242,7 @@
           "required": false
         },
         "responses": {
-          "201": {
+          "200": {
             "description": "Success",
             "content": {
               "application/json": {
@@ -7186,7 +7295,7 @@
                       "type": "string"
                     },
                     "user": {
-                      "type": "string",
+                      "type": "object",
                       "nullable": true
                     }
                   }
@@ -9068,140 +9177,197 @@
                     },
                     "release": {
                       "type": "object",
-                      "required": [
-                        "authors",
-                        "commitCount",
-                        "data",
-                        "dateCreated",
-                        "dateReleased",
-                        "deployCount",
-                        "firstEvent",
-                        "lastCommit",
-                        "lastDeploy",
-                        "lastEvent",
-                        "newGroups",
-                        "owner",
-                        "projects",
-                        "ref",
-                        "shortVersion",
-                        "version",
-                        "url"
-                      ],
-                      "properties": {
-                        "authors": {
-                          "type": "array",
-                          "items": {
-                            "type": "object"
-                          }
-                        },
-                        "commitCount": {
-                          "type": "integer",
-                          "format": "int64"
-                        },
-                        "data": {
-                          "type": "object"
-                        },
-                        "dateCreated": {
-                          "type": "string",
-                          "format": "date-time"
-                        },
-                        "dateReleased": {
-                          "type": "string",
-                          "format": "date-time",
-                          "nullable": true
-                        },
-                        "deployCount": {
-                          "type": "integer",
-                          "format": "int64"
-                        },
-                        "firstEvent": {
-                          "type": "string",
-                          "format": "date-time",
-                          "nullable": true
-                        },
-                        "lastCommit": {
+                      "nullable": true,
+                      "oneOf": [
+                        {
                           "type": "object",
-                          "nullable": true
-                        },
-                        "lastDeploy": {
-                          "type": "object",
-                          "nullable": true,
                           "required": [
-                            "environment",
-                            "name",
-                            "dateStarted",
-                            "dateFinished",
-                            "url",
-                            "id"
+                            "authors",
+                            "commitCount",
+                            "data",
+                            "dateCreated",
+                            "dateReleased",
+                            "deployCount",
+                            "firstEvent",
+                            "lastCommit",
+                            "lastDeploy",
+                            "lastEvent",
+                            "newGroups",
+                            "owner",
+                            "projects",
+                            "ref",
+                            "shortVersion",
+                            "version",
+                            "url"
                           ],
                           "properties": {
-                            "environment": {
-                              "type": "string"
+                            "authors": {
+                              "type": "array",
+                              "items": {
+                                "type": "object"
+                              }
                             },
-                            "name": {
+                            "commitCount": {
+                              "type": "integer",
+                              "format": "int64"
+                            },
+                            "data": {
+                              "type": "object"
+                            },
+                            "dateCreated": {
                               "type": "string",
-                              "nullable": true
+                              "format": "date-time"
                             },
-                            "dateStarted": {
+                            "dateReleased": {
                               "type": "string",
                               "format": "date-time",
                               "nullable": true
                             },
-                            "dateFinished": {
+                            "deployCount": {
+                              "type": "integer",
+                              "format": "int64"
+                            },
+                            "firstEvent": {
                               "type": "string",
-                              "format": "date-time"
+                              "format": "date-time",
+                              "nullable": true
+                            },
+                            "lastCommit": {
+                              "type": "object",
+                              "nullable": true
+                            },
+                            "lastDeploy": {
+                              "type": "object",
+                              "nullable": true,
+                              "oneOf": [
+                                {
+                                  "type": "object",
+                                  "required": [
+                                    "environment",
+                                    "name",
+                                    "dateStarted",
+                                    "dateFinished",
+                                    "url",
+                                    "id"
+                                  ],
+                                  "properties": {
+                                    "environment": {
+                                      "type": "string"
+                                    },
+                                    "name": {
+                                      "type": "string",
+                                      "nullable": true
+                                    },
+                                    "dateStarted": {
+                                      "type": "string",
+                                      "format": "date-time",
+                                      "nullable": true
+                                    },
+                                    "dateFinished": {
+                                      "type": "string",
+                                      "format": "date-time"
+                                    },
+                                    "url": {
+                                      "type": "string",
+                                      "nullable": true
+                                    },
+                                    "id": {
+                                      "type": "string"
+                                    }
+                                  }
+                                },
+                                {
+                                  "nullable": true,
+                                  "not": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "number"
+                                      },
+                                      {
+                                        "type": "boolean"
+                                      },
+                                      {
+                                        "type": "object"
+                                      },
+                                      {
+                                        "type": "array",
+                                        "items": {}
+                                      }
+                                    ]
+                                  }
+                                }
+                              ]
+                            },
+                            "lastEvent": {
+                              "type": "string",
+                              "format": "date-time",
+                              "nullable": true
+                            },
+                            "newGroups": {
+                              "type": "integer",
+                              "format": "int64"
+                            },
+                            "owner": {
+                              "type": "object",
+                              "nullable": true
+                            },
+                            "projects": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "slug": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            },
+                            "ref": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "shortVersion": {
+                              "type": "string"
+                            },
+                            "version": {
+                              "type": "string"
                             },
                             "url": {
                               "type": "string",
                               "nullable": true
-                            },
-                            "id": {
-                              "type": "string"
                             }
                           }
                         },
-                        "lastEvent": {
-                          "type": "string",
-                          "format": "date-time",
-                          "nullable": true
-                        },
-                        "newGroups": {
-                          "type": "integer",
-                          "format": "int64"
-                        },
-                        "owner": {
-                          "type": "object",
-                          "nullable": true
-                        },
-                        "projects": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "name": {
+                        {
+                          "nullable": true,
+                          "not": {
+                            "anyOf": [
+                              {
                                 "type": "string"
                               },
-                              "slug": {
-                                "type": "string"
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "boolean"
+                              },
+                              {
+                                "type": "object"
+                              },
+                              {
+                                "type": "array",
+                                "items": {}
                               }
-                            }
+                            ]
                           }
-                        },
-                        "ref": {
-                          "type": "string",
-                          "nullable": true
-                        },
-                        "shortVersion": {
-                          "type": "string"
-                        },
-                        "version": {
-                          "type": "string"
-                        },
-                        "url": {
-                          "type": "string",
-                          "nullable": true
                         }
-                      }
+                      ]
                     },
                     "groupID": {
                       "type": "string"
@@ -12584,140 +12750,197 @@
                     },
                     "release": {
                       "type": "object",
-                      "required": [
-                        "authors",
-                        "commitCount",
-                        "data",
-                        "dateCreated",
-                        "dateReleased",
-                        "deployCount",
-                        "firstEvent",
-                        "lastCommit",
-                        "lastDeploy",
-                        "lastEvent",
-                        "newGroups",
-                        "owner",
-                        "projects",
-                        "ref",
-                        "shortVersion",
-                        "version",
-                        "url"
-                      ],
-                      "properties": {
-                        "authors": {
-                          "type": "array",
-                          "items": {
-                            "type": "object"
-                          }
-                        },
-                        "commitCount": {
-                          "type": "integer",
-                          "format": "int64"
-                        },
-                        "data": {
-                          "type": "object"
-                        },
-                        "dateCreated": {
-                          "type": "string",
-                          "format": "date-time"
-                        },
-                        "dateReleased": {
-                          "type": "string",
-                          "format": "date-time",
-                          "nullable": true
-                        },
-                        "deployCount": {
-                          "type": "integer",
-                          "format": "int64"
-                        },
-                        "firstEvent": {
-                          "type": "string",
-                          "format": "date-time",
-                          "nullable": true
-                        },
-                        "lastCommit": {
+                      "nullable": true,
+                      "oneOf": [
+                        {
                           "type": "object",
-                          "nullable": true
-                        },
-                        "lastDeploy": {
-                          "type": "object",
-                          "nullable": true,
                           "required": [
-                            "environment",
-                            "name",
-                            "dateStarted",
-                            "dateFinished",
-                            "url",
-                            "id"
+                            "authors",
+                            "commitCount",
+                            "data",
+                            "dateCreated",
+                            "dateReleased",
+                            "deployCount",
+                            "firstEvent",
+                            "lastCommit",
+                            "lastDeploy",
+                            "lastEvent",
+                            "newGroups",
+                            "owner",
+                            "projects",
+                            "ref",
+                            "shortVersion",
+                            "version",
+                            "url"
                           ],
                           "properties": {
-                            "environment": {
-                              "type": "string"
+                            "authors": {
+                              "type": "array",
+                              "items": {
+                                "type": "object"
+                              }
                             },
-                            "name": {
+                            "commitCount": {
+                              "type": "integer",
+                              "format": "int64"
+                            },
+                            "data": {
+                              "type": "object"
+                            },
+                            "dateCreated": {
                               "type": "string",
-                              "nullable": true
+                              "format": "date-time"
                             },
-                            "dateStarted": {
+                            "dateReleased": {
                               "type": "string",
                               "format": "date-time",
                               "nullable": true
                             },
-                            "dateFinished": {
+                            "deployCount": {
+                              "type": "integer",
+                              "format": "int64"
+                            },
+                            "firstEvent": {
                               "type": "string",
-                              "format": "date-time"
+                              "format": "date-time",
+                              "nullable": true
+                            },
+                            "lastCommit": {
+                              "type": "object",
+                              "nullable": true
+                            },
+                            "lastDeploy": {
+                              "type": "object",
+                              "nullable": true,
+                              "oneOf": [
+                                {
+                                  "type": "object",
+                                  "required": [
+                                    "environment",
+                                    "name",
+                                    "dateStarted",
+                                    "dateFinished",
+                                    "url",
+                                    "id"
+                                  ],
+                                  "properties": {
+                                    "environment": {
+                                      "type": "string"
+                                    },
+                                    "name": {
+                                      "type": "string",
+                                      "nullable": true
+                                    },
+                                    "dateStarted": {
+                                      "type": "string",
+                                      "format": "date-time",
+                                      "nullable": true
+                                    },
+                                    "dateFinished": {
+                                      "type": "string",
+                                      "format": "date-time"
+                                    },
+                                    "url": {
+                                      "type": "string",
+                                      "nullable": true
+                                    },
+                                    "id": {
+                                      "type": "string"
+                                    }
+                                  }
+                                },
+                                {
+                                  "nullable": true,
+                                  "not": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "number"
+                                      },
+                                      {
+                                        "type": "boolean"
+                                      },
+                                      {
+                                        "type": "object"
+                                      },
+                                      {
+                                        "type": "array",
+                                        "items": {}
+                                      }
+                                    ]
+                                  }
+                                }
+                              ]
+                            },
+                            "lastEvent": {
+                              "type": "string",
+                              "format": "date-time",
+                              "nullable": true
+                            },
+                            "newGroups": {
+                              "type": "integer",
+                              "format": "int64"
+                            },
+                            "owner": {
+                              "type": "object",
+                              "nullable": true
+                            },
+                            "projects": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "slug": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            },
+                            "ref": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "shortVersion": {
+                              "type": "string"
+                            },
+                            "version": {
+                              "type": "string"
                             },
                             "url": {
                               "type": "string",
                               "nullable": true
-                            },
-                            "id": {
-                              "type": "string"
                             }
                           }
                         },
-                        "lastEvent": {
-                          "type": "string",
-                          "format": "date-time",
-                          "nullable": true
-                        },
-                        "newGroups": {
-                          "type": "integer",
-                          "format": "int64"
-                        },
-                        "owner": {
-                          "type": "object",
-                          "nullable": true
-                        },
-                        "projects": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "name": {
+                        {
+                          "nullable": true,
+                          "not": {
+                            "anyOf": [
+                              {
                                 "type": "string"
                               },
-                              "slug": {
-                                "type": "string"
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "boolean"
+                              },
+                              {
+                                "type": "object"
+                              },
+                              {
+                                "type": "array",
+                                "items": {}
                               }
-                            }
+                            ]
                           }
-                        },
-                        "ref": {
-                          "type": "string",
-                          "nullable": true
-                        },
-                        "shortVersion": {
-                          "type": "string"
-                        },
-                        "version": {
-                          "type": "string"
-                        },
-                        "url": {
-                          "type": "string",
-                          "nullable": true
                         }
-                      }
+                      ]
                     },
                     "groupID": {
                       "type": "string"
@@ -13973,140 +14196,197 @@
                     },
                     "release": {
                       "type": "object",
-                      "required": [
-                        "authors",
-                        "commitCount",
-                        "data",
-                        "dateCreated",
-                        "dateReleased",
-                        "deployCount",
-                        "firstEvent",
-                        "lastCommit",
-                        "lastDeploy",
-                        "lastEvent",
-                        "newGroups",
-                        "owner",
-                        "projects",
-                        "ref",
-                        "shortVersion",
-                        "version",
-                        "url"
-                      ],
-                      "properties": {
-                        "authors": {
-                          "type": "array",
-                          "items": {
-                            "type": "object"
-                          }
-                        },
-                        "commitCount": {
-                          "type": "integer",
-                          "format": "int64"
-                        },
-                        "data": {
-                          "type": "object"
-                        },
-                        "dateCreated": {
-                          "type": "string",
-                          "format": "date-time"
-                        },
-                        "dateReleased": {
-                          "type": "string",
-                          "format": "date-time",
-                          "nullable": true
-                        },
-                        "deployCount": {
-                          "type": "integer",
-                          "format": "int64"
-                        },
-                        "firstEvent": {
-                          "type": "string",
-                          "format": "date-time",
-                          "nullable": true
-                        },
-                        "lastCommit": {
+                      "nullable": true,
+                      "oneOf": [
+                        {
                           "type": "object",
-                          "nullable": true
-                        },
-                        "lastDeploy": {
-                          "type": "object",
-                          "nullable": true,
                           "required": [
-                            "environment",
-                            "name",
-                            "dateStarted",
-                            "dateFinished",
-                            "url",
-                            "id"
+                            "authors",
+                            "commitCount",
+                            "data",
+                            "dateCreated",
+                            "dateReleased",
+                            "deployCount",
+                            "firstEvent",
+                            "lastCommit",
+                            "lastDeploy",
+                            "lastEvent",
+                            "newGroups",
+                            "owner",
+                            "projects",
+                            "ref",
+                            "shortVersion",
+                            "version",
+                            "url"
                           ],
                           "properties": {
-                            "environment": {
-                              "type": "string"
+                            "authors": {
+                              "type": "array",
+                              "items": {
+                                "type": "object"
+                              }
                             },
-                            "name": {
+                            "commitCount": {
+                              "type": "integer",
+                              "format": "int64"
+                            },
+                            "data": {
+                              "type": "object"
+                            },
+                            "dateCreated": {
                               "type": "string",
-                              "nullable": true
+                              "format": "date-time"
                             },
-                            "dateStarted": {
+                            "dateReleased": {
                               "type": "string",
                               "format": "date-time",
                               "nullable": true
                             },
-                            "dateFinished": {
+                            "deployCount": {
+                              "type": "integer",
+                              "format": "int64"
+                            },
+                            "firstEvent": {
                               "type": "string",
-                              "format": "date-time"
+                              "format": "date-time",
+                              "nullable": true
+                            },
+                            "lastCommit": {
+                              "type": "object",
+                              "nullable": true
+                            },
+                            "lastDeploy": {
+                              "type": "object",
+                              "nullable": true,
+                              "oneOf": [
+                                {
+                                  "type": "object",
+                                  "required": [
+                                    "environment",
+                                    "name",
+                                    "dateStarted",
+                                    "dateFinished",
+                                    "url",
+                                    "id"
+                                  ],
+                                  "properties": {
+                                    "environment": {
+                                      "type": "string"
+                                    },
+                                    "name": {
+                                      "type": "string",
+                                      "nullable": true
+                                    },
+                                    "dateStarted": {
+                                      "type": "string",
+                                      "format": "date-time",
+                                      "nullable": true
+                                    },
+                                    "dateFinished": {
+                                      "type": "string",
+                                      "format": "date-time"
+                                    },
+                                    "url": {
+                                      "type": "string",
+                                      "nullable": true
+                                    },
+                                    "id": {
+                                      "type": "string"
+                                    }
+                                  }
+                                },
+                                {
+                                  "nullable": true,
+                                  "not": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "number"
+                                      },
+                                      {
+                                        "type": "boolean"
+                                      },
+                                      {
+                                        "type": "object"
+                                      },
+                                      {
+                                        "type": "array",
+                                        "items": {}
+                                      }
+                                    ]
+                                  }
+                                }
+                              ]
+                            },
+                            "lastEvent": {
+                              "type": "string",
+                              "format": "date-time",
+                              "nullable": true
+                            },
+                            "newGroups": {
+                              "type": "integer",
+                              "format": "int64"
+                            },
+                            "owner": {
+                              "type": "object",
+                              "nullable": true
+                            },
+                            "projects": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "slug": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            },
+                            "ref": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "shortVersion": {
+                              "type": "string"
+                            },
+                            "version": {
+                              "type": "string"
                             },
                             "url": {
                               "type": "string",
                               "nullable": true
-                            },
-                            "id": {
-                              "type": "string"
                             }
                           }
                         },
-                        "lastEvent": {
-                          "type": "string",
-                          "format": "date-time",
-                          "nullable": true
-                        },
-                        "newGroups": {
-                          "type": "integer",
-                          "format": "int64"
-                        },
-                        "owner": {
-                          "type": "object",
-                          "nullable": true
-                        },
-                        "projects": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "name": {
+                        {
+                          "nullable": true,
+                          "not": {
+                            "anyOf": [
+                              {
                                 "type": "string"
                               },
-                              "slug": {
-                                "type": "string"
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "boolean"
+                              },
+                              {
+                                "type": "object"
+                              },
+                              {
+                                "type": "array",
+                                "items": {}
                               }
-                            }
+                            ]
                           }
-                        },
-                        "ref": {
-                          "type": "string",
-                          "nullable": true
-                        },
-                        "shortVersion": {
-                          "type": "string"
-                        },
-                        "version": {
-                          "type": "string"
-                        },
-                        "url": {
-                          "type": "string",
-                          "nullable": true
                         }
-                      }
+                      ]
                     },
                     "groupID": {
                       "type": "string"
@@ -16005,39 +16285,67 @@
                       "lastDeploy": {
                         "type": "object",
                         "nullable": true,
-                        "required": [
-                          "environment",
-                          "name",
-                          "dateStarted",
-                          "dateFinished",
-                          "url",
-                          "id"
-                        ],
-                        "properties": {
-                          "environment": {
-                            "type": "string"
+                        "oneOf": [
+                          {
+                            "type": "object",
+                            "required": [
+                              "environment",
+                              "name",
+                              "dateStarted",
+                              "dateFinished",
+                              "url",
+                              "id"
+                            ],
+                            "properties": {
+                              "environment": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "dateStarted": {
+                                "type": "string",
+                                "format": "date-time",
+                                "nullable": true
+                              },
+                              "dateFinished": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "url": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "id": {
+                                "type": "string"
+                              }
+                            }
                           },
-                          "name": {
-                            "type": "string",
-                            "nullable": true
-                          },
-                          "dateStarted": {
-                            "type": "string",
-                            "format": "date-time",
-                            "nullable": true
-                          },
-                          "dateFinished": {
-                            "type": "string",
-                            "format": "date-time"
-                          },
-                          "url": {
-                            "type": "string",
-                            "nullable": true
-                          },
-                          "id": {
-                            "type": "string"
+                          {
+                            "nullable": true,
+                            "not": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "boolean"
+                                },
+                                {
+                                  "type": "object"
+                                },
+                                {
+                                  "type": "array",
+                                  "items": {}
+                                }
+                              ]
+                            }
                           }
-                        }
+                        ]
                       },
                       "lastEvent": {
                         "type": "string",
@@ -16361,39 +16669,67 @@
                     "lastDeploy": {
                       "type": "object",
                       "nullable": true,
-                      "required": [
-                        "environment",
-                        "name",
-                        "dateStarted",
-                        "dateFinished",
-                        "url",
-                        "id"
-                      ],
-                      "properties": {
-                        "environment": {
-                          "type": "string"
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "required": [
+                            "environment",
+                            "name",
+                            "dateStarted",
+                            "dateFinished",
+                            "url",
+                            "id"
+                          ],
+                          "properties": {
+                            "environment": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "dateStarted": {
+                              "type": "string",
+                              "format": "date-time",
+                              "nullable": true
+                            },
+                            "dateFinished": {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            "url": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "id": {
+                              "type": "string"
+                            }
+                          }
                         },
-                        "name": {
-                          "type": "string",
-                          "nullable": true
-                        },
-                        "dateStarted": {
-                          "type": "string",
-                          "format": "date-time",
-                          "nullable": true
-                        },
-                        "dateFinished": {
-                          "type": "string",
-                          "format": "date-time"
-                        },
-                        "url": {
-                          "type": "string",
-                          "nullable": true
-                        },
-                        "id": {
-                          "type": "string"
+                        {
+                          "nullable": true,
+                          "not": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "boolean"
+                              },
+                              {
+                                "type": "object"
+                              },
+                              {
+                                "type": "array",
+                                "items": {}
+                              }
+                            ]
+                          }
                         }
-                      }
+                      ]
                     },
                     "lastEvent": {
                       "type": "string",
@@ -16573,39 +16909,67 @@
                     "lastDeploy": {
                       "type": "object",
                       "nullable": true,
-                      "required": [
-                        "environment",
-                        "name",
-                        "dateStarted",
-                        "dateFinished",
-                        "url",
-                        "id"
-                      ],
-                      "properties": {
-                        "environment": {
-                          "type": "string"
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "required": [
+                            "environment",
+                            "name",
+                            "dateStarted",
+                            "dateFinished",
+                            "url",
+                            "id"
+                          ],
+                          "properties": {
+                            "environment": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "dateStarted": {
+                              "type": "string",
+                              "format": "date-time",
+                              "nullable": true
+                            },
+                            "dateFinished": {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            "url": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "id": {
+                              "type": "string"
+                            }
+                          }
                         },
-                        "name": {
-                          "type": "string",
-                          "nullable": true
-                        },
-                        "dateStarted": {
-                          "type": "string",
-                          "format": "date-time",
-                          "nullable": true
-                        },
-                        "dateFinished": {
-                          "type": "string",
-                          "format": "date-time"
-                        },
-                        "url": {
-                          "type": "string",
-                          "nullable": true
-                        },
-                        "id": {
-                          "type": "string"
+                        {
+                          "nullable": true,
+                          "not": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "boolean"
+                              },
+                              {
+                                "type": "object"
+                              },
+                              {
+                                "type": "array",
+                                "items": {}
+                              }
+                            ]
+                          }
                         }
-                      }
+                      ]
                     },
                     "lastEvent": {
                       "type": "string",
@@ -16823,39 +17187,67 @@
                     "lastDeploy": {
                       "type": "object",
                       "nullable": true,
-                      "required": [
-                        "environment",
-                        "name",
-                        "dateStarted",
-                        "dateFinished",
-                        "url",
-                        "id"
-                      ],
-                      "properties": {
-                        "environment": {
-                          "type": "string"
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "required": [
+                            "environment",
+                            "name",
+                            "dateStarted",
+                            "dateFinished",
+                            "url",
+                            "id"
+                          ],
+                          "properties": {
+                            "environment": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "dateStarted": {
+                              "type": "string",
+                              "format": "date-time",
+                              "nullable": true
+                            },
+                            "dateFinished": {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            "url": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "id": {
+                              "type": "string"
+                            }
+                          }
                         },
-                        "name": {
-                          "type": "string",
-                          "nullable": true
-                        },
-                        "dateStarted": {
-                          "type": "string",
-                          "format": "date-time",
-                          "nullable": true
-                        },
-                        "dateFinished": {
-                          "type": "string",
-                          "format": "date-time"
-                        },
-                        "url": {
-                          "type": "string",
-                          "nullable": true
-                        },
-                        "id": {
-                          "type": "string"
+                        {
+                          "nullable": true,
+                          "not": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "boolean"
+                              },
+                              {
+                                "type": "object"
+                              },
+                              {
+                                "type": "array",
+                                "items": {}
+                              }
+                            ]
+                          }
                         }
-                      }
+                      ]
                     },
                     "lastEvent": {
                       "type": "string",

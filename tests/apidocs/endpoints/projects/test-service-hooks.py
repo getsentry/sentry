@@ -20,17 +20,17 @@ class ProjectServiceHooksDocs(APIDocsTestCase):
 
         self.login_as(user=self.user)
 
-        print("URL", self.url)
-
     def test_get(self):
-        response = self.client.get(self.url)
+        with self.feature("projects:servicehooks"):
+            response = self.client.get(self.url)
         request = RequestFactory().get(self.url)
 
         self.validate_schema(request, response)
 
     def test_post(self):
         data = {"url": "https://example.com/other-sentry-hook", "events": ["event.created"]}
-        response = self.client.post(self.url, data)
+        with self.feature("projects:servicehooks"):
+            response = self.client.post(self.url, data)
         request = RequestFactory().post(self.url, data)
 
         self.validate_schema(request, response)

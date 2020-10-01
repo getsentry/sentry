@@ -628,7 +628,20 @@
       },
       "errors": {
         "type": "array",
-        "items": {}
+        "items": {
+          "type": "object",
+          "properties": {
+            "message": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string"
+            },
+            "data": {
+              "type": "object"
+            }
+          }
+        }
       },
       "eventID": {
         "type": "string"

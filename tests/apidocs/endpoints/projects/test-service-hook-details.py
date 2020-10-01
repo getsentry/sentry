@@ -17,7 +17,7 @@ class ProjectServiceHookDetailsDocs(APIDocsTestCase):
             kwargs={
                 "organization_slug": self.organization.slug,
                 "project_slug": self.project.slug,
-                "hook_id": hook.id,
+                "hook_id": hook.guid,
             },
         )
 
