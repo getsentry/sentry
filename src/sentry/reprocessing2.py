@@ -234,5 +234,5 @@ def is_group_finished(group_id):
     Checks whether a group has finished reprocessing.
     """
 
-    pending = int(_get_sync_redis_client().get(_get_sync_counter_key(group_id)) or 0)
+    pending = int(_get_sync_redis_client().get(_get_sync_counter_key(group_id)))
     return pending <= 0
