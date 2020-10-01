@@ -72,8 +72,8 @@ jest.mock('@sentry-internal/global-search', () => ({
     .mockImplementation(() => ({query: () => Promise.resolve(mockResults)})),
 }));
 
-describe('HelpSearch', function() {
-  it('produces search results', async function() {
+describe('HelpSearch', function () {
+  it('produces search results', async function () {
     const wrapper = mountWithTheme(
       <HelpSearch
         entryPoint="sidebar_help"

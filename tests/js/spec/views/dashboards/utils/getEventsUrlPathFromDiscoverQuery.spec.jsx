@@ -1,6 +1,6 @@
 import {getEventsUrlPathFromDiscoverQuery} from 'app/views/dashboards/utils/getEventsUrlPathFromDiscoverQuery';
 
-describe('getEventsUrlPathFromDiscoverQuery', function() {
+describe('getEventsUrlPathFromDiscoverQuery', function () {
   const organization = TestStubs.Organization();
   const query = {
     name: 'Known Users',
@@ -15,7 +15,7 @@ describe('getEventsUrlPathFromDiscoverQuery', function() {
     rollup: 86400,
   };
 
-  it('handles nulls in selection', function() {
+  it('handles nulls in selection', function () {
     expect(
       getEventsUrlPathFromDiscoverQuery({
         organization,
@@ -33,7 +33,7 @@ describe('getEventsUrlPathFromDiscoverQuery', function() {
     );
   });
 
-  it('has right absolute dates', function() {
+  it('has right absolute dates', function () {
     expect(
       getEventsUrlPathFromDiscoverQuery({
         organization,
@@ -51,7 +51,7 @@ describe('getEventsUrlPathFromDiscoverQuery', function() {
     );
   });
 
-  it('has projects', function() {
+  it('has projects', function () {
     expect(
       getEventsUrlPathFromDiscoverQuery({
         organization,

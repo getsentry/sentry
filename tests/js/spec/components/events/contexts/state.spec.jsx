@@ -19,7 +19,7 @@ const STATE_CONTEXT = {
   },
 };
 
-describe('StateContext', function() {
+describe('StateContext', function () {
   it('renders', () => {
     const wrapper = mount(<StateContextType alias="state" data={STATE_CONTEXT} />);
 

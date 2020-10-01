@@ -5,10 +5,10 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import IncidentRulesCreate from 'app/views/settings/incidentRules/create';
 
-describe('Incident Rules Create', function() {
+describe('Incident Rules Create', function () {
   let eventStatsMock;
 
-  beforeEach(function() {
+  beforeEach(function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
@@ -39,7 +39,7 @@ describe('Incident Rules Create', function() {
     });
   });
 
-  it('renders', function() {
+  it('renders', function () {
     const {organization, project, routerContext} = initializeOrg();
     mountWithTheme(
       <IncidentRulesCreate

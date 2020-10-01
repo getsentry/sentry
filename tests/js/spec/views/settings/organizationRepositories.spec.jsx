@@ -5,8 +5,8 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {Client} from 'app/api';
 import OrganizationRepositories from 'app/views/settings/organizationRepositories/organizationRepositories';
 
-describe('OrganizationRepositories', function() {
-  it('renders without providers', function() {
+describe('OrganizationRepositories', function () {
+  it('renders without providers', function () {
     const wrapper = mountWithTheme(
       <OrganizationRepositories
         params={{orgId: 'org-slug'}}
@@ -17,7 +17,7 @@ describe('OrganizationRepositories', function() {
     expect(wrapper).toSnapshot();
   });
 
-  it('renders with github provider', function() {
+  it('renders with github provider', function () {
     const wrapper = mountWithTheme(
       <OrganizationRepositories
         params={{orgId: 'org-slug'}}
@@ -28,7 +28,7 @@ describe('OrganizationRepositories', function() {
     expect(wrapper).toSnapshot();
   });
 
-  it('renders with a repository', function() {
+  it('renders with a repository', function () {
     Client.addMockResponse({
       url: '/organizations/org-slug/repos/',
       body: [TestStubs.Repository()],

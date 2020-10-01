@@ -4,10 +4,10 @@ import {shallow} from 'sentry-test/enzyme';
 
 import BulkController from 'app/components/bulkController';
 
-describe('BulkController', function() {
+describe('BulkController', function () {
   let wrapper, renderProp, toggleRow, selectPage, deselectPage, selectAll, unselectAll;
 
-  beforeEach(function() {
+  beforeEach(function () {
     renderProp = jest.fn();
     wrapper = shallow(
       <BulkController allRowsCount={32} pageIds={[1, 2, 3]} columnsCount={4}>
@@ -44,18 +44,18 @@ describe('BulkController', function() {
     unselectAll = wrapper.find('[data-test-id="unselectAll"]');
   });
 
-  it('sets the defaults', function() {
+  it('sets the defaults', function () {
     expect(renderProp).toHaveBeenLastCalledWith(false, false, []);
   });
 
-  it('toggles single item', function() {
+  it('toggles single item', function () {
     toggleRow.simulate('click');
     expect(renderProp).toHaveBeenLastCalledWith(false, false, [2]);
     toggleRow.simulate('click');
     expect(renderProp).toHaveBeenLastCalledWith(false, false, []);
   });
 
-  it('toggles the page', function() {
+  it('toggles the page', function () {
     toggleRow.simulate('click');
     expect(renderProp).toHaveBeenLastCalledWith(false, false, [2]);
     selectPage.simulate('click');
@@ -64,7 +64,7 @@ describe('BulkController', function() {
     expect(renderProp).toHaveBeenLastCalledWith(false, false, []);
   });
 
-  it('toggles everything', function() {
+  it('toggles everything', function () {
     toggleRow.simulate('click');
     expect(renderProp).toHaveBeenLastCalledWith(false, false, [2]);
     selectAll.simulate('click');
@@ -73,7 +73,7 @@ describe('BulkController', function() {
     expect(renderProp).toHaveBeenLastCalledWith(false, false, []);
   });
 
-  it('deselects one after having everything selected', function() {
+  it('deselects one after having everything selected', function () {
     selectAll.simulate('click');
     expect(renderProp).toHaveBeenLastCalledWith(true, true, [1, 2, 3]);
     toggleRow.simulate('click');

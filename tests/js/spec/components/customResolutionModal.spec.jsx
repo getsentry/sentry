@@ -4,16 +4,16 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import CustomResolutionModal from 'app/components/customResolutionModal';
 
-describe('CustomResolutionModal', function() {
+describe('CustomResolutionModal', function () {
   let releasesMock;
-  beforeEach(function() {
+  beforeEach(function () {
     releasesMock = MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/releases/',
       body: [TestStubs.Release()],
     });
   });
 
-  it('can select a version', async function() {
+  it('can select a version', async function () {
     const onSelected = jest.fn();
     const wrapper = mountWithTheme(
       <CustomResolutionModal
