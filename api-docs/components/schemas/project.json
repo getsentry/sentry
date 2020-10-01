@@ -339,6 +339,7 @@
       },
       "latestRelease": {
         "type": "object",
+        "nullable": true,
         "required": [
           "authors",
           "commitCount",

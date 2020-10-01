@@ -30,6 +30,7 @@
       },
       "author": {
         "type": "object",
+        "nullable": true,
         "properties": {
           "name": {
             "type": "string"
@@ -74,6 +75,7 @@
       },
       "resourceLinks": {
         "type": "array",
+        "nullable": true,
         "items": {
           "type": "object",
           "properties": {
@@ -99,7 +101,8 @@
         "type": "string"
       },
       "version": {
-        "type": "string"
+        "type": "string",
+        "nullable": true
       }
     }
   }
