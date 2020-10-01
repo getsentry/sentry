@@ -1243,6 +1243,7 @@ def get_alertable_sentry_apps(organization_id, with_metric_alerts=False):
         installations__organization_id=organization_id,
         is_alertable=True,
         installations__status=SentryAppInstallationStatus.INSTALLED,
+        installations__date_deleted=None,
     )
 
     if with_metric_alerts:
