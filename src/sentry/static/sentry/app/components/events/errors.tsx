@@ -3,19 +3,12 @@ import React from 'react';
 import styled from '@emotion/styled';
 import uniqWith from 'lodash/uniqWith';
 import isEqual from 'lodash/isEqual';
-import {browserHistory} from 'react-router';
 
-import {openModal} from 'app/actionCreators/modal';
-import Button from 'app/components/button';
 import EventErrorItem from 'app/components/events/errorItem';
-import {Event, AvatarProject, Project} from 'app/types';
+import {Event} from 'app/types';
 import {IconWarning} from 'app/icons';
-import {t, tct, tn} from 'app/locale';
+import {t, tn} from 'app/locale';
 import space from 'app/styles/space';
-import NumberField from 'app/components/forms/numberField';
-import ApiForm from 'app/components/forms/apiForm';
-import Alert from 'app/components/alert';
-import ExternalLink from 'app/components/links/externalLink';
 
 import {BannerContainer, BannerSummary} from './styles';
 
@@ -23,9 +16,6 @@ const MAX_ERRORS = 100;
 
 type Props = {
   event: Event;
-  orgId: string;
-  project: AvatarProject | Project;
-  issueId?: string;
 };
 
 type State = {
@@ -35,9 +25,6 @@ type State = {
 class EventErrors extends React.Component<Props, State> {
   static propTypes: any = {
     event: PropTypes.object.isRequired,
-    orgId: PropTypes.string.isRequired,
-    project: PropTypes.object.isRequired,
-    issueId: PropTypes.string,
   };
 
   state: State = {
@@ -57,91 +44,8 @@ class EventErrors extends React.Component<Props, State> {
 
   uniqueErrors = (errors: any[]) => uniqWith(errors, isEqual);
 
-  onReprocessGroup = () => {
-    const {orgId, issueId} = this.props;
-    browserHistory.push(
-      `/organizations/${orgId}/issues/?query=tags[original_group_id]:${issueId}`
-    );
-  };
-
-  onReprocessStart = () => {
-    openModal(this.renderReprocessModal);
-  };
-
-  renderReprocessModal = ({Body, closeModal}) => {
-    const {orgId, issueId} = this.props;
-
-    return (
-      <React.Fragment>
-        <Body>
-          <p>
-            {t(
-              'You can choose to re-process events to see if your errors have been resolved. Keep the following limitations in mind:'
-            )}
-          </p>
-
-          <ul>
-            <li>
-              {tct(
-                'Sentry will [strong:duplicate events in your project, assign new event IDs and delete the old issue.] This may temporarily affect event counts in graphs all across the product. Eventually we will not assign new event IDs.',
-                {strong: <strong />}
-              )}
-            </li>
-            <li>
-              {tct(
-                'Reprocessing one or multiple events [strong:counts against your quota], but bypasses rate limits.',
-                {strong: <strong />}
-              )}
-            </li>
-            <li>
-              {tct(
-                'If you have provided missing symbols [strong:please wait at least 1 hour before attempting to re-process.] This is a limitation we will try to get rid of.',
-                {strong: <strong />}
-              )}
-            </li>
-            <li>
-              {tct(
-                'Reprocessed events will not trigger issue alerts, and reprocessed events will not be subject to [link:data forwarding].',
-                {
-                  fwd: (
-                    <ExternalLink href="https://docs.sentry.io/platform-redirect/?next=/data-management/data-forwarding/" />
-                  ),
-                }
-              )}
-            </li>
-          </ul>
-
-          <Alert type="warning">
-            {t(
-              'Reprocessing is still in open beta. Make sure you understand what the above means for you, and beware of bugs.'
-            )}
-          </Alert>
-
-          <ApiForm
-            apiEndpoint={`/organizations/${orgId}/issues/${issueId}/reprocessing/`}
-            apiMethod="POST"
-            footerClass="modal-footer"
-            onSubmitSuccess={this.onReprocessGroup}
-            submitLabel={t('Reprocess')}
-            submitLoadingMessage={t('Reprocessing\u2026')}
-            submitErrorMessage={t('Failed to reprocess. Please check your input.')}
-            hideErrors
-            onCancel={closeModal}
-          >
-            <NumberField
-              name="maxEvents"
-              label={t('Reprocess n latest events, delete the rest')}
-              placeholder={t('all events')}
-              min={1}
-            />
-          </ApiForm>
-        </Body>
-      </React.Fragment>
-    );
-  };
-
   render() {
-    const {event, project, issueId} = this.props;
+    const {event} = this.props;
     // XXX: uniqueErrors is not performant with large datasets
     const errors =
       event.errors.length > MAX_ERRORS ? event.errors : this.uniqueErrors(event.errors);
@@ -170,12 +74,6 @@ class EventErrors extends React.Component<Props, State> {
           {errors.map((error, errorIdx) => (
             <EventErrorItem key={errorIdx} error={error} />
           ))}
-
-          {(project as Project)?.features?.includes('reprocessing-v2') && issueId && (
-            <Button size="xsmall" onClick={this.onReprocessStart}>
-              {t('Try again')}
-            </Button>
-          )}
         </ErrorList>
       </StyledBanner>
     );

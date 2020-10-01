@@ -72,6 +72,8 @@ def reprocess_event(project_id, event_id, start_time):
 
     with sentry_sdk.start_span(op="reprocess_events.nodestore.get"):
         data = nodestore.get(node_id)
+    if data is None:
+        return
 
     from sentry.event_manager import set_tag
     from sentry.tasks.store import preprocess_event_from_reprocessing
