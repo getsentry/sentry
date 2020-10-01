@@ -61,7 +61,7 @@ export class QueryResults {
       }
 
       let trailingParen = '';
-      if (token.endsWith(')')) {
+      if (token.endsWith(')') && !token.includes('(')) {
         const parenMatch = token.match(/\)+$/g);
         if (parenMatch) {
           trailingParen = parenMatch[0];
