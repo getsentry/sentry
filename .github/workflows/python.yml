@@ -12,7 +12,8 @@ on:
 
 jobs:
   check-missing-migration:
-    if: ${{ github.ref != 'refs/heads/master' }}
+    # Not necessary for this job to run on the push branches.
+    if: ${{ github.ref != 'refs/heads/master' || contains(github.ref, 'releases/') }}
     name: Check Migration Required
     runs-on: ubuntu-16.04
 
