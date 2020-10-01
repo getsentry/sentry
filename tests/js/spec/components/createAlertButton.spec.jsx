@@ -158,10 +158,7 @@ describe('CreateAlertButton', () => {
     const errorsAlert = mountWithTheme(
       onIncompatibleQueryMock.mock.calls[0][0](onCloseMock)
     );
-    errorsAlert
-      .find('[aria-label="Close"]')
-      .at(0)
-      .simulate('click');
+    errorsAlert.find('[aria-label="Close"]').at(0).simulate('click');
     expect(onCloseMock).toHaveBeenCalledTimes(1);
   });
 

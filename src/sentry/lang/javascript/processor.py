@@ -400,7 +400,7 @@ def fetch_file(url, project=None, release=None, dist=None, allow_scraping=True):
         # Discard leading whitespace (often found before doctype)
         body_start = result.body[:20].lstrip()
 
-        if body_start[:1] == u"<":
+        if body_start[:1] == b"<":
             error = {"type": EventError.JS_INVALID_CONTENT, "url": url}
             raise http.CannotFetch(error)
 

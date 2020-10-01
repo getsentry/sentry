@@ -4,7 +4,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ProjectSelector from 'app/components/organizations/projectSelector';
 
-describe('ProjectSelector', function() {
+describe('ProjectSelector', function () {
   const testTeam = TestStubs.Team({
     id: 'test-team',
     slug: 'test-team',
@@ -47,9 +47,11 @@ describe('ProjectSelector', function() {
     children: actorRenderer,
     multiProjects: mockOrg.projects,
     selectedProjects: [],
+    onSelect: () => {},
+    menuFooter: () => {},
   };
 
-  it('should show empty message with no projects button, when no projects, and has no "project:write" access', function() {
+  it('should show empty message with no projects button, when no projects, and has no "project:write" access', function () {
     const wrapper = mountWithTheme(
       <ProjectSelector
         {...props}
@@ -71,7 +73,7 @@ describe('ProjectSelector', function() {
     expect(wrapper.find('CreateProjectButton')).toHaveLength(0);
   });
 
-  it('should show empty message and create project button, when no projects and has "project:write" access', function() {
+  it('should show empty message and create project button, when no projects and has "project:write" access', function () {
     const wrapper = mountWithTheme(
       <ProjectSelector
         {...props}
@@ -93,14 +95,14 @@ describe('ProjectSelector', function() {
     expect(wrapper.find('CreateProjectButton')).toHaveLength(1);
   });
 
-  it('lists projects and has filter', function() {
+  it('lists projects and has filter', function () {
     const wrapper = mountWithTheme(<ProjectSelector {...props} />, routerContext);
     openMenu(wrapper);
 
     expect(wrapper.find('AutoCompleteItem')).toHaveLength(2);
   });
 
-  it('can filter projects by project name', function() {
+  it('can filter projects by project name', function () {
     const wrapper = mountWithTheme(<ProjectSelector {...props} />, routerContext);
     openMenu(wrapper);
 
@@ -111,7 +113,7 @@ describe('ProjectSelector', function() {
     expect(result.prop('project').slug).toBe('test-project');
   });
 
-  it('does not close dropdown when input is clicked', async function() {
+  it('does not close dropdown when input is clicked', async function () {
     const wrapper = mountWithTheme(<ProjectSelector {...props} />, routerContext);
     openMenu(wrapper);
 
@@ -121,19 +123,16 @@ describe('ProjectSelector', function() {
     expect(wrapper.find('DropdownMenu').prop('isOpen')).toBe(true);
   });
 
-  it('closes dropdown when project is selected', function() {
+  it('closes dropdown when project is selected', function () {
     const wrapper = mountWithTheme(<ProjectSelector {...props} />, routerContext);
     openMenu(wrapper);
 
     // Select first project
-    wrapper
-      .find('AutoCompleteItem')
-      .first()
-      .simulate('click');
+    wrapper.find('AutoCompleteItem').first().simulate('click');
     expect(wrapper.find('DropdownMenu').prop('isOpen')).toBe(false);
   });
 
-  it('calls callback when project is selected', function() {
+  it('calls callback when project is selected', function () {
     const mock = jest.fn();
     const wrapper = mountWithTheme(
       <ProjectSelector {...props} onSelect={mock} />,
@@ -142,10 +141,7 @@ describe('ProjectSelector', function() {
     openMenu(wrapper);
 
     // Select first project
-    wrapper
-      .find('AutoCompleteItem')
-      .first()
-      .simulate('click');
+    wrapper.find('AutoCompleteItem').first().simulate('click');
 
     expect(mock).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -154,7 +150,7 @@ describe('ProjectSelector', function() {
     );
   });
 
-  it('shows empty filter message when filtering has no results', function() {
+  it('shows empty filter message when filtering has no results', function () {
     const wrapper = mountWithTheme(<ProjectSelector {...props} />, routerContext);
     openMenu(wrapper);
 
@@ -162,7 +158,7 @@ describe('ProjectSelector', function() {
     expect(wrapper.find('EmptyMessage').prop('children')).toBe('No projects found');
   });
 
-  it('does not call `onSelect` when using multi select', function() {
+  it('does not call `onSelect` when using multi select', function () {
     const mock = jest.fn();
     const onMultiSelectMock = jest.fn();
     const wrapper = mountWithTheme(
@@ -177,17 +173,14 @@ describe('ProjectSelector', function() {
     openMenu(wrapper);
 
     // Select first project
-    wrapper
-      .find('CheckboxHitbox')
-      .first()
-      .simulate('click');
+    wrapper.find('CheckboxHitbox').first().simulate('click');
 
     // onSelect callback should NOT be called
     expect(mock).not.toHaveBeenCalled();
     expect(onMultiSelectMock).toHaveBeenCalled();
   });
 
-  it('displays multi projects', function() {
+  it('displays multi projects', function () {
     const project = TestStubs.Project();
     const multiProjectProps = {...props, multiProjects: [project]};
 
@@ -200,7 +193,7 @@ describe('ProjectSelector', function() {
     expect(wrapper.text()).not.toContain("Projects I don't belong to");
   });
 
-  it('displays multi projects with non member projects', function() {
+  it('displays multi projects with non member projects', function () {
     const project = TestStubs.Project({id: '1'});
     const nonMemberProject = TestStubs.Project({id: '2'});
     const multiProjectProps = {
@@ -218,7 +211,7 @@ describe('ProjectSelector', function() {
     expect(wrapper.find('AutoCompleteItem')).toHaveLength(2);
   });
 
-  it('displays projects in alphabetical order partitioned by project membership', function() {
+  it('displays projects in alphabetical order partitioned by project membership', function () {
     const projectA = TestStubs.Project({id: '1', slug: 'a-project'});
     const projectB = TestStubs.Project({id: '2', slug: 'b-project'});
     const projectANonM = TestStubs.Project({id: '3', slug: 'a-non-m-project'});
@@ -255,7 +248,7 @@ describe('ProjectSelector', function() {
     expect(positionANonM).toBeLessThan(positionBNonM);
   });
 
-  it('displays multi projects in sort order rules: selected, bookmarked, alphabetical', function() {
+  it('displays multi projects in sort order rules: selected, bookmarked, alphabetical', function () {
     const projectA = TestStubs.Project({id: '1', slug: 'a-project'});
     const projectBBookmarked = TestStubs.Project({
       id: '2',
@@ -339,7 +332,7 @@ describe('ProjectSelector', function() {
     expect(positionA).toBeLessThan(positionH);
   });
 
-  it('displays non member projects in alphabetical sort order', function() {
+  it('displays non member projects in alphabetical sort order', function () {
     const projectA = TestStubs.Project({id: '1', slug: 'a-project'});
     const projectBBookmarked = TestStubs.Project({
       id: '2',

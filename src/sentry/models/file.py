@@ -435,14 +435,20 @@ class File(Model):
         blob_ids = [blob.id for blob in self.blobs.all()]
         super(File, self).delete(*args, **kwargs)
 
-        transaction.on_commit(delete_unreferenced_blobs.s(blob_ids).delay)
+        # Wait to delete blobs. This helps prevent
+        # races around frequently used blobs in debug images and release files.
+        transaction.on_commit(
+            lambda: delete_unreferenced_blobs.apply_async(
+                kwargs={"blob_ids": blob_ids}, countdown=60 * 5
+            )
+        )
 
 
 class FileBlobIndex(Model):
     __core__ = False
 
     file = FlexibleForeignKey("sentry.File")
-    blob = FlexibleForeignKey("sentry.FileBlob")
+    blob = FlexibleForeignKey("sentry.FileBlob", on_delete=models.PROTECT)
     offset = BoundedPositiveIntegerField()
 
     class Meta:

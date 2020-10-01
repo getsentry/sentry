@@ -30,7 +30,7 @@ class LastCommit extends React.Component<Props> {
     headerClass: PropTypes.string,
   };
 
-  renderMessage(message: string): string {
+  renderMessage(message: Commit['message']): string {
     if (!message) {
       return t('No message provided');
     }

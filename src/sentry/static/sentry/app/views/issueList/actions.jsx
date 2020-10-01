@@ -51,7 +51,7 @@ const getBulkConfirmMessage = (action, queryCount) => {
 };
 
 const getConfirm = (numIssues, allInQuerySelected, query, queryCount) =>
-  function(action, canBeUndone, append = '') {
+  function (action, canBeUndone, append = '') {
     const question = allInQuerySelected
       ? getBulkConfirmMessage(`${action}${append}`, queryCount)
       : tn(
@@ -88,7 +88,7 @@ const getConfirm = (numIssues, allInQuerySelected, query, queryCount) =>
   };
 
 const getLabel = (numIssues, allInQuerySelected) =>
-  function(action, append = '') {
+  function (action, append = '') {
     const capitalized = capitalize(action);
     const text = allInQuerySelected
       ? t(`Bulk ${action} issues`)
@@ -381,6 +381,7 @@ const IssueListActions = createReactClass({
       queryCount,
       query,
       realtimeActive,
+      selection,
       statsPeriod,
     } = this.props;
     const issues = this.state.selectedIds;
@@ -565,7 +566,7 @@ const IssueListActions = createReactClass({
                   active={statsPeriod === 'auto'}
                   onClick={this.handleSelectStatsPeriod.bind(this, 'auto')}
                 >
-                  {t('Auto')}
+                  {selection.datetime.period || t('Custom')}
                 </GraphToggle>
               ) : (
                 <GraphToggle

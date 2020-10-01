@@ -4,10 +4,10 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import UserBadge from 'app/components/idBadge/userBadge';
 
-describe('UserBadge', function() {
+describe('UserBadge', function () {
   const user = TestStubs.User();
 
-  it('renders with no link when user is supplied', function() {
+  it('renders with no link when user is supplied', function () {
     const wrapper = mountWithTheme(<UserBadge user={user} />);
 
     expect(wrapper.find('StyledUserBadge')).toHaveLength(1);
@@ -16,7 +16,7 @@ describe('UserBadge', function() {
     expect(wrapper.find('StyledName Link')).toHaveLength(0);
   });
 
-  it('can display alternate display names/emails', function() {
+  it('can display alternate display names/emails', function () {
     const wrapper = mountWithTheme(
       <UserBadge
         user={user}
@@ -29,7 +29,7 @@ describe('UserBadge', function() {
     expect(wrapper.find('StyledEmail').prop('children')).toBe('Other Display Email');
   });
 
-  it('can coalesce using username', function() {
+  it('can coalesce using username', function () {
     const username = TestStubs.User({
       name: null,
       email: null,
@@ -41,7 +41,7 @@ describe('UserBadge', function() {
     expect(wrapper.find('StyledEmail').prop('children')).toBe(null);
   });
 
-  it('can coalesce using ipaddress', function() {
+  it('can coalesce using ipaddress', function () {
     const ipUser = TestStubs.User({
       name: null,
       email: null,
@@ -54,7 +54,7 @@ describe('UserBadge', function() {
     expect(wrapper.find('StyledEmail').prop('children')).toBe(null);
   });
 
-  it('can coalesce using id', function() {
+  it('can coalesce using id', function () {
     const idUser = TestStubs.User({
       id: '99',
       name: null,
@@ -68,7 +68,7 @@ describe('UserBadge', function() {
     expect(wrapper.find('StyledEmail').prop('children')).toBe(null);
   });
 
-  it('can hide email address', function() {
+  it('can hide email address', function () {
     const wrapper = mountWithTheme(<UserBadge user={user} hideEmail />);
 
     expect(wrapper.find('StyledEmail')).toHaveLength(0);

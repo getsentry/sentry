@@ -1,5 +1,5 @@
 import React from 'react';
-import {Location} from 'history';
+import {Location, Query} from 'history';
 import styled from '@emotion/styled';
 import {browserHistory} from 'react-router';
 
@@ -11,6 +11,7 @@ import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import PanelTable from 'app/components/panels/panelTable';
 import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import Pagination from 'app/components/pagination';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import CellAction, {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
 import {TableColumn} from 'app/views/eventsV2/table/types';
@@ -87,6 +88,13 @@ type WrapperProps = {
 };
 
 class TransactionList extends React.Component<WrapperProps> {
+  handleCursor = (cursor: string, pathname: string, query: Query) => {
+    browserHistory.push({
+      pathname,
+      query: {...query, transactionCursor: cursor},
+    });
+  };
+
   handleTransactionFilterChange = (value: string) => {
     const {location, organization} = this.props;
     trackAnalyticsEvent({
@@ -97,7 +105,7 @@ class TransactionList extends React.Component<WrapperProps> {
     });
     const target = {
       pathname: location.pathname,
-      query: {...location.query, showTransactions: value},
+      query: {...location.query, showTransactions: value, transactionCursor: undefined},
     };
     browserHistory.push(target);
   };
@@ -111,27 +119,32 @@ class TransactionList extends React.Component<WrapperProps> {
     });
   };
 
-  renderTable(sortedEventView: EventView) {
-    const {eventView, location, organization, transactionName} = this.props;
+  renderTable(eventView: EventView) {
+    const {location, organization, transactionName} = this.props;
+    const cursor = decodeScalar(location.query?.transactionCursor);
 
     if (!organization.features.includes('transaction-comparison')) {
       return (
         <DiscoverQuery
           location={location}
-          eventView={sortedEventView}
+          eventView={eventView}
           orgSlug={organization.slug}
           limit={TOP_TRANSACTION_LIMIT}
+          cursor={cursor}
         >
-          {({isLoading, tableData}) => (
-            <TransactionTable
-              organization={organization}
-              location={location}
-              transactionName={transactionName}
-              eventView={eventView}
-              tableData={tableData}
-              isLoading={isLoading}
-              baselineTransaction={null}
-            />
+          {({isLoading, tableData, pageLinks}) => (
+            <React.Fragment>
+              <TransactionTable
+                organization={organization}
+                location={location}
+                transactionName={transactionName}
+                eventView={eventView}
+                tableData={tableData}
+                isLoading={isLoading}
+                baselineTransaction={null}
+              />
+              <StyledPagination pageLinks={pageLinks} onCursor={this.handleCursor} />
+            </React.Fragment>
           )}
         </DiscoverQuery>
       );
@@ -140,15 +153,16 @@ class TransactionList extends React.Component<WrapperProps> {
     return (
       <DiscoverQuery
         location={location}
-        eventView={sortedEventView}
+        eventView={eventView}
         orgSlug={organization.slug}
         limit={TOP_TRANSACTION_LIMIT}
+        cursor={cursor}
       >
-        {({isLoading, tableData}) => (
-          <React.Fragment>
-            <BaselineQuery eventView={sortedEventView} orgSlug={organization.slug}>
-              {baselineQueryProps => {
-                return (
+        {({isLoading, tableData, pageLinks}) => (
+          <BaselineQuery eventView={eventView} orgSlug={organization.slug}>
+            {baselineQueryProps => {
+              return (
+                <React.Fragment>
                   <TransactionTable
                     organization={organization}
                     location={location}
@@ -158,10 +172,11 @@ class TransactionList extends React.Component<WrapperProps> {
                     isLoading={isLoading || baselineQueryProps.isLoading}
                     baselineTransaction={baselineQueryProps.results}
                   />
-                );
-              }}
-            </BaselineQuery>
-          </React.Fragment>
+                  <StyledPagination pageLinks={pageLinks} onCursor={this.handleCursor} />
+                </React.Fragment>
+              );
+            }}
+          </BaselineQuery>
         )}
       </DiscoverQuery>
     );
@@ -442,18 +457,16 @@ class TransactionTable extends React.PureComponent<Props> {
     const loader = <LoadingIndicator style={{margin: '70px auto'}} />;
 
     return (
-      <React.Fragment>
-        <PanelTable
-          isEmpty={!hasResults}
-          emptyMessage={t('No transactions found')}
-          headers={this.renderHeader()}
-          isLoading={isLoading}
-          disablePadding
-          loader={loader}
-        >
-          {this.renderResults()}
-        </PanelTable>
-      </React.Fragment>
+      <PanelTable
+        isEmpty={!hasResults}
+        emptyMessage={t('No transactions found')}
+        headers={this.renderHeader()}
+        isLoading={isLoading}
+        disablePadding
+        loader={loader}
+      >
+        {this.renderResults()}
+      </PanelTable>
     );
   }
 }
@@ -477,6 +490,10 @@ const HeadCellContainer = styled('div')`
 const BodyCellContainer = styled('div')`
   padding: ${space(1)} ${space(2)};
   ${overflowEllipsis};
+`;
+
+const StyledPagination = styled(Pagination)`
+  margin: ${space(3)} 0 ${space(4)} 0;
 `;
 
 export default TransactionList;

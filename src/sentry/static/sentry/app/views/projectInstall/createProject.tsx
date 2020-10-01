@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import PlatformIcon from 'platformicons';
 
 import {Organization, Project, Team} from 'app/types';
 import {inputStyles} from 'app/styles/input';
@@ -11,7 +12,6 @@ import {t} from 'app/locale';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import PageHeading from 'app/components/pageHeading';
-import PlatformIcon from 'app/components/platformIcon';
 import PlatformPicker from 'app/components/platformPicker';
 import ProjectActions from 'app/actions/projectActions';
 import SelectControl from 'app/components/forms/selectControl';
@@ -334,10 +334,7 @@ const FormLabel = styled('div')`
 `;
 
 const StyledPlatformIcon = styled(PlatformIcon)`
-  width: 20px;
-  height: 20px;
   margin-right: ${space(1)};
-  border-radius: 3px;
 `;
 
 const ProjectNameInput = styled('div')`

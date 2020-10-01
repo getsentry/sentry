@@ -24,7 +24,7 @@ import {
   TrendChangeType,
   TrendFunctionField,
   TrendView,
-  ProjectTrendsData,
+  ProjectTrendsDataEvents,
   NormalizedProjectTrend,
 } from './types';
 import {modifyTrendView, normalizeTrends, trendToColor, getTrendProjectId} from './utils';
@@ -135,8 +135,8 @@ function ChangedProjects(props: Props) {
       limit={1}
     >
       {({isLoading, tableData}) => {
-        const eventsTrendsData = (tableData as unknown) as ProjectTrendsData;
-        const trends = eventsTrendsData?.events?.data || [];
+        const eventsTrendsData = (tableData as unknown) as ProjectTrendsDataEvents;
+        const trends = eventsTrendsData?.data || [];
         const events = normalizeTrends(trends);
 
         const transactionsList = events && events.slice ? events.slice(0, 5) : [];

@@ -21,13 +21,15 @@ import FeatureDisabled from 'app/components/acl/featureDisabled';
 import GroupActions from 'app/actions/groupActions';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import IgnoreActions from 'app/components/actions/ignore';
-import {IconDelete, IconStar} from 'app/icons';
+import {IconDelete, IconStar, IconRefresh} from 'app/icons';
 import Link from 'app/components/links/link';
 import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
 import MenuItem from 'app/components/menuItem';
+import ReprocessingForm from 'app/views/organizationGroupDetails/reprocessingForm';
 import ResolveActions from 'app/components/actions/resolve';
 import SentryTypes from 'app/sentryTypes';
 import ShareIssue from 'app/components/shareIssue';
+import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
@@ -204,6 +206,13 @@ const GroupDetailsActions = createReactClass({
     );
   },
 
+  onReprocess() {
+    const {group, organization} = this.props;
+    openModal(props => (
+      <ReprocessingForm group={group} organization={organization} {...props} />
+    ));
+  },
+
   onShare(shared) {
     const {group, project, organization} = this.props;
     this.setState({shareBusy: true});
@@ -268,6 +277,7 @@ const GroupDetailsActions = createReactClass({
   render() {
     const {group, project, organization} = this.props;
     const orgFeatures = new Set(organization.features);
+    const projectFeatures = new Set(project.features);
 
     const buttonClassName = 'btn btn-default btn-sm';
     let bookmarkClassName = `group-bookmark ${buttonClassName}`;
@@ -302,6 +312,17 @@ const GroupDetailsActions = createReactClass({
           onDelete={this.onDelete}
           onDiscard={this.onDiscard}
         />
+        {projectFeatures.has('reprocessing-v2') && (
+          <div className="btn-group">
+            <Tooltip title={t('Reprocess this issue')}>
+              <div className={buttonClassName} onClick={this.onReprocess}>
+                <IconWrapper>
+                  <IconRefresh isSolid size="xs" />
+                </IconWrapper>
+              </div>
+            </Tooltip>
+          </div>
+        )}
         {orgFeatures.has('shared-issues') && (
           <div className="btn-group">
             <ShareIssue

@@ -36,7 +36,7 @@ jobs:
       run: |
         cd sentry
         yarn install --frozen-lockfile
-        yarn run build-derefed-docs sentry/api-docs/openapi-derefed.json
+        yarn run build-derefed-docs api-docs/openapi-derefed.json
 
     - name: Copy artifact into getsentry/sentry-api-schema
       run: |
@@ -45,6 +45,7 @@ jobs:
     - name: Git Commit & Push
       uses: stefanzweifel/git-auto-commit-action@v4
       with:
+        repository: sentry-api-schema
         branch: main
         commit_message: Generated
         commit_user_email: bot@getsentry.com
