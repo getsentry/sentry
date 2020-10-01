@@ -6,6 +6,7 @@ import space from 'app/styles/space';
 import Tag from 'app/components/tag';
 import Feature from 'app/components/acl/feature';
 import Tooltip from 'app/components/tooltip';
+import {IconSubtract} from 'app/icons';
 
 const TagWrapper = styled('div')`
   margin-right: ${space(1)};
@@ -21,15 +22,23 @@ const UnhandledTag = styled(props => (
   <Feature features={['unhandled-issue-flag']}>
     <TagWrapper>
       <Tooltip title={t('An unhandled error was detected in this Issue.')}>
-        <Tag priority="error" {...props}>
+        <Tag
+          priority="error"
+          icon={<IconSubtract size="xs" color="red300" isCircled />}
+          {...props}
+        >
           {t('Unhandled')}
         </Tag>
       </Tooltip>
     </TagWrapper>
   </Feature>
 ))`
-  background-color: ${p => p.theme.red300};
+  /* TODO(matej): There is going to be a major Tag component refactor which should make Tags look something like this - then we can remove these one-off styles */
+  background-color: #ffecf0;
+  color: ${p => p.theme.gray700};
   text-transform: none;
+  padding: 0 ${space(1)};
+  height: 21px;
 `;
 
 export default UnhandledTag;
