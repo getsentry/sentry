@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import random
 import logging
 import six
 
@@ -23,8 +22,6 @@ from .utils import (
     get_integration_type,
 )
 
-# 50% of messages for workspace apps will get the upgrade CTA
-UPGRADE_MESSAGE_FREQUENCY = 0.50
 logger = logging.getLogger("sentry.rules")
 
 
@@ -162,9 +159,8 @@ class SlackNotifyServiceAction(EventAction):
                 # check if we should have the upgrade notice attachment
                 integration_type = get_integration_type(integration)
                 if integration_type == "workspace_app":
-                    if random.uniform(0, 1) < UPGRADE_MESSAGE_FREQUENCY:
-                        # stick the upgrade attachment first
-                        attachments.insert(0, build_upgrade_notice_attachment(event.group))
+                    # stick the upgrade attachment first
+                    attachments.insert(0, build_upgrade_notice_attachment(event.group))
 
                 span.set_tag("integration_type", integration_type)
                 span.set_tag("has_slack_upgrade_cta", len(attachments) > 1)

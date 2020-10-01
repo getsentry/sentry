@@ -179,11 +179,12 @@ def build_upgrade_notice_attachment(group):
     )
 
     return {
-        "title": "Reminder",
+        "title": "Deprecation Notice",
         "text": (
-            u"It looks like you are still using the Legacy Sentry-Slack integration. "
-            u"You will need to upgrade by October 1st to continue receiving alerts. "
-            u"Click <{}|here> to upgrade.".format(url)
+            u"This alert is coming from a deprecated version of the Sentry-Slack integration. "
+            u"Your Slack integration, along with any data associated with it, will be *permanently deleted on January 14, 2021* "
+            u"if you do not transition to the new supported Slack integration. "
+            u"Click <{}|here> to complete the process.".format(url)
         ),
     }
 
