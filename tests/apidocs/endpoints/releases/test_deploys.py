@@ -7,15 +7,14 @@ import datetime
 from django.core.urlresolvers import reverse
 from django.test.client import RequestFactory
 
-from sentry.models import Deploy, Environment, Release
+from sentry.models import Deploy, Environment
 from tests.apidocs.util import APIDocsTestCase
 
 
 class ReleaseDeploysDocs(APIDocsTestCase):
     def setUp(self):
         project = self.create_project(name="foo")
-        release = Release.objects.create(organization_id=project.organization_id, version="1")
-        release.add_project(project)
+        release = self.create_release(project=project, version="1")
         Deploy.objects.create(
             environment_id=Environment.objects.create(
                 organization_id=project.organization_id, name="production"
