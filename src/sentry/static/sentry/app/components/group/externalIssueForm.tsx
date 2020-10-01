@@ -88,6 +88,10 @@ class ExternalIssueForm extends AsyncComponent<Props, State> {
     this.submitTransaction?.finish();
   };
 
+  handleSubmitError = () => {
+    this.submitTransaction?.finish();
+  };
+
   onRequestSuccess({stateKey, data}) {
     if (stateKey === 'integrationDetails' && !this.state.dynamicFieldValues) {
       this.setState({
@@ -99,6 +103,10 @@ class ExternalIssueForm extends AsyncComponent<Props, State> {
   onLoadAllEndpointsSuccess() {
     this.loadTransasaction?.finish();
   }
+
+  onRequestError = () => {
+    this.loadTransasaction?.finish();
+  };
 
   refetchConfig = () => {
     const {dynamicFieldValues} = this.state;
@@ -228,6 +236,7 @@ class ExternalIssueForm extends AsyncComponent<Props, State> {
         submitDisabled={this.state.reloading}
         footerClass="modal-footer"
         onPreSubmit={this.handlePreSubmit}
+        onSubmitError={this.handleSubmitError}
       >
         {config.map(field => (
           <FieldFromConfig
