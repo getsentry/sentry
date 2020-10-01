@@ -32,8 +32,8 @@ class IssueListContainer extends React.Component {
     const startType = isLightWeight ? 'cold-start' : 'warm-start';
     metric.mark({name: 'page-issue-list-start', data: {start_type: startType}});
     metric.startTransaction({
-      name: 'issue-list.load',
-      op: isLightWeight ? 'pageload' : 'navigation',
+      name: '/organizations/:orgId/issues/',
+      op: isLightWeight ? 'pageload manual-first-paint' : 'navigation manual-first-paint',
     });
   }
 
