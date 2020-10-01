@@ -1,13 +1,10 @@
 import React from 'react';
-import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
-import QuestionTooltip from 'app/components/questionTooltip';
 import Input from 'app/views/settings/components/forms/controls/input';
 import Textarea from 'app/views/settings/components/forms/controls/textarea';
 import Field from 'app/views/settings/components/forms/field';
 import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
-import space from 'app/styles/space';
 import {Relay} from 'app/types';
 
 type FormField = keyof Pick<Relay, 'name' | 'publicKey' | 'description'>;
@@ -43,6 +40,7 @@ const Form = ({values, onChange, errors, onValidate, disables, onValidateKey}: P
         error={errors.name}
         inline={false}
         stacked
+        required
       >
         <Input
           type="text"
@@ -63,22 +61,16 @@ const Form = ({values, onChange, errors, onValidate, disables, onValidateKey}: P
         </Field>
       ) : (
         <Field
-          flexibleControlStateSize
-          label={
-            <Label>
-              <div>{t('Public Key')}</div>
-              <QuestionTooltip
-                position="top"
-                size="sm"
-                title={t(
-                  'Only enter the Public Key value from your credentials file. Never share the Secret key with Sentry or any third party'
-                )}
-              />
-            </Label>
-          }
+          help={t(
+            'Only enter the Public Key value from your credentials file. Never share the Secret key with Sentry or any third party'
+          )}
+          label={t('Public Key')}
           error={errors.publicKey}
+          flexibleControlStateSize
+          showHelpInTooltip
           inline={false}
           stacked
+          required
         >
           <Input
             type="text"
@@ -90,12 +82,7 @@ const Form = ({values, onChange, errors, onValidate, disables, onValidateKey}: P
           />
         </Field>
       )}
-      <Field
-        flexibleControlStateSize
-        label={t('Description (Optional)')}
-        inline={false}
-        stacked
-      >
+      <Field flexibleControlStateSize label={t('Description')} inline={false} stacked>
         <Textarea
           name="description"
           placeholder={t('Description')}
@@ -109,10 +96,3 @@ const Form = ({values, onChange, errors, onValidate, disables, onValidateKey}: P
 };
 
 export default Form;
-
-const Label = styled('div')`
-  display: grid;
-  grid-gap: ${space(1)};
-  grid-template-columns: max-content max-content;
-  align-items: center;
-`;
