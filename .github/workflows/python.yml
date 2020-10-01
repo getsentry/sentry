@@ -109,8 +109,8 @@ jobs:
           # Below will exit with non-zero status if model changes are missing migrations
           sentry django makemigrations -n ci_test --check --dry-run --no-input || (echo '::error::Error: Migration required -- to generate a migration, run `sentry django makemigrations -n <some_name>`' && exit 1)
 
-  test-py3-simple:
-    name: 'python3.6 backend (simple)'
+  test-py3:
+    name: 'python3.6 backend'
     runs-on: ubuntu-16.04
     strategy:
       matrix:
