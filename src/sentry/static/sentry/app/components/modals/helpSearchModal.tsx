@@ -10,9 +10,18 @@ import Hook from 'app/components/hook';
 import {Organization} from 'app/types';
 import space from 'app/styles/space';
 
-type Props = ModalRenderProps & {organization: Organization};
+type Props = ModalRenderProps & {
+  organization: Organization;
+  placeholder?: string;
+};
 
-const HelpSearchModal = ({Body, closeModal, organization, ...props}: Props) => (
+const HelpSearchModal = ({
+  Body,
+  closeModal,
+  organization,
+  placeholder = t('Search for documentation, FAQs, blog posts...'),
+  ...props
+}: Props) => (
   <Body>
     <ClassNames>
       {({css: injectedCss}) => (
@@ -30,13 +39,7 @@ const HelpSearchModal = ({Body, closeModal, organization, ...props}: Props) => (
               `}
           renderInput={({getInputProps}) => (
             <InputWrapper>
-              <Input
-                autoFocus
-                {...getInputProps({
-                  type: 'text',
-                  placeholder: t('Search for documentation, FAQs, blog posts...'),
-                })}
-              />
+              <Input autoFocus {...getInputProps({type: 'text', placeholder})} />
             </InputWrapper>
           )}
           resultFooter={<Hook name="help-modal:footer" {...{organization, closeModal}} />}
