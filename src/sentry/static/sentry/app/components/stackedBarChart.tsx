@@ -545,7 +545,7 @@ const CircleSvg = styled('svg')<{size: number; offset: number; left: number}>`
 `;
 
 const RectGroup = styled('g')<{showSecondaryPoints: boolean}>`
-  opacity: ${p => (p.showSecondaryPoints ? 0.7 : 1)};
+  opacity: ${p => (p.showSecondaryPoints ? 0.75 : 1)};
 
   &:hover {
     opacity: 1;
