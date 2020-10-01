@@ -42,11 +42,11 @@ class ShareUrlContainer extends React.Component<ContainerProps> {
 
     return (
       <UrlContainer>
-        <StyledTextContainer>
+        <TextContainer>
           <StyledAutoSelectText ref={ref => this.handleUrlMount(ref)}>
             {shareUrl}
           </StyledAutoSelectText>
-        </StyledTextContainer>
+        </TextContainer>
 
         <Clipboard hideUnsupported value={shareUrl}>
           <ClipboardButton
@@ -117,8 +117,12 @@ class ShareIssue extends React.Component<Props> {
   };
 
   // State of confirm modal so we can keep dropdown menu opn
-  handleConfirmCancel = () => (this.hasConfirmModal = false);
-  handleConfirmReshare = () => (this.hasConfirmModal = true);
+  handleConfirmCancel = () => {
+    this.hasConfirmModal = false;
+  };
+  handleConfirmReshare = () => {
+    this.hasConfirmModal = true;
+  };
 
   render() {
     const {loading, isShared, shareUrl, onReshare} = this.props;
@@ -218,7 +222,7 @@ const StyledAutoSelectText = styled(AutoSelectText)<
   ${overflowEllipsis}
 `;
 
-const StyledTextContainer = styled('div')`
+const TextContainer = styled('div')`
   position: relative;
   display: flex;
   flex: 1;
