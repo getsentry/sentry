@@ -104,7 +104,6 @@ jobs:
 
     acceptance:
       runs-on: ubuntu-16.04
-      continue-on-error: true
       strategy:
         matrix:
           instance: [0, 1, 2]
@@ -252,9 +251,8 @@ jobs:
             snapshot-path: .artifacts/visual-snapshots
 
     py3-acceptance:
-      name: 'py3 acceptance [ignore fails]'
+      name: 'python3.6 acceptance'
       runs-on: ubuntu-16.04
-      continue-on-error: true
       strategy:
         matrix:
           instance: [0, 1, 2]
