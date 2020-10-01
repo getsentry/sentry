@@ -368,16 +368,16 @@ const GroupCheckbox = styled(Box)`
 `;
 
 const PrimaryCount = styled(Count)`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-  color: ${p => (p.filtered ? p.theme.purple400 : p.theme.gray700)};
+  font-size: ${p => p.theme.fontSizeLarge};
 `;
 
 const SecondaryCount = styled(({value, ...p}) => <Count {...p} value={value} />)`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-  color: ${p => (p.dark ? p.theme.gray700 : p.theme.gray500)};
+  font-size: ${p => p.theme.fontSizeLarge};
 
   :before {
     content: '/';
+    padding-left: ${space(0.25)};
+    padding-right: 2px;
     color: ${p => p.theme.gray500};
   }
 `;
