@@ -124,7 +124,7 @@ class FeatureDisabled extends React.Component<Props, State> {
                   e.preventDefault();
                 }}
               >
-                <StyledIconCopy /> Copy to Clipboard
+                <StyledIconCopy /> {t('Copy to Clipboard')}
               </Button>
             </Clipboard>
             <pre onClick={e => selectText(e.target as HTMLElement)}>
