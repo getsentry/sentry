@@ -17,15 +17,15 @@ type Props = {
   isLoading: boolean;
   relays: Array<Relay>;
   relayActivities: Array<RelayActivity>;
-} & Pick<CardHeaderProps, 'onDeleteKey' | 'onEditKey'> &
+} & Pick<CardHeaderProps, 'onDelete' | 'onEdit'> &
   Pick<WaitingActivityProps, 'onRefresh'>;
 
 const List = ({
   relays,
   relayActivities,
   onRefresh,
-  onDeleteKey,
-  onEditKey,
+  onDelete,
+  onEdit,
   isLoading,
 }: Props) => {
   const relaysByPublicKey = getRelaysByPublicKey(relays, relayActivities);
@@ -55,8 +55,8 @@ const List = ({
               name={name}
               description={description}
               created={created}
-              onDeleteKey={onDeleteKey}
-              onEditKey={onEditKey}
+              onEdit={onEdit}
+              onDelete={onDelete}
             />
             {renderCardContent(activities)}
           </Card>
