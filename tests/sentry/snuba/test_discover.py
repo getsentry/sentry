@@ -2286,6 +2286,7 @@ class QueryTransformTest(TestCase):
                     {"name": "count", "type": "UInt64"},
                 ],
                 "data": [
+                    # this row shouldn't be used because it lies outside the boundary
                     {
                         "array_join_measurements_key": "foo",
                         "measurements_histogram_5_5_10": 0,
@@ -2306,6 +2307,7 @@ class QueryTransformTest(TestCase):
                         "measurements_histogram_5_5_10": 15,
                         "count": 1,
                     },
+                    # this row shouldn't be used because it lies outside the boundary
                     {
                         "array_join_measurements_key": "bar",
                         "measurements_histogram_5_5_10": 30,

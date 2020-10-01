@@ -531,3 +531,26 @@ class OrganizationEventsMeasurementsHistogramEndpointTest(APITestCase, SnubaTest
         response = self.do_request(query)
         assert response.status_code == 200
         assert response.data["data"] == self.as_response_data(specs)
+
+    def test_histogram_bins_exceed_max(self):
+        specs = [
+            (10, 13, [("bar", 0), ("baz", 0), ("foo", 1)]),
+            (13, 16, [("bar", 0), ("baz", 0), ("foo", 0)]),
+            (16, 19, [("bar", 0), ("baz", 0), ("foo", 0)]),
+            (19, 22, [("bar", 0), ("baz", 0), ("foo", 0)]),
+            (24, 24, [("bar", 1), ("baz", 1), ("foo", 1)]),
+        ]
+        self.populate_measurements(specs)
+        specs[4] = (22, 25, specs[4][2])
+
+        query = {
+            "project": [self.project.id],
+            "measurement": ["bar", "baz", "foo"],
+            "num_buckets": 5,
+            "min": 10,
+            "max": 21,
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200
+        assert response.data["data"] == self.as_response_data(specs)
