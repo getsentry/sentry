@@ -53,7 +53,7 @@ class Creator(Mediator):
                 url=self.sentry_app.webhook_url,
             )
 
-    def post_install(self):
+    def post_commit(self):
         if self.notify:
             installation_webhook.delay(self.install.id, self.user.id)
 

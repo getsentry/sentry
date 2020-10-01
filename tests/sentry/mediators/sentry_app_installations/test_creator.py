@@ -33,8 +33,6 @@ class TestCreator(TestCase):
             events=("issue.created",),
         )
 
-        self.creator = Creator(organization=self.org, slug="nulldb", user=self.user)
-
     def run_creator(self):
         return Creator.run(organization=self.org, slug="nulldb", user=self.user)
 

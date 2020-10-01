@@ -139,7 +139,8 @@ class TestMediator(TestCase):
 
         assert not User.objects.filter(username="beep").exists()
 
-    def test_post_install(self):
-        with patch.object(MockMediator, "post_install") as mock:
-            MockMediator.run(user={"name": "Example"}, age=30)
-            mock.assert_called_once_with()
+    @patch.object(MockMediator, "post_commit")
+    def test_post_commit(self, mock_post_commit):
+        mediator = MockMediator(user={"name": "Example"}, age=30)
+        mediator.run(user={"name": "Example"}, age=30)
+        mock_post_commit.assert_called_once_with()
