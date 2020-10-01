@@ -99,7 +99,6 @@ jobs:
             save-only: true
             snapshot-path: .artifacts/visual-snapshots
 
-
     py3-acceptance:
       name: 'python3.6'
       runs-on: ubuntu-16.04
