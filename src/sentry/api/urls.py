@@ -93,6 +93,9 @@ from .endpoints.organization_environments import OrganizationEnvironmentsEndpoin
 from .endpoints.organization_event_details import OrganizationEventDetailsEndpoint
 from .endpoints.organization_eventid import EventIdLookupEndpoint
 from .endpoints.organization_events import OrganizationEventsEndpoint, OrganizationEventsV2Endpoint
+from .endpoints.organization_events_measurements_histogram import (
+    OrganizationEventsMeasurementsHistogramEndpoint,
+)
 from .endpoints.organization_events_trends import (
     OrganizationEventsTrendsEndpoint,
     OrganizationEventsTrendsStatsEndpoint,
@@ -841,6 +844,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/events-meta/$",
                     OrganizationEventsMetaEndpoint.as_view(),
                     name="sentry-api-0-organization-events-meta",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/events-measurements-histogram/$",
+                    OrganizationEventsMeasurementsHistogramEndpoint.as_view(),
+                    name="sentry-api-0-organization-events-measurements-histogram",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/events-trends/$",
