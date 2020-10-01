@@ -125,9 +125,8 @@ jobs:
       SENTRY_SKIP_BACKEND_VALIDATION: 1
       MIGRATIONS_TEST_MIGRATE: 1
       PYTEST_SENTRY_DSN: https://6fd5cfea2d4d46b182ad214ac7810508@sentry.io/2423079
-      # XXX(py3): Reruns are disabled for until all tests are passing.
-      PYTEST_ADDOPTS: ""
-      PYTEST_SENTRY_ALWAYS_REPORT: no
+      PYTEST_ADDOPTS: "--reruns 3"
+      PYTEST_SENTRY_ALWAYS_REPORT: 1
 
       # services configuration
       SENTRY_REDIS_HOST: redis
@@ -219,9 +218,8 @@ jobs:
       MIGRATIONS_TEST_MIGRATE: 1
 
       PYTEST_SENTRY_DSN: https://6fd5cfea2d4d46b182ad214ac7810508@sentry.io/2423079
-      # XXX(py3): Reruns are disabled for until all tests are passing.
-      PYTEST_ADDOPTS: ""
-      PYTEST_SENTRY_ALWAYS_REPORT: no
+      PYTEST_ADDOPTS: "--reruns 3"
+      PYTEST_SENTRY_ALWAYS_REPORT: yes
 
       # services configuration
       SENTRY_REDIS_HOST: redis
