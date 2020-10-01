@@ -63,7 +63,7 @@ class TeamMembers extends React.Component {
     }
   }
 
-  debouncedFetchMembersRequest = debounce(function(query) {
+  debouncedFetchMembersRequest = debounce(function (query) {
     this.setState(
       {
         dropdownBusy: true,

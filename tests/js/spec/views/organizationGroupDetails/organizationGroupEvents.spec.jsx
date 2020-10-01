@@ -8,11 +8,11 @@ import {GroupEvents} from 'app/views/organizationGroupDetails/groupEvents';
 
 const OrganizationGroupEvents = GroupEvents;
 
-describe('groupEvents', function() {
+describe('groupEvents', function () {
   let request;
   const routerContext = TestStubs.routerContext();
 
-  beforeEach(function() {
+  beforeEach(function () {
     request = MockApiClient.addMockResponse({
       url: '/issues/1/events/',
       body: [
@@ -51,7 +51,7 @@ describe('groupEvents', function() {
     browserHistory.push = jest.fn();
   });
 
-  it('renders', function() {
+  it('renders', function () {
     const component = mountWithTheme(
       <OrganizationGroupEvents
         api={new MockApiClient()}
@@ -65,7 +65,7 @@ describe('groupEvents', function() {
     expect(component).toSnapshot();
   });
 
-  it('handles search', function() {
+  it('handles search', function () {
     const component = shallow(
       <OrganizationGroupEvents
         api={new MockApiClient()}
@@ -97,7 +97,7 @@ describe('groupEvents', function() {
     });
   });
 
-  it('handles environment filtering', function() {
+  it('handles environment filtering', function () {
     shallow(
       <OrganizationGroupEvents
         api={new MockApiClient()}

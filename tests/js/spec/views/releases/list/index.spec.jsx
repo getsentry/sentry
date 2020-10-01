@@ -6,7 +6,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import ProjectsStore from 'app/stores/projectsStore';
 import ReleasesList from 'app/views/releases/list/';
 
-describe('ReleasesList', function() {
+describe('ReleasesList', function () {
   const {organization, routerContext, router} = initializeOrg();
   const props = {
     router,
@@ -25,7 +25,7 @@ describe('ReleasesList', function() {
   };
   let wrapper, endpointMock;
 
-  beforeEach(async function() {
+  beforeEach(async function () {
     ProjectsStore.loadInitialData(organization.projects);
     endpointMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
@@ -46,28 +46,22 @@ describe('ReleasesList', function() {
     wrapper.update();
   });
 
-  afterEach(function() {
+  afterEach(function () {
     ProjectsStore.reset();
     MockApiClient.clearMockResponses();
   });
 
-  it('renders list', function() {
+  it('renders list', function () {
     const items = wrapper.find('StyledPanel');
 
     expect(items).toHaveLength(3);
     expect(items.at(0).text()).toContain('1.0.0');
     expect(items.at(0).text()).toContain('Release adoption');
     expect(items.at(2).text()).toContain('af4f231ec9a8');
-    expect(
-      items
-        .at(2)
-        .find('DailyUsersColumn')
-        .at(1)
-        .text()
-    ).toContain('\u2014');
+    expect(items.at(2).find('DailyUsersColumn').at(1).text()).toContain('\u2014');
   });
 
-  it('displays the right empty state', function() {
+  it('displays the right empty state', function () {
     let location;
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
@@ -118,7 +112,7 @@ describe('ReleasesList', function() {
     );
   });
 
-  it('searches for a release', function() {
+  it('searches for a release', function () {
     const input = wrapper.find('input');
 
     expect(endpointMock).toHaveBeenCalledWith(
@@ -137,7 +131,7 @@ describe('ReleasesList', function() {
     });
   });
 
-  it('sorts releases', function() {
+  it('sorts releases', function () {
     expect(endpointMock).toHaveBeenCalledWith(
       '/organizations/org-slug/releases/',
       expect.objectContaining({
@@ -161,7 +155,7 @@ describe('ReleasesList', function() {
     });
   });
 
-  it('calls api with only explicitly permitted query params', function() {
+  it('calls api with only explicitly permitted query params', function () {
     expect(endpointMock).toHaveBeenCalledWith(
       '/organizations/org-slug/releases/',
       expect.objectContaining({
@@ -172,7 +166,7 @@ describe('ReleasesList', function() {
     );
   });
 
-  it('toggles health stats chart period/subject', function() {
+  it('toggles health stats chart period/subject', function () {
     expect(endpointMock).toHaveBeenCalledWith(
       '/organizations/org-slug/releases/',
       expect.objectContaining({

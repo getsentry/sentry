@@ -53,19 +53,11 @@ describe('Rules', () => {
       />
     );
     expect(
-      wrapper
-        .find('[aria-label="Edit Rule"]')
-        .hostNodes()
-        .at(0)
-        .prop('aria-disabled')
+      wrapper.find('[aria-label="Edit Rule"]').hostNodes().at(0).prop('aria-disabled')
     ).toEqual(true);
 
     expect(
-      wrapper
-        .find('[aria-label="Delete Rule"]')
-        .hostNodes()
-        .at(0)
-        .prop('aria-disabled')
+      wrapper.find('[aria-label="Delete Rule"]').hostNodes().at(0).prop('aria-disabled')
     ).toEqual(true);
   });
 

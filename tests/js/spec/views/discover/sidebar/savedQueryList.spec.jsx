@@ -4,9 +4,9 @@ import {mount} from 'sentry-test/enzyme';
 
 import SavedQueryList from 'app/views/discover/sidebar/savedQueryList';
 
-describe('savedQueryList', function() {
+describe('savedQueryList', function () {
   let organization, mockResponse;
-  beforeEach(function() {
+  beforeEach(function () {
     organization = TestStubs.Organization();
     mockResponse = [];
     MockApiClient.addMockResponse({
@@ -16,18 +16,18 @@ describe('savedQueryList', function() {
     });
   });
 
-  afterEach(function() {
+  afterEach(function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders empty state', async function() {
+  it('renders empty state', async function () {
     const wrapper = mount(<SavedQueryList organization={organization} />);
     await tick();
 
     expect(wrapper.text()).toBe('No saved queries');
   });
 
-  it('renders list', async function() {
+  it('renders list', async function () {
     const savedQueries = [
       TestStubs.DiscoverSavedQuery({id: '1', name: 'one'}),
       TestStubs.DiscoverSavedQuery({id: '2', name: '2two'}),

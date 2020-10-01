@@ -82,17 +82,17 @@ export default RepositorySwitcher;
 const StyledDropdownControl = styled(DropdownControl)<{
   minMenuWidth: State['dropdownButtonWidth'];
 }>`
-    margin-bottom: ${space(1)};
-    > *:nth-child(2) {
-      right: auto;
-      width: auto;
-      ${p => p.minMenuWidth && `min-width: calc(${p.minMenuWidth}px + 10px);`}
-      border-radius: ${p => p.theme.borderRadius};
-      border-top-left-radius: 0px;
-      border: 1px solid ${p => p.theme.button.default.border};
-      top: calc(100% - 1px);
-    }
-  `;
+  margin-bottom: ${space(1)};
+  > *:nth-child(2) {
+    right: auto;
+    width: auto;
+    ${p => p.minMenuWidth && `min-width: calc(${p.minMenuWidth}px + 10px);`}
+    border-radius: ${p => p.theme.borderRadius};
+    border-top-left-radius: 0px;
+    border: 1px solid ${p => p.theme.button.default.border};
+    top: calc(100% - 1px);
+  }
+`;
 
 const FilterText = styled('em')`
   font-style: normal;

@@ -9,15 +9,15 @@ import {
 } from 'app/views/eventsV2/utils';
 import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
 
-describe('decodeColumnOrder', function() {
-  it('can decode 0 elements', function() {
+describe('decodeColumnOrder', function () {
+  it('can decode 0 elements', function () {
     const results = decodeColumnOrder([]);
 
     expect(Array.isArray(results)).toBeTruthy();
     expect(results).toHaveLength(0);
   });
 
-  it('can decode fields', function() {
+  it('can decode fields', function () {
     const results = decodeColumnOrder([{field: 'title', width: 123}]);
 
     expect(Array.isArray(results)).toBeTruthy();
@@ -35,7 +35,7 @@ describe('decodeColumnOrder', function() {
     });
   });
 
-  it('can decode aggregate functions with no arguments', function() {
+  it('can decode aggregate functions with no arguments', function () {
     let results = decodeColumnOrder([{field: 'count()', width: 123}]);
 
     expect(Array.isArray(results)).toBeTruthy();
@@ -58,7 +58,7 @@ describe('decodeColumnOrder', function() {
     expect(results[0].type).toEqual('duration');
   });
 
-  it('can decode elements with aggregate functions with arguments', function() {
+  it('can decode elements with aggregate functions with arguments', function () {
     const results = decodeColumnOrder([{field: 'avg(transaction.duration)'}]);
 
     expect(Array.isArray(results)).toBeTruthy();
@@ -76,7 +76,7 @@ describe('decodeColumnOrder', function() {
     });
   });
 
-  it('can decode elements with aggregate functions with multiple arguments', function() {
+  it('can decode elements with aggregate functions with multiple arguments', function () {
     const results = decodeColumnOrder([
       {field: 'percentile(transaction.duration, 0.65)'},
     ]);
@@ -97,7 +97,7 @@ describe('decodeColumnOrder', function() {
   });
 });
 
-describe('pushEventViewToLocation', function() {
+describe('pushEventViewToLocation', function () {
   const state = {
     id: '1234',
     name: 'best query',
@@ -117,7 +117,7 @@ describe('pushEventViewToLocation', function() {
     },
   };
 
-  it('correct query string object pushed to history', function() {
+  it('correct query string object pushed to history', function () {
     const eventView = new EventView(state);
 
     pushEventViewToLocation({
@@ -142,7 +142,7 @@ describe('pushEventViewToLocation', function() {
     });
   });
 
-  it('extra query params', function() {
+  it('extra query params', function () {
     const eventView = new EventView(state);
 
     pushEventViewToLocation({
@@ -172,7 +172,7 @@ describe('pushEventViewToLocation', function() {
   });
 });
 
-describe('getExpandedResults()', function() {
+describe('getExpandedResults()', function () {
   const state = {
     id: '1234',
     name: 'best query',
@@ -349,7 +349,7 @@ describe('getExpandedResults()', function() {
     expect(result.environment).toEqual(['staging']);
   });
 
-  it('applies the normalized user tag', function() {
+  it('applies the normalized user tag', function () {
     const view = new EventView({
       ...state,
       fields: [{field: 'user'}, {field: 'title'}],
@@ -374,7 +374,7 @@ describe('getExpandedResults()', function() {
     expect(result.query).toEqual('event.type:error user:1234 title:"something bad"');
   });
 
-  it('applies the user field in a table row', function() {
+  it('applies the user field in a table row', function () {
     const view = new EventView({
       ...state,
       fields: [{field: 'user'}, {field: 'title'}],
@@ -473,12 +473,12 @@ describe('getExpandedResults()', function() {
   });
 });
 
-describe('downloadAsCsv', function() {
+describe('downloadAsCsv', function () {
   const messageColumn = {name: 'message'};
   const environmentColumn = {name: 'environment'};
   const countColumn = {name: 'count'};
   const userColumn = {name: 'user'};
-  it('handles raw data', function() {
+  it('handles raw data', function () {
     const result = {
       data: [
         {message: 'test 1', environment: 'prod'},
@@ -489,13 +489,13 @@ describe('downloadAsCsv', function() {
       encodeURIComponent('message,environment\r\ntest 1,prod\r\ntest 2,test')
     );
   });
-  it('handles aggregations', function() {
+  it('handles aggregations', function () {
     const result = {
       data: [{count: 3}],
     };
     expect(downloadAsCsv(result, [countColumn])).toContain(encodeURI('count\r\n3'));
   });
-  it('quotes unsafe strings', function() {
+  it('quotes unsafe strings', function () {
     const result = {
       data: [{message: '=HYPERLINK(http://some-bad-website#)'}],
     };
@@ -503,7 +503,7 @@ describe('downloadAsCsv', function() {
       encodeURIComponent("message\r\n'=HYPERLINK(http://some-bad-website#)")
     );
   });
-  it('handles the user column', function() {
+  it('handles the user column', function () {
     const result = {
       data: [
         {message: 'test 0', user: 'name:baz'},

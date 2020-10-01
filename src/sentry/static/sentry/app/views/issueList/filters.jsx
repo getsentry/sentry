@@ -42,9 +42,9 @@ class IssueListFilters extends React.Component {
   static defaultProps = {
     sort: '',
     query: null,
-    onSortChange: function() {},
-    onSearch: function() {},
-    onSidebarToggle: function() {},
+    onSortChange: function () {},
+    onSearch: function () {},
+    onSidebarToggle: function () {},
   };
 
   handleSavedSearchSelect = savedSearch => {

@@ -6,7 +6,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import IncidentDetails from 'app/views/alerts/details';
 import ProjectsStore from 'app/stores/projectsStore';
 
-describe('IncidentDetails', function() {
+describe('IncidentDetails', function () {
   const params = {orgId: 'org-slug', alertId: '123'};
   const {organization, project, routerContext} = initializeOrg({
     router: {
@@ -22,7 +22,7 @@ describe('IncidentDetails', function() {
       routerCtx ?? routerContext
     );
 
-  beforeAll(function() {
+  beforeAll(function () {
     ProjectsStore.loadInitialData([project]);
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/123/',
@@ -68,15 +68,15 @@ describe('IncidentDetails', function() {
     });
   });
 
-  afterAll(function() {
+  afterAll(function () {
     MockApiClient.clearMockResponses();
   });
 
-  beforeEach(function() {
+  beforeEach(function () {
     activitiesList.mockClear();
   });
 
-  it('loads incident', async function() {
+  it('loads incident', async function () {
     const wrapper = createWrapper();
     expect(wrapper.find('IncidentTitle').text()).toBe('Loading');
     expect(wrapper.find('SubscribeButton').prop('disabled')).toBe(true);
@@ -87,29 +87,14 @@ describe('IncidentDetails', function() {
     expect(wrapper.find('IncidentTitle').text()).toBe('Too many Chrome errors');
 
     // Number of users affected
-    expect(
-      wrapper
-        .find('ItemValue')
-        .at(2)
-        .text()
-    ).toBe('20');
+    expect(wrapper.find('ItemValue').at(2).text()).toBe('20');
 
     // Number of events
-    expect(
-      wrapper
-        .find('ItemValue')
-        .at(3)
-        .text()
-    ).toBe('100');
-    expect(
-      wrapper
-        .find('ItemValue')
-        .at(4)
-        .text()
-    ).toBe('2 weeks');
+    expect(wrapper.find('ItemValue').at(3).text()).toBe('100');
+    expect(wrapper.find('ItemValue').at(4).text()).toBe('2 weeks');
   });
 
-  it('renders open in discover button', async function() {
+  it('renders open in discover button', async function () {
     const discoverOrg = {...organization, features: ['discover-basic', 'discover-query']};
     const wrapper = createWrapper(
       {},
@@ -122,7 +107,7 @@ describe('IncidentDetails', function() {
     expect(chartActions.find('Button').text()).toBe('Open in Discover');
   });
 
-  it('handles invalid incident', async function() {
+  it('handles invalid incident', async function () {
     const wrapper = createWrapper({params: {orgId: 'org-slug', alertId: '456'}});
     await tick();
     wrapper.update();
@@ -131,7 +116,7 @@ describe('IncidentDetails', function() {
     expect(wrapper.find('LoadingError')).toHaveLength(2);
   });
 
-  it('changes status to closed and fetches new activities', async function() {
+  it('changes status to closed and fetches new activities', async function () {
     const updateStatus = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/123/',
       method: 'PUT',
@@ -147,12 +132,7 @@ describe('IncidentDetails', function() {
 
     expect(activitiesList).toHaveBeenCalledTimes(1);
 
-    expect(
-      wrapper
-        .find('Status')
-        .at(0)
-        .text()
-    ).not.toBe('Resolved');
+    expect(wrapper.find('Status').at(0).text()).not.toBe('Resolved');
     wrapper.find('[data-test-id="status-dropdown"] DropdownButton').simulate('click');
     wrapper
       .find('[data-test-id="status-dropdown"] MenuItem span')
@@ -170,15 +150,10 @@ describe('IncidentDetails', function() {
 
     // Refresh activities list since status changes also creates an activity
     expect(activitiesList).toHaveBeenCalledTimes(2);
-    expect(
-      wrapper
-        .find('Status')
-        .at(0)
-        .text()
-    ).toBe('Resolved');
+    expect(wrapper.find('Status').at(0).text()).toBe('Resolved');
   });
 
-  it('allows members to change issuet status', async function() {
+  it('allows members to change issuet status', async function () {
     const noAccessOrg = {...organization, access: ['project:read']};
 
     const wrapper = createWrapper(
@@ -189,18 +164,13 @@ describe('IncidentDetails', function() {
     await tick();
     wrapper.update();
 
-    expect(
-      wrapper
-        .find('Status')
-        .at(0)
-        .text()
-    ).not.toBe('Resolved');
+    expect(wrapper.find('Status').at(0).text()).not.toBe('Resolved');
     expect(wrapper.find('[data-test-id="status-dropdown"] DropdownButton').exists()).toBe(
       true
     );
   });
 
-  it('toggles subscribe status with Subscribe button', async function() {
+  it('toggles subscribe status with Subscribe button', async function () {
     const wrapper = createWrapper();
 
     await tick();
@@ -229,17 +199,12 @@ describe('IncidentDetails', function() {
     expect(subscribe).toHaveBeenCalled();
   });
 
-  it('renders Errors as data source for Dataset.ERRORS', async function() {
+  it('renders Errors as data source for Dataset.ERRORS', async function () {
     const wrapper = createWrapper();
     await tick();
     wrapper.update();
 
     const ruleDetails = wrapper.find('RuleDetails');
-    expect(
-      ruleDetails
-        .find('span')
-        .at(1)
-        .text()
-    ).toBe('Errors');
+    expect(ruleDetails.find('span').at(1).text()).toBe('Errors');
   });
 });
