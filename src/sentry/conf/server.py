@@ -873,6 +873,8 @@ SENTRY_FEATURES = {
     "organizations:invite-members": True,
     # Enable rate limits for inviting members.
     "organizations:invite-members-rate-limits": True,
+    # Enable measurements-based product features.
+    "organizations:measurements": False,
     # Enable org-wide saved searches and user pinned search
     "organizations:org-saved-searches": False,
     # Prefix host with organization ID when giving users DSNs (can be
@@ -1988,3 +1990,5 @@ SENTRY_SIMILARITY_GROUPING_CONFIGURATIONS_TO_INDEX = {
 SENTRY_USE_UWSGI = True
 
 SENTRY_REPROCESSING_ATTACHMENT_CHUNK_SIZE = 2 ** 20
+
+SENTRY_REPROCESSING_SYNC_REDIS_CLUSTER = "default"

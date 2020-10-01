@@ -2,7 +2,7 @@ import ProjectsStore from 'app/stores/projectsStore';
 import ProjectActions from 'app/actions/projectActions';
 import TeamActions from 'app/actions/teamActions';
 
-describe('ProjectsStore', function() {
+describe('ProjectsStore', function () {
   const teamFoo = TestStubs.Team({
     slug: 'team-foo',
   });
@@ -22,12 +22,12 @@ describe('ProjectsStore', function() {
     teams: [teamFoo, teamBar],
   });
 
-  describe('setting data', function() {
-    beforeEach(function() {
+  describe('setting data', function () {
+    beforeEach(function () {
       ProjectsStore.reset();
     });
 
-    it('correctly manages loading state', function() {
+    it('correctly manages loading state', function () {
       expect(ProjectsStore.getState()).toMatchObject({
         projects: [],
         loading: true,
@@ -40,13 +40,13 @@ describe('ProjectsStore', function() {
     });
   });
 
-  describe('updating data', function() {
-    beforeEach(function() {
+  describe('updating data', function () {
+    beforeEach(function () {
       ProjectsStore.reset();
       ProjectsStore.loadInitialData([projectFoo, projectBar]);
     });
 
-    it('updates when slug changes', async function() {
+    it('updates when slug changes', async function () {
       ProjectActions.changeSlug('foo', 'new-project');
       await tick();
       expect(ProjectsStore.itemsById[projectFoo.id]).toMatchObject({
@@ -55,7 +55,7 @@ describe('ProjectsStore', function() {
       expect(ProjectsStore.itemsById[projectBar.id]).toBeDefined();
     });
 
-    it('adds project to store on "create success"', async function() {
+    it('adds project to store on "create success"', async function () {
       const project = TestStubs.Project({id: '11', slug: 'created-project'});
       ProjectActions.createSuccess(project);
       await tick();
@@ -74,7 +74,7 @@ describe('ProjectsStore', function() {
       });
     });
 
-    it('updates a project in store', async function() {
+    it('updates a project in store', async function () {
       // Create a new project, but should have same id as `projectBar`
       const project = TestStubs.Project({id: '10', slug: 'bar', name: 'New Name'});
       ProjectActions.updateSuccess(project);
@@ -91,7 +91,7 @@ describe('ProjectsStore', function() {
       });
     });
 
-    it('can remove a team from a single project', async function() {
+    it('can remove a team from a single project', async function () {
       expect(ProjectsStore.itemsById[projectBar.id]).toMatchObject({
         teams: [
           expect.objectContaining({slug: 'team-foo'}),
@@ -109,7 +109,7 @@ describe('ProjectsStore', function() {
       });
     });
 
-    it('removes a team from all projects when team is deleted', async function() {
+    it('removes a team from all projects when team is deleted', async function () {
       expect(ProjectsStore.itemsById[projectBar.id]).toMatchObject({
         teams: [
           expect.objectContaining({slug: 'team-foo'}),
@@ -131,7 +131,7 @@ describe('ProjectsStore', function() {
       });
     });
 
-    it('can add a team to a project', async function() {
+    it('can add a team to a project', async function () {
       const team = TestStubs.Team({
         slug: 'new-team',
       });
