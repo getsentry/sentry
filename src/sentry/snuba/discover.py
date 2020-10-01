@@ -23,6 +23,7 @@ from sentry import eventstore
 
 from sentry.models import Group
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
+from sentry.utils.compat import filter
 from sentry.utils.snuba import (
     Dataset,
     naiveify_datetime,
@@ -45,6 +46,7 @@ __all__ = (
     "get_facets",
     "transform_results",
     "zerofill",
+    "measurements_histogram_query",
 )
 
 
@@ -943,5 +945,236 @@ def get_facets(query, params, limit=10, referrer=None):
                     for r in tag_values["data"]
                 ]
             )
+
+    return results
+
+
+HistogramParams = namedtuple("HistogramParams", ["bucket_size", "start_offset", "multiplier"])
+
+
+def measurements_histogram_query(
+    measurements,
+    user_query,
+    params,
+    num_buckets,
+    precision=0,
+    min_value=None,
+    max_value=None,
+    referrer=None,
+):
+    """
+    API for generating histograms specifically for measurements.
+
+    This function allows you to generate histograms for multiple measurements
+    at once. The resulting histograms will have their bins aligned.
+
+    :param [str] measurements: The list of measurements for which you want to
+        generate histograms for.
+    :param str user_query: Filter query string to create conditions from.
+    :param {str: str} params: Filtering parameters with start, end, project_id, environment
+    :param int num_buckets: The number of buckets the histogram should contain.
+    :param int precision: The number of decimal places to preserve, default 0.
+    :param float min_value: The minimum value allowed to be in the histogram.
+        If left unspecified, it is queried using `user_query` and `params`.
+    :param float max_value: The maximum value allowed to be in the histogram.
+        If left unspecified, it is queried using `user_query` and `params`.
+    """
+
+    multiplier = int(10 ** precision)
+    if max_value is not None:
+        # We want the specified max_value to be exclusive, and the queried max_value
+        # to be inclusive. So we adjust the specified max_value using the multiplier.
+        max_value -= 0.1 / multiplier
+    min_value, max_value = find_measurements_min_max(
+        measurements, min_value, max_value, user_query, params
+    )
+
+    key_col = "array_join(measurements_key)"
+    histogram_params = find_measurements_histogram_params(
+        num_buckets, min_value, max_value, multiplier
+    )
+    histogram_col = get_measurements_histogram_col(histogram_params)
+
+    conditions = [[get_function_alias(key_col), "IN", measurements]]
+
+    # make sure to bound the bins as to not get too many results
+    if min_value is not None:
+        min_bin = histogram_params.start_offset
+        conditions.append([get_function_alias(histogram_col), ">=", min_bin])
+    if max_value is not None:
+        max_bin = histogram_params.start_offset + histogram_params.bucket_size * num_buckets
+        conditions.append([get_function_alias(histogram_col), "<=", max_bin])
+
+    results = query(
+        selected_columns=[key_col, histogram_col, "count()"],
+        conditions=conditions,
+        query=user_query,
+        params=params,
+        # the zerofill step assumes it is ordered by the bin then name
+        orderby=[get_function_alias(histogram_col), get_function_alias(key_col)],
+        limit=len(measurements) * num_buckets,
+        referrer=referrer,
+        auto_fields=True,
+        use_aggregate_conditions=True,
+    )
+
+    return normalize_measurements_histogram(
+        measurements, num_buckets, key_col, histogram_params, results
+    )
+
+
+def get_measurements_histogram_col(params):
+    return u"measurements_histogram({:d}, {:d}, {:d})".format(*params)
+
+
+def find_measurements_histogram_params(num_buckets, min_value, max_value, multiplier):
+    """
+    Compute the parameters to use for measurements histogram. Using the provided
+    arguments, ensure that the generated histogram encapsolates the desired range.
+
+    :param int num_buckets: The number of buckets the histogram should contain.
+    :param float min_value: The minimum value allowed to be in the histogram inclusive.
+    :param float max_value: The maximum value allowed to be in the histogram inclusive.
+    :param int multipler: The multiplier we should use to preserve the desired precision.
+    """
+
+    # finding the bounds might result in None if there isn't sufficient data
+    if min_value is None or max_value is None:
+        return HistogramParams(1, 0, multiplier)
+
+    scaled_min = multiplier * min_value
+    scaled_max = multiplier * max_value
+
+    # align the first bin with the minimum value
+    start_offset = int(floor(scaled_min))
+
+    bucket_size = int(ceil((scaled_max - scaled_min) / float(num_buckets)))
+
+    if bucket_size == 0:
+        bucket_size = 1
+
+    # Sometimes the max value lies on the bucket boundary, and since the end
+    # of the bucket is exclusive, it gets excluded. To account for that, we
+    # increase the width of the buckets to cover the max value.
+    if start_offset + num_buckets * bucket_size <= scaled_max:
+        bucket_size += 1
+
+    return HistogramParams(bucket_size, start_offset, multiplier)
+
+
+def find_measurements_min_max(measurements, min_value, max_value, user_query, params):
+    """
+    Find the min/max value of the specified measurements. If either min/max is already
+    specified, it will be used and not queried for.
+
+    :param [str] measurements: The list of measurements for which you want to
+        generate the histograms for.
+    :param float min_value: The minimum value allowed to be in the histogram.
+        If left unspecified, it is queried using `user_query` and `params`.
+    :param float max_value: The maximum value allowed to be in the histogram.
+        If left unspecified, it is queried using `user_query` and `params`.
+    :param str user_query: Filter query string to create conditions from.
+    :param {str: str} params: Filtering parameters with start, end, project_id, environment
+    """
+
+    if min_value is not None and max_value is not None:
+        return min_value, max_value
+
+    min_columns, max_columns = [], []
+    for measurement in measurements:
+        if min_value is None:
+            min_columns.append("min(measurements.{})".format(measurement))
+        if max_value is None:
+            max_columns.append("max(measurements.{})".format(measurement))
+
+    results = query(
+        selected_columns=min_columns + max_columns,
+        query=user_query,
+        params=params,
+        limit=1,
+        referrer="api.organization-events-measurements-min-max",
+        auto_fields=True,
+        use_aggregate_conditions=True,
+    )
+
+    data = results.get("data")
+
+    # there should be exactly 1 row in the results, but if something went wrong here,
+    # we force the min/max to be None to coerce an empty histogram
+    if data is None or len(data) != 1:
+        return None, None
+
+    row = data[0]
+
+    if min_value is None:
+        min_values = [row[get_function_alias(column)] for column in min_columns]
+        min_values = list(filter(lambda v: v is not None, min_values))
+        min_value = min(min_values) if min_values else None
+
+    if max_value is None:
+        max_values = [row[get_function_alias(column)] for column in max_columns]
+        max_values = list(filter(lambda v: v is not None, max_values))
+        max_value = max(max_values) if max_values else None
+
+    return min_value, max_value
+
+
+def normalize_measurements_histogram(measurements, num_buckets, key_col, histogram_params, results):
+    """
+    Normalizes the histogram results by renaming the columns to key and bin
+    and make sure to zerofill any missing values.
+
+    :param [str] measurements: The list of measurements for which you want to
+        generate the histograms for.
+    :param int num_buckets: The number of buckets the histogram should contain.
+    :param str key_col: The column of the key name.
+    :param HistogramParms histogram_params: The histogram parameters used.
+    :param any results: The results from the histogram query that may be missing
+        bins and needs to be normalized.
+    """
+
+    measurements = sorted(measurements)
+    key_name = get_function_alias(key_col)
+    bin_name = get_function_alias(get_measurements_histogram_col(histogram_params))
+
+    # adjust the meta for the renamed columns
+    meta = results["meta"]
+    new_meta = []
+
+    meta_map = {key_name: "key", bin_name: "bin"}
+    for col in meta:
+        new_meta.append({"type": col["type"], "name": meta_map.get(col["name"], col["name"])})
+
+    results["meta"] = new_meta
+
+    # zerofill and rename the columns while making sure to adjust for precision
+    data = results["data"]
+    new_data = []
+
+    bucket_maps = {m: {} for m in measurements}
+    for row in data:
+        measurement = row[key_name]
+        # we expect the bin the be an integer, this is because all floating
+        # point values are rounded during the calculation
+        bucket = int(row[bin_name])
+        # ignore unexpected measurements
+        if measurement in bucket_maps:
+            bucket_maps[measurement][bucket] = row["count"]
+
+    for i in range(num_buckets):
+        bucket = histogram_params.start_offset + histogram_params.bucket_size * i
+        for measurement in measurements:
+            # we want to rename the columns here
+            row = {
+                "key": measurement,
+                "bin": bucket,
+                "count": bucket_maps[measurement].get(bucket, 0),
+            }
+            # make sure to adjust for the precision if necessary
+            if histogram_params.multiplier > 1:
+                row["bin"] /= float(histogram_params.multiplier)
+            new_data.append(row)
+
+    results["data"] = new_data
 
     return results

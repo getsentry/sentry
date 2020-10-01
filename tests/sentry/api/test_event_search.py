@@ -2188,6 +2188,73 @@ class ResolveFieldListTest(unittest.TestCase):
             in six.text_type(err)
         )
 
+    def test_array_join_function(self):
+        fields = [
+            "array_join(tags.key)",
+            "array_join(tags.value)",
+            "array_join(measurements_key)",
+        ]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["selected_columns"] == [
+            ["arrayJoin", ["tags.key"], "array_join_tags_key"],
+            ["arrayJoin", ["tags.value"], "array_join_tags_value"],
+            ["arrayJoin", ["measurements_key"], "array_join_measurements_key"],
+            "id",
+            "project.id",
+            [
+                "transform",
+                [["toString", ["project_id"]], ["array", []], ["array", []], "''"],
+                "`project.name`",
+            ],
+        ]
+
+    def test_measurements_histogram_function(self):
+        fields = ["measurements_histogram(10, 5, 1)"]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["selected_columns"] == [
+            [
+                "plus",
+                [
+                    [
+                        "multiply",
+                        [
+                            [
+                                "floor",
+                                [
+                                    [
+                                        "divide",
+                                        [
+                                            [
+                                                "minus",
+                                                [
+                                                    [
+                                                        "multiply",
+                                                        [["arrayJoin", ["measurements_value"]], 1],
+                                                    ],
+                                                    5,
+                                                ],
+                                            ],
+                                            10,
+                                        ],
+                                    ]
+                                ],
+                            ],
+                            10,
+                        ],
+                    ],
+                    5,
+                ],
+                "measurements_histogram_10_5_1",
+            ],
+            "id",
+            "project.id",
+            [
+                "transform",
+                [["toString", ["project_id"]], ["array", []], ["array", []], "''"],
+                "`project.name`",
+            ],
+        ]
+
     def test_histogram_function(self):
         fields = ["histogram(transaction.duration, 10, 1000, 0)", "count()"]
         result = resolve_field_list(fields, eventstore.Filter())
