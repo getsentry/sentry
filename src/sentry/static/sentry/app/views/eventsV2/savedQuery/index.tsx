@@ -19,6 +19,7 @@ import withProjects from 'app/utils/withProjects';
 import {getDiscoverLandingUrl} from 'app/utils/discover/urls';
 import CreateAlertButton from 'app/components/createAlertButton';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
+import {setBannerHidden} from 'app/views/eventsV2/utils';
 
 import {handleCreateQuery, handleUpdateQuery, handleDeleteQuery} from './utils';
 
@@ -157,6 +158,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
       (savedQuery: SavedQuery) => {
         const view = EventView.fromSavedQuery(savedQuery);
 
+        setBannerHidden(true);
         this.setState({queryName: ''});
         browserHistory.push(view.getResultsViewUrlTarget(organization.slug));
       }
