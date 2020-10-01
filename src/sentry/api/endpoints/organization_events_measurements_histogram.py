@@ -16,7 +16,7 @@ MAX_MEASUREMENTS = 4
 class MeasurementsHistogramSerializer(serializers.Serializer):
     num_buckets = serializers.IntegerField(min_value=1)
     precision = serializers.IntegerField(default=0, min_value=0, max_value=4)
-    measurement = serializers.ListField(allow_empty=False, max_length=4)
+    measurement = serializers.ListField(allow_empty=False, max_length=MAX_MEASUREMENTS)
     min = serializers.FloatField(required=False)
     max = serializers.FloatField(required=False)
 
