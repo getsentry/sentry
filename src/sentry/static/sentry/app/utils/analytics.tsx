@@ -227,9 +227,7 @@ metric.measure = function metricMeasure({name, start, end, data = {}, noCleanup}
 const transactionDataStore = new Map<string, object>();
 
 const getCurrentTransaction = () => {
-  return Sentry.getCurrentHub()
-    .getScope()
-    ?.getTransaction();
+  return Sentry.getCurrentHub().getScope()?.getTransaction();
 };
 
 metric.startTransaction = ({name, traceId, op}) => {
