@@ -55,7 +55,7 @@ type ChildrenArgs = {
   isOpen: boolean;
   selectedItem?: Item;
   selectedItemIndex?: number;
-};
+} & Record<string, any>; //Record is needed here because of the projectSelector component as it passes the selectedProjects prop
 
 type ListProps = React.ComponentProps<typeof List>;
 
@@ -64,7 +64,9 @@ type Props = {
   children: (args: ChildrenArgs) => React.ReactNode;
 
   menuHeader?: React.ReactElement;
-  menuFooter?: React.ReactElement | ((props: MenuFooterChildProps) => React.ReactElement);
+  menuFooter?:
+    | React.ReactElement
+    | ((props: MenuFooterChildProps) => React.ReactElement | null);
 
   /**
    * Hide's the input when there are no items. Avoid using this when querying
@@ -129,7 +131,7 @@ type Props = {
   /**
    * Props to pass to input/filter component
    */
-  inputProps?: Record<string, any>;
+  inputProps?: {style: React.CSSProperties};
 
   /**
    * Should menu visually lock to a direction (so we don't display a rounded corner)
