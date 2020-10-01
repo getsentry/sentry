@@ -22,7 +22,6 @@ import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMess
 import SearchBar from 'app/components/searchBar';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import SentryTypes from 'app/sentryTypes';
-import localStorage from 'app/utils/localStorage';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 import EventView from 'app/utils/discover/eventView';
@@ -30,11 +29,9 @@ import {decodeScalar} from 'app/utils/queryString';
 import theme from 'app/utils/theme';
 
 import {DEFAULT_EVENT_VIEW} from './data';
-import {getPrebuiltQueries} from './utils';
+import {getPrebuiltQueries, isBannerHidden, setBannerHidden} from './utils';
 import QueryList from './queryList';
 import Banner from './banner';
-
-const BANNER_DISMISSED_KEY = 'discover-banner-dismissed';
 
 const SORT_OPTIONS: SelectValue<string>[] = [
   {label: t('My Queries'), value: 'myqueries'},
@@ -44,10 +41,6 @@ const SORT_OPTIONS: SelectValue<string>[] = [
   {label: t('Date Created (Oldest)'), value: 'dateCreated'},
   {label: t('Most Outdated'), value: 'dateUpdated'},
 ];
-
-function checkIsBannerHidden(): boolean {
-  return localStorage.getItem(BANNER_DISMISSED_KEY) === 'true';
-}
 
 type Props = {
   organization: Organization;
@@ -80,7 +73,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
     errors: [],
 
     // local component state
-    isBannerHidden: checkIsBannerHidden(),
+    isBannerHidden: isBannerHidden(),
     isSmallBanner: this.mq?.matches,
     savedQueries: [],
     savedQueriesPageLinks: '',
@@ -173,14 +166,13 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    const isBannerHidden = checkIsBannerHidden();
-    if (isBannerHidden !== this.state.isBannerHidden) {
+    const isHidden = isBannerHidden();
+    if (isHidden !== this.state.isBannerHidden) {
       // eslint-disable-next-line react/no-did-update-set-state
       this.setState({
-        isBannerHidden,
+        isBannerHidden: isHidden,
       });
     }
-
     const PAYLOAD_KEYS = ['sort', 'cursor', 'query'] as const;
 
     const payloadKeysChanged = !isEqual(
@@ -199,8 +191,8 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
     this.fetchData({reloading: true});
   };
 
-  handleClick = () => {
-    localStorage.setItem(BANNER_DISMISSED_KEY, 'true');
+  handleBannerClick = () => {
+    setBannerHidden(true);
     this.setState({isBannerHidden: true});
   };
 
@@ -250,7 +242,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
         organization={organization}
         resultsUrl={resultsUrl}
         isSmallBanner={this.state.isSmallBanner}
-        onHideBanner={this.handleClick}
+        onHideBanner={this.handleBannerClick}
       />
     );
   }
