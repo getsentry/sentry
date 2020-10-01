@@ -1,5 +1,3 @@
-import * as Sentry from '@sentry/react';
-
 import CommitterActions from 'app/actions/committerActions';
 import {Client} from 'app/api';
 import CommitterStore, {getCommitterStoreKey} from 'app/stores/committerStore';
@@ -34,11 +32,8 @@ export function getCommitters(api: Client, params: ParamsGet) {
       CommitterActions.loadSuccess(orgSlug, projectSlug, eventId, res.committers);
     })
     .catch(err => {
+      // NOTE: Do not captureException here as EventFileCommittersEndpoint returns
+      // 404 Not Found if the project did not setup Releases or Commits
       CommitterActions.loadError(orgSlug, projectSlug, eventId, err);
-      Sentry.withScope(scope => {
-        scope.setLevel(Sentry.Severity.Warning);
-        scope.setFingerprint(['getCommitters-action-creator']);
-        Sentry.captureException(err);
-      });
     });
 }

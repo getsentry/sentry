@@ -870,6 +870,8 @@ SENTRY_FEATURES = {
     "organizations:invite-members": True,
     # Enable rate limits for inviting members.
     "organizations:invite-members-rate-limits": True,
+    # Enable measurements-based product features.
+    "organizations:measurements": False,
     # Enable org-wide saved searches and user pinned search
     "organizations:org-saved-searches": False,
     # Prefix host with organization ID when giving users DSNs (can be
@@ -898,6 +900,8 @@ SENTRY_FEATURES = {
     "organizations:usage-stats-graph": False,
     # Enable dynamic issue counts and user counts in the issue stream
     "organizations:dynamic-issue-counts": False,
+    # Return unhandled information on the issue level
+    "organizations:unhandled-issue-flag": False,
     # Enable functionality to specify custom inbound filters on events.
     "projects:custom-inbound-filters": False,
     # Enable data forwarding functionality for projects.
