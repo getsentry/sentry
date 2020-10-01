@@ -21,7 +21,6 @@ class Creator(Mediator):
         self._create_api_grant()
         self._create_install()
         self._create_service_hooks()
-        self._notify_service()
         self.install.is_new = True
         return self.install
 
@@ -54,7 +53,7 @@ class Creator(Mediator):
                 url=self.sentry_app.webhook_url,
             )
 
-    def _notify_service(self):
+    def post_commit(self):
         if self.notify:
             installation_webhook.delay(self.install.id, self.user.id)
 

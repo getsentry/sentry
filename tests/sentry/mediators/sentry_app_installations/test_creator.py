@@ -33,24 +33,25 @@ class TestCreator(TestCase):
             events=("issue.created",),
         )
 
-        self.creator = Creator(organization=self.org, slug="nulldb", user=self.user)
+    def run_creator(self, **kwargs):
+        return Creator.run(organization=self.org, slug="nulldb", user=self.user, **kwargs)
 
     @responses.activate
     def test_creates_installation(self):
         responses.add(responses.POST, "https://example.com/webhook")
-        install = self.creator.call()
+        install = self.run_creator()
         assert install.pk
 
     @responses.activate
     def test_creates_api_grant(self):
         responses.add(responses.POST, "https://example.com/webhook")
-        install = self.creator.call()
+        install = self.run_creator()
         assert ApiGrant.objects.filter(id=install.api_grant_id).exists()
 
     @responses.activate
     def test_creates_service_hooks(self):
         responses.add(responses.POST, "https://example.com/webhook")
-        install = self.creator.call()
+        install = self.run_creator()
 
         hook = ServiceHook.objects.get(organization_id=self.org.id)
 
@@ -74,20 +75,20 @@ class TestCreator(TestCase):
     def test_notifies_service(self, run):
         with self.tasks():
             responses.add(responses.POST, "https://example.com/webhook")
-            install = self.creator.call()
+            install = self.run_creator()
             run.assert_called_once_with(install=install, user=self.user, action="created")
 
     @responses.activate
     def test_associations(self):
         responses.add(responses.POST, "https://example.com/webhook")
-        install = self.creator.call()
+        install = self.run_creator()
 
         assert install.api_grant is not None
 
     @responses.activate
     def test_pending_status(self):
         responses.add(responses.POST, "https://example.com/webhook")
-        install = self.creator.call()
+        install = self.run_creator()
 
         assert install.status == SentryAppInstallationStatus.PENDING
 
@@ -95,8 +96,7 @@ class TestCreator(TestCase):
     def test_installed_status(self):
         responses.add(responses.POST, "https://example.com/webhook")
         internal_app = self.create_internal_integration(name="internal", organization=self.org)
-        creator = Creator(organization=self.org, slug=internal_app.slug, user=self.user)
-        install = creator.call()
+        install = Creator.run(organization=self.org, slug=internal_app.slug, user=self.user)
 
         assert install.status == SentryAppInstallationStatus.INSTALLED
 
