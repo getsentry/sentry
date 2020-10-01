@@ -67,6 +67,7 @@ class OrganizationEventsMeasurementsHistogramEndpointTest(APITestCase, SnubaTest
 
     def test_good_params(self):
         query = {
+            "query": "event.type:transaction",
             "project": [self.project.id],
             "measurement": ["foo", "bar"],
             "num_buckets": 10,
@@ -77,6 +78,7 @@ class OrganizationEventsMeasurementsHistogramEndpointTest(APITestCase, SnubaTest
 
     def test_good_params_with_optionals(self):
         query = {
+            "query": "event.type:transaction",
             "project": [self.project.id],
             "measurement": ["foo", "bar"],
             "num_buckets": 10,
