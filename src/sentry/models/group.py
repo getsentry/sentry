@@ -125,6 +125,10 @@ class GroupStatus(object):
     DELETION_IN_PROGRESS = 4
     PENDING_MERGE = 5
 
+    # The group's events are being re-processed and after that the group will
+    # be deleted. In this state no new events shall be added to the group.
+    REPROCESSING = 6
+
     # TODO(dcramer): remove in 9.0
     MUTED = IGNORED
 

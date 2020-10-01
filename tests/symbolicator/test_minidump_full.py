@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import time
 import pytest
 import zipfile
 from sentry.utils.compat.mock import patch
@@ -12,6 +11,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 
 from sentry import eventstore
 from sentry.testutils import TransactionTestCase, RelayStoreHelper
+from sentry.testutils.helpers.task_runner import BurstTaskRunner
 from sentry.models import EventAttachment
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL
 
@@ -150,12 +150,12 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
 
             self.upload_symbols()
 
-            from sentry.tasks.reprocessing2 import reprocess_event
+            from sentry.tasks.reprocessing2 import reprocess_group
 
-            with self.tasks():
-                reprocess_event.delay(
-                    project_id=self.project.id, event_id=event.event_id, start_time=time.time()
-                )
+            with BurstTaskRunner() as burst:
+                reprocess_group.delay(project_id=self.project.id, group_id=event.group_id)
+
+            burst()
 
             (new_event,) = eventstore.get_events(
                 eventstore.Filter(

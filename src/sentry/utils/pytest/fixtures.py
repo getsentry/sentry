@@ -156,6 +156,13 @@ def task_runner():
     return TaskRunner
 
 
+@pytest.fixture
+def burst_task_runner():
+    from sentry.testutils.helpers.task_runner import BurstTaskRunner
+
+    return BurstTaskRunner
+
+
 @pytest.fixture(scope="function")
 def session():
     return factories.create_session()
