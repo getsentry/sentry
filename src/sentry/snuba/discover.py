@@ -995,15 +995,14 @@ def measurements_histogram_query(
     )
     histogram_col = get_measurements_histogram_col(histogram_params)
 
-    min_bin = compute_measurements_histogram_bin(min_value, histogram_params)
-    max_bin = compute_measurements_histogram_bin(max_value, histogram_params)
-
     conditions = [[get_function_alias(key_col), "IN", measurements]]
 
     # make sure to bound the bins as to not get too many results
-    if min_bin is not None:
+    if min_value is not None:
+        min_bin = histogram_params.start_offset
         conditions.append([get_function_alias(histogram_col), ">=", min_bin])
-    if max_bin is not None:
+    if max_value is not None:
+        max_bin = histogram_params.start_offset + histogram_params.bucket_size * num_buckets
         conditions.append([get_function_alias(histogram_col), "<=", max_bin])
 
     results = query(
@@ -1026,13 +1025,6 @@ def measurements_histogram_query(
 
 def get_measurements_histogram_col(params):
     return u"measurements_histogram({:d}, {:d}, {:d})".format(*params)
-
-
-def compute_measurements_histogram_bin(value, params):
-    if value is None:
-        return None
-    bucket_size, start_offset, multiplier = params
-    return floor((value * multiplier - start_offset) / bucket_size) * bucket_size + start_offset
 
 
 def find_measurements_histogram_params(num_buckets, min_value, max_value, multiplier):
