@@ -413,6 +413,11 @@ describe('utils/tokenizeSearch', function() {
         object: new QueryResults(['country:>canada', 'OR', 'coronaFree():<newzealand']),
         string: 'country:>canada OR coronaFree():<newzealand',
       },
+      {
+        name: 'should quote tags with parens and spaces',
+        object: new QueryResults(['release:4.9.0 build (0.0.01)', 'error.handled:0']),
+        string: 'release:"4.9.0 build (0.0.01)" error.handled:0',
+      },
     ];
 
     for (const {name, string, object} of cases) {
