@@ -47,6 +47,8 @@ describe('ProjectSelector', function() {
     children: actorRenderer,
     multiProjects: mockOrg.projects,
     selectedProjects: [],
+    onSelect: () => {},
+    menuFooter: () => {},
   };
 
   it('should show empty message with no projects button, when no projects, and has no "project:write" access', function() {

@@ -251,6 +251,152 @@ jobs:
             save-only: true
             snapshot-path: .artifacts/visual-snapshots
 
+    py3-acceptance:
+      name: 'py3 acceptance [ignore fails]'
+      runs-on: ubuntu-16.04
+      continue-on-error: true
+      strategy:
+        matrix:
+          instance: [0, 1, 2]
+
+      env:
+        SENTRY_PYTHON3: 1
+        PIP_DISABLE_PIP_VERSION_CHECK: on
+        # PIP_QUIET: 1
+
+        SENTRY_LIGHT_BUILD: 1
+        SENTRY_SKIP_BACKEND_VALIDATION: 1
+        MIGRATIONS_TEST_MIGRATE: 1
+
+        # Node configuration
+        NODE_OPTIONS: --max-old-space-size=4096
+        NODE_ENV: development
+
+        PYTEST_SENTRY_DSN: https://6fd5cfea2d4d46b182ad214ac7810508@sentry.io/2423079
+        PYTEST_ADDOPTS: "--reruns 5"
+
+        # services configuration
+        SENTRY_KAFKA_HOSTS: kafka:9093
+        SENTRY_ZOOKEEPER_HOSTS: zookeeper:2182
+        SENTRY_REDIS_HOST: redis
+        # The hostname used to communicate with the PostgreSQL from sentry
+        DATABASE_URL: postgresql://postgres:postgres@localhost/sentry
+
+        # Number of matrix instances
+        TOTAL_TEST_GROUPS: ${{ strategy.job-total }}
+
+        VISUAL_SNAPSHOT_ENABLE: 1
+
+      steps:
+        - name: Install System Dependencies
+          run: |
+            sudo apt-get update
+            sudo apt-get install -y --no-install-recommends \
+              libxmlsec1-dev \
+              libmaxminddb-dev
+
+        # Checkout codebase
+        - uses: actions/checkout@v2
+
+        # Install node
+        - uses: volta-cli/action@v1
+
+        # Yarn
+        #   - See https://github.com/actions/cache/blob/master/examples.md#node---yarn for example
+        # Python
+        #   Use `.python-version` to avoid duplication
+        #   XXX: can't actually read from .python-version because GitHub Actions
+        #   does not support our version (2.7.16)
+        #
+        #   XXX: Using `2.7` as GHA image only seems to keep one minor version around and will break
+        #   CI if we pin it to a specific patch version.
+        - name: Set up outputs
+          id: config
+          env:
+            MATRIX_INSTANCE: ${{ matrix.instance }}
+          run: |
+            echo "::set-output name=yarn-cache-dir::$(yarn cache dir)"
+            echo "::set-output name=python-version::3.6.12"
+            echo "::set-output name=matrix-instance-number::$(($MATRIX_INSTANCE+1))"
+            echo "::set-output name=acceptance-dir::.artifacts/visual-snapshots/acceptance"
+
+        # yarn cache
+        - uses: actions/cache@v1
+          id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
+          with:
+            path: ${{ steps.config.outputs.yarn-cache-dir }}
+            key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+            restore-keys: |
+              ${{ runner.os }}-yarn-
+
+        # setup python
+        - name: Set up Python ${{ steps.config.outputs.python-version }}
+          uses: actions/setup-python@v1
+          with:
+            python-version: ${{ steps.config.outputs.python-version}}
+
+        # setup pip
+        - name: Install pip
+          run: |
+            pip install --no-cache-dir --upgrade "pip>=20.0.2"
+
+        # pip cache
+        - name: Get pip cache dir
+          id: pip-cache
+          run: |
+            echo "::set-output name=dir::$(pip cache dir)"
+
+        - name: pip cache
+          uses: actions/cache@v1
+          with:
+            path: ${{ steps.pip-cache.outputs.dir }}
+            key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements-*.txt') }}
+            restore-keys: |
+              ${{ runner.os }}-pip-
+
+        - name: Install Javascript Dependencies
+          run: |
+            yarn install --frozen-lockfile
+
+        - name: Install Python Dependencies
+          env:
+            PGPASSWORD: postgres
+          run: |
+            python setup.py install_egg_info
+            pip install wheel # GitHub Actions does not have this installed by default (unlike Travis)
+            pip install -U -e ".[dev]"
+            pip uninstall -y rb
+            pip install -e git+https://github.com/getsentry/rb.git@master#egg=rb
+
+        - name: Start devservices
+          run: |
+            sentry init
+            sentry devservices up postgres redis clickhouse snuba
+
+        - name: webpack
+          run: |
+            yarn webpack --display errors-only
+
+        # Setup custom pytest matcher, see https://github.com/actions/setup-node/issues/97
+        - name: Add pytest log matcher
+          if: always()
+          run: |
+            echo "::remove-matcher owner=pytest::"
+            echo "::add-matcher::.github/pytest.json"
+
+        - name: Run acceptance tests (#${{ steps.config.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
+          if: always()
+          run: |
+            mkdir -p ${{ steps.config.outputs.acceptance-dir }}
+            mkdir -p ${{ steps.config.outputs.acceptance-dir }}-mobile
+            mkdir -p ${{ steps.config.outputs.acceptance-dir }}-tooltips
+            [ "$GITHUB_REF" = "refs/heads/master" ] && export PYTEST_SENTRY_ALWAYS_REPORT=1
+            make run-acceptance
+          env:
+            PYTEST_SNAPSHOTS_DIR: ${{ steps.config.outputs.acceptance-dir }}
+            USE_SNUBA: 1
+            TEST_GROUP: ${{ matrix.instance }}
+
     visual-diff:
       if: ${{ github.ref != 'refs/heads/master' }}
       needs: [acceptance, jest]

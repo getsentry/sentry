@@ -816,8 +816,6 @@ SENTRY_FEATURES = {
     "organizations:android-mappings": False,
     # Enable obtaining and using API keys.
     "organizations:api-keys": False,
-    # Move release artifacts to settings.
-    "organizations:artifacts-in-settings": True,
     # Enable explicit use of AND and OR in search.
     "organizations:boolean-search": False,
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
@@ -843,8 +841,6 @@ SENTRY_FEATURES = {
     "organizations:global-views": False,
     # Lets organizations manage grouping configs
     "organizations:set-grouping-config": False,
-    # Enable Releases v2 feature
-    "organizations:releases-v2": True,
     # Enable rule page.
     "organizations:rule-page": False,
     # Enable incidents feature
@@ -877,6 +873,8 @@ SENTRY_FEATURES = {
     "organizations:invite-members": True,
     # Enable rate limits for inviting members.
     "organizations:invite-members-rate-limits": True,
+    # Enable measurements-based product features.
+    "organizations:measurements": False,
     # Enable org-wide saved searches and user pinned search
     "organizations:org-saved-searches": False,
     # Prefix host with organization ID when giving users DSNs (can be
@@ -896,6 +894,8 @@ SENTRY_FEATURES = {
     "organizations:sso-saml2": True,
     # Enable Rippling SSO functionality.
     "organizations:sso-rippling": False,
+    # Enable transaction comparison view for performance.
+    "organizations:transaction-comparison": False,
     # Enable trends view for performance.
     "organizations:trends": False,
     # Enable graph for subscription quota for errors, transactions and
@@ -903,6 +903,8 @@ SENTRY_FEATURES = {
     "organizations:usage-stats-graph": False,
     # Enable dynamic issue counts and user counts in the issue stream
     "organizations:dynamic-issue-counts": False,
+    # Return unhandled information on the issue level
+    "organizations:unhandled-issue-flag": False,
     # Enable functionality to specify custom inbound filters on events.
     "projects:custom-inbound-filters": False,
     # Enable data forwarding functionality for projects.
@@ -1871,6 +1873,9 @@ KAFKA_TOPICS = {
     # Topic for receiving transaction events (APM events) from Relay
     KAFKA_INGEST_TRANSACTIONS: {"cluster": "default", "topic": KAFKA_INGEST_TRANSACTIONS},
 }
+
+# If True, consumers will create the topics if they don't exist
+KAFKA_CONSUMER_AUTO_CREATE_TOPICS = True
 
 # For Jira, only approved apps can use the access_email_addresses scope
 # This scope allows Sentry to use the email endpoint (https://developer.atlassian.com/cloud/jira/platform/rest/v3/#api-rest-api-3-user-email-get)

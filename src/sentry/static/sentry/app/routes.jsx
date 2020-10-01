@@ -698,11 +698,11 @@ function routes() {
       />
 
       <Route
-        name={t('Relays')}
-        path="relays/"
+        name={t('Relay')}
+        path="relay/"
         componentPromise={() =>
           import(
-            /* webpackChunkName: "OrganizationRelays" */ 'app/views/settings/organizationRelays'
+            /* webpackChunkName: "organizationRelay" */ 'app/views/settings/organizationRelay'
           )
         }
         component={errorHandler(LazyLoad)}
@@ -1581,15 +1581,13 @@ function routes() {
           <Route
             path="/organizations/:orgId/releases/"
             componentPromise={() =>
-              import(/* webpackChunkName: "ReleasesV2Container" */ 'app/views/releasesV2')
+              import(/* webpackChunkName: "ReleasesContainer" */ 'app/views/releases')
             }
             component={errorHandler(LazyLoad)}
           >
             <IndexRoute
               componentPromise={() =>
-                import(
-                  /* webpackChunkName: "ReleasesV2List" */ 'app/views/releasesV2/list'
-                )
+                import(/* webpackChunkName: "ReleasesList" */ 'app/views/releases/list')
               }
               component={errorHandler(LazyLoad)}
             />
@@ -1597,7 +1595,7 @@ function routes() {
               path=":release/"
               componentPromise={() =>
                 import(
-                  /* webpackChunkName: "ReleasesV2Detail" */ 'app/views/releasesV2/detail'
+                  /* webpackChunkName: "ReleasesDetail" */ 'app/views/releases/detail'
                 )
               }
               component={errorHandler(LazyLoad)}
@@ -1605,7 +1603,7 @@ function routes() {
               <IndexRoute
                 componentPromise={() =>
                   import(
-                    /* webpackChunkName: "ReleasesV2DetailOverview" */ 'app/views/releasesV2/detail/overview'
+                    /* webpackChunkName: "ReleasesDetailOverview" */ 'app/views/releases/detail/overview'
                   )
                 }
                 component={errorHandler(LazyLoad)}
@@ -1614,7 +1612,7 @@ function routes() {
                 path="commits/"
                 componentPromise={() =>
                   import(
-                    /* webpackChunkName: "ReleasesV2DetailCommits" */ 'app/views/releasesV2/detail/commits'
+                    /* webpackChunkName: "ReleasesDetailCommits" */ 'app/views/releases/detail/commits'
                   )
                 }
                 component={errorHandler(LazyLoad)}
@@ -1623,7 +1621,7 @@ function routes() {
                 path="artifacts/"
                 componentPromise={() =>
                   import(
-                    /* webpackChunkName: "ReleasesV2DetailArtifacts" */ 'app/views/releasesV2/detail/artifacts'
+                    /* webpackChunkName: "ReleasesDetailArtifacts" */ 'app/views/releases/detail/artifacts'
                   )
                 }
                 component={errorHandler(LazyLoad)}
@@ -1632,7 +1630,7 @@ function routes() {
                 path="files-changed/"
                 componentPromise={() =>
                   import(
-                    /* webpackChunkName: "ReleasesV2DetailFilesChanged" */ 'app/views/releasesV2/detail/filesChanged'
+                    /* webpackChunkName: "ReleasesDetailFilesChanged" */ 'app/views/releases/detail/filesChanged'
                   )
                 }
                 component={errorHandler(LazyLoad)}

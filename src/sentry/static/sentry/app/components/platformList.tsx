@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import PlatformIcon from 'platformicons';
 
-import PlatformIcon from 'app/components/platformIcon';
 import {PlatformKey} from 'app/data/platformCategories';
 
 type Props = {

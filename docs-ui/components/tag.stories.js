@@ -2,11 +2,48 @@ import React from 'react';
 import {withInfo} from '@storybook/addon-info';
 
 import Tooltip from 'app/components/tooltip';
-import Tag from 'app/views/settings/components/tag';
+import Tag from 'app/components/tag';
 
 export default {
-  title: 'UI/Tags',
+  title: 'Core/Badges+Tags/Tag',
 };
+
+export const Overview = withInfo({
+  text: 'An overview of all the different tags and states',
+})(() => (
+  <React.Fragment>
+    <div>
+      <Tag>default</Tag>
+    </div>
+    <div>
+      <Tag priority="error">error</Tag>
+    </div>
+    <div>
+      <Tag priority="warning">warning</Tag>
+    </div>
+    <div>
+      <Tag priority="success">success</Tag>
+    </div>
+    <div>
+      <Tooltip
+        title="This feature is in beta and may change in the future."
+        tooltipOptions={{
+          placement: 'right',
+        }}
+      >
+        <span>
+          <Tag priority="beta">beta</Tag>
+        </span>
+      </Tooltip>
+    </div>
+    <div>
+      <Tag priority="new">new</Tag>
+    </div>
+    <div>
+      <Tag priority="alpha">alpha</Tag>
+    </div>
+  </React.Fragment>
+));
 
 export const Default = withInfo(
   'A basic tag-like thing. If you pass no type, it will be gray'
@@ -49,6 +86,25 @@ export const Beta = withInfo(
 
 Beta.story = {
   name: 'beta',
+};
+
+export const New = withInfo(
+  'An attention grabbing thing. Use this to communicate shiny new functionality.'
+)(() => (
+  <Tooltip
+    title="This feature is new and may change in the future."
+    tooltipOptions={{
+      placement: 'right',
+    }}
+  >
+    <span>
+      <Tag priority="new">new</Tag>
+    </span>
+  </Tooltip>
+));
+
+New.story = {
+  name: 'new',
 };
 
 export const Small = withInfo(

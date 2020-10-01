@@ -26,7 +26,7 @@ const Item = createReactClass({
   propTypes: {
     orgId: PropTypes.string.isRequired,
     groupId: PropTypes.string.isRequired,
-    score: PropTypes.object,
+    score: PropTypes.object, // eslint-disable-line react/no-unused-prop-types
     scoresByInterface: PropTypes.shape({
       exception: PropTypes.array,
       message: PropTypes.array,
@@ -122,7 +122,7 @@ const Item = createReactClass({
             </div>
             <div className="event-details" style={{flex: 1}}>
               <EventOrGroupHeader data={issue} />
-              <EventOrGroupExtraDetails {...issue} lastSeen={null} showAssignee />
+              <EventOrGroupExtraDetails data={{...issue, lastSeen: null}} showAssignee />
             </div>
           </FlowLayout>
           <button

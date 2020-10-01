@@ -37,12 +37,24 @@ type ChildrenProps = {
 
 type Props = {
   api: Client;
+  /**
+   * Used as the default source for cursor values.
+   */
   location: Location;
   eventView: EventView;
   orgSlug: string;
   keyTransactions?: boolean;
   trendChangeType?: TrendChangeType;
+  trendStats?: boolean;
+  /**
+   * Record limit to get.
+   */
   limit?: number;
+  /**
+   * Explicit cursor value if you aren't using `location.query.cursor` because there are
+   * multiple paginated results on the page.
+   */
+  cursor?: string;
 
   children: (props: ChildrenProps) => React.ReactNode;
 };
@@ -99,7 +111,8 @@ class DiscoverQuery extends React.Component<Props, State> {
     return (
       !isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload) ||
       this.shouldRefetchTrendData(prevProps) ||
-      prevProps.limit !== this.props.limit
+      prevProps.limit !== this.props.limit ||
+      prevProps.cursor !== this.props.cursor
     );
   };
 
@@ -120,12 +133,16 @@ class DiscoverQuery extends React.Component<Props, State> {
     return !isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
   };
 
-  getRoute(keyTransactions, trendsType) {
+  getRoute(keyTransactions, trendsType, trendStats) {
     if (keyTransactions) {
       return 'key-transactions';
     }
     if (trendsType) {
-      return 'events-trends';
+      if (trendStats) {
+        return 'events-trends-stats';
+      } else {
+        return 'events-trends';
+      }
     }
     return 'eventsv2';
   }
@@ -136,15 +153,17 @@ class DiscoverQuery extends React.Component<Props, State> {
       orgSlug,
       location,
       limit,
+      cursor,
       keyTransactions,
       trendChangeType,
+      trendStats,
     } = this.props;
 
     if (!eventView.isValid()) {
       return;
     }
 
-    const route = this.getRoute(keyTransactions, trendChangeType);
+    const route = this.getRoute(keyTransactions, trendChangeType, trendStats);
 
     const url = `/organizations/${orgSlug}/${route}/`;
     const tableFetchID = Symbol(`tableFetchID`);
@@ -158,6 +177,9 @@ class DiscoverQuery extends React.Component<Props, State> {
 
     if (limit) {
       apiPayload.per_page = limit;
+    }
+    if (cursor) {
+      apiPayload.cursor = cursor;
     }
 
     this.props.api
@@ -199,18 +221,6 @@ class DiscoverQuery extends React.Component<Props, State> {
   ) => {
     const {trendChangeType, eventView} = this.props;
     if (trendChangeType) {
-      delete apiPayload.cursor;
-      if (
-        trendChangeType === TrendChangeType.IMPROVED &&
-        location?.query?.improvedCursor
-      ) {
-        apiPayload.cursor = location?.query?.improvedCursor;
-      } else if (
-        trendChangeType === TrendChangeType.REGRESSION &&
-        location?.query?.regressionCursor
-      ) {
-        apiPayload.cursor = location?.query?.regressionCursor;
-      }
       const trendFunction = getCurrentTrendFunction(location);
       apiPayload.trendFunction = trendFunction.field;
       apiPayload.interval = eventView.interval;

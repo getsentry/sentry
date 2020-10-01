@@ -160,4 +160,7 @@ Makefile                    @getsentry/owners-sentry-dev
 *sentry_app*.py                               @getsentry/ecosystem
 *sentryapp*.py                                @getsentry/ecosystem
 
+/api-docs/                                    @getsentry/ecosystem
+/tests/apidocs/                               @getsentry/ecosystem
+
 ### End of Ecosystem ###
