@@ -11,6 +11,7 @@ import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {disableMacros} from 'app/views/discover/result/utils';
 import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
 import EventView from 'app/utils/discover/eventView';
+import localStorage from 'app/utils/localStorage';
 import {TableDataRow} from 'app/utils/discover/discoverQuery';
 import {
   Field,
@@ -479,4 +480,13 @@ export function generateFieldOptions({
   }
 
   return fieldOptions;
+}
+
+const BANNER_DISMISSED_KEY = 'discover-banner-dismissed';
+
+export function isBannerHidden(): boolean {
+  return localStorage.getItem(BANNER_DISMISSED_KEY) === 'true';
+}
+export function setBannerHidden(value: boolean) {
+  localStorage.setItem(BANNER_DISMISSED_KEY, value ? 'true' : 'false');
 }
