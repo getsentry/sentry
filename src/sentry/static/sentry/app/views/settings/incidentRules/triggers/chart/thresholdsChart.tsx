@@ -33,7 +33,7 @@ type State = {
 const CHART_GRID = {
   left: space(1),
   right: space(1),
-  top: space(2),
+  top: space(4),
   bottom: space(1),
 };
 
@@ -185,7 +185,7 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
         // Resolution is considered "off" if it is -1
         invisible: position === null,
         draggable: false,
-        position: [0, position],
+        position: [30, position],
         shape: {y1: 1, y2: 1, x1: 0, x2: this.state.width},
         style: LINE_STYLE,
       },
@@ -199,11 +199,11 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
           type: 'rect',
           draggable: false,
 
-          //
-          position: isResolution !== isInverted ? [0, position + 1] : [0, 0],
+          position: isResolution !== isInverted ? [30, position + 1] : [30, 20],
           shape: {
             width: this.state.width,
-            height: isResolution !== isInverted ? yAxisPosition - position : position,
+            height:
+              isResolution !== isInverted ? yAxisPosition - position : position - 20,
           },
 
           style: {
@@ -233,6 +233,21 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
       data: eventData.slice(0, -1),
     }));
 
+    const legend = {
+      right: 10,
+      top: 0,
+      icon: 'circle',
+      itemHeight: 8,
+      itemWidth: 8,
+      itemGap: 12,
+      align: 'left',
+      textStyle: {
+        verticalAlign: 'top',
+        fontSize: 11,
+        fontFamily: 'Rubik',
+      },
+    };
+
     return (
       <LineChart
         isGroupedByDate
@@ -243,6 +258,7 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
         yAxis={{
           max: this.state.yAxisMax,
         }}
+        legend={legend}
         graphic={Graphic({
           elements: flatten(
             triggers.map((trigger: Trigger) => [
