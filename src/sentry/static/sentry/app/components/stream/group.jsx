@@ -376,7 +376,7 @@ const SecondaryCount = styled(({value, ...p}) => <Count {...p} value={value} />)
 
   :before {
     content: '/';
-    padding-left: 2px;
+    padding-left: ${space(0.25)};
     padding-right: 2px;
     color: ${p => p.theme.gray500};
   }
