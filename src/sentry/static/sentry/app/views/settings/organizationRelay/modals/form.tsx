@@ -11,19 +11,36 @@ type FormField = keyof Pick<Relay, 'name' | 'publicKey' | 'description'>;
 type Values = Record<FormField, string>;
 
 type Props = {
+  isFormValid: boolean;
   values: Values;
   errors: Partial<Values>;
   disables: Partial<Record<FormField, boolean>>;
+  onSave: () => void;
   onValidate: (field: FormField) => () => void;
   onValidateKey: () => void;
   onChange: (field: FormField, value: string) => void;
 };
 
-const Form = ({values, onChange, errors, onValidate, disables, onValidateKey}: Props) => {
+const Form = ({
+  values,
+  onChange,
+  errors,
+  onValidate,
+  isFormValid,
+  disables,
+  onValidateKey,
+  onSave,
+}: Props) => {
   const handleChange = (field: FormField) => (
     event: React.ChangeEvent<HTMLTextAreaElement> | React.ChangeEvent<HTMLInputElement>
   ) => {
     onChange(field, event.target.value);
+  };
+
+  const handleOnKeyDown = (event: React.KeyboardEvent<HTMLFormElement>) => {
+    if (event.key === 'Enter' && isFormValid) {
+      onSave();
+    }
   };
 
   // code below copied from src/sentry/static/sentry/app/views/organizationIntegrations/SplitInstallationIdModal.tsx
@@ -33,7 +50,7 @@ const Form = ({values, onChange, errors, onValidate, disables, onValidateKey}: P
     await navigator.clipboard.writeText(value);
 
   return (
-    <React.Fragment>
+    <form onKeyDown={handleOnKeyDown}>
       <Field
         flexibleControlStateSize
         label={t('Display Name')}
@@ -91,7 +108,7 @@ const Form = ({values, onChange, errors, onValidate, disables, onValidateKey}: P
           disabled={disables.description}
         />
       </Field>
-    </React.Fragment>
+    </form>
   );
 };
 
