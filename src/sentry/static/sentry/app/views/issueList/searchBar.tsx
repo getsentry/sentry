@@ -61,8 +61,7 @@ type Props = React.ComponentProps<typeof SmartSearchBar> & {
 
 type State = {
   defaultSearchItems: [SearchItem[], SearchItem[]];
-  // TODO(ts): what is the type here
-  recentSearches: any[];
+  recentSearches: string[];
 };
 
 class IssueListSearchBar extends React.Component<Props, State> {
@@ -119,7 +118,7 @@ class IssueListSearchBar extends React.Component<Props, State> {
       organization.slug,
       SavedSearchType.ISSUE
     );
-    return (recent && recent.map(({query}) => query)) || [];
+    return recent?.map(({query}) => query) ?? [];
   };
 
   handleSavedRecentSearch = () => {
