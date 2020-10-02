@@ -1,5 +1,6 @@
 import React from 'react';
 import {Location} from 'history';
+import styled from '@emotion/styled';
 
 import {Organization, SavedQuery} from 'app/types';
 import {fetchSavedQuery} from 'app/actionCreators/discoverSavedQueries';
@@ -7,6 +8,7 @@ import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
 import Hovercard from 'app/components/hovercard';
+import TimeSince from 'app/components/timeSince';
 import {t} from 'app/locale';
 import withApi from 'app/utils/withApi';
 import EventView from 'app/utils/discover/eventView';
@@ -34,7 +36,7 @@ type State = {
 };
 
 class ResultsHeader extends React.Component<Props, State> {
-  state = {
+  state: State = {
     savedQuery: undefined,
     loading: true,
   };
@@ -63,6 +65,26 @@ class ResultsHeader extends React.Component<Props, State> {
         this.setState({savedQuery, loading: false});
       });
     }
+  }
+
+  renderAuthor() {
+    const {eventView} = this.props;
+    const {savedQuery} = this.state;
+    // No saved query in use.
+    if (!eventView.id) {
+      return null;
+    }
+    let createdBy = ' \u2014 ';
+    let lastEdit: React.ReactNode = ' \u2014 ';
+    if (savedQuery !== undefined) {
+      createdBy = savedQuery.createdBy?.email || '\u2014';
+      lastEdit = <TimeSince date={savedQuery.dateUpdated} />;
+    }
+    return (
+      <Subtitle>
+        {t('Created by:')} {createdBy} | {t('Last Edited:')} {lastEdit}
+      </Subtitle>
+    );
   }
 
   render() {
@@ -103,6 +125,7 @@ class ResultsHeader extends React.Component<Props, State> {
             organization={organization}
             eventView={eventView}
           />
+          {this.renderAuthor()}
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           <Feature
@@ -129,5 +152,13 @@ class ResultsHeader extends React.Component<Props, State> {
     );
   }
 }
+
+const Subtitle = styled('h4')`
+  font-size: ${p => p.theme.fontSizeLarge};
+  font-weight: normal;
+  line-height: 1.4;
+  color: ${p => p.theme.gray500};
+  margin: 0;
+`;
 
 export default withApi(ResultsHeader);

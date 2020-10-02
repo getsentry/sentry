@@ -197,9 +197,11 @@ class DialogManager<
   };
 
   getForm() {
-    const {values, errors, disables} = this.state;
+    const {values, errors, disables, isFormValid} = this.state;
     return (
       <Form
+        isFormValid={isFormValid}
+        onSave={this.handleSave}
         onChange={this.handleChange}
         onValidate={this.handleValidate}
         onValidateKey={this.handleValidateKey}

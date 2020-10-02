@@ -1,32 +1,25 @@
 import React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
-import styled from '@emotion/styled';
 import omit from 'lodash/omit';
+import isEqual from 'lodash/isEqual';
+import styled from '@emotion/styled';
 
-import theme from 'app/utils/theme';
+import {updateOrganization} from 'app/actionCreators/organizations';
 import {openModal} from 'app/actionCreators/modal';
-import {Panel, PanelTable} from 'app/components/panels';
 import {t, tct} from 'app/locale';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import {Organization, Relay} from 'app/types';
+import {Organization, Relay, RelayActivity} from 'app/types';
 import ExternalLink from 'app/components/links/externalLink';
 import Button from 'app/components/button';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import TextBlock from 'app/views/settings/components/text/textBlock';
-import TextOverflow from 'app/components/textOverflow';
-import Clipboard from 'app/components/clipboard';
-import {IconAdd, IconTelescope, IconEdit, IconCopy, IconDelete} from 'app/icons';
-import DateTime from 'app/components/dateTime';
-import space from 'app/styles/space';
-import {defined} from 'app/utils';
-import Tooltip from 'app/components/tooltip';
-import QuestionTooltip from 'app/components/questionTooltip';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
+import {IconAdd} from 'app/icons';
 import AsyncView from 'app/views/asyncView';
 
 import Add from './modals/add';
 import Edit from './modals/edit';
+import EmptyState from './emptyState';
+import List from './list';
 
 const RELAY_DOCS_LINK = 'https://getsentry.github.io/relay/';
 
@@ -36,9 +29,19 @@ type Props = {
 
 type State = {
   relays: Array<Relay>;
+  relayActivities: Array<RelayActivity>;
 } & AsyncView['state'];
 
 class RelayWrapper extends AsyncView<Props, State> {
+  componentDidUpdate(prevProps: Props, prevState: State) {
+    if (!isEqual(prevState.relays, this.state.relays)) {
+      // Fetch fresh activities
+      this.fetchData();
+      updateOrganization({...prevProps.organization, trustedRelays: this.state.relays});
+    }
+
+    super.componentDidUpdate(prevProps, prevState);
+  }
   getTitle() {
     return t('Relay');
   }
@@ -48,6 +51,11 @@ class RelayWrapper extends AsyncView<Props, State> {
       ...super.getDefaultState(),
       relays: this.props.organization.trustedRelays,
     };
+  }
+
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+    const {organization} = this.props;
+    return [['relayActivities', `/organizations/${organization.slug}/relay_usage/`]];
   }
 
   setRelays(trustedRelays: Array<Relay>) {
@@ -116,9 +124,34 @@ class RelayWrapper extends AsyncView<Props, State> {
     ));
   };
 
-  renderBody() {
-    const {relays} = this.state;
+  handleRefresh = () => {
+    // Fetch fresh activities
+    this.fetchData();
+  };
 
+  renderContent() {
+    const {relays, relayActivities, loading} = this.state;
+
+    if (loading) {
+      return this.renderLoading();
+    }
+
+    if (!relays.length) {
+      return <EmptyState />;
+    }
+
+    return (
+      <List
+        relays={relays}
+        relayActivities={relayActivities}
+        onEdit={this.handleOpenEditDialog}
+        onRefresh={this.handleRefresh}
+        onDelete={this.handleDelete}
+      />
+    );
+  }
+
+  renderBody() {
     return (
       <React.Fragment>
         <SettingsPageHeader
@@ -134,142 +167,23 @@ class RelayWrapper extends AsyncView<Props, State> {
             </Button>
           }
         />
+        <StyledTextBlock>
+          {t(
+            'Sentry Relay offers enterprise-grade data security by providing a standalone service that acts as a middle layer between your application and sentry.io.'
+          )}
+        </StyledTextBlock>
         <TextBlock>
           {tct(`Go to [link:Relay Documentation] for setup and details.`, {
             link: <ExternalLink href={RELAY_DOCS_LINK} />,
           })}
         </TextBlock>
-        {!relays.length ? (
-          <Panel>
-            <EmptyMessage
-              icon={<IconTelescope size="xl" />}
-              title={t('The middle layer between your app and Sentry!')}
-              description={t(
-                'Scrub all personally identifiable information before it arrives at Sentry. Relay improves event response time and acts as a proxy for organizations with restricted HTTP communication.'
-              )}
-              action={
-                <EmptyMessageActions>
-                  <Button href={RELAY_DOCS_LINK} target="_blank">
-                    {t('Go to docs')}
-                  </Button>
-                  <Button
-                    priority="primary"
-                    icon={<IconAdd isCircled />}
-                    onClick={this.handleOpenAddDialog}
-                  >
-                    {t('Register Key')}
-                  </Button>
-                </EmptyMessageActions>
-              }
-            />
-          </Panel>
-        ) : (
-          <StyledPanelTable
-            headers={[t('Display Name'), t('Relay Key'), t('Date Created'), '']}
-          >
-            {relays.map(({publicKey: key, name, created, description}) => {
-              const maskedKey = '*************************';
-              return (
-                <React.Fragment key={key}>
-                  <Name>
-                    <Text>{name}</Text>
-                    {description && (
-                      <QuestionTooltip position="top" size="sm" title={description} />
-                    )}
-                  </Name>
-                  <KeyWrapper>
-                    <Key content={maskedKey}>{maskedKey}</Key>
-                    <IconWrapper>
-                      <Clipboard value={key}>
-                        <Tooltip title={t('Click to copy')} containerDisplayMode="flex">
-                          <IconCopy color="gray500" />
-                        </Tooltip>
-                      </Clipboard>
-                    </IconWrapper>
-                  </KeyWrapper>
-                  <Text>
-                    {!defined(created) ? t('Unknown') : <DateTime date={created} />}
-                  </Text>
-                  <Actions>
-                    <Button
-                      size="small"
-                      title={t('Edit Key')}
-                      label={t('Edit Key')}
-                      icon={<IconEdit size="sm" />}
-                      onClick={this.handleOpenEditDialog(key)}
-                    />
-                    <Button
-                      size="small"
-                      title={t('Delete Key')}
-                      label={t('Delete Key')}
-                      onClick={this.handleDelete(key)}
-                      icon={<IconDelete size="sm" />}
-                    />
-                  </Actions>
-                </React.Fragment>
-              );
-            })}
-          </StyledPanelTable>
-        )}
+        {this.renderContent()}
       </React.Fragment>
     );
   }
 }
-
 export default RelayWrapper;
 
-const EmptyMessageActions = styled('div')`
-  display: grid;
-  grid-template-columns: max-content max-content;
-  grid-gap: ${space(1)};
-  align-items: center;
+const StyledTextBlock = styled(TextBlock)`
+  max-width: 600px;
 `;
-
-const StyledPanelTable = styled(PanelTable)`
-  grid-template-columns: repeat(3, auto) max-content;
-  > * {
-    @media (max-width: ${theme.breakpoints[0]}) {
-      padding: ${space(1)};
-    }
-  }
-`;
-
-const KeyWrapper = styled('div')`
-  display: grid;
-  grid-template-columns: auto 1fr;
-  grid-gap: ${space(1)};
-  align-items: center;
-`;
-
-const IconWrapper = styled('div')`
-  justify-content: flex-start;
-  display: flex;
-  cursor: pointer;
-`;
-
-const Text = styled(TextOverflow)`
-  color: ${p => p.theme.gray700};
-  line-height: 30px;
-`;
-
-const Key = styled(Text)<{content: string}>`
-  visibility: hidden;
-  position: relative;
-  :after {
-    position: absolute;
-    top: 4px;
-    left: 0;
-    content: '${p => p.content}';
-    visibility: visible;
-    ${overflowEllipsis};
-  }
-`;
-
-const Actions = styled('div')`
-  display: grid;
-  grid-template-columns: auto 1fr;
-  grid-gap: ${space(1)};
-  align-items: center;
-`;
-
-const Name = styled(Actions)``;
