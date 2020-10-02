@@ -13,14 +13,18 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
 class APIDocsTestCase(APITestCase):
-    def create_schema(self):
-        path = os.path.join(os.path.dirname(__file__), "openapi-derefed.json")
-        with open(path, "r") as json_file:
-            data = json.load(json_file)
-            data["servers"][0]["url"] = settings.SENTRY_OPTIONS["system.url-prefix"]
-            del data["components"]
+    cached_schema = None
 
-            return create_spec(data)
+    def create_schema(self):
+        if not APIDocsTestCase.cached_schema:
+            path = os.path.join(os.path.dirname(__file__), "openapi-derefed.json")
+            with open(path, "r") as json_file:
+                data = json.load(json_file)
+                data["servers"][0]["url"] = settings.SENTRY_OPTIONS["system.url-prefix"]
+                del data["components"]
+
+                APIDocsTestCase.cached_schema = create_spec(data)
+        return APIDocsTestCase.cached_schema
 
     def validate_schema(self, request, response):
         assert 200 <= response.status_code < 300, response.status_code
