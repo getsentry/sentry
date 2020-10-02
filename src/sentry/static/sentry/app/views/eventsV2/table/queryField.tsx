@@ -396,18 +396,12 @@ class QueryField extends React.Component<Props> {
               <components.Option label={label} {...(props as any)}>
                 <span data-test-id="label">{label}</span>
                 {data.value.kind === FieldValueKind.TAG && <Badge text="tag" />}
-                {data.value.kind === FieldValueKind.MEASUREMENT && (
-                  <Badge text="measurement" />
-                )}
               </components.Option>
             ),
             SingleValue: ({data, ...props}: SingleValueProps<OptionType>) => (
               <components.SingleValue data={data} {...(props as any)}>
                 <span data-test-id="label">{data.label}</span>
                 {data.value.kind === FieldValueKind.TAG && <Badge text="tag" />}
-                {data.value.kind === FieldValueKind.MEASUREMENT && (
-                  <Badge text="measurement" />
-                )}
               </components.SingleValue>
             ),
           }}
