@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import orderBy from 'lodash/orderBy';
 
 import {Relay, RelayActivity} from 'app/types';
 import space from 'app/styles/space';
@@ -19,7 +20,9 @@ type Props = {
   Pick<WaitingActivityProps, 'onRefresh'>;
 
 const List = ({relays, relayActivities, onRefresh, onDelete, onEdit}: Props) => {
-  const relaysByPublicKey = getRelaysByPublicKey(relays, relayActivities);
+  const orderedRelays = orderBy(relays, relay => relay.created, ['desc']);
+
+  const relaysByPublicKey = getRelaysByPublicKey(orderedRelays, relayActivities);
 
   const renderCardContent = (activities: Array<RelayActivity>) => {
     if (!activities.length) {
