@@ -14,7 +14,6 @@ import {decodeScalar} from 'app/utils/queryString';
 import SearchBar from 'app/views/events/searchBar';
 
 import TransactionVitals from './transactionVitals';
-// import BaselineValues from './baselineValues';
 import TransactionHeader, {Tab} from '../transactionSummary/header';
 
 type Props = {
