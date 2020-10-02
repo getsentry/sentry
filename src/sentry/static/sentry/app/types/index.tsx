@@ -1309,6 +1309,13 @@ export type TagWithTopValues = {
   canDelete: boolean;
 };
 
+export type Measurement = {
+  name: string;
+  key: string;
+};
+
+export type MeasurementCollection = {[key: string]: Measurement};
+
 export type Level = 'error' | 'fatal' | 'info' | 'warning' | 'sample';
 
 export type Meta = {
