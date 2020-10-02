@@ -18,7 +18,7 @@ const TagAndMessageWrapper = styled('div')`
 `;
 
 // TODO(matej): remove "unhandled-issue-flag" feature flag once testing is over (otherwise this won't ever be rendered in a shared event)
-const UnhandledTag = styled(props => (
+const UnhandledTag = styled((props: React.ComponentProps<typeof Tag>) => (
   <Feature features={['unhandled-issue-flag']}>
     <TagWrapper>
       <Tooltip title={t('An unhandled error was detected in this Issue.')}>
