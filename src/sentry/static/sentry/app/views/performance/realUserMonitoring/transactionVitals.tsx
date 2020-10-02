@@ -21,23 +21,6 @@ type Props = {
 };
 
 class TransactionVitals extends React.Component<Props> {
-  generateSummaryEventView() {
-    const {eventView} = this.props;
-
-    return EventView.fromSavedQuery({
-      id: '',
-      name: '',
-      version: 2,
-      fields: Object.values(WebVital).map(vital => `percentile(${vital}, ${PERCENTILE})`),
-      projects: eventView.project,
-      range: eventView.statsPeriod,
-      query: eventView.query,
-      environment: eventView.environment,
-      start: eventView.start,
-      end: eventView.end,
-    });
-  }
-
   render() {
     const {location, organization, eventView} = this.props;
     const vitals = Object.values(WebVital);
@@ -48,7 +31,7 @@ class TransactionVitals extends React.Component<Props> {
       <DiscoverQuery
         location={location}
         orgSlug={organization.slug}
-        eventView={this.generateSummaryEventView()}
+        eventView={eventView}
         limit={1}
       >
         {summaryResults => {

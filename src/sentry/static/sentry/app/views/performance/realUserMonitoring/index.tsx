@@ -20,7 +20,9 @@ import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
 
+import {PERCENTILE} from './constants';
 import RumContent from './content';
+import {WebVital} from './types';
 import {getTransactionName} from '../utils';
 import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
 
@@ -59,43 +61,44 @@ class RealUserMonitoring extends React.Component<Props> {
     const hasTransactionName = typeof name === 'string' && String(name).trim().length > 0;
 
     if (hasTransactionName) {
-      return [String(name).trim(), t('RUM')].join(' - ');
+      return [String(name).trim(), t('RUM')].join(' \u2014 ');
     }
 
-    return [t('Summary'), t('RUM')].join(' - ');
+    return [t('Summary'), t('RUM')].join(' \u2014 ');
   }
 
   renderNoAccess = () => {
     const {router, organization, location} = this.props;
 
-    if (organization.features.includes('performance-view')) {
-      const transactionName = getTransactionName(this.props.location);
-      if (!transactionName) {
-        // If there is no transaction name, redirect to the Performance landing page
-
-        browserHistory.replace({
-          pathname: `/organizations/${organization.slug}/performance/`,
-          query: {
-            ...location.query,
-          },
-        });
-        return null;
-      }
-
-      return (
-        <Redirect
-          router={router}
-          to={transactionSummaryRouteWithQuery({
-            orgSlug: organization.slug,
-            transaction: transactionName,
-            projectID: decodeScalar(location.query.project),
-            query: location.query,
-          })}
-        />
-      );
-    } else {
+    const hasFeature = organization.features.includes('performance-view');
+    if (!hasFeature) {
       return <Alert type="warning">{t("You don't have access to this feature")}</Alert>;
     }
+
+    const transactionName = getTransactionName(this.props.location);
+    if (!transactionName) {
+      // If there is no transaction name, redirect to the Performance landing page
+
+      browserHistory.replace({
+        pathname: `/organizations/${organization.slug}/performance/`,
+        query: {
+          ...location.query,
+        },
+      });
+      return null;
+    }
+
+    return (
+      <Redirect
+        router={router}
+        to={transactionSummaryRouteWithQuery({
+          orgSlug: organization.slug,
+          transaction: transactionName,
+          projectID: decodeScalar(location.query.project),
+          query: location.query,
+        })}
+      />
+    );
   };
 
   render() {
@@ -125,8 +128,8 @@ class RealUserMonitoring extends React.Component<Props> {
               <LightWeightNoProjectMessage organization={organization}>
                 <RumContent
                   location={location}
-                  eventView={eventView!}
-                  transactionName={transactionName!}
+                  eventView={eventView}
+                  transactionName={transactionName}
                   organization={organization}
                   projects={projects}
                 />
@@ -166,7 +169,7 @@ function generateRumEventView(
       id: undefined,
       version: 2,
       name: transactionName,
-      fields: ['id', 'user', 'transaction.duration', 'timestamp'],
+      fields: Object.values(WebVital).map(vital => `percentile(${vital}, ${PERCENTILE})`),
       query: stringifyQueryObject(conditions),
       projects: [],
     },

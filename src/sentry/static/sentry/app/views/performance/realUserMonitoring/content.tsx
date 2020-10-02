@@ -2,7 +2,6 @@ import React from 'react';
 import {Location} from 'history';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import omit from 'lodash/omit';
 
 import CreateAlertButton from 'app/components/createAlertButton';
 import * as Layout from 'app/components/layouts/thirds';
@@ -42,11 +41,11 @@ class RumContent extends React.Component<Props, State> {
     });
 
     // do not propagate pagination when making a new search
-    const searchQueryParams = omit(queryParams, 'cursor');
+    delete queryParams.cursor;
 
     browserHistory.push({
       pathname: location.pathname,
-      query: searchQueryParams,
+      query: queryParams,
     });
   };
 

@@ -40,8 +40,8 @@ export function realUserMonitoringRouteWithQuery({
  * Given a value on the x-axis, return the index of the nearest bucket or null
  * if it cannot be found.
  *
- * A bucket contains a range a values, and nearest is defined by the distance
- * of the point to the mid point of the bucket.
+ * A bucket contains a range of values, and nearest is defined as the bucket the
+ * value will fall in.
  */
 export function findNearestBucketIndex(
   chartData: HistogramData[],
@@ -52,28 +52,12 @@ export function findNearestBucketIndex(
   if (
     !chartData.length ||
     xAxis < chartData[0].histogram ||
-    xAxis > chartData[chartData.length - 1].histogram
+    xAxis > chartData[chartData.length - 1].histogram + bucketWidth
   ) {
     return null;
   }
 
-  const halfBucketWidth = bucketWidth / 2;
-
-  // binary search for the index
-  let l = 0;
-  let r = chartData.length;
-  let m = Math.floor((l + r) / 2);
-
-  while (Math.abs(xAxis - (chartData[m].histogram + halfBucketWidth)) > halfBucketWidth) {
-    if (xAxis > chartData[m].histogram) {
-      l = m + 1;
-    } else {
-      r = m - 1;
-    }
-    m = Math.floor((l + r) / 2);
-  }
-
-  return m;
+  return Math.floor((xAxis - chartData[0].histogram) / bucketWidth);
 }
 
 /**

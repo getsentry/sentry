@@ -10,7 +10,7 @@ import MarkArea from 'app/components/charts/components/markArea';
 import MarkLine from 'app/components/charts/components/markLine';
 import MarkPoint from 'app/components/charts/components/markPoint';
 import Tag from 'app/components/tag';
-import {FIRE_SVG} from 'app/icons/iconFire';
+import {FIRE_SVG_PATH} from 'app/icons/iconFire';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {formatFloat, getDuration} from 'app/utils/formatters';
@@ -340,7 +340,7 @@ class VitalCard extends React.Component<Props, State> {
       data: [{x: topRightPixel.x - 16, y: topRightPixel.y + 16}] as any,
       itemStyle: {color: theme.red400},
       silent: true,
-      symbol: `path://${FIRE_SVG}`,
+      symbol: `path://${FIRE_SVG_PATH}`,
       symbolKeepAspect: true,
       symbolSize: [14, 16],
     });

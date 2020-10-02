@@ -31,6 +31,6 @@ export const StatNumber = styled('div')`
 `;
 
 export const Description = styled('p')`
-  font-size: 14px;
+  font-size: ${p => p.theme.fontSizeMedium};
   margin: ${space(1)} 0px;
 `;
