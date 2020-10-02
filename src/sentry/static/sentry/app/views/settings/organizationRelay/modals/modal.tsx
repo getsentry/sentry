@@ -31,7 +31,10 @@ const Modal = ({
       <ButtonBar gap={1.5}>
         <Button onClick={closeModal}>{t('Cancel')}</Button>
         <Button
-          onClick={onSave}
+          onClick={event => {
+            event.preventDefault();
+            onSave();
+          }}
           disabled={disabled}
           type="submit"
           priority="primary"
