@@ -112,29 +112,30 @@ class TransactionHeader extends React.Component<Props> {
             {this.renderKeyTransactionButton()}
           </ButtonBar>
         </Layout.HeaderActions>
-        <StyledNavTabs>
-          <ListLink
-            to={`${baseUrl}${location.search}`}
-            isActive={() => currentTab === Tab.TransactionSummary}
-          >
-            {t('Overview')}
-          </ListLink>
-          <Feature organization={organization} features={['measurements']}>
-            {({hasFeature}) => {
-              if (!hasFeature) {
-                return null;
-              }
-              return (
+
+        <Feature organization={organization} features={['measurements']}>
+          {({hasFeature}) => {
+            if (!hasFeature) {
+              return null;
+            }
+            return (
+              <StyledNavTabs>
+                <ListLink
+                  to={`${baseUrl}${location.search}`}
+                  isActive={() => currentTab === Tab.TransactionSummary}
+                >
+                  {t('Overview')}
+                </ListLink>
                 <ListLink
                   to={`${baseUrl}rum/${location.search}`}
                   isActive={() => currentTab === Tab.RealUserMonitoring}
                 >
                   {t('Real User Monitoring')}
                 </ListLink>
-              );
-            }}
-          </Feature>
-        </StyledNavTabs>
+              </StyledNavTabs>
+            );
+          }}
+        </Feature>
       </Layout.Header>
     );
   }
@@ -144,6 +145,8 @@ const StyledNavTabs = styled(NavTabs)`
   margin-bottom: 0;
   /* Makes sure the tabs are pushed into another row */
   width: 100%;
+
+  outline: 1px red solid;
 `;
 
 export default TransactionHeader;
