@@ -19,7 +19,7 @@ class ConfigurationError(ValueError, click.ClickException):
             from click._compat import get_text_stderr
 
             file = get_text_stderr()
-        click.secho("!! Configuration error: %s" % self.format_message(), file=file, fg="red")
+        click.secho("!! Configuration error: %s" % str(self), file=file, fg="red")
 
 
 class Importer(object):

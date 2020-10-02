@@ -2,7 +2,7 @@ beautifulsoup4>=4.7.1,<4.8
 boto3>=1.4.1,<1.4.6
 botocore<1.5.71
 celery==4.4.7
-click==7.1.2
+click>=5.0,<7.0
 confluent-kafka==1.5.0
 croniter>=0.3.34,<0.4.0
 datadog>=0.15.0,<0.31.0
