@@ -68,7 +68,9 @@ class TransactionVitals extends React.Component<Props> {
                     {vitals.map((vital, index) => {
                       const error =
                         summaryResults.error !== null || results.error !== null;
-                      const alias = getAggregateAlias(`percentile(${vital}, ${PERCENTILE})`);
+                      const alias = getAggregateAlias(
+                        `percentile(${vital}, ${PERCENTILE})`
+                      );
                       const summary =
                         summaryResults.tableData?.data?.[0]?.[alias] ?? null;
                       return (
