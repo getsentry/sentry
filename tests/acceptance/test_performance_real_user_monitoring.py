@@ -16,6 +16,7 @@ FEATURE_NAMES = ["organizations:performance-view", "organizations:measurements"]
 
 def make_event(event_data):
     event_data["event_id"] = "c" * 32
+    event_data["contexts"]["trace"]["op"] = "pageload"
     return event_data
 
 
