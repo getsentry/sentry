@@ -10,6 +10,7 @@ from sentry.incidents.models import (
     AlertRuleTriggerAction,
     AlertRuleStatus,
     Incident,
+    IncidentProject,
     PendingIncidentSnapshot,
     IncidentSnapshot,
     IncidentActivity,
@@ -218,5 +219,6 @@ def process_pending_incident_snapshots():
                     incident.status == IncidentStatus.CLOSED.value
                     and not IncidentSnapshot.objects.filter(incident=incident).exists()
                 ):
-                    create_incident_snapshot(incident, windowed_stats=True)
+                    if IncidentProject.objects.filter(incident=incident).exists():
+                        create_incident_snapshot(incident, windowed_stats=True)
                 pending_snapshot.delete()
