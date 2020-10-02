@@ -40,7 +40,7 @@ steps:
 - name: 'gcr.io/$PROJECT_ID/docker-compose'
   id: e2e-test-py2
   waitFor:
-    runtime-image-py2
+    - runtime-image-py2
   entrypoint: 'bash'
   env:
   - 'SENTRY_IMAGE=us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA'
