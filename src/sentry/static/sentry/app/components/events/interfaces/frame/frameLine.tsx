@@ -44,7 +44,7 @@ type Props = {
 };
 
 type State = {
-  isExpanded: boolean;
+  isExpanded?: boolean;
 };
 
 export class FrameLine extends React.Component<Props, State> {
