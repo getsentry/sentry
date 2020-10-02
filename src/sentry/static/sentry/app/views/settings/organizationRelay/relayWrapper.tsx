@@ -128,9 +128,34 @@ class RelayWrapper extends AsyncView<Props, State> {
     this.fetchData();
   };
 
-  renderBody() {
+  renderContent() {
     const {relays, relayActivities, loading} = this.state;
 
+    if (loading) {
+      return this.renderLoading();
+    }
+
+    if (!relays.length) {
+      return (
+        <EmptyState
+          docsUrl={RELAY_DOCS_LINK}
+          onOpenAddDialog={this.handleOpenAddDialog}
+        />
+      );
+    }
+
+    return (
+      <List
+        relays={relays}
+        relayActivities={relayActivities}
+        onEdit={this.handleOpenEditDialog}
+        onRefresh={this.handleRefresh}
+        onDelete={this.handleDelete}
+      />
+    );
+  }
+
+  renderBody() {
     return (
       <React.Fragment>
         <SettingsPageHeader
@@ -151,21 +176,7 @@ class RelayWrapper extends AsyncView<Props, State> {
             link: <ExternalLink href={RELAY_DOCS_LINK} />,
           })}
         </TextBlock>
-        {!relays.length ? (
-          <EmptyState
-            docsUrl={RELAY_DOCS_LINK}
-            onOpenAddDialog={this.handleOpenAddDialog}
-          />
-        ) : (
-          <List
-            isLoading={loading}
-            relays={relays}
-            relayActivities={relayActivities}
-            onEdit={this.handleOpenEditDialog}
-            onRefresh={this.handleRefresh}
-            onDelete={this.handleDelete}
-          />
-        )}
+        {this.renderContent()}
       </React.Fragment>
     );
   }

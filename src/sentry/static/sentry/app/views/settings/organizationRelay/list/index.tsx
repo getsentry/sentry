@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import {Relay, RelayActivity} from 'app/types';
 import space from 'app/styles/space';
-import LoadingIndicator from 'app/components/loadingIndicator';
 
 import {getRelaysByPublicKey} from './utils';
 import CardHeader from './cardHeader';
@@ -14,27 +13,15 @@ type CardHeaderProps = React.ComponentProps<typeof CardHeader>;
 type WaitingActivityProps = React.ComponentProps<typeof WaitingActivity>;
 
 type Props = {
-  isLoading: boolean;
   relays: Array<Relay>;
   relayActivities: Array<RelayActivity>;
 } & Pick<CardHeaderProps, 'onDelete' | 'onEdit'> &
   Pick<WaitingActivityProps, 'onRefresh'>;
 
-const List = ({
-  relays,
-  relayActivities,
-  onRefresh,
-  onDelete,
-  onEdit,
-  isLoading,
-}: Props) => {
+const List = ({relays, relayActivities, onRefresh, onDelete, onEdit}: Props) => {
   const relaysByPublicKey = getRelaysByPublicKey(relays, relayActivities);
 
   const renderCardContent = (activities: Array<RelayActivity>) => {
-    if (isLoading) {
-      return <LoadingIndicator />;
-    }
-
     if (!activities.length) {
       return <WaitingActivity onRefresh={onRefresh} />;
     }
