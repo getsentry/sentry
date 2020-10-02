@@ -119,12 +119,21 @@ class TransactionHeader extends React.Component<Props> {
           >
             {t('Overview')}
           </ListLink>
-          <ListLink
-            to={`${baseUrl}rum/${location.search}`}
-            isActive={() => currentTab === Tab.RealUserMonitoring}
-          >
-            {t('Real User Monitoring')}
-          </ListLink>
+          <Feature organization={organization} features={['measurements']}>
+            {({hasFeature}) => {
+              if (!hasFeature) {
+                return null;
+              }
+              return (
+                <ListLink
+                  to={`${baseUrl}rum/${location.search}`}
+                  isActive={() => currentTab === Tab.RealUserMonitoring}
+                >
+                  {t('Real User Monitoring')}
+                </ListLink>
+              );
+            }}
+          </Feature>
         </StyledNavTabs>
       </Layout.Header>
     );

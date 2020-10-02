@@ -1,8 +1,11 @@
 import React from 'react';
 import {Location} from 'history';
-import {browserHistory} from 'react-router';
+import {browserHistory, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
+import Alert from 'app/components/alert';
+import Feature from 'app/components/acl/feature';
+import Redirect from 'app/utils/redirect';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
@@ -19,13 +22,14 @@ import withProjects from 'app/utils/withProjects';
 
 import RumContent from './content';
 import {getTransactionName} from '../utils';
+import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
 
 type Props = {
   location: Location;
   organization: Organization;
   projects: Project[];
   selection: GlobalSelection;
-};
+} & Pick<WithRouterProps, 'router'>;
 
 type State = {
   eventView: EventView | undefined;
@@ -61,6 +65,39 @@ class RealUserMonitoring extends React.Component<Props> {
     return [t('Summary'), t('RUM')].join(' - ');
   }
 
+  renderNoAccess = () => {
+    const {router, organization, location} = this.props;
+
+    if (organization.features.includes('performance-view')) {
+      const transactionName = getTransactionName(this.props.location);
+      if (!transactionName) {
+        // If there is no transaction name, redirect to the Performance landing page
+
+        browserHistory.replace({
+          pathname: `/organizations/${organization.slug}/performance/`,
+          query: {
+            ...location.query,
+          },
+        });
+        return null;
+      }
+
+      return (
+        <Redirect
+          router={router}
+          to={transactionSummaryRouteWithQuery({
+            orgSlug: organization.slug,
+            transaction: transactionName,
+            projectID: decodeScalar(location.query.project),
+            query: location.query,
+          })}
+        />
+      );
+    } else {
+      return <Alert type="warning">{t("You don't have access to this feature")}</Alert>;
+    }
+  };
+
   render() {
     const {organization, projects, location} = this.props;
     const {eventView} = this.state;
@@ -78,19 +115,25 @@ class RealUserMonitoring extends React.Component<Props> {
 
     return (
       <SentryDocumentTitle title={this.getDocumentTitle()} objSlug={organization.slug}>
-        <GlobalSelectionHeader>
-          <StyledPageContent>
-            <LightWeightNoProjectMessage organization={organization}>
-              <RumContent
-                location={location}
-                eventView={eventView!}
-                transactionName={transactionName!}
-                organization={organization}
-                projects={projects}
-              />
-            </LightWeightNoProjectMessage>
-          </StyledPageContent>
-        </GlobalSelectionHeader>
+        <Feature
+          features={['measurements']}
+          organization={organization}
+          renderDisabled={this.renderNoAccess}
+        >
+          <GlobalSelectionHeader>
+            <StyledPageContent>
+              <LightWeightNoProjectMessage organization={organization}>
+                <RumContent
+                  location={location}
+                  eventView={eventView!}
+                  transactionName={transactionName!}
+                  organization={organization}
+                  projects={projects}
+                />
+              </LightWeightNoProjectMessage>
+            </StyledPageContent>
+          </GlobalSelectionHeader>
+        </Feature>
       </SentryDocumentTitle>
     );
   }
