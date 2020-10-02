@@ -11,7 +11,7 @@ export const WEB_VITAL_DETAILS: Record<WebVital, Vital> = {
     slug: 'fp',
     name: t('First Paint'),
     description: t(
-      'First paint (FP) refers to the point at which the first pixel renders on a screen after a user navigates to a web page.'
+      'First paint refers to the point at which the first pixel renders on a screen after a user navigates to a web page.'
     ),
     failureThreshold: 4000,
     type: 'duration',
@@ -20,7 +20,7 @@ export const WEB_VITAL_DETAILS: Record<WebVital, Vital> = {
     slug: 'fcp',
     name: t('First Contentful Paint'),
     description: t(
-      'This is the first moment DOM content such as text or an image gets rendered.'
+      'First Contentful Paint measures the time from when the page starts loading to when the page first rendered any text, image (including background images), non-white canvas or SVG. This excludes any content of iframes, but includes text with pending webfonts. '
     ),
     failureThreshold: 4000,
     type: 'duration',
