@@ -28,6 +28,22 @@ jobs:
       # The hostname used to communicate with the PostgreSQL from sentry
       DATABASE_URL: postgresql://postgres:postgres@localhost/sentry
 
+    services:
+      postgres:
+        image: postgres:9.6
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          # Maps tcp port 5432 on service container to the host
+          - 5432:5432
+        # needed because the postgres container does not provide a healthcheck
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Install System Dependencies
         run: |
@@ -68,18 +84,14 @@ jobs:
             ${{ runner.os }}-pip-
 
       - name: Install Python Dependencies
+        env:
+          PGPASSWORD: postgres
         run: |
           python setup.py install_egg_info
           pip install wheel # GitHub Actions does not have this installed by default (unlike Travis)
           pip install -U -e ".[dev]"
-
-      - name: Start Postgres (via devservices)
-        env:
-          PGPASSWORD: postgres
-        run: |
-          sentry init
-          sentry devservices up postgres
           psql -c 'create database sentry;' -h localhost -U postgres
+          sentry init
 
       - name: Check if a migration is required
         env:
