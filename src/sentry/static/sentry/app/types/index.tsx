@@ -672,6 +672,7 @@ export type Group = {
   firstSeen: string;
   hasSeen: boolean;
   isBookmarked: boolean;
+  isUnhandled: boolean;
   isPublic: boolean;
   isSubscribed: boolean;
   lastRelease: any; // TODO(ts)
