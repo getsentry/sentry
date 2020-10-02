@@ -30,6 +30,7 @@ export type TableState = {
 
 export enum FieldValueKind {
   TAG = 'tag',
+  MEASUREMENT = 'measurement',
   FIELD = 'field',
   FUNCTION = 'function',
 }
@@ -45,6 +46,13 @@ export type FieldValue =
         dataType: ColumnType;
         // Set to true for tag values we invent at runtime.
         unknown?: boolean;
+      };
+    }
+  | {
+      kind: FieldValueKind.MEASUREMENT;
+      meta: {
+        name: string;
+        dataType: ColumnType;
       };
     }
   | {
