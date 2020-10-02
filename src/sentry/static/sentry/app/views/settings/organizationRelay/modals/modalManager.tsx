@@ -38,6 +38,7 @@ class DialogManager<
   state = this.getDefaultState();
 
   componentDidMount() {
+    document.addEventListener('keydown', this.onKeyDown);
     this.validateForm();
   }
 
@@ -52,6 +53,17 @@ class DialogManager<
       this.setValidForm(false);
     }
   }
+
+  componentWillUnmount() {
+    document.removeEventListener('keydown', this.onKeyDown);
+  }
+
+  onKeyDown = (event: KeyboardEvent) => {
+    const {isFormValid} = this.state;
+    if (event.code === 'Enter' && isFormValid) {
+      this.handleSave();
+    }
+  };
 
   getDefaultState(): Readonly<S> {
     return {
