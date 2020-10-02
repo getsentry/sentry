@@ -28,6 +28,7 @@ function EventOrGroupExtraDetails({data, showAssignee, params}: Props) {
     annotations,
     shortId,
     project,
+    lifetime,
   } = data as Group;
 
   const issuesPath = `/organizations/${params.orgId}/issues/`;
@@ -44,7 +45,10 @@ function EventOrGroupExtraDetails({data, showAssignee, params}: Props) {
           }}
         />
       )}
-      <StyledTimes lastSeen={lastSeen} firstSeen={firstSeen} />
+      <StyledTimes
+        lastSeen={lifetime?.lastSeen || lastSeen}
+        firstSeen={lifetime?.firstSeen || firstSeen}
+      />
       {numComments > 0 && (
         <CommentsLink to={`${issuesPath}${id}/activity/`} className="comments">
           <IconChat
