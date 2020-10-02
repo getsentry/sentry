@@ -108,9 +108,9 @@ def get_rollup_from_request(request, params, default_interval, error):
     interval = parse_stats_period(request.GET.get("interval", default_interval))
     if interval is None:
         interval = timedelta(hours=1)
-
+    if interval.total_seconds() <= 0:
+        raise error.__class__("Interval cannot result in a zero duration.")
     date_range = params["end"] - params["start"]
     if date_range.total_seconds() / interval.total_seconds() > MAX_ROLLUP_POINTS:
         raise error
-
     return int(interval.total_seconds())

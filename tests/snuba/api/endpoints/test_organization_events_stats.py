@@ -563,6 +563,21 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             )
         assert response.status_code == 400
 
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "end": iso_format(before_now()),
+                    "start": iso_format(before_now(hours=24)),
+                    "query": "",
+                    "interval": "0d",
+                    "yAxis": "count()",
+                },
+            )
+        assert response.status_code == 400
+        assert "zero duration" in response.data["detail"]
+
     def test_out_of_retention(self):
         with self.options({"system.event-retention-days": 10}):
             with self.feature("organizations:discover-basic"):
