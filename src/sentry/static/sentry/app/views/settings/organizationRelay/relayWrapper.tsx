@@ -4,6 +4,7 @@ import omit from 'lodash/omit';
 import isEqual from 'lodash/isEqual';
 import styled from '@emotion/styled';
 
+import {updateOrganization} from 'app/actionCreators/organizations';
 import {openModal} from 'app/actionCreators/modal';
 import {t, tct} from 'app/locale';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
@@ -36,6 +37,7 @@ class RelayWrapper extends AsyncView<Props, State> {
     if (!isEqual(prevState.relays, this.state.relays)) {
       // Fetch fresh activities
       this.fetchData();
+      updateOrganization({...prevProps.organization, trustedRelays: this.state.relays});
     }
 
     super.componentDidUpdate(prevProps, prevState);
