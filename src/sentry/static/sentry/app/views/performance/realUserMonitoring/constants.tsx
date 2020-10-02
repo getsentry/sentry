@@ -11,7 +11,7 @@ export const WEB_VITAL_DETAILS: Record<WebVital, Vital> = {
     slug: 'fp',
     name: t('First Paint'),
     description: t(
-      'First paint refers to the point at which the first pixel renders on a screen after a user navigates to a web page.'
+      'First paint (FP) refers to the point at which the first pixel renders on a screen after a user navigates to a web page.'
     ),
     failureThreshold: 4000,
     type: 'duration',
