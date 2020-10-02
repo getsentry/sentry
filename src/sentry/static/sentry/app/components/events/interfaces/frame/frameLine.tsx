@@ -37,7 +37,7 @@ type Props = {
   registers: Record<string, string>;
   components: Array<SentryAppComponent>;
   showingAbsoluteAddress: boolean;
-  onAddressToggle: React.MouseEventHandler<HTMLButtonElement>;
+  onAddressToggle: React.MouseEventHandler<SVGElement>;
   image: React.ComponentProps<typeof DebugImage>['image'];
   maxLengthOfRelativeAddress: number;
   isExpanded?: boolean;
