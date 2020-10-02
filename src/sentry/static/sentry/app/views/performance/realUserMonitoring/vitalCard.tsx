@@ -229,7 +229,6 @@ class VitalCard extends React.Component<Props, State> {
     const series = {
       seriesName: t('Count'),
       data: seriesData,
-      barCategoryGap: '0%',
     };
 
     this.drawBaselineValue(series);
