@@ -20,7 +20,7 @@ export const WEB_VITAL_DETAILS: Record<WebVital, Vital> = {
     slug: 'fcp',
     name: t('First Contentful Paint'),
     description: t(
-      'First Contentful Paint measures the time from when the page starts loading to when the page first rendered any text, image (including background images), non-white canvas or SVG. This excludes any content of iframes, but includes text with pending webfonts. '
+      'First Contentful Paint measures the time from when the page starts loading to when the page first rendered any content such as text and images.'
     ),
     failureThreshold: 4000,
     type: 'duration',
@@ -28,7 +28,9 @@ export const WEB_VITAL_DETAILS: Record<WebVital, Vital> = {
   [WebVital.LCP]: {
     slug: 'lcp',
     name: t('Largest Contentful Paint'),
-    description: t('This is when the largest content element gets rendered in the page.'),
+    description: t(
+      'Largest Contentful Paint measures the render time of the largest image or text block prior to user input.'
+    ),
     failureThreshold: 4000,
     type: 'duration',
   },
@@ -36,7 +38,7 @@ export const WEB_VITAL_DETAILS: Record<WebVital, Vital> = {
     slug: 'fid',
     name: t('First Input Delay'),
     description: t(
-      'First input delay (FID) measures the time from when a user first interacts with your site (i.e. when they click a link, tap on a button, or use a custom, JavaScript-powered control) to the time when the browser is actually able to respond to that interaction. It is the length of time, in milliseconds, between the first user interaction on a web page and the browser’s response to that interaction. Scrolling and zooming are not included in this metric.'
+      'First input delay measures the time from a user’s first interaction (such as clicks) to the time when the browser is able to respond to that interaction. Scrolling and zooming are not included in this metric.'
     ),
     failureThreshold: 300,
     type: 'duration',
