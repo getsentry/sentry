@@ -263,8 +263,10 @@ def configure_structlog():
 
     lvl = os.environ.get("SENTRY_LOG_LEVEL")
 
-    if lvl and lvl not in logging._levelNames:
-        raise AttributeError("%s is not a valid logging level." % lvl)
+    if lvl:
+        levelNames = logging._levelNames if not six.PY3 else logging._nameToLevel
+        if lvl not in levelNames:
+            raise AttributeError("%s is not a valid logging level." % lvl)
 
     settings.LOGGING["root"].update({"level": lvl or settings.LOGGING["default_level"]})
 
