@@ -112,7 +112,6 @@ class TransactionHeader extends React.Component<Props> {
             {this.renderKeyTransactionButton()}
           </ButtonBar>
         </Layout.HeaderActions>
-
         <Feature organization={organization} features={['measurements']}>
           {({hasFeature}) => {
             if (!hasFeature) {
