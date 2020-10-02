@@ -8,14 +8,19 @@ from django.test.client import RequestFactory
 from tests.apidocs.util import APIDocsTestCase
 
 
-class OrganizationProjectsDocs(APIDocsTestCase):
+class ProjectEventsDocs(APIDocsTestCase):
+    endpoint = "sentry-api-0-project-events"
+
     def setUp(self):
-        organization = self.create_organization(owner=self.user, name="Rowdy Tiger")
-        self.create_project(name="foo", organization=organization, teams=[])
-        self.create_project(name="bar", organization=organization, teams=[])
+        self.create_event("a")
+        self.create_event("b")
 
         self.url = reverse(
-            "sentry-api-0-organization-projects", kwargs={"organization_slug": organization.slug},
+            self.endpoint,
+            kwargs={
+                "organization_slug": self.organization.slug,
+                "project_slug": self.project.slug,
+            },
         )
 
         self.login_as(user=self.user)
