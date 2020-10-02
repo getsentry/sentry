@@ -37,7 +37,9 @@ class VstsApiClientTest(VstsIntegrationTestCase):
         assert responses.calls[-2].request.url == "https://app.vssps.visualstudio.com/oauth2/token"
 
         # Then we request the Projects with the new token
-        assert responses.calls[-1].request.url == u"{}_apis/projects?stateFilter=WellFormed".format(
+        assert responses.calls[
+            -1
+        ].request.url == u"{}_apis/projects?%24top=100&%24skip=0&stateFilter=WellFormed".format(
             self.vsts_base_url.lower()
         )
 
@@ -77,7 +79,9 @@ class VstsApiClientTest(VstsIntegrationTestCase):
         assert responses.calls[-2].request.url == "https://app.vssps.visualstudio.com/oauth2/token"
 
         # Then we request the Projects with the new token
-        assert responses.calls[-1].request.url == u"{}_apis/projects?stateFilter=WellFormed".format(
+        assert responses.calls[
+            -1
+        ].request.url == u"{}_apis/projects?%24top=100&%24skip=0&stateFilter=WellFormed".format(
             self.vsts_base_url.lower()
         )
 
