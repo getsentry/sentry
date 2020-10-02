@@ -49,11 +49,11 @@ type Props = React.ComponentProps<typeof SmartSearchBar> & {
   api: Client;
   organization: Organization;
 
-  projectIds: string[];
+  projectIds?: string[];
   tagValueLoader: (
     key: string,
     search: string,
-    projectIds: string[]
+    projectIds?: string[]
   ) => Promise<TagValue[]>;
   savedSearch?: SavedSearch;
   isOpen?: boolean;
