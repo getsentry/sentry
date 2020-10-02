@@ -56,7 +56,7 @@ const Tag = styled(
   padding: ${p => (p.size === 'small' ? '0.1em 0.4em 0.2em' : '0.35em 0.8em 0.4em')};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   line-height: 1;
-  color: ${p => (p.priority ? '#fff' : p.theme.gray800)};
+  color: ${p => (p.priority ? p.theme.white : p.theme.gray800)};
   text-align: center;
   white-space: nowrap;
   vertical-align: middle;

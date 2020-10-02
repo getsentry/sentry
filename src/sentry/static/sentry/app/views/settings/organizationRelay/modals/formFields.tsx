@@ -4,43 +4,33 @@ import {t} from 'app/locale';
 import Input from 'app/views/settings/components/forms/controls/input';
 import Textarea from 'app/views/settings/components/forms/controls/textarea';
 import Field from 'app/views/settings/components/forms/field';
-import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
 import {Relay} from 'app/types';
+import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
 
 type FormField = keyof Pick<Relay, 'name' | 'publicKey' | 'description'>;
 type Values = Record<FormField, string>;
 
 type Props = {
-  isFormValid: boolean;
   values: Values;
   errors: Partial<Values>;
   disables: Partial<Record<FormField, boolean>>;
-  onSave: () => void;
   onValidate: (field: FormField) => () => void;
   onValidateKey: () => void;
   onChange: (field: FormField, value: string) => void;
 };
 
-const Form = ({
+const FormFields = ({
   values,
   onChange,
   errors,
   onValidate,
-  isFormValid,
   disables,
   onValidateKey,
-  onSave,
 }: Props) => {
   const handleChange = (field: FormField) => (
     event: React.ChangeEvent<HTMLTextAreaElement> | React.ChangeEvent<HTMLInputElement>
   ) => {
     onChange(field, event.target.value);
-  };
-
-  const handleSubmit = () => {
-    if (isFormValid) {
-      onSave();
-    }
   };
 
   // code below copied from src/sentry/static/sentry/app/views/organizationIntegrations/SplitInstallationIdModal.tsx
@@ -50,7 +40,7 @@ const Form = ({
     await navigator.clipboard.writeText(value);
 
   return (
-    <form onSubmit={handleSubmit} id="relay-form">
+    <React.Fragment>
       <Field
         flexibleControlStateSize
         label={t('Display Name')}
@@ -84,6 +74,7 @@ const Form = ({
           label={t('Public Key')}
           error={errors.publicKey}
           flexibleControlStateSize
+          showHelpInTooltip
           inline={false}
           stacked
           required
@@ -107,8 +98,8 @@ const Form = ({
           disabled={disables.description}
         />
       </Field>
-    </form>
+    </React.Fragment>
   );
 };
 
-export default Form;
+export default FormFields;
