@@ -258,6 +258,10 @@ class VitalCard extends React.Component<Props, State> {
       this.state.refDataRect!,
       this.state.refPixelRect!
     );
+    if (thresholdPixelBottom === null) {
+      return;
+    }
+
     const thresholdPixelTop = mapPoint(
       {
         // subtract 0.5 from the x here to ensure that the threshold lies between buckets
@@ -267,6 +271,9 @@ class VitalCard extends React.Component<Props, State> {
       this.state.refDataRect!,
       this.state.refPixelRect!
     );
+    if (thresholdPixelTop === null) {
+      return;
+    }
 
     series.markLine = MarkLine({
       data: [[thresholdPixelBottom, thresholdPixelTop] as any],
@@ -309,6 +316,9 @@ class VitalCard extends React.Component<Props, State> {
       this.state.refDataRect!,
       this.state.refPixelRect!
     );
+    if (failurePixel === null) {
+      return;
+    }
 
     series.markArea = MarkArea({
       data: [
@@ -335,6 +345,9 @@ class VitalCard extends React.Component<Props, State> {
       this.state.refDataRect!,
       this.state.refPixelRect!
     );
+    if (topRightPixel === null) {
+      return;
+    }
 
     series.markPoint = MarkPoint({
       data: [{x: topRightPixel.x - 16, y: topRightPixel.y + 16}] as any,
