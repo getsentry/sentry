@@ -137,12 +137,7 @@ class RelayWrapper extends AsyncView<Props, State> {
     }
 
     if (!relays.length) {
-      return (
-        <EmptyState
-          docsUrl={RELAY_DOCS_LINK}
-          onOpenAddDialog={this.handleOpenAddDialog}
-        />
-      );
+      return <EmptyState />;
     }
 
     return (
