@@ -60,6 +60,7 @@ steps:
   id: e2e-test-py3
   waitFor:
     - runtime-image-py3
+    - e2e-test-py2
   entrypoint: 'bash'
   env:
   - 'SENTRY_IMAGE=us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA-py3'
