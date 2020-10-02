@@ -171,7 +171,7 @@ export default [
   ['Antarctica/Rothera', '(UTC-0300) Antarctica/Rothera'],
   ['Atlantic/Stanley', '(UTC-0300) Atlantic/Stanley'],
   ['America/Noronha', '(UTC-0200) America/Noronha'],
-  ['America/Sao_Paulo', '(UTC-0200) America/Sao_Paulo'],
+  ['America/Sao_Paulo', '(UTC-0300) America/Sao_Paulo'],
   ['Atlantic/South_Georgia', '(UTC-0200) Atlantic/South_Georgia'],
   ['America/Scoresbysund', '(UTC-0100) America/Scoresbysund'],
   ['Atlantic/Azores', '(UTC-0100) Atlantic/Azores'],
