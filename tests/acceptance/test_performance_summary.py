@@ -87,7 +87,9 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
 
         # Create a transaction
         event_data = load_data("transaction", timestamp=before_now(minutes=1))
+        # only frontend pageload transactions can be shown on the RUM tab
         event_data["contexts"]["trace"]["op"] = "pageload"
+        event_data["measurements"]["fp"]["value"] = 5000
         event = make_event(event_data)
         self.store_event(data=event, project_id=self.project.id)
         self.wait_for_event_count(self.project.id, 1)
