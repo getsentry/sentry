@@ -260,7 +260,7 @@ class PerformanceLanding extends React.Component<Props, State> {
 
   renderHeaderButtons() {
     return (
-      <Feature features={['trends']} requireAll={false}>
+      <Feature features={['trends']}>
         {({hasFeature}) =>
           hasFeature ? (
             <ButtonBar merged active={this.getCurrentView(hasFeature)}>
