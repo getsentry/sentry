@@ -35,7 +35,7 @@ class Add extends ModalManager {
               <ExternalLink href="https://docs.sentry.io/product/relay/getting-started/#initializing-configuration" />
             ),
           })}
-          subtitle={t('Within your terminall:')}
+          subtitle={t('Within your terminal:')}
         >
           <Terminal command="relay config init" />
         </Item>
