@@ -318,6 +318,8 @@ type SDKUpdatesSuggestion =
   | UpdateSdkSuggestion
   | ChangeSdkSuggestion;
 
+type Measurement = {value: number};
+
 type SentryEventBase = {
   id: string;
   eventID: string;
@@ -367,6 +369,8 @@ type SentryEventBase = {
   };
 
   sdkUpdates?: Array<SDKUpdatesSuggestion>;
+
+  measurements?: Record<string, Measurement>;
 };
 
 export type SentryTransactionEvent = {
@@ -1309,13 +1313,6 @@ export type TagWithTopValues = {
   uniqueValues: number;
   canDelete: boolean;
 };
-
-export type Measurement = {
-  name: string;
-  key: string;
-};
-
-export type MeasurementCollection = {[key: string]: Measurement};
 
 export type Level = 'error' | 'fatal' | 'info' | 'warning' | 'sample';
 
