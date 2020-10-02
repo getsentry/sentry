@@ -97,7 +97,7 @@ class TrendsContent extends React.Component<Props, State> {
     const showChangedProjects = hasMultipleProjects(selection);
 
     return (
-      <Feature features={['trends', 'internal-catchall']} requireAll={false}>
+      <Feature features={['trends']} requireAll={false}>
         <DefaultTrends location={location} eventView={eventView}>
           <StyledSearchContainer>
             <StyledSearchBar
