@@ -313,7 +313,7 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         result = serialize(group, serializer=GroupSerializerSnuba(environment_ids=[]))
         assert result["count"] == "3"
         assert iso_format(result["lastSeen"]) == iso_format(self.min_ago)
-        assert iso_format(result["firstSeen"]) == iso_format(self.week_ago)
+        assert result["firstSeen"] == group.first_seen
 
         # update this to something different to make sure it's being used
         group_env = GroupEnvironment.objects.get(group_id=group_id, environment_id=environment.id)
@@ -333,8 +333,6 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         assert iso_format(group_env2.first_seen) > iso_format(group_env.first_seen)
         assert result["userCount"] == 3
 
-        # test userCount, count, lastSeen filtering correctly by time
-        # firstSeen should still be from GroupEnvironment
         result = serialize(
             group,
             serializer=GroupSerializerSnuba(
@@ -345,7 +343,7 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         )
         assert result["userCount"] == 1
         assert iso_format(result["lastSeen"]) == iso_format(self.week_ago)
-        assert iso_format(result["firstSeen"]) == iso_format(group_env.first_seen)
+        assert iso_format(result["firstSeen"]) == iso_format(self.week_ago)
         assert result["count"] == "1"
 
 
