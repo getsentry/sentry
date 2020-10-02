@@ -4183,7 +4183,8 @@
                             "type": "string"
                           },
                           "lastLogin": {
-                            "type": "string"
+                            "type": "string",
+                            "nullable": true
                           },
                           "isSuperuser": {
                             "type": "boolean"
@@ -5328,10 +5329,8 @@
                         "type": "object",
                         "required": [
                           "assets",
-                          "author",
                           "canDisable",
                           "contexts",
-                          "description",
                           "doc",
                           "enabled",
                           "hasConfiguration",
@@ -5339,12 +5338,10 @@
                           "isTestable",
                           "metadata",
                           "name",
-                          "resourceLinks",
                           "shortName",
                           "slug",
                           "status",
-                          "type",
-                          "version"
+                          "type"
                         ],
                         "properties": {
                           "assets": {
@@ -6096,10 +6093,8 @@
                         "type": "object",
                         "required": [
                           "assets",
-                          "author",
                           "canDisable",
                           "contexts",
-                          "description",
                           "doc",
                           "enabled",
                           "hasConfiguration",
@@ -6107,12 +6102,10 @@
                           "isTestable",
                           "metadata",
                           "name",
-                          "resourceLinks",
                           "shortName",
                           "slug",
                           "status",
-                          "type",
-                          "version"
+                          "type"
                         ],
                         "properties": {
                           "assets": {

@@ -18,6 +18,7 @@ class ProjectDsymsDocs(APIDocsTestCase):
             "sentry-api-0-dsym-files",
             kwargs={"organization_slug": self.organization.slug, "project_slug": self.project.slug},
         )
+        self.create_dif_file(project=self.project)
 
         self.login_as(user=self.user)
 

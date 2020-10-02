@@ -10,12 +10,16 @@ from tests.apidocs.util import APIDocsTestCase
 
 class TeamsStatsDocs(APIDocsTestCase):
     def setUp(self):
-        team = self.create_team(organization=self.organization)
-        self.create_project(name="foo", organization=self.organization, teams=[team])
+
+        self.team = self.create_team(organization=self.organization, members=[self.user])
+        self.project.add_team(self.team)
+
+        self.create_event("a", message="oh no")
+        self.create_event("b", message="oh my")
 
         self.url = reverse(
             "sentry-api-0-team-stats",
-            kwargs={"organization_slug": self.organization.slug, "team_slug": team.slug},
+            kwargs={"organization_slug": self.organization.slug, "team_slug": self.team.slug},
         )
 
         self.login_as(user=self.user)

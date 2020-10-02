@@ -3,10 +3,8 @@
     "type": "object",
     "required": [
       "assets",
-      "author",
       "canDisable",
       "contexts",
-      "description",
       "doc",
       "enabled",
       "hasConfiguration",
@@ -14,12 +12,10 @@
       "isTestable",
       "metadata",
       "name",
-      "resourceLinks",
       "shortName",
       "slug",
       "status",
       "type",
-      "version"
     ],
     "properties": {
       "assets": {
