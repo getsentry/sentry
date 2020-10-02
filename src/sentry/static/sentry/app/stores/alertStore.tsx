@@ -4,8 +4,32 @@ import AlertActions from 'app/actions/alertActions';
 import localStorage from 'app/utils/localStorage';
 import {defined} from 'app/utils';
 
-const AlertStore = Reflux.createStore({
+type Alert = {
+  message: string;
+  type: 'warning' | 'warn' | 'error';
+  expireAfter?: number;
+  key?: number;
+  id?: string;
+  url?: string;
+  neverExpire?: boolean;
+  noDuplicates?: boolean;
+};
+
+type AlertStoreInterface = Reflux.StoreDefinition & {
+  init: () => void;
+  onAddAlert: (alert: Alert) => void;
+  onCloseAlert: (alert: Alert, duration?: number) => void;
+};
+
+type Internals = {
+  alerts: Alert[];
+  count: number;
+};
+
+const storeConfig: AlertStoreInterface & Internals = {
   listenables: AlertActions,
+  alerts: [],
+  count: 0,
 
   init() {
     this.alerts = [];
@@ -19,12 +43,12 @@ const AlertStore = Reflux.createStore({
     }
 
     if (defined(alert.id)) {
-      let expirations = localStorage.getItem('alerts:muted');
-      if (defined(expirations)) {
-        expirations = JSON.parse(expirations);
+      const mutedData = localStorage.getItem('alerts:muted');
+      if (typeof mutedData === 'string' && mutedData.length) {
+        const expirations: Record<string, number> = JSON.parse(mutedData);
 
         // Remove any objects that have passed their mute duration.
-        const now = Math.floor(new Date() / 1000);
+        const now = Math.floor(new Date().valueOf() / 1000);
         for (const key in expirations) {
           if (expirations.hasOwnProperty(key) && expirations[key] < now) {
             delete expirations[key];
@@ -59,12 +83,12 @@ const AlertStore = Reflux.createStore({
 
   onCloseAlert(alert, duration = 60 * 60 * 7 * 24) {
     if (defined(alert.id) && defined(duration)) {
-      const expiry = Math.floor(new Date() / 1000) + duration;
-      let expirations = localStorage.getItem('alerts:muted');
-      if (defined(expirations)) {
-        expirations = JSON.parse(expirations);
-      } else {
-        expirations = {};
+      const expiry = Math.floor(new Date().valueOf() / 1000) + duration;
+      const mutedData = localStorage.getItem('alerts:muted');
+
+      let expirations: Record<string, number> = {};
+      if (typeof mutedData === 'string' && expirations.length) {
+        expirations = JSON.parse(mutedData);
       }
       expirations[alert.id] = expiry;
       localStorage.setItem('alerts:muted', JSON.stringify(expirations));
@@ -74,6 +98,8 @@ const AlertStore = Reflux.createStore({
     this.alerts = this.alerts.filter(item => alert !== item);
     this.trigger(this.alerts);
   },
-});
+};
 
-export default AlertStore;
+type AlertStore = Reflux.Store & AlertStoreInterface;
+
+export default Reflux.createStore(storeConfig) as AlertStore;
