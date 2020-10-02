@@ -3,7 +3,6 @@ import {Location} from 'history';
 import omit from 'lodash/omit';
 
 import {Client} from 'app/api';
-import {Organization} from 'app/types';
 import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
 import withApi from 'app/utils/withApi';
 
@@ -24,7 +23,7 @@ type ChildrenProps = {
 type Props = {
   api: Client;
   location: Location;
-  organization: Organization;
+  orgSlug: string;
   eventView: EventView;
   // these measurement names should NOT be prefixed with `measurements.`
   measurements: string[];
@@ -74,21 +73,13 @@ class MeasurementsHistogramQuery extends React.Component<Props, State> {
   }
 
   fetchData = () => {
-    const {
-      eventView,
-      location,
-      organization,
-      measurements,
-      numBuckets,
-      min,
-      max,
-    } = this.props;
+    const {eventView, location, orgSlug, measurements, numBuckets, min, max} = this.props;
 
     if (!eventView.isValid()) {
       return;
     }
 
-    const url = `/organizations/${organization.slug}/events-measurements-histogram/`;
+    const url = `/organizations/${orgSlug}/events-measurements-histogram/`;
     const fetchId = Symbol('fetchId');
 
     const baseApiPayload = {

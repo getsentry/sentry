@@ -1,6 +1,7 @@
 import React from 'react';
 import {Location} from 'history';
 import styled from '@emotion/styled';
+import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
 
 import BarChart from 'app/components/charts/barChart';
@@ -17,7 +18,8 @@ import theme from 'app/utils/theme';
 
 import {NUM_BUCKETS} from './constants';
 import {Card, CardSummary, CardSectionHeading, StatNumber, Description} from './styles';
-import {HistogramData, Vital, Rectangle, Point} from './types';
+import {HistogramData, Vital, Rectangle} from './types';
+import {findNearestBucketIndex, getRefRect, asPixelRect, asPixel} from './utils';
 
 type Props = {
   location: Location;
@@ -69,7 +71,7 @@ class VitalCard extends React.Component<Props, State> {
       return {...prevState};
     }
 
-    const refDataRect = getReferenceRect(chartData);
+    const refDataRect = getRefRect(chartData);
     if (
       prevState.refDataRect === null ||
       (refDataRect !== null && !isEqual(refDataRect, prevState.refDataRect))
@@ -110,61 +112,31 @@ class VitalCard extends React.Component<Props, State> {
     );
   }
 
-  asPixelRect(chartRef, dataRect: Rectangle): Rectangle | null {
-    const point1 = chartRef.convertToPixel({xAxisIndex: 0, yAxisIndex: 0}, [
-      dataRect.point1.x,
-      dataRect.point1.y,
-    ]);
+  /**
+   * This callback happens everytime ECharts finishes rendering. This includes
+   * when it finishes rendering tooltips, so it can be called quite frequently.
+   * The calculations here can get expensive if done frequently, furthermore,
+   * this can trigger a state change leading to a re-render. So slow down the
+   * updates here as they do not need to be updated every single time.
+   */
+  handleFinished = debounce(
+    (_, chartRef) => {
+      const {chartData} = this.props;
+      const {refDataRect} = this.state;
 
-    if (isNaN(point1[0]) || isNaN(point1[1])) {
-      return null;
-    }
+      if (refDataRect === null || chartData.length < 1) {
+        return;
+      }
 
-    const point2 = chartRef.convertToPixel({xAxisIndex: 0, yAxisIndex: 0}, [
-      dataRect.point2.x,
-      dataRect.point2.y,
-    ]);
-
-    if (isNaN(point2[0]) || isNaN(point2[1])) {
-      return null;
-    }
-
-    return {
-      point1: {x: point1[0], y: point1[1]},
-      point2: {x: point2[0], y: point2[1]},
-    };
-  }
-
-  asPixel(point: Point, refDataRect: Rectangle, refPixelRect: Rectangle): Point {
-    const xPercentage =
-      (point.x - refDataRect.point1.x) / (refDataRect.point2.x - refDataRect.point1.x);
-    const yPercentage =
-      (point.y - refDataRect.point1.y) / (refDataRect.point2.y - refDataRect.point1.y);
-
-    return {
-      x:
-        refPixelRect.point1.x +
-        (refPixelRect.point2.x - refPixelRect.point1.x) * xPercentage,
-      y:
-        refPixelRect.point1.y +
-        (refPixelRect.point2.y - refPixelRect.point1.y) * yPercentage,
-    };
-  }
-
-  handleFinished = (_, chartRef) => {
-    const {chartData} = this.props;
-    const {refDataRect} = this.state;
-
-    if (refDataRect === null || chartData.length < 1) {
-      return;
-    }
-
-    const refPixelRect =
-      refDataRect === null ? null : this.asPixelRect(chartRef, refDataRect!);
-    if (refPixelRect !== null && !isEqual(refPixelRect, this.state.refPixelRect)) {
-      this.setState({refPixelRect});
-    }
-  };
+      const refPixelRect =
+        refDataRect === null ? null : asPixelRect(chartRef, refDataRect!);
+      if (refPixelRect !== null && !isEqual(refPixelRect, this.state.refPixelRect)) {
+        this.setState({refPixelRect});
+      }
+    },
+    200,
+    {leading: true, trailing: true, maxWait: 1000}
+  );
 
   handleDataZoomCancelled = () => {};
 
@@ -260,147 +232,118 @@ class VitalCard extends React.Component<Props, State> {
       barCategoryGap: '0%',
     };
 
-    this.drawBaseline(series);
+    this.drawBaselineValue(series);
     this.drawFailRegion(series);
 
     return series;
   }
 
-  drawBaseline(series) {
+  drawBaselineValue(series) {
     const {chartData, summary} = this.props;
-
-    if (summary !== null && this.state.refPixelRect !== null) {
-      const summaryBucket = this.findNearestBucketIndex(summary);
-      if (summaryBucket !== null) {
-        const thresholdPixelBottom = this.asPixel(
-          {
-            // subtract 0.5 to get on the right side of the right most bar
-            x: summaryBucket - 0.5,
-            y: 0,
-          },
-          this.state.refDataRect!,
-          this.state.refPixelRect!
-        );
-        const thresholdPixelTop = this.asPixel(
-          {
-            // subtract 0.5 to get on the right side of the right most bar
-            x: summaryBucket - 0.5,
-            y: Math.max(...chartData.map(data => data.count)) || 1,
-          },
-          this.state.refDataRect!,
-          this.state.refPixelRect!
-        );
-
-        series.markLine = MarkLine({
-          data: [[thresholdPixelBottom, thresholdPixelTop] as any],
-          label: {
-            show: false,
-          },
-          lineStyle: {
-            color: theme.gray700,
-            type: 'solid',
-          },
-          silent: true,
-        });
-      }
+    if (summary === null || this.state.refPixelRect === null) {
+      return;
     }
+
+    const summaryBucket = findNearestBucketIndex(chartData, this.bucketWidth(), summary);
+    if (summaryBucket === null) {
+      return;
+    }
+
+    const thresholdPixelBottom = asPixel(
+      {
+        // subtract 0.5 from the x here to ensure that the threshold lies between buckets
+        x: summaryBucket - 0.5,
+        y: 0,
+      },
+      this.state.refDataRect!,
+      this.state.refPixelRect!
+    );
+    const thresholdPixelTop = asPixel(
+      {
+        // subtract 0.5 from the x here to ensure that the threshold lies between buckets
+        x: summaryBucket - 0.5,
+        y: Math.max(...chartData.map(data => data.count)) || 1,
+      },
+      this.state.refDataRect!,
+      this.state.refPixelRect!
+    );
+
+    series.markLine = MarkLine({
+      data: [[thresholdPixelBottom, thresholdPixelTop] as any],
+      label: {
+        show: false,
+      },
+      lineStyle: {
+        color: theme.gray700,
+        type: 'solid',
+      },
+      silent: true,
+    });
   }
 
   drawFailRegion(series) {
     const {chartData, vital} = this.props;
     const {failureThreshold} = vital;
-
-    if (this.state.refDataRect !== null && this.state.refPixelRect !== null) {
-      const failureBucket = this.findNearestBucketIndex(failureThreshold);
-      if (failureBucket !== null) {
-        // since we found the failure bucket, the failure threshold is
-        // visible on the graph, so let's draw the fail region
-        const failurePixel = this.asPixel(
-          {
-            // subtract 0.5 from the x here to ensure that the boundary of
-            // the failure region lies between buckets
-            x: failureBucket - 0.5,
-            y: 0,
-          },
-          this.state.refDataRect!,
-          this.state.refPixelRect!
-        );
-
-        series.markArea = MarkArea({
-          data: [
-            [
-              {x: failurePixel.x, yAxis: 0},
-              {x: 'max', y: 'max'},
-            ] as any,
-          ],
-          itemStyle: {
-            color: 'transparent',
-            borderColor: theme.red400,
-            borderWidth: 1.5,
-            borderType: 'dashed',
-          },
-          silent: true,
-        });
-
-        const topRightPixel = this.asPixel(
-          {
-            // subtract 0.5 to get on the right side of the right most bar
-            x: chartData.length - 0.5,
-            y: Math.max(...chartData.map(data => data.count)) || 1,
-          },
-          this.state.refDataRect!,
-          this.state.refPixelRect!
-        );
-
-        series.markPoint = MarkPoint({
-          data: [{x: topRightPixel.x - 16, y: topRightPixel.y + 16}] as any,
-          itemStyle: {color: theme.red400},
-          silent: true,
-          symbol: `path://${FIRE_SVG}`,
-          symbolKeepAspect: true,
-          symbolSize: [14, 16],
-        });
-      }
-    }
-  }
-
-  /**
-   * Given a value on the x-axis, return the index of the nearest bucket.
-   *
-   * A bucket contains a range a values, and nearest is defined by the distance
-   * of the point to the mid point of the bucket.
-   */
-  findNearestBucketIndex(xAxis: number): number | null {
-    const {chartData} = this.props;
-
-    // it's possible that the data is not available yet or the x axis is out of range
-    if (
-      !chartData.length ||
-      xAxis < chartData[0].histogram ||
-      xAxis > chartData[chartData.length - 1].histogram
-    ) {
-      return null;
+    if (this.state.refDataRect === null || this.state.refPixelRect === null) {
+      return;
     }
 
-    const halfBucketWidth = this.bucketWidth() / 2;
-
-    // binary search for the index
-    let l = 0;
-    let r = chartData.length;
-    let m = Math.floor((l + r) / 2);
-
-    while (
-      Math.abs(xAxis - (chartData[m].histogram + halfBucketWidth)) > halfBucketWidth
-    ) {
-      if (xAxis > chartData[m].histogram) {
-        l = m + 1;
-      } else {
-        r = m - 1;
-      }
-      m = Math.floor((l + r) / 2);
+    const failureBucket = findNearestBucketIndex(
+      chartData,
+      this.bucketWidth(),
+      failureThreshold
+    );
+    if (failureBucket === null) {
+      return;
     }
 
-    return m;
+    // since we found the failure bucket, the failure threshold is
+    // visible on the graph, so let's draw the fail region
+    const failurePixel = asPixel(
+      {
+        // subtract 0.5 from the x here to ensure that the boundary of
+        // the failure region lies between buckets
+        x: failureBucket - 0.5,
+        y: 0,
+      },
+      this.state.refDataRect!,
+      this.state.refPixelRect!
+    );
+
+    series.markArea = MarkArea({
+      data: [
+        [
+          {x: failurePixel.x, yAxis: 0},
+          {x: 'max', y: 'max'},
+        ] as any,
+      ],
+      itemStyle: {
+        color: 'transparent',
+        borderColor: theme.red400,
+        borderWidth: 1.5,
+        borderType: 'dashed',
+      },
+      silent: true,
+    });
+
+    const topRightPixel = asPixel(
+      {
+        // subtract 0.5 to get on the right side of the right most bar
+        x: chartData.length - 0.5,
+        y: Math.max(...chartData.map(data => data.count)) || 1,
+      },
+      this.state.refDataRect!,
+      this.state.refPixelRect!
+    );
+
+    series.markPoint = MarkPoint({
+      data: [{x: topRightPixel.x - 16, y: topRightPixel.y + 16}] as any,
+      itemStyle: {color: theme.red400},
+      silent: true,
+      symbol: `path://${FIRE_SVG}`,
+      symbolKeepAspect: true,
+      symbolSize: [14, 16],
+    });
   }
 
   render() {
@@ -411,38 +354,6 @@ class VitalCard extends React.Component<Props, State> {
       </Card>
     );
   }
-}
-
-/**
- * To compute pixel coordinates, we need at least 2 unique points on the chart.
- * The two points must have different x axis and y axis values for it to work.
- */
-function getReferenceRect(chartData: HistogramData[]): Rectangle | null {
-  // not enough points to construct 2 reference points
-  if (chartData.length < 2) {
-    return null;
-  }
-
-  for (let i = 0; i < chartData.length; i++) {
-    const data1 = chartData[i];
-    for (let j = i + 1; j < chartData.length; j++) {
-      const data2 = chartData[j];
-
-      if (data1.histogram !== data2.histogram && data1.count !== data2.count) {
-        return {
-          point1: {x: i, y: Math.min(data1.count, data2.count)},
-          point2: {x: j, y: Math.max(data1.count, data2.count)},
-        };
-      }
-    }
-  }
-
-  // all data points have the same count, just pick any 2 histogram bins
-  // and use 0 and 1 and the count
-  return {
-    point1: {x: 0, y: 0},
-    point2: {x: 1, y: 1},
-  };
 }
 
 type IndicatorProps = {

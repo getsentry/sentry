@@ -56,40 +56,36 @@ class TransactionVitals extends React.Component<Props> {
             <Panel>
               <MeasurementsHistogramQuery
                 location={location}
-                organization={organization}
+                orgSlug={organization.slug}
                 eventView={eventView}
                 numBuckets={NUM_BUCKETS}
                 measurements={vitals.map(vital => WEB_VITAL_DETAILS[vital].slug)}
                 min={decodeScalar(location.query.startMeasurements)}
                 max={decodeScalar(location.query.endMeasurements)}
               >
-                {results => {
-                  return (
-                    <React.Fragment>
-                      {vitals.map((vital, index) => {
-                        const error =
-                          summaryResults.error !== null || results.error !== null;
-                        const alias = getAggregateAlias(
-                          `percentile(${vital}, ${PERCENTILE})`
-                        );
-                        const summary =
-                          summaryResults.tableData?.data?.[0]?.[alias] ?? null;
-                        return (
-                          <VitalCard
-                            key={vital}
-                            location={location}
-                            isLoading={summaryResults.isLoading || results.isLoading}
-                            error={error}
-                            vital={WEB_VITAL_DETAILS[vital]}
-                            summary={summary as number | null}
-                            chartData={results.histograms[vital] ?? []}
-                            colors={[colors[index]]}
-                          />
-                        );
-                      })}
-                    </React.Fragment>
-                  );
-                }}
+                {results => (
+                  <React.Fragment>
+                    {vitals.map((vital, index) => {
+                      const error =
+                        summaryResults.error !== null || results.error !== null;
+                      const alias = getAggregateAlias(`percentile(${vital}, ${PERCENTILE})`);
+                      const summary =
+                        summaryResults.tableData?.data?.[0]?.[alias] ?? null;
+                      return (
+                        <VitalCard
+                          key={vital}
+                          location={location}
+                          isLoading={summaryResults.isLoading || results.isLoading}
+                          error={error}
+                          vital={WEB_VITAL_DETAILS[vital]}
+                          summary={summary as number | null}
+                          chartData={results.histograms[vital] ?? []}
+                          colors={[colors[index]]}
+                        />
+                      );
+                    })}
+                  </React.Fragment>
+                )}
               </MeasurementsHistogramQuery>
             </Panel>
           );
