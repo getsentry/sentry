@@ -114,6 +114,23 @@ export type Relay = {
   description?: string;
 };
 
+export type RelayActivity = {
+  publicKey: string;
+  relayId: string;
+  version: string;
+  firstSeen: string;
+  lastSeen: string;
+};
+
+export type RelaysByPublickey = {
+  [publicKey: string]: {
+    name: string;
+    activities: Array<RelayActivity>;
+    description?: string;
+    created?: string;
+  };
+};
+
 /**
  * Detailed organization (e.g. when requesting details for a single org)
  *
@@ -672,6 +689,7 @@ export type Group = {
   firstSeen: string;
   hasSeen: boolean;
   isBookmarked: boolean;
+  isUnhandled: boolean;
   isPublic: boolean;
   isSubscribed: boolean;
   lastRelease: any; // TODO(ts)
@@ -1153,6 +1171,7 @@ export type SelectValue<T> = {
   label: string;
   value: T;
   disabled?: boolean;
+  tooltip?: string;
 };
 
 /**
