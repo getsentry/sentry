@@ -31,16 +31,16 @@ type Props = {
   nextFrame: Frame;
   prevFrame: Frame;
   platform: PlatformType;
-  isExpanded: boolean;
   emptySourceNotation: boolean;
   isOnlyFrame: boolean;
   timesRepeated: number;
   registers: Record<string, string>;
   components: Array<SentryAppComponent>;
   showingAbsoluteAddress: boolean;
-  onAddressToggle: () => void;
+  onAddressToggle: React.MouseEventHandler<HTMLButtonElement>;
   image: React.ComponentProps<typeof DebugImage>['image'];
   maxLengthOfRelativeAddress: number;
+  isExpanded?: boolean;
 };
 
 type State = {

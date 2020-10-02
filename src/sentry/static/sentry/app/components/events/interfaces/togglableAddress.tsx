@@ -12,7 +12,7 @@ type Props = {
   address: string;
   startingAddress: string | null;
   isAbsolute: boolean;
-  onToggle?: () => void;
+  onToggle?: React.MouseEventHandler<HTMLButtonElement>;
   isFoundByStackScanning: boolean;
   isInlineFrame: boolean;
   maxLengthOfRelativeAddress: number;
