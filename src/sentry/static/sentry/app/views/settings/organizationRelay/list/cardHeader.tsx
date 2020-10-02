@@ -7,7 +7,7 @@ import ConfirmDelete from 'app/components/confirmDelete';
 import ButtonBar from 'app/components/buttonBar';
 import QuestionTooltip from 'app/components/questionTooltip';
 import DateTime from 'app/components/dateTime';
-import {IconEdit, IconDelete} from 'app/icons';
+import {IconEdit, IconDelete, IconCopy} from 'app/icons';
 import space from 'app/styles/space';
 import {Relay} from 'app/types';
 import Clipboard from 'app/components/clipboard';
@@ -30,7 +30,9 @@ const CardHeader = ({publicKey, name, description, created, onEdit, onDelete}: P
     </MainInfo>
     <ButtonBar gap={1}>
       <Clipboard value={publicKey}>
-        <Button size="small">{t('Copy Key')}</Button>
+        <Button size="small" icon={<IconCopy />}>
+          {t('Copy Key')}
+        </Button>
       </Clipboard>
       <Button
         size="small"

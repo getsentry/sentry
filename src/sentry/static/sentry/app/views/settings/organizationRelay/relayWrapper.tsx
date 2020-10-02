@@ -31,8 +31,6 @@ type State = {
 } & AsyncView['state'];
 
 class RelayWrapper extends AsyncView<Props, State> {
-  shouldReload = true;
-
   componentDidUpdate(prevProps: Props, prevState: State) {
     if (!isEqual(prevState.relays, this.state.relays)) {
       // Fetch fresh activities
@@ -171,6 +169,14 @@ class RelayWrapper extends AsyncView<Props, State> {
             </Button>
           }
         />
+        <TextBlock>
+          {tct(
+            'Sentry Relay offers enterprise-grade data security by providing a standalone[linebreak]service that acts as a middle layer between your application and sentry.io.',
+            {
+              linebreak: <br />,
+            }
+          )}
+        </TextBlock>
         <TextBlock>
           {tct(`Go to [link:Relay Documentation] for setup and details.`, {
             link: <ExternalLink href={RELAY_DOCS_LINK} />,
