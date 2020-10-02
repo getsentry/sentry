@@ -30,7 +30,13 @@ const Modal = ({
     <Footer>
       <ButtonBar gap={1.5}>
         <Button onClick={closeModal}>{t('Cancel')}</Button>
-        <Button onClick={onSave} disabled={disabled} priority="primary">
+        <Button
+          onClick={onSave}
+          disabled={disabled}
+          type="submit"
+          priority="primary"
+          form="relay-form"
+        >
           {btnSaveLabel}
         </Button>
       </ButtonBar>

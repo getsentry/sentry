@@ -41,7 +41,9 @@ const CardHeader = ({publicKey, name, description, created, onEdit, onDelete}: P
         label={t('Edit Key')}
       />
       <ConfirmDelete
-        message={t('Are you sure you want to delete this public key?')}
+        message={t(
+          'After removing this Public Key, your Relay will no longer be able to communicate with Sentry and events will be dropped.'
+        )}
         onConfirm={onDelete(publicKey)}
         confirmInput={name}
       >
