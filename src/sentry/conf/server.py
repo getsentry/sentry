@@ -1478,6 +1478,12 @@ SENTRY_DEVSERVICES = {
         "ports": {"5432/tcp": 5432},
         "environment": {"POSTGRES_DB": "sentry", "POSTGRES_HOST_AUTH_METHOD": "trust"},
         "volumes": {"postgres": {"bind": "/var/lib/postgresql/data"}},
+        "healthcheck": {
+            "test": ["false",],  # pg_isready
+            "interval": 1000000 * 1000,
+            "timeout": 1000000 * 1000,
+            "retries": 5,
+        },
     },
     "zookeeper": {
         "image": "confluentinc/cp-zookeeper:5.1.2",
