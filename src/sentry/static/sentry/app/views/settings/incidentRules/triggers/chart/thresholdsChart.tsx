@@ -170,6 +170,12 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
 
     const yAxisPixelPosition = this.chartRef.convertToPixel({yAxisIndex: 0}, '0');
     const yAxisPosition = typeof yAxisPixelPosition === 'number' ? yAxisPixelPosition : 0;
+    // As the yAxis gets larger we want to start our line/area further to the right
+    // Handle case where the graph max is 1 and includes decimals
+    const yAxisSize =
+      15 + (this.state.yAxisMax === 1 ? 15 : `${this.state.yAxisMax ?? ''}`.length * 8);
+    // Distance from the top of the chart to save for the legend
+    const legendPadding = 20;
 
     const isCritical = trigger.label === 'critical';
     const LINE_STYLE = {
@@ -185,7 +191,7 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
         // Resolution is considered "off" if it is -1
         invisible: position === null,
         draggable: false,
-        position: [30, position],
+        position: [yAxisSize, position],
         shape: {y1: 1, y2: 1, x1: 0, x2: this.state.width},
         style: LINE_STYLE,
       },
@@ -199,11 +205,16 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
           type: 'rect',
           draggable: false,
 
-          position: isResolution !== isInverted ? [30, position + 1] : [30, 20],
+          position:
+            isResolution !== isInverted
+              ? [yAxisSize, position + 1]
+              : [yAxisSize, legendPadding],
           shape: {
             width: this.state.width,
             height:
-              isResolution !== isInverted ? yAxisPosition - position : position - 20,
+              isResolution !== isInverted
+                ? yAxisPosition - position
+                : position - legendPadding,
           },
 
           style: {
@@ -233,6 +244,14 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
       data: eventData.slice(0, -1),
     }));
 
+    // Disable all lines by default but the 1st one
+    const selected: Record<string, boolean> = dataWithoutRecentBucket.reduce(
+      (acc, {seriesName}, index) => {
+        acc[seriesName] = index === 0;
+        return acc;
+      },
+      {}
+    );
     const legend = {
       right: 10,
       top: 0,
@@ -246,6 +265,7 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
         fontSize: 11,
         fontFamily: 'Rubik',
       },
+      selected,
     };
 
     return (
