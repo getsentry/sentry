@@ -6,13 +6,13 @@ import TagStore from 'app/stores/tagStore';
 import MemberListStore from 'app/stores/memberListStore';
 import withIssueTags from 'app/utils/withIssueTags';
 
-describe('withIssueTags HoC', function() {
+describe('withIssueTags HoC', function () {
   beforeEach(() => {
     TagStore.reset();
     MemberListStore.loadInitialData([]);
   });
 
-  it('fowards loaded tags to the wrapped component', async function() {
+  it('fowards loaded tags to the wrapped component', async function () {
     const MyComponent = () => null;
     const Container = withIssueTags(MyComponent);
     const wrapper = mount(<Container other="value" />);
@@ -37,7 +37,7 @@ describe('withIssueTags HoC', function() {
     expect(tagsProp['stack.filename']).toBeTruthy();
   });
 
-  it('updates the assigned and bookmark tags with users', async function() {
+  it('updates the assigned and bookmark tags with users', async function () {
     const MyComponent = () => null;
     const Container = withIssueTags(MyComponent);
     const wrapper = mount(<Container other="value" />);

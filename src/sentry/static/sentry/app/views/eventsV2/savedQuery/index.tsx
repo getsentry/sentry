@@ -13,12 +13,13 @@ import DropdownControl from 'app/components/dropdownControl';
 import Feature from 'app/components/acl/feature';
 import Input from 'app/components/forms/input';
 import space from 'app/styles/space';
-import {IconBookmark, IconDelete} from 'app/icons';
+import {IconDelete} from 'app/icons';
 import EventView from 'app/utils/discover/eventView';
 import withProjects from 'app/utils/withProjects';
 import {getDiscoverLandingUrl} from 'app/utils/discover/urls';
 import CreateAlertButton from 'app/components/createAlertButton';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
+import {setBannerHidden} from 'app/views/eventsV2/utils';
 
 import {handleCreateQuery, handleUpdateQuery, handleDeleteQuery} from './utils';
 
@@ -157,6 +158,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
       (savedQuery: SavedQuery) => {
         const view = EventView.fromSavedQuery(savedQuery);
 
+        setBannerHidden(true);
         this.setState({queryName: ''});
         browserHistory.push(view.getResultsViewUrlTarget(organization.slug));
       }
@@ -204,12 +206,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
 
   renderButtonSaveAs() {
     const {disabled} = this.props;
-    const {isNewQuery, isEditingQuery, queryName} = this.state;
-
-    if (!isNewQuery && !isEditingQuery) {
-      return null;
-    }
-
+    const {queryName} = this.state;
     /**
      * For a great UX, we should focus on `ButtonSaveInput` when `ButtonSave`
      * is clicked. However, `DropdownControl` wraps them in a FunctionComponent
@@ -227,8 +224,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
             showChevron={false}
             disabled={disabled}
           >
-            <StyledIconBookmark size="xs" color="gray500" />
-            {t('Save as...')}
+            {t('Save as\u{2026}')}
           </ButtonSaveAs>
         )}
       >
@@ -256,38 +252,36 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     );
   }
 
-  renderButtonSaved() {
+  renderButtonSave() {
     const {isNewQuery, isEditingQuery} = this.state;
 
-    if (isNewQuery || isEditingQuery) {
-      return null;
+    // Existing query that hasn't been modified.
+    if (!isNewQuery && !isEditingQuery) {
+      return (
+        <Button disabled data-test-id="discover2-savedquery-button-saved">
+          {t('Saved query')}
+        </Button>
+      );
+    }
+    // Existing query with edits, show save and save as.
+    if (!isNewQuery && isEditingQuery) {
+      return (
+        <React.Fragment>
+          <Button
+            onClick={this.handleUpdateQuery}
+            data-test-id="discover2-savedquery-button-update"
+            disabled={this.props.disabled}
+          >
+            <IconUpdate />
+            {t('Save Changes')}
+          </Button>
+          {this.renderButtonSaveAs()}
+        </React.Fragment>
+      );
     }
 
-    return (
-      <Button disabled data-test-id="discover2-savedquery-button-saved">
-        <StyledIconBookmark isSolid size="xs" color="yellow400" />
-        {t('Saved query')}
-      </Button>
-    );
-  }
-
-  renderButtonUpdate() {
-    const {isNewQuery, isEditingQuery} = this.state;
-
-    if (isNewQuery || !isEditingQuery) {
-      return null;
-    }
-
-    return (
-      <Button
-        onClick={this.handleUpdateQuery}
-        data-test-id="discover2-savedquery-button-update"
-        disabled={this.props.disabled}
-      >
-        <IconUpdate />
-        {t('Save')}
-      </Button>
-    );
+    // Is a new query enable saveas
+    return this.renderButtonSaveAs();
   }
 
   renderButtonDelete() {
@@ -327,13 +321,11 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     const {organization} = this.props;
     return (
       <ButtonGroup>
+        {this.renderButtonSave()}
         <Feature organization={organization} features={['incidents']}>
           {({hasFeature}) => hasFeature && this.renderButtonCreateAlert()}
         </Feature>
         {this.renderButtonDelete()}
-        {this.renderButtonSaveAs()}
-        {this.renderButtonUpdate()}
-        {this.renderButtonSaved()}
       </ButtonGroup>
     );
   }
@@ -363,10 +355,6 @@ const ButtonSaveDropDown = styled('div')`
 const ButtonSaveInput = styled(Input)`
   width: 100%;
   margin-bottom: ${space(1)};
-`;
-
-const StyledIconBookmark = styled(IconBookmark)`
-  margin-right: ${space(1)};
 `;
 
 const IconUpdate = styled('div')`

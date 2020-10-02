@@ -13,9 +13,7 @@ from sentry.testutils import APITestCase
 
 class APIDocsTestCase(APITestCase):
     def create_schema(self):
-        path = os.path.join(
-            os.path.dirname(__file__), "..", "..", "api-docs", "openapi-derefed.json"
-        )
+        path = os.path.join(os.path.dirname(__file__), "openapi-derefed.json")
         with open(path, "r") as json_file:
             data = json.load(json_file)
             data["servers"][0]["url"] = settings.SENTRY_OPTIONS["system.url-prefix"]
@@ -24,6 +22,8 @@ class APIDocsTestCase(APITestCase):
             return create_spec(data)
 
     def validate_schema(self, request, response):
+        assert 200 <= response.status_code < 300, response.status_code
+
         result = ResponseValidator(self.create_schema()).validate(
             DjangoOpenAPIRequest(request), DjangoOpenAPIResponse(response)
         )

@@ -57,6 +57,8 @@ def test_get_json_meta_type():
     assert get_json_meta_type("count_thing", "UInt64") == "integer"
     assert get_json_meta_type("count_thing", "String") == "string"
     assert get_json_meta_type("count_thing", "Nullable(String)") == "string"
+    assert get_json_meta_type("measurements.size", "Float64") == "number"
+    assert get_json_meta_type("measurements.fp", "Float64") == "duration"
 
 
 class ParseSearchQueryTest(unittest.TestCase):
@@ -652,6 +654,107 @@ class ParseSearchQueryTest(unittest.TestCase):
     def test_invalid_aggregate_column_with_duration_filter(self):
         with self.assertRaises(InvalidSearchQuery, regex="not a duration column"):
             parse_search_query("avg(stack.colno):>500s")
+
+    def test_numeric_measurements_filter(self):
+        # NOTE: can only filter on integers right now
+        assert parse_search_query("measurements.size:3.1415") == [
+            SearchFilter(
+                key=SearchKey(name="measurements.size"),
+                operator="=",
+                value=SearchValue(raw_value=3.1415),
+            )
+        ]
+
+        assert parse_search_query("measurements.size:>3.1415") == [
+            SearchFilter(
+                key=SearchKey(name="measurements.size"),
+                operator=">",
+                value=SearchValue(raw_value=3.1415),
+            )
+        ]
+
+        assert parse_search_query("measurements.size:<3.1415") == [
+            SearchFilter(
+                key=SearchKey(name="measurements.size"),
+                operator="<",
+                value=SearchValue(raw_value=3.1415),
+            )
+        ]
+
+    def test_numeric_aggregate_measurements_filter(self):
+        assert parse_search_query("min(measurements.size):3.1415") == [
+            SearchFilter(
+                key=SearchKey(name="min(measurements.size)"),
+                operator="=",
+                value=SearchValue(raw_value=3.1415),
+            )
+        ]
+
+        assert parse_search_query("min(measurements.size):>3.1415") == [
+            SearchFilter(
+                key=SearchKey(name="min(measurements.size)"),
+                operator=">",
+                value=SearchValue(raw_value=3.1415),
+            )
+        ]
+
+        assert parse_search_query("min(measurements.size):<3.1415") == [
+            SearchFilter(
+                key=SearchKey(name="min(measurements.size)"),
+                operator="<",
+                value=SearchValue(raw_value=3.1415),
+            )
+        ]
+
+    def test_duration_measurements_filter(self):
+        assert parse_search_query("measurements.fp:1.5s") == [
+            SearchFilter(
+                key=SearchKey(name="measurements.fp"),
+                operator="=",
+                value=SearchValue(raw_value=1500),
+            )
+        ]
+
+        assert parse_search_query("measurements.fp:>1.5s") == [
+            SearchFilter(
+                key=SearchKey(name="measurements.fp"),
+                operator=">",
+                value=SearchValue(raw_value=1500),
+            )
+        ]
+
+        assert parse_search_query("measurements.fp:<1.5s") == [
+            SearchFilter(
+                key=SearchKey(name="measurements.fp"),
+                operator="<",
+                value=SearchValue(raw_value=1500),
+            )
+        ]
+
+    def test_duration_aggregate_measurements_filter(self):
+        assert parse_search_query("percentile(measurements.fp, 0.5):3.3s") == [
+            SearchFilter(
+                key=SearchKey(name="percentile(measurements.fp, 0.5)"),
+                operator="=",
+                value=SearchValue(raw_value=3300),
+            )
+        ]
+
+        assert parse_search_query("percentile(measurements.fp, 0.5):>3.3s") == [
+            SearchFilter(
+                key=SearchKey(name="percentile(measurements.fp, 0.5)"),
+                operator=">",
+                value=SearchValue(raw_value=3300),
+            )
+        ]
+
+        assert parse_search_query("percentile(measurements.fp, 0.5):<3.3s") == [
+            SearchFilter(
+                key=SearchKey(name="percentile(measurements.fp, 0.5)"),
+                operator="<",
+                value=SearchValue(raw_value=3300),
+            )
+        ]
 
     def test_aggregate_rel_time_filter(self):
         now = timezone.now()
@@ -2084,6 +2187,73 @@ class ResolveFieldListTest(unittest.TestCase):
             "eps(0): interval argument invalid: 0 must be greater than or equal to 1"
             in six.text_type(err)
         )
+
+    def test_array_join_function(self):
+        fields = [
+            "array_join(tags.key)",
+            "array_join(tags.value)",
+            "array_join(measurements_key)",
+        ]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["selected_columns"] == [
+            ["arrayJoin", ["tags.key"], "array_join_tags_key"],
+            ["arrayJoin", ["tags.value"], "array_join_tags_value"],
+            ["arrayJoin", ["measurements_key"], "array_join_measurements_key"],
+            "id",
+            "project.id",
+            [
+                "transform",
+                [["toString", ["project_id"]], ["array", []], ["array", []], "''"],
+                "`project.name`",
+            ],
+        ]
+
+    def test_measurements_histogram_function(self):
+        fields = ["measurements_histogram(10, 5, 1)"]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["selected_columns"] == [
+            [
+                "plus",
+                [
+                    [
+                        "multiply",
+                        [
+                            [
+                                "floor",
+                                [
+                                    [
+                                        "divide",
+                                        [
+                                            [
+                                                "minus",
+                                                [
+                                                    [
+                                                        "multiply",
+                                                        [["arrayJoin", ["measurements_value"]], 1],
+                                                    ],
+                                                    5,
+                                                ],
+                                            ],
+                                            10,
+                                        ],
+                                    ]
+                                ],
+                            ],
+                            10,
+                        ],
+                    ],
+                    5,
+                ],
+                "measurements_histogram_10_5_1",
+            ],
+            "id",
+            "project.id",
+            [
+                "transform",
+                [["toString", ["project_id"]], ["array", []], ["array", []], "''"],
+                "`project.name`",
+            ],
+        ]
 
     def test_histogram_function(self):
         fields = ["histogram(transaction.duration, 10, 1000, 0)", "count()"]

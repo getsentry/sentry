@@ -4,12 +4,12 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import Login from 'app/views/auth/login';
 
-describe('Login', function() {
-  afterAll(function() {
+describe('Login', function () {
+  afterAll(function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders a loading indicator', function() {
+  it('renders a loading indicator', function () {
     MockApiClient.addMockResponse({
       url: '/auth/config/',
     });
@@ -19,7 +19,7 @@ describe('Login', function() {
     expect(wrapper.find('LoadingIndicator').exists()).toBe(true);
   });
 
-  it('renders an error if auth config cannot be loaded', async function() {
+  it('renders an error if auth config cannot be loaded', async function () {
     MockApiClient.addMockResponse({
       url: '/auth/config/',
       statusCode: 500,
@@ -34,7 +34,7 @@ describe('Login', function() {
     expect(wrapper.find('LoginForm').exists()).toBe(false);
   });
 
-  it('does not show register when disabled', function() {
+  it('does not show register when disabled', function () {
     MockApiClient.addMockResponse({
       url: '/auth/config/',
       body: {canRegister: false},
@@ -42,15 +42,12 @@ describe('Login', function() {
 
     const wrapper = mountWithTheme(<Login />);
 
-    expect(
-      wrapper
-        .find('AuthNavTabs a')
-        .filter({children: 'Register'})
-        .exists()
-    ).toBe(false);
+    expect(wrapper.find('AuthNavTabs a').filter({children: 'Register'}).exists()).toBe(
+      false
+    );
   });
 
-  it('shows register when canRegister is enabled', async function() {
+  it('shows register when canRegister is enabled', async function () {
     MockApiClient.addMockResponse({
       url: '/auth/config/',
       body: {canRegister: true},
@@ -61,15 +58,12 @@ describe('Login', function() {
     await tick();
     wrapper.update();
 
-    expect(
-      wrapper
-        .find('AuthNavTabs a')
-        .filter({children: 'Register'})
-        .exists()
-    ).toBe(true);
+    expect(wrapper.find('AuthNavTabs a').filter({children: 'Register'}).exists()).toBe(
+      true
+    );
   });
 
-  it('toggles between tabs', async function() {
+  it('toggles between tabs', async function () {
     MockApiClient.addMockResponse({
       url: '/auth/config/',
       body: {canRegister: true},

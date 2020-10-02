@@ -93,10 +93,13 @@ class TransactionSummary extends React.Component<Props, State> {
     return [t('Summary'), t('Performance')].join(' - ');
   }
 
-  getTotalsEventView(organization: Organization, eventView: EventView) {
+  getTotalsEventView(
+    organization: Organization,
+    eventView: EventView
+  ): [EventView, TotalValues] {
     const threshold = organization.apdexThreshold.toString();
 
-    return eventView.withColumns([
+    const totalsView = eventView.withColumns([
       {
         kind: 'function',
         function: ['apdex', threshold, undefined],
@@ -118,6 +121,14 @@ class TransactionSummary extends React.Component<Props, State> {
         function: ['count_unique', 'user', undefined],
       },
     ]);
+    const emptyValues = {
+      count: 0,
+      [`apdex_${threshold}`]: 0,
+      [`user_misery_${threshold}`]: 0,
+      p95: 0,
+      count_unique_user: 0,
+    };
+    return [totalsView, emptyValues];
   }
 
   render() {
@@ -135,7 +146,7 @@ class TransactionSummary extends React.Component<Props, State> {
       });
       return null;
     }
-    const totalsView = this.getTotalsEventView(organization, eventView);
+    const [totalsView, emptyValues] = this.getTotalsEventView(organization, eventView);
 
     return (
       <SentryDocumentTitle title={this.getDocumentTitle()} objSlug={organization.slug}>
@@ -148,10 +159,12 @@ class TransactionSummary extends React.Component<Props, State> {
                 location={location}
               >
                 {({tableData, isLoading}) => {
-                  if (isLoading || !tableData?.data) {
+                  if (isLoading) {
                     return <LoadingIndicator />;
                   }
-                  const totals = tableData.data[0] as TotalValues;
+                  const totals = (tableData && tableData.data.length
+                    ? tableData.data[0]
+                    : emptyValues) as TotalValues;
                   return (
                     <SummaryContent
                       location={location}

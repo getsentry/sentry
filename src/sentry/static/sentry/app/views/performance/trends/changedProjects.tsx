@@ -24,7 +24,7 @@ import {
   TrendChangeType,
   TrendFunctionField,
   TrendView,
-  ProjectTrendsData,
+  ProjectTrendsDataEvents,
   NormalizedProjectTrend,
 } from './types';
 import {modifyTrendView, normalizeTrends, trendToColor, getTrendProjectId} from './utils';
@@ -82,9 +82,10 @@ function getDescription(
     absoluteChange < 1000 ? 0 : 2
   );
 
-  const period = trendView.statsPeriod
-    ? DEFAULT_RELATIVE_PERIODS[trendView.statsPeriod].toLowerCase()
-    : t('given timeframe');
+  const period =
+    trendView.statsPeriod && DEFAULT_RELATIVE_PERIODS[trendView.statsPeriod]
+      ? DEFAULT_RELATIVE_PERIODS[trendView.statsPeriod].toLowerCase()
+      : t('given timeframe');
 
   const improvedTemplate =
     'In the [period], [project] sped up by [absoluteChangeDuration] (a [percent] decrease in duration). See the top transactions that made that happen.';
@@ -134,8 +135,8 @@ function ChangedProjects(props: Props) {
       limit={1}
     >
       {({isLoading, tableData}) => {
-        const eventsTrendsData = (tableData as unknown) as ProjectTrendsData;
-        const trends = eventsTrendsData?.events?.data || [];
+        const eventsTrendsData = (tableData as unknown) as ProjectTrendsDataEvents;
+        const trends = eventsTrendsData?.data || [];
         const events = normalizeTrends(trends);
 
         const transactionsList = events && events.slice ? events.slice(0, 5) : [];

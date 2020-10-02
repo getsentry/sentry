@@ -21,6 +21,7 @@ function initializeData() {
         query: {
           transaction: '/performance',
           project: 1,
+          transactionCursor: '1:0:0',
         },
       },
     },
@@ -29,8 +30,8 @@ function initializeData() {
   return initialData;
 }
 
-describe('Performance > TransactionSummary', function() {
-  beforeEach(function() {
+describe('Performance > TransactionSummary', function () {
+  beforeEach(function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
@@ -107,6 +108,11 @@ describe('Performance > TransactionSummary', function() {
     MockApiClient.addMockResponse(
       {
         url: '/organizations/org-slug/eventsv2/',
+        headers: {
+          Link:
+            '<http://localhost/api/0/organizations/org-slug/eventsv2/?cursor=2:0:0>; rel="next"; results="true"; cursor="2:0:0",' +
+            '<http://localhost/api/0/organizations/org-slug/eventsv2/?cursor=1:0:0>; rel="previous"; results="false"; cursor="1:0:0"',
+        },
         body: {
           meta: {
             id: 'string',
@@ -175,12 +181,12 @@ describe('Performance > TransactionSummary', function() {
     });
   });
 
-  afterEach(function() {
+  afterEach(function () {
     MockApiClient.clearMockResponses();
     ProjectsStore.reset();
   });
 
-  it('renders basic UI elements', async function() {
+  it('renders basic UI elements', async function () {
     const initialData = initializeData();
     const wrapper = mountWithTheme(
       <TransactionSummary
@@ -215,7 +221,7 @@ describe('Performance > TransactionSummary', function() {
     expect(wrapper.find('CreateAlertButton')).toHaveLength(0);
   });
 
-  it('renders feature flagged UI elements', async function() {
+  it('renders feature flagged UI elements', async function () {
     const initialData = initializeData();
     initialData.organization.features.push('incidents');
     const wrapper = mountWithTheme(
@@ -232,7 +238,7 @@ describe('Performance > TransactionSummary', function() {
     expect(wrapper.find('CreateAlertButton')).toHaveLength(1);
   });
 
-  it('triggers a navigation on search', async function() {
+  it('triggers a navigation on search', async function () {
     const initialData = initializeData();
     const wrapper = mountWithTheme(
       <TransactionSummary
@@ -258,11 +264,12 @@ describe('Performance > TransactionSummary', function() {
         project: 1,
         statsPeriod: '14d',
         query: 'user.email:uhoh*',
+        transactionCursor: '1:0:0',
       },
     });
   });
 
-  it('can mark a transaction as key', async function() {
+  it('can mark a transaction as key', async function () {
     const initialData = initializeData();
     const wrapper = mountWithTheme(
       <TransactionSummary
@@ -287,7 +294,7 @@ describe('Performance > TransactionSummary', function() {
     expect(mockUpdate).toHaveBeenCalled();
   });
 
-  it('triggers a navigation on transaction filter', async function() {
+  it('triggers a navigation on transaction filter', async function () {
     const initialData = initializeData();
     const wrapper = mountWithTheme(
       <TransactionSummary
@@ -315,6 +322,36 @@ describe('Performance > TransactionSummary', function() {
         transaction: '/performance',
         project: 1,
         showTransactions: 'slow',
+        transactionCursor: undefined,
+      },
+    });
+  });
+
+  it('renders pagination buttons', async function () {
+    const initialData = initializeData();
+    const wrapper = mountWithTheme(
+      <TransactionSummary
+        organization={initialData.organization}
+        location={initialData.router.location}
+      />,
+      initialData.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    const pagination = wrapper.find('Pagination');
+    expect(pagination).toHaveLength(1);
+
+    // Click the 'next' button'
+    pagination.find('button[aria-label="Next"]').simulate('click');
+
+    // Check the navigation.
+    expect(browserHistory.push).toHaveBeenCalledWith({
+      pathname: undefined,
+      query: {
+        transaction: '/performance',
+        project: 1,
+        transactionCursor: '2:0:0',
       },
     });
   });

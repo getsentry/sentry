@@ -9,7 +9,7 @@ import GlobalSelectionStore from 'app/stores/globalSelectionStore';
 import EventsContainer from 'app/views/events';
 import ProjectsStore from 'app/stores/projectsStore';
 
-describe('EventsContainer', function() {
+describe('EventsContainer', function () {
   let wrapper;
   const environments = ['production', 'staging'];
   const params = {
@@ -33,7 +33,7 @@ describe('EventsContainer', function() {
     },
   });
 
-  beforeAll(async function() {
+  beforeAll(async function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
@@ -50,8 +50,8 @@ describe('EventsContainer', function() {
     await tick();
   });
 
-  describe('Header', function() {
-    beforeEach(async function() {
+  describe('Header', function () {
+    beforeEach(async function () {
       GlobalSelectionStore.reset();
       ProjectsStore.loadInitialData(organization.projects);
 
@@ -76,7 +76,7 @@ describe('EventsContainer', function() {
       mockRouterPush(wrapper, router);
     });
 
-    it('updates router when changing environments', async function() {
+    it('updates router when changing environments', async function () {
       expect(wrapper.find('PageContent')).toHaveLength(1);
       expect(wrapper.find('MultipleEnvironmentSelector').prop('value')).toEqual([]);
 
@@ -84,10 +84,7 @@ describe('EventsContainer', function() {
       await tick();
       wrapper.update();
 
-      wrapper
-        .find('EnvironmentSelectorItem')
-        .at(0)
-        .simulate('click');
+      wrapper.find('EnvironmentSelectorItem').at(0).simulate('click');
 
       await tick();
       wrapper.update();
@@ -162,7 +159,7 @@ describe('EventsContainer', function() {
       });
     });
 
-    it('updates router when changing projects', async function() {
+    it('updates router when changing projects', async function () {
       expect(wrapper.find('MultipleProjectSelector').prop('value')).toEqual([]);
 
       wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
@@ -185,7 +182,7 @@ describe('EventsContainer', function() {
       expect(wrapper.find('MultipleProjectSelector').prop('value')).toEqual([2]);
     });
 
-    it('selects multiple projects', async function() {
+    it('selects multiple projects', async function () {
       expect(wrapper.find('MultipleProjectSelector').prop('value')).toEqual([]);
 
       wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
@@ -215,7 +212,7 @@ describe('EventsContainer', function() {
       });
     });
 
-    it('changes to absolute time (utc is default)', async function() {
+    it('changes to absolute time (utc is default)', async function () {
       const start = new Date('2017-10-01T00:00:00.000Z');
       const end = new Date('2017-10-01T23:59:59.000Z');
       wrapper.find('TimeRangeSelector HeaderItem').simulate('click');
@@ -223,10 +220,7 @@ describe('EventsContainer', function() {
       await wrapper.find('SelectorItem[value="absolute"]').simulate('click');
 
       // Oct 1st
-      wrapper
-        .find('DayCell')
-        .at(0)
-        .simulate('mouseUp');
+      wrapper.find('DayCell').at(0).simulate('mouseUp');
       expect(wrapper.find('UtcPicker Checkbox').prop('checked')).toBe(true);
 
       wrapper.find('TimeRangeSelector StyledChevron').simulate('click');
@@ -253,7 +247,7 @@ describe('EventsContainer', function() {
       expect(wrapper.find('UtcPicker Checkbox').prop('checked')).toBe(true);
     });
 
-    it('does not update router when toggling environment selector without changes', async function() {
+    it('does not update router when toggling environment selector without changes', async function () {
       const prevCallCount = router.push.mock.calls.length;
 
       wrapper.setProps({
@@ -277,7 +271,7 @@ describe('EventsContainer', function() {
       expect(router.push).toHaveBeenCalledTimes(prevCallCount);
     });
 
-    it('updates router when changing periods', async function() {
+    it('updates router when changing periods', async function () {
       expect(wrapper.find('TimeRangeSelector').prop('start')).toEqual(null);
       expect(wrapper.find('TimeRangeSelector').prop('end')).toEqual(null);
       expect(wrapper.find('TimeRangeSelector').prop('relative')).toEqual('14d');
