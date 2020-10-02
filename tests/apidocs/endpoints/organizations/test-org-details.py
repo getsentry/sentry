@@ -10,7 +10,7 @@ from tests.apidocs.util import APIDocsTestCase
 
 class OrganizationDetailsDocs(APIDocsTestCase):
     def setUp(self):
-        organization = self.create_organization()
+        organization = self.create_organization(owner=self.user, name="Rowdy Tiger")
 
         self.url = reverse(
             "sentry-api-0-organization-details", kwargs={"organization_slug": organization.slug},

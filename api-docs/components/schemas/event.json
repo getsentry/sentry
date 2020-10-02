@@ -272,8 +272,16 @@
         "type": "object"
       },
       "release": {
-        "$ref": "releases/organization-release.json#/OrganizationRelease",
-        "nullable": true
+        "type": "object",
+        "nullable": true,
+        "oneOf": [
+          {
+            "$ref": "releases/organization-release.json#/OrganizationRelease"
+          },
+          {
+            "$ref": "null.json#/NullValue"
+          }
+        ]
       },
       "groupID": {
         "type": "string"
@@ -620,7 +628,20 @@
       },
       "errors": {
         "type": "array",
-        "items": {}
+        "items": {
+          "type": "object",
+          "properties": {
+            "message": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string"
+            },
+            "data": {
+              "type": "object"
+            }
+          }
+        }
       },
       "eventID": {
         "type": "string"

@@ -6,16 +6,30 @@ from django.core.urlresolvers import reverse
 from django.test.client import RequestFactory
 
 from tests.apidocs.util import APIDocsTestCase
+from sentry.models import EventUser
 
 
 class ProjectUsersDocs(APIDocsTestCase):
     def setUp(self):
-        organization = self.create_organization()
-        project = self.create_project(name="foo", organization=organization, teams=[])
+        self.project = self.create_project()
+        self.euser1 = EventUser.objects.create(
+            project_id=self.project.id,
+            ident="1",
+            email="foo@example.com",
+            username="foobar",
+            ip_address="127.0.0.1",
+        )
 
+        self.euser2 = EventUser.objects.create(
+            project_id=self.project.id,
+            ident="2",
+            email="bar@example.com",
+            username="baz",
+            ip_address="192.168.0.1",
+        )
         self.url = reverse(
             "sentry-api-0-project-users",
-            kwargs={"organization_slug": organization.slug, "project_slug": project.slug},
+            kwargs={"organization_slug": self.organization.slug, "project_slug": self.project.slug},
         )
 
         self.login_as(user=self.user)

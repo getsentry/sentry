@@ -10,7 +10,7 @@ from tests.apidocs.util import APIDocsTestCase
 
 class OrganizationIndexDocs(APIDocsTestCase):
     def setUp(self):
-        self.create_organization()
+        self.create_organization(owner=self.user, name="Rowdy Tiger")
 
         self.url = reverse("sentry-api-0-organizations",)
 

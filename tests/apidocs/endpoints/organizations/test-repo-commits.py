@@ -10,7 +10,7 @@ from tests.apidocs.util import APIDocsTestCase
 
 class OrganizationRepoCommitsDocs(APIDocsTestCase):
     def setUp(self):
-        organization = self.create_organization()
+        organization = self.create_organization(owner=self.user, name="Rowdy Tiger")
         project = self.create_project(name="foo", organization=organization, teams=[])
         repo = self.create_repo(project=project, name="getsentry/sentry")
         release = self.create_release(project=project)

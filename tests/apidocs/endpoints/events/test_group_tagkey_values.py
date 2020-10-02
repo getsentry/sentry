@@ -2,22 +2,19 @@
 
 from __future__ import absolute_import
 
-from django.core.urlresolvers import reverse
 from django.test.client import RequestFactory
 
 from tests.apidocs.util import APIDocsTestCase
 
 
-class OrganizationStatsDocs(APIDocsTestCase):
+class GroupTagKeyValuesDocs(APIDocsTestCase):
     def setUp(self):
-        self.create_event("a", message="oh no")
-        self.create_event("b", message="oh no")
-
-        self.url = reverse(
-            "sentry-api-0-organization-stats", kwargs={"organization_slug": self.organization.slug},
-        )
+        key, value = "foo", "bar"
+        event = self.create_event("a", tags={key: value})
 
         self.login_as(user=self.user)
+
+        self.url = u"/api/0/issues/{}/tags/{}/values/".format(event.group_id, key)
 
     def test_get(self):
         response = self.client.get(self.url)

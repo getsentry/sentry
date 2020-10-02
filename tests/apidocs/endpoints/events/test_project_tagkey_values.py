@@ -8,17 +8,21 @@ from django.test.client import RequestFactory
 from tests.apidocs.util import APIDocsTestCase
 
 
-class OrganizationProjectsDocs(APIDocsTestCase):
+class ProjectTagKeyValuesDocs(APIDocsTestCase):
     def setUp(self):
-        organization = self.create_organization(owner=self.user, name="Rowdy Tiger")
-        self.create_project(name="foo", organization=organization, teams=[])
-        self.create_project(name="bar", organization=organization, teams=[])
-
-        self.url = reverse(
-            "sentry-api-0-organization-projects", kwargs={"organization_slug": organization.slug},
-        )
+        key = "foo"
+        self.create_event("a", tags={key: "bar"})
 
         self.login_as(user=self.user)
+
+        self.url = reverse(
+            "sentry-api-0-project-tagkey-values",
+            kwargs={
+                "organization_slug": self.organization.slug,
+                "project_slug": self.project.slug,
+                "key": key,
+            },
+        )
 
     def test_get(self):
         response = self.client.get(self.url)
