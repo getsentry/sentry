@@ -144,8 +144,6 @@ const StyledNavTabs = styled(NavTabs)`
   margin-bottom: 0;
   /* Makes sure the tabs are pushed into another row */
   width: 100%;
-
-  outline: 1px red solid;
 `;
 
 export default TransactionHeader;
