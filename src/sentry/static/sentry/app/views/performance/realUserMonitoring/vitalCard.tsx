@@ -257,6 +257,7 @@ class VitalCard extends React.Component<Props, State> {
     const series = {
       seriesName: t('Count'),
       data: seriesData,
+      barCategoryGap: '0%',
     };
 
     this.drawBaseline(series);
@@ -266,13 +267,32 @@ class VitalCard extends React.Component<Props, State> {
   }
 
   drawBaseline(series) {
-    const {summary} = this.props;
+    const {chartData, summary} = this.props;
 
-    if (summary !== null) {
+    if (summary !== null && this.state.refPixelRect !== null) {
       const summaryBucket = this.findNearestBucketIndex(summary);
       if (summaryBucket !== null) {
+        const thresholdPixelBottom = this.asPixel(
+          {
+            // subtract 0.5 to get on the right side of the right most bar
+            x: summaryBucket - 0.5,
+            y: 0,
+          },
+          this.state.refDataRect!,
+          this.state.refPixelRect!
+        );
+        const thresholdPixelTop = this.asPixel(
+          {
+            // subtract 0.5 to get on the right side of the right most bar
+            x: summaryBucket - 0.5,
+            y: Math.max(...chartData.map(data => data.count)) || 1,
+          },
+          this.state.refDataRect!,
+          this.state.refPixelRect!
+        );
+
         series.markLine = MarkLine({
-          data: [{xAxis: summaryBucket} as any],
+          data: [[thresholdPixelBottom, thresholdPixelTop] as any],
           label: {
             show: false,
           },
@@ -310,7 +330,7 @@ class VitalCard extends React.Component<Props, State> {
           data: [
             [
               {x: failurePixel.x, yAxis: 0},
-              {x: 'max', yAxis: 'max'},
+              {x: 'max', y: 'max'},
             ] as any,
           ],
           itemStyle: {
@@ -322,12 +342,11 @@ class VitalCard extends React.Component<Props, State> {
           silent: true,
         });
 
-        const maxCount = Math.max(...chartData.map(data => data.count));
         const topRightPixel = this.asPixel(
           {
             // subtract 0.5 to get on the right side of the right most bar
             x: chartData.length - 0.5,
-            y: maxCount,
+            y: Math.max(...chartData.map(data => data.count)) || 1,
           },
           this.state.refDataRect!,
           this.state.refPixelRect!
@@ -418,7 +437,12 @@ function getReferenceRect(chartData: HistogramData[]): Rectangle | null {
     }
   }
 
-  return null;
+  // all data points have the same count, just pick any 2 histogram bins
+  // and use 0 and 1 and the count
+  return {
+    point1: {x: 0, y: 0},
+    point2: {x: 1, y: 1},
+  };
 }
 
 type IndicatorProps = {
