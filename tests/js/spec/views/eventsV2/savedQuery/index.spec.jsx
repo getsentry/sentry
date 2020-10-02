@@ -34,7 +34,7 @@ function generateWrappedComponent(
   );
 }
 
-describe('EventsV2 > SaveQueryButtonGroup', function() {
+describe('EventsV2 > SaveQueryButtonGroup', function () {
   // Organization + Location does not affect state in this component
   const organization = TestStubs.Organization({features: ['discover-query']});
   const location = {
