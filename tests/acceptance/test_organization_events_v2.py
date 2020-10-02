@@ -176,9 +176,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
-            assert_no_errors=False,
         )
-
         self.store_event(
             data={
                 "event_id": "b" * 32,
@@ -194,8 +192,8 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
                 },
             },
             project_id=self.project.id,
-            assert_no_errors=False,
         )
+        self.wait_for_event_count(2, self.project.id)
 
         with self.feature(FEATURE_NAMES):
             self.browser.get(self.result_path + "?" + all_events_query())
