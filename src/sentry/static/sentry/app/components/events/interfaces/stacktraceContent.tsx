@@ -5,9 +5,25 @@ import FrameLine from 'app/components/events/interfaces/frame/frameLine';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import {parseAddress, getImageRange} from 'app/components/events/interfaces/utils';
+import {Stacktrace} from 'app/types/stacktrace';
+import {PlatformType, Event} from 'app/types';
 
-export default class StacktraceContent extends React.Component {
-  static propTypes = {
+type Props = {
+  data: Stacktrace;
+  includeSystemFrames: boolean;
+  platform: PlatformType;
+  event: Event;
+  expandFirstFrame?: boolean;
+  newestFirst?: boolean;
+  className?: string;
+};
+
+type State = {
+  showingAbsoluteAddresses: boolean;
+};
+
+export default class StacktraceContent extends React.Component<Props, State> {
+  static propTypes: any = {
     data: PropTypes.object.isRequired,
     includeSystemFrames: PropTypes.bool,
     expandFirstFrame: PropTypes.bool,
@@ -74,7 +90,7 @@ export default class StacktraceContent extends React.Component {
       lastFrameOmitted = null;
     }
 
-    let lastFrameIdx = null;
+    let lastFrameIdx: number | null = null;
     data.frames.forEach((frame, frameIdx) => {
       if (frame.inApp) {
         lastFrameIdx = frameIdx;
@@ -85,7 +101,7 @@ export default class StacktraceContent extends React.Component {
     }
 
     const expandFirstFrame = this.props.expandFirstFrame;
-    const frames = [];
+    const frames: React.ReactElement[] = [];
     let nRepeats = 0;
 
     const maxLengthOfAllRelativeAddresses = data.frames.reduce(
@@ -141,6 +157,7 @@ export default class StacktraceContent extends React.Component {
             onAddressToggle={this.handleToggleAddresses}
             image={image}
             maxLengthOfRelativeAddress={maxLengthOfAllRelativeAddresses}
+            registers={{}} //TODO: Fix registers
           />
         );
       }

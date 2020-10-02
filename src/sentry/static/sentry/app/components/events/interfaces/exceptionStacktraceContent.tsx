@@ -48,6 +48,10 @@ const ExceptionStacktraceContent = ({
     );
   }
 
+  if (!data) {
+    return null;
+  }
+
   /**
    * Armin, Markus:
    * If all frames are in app, then no frame is in app.
