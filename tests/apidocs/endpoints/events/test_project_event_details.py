@@ -8,17 +8,22 @@ from django.test.client import RequestFactory
 from tests.apidocs.util import APIDocsTestCase
 
 
-class ProjectTagValuesDocs(APIDocsTestCase):
+class ProjectEventDetailsDocs(APIDocsTestCase):
+    endpoint = "sentry-api-0-project-event-details"
+
     def setUp(self):
-        key, value = "foo", "bar"
-        self.create_event("a", tags={key: value})
+        self.create_event("a")
+        event = self.create_event("b")
+        self.create_event("c")
+
+        self.create_event("d", fingerprint=["group-2"])
 
         self.url = reverse(
-            "sentry-api-0-project-tagkey-values",
+            self.endpoint,
             kwargs={
-                "organization_slug": self.organization.slug,
+                "organization_slug": self.project.organization.slug,
                 "project_slug": self.project.slug,
-                "key": key,
+                "event_id": event.event_id,
             },
         )
 

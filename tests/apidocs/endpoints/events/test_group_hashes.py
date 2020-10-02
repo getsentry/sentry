@@ -2,20 +2,17 @@
 
 from __future__ import absolute_import
 
-from django.core.urlresolvers import reverse
 from django.test.client import RequestFactory
 
 from tests.apidocs.util import APIDocsTestCase
 
 
-class OrganizationStatsDocs(APIDocsTestCase):
+class ProjectGroupHashesDocs(APIDocsTestCase):
     def setUp(self):
-        self.create_event("a", message="oh no")
-        self.create_event("b", message="oh no")
+        self.create_event("a")
+        event = self.create_event("b")
 
-        self.url = reverse(
-            "sentry-api-0-organization-stats", kwargs={"organization_slug": self.organization.slug},
-        )
+        self.url = u"/api/0/issues/{}/hashes/".format(event.group_id)
 
         self.login_as(user=self.user)
 

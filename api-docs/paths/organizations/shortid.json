@@ -87,7 +87,8 @@
                       "type": "integer"
                     },
                     "culprit": {
-                      "type": "string"
+                      "type": "string",
+                      "nullable": true,
                     },
                     "title": {
                       "type": "string"
