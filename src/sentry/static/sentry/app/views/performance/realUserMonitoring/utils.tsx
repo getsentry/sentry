@@ -52,7 +52,7 @@ export function findNearestBucketIndex(
   if (
     !chartData.length ||
     xAxis < chartData[0].histogram ||
-    xAxis > chartData[chartData.length - 1].histogram + bucketWidth
+    xAxis >= chartData[chartData.length - 1].histogram + bucketWidth
   ) {
     return null;
   }
@@ -88,7 +88,7 @@ export function getRefRect(chartData: HistogramData[]): Rectangle | null {
   }
 
   // all data points have the same count, just pick any 2 histogram bins
-  // and use 0 and 1 and the count
+  // and use 0 and 1 as the count as we can rely on them being on the graph
   return {
     point1: {x: 0, y: 0},
     point2: {x: 1, y: 1},
@@ -129,7 +129,20 @@ export function asPixelRect(chartRef: ECharts, dataRect: Rectangle): Rectangle |
  * destination rectangle. Assumes that the two rectangles are related by a simple
  * transformation containing only translations and scaling.
  */
-export function asPixel(point: Point, srcRect: Rectangle, destRect: Rectangle): Point {
+export function mapPoint(
+  point: Point,
+  srcRect: Rectangle,
+  destRect: Rectangle
+): Point | null {
+  if (
+    srcRect.point1.x === srcRect.point2.x ||
+    srcRect.point1.y === srcRect.point2.y ||
+    destRect.point1.x === destRect.point2.x ||
+    destRect.point1.y === destRect.point2.y
+  ) {
+    return null;
+  }
+
   const xPercentage =
     (point.x - srcRect.point1.x) / (srcRect.point2.x - srcRect.point1.x);
   const yPercentage =

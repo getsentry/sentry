@@ -50,8 +50,8 @@ class MeasurementsHistogramQuery extends React.Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    // Reload data if we aren't already loading,
-    const refetchCondition = !this.state.isLoading && this.shouldRefetchData(prevProps);
+    // Reload data if the payload changes
+    const refetchCondition = this.shouldRefetchData(prevProps);
 
     // or if we've moved from an invalid view state to a valid one,
     const eventViewValidation =
@@ -97,6 +97,8 @@ class MeasurementsHistogramQuery extends React.Component<Props, State> {
 
     this.setState({isLoading: true, fetchId});
 
+    // clear any previous api requests as there should just be 1 in-flight at any time
+    this.props.api.clear();
     this.props.api
       .requestPromise(url, {
         method: 'GET',

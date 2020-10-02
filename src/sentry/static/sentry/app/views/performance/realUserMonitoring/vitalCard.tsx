@@ -19,7 +19,7 @@ import theme from 'app/utils/theme';
 import {NUM_BUCKETS} from './constants';
 import {Card, CardSummary, CardSectionHeading, StatNumber, Description} from './styles';
 import {HistogramData, Vital, Rectangle} from './types';
-import {findNearestBucketIndex, getRefRect, asPixelRect, asPixel} from './utils';
+import {findNearestBucketIndex, getRefRect, asPixelRect, mapPoint} from './utils';
 
 type Props = {
   location: Location;
@@ -249,7 +249,7 @@ class VitalCard extends React.Component<Props, State> {
       return;
     }
 
-    const thresholdPixelBottom = asPixel(
+    const thresholdPixelBottom = mapPoint(
       {
         // subtract 0.5 from the x here to ensure that the threshold lies between buckets
         x: summaryBucket - 0.5,
@@ -258,7 +258,7 @@ class VitalCard extends React.Component<Props, State> {
       this.state.refDataRect!,
       this.state.refPixelRect!
     );
-    const thresholdPixelTop = asPixel(
+    const thresholdPixelTop = mapPoint(
       {
         // subtract 0.5 from the x here to ensure that the threshold lies between buckets
         x: summaryBucket - 0.5,
@@ -299,7 +299,7 @@ class VitalCard extends React.Component<Props, State> {
 
     // since we found the failure bucket, the failure threshold is
     // visible on the graph, so let's draw the fail region
-    const failurePixel = asPixel(
+    const failurePixel = mapPoint(
       {
         // subtract 0.5 from the x here to ensure that the boundary of
         // the failure region lies between buckets
@@ -326,7 +326,7 @@ class VitalCard extends React.Component<Props, State> {
       silent: true,
     });
 
-    const topRightPixel = asPixel(
+    const topRightPixel = mapPoint(
       {
         // subtract 0.5 to get on the right side of the right most bar
         x: chartData.length - 0.5,
