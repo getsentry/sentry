@@ -92,8 +92,10 @@ class Filter extends React.Component<Props> {
 
     const checkedQuantity = this.getNumberOfActiveFilters();
 
-    const buttonProps = {
-      label: (
+    const dropDownButtonProps: Pick<DropdownButtonProps, 'children' | 'priority'> & {
+      hasDarkBorderBottomColor: boolean;
+    } = {
+      children: (
         <React.Fragment>
           <IconFilter size="xs" />
           <FilterLabel>{t('Filter')}</FilterLabel>
@@ -104,11 +106,11 @@ class Filter extends React.Component<Props> {
     };
 
     if (checkedQuantity > 0) {
-      buttonProps.label = (
+      dropDownButtonProps.children = (
         <span>{tn('%s Active Filter', '%s Active Filters', checkedQuantity)}</span>
       );
-      buttonProps.priority = 'primary';
-      buttonProps.hasDarkBorderBottomColor = true;
+      dropDownButtonProps.priority = 'primary';
+      dropDownButtonProps.hasDarkBorderBottomColor = true;
     }
 
     return (
@@ -121,10 +123,10 @@ class Filter extends React.Component<Props> {
               {...getActorProps()}
               showChevron={false}
               isOpen={isOpen}
-              hasDarkBorderBottomColor={buttonProps.hasDarkBorderBottomColor}
-              priority={buttonProps.priority as DropdownButtonProps['priority']}
+              hasDarkBorderBottomColor={dropDownButtonProps.hasDarkBorderBottomColor}
+              priority={dropDownButtonProps.priority as DropdownButtonProps['priority']}
             >
-              {buttonProps.label}
+              {dropDownButtonProps.children}
             </StyledDropdownButton>
           )}
         >
