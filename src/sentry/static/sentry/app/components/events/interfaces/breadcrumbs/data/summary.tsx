@@ -38,6 +38,7 @@ class Summary extends React.Component<Props, State> {
     }
 
     return Object.keys(kvData)
+      .reverse()
       .filter(key => defined(kvData[key]) && !!kvData[key])
       .map(key => {
         const value =
