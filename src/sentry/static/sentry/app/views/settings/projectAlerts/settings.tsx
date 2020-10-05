@@ -16,7 +16,8 @@ import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader
 import routeTitleGen from 'app/utils/routeTitle';
 import {Organization, Project, Plugin} from 'app/types';
 
-type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
+type RouteParams = {orgId: string; projectId: string};
+type Props = RouteComponentProps<RouteParams, {}> & {
   canEditRule: boolean;
   organization: Organization;
   project: Project;
@@ -28,10 +29,15 @@ type State = {
 } & AsyncView['state'];
 
 class Settings extends AsyncView<Props, State> {
+  getProjectEndpoint({orgId, projectId}: RouteParams) {
+    return `/projects/${orgId}/${projectId}/`;
+  }
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {orgId, projectId} = this.props.params;
+    const {params} = this.props;
+    const {orgId, projectId} = params;
+    const projectEndpoint = this.getProjectEndpoint(params);
     return [
-      ['project', `/projects/${orgId}/${projectId}/`],
+      ['project', projectEndpoint],
       ['pluginList', `/projects/${orgId}/${projectId}/plugins/`],
     ];
   }
@@ -71,8 +77,12 @@ class Settings extends AsyncView<Props, State> {
 
   renderBody() {
     const {canEditRule, organization, params} = this.props;
-    const {orgId, projectId} = params;
-    const {project} = this.state;
+    const {orgId} = params;
+    const {project, pluginList} = this.state;
+
+    console.log('pluginList', pluginList);
+
+    const projectEndpoint = this.getProjectEndpoint(params);
 
     return (
       <React.Fragment>
@@ -106,7 +116,7 @@ class Settings extends AsyncView<Props, State> {
             digestsMaxDelay: project.digestsMaxDelay,
           }}
           apiMethod="PUT"
-          apiEndpoint={`/projects/${orgId}/${projectId}/`}
+          apiEndpoint={projectEndpoint}
         >
           <JsonForm
             disabled={!canEditRule}
@@ -131,8 +141,8 @@ class Settings extends AsyncView<Props, State> {
         {canEditRule && (
           <PluginList
             organization={organization}
-            project={this.state.project}
-            pluginList={this.state.pluginList.filter(
+            project={project}
+            pluginList={pluginList.filter(
               p => p.type === 'notification' && p.hasConfiguration
             )}
             onEnablePlugin={this.handleEnablePlugin}
