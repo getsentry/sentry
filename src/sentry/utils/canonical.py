@@ -94,7 +94,7 @@ class CanonicalKeyDict(collections.MutableMapping):
             legacy = settings.PREFER_CANONICAL_LEGACY_KEYS
         norm_func = legacy and get_legacy_name or get_canonical_name
         self._norm_func = norm_func
-        self.data = collections.OrderedDict()
+        self.data = {}
         for key, value in six.iteritems(data):
             canonical_key = norm_func(key)
             if key == canonical_key or canonical_key not in self.data:
