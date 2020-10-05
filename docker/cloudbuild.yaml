@@ -36,7 +36,7 @@ steps:
     # The following trick is from https://stackoverflow.com/a/52400857/90297 with great gratuity
     echo '{"version": "3.4", "networks":{"default":{"external":{"name":"cloudbuild"}}}}' > docker-compose.override.yml
     ./install.sh
-    ./test.sh || docker-compose logs nginx web relay
+    ./test.sh || docker-compose logs nginx web relay && exit -1
   timeout: 450s
 - name: 'gcr.io/cloud-builders/docker'
   secretEnv: ['DOCKER_PASSWORD']
