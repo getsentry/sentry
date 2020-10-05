@@ -2,7 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {SentryTransactionEvent, Organization} from 'app/types';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import {TableData} from 'app/utils/discover/discoverQuery';
 
 import {
@@ -93,12 +93,23 @@ class SpanTree extends React.Component<PropType> {
 
     if (showFilteredSpansMessage) {
       if (!isCurrentSpanHidden) {
-        messages.push(
-          <span key="spans-filtered">
-            <strong>{numOfFilteredSpansAbove}</strong>{' '}
-            {numOfFilteredSpansAbove === 1 ? t('hidden span') : t('hidden spans')}
-          </span>
-        );
+        if (numOfFilteredSpansAbove === 1) {
+          messages.push(
+            <span key="spans-filtered">
+              {tct('[numOfSpans] hidden span', {
+                numOfSpans: <strong>{numOfFilteredSpansAbove}</strong>,
+              })}
+            </span>
+          );
+        } else {
+          messages.push(
+            <span key="spans-filtered">
+              {tct('[numOfSpans] hidden spans', {
+                numOfSpans: <strong>{numOfFilteredSpansAbove}</strong>,
+              })}
+            </span>
+          );
+        }
       }
     }
 
