@@ -80,8 +80,6 @@ class Settings extends AsyncView<Props, State> {
     const {orgId} = params;
     const {project, pluginList} = this.state;
 
-    console.log('pluginList', pluginList);
-
     const projectEndpoint = this.getProjectEndpoint(params);
 
     return (
