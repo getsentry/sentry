@@ -25,7 +25,7 @@ const grayText = css`
 type Props = {
   organization: Organization;
   project: Project;
-  onChange: (id: string, disabled: boolean) => void;
+  onChange: (id: string, enabled: boolean) => void;
 } & Plugin &
   Pick<RouteComponentProps<{}, {}>, 'params' | 'routes' | 'location'>;
 
@@ -38,10 +38,12 @@ class ProjectPluginRow extends React.PureComponent<Props> {
   handleChange = () => {
     const {onChange, id, enabled} = this.props;
     onChange(id, !enabled);
+    const eventKey = !enabled ? 'integrations.enabled' : 'integrations.disabled';
+    const eventName = !enabled ? 'Integrations: Enabled' : 'Integrations: Disabled';
     trackIntegrationEvent(
       {
-        eventKey: `integrations.${!enabled ? 'enabled' : 'disabled'}` as any,
-        eventName: `Integrations: ${!enabled ? 'Enabled' : 'Disabled'}` as any,
+        eventKey,
+        eventName,
         integration: id,
         integration_type: 'plugin',
         view: 'legacy_integrations',
