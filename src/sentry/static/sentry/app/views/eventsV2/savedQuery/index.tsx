@@ -336,7 +336,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
       </Hovercard>
     );
 
-    const renderQueryButton = (renderFunc: (disabled: boolean) => JSX.Element | null) => {
+    const renderQueryButton = (renderFunc: (disabled: boolean) => React.ReactNode) => {
       return (
         <Feature
           organization={organization}
