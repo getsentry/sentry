@@ -143,7 +143,7 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
     type: 'alertThreshold' | 'resolveThreshold',
     isResolution: boolean
   ) => {
-    const {thresholdType, resolveThreshold} = this.props;
+    const {thresholdType, resolveThreshold, maxValue} = this.props;
     const position =
       type === 'alertThreshold'
         ? this.getChartPixelForThreshold(trigger[type])
@@ -163,8 +163,8 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
     const yAxisPosition = typeof yAxisPixelPosition === 'number' ? yAxisPixelPosition : 0;
     // As the yAxis gets larger we want to start our line/area further to the right
     // Handle case where the graph max is 1 and includes decimals
-    const yAxisSize =
-      15 + (this.state.yAxisMax === 1 ? 15 : `${this.state.yAxisMax ?? ''}`.length * 8);
+    const yAxisMax = Math.max(maxValue ?? 1, this.state.yAxisMax ?? 1);
+    const yAxisSize = 15 + (yAxisMax <= 1 ? 15 : `${yAxisMax ?? ''}`.length * 8);
     // Distance from the top of the chart to save for the legend
     const legendPadding = 20;
 
