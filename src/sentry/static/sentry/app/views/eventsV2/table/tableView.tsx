@@ -46,6 +46,7 @@ export type TableViewProps = {
   eventView: EventView;
   tableData: TableData | null | undefined;
   tagKeys: null | string[];
+  measurementKeys: null | string[];
   title: string;
 
   onChangeShowTags: () => void;
@@ -255,7 +256,7 @@ class TableView extends React.Component<TableViewProps> {
   };
 
   handleEditColumns = () => {
-    const {organization, eventView, tagKeys} = this.props;
+    const {organization, eventView, tagKeys, measurementKeys} = this.props;
 
     openModal(
       modalProps => (
@@ -263,6 +264,7 @@ class TableView extends React.Component<TableViewProps> {
           {...modalProps}
           organization={organization}
           tagKeys={tagKeys}
+          measurementKeys={measurementKeys}
           columns={eventView.getColumns().map(col => col.column)}
           onApply={this.handleUpdateColumns}
         />

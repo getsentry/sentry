@@ -1,12 +1,9 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
-import partition from 'lodash/partition';
-import flatten from 'lodash/flatten';
 
-import {Release, GlobalSelection} from 'app/types';
-import GlobalSelectionLink from 'app/components/globalSelectionLink';
-import {PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
+import {Release, ReleaseProject} from 'app/types';
+import {PanelBody} from 'app/components/panels';
 import {t, tn} from 'app/locale';
 import space from 'app/styles/space';
 import Count from 'app/components/count';
@@ -14,50 +11,43 @@ import {defined} from 'app/utils';
 import theme from 'app/utils/theme';
 import ScoreBar from 'app/components/scoreBar';
 import Tooltip from 'app/components/tooltip';
-import ProjectBadge from 'app/components/idBadge/projectBadge';
 import TextOverflow from 'app/components/textOverflow';
 import Placeholder from 'app/components/placeholder';
 import Link from 'app/components/links/link';
 
-import HealthStatsChart from './healthStatsChart';
-import {convertAdoptionToProgress, getReleaseNewIssuesUrl} from '../utils';
-import HealthStatsSubject, {StatsSubject} from './healthStatsSubject';
-import HealthStatsPeriod, {StatsPeriod} from './healthStatsPeriod';
-import AdoptionTooltip from './adoptionTooltip';
-import NotAvailable from './notAvailable';
-import ClippedHealthRows from './clippedHealthRows';
-import CrashFree from './crashFree';
+import HealthStatsChart from '../healthStatsChart';
+import {convertAdoptionToProgress, getReleaseNewIssuesUrl} from '../../utils';
+import HealthStatsSubject, {StatsSubject} from '../healthStatsSubject';
+import HealthStatsPeriod, {StatsPeriod} from '../healthStatsPeriod';
+import AdoptionTooltip from '../adoptionTooltip';
+import NotAvailable from '../notAvailable';
+import ClippedHealthRows from '../clippedHealthRows';
+import CrashFree from '../crashFree';
+import Header from './header';
+import Item from './item';
+import ProjectName from './projectName';
 
 type Props = {
-  release: Release;
+  projects: Array<ReleaseProject>;
+  releaseVersion: Release['version'];
   orgSlug: string;
   location: Location;
   showPlaceholders: boolean;
-  selection: GlobalSelection;
 };
 
-const ReleaseHealth = ({
-  release,
-  orgSlug,
+const Content = ({
+  projects,
+  releaseVersion,
   location,
-  selection,
+  orgSlug,
   showPlaceholders,
 }: Props) => {
   const activeStatsPeriod = (location.query.healthStatsPeriod || '24h') as StatsPeriod;
   const activeStatsSubject = (location.query.healthStat || 'sessions') as StatsSubject;
 
-  // sort health rows inside release card alphabetically by project name,
-  // but put the ones with project selected in global header to top
-  const sortedProjects = flatten(
-    partition(
-      release.projects.sort((a, b) => a.slug.localeCompare(b.slug)),
-      p => selection.projects.includes(p.id)
-    )
-  );
-
   return (
     <React.Fragment>
-      <StyledPanelHeader>
+      <Header>
         <HeaderLayout>
           <ProjectColumn>{t('Project name')}</ProjectColumn>
           <AdoptionColumn>{t('Release adoption')}</AdoptionColumn>
@@ -70,12 +60,12 @@ const ReleaseHealth = ({
           <CrashesColumn>{t('Crashes')}</CrashesColumn>
           <NewIssuesColumn>{t('New Issues')}</NewIssuesColumn>
         </HeaderLayout>
-      </StyledPanelHeader>
+      </Header>
 
       <PanelBody>
-        <ClippedHealthRows fadeHeight="46px" maxVisibleItems={4}>
-          {sortedProjects.map((project, index) => {
-            const {id, slug, healthData, newGroups} = project;
+        <StyledClippedHealthRows>
+          {projects.map(project => {
+            const {slug, healthData, newGroups} = project;
             const {
               hasHealthData,
               adoption,
@@ -90,22 +80,14 @@ const ReleaseHealth = ({
             } = healthData || {};
 
             return (
-              <StyledPanelItem
-                key={`${release.version}-${slug}-health`}
-                isLast={index === sortedProjects.length - 1}
-              >
+              <Item key={`${releaseVersion}-${slug}-health`}>
                 <Layout>
                   <ProjectColumn>
-                    <GlobalSelectionLink
-                      to={{
-                        pathname: `/organizations/${orgSlug}/releases/${encodeURIComponent(
-                          release.version
-                        )}/`,
-                        query: {project: id},
-                      }}
-                    >
-                      <ProjectBadge project={project} avatarSize={16} />
-                    </GlobalSelectionLink>
+                    <ProjectName
+                      orgSlug={orgSlug}
+                      project={project}
+                      releaseVersion={releaseVersion}
+                    />
                   </ProjectColumn>
 
                   <AdoptionColumn>
@@ -191,34 +173,26 @@ const ReleaseHealth = ({
                   <NewIssuesColumn>
                     <Tooltip title={t('Open in Issues')}>
                       <Link
-                        to={getReleaseNewIssuesUrl(orgSlug, project.id, release.version)}
+                        to={getReleaseNewIssuesUrl(orgSlug, project.id, releaseVersion)}
                       >
                         <Count value={newGroups || 0} />
                       </Link>
                     </Tooltip>
                   </NewIssuesColumn>
                 </Layout>
-              </StyledPanelItem>
+              </Item>
             );
           })}
-        </ClippedHealthRows>
+        </StyledClippedHealthRows>
       </PanelBody>
     </React.Fragment>
   );
 };
 
-const StyledPanelHeader = styled(PanelHeader)`
-  border-top: 1px solid ${p => p.theme.borderDark};
-  border-top-left-radius: 0;
-  border-top-right-radius: 0;
-  color: ${p => p.theme.gray500};
-  font-size: ${p => p.theme.fontSizeSmall};
-`;
+export default Content;
 
-const StyledPanelItem = styled(PanelItem)<{isLast: boolean}>`
-  padding: ${space(1)} ${space(2)};
-  min-height: 46px;
-  border: ${p => (p.isLast ? 'none' : null)};
+const StyledClippedHealthRows = styled(ClippedHealthRows)`
+  margin-bottom: -1px;
 `;
 
 const Layout = styled('div')`
@@ -325,5 +299,3 @@ const StyledPlaceholder = styled(Placeholder)`
   position: relative;
   top: ${space(0.25)};
 `;
-
-export default ReleaseHealth;

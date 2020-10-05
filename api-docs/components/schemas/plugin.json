@@ -3,10 +3,8 @@
     "type": "object",
     "required": [
       "assets",
-      "author",
       "canDisable",
       "contexts",
-      "description",
       "doc",
       "enabled",
       "hasConfiguration",
@@ -14,12 +12,10 @@
       "isTestable",
       "metadata",
       "name",
-      "resourceLinks",
       "shortName",
       "slug",
       "status",
       "type",
-      "version"
     ],
     "properties": {
       "assets": {
@@ -30,6 +26,7 @@
       },
       "author": {
         "type": "object",
+        "nullable": true,
         "properties": {
           "name": {
             "type": "string"
@@ -74,6 +71,7 @@
       },
       "resourceLinks": {
         "type": "array",
+        "nullable": true,
         "items": {
           "type": "object",
           "properties": {
@@ -99,7 +97,8 @@
         "type": "string"
       },
       "version": {
-        "type": "string"
+        "type": "string",
+        "nullable": true
       }
     }
   }

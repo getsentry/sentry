@@ -1057,6 +1057,7 @@ export type ReleaseProject = {
   platform: PlatformKey;
   platforms: PlatformKey[];
   newGroups: number;
+  hasHealthData: boolean;
   healthData?: Health;
 };
 
@@ -1308,6 +1309,13 @@ export type TagWithTopValues = {
   uniqueValues: number;
   canDelete: boolean;
 };
+
+export type Measurement = {
+  name: string;
+  key: string;
+};
+
+export type MeasurementCollection = {[key: string]: Measurement};
 
 export type Level = 'error' | 'fatal' | 'info' | 'warning' | 'sample';
 

@@ -31,12 +31,12 @@ export function Release(params, healthParams) {
     ref: null,
     projects: [
       {
+        hasHealthData: true,
         healthData: {
           totalUsers24h: null,
           durationP50: 231,
           totalSessions: 74949,
           totalUsers: 2544,
-          hasHealthData: true,
           crashFreeSessions: 99.59839357429719,
           sessionsErrored: 301,
           stats: {
