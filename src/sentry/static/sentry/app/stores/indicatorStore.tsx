@@ -41,12 +41,10 @@ type IndicatorStoreInterface = {
     type: Indicator['type'],
     options?: Indicator['options']
   ) => Indicator;
-
   /**
    * Remove all current indicators.
    */
   clear: () => void;
-
   /**
    * Remove an indicator
    */
