@@ -37,8 +37,18 @@ const UnhandledTag = styled((props: React.ComponentProps<typeof Tag>) => (
   background-color: #ffecf0;
   color: ${p => p.theme.gray700};
   text-transform: none;
-  padding: 0 ${space(1)};
-  height: 21px;
+  padding: 0 ${space(0.75)};
+  height: 17px;
+
+  & > span {
+    margin-right: 0 ${space(0.5)};
+  }
+
+  & > span,
+  & svg {
+    height: 10px;
+    width: 10px;
+  }
 `;
 
 export default UnhandledTag;
