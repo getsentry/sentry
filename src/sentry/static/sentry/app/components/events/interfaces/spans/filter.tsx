@@ -152,9 +152,7 @@ class Filter extends React.Component<Props> {
 
                 return (
                   <ListItem key={operationName} isChecked={isActive}>
-                    <OperationDot
-                      style={{backgroundColor: pickSpanBarColour(operationName)}}
-                    />
+                    <OperationDot backgroundColor={pickSpanBarColour(operationName)} />
                     <OperationName>{operationName}</OperationName>
                     <CheckboxFancy
                       isChecked={isActive}
@@ -260,7 +258,7 @@ const ListItem = styled('li')<{isChecked?: boolean}>`
   }
 `;
 
-const OperationDot = styled('div')`
+const OperationDot = styled('div')<{backgroundColor: string}>`
   content: '';
   display: block;
   width: 8px;
@@ -268,6 +266,8 @@ const OperationDot = styled('div')`
   height: 8px;
   margin-right: ${space(1)};
   border-radius: 100%;
+
+  background-color: ${p => p.backgroundColor};
 `;
 
 const OperationName = styled('div')`
