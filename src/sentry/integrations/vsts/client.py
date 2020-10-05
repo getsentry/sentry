@@ -40,7 +40,7 @@ class VstsApiPath(object):
 
 
 class VstsApiClient(ApiClient, OAuth2RefreshMixin):
-    api_version = "4.1"  # TODO: update api version
+    api_version = "4.1"
     api_version_preview = "-preview.1"
     integration_name = "vsts"
 
@@ -213,25 +213,11 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
         )
 
     def get_projects(self, instance):
-        limit = 100  # 100 is max
-        offset = 0
-        projects = []
-
-        # no one should have more than 1000 projects
-        for i in range(10):
-            # ADO supports a continuation token in the response but only in the newer API version (https://docs.microsoft.com/en-us/rest/api/azure/devops/core/projects/list?view=azure-devops-rest-6.1)
-            # the token comes as a repsponse header instead of the body and our API clients currently only return the body
-            # we can use count, $skip, and $top to get the same result
-            resp = self.get(
-                VstsApiPath.projects.format(instance=instance),
-                params={"stateFilter": "WellFormed", "$skip": offset, "$top": limit},
-            )
-            projects += resp["value"]
-            offset += resp["count"]
-            # if the number is lower than our limit, we can quit
-            if resp["count"] < limit:
-                return projects
-        return projects
+        # TODO(dcramer): VSTS doesn't provide a way to search, so we're
+        # making the assumption that a user has 100 or less projects today.
+        return self.get(
+            VstsApiPath.projects.format(instance=instance), params={"stateFilter": "WellFormed"}
+        )
 
     def get_users(self, account_name, continuation_token=None):
         """

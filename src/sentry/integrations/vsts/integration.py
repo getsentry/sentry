@@ -163,7 +163,7 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
         project_selector = []
 
         try:
-            projects = client.get_projects(instance)
+            projects = client.get_projects(instance)["value"]
             all_states = set()
 
             for idx, project in enumerate(projects):
