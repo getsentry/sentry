@@ -60,7 +60,7 @@ class Filter extends React.Component<Props> {
     return result;
   }
 
-  isOperationNameActive(operationName: string): boolean {
+  isOperationNameActive(operationName: string) {
     const {operationNameFilters} = this.props;
 
     if (operationNameFilters.type === 'no_filter') {
