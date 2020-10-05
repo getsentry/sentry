@@ -1,11 +1,13 @@
 import {SelectValue} from 'app/types';
 
-type Choices = string[] | [string, string][] | any;
+type Choices = Array<string | [value: string, label: string]>;
 
 /**
  * Converts arg from a `select2` choices array to a `react-select` `options` array
  */
 const convertFromSelect2Choices = (choices: Choices): SelectValue<any>[] | null => {
+  // TODO(ts): This is to make sure that this function is backwards compatible, ideally,
+  // this function only accepts arrays
   if (!Array.isArray(choices)) {
     return null;
   }
