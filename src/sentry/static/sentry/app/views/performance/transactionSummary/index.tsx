@@ -25,7 +25,7 @@ import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
 
 import SummaryContent from './content';
-import {addRoutePerformanceContext} from '../utils';
+import {addRoutePerformanceContext, getTransactionName} from '../utils';
 
 type Props = {
   api: Client;
@@ -49,7 +49,7 @@ class TransactionSummary extends React.Component<Props, State> {
   state: State = {
     eventView: generateSummaryEventView(
       this.props.location,
-      getTransactionName(this.props)
+      getTransactionName(this.props.location)
     ),
   };
 
@@ -58,7 +58,7 @@ class TransactionSummary extends React.Component<Props, State> {
       ...prevState,
       eventView: generateSummaryEventView(
         nextProps.location,
-        getTransactionName(nextProps)
+        getTransactionName(nextProps.location)
       ),
     };
   }
@@ -82,7 +82,7 @@ class TransactionSummary extends React.Component<Props, State> {
   }
 
   getDocumentTitle(): string {
-    const name = getTransactionName(this.props);
+    const name = getTransactionName(this.props.location);
 
     const hasTransactionName = typeof name === 'string' && String(name).trim().length > 0;
 
@@ -134,7 +134,7 @@ class TransactionSummary extends React.Component<Props, State> {
   render() {
     const {organization, location} = this.props;
     const {eventView} = this.state;
-    const transactionName = getTransactionName(this.props);
+    const transactionName = getTransactionName(location);
     if (!eventView || transactionName === undefined) {
       // If there is no transaction name, redirect to the Performance landing page
 
@@ -187,13 +187,6 @@ class TransactionSummary extends React.Component<Props, State> {
 const StyledPageContent = styled(PageContent)`
   padding: 0;
 `;
-
-function getTransactionName(props: Props): string | undefined {
-  const {location} = props;
-  const {transaction} = location.query;
-
-  return decodeScalar(transaction);
-}
 
 function generateSummaryEventView(
   location: Location,

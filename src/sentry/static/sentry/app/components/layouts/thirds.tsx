@@ -39,6 +39,7 @@ export const HeaderContent = styled('div')`
   justify-content: normal;
   margin-bottom: ${space(2)};
   overflow: hidden;
+  max-width: 100%;
 
   @media (max-width: ${p => p.theme.breakpoints[1]}) {
     margin-bottom: ${space(1)};
@@ -91,6 +92,7 @@ export const Title = styled('h2')`
 export const Header = styled('div')`
   display: flex;
   flex-direction: row;
+  flex-wrap: wrap;
   flex-grow: 0;
   justify-content: space-between;
   padding: ${space(2)} ${space(4)} 0 ${space(4)};
