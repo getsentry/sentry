@@ -18,8 +18,6 @@ jobs:
     runs-on: ubuntu-16.04
 
     env:
-      SENTRY_PYTHON3: 1
-
       PIP_DISABLE_PIP_VERSION_CHECK: on
       SENTRY_LIGHT_BUILD: 1
       SENTRY_SKIP_BACKEND_VALIDATION: 1
