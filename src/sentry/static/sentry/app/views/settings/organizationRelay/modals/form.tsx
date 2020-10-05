@@ -2,6 +2,7 @@ import React from 'react';
 
 import {t} from 'app/locale';
 import Input from 'app/views/settings/components/forms/controls/input';
+import FieldHelp from 'app/views/settings/components/forms/field/fieldHelp';
 import Textarea from 'app/views/settings/components/forms/controls/textarea';
 import Field from 'app/views/settings/components/forms/field';
 import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
@@ -78,9 +79,6 @@ const Form = ({
         </Field>
       ) : (
         <Field
-          help={t(
-            'Only enter the Public Key value from your credentials file. Never share the Secret key with Sentry or any third party'
-          )}
           label={t('Public Key')}
           error={errors.publicKey}
           flexibleControlStateSize
@@ -96,6 +94,11 @@ const Form = ({
             value={values.publicKey}
             onBlur={onValidateKey}
           />
+          <FieldHelp>
+            {t(
+              'Only enter the Public Key value from your credentials file. Never share the Secret key with Sentry or any third party'
+            )}
+          </FieldHelp>
         </Field>
       )}
       <Field flexibleControlStateSize label={t('Description')} inline={false} stacked>

@@ -40,7 +40,7 @@ class DateTime extends React.Component<Props> {
       return 'LL';
     }
 
-    // Oct 26, 2017 11:30:30 AM
+    // Oct 26, 11:30 AM
     if (timeAndDate) {
       return 'MMM DD, LT';
     }
