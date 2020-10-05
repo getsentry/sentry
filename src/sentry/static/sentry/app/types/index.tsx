@@ -1057,6 +1057,7 @@ export type ReleaseProject = {
   platform: PlatformKey;
   platforms: PlatformKey[];
   newGroups: number;
+  hasHealthData: boolean;
   healthData?: Health;
 };
 
