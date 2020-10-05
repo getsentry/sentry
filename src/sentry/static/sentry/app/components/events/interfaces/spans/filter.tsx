@@ -114,7 +114,7 @@ class Filter extends React.Component<Props> {
     }
 
     return (
-      <Wrapper>
+      <Wrapper data-test-id="op-filter-dropdown">
         <DropdownControl
           menuWidth="240px"
           blendWithActor
@@ -125,6 +125,7 @@ class Filter extends React.Component<Props> {
               isOpen={isOpen}
               hasDarkBorderBottomColor={dropDownButtonProps.hasDarkBorderBottomColor}
               priority={dropDownButtonProps.priority as DropdownButtonProps['priority']}
+              data-test-id="filter-button"
             >
               {dropDownButtonProps.children}
             </StyledDropdownButton>
