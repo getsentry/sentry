@@ -27,6 +27,7 @@ export type Indicator = {
   id: string | number;
   message: React.ReactNode;
   options: Options;
+  clearId?: null | number;
 };
 
 // Removes a single indicator
