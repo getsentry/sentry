@@ -5,7 +5,7 @@ import {IconFire} from 'app/icons';
 import OnboardingPanel from 'app/components/onboardingPanel';
 
 export default {
-  title: 'UI/OnboardingPanel',
+  title: 'Layouts/OnboardingPanel',
 };
 
 export const Default = withInfo('Panel with icon image.')(() => {

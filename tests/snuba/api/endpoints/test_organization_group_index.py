@@ -501,12 +501,15 @@ class GroupListTest(APITestCase, SnubaTestCase):
         old_sample_size = options.get("snuba.search.hits-sample-size")
         assert options.set("snuba.search.hits-sample-size", 1)
 
-        days = range(4)
-        days.reverse()
+        days = reversed(range(4))
 
         self.login_as(user=self.user)
         groups = []
+
         for day in days:
+            patched_params_update.side_effect = [
+                (self.organization.id, {"project": [self.project.id]})
+            ]
             group = self.store_event(
                 data={
                     "timestamp": iso_format(before_now(days=day)),
@@ -550,15 +553,22 @@ class GroupListTest(APITestCase, SnubaTestCase):
     def test_seen_stats(self):
         with self.feature("organizations:dynamic-issue-counts"):
             self.store_event(
-                data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+                data={
+                    "timestamp": iso_format(before_now(seconds=500)),
+                    "fingerprint": ["group-1"],
+                },
                 project_id=self.project.id,
             )
             before_now_300_seconds = iso_format(before_now(seconds=300))
+            before_now_350_seconds = iso_format(before_now(seconds=350))
             event2 = self.store_event(
                 data={"timestamp": before_now_300_seconds, "fingerprint": ["group-2"]},
                 project_id=self.project.id,
             )
             group2 = event2.group
+            group2.first_seen = before_now_350_seconds
+            group2.times_seen = 55
+            group2.save()
             before_now_250_seconds = iso_format(before_now(seconds=250))
             self.store_event(
                 data={
@@ -597,19 +607,23 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
             self.login_as(user=self.user)
             response = self.get_response(sort_by="date", limit=10, query="server:example.com")
+
             assert response.status_code == 200
             assert len(response.data) == 2
             assert int(response.data[0]["id"]) == group2.id
             assert response.data[0]["lifetime"] is not None
             assert response.data[0]["filtered"] is not None
+            assert response.data[0]["filtered"]["stats"] is not None
+            assert response.data[0]["lifetime"]["stats"] is None
+            assert response.data[0]["filtered"]["stats"] != response.data[0]["stats"]
 
-            assert response.data[0]["lifetime"]["count"] == "4"
             assert response.data[0]["lifetime"]["firstSeen"] == parse_datetime(
-                before_now_300_seconds
+                before_now_350_seconds  # Should match overridden value, not event value
             ).replace(tzinfo=timezone.utc)
             assert response.data[0]["lifetime"]["lastSeen"] == parse_datetime(
                 before_now_100_seconds
             ).replace(tzinfo=timezone.utc)
+            assert response.data[0]["lifetime"]["count"] == "55"
 
             assert response.data[0]["filtered"]["count"] == "2"
             assert response.data[0]["filtered"]["firstSeen"] == parse_datetime(
@@ -617,6 +631,23 @@ class GroupListTest(APITestCase, SnubaTestCase):
             ).replace(tzinfo=timezone.utc)
             assert response.data[0]["filtered"]["lastSeen"] == parse_datetime(
                 before_now_150_seconds
+            ).replace(tzinfo=timezone.utc)
+
+            # Empty filter test:
+            response = self.get_response(sort_by="date", limit=10, query="")
+            assert response.status_code == 200
+            assert len(response.data) == 2
+            assert int(response.data[0]["id"]) == group2.id
+            assert response.data[0]["lifetime"] is not None
+            assert response.data[0]["filtered"] is None
+            assert response.data[0]["lifetime"]["stats"] is None
+
+            assert response.data[0]["lifetime"]["count"] == "55"
+            assert response.data[0]["lifetime"]["firstSeen"] == parse_datetime(
+                before_now_350_seconds  # Should match overridden value, not event value
+            ).replace(tzinfo=timezone.utc)
+            assert response.data[0]["lifetime"]["lastSeen"] == parse_datetime(
+                before_now_100_seconds
             ).replace(tzinfo=timezone.utc)
 
     def test_skipped_fields(self):
@@ -649,7 +680,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             assert response.data[0]["filtered"] is not None
 
     @patch(
-        "sentry.api.helpers.group_index.ratelimiter.is_limited", autospec=True, return_value=True,
+        "sentry.api.helpers.group_index.ratelimiter.is_limited", autospec=True, return_value=True
     )
     def test_ratelimit(self, is_limited):
         self.login_as(user=self.user)
@@ -1271,7 +1302,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             event = self.store_event(
                 data={
                     "fingerprint": ["put-me-in-group-1"],
-                    "user": {"id": six.text_type(i).encode("utf-8")},
+                    "user": {"id": six.text_type(i)},
                     "timestamp": iso_format(self.min_ago + timedelta(seconds=i)),
                 },
                 project_id=self.project.id,
@@ -1549,7 +1580,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert tombstone.data == group1.data
 
     @patch(
-        "sentry.api.helpers.group_index.ratelimiter.is_limited", autospec=True, return_value=True,
+        "sentry.api.helpers.group_index.ratelimiter.is_limited", autospec=True, return_value=True
     )
     def test_ratelimit(self, is_limited):
         self.login_as(user=self.user)
@@ -1677,7 +1708,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
             assert not GroupHash.objects.filter(group_id=group.id).exists()
 
     @patch(
-        "sentry.api.helpers.group_index.ratelimiter.is_limited", autospec=True, return_value=True,
+        "sentry.api.helpers.group_index.ratelimiter.is_limited", autospec=True, return_value=True
     )
     def test_ratelimit(self, is_limited):
         self.login_as(user=self.user)

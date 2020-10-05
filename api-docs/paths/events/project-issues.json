@@ -1,10 +1,8 @@
 {
   "get": {
-    "tags": [
-      "Events"
-    ],
+    "tags": ["Events"],
     "description": "Return a list of issues (groups) bound to a project.  All parameters are supplied as query string parameters. \n\n A default query of ``is:unresolved`` is applied. To return results with other statuses send an new query value (i.e. ``?query=`` for all results).\n\nThe ``statsPeriod`` parameter can be used to select the timeline stats which should be present. Possible values are: ``\"\"`` (disable),``\"24h\"``, ``\"14d\"``",
-    "operationId": "List a project's issues",
+    "operationId": "List a Project's Issues",
     "parameters": [
       {
         "name": "organization_slug",
@@ -47,11 +45,14 @@
         "schema": {
           "type": "string"
         }
+      },
+      {
+        "$ref": "../../components/parameters/pagination-cursor.json#/PaginationCursor"
       }
     ],
     "responses": {
       "200": {
-        "description": "Success.",
+        "description": "Success",
         "content": {
           "application/json": {
             "schema": {
@@ -89,102 +90,30 @@
                 "shortId": "PUMP-STATION-1",
                 "stats": {
                   "24h": [
-                    [
-                      1541455200.0,
-                      473
-                    ],
-                    [
-                      1541458800.0,
-                      914
-                    ],
-                    [
-                      1541462400.0,
-                      991
-                    ],
-                    [
-                      1541466000.0,
-                      925
-                    ],
-                    [
-                      1541469600.0,
-                      881
-                    ],
-                    [
-                      1541473200.0,
-                      182
-                    ],
-                    [
-                      1541476800.0,
-                      490
-                    ],
-                    [
-                      1541480400.0,
-                      820
-                    ],
-                    [
-                      1541484000.0,
-                      322
-                    ],
-                    [
-                      1541487600.0,
-                      836
-                    ],
-                    [
-                      1541491200.0,
-                      565
-                    ],
-                    [
-                      1541494800.0,
-                      758
-                    ],
-                    [
-                      1541498400.0,
-                      880
-                    ],
-                    [
-                      1541502000.0,
-                      677
-                    ],
-                    [
-                      1541505600.0,
-                      381
-                    ],
-                    [
-                      1541509200.0,
-                      814
-                    ],
-                    [
-                      1541512800.0,
-                      329
-                    ],
-                    [
-                      1541516400.0,
-                      446
-                    ],
-                    [
-                      1541520000.0,
-                      731
-                    ],
-                    [
-                      1541523600.0,
-                      111
-                    ],
-                    [
-                      1541527200.0,
-                      926
-                    ],
-                    [
-                      1541530800.0,
-                      772
-                    ],
-                    [
-                      1541534400.0,
-                      400
-                    ],
-                    [
-                      1541538000.0,
-                      943
-                    ]
+                    [1541455200.0, 473],
+                    [1541458800.0, 914],
+                    [1541462400.0, 991],
+                    [1541466000.0, 925],
+                    [1541469600.0, 881],
+                    [1541473200.0, 182],
+                    [1541476800.0, 490],
+                    [1541480400.0, 820],
+                    [1541484000.0, 322],
+                    [1541487600.0, 836],
+                    [1541491200.0, 565],
+                    [1541494800.0, 758],
+                    [1541498400.0, 880],
+                    [1541502000.0, 677],
+                    [1541505600.0, 381],
+                    [1541509200.0, 814],
+                    [1541512800.0, 329],
+                    [1541516400.0, 446],
+                    [1541520000.0, 731],
+                    [1541523600.0, 111],
+                    [1541527200.0, 926],
+                    [1541530800.0, 772],
+                    [1541534400.0, 400],
+                    [1541538000.0, 943]
                   ]
                 },
                 "status": "unresolved",
@@ -204,16 +133,12 @@
     },
     "security": [
       {
-        "auth_token": [
-          "project:read"
-        ]
+        "auth_token": ["project:read"]
       }
     ]
   },
   "put": {
-    "tags": [
-      "Events"
-    ],
+    "tags": ["Events"],
     "description": "Bulk mutate various attributes on issues.  The list of issues to modify is given through the `id` query parameter.  It is repeated for each issue that should be modified.\n\n- For non-status updates, the `id` query parameter is required.\n- For status updates, the `id` query parameter may be omitted\nfor a batch \"update all\" query.\n- An optional `status` query parameter may be used to restrict\nmutations to only events with the given status.\n\nThe following attributes can be modified and are supplied as JSON object in the body:\n\nIf any ids are out of scope this operation will succeed without any data mutation.",
     "operationId": "Bulk Mutate a List of Issues",
     "parameters": [
@@ -321,6 +246,10 @@
                 "description": "In case this API call is invoked with a user context this allows changing of the bookmark flag."
               }
             }
+          },
+          "example": {
+            "isPublic": false,
+            "status": "unresolved"
           }
         }
       },
@@ -328,7 +257,7 @@
     },
     "responses": {
       "200": {
-        "description": "Success.",
+        "description": "Success",
         "content": {
           "application/json": {
             "schema": {
@@ -340,11 +269,7 @@
                 },
                 "status": {
                   "type": "string",
-                  "enum": [
-                    "resolved",
-                    "unresolved",
-                    "ignored"
-                  ]
+                  "enum": ["resolved", "unresolved", "ignored"]
                 },
                 "statusDetails": {
                   "type": "object"
@@ -371,16 +296,12 @@
     },
     "security": [
       {
-        "auth_token": [
-          "project:write"
-        ]
+        "auth_token": ["project:write"]
       }
     ]
   },
   "delete": {
-    "tags": [
-      "Events"
-    ],
+    "tags": ["Events"],
     "description": "Permanently remove the given issues. The list of issues to modify is given through the `id` query parameter.  It is repeated for each issue that should be removed.\n\nOnly queries by 'id' are accepted.\n\nIf any ids are out of scope this operation will succeed without any data mutation.",
     "operationId": "Bulk Remove a List of Issues",
     "parameters": [
@@ -413,7 +334,7 @@
     ],
     "responses": {
       "204": {
-        "description": "Success."
+        "description": "Success"
       },
       "403": {
         "description": "Forbidden"
@@ -424,9 +345,7 @@
     },
     "security": [
       {
-        "auth_token": [
-          "project:admin"
-        ]
+        "auth_token": ["project:admin"]
       }
     ]
   }

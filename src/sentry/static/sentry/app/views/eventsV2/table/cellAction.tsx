@@ -36,10 +36,10 @@ export function updateQuery(
         // Adding a null value is the same as excluding truthy values.
         // Remove inclusion if it exists.
         results.removeTagValue('has', key);
-        results.addTag('!has', [key]);
+        results.addTagValues('!has', [key]);
       } else {
         // Remove exclusion if it exists.
-        results.removeTag(`!${key}`).setTag(key, [`${value}`]);
+        results.removeTag(`!${key}`).setTagValues(key, [`${value}`]);
       }
       break;
     case Actions.EXCLUDE:
@@ -47,23 +47,23 @@ export function updateQuery(
         // Excluding a null value is the same as including truthy values.
         // Remove exclusion if it exists.
         results.removeTagValue('!has', key);
-        results.addTag('has', [key]);
+        results.addTagValues('has', [key]);
       } else {
         // Remove positive if it exists.
         results.removeTag(key);
         // Negations should stack up.
         const negation = `!${key}`;
-        results.addTag(negation, [`${value}`]);
+        results.addTagValues(negation, [`${value}`]);
       }
       break;
     case Actions.SHOW_GREATER_THAN: {
       // Remove query token if it already exists
-      results.setTag(key, [`>${value}`]);
+      results.setTagValues(key, [`>${value}`]);
       break;
     }
     case Actions.SHOW_LESS_THAN: {
       // Remove query token if it already exists
-      results.setTag(key, [`<${value}`]);
+      results.setTagValues(key, [`<${value}`]);
       break;
     }
     // these actions do not modify the query in any way,

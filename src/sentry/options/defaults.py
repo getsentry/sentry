@@ -137,6 +137,15 @@ register("github-app.private-key", default="")
 register("github-app.client-id", flags=FLAG_PRIORITIZE_DISK)
 register("github-app.client-secret", flags=FLAG_PRIORITIZE_DISK)
 
+# GitHub Auth
+register("github-login.client-id", default="", flags=FLAG_PRIORITIZE_DISK)
+register("github-login.client-secret", default="", flags=FLAG_PRIORITIZE_DISK)
+register("github-login.reqire-verified-email", type=Bool, default=False, flags=FLAG_PRIORITIZE_DISK)
+register("github-login.base-domain", default="github.com", flags=FLAG_PRIORITIZE_DISK)
+register("github-login.api-domain", default="api.github.com", flags=FLAG_PRIORITIZE_DISK)
+register("github-login.extended-permissions", type=Sequence, default=[], flags=FLAG_PRIORITIZE_DISK)
+register("github-login.organization", flags=FLAG_PRIORITIZE_DISK)
+
 # VSTS Integration
 register("vsts.client-id", flags=FLAG_PRIORITIZE_DISK)
 register("vsts.client-secret", flags=FLAG_PRIORITIZE_DISK)
@@ -256,7 +265,3 @@ register("processing.can-use-scrubbers", default=True)
 #
 # Note: A value that is neither 0 nor 1 is regarded as 0
 register("store.use-relay-dsn-sample-rate", default=1)
-
-# Runtime switch for transitioning post_process to using a cache key
-# instead of passing the entire event in the celery parameters.
-register("postprocess.use-cache-key", default=0.0, flags=FLAG_PRIORITIZE_DISK)

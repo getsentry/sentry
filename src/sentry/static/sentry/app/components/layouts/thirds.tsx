@@ -2,15 +2,20 @@ import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
+import NavTabs from 'app/components/navTabs';
 
 /**
  * Base container for 66/33 containers.
  */
 export const Body = styled('div')`
-  padding: ${space(2)} ${space(4)};
+  padding: ${space(2)};
   margin: 0;
   background-color: ${p => p.theme.white};
   flex-grow: 1;
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    padding: ${space(2)} ${space(4)};
+  }
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     display: grid;
@@ -34,6 +39,7 @@ export const HeaderContent = styled('div')`
   justify-content: normal;
   margin-bottom: ${space(2)};
   overflow: hidden;
+  max-width: 100%;
 
   @media (max-width: ${p => p.theme.breakpoints[1]}) {
     margin-bottom: ${space(1)};
@@ -86,6 +92,7 @@ export const Title = styled('h2')`
 export const Header = styled('div')`
   display: flex;
   flex-direction: row;
+  flex-wrap: wrap;
   flex-grow: 0;
   justify-content: space-between;
   padding: ${space(2)} ${space(4)} 0 ${space(4)};
@@ -94,8 +101,26 @@ export const Header = styled('div')`
   background-color: transparent;
   border-bottom: 1px solid ${p => p.theme.borderDark};
 
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    padding: ${space(2)} ${space(2)} 0 ${space(2)};
+  }
+
   @media (max-width: ${p => p.theme.breakpoints[1]}) {
     flex-direction: column;
+  }
+`;
+
+/**
+ * Styled Nav Tabs for use inside a Layout.Header component
+ */
+export const HeaderNavTabs = styled(NavTabs)`
+  margin: 0;
+  border-bottom: 0 !important;
+  li {
+    margin-right: ${space(0.5)};
+  }
+  li > a {
+    padding: ${space(1)} ${space(2)};
   }
 `;
 

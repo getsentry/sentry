@@ -4,8 +4,8 @@ import {mount} from 'sentry-test/enzyme';
 
 import AvatarList from 'app/components/avatar/avatarList';
 
-describe('AvatarList', function() {
-  it('renders with user avatars', function() {
+describe('AvatarList', function () {
+  it('renders with user avatars', function () {
     const users = [TestStubs.User({id: '1'}), TestStubs.User({id: '2'})];
 
     const wrapper = mount(<AvatarList users={users} />);
@@ -14,7 +14,7 @@ describe('AvatarList', function() {
     expect(wrapper).toSnapshot();
   });
 
-  it('renders with collapsed avatar count if > 5 users', function() {
+  it('renders with collapsed avatar count if > 5 users', function () {
     const users = [
       TestStubs.User({id: '1'}),
       TestStubs.User({id: '2'}),

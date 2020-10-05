@@ -122,8 +122,9 @@ class ErrorRobot extends React.Component<Props, State> {
               <Button
                 data-test-id="install-instructions"
                 priority="primary"
-                to={`/${org.slug}/${project.slug}/getting-started/${project.platform ||
-                  ''}`}
+                to={`/${org.slug}/${project.slug}/getting-started/${
+                  project.platform || ''
+                }`}
               >
                 {t('Installation Instructions')}
               </Button>

@@ -5,7 +5,7 @@ import pytz
 from six.moves.urllib.parse import urlencode
 from mock import patch
 
-from sentry.testutils import AcceptanceTestCase
+from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.samples import load_data
 
@@ -19,7 +19,7 @@ def make_event(event_data):
     return event_data
 
 
-class PerformanceSummaryTest(AcceptanceTestCase):
+class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super(PerformanceSummaryTest, self).setUp()
         self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
@@ -43,6 +43,7 @@ class PerformanceSummaryTest(AcceptanceTestCase):
         # Create a transaction
         event = make_event(load_data("transaction", timestamp=before_now(minutes=1)))
         self.store_event(data=event, project_id=self.project.id)
+        self.wait_for_event_count(self.project.id, 1)
 
         self.store_event(
             data={
@@ -74,3 +75,28 @@ class PerformanceSummaryTest(AcceptanceTestCase):
             self.browser.element('[data-test-id="view-details"]').click()
             self.page.wait_until_loaded()
             self.browser.snapshot("performance event details")
+
+    @patch("django.utils.timezone.now")
+    def test_real_user_monitoring(self, mock_now):
+        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
+
+        rum_path = u"/organizations/{}/performance/summary/rum/?{}".format(
+            self.org.slug,
+            urlencode({"transaction": "/country_by_code/", "project": self.project.id}),
+        )
+
+        # Create a transaction
+        event_data = load_data("transaction", timestamp=before_now(minutes=1))
+        # only frontend pageload transactions can be shown on the RUM tab
+        event_data["contexts"]["trace"]["op"] = "pageload"
+        event_data["measurements"]["fp"]["value"] = 5000
+        event = make_event(event_data)
+        self.store_event(data=event, project_id=self.project.id)
+        self.wait_for_event_count(self.project.id, 1)
+
+        with self.feature(list(FEATURE_NAMES) + ["organizations:measurements"]):
+            self.browser.get(rum_path)
+            self.page.wait_until_loaded()
+            self.browser.wait_until_not('[data-test-id="stats-loading"]')
+
+            self.browser.snapshot("real user monitoring")

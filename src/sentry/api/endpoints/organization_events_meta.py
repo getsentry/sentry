@@ -18,13 +18,10 @@ from sentry.snuba import discover
 
 class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
     def get(self, request, organization):
-        with sentry_sdk.start_span(op="discover.endpoint", description="filter_params") as span:
-            span.set_data("organization", organization)
-            try:
-                params = self.get_filter_params(request, organization)
-            except NoProjects:
-                return Response({"count": 0})
-            params = self.quantize_date_params(request, params)
+        try:
+            params = self.get_snuba_params(request, organization)
+        except NoProjects:
+            return Response({"count": 0})
 
         with self.handle_query_errors():
             result = discover.query(
@@ -43,13 +40,10 @@ class OrganizationEventBaseline(OrganizationEventsEndpointBase):
         if not self.has_feature(organization, request):
             return Response(status=404)
 
-        with sentry_sdk.start_span(op="discover.endpoint", description="filter_params") as span:
-            span.set_data("organization", organization)
-            try:
-                params = self.get_filter_params(request, organization)
-            except NoProjects:
-                return Response(status=404)
-            params = self.quantize_date_params(request, params)
+        try:
+            params = self.get_snuba_params(request, organization)
+        except NoProjects:
+            return Response(status=404)
 
         # Assumption is that users will want the 50th percentile
         baseline_function = request.GET.get("baselineFunction", "p50()")
@@ -81,7 +75,7 @@ class OrganizationEventBaseline(OrganizationEventsEndpointBase):
                     delta_column,
                 ],
                 # Find the most recent transaction that's closest to the baseline value
-                # id as the last item for consistent results
+                # id is the last item of the orderby for consistent results
                 orderby=[get_function_alias(delta_column), "-timestamp", "id"],
                 params=params,
                 query=request.GET.get("query"),
@@ -101,13 +95,13 @@ UNESCAPED_QUOTE_RE = re.compile('(?<!\\\\)"')
 
 class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase, EnvironmentMixin):
     def get(self, request, organization):
-        with sentry_sdk.start_span(op="discover.endpoint", description="filter_params") as span:
-            span.set_data("organization", organization)
-            try:
-                params = self.get_filter_params(request, organization)
-            except NoProjects:
-                return Response([])
+        try:
+            # events-meta is still used by events v1 which doesn't require global views
+            params = self.get_snuba_params(request, organization, check_global_views=False)
+        except NoProjects:
+            return Response([])
 
+        with sentry_sdk.start_span(op="discover.endpoint", description="find_lookup_keys") as span:
             possible_keys = ["transaction"]
             lookup_keys = {key: request.query_params.get(key) for key in possible_keys}
 

@@ -2,7 +2,7 @@
   "get": {
     "tags": ["Projects"],
     "description": "Return a service hook bound to a project.",
-    "operationId": "Retrieve a service hook",
+    "operationId": "Retrieve a Service Hook",
     "parameters": [
       {
         "name": "organization_slug",
@@ -34,7 +34,7 @@
     ],
     "responses": {
       "200": {
-        "description": "Success.",
+        "description": "Success",
         "content": {
           "application/json": {
             "schema": {
@@ -66,8 +66,8 @@
   },
   "put": {
     "tags": ["Projects"],
-    "description": "Update a service hook",
-    "operationId": "Update a service hook",
+    "description": "Update a service hook.",
+    "operationId": "Update a Service Hook",
     "parameters": [
       {
         "name": "organization_slug",
@@ -106,20 +106,18 @@
             "properties": {
               "url": {
                 "type": "string",
-                "description": "The url for the webhook."
+                "description": "The URL for the webhook.",
+                "example": "https://example.com/sentry-hook"
               },
               "events": {
                 "type": "array",
                 "description": "The events to subscribe to.",
+                "example": ["event.alert", "event.created"],
                 "items": {
                   "type": "string"
                 }
               }
             }
-          },
-          "example": {
-            "events": ["event.alert", "event.created"],
-            "url": "https://example.com/sentry-hook"
           }
         }
       },
@@ -127,7 +125,7 @@
     },
     "responses": {
       "200": {
-        "description": "Success.",
+        "description": "Success",
         "content": {
           "application/json": {
             "schema": {
@@ -144,6 +142,9 @@
           }
         }
       },
+      "400": {
+        "description": "Bad Input"
+      },
       "403": {
         "description": "Forbidden"
       },
@@ -159,8 +160,8 @@
   },
   "delete": {
     "tags": ["Projects"],
-    "description": "Remove a service hook",
-    "operationId": "Remove a service hook",
+    "description": "Remove a service hook.",
+    "operationId": "Remove a Service Hook",
     "parameters": [
       {
         "name": "organization_slug",
@@ -192,7 +193,7 @@
     ],
     "responses": {
       "204": {
-        "description": "Success."
+        "description": "Success"
       },
       "403": {
         "description": "Forbidden"

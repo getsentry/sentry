@@ -14,6 +14,9 @@ from sentry.db.models import (
 from sentry.utils.strings import truncatechars
 
 
+MAX_ACTOR_LABEL_LENGTH = 64
+
+
 class AuditLogEntryEvent(object):
     MEMBER_INVITE = 1
     MEMBER_ADD = 2
@@ -103,7 +106,7 @@ class AuditLogEntry(Model):
     __core__ = False
 
     organization = FlexibleForeignKey("sentry.Organization")
-    actor_label = models.CharField(max_length=64, null=True, blank=True)
+    actor_label = models.CharField(max_length=MAX_ACTOR_LABEL_LENGTH, null=True, blank=True)
     # if the entry was created via a user
     actor = FlexibleForeignKey("sentry.User", related_name="audit_actors", null=True, blank=True)
     # if the entry was created via an api key
@@ -116,71 +119,71 @@ class AuditLogEntry(Model):
     event = BoundedPositiveIntegerField(
         choices=(
             # We emulate github a bit with event naming
-            (AuditLogEntryEvent.MEMBER_INVITE, "member.invite"),
-            (AuditLogEntryEvent.MEMBER_ADD, "member.add"),
-            (AuditLogEntryEvent.MEMBER_ACCEPT, "member.accept-invite"),
-            (AuditLogEntryEvent.MEMBER_REMOVE, "member.remove"),
-            (AuditLogEntryEvent.MEMBER_EDIT, "member.edit"),
-            (AuditLogEntryEvent.MEMBER_JOIN_TEAM, "member.join-team"),
-            (AuditLogEntryEvent.MEMBER_LEAVE_TEAM, "member.leave-team"),
-            (AuditLogEntryEvent.MEMBER_PENDING, "member.pending"),
-            (AuditLogEntryEvent.TEAM_ADD, "team.create"),
-            (AuditLogEntryEvent.TEAM_EDIT, "team.edit"),
-            (AuditLogEntryEvent.TEAM_REMOVE, "team.remove"),
-            (AuditLogEntryEvent.PROJECT_ADD, "project.create"),
-            (AuditLogEntryEvent.PROJECT_EDIT, "project.edit"),
-            (AuditLogEntryEvent.PROJECT_REMOVE, "project.remove"),
-            (AuditLogEntryEvent.PROJECT_SET_PUBLIC, "project.set-public"),
-            (AuditLogEntryEvent.PROJECT_SET_PRIVATE, "project.set-private"),
-            (AuditLogEntryEvent.PROJECT_REQUEST_TRANSFER, "project.request-transfer"),
-            (AuditLogEntryEvent.PROJECT_ACCEPT_TRANSFER, "project.accept-transfer"),
-            (AuditLogEntryEvent.PROJECT_ENABLE, "project.enable"),
-            (AuditLogEntryEvent.PROJECT_DISABLE, "project.disable"),
-            (AuditLogEntryEvent.ORG_ADD, "org.create"),
-            (AuditLogEntryEvent.ORG_EDIT, "org.edit"),
-            (AuditLogEntryEvent.ORG_REMOVE, "org.remove"),
-            (AuditLogEntryEvent.ORG_RESTORE, "org.restore"),
-            (AuditLogEntryEvent.TAGKEY_REMOVE, "tagkey.remove"),
-            (AuditLogEntryEvent.PROJECTKEY_ADD, "projectkey.create"),
-            (AuditLogEntryEvent.PROJECTKEY_EDIT, "projectkey.edit"),
-            (AuditLogEntryEvent.PROJECTKEY_REMOVE, "projectkey.remove"),
-            (AuditLogEntryEvent.PROJECTKEY_ENABLE, "projectkey.enable"),
-            (AuditLogEntryEvent.PROJECTKEY_DISABLE, "projectkey.disable"),
-            (AuditLogEntryEvent.SSO_ENABLE, "sso.enable"),
-            (AuditLogEntryEvent.SSO_DISABLE, "sso.disable"),
-            (AuditLogEntryEvent.SSO_EDIT, "sso.edit"),
-            (AuditLogEntryEvent.SSO_IDENTITY_LINK, "sso-identity.link"),
-            (AuditLogEntryEvent.APIKEY_ADD, "api-key.create"),
-            (AuditLogEntryEvent.APIKEY_EDIT, "api-key.edit"),
-            (AuditLogEntryEvent.APIKEY_REMOVE, "api-key.remove"),
-            (AuditLogEntryEvent.RULE_ADD, "rule.create"),
-            (AuditLogEntryEvent.RULE_EDIT, "rule.edit"),
-            (AuditLogEntryEvent.RULE_REMOVE, "rule.remove"),
-            (AuditLogEntryEvent.SERVICEHOOK_ADD, "servicehook.create"),
-            (AuditLogEntryEvent.SERVICEHOOK_EDIT, "servicehook.edit"),
-            (AuditLogEntryEvent.SERVICEHOOK_REMOVE, "servicehook.remove"),
-            (AuditLogEntryEvent.SERVICEHOOK_ENABLE, "servicehook.enable"),
-            (AuditLogEntryEvent.SERVICEHOOK_DISABLE, "servicehook.disable"),
-            (AuditLogEntryEvent.INTEGRATION_UPGRADE, "integration.upgrade"),
-            (AuditLogEntryEvent.INTEGRATION_ADD, "integration.add"),
-            (AuditLogEntryEvent.INTEGRATION_EDIT, "integration.edit"),
-            (AuditLogEntryEvent.INTEGRATION_REMOVE, "integration.remove"),
-            (AuditLogEntryEvent.SENTRY_APP_ADD, "sentry-app.add"),
-            (AuditLogEntryEvent.SENTRY_APP_REMOVE, "sentry-app.remove"),
-            (AuditLogEntryEvent.SENTRY_APP_INSTALL, "sentry-app.install"),
-            (AuditLogEntryEvent.SENTRY_APP_UNINSTALL, "sentry-app.uninstall"),
-            (AuditLogEntryEvent.INTERNAL_INTEGRATION_ADD, "internal-integration.create"),
-            (AuditLogEntryEvent.INTERNAL_INTEGRATION_ADD_TOKEN, "internal-integration.add-token"),
+            (AuditLogEntryEvent.MEMBER_INVITE, u"member.invite"),
+            (AuditLogEntryEvent.MEMBER_ADD, u"member.add"),
+            (AuditLogEntryEvent.MEMBER_ACCEPT, u"member.accept-invite"),
+            (AuditLogEntryEvent.MEMBER_REMOVE, u"member.remove"),
+            (AuditLogEntryEvent.MEMBER_EDIT, u"member.edit"),
+            (AuditLogEntryEvent.MEMBER_JOIN_TEAM, u"member.join-team"),
+            (AuditLogEntryEvent.MEMBER_LEAVE_TEAM, u"member.leave-team"),
+            (AuditLogEntryEvent.MEMBER_PENDING, u"member.pending"),
+            (AuditLogEntryEvent.TEAM_ADD, u"team.create"),
+            (AuditLogEntryEvent.TEAM_EDIT, u"team.edit"),
+            (AuditLogEntryEvent.TEAM_REMOVE, u"team.remove"),
+            (AuditLogEntryEvent.PROJECT_ADD, u"project.create"),
+            (AuditLogEntryEvent.PROJECT_EDIT, u"project.edit"),
+            (AuditLogEntryEvent.PROJECT_REMOVE, u"project.remove"),
+            (AuditLogEntryEvent.PROJECT_SET_PUBLIC, u"project.set-public"),
+            (AuditLogEntryEvent.PROJECT_SET_PRIVATE, u"project.set-private"),
+            (AuditLogEntryEvent.PROJECT_REQUEST_TRANSFER, u"project.request-transfer"),
+            (AuditLogEntryEvent.PROJECT_ACCEPT_TRANSFER, u"project.accept-transfer"),
+            (AuditLogEntryEvent.PROJECT_ENABLE, u"project.enable"),
+            (AuditLogEntryEvent.PROJECT_DISABLE, u"project.disable"),
+            (AuditLogEntryEvent.ORG_ADD, u"org.create"),
+            (AuditLogEntryEvent.ORG_EDIT, u"org.edit"),
+            (AuditLogEntryEvent.ORG_REMOVE, u"org.remove"),
+            (AuditLogEntryEvent.ORG_RESTORE, u"org.restore"),
+            (AuditLogEntryEvent.TAGKEY_REMOVE, u"tagkey.remove"),
+            (AuditLogEntryEvent.PROJECTKEY_ADD, u"projectkey.create"),
+            (AuditLogEntryEvent.PROJECTKEY_EDIT, u"projectkey.edit"),
+            (AuditLogEntryEvent.PROJECTKEY_REMOVE, u"projectkey.remove"),
+            (AuditLogEntryEvent.PROJECTKEY_ENABLE, u"projectkey.enable"),
+            (AuditLogEntryEvent.PROJECTKEY_DISABLE, u"projectkey.disable"),
+            (AuditLogEntryEvent.SSO_ENABLE, u"sso.enable"),
+            (AuditLogEntryEvent.SSO_DISABLE, u"sso.disable"),
+            (AuditLogEntryEvent.SSO_EDIT, u"sso.edit"),
+            (AuditLogEntryEvent.SSO_IDENTITY_LINK, u"sso-identity.link"),
+            (AuditLogEntryEvent.APIKEY_ADD, u"api-key.create"),
+            (AuditLogEntryEvent.APIKEY_EDIT, u"api-key.edit"),
+            (AuditLogEntryEvent.APIKEY_REMOVE, u"api-key.remove"),
+            (AuditLogEntryEvent.RULE_ADD, u"rule.create"),
+            (AuditLogEntryEvent.RULE_EDIT, u"rule.edit"),
+            (AuditLogEntryEvent.RULE_REMOVE, u"rule.remove"),
+            (AuditLogEntryEvent.SERVICEHOOK_ADD, u"servicehook.create"),
+            (AuditLogEntryEvent.SERVICEHOOK_EDIT, u"servicehook.edit"),
+            (AuditLogEntryEvent.SERVICEHOOK_REMOVE, u"servicehook.remove"),
+            (AuditLogEntryEvent.SERVICEHOOK_ENABLE, u"servicehook.enable"),
+            (AuditLogEntryEvent.SERVICEHOOK_DISABLE, u"servicehook.disable"),
+            (AuditLogEntryEvent.INTEGRATION_UPGRADE, u"integration.upgrade"),
+            (AuditLogEntryEvent.INTEGRATION_ADD, u"integration.add"),
+            (AuditLogEntryEvent.INTEGRATION_EDIT, u"integration.edit"),
+            (AuditLogEntryEvent.INTEGRATION_REMOVE, u"integration.remove"),
+            (AuditLogEntryEvent.SENTRY_APP_ADD, u"sentry-app.add"),
+            (AuditLogEntryEvent.SENTRY_APP_REMOVE, u"sentry-app.remove"),
+            (AuditLogEntryEvent.SENTRY_APP_INSTALL, u"sentry-app.install"),
+            (AuditLogEntryEvent.SENTRY_APP_UNINSTALL, u"sentry-app.uninstall"),
+            (AuditLogEntryEvent.INTERNAL_INTEGRATION_ADD, u"internal-integration.create"),
+            (AuditLogEntryEvent.INTERNAL_INTEGRATION_ADD_TOKEN, u"internal-integration.add-token"),
             (
                 AuditLogEntryEvent.INTERNAL_INTEGRATION_REMOVE_TOKEN,
-                "internal-integration.remove-token",
+                u"internal-integration.remove-token",
             ),
-            (AuditLogEntryEvent.SET_ONDEMAND, "ondemand.edit"),
-            (AuditLogEntryEvent.TRIAL_STARTED, "trial.started"),
-            (AuditLogEntryEvent.PLAN_CHANGED, "plan.changed"),
-            (AuditLogEntryEvent.PLAN_CANCELLED, "plan.cancelled"),
-            (AuditLogEntryEvent.INVITE_REQUEST_ADD, "invite-request.create"),
-            (AuditLogEntryEvent.INVITE_REQUEST_REMOVE, "invite-request.remove"),
+            (AuditLogEntryEvent.SET_ONDEMAND, u"ondemand.edit"),
+            (AuditLogEntryEvent.TRIAL_STARTED, u"trial.started"),
+            (AuditLogEntryEvent.PLAN_CHANGED, u"plan.changed"),
+            (AuditLogEntryEvent.PLAN_CANCELLED, u"plan.cancelled"),
+            (AuditLogEntryEvent.INVITE_REQUEST_ADD, u"invite-request.create"),
+            (AuditLogEntryEvent.INVITE_REQUEST_REMOVE, u"invite-request.remove"),
         )
     )
     ip_address = models.GenericIPAddressField(null=True, unpack_ipv4=True)
@@ -200,6 +203,8 @@ class AuditLogEntry(Model):
                 self.actor_label = self.actor.username
             else:
                 self.actor_label = self.actor_key.key
+        # trim label to the max length
+        self.actor_label = self.actor_label[:MAX_ACTOR_LABEL_LENGTH]
         super(AuditLogEntry, self).save(*args, **kwargs)
 
     def get_actor_name(self):

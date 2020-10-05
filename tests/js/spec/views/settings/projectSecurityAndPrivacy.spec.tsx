@@ -42,8 +42,8 @@ function renderComponent(props: Partial<ProjectSecurityAndPrivacyProps>) {
   );
 }
 
-describe('projectSecurityAndPrivacy', function() {
-  it('renders form fields', function() {
+describe('projectSecurityAndPrivacy', function () {
+  it('renders form fields', function () {
     const wrapper = renderComponent({});
 
     expect(wrapper.find('Switch[name="dataScrubber"]').prop('isActive')).toBeFalsy();
@@ -59,7 +59,7 @@ describe('projectSecurityAndPrivacy', function() {
     );
   });
 
-  it('disables field when equivalent org setting is true', function() {
+  it('disables field when equivalent org setting is true', function () {
     const newOrganization = {...org};
     newOrganization.dataScrubber = true;
     newOrganization.scrubIPAddresses = false;

@@ -54,6 +54,8 @@ SAFE_FUNCTION_RE = re.compile(r"-?[a-zA-Z_][a-zA-Z0-9_]*$")
 # doesn't include new lines,
 QUOTED_LITERAL_RE = re.compile(r"^'[\s\S]*'$")
 
+MEASUREMENTS_KEY_RE = re.compile(r"^measurements\.([a-zA-Z0-9-_.]+)$")
+
 # Global Snuba request option override dictionary. Only intended
 # to be used with the `options_override` contextmanager below.
 # NOT THREAD SAFE!
@@ -333,7 +335,13 @@ def get_snuba_column_name(name, dataset=Dataset.Events):
     if not name or name.startswith("tags[") or QUOTED_LITERAL_RE.match(name):
         return name
 
-    return DATASETS[dataset].get(name, u"tags[{}]".format(name))
+    match = MEASUREMENTS_KEY_RE.match(name)
+    if "measurements_key" in DATASETS[dataset] and match:
+        default = u"measurements[{}]".format(match.group(1).lower())
+    else:
+        default = u"tags[{}]".format(name)
+
+    return DATASETS[dataset].get(name, default)
 
 
 def get_function_index(column_expr, depth=0):
@@ -811,6 +819,11 @@ def resolve_column(dataset):
 
         if col in DATASETS[dataset]:
             return DATASETS[dataset][col]
+
+        match = MEASUREMENTS_KEY_RE.match(col)
+        if "measurements_key" in DATASETS[dataset] and match:
+            return u"measurements[{}]".format(match.group(1).lower())
+
         return u"tags[{}]".format(col)
 
     return _resolve_column
@@ -987,8 +1000,8 @@ def resolve_snuba_aliases(snuba_filter, resolve_func, function_translations=None
     if selected_columns:
         for (idx, col) in enumerate(selected_columns):
             if isinstance(col, (list, tuple)):
-                if len(col) == 3 and col[0] == "transform":
-                    # Add the name from the project transform, and remove the backticks so its not treated as a new col
+                if len(col) == 3:
+                    # Add the name from columns, and remove project backticks so its not treated as a new col
                     derived_columns.add(col[2].strip("`"))
                 resolve_complex_column(col, resolve_func)
             else:
@@ -1283,3 +1296,16 @@ def quantize_time(time, key_hash, duration=300):
         # Use timedelta here so keys are consistent around hour boundaries
         timedelta(seconds=seconds_past_hour)
     )
+
+
+def is_measurement(key):
+    return isinstance(key, six.string_types) and MEASUREMENTS_KEY_RE.match(key)
+
+
+def is_duration_measurement(key):
+    return key in [
+        "measurements.fp",
+        "measurements.fcp",
+        "measurements.lcp",
+        "measurements.fid",
+    ]

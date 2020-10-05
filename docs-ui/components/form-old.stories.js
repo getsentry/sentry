@@ -25,7 +25,7 @@ UndoButton.contextTypes = {
 };
 
 export default {
-  title: 'Forms/Old/Form',
+  title: 'Core/Forms/Old/Form',
 };
 
 export const Empty = withInfo('Empty form')(() => (

@@ -247,10 +247,6 @@ MIGRATED_CONDITIONS = frozenset(
     ]
 )
 
-SENTRY_RULES_WITH_MIGRATED_FILTERS = frozenset(
-    [rule for rule in SENTRY_RULES if rule not in MIGRATED_CONDITIONS]
-)
-
 # methods as defined by http://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html + PATCH
 HTTP_METHODS = ("GET", "POST", "PUT", "OPTIONS", "HEAD", "DELETE", "TRACE", "CONNECT", "PATCH")
 
@@ -412,10 +408,10 @@ class ObjectStatus(object):
     @classmethod
     def as_choices(cls):
         return (
-            (cls.ACTIVE, "active"),
-            (cls.DISABLED, "disabled"),
-            (cls.PENDING_DELETION, "pending_deletion"),
-            (cls.DELETION_IN_PROGRESS, "deletion_in_progress"),
+            (cls.ACTIVE, u"active"),
+            (cls.DISABLED, u"disabled"),
+            (cls.PENDING_DELETION, u"pending_deletion"),
+            (cls.DELETION_IN_PROGRESS, u"deletion_in_progress"),
         )
 
 
@@ -430,9 +426,9 @@ class SentryAppStatus(object):
     @classmethod
     def as_choices(cls):
         return (
-            (cls.UNPUBLISHED, cls.UNPUBLISHED_STR),
-            (cls.PUBLISHED, cls.PUBLISHED_STR),
-            (cls.INTERNAL, cls.INTERNAL_STR),
+            (cls.UNPUBLISHED, six.text_type(cls.UNPUBLISHED_STR)),
+            (cls.PUBLISHED, six.text_type(cls.PUBLISHED_STR)),
+            (cls.INTERNAL, six.text_type(cls.INTERNAL_STR)),
         )
 
     @classmethod
@@ -453,7 +449,10 @@ class SentryAppInstallationStatus(object):
 
     @classmethod
     def as_choices(cls):
-        return ((cls.PENDING, cls.PENDING_STR), (cls.INSTALLED, cls.INSTALLED_STR))
+        return (
+            (cls.PENDING, six.text_type(cls.PENDING_STR)),
+            (cls.INSTALLED, six.text_type(cls.INSTALLED_STR)),
+        )
 
     @classmethod
     def as_str(cls, status):

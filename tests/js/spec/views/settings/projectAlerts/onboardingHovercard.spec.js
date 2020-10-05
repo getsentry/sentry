@@ -8,10 +8,10 @@ import {updateOnboardingTask} from 'app/actionCreators/onboardingTasks';
 
 jest.mock('app/actionCreators/onboardingTasks');
 
-describe('OnboardingHovercard', function() {
+describe('OnboardingHovercard', function () {
   const {organization, routerContext} = initializeOrg();
 
-  it('is hidden when onboardingTask is not in the query string', function() {
+  it('is hidden when onboardingTask is not in the query string', function () {
     const wrapper = mountWithTheme(
       <OnboardingHovercard
         api={MockApiClient}
@@ -26,7 +26,7 @@ describe('OnboardingHovercard', function() {
     expect(wrapper.find('Hovercard').exists()).toBeFalsy();
   });
 
-  it('is hidden when the alert rule task is not complete', function() {
+  it('is hidden when the alert rule task is not complete', function () {
     const completedOnboardingOrg = {
       ...organization,
       onboardingTasks: [{task: 'setup_alert_rules', status: 'complete'}],
@@ -47,7 +47,7 @@ describe('OnboardingHovercard', function() {
     return;
   });
 
-  it('updates the onboarding task when the default alert rules button is clicked', function() {
+  it('updates the onboarding task when the default alert rules button is clicked', function () {
     const wrapper = mountWithTheme(
       <OnboardingHovercard
         api={MockApiClient}
@@ -64,7 +64,7 @@ describe('OnboardingHovercard', function() {
     expect(updateOnboardingTask).toHaveBeenCalled();
   });
 
-  it('renders', function() {
+  it('renders', function () {
     const wrapper = mountWithTheme(
       <OnboardingHovercard
         api={MockApiClient}

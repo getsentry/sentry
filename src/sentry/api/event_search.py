@@ -28,8 +28,10 @@ from sentry.snuba.dataset import Dataset
 from sentry.utils.dates import to_timestamp
 from sentry.utils.snuba import (
     DATASETS,
-    get_json_type,
     FUNCTION_TO_OPERATOR,
+    get_json_type,
+    is_measurement,
+    is_duration_measurement,
     OPERATOR_TO_FUNCTION,
     SNUBA_AND,
     SNUBA_OR,
@@ -240,7 +242,13 @@ class SearchFilter(namedtuple("SearchFilter", "key operator value")):
 class SearchKey(namedtuple("SearchKey", "name")):
     @cached_property
     def is_tag(self):
-        return TAG_KEY_RE.match(self.name) or self.name not in SEARCH_MAP
+        return TAG_KEY_RE.match(self.name) or (
+            self.name not in SEARCH_MAP and not self.is_measurement
+        )
+
+    @cached_property
+    def is_measurement(self):
+        return is_measurement(self.name) and self.name not in SEARCH_MAP
 
 
 class AggregateFilter(namedtuple("AggregateFilter", "key operator value")):
@@ -347,6 +355,12 @@ class SearchVisitor(NodeVisitor):
 
         return filter(is_not_space, children)
 
+    def is_numeric_key(self, key):
+        return key in self.numeric_keys or is_measurement(key)
+
+    def is_duration_key(self, key):
+        return key in self.duration_keys or is_duration_measurement(key)
+
     def visit_search(self, node, children):
         return self.flatten(children)
 
@@ -384,9 +398,12 @@ class SearchVisitor(NodeVisitor):
         (search_key, _, operator, search_value) = children
         operator = operator[0] if not isinstance(operator, Node) else "="
 
-        if search_key.name in self.numeric_keys:
+        if self.is_numeric_key(search_key.name):
             try:
-                search_value = SearchValue(int(search_value.text))
+                if is_measurement(search_key.name):
+                    search_value = SearchValue(float(search_value.text))
+                else:
+                    search_value = SearchValue(int(search_value.text))
             except ValueError:
                 raise InvalidSearchQuery(u"Invalid numeric query: {}".format(search_key))
             return SearchFilter(search_key, operator, search_value)
@@ -414,7 +431,7 @@ class SearchVisitor(NodeVisitor):
                 _, agg_additions = resolve_field(search_key.name, None)
                 if len(agg_additions) > 0:
                     # Extract column and function name out so we can check if we should parse as duration
-                    if agg_additions[0][-2] in self.duration_keys:
+                    if self.is_duration_key(agg_additions[0][-2]):
                         aggregate_value = parse_duration(*search_value.match.groups())
 
             if aggregate_value is None:
@@ -479,7 +496,7 @@ class SearchVisitor(NodeVisitor):
         (search_key, _, operator, search_value) = children
 
         operator = operator[0] if not isinstance(operator, Node) else "="
-        if search_key.name in self.duration_keys:
+        if self.is_duration_key(search_key.name):
             try:
                 search_value = parse_duration(*search_value.match.groups())
             except InvalidQuery as exc:
@@ -568,7 +585,7 @@ class SearchVisitor(NodeVisitor):
         # that the value wasn't in a valid format, so raise here.
         if search_key.name in self.date_keys:
             raise InvalidSearchQuery("Invalid format for date search")
-        if search_key.name in self.numeric_keys:
+        if self.is_numeric_key(search_key.name):
             raise InvalidSearchQuery("Invalid format for numeric search")
 
         return SearchFilter(search_key, operator, search_value)
@@ -1208,10 +1225,12 @@ def get_json_meta_type(field_alias, snuba_type):
     function_match = FUNCTION_ALIAS_PATTERN.match(field_alias)
     if function_match and snuba_json != "string":
         function_definition = FUNCTIONS.get(function_match.group(1))
-        if function_definition and function_definition.get("result_type"):
-            return function_definition.get("result_type")
-    if "duration" in field_alias:
+        if function_definition and function_definition.result_type:
+            return function_definition.result_type
+    if "duration" in field_alias or is_duration_measurement(field_alias):
         return "duration"
+    if is_measurement(field_alias):
+        return "number"
     if field_alias == "transaction.status":
         return "string"
     return snuba_json
@@ -1230,14 +1249,15 @@ class ArgValue(object):
 
 
 class FunctionArg(object):
-    def __init__(self, name):
+    def __init__(self, name, has_default=False):
         self.name = name
+        self.has_default = has_default
 
     def normalize(self, value):
         return value
 
-    def has_default(self, params):
-        return False
+    def get_default(self, params):
+        raise InvalidFunctionArgument(u"{} has no defaults".format(self.name))
 
 
 class NullColumn(FunctionArg):
@@ -1247,7 +1267,10 @@ class NullColumn(FunctionArg):
     required argument that we ignore.
     """
 
-    def has_default(self, params):
+    def __init__(self, name):
+        super(NullColumn, self).__init__(name, has_default=True)
+
+    def get_default(self, params):
         return None
 
     def normalize(self, value):
@@ -1255,7 +1278,10 @@ class NullColumn(FunctionArg):
 
 
 class CountColumn(FunctionArg):
-    def has_default(self, params):
+    def __init__(self, name):
+        super(CountColumn, self).__init__(name, has_default=True)
+
+    def get_default(self, params):
         return None
 
     def normalize(self, value):
@@ -1291,6 +1317,8 @@ class DateArg(FunctionArg):
 class NumericColumn(FunctionArg):
     def normalize(self, value):
         snuba_column = SEARCH_MAP.get(value)
+        if not snuba_column and is_measurement(value):
+            return value
         if not snuba_column:
             raise InvalidFunctionArgument(u"{} is not a valid column".format(value))
         elif snuba_column not in ["time", "timestamp", "duration"]:
@@ -1307,6 +1335,8 @@ class NumericColumnNoLookup(NumericColumn):
 class DurationColumn(FunctionArg):
     def normalize(self, value):
         snuba_column = SEARCH_MAP.get(value)
+        if not snuba_column and is_duration_measurement(value):
+            return value
         if not snuba_column:
             raise InvalidFunctionArgument(u"{} is not a valid column".format(value))
         elif snuba_column != "duration":
@@ -1320,9 +1350,16 @@ class DurationColumnNoLookup(DurationColumn):
         return value
 
 
+class StringArrayColumn(FunctionArg):
+    def normalize(self, value):
+        if value in ["tags.key", "tags.value", "measurements_key"]:
+            return value
+        raise InvalidFunctionArgument(u"{} is not a valid string array column".format(value))
+
+
 class NumberRange(FunctionArg):
-    def __init__(self, name, start, end):
-        super(NumberRange, self).__init__(name)
+    def __init__(self, name, start, end, has_default=False):
+        super(NumberRange, self).__init__(name, has_default=has_default)
         self.start = start
         self.end = end
 
@@ -1343,7 +1380,10 @@ class NumberRange(FunctionArg):
 
 
 class IntervalDefault(NumberRange):
-    def has_default(self, params):
+    def __init__(self, name, start, end):
+        super(IntervalDefault, self).__init__(name, start, end, has_default=True)
+
+    def get_default(self, params):
         if not params or not params.get("start") or not params.get("end"):
             raise InvalidFunctionArgument("function called without default")
         elif not isinstance(params.get("start"), datetime) or not isinstance(
@@ -1355,233 +1395,422 @@ class IntervalDefault(NumberRange):
         return int(interval)
 
 
+class Function(object):
+    def __init__(
+        self,
+        name,
+        required_args=None,
+        optional_args=None,
+        calculated_args=None,
+        column=None,
+        aggregate=None,
+        transform=None,
+        result_type=None,
+    ):
+        """
+        Specifies a function interface that must be followed when defining new functions
+
+        :param str name: The name of the function, this refers to the name to invoke.
+        :param list[FunctionArg] required_args: The list of required arguments to the function.
+            If any of these arguments are not specified, an error will be raised.
+        :param list[FunctionArg] optional_args: The list of optional arguments to the function.
+            If any of these arguments are not specified, they will be filled using their default value.
+        :param list[obj] calculated_args: The list of calculated arguments to the function.
+            These arguments will be computed based on the list of specified arguments.
+        :param [str, [any], str or None] column: The column to be passed to snuba once formatted.
+            The arguments will be filled into the column where needed. This must not be an aggregate.
+        :param [str, [any], str or None] aggregate: The aggregate to be passed to snuba once formatted.
+            The arguments will be filled into the aggregate where needed. This must be an aggregate.
+        :param str transform: NOTE: Use aggregate over transform whenever possible.
+            An aggregate string to be passed to snuba once formatted. The arguments
+            will be filled into the string using `.format(...)`.
+        :param str result_type: The resulting type of this function. Can be any of the following
+            (duration, string, number, integer, percentage, date).
+        """
+
+        self.name = name
+        self.result_type = result_type
+        self.required_args = [] if required_args is None else required_args
+        self.optional_args = [] if optional_args is None else optional_args
+        self.calculated_args = [] if calculated_args is None else calculated_args
+        self.column = column
+        self.aggregate = aggregate
+        self.transform = transform
+
+        self.validate()
+
+    @property
+    def required_args_count(self):
+        return len(self.required_args)
+
+    @property
+    def optional_args_count(self):
+        return len(self.optional_args)
+
+    @property
+    def total_args_count(self):
+        return self.required_args_count + self.optional_args_count
+
+    @property
+    def args(self):
+        return self.required_args + self.optional_args
+
+    def format_as_arguments(self, field, columns, params):
+        # make sure to validate the argument count first to
+        # ensure the right number of arguments have been passed
+        self.validate_argument_count(field, columns)
+
+        columns = [column for column in columns]
+
+        # use default values to populate optional arguments if any
+        for argument in self.args[len(columns) :]:
+            try:
+                default = argument.get_default(params)
+            except InvalidFunctionArgument as e:
+                raise InvalidSearchQuery(u"{}: invalid arguments: {}".format(field, e))
+
+            # Hacky, but we expect column arguments to be strings so easiest to convert it back
+            columns.append(six.text_type(default) if default else default)
+
+        arguments = {}
+
+        # normalize the arguments before putting them in a dict
+        for column_value, argument in zip(columns, self.args):
+            try:
+                arguments[argument.name] = argument.normalize(column_value)
+            except InvalidFunctionArgument as e:
+                raise InvalidSearchQuery(
+                    u"{}: {} argument invalid: {}".format(field, argument.name, e)
+                )
+
+        # populate any computed args
+        for calculation in self.calculated_args:
+            arguments[calculation["name"]] = calculation["fn"](arguments)
+
+        return arguments
+
+    def validate(self):
+        # assert that all optional args have defaults available
+        for i, arg in enumerate(self.optional_args):
+            assert (
+                arg.has_default
+            ), u"{}: optional argument at index {} does not have default".format(self.name, i)
+
+        # assert that the function has only one of the following specified
+        # `column`, `aggregate`, or `transform`
+        assert (
+            sum([self.column is not None, self.aggregate is not None, self.transform is not None])
+            == 1
+        ), u"{}: only one of column, aggregate, or transform is allowed".format(self.name)
+
+        # assert that no duplicate argument names are used
+        names = set()
+        for arg in self.args:
+            assert arg.name not in names, u"{}: argument {} specified more than once".format(
+                self.name, arg.name
+            )
+            names.add(arg.name)
+
+        for calculation in self.calculated_args:
+            assert (
+                calculation["name"] not in names
+            ), u"{}: argument {} specified more than once".format(self.name, calculation["name"])
+            names.add(calculation["name"])
+
+    def validate_argument_count(self, field, arguments):
+        """
+        Validate the number of required arguments the function defines against
+        provided arguments. Raise an exception if there is a mismatch in the
+        number of arguments. Do not return any values.
+
+        There are 4 cases:
+            1. provided # of arguments != required # of arguments AND provided # of arguments != total # of arguments (bad, raise an error)
+            2. provided # of arguments < required # of arguments (bad, raise an error)
+            3. provided # of arguments > total # of arguments (bad, raise an error)
+            4. required # of arguments <= provided # of arguments <= total # of arguments (good, pass the validation)
+        """
+        args_count = len(arguments)
+        total_args_count = self.total_args_count
+        if args_count != total_args_count:
+            required_args_count = self.required_args_count
+            if required_args_count == total_args_count:
+                raise InvalidSearchQuery(
+                    u"{}: expected {:g} argument(s)".format(field, total_args_count)
+                )
+            elif args_count < required_args_count:
+                raise InvalidSearchQuery(
+                    u"{}: expected at least {:g} argument(s)".format(field, required_args_count)
+                )
+            elif args_count > total_args_count:
+                raise InvalidSearchQuery(
+                    u"{}: expected at most {:g} argument(s)".format(field, total_args_count)
+                )
+
+
 # When adding functions to this list please also update
 # static/sentry/app/utils/discover/fields.tsx so that
 # the UI builder stays in sync.
 FUNCTIONS = {
-    "percentile": {
-        "name": "percentile",
-        "args": [DurationColumnNoLookup("column"), NumberRange("percentile", 0, 1)],
-        "aggregate": [u"quantile({percentile:g})", ArgValue("column"), None],
-        "result_type": "duration",
-    },
-    "p50": {
-        "name": "p50",
-        "args": [],
-        "aggregate": [u"quantile(0.5)", "transaction.duration", None],
-        "result_type": "duration",
-    },
-    "p75": {
-        "name": "p75",
-        "args": [],
-        "aggregate": [u"quantile(0.75)", "transaction.duration", None],
-        "result_type": "duration",
-    },
-    "p95": {
-        "name": "p95",
-        "args": [],
-        "aggregate": [u"quantile(0.95)", "transaction.duration", None],
-        "result_type": "duration",
-    },
-    "p99": {
-        "name": "p99",
-        "args": [],
-        "aggregate": [u"quantile(0.99)", "transaction.duration", None],
-        "result_type": "duration",
-    },
-    "p100": {
-        "name": "p100",
-        "args": [],
-        "aggregate": [u"max", "transaction.duration", None],
-        "result_type": "duration",
-    },
-    "eps": {
-        "name": "eps",
-        "args": [IntervalDefault("interval", 1, None)],
-        "transform": u"divide(count(), {interval:g})",
-        "result_type": "number",
-    },
-    "epm": {
-        "name": "epm",
-        "args": [IntervalDefault("interval", 60, None)],
-        "transform": u"divide(count(), divide({interval:g}, 60))",
-        "result_type": "number",
-    },
-    "last_seen": {
-        "name": "last_seen",
-        "args": [],
-        "aggregate": ["max", "timestamp", "last_seen"],
-        "result_type": "date",
-    },
-    "latest_event": {
-        "name": "latest_event",
-        "args": [],
-        "aggregate": ["argMax", ["id", "timestamp"], "latest_event"],
-        "result_type": "string",
-    },
-    "apdex": {
-        "name": "apdex",
-        "args": [NumberRange("satisfaction", 0, None)],
-        "transform": u"apdex(duration, {satisfaction:g})",
-        "result_type": "number",
-    },
-    "user_misery": {
-        "name": "user_misery",
-        "args": [NumberRange("satisfaction", 0, None)],
-        "calculated_args": [{"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0}],
-        "transform": u"uniqIf(user, greater(duration, {tolerated:g}))",
-        "result_type": "number",
-    },
-    "failure_rate": {
-        "name": "failure_rate",
-        "args": [],
-        "transform": "failure_rate()",
-        "result_type": "percentage",
-    },
-    # The user facing signature for this function is histogram(<column>, <num_buckets>)
-    # Internally, snuba.discover.query() expands the user request into this value by
-    # calculating the bucket size and start_offset.
-    "histogram": {
-        "name": "histogram",
-        "args": [
-            DurationColumnNoLookup("column"),
-            NumberRange("num_buckets", 1, 500),
-            NumberRange("bucket_size", 0, None),
-            NumberRange("start_offset", 0, None),
-        ],
-        "column": [
-            "multiply",
-            [
-                ["floor", [["divide", [ArgValue("column"), ArgValue("bucket_size")]]]],
-                ArgValue("bucket_size"),
+    function.name: function
+    for function in [
+        Function(
+            "percentile",
+            required_args=[DurationColumnNoLookup("column"), NumberRange("percentile", 0, 1)],
+            aggregate=[u"quantile({percentile:g})", ArgValue("column"), None],
+            result_type="duration",
+        ),
+        Function(
+            "p50",
+            aggregate=[u"quantile(0.5)", "transaction.duration", None],
+            result_type="duration",
+        ),
+        Function(
+            "p75",
+            aggregate=[u"quantile(0.75)", "transaction.duration", None],
+            result_type="duration",
+        ),
+        Function(
+            "p95",
+            aggregate=[u"quantile(0.95)", "transaction.duration", None],
+            result_type="duration",
+        ),
+        Function(
+            "p99",
+            aggregate=[u"quantile(0.99)", "transaction.duration", None],
+            result_type="duration",
+        ),
+        Function("p100", aggregate=[u"max", "transaction.duration", None], result_type="duration",),
+        Function(
+            "eps",
+            optional_args=[IntervalDefault("interval", 1, None)],
+            transform=u"divide(count(), {interval:g})",
+            result_type="number",
+        ),
+        Function(
+            "epm",
+            optional_args=[IntervalDefault("interval", 60, None)],
+            transform=u"divide(count(), divide({interval:g}, 60))",
+            result_type="number",
+        ),
+        Function("last_seen", aggregate=["max", "timestamp", "last_seen"], result_type="date",),
+        Function(
+            "latest_event",
+            aggregate=["argMax", ["id", "timestamp"], "latest_event"],
+            result_type="string",
+        ),
+        Function(
+            "apdex",
+            required_args=[NumberRange("satisfaction", 0, None)],
+            transform=u"apdex(duration, {satisfaction:g})",
+            result_type="number",
+        ),
+        Function(
+            "user_misery",
+            required_args=[NumberRange("satisfaction", 0, None)],
+            calculated_args=[{"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0}],
+            transform=u"uniqIf(user, greater(duration, {tolerated:g}))",
+            result_type="number",
+        ),
+        Function("failure_rate", transform="failure_rate()", result_type="percentage",),
+        Function(
+            "array_join",
+            required_args=[StringArrayColumn("column")],
+            column=["arrayJoin", [ArgValue("column")], None],
+            result_type="string",
+        ),
+        Function(
+            "measurements_histogram",
+            required_args=[
+                # the bucket_size and start_offset should already be adjusted
+                # using the multiplier before it is passed here
+                NumberRange("bucket_size", 0, None),
+                NumberRange("start_offset", 0, None),
+                NumberRange("multiplier", 1, None),
             ],
-            None,
-        ],
-        "result_type": "number",
-    },
-    "count_unique": {
-        "name": "count_unique",
-        "args": [CountColumn("column")],
-        "aggregate": ["uniq", ArgValue("column"), None],
-        "result_type": "integer",
-    },
-    "count": {
-        "name": "count",
-        "args": [NullColumn("column")],
-        "aggregate": ["count", None, None],
-        "result_type": "integer",
-    },
-    "min": {
-        "name": "min",
-        "args": [NumericColumnNoLookup("column")],
-        "aggregate": ["min", ArgValue("column"), None],
-    },
-    "max": {
-        "name": "max",
-        "args": [NumericColumnNoLookup("column")],
-        "aggregate": ["max", ArgValue("column"), None],
-    },
-    "avg": {
-        "name": "avg",
-        "args": [DurationColumnNoLookup("column")],
-        "aggregate": ["avg", ArgValue("column"), None],
-        "result_type": "duration",
-    },
-    "sum": {
-        "name": "sum",
-        "args": [DurationColumnNoLookup("column")],
-        "aggregate": ["sum", ArgValue("column"), None],
-        "result_type": "duration",
-    },
-    # Currently only being used by the baseline PoC
-    "absolute_delta": {
-        "name": "absolute_delta",
-        "args": [DurationColumn("column"), NumberRange("target", 0, None)],
-        "transform": u"abs(minus({column}, {target:g}))",
-        "result_type": "duration",
-    },
-    # These range functions for performance trends, these aren't If functions
-    # to avoid allowing arbitrary if statements
-    # Not yet supported in Discover, and shouldn't be added to fields.tsx
-    "percentile_range": {
-        "name": "percentile_range",
-        "args": [
-            DurationColumn("column"),
-            NumberRange("percentile", 0, 1),
-            DateArg("start"),
-            DateArg("end"),
-            NumberRange("index", 1, None),
-        ],
-        "aggregate": [
-            u"quantileIf({percentile:.2f})({column},and(greaterOrEquals(timestamp,toDateTime('{start}')),less(timestamp,toDateTime('{end}'))))",
-            None,
-            "percentile_range_{index:g}",
-        ],
-        "result_type": "duration",
-    },
-    "avg_range": {
-        "name": "avg_range",
-        "args": [
-            DurationColumn("column"),
-            DateArg("start"),
-            DateArg("end"),
-            NumberRange("index", 1, None),
-        ],
-        "aggregate": [
-            u"avgIf({column},and(greaterOrEquals(timestamp,toDateTime('{start}')),less(timestamp,toDateTime('{end}'))))",
-            None,
-            "avg_range_{index:g}",
-        ],
-        "result_type": "duration",
-    },
-    "user_misery_range": {
-        "name": "user_misery_range",
-        "args": [
-            NumberRange("satisfaction", 0, None),
-            DateArg("start"),
-            DateArg("end"),
-            NumberRange("index", 1, None),
-        ],
-        "calculated_args": [{"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0}],
-        "aggregate": [
-            u"uniqIf(user,and(greater(duration,{tolerated:g}),and(greaterOrEquals(timestamp,toDateTime('{start}')),less(timestamp,toDateTime('{end}')))))",
-            None,
-            u"user_misery_range_{index:g}",
-        ],
-        "result_type": "number",
-    },
-    "count_range": {
-        "name": "count_range",
-        "args": [DateArg("start"), DateArg("end"), NumberRange("index", 1, None)],
-        "aggregate": [
-            u"countIf(and(greaterOrEquals(timestamp,toDateTime('{start}')),less(timestamp,toDateTime('{end}'))))",
-            None,
-            "count_range_{index:g}",
-        ],
-        "result_type": "integer",
-    },
-    "percentage": {
-        "name": "percentage",
-        "args": [FunctionArg("numerator"), FunctionArg("denominator")],
-        "aggregate": [
-            u"if(greater({denominator},0),divide({numerator},{denominator}),null)",
-            None,
-            None,
-        ],
-        "result_type": "percentage",
-    },
-    "minus": {
-        "name": "minus",
-        "args": [FunctionArg("minuend"), FunctionArg("subtrahend")],
-        "aggregate": [u"minus", [ArgValue("minuend"), ArgValue("subtrahend")], None],
-        "result_type": "duration",
-    },
-    "absolute_correlation": {
-        "name": "absolute_correlation",
-        "args": [],
-        "aggregate": ["abs", [["corr", ["toUnixTimestamp", ["timestamp"], "duration"]]], None],
-        "result_type": "number",
-    },
+            # floor((x * multiplier - start_offset) / bucket_size) * bucket_size + start_offset
+            column=[
+                "plus",
+                [
+                    [
+                        "multiply",
+                        [
+                            [
+                                "floor",
+                                [
+                                    [
+                                        "divide",
+                                        [
+                                            [
+                                                "minus",
+                                                [
+                                                    [
+                                                        "multiply",
+                                                        [
+                                                            ["arrayJoin", ["measurements_value"]],
+                                                            ArgValue("multiplier"),
+                                                        ],
+                                                    ],
+                                                    ArgValue("start_offset"),
+                                                ],
+                                            ],
+                                            ArgValue("bucket_size"),
+                                        ],
+                                    ],
+                                ],
+                            ],
+                            ArgValue("bucket_size"),
+                        ],
+                    ],
+                    ArgValue("start_offset"),
+                ],
+                None,
+            ],
+            result_type="number",
+        ),
+        # The user facing signature for this function is histogram(<column>, <num_buckets>)
+        # Internally, snuba.discover.query() expands the user request into this value by
+        # calculating the bucket size and start_offset.
+        Function(
+            "histogram",
+            required_args=[
+                DurationColumnNoLookup("column"),
+                NumberRange("num_buckets", 1, 500),
+                NumberRange("bucket_size", 0, None),
+                NumberRange("start_offset", 0, None),
+            ],
+            column=[
+                "multiply",
+                [
+                    ["floor", [["divide", [ArgValue("column"), ArgValue("bucket_size")]]]],
+                    ArgValue("bucket_size"),
+                ],
+                None,
+            ],
+            result_type="number",
+        ),
+        Function(
+            "count_unique",
+            optional_args=[CountColumn("column")],
+            aggregate=["uniq", ArgValue("column"), None],
+            result_type="integer",
+        ),
+        Function(
+            "count",
+            optional_args=[NullColumn("column")],
+            aggregate=["count", None, None],
+            result_type="integer",
+        ),
+        Function(
+            "min",
+            required_args=[NumericColumnNoLookup("column")],
+            aggregate=["min", ArgValue("column"), None],
+        ),
+        Function(
+            "max",
+            required_args=[NumericColumnNoLookup("column")],
+            aggregate=["max", ArgValue("column"), None],
+        ),
+        Function(
+            "avg",
+            required_args=[NumericColumnNoLookup("column")],
+            aggregate=["avg", ArgValue("column"), None],
+            result_type="duration",
+        ),
+        Function(
+            "sum",
+            required_args=[NumericColumnNoLookup("column")],
+            aggregate=["sum", ArgValue("column"), None],
+            result_type="duration",
+        ),
+        # Currently only being used by the baseline PoC
+        Function(
+            "absolute_delta",
+            required_args=[DurationColumnNoLookup("column"), NumberRange("target", 0, None)],
+            column=["abs", [["minus", [ArgValue("column"), ArgValue("target")]]], None],
+            result_type="duration",
+        ),
+        # These range functions for performance trends, these aren't If functions
+        # to avoid allowing arbitrary if statements
+        # Not yet supported in Discover, and shouldn't be added to fields.tsx
+        Function(
+            "percentile_range",
+            required_args=[
+                DurationColumn("column"),
+                NumberRange("percentile", 0, 1),
+                DateArg("start"),
+                DateArg("end"),
+                NumberRange("index", 1, None),
+            ],
+            aggregate=[
+                u"quantileIf({percentile:.2f})({column},and(greaterOrEquals(timestamp,toDateTime('{start}')),less(timestamp,toDateTime('{end}'))))",
+                None,
+                "percentile_range_{index:g}",
+            ],
+            result_type="duration",
+        ),
+        Function(
+            "avg_range",
+            required_args=[
+                DurationColumn("column"),
+                DateArg("start"),
+                DateArg("end"),
+                NumberRange("index", 1, None),
+            ],
+            aggregate=[
+                u"avgIf({column},and(greaterOrEquals(timestamp,toDateTime('{start}')),less(timestamp,toDateTime('{end}'))))",
+                None,
+                "avg_range_{index:g}",
+            ],
+            result_type="duration",
+        ),
+        Function(
+            "user_misery_range",
+            required_args=[
+                NumberRange("satisfaction", 0, None),
+                DateArg("start"),
+                DateArg("end"),
+                NumberRange("index", 1, None),
+            ],
+            calculated_args=[{"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0}],
+            aggregate=[
+                u"uniqIf(user,and(greater(duration,{tolerated:g}),and(greaterOrEquals(timestamp,toDateTime('{start}')),less(timestamp,toDateTime('{end}')))))",
+                None,
+                "user_misery_range_{index:g}",
+            ],
+            result_type="duration",
+        ),
+        Function(
+            "count_range",
+            required_args=[DateArg("start"), DateArg("end"), NumberRange("index", 1, None)],
+            aggregate=[
+                u"countIf(and(greaterOrEquals(timestamp,toDateTime('{start}')),less(timestamp,toDateTime('{end}'))))",
+                None,
+                "count_range_{index:g}",
+            ],
+            result_type="integer",
+        ),
+        Function(
+            "percentage",
+            required_args=[FunctionArg("numerator"), FunctionArg("denominator")],
+            aggregate=[
+                u"if(greater({denominator},0),divide({numerator},{denominator}),null)",
+                None,
+                None,
+            ],
+            result_type="percentage",
+        ),
+        Function(
+            "minus",
+            required_args=[FunctionArg("minuend"), FunctionArg("subtrahend")],
+            aggregate=[u"minus", [ArgValue("minuend"), ArgValue("subtrahend")], None],
+            result_type="duration",
+        ),
+        Function(
+            "absolute_correlation",
+            aggregate=["abs", [["corr", ["toUnixTimestamp", ["timestamp"], "duration"]]], None],
+            result_type="number",
+        ),
+    ]
 }
 
 
@@ -1637,53 +1866,16 @@ def resolve_function(field, match=None, params=None):
     function, columns = parse_function(field, match)
     function = FUNCTIONS[match.group("function")]
 
-    # Some functions can optionally take no parameters (epm(), eps()). In that case use the
-    # passed in params to create a default argument if necessary.
-    used_default = False
-    if len(columns) == 0 and len(function["args"]) == 1:
-        try:
-            default = function["args"][0].has_default(params)
-        except InvalidFunctionArgument as e:
-            raise InvalidSearchQuery(u"{}: invalid arguments: {}".format(field, e))
+    arguments = function.format_as_arguments(field, columns, params)
 
-        # Hacky, but we expect column arguments to be strings so easiest to convert it back
-        if default is not False:
-            columns = [six.text_type(default) if default else default]
-            used_default = True
-
-    if len(columns) != len(function["args"]):
-        raise InvalidSearchQuery(
-            u"{}: expected {:g} arguments".format(field, len(function["args"]))
-        )
-
-    arguments = {}
-    for column_value, argument in zip(columns, function["args"]):
-        try:
-            normalized_value = argument.normalize(column_value)
-            arguments[argument.name] = normalized_value
-        except InvalidFunctionArgument as e:
-            raise InvalidSearchQuery(u"{}: {} argument invalid: {}".format(field, argument.name, e))
-
-    if "calculated_args" in function:
-        for calculation in function["calculated_args"]:
-            arguments[calculation["name"]] = calculation["fn"](arguments)
-
-    if "transform" in function:
-        snuba_string = function["transform"].format(**arguments)
+    if function.transform is not None:
+        snuba_string = function.transform.format(**arguments)
         return (
             [],
-            [
-                [
-                    snuba_string,
-                    None,
-                    get_function_alias_with_columns(
-                        function["name"], columns if not used_default else []
-                    ),
-                ]
-            ],
+            [[snuba_string, None, get_function_alias_with_columns(function.name, columns)]],
         )
-    elif "aggregate" in function:
-        aggregate = deepcopy(function["aggregate"])
+    elif function.aggregate is not None:
+        aggregate = deepcopy(function.aggregate)
 
         aggregate[0] = aggregate[0].format(**arguments)
         if isinstance(aggregate[1], (list, tuple)):
@@ -1694,27 +1886,19 @@ def resolve_function(field, match=None, params=None):
             arg = aggregate[1].arg
             aggregate[1] = arguments[arg]
         if aggregate[2] is None:
-            aggregate[2] = get_function_alias_with_columns(
-                function["name"], columns if not used_default else []
-            )
+            aggregate[2] = get_function_alias_with_columns(function.name, columns)
         else:
             aggregate[2] = aggregate[2].format(**arguments)
 
         return ([], [aggregate])
-    elif "column" in function:
+    elif function.column is not None:
         # These can be very nested functions, so we need to iterate through all the layers
-        addition = deepcopy(function["column"])
+        addition = deepcopy(function.column)
         format_column_arguments(addition, arguments)
         if len(addition) < 3:
-            addition.append(
-                get_function_alias_with_columns(
-                    function["name"], columns if not used_default else []
-                )
-            )
+            addition.append(get_function_alias_with_columns(function.name, columns))
         elif len(addition) == 3 and addition[2] is None:
-            addition[2] = get_function_alias_with_columns(
-                function["name"], columns if not used_default else []
-            )
+            addition[2] = get_function_alias_with_columns(function.name, columns)
         return ([addition], [])
 
 

@@ -30,6 +30,24 @@ _lone_surrogate = re.compile(
 )
 
 
+def unicode_escape_recovery_handler(err):
+    try:
+        value = err.object[err.start : err.end].decode("utf-8")
+    except UnicodeError:
+        value = u""
+    return value, err.end
+
+
+codecs.register_error("unicode-escape-recovery", unicode_escape_recovery_handler)
+
+
+def unescape_string(value):
+    """Unescapes a backslash escaped string."""
+    return value.encode("ascii", "backslashreplace").decode(
+        "unicode-escape", "unicode-escape-recovery"
+    )
+
+
 def strip_lone_surrogates(string):
     """Removes lone surrogates."""
     if six.PY3:

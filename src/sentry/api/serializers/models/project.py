@@ -438,13 +438,15 @@ def bulk_fetch_project_latest_releases(projects):
             ) as release_id,
             p.id as project_id
             FROM sentry_project p
-            WHERE p.id IN ({})
+            WHERE p.id IN %s
         ) as lr
         JOIN sentry_release r
         ON r.id = lr.release_id
-        """.format(
-                release_project_join_sql, ", ".join(six.text_type(i.id) for i in projects)
-            )
+            """.format(
+                release_project_join_sql
+            ),
+            # formatting tuples works specifically in psycopg2
+            (tuple(six.text_type(i.id) for i in projects),),
         )
     )
 

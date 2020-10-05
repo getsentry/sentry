@@ -213,7 +213,7 @@ class SnubaTSDB(BaseTSDB):
         aggregation="count()",
         group_on_model=True,
         group_on_time=False,
-        snuba_filters=None,
+        conditions=None,
     ):
         """
         Normalizes all the TSDB parameters and sends a query to snuba.
@@ -268,13 +268,10 @@ class SnubaTSDB(BaseTSDB):
         end = to_datetime(series[-1] + rollup)
         limit = min(10000, int(len(keys) * ((end - start).total_seconds() / rollup)))
 
-        conditions = []
+        conditions = conditions if conditions is not None else []
         if model_query_settings.conditions is not None:
-            conditions = deepcopy(model_query_settings.conditions)
+            conditions += deepcopy(model_query_settings.conditions)
             # copy because we modify the conditions in snuba.query
-
-        if snuba_filters is not None:
-            conditions = conditions + snuba_filters
 
         if keys:
             result = snuba.query(
@@ -329,7 +326,7 @@ class SnubaTSDB(BaseTSDB):
         if len(groups) > 0:
             group, subgroups = groups[0], groups[1:]
             if isinstance(result, dict):
-                for rk in result.keys():
+                for rk in list(result.keys()):
                     if group == "time":  # Skip over time group
                         self.trim(result[rk], subgroups, keys)
                     elif rk in keys:
@@ -339,7 +336,7 @@ class SnubaTSDB(BaseTSDB):
                         del result[rk]
 
     def get_range(
-        self, model, keys, start, end, rollup=None, environment_ids=None, snuba_filters=None
+        self, model, keys, start, end, rollup=None, environment_ids=None, conditions=None
     ):
         # 10s is the only rollup under an hour that we support
         if rollup and rollup == 10 and model in self.lower_rollup_query_settings:
@@ -363,7 +360,7 @@ class SnubaTSDB(BaseTSDB):
             environment_ids,
             aggregation=aggregate_function,
             group_on_time=True,
-            snuba_filters=snuba_filters,
+            conditions=conditions,
         )
         # convert
         #    {group:{timestamp:count, ...}}
@@ -458,15 +455,13 @@ class SnubaTSDB(BaseTSDB):
         #    {group:{timestamp:[top1, ...]}}
         # into
         #    {group: [(timestamp, {top1: score, ...}), ...]}
-        for k in result:
-            result[k] = sorted(
-                [
-                    (timestamp, {v: float(i + 1) for i, v in enumerate(reversed(topk or []))})
-                    for (timestamp, topk) in result[k].items()
-                ]
+        return {
+            k: sorted(
+                (timestamp, {v: float(i + 1) for i, v in enumerate(reversed(topk or []))})
+                for (timestamp, topk) in result[k].items()
             )
-
-        return result
+            for k in result.keys()
+        }
 
     def get_frequency_series(self, model, items, start, end=None, rollup=None, environment_id=None):
         result = self.get_data(

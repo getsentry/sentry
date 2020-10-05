@@ -1,17 +1,17 @@
 import PluginsStore from 'app/stores/pluginsStore';
 import PluginActions from 'app/actions/pluginActions';
 
-describe('PluginsStore', function() {
-  beforeAll(function() {
+describe('PluginsStore', function () {
+  beforeAll(function () {
     jest.spyOn(PluginsStore, 'trigger');
   });
-  beforeEach(function() {
+  beforeEach(function () {
     PluginsStore.trigger.mockReset();
   });
 
-  afterEach(function() {});
+  afterEach(function () {});
 
-  it('has correct initial state', function() {
+  it('has correct initial state', function () {
     PluginsStore.reset();
     expect(PluginsStore.getState()).toEqual({
       loading: true,
@@ -21,12 +21,12 @@ describe('PluginsStore', function() {
     });
   });
 
-  describe('fetchAll', function() {
-    beforeEach(function() {
+  describe('fetchAll', function () {
+    beforeEach(function () {
       PluginsStore.reset();
     });
 
-    it('has correct state when all plugins fetched successfully', function() {
+    it('has correct state when all plugins fetched successfully', function () {
       PluginActions.fetchAll.trigger();
       expect(PluginsStore.trigger).toHaveBeenCalledWith({
         loading: true,
@@ -45,7 +45,7 @@ describe('PluginsStore', function() {
       });
     });
 
-    it('has correct state when error in fetching all plugins', function() {
+    it('has correct state when error in fetching all plugins', function () {
       PluginActions.fetchAll.trigger();
 
       expect(PluginsStore.trigger).toHaveBeenCalledWith({
@@ -65,7 +65,7 @@ describe('PluginsStore', function() {
       });
     });
 
-    it('does not reset loading state on consecutive fetches', function() {
+    it('does not reset loading state on consecutive fetches', function () {
       PluginActions.fetchAll.trigger();
       expect(PluginsStore.trigger).toHaveBeenCalledWith({
         loading: true,
@@ -93,14 +93,14 @@ describe('PluginsStore', function() {
     });
   });
 
-  describe('update', function() {
+  describe('update', function () {
     const plugin = TestStubs.Plugin();
-    beforeEach(function() {
+    beforeEach(function () {
       PluginsStore.reset();
       PluginsStore.plugins = new Map(TestStubs.Plugins().map(p => [p.id, p]));
     });
 
-    it('has optimistic state when updating', function() {
+    it('has optimistic state when updating', function () {
       PluginActions.update.trigger('amazon-sqs', {name: 'Amazon Sqs'});
 
       const state = PluginsStore.getState();
@@ -122,7 +122,7 @@ describe('PluginsStore', function() {
       });
     });
 
-    it('saves old plugin state', function() {
+    it('saves old plugin state', function () {
       PluginActions.update.trigger('amazon-sqs', {name: 'Amazon Sqs'});
 
       const state = PluginsStore.getState();
@@ -138,7 +138,7 @@ describe('PluginsStore', function() {
       });
     });
 
-    it('removes old plugin state on successful update', function() {
+    it('removes old plugin state on successful update', function () {
       PluginActions.update.trigger('amazon-sqs', {name: 'Amazon Sqs'});
 
       expect(PluginsStore.updating.get('amazon-sqs')).toMatchObject({
@@ -157,7 +157,7 @@ describe('PluginsStore', function() {
       expect(PluginsStore.updating.get('amazon-sqs')).toEqual(undefined);
     });
 
-    it('restores old plugin state when update has an error', function() {
+    it('restores old plugin state when update has an error', function () {
       PluginActions.update.trigger('amazon-sqs', {name: 'Amazon Sqs'});
 
       expect(PluginsStore.getState().plugins[0]).toMatchObject({

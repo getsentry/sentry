@@ -1,12 +1,12 @@
 import {Client} from 'app/api';
 import {_debouncedLoadStats} from 'app/actionCreators/projects';
 
-describe('Projects ActionCreators', function() {
+describe('Projects ActionCreators', function () {
   const api = new Client();
   const organization = TestStubs.Organization();
   let mock;
 
-  it('loadStatsForProject', function() {
+  it('loadStatsForProject', function () {
     jest.useFakeTimers();
     mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',

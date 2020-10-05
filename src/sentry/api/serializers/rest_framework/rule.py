@@ -71,7 +71,7 @@ class RuleSerializer(serializers.Serializer):
         choices=(("all", "all"), ("any", "any"), ("none", "none")), required=False
     )
     actions = ListField(child=RuleNodeField(type="action/event"))
-    conditions = ListField(child=RuleNodeField(type="condition/event"))
+    conditions = ListField(child=RuleNodeField(type="condition/event"), required=False)
     filters = ListField(child=RuleNodeField(type="filter/event"), required=False)
     frequency = serializers.IntegerField(min_value=5, max_value=60 * 24 * 30)
 
@@ -87,11 +87,6 @@ class RuleSerializer(serializers.Serializer):
             raise serializers.ValidationError(u"This environment has not been created.")
 
         return environment
-
-    def validate_conditions(self, value):
-        if not value:
-            raise serializers.ValidationError(u"Must select a condition.")
-        return value
 
     def validate_actions(self, value):
         if not value:
@@ -135,6 +130,14 @@ class RuleSerializer(serializers.Serializer):
                         "conditions": u"Conditions evaluating an event attribute, tag, or level are outdated please use an appropriate filter instead."
                     }
                 )
+
+        # ensure that if a user has alert-filters enabled, they do not use a 'none' match on conditions
+        if project_has_filters and attrs.get("actionMatch") == "none":
+            raise serializers.ValidationError(
+                {
+                    "conditions": u"The 'none' match on conditions is outdated and no longer supported."
+                }
+            )
 
         return attrs
 

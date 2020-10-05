@@ -19,7 +19,7 @@ const Header = styled('h2')`
 Header.displayName = 'Header';
 
 export default {
-  title: 'UI/IdBadge',
+  title: 'Core/Badges+Tags/IdBadge',
 };
 
 export const All = withInfo({

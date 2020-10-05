@@ -26,7 +26,7 @@ const Item = createReactClass({
   propTypes: {
     orgId: PropTypes.string.isRequired,
     groupId: PropTypes.string.isRequired,
-    score: PropTypes.object,
+    score: PropTypes.object, // eslint-disable-line react/no-unused-prop-types
     scoresByInterface: PropTypes.shape({
       exception: PropTypes.array,
       message: PropTypes.array,
@@ -36,6 +36,7 @@ const Item = createReactClass({
       message: PropTypes.number,
     }),
     issue: SentryTypes.Group.isRequired,
+    project: SentryTypes.Project.isRequired,
   },
 
   mixins: [Reflux.listenTo(GroupingStore, 'onGroupingUpdate')],
@@ -74,11 +75,11 @@ const Item = createReactClass({
   },
 
   handleShowDiff(e) {
-    const {orgId, groupId, issue} = this.props;
+    const {orgId, groupId, issue, project} = this.props;
     openDiffModal({
       baseIssueId: groupId,
       targetIssueId: issue.id,
-      projectId: issue.project.slug,
+      project,
       orgId,
     });
 
@@ -121,7 +122,7 @@ const Item = createReactClass({
             </div>
             <div className="event-details" style={{flex: 1}}>
               <EventOrGroupHeader data={issue} />
-              <EventOrGroupExtraDetails {...issue} lastSeen={null} showAssignee />
+              <EventOrGroupExtraDetails data={{...issue, lastSeen: null}} showAssignee />
             </div>
           </FlowLayout>
           <button

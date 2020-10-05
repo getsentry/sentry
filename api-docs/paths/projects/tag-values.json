@@ -2,7 +2,7 @@
   "get": {
     "tags": ["Projects"],
     "description": "Return a list of values associated with this key.  The `query`\nparameter can be used to to perform a \"contains\" match on\nvalues.",
-    "operationId": "List a tag's values",
+    "operationId": "List a Tag's Values",
     "parameters": [
       {
         "name": "organization_slug",
@@ -34,7 +34,7 @@
     ],
     "responses": {
       "200": {
-        "description": "Success.",
+        "description": "Success",
         "content": {
           "application/json": {
             "schema": {

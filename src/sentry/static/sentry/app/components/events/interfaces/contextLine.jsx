@@ -9,7 +9,7 @@ const Context = styled('div')`
   display: inline;
 `;
 
-const ContextLine = function(props) {
+const ContextLine = function (props) {
   const {line, isActive, className} = props;
   let lineWs = '';
   let lineCode = '';
