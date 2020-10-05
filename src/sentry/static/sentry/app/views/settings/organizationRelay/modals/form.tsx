@@ -1,32 +1,47 @@
 import React from 'react';
-import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
-import QuestionTooltip from 'app/components/questionTooltip';
 import Input from 'app/views/settings/components/forms/controls/input';
+import FieldHelp from 'app/views/settings/components/forms/field/fieldHelp';
 import Textarea from 'app/views/settings/components/forms/controls/textarea';
 import Field from 'app/views/settings/components/forms/field';
 import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
-import space from 'app/styles/space';
 import {Relay} from 'app/types';
 
 type FormField = keyof Pick<Relay, 'name' | 'publicKey' | 'description'>;
 type Values = Record<FormField, string>;
 
 type Props = {
+  isFormValid: boolean;
   values: Values;
   errors: Partial<Values>;
   disables: Partial<Record<FormField, boolean>>;
+  onSave: () => void;
   onValidate: (field: FormField) => () => void;
   onValidateKey: () => void;
   onChange: (field: FormField, value: string) => void;
 };
 
-const Form = ({values, onChange, errors, onValidate, disables, onValidateKey}: Props) => {
+const Form = ({
+  values,
+  onChange,
+  errors,
+  onValidate,
+  isFormValid,
+  disables,
+  onValidateKey,
+  onSave,
+}: Props) => {
   const handleChange = (field: FormField) => (
     event: React.ChangeEvent<HTMLTextAreaElement> | React.ChangeEvent<HTMLInputElement>
   ) => {
     onChange(field, event.target.value);
+  };
+
+  const handleSubmit = () => {
+    if (isFormValid) {
+      onSave();
+    }
   };
 
   // code below copied from src/sentry/static/sentry/app/views/organizationIntegrations/SplitInstallationIdModal.tsx
@@ -36,13 +51,14 @@ const Form = ({values, onChange, errors, onValidate, disables, onValidateKey}: P
     await navigator.clipboard.writeText(value);
 
   return (
-    <React.Fragment>
+    <form onSubmit={handleSubmit} id="relay-form">
       <Field
         flexibleControlStateSize
         label={t('Display Name')}
         error={errors.name}
         inline={false}
         stacked
+        required
       >
         <Input
           type="text"
@@ -63,22 +79,12 @@ const Form = ({values, onChange, errors, onValidate, disables, onValidateKey}: P
         </Field>
       ) : (
         <Field
-          flexibleControlStateSize
-          label={
-            <Label>
-              <div>{t('Public Key')}</div>
-              <QuestionTooltip
-                position="top"
-                size="sm"
-                title={t(
-                  'Only enter the Public Key value from your credentials file. Never share the Secret key with Sentry or any third party'
-                )}
-              />
-            </Label>
-          }
+          label={t('Public Key')}
           error={errors.publicKey}
+          flexibleControlStateSize
           inline={false}
           stacked
+          required
         >
           <Input
             type="text"
@@ -88,14 +94,14 @@ const Form = ({values, onChange, errors, onValidate, disables, onValidateKey}: P
             value={values.publicKey}
             onBlur={onValidateKey}
           />
+          <FieldHelp>
+            {t(
+              'Only enter the Public Key value from your credentials file. Never share the Secret key with Sentry or any third party'
+            )}
+          </FieldHelp>
         </Field>
       )}
-      <Field
-        flexibleControlStateSize
-        label={t('Description (Optional)')}
-        inline={false}
-        stacked
-      >
+      <Field flexibleControlStateSize label={t('Description')} inline={false} stacked>
         <Textarea
           name="description"
           placeholder={t('Description')}
@@ -104,15 +110,8 @@ const Form = ({values, onChange, errors, onValidate, disables, onValidateKey}: P
           disabled={disables.description}
         />
       </Field>
-    </React.Fragment>
+    </form>
   );
 };
 
 export default Form;
-
-const Label = styled('div')`
-  display: grid;
-  grid-gap: ${space(1)};
-  grid-template-columns: max-content max-content;
-  align-items: center;
-`;

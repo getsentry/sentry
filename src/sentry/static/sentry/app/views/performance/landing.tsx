@@ -226,18 +226,18 @@ class PerformanceLanding extends React.Component<Props, State> {
     if (viewKey === FilterViews.TRENDS) {
       const modifiedConditions = new QueryResults([]);
 
-      if (conditions.hasTags('count()')) {
-        modifiedConditions.setTag('count()', conditions.getTags('count()'));
+      if (conditions.hasTag('count()')) {
+        modifiedConditions.setTagValues('count()', conditions.getTagValues('count()'));
       } else {
-        modifiedConditions.setTag('count()', ['>1000']);
+        modifiedConditions.setTagValues('count()', ['>1000']);
       }
-      if (conditions.hasTags('transaction.duration')) {
-        modifiedConditions.setTag(
+      if (conditions.hasTag('transaction.duration')) {
+        modifiedConditions.setTagValues(
           'transaction.duration',
-          conditions.getTags('transaction.duration')
+          conditions.getTagValues('transaction.duration')
         );
       } else {
-        modifiedConditions.setTag('transaction.duration', ['>0']);
+        modifiedConditions.setTagValues('transaction.duration', ['>0']);
       }
       newQuery.query = stringifyQueryObject(modifiedConditions);
     }
@@ -260,7 +260,7 @@ class PerformanceLanding extends React.Component<Props, State> {
 
   renderHeaderButtons() {
     return (
-      <Feature features={['trends', 'internal-catchall']} requireAll={false}>
+      <Feature features={['trends']}>
         {({hasFeature}) =>
           hasFeature ? (
             <ButtonBar merged active={this.getCurrentView(hasFeature)}>

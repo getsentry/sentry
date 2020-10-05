@@ -48,7 +48,7 @@
         "type": "string"
       },
       "user": {
-        "type": "string",
+        "type": "object",
         "nullable": true
       }
     }

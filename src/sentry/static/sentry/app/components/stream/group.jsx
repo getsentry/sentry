@@ -32,6 +32,21 @@ import {t} from 'app/locale';
 import Link from 'app/components/links/link';
 import {queryToObj} from 'app/utils/stream';
 
+const DiscoveryExclusionFields = [
+  'query',
+  'status',
+  'bookmarked_by',
+  'assigned',
+  'assigned_to',
+  'unassigned',
+  'subscribed_by',
+  'active_at',
+  'first_release',
+  'first_seen',
+  'is',
+  '__text',
+];
+
 const StreamGroup = createReactClass({
   displayName: 'StreamGroup',
 
@@ -130,45 +145,61 @@ const StreamGroup = createReactClass({
     const {organization, query, selection} = this.props;
     const {data} = this.state;
 
-    // TODO: @taylangocmen when there is no discover query open events page
+    // when there is no discover feature open events page
+    const hasDiscoverQuery = organization.features.includes('discover-basic');
 
-    const {period, start, end} = selection.datetime || {};
-
-    const discoveryQueryTerms = [];
+    const queryTerms = [];
 
     if (filtered && query) {
       const queryObj = queryToObj(query);
       for (const queryTag in queryObj)
-        if (!['is', '__text'].includes(queryTag)) {
+        if (!DiscoveryExclusionFields.includes(queryTag)) {
           const queryVal = queryObj[queryTag].includes(' ')
             ? `"${queryObj[queryTag]}"`
             : queryObj[queryTag];
-          discoveryQueryTerms.push(`${queryTag}:${queryVal}`);
+          queryTerms.push(`${queryTag}:${queryVal}`);
         }
+
+      if (!hasDiscoverQuery && queryObj.__text) {
+        queryTerms.push(queryObj.__text);
+      }
     }
 
-    const additionalQuery =
-      (discoveryQueryTerms.length ? ' ' : '') + discoveryQueryTerms.join(' ');
+    const commonQuery = {projects: [data.project.id]};
 
-    const discoverQuery = {
-      id: undefined,
-      name: data.title || data.type,
-      fields: ['title', 'release', 'environment', 'user', 'timestamp'],
-      orderby: '-timestamp',
-      query: `issue.id:${data.id}${additionalQuery}`,
-      projects: [data.project.id],
-      version: 2,
+    const searchQuery = (queryTerms.length ? ' ' : '') + queryTerms.join(' ');
+
+    if (hasDiscoverQuery) {
+      const {period, start, end} = selection.datetime || {};
+
+      const discoverQuery = {
+        ...commonQuery,
+        id: undefined,
+        name: data.title || data.type,
+        fields: ['title', 'release', 'environment', 'user', 'timestamp'],
+        orderby: '-timestamp',
+        query: `issue.id:${data.id}${searchQuery}`,
+        version: 2,
+      };
+
+      if (!!start && !!end) {
+        discoverQuery.start = start;
+        discoverQuery.end = end;
+      } else {
+        discoverQuery.range = period || DEFAULT_STATS_PERIOD;
+      }
+
+      const discoverView = EventView.fromSavedQuery(discoverQuery);
+      return discoverView.getResultsViewUrlTarget(organization.slug);
+    }
+
+    return {
+      pathname: `/organizations/${organization.slug}/issues/${data.id}/events/`,
+      query: {
+        ...commonQuery,
+        query: searchQuery,
+      },
     };
-
-    if (!!start && !!end) {
-      discoverQuery.start = start;
-      discoverQuery.end = end;
-    } else {
-      discoverQuery.range = period || DEFAULT_STATS_PERIOD;
-    }
-
-    const discoverView = EventView.fromSavedQuery(discoverQuery);
-    return discoverView.getResultsViewUrlTarget(organization.slug);
   },
 
   render() {
@@ -368,16 +399,16 @@ const GroupCheckbox = styled(Box)`
 `;
 
 const PrimaryCount = styled(Count)`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-  color: ${p => (p.filtered ? p.theme.purple400 : p.theme.gray700)};
+  font-size: ${p => p.theme.fontSizeLarge};
 `;
 
 const SecondaryCount = styled(({value, ...p}) => <Count {...p} value={value} />)`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-  color: ${p => (p.dark ? p.theme.gray700 : p.theme.gray500)};
+  font-size: ${p => p.theme.fontSizeLarge};
 
   :before {
     content: '/';
+    padding-left: ${space(0.25)};
+    padding-right: 2px;
     color: ${p => p.theme.gray500};
   }
 `;
@@ -385,7 +416,7 @@ const SecondaryCount = styled(({value, ...p}) => <Count {...p} value={value} />)
 const StyledMenuItem = styled(({to, children, ...p}) => (
   <MenuItem noAnchor>
     {to ? (
-      <Link to={to}>
+      <Link to={to} target="_blank">
         <div {...p}>{children}</div>
       </Link>
     ) : (
