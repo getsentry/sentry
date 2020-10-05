@@ -48,13 +48,12 @@ const SEARCH_ITEMS: SearchItem[] = [
 type Props = React.ComponentProps<typeof SmartSearchBar> & {
   api: Client;
   organization: Organization;
-
-  projectIds?: string[];
   tagValueLoader: (
     key: string,
     search: string,
     projectIds?: string[]
   ) => Promise<TagValue[]>;
+  projectIds?: string[];
   savedSearch?: SavedSearch;
   isOpen?: boolean;
 };
