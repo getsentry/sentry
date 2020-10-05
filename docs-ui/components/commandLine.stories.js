@@ -9,7 +9,7 @@ export default {
 };
 
 export const _CommandLine = withInfo('A Command Line Interface')(() => {
-  return <CommandLine cli={text('children', 'sentry devserver --workers')} />;
+  return <CommandLine>{text('children', 'sentry devserver --workers')}</CommandLine>;
 });
 
 _CommandLine.story = {
