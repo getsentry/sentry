@@ -331,7 +331,6 @@ export function toggleAllFilters(
   }
 
   // not all filters were selected, so the next state is to select all the remaining filters
-
   return {
     type: 'active_filter',
     operationNames: new Set(operationNames),
