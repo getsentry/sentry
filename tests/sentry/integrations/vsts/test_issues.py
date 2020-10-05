@@ -364,7 +364,8 @@ class VstsIssueFormTest(VstsIssueBase):
                 "value": [
                     {"id": "project-1-id", "name": "project_1"},
                     {"id": "project-2-id", "name": "project_2"},
-                ]
+                ],
+                "count": 2,
             },
         )
         min_ago = iso_format(before_now(minutes=1))
@@ -532,7 +533,7 @@ class VstsIssueFormTest(VstsIssueBase):
         responses.add(
             responses.GET,
             "https://fabrikam-fiber-inc.visualstudio.com/_apis/projects",
-            json={"value": []},
+            json={"value": [], "count": 0},
         )
         fields = self.integration.get_create_issue_config(self.group)
 
