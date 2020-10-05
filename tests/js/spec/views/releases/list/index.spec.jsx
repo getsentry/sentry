@@ -8,6 +8,7 @@ import ReleasesList from 'app/views/releases/list/';
 
 describe('ReleasesList', function () {
   const {organization, routerContext, router} = initializeOrg();
+
   const props = {
     router,
     organization,
@@ -32,7 +33,17 @@ describe('ReleasesList', function () {
       body: [
         TestStubs.Release({version: '1.0.0'}),
         TestStubs.Release({version: '1.0.1'}),
-        TestStubs.Release({version: 'af4f231ec9a8'}, {hasHealthData: false}),
+        {
+          ...TestStubs.Release({version: 'af4f231ec9a8'}),
+          projects: [
+            {
+              id: 4383604,
+              name: 'Sentry-IOS-Shop',
+              slug: 'sentry-ios-shop',
+              hasHealthData: false,
+            },
+          ],
+        },
       ],
     });
 
@@ -57,8 +68,10 @@ describe('ReleasesList', function () {
     expect(items).toHaveLength(3);
     expect(items.at(0).text()).toContain('1.0.0');
     expect(items.at(0).text()).toContain('Release adoption');
+    expect(items.at(1).text()).toContain('1.0.1');
+    expect(items.at(1).find('DailyUsersColumn').at(1).text()).toContain('\u2014');
     expect(items.at(2).text()).toContain('af4f231ec9a8');
-    expect(items.at(2).find('DailyUsersColumn').at(1).text()).toContain('\u2014');
+    expect(items.at(2).find('Header').text()).toEqual('Projects');
   });
 
   it('displays the right empty state', function () {
