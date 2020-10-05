@@ -54,7 +54,16 @@ steps:
     curl -L "https://github.com/getsentry/onpremise/archive/master.tar.gz" | tar xzf - --strip-components=1
     echo '{"version": "3.4", "networks":{"default":{"external":{"name":"cloudbuild"}}}}' > docker-compose.override.yml
     ./install.sh
-    ./test.sh || docker-compose logs nginx web relay
+    set +e
+    ./test.sh
+    test_return=$?
+    set -e
+    if [[ $test_return -ne 0 ]]; then
+      echo "Test failed.";
+      docker-compose ps;
+      docker-compose logs nginx web relay;
+      exit $test_return;
+    fi
   timeout: 450s
 - name: 'gcr.io/$PROJECT_ID/docker-compose'
   id: e2e-test-py3
