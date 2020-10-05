@@ -31,7 +31,7 @@ export type ActiveOperationFilter = NoFilter | ActiveFilter;
 
 type Props = {
   parsedTrace: ParsedTraceType;
-  operationNameFilters: ActiveOperationFilter;
+  operationNameFilter: ActiveOperationFilter;
   toggleOperationNameFilter: (operationName: string) => void;
   toggleAllOperationNameFilters: (operationNames: string[]) => void;
 };
@@ -62,25 +62,25 @@ class Filter extends React.Component<Props> {
   }
 
   isOperationNameActive(operationName: string) {
-    const {operationNameFilters} = this.props;
+    const {operationNameFilter} = this.props;
 
-    if (operationNameFilters.type === 'no_filter') {
+    if (operationNameFilter.type === 'no_filter') {
       return false;
     }
 
-    // invariant: operationNameFilters.type === 'active_filter'
+    // invariant: operationNameFilter.type === 'active_filter'
 
-    return operationNameFilters.operationNames.has(operationName);
+    return operationNameFilter.operationNames.has(operationName);
   }
 
   getNumberOfActiveFilters(): number {
-    const {operationNameFilters} = this.props;
+    const {operationNameFilter} = this.props;
 
-    if (operationNameFilters.type === 'no_filter') {
+    if (operationNameFilter.type === 'no_filter') {
       return 0;
     }
 
-    return operationNameFilters.operationNames.size;
+    return operationNameFilter.operationNames.size;
   }
 
   render() {

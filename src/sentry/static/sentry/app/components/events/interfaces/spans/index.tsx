@@ -177,7 +177,7 @@ class SpansInterface extends React.Component<Props, State> {
                 <Search>
                   <Filter
                     parsedTrace={parsedTrace}
-                    operationNameFilters={this.state.operationNameFilters}
+                    operationNameFilter={this.state.operationNameFilters}
                     toggleOperationNameFilter={this.toggleOperationNameFilter}
                     toggleAllOperationNameFilters={this.toggleAllOperationNameFilters}
                   />
