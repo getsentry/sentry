@@ -95,11 +95,9 @@ class SpansInterface extends React.Component<Props, State> {
   }
 
   toggleOperationNameFilter = (operationName: string) => {
-    this.setState(prevState => {
-      return {
-        operationNameFilters: toggleFilter(prevState.operationNameFilters, operationName),
-      };
-    });
+    this.setState(prevState => ({
+      operationNameFilters: toggleFilter(prevState.operationNameFilters, operationName),
+    }));
   };
 
   toggleAllOperationNameFilters = (operationNames: string[]) => {
