@@ -95,7 +95,7 @@ class VstsIntegrationTestCase(IntegrationTestCase):
         responses.add(
             responses.GET,
             u"https://{}.visualstudio.com/_apis/projects".format(self.vsts_account_name.lower()),
-            json={"value": [self.project_a, self.project_b]},
+            json={"value": [self.project_a, self.project_b], "count": 2},
         )
 
         responses.add(

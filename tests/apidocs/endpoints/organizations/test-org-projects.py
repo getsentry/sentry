@@ -10,7 +10,7 @@ from tests.apidocs.util import APIDocsTestCase
 
 class OrganizationProjectsDocs(APIDocsTestCase):
     def setUp(self):
-        organization = self.create_organization()
+        organization = self.create_organization(owner=self.user, name="Rowdy Tiger")
         self.create_project(name="foo", organization=organization, teams=[])
         self.create_project(name="bar", organization=organization, teams=[])
 

@@ -57,8 +57,12 @@ export default CardHeader;
 
 const Header = styled('div')`
   display: grid;
-  grid-template-columns: 1fr max-content;
+  grid-gap: ${space(1)};
   align-items: flex-start;
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: 1fr max-content;
+  }
 `;
 
 const Name = styled('div')`

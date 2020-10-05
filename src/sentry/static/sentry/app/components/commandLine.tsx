@@ -4,13 +4,15 @@ import styled from '@emotion/styled';
 import space from 'app/styles/space';
 
 type Props = {
+  /**
+   * The text interface
+   */
   children: string;
 };
 
-// TODO(Priscila): Make this component reusable and available in the storybook
-const Code = ({children}: Props) => <Wrapper>{children}</Wrapper>;
+const CommandLine = ({children}: Props) => <Wrapper>{children}</Wrapper>;
 
-export default Code;
+export default CommandLine;
 
 const Wrapper = styled('code')`
   padding: ${space(0.5)} ${space(1)};
@@ -19,4 +21,5 @@ const Wrapper = styled('code')`
   border: 1px solid ${p => p.theme.pink200};
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeMedium};
+  white-space: nowrap;
 `;
