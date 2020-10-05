@@ -9,9 +9,31 @@ import {t, tct} from 'app/locale';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import PluginComponentBase from 'app/components/bases/pluginComponentBase';
 import {trackIntegrationEvent} from 'app/utils/integrationUtil';
+import {Organization, Project, Plugin} from 'app/types';
 
-class PluginSettings extends PluginComponentBase {
-  constructor(props, context) {
+type Props = {
+  organization: Organization;
+  project: Project;
+  plugin: Plugin;
+} & PluginComponentBase['props'];
+
+type State = {
+  fieldList: any[] | null;
+  initialData: any | null;
+  formData: Record<string, any>;
+  errors: Record<string, any>;
+  rawData: Record<string, any>;
+  wasConfiguredOnPageLoad: boolean;
+} & PluginComponentBase['state'];
+
+class PluginSettings extends PluginComponentBase<Props, State> {
+  static propTypes: any = {
+    organization: PropTypes.object.isRequired,
+    project: PropTypes.object.isRequired,
+    plugin: PropTypes.object.isRequired,
+  };
+
+  constructor(props: Props, context) {
     super(props, context);
 
     Object.assign(this.state, {
@@ -51,7 +73,7 @@ class PluginSettings extends PluginComponentBase {
     return `/projects/${org.slug}/${project.slug}/plugins/${this.props.plugin.id}/`;
   }
 
-  changeField(name, value) {
+  changeField(name: string, value: any) {
     const formData = this.state.formData;
     formData[name] = value;
     // upon changing a field, remove errors
@@ -199,9 +221,8 @@ class PluginSettings extends PluginComponentBase {
               </ul>
             </div>
           )}
-          {this.state.fieldList.map(f =>
+          {this.state.fieldList?.map(f =>
             this.renderField({
-              key: f.name,
               config: f,
               formData: this.state.formData,
               formErrors: this.state.errors,
@@ -213,12 +234,6 @@ class PluginSettings extends PluginComponentBase {
     );
   }
 }
-
-PluginSettings.propTypes = {
-  organization: PropTypes.object.isRequired,
-  project: PropTypes.object.isRequired,
-  plugin: PropTypes.object.isRequired,
-};
 
 const Flex = styled('div')`
   display: flex;

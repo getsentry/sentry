@@ -11,17 +11,28 @@ import {
 } from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 
-const callbackWithArgs = function (callback, ...args) {
+const callbackWithArgs = function (context: any, callback, ...args) {
   if (isFunction(callback)) {
-    callback = callback.bind(this, ...args);
+    callback = callback.bind(context, ...args);
   } else {
     callback = null;
   }
   return callback;
 };
 
-class PluginComponentBase extends React.Component {
-  constructor(props, context) {
+type GenericFieldProps = Parameters<typeof GenericField>[0];
+
+type Props = {
+  config?: GenericFieldProps['config'];
+} & GenericFieldProps;
+
+type State = {state: GenericFieldProps['formState']};
+
+class PluginComponentBase<
+  P extends Props = Props,
+  S extends State = State
+> extends React.Component<P, S> {
+  constructor(props: P, context: any) {
     super(props, context);
 
     [
@@ -40,18 +51,23 @@ class PluginComponentBase extends React.Component {
     if (this.onSubmit) {
       this.onSubmit = this.onSave.bind(this, this.onSubmit.bind(this));
     }
-
     this.state = {
       state: FormState.READY,
-    };
-  }
-
-  UNSAFE_componentWillMount() {
-    this.api = new Client();
+    } as Readonly<S>;
   }
 
   componentWillUnmount() {
     this.api.clear();
+  }
+
+  api = new Client();
+
+  fetchData() {
+    // Allow children to implement this
+  }
+
+  onSubmit() {
+    // Allow children to implement this
   }
 
   onLoad(callback, ...args) {
@@ -59,17 +75,14 @@ class PluginComponentBase extends React.Component {
       {
         state: FormState.LOADING,
       },
-      callbackWithArgs(callback, ...args)
+      callbackWithArgs(this, callback, ...args)
     );
   }
 
-  onLoadSuccess(callback, ...args) {
-    this.setState(
-      {
-        state: FormState.READY,
-      },
-      callbackWithArgs(callback, ...args)
-    );
+  onLoadSuccess() {
+    this.setState({
+      state: FormState.READY,
+    });
   }
 
   onLoadError(callback, ...args) {
@@ -77,7 +90,7 @@ class PluginComponentBase extends React.Component {
       {
         state: FormState.ERROR,
       },
-      callbackWithArgs(callback, ...args)
+      callbackWithArgs(this, callback, ...args)
     );
     addErrorMessage(t('An error occurred.'));
   }
@@ -86,7 +99,7 @@ class PluginComponentBase extends React.Component {
     if (this.state.state === FormState.SAVING) {
       return;
     }
-    callback = callbackWithArgs(callback, ...args);
+    callback = callbackWithArgs(this, callback, ...args);
     this.setState(
       {
         state: FormState.SAVING,
@@ -99,7 +112,7 @@ class PluginComponentBase extends React.Component {
   }
 
   onSaveSuccess(callback, ...args) {
-    callback = callbackWithArgs(callback, ...args);
+    callback = callbackWithArgs(this, callback, ...args);
     this.setState(
       {
         state: FormState.READY,
@@ -112,7 +125,7 @@ class PluginComponentBase extends React.Component {
   }
 
   onSaveError(callback, ...args) {
-    callback = callbackWithArgs(callback, ...args);
+    callback = callbackWithArgs(this, callback, ...args);
     this.setState(
       {
         state: FormState.ERROR,
@@ -126,15 +139,18 @@ class PluginComponentBase extends React.Component {
 
   onSaveComplete(callback, ...args) {
     clearIndicators();
-    callback = callbackWithArgs(callback, ...args);
+    callback = callbackWithArgs(this, callback, ...args);
     callback && callback();
   }
 
-  renderField(props) {
+  renderField(props: Omit<Props, 'formState'>) {
     props = {...props};
-    props.formState = this.state.state;
-    props.config = props.config || {};
-    return <GenericField key={props.config.name} {...props} />;
+    const newProps = {
+      ...props,
+      formState: this.state.state,
+      config: props.config || {},
+    };
+    return <GenericField key={newProps.config.name} {...newProps} />;
   }
 }
 
