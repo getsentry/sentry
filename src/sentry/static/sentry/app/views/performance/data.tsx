@@ -128,12 +128,12 @@ export function generatePerformanceEventView(
 
   const searchQuery = decodeScalar(query.query) || '';
   const conditions = tokenizeSearch(searchQuery);
-  conditions.setTag('event.type', ['transaction']);
+  conditions.setTagValues('event.type', ['transaction']);
 
   // If there is a bare text search, we want to treat it as a search
   // on the transaction name.
   if (conditions.query.length > 0) {
-    conditions.setTag('transaction', [`*${conditions.query.join(' ')}*`]);
+    conditions.setTagValues('transaction', [`*${conditions.query.join(' ')}*`]);
     conditions.query = [];
   }
   savedQuery.query = stringifyQueryObject(conditions);

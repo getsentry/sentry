@@ -103,7 +103,7 @@ class SpansInterface extends React.Component<Props, State> {
     ]);
 
     if (typeof event.title === 'string') {
-      conditions.setTag('transaction', [event.title]);
+      conditions.setTagValues('transaction', [event.title]);
     }
 
     const orgFeatures = new Set(organization.features);

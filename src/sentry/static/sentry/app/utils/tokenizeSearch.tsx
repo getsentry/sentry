@@ -103,33 +103,33 @@ export class QueryResults {
 
   addStringTag(value: string) {
     const [key, tag] = formatTag(value);
-    this.addTag(key, [tag]);
+    this.addTagValues(key, [tag]);
     return this;
   }
 
-  addTag(key: string, tags: string[]) {
-    for (const t of tags) {
-      this.tagValues[key] = Array.isArray(this.tagValues[key])
-        ? [...this.tagValues[key], t]
+  addTagValues(tag: string, tagValues: string[]) {
+    for (const t of tagValues) {
+      this.tagValues[tag] = Array.isArray(this.tagValues[tag])
+        ? [...this.tagValues[tag], t]
         : [t];
-      const token: Token = {type: TokenType.TAG, key, value: t};
+      const token: Token = {type: TokenType.TAG, key: tag, value: t};
       this.tokens.push(token);
     }
     return this;
   }
 
-  setTag(key: string, tags: string[]) {
-    this.removeTag(key);
-    this.addTag(key, tags);
+  setTagValues(tag: string, tagValues: string[]) {
+    this.removeTag(tag);
+    this.addTagValues(tag, tagValues);
     return this;
   }
 
-  getTags(key: string) {
-    return this.tagValues[key];
+  getTagValues(tag: string) {
+    return this.tagValues[tag];
   }
 
-  hasTags(key: string) {
-    const tags = this.getTags(key);
+  hasTag(tag: string) {
+    const tags = this.getTagValues(tag);
     return tags && tags.length;
   }
 
@@ -212,9 +212,9 @@ export class QueryResults {
   }
 
   removeTagValue(key: string, value: string) {
-    const values = this.getTags(key);
+    const values = this.getTagValues(key);
     if (Array.isArray(values) && values.length) {
-      this.setTag(
+      this.setTagValues(
         key,
         values.filter(item => item !== value)
       );

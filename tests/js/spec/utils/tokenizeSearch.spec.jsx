@@ -194,13 +194,13 @@ describe('utils/tokenizeSearch', function () {
       results.addStringTag('a:a');
       expect(results.formatString()).toEqual('a:a');
 
-      results.addTag('b', ['b']);
+      results.addTagValues('b', ['b']);
       expect(results.formatString()).toEqual('a:a b:b');
 
-      results.addTag('c', ['c1', 'c2']);
+      results.addTagValues('c', ['c1', 'c2']);
       expect(results.formatString()).toEqual('a:a b:b c:c1 c:c2');
 
-      results.addTag('d', ['d']);
+      results.addTagValues('d', ['d']);
       expect(results.formatString()).toEqual('a:a b:b c:c1 c:c2 d:d');
 
       results.addStringTag('d:d2');
@@ -250,7 +250,7 @@ describe('utils/tokenizeSearch', function () {
     it('setTag() replaces tags', function () {
       const results = new QueryResults(['tag:value']);
 
-      results.setTag('tag', ['too']);
+      results.setTagValues('tag', ['too']);
       expect(results.formatString()).toEqual('tag:too');
     });
 
@@ -263,11 +263,11 @@ describe('utils/tokenizeSearch', function () {
         ')',
       ]);
 
-      results.setTag('transaction', ['def']);
+      results.setTagValues('transaction', ['def']);
       expect(results.formatString()).toEqual('transaction:def');
 
       results = new QueryResults(['(transaction:xyz', 'OR', 'transaction:abc)']);
-      results.setTag('transaction', ['def']);
+      results.setTagValues('transaction', ['def']);
       expect(results.formatString()).toEqual('transaction:def');
     });
 
