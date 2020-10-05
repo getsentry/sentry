@@ -5,9 +5,6 @@ import styled from '@emotion/styled';
 import {Organization, SavedQuery} from 'app/types';
 import {fetchSavedQuery} from 'app/actionCreators/discoverSavedQueries';
 import {Client} from 'app/api';
-import Feature from 'app/components/acl/feature';
-import FeatureDisabled from 'app/components/acl/featureDisabled';
-import Hovercard from 'app/components/hovercard';
 import TimeSince from 'app/components/timeSince';
 import {t} from 'app/locale';
 import withApi from 'app/utils/withApi';
@@ -97,21 +94,6 @@ class ResultsHeader extends React.Component<Props, State> {
     } = this.props;
     const {savedQuery, loading} = this.state;
 
-    const renderDisabled = p => (
-      <Hovercard
-        body={
-          <FeatureDisabled
-            features={p.features}
-            hideHelpToggle
-            message={t('Discover queries are disabled')}
-            featureName={t('Discover queries')}
-          />
-        }
-      >
-        {p.children(p)}
-      </Hovercard>
-    );
-
     return (
       <Layout.Header>
         <Layout.HeaderContent>
@@ -128,25 +110,16 @@ class ResultsHeader extends React.Component<Props, State> {
           {this.renderAuthor()}
         </Layout.HeaderContent>
         <Layout.HeaderActions>
-          <Feature
+          <SavedQueryButtonGroup
+            location={location}
             organization={organization}
-            features={['discover-query']}
-            hookName="feature-disabled:discover-saved-query-create"
-            renderDisabled={renderDisabled}
-          >
-            {({hasFeature}) => (
-              <SavedQueryButtonGroup
-                location={location}
-                organization={organization}
-                eventView={eventView}
-                savedQuery={savedQuery}
-                savedQueryLoading={loading}
-                disabled={!hasFeature || (errorCode >= 400 && errorCode < 500)}
-                updateCallback={() => this.fetchData()}
-                onIncompatibleAlertQuery={onIncompatibleAlertQuery}
-              />
-            )}
-          </Feature>
+            eventView={eventView}
+            savedQuery={savedQuery}
+            savedQueryLoading={loading}
+            disabled={errorCode >= 400 && errorCode < 500}
+            updateCallback={() => this.fetchData()}
+            onIncompatibleAlertQuery={onIncompatibleAlertQuery}
+          />
         </Layout.HeaderActions>
       </Layout.Header>
     );
