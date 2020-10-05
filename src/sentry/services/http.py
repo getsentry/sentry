@@ -122,6 +122,7 @@ class SentryHTTPServer(Service):
             options["disable-logging"] = True
 
         self.options = options
+        self.debug = debug
 
     def validate_settings(self):
         from django.conf import settings as django_settings
@@ -157,7 +158,7 @@ class SentryHTTPServer(Service):
 
     def run(self):
         self.prepare_environment()
-        if os.environ.get("SENTRY_RUNNING_UWSGI") == "0":
+        if self.debug or os.environ.get("SENTRY_RUNNING_UWSGI") == "0":
             from wsgiref.simple_server import make_server
             from sentry.wsgi import application
 
