@@ -59,7 +59,7 @@ jobs:
         env:
           MATRIX_INSTANCE: ${{ matrix.instance }}
         run: |
-          echo "::set-output name=python-version::$(awk 'FNR == 2' .python-version)"
+          echo "::set-output name=python-version::2.7.17"
 
       - name: Set up Python ${{ steps.config.outputs.python-version }}
         uses: actions/setup-python@v2
