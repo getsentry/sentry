@@ -31,7 +31,7 @@ import {
   MINIMAP_SPAN_BAR_HEIGHT,
   NUM_OF_SPANS_FIT_IN_MINI_MAP,
 } from './header';
-import {SPAN_ROW_HEIGHT, SpanRow, zIndex} from './styles';
+import {SPAN_ROW_HEIGHT, SpanRow, zIndex, getHatchPattern} from './styles';
 import * as DividerHandlerManager from './dividerHandlerManager';
 import * as CursorGuideHandler from './cursorGuideHandler';
 import SpanDetail from './spanDetail';
@@ -1100,17 +1100,6 @@ const DurationPill = styled('div')<{
   }
 `;
 
-const getHatchPattern = ({spanBarHatch}) => {
-  if (spanBarHatch === true) {
-    return `
-      background-image: linear-gradient(45deg, #dedae3 10%, #f4f2f7 10%, #f4f2f7 50%, #dedae3 50%, #dedae3 60%, #f4f2f7 60%, #f4f2f7 100%);
-      background-size: 6.5px 6.5px;
-  `;
-  }
-
-  return null;
-};
-
 export const SpanBarRectangle = styled('div')<{spanBarHatch: boolean}>`
   position: relative;
   height: 100%;
@@ -1118,7 +1107,7 @@ export const SpanBarRectangle = styled('div')<{spanBarHatch: boolean}>`
   user-select: none;
   transition: border-color 0.15s ease-in-out;
   border-right: 1px solid rgba(0, 0, 0, 0);
-  ${getHatchPattern}
+  ${p => getHatchPattern(p, '#dedae3', '#f4f2f7')}
 `;
 
 const StyledIconWarning = styled(IconWarning)`
