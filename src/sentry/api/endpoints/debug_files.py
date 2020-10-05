@@ -14,7 +14,6 @@ from symbolic import normalize_debug_id, SymbolicError
 
 from sentry import ratelimits
 
-from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
@@ -51,7 +50,6 @@ def upload_from_request(request, project):
 
 
 class DebugFilesEndpoint(ProjectEndpoint):
-    doc_section = DocSection.PROJECTS
     permission_classes = (ProjectReleasePermission,)
 
     def download(self, debug_file_id, project):
@@ -214,7 +212,6 @@ class DebugFilesEndpoint(ProjectEndpoint):
 
 
 class UnknownDebugFilesEndpoint(ProjectEndpoint):
-    doc_section = DocSection.PROJECTS
     permission_classes = (ProjectReleasePermission,)
 
     def get(self, request, project):
@@ -224,7 +221,6 @@ class UnknownDebugFilesEndpoint(ProjectEndpoint):
 
 
 class AssociateDSymFilesEndpoint(ProjectEndpoint):
-    doc_section = DocSection.PROJECTS
     permission_classes = (ProjectReleasePermission,)
 
     # Legacy endpoint, kept for backwards compatibility
@@ -360,7 +356,6 @@ class DifAssembleEndpoint(ProjectEndpoint):
 
 
 class SourceMapsEndpoint(ProjectEndpoint):
-    # doc_section = DocSection.PROJECTS
     permission_classes = (ProjectReleasePermission,)
 
     def get(self, request, project):
