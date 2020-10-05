@@ -195,14 +195,17 @@ export type Project = {
   hasAccess: boolean;
   firstEvent: 'string' | null;
   firstTransactionEvent: boolean;
+  subjectTemplate: string;
+  digestsMaxDelay: number;
+  digestsMinDelay: number;
 
   // XXX: These are part of the DetailedProject serializer
   plugins: Plugin[];
   processingIssues: number;
   relayPiiConfig: string;
+  latestDeploys: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
   builtinSymbolSources?: string[];
   stats?: Array<[number, number]>;
-  latestDeploys: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
 } & AvatarProject;
 
 export type MinimalProject = Pick<Project, 'id' | 'slug'>;
