@@ -65,16 +65,16 @@ class Issues extends React.Component<Props, State> {
 
     switch (issuesType) {
       case IssuesType.NEW:
-        query.setTag('firstRelease', [version]);
+        query.setTagValues('firstRelease', [version]);
         break;
       case IssuesType.UNHANDLED:
-        query.setTag('release', [version]);
-        query.setTag('error.handled', ['0']);
+        query.setTagValues('release', [version]);
+        query.setTagValues('error.handled', ['0']);
         break;
       case IssuesType.RESOLVED:
       case IssuesType.ALL:
       default:
-        query.setTag('release', [version]);
+        query.setTagValues('release', [version]);
     }
 
     return {
