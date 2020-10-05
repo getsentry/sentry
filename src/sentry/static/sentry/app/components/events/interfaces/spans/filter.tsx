@@ -8,6 +8,7 @@ import DropdownControl from 'app/components/dropdownControl';
 import DropdownButton from 'app/components/dropdownButton';
 import CheckboxFancy from 'app/components/checkboxFancy/checkboxFancy';
 import {pickSpanBarColour} from 'app/components/events/interfaces/spans/utils';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 
 import {ParsedTraceType} from './types';
 
@@ -272,9 +273,7 @@ const OperationDot = styled('div')<{backgroundColor: string}>`
 
 const OperationName = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  overflow: hidden;
+  ${overflowEllipsis};
 `;
 
 export function toggleFilter(
