@@ -381,9 +381,14 @@ jobs:
       steps:
         - uses: actions/checkout@v2
         - uses: volta-cli/action@v1
+
         - name: Install dependencies
           run: |
             yarn install --frozen-lockfile
+
+        - name: Install pip
+          run: |
+            pip install --no-cache-dir --upgrade "pip>=20.0.2"
 
         - name: Run API docs tests
           run: |
