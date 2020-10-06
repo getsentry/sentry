@@ -296,16 +296,10 @@ class VitalCard extends React.Component<Props, State> {
     series.markLine.tooltip = {
       formatter: () => {
         return [
-          '<div class="tooltip-series">',
-          '<div>',
+          '<div class="tooltip-series tooltip-series-solo">',
           '<span class="tooltip-label">',
           `<strong>${t('Baseline')}</strong>`,
           '</span>',
-          '</div>',
-          '</div>',
-          '<div class="tooltip-date">',
-          this.getFormattedStatNumber(),
-          '</div>',
           '</div>',
           '<div class="tooltip-arrow"></div>',
         ].join('');
