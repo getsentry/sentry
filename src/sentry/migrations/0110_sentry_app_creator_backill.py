@@ -5,23 +5,24 @@ from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
 from django.db import migrations
 
-def backfill_one(audit_log_entry, SentryApp):
-    name = audit_log_entry.data.get("sentry_app")
-    if name:
-        # find the sentry app for that org, name, that's not deleted
-        sentry_app = SentryApp.objects.filter(
-            name=name,
-            owner=audit_log_entry.organization,
-            date_deleted__isnull=True,
-            creator_user__isnull=True,
-        ).first()
-        # if there is a match and the user exists,
-        # update with the creator
-        user = audit_log_entry.actor
-        if sentry_app and user:
+
+def backfill_one(sentry_app, AuditLogEntry):
+    queryset = AuditLogEntry.objects.filter(
+        organization_id=sentry_app.owner_id,
+        event=113) # sentry app add
+
+    for audit_log_entry in queryset:
+        name = audit_log_entry.data.get("sentry_app")
+        # only update if we have the actor
+        if not audit_log_entry.actor_id:
+            continue
+        # find a name match based on the name
+        if name and name == sentry_app.name:
+            user = audit_log_entry.actor
             sentry_app.creator_user = user
             sentry_app.creator_label = user.email or user.username
             sentry_app.save()
+            return
 
 
 def backfill_sentry_app_creator(apps, schema_editor):
@@ -32,9 +33,12 @@ def backfill_sentry_app_creator(apps, schema_editor):
     SentryApp = apps.get_model("sentry", "SentryApp")
     AuditLogEntry = apps.get_model("sentry", "AuditLogEntry")
 
-    queryset = AuditLogEntry.objects.filter(event=113) # sentry app add
-    for audit_log_entry in RangeQuerySetWrapperWithProgressBar(queryset):
-        backfill_one(audit_log_entry, SentryApp)
+    queryset = SentryApp.objects.filter(
+            date_deleted__isnull=True,
+            creator_user_id__isnull=True)
+
+    for sentry_app in RangeQuerySetWrapperWithProgressBar(queryset):
+        backfill_one(sentry_app, AuditLogEntry)
 
 class Migration(migrations.Migration):
     # This flag is used to mark that a migration shouldn't be automatically run in
