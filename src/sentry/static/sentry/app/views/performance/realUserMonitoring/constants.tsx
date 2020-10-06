@@ -10,9 +10,7 @@ export const WEB_VITAL_DETAILS: Record<WebVital, Vital> = {
   [WebVital.FP]: {
     slug: 'fp',
     name: t('First Paint'),
-    description: t(
-      'First paint refers to the point at which the first pixel renders on a screen after a user navigates to a web page.'
-    ),
+    description: t('Render time of the first pixel loaded in the viewport.'),
     failureThreshold: 4000,
     type: 'duration',
   },
@@ -20,7 +18,7 @@ export const WEB_VITAL_DETAILS: Record<WebVital, Vital> = {
     slug: 'fcp',
     name: t('First Contentful Paint'),
     description: t(
-      'First Contentful Paint measures the time from when the page starts loading to when the page first rendered any content such as text and images.'
+      'Render time of the first image, text or other DOM node in the viewport.'
     ),
     failureThreshold: 4000,
     type: 'duration',
@@ -29,7 +27,7 @@ export const WEB_VITAL_DETAILS: Record<WebVital, Vital> = {
     slug: 'lcp',
     name: t('Largest Contentful Paint'),
     description: t(
-      'Largest Contentful Paint measures the render time of the largest image or text block prior to user input.'
+      'Render time of the largest image, text or other DOM node in the viewport.'
     ),
     failureThreshold: 4000,
     type: 'duration',
@@ -38,7 +36,7 @@ export const WEB_VITAL_DETAILS: Record<WebVital, Vital> = {
     slug: 'fid',
     name: t('First Input Delay'),
     description: t(
-      'First input delay measures the time from a user’s first interaction (such as clicks) to the time when the browser is able to respond to that interaction. Scrolling and zooming are not included in this metric.'
+      'Response time of the browser to a user interaction (clicking, tapping, etc).'
     ),
     failureThreshold: 300,
     type: 'duration',
