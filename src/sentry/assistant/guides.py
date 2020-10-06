@@ -110,5 +110,5 @@ GUIDES = {
             }
         ],
     },
-    "dynamic_counts": {"id": 5, "required_targets": ["dynamic_counts"]},
+    "dynamic_counts": {"id": 7, "required_targets": ["dynamic_counts"]},
 }
