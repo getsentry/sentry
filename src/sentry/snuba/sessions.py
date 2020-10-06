@@ -37,7 +37,7 @@ def get_changed_project_release_model_adoptions(project_ids):
         groupby=["release", "project_id"],
         start=start,
         referrer="sessions.get-adoption",
-        filter_keys={"project_id": project_ids},
+        filter_keys={"project_id": list(project_ids)},
     )["data"]:
         rv.append((x["project_id"], x["release"]))
 
