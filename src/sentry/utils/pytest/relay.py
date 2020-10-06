@@ -40,12 +40,8 @@ def _remove_container_if_exists(docker_client, container_name):
             pass  # could not remove the container nothing to do about it
 
 
-@pytest.fixture(
-    scope="session",
-    params=["latest", "cc3af8314c682da977e83e86edb876bcb7da3adc"],
-    ids=["relay_v1", "relay_v2"],
-)
-def relay_server_setup(live_server, tmpdir_factory, request):
+@pytest.fixture(scope="session")
+def relay_server_setup(live_server, tmpdir_factory):
     prefix = "test_relay_config_{}_".format(
         datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S_%f")
     )
@@ -100,7 +96,7 @@ def relay_server_setup(live_server, tmpdir_factory, request):
     container_name = _relay_server_container_name()
     _remove_container_if_exists(docker_client, container_name)
     options = {
-        "image": "us.gcr.io/sentryio/relay:{}".format(request.param),
+        "image": "us.gcr.io/sentryio/relay:latest",
         "ports": {"%s/tcp" % relay_port: relay_port},
         "network": network,
         "detach": True,
