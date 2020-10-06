@@ -85,7 +85,6 @@ steps:
     ./install.sh
     ./test.sh || docker-compose logs nginx web relay
   timeout: 450s
-
 - name: 'gcr.io/cloud-builders/docker'
   id: docker-push
   waitFor:
@@ -107,6 +106,27 @@ steps:
     docker push getsentry/sentry:$COMMIT_SHA
     docker tag us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA getsentry/sentry:latest
     docker push getsentry/sentry:latest
+- name: 'gcr.io/cloud-builders/docker'
+  id: docker-push-py3
+  waitFor:
+    - e2e-test-py3
+  secretEnv: ['DOCKER_PASSWORD']
+  entrypoint: 'bash'
+  args:
+  - '-e'
+  - '-c'
+  - |
+    # Only push to Docker Hub from master
+    [ "$BRANCH_NAME" != "master" ] && exit 0
+    # Need to pull the image first due to Kaniko
+    docker pull us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA-py3
+    echo "$$DOCKER_PASSWORD" | docker login --username=sentrybuilder --password-stdin
+    docker tag us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA-py3 getsentry/sentry:$SHORT_SHA-py3
+    docker push getsentry/sentry:$SHORT_SHA-py3
+    docker tag us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA-py3 getsentry/sentry:$COMMIT_SHA-py3
+    docker push getsentry/sentry:$COMMIT_SHA-py3
+    docker tag us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA-py3 getsentry/sentry:latest-py3
+    docker push getsentry/sentry:latest-py3
 - name: 'node:12'
   id: zeus-upload
   waitFor:
