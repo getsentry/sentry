@@ -28,8 +28,10 @@ from sentry.snuba.dataset import Dataset
 from sentry.utils.dates import to_timestamp
 from sentry.utils.snuba import (
     DATASETS,
-    get_json_type,
     FUNCTION_TO_OPERATOR,
+    get_json_type,
+    is_measurement,
+    is_duration_measurement,
     OPERATOR_TO_FUNCTION,
     SNUBA_AND,
     SNUBA_OR,
@@ -240,7 +242,13 @@ class SearchFilter(namedtuple("SearchFilter", "key operator value")):
 class SearchKey(namedtuple("SearchKey", "name")):
     @cached_property
     def is_tag(self):
-        return TAG_KEY_RE.match(self.name) or self.name not in SEARCH_MAP
+        return TAG_KEY_RE.match(self.name) or (
+            self.name not in SEARCH_MAP and not self.is_measurement
+        )
+
+    @cached_property
+    def is_measurement(self):
+        return is_measurement(self.name) and self.name not in SEARCH_MAP
 
 
 class AggregateFilter(namedtuple("AggregateFilter", "key operator value")):
@@ -347,6 +355,12 @@ class SearchVisitor(NodeVisitor):
 
         return filter(is_not_space, children)
 
+    def is_numeric_key(self, key):
+        return key in self.numeric_keys or is_measurement(key)
+
+    def is_duration_key(self, key):
+        return key in self.duration_keys or is_duration_measurement(key)
+
     def visit_search(self, node, children):
         return self.flatten(children)
 
@@ -384,9 +398,12 @@ class SearchVisitor(NodeVisitor):
         (search_key, _, operator, search_value) = children
         operator = operator[0] if not isinstance(operator, Node) else "="
 
-        if search_key.name in self.numeric_keys:
+        if self.is_numeric_key(search_key.name):
             try:
-                search_value = SearchValue(int(search_value.text))
+                if is_measurement(search_key.name):
+                    search_value = SearchValue(float(search_value.text))
+                else:
+                    search_value = SearchValue(int(search_value.text))
             except ValueError:
                 raise InvalidSearchQuery(u"Invalid numeric query: {}".format(search_key))
             return SearchFilter(search_key, operator, search_value)
@@ -414,7 +431,7 @@ class SearchVisitor(NodeVisitor):
                 _, agg_additions = resolve_field(search_key.name, None)
                 if len(agg_additions) > 0:
                     # Extract column and function name out so we can check if we should parse as duration
-                    if agg_additions[0][-2] in self.duration_keys:
+                    if self.is_duration_key(agg_additions[0][-2]):
                         aggregate_value = parse_duration(*search_value.match.groups())
 
             if aggregate_value is None:
@@ -479,7 +496,7 @@ class SearchVisitor(NodeVisitor):
         (search_key, _, operator, search_value) = children
 
         operator = operator[0] if not isinstance(operator, Node) else "="
-        if search_key.name in self.duration_keys:
+        if self.is_duration_key(search_key.name):
             try:
                 search_value = parse_duration(*search_value.match.groups())
             except InvalidQuery as exc:
@@ -568,7 +585,7 @@ class SearchVisitor(NodeVisitor):
         # that the value wasn't in a valid format, so raise here.
         if search_key.name in self.date_keys:
             raise InvalidSearchQuery("Invalid format for date search")
-        if search_key.name in self.numeric_keys:
+        if self.is_numeric_key(search_key.name):
             raise InvalidSearchQuery("Invalid format for numeric search")
 
         return SearchFilter(search_key, operator, search_value)
@@ -1210,8 +1227,10 @@ def get_json_meta_type(field_alias, snuba_type):
         function_definition = FUNCTIONS.get(function_match.group(1))
         if function_definition and function_definition.result_type:
             return function_definition.result_type
-    if "duration" in field_alias:
+    if "duration" in field_alias or is_duration_measurement(field_alias):
         return "duration"
+    if is_measurement(field_alias):
+        return "number"
     if field_alias == "transaction.status":
         return "string"
     return snuba_json
@@ -1298,6 +1317,8 @@ class DateArg(FunctionArg):
 class NumericColumn(FunctionArg):
     def normalize(self, value):
         snuba_column = SEARCH_MAP.get(value)
+        if not snuba_column and is_measurement(value):
+            return value
         if not snuba_column:
             raise InvalidFunctionArgument(u"{} is not a valid column".format(value))
         elif snuba_column not in ["time", "timestamp", "duration"]:
@@ -1314,6 +1335,8 @@ class NumericColumnNoLookup(NumericColumn):
 class DurationColumn(FunctionArg):
     def normalize(self, value):
         snuba_column = SEARCH_MAP.get(value)
+        if not snuba_column and is_duration_measurement(value):
+            return value
         if not snuba_column:
             raise InvalidFunctionArgument(u"{} is not a valid column".format(value))
         elif snuba_column != "duration":
@@ -1325,6 +1348,13 @@ class DurationColumnNoLookup(DurationColumn):
     def normalize(self, value):
         super(DurationColumnNoLookup, self).normalize(value)
         return value
+
+
+class StringArrayColumn(FunctionArg):
+    def normalize(self, value):
+        if value in ["tags.key", "tags.value", "measurements_key"]:
+            return value
+        raise InvalidFunctionArgument(u"{} is not a valid string array column".format(value))
 
 
 class NumberRange(FunctionArg):
@@ -1582,6 +1612,61 @@ FUNCTIONS = {
             result_type="number",
         ),
         Function("failure_rate", transform="failure_rate()", result_type="percentage",),
+        Function(
+            "array_join",
+            required_args=[StringArrayColumn("column")],
+            column=["arrayJoin", [ArgValue("column")], None],
+            result_type="string",
+        ),
+        Function(
+            "measurements_histogram",
+            required_args=[
+                # the bucket_size and start_offset should already be adjusted
+                # using the multiplier before it is passed here
+                NumberRange("bucket_size", 0, None),
+                NumberRange("start_offset", 0, None),
+                NumberRange("multiplier", 1, None),
+            ],
+            # floor((x * multiplier - start_offset) / bucket_size) * bucket_size + start_offset
+            column=[
+                "plus",
+                [
+                    [
+                        "multiply",
+                        [
+                            [
+                                "floor",
+                                [
+                                    [
+                                        "divide",
+                                        [
+                                            [
+                                                "minus",
+                                                [
+                                                    [
+                                                        "multiply",
+                                                        [
+                                                            ["arrayJoin", ["measurements_value"]],
+                                                            ArgValue("multiplier"),
+                                                        ],
+                                                    ],
+                                                    ArgValue("start_offset"),
+                                                ],
+                                            ],
+                                            ArgValue("bucket_size"),
+                                        ],
+                                    ],
+                                ],
+                            ],
+                            ArgValue("bucket_size"),
+                        ],
+                    ],
+                    ArgValue("start_offset"),
+                ],
+                None,
+            ],
+            result_type="number",
+        ),
         # The user facing signature for this function is histogram(<column>, <num_buckets>)
         # Internally, snuba.discover.query() expands the user request into this value by
         # calculating the bucket size and start_offset.

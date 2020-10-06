@@ -123,24 +123,25 @@
         "application/json": {
           "schema": {
             "type": "object",
-            "required": ["version", "projects"],
             "properties": {
               "name": {
                 "type": "string",
-                "description": "The new name (full path) of the file.",
-                "example": "/demo/goodbye.txt"
+                "description": "The new name (full path) of the file."
               },
               "dist": {
                 "type": "string",
                 "description": "The new name of the dist."
               }
             }
+          },
+          "example": {
+            "name": "/demo/goodbye.txt"
           }
         }
       }
     },
     "responses": {
-      "201": {
+      "200": {
         "description": "Success",
         "content": {
           "application/json": {

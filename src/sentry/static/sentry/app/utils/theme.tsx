@@ -231,9 +231,7 @@ const generateButtonTheme = alias => ({
     backgroundActive: colors.white,
     border: '#d8d2de',
     borderActive: '#c9c0d1',
-    focusShadow: color(colors.gray300)
-      .alpha(0.5)
-      .string(),
+    focusShadow: color(colors.gray300).alpha(0.5).string(),
   },
   primary: {
     color: colors.white,
@@ -242,9 +240,7 @@ const generateButtonTheme = alias => ({
     backgroundActive: '#4e3fb4',
     border: '#3d328e',
     borderActive: '#352b7b',
-    focusShadow: color(colors.purple400)
-      .alpha(0.4)
-      .string(),
+    focusShadow: color(colors.purple400).alpha(0.4).string(),
   },
   success: {
     color: colors.white,
@@ -253,9 +249,7 @@ const generateButtonTheme = alias => ({
     backgroundActive: colors.green400,
     border: '#7ccca5',
     borderActive: '#7ccca5',
-    focusShadow: color(colors.green400)
-      .alpha(0.5)
-      .string(),
+    focusShadow: color(colors.green400).alpha(0.5).string(),
   },
   danger: {
     color: colors.white,
@@ -264,9 +258,7 @@ const generateButtonTheme = alias => ({
     backgroundActive: '#bf2a1d',
     border: '#bf2a1d',
     borderActive: '#7d1c13',
-    focusShadow: color(colors.red400)
-      .alpha(0.5)
-      .string(),
+    focusShadow: color(colors.red400).alpha(0.5).string(),
   },
   link: {
     color: colors.blue400,

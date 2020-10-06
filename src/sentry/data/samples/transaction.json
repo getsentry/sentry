@@ -170,5 +170,19 @@
    "type": "transaction",
    "user": {
       "ip_address": "127.0.0.1"
+   },
+   "measurements": {
+      "fp": {
+         "value": 2258.060000000114
+      },
+      "fcp": {
+         "value": 2258.060000000114
+      },
+      "lcp": {
+         "value": 2807.335
+      },
+      "fid": {
+         "value": 3.4900000027846545
+      }
    }
 }

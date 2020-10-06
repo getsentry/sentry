@@ -4,7 +4,7 @@ import GuideStore from 'app/stores/guideStore';
 
 jest.mock('app/utils/analytics');
 
-describe('GuideStore', function() {
+describe('GuideStore', function () {
   let data;
   const user = {
     id: '5',
@@ -12,7 +12,7 @@ describe('GuideStore', function() {
     dateJoined: new Date(2020, 0, 1),
   };
 
-  beforeEach(function() {
+  beforeEach(function () {
     trackAnalyticsEvent.mockClear();
     ConfigStore.config = {
       user,
@@ -31,7 +31,7 @@ describe('GuideStore', function() {
     GuideStore.onRegisterAnchor('issue_stream');
   });
 
-  it('should move through the steps in the guide', function() {
+  it('should move through the steps in the guide', function () {
     GuideStore.onFetchSucceeded(data);
     // Should pick the first non-seen guide in alphabetic order.
     expect(GuideStore.state.currentStep).toEqual(0);
@@ -47,7 +47,7 @@ describe('GuideStore', function() {
     expect(GuideStore.state.currentGuide).toEqual(null);
   });
 
-  it('should force show a guide with #assistant', function() {
+  it('should force show a guide with #assistant', function () {
     data = [
       {
         guide: 'issue',
@@ -65,7 +65,7 @@ describe('GuideStore', function() {
     window.location.hash = '';
   });
 
-  it('should record analytics events when guide is cued', function() {
+  it('should record analytics events when guide is cued', function () {
     const spy = jest.spyOn(GuideStore, 'recordCue');
     GuideStore.onFetchSucceeded(data);
     expect(spy).toHaveBeenCalledWith('issue');
@@ -88,7 +88,7 @@ describe('GuideStore', function() {
     spy.mockRestore();
   });
 
-  it('only shows guides with server data and content', function() {
+  it('only shows guides with server data and content', function () {
     data = [
       {
         guide: 'issue',

@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import six
 from django.conf import settings
 from django.core.cache import cache
 from django.db import models, IntegrityError, transaction
@@ -138,8 +139,8 @@ class OrganizationOnboardingTask(Model):
 
     organization = FlexibleForeignKey("sentry.Organization")
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=True)  # user that completed
-    task = BoundedPositiveIntegerField(choices=TASK_CHOICES)
-    status = BoundedPositiveIntegerField(choices=STATUS_CHOICES)
+    task = BoundedPositiveIntegerField(choices=[(k, six.text_type(v)) for k, v in TASK_CHOICES])
+    status = BoundedPositiveIntegerField(choices=[(k, six.text_type(v)) for k, v in STATUS_CHOICES])
     completion_seen = models.DateTimeField(null=True)
     date_completed = models.DateTimeField(default=timezone.now)
     project = FlexibleForeignKey("sentry.Project", db_constraint=False, null=True)

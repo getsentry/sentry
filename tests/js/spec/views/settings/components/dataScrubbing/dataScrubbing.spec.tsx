@@ -208,10 +208,7 @@ describe('Data Scrubbing', () => {
       });
 
       const listItems = wrapper.find('ListItem');
-      const deleteButton = listItems
-        .at(0)
-        .find('[aria-label="Delete Rule"]')
-        .hostNodes();
+      const deleteButton = listItems.at(0).find('[aria-label="Delete Rule"]').hostNodes();
 
       deleteButton.simulate('click');
       expect(mockDelete).toHaveBeenCalled();

@@ -114,6 +114,23 @@ export type Relay = {
   description?: string;
 };
 
+export type RelayActivity = {
+  publicKey: string;
+  relayId: string;
+  version: string;
+  firstSeen: string;
+  lastSeen: string;
+};
+
+export type RelaysByPublickey = {
+  [publicKey: string]: {
+    name: string;
+    activities: Array<RelayActivity>;
+    description?: string;
+    created?: string;
+  };
+};
+
 /**
  * Detailed organization (e.g. when requesting details for a single org)
  *
@@ -301,6 +318,8 @@ type SDKUpdatesSuggestion =
   | UpdateSdkSuggestion
   | ChangeSdkSuggestion;
 
+type Measurement = {value: number};
+
 type SentryEventBase = {
   id: string;
   eventID: string;
@@ -350,6 +369,8 @@ type SentryEventBase = {
   };
 
   sdkUpdates?: Array<SDKUpdatesSuggestion>;
+
+  measurements?: Record<string, Measurement>;
 };
 
 export type SentryTransactionEvent = {
@@ -672,6 +693,7 @@ export type Group = {
   firstSeen: string;
   hasSeen: boolean;
   isBookmarked: boolean;
+  isUnhandled: boolean;
   isPublic: boolean;
   isSubscribed: boolean;
   lastRelease: any; // TODO(ts)
@@ -1039,6 +1061,7 @@ export type ReleaseProject = {
   platform: PlatformKey;
   platforms: PlatformKey[];
   newGroups: number;
+  hasHealthData: boolean;
   healthData?: Health;
 };
 
@@ -1071,8 +1094,7 @@ export type Deploy = {
 
 export type Commit = {
   id: string;
-  key: string;
-  message: string;
+  message: string | null;
   dateCreated: string;
   repository?: Repository;
   author?: User;
@@ -1154,6 +1176,7 @@ export type SelectValue<T> = {
   label: string;
   value: T;
   disabled?: boolean;
+  tooltip?: string;
 };
 
 /**
@@ -1273,18 +1296,22 @@ export type TagValue = {
   ipAddress?: string;
 } & AvatarUser;
 
+type Topvalue = {
+  count: number;
+  firstSeen: string;
+  key: string;
+  lastSeen: string;
+  name: string;
+  value: string;
+};
+
 export type TagWithTopValues = {
+  topValues: Array<Topvalue>;
   key: string;
   name: string;
-  topValues: Array<{
-    count: number;
-    firstSeen: string;
-    key: string;
-    lastSeen: string;
-    name: string;
-    value: string;
-  }>;
   totalValues: number;
+  uniqueValues: number;
+  canDelete: boolean;
 };
 
 export type Level = 'error' | 'fatal' | 'info' | 'warning' | 'sample';

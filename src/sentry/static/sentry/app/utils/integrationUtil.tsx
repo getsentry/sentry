@@ -252,6 +252,7 @@ export const getCategories = (features: IntegrationFeature[]): string[] => {
       case 'actionable notification':
         return 'notification action';
       case 'issue basic':
+      case 'issue link':
       case 'issue sync':
         return 'project management';
       case 'commits':

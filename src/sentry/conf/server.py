@@ -425,9 +425,6 @@ SESSION_SERIALIZER = "django.contrib.sessions.serializers.PickleSerializer"
 GOOGLE_OAUTH2_CLIENT_ID = ""
 GOOGLE_OAUTH2_CLIENT_SECRET = ""
 
-GITHUB_APP_ID = ""
-GITHUB_API_SECRET = ""
-
 BITBUCKET_CONSUMER_KEY = ""
 BITBUCKET_CONSUMER_SECRET = ""
 
@@ -816,8 +813,6 @@ SENTRY_FEATURES = {
     "organizations:android-mappings": False,
     # Enable obtaining and using API keys.
     "organizations:api-keys": False,
-    # Move release artifacts to settings.
-    "organizations:artifacts-in-settings": True,
     # Enable explicit use of AND and OR in search.
     "organizations:boolean-search": False,
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
@@ -843,8 +838,6 @@ SENTRY_FEATURES = {
     "organizations:global-views": False,
     # Lets organizations manage grouping configs
     "organizations:set-grouping-config": False,
-    # Enable Releases v2 feature
-    "organizations:releases-v2": True,
     # Enable rule page.
     "organizations:rule-page": False,
     # Enable incidents feature
@@ -877,6 +870,8 @@ SENTRY_FEATURES = {
     "organizations:invite-members": True,
     # Enable rate limits for inviting members.
     "organizations:invite-members-rate-limits": True,
+    # Enable measurements-based product features.
+    "organizations:measurements": False,
     # Enable org-wide saved searches and user pinned search
     "organizations:org-saved-searches": False,
     # Prefix host with organization ID when giving users DSNs (can be
@@ -905,6 +900,8 @@ SENTRY_FEATURES = {
     "organizations:usage-stats-graph": False,
     # Enable dynamic issue counts and user counts in the issue stream
     "organizations:dynamic-issue-counts": False,
+    # Return unhandled information on the issue level
+    "organizations:unhandled-issue-flag": False,
     # Enable functionality to specify custom inbound filters on events.
     "projects:custom-inbound-filters": False,
     # Enable data forwarding functionality for projects.
@@ -1650,6 +1647,20 @@ EMAIL_USE_TLS = DEAD
 SERVER_EMAIL = DEAD
 EMAIL_SUBJECT_PREFIX = DEAD
 
+# Shared btw Auth Provider and Social Auth Plugin
+GITHUB_APP_ID = DEAD
+GITHUB_API_SECRET = DEAD
+
+# Used by Auth Provider
+GITHUB_REQUIRE_VERIFIED_EMAIL = DEAD
+GITHUB_API_DOMAIN = DEAD
+GITHUB_BASE_DOMAIN = DEAD
+
+# Used by Social Auth Plugin
+GITHUB_EXTENDED_PERMISSIONS = DEAD
+GITHUB_ORGANIZATION = DEAD
+
+
 SUDO_URL = "sentry-sudo"
 
 # Endpoint to https://github.com/getsentry/sentry-release-registry, used for
@@ -1875,6 +1886,9 @@ KAFKA_TOPICS = {
     KAFKA_INGEST_TRANSACTIONS: {"cluster": "default", "topic": KAFKA_INGEST_TRANSACTIONS},
 }
 
+# If True, consumers will create the topics if they don't exist
+KAFKA_CONSUMER_AUTO_CREATE_TOPICS = True
+
 # For Jira, only approved apps can use the access_email_addresses scope
 # This scope allows Sentry to use the email endpoint (https://developer.atlassian.com/cloud/jira/platform/rest/v3/#api-rest-api-3-user-email-get)
 # We use the email with Jira 2-way sync in order to match the user
@@ -1988,3 +2002,5 @@ SENTRY_SIMILARITY_GROUPING_CONFIGURATIONS_TO_INDEX = {
 SENTRY_USE_UWSGI = True
 
 SENTRY_REPROCESSING_ATTACHMENT_CHUNK_SIZE = 2 ** 20
+
+SENTRY_REPROCESSING_SYNC_REDIS_CLUSTER = "default"

@@ -28,10 +28,6 @@ class AuthIndexEndpoint(Endpoint):
 
     permission_classes = ()
 
-    # XXX: it's not quite clear if this should be documented or not at
-    # this time.
-    # doc_section = DocSection.ACCOUNTS
-
     def get(self, request):
         if not request.user.is_authenticated():
             return Response(status=status.HTTP_400_BAD_REQUEST)

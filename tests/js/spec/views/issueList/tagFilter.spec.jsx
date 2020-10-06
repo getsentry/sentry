@@ -4,11 +4,11 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import IssueListTagFilter from 'app/views/issueList/tagFilter';
 
-describe('IssueListTagFilter', function() {
+describe('IssueListTagFilter', function () {
   let tagValueLoader;
   let project;
 
-  beforeEach(function() {
+  beforeEach(function () {
     MockApiClient.clearMockResponses();
     project = TestStubs.ProjectDetails();
 
@@ -27,7 +27,7 @@ describe('IssueListTagFilter', function() {
       );
   });
 
-  it('calls API and renders options when opened', async function() {
+  it('calls API and renders options when opened', async function () {
     const selectMock = jest.fn();
     const tag = {key: 'browser', name: 'Browser'};
     const wrapper = mountWithTheme(
@@ -53,7 +53,7 @@ describe('IssueListTagFilter', function() {
     expect(selectMock).toHaveBeenCalledWith(tag, 'foo');
   });
 
-  it('calls API and renders options when opened without project', async function() {
+  it('calls API and renders options when opened without project', async function () {
     const selectMock = jest.fn();
     const tag = {key: 'browser', name: 'Browser'};
     const wrapper = mountWithTheme(

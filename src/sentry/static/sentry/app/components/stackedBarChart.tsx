@@ -33,7 +33,7 @@ type DefaultProps = {
    */
   points: Points;
   secondaryPoints: Points;
-  showSecondaryPoints?: boolean;
+  showSecondaryPoints: boolean;
   series: Series;
   markers: Marker[];
   barClasses: string[];
@@ -107,6 +107,7 @@ class StackedBarChart extends React.Component<Props, State> {
     label: '',
     points: [],
     secondaryPoints: [],
+    showSecondaryPoints: false,
     series: [],
     markers: [],
     barClasses: ['chart-bar'],
@@ -371,7 +372,7 @@ class StackedBarChart extends React.Component<Props, State> {
       const pct2 = y2 && calcPct(y2, i);
 
       const pt = (
-        <React.Fragment key={i}>
+        <RectGroup key={i} showSecondaryPoints={showSecondaryPoints}>
           <rect
             x={index * pointWidth + '%'}
             y={100.0 - pct - prevPct + '%'}
@@ -402,7 +403,7 @@ class StackedBarChart extends React.Component<Props, State> {
               {y2}
             </rect>
           )}
-        </React.Fragment>
+        </RectGroup>
       );
       prevPct += pct;
       if (pct2) prevPct2 += pct2;
@@ -540,6 +541,14 @@ const CircleSvg = styled('svg')<{size: number; offset: number; left: number}>`
 
   &:hover circle {
     fill: ${p => p.theme.purple400};
+  }
+`;
+
+const RectGroup = styled('g')<{showSecondaryPoints: boolean}>`
+  opacity: ${p => (p.showSecondaryPoints ? 0.75 : 1)};
+
+  &:hover {
+    opacity: 1;
   }
 `;
 

@@ -1,5 +1,5 @@
-# This is the image to be run
-FROM python:2.7.16-slim-buster
+ARG PY_VER=2.7.16
+FROM python:${PY_VER}-slim-buster
 
 LABEL maintainer="oss@sentry.io"
 LABEL org.opencontainers.image.title="Sentry"

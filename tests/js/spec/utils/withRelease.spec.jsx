@@ -5,7 +5,7 @@ import {mount} from 'sentry-test/enzyme';
 import ReleaseStore from 'app/stores/releaseStore';
 import withRelease from 'app/utils/withRelease';
 
-describe('withRelease HoC', function() {
+describe('withRelease HoC', function () {
   const orgSlug = 'myOrg';
   const projectSlug = 'myProject';
   const releaseVersion = 'myRelease';

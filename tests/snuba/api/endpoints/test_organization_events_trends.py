@@ -11,14 +11,12 @@ from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
-class OrganizationEventsTrendsEndpointTest(APITestCase, SnubaTestCase):
+class OrganizationEventsTrendsBase(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(OrganizationEventsTrendsEndpointTest, self).setUp()
+        super(OrganizationEventsTrendsBase, self).setUp()
         self.login_as(user=self.user)
 
         self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
-
-        self.project = self.create_project()
         self.prototype = load_data("transaction")
         data = self.prototype.copy()
         data["start_timestamp"] = iso_format(self.day_ago + timedelta(minutes=30))
@@ -36,14 +34,274 @@ class OrganizationEventsTrendsEndpointTest(APITestCase, SnubaTestCase):
             data["user"] = {"email": "foo{}@example.com".format(i)}
             self.store_event(data, project_id=self.project.id)
 
+
+class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
+    def setUp(self):
+        super(OrganizationEventsTrendsEndpointTest, self).setUp()
+        self.url = reverse(
+            "sentry-api-0-organization-events-trends",
+            kwargs={"organization_slug": self.project.organization.slug},
+        )
+
     def test_simple(self):
         with self.feature("organizations:trends"):
-            url = reverse(
-                "sentry-api-0-organization-events-trends",
-                kwargs={"organization_slug": self.project.organization.slug},
-            )
             response = self.client.get(
-                url,
+                self.url,
+                format="json",
+                data={
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "start": iso_format(self.day_ago),
+                    "field": ["project", "transaction"],
+                    "query": "event.type:transaction",
+                },
+            )
+
+        assert response.status_code == 200, response.content
+
+        events = response.data
+
+        assert len(events["data"]) == 1
+        # Shouldn't do an exact match here because we aren't using the stable correlation function
+        assert events["data"][0].pop("absolute_correlation") > 0.2
+        assert events["data"][0] == {
+            "count_range_1": 1,
+            "count_range_2": 3,
+            "transaction": self.prototype["transaction"],
+            "project": self.project.slug,
+            "percentile_range_1": 2000,
+            "percentile_range_2": 2000,
+            "percentage_count_range_2_count_range_1": 3.0,
+            "minus_percentile_range_2_percentile_range_1": 0.0,
+            "percentage_percentile_range_2_percentile_range_1": 1.0,
+        }
+
+    def test_p75(self):
+        with self.feature("organizations:trends"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "start": iso_format(self.day_ago),
+                    "field": ["project", "transaction"],
+                    "query": "event.type:transaction",
+                    "trendFunction": "p75()",
+                },
+            )
+
+        assert response.status_code == 200, response.content
+
+        events = response.data
+
+        assert len(events["data"]) == 1
+        # Shouldn't do an exact match here because we aren't using the stable correlation function
+        assert events["data"][0].pop("absolute_correlation") > 0.2
+        assert events["data"][0] == {
+            "count_range_1": 1,
+            "count_range_2": 3,
+            "transaction": self.prototype["transaction"],
+            "project": self.project.slug,
+            "percentile_range_1": 2000,
+            "percentile_range_2": 6000,
+            "percentage_count_range_2_count_range_1": 3.0,
+            "minus_percentile_range_2_percentile_range_1": 4000.0,
+            "percentage_percentile_range_2_percentile_range_1": 3.0,
+        }
+
+    def test_p95(self):
+        with self.feature("organizations:trends"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "start": iso_format(self.day_ago),
+                    "field": ["project", "transaction"],
+                    "query": "event.type:transaction",
+                    "trendFunction": "p95()",
+                },
+            )
+
+        assert response.status_code == 200, response.content
+
+        events = response.data
+
+        assert len(events["data"]) == 1
+        # Shouldn't do an exact match here because we aren't using the stable correlation function
+        assert events["data"][0].pop("absolute_correlation") > 0.2
+        assert events["data"][0] == {
+            "count_range_1": 1,
+            "count_range_2": 3,
+            "transaction": self.prototype["transaction"],
+            "project": self.project.slug,
+            "percentile_range_1": 2000,
+            "percentile_range_2": 9200,
+            "percentage_count_range_2_count_range_1": 3.0,
+            "minus_percentile_range_2_percentile_range_1": 7200.0,
+            "percentage_percentile_range_2_percentile_range_1": 4.6,
+        }
+
+    def test_p99(self):
+        with self.feature("organizations:trends"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "start": iso_format(self.day_ago),
+                    "field": ["project", "transaction"],
+                    "query": "event.type:transaction",
+                    "trendFunction": "p99()",
+                },
+            )
+
+        assert response.status_code == 200, response.content
+
+        events = response.data
+
+        assert len(events["data"]) == 1
+        # Shouldn't do an exact match here because we aren't using the stable correlation function
+        assert events["data"][0].pop("absolute_correlation") > 0.2
+        assert events["data"][0] == {
+            "count_range_1": 1,
+            "count_range_2": 3,
+            "transaction": self.prototype["transaction"],
+            "project": self.project.slug,
+            "percentile_range_1": 2000,
+            "percentile_range_2": 9840,
+            "percentage_count_range_2_count_range_1": 3.0,
+            "minus_percentile_range_2_percentile_range_1": 7840.0,
+            "percentage_percentile_range_2_percentile_range_1": 4.92,
+        }
+
+    def test_avg_trend_function(self):
+        with self.feature("organizations:trends"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "start": iso_format(self.day_ago),
+                    "field": ["project", "transaction"],
+                    "query": "event.type:transaction",
+                    "trendFunction": "avg(transaction.duration)",
+                    "project": [self.project.id],
+                },
+            )
+        assert response.status_code == 200, response.content
+
+        events = response.data
+
+        assert len(events["data"]) == 1
+        # Shouldn't do an exact match here because we aren't using the stable correlation function
+        assert events["data"][0].pop("absolute_correlation") > 0.2
+        assert events["data"][0] == {
+            "count_range_2": 3,
+            "count_range_1": 1,
+            "transaction": self.prototype["transaction"],
+            "project": self.project.slug,
+            "avg_range_1": 2000,
+            "avg_range_2": 4000,
+            "percentage_count_range_2_count_range_1": 3.0,
+            "minus_avg_range_2_avg_range_1": 2000.0,
+            "percentage_avg_range_2_avg_range_1": 2.0,
+        }
+
+    def test_misery_trend_function(self):
+        with self.feature("organizations:trends"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "start": iso_format(self.day_ago),
+                    "field": ["project", "transaction"],
+                    "query": "event.type:transaction",
+                    "trendFunction": "user_misery(300)",
+                    "project": [self.project.id],
+                },
+            )
+        assert response.status_code == 200, response.content
+
+        events = response.data
+
+        assert len(events["data"]) == 1
+        # Shouldn't do an exact match here because we aren't using the stable correlation function
+        assert events["data"][0].pop("absolute_correlation") > 0.2
+        assert events["data"][0] == {
+            "count_range_2": 3,
+            "count_range_1": 1,
+            "transaction": self.prototype["transaction"],
+            "project": self.project.slug,
+            "user_misery_range_1": 1,
+            "user_misery_range_2": 2,
+            "percentage_count_range_2_count_range_1": 3.0,
+            "minus_user_misery_range_2_user_misery_range_1": 1.0,
+            "percentage_user_misery_range_2_user_misery_range_1": 2.0,
+        }
+
+    def test_invalid_trend_function(self):
+        with self.feature("organizations:trends"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "start": iso_format(self.day_ago),
+                    "field": ["project", "transaction"],
+                    "query": "event.type:transaction",
+                    "trendFunction": "apdex(450)",
+                    "project": [self.project.id],
+                },
+            )
+            assert response.status_code == 400
+
+    def test_divide_by_zero(self):
+        with self.feature("organizations:trends"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    # Set the timeframe to where the second range has no transactions so all the counts/percentile are 0
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "start": iso_format(self.day_ago - timedelta(hours=2)),
+                    "field": ["project", "transaction"],
+                    "query": "event.type:transaction",
+                    "project": [self.project.id],
+                },
+            )
+        assert response.status_code == 200, response.content
+
+        events = response.data
+
+        assert len(events["data"]) == 1
+        # Shouldn't do an exact match here because we aren't using the stable correlation function
+        assert events["data"][0].pop("absolute_correlation") > 0.2
+        assert events["data"][0] == {
+            "count_range_2": 4,
+            "count_range_1": 0,
+            "transaction": self.prototype["transaction"],
+            "project": self.project.slug,
+            "percentile_range_1": 0,
+            "percentile_range_2": 2000.0,
+            "percentage_count_range_2_count_range_1": None,
+            "minus_percentile_range_2_percentile_range_1": 0,
+            "percentage_percentile_range_2_percentile_range_1": None,
+        }
+
+
+class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
+    def setUp(self):
+        super(OrganizationEventsTrendsStatsEndpointTest, self).setUp()
+        self.url = reverse(
+            "sentry-api-0-organization-events-trends-stats",
+            kwargs={"organization_slug": self.project.organization.slug},
+        )
+
+    def test_simple(self):
+        with self.feature("organizations:trends"):
+            response = self.client.get(
+                self.url,
                 format="json",
                 data={
                     "end": iso_format(self.day_ago + timedelta(hours=2)),
@@ -81,12 +339,8 @@ class OrganizationEventsTrendsEndpointTest(APITestCase, SnubaTestCase):
 
     def test_p75(self):
         with self.feature("organizations:trends"):
-            url = reverse(
-                "sentry-api-0-organization-events-trends",
-                kwargs={"organization_slug": self.project.organization.slug},
-            )
             response = self.client.get(
-                url,
+                self.url,
                 format="json",
                 data={
                     "end": iso_format(self.day_ago + timedelta(hours=2)),
@@ -125,12 +379,8 @@ class OrganizationEventsTrendsEndpointTest(APITestCase, SnubaTestCase):
 
     def test_p95(self):
         with self.feature("organizations:trends"):
-            url = reverse(
-                "sentry-api-0-organization-events-trends",
-                kwargs={"organization_slug": self.project.organization.slug},
-            )
             response = self.client.get(
-                url,
+                self.url,
                 format="json",
                 data={
                     "end": iso_format(self.day_ago + timedelta(hours=2)),
@@ -169,12 +419,8 @@ class OrganizationEventsTrendsEndpointTest(APITestCase, SnubaTestCase):
 
     def test_p99(self):
         with self.feature("organizations:trends"):
-            url = reverse(
-                "sentry-api-0-organization-events-trends",
-                kwargs={"organization_slug": self.project.organization.slug},
-            )
             response = self.client.get(
-                url,
+                self.url,
                 format="json",
                 data={
                     "end": iso_format(self.day_ago + timedelta(hours=2)),
@@ -213,12 +459,8 @@ class OrganizationEventsTrendsEndpointTest(APITestCase, SnubaTestCase):
 
     def test_avg_trend_function(self):
         with self.feature("organizations:trends"):
-            url = reverse(
-                "sentry-api-0-organization-events-trends",
-                kwargs={"organization_slug": self.project.organization.slug},
-            )
             response = self.client.get(
-                url,
+                self.url,
                 format="json",
                 data={
                     "end": iso_format(self.day_ago + timedelta(hours=2)),
@@ -257,12 +499,8 @@ class OrganizationEventsTrendsEndpointTest(APITestCase, SnubaTestCase):
 
     def test_misery_trend_function(self):
         with self.feature("organizations:trends"):
-            url = reverse(
-                "sentry-api-0-organization-events-trends",
-                kwargs={"organization_slug": self.project.organization.slug},
-            )
             response = self.client.get(
-                url,
+                self.url,
                 format="json",
                 data={
                     "end": iso_format(self.day_ago + timedelta(hours=2)),
@@ -301,12 +539,8 @@ class OrganizationEventsTrendsEndpointTest(APITestCase, SnubaTestCase):
 
     def test_invalid_trend_function(self):
         with self.feature("organizations:trends"):
-            url = reverse(
-                "sentry-api-0-organization-events-trends",
-                kwargs={"organization_slug": self.project.organization.slug},
-            )
             response = self.client.get(
-                url,
+                self.url,
                 format="json",
                 data={
                     "end": iso_format(self.day_ago + timedelta(hours=2)),
@@ -321,12 +555,8 @@ class OrganizationEventsTrendsEndpointTest(APITestCase, SnubaTestCase):
 
     def test_divide_by_zero(self):
         with self.feature("organizations:trends"):
-            url = reverse(
-                "sentry-api-0-organization-events-trends",
-                kwargs={"organization_slug": self.project.organization.slug},
-            )
             response = self.client.get(
-                url,
+                self.url,
                 format="json",
                 data={
                     # Set the timeframe to where the second range has no transactions so all the counts/percentile are 0
@@ -370,10 +600,13 @@ class OrganizationEventsTrendsPagingTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super(OrganizationEventsTrendsPagingTest, self).setUp()
         self.login_as(user=self.user)
+        self.url = reverse(
+            "sentry-api-0-organization-events-trends-stats",
+            kwargs={"organization_slug": self.project.organization.slug},
+        )
 
         self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
 
-        self.project = self.create_project()
         self.prototype = load_data("transaction")
 
         # Make 10 transactions for paging
@@ -401,12 +634,8 @@ class OrganizationEventsTrendsPagingTest(APITestCase, SnubaTestCase):
 
     def test_pagination(self):
         with self.feature("organizations:trends"):
-            url = reverse(
-                "sentry-api-0-organization-events-trends",
-                kwargs={"organization_slug": self.project.organization.slug},
-            )
             response = self.client.get(
-                url,
+                self.url,
                 format="json",
                 data={
                     # Set the timeframe to where the second range has no transactions so all the counts/percentile are 0
@@ -434,12 +663,8 @@ class OrganizationEventsTrendsPagingTest(APITestCase, SnubaTestCase):
 
     def test_pagination_with_query(self):
         with self.feature("organizations:trends"):
-            url = reverse(
-                "sentry-api-0-organization-events-trends",
-                kwargs={"organization_slug": self.project.organization.slug},
-            )
             response = self.client.get(
-                url,
+                self.url,
                 format="json",
                 data={
                     # Set the timeframe to where the second range has no transactions so all the counts/percentile are 0
