@@ -16,13 +16,14 @@ type ConditionsProps = DiscoverBaseProps & {
 export default class Conditions extends React.Component<ConditionsProps> {
   addRow() {
     this.props.onChange(
-      [...this.props.value, [null, null, null]]);
+      [...this.props.value, [null, null, null]])
   }
 
   removeRow(idx: number) {
     const conditions = this.props.value.slice();
     conditions.splice(idx, 1);
     this.props.onChange(conditions);
+    test = true
   }
 
   handleChange(val: Condition, idx: number) {
