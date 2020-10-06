@@ -273,55 +273,52 @@ const StreamGroup = createReactClass({
                 open: isOpen && hasDynamicIssueCounts,
               });
 
-            return (
-              <GuideAnchor
-                target="dynamic_counts"
-                disabled={!hasDynamicGuideAnchor}
-              >
-                <span
-                  {...getRootProps({
-                    className: topLevelCx,
-                  })}
-                >
-                  <span {...getActorProps({})}>
-                    <div className="dropdown-actor-title">
-                      <PrimaryCount
-                        value={primaryCount}
-                        filtered={secondaryCount !== undefined}
-                      />
-                      {secondaryCount !== undefined && (
-                        <SecondaryCount value={secondaryCount} />
+              return (
+                <GuideAnchor target="dynamic_counts" disabled={!hasDynamicGuideAnchor}>
+                  <span
+                    {...getRootProps({
+                      className: topLevelCx,
+                    })}
+                  >
+                    <span {...getActorProps({})}>
+                      <div className="dropdown-actor-title">
+                        <PrimaryCount
+                          value={primaryCount}
+                          filtered={secondaryCount !== undefined}
+                        />
+                        {secondaryCount !== undefined && (
+                          <SecondaryCount value={secondaryCount} />
+                        )}
+                      </div>
+                    </span>
+                    <ul {...getMenuProps({className: 'dropdown-menu inverted'})}>
+                      {data.filtered && (
+                        <React.Fragment>
+                          <StyledMenuItem to={this.getDiscoverUrl(true)}>
+                            <MenuItemText>{t('Matching search filters')}</MenuItemText>
+                            <MenuItemCount value={data.filtered.count} />
+                          </StyledMenuItem>
+                          <MenuItem divider />
+                        </React.Fragment>
                       )}
-                    </div>
+
+                      <StyledMenuItem to={this.getDiscoverUrl()}>
+                        <MenuItemText>{t(`Total in ${summary}`)}</MenuItemText>
+                        <MenuItemCount value={data.count} />
+                      </StyledMenuItem>
+
+                      {data.lifetime && (
+                        <React.Fragment>
+                          <MenuItem divider />
+                          <StyledMenuItem>
+                            <MenuItemText>{t('Since issue began')}</MenuItemText>
+                            <MenuItemCount value={data.lifetime.count} />
+                          </StyledMenuItem>
+                        </React.Fragment>
+                      )}
+                    </ul>
                   </span>
-                  <ul {...getMenuProps({className: 'dropdown-menu inverted'})}>
-                    {data.filtered && (
-                      <React.Fragment>
-                        <StyledMenuItem to={this.getDiscoverUrl(true)}>
-                          <MenuItemText>{t('Matching search filters')}</MenuItemText>
-                          <MenuItemCount value={data.filtered.count} />
-                        </StyledMenuItem>
-                        <MenuItem divider />
-                      </React.Fragment>
-                    )}
-
-                    <StyledMenuItem to={this.getDiscoverUrl()}>
-                      <MenuItemText>{t(`Total in ${summary}`)}</MenuItemText>
-                      <MenuItemCount value={data.count} />
-                    </StyledMenuItem>
-
-                    {data.lifetime && (
-                      <React.Fragment>
-                        <MenuItem divider />
-                        <StyledMenuItem>
-                          <MenuItemText>{t('Since issue began')}</MenuItemText>
-                          <MenuItemCount value={data.lifetime.count} />
-                        </StyledMenuItem>
-                      </React.Fragment>
-                    )}
-                  </ul>
-                </span>
-              </GuideAnchor>
+                </GuideAnchor>
               );
             }}
           </DropdownMenu>
