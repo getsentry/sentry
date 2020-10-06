@@ -114,14 +114,12 @@
             "properties": {
               "name": {
                 "type": "string",
-                "description": "The name (full path) of the file.",
-                "example": "/demo/hello.min.js.map"
+                "description": "The name (full path) of the file."
               },
               "file": {
                 "type": "string",
                 "format": "binary",
-                "description": "The multipart encoded file.",
-                "example": "hello.min.js.map"
+                "description": "The multipart encoded file."
               },
               "dist": {
                 "type": "string",
@@ -132,6 +130,10 @@
                 "description": "This parameter can be supplied multiple times to attach headers to the file. Each header is a string in the format `key:value`. For instance it can be used to define a content type."
               }
             }
+          },
+          "example": {
+            "name": "/demo/hello.min.js.map",
+            "file": "hello.min.js.map"
           }
         }
       }

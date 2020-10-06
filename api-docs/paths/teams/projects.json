@@ -123,15 +123,17 @@
             "properties": {
               "name": {
                 "type": "string",
-                "description": "The name for the new project.",
-                "example": "The Spoiled Yoghurt"
+                "description": "The name for the new project."
               },
               "slug": {
                 "type": "string",
-                "description": "Optional slug for the new project. If not provided a slug is generated from the name.",
-                "example": "the-spoiled-yoghurt"
+                "description": "Optional slug for the new project. If not provided a slug is generated from the name."
               }
             }
+          },
+          "example": {
+            "name": "The Spoiled Yoghurt",
+            "slug": "the-spoiled-yoghurt"
           }
         }
       },

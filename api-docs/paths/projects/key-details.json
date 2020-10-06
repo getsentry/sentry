@@ -40,10 +40,12 @@
             "properties": {
               "name": {
                 "type": "string",
-                "description": "The new name for the client key.",
-                "example": "Fluffy Key"
+                "description": "The new name for the client key."
               }
             }
+          },
+          "example": {
+            "name": "Fluffy Key"
           }
         }
       },

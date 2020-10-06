@@ -185,14 +185,16 @@
               "name": {
                 "type": "string",
                 "description": "The name of the team.",
-                "example": "Ancient Gabelers"
               },
               "slug": {
                 "type": "string",
                 "description": "The optional slug for this team. If not provided it will be auto generated from the name.",
-                "example": "ancient-gabelers"
               }
             }
+          },
+          "example": {
+            "name": "Ancient Gabelers",
+            "slug":"ancient-gabelers"
           }
         }
       },

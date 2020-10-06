@@ -77,10 +77,12 @@
               "file": {
                 "type": "string",
                 "format": "binary",
-                "description": "The multipart encoded file.",
-                "example": "debug.zip"
+                "description": "The multipart encoded file."
               }
             }
+          },
+          "example": {
+            "file": "debug.zip"
           }
         }
       },
