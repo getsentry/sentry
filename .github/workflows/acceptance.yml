@@ -414,4 +414,4 @@ jobs:
 
         - name: Compare OpenAPI Derefed JSON
           run: |
-            json-diff sentry/api-docs/openapi-derefed.json sentry-api-schema/openapi-derefed.json
+            json-diff --color sentry/api-docs/openapi-derefed.json sentry-api-schema/openapi-derefed.json
