@@ -48,6 +48,7 @@ const EVENT_TYPES = [
   'rule.create',
   'rule.edit',
   'rule.remove',
+  'sentry-app.add',
   'servicehook.create',
   'servicehook.edit',
   'servicehook.remove',
