@@ -115,13 +115,8 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         if stats_period not in (None, "", "24h", "14d"):
             return Response({"detail": ERR_INVALID_STATS_PERIOD}, status=400)
         elif stats_period is None:
-            if has_dynamic_issue_counts and start and end:
-                # custom date range
-                stats_period = "auto"
-            else:
-                # default if no dynamic-issue-counts
-                stats_period = "24h"
-
+            # default if no dynamic-issue-counts
+            stats_period = "24h"
         elif stats_period == "":
             # disable stats
             stats_period = None
