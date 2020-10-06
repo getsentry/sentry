@@ -4,16 +4,20 @@ import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
 
+import {Organization} from 'app/types';
 import BarChart from 'app/components/charts/barChart';
 import BarChartZoom from 'app/components/charts/barChartZoom';
 import MarkArea from 'app/components/charts/components/markArea';
 import MarkLine from 'app/components/charts/components/markLine';
 import MarkPoint from 'app/components/charts/components/markPoint';
+import DiscoverButton from 'app/components/discoverButton';
 import Tag from 'app/components/tag';
 import {FIRE_SVG_PATH} from 'app/icons/iconFire';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
+import EventView from 'app/utils/discover/eventView';
 import {formatFloat, getDuration} from 'app/utils/formatters';
+import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import theme from 'app/utils/theme';
 
 import {NUM_BUCKETS} from './constants';
@@ -23,12 +27,16 @@ import {findNearestBucketIndex, getRefRect, asPixelRect, mapPoint} from './utils
 
 type Props = {
   location: Location;
+  organization: Organization;
   isLoading: boolean;
   error: boolean;
   vital: Vital;
   summary: number | null;
   chartData: HistogramData[];
   colors: [string];
+  eventView: EventView;
+  min?: string;
+  max?: string;
 };
 
 type State = {
@@ -86,8 +94,40 @@ class VitalCard extends React.Component<Props, State> {
   }
 
   renderSummary() {
-    const {isLoading, error, summary, vital, colors} = this.props;
+    const {
+      isLoading,
+      error,
+      summary,
+      vital,
+      colors,
+      eventView,
+      organization,
+      min,
+      max,
+    } = this.props;
     const {slug, name, description, failureThreshold, type} = vital;
+
+    const column = `measurements.${slug}`;
+
+    const newEventView = eventView
+      .withColumns([
+        {kind: 'field', field: 'transaction'},
+        {kind: 'field', field: `user.display`},
+        {kind: 'field', field: column},
+      ])
+      .withSorts([{kind: 'desc', field: column}]);
+
+    // add in any range constraints if any
+    if (min !== undefined || max !== undefined) {
+      const query = tokenizeSearch(newEventView.query ?? '');
+      if (min !== undefined) {
+        query.addTagValues(column, [`>=${min}`]);
+      }
+      if (max !== undefined) {
+        query.addTagValues(column, [`<=${max}`]);
+      }
+      newEventView.query = stringifyQueryObject(query);
+    }
 
     return (
       <CardSummary>
@@ -108,6 +148,12 @@ class VitalCard extends React.Component<Props, State> {
             : formatFloat(summary, 2)}
         </StatNumber>
         <Description>{description}</Description>
+        <DiscoverButton
+          size="small"
+          to={newEventView.getResultsViewUrlTarget(organization.slug)}
+        >
+          {t('Open in Discover')}
+        </DiscoverButton>
       </CardSummary>
     );
   }

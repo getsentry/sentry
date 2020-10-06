@@ -9,7 +9,13 @@ const Context = styled('div')`
   display: inline;
 `;
 
-const ContextLine = function (props) {
+type Props = {
+  line: [number, string];
+  isActive: boolean;
+  className?: string;
+} & React.ComponentProps<typeof React.Fragment>;
+
+const ContextLine = function (props: Props) {
   const {line, isActive, className} = props;
   let lineWs = '';
   let lineCode = '';
