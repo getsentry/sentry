@@ -1,6 +1,11 @@
 import React from 'react';
 
-import {MeasurementCollection} from 'app/types';
+export type Measurement = {
+  name: string;
+  key: string;
+};
+
+export type MeasurementCollection = {[key: string]: Measurement};
 
 type InjectedMeasurementsProps = {
   measurements: MeasurementCollection;
