@@ -123,9 +123,6 @@ jobs:
         PYTEST_SENTRY_DSN: https://6fd5cfea2d4d46b182ad214ac7810508@sentry.io/2423079
         PYTEST_ADDOPTS: "--reruns 5"
 
-        # services configuration
-        SENTRY_KAFKA_HOSTS: 127.0.0.1:9092
-        SENTRY_ZOOKEEPER_HOSTS: 127.0.0.1:2181
         # The hostname used to communicate with the PostgreSQL from sentry
         DATABASE_URL: postgresql://postgres:postgres@localhost/sentry
 
@@ -216,7 +213,7 @@ jobs:
         - name: Start devservices
           run: |
             sentry init
-            sentry devservices up postgres redis clickhouse snuba kafka zookeeper
+            sentry devservices up postgres redis clickhouse snuba
 
         - name: webpack
           run: |
@@ -272,9 +269,6 @@ jobs:
         PYTEST_SENTRY_DSN: https://6fd5cfea2d4d46b182ad214ac7810508@sentry.io/2423079
         PYTEST_ADDOPTS: "--reruns 5"
 
-        # services configuration
-        SENTRY_KAFKA_HOSTS: 127.0.0.1:9092
-        SENTRY_ZOOKEEPER_HOSTS: 127.0.0.1:2181
         # The hostname used to communicate with the PostgreSQL from sentry
         DATABASE_URL: postgresql://postgres:postgres@localhost/sentry
 
@@ -367,7 +361,7 @@ jobs:
         - name: Start devservices
           run: |
             sentry init
-            sentry devservices up postgres redis clickhouse snuba kafka zookeeper
+            sentry devservices up postgres redis clickhouse snuba
 
         - name: webpack
           run: |
