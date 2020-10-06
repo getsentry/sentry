@@ -393,6 +393,16 @@ jobs:
           with:
             path: sentry
 
+        - uses: dorny/paths-filter@v2
+          id: filter
+          with:
+            filters: |
+              api-docs:
+                - 'api-docs/**'
+
+        - name: api-docs/** changes
+          if: steps.filter.outputs.api-docs == 'true'
+
         - name: Checkout getsentry/sentry-api-schema
           uses: actions/checkout@v2
           with:
