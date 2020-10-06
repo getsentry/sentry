@@ -382,6 +382,11 @@ jobs:
         - uses: actions/checkout@v2
         - uses: volta-cli/action@v1
 
+        - name: Set up Python ${{ steps.config.outputs.python-version }}
+          uses: actions/setup-python@v2
+          with:
+            python-version: ${{ steps.config.outputs.python-version}}
+
         - name: Install pip
           run: |
             pip install --no-cache-dir --upgrade "pip>=20.0.2"
@@ -399,7 +404,7 @@ jobs:
             restore-keys: |
               ${{ runner.os }}-pip-
 
-        - name: Install dependencies
+        - name: Install Javascript Dependencies
           run: |
             yarn install --frozen-lockfile
 
