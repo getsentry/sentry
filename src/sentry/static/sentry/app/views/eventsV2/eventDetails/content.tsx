@@ -17,6 +17,7 @@ import Button from 'app/components/button';
 import Feature from 'app/components/acl/feature';
 import RootSpanStatus from 'app/components/events/rootSpanStatus';
 import OpsBreakdown from 'app/components/events/opsBreakdown';
+import RealUserMonitoring from 'app/components/events/realUserMonitoring';
 import EventMetadata from 'app/components/events/eventMetadata';
 import LoadingError from 'app/components/loadingError';
 import NotFound from 'app/components/errors/notFound';
@@ -241,6 +242,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
               />
               <RootSpanStatus event={event} />
               <OpsBreakdown event={event} />
+              <RealUserMonitoring organization={organization} event={event} />
               {event.groupID && (
                 <LinkedIssue groupId={event.groupID} eventId={event.eventID} />
               )}

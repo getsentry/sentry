@@ -4,11 +4,11 @@ import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
 import {t} from 'app/locale';
-import {Organization, TagCollection, MeasurementCollection} from 'app/types';
+import {Organization, TagCollection} from 'app/types';
 import {metric} from 'app/utils/analytics';
 import withApi from 'app/utils/withApi';
 import withTags from 'app/utils/withTags';
-import withMeasurements from 'app/utils/withMeasurements';
+import withMeasurements, {MeasurementCollection} from 'app/utils/withMeasurements';
 import Pagination from 'app/components/pagination';
 import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
 import {TableData} from 'app/utils/discover/discoverQuery';
