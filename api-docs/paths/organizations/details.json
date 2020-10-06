@@ -248,15 +248,17 @@
             "properties": {
               "name": {
                 "type": "string",
-                "description": "An optional new name for the organization.",
-                "example": "Impeccably Designated"
+                "description": "An optional new name for the organization."
               },
               "slug": {
                 "type": "string",
-                "description": "An optional new slug for the organization. Needs to be available and unique.",
-                "example": "impeccably-designated"
+                "description": "An optional new slug for the organization. Needs to be available and unique."
               }
             }
+          },
+          "example": {
+            "name": "Impeccably Designated",
+            "slug": "impeccably-designated"
           }
         }
       },
