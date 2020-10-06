@@ -298,7 +298,7 @@ class ParseSearchQueryTest(unittest.TestCase):
     def test_invalid_date_formats(self):
         invalid_queries = ["first_seen:hello", "first_seen:123", "first_seen:2018-01-01T00:01ZZ"]
         for invalid_query in invalid_queries:
-            with self.assertRaisesRegexp(InvalidSearchQuery, "Invalid format for date search"):
+            with self.assertRaisesRegexp(InvalidSearchQuery, "Invalid format for date field"):
                 parse_search_query(invalid_query)
 
     def test_specific_time_filter(self):
@@ -594,6 +594,29 @@ class ParseSearchQueryTest(unittest.TestCase):
             ),
         ]
 
+    def test_boolean_filter(self):
+        assert parse_search_query("stack.in_app:true") == [
+            SearchFilter(
+                key=SearchKey(name="stack.in_app"), operator="=", value=SearchValue(raw_value=1),
+            )
+        ]
+        assert parse_search_query("stack.in_app:false") == [
+            SearchFilter(
+                key=SearchKey(name="stack.in_app"), operator="=", value=SearchValue(raw_value=0),
+            )
+        ]
+        assert parse_search_query("!stack.in_app:false") == [
+            SearchFilter(
+                key=SearchKey(name="stack.in_app"), operator="=", value=SearchValue(raw_value=1),
+            )
+        ]
+
+    def test_invalid_boolean_filter(self):
+        invalid_queries = ["stack.in_app:lol", "stack.in_app:123", "stack.in_app:>true"]
+        for invalid_query in invalid_queries:
+            with self.assertRaisesRegexp(InvalidSearchQuery, "Invalid format for boolean field"):
+                parse_search_query(invalid_query)
+
     def test_numeric_filter(self):
         # Numeric format should still return a string if field isn't
         # allowed
@@ -608,7 +631,7 @@ class ParseSearchQueryTest(unittest.TestCase):
     def test_invalid_numeric_fields(self):
         invalid_queries = ["project.id:one", "issue.id:two", "transaction.duration:>hotdog"]
         for invalid_query in invalid_queries:
-            with self.assertRaisesRegexp(InvalidSearchQuery, "Invalid format for numeric search"):
+            with self.assertRaisesRegexp(InvalidSearchQuery, "Invalid format for numeric field"):
                 parse_search_query(invalid_query)
 
     def test_duration_on_non_duration_field(self):
@@ -1756,11 +1779,15 @@ class GetSnubaQueryArgsTest(TestCase):
         assert "cancelled," in six.text_type(err)
 
     def test_error_handled(self):
-        result = get_filter("error.handled:1")
-        assert result.conditions == [[["isHandled", []], "=", 1]]
+        truthy = ("yes", "true", "1")
+        falsey = ("no", "false", "0")
+        for val in truthy:
+            result = get_filter("error.handled:{}".format(val))
+            assert result.conditions == [[["isHandled", []], "=", 1]]
 
-        result = get_filter("error.handled:0")
-        assert result.conditions == [[["notHandled", []], "=", 1]]
+        for val in falsey:
+            result = get_filter("error.handled:{}".format(val))
+            assert result.conditions == [[["notHandled", []], "=", 1]]
 
         result = get_filter("has:error.handled")
         assert result.conditions == [[["isHandled", []], "=", 1]]
@@ -1768,15 +1795,22 @@ class GetSnubaQueryArgsTest(TestCase):
         result = get_filter("!has:error.handled")
         assert result.conditions == [[["isHandled", []], "=", 0]]
 
+        for val in falsey:
+            result = get_filter("!error.handled:{}".format(val))
+            assert result.conditions == [[["isHandled", []], "=", 1]]
+
+        for val in truthy:
+            result = get_filter("!error.handled:{}".format(val))
+            assert result.conditions == [[["notHandled", []], "=", 1]]
+
+        result = get_filter("!error.handled:0")
+        assert result.conditions == [[["isHandled", []], "=", 1]]
+
         with pytest.raises(InvalidSearchQuery):
             get_filter("error.handled:99")
 
-        # Numeric fields can't be negated.
         with pytest.raises(InvalidSearchQuery):
-            get_filter("!error.handled:0")
-
-        with pytest.raises(InvalidSearchQuery):
-            get_filter("!error.handled:1")
+            get_filter("error.handled:nope")
 
     def test_function_negation(self):
         result = get_filter("!p95():5s")
