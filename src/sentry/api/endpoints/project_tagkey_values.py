@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from sentry import tagstore
-from sentry.api.base import DocSection, EnvironmentMixin
+from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.utils import get_date_range_from_params
@@ -10,8 +10,6 @@ from sentry.models import Environment
 
 
 class ProjectTagKeyValuesEndpoint(ProjectEndpoint, EnvironmentMixin):
-    doc_section = DocSection.PROJECTS
-
     def get(self, request, project, key):
         """
         List a Tag's Values
