@@ -15,9 +15,10 @@ def backfill_one(audit_log_entry, SentryApp):
             date_deleted__isnull=True,
             creator_user__isnull=True,
         ).first()
-        # if there is a match, update with the creator
-        if sentry_app:
-            user = audit_log_entry.actor
+        # if there is a match and the user exists,
+        # update with the creator
+        user = audit_log_entry.actor
+        if sentry_app and user:
             sentry_app.creator_user = user
             sentry_app.creator_label = user.email or user.username
             sentry_app.save()
