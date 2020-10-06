@@ -3,6 +3,8 @@ import {withInfo} from '@storybook/addon-info';
 
 import Tooltip from 'app/components/tooltip';
 import Tag from 'app/components/tag-deprecated';
+import TagNew from 'app/components/tag';
+import {IconFire} from 'app/icons';
 
 export default {
   title: 'Core/Badges+Tags/Tag',
@@ -41,6 +43,18 @@ export const Overview = withInfo({
     </div>
     <div>
       <Tag priority="alpha">alpha</Tag>
+    </div>
+    {/* TODO: temporary stuff just for testing purposes */}
+    <div style={{margin: '100px'}}>
+      <TagNew
+        icon={<IconFire />}
+        tooltip="Test tooltip"
+        href="https://www.google.com/"
+        onDismiss={() => console.log('dismissed')}
+        style={{marginLeft: '300px'}}
+      >
+        Default
+      </TagNew>
     </div>
   </React.Fragment>
 ));
