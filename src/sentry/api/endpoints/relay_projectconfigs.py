@@ -45,15 +45,17 @@ class RelayProjectConfigsEndpoint(Endpoint):
         if full_config_requested and not relay.is_internal:
             return Response("Relay unauthorized for full config information", 403)
 
-        version = request.GET.get("version")
-        set_tag("relay_protocol_version", version or "1")
+        version = request.GET.get("version") or "1"
+        set_tag("relay_protocol_version", version)
 
         if version == "2":
             return self._post_by_key(request=request, full_config_requested=full_config_requested,)
-        else:
+        elif version == "1":
             return self._post_by_project(
                 request=request, full_config_requested=full_config_requested,
             )
+        else:
+            return Response("Unsupported version, we only support version null, 1 and 2.", 400)
 
     def _post_by_key(self, request, full_config_requested):
         public_keys = request.relay_request_data.get("publicKeys")
