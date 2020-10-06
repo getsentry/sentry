@@ -233,7 +233,7 @@ jobs:
             snapshot-path: .artifacts/visual-snapshots
 
     py3-acceptance:
-      name: 'python3.6'
+      name: 'python3.6 acceptance'
       runs-on: ubuntu-16.04
       strategy:
         matrix:
