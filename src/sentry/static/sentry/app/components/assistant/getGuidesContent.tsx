@@ -109,10 +109,10 @@ export default function getGuidesContent(): GuidesContent {
           target: 'dynamic_counts',
           description: t(
             `These numbers and the bar chart now respect the time selected and any search
-            filters you've applied. You can hover to see the totals.`,
+            filters you've applied. You can hover to see the totals.`
           ),
         },
       ],
-    }
+    },
   ];
 }
