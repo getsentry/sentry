@@ -123,8 +123,9 @@ class FeatureDisabled extends React.Component<Props, State> {
                   e.stopPropagation();
                   e.preventDefault();
                 }}
+                icon={<IconCopy />}
               >
-                <StyledIconCopy /> {t('Copy to Clipboard')}
+                {t('Copy to Clipboard')}
               </Button>
             </Clipboard>
             <pre onClick={e => selectText(e.target as HTMLElement)}>
@@ -189,10 +190,6 @@ const AlertWrapper = styled('div')`
   code {
     background: #fbf7e0;
   }
-`;
-
-const StyledIconCopy = styled(IconCopy)`
-  margin-right: ${space(1)};
 `;
 
 export default FeatureDisabled;
