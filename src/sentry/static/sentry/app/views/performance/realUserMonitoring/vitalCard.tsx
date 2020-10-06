@@ -398,8 +398,24 @@ class VitalCard extends React.Component<Props, State> {
         borderWidth: 1.5,
         borderType: 'dashed',
       },
-      silent: true,
     });
+
+    // TODO(tonyx): This conflicts with the types declaration of `MarkArea`
+    // if we add it in the constructor. So we opt to add it here so typescript
+    // doesn't complain.
+    series.markArea.tooltip = {
+      formatter: () =>
+        [
+          '<div class="tooltip-series tooltip-series-solo">',
+          '<span class="tooltip-label">',
+          '<strong>',
+          t('Fails threshold at %s.', getDuration(failureThreshold / 1000)),
+          '</strong>',
+          '</span>',
+          '</div>',
+          '<div class="tooltip-arrow"></div>',
+        ].join(''),
+    };
 
     const topRightPixel = mapPoint(
       {
