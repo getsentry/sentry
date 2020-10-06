@@ -112,7 +112,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
             "organizations:dynamic-issue-counts", organization, actor=request.user
         )
 
-        if stats_period not in (None, "", "24h", "14d"):
+        if stats_period not in (None, "", "24h", "14d", "auto"):
             return Response({"detail": ERR_INVALID_STATS_PERIOD}, status=400)
         elif stats_period is None:
             # default if no dynamic-issue-counts
