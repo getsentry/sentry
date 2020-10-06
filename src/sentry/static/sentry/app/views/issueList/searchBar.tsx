@@ -2,15 +2,17 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {fetchRecentSearches} from 'app/actionCreators/savedSearches';
 import {t} from 'app/locale';
+import {Client} from 'app/api';
+import {SavedSearchType, Tag, TagValue, Organization, SavedSearch} from 'app/types';
+import {fetchRecentSearches} from 'app/actionCreators/savedSearches';
 import SentryTypes from 'app/sentryTypes';
-import {SavedSearchType} from 'app/types';
 import SmartSearchBar from 'app/components/smartSearchBar';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
+import {SearchItem} from 'app/components/smartSearchBar/types';
 
-const SEARCH_ITEMS = [
+const SEARCH_ITEMS: SearchItem[] = [
   {
     title: t('Tag'),
     desc: 'browser:"Chrome 34", has:browser',
@@ -43,16 +45,32 @@ const SEARCH_ITEMS = [
   },
 ];
 
-class IssueListSearchBar extends React.Component {
-  static propTypes = {
-    ...SmartSearchBar.propTypes,
+type Props = React.ComponentProps<typeof SmartSearchBar> & {
+  api: Client;
+  organization: Organization;
+  tagValueLoader: (
+    key: string,
+    search: string,
+    projectIds?: string[]
+  ) => Promise<TagValue[]>;
+  projectIds?: string[];
+  savedSearch?: SavedSearch;
+  isOpen?: boolean;
+};
 
+type State = {
+  defaultSearchItems: [SearchItem[], SearchItem[]];
+  recentSearches: string[];
+};
+
+class IssueListSearchBar extends React.Component<Props, State> {
+  static propTypes = {
     savedSearch: SentryTypes.SavedSearch,
     tagValueLoader: PropTypes.func.isRequired,
     onSidebarToggle: PropTypes.func,
   };
 
-  state = {
+  state: State = {
     defaultSearchItems: [SEARCH_ITEMS, []],
     recentSearches: [],
   };
@@ -83,29 +101,23 @@ class IssueListSearchBar extends React.Component {
   };
 
   /**
-   * Returns array of tag values that substring match `query`; invokes `callback`
-   * with data when ready
+   * @returns array of tag values that substring match `query`
    */
-  getTagValues = (tag, query) => {
+  getTagValues = async (tag: Tag, query: string): Promise<string[]> => {
     const {tagValueLoader, projectIds} = this.props;
 
-    return tagValueLoader(tag.key, query, projectIds).then(
-      values => values.map(({value}) => value),
-      () => {
-        throw new Error('Unable to fetch project tags');
-      }
-    );
+    const values = await tagValueLoader(tag.key, query, projectIds);
+    return values.map(({value}) => value);
   };
 
-  getRecentSearches = async fullQuery => {
+  getRecentSearches = async (): Promise<string[]> => {
     const {api, organization} = this.props;
     const recent = await fetchRecentSearches(
       api,
       organization.slug,
-      SavedSearchType.ISSUE,
-      fullQuery
+      SavedSearchType.ISSUE
     );
-    return (recent && recent.map(({query}) => query)) || [];
+    return recent?.map(({query}) => query) ?? [];
   };
 
   handleSavedRecentSearch = () => {
@@ -128,14 +140,14 @@ class IssueListSearchBar extends React.Component {
         defaultSearchItems={this.state.defaultSearchItems}
         onSavedRecentSearch={this.handleSavedRecentSearch}
         onSidebarToggle={onSidebarToggle}
-        pinnedSearch={savedSearch && savedSearch.isPinned ? savedSearch : null}
+        pinnedSearch={savedSearch?.isPinned ? savedSearch : undefined}
         {...props}
       />
     );
   }
 }
 
-const SmartSearchBarNoLeftCorners = styled(SmartSearchBar)`
+const SmartSearchBarNoLeftCorners = styled(SmartSearchBar)<{isOpen?: boolean}>`
   border-radius: ${p =>
     p.isOpen
       ? `0 ${p.theme.borderRadius} 0 0`
