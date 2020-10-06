@@ -4,7 +4,6 @@ import six
 
 from rest_framework.response import Response
 
-from sentry.api.base import DocSection
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission, ProjectEventsError
 from sentry.api.serializers import serialize
@@ -31,7 +30,6 @@ def upsert_missing_release(project, version):
 
 
 class ProjectReleaseStatsEndpoint(ProjectEndpoint):
-    doc_section = DocSection.RELEASES
     permission_classes = (ProjectReleasePermission,)
 
     def get(self, request, project, version):
