@@ -15,7 +15,8 @@ type ConditionsProps = DiscoverBaseProps & {
 
 export default class Conditions extends React.Component<ConditionsProps> {
   addRow() {
-    this.props.onChange([...this.props.value, [null, null, null]]);
+    this.props.onChange(
+      [...this.props.value, [null, null, null]]);
   }
 
   removeRow(idx: number) {
