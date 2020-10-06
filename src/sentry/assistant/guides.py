@@ -110,18 +110,5 @@ GUIDES = {
             }
         ],
     },
-    "dynamic_counts": {
-        "id": 4,
-        "required_targets": ["dynamic_counts"],
-        "steps": [
-            {
-                "title": _("These counts have changed"),
-                "message": _(
-                    "These numbers and the bar chart now respect the time selected and any"
-                    "search filters you've applied. You can hover to see the totals."
-                ),
-                "target": "dynamic_counts",
-            }
-        ],
-    },
+    "dynamic_counts": {"id": 5, "required_targets": ["dynamic_counts"]},
 }
