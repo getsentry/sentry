@@ -217,6 +217,8 @@ const StreamGroup = createReactClass({
 
     const hasDynamicIssueCounts = organization.features.includes('dynamic-issue-counts');
 
+    const hasDynamicGuideAnchor = hasDynamicIssueCounts && hasGuideAnchor;
+
     const {period, start, end} = selection.datetime || {};
     const summary =
       !!start && !!end
@@ -271,7 +273,11 @@ const StreamGroup = createReactClass({
                 open: isOpen && hasDynamicIssueCounts,
               });
 
-              return (
+            return (
+              <GuideAnchor
+                target="dynamic_counts"
+                disabled={!hasDynamicGuideAnchor}
+              >
                 <span
                   {...getRootProps({
                     className: topLevelCx,
@@ -315,6 +321,7 @@ const StreamGroup = createReactClass({
                     )}
                   </ul>
                 </span>
+              </GuideAnchor>
               );
             }}
           </DropdownMenu>
