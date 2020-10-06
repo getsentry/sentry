@@ -107,7 +107,7 @@ steps:
     docker tag us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA getsentry/sentry:latest
     docker push getsentry/sentry:latest
 - name: 'gcr.io/cloud-builders/docker'
-  id: docker-push
+  id: docker-push-py3
   waitFor:
     - e2e-test-py3
   secretEnv: ['DOCKER_PASSWORD']
