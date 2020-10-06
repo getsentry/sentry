@@ -97,7 +97,7 @@ jobs:
 
         - name: Save snapshots
           if: always()
-          uses: getsentry/action-visual-snapshot@v2
+          uses: getsentry/action-visual-snapshot@main
           with:
             save-only: true
             snapshot-path: .artifacts/visual-snapshots
