@@ -1,5 +1,5 @@
-import PropTypes from 'prop-types';
 import React from 'react';
+import {RouteComponentProps} from 'react-router/lib/Router';
 
 import {IconMail} from 'app/icons';
 import {PanelAlert} from 'app/components/panels';
@@ -12,34 +12,48 @@ import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import PermissionAlert from 'app/views/settings/project/permissionAlert';
 import PluginList from 'app/components/pluginList';
-import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import routeTitleGen from 'app/utils/routeTitle';
+import {Organization, Project, Plugin} from 'app/types';
 
-class ProjectAlertSettings extends AsyncView {
-  static propTypes = {
-    ...AsyncView.propTypes,
-    // these are not declared as required of issues with cloned elements
-    // not initially defining them (though they are bound before) ever
-    // rendered
-    organization: SentryTypes.Organization,
-    project: SentryTypes.Project,
-    canEditRule: PropTypes.bool.isRequired,
+type RouteParams = {orgId: string; projectId: string};
+type Props = RouteComponentProps<RouteParams, {}> &
+  AsyncView['props'] & {
+    canEditRule: boolean;
+    organization: Organization;
+    project: Project;
   };
 
-  getEndpoints() {
-    const {orgId, projectId} = this.props.params;
+type State = AsyncView['state'] & {
+  project: Project | null;
+  pluginList: Array<Plugin> | null;
+};
+
+class Settings extends AsyncView<Props, State> {
+  getDefaultState() {
+    return {
+      ...super.getDefaultState(),
+      project: null,
+      pluginList: [],
+    };
+  }
+  getProjectEndpoint({orgId, projectId}: RouteParams) {
+    return `/projects/${orgId}/${projectId}/`;
+  }
+
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+    const {params} = this.props;
+    const {orgId, projectId} = params;
+    const projectEndpoint = this.getProjectEndpoint(params);
     return [
-      ['project', `/projects/${orgId}/${projectId}/`],
+      ['project', projectEndpoint],
       ['pluginList', `/projects/${orgId}/${projectId}/plugins/`],
     ];
   }
 
-  handleSaveSuccess = () => {};
-
-  handleEnablePlugin = plugin => {
-    this.setState({
-      pluginList: this.state.pluginList.map(p => {
+  handleEnablePlugin = (plugin: Plugin) => {
+    this.setState(prevState => ({
+      pluginList: (prevState.pluginList ?? []).map(p => {
         if (p.id !== plugin.id) {
           return p;
         }
@@ -48,12 +62,12 @@ class ProjectAlertSettings extends AsyncView {
           enabled: true,
         };
       }),
-    });
+    }));
   };
 
-  handleDisablePlugin = plugin => {
-    this.setState({
-      pluginList: this.state.pluginList.map(p => {
+  handleDisablePlugin = (plugin: Plugin) => {
+    this.setState(prevState => ({
+      pluginList: (prevState.pluginList ?? []).map(p => {
         if (p.id !== plugin.id) {
           return p;
         }
@@ -62,7 +76,7 @@ class ProjectAlertSettings extends AsyncView {
           enabled: false,
         };
       }),
-    });
+    }));
   };
 
   getTitle() {
@@ -71,13 +85,15 @@ class ProjectAlertSettings extends AsyncView {
   }
 
   renderBody() {
-    const {
-      canEditRule,
-      organization,
-      params: {orgId, projectId},
-    } = this.props;
+    const {canEditRule, organization, params} = this.props;
+    const {orgId} = params;
+    const {project, pluginList} = this.state;
 
-    const {project} = this.state;
+    if (!project) {
+      return null;
+    }
+
+    const projectEndpoint = this.getProjectEndpoint(params);
 
     return (
       <React.Fragment>
@@ -96,7 +112,6 @@ class ProjectAlertSettings extends AsyncView {
           }
         />
         <PermissionAlert />
-
         <AlertLink to="/settings/account/notifications/" icon={<IconMail />}>
           {t(
             'Looking to fine-tune your personal notification preferences? Visit your Account Settings'
@@ -107,12 +122,12 @@ class ProjectAlertSettings extends AsyncView {
           saveOnBlur
           allowUndo
           initialData={{
-            subjectTemplate: this.state.project.subjectTemplate,
-            digestsMinDelay: this.state.project.digestsMinDelay,
-            digestsMaxDelay: this.state.project.digestsMaxDelay,
+            subjectTemplate: project.subjectTemplate,
+            digestsMinDelay: project.digestsMinDelay,
+            digestsMaxDelay: project.digestsMaxDelay,
           }}
           apiMethod="PUT"
-          apiEndpoint={`/projects/${orgId}/${projectId}/`}
+          apiEndpoint={projectEndpoint}
         >
           <JsonForm
             disabled={!canEditRule}
@@ -137,8 +152,8 @@ class ProjectAlertSettings extends AsyncView {
         {canEditRule && (
           <PluginList
             organization={organization}
-            project={this.state.project}
-            pluginList={this.state.pluginList.filter(
+            project={project}
+            pluginList={(pluginList ?? []).filter(
               p => p.type === 'notification' && p.hasConfiguration
             )}
             onEnablePlugin={this.handleEnablePlugin}
@@ -150,4 +165,4 @@ class ProjectAlertSettings extends AsyncView {
   }
 }
 
-export default ProjectAlertSettings;
+export default Settings;
