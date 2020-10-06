@@ -27,6 +27,9 @@ class TransactionVitals extends React.Component<Props> {
 
     const colors = [...theme.charts.getColorPalette(vitals.length - 1)].reverse();
 
+    const min = decodeScalar(location.query.startMeasurements);
+    const max = decodeScalar(location.query.endMeasurements);
+
     return (
       <DiscoverQuery
         location={location}
@@ -43,8 +46,8 @@ class TransactionVitals extends React.Component<Props> {
                 eventView={eventView}
                 numBuckets={NUM_BUCKETS}
                 measurements={vitals.map(vital => WEB_VITAL_DETAILS[vital].slug)}
-                min={decodeScalar(location.query.startMeasurements)}
-                max={decodeScalar(location.query.endMeasurements)}
+                min={min}
+                max={max}
               >
                 {results => (
                   <React.Fragment>
@@ -66,6 +69,10 @@ class TransactionVitals extends React.Component<Props> {
                           summary={summary as number | null}
                           chartData={results.histograms[vital] ?? []}
                           colors={[colors[index]]}
+                          eventView={eventView}
+                          organization={organization}
+                          min={min}
+                          max={max}
                         />
                       );
                     })}
