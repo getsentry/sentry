@@ -5,7 +5,7 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import TimeSince from 'app/components/timeSince';
 import Tooltip from 'app/components/tooltip';
-import Tag from 'app/components/tag';
+import Tag from 'app/components/tag-deprecated';
 import FileSize from 'app/components/fileSize';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';

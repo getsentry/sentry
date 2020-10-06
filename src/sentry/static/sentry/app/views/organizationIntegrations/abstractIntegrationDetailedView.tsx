@@ -28,7 +28,7 @@ import {
 } from 'app/utils/integrationUtil';
 import marked, {singleLineRenderer} from 'app/utils/marked';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import Tag from 'app/components/tag';
+import Tag from 'app/components/tag-deprecated';
 
 import IntegrationStatus from './integrationStatus';
 import RequestIntegrationButton from './integrationRequest/RequestIntegrationButton';

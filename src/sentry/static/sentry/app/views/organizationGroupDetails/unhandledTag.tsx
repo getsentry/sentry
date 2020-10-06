@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import Tag from 'app/components/tag';
+import Tag from 'app/components/tag-deprecated';
 import Feature from 'app/components/acl/feature';
 import Tooltip from 'app/components/tooltip';
 import {IconSubtract} from 'app/icons';

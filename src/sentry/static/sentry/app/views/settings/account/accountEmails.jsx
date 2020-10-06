@@ -12,7 +12,7 @@ import {IconDelete, IconStack} from 'app/icons';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import Tag from 'app/components/tag';
+import Tag from 'app/components/tag-deprecated';
 import accountEmailsFields from 'app/data/forms/accountEmails';
 import space from 'app/styles/space';
 import ButtonBar from 'app/components/buttonBar';

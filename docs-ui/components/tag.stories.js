@@ -2,7 +2,7 @@ import React from 'react';
 import {withInfo} from '@storybook/addon-info';
 
 import Tooltip from 'app/components/tooltip';
-import Tag from 'app/components/tag';
+import Tag from 'app/components/tag-deprecated';
 
 export default {
   title: 'Core/Badges+Tags/Tag',
