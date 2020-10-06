@@ -378,13 +378,45 @@ jobs:
 
     test-api-docs:
       runs-on: ubuntu-latest
+      strategy:
+        matrix:
+          instance: [0, 1, 2]
+
       env:
+        SENTRY_PYTHON3: 1
+        PIP_DISABLE_PIP_VERSION_CHECK: on
+
+        SENTRY_LIGHT_BUILD: 1
+        SENTRY_SKIP_BACKEND_VALIDATION: 1
+        MIGRATIONS_TEST_MIGRATE: 1
         PYTEST_SENTRY_DSN: https://6fd5cfea2d4d46b182ad214ac7810508@sentry.io/2423079
-        PYTEST_ADDOPTS: "--reruns 5"
+        PYTEST_ADDOPTS: "--reruns 3"
+        PYTEST_SENTRY_ALWAYS_REPORT: 1
+
+        # services configuration
+        SENTRY_REDIS_HOST: redis
+        DATABASE_URL: postgresql://postgres:postgres@localhost/sentry
+
+        # Number of matrix instances
+        TOTAL_TEST_GROUPS: ${{ strategy.job-total }}
 
       steps:
+        - name: Install System Dependencies
+          run: |
+            sudo apt-get update
+            sudo apt-get install -y --no-install-recommends \
+              libxmlsec1-dev \
+              libmaxminddb-dev
+
         - uses: actions/checkout@v2
-        - uses: volta-cli/action@v1
+
+        - name: Set up outputs
+          id: config
+          env:
+            MATRIX_INSTANCE: ${{ matrix.instance }}
+          run: |
+            echo "::set-output name=python-version::$(awk 'FNR == 2' .python-version)"
+            echo "::set-output name=matrix-instance-number::$(($MATRIX_INSTANCE+1))"
 
         - name: Set up Python ${{ steps.config.outputs.python-version }}
           uses: actions/setup-python@v2
@@ -408,10 +440,6 @@ jobs:
             restore-keys: |
               ${{ runner.os }}-pip-
 
-        - name: Install Javascript Dependencies
-          run: |
-            yarn install --frozen-lockfile
-
         - name: Install Python Dependencies
           env:
             PGPASSWORD: postgres
@@ -419,6 +447,15 @@ jobs:
             python setup.py install_egg_info
             pip install wheel # GitHub Actions does not have this installed by default (unlike Travis)
             pip install -U -e ".[dev]"
+            # XXX: wasn't able to get this working in requirements_base.
+            # It's possible if you're installing via -r but it breaks -e.
+            pip uninstall -y rb
+            pip install -e git+https://github.com/getsentry/rb.git@master#egg=rb
+
+        - name: Start devservices
+          run: |
+            sentry init
+            sentry devservices up postgres redis clickhouse snuba
 
         - name: Run API docs tests
           run: |
