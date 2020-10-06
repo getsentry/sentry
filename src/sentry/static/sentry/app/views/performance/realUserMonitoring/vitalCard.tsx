@@ -85,9 +85,20 @@ class VitalCard extends React.Component<Props, State> {
     return {...prevState};
   }
 
+  getFormattedStatNumber() {
+    const {isLoading, error, summary, vital} = this.props;
+    const {type} = vital;
+
+    return isLoading || error || summary === null
+      ? '\u2014'
+      : type === 'duration'
+      ? getDuration(summary / 1000, 2, true)
+      : formatFloat(summary, 2);
+  }
+
   renderSummary() {
     const {isLoading, error, summary, vital, colors} = this.props;
-    const {slug, name, description, failureThreshold, type} = vital;
+    const {slug, name, description, failureThreshold} = vital;
 
     return (
       <CardSummary>
@@ -100,13 +111,7 @@ class VitalCard extends React.Component<Props, State> {
             <StyledTag color={theme.red400}>{t('fail')}</StyledTag>
           )}
         </CardSectionHeading>
-        <StatNumber>
-          {isLoading || error || summary === null
-            ? '\u2014'
-            : type === 'duration'
-            ? getDuration(summary / 1000, 2, true)
-            : formatFloat(summary, 2)}
-        </StatNumber>
+        <StatNumber>{this.getFormattedStatNumber()}</StatNumber>
         <Description>{description}</Description>
       </CardSummary>
     );
@@ -283,8 +288,29 @@ class VitalCard extends React.Component<Props, State> {
         color: theme.gray700,
         type: 'solid',
       },
-      silent: true,
     });
+
+    // TODO(tonyx): This conflicts with the types declaration of `MarkLine`
+    // if we add it in the constructor. So we opt to add it here so typescript
+    // doesn't complain.
+    series.markLine.tooltip = {
+      formatter: () => {
+        return [
+          '<div class="tooltip-series">',
+          '<div>',
+          '<span class="tooltip-label">',
+          `<strong>${t('Baseline')}</strong>`,
+          '</span>',
+          '</div>',
+          '</div>',
+          '<div class="tooltip-date">',
+          this.getFormattedStatNumber(),
+          '</div>',
+          '</div>',
+          '<div class="tooltip-arrow"></div>',
+        ].join('');
+      },
+    };
   }
 
   drawFailRegion(series) {
