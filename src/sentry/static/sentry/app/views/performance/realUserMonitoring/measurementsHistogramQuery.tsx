@@ -31,6 +31,7 @@ type Props = {
   children: (props: ChildrenProps) => React.ReactNode;
   min?: string;
   max?: string;
+  dataFilter?: string;
 };
 
 type State = {
@@ -60,7 +61,9 @@ class MeasurementsHistogramQuery extends React.Component<Props, State> {
     const minMaxChanged =
       prevProps.min !== this.props.min || prevProps.max !== this.props.max;
 
-    if (refetchCondition || eventViewValidation || minMaxChanged) {
+    const dataFilterChanged = prevProps.dataFilter !== this.props.dataFilter;
+
+    if (refetchCondition || eventViewValidation || minMaxChanged || dataFilterChanged) {
       this.fetchData();
     }
   }
@@ -73,7 +76,16 @@ class MeasurementsHistogramQuery extends React.Component<Props, State> {
   }
 
   fetchData = () => {
-    const {eventView, location, orgSlug, measurements, numBuckets, min, max} = this.props;
+    const {
+      eventView,
+      location,
+      orgSlug,
+      measurements,
+      numBuckets,
+      min,
+      max,
+      dataFilter,
+    } = this.props;
 
     if (!eventView.isValid()) {
       return;
@@ -87,6 +99,7 @@ class MeasurementsHistogramQuery extends React.Component<Props, State> {
       num_buckets: numBuckets,
       min,
       max,
+      data_filter: dataFilter,
     };
     const additionalApiPayload = omit(eventView.getEventsAPIPayload(location), [
       'field',

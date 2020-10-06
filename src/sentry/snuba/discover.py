@@ -960,6 +960,7 @@ def measurements_histogram_query(
     precision=0,
     min_value=None,
     max_value=None,
+    data_filter="upper_outer_fence",
     referrer=None,
 ):
     """
@@ -978,7 +979,11 @@ def measurements_histogram_query(
         If left unspecified, it is queried using `user_query` and `params`.
     :param float max_value: The maximum value allowed to be in the histogram.
         If left unspecified, it is queried using `user_query` and `params`.
+    :param str data_filter: Indicate the filter strategy to be applied to the data.
     """
+
+    if data_filter not in ("all", "upper_inner_fence", "upper_outer_fence", "p90", "p95", "p99"):
+        data_filter = "upper_inner_fence"
 
     multiplier = int(10 ** precision)
     if max_value is not None:
@@ -986,7 +991,7 @@ def measurements_histogram_query(
         # to be inclusive. So we adjust the specified max_value using the multiplier.
         max_value -= 0.1 / multiplier
     min_value, max_value = find_measurements_min_max(
-        measurements, min_value, max_value, user_query, params
+        measurements, min_value, max_value, user_query, params, data_filter
     )
 
     key_col = "array_join(measurements_key)"
@@ -1062,7 +1067,7 @@ def find_measurements_histogram_params(num_buckets, min_value, max_value, multip
     return HistogramParams(bucket_size, start_offset, multiplier)
 
 
-def find_measurements_min_max(measurements, min_value, max_value, user_query, params):
+def find_measurements_min_max(measurements, min_value, max_value, user_query, params, data_filter):
     """
     Find the min/max value of the specified measurements. If either min/max is already
     specified, it will be used and not queried for.
@@ -1075,6 +1080,7 @@ def find_measurements_min_max(measurements, min_value, max_value, user_query, pa
         If left unspecified, it is queried using `user_query` and `params`.
     :param str user_query: Filter query string to create conditions from.
     :param {str: str} params: Filtering parameters with start, end, project_id, environment
+    :param str data_filter: Indicate the filter strategy to be applied to the data.
     """
 
     if min_value is not None and max_value is not None:
@@ -1086,6 +1092,15 @@ def find_measurements_min_max(measurements, min_value, max_value, user_query, pa
             min_columns.append("min(measurements.{})".format(measurement))
         if max_value is None:
             max_columns.append("max(measurements.{})".format(measurement))
+        if data_filter in ("upper_inner_fence", "upper_outer_fence"):
+            max_columns.append("percentile(measurements.{}, 0.25)".format(measurement))
+            max_columns.append("percentile(measurements.{}, 0.75)".format(measurement))
+        if data_filter == "p90":
+            max_columns.append("percentile(measurements.{}, 0.9)".format(measurement))
+        if data_filter == "p95":
+            max_columns.append("percentile(measurements.{}, 0.95)".format(measurement))
+        if data_filter == "p99":
+            max_columns.append("percentile(measurements.{}, 0.99)".format(measurement))
 
     results = query(
         selected_columns=min_columns + max_columns,
@@ -1112,9 +1127,59 @@ def find_measurements_min_max(measurements, min_value, max_value, user_query, pa
         min_value = min(min_values) if min_values else None
 
     if max_value is None:
-        max_values = [row[get_function_alias(column)] for column in max_columns]
+        max_values = [
+            row[get_function_alias("max(measurements.{})".format(measurement))]
+            for measurement in measurements
+        ]
         max_values = list(filter(lambda v: v is not None, max_values))
         max_value = max(max_values) if max_values else None
+
+        fences = []
+        for measurement in measurements:
+            if data_filter == "p90":
+                column_name = get_function_alias(
+                    "percentile(measurements.{}, 0.9)".format(measurement)
+                )
+                fences.append(row[column_name])
+
+            if data_filter == "p95":
+                column_name = get_function_alias(
+                    "percentile(measurements.{}, 0.95)".format(measurement)
+                )
+                fences.append(row[column_name])
+
+            if data_filter == "p99":
+                column_name = get_function_alias(
+                    "percentile(measurements.{}, 0.99)".format(measurement)
+                )
+                fences.append(row[column_name])
+
+            if data_filter in ("upper_inner_fence", "upper_outer_fence"):
+                Q1_column_name = get_function_alias(
+                    "percentile(measurements.{}, 0.25)".format(measurement)
+                )
+                Q3_column_name = get_function_alias(
+                    "percentile(measurements.{}, 0.75)".format(measurement)
+                )
+
+                Q1 = row[Q1_column_name]
+                Q3 = row[Q3_column_name]
+                IQR = abs(Q3 - Q1)
+
+                if data_filter == "upper_inner_fence":
+                    upper_inner_fence = Q3 + 1.5 * IQR
+                    fences.append(upper_inner_fence)
+
+                if data_filter == "upper_outer_fence":
+                    upper_outer_fence = Q3 + 3 * IQR
+                    fences.append(upper_outer_fence)
+
+        fences = list(filter(lambda v: v is not None, fences))
+        max_fence_value = max(fences) if fences else None
+
+        candidates = [max_fence_value, max_value]
+        candidates = list(filter(lambda v: v is not None, candidates))
+        max_value = min(candidates) if candidates else None
 
     return min_value, max_value
 

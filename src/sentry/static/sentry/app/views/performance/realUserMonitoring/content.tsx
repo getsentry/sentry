@@ -9,13 +9,23 @@ import * as Layout from 'app/components/layouts/thirds';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
+import {Organization, Project, SelectValue} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import {decodeScalar} from 'app/utils/queryString';
 import SearchBar from 'app/views/events/searchBar';
+import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 
 import TransactionVitals from './transactionVitals';
 import TransactionHeader, {Tab} from '../transactionSummary/header';
+
+const FILTER_OPTIONS: SelectValue<string>[] = [
+  {label: t('Upper outer fence'), value: 'upper_outer_fence'},
+  {label: t('Upper inner fence'), value: 'upper_inner_fence'},
+  {label: t('P90'), value: 'p90'},
+  {label: t('P95'), value: 'p95'},
+  {label: t('P99'), value: 'p99'},
+  {label: t('All'), value: 'all'},
+];
 
 type Props = {
   location: Location;
@@ -77,10 +87,32 @@ class RumContent extends React.Component<Props, State> {
     });
   };
 
+  getActiveFilter() {
+    const {location} = this.props;
+
+    const dataFilter = location.query.data_filter
+      ? decodeScalar(location.query.data_filter)
+      : 'upper_outer_fence';
+    return FILTER_OPTIONS.find(item => item.value === dataFilter) || FILTER_OPTIONS[0];
+  }
+
+  handleFilterChange = (value: string) => {
+    const {location} = this.props;
+    browserHistory.push({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        cursor: undefined,
+        data_filter: value,
+      },
+    });
+  };
+
   render() {
     const {transactionName, location, eventView, projects, organization} = this.props;
     const {incompatibleAlertNotice} = this.state;
     const query = decodeScalar(location.query.query) || '';
+    const activeFilter = this.getActiveFilter();
 
     const isZoomed =
       decodeScalar(location.query.startMeasurements) !== undefined ||
@@ -117,11 +149,27 @@ class RumContent extends React.Component<Props, State> {
               >
                 {t('Reset View')}
               </Button>
+              <DropdownControl
+                buttonProps={{prefix: t('Filter')}}
+                label={activeFilter.label}
+              >
+                {FILTER_OPTIONS.map(({label, value}) => (
+                  <DropdownItem
+                    key={value}
+                    onSelect={this.handleFilterChange}
+                    eventKey={value}
+                    isActive={value === activeFilter.value}
+                  >
+                    {label}
+                  </DropdownItem>
+                ))}
+              </DropdownControl>
             </StyledActions>
             <TransactionVitals
               organization={organization}
               location={location}
               eventView={eventView}
+              dataFilter={activeFilter.value}
             />
           </Layout.Main>
         </Layout.Body>
