@@ -17,21 +17,30 @@ import routeTitleGen from 'app/utils/routeTitle';
 import {Organization, Project, Plugin} from 'app/types';
 
 type RouteParams = {orgId: string; projectId: string};
-type Props = RouteComponentProps<RouteParams, {}> & {
-  canEditRule: boolean;
-  organization: Organization;
-  project: Project;
-} & AsyncView['props'];
+type Props = RouteComponentProps<RouteParams, {}> &
+  AsyncView['props'] & {
+    canEditRule: boolean;
+    organization: Organization;
+    project: Project;
+  };
 
-type State = {
-  project: Project;
-  pluginList: Array<Plugin>;
-} & AsyncView['state'];
+type State = AsyncView['state'] & {
+  project: Project | null;
+  pluginList: Array<Plugin> | null;
+};
 
 class Settings extends AsyncView<Props, State> {
+  getDefaultState() {
+    return {
+      ...super.getDefaultState(),
+      project: null,
+      pluginList: [],
+    };
+  }
   getProjectEndpoint({orgId, projectId}: RouteParams) {
     return `/projects/${orgId}/${projectId}/`;
   }
+
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {params} = this.props;
     const {orgId, projectId} = params;
@@ -44,7 +53,7 @@ class Settings extends AsyncView<Props, State> {
 
   handleEnablePlugin = (plugin: Plugin) => {
     this.setState(prevState => ({
-      pluginList: prevState.pluginList.map(p => {
+      pluginList: (prevState.pluginList ?? []).map(p => {
         if (p.id !== plugin.id) {
           return p;
         }
@@ -58,7 +67,7 @@ class Settings extends AsyncView<Props, State> {
 
   handleDisablePlugin = (plugin: Plugin) => {
     this.setState(prevState => ({
-      pluginList: prevState.pluginList.map(p => {
+      pluginList: (prevState.pluginList ?? []).map(p => {
         if (p.id !== plugin.id) {
           return p;
         }
@@ -79,6 +88,10 @@ class Settings extends AsyncView<Props, State> {
     const {canEditRule, organization, params} = this.props;
     const {orgId} = params;
     const {project, pluginList} = this.state;
+
+    if (!project) {
+      return null;
+    }
 
     const projectEndpoint = this.getProjectEndpoint(params);
 
@@ -140,7 +153,7 @@ class Settings extends AsyncView<Props, State> {
           <PluginList
             organization={organization}
             project={project}
-            pluginList={pluginList.filter(
+            pluginList={(pluginList ?? []).filter(
               p => p.type === 'notification' && p.hasConfiguration
             )}
             onEnablePlugin={this.handleEnablePlugin}
