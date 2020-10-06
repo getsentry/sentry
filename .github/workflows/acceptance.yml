@@ -378,6 +378,10 @@ jobs:
 
     test-api-docs:
       runs-on: ubuntu-latest
+      env:
+        PYTEST_SENTRY_DSN: https://6fd5cfea2d4d46b182ad214ac7810508@sentry.io/2423079
+        PYTEST_ADDOPTS: "--reruns 5"
+
       steps:
         - uses: actions/checkout@v2
         - uses: volta-cli/action@v1
