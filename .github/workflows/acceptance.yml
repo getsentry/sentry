@@ -379,11 +379,12 @@ jobs:
     test-api-docs:
       runs-on: ubuntu-latest
       steps:
-      - uses: actions/checkout@v2
-      - uses: volta-cli/action@v1
-      - name: Install dependencies
-          run: yarn install --frozen-lockfile
+        - uses: actions/checkout@v2
+        - uses: volta-cli/action@v1
+        - name: Install dependencies
+          run: |
+            yarn install --frozen-lockfile
 
-      - name: Run API docs tests
-        run: |
-        make test-api-docs
+        - name: Run API docs tests
+          run: |
+            make test-api-docs
