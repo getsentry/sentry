@@ -1,6 +1,7 @@
 import {css} from '@emotion/core';
 import {Link} from 'react-router';
 import PropTypes from 'prop-types';
+import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
 import styled from '@emotion/styled';
 
@@ -15,13 +16,21 @@ import recreateRoute from 'app/utils/recreateRoute';
 import withOrganization from 'app/utils/withOrganization';
 import withProject from 'app/utils/withProject';
 import {trackIntegrationEvent} from 'app/utils/integrationUtil';
+import {Organization, Project, Plugin} from 'app/types';
 
 const grayText = css`
   color: #979ba0;
 `;
 
-class ProjectPluginRow extends React.PureComponent {
-  static propTypes = {
+type Props = {
+  organization: Organization;
+  project: Project;
+  onChange: (id: string, enabled: boolean) => void;
+} & Plugin &
+  Pick<RouteComponentProps<{}, {}>, 'params' | 'routes' | 'location'>;
+
+class ProjectPluginRow extends React.PureComponent<Props> {
+  static propTypes: any = {
     ...SentryTypes.Plugin,
     onChange: PropTypes.func,
   };
@@ -29,10 +38,12 @@ class ProjectPluginRow extends React.PureComponent {
   handleChange = () => {
     const {onChange, id, enabled} = this.props;
     onChange(id, !enabled);
+    const eventKey = !enabled ? 'integrations.enabled' : 'integrations.disabled';
+    const eventName = !enabled ? 'Integrations: Enabled' : 'Integrations: Disabled';
     trackIntegrationEvent(
       {
-        eventKey: `integrations.${!enabled ? 'enabled' : 'disabled'}`,
-        eventName: `Integrations: ${!enabled ? 'Enabled' : 'Disabled'}`,
+        eventKey,
+        eventName,
         integration: id,
         integration_type: 'plugin',
         view: 'legacy_integrations',
