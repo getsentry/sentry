@@ -13,7 +13,6 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.ingest.inbound_filters import FilterTypes
-from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.decorators import sudo_required
 from sentry.api.fields.empty_integer import EmptyIntegerField
@@ -40,39 +39,10 @@ from sentry.models import (
 from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig
 from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
 from sentry.tasks.deletion import delete_project
-from sentry.utils.apidocs import scenario, attach_scenarios
 from sentry.utils import json
 from sentry.utils.compat import filter
 
 delete_logger = logging.getLogger("sentry.deletions.api")
-
-
-@scenario("GetProject")
-def get_project_scenario(runner):
-    runner.request(
-        method="GET", path="/projects/%s/%s/" % (runner.org.slug, runner.default_project.slug)
-    )
-
-
-@scenario("DeleteProject")
-def delete_project_scenario(runner):
-    with runner.isolated_project("Plain Proxy") as project:
-        runner.request(method="DELETE", path="/projects/%s/%s/" % (runner.org.slug, project.slug))
-
-
-@scenario("UpdateProject")
-def update_project_scenario(runner):
-    with runner.isolated_project("Plain Proxy") as project:
-        runner.request(
-            method="PUT",
-            path="/projects/%s/%s/" % (runner.org.slug, project.slug),
-            data={
-                "name": "Plane Proxy",
-                "slug": "plane-proxy",
-                "platform": "javascript",
-                "options": {"sentry:origins": "http://example.com\nhttp://example.invalid"},
-            },
-        )
 
 
 def clean_newline_inputs(value, case_insensitive=True):
@@ -280,7 +250,6 @@ class RelaxedProjectPermission(ProjectPermission):
 
 
 class ProjectDetailsEndpoint(ProjectEndpoint):
-    doc_section = DocSection.PROJECTS
     permission_classes = [RelaxedProjectPermission]
 
     def _get_unresolved_count(self, project):
@@ -294,7 +263,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         return queryset.count()
 
-    @attach_scenarios([get_project_scenario])
     def get(self, request, project):
         """
         Retrieve a Project
@@ -315,7 +283,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         return Response(data)
 
-    @attach_scenarios([update_project_scenario])
     def put(self, request, project):
         """
         Update a Project
@@ -631,7 +598,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         data = serialize(project, request.user, DetailedProjectSerializer())
         return Response(data)
 
-    @attach_scenarios([delete_project_scenario])
     @sudo_required
     def delete(self, request, project):
         """

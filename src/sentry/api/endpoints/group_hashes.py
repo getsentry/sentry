@@ -5,26 +5,15 @@ from functools import partial
 from rest_framework.response import Response
 
 from sentry import eventstore
-from sentry.api.base import DocSection
 from sentry.api.bases import GroupEndpoint
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import EventSerializer, serialize
-from sentry.models import Group, GroupHash
+from sentry.models import GroupHash
 from sentry.tasks.unmerge import unmerge
-from sentry.utils.apidocs import scenario, attach_scenarios
 from sentry.utils.snuba import raw_query
 
 
-@scenario("ListAvailableHashes")
-def list_available_hashes_scenario(runner):
-    group = Group.objects.filter(project=runner.default_project).first()
-    runner.request(method="GET", path="/issues/%s/hashes/" % group.id)
-
-
 class GroupHashesEndpoint(GroupEndpoint):
-    doc_section = DocSection.EVENTS
-
-    @attach_scenarios([list_available_hashes_scenario])
     def get(self, request, group):
         """
         List an Issue's Hashes

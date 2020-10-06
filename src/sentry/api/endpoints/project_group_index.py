@@ -6,7 +6,7 @@ import six
 from rest_framework.response import Response
 
 from sentry import analytics, eventstore, search
-from sentry.api.base import DocSection, EnvironmentMixin
+from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.api.helpers.group_index import (
     build_query_params_from_request,
@@ -20,48 +20,13 @@ from sentry.api.serializers.models.group import StreamGroupSerializer
 from sentry.models import Environment, Group, GroupStatus
 from sentry.models.savedsearch import DEFAULT_SAVED_SEARCH_QUERIES
 from sentry.signals import advanced_search
-from sentry.utils.apidocs import attach_scenarios, scenario
 from sentry.utils.cursors import CursorResult
 from sentry.utils.validators import normalize_event_id
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
 
 
-@scenario("BulkUpdateIssues")
-def bulk_update_issues_scenario(runner):
-    project = runner.default_project
-    group1, group2 = Group.objects.filter(project=project)[:2]
-    runner.request(
-        method="PUT",
-        path="/projects/%s/%s/issues/?id=%s&id=%s"
-        % (runner.org.slug, project.slug, group1.id, group2.id),
-        data={"status": "unresolved", "isPublic": False},
-    )
-
-
-@scenario("BulkRemoveIssuess")
-def bulk_remove_issues_scenario(runner):
-    with runner.isolated_project("Amazing Plumbing") as project:
-        group1, group2 = Group.objects.filter(project=project)[:2]
-        runner.request(
-            method="DELETE",
-            path="/projects/%s/%s/issues/?id=%s&id=%s"
-            % (runner.org.slug, project.slug, group1.id, group2.id),
-        )
-
-
-@scenario("ListProjectIssuess")
-def list_project_issues_scenario(runner):
-    project = runner.default_project
-    runner.request(
-        method="GET",
-        path="/projects/%s/%s/issues/?statsPeriod=24h" % (runner.org.slug, project.slug),
-    )
-
-
 class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
-    doc_section = DocSection.EVENTS
-
     permission_classes = (ProjectEventPermission,)
 
     def _search(self, request, project, extra_query_kwargs=None):
@@ -86,7 +51,6 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
         return result, query_kwargs
 
     # statsPeriod=24h
-    @attach_scenarios([list_project_issues_scenario])
     def get(self, request, project):
         """
         List a Project's Issues
@@ -217,7 +181,6 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         return response
 
-    @attach_scenarios([bulk_update_issues_scenario])
     def put(self, request, project):
         """
         Bulk Mutate a List of Issues
@@ -279,7 +242,6 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
         search_fn = functools.partial(self._search, request, project)
         return update_groups(request, [project], project.organization_id, search_fn)
 
-    @attach_scenarios([bulk_remove_issues_scenario])
     def delete(self, request, project):
         """
         Bulk Remove a List of Issues

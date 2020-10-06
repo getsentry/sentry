@@ -5,7 +5,6 @@ from django.http import StreamingHttpResponse
 from rest_framework import serializers
 from rest_framework.response import Response
 
-from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
@@ -17,8 +16,6 @@ class ReleaseFileSerializer(serializers.Serializer):
 
 
 class OrganizationReleaseFileDetailsEndpoint(OrganizationReleasesBaseEndpoint):
-    doc_section = DocSection.RELEASES
-
     def download(self, releasefile):
         file = releasefile.file
         fp = file.getfile()

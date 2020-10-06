@@ -3,7 +3,6 @@ from __future__ import absolute_import
 from django.db import transaction
 from rest_framework.response import Response
 
-from sentry.api.base import DocSection
 from sentry.api.bases.dashboard import OrganizationDashboardWidgetEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import WidgetSerializer
@@ -11,9 +10,6 @@ from sentry.models import WidgetDataSource
 
 
 class OrganizationDashboardWidgetDetailsEndpoint(OrganizationDashboardWidgetEndpoint):
-
-    doc_section = DocSection.ORGANIZATIONS
-
     def delete(self, request, organization, dashboard, widget):
         """
         Delete a Widget on an Organization's Dashboard

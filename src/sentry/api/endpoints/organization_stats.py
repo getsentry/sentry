@@ -3,23 +3,14 @@ from __future__ import absolute_import
 from rest_framework.response import Response
 
 from sentry import tsdb
-from sentry.api.base import DocSection, EnvironmentMixin, StatsMixin
+from sentry.api.base import EnvironmentMixin, StatsMixin
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models import Environment, Project, Team
-from sentry.utils.apidocs import attach_scenarios, scenario
 from sentry.utils.compat import map
 
 
-@scenario("RetrieveEventCountsOrganization")
-def retrieve_event_counts_organization(runner):
-    runner.request(method="GET", path="/organizations/%s/stats/" % runner.org.slug)
-
-
 class OrganizationStatsEndpoint(OrganizationEndpoint, EnvironmentMixin, StatsMixin):
-    doc_section = DocSection.ORGANIZATIONS
-
-    @attach_scenarios([retrieve_event_counts_organization])
     def get(self, request, organization):
         """
         Retrieve Event Counts for an Organization

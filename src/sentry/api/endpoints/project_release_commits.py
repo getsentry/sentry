@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
@@ -8,7 +7,6 @@ from sentry.models import Release, ReleaseCommit, Repository
 
 
 class ProjectReleaseCommitsEndpoint(ProjectEndpoint):
-    doc_section = DocSection.RELEASES
     permission_classes = (ProjectReleasePermission,)
 
     def get(self, request, project, version):

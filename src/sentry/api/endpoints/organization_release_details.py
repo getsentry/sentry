@@ -4,7 +4,6 @@ import six
 from rest_framework.response import Response
 from rest_framework.exceptions import ParseError
 
-from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import InvalidRepository, ResourceDoesNotExist
 from sentry.api.serializers import serialize
@@ -16,30 +15,8 @@ from sentry.api.serializers.rest_framework import (
 )
 from sentry.models import Activity, Release, Project
 from sentry.models.release import UnsafeReleaseDeletion
-from sentry.utils.apidocs import scenario, attach_scenarios
 from sentry.snuba.sessions import STATS_PERIODS
 from sentry.api.endpoints.organization_releases import get_stats_period_detail
-
-
-@scenario("RetrieveOrganizationRelease")
-def retrieve_organization_release_scenario(runner):
-    runner.request(
-        method="GET",
-        path="/organizations/%s/releases/%s/" % (runner.org.slug, runner.default_release.version),
-    )
-
-
-@scenario("UpdateOrganizationRelease")
-def update_organization_release_scenario(runner):
-    release = runner.utils.create_release(runner.default_project, runner.me, version="3000")
-    runner.request(
-        method="PUT",
-        path="/organizations/%s/releases/%s/" % (runner.org.slug, release.version),
-        data={
-            "url": "https://vcshub.invalid/user/project/refs/deadbeef1337",
-            "ref": "deadbeef1337",
-        },
-    )
 
 
 class OrganizationReleaseSerializer(ReleaseSerializer):
@@ -50,9 +27,6 @@ class OrganizationReleaseSerializer(ReleaseSerializer):
 
 
 class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
-    doc_section = DocSection.RELEASES
-
-    @attach_scenarios([retrieve_organization_release_scenario])
     def get(self, request, organization, version):
         """
         Retrieve an Organization's Release
@@ -99,7 +73,6 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
             )
         )
 
-    @attach_scenarios([update_organization_release_scenario])
     def put(self, request, organization, version):
         """
         Update an Organization's Release

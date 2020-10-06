@@ -9,7 +9,6 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
-from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
@@ -23,23 +22,8 @@ from sentry.models import (
 )
 from sentry.search.utils import tokenize_query
 from sentry.signals import team_created
-from sentry.utils.apidocs import scenario, attach_scenarios
 
 CONFLICTING_SLUG_ERROR = "A team with this slug already exists."
-
-
-@scenario("CreateNewTeam")
-def create_new_team_scenario(runner):
-    runner.request(
-        method="POST",
-        path="/organizations/%s/teams/" % runner.org.slug,
-        data={"name": "Ancient Gabelers"},
-    )
-
-
-@scenario("ListOrganizationTeams")
-def list_organization_teams_scenario(runner):
-    runner.request(method="GET", path="/organizations/%s/teams/" % runner.org.slug)
 
 
 # OrganizationPermission + team:write
@@ -75,9 +59,7 @@ class TeamSerializer(serializers.Serializer):
 
 class OrganizationTeamsEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationTeamsPermission,)
-    doc_section = DocSection.TEAMS
 
-    @attach_scenarios([list_organization_teams_scenario])
     def get(self, request, organization):
         """
         List an Organization's Teams
@@ -136,7 +118,6 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
             paginator_cls=OffsetPaginator,
         )
 
-    @attach_scenarios([create_new_team_scenario])
     def post(self, request, organization):
         """
         Create a new Team

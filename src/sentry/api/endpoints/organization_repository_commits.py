@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import DateTimePaginator
@@ -9,8 +8,6 @@ from sentry.models import Commit, Repository
 
 
 class OrganizationRepositoryCommitsEndpoint(OrganizationEndpoint):
-    doc_section = DocSection.ORGANIZATIONS
-
     def get(self, request, organization, repo_id):
         """
         List a Repository's Commits
