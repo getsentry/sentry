@@ -118,7 +118,7 @@ class VitalCard extends React.Component<Props, State> {
       .withSorts([{kind: 'desc', field: column}]);
 
     // add in any range constraints if any
-    if (min !== undefined && max !== undefined) {
+    if (min !== undefined || max !== undefined) {
       const query = tokenizeSearch(newEventView.query ?? '');
       if (min !== undefined) {
         query.addTagValues(column, [`>=${min}`]);
