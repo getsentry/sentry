@@ -382,10 +382,6 @@ jobs:
         - uses: actions/checkout@v2
         - uses: volta-cli/action@v1
 
-        - name: Install dependencies
-          run: |
-            yarn install --frozen-lockfile
-
         - name: Install pip
           run: |
             pip install --no-cache-dir --upgrade "pip>=20.0.2"
@@ -402,6 +398,18 @@ jobs:
             key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements-*.txt') }}
             restore-keys: |
               ${{ runner.os }}-pip-
+
+        - name: Install dependencies
+          run: |
+            yarn install --frozen-lockfile
+
+        - name: Install Python Dependencies
+          env:
+            PGPASSWORD: postgres
+          run: |
+            python setup.py install_egg_info
+            pip install wheel # GitHub Actions does not have this installed by default (unlike Travis)
+            pip install -U -e ".[dev]"
 
         - name: Run API docs tests
           run: |
