@@ -406,15 +406,17 @@
                 "properties": {
                   "name": {
                     "type": "string",
-                    "description": "The name of the team.",
-                    "example": "Ancient Gabelers"
+                    "description": "The name of the team."
                   },
                   "slug": {
                     "type": "string",
-                    "description": "The optional slug for this team. If not provided it will be auto generated from the name.",
-                    "example": "ancient-gabelers"
+                    "description": "The optional slug for this team. If not provided it will be auto generated from the name."
                   }
                 }
+              },
+              "example": {
+                "name": "Ancient Gabelers",
+                "slug": "ancient-gabelers"
               }
             }
           },
@@ -748,15 +750,17 @@
                 "properties": {
                   "name": {
                     "type": "string",
-                    "description": "The new name for the team.",
-                    "example": "The Inflated Philosophers"
+                    "description": "The new name for the team."
                   },
                   "slug": {
                     "type": "string",
-                    "description": "A new slug for the team. It has to be unique and available.",
-                    "example": "the-inflated-philosophers"
+                    "description": "A new slug for the team. It has to be unique and available."
                   }
                 }
+              },
+              "example": {
+                "name": "The Inflated Philosophers",
+                "slug": "the-inflated-philosophers"
               }
             }
           },
@@ -1139,15 +1143,17 @@
                 "properties": {
                   "name": {
                     "type": "string",
-                    "description": "The name for the new project.",
-                    "example": "The Spoiled Yoghurt"
+                    "description": "The name for the new project."
                   },
                   "slug": {
                     "type": "string",
-                    "description": "Optional slug for the new project. If not provided a slug is generated from the name.",
-                    "example": "the-spoiled-yoghurt"
+                    "description": "Optional slug for the new project. If not provided a slug is generated from the name."
                   }
                 }
+              },
+              "example": {
+                "name": "The Spoiled Yoghurt",
+                "slug": "the-spoiled-yoghurt"
               }
             }
           },
@@ -3066,15 +3072,17 @@
                 "properties": {
                   "name": {
                     "type": "string",
-                    "description": "An optional new name for the organization.",
-                    "example": "Impeccably Designated"
+                    "description": "An optional new name for the organization."
                   },
                   "slug": {
                     "type": "string",
-                    "description": "An optional new slug for the organization. Needs to be available and unique.",
-                    "example": "impeccably-designated"
+                    "description": "An optional new slug for the organization. Needs to be available and unique."
                   }
                 }
+              },
+              "example": {
+                "name": "Impeccably Designated",
+                "slug": "impeccably-designated"
               }
             }
           },
@@ -4656,7 +4664,7 @@
           "Projects"
         ],
         "description": "Return a list of projects available to the authenticated session.",
-        "operationId": "List your Projects",
+        "operationId": "List Your Projects",
         "parameters": [
           {
             "name": "&cursor",
@@ -5722,23 +5730,19 @@
                 "properties": {
                   "name": {
                     "type": "string",
-                    "description": "The new name for the project.",
-                    "example": "Plane Proxy"
+                    "description": "The new name for the project."
                   },
                   "slug": {
                     "type": "string",
-                    "description": "The new slug for the project.",
-                    "example": "plane-proxy"
+                    "description": "The new slug for the project."
                   },
                   "team": {
                     "type": "string",
-                    "description": "The slug of new team for the project. Note, will be deprecated soon when multiple teams can have access to a project.",
-                    "example": "the-inflated-philosophers"
+                    "description": "The slug of new team for the project. Note, will be deprecated soon when multiple teams can have access to a project."
                   },
                   "platform": {
                     "type": "string",
-                    "description": "The new platform for the project.",
-                    "example": "javascript"
+                    "description": "The new platform for the project."
                   },
                   "isBookmarked": {
                     "type": "boolean",
@@ -5757,7 +5761,8 @@
               "example": {
                 "name": "Plane Proxy",
                 "platform": "javascript",
-                "slug": "plane-proxy"
+                "slug": "plane-proxy",
+                "team": "the-inflated-philosophers"
               }
             }
           },
@@ -6589,10 +6594,12 @@
                   "file": {
                     "type": "string",
                     "format": "binary",
-                    "description": "The multipart encoded file.",
-                    "example": "debug.zip"
+                    "description": "The multipart encoded file."
                   }
                 }
+              },
+              "example": {
+                "file": "debug.zip"
               }
             }
           },
@@ -7210,25 +7217,27 @@
                 "properties": {
                   "event_id": {
                     "type": "string",
-                    "description": "The event ID.",
-                    "example": "14bad9a2e3774046977a21440ddb39b2"
+                    "description": "The event ID."
                   },
                   "name": {
                     "type": "string",
-                    "description": "User's name.",
-                    "example": "Jane Smith"
+                    "description": "User's name."
                   },
                   "email": {
                     "type": "string",
-                    "description": "User's email address.",
-                    "example": "jane@example.com"
+                    "description": "User's email address."
                   },
                   "comments": {
                     "type": "string",
-                    "description": "Comments supplied by user.",
-                    "example": "It broke!"
+                    "description": "Comments supplied by user."
                   }
                 }
+              },
+              "example": {
+                "event_id": "14bad9a2e3774046977a21440ddb39b2",
+                "name": "Jane Schmidt",
+                "email": "jane@empowerplant.io",
+                "comments": "It broke!"
               }
             }
           },
@@ -7561,10 +7570,12 @@
                 "properties": {
                   "name": {
                     "type": "string",
-                    "description": "The name for the new key.",
-                    "example": "Fabulous Key"
+                    "description": "The name for the new key."
                   }
                 }
+              },
+              "example": {
+                "name": "Fabulous Key"
               }
             }
           },
@@ -7765,10 +7776,12 @@
                 "properties": {
                   "name": {
                     "type": "string",
-                    "description": "The new name for the client key.",
-                    "example": "Fluffy Key"
+                    "description": "The new name for the client key."
                   }
                 }
+              },
+              "example": {
+                "name": "Fluffy Key"
               }
             }
           },
@@ -8071,7 +8084,7 @@
                     "id": "4f9d73e63b7144ecb8944c41620a090b",
                     "secret": "8fcac28aaa4c4f5fa572b61d40a8e084364db25fd37449c299e5a41c0504cbc2",
                     "status": "active",
-                    "url": "https://example.com/sentry-hook"
+                    "url": "https://empowerplant.io/sentry-hook"
                   }
                 ]
               }
@@ -8127,21 +8140,23 @@
                 "properties": {
                   "url": {
                     "type": "string",
-                    "description": "The URL for the webhook.",
-                    "example": "https://example.com/sentry-hook"
+                    "description": "The URL for the webhook."
                   },
                   "events": {
                     "type": "array",
                     "description": "The events to subscribe to.",
-                    "example": [
-                      "event.alert",
-                      "event.created"
-                    ],
                     "items": {
                       "type": "string"
                     }
                   }
                 }
+              },
+              "example": {
+                "url": "https://empowerplant.io/sentry-hook",
+                "events": [
+                  "event.alert",
+                  "event.created"
+                ]
               }
             }
           },
@@ -8195,7 +8210,7 @@
                   "id": "4f9d73e63b7144ecb8944c41620a090b",
                   "secret": "8fcac28aaa4c4f5fa572b61d40a8e084364db25fd37449c299e5a41c0504cbc2",
                   "status": "active",
-                  "url": "https://example.com/sentry-hook"
+                  "url": "https://empowerplant.io/sentry-hook"
                 }
               }
             }
@@ -8300,7 +8315,7 @@
                   "id": "4f9d73e63b7144ecb8944c41620a090b",
                   "secret": "8fcac28aaa4c4f5fa572b61d40a8e084364db25fd37449c299e5a41c0504cbc2",
                   "status": "active",
-                  "url": "https://example.com/sentry-hook"
+                  "url": "https://empowerplant.io/sentry-hook"
                 }
               }
             }
@@ -8367,21 +8382,23 @@
                 "properties": {
                   "url": {
                     "type": "string",
-                    "description": "The URL for the webhook.",
-                    "example": "https://example.com/sentry-hook"
+                    "description": "The URL for the webhook."
                   },
                   "events": {
                     "type": "array",
                     "description": "The events to subscribe to.",
-                    "example": [
-                      "event.alert",
-                      "event.created"
-                    ],
                     "items": {
                       "type": "string"
                     }
                   }
                 }
+              },
+              "example": {
+                "url": "https://empowerplant.io/sentry-hook",
+                "events": [
+                  "event.alert",
+                  "event.created"
+                ]
               }
             }
           },
@@ -8435,7 +8452,7 @@
                   "id": "4f9d73e63b7144ecb8944c41620a090b",
                   "secret": "8fcac28aaa4c4f5fa572b61d40a8e084364db25fd37449c299e5a41c0504cbc2",
                   "status": "active",
-                  "url": "https://example.com/sentry-hook"
+                  "url": "https://empowerplant.io/sentry-hook"
                 }
               }
             }
@@ -10637,8 +10654,7 @@
                 "properties": {
                   "status": {
                     "type": "string",
-                    "description": "The new status for the issues. Valid values are `\"resolved\"`, `\"resolvedInNextRelease\"`, `\"unresolved\"`, and `\"ignored\"`.",
-                    "example": "unresolved"
+                    "description": "The new status for the issues. Valid values are `\"resolved\"`, `\"resolvedInNextRelease\"`, `\"unresolved\"`, and `\"ignored\"`."
                   },
                   "statusDetails": {
                     "type": "object",
@@ -10676,8 +10692,7 @@
                   },
                   "isPublic": {
                     "type": "boolean",
-                    "description": "Sets the issue to public or private.",
-                    "example": false
+                    "description": "Sets the issue to public or private."
                   },
                   "merge": {
                     "type": "boolean",
@@ -15900,8 +15915,7 @@
                 "properties": {
                   "status": {
                     "type": "string",
-                    "description": "The new status for the issues. Valid values are `\"resolved\"`, `\"resolvedInNextRelease\"`, `\"unresolved\"`, and `\"ignored\"`.",
-                    "example": "unresolved"
+                    "description": "The new status for the issues. Valid values are `\"resolved\"`, `\"resolvedInNextRelease\"`, `\"unresolved\"`, and `\"ignored\"`."
                   },
                   "assignedTo": {
                     "type": "string",
@@ -16484,13 +16498,11 @@
                 "properties": {
                   "version": {
                     "type": "string",
-                    "description": "A version identifier for this release. Can be a version number, a commit hash, etc.",
-                    "example": "2.0rc2"
+                    "description": "A version identifier for this release. Can be a version number, a commit hash, etc."
                   },
                   "ref": {
                     "type": "string",
-                    "description": "An optional commit reference. This is useful if a tagged version has been provided.",
-                    "example": "6ba09a7c53235ee8a8fa5ee4c1ca8ca886e7fdbb"
+                    "description": "An optional commit reference. This is useful if a tagged version has been provided."
                   },
                   "url": {
                     "type": "string",
@@ -16499,9 +16511,6 @@
                   "projects": {
                     "type": "array",
                     "description": "A list of project slugs that are involved in this release.",
-                    "example": [
-                      "pump-station"
-                    ],
                     "items": {
                       "type": "string"
                     }
@@ -16593,6 +16602,13 @@
                     "description": "An optional way to indicate the start and end commits for each repository included in a release. Head commits must include parameters `repository` and `commit` (the HEAD sha). They can optionally include `previousCommit` (the sha of the HEAD of the previous release), which should be specified if this is the first time you've sent commit data. `commit` may contain a range in the form of `previousCommit..commit`."
                   }
                 }
+              },
+              "example": {
+                "version": "2.0rc2",
+                "ref": "6ba09a7c53235ee8a8fa5ee4c1ca8ca886e7fdbb",
+                "projects": [
+                  "pump-station"
+                ]
               }
             }
           }
@@ -17083,13 +17099,11 @@
                 "properties": {
                   "ref": {
                     "type": "string",
-                    "description": "An optional commit reference. This is useful if a tagged version has been provided.",
-                    "example": "freshtofu"
+                    "description": "An optional commit reference. This is useful if a tagged version has been provided."
                   },
                   "url": {
                     "type": "string",
-                    "description": "A URL that points to the release. This can be the path to an online interface to the source code for instance.",
-                    "example": "https://vcshub.invalid/user/project/refs/freshtofu"
+                    "description": "A URL that points to the release. This can be the path to an online interface to the source code for instance."
                   },
                   "dateReleased": {
                     "type": "string",
@@ -17111,6 +17125,10 @@
                     "description": "An optional way to indicate the start and end commits for each repository included in a release. Head commits must include parameters `repository` and `commit` (the HEAD sha). They can optionally include `previousCommit` (the sha of the HEAD of the previous release), which should be specified if this is the first time you've sent commit data."
                   }
                 }
+              },
+              "example": {
+                "ref": "freshtofu",
+                "url": "https://vcshub.invalid/user/project/refs/freshtofu"
               }
             }
           }
@@ -17507,14 +17525,12 @@
                 "properties": {
                   "name": {
                     "type": "string",
-                    "description": "The name (full path) of the file.",
-                    "example": "/demo/release.min.js"
+                    "description": "The name (full path) of the file."
                   },
                   "file": {
                     "type": "string",
                     "format": "binary",
-                    "description": "The multipart encoded file.",
-                    "example": "release.min.js"
+                    "description": "The multipart encoded file."
                   },
                   "dist": {
                     "type": "string",
@@ -17525,6 +17541,10 @@
                     "description": "This parameter can be supplied multiple times to attach headers to the file. Each header is a string in the format `key:value`. For instance it can be used to define a content type."
                   }
                 }
+              },
+              "example": {
+                "name": "/demo/release.min.js",
+                "file": "release.min.js"
               }
             }
           }
@@ -17707,14 +17727,12 @@
                 "properties": {
                   "name": {
                     "type": "string",
-                    "description": "The name (full path) of the file.",
-                    "example": "/demo/hello.min.js.map"
+                    "description": "The name (full path) of the file."
                   },
                   "file": {
                     "type": "string",
                     "format": "binary",
-                    "description": "The multipart encoded file.",
-                    "example": "hello.min.js.map"
+                    "description": "The multipart encoded file."
                   },
                   "dist": {
                     "type": "string",
@@ -17725,6 +17743,10 @@
                     "description": "This parameter can be supplied multiple times to attach headers to the file. Each header is a string in the format `key:value`. For instance it can be used to define a content type."
                   }
                 }
+              },
+              "example": {
+                "name": "/demo/hello.min.js.map",
+                "file": "hello.min.js.map"
               }
             }
           }
@@ -17948,21 +17970,19 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "version",
-                  "projects"
-                ],
                 "properties": {
                   "name": {
                     "type": "string",
-                    "description": "The new name (full path) of the file.",
-                    "example": "/demo/goodbye.txt"
+                    "description": "The new name (full path) of the file."
                   },
                   "dist": {
                     "type": "string",
                     "description": "The new name of the dist."
                   }
                 }
+              },
+              "example": {
+                "name": "/demo/goodbye.txt"
               }
             }
           }
@@ -18258,21 +18278,19 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "version",
-                  "projects"
-                ],
                 "properties": {
                   "name": {
                     "type": "string",
-                    "description": "The new name (full path) of the file.",
-                    "example": "/demo/goodbye.txt"
+                    "description": "The new name (full path) of the file."
                   },
                   "dist": {
                     "type": "string",
                     "description": "The new name of the dist."
                   }
                 }
+              },
+              "example": {
+                "name": "/demo/goodbye.txt"
               }
             }
           }
@@ -18824,8 +18842,7 @@
                 "properties": {
                   "environment": {
                     "type": "string",
-                    "description": "The environment you're deploying to.",
-                    "example": "prod"
+                    "description": "The environment you're deploying to."
                   },
                   "url": {
                     "type": "string",
@@ -18846,6 +18863,9 @@
                     "description": "An optional date that indicates when the deploy ended. If not provided, the current time is used."
                   }
                 }
+              },
+              "example": {
+                "environment": "prod"
               }
             }
           }

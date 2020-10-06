@@ -7,9 +7,10 @@ import ProjectsStore from 'app/stores/projectsStore';
 import RealUserMonitoring from 'app/views/performance/realUserMonitoring';
 import {WEB_VITAL_DETAILS} from 'app/views/performance/realUserMonitoring/constants';
 
-function initialize({project, features, transaction} = {}) {
+function initialize({project, features, transaction, query} = {}) {
   features = features || ['measurements'];
   project = project || TestStubs.Project();
+  query = query || {};
   const data = initializeOrg({
     organization: TestStubs.Organization({
       features,
@@ -20,6 +21,7 @@ function initialize({project, features, transaction} = {}) {
         query: {
           transaction: transaction || '/',
           project: project.id,
+          ...query,
         },
       },
     },
@@ -28,11 +30,35 @@ function initialize({project, features, transaction} = {}) {
   return data;
 }
 
+/**
+ * These values are what we expect to see on the page based on the
+ * mocked api responses below.
+ */
 const vitals = [
-  {heading: 'First Paint (FP)', state: 'fail', baseline: '4.57s'},
-  {heading: 'First Contentful Paint (FCP)', state: 'pass', baseline: '1.46s'},
-  {heading: 'Largest Contentful Paint (LCP)', state: 'pass', baseline: '1.34s'},
-  {heading: 'First Input Delay (FID)', state: 'fail', baseline: '987.00ms'},
+  {
+    slug: 'fp',
+    heading: 'First Paint (FP)',
+    state: 'fail',
+    baseline: '4.57s',
+  },
+  {
+    slug: 'fcp',
+    heading: 'First Contentful Paint (FCP)',
+    state: 'pass',
+    baseline: '1.46s',
+  },
+  {
+    slug: 'lcp',
+    heading: 'Largest Contentful Paint (LCP)',
+    state: 'pass',
+    baseline: '1.34s',
+  },
+  {
+    slug: 'fid',
+    heading: 'First Input Delay (FID)',
+    state: 'fail',
+    baseline: '987.00ms',
+  },
 ];
 
 describe('Performance > Real User Monitoring', function () {
@@ -165,7 +191,7 @@ describe('Performance > Real User Monitoring', function () {
     );
   });
 
-  it('renders all vitals cards', async function () {
+  it('renders all vitals cards correctly', async function () {
     const {organization, router, routerContext} = initialize();
 
     const wrapper = mountWithTheme(
@@ -192,7 +218,144 @@ describe('Performance > Real User Monitoring', function () {
       );
       expect(vitalCard.find('StatNumber').text()).toEqual(vitals[i].baseline);
     });
-
     expect(vitalCards.find('BarChart')).toHaveLength(4);
+  });
+
+  describe('Open in Discover button', function () {
+    it('renders open in discover buttons with required props', async function () {
+      const {project, organization, router, routerContext} = initialize();
+
+      const wrapper = mountWithTheme(
+        <RealUserMonitoring
+          organization={organization}
+          location={router.location}
+          router={router}
+        />,
+        routerContext
+      );
+
+      await tick();
+      wrapper.update();
+
+      const buttons = wrapper.find('DiscoverButton');
+      expect(buttons).toHaveLength(4);
+
+      buttons.forEach((button, i) => {
+        expect(button.prop('to')).toEqual(
+          expect.objectContaining({
+            pathname: '/organizations/org-slug/discover/results/',
+            query: expect.objectContaining({
+              field: expect.arrayContaining([`measurements.${vitals[i].slug}`]),
+              sort: [`-measurements.${vitals[i].slug}`],
+              query: expect.stringContaining('transaction:/'),
+              project: [parseInt(project.id, 10)],
+            }),
+          })
+        );
+      });
+    });
+
+    it('renders open in discover buttons with greater than condition', async function () {
+      const {organization, router, routerContext} = initialize({
+        query: {startMeasurements: '10'},
+      });
+
+      const wrapper = mountWithTheme(
+        <RealUserMonitoring
+          organization={organization}
+          location={router.location}
+          router={router}
+        />,
+        routerContext
+      );
+
+      await tick();
+      wrapper.update();
+
+      const buttons = wrapper.find('DiscoverButton');
+      expect(buttons).toHaveLength(4);
+
+      buttons.forEach((button, i) => {
+        expect(button.prop('to')).toEqual(
+          expect.objectContaining({
+            query: expect.objectContaining({
+              query: expect.stringContaining(`measurements.${vitals[i].slug}:>=10`),
+            }),
+          })
+        );
+      });
+    });
+
+    it('renders open in discover buttons with less than condition', async function () {
+      const {organization, router, routerContext} = initialize({
+        query: {endMeasurements: '10'},
+      });
+
+      const wrapper = mountWithTheme(
+        <RealUserMonitoring
+          organization={organization}
+          location={router.location}
+          router={router}
+        />,
+        routerContext
+      );
+
+      await tick();
+      wrapper.update();
+
+      const buttons = wrapper.find('DiscoverButton');
+      expect(buttons).toHaveLength(4);
+
+      buttons.forEach((button, i) => {
+        expect(button.prop('to')).toEqual(
+          expect.objectContaining({
+            query: expect.objectContaining({
+              query: expect.stringContaining(`measurements.${vitals[i].slug}:<=10`),
+            }),
+          })
+        );
+      });
+    });
+
+    it('renders open in discover buttons with both condition', async function () {
+      const {organization, router, routerContext} = initialize({
+        query: {
+          startMeasurements: '10',
+          endMeasurements: '20',
+        },
+      });
+
+      const wrapper = mountWithTheme(
+        <RealUserMonitoring
+          organization={organization}
+          location={router.location}
+          router={router}
+        />,
+        routerContext
+      );
+
+      await tick();
+      wrapper.update();
+
+      const buttons = wrapper.find('DiscoverButton');
+      expect(buttons).toHaveLength(4);
+
+      buttons.forEach((button, i) => {
+        expect(button.prop('to')).toEqual(
+          expect.objectContaining({
+            query: expect.objectContaining({
+              query: expect.stringContaining(`measurements.${vitals[i].slug}:>=10`),
+            }),
+          })
+        );
+        expect(button.prop('to')).toEqual(
+          expect.objectContaining({
+            query: expect.objectContaining({
+              query: expect.stringContaining(`measurements.${vitals[i].slug}:<=20`),
+            }),
+          })
+        );
+      });
+    });
   });
 });

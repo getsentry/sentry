@@ -123,7 +123,7 @@ export function fetchRecentSearches(
   api: Client,
   orgSlug: string,
   type: SavedSearchType,
-  query: string
+  query?: string
 ): Promise<RecentSearch[]> {
   const url = getRecentSearchUrl(orgSlug);
   const promise = api.requestPromise(url, {
