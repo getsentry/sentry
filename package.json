@@ -167,7 +167,7 @@
     "mockdate": "3.0.2",
     "object.fromentries": "^2.0.0",
     "openapi-examples-validator": "^4.0.0",
-    "prettier": "^2.1.0",
+    "prettier": "2.1.2",
     "react-refresh": "^0.8.2",
     "react-test-renderer": "16.12.0",
     "size-limit": "^4.5.6",
