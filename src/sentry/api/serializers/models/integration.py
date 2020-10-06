@@ -35,10 +35,11 @@ class IntegrationConfigSerializer(IntegrationSerializer):
     def __init__(self, organization_id=None):
         self.organization_id = organization_id
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, include_config=True):
         data = super(IntegrationConfigSerializer, self).serialize(obj, attrs, user)
 
-        data.update({"configOrganization": []})
+        if include_config:
+            data.update({"configOrganization": []})
 
         try:
             install = obj.get_installation(organization_id=self.organization_id)
@@ -47,14 +48,15 @@ class IntegrationConfigSerializer(IntegrationSerializer):
             # representation.
             pass
         else:
-            data.update({"configOrganization": install.get_organization_config()})
+            if include_config:
+                data.update({"configOrganization": install.get_organization_config()})
 
         return data
 
 
 @register(OrganizationIntegration)
 class OrganizationIntegrationSerializer(Serializer):
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, include_config=True):
         # XXX(epurkhiser): This is O(n) for integrations, especially since
         # we're using the IntegrationConfigSerializer which pulls in the
         # integration installation config object which very well may be making
@@ -63,7 +65,12 @@ class OrganizationIntegrationSerializer(Serializer):
             objects=obj.integration,
             user=user,
             serializer=IntegrationConfigSerializer(obj.organization.id),
+            include_config=include_config,
         )
+
+        # TODO: skip adding configData if include_config is False
+        # we need to wait until the Slack migration is complete first
+        # because we have a dependency on configData in the integration directory
         try:
             installation = obj.integration.get_installation(obj.organization_id)
         except NotImplementedError:

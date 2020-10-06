@@ -17,10 +17,15 @@ class OrganizationIntegrationsEndpoint(OrganizationEndpoint):
         if "provider_key" in request.GET:
             integrations = integrations.filter(integration__provider=request.GET["provider_key"])
 
+        # include the configurations by default
+        include_config = True
+        if request.GET.get("include_config") == "0":
+            include_config = False
+
         return self.paginate(
             queryset=integrations,
             request=request,
             order_by="integration__name",
-            on_results=lambda x: serialize(x, request.user),
+            on_results=lambda x: serialize(x, request.user, include_config=include_config),
             paginator_cls=OffsetPaginator,
         )

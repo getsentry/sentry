@@ -158,7 +158,11 @@ export class IntegrationListDirectory extends AsyncComponent<
     const {orgId} = this.props.params;
     const baseEndpoints: ([string, string, any] | [string, string])[] = [
       ['config', `/organizations/${orgId}/config/integrations/`],
-      ['integrations', `/organizations/${orgId}/integrations/`],
+      [
+        'integrations',
+        `/organizations/${orgId}/integrations/`,
+        {query: {include_config: 0}},
+      ],
       ['orgOwnedApps', `/organizations/${orgId}/sentry-apps/`],
       ['publishedApps', '/sentry-apps/', {query: {status: 'published'}}],
       ['appInstalls', `/organizations/${orgId}/sentry-app-installations/`],
