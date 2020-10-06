@@ -121,11 +121,11 @@ steps:
     # Need to pull the image first due to Kaniko
     docker pull us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA-py3
     echo "$$DOCKER_PASSWORD" | docker login --username=sentrybuilder --password-stdin
-    docker tag us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA getsentry/sentry:$SHORT_SHA-py3
+    docker tag us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA-py3 getsentry/sentry:$SHORT_SHA-py3
     docker push getsentry/sentry:$SHORT_SHA-py3
-    docker tag us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA getsentry/sentry:$COMMIT_SHA-py3
+    docker tag us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA-py3 getsentry/sentry:$COMMIT_SHA-py3
     docker push getsentry/sentry:$COMMIT_SHA-py3
-    docker tag us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA getsentry/sentry:latest-py3
+    docker tag us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA-py3 getsentry/sentry:latest-py3
     docker push getsentry/sentry:latest-py3
 - name: 'node:12'
   id: zeus-upload
