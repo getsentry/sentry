@@ -12,7 +12,7 @@ from sentry import quotas
 from sentry.constants import ObjectStatus
 from sentry.utils import safe, json
 from sentry.models.relay import Relay
-from sentry.models import ProjectKey
+from sentry.models import ProjectKey, ProjectKeyStatus
 
 from sentry_relay.auth import generate_key_pair
 
@@ -335,3 +335,19 @@ def test_relay_disabled_project(
     assert projectconfig_cache_set == [
         {six.text_type(wrong_public_key): result["configs"][wrong_public_key]}
     ]
+
+
+@pytest.mark.django_db
+def test_relay_disabled_key(
+    call_endpoint, default_project, projectconfig_cache_set, task_runner, default_projectkey
+):
+    default_projectkey.update(status=ProjectKeyStatus.INACTIVE)
+
+    with task_runner():
+        result, status_code = call_endpoint(full_config=True)
+        assert status_code < 400
+
+    (http_cfg,) = six.itervalues(result["configs"])
+    assert http_cfg == {"disabled": True}
+
+    assert projectconfig_cache_set == [{six.text_type(default_projectkey.public_key): http_cfg}]

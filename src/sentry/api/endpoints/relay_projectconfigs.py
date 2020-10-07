@@ -13,7 +13,7 @@ from sentry.api.base import Endpoint
 from sentry.api.permissions import RelayPermission
 from sentry.api.authentication import RelayAuthentication
 from sentry.relay import config, projectconfig_cache
-from sentry.models import Project, ProjectKey, Organization, OrganizationOption
+from sentry.models import Project, ProjectKey, Organization, OrganizationOption, ProjectKeyStatus
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -67,6 +67,9 @@ class RelayProjectConfigsEndpoint(Endpoint):
         with start_span(op="relay_fetch_keys"):
             with metrics.timer("relay_project_configs.fetching_keys.duration"):
                 for key in ProjectKey.objects.get_many_from_cache(public_keys, key="public_key"):
+                    if key.status != ProjectKeyStatus.ACTIVE:
+                        continue
+
                     project_keys[key.public_key] = key
                     project_ids.add(key.project_id)
 
