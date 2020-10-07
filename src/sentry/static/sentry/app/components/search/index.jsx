@@ -158,18 +158,15 @@ class Search extends React.Component {
       throw new Error('Invalid `renderItem`');
     }
 
-    return React.cloneElement(
-      renderItem({
-        item,
-        matches,
-        index,
-        highlighted,
-      }),
-      {
-        ...itemProps,
-        key,
-      }
-    );
+    const renderedItem = renderItem({
+      item,
+      matches,
+      index,
+      highlighted,
+      itemProps,
+    });
+
+    return React.cloneElement(renderedItem, {key});
   };
 
   render() {
