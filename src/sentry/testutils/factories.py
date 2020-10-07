@@ -5,6 +5,7 @@ from django.conf import settings
 
 import io
 import os
+import petname
 import random
 import six
 import warnings
@@ -12,12 +13,6 @@ from binascii import hexlify
 from hashlib import sha1
 from uuid import uuid4
 from importlib import import_module
-
-import petname
-
-# For more reproducible testing, we overwrite petname's random with a seeded PRNG
-# that does not share state with the generator bound to the module.
-petname.random = random.Random(123)
 
 from django.contrib.auth.models import AnonymousUser
 from django.db import transaction
