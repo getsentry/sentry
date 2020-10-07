@@ -12,6 +12,7 @@ import theme from 'app/utils/theme';
 import {toTitleCase} from 'app/utils';
 import {formatFloat} from 'app/utils/formatters';
 import {t} from 'app/locale';
+import space from 'app/styles/space';
 
 type Point = {x: number; y: number[]; label?: string; color?: string};
 type Points = Point[];
@@ -324,7 +325,7 @@ class StackedBarChart extends React.Component<Props, State> {
               {totalY2 !== undefined && point.color && (
                 <TooltipColorIndicator color={point.color} />
               )}
-              {totalY2 !== undefined && ` ${t('Filtered')} `}
+              {totalY2 !== undefined && `${t('Filtered')} `}
               {toTitleCase(this.props.label)}
             </div>
             <div>{totalY.toLocaleString()}</div>
@@ -336,7 +337,7 @@ class StackedBarChart extends React.Component<Props, State> {
               {secondaryPoint.color && (
                 <TooltipColorIndicator color={secondaryPoint.color} />
               )}
-              {` ${t('Total')} `}
+              {`${t('Total')} `}
               {toTitleCase(this.props.label)}
             </div>
             <div>{totalY2.toLocaleString()}</div>
@@ -579,10 +580,9 @@ const TooltipColorIndicator = styled('span')<{color: string}>`
   display: inline-block;
   background-color: ${p => p.color};
   border-radius: 50%;
-  width: ${p => p.theme.iconSizes.xs};
-  height: ${p => p.theme.iconSizes.xs};
-  position: relative;
-  top: 1px;
+  width: 8px;
+  height: 8px;
+  margin-right: ${space(1)};
 `;
 
 export default StackedBarChart;
