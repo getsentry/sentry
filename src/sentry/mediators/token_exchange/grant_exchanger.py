@@ -29,7 +29,7 @@ class GrantExchanger(Mediator):
         self._create_token()
 
         # Once it's exchanged it's no longer valid and should not be
-        # exchangable, so we delete it.
+        # exchangeable, so we delete it.
         self._delete_grant()
 
         return self.token

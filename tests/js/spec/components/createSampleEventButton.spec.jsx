@@ -41,7 +41,7 @@ describe('CreateSampleEventButton', function () {
       wrapper.find('[data-test-id="create-sample-event"]').first().prop('disabled')
     ).toBe(true);
 
-    // We have to await the API calls. We could norally do this using tick(),
+    // We have to await the API calls. We could normally do this using tick(),
     // however since we have enabled fake timers to handle the spin-wait on the
     // event creation, we cannot use tick.
     await Promise.resolve();

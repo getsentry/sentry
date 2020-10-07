@@ -12,7 +12,7 @@ describe('withIssueTags HoC', function () {
     MemberListStore.loadInitialData([]);
   });
 
-  it('fowards loaded tags to the wrapped component', async function () {
+  it('forwards loaded tags to the wrapped component', async function () {
     const MyComponent = () => null;
     const Container = withIssueTags(MyComponent);
     const wrapper = mount(<Container other="value" />);

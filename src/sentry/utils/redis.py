@@ -275,7 +275,7 @@ def load_script(path):
                 Script(client, resource_string("sentry", posixpath.join("scripts", path)))
             )
             # Unset the client here to keep things as close to how they worked before
-            # as possible. It will always be overriden on `__call__` anyway.
+            # as possible. It will always be overridden on `__call__` anyway.
             script[0].registered_client = None
         return script[0](keys, args, client)
 

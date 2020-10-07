@@ -173,11 +173,11 @@ class RedminePlugin(CorePluginMixin, IssuePlugin):
                 self.fields.remove(field)
                 return
 
-    def build_initial(self, inital_args, project):
+    def build_initial(self, initial_args, project):
         initial = {}
         fields = ["host", "key", "project_id", "tracker_id", "default_priority", "extra_fields"]
         for field in fields:
-            value = inital_args.get(field) or self.get_option(field, project)
+            value = initial_args.get(field) or self.get_option(field, project)
             if value is not None:
                 initial[field] = value
         return initial

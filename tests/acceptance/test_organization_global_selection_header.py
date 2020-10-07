@@ -208,7 +208,7 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
             )
 
             """
-            navigate foward through history to the end
+            navigate forward through history to the end
             1) environment=All Environments -> environment=prod
             2) environment=prod -> environment=All Environments
             """

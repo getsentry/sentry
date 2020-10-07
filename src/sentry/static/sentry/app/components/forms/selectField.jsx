@@ -32,7 +32,7 @@ export default class SelectField extends FormField {
     }
     if (this.props.value !== nextProps.value || defined(nextContext.form)) {
       const newValue = this.getValue(nextProps, nextContext);
-      // This is the only thing that is different from parent, we compare newValue against coerved value in state
+      // This is the only thing that is different from parent, we compare newValue against coerced value in state
       // To remain compatible with react-select, we need to store the option object that
       // includes `value` and `label`, but when we submit the format, we need to coerce it
       // to just return `value`. Also when field changes, it propagates the coerced value up

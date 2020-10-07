@@ -62,7 +62,7 @@ describe('EventWaiter', function () {
     // Advanced time for the first setInterval tick to occur
     jest.advanceTimersByTime(1);
 
-    // We have to await *two* API calls. We could norally do this using tick(),
+    // We have to await *two* API calls. We could normally do this using tick(),
     // however since we have enabled fake timers, we cannot tick.
     await Promise.resolve();
     await Promise.resolve();
@@ -110,7 +110,7 @@ describe('EventWaiter', function () {
       TestStubs.routerContext()
     );
 
-    // We have to await *two* API calls. We could norally do this using tick(),
+    // We have to await *two* API calls. We could normally do this using tick(),
     // however since we have enabled fake timers, we cannot tick.
     await Promise.resolve();
     await Promise.resolve();

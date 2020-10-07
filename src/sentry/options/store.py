@@ -73,7 +73,7 @@ class OptionsStore(object):
 
     def get_cache(self, key, silent=False):
         """
-        First check agaist our local in-process cache, falling
+        First check against our local in-process cache, falling
         back to the network cache.
         """
         value = self.get_local_cache(key)

@@ -497,7 +497,7 @@ class CombinedQuerysetPaginator(object):
                 CombinedQuerysetIntermediary(AlertRule.objects.all(), "name")
                 CombinedQuerysetIntermediary(Rule.objects.all(), "label")
             ]
-    and an optional paramater `desc` to determine whether the sort is ascending or descending. Default is False.
+    and an optional parameter `desc` to determine whether the sort is ascending or descending. Default is False.
 
     There is an issue with sorting between multiple models using a mixture of
     date fields and non-date fields. This is because the cursor value is converted differently for dates vs non-dates.

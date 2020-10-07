@@ -56,7 +56,7 @@ describe('utils.valueIsEqual', function () {
     expect(isEqual).toBe(false);
   });
 
-  it('should return true when objects are shalowly equal', function () {
+  it('should return true when objects are shallowly equal', function () {
     const isEqual = valueIsEqual(
       {
         username: 'foo',
@@ -73,7 +73,7 @@ describe('utils.valueIsEqual', function () {
     expect(isEqual).toBe(true);
   });
 
-  it('should return false when objects are not shalowly equal', function () {
+  it('should return false when objects are not shallowly equal', function () {
     const isEqual = valueIsEqual(
       {
         username: 'foo',
@@ -270,7 +270,7 @@ describe('deepFreeze', function () {
 describe('utils.escapeDoubleQuotes', function () {
   // test cases from https://gist.github.com/getify/3667624
 
-  it('should escapse any unescaped double quotes', function () {
+  it('should escape any unescaped double quotes', function () {
     const cases = [
       ['a"b', 'a\\"b'], //
       ['a\\"b', 'a\\"b'], //

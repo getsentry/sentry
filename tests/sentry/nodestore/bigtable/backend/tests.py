@@ -76,7 +76,7 @@ class BigtableNodeStorageTest(TestCase):
             assert self.ns.get_multi([node_1[0], node_2[0], node_3[0]])
             assert mock_read_rows.call_count == 0
 
-        # Manually deleted item should still retreivable from cache
+        # Manually deleted item should still retrievable from cache
         row = self.ns.connection.row(node_1[0])
         row.delete()
         row.commit()
@@ -86,7 +86,7 @@ class BigtableNodeStorageTest(TestCase):
             node_2[0]: node_2[1],
         }
 
-        # Deletion clars cache
+        # Deletion clears cache
         self.ns.delete(node_1[0])
         assert self.ns.get_multi([node_1[0], node_2[0]]) == {node_1[0]: None, node_2[0]: node_2[1]}
         self.ns.delete_multi([node_1[0], node_2[0]])
