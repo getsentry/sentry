@@ -1,24 +1,28 @@
 name: 'Sentry Setup'
 description: 'Sets up a Sentry test environment'
 inputs:
-  devservices:  # id of input
-    description: 'The devservices needed'
-    required: false
-    default: 'postgres redis clickhouse snuba'
   python:
     description: 'python version (2 or 3)'
     required: false
-    default: '2'
+    default: '3'
+  snuba:
+    description: 'Is snuba required?'
+    required: false
+    default: '1'
+  kafka:
+    description: 'Is kafka required?'
+    required: false
+    default: '0'
 
 outputs:
   yarn-cache-dir:
-    description: "Random number"
+    description: "Path to yarn cache"
     value: ${{ steps.config.outputs.yarn-cache-dir }}
   pip-cache-dir:
-    description: "Random number"
+    description: "Path to pip cache"
     value: ${{ steps.pip-cache.outputs.pip-cache }}
   acceptance-dir:
-    description: "Random number"
+    description: "Path to acceptance visual snapshot artifacts"
     value: ${{ steps.config.outputs.acceptance-dir }}
 
 runs:
@@ -26,23 +30,31 @@ runs:
   steps:
     - name: Setup default environment variables
       shell: bash
+      env:
+        PYTHON_VERSION: ${{ inputs.python }}
       run: |
         echo "PIP_DISABLE_PIP_VERSION_CHECK=on" >> $GITHUB_ENV
-        echo "SENTRY_LIGHT_BUILD=1" >> $GITHUB_ENV
         echo "MIGRATIONS_TEST_MIGRATE=0" >> $GITHUB_ENV
+        echo "SENTRY_LIGHT_BUILD=1" >> $GITHUB_ENV
         echo "SENTRY_SKIP_BACKEND_VALIDATION=1" >> $GITHUB_ENV
+
+        [ "$PYTHON_VERSION" = "3" ] && echo "SENTRY_PYTHON3=1" >> $GITHUB_ENV || exit 0
+
         echo "NODE_ENV=development" >> $GITHUB_ENV
         echo "NODE_OPTIONS=--max-old-space-size=4096" >> $GITHUB_ENV
+
+        # pytest-sentry configuration
         echo "PYTEST_SENTRY_DSN=https://6fd5cfea2d4d46b182ad214ac7810508@sentry.io/2423079" >> $GITHUB_ENV
         echo "PYTEST_ADDOPTS=--reruns 5" >> $GITHUB_ENV
+        [ "$GITHUB_REF" = "refs/heads/master" ] && echo "PYTEST_SENTRY_ALWAYS_REPORT=1" >> $GITHUB_ENV || exit 0
+
+        # services configuration
         echo "SENTRY_KAFKA_HOSTS=127.0.0.1:9092" >> $GITHUB_ENV
         echo "SENTRY_ZOOKEEPER_HOSTS=127.0.0.1:2182" >> $GITHUB_ENV
+        echo "SENTRY_REDIS_HOST=redis" >> $GITHUB_ENV
+        # The hostname used to communicate with the PostgreSQL from sentry
         echo "DATABASE_URL=postgresql://postgres:postgres@localhost/sentry" >> $GITHUB_ENV
         echo "PGPASSWORD=postgres" >> $GITHUB_ENV
-
-    - shell: bash
-      run: |
-        [ "$GITHUB_REF" = "refs/heads/master" ] && echo "PYTEST_SENTRY_ALWAYS_REPORT=1" >> $GITHUB_ENV || exit 0
 
     # Setup custom pytest matcher, see https://github.com/actions/setup-node/issues/97
     - name: Add pytest log matcher
@@ -65,8 +77,6 @@ runs:
         MATRIX_INSTANCE: ${{ matrix.instance }}
       shell: bash
       run: |
-        yarn cache dir
-        echo $MATRIX_INSTANCE
         echo "::set-output name=yarn-cache-dir::$(yarn cache dir)"
         echo "::set-output name=matrix-instance-number::$(($MATRIX_INSTANCE+1))"
         echo "::set-output name=acceptance-dir::.artifacts/visual-snapshots/acceptance"
@@ -91,6 +101,26 @@ runs:
 
     - name: Start devservices
       shell: bash
+      env:
+        NEED_KAFKA: ${{ inputs.kafka }}
+        NEED_SNUBA: ${{ inputs.snuba }}
       run: |
         sentry init
-        sentry devservices up ${{ inputs.devservices }}
+        [ "$NEED_KAFKA" = "1" ] && docker run \
+            --name sentry_zookeeper \
+            -d --network host \
+            -e ZOOKEEPER_CLIENT_PORT=2181 \
+            confluentinc/cp-zookeeper:4.1.0 || exit 0
+
+        [ "$NEED_KAFKA" = "1" ] && docker run \
+            --name sentry_kafka \
+            -d --network host \
+            -e KAFKA_ZOOKEEPER_CONNECT=127.0.0.1:2181 \
+            -e KAFKA_LISTENERS=INTERNAL://0.0.0.0:9093,EXTERNAL://0.0.0.0:9092 \
+            -e KAFKA_ADVERTISED_LISTENERS=INTERNAL://127.0.0.1:9093,EXTERNAL://127.0.0.1:9092 \
+            -e KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT \
+            -e KAFKA_INTER_BROKER_LISTENER_NAME=INTERNAL \
+            -e KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1 \
+            confluentinc/cp-kafka:5.1.2 || exit 0
+
+        [ "$NEED_SNUBA" = "1" ] && sentry devservices up postgres redis clickhouse snuba || exit 0
