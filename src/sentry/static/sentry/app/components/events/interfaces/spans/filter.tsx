@@ -301,7 +301,7 @@ export function toggleFilter(
     operationNames.add(operationName);
   }
 
-  if (operationNames.size >= 1) {
+  if (operationNames.size > 0) {
     return {
       type: 'active_filter',
       operationNames,
