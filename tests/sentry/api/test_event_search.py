@@ -938,10 +938,12 @@ class ParseBooleanSearchQueryTest(TestCase):
         assert result.conditions == [self.ofoo]
 
     def test_wildcard_array_field(self):
-        _filter = get_filter("error.value:Deadlock* OR stack.filename:*.py")
+        _filter = get_filter("error.value:Deadlock* OR !stack.filename:*.py")
         assert _filter.conditions == [
             [
-                _or(["like", ["error.value", "Deadlock%"]], ["like", ["stack.filename", "%.py"]],),
+                _or(
+                    ["like", ["error.value", "Deadlock%"]], ["notLike", ["stack.filename", "%.py"]],
+                ),
                 "=",
                 1,
             ]
