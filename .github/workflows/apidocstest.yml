@@ -89,9 +89,6 @@ jobs:
         run: |
           sentry init
           sentry devservices up postgres redis clickhouse snuba
-      - name: webpack
-        run: |
-          yarn webpack --display errors-only
 
       # Setup custom pytest matcher, see https://github.com/actions/setup-node/issues/97
       - name: Add pytest log matcher
