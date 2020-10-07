@@ -354,7 +354,16 @@ def send_and_save_webhook_request(sentry_app, app_platform_event, url=None):
         )
 
     except (Timeout, ConnectionError) as e:
-        track_response_code(e.__class__.__name__.lower(), slug, event)
+        error_type = e.__class__.__name__.lower()
+        logger.info(
+            "send_and_save_webhook_request.timeout",
+            extra={
+                "error_type": error_type,
+                "organization_id": org_id,
+                "integration_slug": sentry_app.slug,
+            },
+        )
+        track_response_code(error_type, slug, event)
         # Response code of 0 represents timeout
         buffer.add_request(response_code=0, org_id=org_id, event=event, url=url)
         # Re-raise the exception because some of these tasks might retry on the exception
