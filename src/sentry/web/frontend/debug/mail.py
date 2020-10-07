@@ -49,9 +49,16 @@ from six.moves import xrange
 logger = logging.getLogger(__name__)
 
 
-def get_random(request):
-    seed = request.GET.get("seed", six.text_type(time.time()))
-    return Random(seed)
+prng = Random()
+prng.seed(b"123", version=1)
+
+
+def get_random(*args, **kwargs):
+    return prng
+
+
+def randint_compat(lo, hi):
+    return int(lo + prng.random() * (hi - lo))
 
 
 def make_message(random, length=None):
@@ -62,9 +69,9 @@ def make_message(random, length=None):
 
 def make_culprit(random):
     def make_module_path_components(min, max):
-        for _ in range(random.randint(min, max)):
+        for _ in range(randint_compat(min, max)):
             yield "".join(
-                random.sample(loremipsum.words, random.randint(1, int(random.paretovariate(2.2))))
+                random.sample(loremipsum.words, randint_compat(1, int(random.paretovariate(2.2))))
             )
 
     return u"{module} in {function}".format(
@@ -78,7 +85,7 @@ def make_group_metadata(random, group):
         "metadata": {
             "type": u"{}Error".format(
                 "".join(
-                    word.title() for word in random.sample(loremipsum.words, random.randint(1, 3))
+                    word.title() for word in random.sample(loremipsum.words, randint_compat(1, 3))
                 )
             ),
             "value": make_message(random),
@@ -89,8 +96,8 @@ def make_group_metadata(random, group):
 def make_group_generator(random, project):
     epoch = to_timestamp(datetime(2016, 6, 1, 0, 0, 0, tzinfo=timezone.utc))
     for id in itertools.count(1):
-        first_seen = epoch + random.randint(0, 60 * 60 * 24 * 30)
-        last_seen = random.randint(first_seen, first_seen + (60 * 60 * 24 * 30))
+        first_seen = epoch + randint_compat(0, 60 * 60 * 24 * 30)
+        last_seen = randint_compat(first_seen, first_seen + (60 * 60 * 24 * 30))
 
         culprit = make_culprit(random)
         level = random.choice(list(LOG_LEVELS.keys()))
@@ -313,7 +320,7 @@ def digest(request):
 
     rules = {
         i: Rule(id=i, project=project, label="Rule #%s" % (i,))
-        for i in range(1, random.randint(2, 4))
+        for i in range(1, randint_compat(2, 4))
     }
 
     state = {
@@ -328,12 +335,12 @@ def digest(request):
 
     group_generator = make_group_generator(random, project)
 
-    for i in range(random.randint(1, 30)):
+    for i in range(randint_compat(1, 30)):
         group = next(group_generator)
         state["groups"][group.id] = group
 
         offset = timedelta(seconds=0)
-        for i in range(random.randint(1, 10)):
+        for i in range(randint_compat(1, 10)):
             offset += timedelta(seconds=random.random() * 120)
 
             data = dict(load_data("python"))
@@ -344,7 +351,7 @@ def digest(request):
             event_manager.normalize()
             data = event_manager.get_data()
 
-            data["timestamp"] = random.randint(
+            data["timestamp"] = randint_compat(
                 to_timestamp(group.first_seen), to_timestamp(group.last_seen)
             )
 
@@ -358,15 +365,15 @@ def digest(request):
                     Notification(
                         event,
                         random.sample(
-                            list(state["rules"].keys()), random.randint(1, len(state["rules"]))
+                            list(state["rules"].keys()), randint_compat(1, len(state["rules"]))
                         ),
                     ),
                     to_timestamp(event.datetime),
                 )
             )
 
-            state["event_counts"][group.id] = random.randint(10, 1e4)
-            state["user_counts"][group.id] = random.randint(10, 1e4)
+            state["event_counts"][group.id] = randint_compat(10, 1e4)
+            state["user_counts"][group.id] = randint_compat(10, 1e4)
 
     digest = build_digest(project, records, state)
     start, end, counts = get_digest_metadata(digest)
@@ -398,7 +405,7 @@ def report(request):
     timestamp = to_timestamp(
         reports.floor_to_utc_day(
             to_datetime(
-                random.randint(
+                randint_compat(
                     to_timestamp(datetime(2015, 6, 1, 0, 0, 0, tzinfo=timezone.utc)),
                     to_timestamp(datetime(2016, 7, 1, 0, 0, 0, tzinfo=timezone.utc)),
                 )
@@ -411,22 +418,22 @@ def report(request):
     organization = Organization(id=1, slug="example", name="Example")
 
     projects = []
-    for i in xrange(0, random.randint(1, 8)):
-        name = " ".join(random.sample(loremipsum.words, random.randint(1, 4)))
+    for i in xrange(0, randint_compat(1, 8)):
+        name = " ".join(random.sample(loremipsum.words, randint_compat(1, 4)))
         projects.append(
             Project(
                 id=i,
                 organization=organization,
                 slug=slugify(name),
                 name=name,
-                date_added=start - timedelta(days=random.randint(0, 120)),
+                date_added=start - timedelta(days=randint_compat(0, 120)),
             )
         )
 
     def make_release_generator():
         id_sequence = itertools.count(1)
         while True:
-            dt = to_datetime(random.randint(timestamp - (30 * 24 * 60 * 60), timestamp))
+            dt = to_datetime(randint_compat(timestamp - (30 * 24 * 60 * 60), timestamp))
             p = random.choice(projects)
             yield Release(
                 id=next(id_sequence),
@@ -464,19 +471,19 @@ def report(request):
         return reports.clean_calendar_data(project, series, start, stop, rollup, stop)
 
     def build_report(project):
-        daily_maximum = random.randint(1000, 10000)
+        daily_maximum = randint_compat(1000, 10000)
 
         rollup = 60 * 60 * 24
         series = [
             (
                 timestamp + (i * rollup),
-                (random.randint(0, daily_maximum), random.randint(0, daily_maximum)),
+                (randint_compat(0, daily_maximum), randint_compat(0, daily_maximum)),
             )
             for i in xrange(0, 7)
         ]
 
         aggregates = [
-            random.randint(0, daily_maximum * 7) if random.random() < 0.9 else None
+            randint_compat(0, daily_maximum * 7) if random.random() < 0.9 else None
             for _ in xrange(0, 4)
         ]
 
@@ -489,7 +496,7 @@ def report(request):
         )
 
     if random.random() < 0.85:
-        personal = {"resolved": random.randint(0, 100), "users": int(random.paretovariate(0.2))}
+        personal = {"resolved": randint_compat(0, 100), "users": int(random.paretovariate(0.2))}
     else:
         personal = {"resolved": 0, "users": 0}
 
