@@ -39,7 +39,7 @@ describe('StreamGroup', function () {
     );
 
     expect(component.find('GuideAnchor').exists()).toBe(true);
-    expect(component.find('GuideAnchor')).toHaveLength(2);
+    expect(component.find('GuideAnchor')).toHaveLength(3);
     expect(component).toSnapshot();
   });
 });
