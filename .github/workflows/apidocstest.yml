@@ -1,8 +1,14 @@
 name: api docs
+
 on:
+  push:
+    branches:
+      - master
+
   pull_request:
     branches:
       - master
+
 jobs:
   test:
     runs-on: ubuntu-16.04
@@ -34,7 +40,8 @@ jobs:
         id: config
         run: |
           echo "::set-output name=yarn-cache-dir::$(yarn cache dir)"
-          echo "::set-output name=python-version::2.7.17"
+          echo "::set-output name=python-version::$(awk 'FNR == 2' .python-version)"
+
       - uses: actions/cache@v1
         id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
         with:
@@ -42,6 +49,7 @@ jobs:
           key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
           restore-keys: |
             ${{ runner.os }}-yarn-
+
       - name: Set up Python ${{ steps.config.outputs.python-version }}
         uses: actions/setup-python@v2
         with:
@@ -50,10 +58,12 @@ jobs:
       - name: Install pip
         run: |
           pip install --no-cache-dir --upgrade "pip>=20.0.2"
+
       - name: Get pip cache dir
         id: pip-cache
         run: |
           echo "::set-output name=dir::$(pip cache dir)"
+
       - name: pip cache
         uses: actions/cache@v1
         with:
@@ -61,9 +71,11 @@ jobs:
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements-*.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
+
       - name: Install Javascript Dependencies
         run: |
           yarn install --frozen-lockfile
+
       - name: Install Python Dependencies
         env:
           PGPASSWORD: postgres
@@ -71,6 +83,7 @@ jobs:
           python setup.py install_egg_info
           pip install wheel # GitHub Actions does not have this installed by default (unlike Travis)
           pip install -U -e ".[dev]"
+
       - name: Start devservices
         run: |
           sentry init
@@ -78,6 +91,7 @@ jobs:
       - name: webpack
         run: |
           yarn webpack --display errors-only
+
       # Setup custom pytest matcher, see https://github.com/actions/setup-node/issues/97
       - name: Add pytest log matcher
         if: always()
