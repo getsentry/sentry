@@ -9,7 +9,6 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import withApi from 'app/utils/withApi';
 import withProjects from 'app/utils/withProjects';
 import withOrganization from 'app/utils/withOrganization';
-import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
@@ -20,6 +19,7 @@ import QuestionTooltip from 'app/components/questionTooltip';
 import {formatPercentage, getDuration} from 'app/utils/formatters';
 import {DEFAULT_RELATIVE_PERIODS} from 'app/constants';
 
+import ProjectTrendsDiscoverQuery from './projectTrendsDiscoverQuery';
 import {
   TrendChangeType,
   TrendFunctionField,
@@ -127,16 +127,15 @@ function ChangedProjects(props: Props) {
   modifyTrendView(projectTrendView, location, trendChangeType, true);
 
   return (
-    <DiscoverQuery
+    <ProjectTrendsDiscoverQuery
       eventView={projectTrendView}
       orgSlug={organization.slug}
       location={location}
       trendChangeType={trendChangeType}
       limit={1}
     >
-      {({isLoading, tableData}) => {
-        const eventsTrendsData = (tableData as unknown) as ProjectTrendsDataEvents;
-        const trends = eventsTrendsData?.data || [];
+      {({isLoading, projectTrendsData}) => {
+        const trends = projectTrendsData?.data || [];
         const events = normalizeTrends(trends);
 
         const transactionsList = events && events.slice ? events.slice(0, 5) : [];
@@ -189,7 +188,7 @@ function ChangedProjects(props: Props) {
           </TrendsProjectPanel>
         );
       }}
-    </DiscoverQuery>
+    </ProjectTrendsDiscoverQuery>
   );
 }
 
