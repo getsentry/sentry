@@ -32,7 +32,6 @@ runs:
         echo "SENTRY_SKIP_BACKEND_VALIDATION=1" >> $GITHUB_ENV
         echo "NODE_ENV=development" >> $GITHUB_ENV
         echo "NODE_OPTIONS=--max-old-space-size=4096" >> $GITHUB_ENV
-        echo "P=0" >> $GITHUB_ENV
         echo "PYTEST_SENTRY_DSN=https://6fd5cfea2d4d46b182ad214ac7810508@sentry.io/2423079" >> $GITHUB_ENV
         echo "PYTEST_ADDOPTS=--reruns 5" >> $GITHUB_ENV
         echo "SENTRY_KAFKA_HOSTS=127.0.0.1:9092" >> $GITHUB_ENV
@@ -58,6 +57,8 @@ runs:
         MATRIX_INSTANCE: ${{ matrix.instance }}
       shell: bash
       run: |
+        yarn cache dir
+        echo $MATRIX_INSTANCE
         echo "::set-output name=yarn-cache-dir::$(yarn cache dir)"
         echo "::set-output name=python-version::$2.7.17"
         echo "::set-output name=matrix-instance-number::$(($MATRIX_INSTANCE+1))"
