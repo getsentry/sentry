@@ -188,7 +188,8 @@ jobs:
 
         - uses: volta-cli/action@v1
 
-        - id: python-version
+        - name: Set python version output
+          id: python-version
           run: |
             echo "::set-output name=python-version::$(awk 'FNR == 2' .python-version)"
 

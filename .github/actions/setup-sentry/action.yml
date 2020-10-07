@@ -38,7 +38,7 @@ runs:
         echo "SENTRY_LIGHT_BUILD=1" >> $GITHUB_ENV
         echo "SENTRY_SKIP_BACKEND_VALIDATION=1" >> $GITHUB_ENV
 
-        [ "$PYTHON_VERSION" = "3" ] && echo "SENTRY_PYTHON3=1" >> $GITHUB_ENV || exit 0
+        [ "$PYTHON_VERSION" = "3" ] && echo "SENTRY_PYTHON3=1" >> $GITHUB_ENV || true
 
         echo "NODE_ENV=development" >> $GITHUB_ENV
         echo "NODE_OPTIONS=--max-old-space-size=4096" >> $GITHUB_ENV
@@ -46,7 +46,7 @@ runs:
         # pytest-sentry configuration
         echo "PYTEST_SENTRY_DSN=https://6fd5cfea2d4d46b182ad214ac7810508@sentry.io/2423079" >> $GITHUB_ENV
         echo "PYTEST_ADDOPTS=--reruns 5" >> $GITHUB_ENV
-        [ "$GITHUB_REF" = "refs/heads/master" ] && echo "PYTEST_SENTRY_ALWAYS_REPORT=1" >> $GITHUB_ENV || exit 0
+        [ "$GITHUB_REF" = "refs/heads/master" ] && echo "PYTEST_SENTRY_ALWAYS_REPORT=1" >> $GITHUB_ENV || true
 
         # services configuration
         echo "SENTRY_KAFKA_HOSTS=127.0.0.1:9092" >> $GITHUB_ENV
@@ -110,8 +110,7 @@ runs:
             --name sentry_zookeeper \
             -d --network host \
             -e ZOOKEEPER_CLIENT_PORT=2181 \
-            confluentinc/cp-zookeeper:4.1.0 || exit 0
-
+            confluentinc/cp-zookeeper:4.1.0 || true
         [ "$NEED_KAFKA" = "1" ] && docker run \
             --name sentry_kafka \
             -d --network host \
@@ -121,8 +120,6 @@ runs:
             -e KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT \
             -e KAFKA_INTER_BROKER_LISTENER_NAME=INTERNAL \
             -e KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1 \
-            confluentinc/cp-kafka:5.1.2 || exit 0
-
-        [ "$NEED_SNUBA" = "1" ] && sentry devservices up postgres redis clickhouse snuba || exit 0
-
+            confluentinc/cp-kafka:5.1.2 || true
+        [ "$NEED_SNUBA" = "1" ] && sentry devservices up postgres redis clickhouse snuba || true
         docker ps -a

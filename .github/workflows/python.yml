@@ -117,9 +117,11 @@ jobs:
 
       - uses: volta-cli/action@v1
 
-      - id: python-version
+      - name: Set python version output
+        id: python-version
         run: |
           echo "::set-output name=python-version::$(awk 'FNR == 2' .python-version)"
+
 
       # Until GH composite actions can use `uses`, we need to setup python here
       - uses: actions/setup-python@v2
