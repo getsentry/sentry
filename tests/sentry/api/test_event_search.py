@@ -595,16 +595,25 @@ class ParseSearchQueryTest(unittest.TestCase):
         ]
 
     def test_boolean_filter(self):
-        assert parse_search_query("stack.in_app:true") == [
-            SearchFilter(
-                key=SearchKey(name="stack.in_app"), operator="=", value=SearchValue(raw_value=1),
-            )
-        ]
-        assert parse_search_query("stack.in_app:false") == [
-            SearchFilter(
-                key=SearchKey(name="stack.in_app"), operator="=", value=SearchValue(raw_value=0),
-            )
-        ]
+        truthy = ("yes", "YeS", "true", "TRUE", "1")
+        for val in truthy:
+            assert parse_search_query("stack.in_app:{}".format(val)) == [
+                SearchFilter(
+                    key=SearchKey(name="stack.in_app"),
+                    operator="=",
+                    value=SearchValue(raw_value=1),
+                )
+            ]
+        falsey = ("no", "No", "false", "FALSE", "0")
+        for val in falsey:
+            assert parse_search_query("stack.in_app:{}".format(val)) == [
+                SearchFilter(
+                    key=SearchKey(name="stack.in_app"),
+                    operator="=",
+                    value=SearchValue(raw_value=0),
+                )
+            ]
+
         assert parse_search_query("!stack.in_app:false") == [
             SearchFilter(
                 key=SearchKey(name="stack.in_app"), operator="=", value=SearchValue(raw_value=1),
@@ -1779,15 +1788,11 @@ class GetSnubaQueryArgsTest(TestCase):
         assert "cancelled," in six.text_type(err)
 
     def test_error_handled(self):
-        truthy = ("yes", "true", "1")
-        falsey = ("no", "false", "0")
-        for val in truthy:
-            result = get_filter("error.handled:{}".format(val))
-            assert result.conditions == [[["isHandled", []], "=", 1]]
+        result = get_filter("error.handled:true")
+        assert result.conditions == [[["isHandled", []], "=", 1]]
 
-        for val in falsey:
-            result = get_filter("error.handled:{}".format(val))
-            assert result.conditions == [[["notHandled", []], "=", 1]]
+        result = get_filter("error.handled:false")
+        assert result.conditions == [[["notHandled", []], "=", 1]]
 
         result = get_filter("has:error.handled")
         assert result.conditions == [[["isHandled", []], "=", 1]]
@@ -1795,13 +1800,11 @@ class GetSnubaQueryArgsTest(TestCase):
         result = get_filter("!has:error.handled")
         assert result.conditions == [[["isHandled", []], "=", 0]]
 
-        for val in falsey:
-            result = get_filter("!error.handled:{}".format(val))
-            assert result.conditions == [[["isHandled", []], "=", 1]]
+        result = get_filter("!error.handled:true")
+        assert result.conditions == [[["notHandled", []], "=", 1]]
 
-        for val in truthy:
-            result = get_filter("!error.handled:{}".format(val))
-            assert result.conditions == [[["notHandled", []], "=", 1]]
+        result = get_filter("!error.handled:false")
+        assert result.conditions == [[["isHandled", []], "=", 1]]
 
         result = get_filter("!error.handled:0")
         assert result.conditions == [[["isHandled", []], "=", 1]]
