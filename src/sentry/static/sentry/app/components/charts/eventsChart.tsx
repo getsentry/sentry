@@ -172,6 +172,7 @@ class Chart extends React.Component<ChartProps, State> {
         showSymbol: false,
       },
       tooltip: {
+        trigger: 'axis',
         truncate: 80,
         valueFormatter: (value: number) => tooltipFormatter(value, yAxis),
       },
