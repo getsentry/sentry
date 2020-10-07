@@ -51,7 +51,7 @@ runs:
         # services configuration
         echo "SENTRY_KAFKA_HOSTS=127.0.0.1:9092" >> $GITHUB_ENV
         echo "SENTRY_ZOOKEEPER_HOSTS=127.0.0.1:2182" >> $GITHUB_ENV
-        echo "SENTRY_REDIS_HOST=redis" >> $GITHUB_ENV
+        echo "SENTRY_REDIS_HOST=sentry_redis" >> $GITHUB_ENV
         # The hostname used to communicate with the PostgreSQL from sentry
         echo "DATABASE_URL=postgresql://postgres:postgres@localhost/sentry" >> $GITHUB_ENV
         echo "PGPASSWORD=postgres" >> $GITHUB_ENV
@@ -124,3 +124,5 @@ runs:
             confluentinc/cp-kafka:5.1.2 || exit 0
 
         [ "$NEED_SNUBA" = "1" ] && sentry devservices up postgres redis clickhouse snuba || exit 0
+
+        docker ps -a
