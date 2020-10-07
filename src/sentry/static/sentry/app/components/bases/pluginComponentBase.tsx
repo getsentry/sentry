@@ -11,20 +11,13 @@ import {
 } from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 
-const callbackWithArgs = function (context: any, callback, ...args) {
-  if (isFunction(callback)) {
-    callback = callback.bind(context, ...args);
-  } else {
-    callback = null;
-  }
-  return callback;
+const callbackWithArgs = function (context: any, callback: any, ...args: any) {
+  return isFunction(callback) ? callback.bind(context, ...args) : null;
 };
 
 type GenericFieldProps = Parameters<typeof GenericField>[0];
 
-type Props = {
-  config?: GenericFieldProps['config'];
-} & GenericFieldProps;
+type Props = {};
 
 type State = {state: GenericFieldProps['formState']};
 
@@ -143,14 +136,14 @@ class PluginComponentBase<
     callback && callback();
   }
 
-  renderField(props: Omit<Props, 'formState'>) {
+  renderField(props: Omit<GenericFieldProps, 'formState'>) {
     props = {...props};
     const newProps = {
       ...props,
       formState: this.state.state,
-      config: props.config || {},
     };
-    return <GenericField key={newProps.config.name} {...newProps} />;
+    console.log('config', newProps.config, newProps);
+    return <GenericField key={newProps.config?.name} {...newProps} />;
   }
 }
 

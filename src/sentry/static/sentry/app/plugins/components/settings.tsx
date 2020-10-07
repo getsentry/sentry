@@ -8,7 +8,7 @@ import {parseRepo} from 'app/utils';
 import {t, tct} from 'app/locale';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import PluginComponentBase from 'app/components/bases/pluginComponentBase';
-import {trackIntegrationEvent} from 'app/utils/integrationUtil';
+import {trackIntegrationEvent, SingleIntegrationEvent} from 'app/utils/integrationUtil';
 import {Organization, Project, Plugin} from 'app/types';
 
 type Props = {
@@ -17,9 +17,13 @@ type Props = {
   plugin: Plugin;
 } & PluginComponentBase['props'];
 
+type Field = Parameters<typeof PluginComponentBase.prototype.renderField>[0]['config'];
+
+type BackendField = Field & {value?: any; defaultValue?: any};
+
 type State = {
-  fieldList: any[] | null;
-  initialData: any | null;
+  fieldList: Field[] | null;
+  initialData: Record<string, any> | null;
   formData: Record<string, any>;
   errors: Record<string, any>;
   rawData: Record<string, any>;
@@ -49,7 +53,9 @@ class PluginSettings extends PluginComponentBase<Props, State> {
     });
   }
 
-  trackPluginEvent = options => {
+  trackPluginEvent = (
+    options: Pick<SingleIntegrationEvent, 'eventKey' | 'eventName'>
+  ) => {
     trackIntegrationEvent(
       {
         integration: this.props.plugin.id,
@@ -147,7 +153,7 @@ class PluginSettings extends PluginComponentBase<Props, State> {
         let wasConfiguredOnPageLoad = false;
         const formData = {};
         const initialData = {};
-        data.config.forEach(field => {
+        data.config.forEach((field: BackendField) => {
           formData[field.name] = field.value || field.defaultValue;
           initialData[field.name] = field.value;
           //for simplicity sake, we will consider a plugin was configured if we have any value that is stored in the DB
