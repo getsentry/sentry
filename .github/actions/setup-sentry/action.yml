@@ -29,6 +29,7 @@ runs:
       run: |
         echo "PIP_DISABLE_PIP_VERSION_CHECK=on" >> $GITHUB_ENV
         echo "SENTRY_LIGHT_BUILD=1" >> $GITHUB_ENV
+        echo "MIGRATIONS_TEST_MIGRATE=1" >> $GITHUB_ENV
         echo "SENTRY_SKIP_BACKEND_VALIDATION=1" >> $GITHUB_ENV
         echo "NODE_ENV=development" >> $GITHUB_ENV
         echo "NODE_OPTIONS=--max-old-space-size=4096" >> $GITHUB_ENV
@@ -38,6 +39,10 @@ runs:
         echo "SENTRY_ZOOKEEPER_HOSTS=127.0.0.1:2182" >> $GITHUB_ENV
         echo "DATABASE_URL=postgresql://postgres:postgres@localhost/sentry" >> $GITHUB_ENV
         echo "PGPASSWORD=postgres" >> $GITHUB_ENV
+
+    - shell: bash
+      run: |
+        echo $GITHUB_REF
 
     # - shell: bash
       # run: |
@@ -60,7 +65,6 @@ runs:
         yarn cache dir
         echo $MATRIX_INSTANCE
         echo "::set-output name=yarn-cache-dir::$(yarn cache dir)"
-        echo "::set-output name=python-version::$2.7.17"
         echo "::set-output name=matrix-instance-number::$(($MATRIX_INSTANCE+1))"
         echo "::set-output name=acceptance-dir::.artifacts/visual-snapshots/acceptance"
 
@@ -73,7 +77,7 @@ runs:
       id: pip-cache
       shell: bash
       run: |
-        echo "::set-output name=dir::$(pip cache dir)"
+        echo "::set-output name=pip-cache::$(pip cache dir)"
 
     - name: Install python dependencies
       shell: bash

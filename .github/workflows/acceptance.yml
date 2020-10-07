@@ -159,7 +159,8 @@ jobs:
             echo "::add-matcher::.github/pytest.json"
 
         - name: Run acceptance tests (#${{ steps.setup.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
-          if: always()
+          # UNDO
+          # if: always()
           run: |
             mkdir -p ${{ steps.setup.outputs.acceptance-dir }}
             mkdir -p ${{ steps.setup.outputs.acceptance-dir }}-mobile
