@@ -17,6 +17,7 @@ import AsyncComponent from 'app/components/asyncComponent';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import RootSpanStatus from 'app/components/events/rootSpanStatus';
 import OpsBreakdown from 'app/components/events/opsBreakdown';
+import RealUserMonitoring from 'app/components/events/realUserMonitoring';
 import TagsTable from 'app/components/tagsTable';
 import Projects from 'app/utils/projects';
 import * as Layout from 'app/components/layouts/thirds';
@@ -173,6 +174,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
               />
               <RootSpanStatus event={event} />
               <OpsBreakdown event={event} />
+              <RealUserMonitoring organization={organization} event={event} />
               <TagsTable event={event} query={query} generateUrl={this.generateTagUrl} />
             </Layout.Side>
           )}

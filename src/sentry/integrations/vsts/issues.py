@@ -315,7 +315,7 @@ class VstsIssueSync(IssueSyncMixin):
     def create_comment(self, issue_id, user_id, group_note):
         comment = group_note.data["text"]
         quoted_comment = self.create_comment_attribution(user_id, comment)
-        self.get_client().update_work_item(self.instance, issue_id, comment=quoted_comment)
+        return self.get_client().update_work_item(self.instance, issue_id, comment=quoted_comment)
 
     def create_comment_attribution(self, user_id, comment_text):
         # VSTS uses markdown or xml

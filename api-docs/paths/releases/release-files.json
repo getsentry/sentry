@@ -96,14 +96,12 @@
             "properties": {
               "name": {
                 "type": "string",
-                "description": "The name (full path) of the file.",
-                "example": "/demo/release.min.js"
+                "description": "The name (full path) of the file."
               },
               "file": {
                 "type": "string",
                 "format": "binary",
-                "description": "The multipart encoded file.",
-                "example": "release.min.js"
+                "description": "The multipart encoded file."
               },
               "dist": {
                 "type": "string",
@@ -114,6 +112,10 @@
                 "description": "This parameter can be supplied multiple times to attach headers to the file. Each header is a string in the format `key:value`. For instance it can be used to define a content type."
               }
             }
+          },
+          "example": {
+            "name": "/demo/release.min.js",
+            "file": "release.min.js"
           }
         }
       }
