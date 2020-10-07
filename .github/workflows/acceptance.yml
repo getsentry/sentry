@@ -381,13 +381,6 @@ jobs:
       runs-on: ubuntu-latest
 
       steps:
-        - name: Getsentry Token
-          id: getsentry
-          uses: getsentry/action-github-app-token@v1
-          with:
-            app_id: ${{ secrets.SENTRY_INTERNAL_APP_ID }}
-            private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
-
         - name: Checkout getsentry/sentry
           uses: actions/checkout@v2
           with:
@@ -399,6 +392,14 @@ jobs:
             filters: |
               api-docs:
                 - 'api-docs/**'
+
+        - name: Getsentry Token
+          if: steps.filter.outputs.api-docs == 'true'
+          id: getsentry
+          uses: getsentry/action-github-app-token@v1
+          with:
+            app_id: ${{ secrets.SENTRY_INTERNAL_APP_ID }}
+            private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
 
         - name: Checkout getsentry/sentry-api-schema
           if: steps.filter.outputs.api-docs == 'true'
