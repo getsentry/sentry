@@ -29,7 +29,7 @@ export function tooltipFormatter(value: number, seriesName: string): string {
 
 /**
  * Formatter for chart axis labels that handle a variety of discover result values
- * This function is *very similar* to tootipFormatter but outputs data with less precision.
+ * This function is *very similar* to tooltipFormatter but outputs data with less precision.
  */
 export function axisLabelFormatter(value: number, seriesName: string): string {
   switch (aggregateOutputType(seriesName)) {
