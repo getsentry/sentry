@@ -22,6 +22,7 @@ from sentry.utils.http import get_origins
 from sentry.utils.sdk import configure_scope
 from sentry.relay.utils import to_camel_case_name
 from sentry.datascrubbing import get_pii_config, get_datascrubbing_settings
+from sentry.models.projectkey import ProjectKeyStatus
 
 
 def get_project_key_config(project_key):
@@ -33,7 +34,10 @@ def get_public_key_configs(project, full_config, project_keys=None):
     public_keys = []
 
     for project_key in project_keys or ():
-        key = {"publicKey": project_key.public_key, "isEnabled": project_key.status == 0}
+        key = {
+            "publicKey": project_key.public_key,
+            "isEnabled": project_key.status == ProjectKeyStatus.ACTIVE,
+        }
 
         if full_config:
             key["quotas"] = [
