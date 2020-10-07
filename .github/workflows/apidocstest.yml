@@ -82,13 +82,6 @@ jobs:
           python setup.py install_egg_info
           pip install wheel # GitHub Actions does not have this installed by default (unlike Travis)
           pip install -U -e ".[dev]"
-      - name: Start devservices
-        run: |
-          sentry init
-          sentry devservices up postgres redis clickhouse snuba
-      - name: webpack
-        run: |
-          yarn webpack --display errors-only
       # Setup custom pytest matcher, see https://github.com/actions/setup-node/issues/97
       - name: Add pytest log matcher
         if: always()
