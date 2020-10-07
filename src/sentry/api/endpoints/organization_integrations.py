@@ -19,7 +19,7 @@ class OrganizationIntegrationsEndpoint(OrganizationEndpoint):
 
         # include the configurations by default
         include_config = True
-        if request.GET.get("include_config") == "0":
+        if request.GET.get("includeConfig") == "0":
             include_config = False
 
         return self.paginate(

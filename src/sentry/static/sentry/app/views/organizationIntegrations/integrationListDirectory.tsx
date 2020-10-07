@@ -161,7 +161,7 @@ export class IntegrationListDirectory extends AsyncComponent<
       [
         'integrations',
         `/organizations/${orgId}/integrations/`,
-        {query: {include_config: 0}},
+        {query: {includeConfig: 0}},
       ],
       ['orgOwnedApps', `/organizations/${orgId}/sentry-apps/`],
       ['publishedApps', '/sentry-apps/', {query: {status: 'published'}}],
