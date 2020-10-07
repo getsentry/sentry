@@ -400,10 +400,8 @@ jobs:
               api-docs:
                 - 'api-docs/**'
 
-        - name: api-docs/** changes
-          if: steps.filter.outputs.api-docs == 'true'
-
         - name: Checkout getsentry/sentry-api-schema
+          if: steps.filter.outputs.api-docs == 'true'
           uses: actions/checkout@v2
           with:
             ref: 'main'
@@ -411,17 +409,22 @@ jobs:
             path: sentry-api-schema
             token: ${{ steps.getsentry.outputs.token }}
 
-        # Install/setup node
-        - uses: volta-cli/action@v1
+        - name: Install/setup node
+          if: steps.filter.outputs.api-docs == 'true'
+          uses: volta-cli/action@v1
 
-        - run: volta install json-diff
+        - name: Install/setup json-diff
+          if: steps.filter.outputs.api-docs == 'true'
+          run: volta install json-diff
 
         - name: Build OpenAPI Derefed JSON
+          if: steps.filter.outputs.api-docs == 'true'
           run: |
             cd sentry
             yarn install --frozen-lockfile
             yarn run build-derefed-docs api-docs/openapi-derefed.json
 
         - name: Compare OpenAPI Derefed JSON
+          if: steps.filter.outputs.api-docs == 'true'
           run: |
             json-diff --color sentry/api-docs/openapi-derefed.json sentry-api-schema/openapi-derefed.json
