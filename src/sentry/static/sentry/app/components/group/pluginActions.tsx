@@ -7,7 +7,7 @@ import withApi from 'app/utils/withApi';
 import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
 import NavTabs from 'app/components/navTabs';
 import plugins from 'app/plugins';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import IssueSyncListElement from 'app/components/issueSyncListElement';
 import withOrganization from 'app/utils/withOrganization';
@@ -18,7 +18,10 @@ type Props = {
   group: Group;
   organization: Organization;
   project: Project;
-  plugin: Plugin;
+  plugin: Plugin & {
+    // issue serializer adds more fields
+    title: 'string';
+  };
 };
 
 type State = {
@@ -104,7 +107,7 @@ class PluginActions extends React.Component<Props, State> {
     });
   };
 
-  handleClick = (actionType: 'create' | 'link') => {
+  handleClick = (actionType: Exclude<State['actionType'], null>) => {
     this.setState({actionType});
   };
 
@@ -129,7 +132,9 @@ class PluginActions extends React.Component<Props, State> {
           enforceFocus={false}
         >
           <Modal.Header closeButton>
-            <Modal.Title>{`${plugin.name} Issue`}</Modal.Title>
+            <Modal.Title>
+              {tct('[name] Issue', {name: plugin.name || plugin.title})}
+            </Modal.Title>
           </Modal.Header>
           <NavTabs underlined>
             <li className={actionType === 'create' ? 'active' : ''}>
