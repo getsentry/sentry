@@ -215,7 +215,7 @@ const Search = styled('div')`
 `;
 
 const StyledSearchBar = styled(SearchBar)`
-  width: 100%;
+  flex-grow: 1;
 `;
 
 const AlertContainer = styled('div')`
