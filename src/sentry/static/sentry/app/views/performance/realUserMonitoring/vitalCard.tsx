@@ -295,7 +295,7 @@ class VitalCard extends React.Component<Props, State> {
     }
 
     const summaryBucket = findNearestBucketIndex(chartData, this.bucketWidth(), summary);
-    if (summaryBucket === null) {
+    if (summaryBucket === null || summaryBucket === -1) {
       return;
     }
 
@@ -360,7 +360,7 @@ class VitalCard extends React.Component<Props, State> {
       return;
     }
 
-    const failureBucket = findNearestBucketIndex(
+    let failureBucket = findNearestBucketIndex(
       chartData,
       this.bucketWidth(),
       failureThreshold
@@ -368,6 +368,7 @@ class VitalCard extends React.Component<Props, State> {
     if (failureBucket === null) {
       return;
     }
+    failureBucket = failureBucket === -1 ? 0 : failureBucket;
 
     // since we found the failure bucket, the failure threshold is
     // visible on the graph, so let's draw the fail region
