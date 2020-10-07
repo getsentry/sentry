@@ -59,21 +59,34 @@ def update_config_cache(generate, organization_id=None, project_id=None, update_
         # want to add another method to src/sentry/db/models/manager.py
         projects = Project.objects.filter(organization_id=organization_id)
 
-    if generate:
-        project_keys = {}
-        for key in ProjectKey.objects.filter(project_id__in=[project.id for project in projects]):
-            project_keys.setdefault(key.project_id, []).append(key)
+    project_keys = {}
+    for key in ProjectKey.objects.filter(project_id__in=[project.id for project in projects]):
+        project_keys.setdefault(key.project_id, []).append(key)
 
-        project_configs = {}
+    if generate:
+        config_cache = {}
         for project in projects:
             project_config = get_project_config(
                 project, project_keys=project_keys.get(project.id, []), full_config=True
             )
-            project_configs[project.id] = project_config.to_dict()
+            config_cache[project.id] = project_config.to_dict()
 
-        projectconfig_cache.set_many(project_configs)
+            for key in project_keys.get(project.id) or ():
+                # XXX(markus): This is currently the cleanest way to get only
+                # state for a single projectkey (considering quotas and
+                # everything)
+                project_config = get_project_config(project, project_keys=[key], full_config=True)
+                config_cache[key.public_key] = project_config.to_dict()
+
+        projectconfig_cache.set_many(config_cache)
     else:
-        projectconfig_cache.delete_many([project.id for project in projects])
+        cache_keys_to_delete = []
+        for project in projects:
+            cache_keys_to_delete.append(project.id)
+            for key in project_keys.get(project.id) or ():
+                cache_keys_to_delete.append(key.public_key)
+
+        projectconfig_cache.delete_many(cache_keys_to_delete)
 
     metrics.incr(
         "relay.projectconfig_cache.done",
