@@ -937,6 +937,17 @@ class ParseBooleanSearchQueryTest(TestCase):
         result = get_filter("user.email:foo@example.com")
         assert result.conditions == [self.ofoo]
 
+    def test_wildcard_array_field(self):
+        _filter = get_filter("error.value:Deadlock* OR stack.filename:*.py")
+        assert _filter.conditions == [
+            [
+                _or(["like", ["error.value", "Deadlock%"]], ["like", ["stack.filename", "%.py"]],),
+                "=",
+                1,
+            ]
+        ]
+        assert _filter.filter_keys == {}
+
     def test_order_of_operations(self):
         result = get_filter(
             "user.email:foo@example.com OR user.email:bar@example.com AND user.email:foobar@example.com"
