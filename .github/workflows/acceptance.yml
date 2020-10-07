@@ -124,7 +124,8 @@ jobs:
           with:
             python-version: 2.7.17
 
-        - uses: ./.github/actions/setup-sentry
+        - name: Setup sentry python env
+          uses: ./.github/actions/setup-sentry
           id: setup
 
         - uses: actions/cache@v1
@@ -150,13 +151,6 @@ jobs:
         - name: webpack
           run: |
             yarn webpack --display errors-only
-
-        # Setup custom pytest matcher, see https://github.com/actions/setup-node/issues/97
-        - name: Add pytest log matcher
-          if: always()
-          run: |
-            echo "::remove-matcher owner=pytest::"
-            echo "::add-matcher::.github/pytest.json"
 
         - name: Run acceptance tests (#${{ steps.setup.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
           # UNDO

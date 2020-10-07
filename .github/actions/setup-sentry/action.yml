@@ -48,6 +48,12 @@ runs:
       # run: |
         # [ "$GITHUB_REF" = "refs/heads/master" ] && echo "PYTEST_SENTRY_ALWAYS_REPORT=1" >> $GITHUB_ENV
 
+    # Setup custom pytest matcher, see https://github.com/actions/setup-node/issues/97
+    - name: Add pytest log matcher
+      run: |
+        echo "::remove-matcher owner=pytest::"
+        echo "::add-matcher::.github/pytest.json"
+
     - name: Install system dependencies
       shell: bash
       run: |
@@ -91,11 +97,3 @@ runs:
       run: |
         sentry init
         sentry devservices up ${{ inputs.devservices }}
-
-    # - run: echo Hello ${{ inputs.who-to-greet }}.
-      # shell: bash
-    # - id: random-number-generator
-      # run: echo "::set-output name=random-id::$(echo $RANDOM)"
-      # shell: bash
-    # - run: ${{ github.action_path }}/goodbye.sh
-      # shell: bash
