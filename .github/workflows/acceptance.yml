@@ -102,17 +102,9 @@ jobs:
     acceptance:
       # TODO(joshuarli): Convert to py3 with snapshots. See other TODO as well.
       runs-on: ubuntu-16.04
-      strategy:
-        matrix:
-          instance: [0]
-
       env:
-        TEST: 2
-        MIGRATIONS_TEST_MIGRATE: 2
-
         # Number of matrix instances
         TOTAL_TEST_GROUPS: ${{ strategy.job-total }}
-
         VISUAL_SNAPSHOT_ENABLE: 1
 
       steps:

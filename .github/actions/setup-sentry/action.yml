@@ -29,7 +29,7 @@ runs:
       run: |
         echo "PIP_DISABLE_PIP_VERSION_CHECK=on" >> $GITHUB_ENV
         echo "SENTRY_LIGHT_BUILD=1" >> $GITHUB_ENV
-        echo "MIGRATIONS_TEST_MIGRATE=1" >> $GITHUB_ENV
+        echo "MIGRATIONS_TEST_MIGRATE=0" >> $GITHUB_ENV
         echo "SENTRY_SKIP_BACKEND_VALIDATION=1" >> $GITHUB_ENV
         echo "NODE_ENV=development" >> $GITHUB_ENV
         echo "NODE_OPTIONS=--max-old-space-size=4096" >> $GITHUB_ENV
@@ -42,11 +42,7 @@ runs:
 
     - shell: bash
       run: |
-        echo $GITHUB_REF
-
-    # - shell: bash
-      # run: |
-        # [ "$GITHUB_REF" = "refs/heads/master" ] && echo "PYTEST_SENTRY_ALWAYS_REPORT=1" >> $GITHUB_ENV
+        [ "$GITHUB_REF" = "refs/heads/master" ] && echo "PYTEST_SENTRY_ALWAYS_REPORT=1" >> $GITHUB_ENV || exit 0
 
     # Setup custom pytest matcher, see https://github.com/actions/setup-node/issues/97
     - name: Add pytest log matcher
