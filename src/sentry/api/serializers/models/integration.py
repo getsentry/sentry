@@ -38,8 +38,10 @@ class IntegrationConfigSerializer(IntegrationSerializer):
     def serialize(self, obj, attrs, user, include_config=True):
         data = super(IntegrationConfigSerializer, self).serialize(obj, attrs, user)
 
-        if include_config:
-            data.update({"configOrganization": []})
+        if not include_config:
+            return data
+
+        data.update({"configOrganization": []})
 
         try:
             install = obj.get_installation(organization_id=self.organization_id)
@@ -48,8 +50,7 @@ class IntegrationConfigSerializer(IntegrationSerializer):
             # representation.
             pass
         else:
-            if include_config:
-                data.update({"configOrganization": install.get_organization_config()})
+            data.update({"configOrganization": install.get_organization_config()})
 
         return data
 

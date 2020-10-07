@@ -902,7 +902,7 @@ export type Integration = {
   status: ObjectStatus;
   provider: BaseIntegrationProvider & {aspects: IntegrationAspects};
   //TODO(Steve): move configData to IntegrationWithConfig when we no longer check
-  //for worksapce apps
+  //for workspace apps
   configData: object & {
     //installationType is only for Slack migration and can be removed after migrations are done
     installationType?:
