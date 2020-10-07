@@ -160,7 +160,7 @@ class PerformanceLanding extends React.Component<Props, State> {
   }
 
   /**
-   * Generate conditions to foward to the summary views.
+   * Generate conditions to forward to the summary views.
    *
    * We drop the bare text string as in this view we apply it to
    * the transaction name, and that condition is redundant in the
