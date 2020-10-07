@@ -1,0 +1,52 @@
+name: acceptance
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'api-docs/**'
+  pull_request:
+    paths:
+      - 'api-docs/**'
+
+jobs:
+    diff:
+      if: ${{ github.ref != 'refs/heads/master' }}
+      runs-on: ubuntu-latest
+
+      steps:
+        - name: Checkout getsentry/sentry
+          uses: actions/checkout@v2
+          with:
+            path: sentry
+
+        - name: Getsentry Token
+          id: getsentry
+          uses: getsentry/action-github-app-token@v1
+          with:
+            app_id: ${{ secrets.SENTRY_INTERNAL_APP_ID }}
+            private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
+
+        - name: Checkout getsentry/sentry-api-schema
+          uses: actions/checkout@v2
+          with:
+            ref: 'main'
+            repository: getsentry/sentry-api-schema
+            path: sentry-api-schema
+            token: ${{ steps.getsentry.outputs.token }}
+
+        - name: Install/setup node
+          uses: volta-cli/action@v1
+
+        - name: Install/setup json-diff
+          run: npx json-diff
+
+        - name: Build OpenAPI Derefed JSON
+          run: |
+            cd sentry
+            yarn install --frozen-lockfile
+            yarn run build-derefed-docs api-docs/openapi-derefed.json
+
+        - name: Compare OpenAPI Derefed JSON
+          run: |
+            json-diff --color sentry/api-docs/openapi-derefed.json sentry-api-schema/openapi-derefed.json
