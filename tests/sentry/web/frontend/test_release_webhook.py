@@ -12,19 +12,22 @@ from sentry.testutils import TestCase
 from sentry.utils import json
 
 
-class ReleaseWebhookTest(TestCase):
+class ReleaseWebhookTestBase(TestCase):
     def setUp(self):
-        super(ReleaseWebhookTest, self).setUp()
+        super(ReleaseWebhookTestBase, self).setUp()
         self.organization = self.create_organization()
         self.team = self.create_team(organization=self.organization)
         self.project = self.create_project(teams=[self.team])
         self.token = "a2587e3af83411e4a28634363b8514c2"
-        self.signature = hmac.new(
+        ProjectOption.objects.set_value(self.project, "sentry:release-token", self.token)
+
+    @fixture
+    def signature(self):
+        return hmac.new(
             key=self.token.encode("utf-8"),
-            msg=("dummy-{}".format(self.project.id)).encode("utf-8"),
+            msg=("{}-{}".format(self.plugin_id, self.project.id)).encode("utf-8"),
             digestmod=sha256,
         ).hexdigest()
-        ProjectOption.objects.set_value(self.project, "sentry:release-token", self.token)
 
     @fixture
     def path(self):
@@ -32,10 +35,16 @@ class ReleaseWebhookTest(TestCase):
             "sentry-release-hook",
             kwargs={
                 "project_id": self.project.id,
-                "plugin_id": "dummy",
+                "plugin_id": self.plugin_id,
                 "signature": self.signature,
             },
         )
+
+
+class ReleaseWebhookTest(ReleaseWebhookTestBase):
+    def setUp(self):
+        super(ReleaseWebhookTest, self).setUp()
+        self.plugin_id = "dummy"
 
     def test_no_token(self):
         project = self.create_project(teams=[self.team])
@@ -84,30 +93,10 @@ class ReleaseWebhookTest(TestCase):
         assert not MockPlugin.get_release_hook.called
 
 
-class BuiltinReleaseWebhookTest(TestCase):
+class BuiltinReleaseWebhookTest(ReleaseWebhookTestBase):
     def setUp(self):
         super(BuiltinReleaseWebhookTest, self).setUp()
-        self.organization = self.create_organization()
-        self.team = self.create_team(organization=self.organization)
-        self.project = self.create_project(teams=[self.team])
-        self.token = "a2587e3af83411e4a28634363b8514c2"
-        self.signature = hmac.new(
-            key=self.token.encode("utf-8"),
-            msg=("builtin-{}".format(self.project.id)).encode("utf-8"),
-            digestmod=sha256,
-        ).hexdigest()
-        ProjectOption.objects.set_value(self.project, "sentry:release-token", self.token)
-
-    @fixture
-    def path(self):
-        return reverse(
-            "sentry-release-hook",
-            kwargs={
-                "project_id": self.project.id,
-                "plugin_id": "builtin",
-                "signature": self.signature,
-            },
-        )
+        self.plugin_id = "builtin"
 
     def test_invalid_params(self):
         resp = self.client.post(self.path, content_type="application/json")
