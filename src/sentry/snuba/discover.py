@@ -960,7 +960,7 @@ def measurements_histogram_query(
     precision=0,
     min_value=None,
     max_value=None,
-    data_filter="upper_outer_fence",
+    data_filter="all",
     referrer=None,
 ):
     """
