@@ -157,7 +157,7 @@ search_key           = key / quoted_key
 search_value         = quoted_value / value
 value                = ~r"[^()\s]*"
 numeric_value        = ~r"[-]?[0-9\.]+(?=\s|\)|$)"
-boolean_value        = ~r"(yes|true|1|no|false|0)(?=\s|$)"i
+boolean_value        = ~r"(true|1|false|0)(?=\s|$)"i
 quoted_value         = ~r"\"((?:[^\"]|(?<=\\)[\"])*)?\""s
 key                  = ~r"[a-zA-Z0-9_\.-]+"
 function_arg         = space? key? comma? space?
@@ -406,9 +406,9 @@ class SearchVisitor(NodeVisitor):
             return self.visit_numeric_filter(node, (search_key, sep, "=", search_value))
 
         if search_key.name in self.boolean_keys:
-            if search_value.text.lower() in ("yes", "true", "1"):
+            if search_value.text.lower() in ("true", "1"):
                 search_value = SearchValue(0 if is_negated else 1)
-            elif search_value.text.lower() in ("no", "false", "0"):
+            elif search_value.text.lower() in ("false", "0"):
                 search_value = SearchValue(1 if is_negated else 0)
             else:
                 raise InvalidSearchQuery(u"Invalid boolean field: {}".format(search_key))

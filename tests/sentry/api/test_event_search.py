@@ -595,7 +595,7 @@ class ParseSearchQueryTest(unittest.TestCase):
         ]
 
     def test_boolean_filter(self):
-        truthy = ("yes", "YeS", "true", "TRUE", "1")
+        truthy = ("true", "TRUE", "1")
         for val in truthy:
             assert parse_search_query("stack.in_app:{}".format(val)) == [
                 SearchFilter(
@@ -604,7 +604,7 @@ class ParseSearchQueryTest(unittest.TestCase):
                     value=SearchValue(raw_value=1),
                 )
             ]
-        falsey = ("no", "No", "false", "FALSE", "0")
+        falsey = ("false", "FALSE", "0")
         for val in falsey:
             assert parse_search_query("stack.in_app:{}".format(val)) == [
                 SearchFilter(
