@@ -2083,7 +2083,7 @@ class ResolveFieldListTest(unittest.TestCase):
             fields = ["percentile(id, 0.75)"]
             resolve_field_list(fields, eventstore.Filter())
         assert (
-            "percentile(id, 0.75): column argument invalid: id is not a duration column"
+            "percentile(id, 0.75): column argument invalid: id is not a numeric column"
             in six.text_type(err)
         )
 
