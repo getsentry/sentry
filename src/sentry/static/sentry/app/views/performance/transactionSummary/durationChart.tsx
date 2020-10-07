@@ -127,6 +127,7 @@ class DurationChart extends React.Component<Props> {
         showSymbol: false,
       },
       tooltip: {
+        trigger: 'axis',
         valueFormatter: tooltipFormatter,
       },
       yAxis: {
