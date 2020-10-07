@@ -16,7 +16,7 @@ import {FIRE_SVG_PATH} from 'app/icons/iconFire';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import EventView from 'app/utils/discover/eventView';
-import {formatFloat, getDuration} from 'app/utils/formatters';
+import {formatFloat, formatPercentage, getDuration} from 'app/utils/formatters';
 import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import theme from 'app/utils/theme';
 
@@ -437,7 +437,25 @@ class VitalCard extends React.Component<Props, State> {
       symbol: `path://${FIRE_SVG_PATH}`,
       symbolKeepAspect: true,
       symbolSize: [14, 16],
+      label: {
+        formatter: `~${formatPercentage(this.approxFailureRate(failureBucket), 0)}`,
+        position: 'left',
+      },
     });
+  }
+
+  approxFailureRate(failureIndex) {
+    const {chartData} = this.props;
+
+    const failures = chartData
+      .slice(failureIndex)
+      .reduce((sum, data) => sum + data.count, 0);
+    const total = chartData.reduce((sum, data) => sum + data.count, 0);
+    if (total === 0) {
+      return 0;
+    }
+
+    return failures / total;
   }
 
   render() {
