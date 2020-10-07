@@ -388,6 +388,41 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.browser.click(child_button)
             self.wait_until_loaded()
 
+    @patch("django.utils.timezone.now")
+    def test_transaction_event_detail_view_ops_filtering(self, mock_now):
+        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
+
+        event_data = generate_transaction()
+        self.store_event(data=event_data, project_id=self.project.id, assert_no_errors=True)
+
+        with self.feature(FEATURE_NAMES):
+            # Get the list page
+            self.browser.get(self.result_path + "?" + transactions_query())
+            self.wait_until_loaded()
+
+            # Open the stack
+            self.browser.elements('[data-test-id="open-stack"]')[0].click()
+            self.wait_until_loaded()
+
+            # View Event
+            self.browser.elements('[data-test-id="view-event"]')[0].click()
+            self.wait_until_loaded()
+
+            # Interact with ops filter dropdown
+            self.browser.elements('[data-test-id="filter-button"]')[0].click()
+
+            # select all ops
+            self.browser.elements(
+                '[data-test-id="op-filter-dropdown"] [data-test-id="checkbox-fancy"]'
+            )[0].click()
+
+            # un-select django.middleware
+            self.browser.elements(
+                '[data-test-id="op-filter-dropdown"] [data-test-id="checkbox-fancy"]'
+            )[1].click()
+
+            self.browser.snapshot("events-v2 - transactions event detail view - ops filtering")
+
     def test_create_saved_query(self):
         # Simulate a custom query
         query = {"field": ["project.id", "count()"], "query": "event.type:error"}

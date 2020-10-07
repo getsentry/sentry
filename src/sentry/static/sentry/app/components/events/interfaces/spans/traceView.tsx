@@ -13,6 +13,7 @@ import {RawSpanType, ParsedTraceType} from './types';
 import {generateRootSpan, getSpanID, getTraceContext} from './utils';
 import TraceViewHeader from './header';
 import * as CursorGuideHandler from './cursorGuideHandler';
+import {ActiveOperationFilter} from './filter';
 
 type IndexedFusedSpan = {
   span: RawSpanType;
@@ -40,6 +41,7 @@ type Props = {
   parsedTrace: ParsedTraceType;
   searchQuery: string | undefined;
   spansWithErrors: TableData | null | undefined;
+  operationNameFilters: ActiveOperationFilter;
 };
 
 type State = {
@@ -183,7 +185,7 @@ class TraceView extends React.PureComponent<Props, State> {
       );
     }
 
-    const {orgId, organization, spansWithErrors} = this.props;
+    const {orgId, organization, spansWithErrors, operationNameFilters} = this.props;
 
     return (
       <DragManager interactiveLayerRef={this.minimapInteractiveRef}>
@@ -202,6 +204,7 @@ class TraceView extends React.PureComponent<Props, State> {
               orgId={orgId}
               organization={organization}
               spansWithErrors={spansWithErrors}
+              operationNameFilters={operationNameFilters}
             />
           </CursorGuideHandler.Provider>
         )}
