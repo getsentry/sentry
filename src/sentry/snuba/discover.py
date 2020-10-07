@@ -1067,7 +1067,9 @@ def find_measurements_histogram_params(num_buckets, min_value, max_value, multip
     return HistogramParams(bucket_size, start_offset, multiplier)
 
 
-def find_measurements_min_max(measurements, min_value, max_value, user_query, params, data_filter):
+def find_measurements_min_max(
+    measurements, min_value, max_value, user_query, params, data_filter="all"
+):
     """
     Find the min/max value of the specified measurements. If either min/max is already
     specified, it will be used and not queried for.
