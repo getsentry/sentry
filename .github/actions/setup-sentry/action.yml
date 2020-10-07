@@ -39,9 +39,9 @@ runs:
         echo "DATABASE_URL=postgresql://postgres:postgres@localhost/sentry" >> $GITHUB_ENV
         echo "PGPASSWORD=postgres" >> $GITHUB_ENV
 
-    - shell: bash
-      run: |
-        [ "$GITHUB_REF" = "refs/heads/master" ] && echo "PYTEST_SENTRY_ALWAYS_REPORT=1" >> $GITHUB_ENV
+    # - shell: bash
+      # run: |
+        # [ "$GITHUB_REF" = "refs/heads/master" ] && echo "PYTEST_SENTRY_ALWAYS_REPORT=1" >> $GITHUB_ENV
 
     - name: Install system dependencies
       shell: bash
