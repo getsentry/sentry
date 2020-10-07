@@ -1,9 +1,29 @@
 import Reflux from 'reflux';
+import {PlainRoute} from 'react-router';
 
 import SettingsBreadcrumbActions from 'app/actions/settingsBreadcrumbActions';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 
-const SettingsBreadcrumbStore = Reflux.createStore({
+type UpdateData = {
+  routes: PlainRoute<any>[];
+  title: string;
+};
+
+type SettingsBreadcrumbStoreInterface = {
+  init: () => void;
+  reset: () => void;
+  onUpdateRouteMap: (update: UpdateData) => void;
+  onTrimMappings: (routes: PlainRoute<any>[]) => void;
+};
+
+type Internals = {
+  pathMap: Record<string, string>;
+};
+
+const storeConfig: Reflux.StoreDefinition &
+  SettingsBreadcrumbStoreInterface &
+  Internals = {
+  pathMap: {},
   init() {
     this.reset();
     this.listenTo(SettingsBreadcrumbActions.mapTitle, this.onUpdateRouteMap);
@@ -12,10 +32,6 @@ const SettingsBreadcrumbStore = Reflux.createStore({
 
   reset() {
     this.pathMap = {};
-  },
-
-  getInitialState() {
-    return this.pathMap;
   },
 
   onUpdateRouteMap({routes, title}) {
@@ -32,6 +48,8 @@ const SettingsBreadcrumbStore = Reflux.createStore({
     }
     this.trigger(this.pathMap);
   },
-});
+};
 
-export default SettingsBreadcrumbStore;
+type SettingsBreadcrumbStore = Reflux.Store & SettingsBreadcrumbStoreInterface;
+
+export default Reflux.createStore(storeConfig) as SettingsBreadcrumbStore;
