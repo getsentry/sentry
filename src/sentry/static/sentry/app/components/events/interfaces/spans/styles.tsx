@@ -54,3 +54,38 @@ export const SpanRowMessage = styled(SpanRow)`
     margin-left: ${space(2)};
   }
 `;
+
+type HatchProps = {
+  spanBarHatch: boolean;
+};
+
+export function getHatchPattern(
+  {spanBarHatch}: HatchProps,
+  primary: string,
+  alternate: string
+) {
+  if (spanBarHatch === true) {
+    return `
+      background-image: linear-gradient(135deg,
+        ${alternate},
+        ${alternate} 2.5px,
+        ${primary} 2.5px,
+        ${primary} 5px,
+        ${alternate} 6px,
+        ${alternate} 8px,
+        ${primary} 8px,
+        ${primary} 11px,
+        ${alternate} 11px,
+        ${alternate} 14px,
+        ${primary} 14px,
+        ${primary} 16.5px,
+        ${alternate} 16.5px,
+        ${alternate} 19px,
+        ${primary} 20px
+      );
+      background-size: 16px 16px;
+    `;
+  }
+
+  return null;
+}

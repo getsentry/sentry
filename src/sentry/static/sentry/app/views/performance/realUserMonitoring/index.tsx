@@ -156,9 +156,9 @@ function generateRumEventView(
   const query = decodeScalar(location.query.query) || '';
   const conditions = tokenizeSearch(query);
   conditions
-    .setTag('event.type', ['transaction'])
-    .setTag('transaction.op', ['pageload'])
-    .setTag('transaction', [transactionName]);
+    .setTagValues('event.type', ['transaction'])
+    .setTagValues('transaction.op', ['pageload'])
+    .setTagValues('transaction', [transactionName]);
 
   Object.keys(conditions.tagValues).forEach(field => {
     if (isAggregateField(field)) conditions.removeTag(field);

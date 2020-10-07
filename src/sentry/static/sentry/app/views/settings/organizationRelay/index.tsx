@@ -10,7 +10,7 @@ import Access from 'app/components/acl/access';
 import RelayWrapper from './relayWrapper';
 
 const OrganizationRelay = ({organization, ...props}: RelayWrapper['props']) => (
-  <Access access={['org:admin']} organization={organization}>
+  <Access access={['org:admin']} organization={organization} renderNoAccessMessage>
     <Feature
       features={['relay']}
       organization={organization}

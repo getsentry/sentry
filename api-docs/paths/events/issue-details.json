@@ -194,8 +194,7 @@
             "properties": {
               "status": {
                 "type": "string",
-                "description": "The new status for the issues. Valid values are `\"resolved\"`, `\"resolvedInNextRelease\"`, `\"unresolved\"`, and `\"ignored\"`.",
-                "example": "unresolved"
+                "description": "The new status for the issues. Valid values are `\"resolved\"`, `\"resolvedInNextRelease\"`, `\"unresolved\"`, and `\"ignored\"`."
               },
               "assignedTo": {
                 "type": "string",
