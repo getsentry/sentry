@@ -38,9 +38,6 @@ jobs:
         - name: Install/setup node
           uses: volta-cli/action@v1
 
-        - name: Install/setup json-diff
-          run: npx json-diff
-
         - name: Build OpenAPI Derefed JSON
           run: |
             cd sentry
@@ -49,4 +46,4 @@ jobs:
 
         - name: Compare OpenAPI Derefed JSON
           run: |
-            json-diff --color sentry/api-docs/openapi-derefed.json sentry-api-schema/openapi-derefed.json
+            npx json-diff --color sentry/api-docs/openapi-derefed.json sentry-api-schema/openapi-derefed.json
