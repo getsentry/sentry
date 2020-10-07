@@ -20,7 +20,8 @@ type Props = {
   project: Project;
   plugin: Plugin & {
     // issue serializer adds more fields
-    title: 'string';
+    // TODO: should be able to use name instead of title
+    title: string;
   };
 };
 
