@@ -128,6 +128,7 @@ class ReleaseSeries extends React.Component {
           },
         },
         tooltip: tooltip || {
+          trigger: 'item',
           formatter: ({data}) => {
             // XXX using this.props here as this function does not get re-run
             // unless projects are changed. Using a closure variable would result
