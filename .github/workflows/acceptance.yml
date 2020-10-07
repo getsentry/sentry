@@ -135,14 +135,14 @@ jobs:
       steps:
         - uses: actions/checkout@v2
 
-        - uses: ./.github/actions/setup-sentry
-          id: setup
-
         - uses: volta-cli/action@v1
 
         - uses: actions/setup-python@v2
           with:
             python-version: 2.7.17
+
+        - uses: ./.github/actions/setup-sentry
+          id: setup
 
         - uses: actions/cache@v1
           id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
