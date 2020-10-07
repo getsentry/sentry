@@ -1,0 +1,93 @@
+name: 'Sentry Setup'
+description: 'Sets up a Sentry test environment'
+inputs:
+  devservices:  # id of input
+    description: 'The devservices needed'
+    required: false
+    default: 'postgres redis clickhouse snuba'
+  python:
+    description: 'python version (2 or 3)'
+    required: false
+    default: '2'
+
+outputs:
+  yarn-cache-dir:
+    description: "Random number"
+    value: ${{ steps.config.outputs.yarn-cache-dir }}
+  pip-cache-dir:
+    description: "Random number"
+    value: ${{ steps.pip-cache.outputs.pip-cache }}
+  acceptance-dir:
+    description: "Random number"
+    value: ${{ steps.config.outputs.acceptance-dir }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup default environment variables
+      run: |
+        echo "PIP_DISABLE_PIP_VERSION_CHECK=on" >> $GITHUB_ENV
+        echo "SENTRY_LIGHT_BUILD=1" >> $GITHUB_ENV
+        echo "SENTRY_SKIP_BACKEND_VALIDATION=1" >> $GITHUB_ENV
+        echo "NODE_ENV=development" >> $GITHUB_ENV
+        echo "NODE_OPTIONS=--max-old-space-size=4096" >> $GITHUB_ENV
+        echo "P=0" >> $GITHUB_ENV
+        echo "PYTEST_SENTRY_DSN=https://6fd5cfea2d4d46b182ad214ac7810508@sentry.io/2423079" >> $GITHUB_ENV
+        echo "PYTEST_ADDOPTS=--reruns 5" >> $GITHUB_ENV
+        echo "SENTRY_KAFKA_HOSTS=127.0.0.1:9092" >> $GITHUB_ENV
+        echo "SENTRY_ZOOKEEPER_HOSTS=127.0.0.1:2182" >> $GITHUB_ENV
+        echo "DATABASE_URL=postgresql://postgres:postgres@localhost/sentry" >> $GITHUB_ENV
+        echo "PGPASSWORD=postgres" >> $GITHUB_ENV
+
+    - shell: bash
+      run: |
+        [ "$GITHUB_REF" = "refs/heads/master" ] && echo "PYTEST_SENTRY_ALWAYS_REPORT=1" >> $GITHUB_ENV
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends \
+          libxmlsec1-dev \
+          libmaxminddb-dev
+
+    - name: Set up outputs
+      id: config
+      env:
+        MATRIX_INSTANCE: ${{ matrix.instance }}
+      run: |
+        echo "::set-output name=yarn-cache-dir::$(yarn cache dir)"
+        echo "::set-output name=python-version::$2.7.17"
+        echo "::set-output name=matrix-instance-number::$(($MATRIX_INSTANCE+1))"
+        echo "::set-output name=acceptance-dir::.artifacts/visual-snapshots/acceptance"
+
+    - name: Install pip
+      shell: bash
+      run: |
+        pip install --no-cache-dir --upgrade "pip>=20.0.2"
+
+    - name: Get pip cache dir
+      id: pip-cache
+      shell: bash
+      run: |
+        echo "::set-output name=dir::$(pip cache dir)"
+
+    - name: Install python dependencies
+      shell: bash
+      run: |
+        python setup.py install_egg_info
+        pip install wheel # GitHub Actions does not have `wheel` installed by default (unlike Travis)
+        pip install -U -e ".[dev]"
+
+    - name: Start devservices
+      shell: bash
+      run: |
+        sentry init
+        sentry devservices up ${{ inputs.devservices }}
+
+    - run: echo Hello ${{ inputs.who-to-greet }}.
+      shell: bash
+    - id: random-number-generator
+      run: echo "::set-output name=random-id::$(echo $RANDOM)"
+      shell: bash
+    - run: ${{ github.action_path }}/goodbye.sh
+      shell: bash
