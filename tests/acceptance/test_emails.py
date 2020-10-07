@@ -70,7 +70,8 @@ class EmailTestCase(AcceptanceTestCase):
             # HTML output is captured as a snapshot
             self.browser.get(self.build_url(url, "html"))
             self.browser.wait_until("#preview")
-            self.browser.snapshot(u"{} email html".format(name))
+            version_suffix = u"py2" if six.PY2 else u"py3"
+            self.browser.snapshot(u"{} email html - {}".format(name, version_suffix))
 
             # Text output is asserted against static fixture files
             self.browser.get(self.build_url(url, "txt"))
