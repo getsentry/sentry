@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from copy import deepcopy
 import functools
 import logging
 import posixpath
@@ -121,7 +122,14 @@ class _RedisCluster(object):
         def cluster_factory():
             if config.get("is_redis_cluster", False):
                 return RetryingRedisCluster(
-                    startup_nodes=hosts,
+                    # Intentionally copy hosts here because redis-cluster-py
+                    # mutates the inner dicts and this closure can be run
+                    # concurrently, as SimpleLazyObject is not threadsafe. This
+                    # is likely triggered by RetryingRedisCluster running
+                    # reset() after startup
+                    #
+                    # https://github.com/Grokzen/redis-py-cluster/blob/73f27edf7ceb4a408b3008ef7d82dac570ab9c6a/rediscluster/nodemanager.py#L385
+                    startup_nodes=deepcopy(hosts),
                     decode_responses=True,
                     skip_full_coverage_check=True,
                     max_connections=16,
