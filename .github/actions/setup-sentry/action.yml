@@ -25,6 +25,7 @@ runs:
   using: "composite"
   steps:
     - name: Setup default environment variables
+      shell: bash
       run: |
         echo "PIP_DISABLE_PIP_VERSION_CHECK=on" >> $GITHUB_ENV
         echo "SENTRY_LIGHT_BUILD=1" >> $GITHUB_ENV
@@ -44,6 +45,7 @@ runs:
         [ "$GITHUB_REF" = "refs/heads/master" ] && echo "PYTEST_SENTRY_ALWAYS_REPORT=1" >> $GITHUB_ENV
 
     - name: Install system dependencies
+      shell: bash
       run: |
         sudo apt-get update
         sudo apt-get install -y --no-install-recommends \
@@ -54,6 +56,7 @@ runs:
       id: config
       env:
         MATRIX_INSTANCE: ${{ matrix.instance }}
+      shell: bash
       run: |
         echo "::set-output name=yarn-cache-dir::$(yarn cache dir)"
         echo "::set-output name=python-version::$2.7.17"
@@ -84,10 +87,10 @@ runs:
         sentry init
         sentry devservices up ${{ inputs.devservices }}
 
-    - run: echo Hello ${{ inputs.who-to-greet }}.
-      shell: bash
-    - id: random-number-generator
-      run: echo "::set-output name=random-id::$(echo $RANDOM)"
-      shell: bash
-    - run: ${{ github.action_path }}/goodbye.sh
-      shell: bash
+    # - run: echo Hello ${{ inputs.who-to-greet }}.
+      # shell: bash
+    # - id: random-number-generator
+      # run: echo "::set-output name=random-id::$(echo $RANDOM)"
+      # shell: bash
+    # - run: ${{ github.action_path }}/goodbye.sh
+      # shell: bash
