@@ -50,6 +50,7 @@ runs:
 
     # Setup custom pytest matcher, see https://github.com/actions/setup-node/issues/97
     - name: Add pytest log matcher
+      shell: bash
       run: |
         echo "::remove-matcher owner=pytest::"
         echo "::add-matcher::.github/pytest.json"
