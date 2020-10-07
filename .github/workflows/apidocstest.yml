@@ -1,33 +1,23 @@
-name: apidocstests
+name: api docs
 on:
   pull_request:
     branches:
       - master
 jobs:
-  test-api-docs:
-    runs-on: ubuntu-latest
+  test:
+    runs-on: ubuntu-16.04
     env:
       PIP_DISABLE_PIP_VERSION_CHECK: on
-      # PIP_QUIET: 1
 
       SENTRY_LIGHT_BUILD: 1
       SENTRY_SKIP_BACKEND_VALIDATION: 1
       MIGRATIONS_TEST_MIGRATE: 0
 
-      NODE_OPTIONS: --max-old-space-size=4096
-      NODE_ENV: development
-
       PYTEST_SENTRY_DSN: https://6fd5cfea2d4d46b182ad214ac7810508@sentry.io/2423079
       PYTEST_ADDOPTS: "--reruns 5"
 
-      # services configuration
-      SENTRY_KAFKA_HOSTS: kafka:9093
-      SENTRY_ZOOKEEPER_HOSTS: zookeeper:2182
-      SENTRY_REDIS_HOST: redis
       # The hostname used to communicate with the PostgreSQL from sentry
       DATABASE_URL: postgresql://postgres:postgres@localhost/sentry
-
-      VISUAL_SNAPSHOT_ENABLE: 1
 
     steps:
       - name: Install System Dependencies
@@ -45,7 +35,6 @@ jobs:
         run: |
           echo "::set-output name=yarn-cache-dir::$(yarn cache dir)"
           echo "::set-output name=python-version::2.7.17"
-          echo "::set-output name=acceptance-dir::.artifacts/visual-snapshots/acceptance"
       - uses: actions/cache@v1
         id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
         with:
@@ -82,6 +71,13 @@ jobs:
           python setup.py install_egg_info
           pip install wheel # GitHub Actions does not have this installed by default (unlike Travis)
           pip install -U -e ".[dev]"
+      - name: Start devservices
+        run: |
+          sentry init
+          sentry devservices up postgres redis clickhouse snuba
+      - name: webpack
+        run: |
+          yarn webpack --display errors-only
       # Setup custom pytest matcher, see https://github.com/actions/setup-node/issues/97
       - name: Add pytest log matcher
         if: always()
