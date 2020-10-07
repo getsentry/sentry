@@ -2,17 +2,38 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import Modal from 'react-bootstrap/lib/Modal';
 
+import {Client} from 'app/api';
 import withApi from 'app/utils/withApi';
 import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
 import NavTabs from 'app/components/navTabs';
 import plugins from 'app/plugins';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import IssueSyncListElement from 'app/components/issueSyncListElement';
 import withOrganization from 'app/utils/withOrganization';
+import {Organization, Group, Project, Plugin} from 'app/types';
 
-class PluginActions extends React.Component {
-  static propTypes = {
+type Props = {
+  api: Client;
+  group: Group;
+  organization: Organization;
+  project: Project;
+  plugin: Plugin & {
+    // issue serializer adds more fields
+    // TODO: should be able to use name instead of title
+    title: string;
+  };
+};
+
+type State = {
+  showModal: boolean;
+  actionType: 'create' | 'link' | null;
+  issue: {issue_id: string; url: string; label: string} | null;
+  pluginLoading: boolean;
+};
+
+class PluginActions extends React.Component<Props, State> {
+  static propTypes: any = {
     api: PropTypes.object,
     group: SentryTypes.Group.isRequired,
     organization: SentryTypes.Organization.isRequired,
@@ -20,7 +41,7 @@ class PluginActions extends React.Component {
     plugin: PropTypes.object.isRequired,
   };
 
-  state = {
+  state: State = {
     showModal: false,
     actionType: null,
     issue: null,
@@ -87,7 +108,7 @@ class PluginActions extends React.Component {
     });
   };
 
-  handleClick = actionType => {
+  handleClick = (actionType: Exclude<State['actionType'], null>) => {
     this.setState({actionType});
   };
 
@@ -112,7 +133,9 @@ class PluginActions extends React.Component {
           enforceFocus={false}
         >
           <Modal.Header closeButton>
-            <Modal.Title>{`${plugin.name || plugin.title} Issue`}</Modal.Title>
+            <Modal.Title>
+              {tct('[name] Issue', {name: plugin.name || plugin.title})}
+            </Modal.Title>
           </Modal.Header>
           <NavTabs underlined>
             <li className={actionType === 'create' ? 'active' : ''}>
