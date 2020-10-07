@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
+import {Organization, SavedSearch} from 'app/types';
 import Access from 'app/components/acl/access';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
@@ -14,7 +15,16 @@ import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 
-export default class SavedSearchSelector extends React.Component {
+type Props = {
+  organization: Organization;
+  savedSearchList: SavedSearch[];
+  onSavedSearchSelect: (savedSearch: SavedSearch) => void;
+  onSavedSearchDelete: (savedSearch: SavedSearch) => void;
+  searchId?: string;
+  query?: string;
+};
+
+export default class SavedSearchSelector extends React.Component<Props> {
   static propTypes = {
     organization: SentryTypes.Organization.isRequired,
     savedSearchList: PropTypes.array.isRequired,
@@ -26,7 +36,7 @@ export default class SavedSearchSelector extends React.Component {
 
   getTitle() {
     const {searchId, query, savedSearchList} = this.props;
-    let result;
+    let result: SavedSearch | undefined;
 
     if (searchId) {
       result = savedSearchList.find(search => searchId === search.id);
@@ -61,7 +71,7 @@ export default class SavedSearchSelector extends React.Component {
         key={search.id}
       >
         <MenuItem last={index === savedSearchList.length - 1}>
-          <MenuItemLink tabIndex="-1" onClick={() => onSavedSearchSelect(search)}>
+          <MenuItemLink tabIndex={-1} onClick={() => onSavedSearchSelect(search)}>
             <SearchTitle>{search.name}</SearchTitle>
             <SearchQuery>{search.query}</SearchQuery>
           </MenuItemLink>
@@ -169,7 +179,7 @@ const DeleteButton = styled(Button)`
   }
 `;
 
-const MenuItem = styled('li')`
+const MenuItem = styled('li')<{last: boolean}>`
   display: flex;
 
   position: relative;
