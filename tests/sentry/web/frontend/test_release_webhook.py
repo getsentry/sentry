@@ -109,3 +109,8 @@ class BuiltinReleaseWebhookTest(ReleaseWebhookTestBase):
         assert resp.status_code == 201, resp.content
         data = json.loads(resp.content)
         assert data["version"] == "a"
+
+    def test_no_teams_and_no_user(self):
+        self.project.remove_team(self.team)
+        resp = self.client.post(self.path, user=None, content_type="application/json")
+        assert resp.status_code == 403
