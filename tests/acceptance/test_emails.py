@@ -37,7 +37,13 @@ EMAILS = (
 
 
 def read_txt_email_fixture(name):
-    version_suffix = "_py2"
+    # XXX(python3): We have different fixtures for python2 vs python3 tests
+    # because of the differences in how the random module works betwen 2 and 3.
+    # NOTE that we _cannot_ just set the version of the seed, as there are more
+    # differences. See [0].
+    #
+    # [0]: https://stackoverflow.com/questions/55647936/random-randint-shows-different-output-in-python-2-x-and-python-3-x-with-same-see/55648073
+    version_suffix = "_py2" if six.PY2 else ""
 
     # "sso unlinked without password"
     # => "sso_unlinked_without_password.txt"
@@ -57,17 +63,14 @@ class EmailTestCase(AcceptanceTestCase):
         self.login_as(self.user)
 
     def build_url(self, path, format="html"):
-        return u"{}?{}".format(path, urlencode({"format": format}))
+        return u"{}?{}".format(path, urlencode({"format": format, "seed": b"123"}))
 
     def test_emails(self):
         for url, name in EMAILS:
             # HTML output is captured as a snapshot
-            #self.browser.get(self.build_url(url, "html"))
-            #self.browser.wait_until("#preview")
-
-            # This should be named py3.
-            # Or, we fix things so that py3 == py2.
-            #self.browser.snapshot(u"{} email html".format(name))
+            self.browser.get(self.build_url(url, "html"))
+            self.browser.wait_until("#preview")
+            self.browser.snapshot(u"{} email html".format(name))
 
             # Text output is asserted against static fixture files
             self.browser.get(self.build_url(url, "txt"))
