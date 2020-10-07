@@ -1,4 +1,4 @@
-name: acceptance
+name: openapi-diff
 on:
   push:
     branches:
@@ -10,10 +10,8 @@ on:
       - 'api-docs/**'
 
 jobs:
-    diff:
-      if: ${{ github.ref != 'refs/heads/master' }}
-      runs-on: ubuntu-latest
-
+    check-diff:
+      runs-on: ubuntu-16.04
       steps:
         - name: Checkout getsentry/sentry
           uses: actions/checkout@v2
