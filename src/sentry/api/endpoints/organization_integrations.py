@@ -17,7 +17,7 @@ class OrganizationIntegrationsEndpoint(OrganizationEndpoint):
         if "provider_key" in request.GET:
             integrations = integrations.filter(integration__provider=request.GET["provider_key"])
 
-        # include the configurations by default
+        # include the configurations by default if no param
         include_config = True
         if request.GET.get("includeConfig") == "0":
             include_config = False
