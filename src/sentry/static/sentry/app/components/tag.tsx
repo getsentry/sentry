@@ -12,7 +12,7 @@ import ExternalLink from 'app/components/links/externalLink';
 import Link from 'app/components/links/link';
 
 type Props = React.HTMLAttributes<HTMLSpanElement> & {
-  priority?: keyof Theme['tag'];
+  type?: keyof Theme['tag'];
   icon?: React.ReactNode;
   tooltip?: string;
   to?: React.ComponentProps<typeof Link>['to'];
@@ -21,7 +21,7 @@ type Props = React.HTMLAttributes<HTMLSpanElement> & {
 };
 
 function Tag({
-  priority = 'default',
+  type = 'default',
   icon,
   tooltip,
   to,
@@ -32,12 +32,12 @@ function Tag({
 }: Props) {
   const iconsProps = {
     size: '10px',
-    color: theme.tag[priority].iconColor as Color,
+    color: theme.tag[type].iconColor as Color,
   };
 
   const tag = (
     <Tooltip title={tooltip} containerDisplayMode="inline">
-      <Background priority={priority}>
+      <Background type={type}>
         {React.isValidElement(icon) && (
           <IconWrapper>{React.cloneElement(icon, {...iconsProps})}</IconWrapper>
         )}
@@ -82,12 +82,13 @@ function Tag({
   return <span {...props}>{tagWithParent()}</span>;
 }
 
-const Background = styled('div')<{priority: keyof Theme['tag']}>`
+const Background = styled('div')<{type: keyof Theme['tag']}>`
   display: inline-flex;
   align-items: center;
   height: 17px;
+  line-height: 1;
   border-radius: 17px;
-  background-color: ${p => p.theme.tag[p.priority].background};
+  background-color: ${p => p.theme.tag[p.type].background};
   padding: 0 ${space(0.75)};
 `;
 
@@ -96,10 +97,9 @@ const IconWrapper = styled('span')`
 `;
 
 const Text = styled('span')`
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.gray700};
   font-size: ${p => p.theme.fontSizeExtraSmall};
-  line-height: 1;
-  max-width: 120px;
+  max-width: 150px;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;

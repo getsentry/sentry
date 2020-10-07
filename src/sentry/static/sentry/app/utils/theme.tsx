@@ -244,7 +244,7 @@ const tag = {
   },
   error: {
     background: colors.red100,
-    iconColor: colors.red300,
+    iconColor: colors.red400,
   },
   info: {
     background: colors.blue100,

@@ -47,6 +47,7 @@ export const Overview = withInfo({
     {/* TODO: temporary stuff just for testing purposes */}
     <div style={{margin: '100px'}}>
       <TagNew
+        type="error"
         icon={<IconFire />}
         tooltip="Test tooltip"
         href="https://www.google.com/"
