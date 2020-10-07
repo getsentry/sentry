@@ -293,7 +293,7 @@ class Browser(object):
         """
         self.driver.implicitly_wait(duration)
 
-    def snapshot(self, name, mobile_only=False):
+    def snapshot(self, name, mobile_only=False, desktop_only=False):
         """
         Capture a screenshot of the current state of the page.
         """
@@ -337,11 +337,12 @@ class Browser(object):
                             "window.__closeAllTooltips && window.__closeAllTooltips()"
                         )
 
-            with self.mobile_viewport():
+            if not desktop_only:
                 # switch to a mobile sized viewport
-                self.driver.find_element_by_tag_name("body").screenshot(
-                    u"{}-mobile/{}.png".format(snapshot_dir, slugify(name))
-                )
+                with self.mobile_viewport():
+                    self.driver.find_element_by_tag_name("body").screenshot(
+                        u"{}-mobile/{}.png".format(snapshot_dir, slugify(name))
+                    )
 
         return self
 

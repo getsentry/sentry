@@ -65,6 +65,8 @@ type Props = DefaultProps & {
    * Should be set to true if tooltip contains unisolated data (eg. dates)
    */
   disableForVisualTest?: boolean;
+
+  className?: string;
 };
 
 type State = {
@@ -217,7 +219,7 @@ class Tooltip extends React.Component<Props, State> {
 
     propList.containerDisplayMode = this.props.containerDisplayMode;
     return (
-      <Container {...propList} ref={ref}>
+      <Container {...propList} className={this.props.className} ref={ref}>
         {children}
       </Container>
     );
