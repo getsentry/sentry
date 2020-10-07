@@ -1,6 +1,7 @@
 import React from 'react';
 import {withInfo} from '@storybook/addon-info';
 
+import MiniBarChart from 'app/components/charts/miniBarChart';
 import BarChart from 'app/components/charts/barChart';
 
 export default {
@@ -10,8 +11,6 @@ export default {
 export const _BarChart = withInfo('Stacked & Unstacked Bar Charts')(() => {
   return (
     <div>
-      <h2 style={{paddingLeft: '60px'}}>Stacked Bar Charts:</h2>
-
       <BarChart
         style={{height: 250}}
         stacked
