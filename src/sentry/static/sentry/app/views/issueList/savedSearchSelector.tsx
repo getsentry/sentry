@@ -63,7 +63,7 @@ export default class SavedSearchSelector extends React.Component<Props> {
       <Tooltip
         title={
           <span>
-            {search.name} • <TooltipSearchQuery>{search.query}</TooltipSearchQuery>
+            {search.name} &bull; <TooltipSearchQuery>{search.query}</TooltipSearchQuery>
           </span>
         }
         containerDisplayMode="block"
@@ -171,7 +171,7 @@ const DeleteButton = styled(Button)`
   color: ${p => p.theme.gray400};
   background: transparent;
   flex-shrink: 0;
-  padding: ${space(1)} ${space(1.5)} ${space(1)} 0;
+  padding: ${space(1.5)} ${space(1.5)} ${space(1)} 0;
 
   &:hover {
     background: transparent;
