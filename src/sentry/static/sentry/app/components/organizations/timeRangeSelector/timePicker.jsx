@@ -24,7 +24,7 @@ const TimePicker = styled(
 
     shouldComponentUpdate() {
       // This is necessary because when a change event happens,
-      // the change is propogated up to the dropdown. This causes
+      // the change is propagated up to the dropdown. This causes
       // a re-render of this component which in turn causes the
       // input element to lose focus. To get around losing focus,
       // we prevent the component from updating when one of the
