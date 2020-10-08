@@ -387,6 +387,15 @@ SAMPLE_TRANSITION_RESPONSE = """
                     "self": "https://getsentry-dev.atlassian.net/rest/api/2/statuscategory/3"
                 }
             }
+        },
+        {
+            "hasScreen": false,
+            "id": "61",
+            "isAvailable": true,
+            "isConditional": false,
+            "isGlobal": true,
+            "isInitial": false,
+            "name": "Kicked"
         }
     ]
 }
