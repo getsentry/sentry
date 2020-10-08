@@ -15,15 +15,9 @@ jobs:
         SENTRY_SKIP_BACKEND_VALIDATION: 1
         MIGRATIONS_TEST_MIGRATE: 0
 
-        # The hostname used to communicate with the PostgreSQL from sentry
-        DATABASE_URL: postgresql://postgres:postgres@localhost/sentry
-
       services:
         postgres:
           image: postgres:9.6
-          env:
-            POSTGRES_USER: postgres
-            POSTGRES_PASSWORD: postgres
           ports:
             # Maps tcp port 5432 on service container to the host
             - 5432:5432
@@ -80,20 +74,17 @@ jobs:
               ${{ runner.os }}-pip-
 
         - name: Install Python Dependencies
-          env:
-            PGPASSWORD: postgres
           run: |
             python setup.py install_egg_info
             pip install wheel # GitHub Actions does not have this installed by default (unlike Travis)
             pip install -U -e ".[dev]"
-            psql -c 'create database sentry;' -h localhost -U postgres
+            psql -c 'create database sentry;' -h 127.0.0.1 -U postgres
             sentry init
 
         - name: Generate SQL for migration
           uses: getsentry/action-migrations@v1.0.7
           env:
             SENTRY_LOG_LEVEL: ERROR
-            PGPASSWORD: postgres
           with:
             githubToken: ${{ secrets.GITHUB_TOKEN }}
             migration: ${{ steps.file.outputs.modified }}

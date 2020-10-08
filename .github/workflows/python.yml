@@ -23,15 +23,9 @@ jobs:
       SENTRY_SKIP_BACKEND_VALIDATION: 1
       MIGRATIONS_TEST_MIGRATE: 0
 
-      # The hostname used to communicate with the PostgreSQL from sentry
-      DATABASE_URL: postgresql://postgres:postgres@localhost/sentry
-
     services:
       postgres:
         image: postgres:9.6
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
         ports:
           # Maps tcp port 5432 on service container to the host
           - 5432:5432
@@ -82,19 +76,16 @@ jobs:
             ${{ runner.os }}-pip-
 
       - name: Install Python Dependencies
-        env:
-          PGPASSWORD: postgres
         run: |
           python setup.py install_egg_info
           pip install wheel # GitHub Actions does not have this installed by default (unlike Travis)
           pip install -U -e ".[dev]"
-          psql -c 'create database sentry;' -h localhost -U postgres
+          psql -c 'create database sentry;' -h 127.0.0.1 -U postgres
           sentry init
 
       - name: Check if a migration is required
         env:
           SENTRY_LOG_LEVEL: ERROR
-          PGPASSWORD: postgres
         run: |
           # Below will exit with non-zero status if model changes are missing migrations
           sentry django makemigrations -n ci_test --check --dry-run --no-input || (echo '::error::Error: Migration required -- to generate a migration, run `sentry django makemigrations -n <some_name>`' && exit 1)
@@ -116,9 +107,6 @@ jobs:
       PYTEST_SENTRY_DSN: https://6fd5cfea2d4d46b182ad214ac7810508@sentry.io/2423079
       PYTEST_ADDOPTS: "--reruns 3"
       PYTEST_SENTRY_ALWAYS_REPORT: 1
-
-      # services configuration
-      DATABASE_URL: postgresql://postgres:postgres@localhost/sentry
 
       # Number of matrix instances
       TOTAL_TEST_GROUPS: ${{ strategy.job-total }}
@@ -164,8 +152,6 @@ jobs:
             ${{ runner.os }}-pip-
 
       - name: Install Python Dependencies
-        env:
-          PGPASSWORD: postgres
         run: |
           python setup.py install_egg_info
           pip install wheel # GitHub Actions does not have this installed by default (unlike Travis)
@@ -209,7 +195,6 @@ jobs:
       PYTEST_SENTRY_ALWAYS_REPORT: yes
 
       # services configuration
-      DATABASE_URL: postgresql://postgres:postgres@localhost/sentry
       SENTRY_KAFKA_HOSTS: 127.0.0.1:9092
       SENTRY_ZOOKEEPER_HOSTS: 127.0.0.1:2181
 
@@ -257,8 +242,6 @@ jobs:
             ${{ runner.os }}-pip-
 
       - name: Install Python Dependencies
-        env:
-          PGPASSWORD: postgres
         run: |
           python setup.py install_egg_info
           pip install wheel # GitHub Actions does not have this installed by default (unlike Travis)
@@ -288,6 +271,7 @@ jobs:
             -e KAFKA_INTER_BROKER_LISTENER_NAME=INTERNAL \
             -e KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1 \
             confluentinc/cp-kafka:5.1.2
+
           sentry devservices up postgres redis clickhouse snuba
 
       - name: Python 3.6 snuba backend (${{ steps.config.outputs.matrix-instance-number }} of ${{ strategy.job-total }})

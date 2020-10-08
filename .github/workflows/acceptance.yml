@@ -120,9 +120,6 @@ jobs:
         PYTEST_SENTRY_DSN: https://6fd5cfea2d4d46b182ad214ac7810508@sentry.io/2423079
         PYTEST_ADDOPTS: "--reruns 5"
 
-        # The hostname used to communicate with the PostgreSQL from sentry
-        DATABASE_URL: postgresql://postgres:postgres@localhost/sentry
-
         # Number of matrix instances
         TOTAL_TEST_GROUPS: ${{ strategy.job-total }}
 
@@ -185,8 +182,6 @@ jobs:
             yarn install --frozen-lockfile
 
         - name: Install Python Dependencies
-          env:
-            PGPASSWORD: postgres
           run: |
             python setup.py install_egg_info
             pip install wheel # GitHub Actions does not have this installed by default (unlike Travis)
@@ -250,9 +245,6 @@ jobs:
         PYTEST_SENTRY_DSN: https://6fd5cfea2d4d46b182ad214ac7810508@sentry.io/2423079
         PYTEST_ADDOPTS: "--reruns 5"
 
-        # The hostname used to communicate with the PostgreSQL from sentry
-        DATABASE_URL: postgresql://postgres:postgres@localhost/sentry
-
         # Number of matrix instances
         TOTAL_TEST_GROUPS: ${{ strategy.job-total }}
 
@@ -315,8 +307,6 @@ jobs:
             yarn install --frozen-lockfile
 
         - name: Install Python Dependencies
-          env:
-            PGPASSWORD: postgres
           run: |
             python setup.py install_egg_info
             pip install wheel # GitHub Actions does not have this installed by default (unlike Travis)
