@@ -7,12 +7,12 @@ import styled from '@emotion/styled';
 
 import Tooltip from 'app/components/tooltip';
 import Count from 'app/components/count';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
 import {use24Hours, getTimeFormat} from 'app/utils/dates';
 import theme from 'app/utils/theme';
 import {toTitleCase} from 'app/utils';
 import {formatFloat} from 'app/utils/formatters';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
 
 type Point = {x: number; y: number[]; label?: string; color?: string};
 type Points = Point[];
