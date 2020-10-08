@@ -6,7 +6,6 @@ from django.conf import settings
 import sentry_sdk
 from sentry.utils.sdk import set_current_project
 
-from sentry.models.projectkey import ProjectKeyStatus
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.relay import projectconfig_debounce_cache
@@ -30,7 +29,7 @@ def update_config_cache(generate, organization_id=None, project_id=None, update_
         invalidated.
     """
 
-    from sentry.models import Project, ProjectKey
+    from sentry.models import Project, ProjectKey, ProjectKeyStatus
     from sentry.relay import projectconfig_cache
     from sentry.relay.config import get_project_config
 
