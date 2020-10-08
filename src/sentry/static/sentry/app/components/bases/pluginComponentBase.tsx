@@ -12,7 +12,7 @@ import {
 import {t} from 'app/locale';
 
 const callbackWithArgs = function (context: any, callback: any, ...args: any) {
-  return isFunction(callback) ? callback.bind(context, ...args) : null;
+  return isFunction(callback) ? callback.bind(context, ...args) : undefined;
 };
 
 type GenericFieldProps = Parameters<typeof GenericField>[0];
