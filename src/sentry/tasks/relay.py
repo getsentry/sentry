@@ -6,6 +6,7 @@ from django.conf import settings
 import sentry_sdk
 from sentry.utils.sdk import set_current_project
 
+from sentry.models.projectkey import ProjectKeyStatus
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.relay import projectconfig_debounce_cache
@@ -75,6 +76,9 @@ def update_config_cache(generate, organization_id=None, project_id=None, update_
                 # XXX(markus): This is currently the cleanest way to get only
                 # state for a single projectkey (considering quotas and
                 # everything)
+                if key.status != ProjectKeyStatus.ACTIVE:
+                    continue
+
                 project_config = get_project_config(project, project_keys=[key], full_config=True)
                 config_cache[key.public_key] = project_config.to_dict()
 
