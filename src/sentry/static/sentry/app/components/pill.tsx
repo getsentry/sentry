@@ -22,12 +22,12 @@ class Pill extends React.PureComponent<PillProps> {
       case 'true':
       case true:
         type = 'positive';
-        renderValue = 'yes';
+        renderValue = 'true';
         break;
       case 'false':
       case false:
         type = 'negative';
-        renderValue = 'no';
+        renderValue = 'false';
         break;
       case null:
       case undefined:
