@@ -11,7 +11,7 @@ import sentry_sdk
 
 from sentry import tsdb, tagstore
 from sentry.api import client
-from sentry.api.base import DocSection, EnvironmentMixin
+from sentry.api.base import EnvironmentMixin
 from sentry.api.bases import GroupEndpoint
 from sentry.api.helpers.environments import get_environments
 from sentry.api.serializers import serialize, GroupSerializer, GroupSerializerSnuba
@@ -35,29 +35,9 @@ from sentry.plugins.bases import IssueTrackingPlugin2
 from sentry.signals import issue_deleted
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
-from sentry.utils.apidocs import scenario, attach_scenarios
 from sentry.utils.compat import zip
 
 delete_logger = logging.getLogger("sentry.deletions.api")
-
-
-@scenario("RetrieveAggregate")
-def retrieve_aggregate_scenario(runner):
-    group = Group.objects.filter(project=runner.default_project).first()
-    runner.request(method="GET", path="/issues/%s/" % group.id)
-
-
-@scenario("UpdateAggregate")
-def update_aggregate_scenario(runner):
-    group = Group.objects.filter(project=runner.default_project).first()
-    runner.request(method="PUT", path="/issues/%s/" % group.id, data={"status": "unresolved"})
-
-
-@scenario("DeleteAggregate")
-def delete_aggregate_scenario(runner):
-    with runner.isolated_project("Boring Mushrooms") as project:
-        group = Group.objects.filter(project=project).first()
-        runner.request(method="DELETE", path="/issues/%s/" % group.id)
 
 
 STATUS_CHOICES = {
@@ -71,8 +51,6 @@ STATUS_CHOICES = {
 
 
 class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
-    doc_section = DocSection.EVENTS
-
     def _get_activity(self, request, group, num):
         activity_items = set()
         activity = []
@@ -184,7 +162,6 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             for item, version in zip(serialized_releases, versions)
         ]
 
-    @attach_scenarios([retrieve_aggregate_scenario])
     @rate_limit_endpoint(limit=10, window=1)
     def get(self, request, group):
         """
@@ -286,7 +263,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             )
 
             # the current release is the 'latest seen' release within the
-            # environment even if it hasnt affected this issue
+            # environment even if it hasn't affected this issue
             if environments:
                 with sentry_sdk.start_span(op="GroupDetailsEndpoint.get.current_release") as span:
                     span.set_data("Environment Count", len(environments))
@@ -332,15 +309,14 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 500})
             raise
 
-    @attach_scenarios([update_aggregate_scenario])
     @rate_limit_endpoint(limit=10, window=1)
     def put(self, request, group):
         """
         Update an Issue
         ```````````````
 
-        Updates an individual issues's attributes.  Only the attributes
-        submitted are modified.
+        Updates an individual issue's attributes. Only the attributes submitted
+        are modified.
 
         :pparam string issue_id: the ID of the group to retrieve.
         :param string status: the new status for the issue.  Valid values
@@ -414,7 +390,6 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 500})
             raise
 
-    @attach_scenarios([delete_aggregate_scenario])
     @rate_limit_endpoint(limit=10, window=1)
     def delete(self, request, group):
         """

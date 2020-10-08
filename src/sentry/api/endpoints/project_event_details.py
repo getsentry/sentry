@@ -5,26 +5,11 @@ from datetime import datetime
 from rest_framework.response import Response
 
 from sentry import eventstore
-from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import DetailedEventSerializer, serialize
 
-from sentry.utils.apidocs import scenario, attach_scenarios
-
-
-@scenario("RetrieveEventForProject")
-def retrieve_event_for_project_scenario(runner):
-    runner.request(
-        method="GET",
-        path="/projects/%s/%s/events/%s/"
-        % (runner.org.slug, runner.default_project.slug, runner.default_event.event_id),
-    )
-
 
 class ProjectEventDetailsEndpoint(ProjectEndpoint):
-    doc_section = DocSection.EVENTS
-
-    @attach_scenarios([retrieve_event_for_project_scenario])
     def get(self, request, project, event_id):
         """
         Retrieve an Event for a Project

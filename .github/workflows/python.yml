@@ -50,35 +50,24 @@ jobs:
             libxmlsec1-dev \
             libmaxminddb-dev
 
-      # Checkout codebase
       - uses: actions/checkout@v2
 
-      # Python
-      #   Use `.python-version` to avoid duplication
-      #   XXX: can't actually read from .python-version because GitHub Actions
-      #   does not support our version (2.7.16)
-      #
-      #   XXX: Using `2.7` as GHA image only seems to keep one minor version around and will break
-      #   CI if we pin it to a specific patch version.
       - name: Set up outputs
         id: config
         env:
           MATRIX_INSTANCE: ${{ matrix.instance }}
         run: |
-          echo "::set-output name=python-version::2.7"
+          echo "::set-output name=python-version::2.7.17"
 
-      # setup python
       - name: Set up Python ${{ steps.config.outputs.python-version }}
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v2
         with:
           python-version: ${{ steps.config.outputs.python-version}}
 
-      # setup pip
       - name: Install pip
         run: |
           pip install --no-cache-dir --upgrade "pip>=20.0.2"
 
-      # pip cache
       - name: Get pip cache dir
         id: pip-cache
         run: |
@@ -115,7 +104,7 @@ jobs:
     runs-on: ubuntu-16.04
     strategy:
       matrix:
-        instance: [0, 1, 2, 3]
+        instance: [0, 1, 2]
 
     env:
       SENTRY_PYTHON3: 1
@@ -125,9 +114,8 @@ jobs:
       SENTRY_SKIP_BACKEND_VALIDATION: 1
       MIGRATIONS_TEST_MIGRATE: 1
       PYTEST_SENTRY_DSN: https://6fd5cfea2d4d46b182ad214ac7810508@sentry.io/2423079
-      # XXX(py3): Reruns are disabled for until all tests are passing.
-      PYTEST_ADDOPTS: ""
-      PYTEST_SENTRY_ALWAYS_REPORT: no
+      PYTEST_ADDOPTS: "--reruns 3"
+      PYTEST_SENTRY_ALWAYS_REPORT: 1
 
       # services configuration
       SENTRY_REDIS_HOST: redis
@@ -151,12 +139,11 @@ jobs:
         env:
           MATRIX_INSTANCE: ${{ matrix.instance }}
         run: |
-          # XXX(py3): Minors that aren't latest seem to not be available.
-          echo "::set-output name=python-version::3.6.12"
+          echo "::set-output name=python-version::$(awk 'FNR == 2' .python-version)"
           echo "::set-output name=matrix-instance-number::$(($MATRIX_INSTANCE+1))"
 
       - name: Set up Python ${{ steps.config.outputs.python-version }}
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v2
         with:
           python-version: ${{ steps.config.outputs.python-version}}
 
@@ -219,9 +206,8 @@ jobs:
       MIGRATIONS_TEST_MIGRATE: 1
 
       PYTEST_SENTRY_DSN: https://6fd5cfea2d4d46b182ad214ac7810508@sentry.io/2423079
-      # XXX(py3): Reruns are disabled for until all tests are passing.
-      PYTEST_ADDOPTS: ""
-      PYTEST_SENTRY_ALWAYS_REPORT: no
+      PYTEST_ADDOPTS: "--reruns 3"
+      PYTEST_SENTRY_ALWAYS_REPORT: yes
 
       # services configuration
       SENTRY_REDIS_HOST: redis
@@ -247,12 +233,11 @@ jobs:
         env:
           MATRIX_INSTANCE: ${{ matrix.instance }}
         run: |
-          # XXX(py3): Minors that aren't latest seem to not be available.
-          echo "::set-output name=python-version::3.6.12"
+          echo "::set-output name=python-version::$(awk 'FNR == 2' .python-version)"
           echo "::set-output name=matrix-instance-number::$(($MATRIX_INSTANCE+1))"
 
       - name: Set up Python ${{ steps.config.outputs.python-version }}
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v2
         with:
           python-version: ${{ steps.config.outputs.python-version}}
 

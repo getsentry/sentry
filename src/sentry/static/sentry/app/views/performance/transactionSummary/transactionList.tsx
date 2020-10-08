@@ -188,7 +188,7 @@ class TransactionList extends React.Component<WrapperProps> {
     const sortedEventView = eventView.withSorts([selected.sort]);
     if (selected.query) {
       const query = tokenizeSearch(sortedEventView.query);
-      selected.query.forEach(item => query.setTag(item[0], [item[1]]));
+      selected.query.forEach(item => query.setTagValues(item[0], [item[1]]));
       sortedEventView.query = stringifyQueryObject(query);
     }
 

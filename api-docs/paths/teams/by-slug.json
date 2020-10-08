@@ -110,15 +110,17 @@
             "properties": {
               "name": {
                 "type": "string",
-                "description": "The new name for the team.",
-                "example": "The Inflated Philosophers"
+                "description": "The new name for the team."
               },
               "slug": {
                 "type": "string",
-                "description": "A new slug for the team. It has to be unique and available.",
-                "example": "the-inflated-philosophers"
+                "description": "A new slug for the team. It has to be unique and available."
               }
             }
+          },
+          "example": {
+            "name": "The Inflated Philosophers",
+            "slug": "the-inflated-philosophers"
           }
         }
       },
