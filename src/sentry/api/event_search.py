@@ -1249,15 +1249,15 @@ class ArgValue(object):
 
 
 class FunctionArg(object):
-    def __init__(self, name, has_default=False):
+    def __init__(self, name):
         self.name = name
-        self.has_default = has_default
-
-    def normalize(self, value):
-        return value
+        self.has_default = False
 
     def get_default(self, params):
         raise InvalidFunctionArgument(u"{} has no defaults".format(self.name))
+
+    def normalize(self, value):
+        return value
 
 
 class NullColumn(FunctionArg):
@@ -1268,7 +1268,8 @@ class NullColumn(FunctionArg):
     """
 
     def __init__(self, name):
-        super(NullColumn, self).__init__(name, has_default=True)
+        super(NullColumn, self).__init__(name)
+        self.has_default = True
 
     def get_default(self, params):
         return None
@@ -1279,7 +1280,8 @@ class NullColumn(FunctionArg):
 
 class CountColumn(FunctionArg):
     def __init__(self, name):
-        super(CountColumn, self).__init__(name, has_default=True)
+        super(CountColumn, self).__init__(name)
+        self.has_default = True
 
     def get_default(self, params):
         return None
@@ -1358,8 +1360,8 @@ class StringArrayColumn(FunctionArg):
 
 
 class NumberRange(FunctionArg):
-    def __init__(self, name, start, end, has_default=False):
-        super(NumberRange, self).__init__(name, has_default=has_default)
+    def __init__(self, name, start, end):
+        super(NumberRange, self).__init__(name)
         self.start = start
         self.end = end
 
@@ -1381,7 +1383,8 @@ class NumberRange(FunctionArg):
 
 class IntervalDefault(NumberRange):
     def __init__(self, name, start, end):
-        super(IntervalDefault, self).__init__(name, start, end, has_default=True)
+        super(IntervalDefault, self).__init__(name, start, end)
+        self.has_default = True
 
     def get_default(self, params):
         if not params or not params.get("start") or not params.get("end"):
@@ -1393,6 +1396,18 @@ class IntervalDefault(NumberRange):
 
         interval = (params["end"] - params["start"]).total_seconds()
         return int(interval)
+
+
+def with_default(default):
+    def wrapper(instance):
+        def get_default(_):
+            return default
+
+        instance.has_default = True
+        instance.get_default = get_default
+        return instance
+
+    return wrapper
 
 
 class Function(object):
@@ -1561,25 +1576,34 @@ FUNCTIONS = {
         ),
         Function(
             "p50",
-            aggregate=[u"quantile(0.5)", "transaction.duration", None],
+            optional_args=[with_default("transaction.duration")(NumericColumnNoLookup("column"))],
+            aggregate=[u"quantile(0.5)", ArgValue("column"), None],
             result_type="duration",
         ),
         Function(
             "p75",
-            aggregate=[u"quantile(0.75)", "transaction.duration", None],
+            optional_args=[with_default("transaction.duration")(NumericColumnNoLookup("column"))],
+            aggregate=[u"quantile(0.75)", ArgValue("column"), None],
             result_type="duration",
         ),
         Function(
             "p95",
-            aggregate=[u"quantile(0.95)", "transaction.duration", None],
+            optional_args=[with_default("transaction.duration")(NumericColumnNoLookup("column"))],
+            aggregate=[u"quantile(0.95)", ArgValue("column"), None],
             result_type="duration",
         ),
         Function(
             "p99",
-            aggregate=[u"quantile(0.99)", "transaction.duration", None],
+            optional_args=[with_default("transaction.duration")(NumericColumnNoLookup("column"))],
+            aggregate=[u"quantile(0.99)", ArgValue("column"), None],
             result_type="duration",
         ),
-        Function("p100", aggregate=[u"max", "transaction.duration", None], result_type="duration",),
+        Function(
+            "p100",
+            optional_args=[with_default("transaction.duration")(NumericColumnNoLookup("column"))],
+            aggregate=[u"max", ArgValue("column"), None],
+            result_type="duration",
+        ),
         Function(
             "eps",
             optional_args=[IntervalDefault("interval", 1, None)],
