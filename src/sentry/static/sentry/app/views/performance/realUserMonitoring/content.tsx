@@ -138,13 +138,6 @@ class RumContent extends React.Component<Props, State> {
                 fields={eventView.fields}
                 onSearch={this.handleSearch}
               />
-              <Button
-                onClick={this.handleResetView}
-                disabled={!isZoomed}
-                data-test-id="reset-view"
-              >
-                {t('Reset View')}
-              </Button>
               <DropdownControl
                 buttonProps={{prefix: t('Filter')}}
                 label={activeFilter.label}
@@ -160,6 +153,13 @@ class RumContent extends React.Component<Props, State> {
                   </DropdownItem>
                 ))}
               </DropdownControl>
+              <Button
+                onClick={this.handleResetView}
+                disabled={!isZoomed}
+                data-test-id="reset-view"
+              >
+                {t('Reset View')}
+              </Button>
             </StyledActions>
             <TransactionVitals
               organization={organization}
@@ -181,7 +181,7 @@ const StyledSearchBar = styled(SearchBar)`
 const StyledActions = styled('div')`
   display: grid;
   grid-gap: ${space(2)};
-  grid-template-columns: auto max-content;
+  grid-template-columns: auto max-content max-content;
   align-items: center;
   margin-bottom: ${space(3)};
 `;
