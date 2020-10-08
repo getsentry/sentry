@@ -12,6 +12,8 @@ from sentry.snuba import discover
 # The maximum number of measurements allowed to be queried at at time
 MAX_MEASUREMENTS = 4
 
+DATA_FILTERS = ["all", "exclude_outliers"]
+
 
 class MeasurementsHistogramSerializer(serializers.Serializer):
     query = serializers.CharField(required=False)
@@ -20,7 +22,7 @@ class MeasurementsHistogramSerializer(serializers.Serializer):
     precision = serializers.IntegerField(default=0, min_value=0, max_value=4)
     min = serializers.FloatField(required=False)
     max = serializers.FloatField(required=False)
-    dataFilter = serializers.CharField(required=False)
+    dataFilter = serializers.ChoiceField(choices=DATA_FILTERS, required=False)
 
 
 class OrganizationEventsMeasurementsHistogramEndpoint(OrganizationEventsV2EndpointBase):
