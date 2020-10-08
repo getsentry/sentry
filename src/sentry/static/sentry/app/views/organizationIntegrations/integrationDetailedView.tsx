@@ -10,7 +10,7 @@ import Button from 'app/components/button';
 import {IconFlag, IconOpen, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Integration, IntegrationProvider} from 'app/types';
+import {IntegrationWithConfig, IntegrationProvider} from 'app/types';
 import {ProjectMapperType} from 'app/views/settings/components/forms/type';
 import {sortArray} from 'app/utils';
 import {isSlackWorkspaceApp, getReauthAlertText} from 'app/utils/integrationUtil';
@@ -21,7 +21,7 @@ import AddIntegrationButton from './addIntegrationButton';
 import InstalledIntegration from './installedIntegration';
 
 type State = {
-  configurations: Integration[];
+  configurations: IntegrationWithConfig[];
   information: {providers: IntegrationProvider[]};
 };
 
@@ -115,7 +115,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
     return this.metadata.features;
   }
 
-  onInstall = (integration: Integration) => {
+  onInstall = (integration: IntegrationWithConfig) => {
     // Merge the new integration into the list. If we're updating an
     // integration overwrite the old integration.
     const keyedItems = keyBy(this.state.configurations, i => i.id);
@@ -127,7 +127,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
     this.setState({configurations});
   };
 
-  onRemove = (integration: Integration) => {
+  onRemove = (integration: IntegrationWithConfig) => {
     const {orgId} = this.props.params;
 
     const origIntegrations = [...this.state.configurations];
@@ -146,7 +146,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
     this.api.request(`/organizations/${orgId}/integrations/${integration.id}/`, options);
   };
 
-  onDisable = (integration: Integration) => {
+  onDisable = (integration: IntegrationWithConfig) => {
     let url: string;
 
     if (integration.provider.key === 'vercel') {
