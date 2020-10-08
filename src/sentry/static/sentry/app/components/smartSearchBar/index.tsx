@@ -633,6 +633,7 @@ class SmartSearchBar extends React.Component<Props, State> {
       .map(value => ({
         value,
         desc: value,
+        type: 'tag-value',
       }));
 
   /**

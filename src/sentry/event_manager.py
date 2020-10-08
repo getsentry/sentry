@@ -574,7 +574,7 @@ def _get_or_create_release_many(jobs, projects):
         )
 
         for job in jobs_to_update:
-            # dont allow a conflicting 'release' tag
+            # Don't allow a conflicting 'release' tag
             data = job["data"]
             pop_tag(data, "release")
             set_tag(data, "sentry:release", release.version)

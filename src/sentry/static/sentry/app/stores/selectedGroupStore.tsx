@@ -2,7 +2,29 @@ import Reflux from 'reflux';
 
 import GroupStore from 'app/stores/groupStore';
 
-const SelectedGroupStore = Reflux.createStore({
+type SelectedGroupStoreInterface = {
+  init: () => void;
+  onGroupChange: (itemIds: string[]) => void;
+  add: (ids: string[]) => void;
+  prune: () => void;
+  allSelected: () => boolean;
+  anySelected: () => boolean;
+  numSelected: () => number;
+  multiSelected: () => boolean;
+  getSelectedIds: () => Set<string>;
+  isSelected: (itemId: string) => boolean;
+  deselectAll: () => void;
+  toggleSelect: (itemId: string) => void;
+  toggleSelectAll: () => void;
+};
+
+type Internals = {
+  records: Record<string, boolean>;
+};
+
+const storeConfig: Reflux.StoreDefinition & SelectedGroupStoreInterface & Internals = {
+  records: {},
+
   init() {
     this.records = {};
 
@@ -38,6 +60,7 @@ const SelectedGroupStore = Reflux.createStore({
   allSelected() {
     const itemIds = this.getSelectedIds();
     const numRecords = this.numSelected();
+
     return itemIds.size > 0 && itemIds.size === numRecords;
   },
 
@@ -56,7 +79,7 @@ const SelectedGroupStore = Reflux.createStore({
   },
 
   getSelectedIds() {
-    const selected = new Set();
+    const selected = new Set<string>();
     for (const itemId in this.records) {
       if (this.records[itemId]) {
         selected.add(itemId);
@@ -93,6 +116,8 @@ const SelectedGroupStore = Reflux.createStore({
 
     this.trigger();
   },
-});
+};
 
-export default SelectedGroupStore;
+type SelectedGroupStore = Reflux.Store & SelectedGroupStoreInterface;
+
+export default Reflux.createStore(storeConfig) as SelectedGroupStore;
