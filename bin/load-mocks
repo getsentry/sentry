@@ -326,7 +326,7 @@ def create_sample_time_series(event, release=None):
         now = now - timedelta(hours=1)
 
 
-def main(num_events=1, extra_events=False):
+def main(num_events=1, extra_events=False, load_transactions=False):
     user = User.objects.filter(is_superuser=True)[0]
 
     dummy_user, _ = User.objects.get_or_create(
@@ -564,6 +564,43 @@ def main(num_events=1, extra_events=False):
                         user=generate_user(),
                     )
 
+            if load_transactions:
+                for day in range(14):
+                    for hour in range(24):
+                        timestamp = timezone.now() - timedelta(days=day, hours=hour)
+                        transaction_user = generate_user()
+                        transaction1 = create_sample_event(
+                            project=project,
+                            platform="javascript-transaction",
+                            event_id=uuid4().hex,
+                            user=transaction_user,
+                            timestamp=timestamp,
+                            # start_timestamp decreases based on day so that there's a trend
+                            start_timestamp=timestamp
+                            - timedelta(
+                                milliseconds=int(random.normalvariate(2000 - 50 * day, 250))
+                            ),
+                            measurements={
+                                "fp": {"value": random.normalvariate(2000, 200)},
+                                "fcp": {"value": random.normalvariate(2250, 200)},
+                                "lcp": {"value": random.normalvariate(2800, 400)},
+                                "fid": {"value": random.normalvariate(5, 2)},
+                            },
+                        )
+                        create_sample_event(
+                            project=project,
+                            platform="transaction",
+                            event_id=uuid4().hex,
+                            user=transaction_user,
+                            timestamp=timestamp,
+                            # start_timestamp increases based on day so that there's a trend
+                            start_timestamp=timestamp
+                            - timedelta(
+                                milliseconds=int(random.normalvariate(2000 + 50 * day, 250))
+                            ),
+                            trace=transaction1.get_tag("trace"),
+                        )
+
             for _ in range(num_events):
                 event1 = create_sample_event(
                     project=project,
@@ -719,12 +756,19 @@ if __name__ == "__main__":
 
     parser = OptionParser()
     parser.add_option("--events", dest="num_events", default=1, type=int)
-    parser.add_option("--extra-events", dest="extra_events", default=False, action="store_true")
+    parser.add_option("--extra-events", dest="extra_events", default=True, action="store_true")
+    parser.add_option(
+        "--load-transactions", dest="load_transactions", default=False, action="store_true"
+    )
 
     (options, args) = parser.parse_args()
 
     try:
-        main(num_events=options.num_events, extra_events=options.extra_events)
+        main(
+            num_events=options.num_events,
+            extra_events=options.extra_events,
+            load_transactions=options.load_transactions,
+        )
     except Exception:
         # Avoid reporting any issues recursively back into Sentry
         import traceback
