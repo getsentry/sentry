@@ -460,7 +460,7 @@ const MEASUREMENTS: Readonly<Record<WebVital, ColumnType>> = {
   [WebVital.FID]: 'duration',
 };
 
-const MEASUREMENT_PATTERN = /^measurements\.([a-zA-Z0-9]+)$/;
+const MEASUREMENT_PATTERN = /^measurements\.([a-zA-Z0-9-_.]+)$/;
 
 export function isMeasurement(field: string): boolean {
   const results = field.match(MEASUREMENT_PATTERN);
