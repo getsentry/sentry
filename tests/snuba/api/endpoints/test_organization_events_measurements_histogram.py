@@ -556,3 +556,17 @@ class OrganizationEventsMeasurementsHistogramEndpointTest(APITestCase, SnubaTest
         response = self.do_request(query)
         assert response.status_code == 200
         assert response.data["data"] == self.as_response_data(specs)
+
+    def test_bad_params_invalid_data_filter(self):
+        query = {
+            "project": [self.project.id],
+            "measurement": ["foo", "bar"],
+            "num_buckets": 10,
+            "dataFilter": "invalid",
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 400
+        assert response.data == {
+            "detail": ["invalid is not a valid filter."],
+        }
