@@ -113,7 +113,7 @@ const DefaultTitle = ({frame, platform}: Props) => {
   }
 
   if (defined(frame.function) || defined(frame.rawFunction)) {
-    title.push(<FrameFunctionName frame={frame} key="function" className="function" />);
+    title.push(<FunctionName frame={frame} key="function" className="function" />);
   }
 
   // we don't want to render out zero line numbers which are used to
