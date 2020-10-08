@@ -22,7 +22,7 @@ type ToggleValueOutput =
       meta?: Meta;
     };
 
-class FrameFunctionName extends React.Component<Props, State> {
+class FunctionName extends React.Component<Props, State> {
   static propTypes = {
     frame: PropTypes.object,
   };
@@ -91,4 +91,4 @@ class FrameFunctionName extends React.Component<Props, State> {
   }
 }
 
-export default FrameFunctionName;
+export default FunctionName;

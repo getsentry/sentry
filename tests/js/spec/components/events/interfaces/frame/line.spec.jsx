@@ -2,9 +2,9 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import FrameLine from 'app/components/events/interfaces/frame/frameLine';
+import Line from 'app/components/events/interfaces/frame/line';
 
-describe('Frame', function () {
+describe('Frame - Line', function () {
   let data;
 
   describe('renderOriginalSourceInfo()', function () {
@@ -21,7 +21,7 @@ describe('Frame', function () {
     });
 
     it('should render the source map information as a HTML string', function () {
-      const frame = mountWithTheme(<FrameLine data={data} components={[]} />);
+      const frame = mountWithTheme(<Line data={data} components={[]} />);
 
       expect(frame.find('Tooltip')).toSnapshot();
     });
@@ -37,7 +37,7 @@ describe('Frame', function () {
         ],
       };
 
-      const frame = mountWithTheme(<FrameLine data={data} components={[]} isExpanded />);
+      const frame = mountWithTheme(<Line data={data} components={[]} isExpanded />);
       expect(frame.find('ContextLine')).toSnapshot();
     });
 
@@ -64,7 +64,7 @@ describe('Frame', function () {
       };
 
       const frame = mountWithTheme(
-        <FrameLine data={data} registers={registers} components={[]} isExpanded />
+        <Line data={data} registers={registers} components={[]} isExpanded />
       );
       expect(frame.find('FrameRegisters').prop('data')).toEqual(registers);
     });
@@ -74,7 +74,7 @@ describe('Frame', function () {
       const registers = {};
 
       const frame = mountWithTheme(
-        <FrameLine data={data} registers={registers} components={[]} isExpanded />
+        <Line data={data} registers={registers} components={[]} isExpanded />
       );
       expect(frame.find('FrameRegisters')).toHaveLength(0);
     });
@@ -93,7 +93,7 @@ describe('Frame', function () {
         },
       };
 
-      const frame = mountWithTheme(<FrameLine data={data} components={[]} isExpanded />);
+      const frame = mountWithTheme(<Line data={data} components={[]} isExpanded />);
       expect(frame.find('FrameVariables').prop('data')).toEqual(data.vars);
     });
   });
