@@ -12,9 +12,9 @@ import {t} from 'app/locale';
 import {getMeta} from 'app/components/events/meta/metaProxy';
 import space from 'app/styles/space';
 
-import FrameFunctionName from './frameFunctionName';
-import {getPlatform, trimPackage} from './utils';
-import FrameDefaultTitleOriginalSourceInfo from './frameDefaultTitleOriginalSourceInfo';
+import FrameFunctionName from '../functionName';
+import {getPlatform, trimPackage} from '../utils';
+import OriginalSourceInfo from './originalSourceInfo';
 
 type Props = {
   frame: Frame;
@@ -23,7 +23,7 @@ type Props = {
 
 type GetPathNameOutput = {key: string; value: string; meta?: Meta};
 
-const FrameDefaultTitle = ({frame, platform}: Props) => {
+const DefaultTitle = ({frame, platform}: Props) => {
   const title: Array<React.ReactElement> = [];
   const framePlatform = getPlatform(frame.platform, platform);
 
@@ -149,9 +149,7 @@ const FrameDefaultTitle = ({frame, platform}: Props) => {
     title.push(
       <Tooltip
         key="info-tooltip"
-        title={
-          <FrameDefaultTitleOriginalSourceInfo mapUrl={frame.mapUrl} map={frame.map} />
-        }
+        title={<OriginalSourceInfo mapUrl={frame.mapUrl} map={frame.map} />}
       >
         <a className="in-at original-src">
           <IconQuestion size="xs" />
@@ -169,4 +167,4 @@ const StyledExternalLink = styled(ExternalLink)`
   margin-left: ${space(0.5)};
 `;
 
-export default FrameDefaultTitle;
+export default DefaultTitle;
