@@ -203,7 +203,6 @@ class VitalCard extends React.Component<Props, State> {
         margin: 20,
       },
       axisTick: {
-        interval: 0,
         alignWithLabel: true,
       },
     };
