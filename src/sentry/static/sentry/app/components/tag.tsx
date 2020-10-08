@@ -5,18 +5,40 @@ import {t} from 'app/locale';
 import {defined} from 'app/utils';
 import theme, {Theme, Color} from 'app/utils/theme';
 import space from 'app/styles/space';
-import {IconClose} from 'app/icons';
+import {IconClose, IconOpen} from 'app/icons';
 import Button from 'app/components/button';
 import Tooltip from 'app/components/tooltip';
 import ExternalLink from 'app/components/links/externalLink';
 import Link from 'app/components/links/link';
 
+const TAG_HEIGHT = '17px';
+
 type Props = React.HTMLAttributes<HTMLSpanElement> & {
+  /**
+   * Dictates color scheme of the tag.
+   */
   type?: keyof Theme['tag'];
+  /**
+   * Icon on the left side.
+   */
   icon?: React.ReactNode;
-  tooltip?: string;
+  /**
+   * Text to show up on a hover.
+   */
+  tooltip?: React.ReactNode;
+  /**
+   * Makes the tag clickable. Use for internal links handled by react router.
+   * If no icon is passed, it defaults to IconOpen (can be removed by passing icon={null})
+   */
   to?: React.ComponentProps<typeof Link>['to'];
+  /**
+   * Makes the tag clickable. Use for external links.
+   * If no icon is passed, it defaults to IconOpen (can be removed by passing icon={null})
+   */
   href?: string;
+  /**
+   * Shows clickable IconClose on the right side.
+   */
   onDismiss?: () => void;
 };
 
@@ -38,9 +60,7 @@ function Tag({
   const tag = (
     <Tooltip title={tooltip} containerDisplayMode="inline">
       <Background type={type}>
-        {React.isValidElement(icon) && (
-          <IconWrapper>{React.cloneElement(icon, {...iconsProps})}</IconWrapper>
-        )}
+        {tagIcon()}
 
         <Text>{children}</Text>
 
@@ -61,6 +81,22 @@ function Tag({
   function handleDismiss(event: React.MouseEvent) {
     event.preventDefault();
     onDismiss?.();
+  }
+
+  function tagIcon() {
+    if (React.isValidElement(icon)) {
+      return <IconWrapper>{React.cloneElement(icon, {...iconsProps})}</IconWrapper>;
+    }
+
+    if ((defined(href) || defined(to)) && icon === undefined) {
+      return (
+        <IconWrapper>
+          <IconOpen {...iconsProps} />
+        </IconWrapper>
+      );
+    }
+
+    return null;
   }
 
   function tagWithParent() {
@@ -85,9 +121,8 @@ function Tag({
 const Background = styled('div')<{type: keyof Theme['tag']}>`
   display: inline-flex;
   align-items: center;
-  height: 17px;
-  line-height: 1;
-  border-radius: 17px;
+  height: ${TAG_HEIGHT};
+  border-radius: ${TAG_HEIGHT};
   background-color: ${p => p.theme.tag[p.type].background};
   padding: 0 ${space(0.75)};
 `;
@@ -103,6 +138,10 @@ const Text = styled('span')`
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+  line-height: ${TAG_HEIGHT};
+  a:hover & {
+    color: ${p => p.theme.gray800};
+  }
 `;
 
 const DismissButton = styled(Button)`
