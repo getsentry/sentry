@@ -32,6 +32,7 @@ runs:
       shell: bash
       env:
         PYTHON_VERSION: ${{ inputs.python }}
+        NEED_KAFKA: ${{ inputs.kafka }}
       run: |
         echo "PIP_DISABLE_PIP_VERSION_CHECK=on" >> $GITHUB_ENV
         echo "MIGRATIONS_TEST_MIGRATE=0" >> $GITHUB_ENV
@@ -49,12 +50,12 @@ runs:
         [ "$GITHUB_REF" = "refs/heads/master" ] && echo "PYTEST_SENTRY_ALWAYS_REPORT=1" >> $GITHUB_ENV || true
 
         # services configuration
-        echo "SENTRY_KAFKA_HOSTS=localhost:9092" >> $GITHUB_ENV
-        echo "SENTRY_ZOOKEEPER_HOSTS=localhost:2182" >> $GITHUB_ENV
         echo "SENTRY_REDIS_HOST=sentry_redis" >> $GITHUB_ENV
         # The hostname used to communicate with the PostgreSQL from sentry
         echo "DATABASE_URL=postgresql://postgres:postgres@localhost/sentry" >> $GITHUB_ENV
         echo "PGPASSWORD=postgres" >> $GITHUB_ENV
+        [ "$NEED_KAFKA" = "1" ] && echo "SENTRY_KAFKA_HOSTS=localhost:9092" >> $GITHUB_ENV || true
+        [ "$NEED_KAFKA" = "1" ] && echo "SENTRY_ZOOKEEPER_HOSTS=localhost:2182" >> $GITHUB_ENV || true
 
     # Setup custom pytest matcher, see https://github.com/actions/setup-node/issues/97
     - name: Add pytest log matcher

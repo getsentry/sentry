@@ -149,7 +149,7 @@ jobs:
           pip uninstall -y rb
           pip install -e git+https://github.com/getsentry/rb.git@master#egg=rb
 
-      - name: Python 3.6 backend (${{ steps.config.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
+      - name: Python 3.6 backend (${{ steps.setup.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
         if: always()
         run: |
           make travis-test-postgres
@@ -193,7 +193,7 @@ jobs:
           pip uninstall -y rb
           pip install -e git+https://github.com/getsentry/rb.git@master#egg=rb
 
-      - name: Python 3.6 snuba backend (${{ steps.config.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
+      - name: Python 3.6 snuba backend (${{ steps.setup.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
         if: always()
         run: |
           make travis-test-snuba
