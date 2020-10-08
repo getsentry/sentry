@@ -1133,18 +1133,20 @@ def find_measurements_min_max(
         fences = []
         for measurement in measurements:
             if data_filter == "exclude_outliers":
-                Q1_column_name = get_function_alias(
+                # also known as the first quartile
+                p25_column = get_function_alias(
                     "percentile(measurements.{}, 0.25)".format(measurement)
                 )
-                Q3_column_name = get_function_alias(
+                # also known as the third quartile
+                p75_column = get_function_alias(
                     "percentile(measurements.{}, 0.75)".format(measurement)
                 )
 
-                Q1 = row[Q1_column_name]
-                Q3 = row[Q3_column_name]
-                IQR = abs(Q3 - Q1)
+                first_quartile = row[p25_column]
+                third_quartile = row[p75_column]
+                interquartile_range = abs(third_quartile - first_quartile)
 
-                upper_outer_fence = Q3 + 3 * IQR
+                upper_outer_fence = third_quartile + 3 * interquartile_range
                 fences.append(upper_outer_fence)
 
         fences = list(filter(lambda v: v is not None, fences))
