@@ -3,7 +3,7 @@ import React from 'react';
 
 import EventDataSection from 'app/components/events/eventDataSection';
 import SentryTypes from 'app/sentryTypes';
-import FrameLine from 'app/components/events/interfaces/frame/frameLine';
+import Line from 'app/components/events/interfaces/frame/line';
 import {t} from 'app/locale';
 
 class TemplateInterface extends React.Component {
@@ -22,7 +22,7 @@ class TemplateInterface extends React.Component {
       >
         <div className="traceback no-exception">
           <ul>
-            <FrameLine data={this.props.data} isExpanded />
+            <Line data={this.props.data} isExpanded />
           </ul>
         </div>
       </EventDataSection>
