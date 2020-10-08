@@ -1144,10 +1144,12 @@ def find_measurements_min_max(
 
                 first_quartile = row[p25_column]
                 third_quartile = row[p75_column]
-                interquartile_range = abs(third_quartile - first_quartile)
 
-                upper_outer_fence = third_quartile + 3 * interquartile_range
-                fences.append(upper_outer_fence)
+                if first_quartile is not None and third_quartile is not None:
+                    interquartile_range = abs(third_quartile - first_quartile)
+
+                    upper_outer_fence = third_quartile + 3 * interquartile_range
+                    fences.append(upper_outer_fence)
 
         fences = list(filter(lambda v: v is not None, fences))
         max_fence_value = max(fences) if fences else None
