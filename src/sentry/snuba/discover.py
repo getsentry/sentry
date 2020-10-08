@@ -960,7 +960,7 @@ def measurements_histogram_query(
     precision=0,
     min_value=None,
     max_value=None,
-    data_filter="all",
+    data_filter=None,
     referrer=None,
 ):
     """
@@ -1068,7 +1068,7 @@ def find_measurements_histogram_params(num_buckets, min_value, max_value, multip
 
 
 def find_measurements_min_max(
-    measurements, min_value, max_value, user_query, params, data_filter="all"
+    measurements, min_value, max_value, user_query, params, data_filter=None
 ):
     """
     Find the min/max value of the specified measurements. If either min/max is already
@@ -1131,8 +1131,8 @@ def find_measurements_min_max(
         max_value = max(max_values) if max_values else None
 
         fences = []
-        for measurement in measurements:
-            if data_filter == "exclude_outliers":
+        if data_filter == "exclude_outliers":
+            for measurement in measurements:
                 # also known as the first quartile
                 p25_column = get_function_alias(
                     "percentile(measurements.{}, 0.25)".format(measurement)
