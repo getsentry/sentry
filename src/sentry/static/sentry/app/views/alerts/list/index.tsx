@@ -339,6 +339,7 @@ class IncidentsListContainer extends React.Component<Props> {
 }
 
 const StyledButtonBar = styled(ButtonBar)`
+  width: 100px;
   margin-bottom: ${space(1)};
 `;
 
