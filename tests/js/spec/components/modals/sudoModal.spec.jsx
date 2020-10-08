@@ -47,7 +47,10 @@ describe('Sudo Modal', function () {
       ...ConfigStore.get('user'),
       hasPasswordAuth: true,
     });
-    const wrapper = mountWithTheme(<App>{<div>placeholder content</div>}</App>);
+    const wrapper = mountWithTheme(
+      <App>{<div>placeholder content</div>}</App>,
+      TestStubs.routerContext()
+    );
 
     const api = new Client();
     const successCb = jest.fn();
@@ -131,7 +134,10 @@ describe('Sudo Modal', function () {
       ...ConfigStore.get('user'),
       hasPasswordAuth: false,
     });
-    const wrapper = mountWithTheme(<App>{<div>placeholder content</div>}</App>);
+    const wrapper = mountWithTheme(
+      <App>{<div>placeholder content</div>}</App>,
+      TestStubs.routerContext()
+    );
 
     const api = new Client();
     const successCb = jest.fn();
