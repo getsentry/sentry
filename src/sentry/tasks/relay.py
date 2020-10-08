@@ -29,7 +29,7 @@ def update_config_cache(generate, organization_id=None, project_id=None, update_
         invalidated.
     """
 
-    from sentry.models import Project, ProjectKey
+    from sentry.models import Project, ProjectKey, ProjectKeyStatus
     from sentry.relay import projectconfig_cache
     from sentry.relay.config import get_project_config
 
@@ -75,6 +75,9 @@ def update_config_cache(generate, organization_id=None, project_id=None, update_
                 # XXX(markus): This is currently the cleanest way to get only
                 # state for a single projectkey (considering quotas and
                 # everything)
+                if key.status != ProjectKeyStatus.ACTIVE:
+                    continue
+
                 project_config = get_project_config(project, project_keys=[key], full_config=True)
                 config_cache[key.public_key] = project_config.to_dict()
 
