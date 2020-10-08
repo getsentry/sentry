@@ -10,13 +10,9 @@ import {fadeIn} from 'app/styles/animations';
 import space from 'app/styles/space';
 import {domId} from 'app/utils/domId';
 
-enum Directions {
-  TOP = 'top',
-  BOTTOM = 'bottom',
-  LEFT = 'left',
-  RIGHT = 'right'
-}
-const VALID_DIRECTIONS = ['top', 'bottom', 'left', 'right'];
+const VALID_DIRECTIONS = ['top', 'bottom', 'left', 'right'] as const;
+
+type Direction = typeof VALID_DIRECTIONS[number];
 
 type DefaultProps = {
   /**
@@ -26,7 +22,7 @@ type DefaultProps = {
   /**
    * Position tooltip should take relative to the child element
    */
-  position: 'top' | 'bottom' | 'left' | 'right'; // TODO: should this be enum?
+  position: Direction;
 };
 
 type Props = DefaultProps & {
@@ -180,8 +176,7 @@ class Hovercard extends React.Component<Props, State> {
                   visible={visible}
                   ref={ref}
                   style={style}
-                  placement={placement}
-                  withHeader={!!header}
+                  placement={placement as Direction}
                   offset={offset}
                   className={cx}
                   {...hoverProps}
@@ -191,7 +186,7 @@ class Hovercard extends React.Component<Props, State> {
                   <HovercardArrow
                     ref={arrowProps.ref}
                     style={arrowProps.style}
-                    placement={placement}
+                    placement={placement as Direction}
                     tipColor={tipColor}
                   />
                 </StyledHovercard>
@@ -206,7 +201,7 @@ class Hovercard extends React.Component<Props, State> {
 
 // Slide in from the same direction as the placement
 // so that the card pops into place.
-const slideIn = p => keyframes`
+const slideIn = (p: StyledHovercardProps) => keyframes`
   from {
     ${p.placement === 'top' ? 'top: -10px;' : ''}
     ${p.placement === 'bottom' ? 'top: 10px;' : ''}
@@ -221,12 +216,17 @@ const slideIn = p => keyframes`
   }
 `;
 
-const getTipColor = p => (p.placement === 'bottom' ? p.theme.gray100 : '#fff');
-const getTipDirection = p =>
+const getTipDirection = (p: HovercardArrowProps) =>
   VALID_DIRECTIONS.includes(p.placement) ? p.placement : 'top';
-const getOffset = p => p.offset ?? space(2);
 
-const StyledHovercard = styled('div')`
+const getOffset = (p: StyledHovercardProps) => p.offset ?? space(2);
+
+type StyledHovercardProps = {
+  visible: boolean;
+  placement: Direction;
+  offset?: string;
+};
+const StyledHovercard = styled('div')<StyledHovercardProps>`
   border-radius: 4px;
   text-align: left;
   padding: 0;
@@ -236,7 +236,7 @@ const StyledHovercard = styled('div')`
   white-space: initial;
   color: ${p => p.theme.gray800};
   border: 1px solid ${p => p.theme.borderLight};
-  background: #fff;
+  background: ${p => p.theme.white};
   background-clip: padding-box;
   box-shadow: 0 0 35px 0 rgba(67, 62, 75, 0.2);
   width: 295px;
@@ -258,16 +258,13 @@ const StyledHovercard = styled('div')`
 `;
 
 const Header = styled('div')`
-  font-size: 14px;
+  font-size: ${p => p.theme.fontSizeMedium};
   background: ${p => p.theme.gray100};
   border-bottom: 1px solid ${p => p.theme.borderLight};
   border-radius: 4px 4px 0 0;
   font-weight: 600;
   word-wrap: break-word;
-
-  /* The font needs a little extra padding. It has funny vert alignment. */
-  padding: ${space(2 * 0.6)} ${space(2 * 0.75)};
-  padding-top: ${space(2 * 0.75)};
+  padding: ${space(1.5)};
 `;
 
 const Body = styled('div')`
@@ -275,7 +272,8 @@ const Body = styled('div')`
   min-height: 30px;
 `;
 
-const HovercardArrow = styled('span')<{placement: }>`
+type HovercardArrowProps = {placement: Direction; tipColor?: string};
+const HovercardArrow = styled('span')<HovercardArrowProps>`
   position: absolute;
   width: 20px;
   height: 20px;
@@ -310,7 +308,8 @@ const HovercardArrow = styled('span')<{placement: }>`
   }
   &::after {
     border: 10px solid transparent;
-    border-${getTipDirection}-color: ${p => p.tipColor || getTipColor(p)};
+    border-${getTipDirection}-color: ${p =>
+  p.tipColor || (p.placement === 'bottom' ? p.theme.gray100 : p.theme.white)};
   }
 `;
 
