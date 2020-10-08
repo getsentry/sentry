@@ -51,10 +51,11 @@ export function findNearestBucketIndex(
   // it's possible that the data is not available yet or the x axis is out of range
   if (
     !chartData.length ||
-    xAxis < chartData[0].histogram ||
     xAxis >= chartData[chartData.length - 1].histogram + bucketWidth
   ) {
     return null;
+  } else if (xAxis < chartData[0].histogram) {
+    return -1;
   }
 
   return Math.floor((xAxis - chartData[0].histogram) / bucketWidth);

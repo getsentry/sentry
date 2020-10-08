@@ -10,16 +10,24 @@ describe('Utils', function () {
       expect(findNearestBucketIndex([], 1, 1)).toBeNull();
     });
 
-    it('returns null for out of bounds data', function () {
+    it('returns null for x axis that is too big', function () {
       const data = [
         {histogram: 10, count: 0},
         {histogram: 20, count: 0},
       ];
 
-      expect(findNearestBucketIndex(data, 10, 5)).toBeNull();
-      expect(findNearestBucketIndex(data, 10, 9.9999)).toBeNull();
       expect(findNearestBucketIndex(data, 10, 30)).toBeNull();
       expect(findNearestBucketIndex(data, 10, 35)).toBeNull();
+    });
+
+    it('returns -1 for x axis that is too small', function () {
+      const data = [
+        {histogram: 10, count: 0},
+        {histogram: 20, count: 0},
+      ];
+
+      expect(findNearestBucketIndex(data, 10, 5)).toEqual(-1);
+      expect(findNearestBucketIndex(data, 10, 9.9999)).toEqual(-1);
     });
 
     it('returns the correct bin for the x axis', function () {
