@@ -581,10 +581,10 @@ def main(num_events=1, extra_events=False, load_transactions=False):
                                 milliseconds=int(random.normalvariate(2000 - 50 * day, 250))
                             ),
                             measurements={
-                                "fp": {"value": random.normalvariate(2000, 200)},
-                                "fcp": {"value": random.normalvariate(2250, 200)},
-                                "lcp": {"value": random.normalvariate(2800, 400)},
-                                "fid": {"value": random.normalvariate(5, 2)},
+                                "fp": {"value": max(random.normalvariate(2000, 200), 1000)},
+                                "fcp": {"value": max(random.normalvariate(2250, 200), 1000)},
+                                "lcp": {"value": max(random.normalvariate(2800, 400), 2000)},
+                                "fid": {"value": max(random.normalvariate(5, 2), 1)},
                             },
                         )
                         create_sample_event(
