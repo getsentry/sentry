@@ -21,10 +21,10 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 import {Frame, SentryAppComponent, PlatformType} from 'app/types';
 import DebugImage from 'app/components/events/interfaces/debugMeta/debugImage';
 
-import FrameDefaultTitle from './frameDefaultTitle';
-import FrameContext from './frameContext';
-import FrameFunctionName from './frameFunctionName';
+import FrameContext from './context';
+import FunctionName from './functionName';
 import {getPlatform} from './utils';
+import DefaultTitle from './defaultTitle';
 
 type Props = {
   data: Frame;
@@ -47,7 +47,7 @@ type State = {
   isExpanded?: boolean;
 };
 
-export class FrameLine extends React.Component<Props, State> {
+export class Line extends React.Component<Props, State> {
   static propTypes: any = {
     data: PropTypes.object.isRequired,
     nextFrame: PropTypes.object,
@@ -268,7 +268,7 @@ export class FrameLine extends React.Component<Props, State> {
           <VertCenterWrapper>
             <div>
               {this.renderLeadHint()}
-              <FrameDefaultTitle frame={this.props.data} platform={this.props.platform} />
+              <DefaultTitle frame={this.props.data} platform={this.props.platform} />
             </div>
             {this.renderRepeats()}
           </VertCenterWrapper>
@@ -318,7 +318,7 @@ export class FrameLine extends React.Component<Props, State> {
               />
             )}
             <Symbol className="symbol">
-              <FrameFunctionName frame={data} />{' '}
+              <FunctionName frame={data} />{' '}
               {hint !== null ? (
                 <HintStatus>
                   <Tooltip title={hint}>{hintIcon}</Tooltip>
@@ -471,4 +471,4 @@ const LeadHint = styled('div')`
   width: 67px;
 `;
 
-export default withSentryAppComponents(FrameLine, {componentType: 'stacktrace-link'});
+export default withSentryAppComponents(Line, {componentType: 'stacktrace-link'});
