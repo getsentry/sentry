@@ -568,5 +568,5 @@ class OrganizationEventsMeasurementsHistogramEndpointTest(APITestCase, SnubaTest
         response = self.do_request(query)
         assert response.status_code == 400
         assert response.data == {
-            "detail": ["invalid is not a valid filter."],
+            "dataFilter": [u'"invalid" is not a valid choice.'],
         }

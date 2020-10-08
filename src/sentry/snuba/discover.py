@@ -982,12 +982,6 @@ def measurements_histogram_query(
     :param str data_filter: Indicate the filter strategy to be applied to the data.
     """
 
-    if data_filter is None:
-        data_filter = "all"
-
-    if data_filter not in ("all", "exclude_outliers"):
-        raise Exception(u"{} is not a valid filter".format(data_filter))
-
     multiplier = int(10 ** precision)
     if max_value is not None:
         # We want the specified max_value to be exclusive, and the queried max_value
