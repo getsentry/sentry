@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import classNames from 'classnames';
-import {Manager, Reference, Popper} from 'react-popper';
+import {Manager, Reference, Popper, PopperProps} from 'react-popper';
 import styled from '@emotion/styled';
 import {keyframes} from '@emotion/core';
 
@@ -10,59 +10,85 @@ import {fadeIn} from 'app/styles/animations';
 import space from 'app/styles/space';
 import {domId} from 'app/utils/domId';
 
+enum Directions {
+  TOP = 'top',
+  BOTTOM = 'bottom',
+  LEFT = 'left',
+  RIGHT = 'right'
+}
 const VALID_DIRECTIONS = ['top', 'bottom', 'left', 'right'];
 
-class Hovercard extends React.Component {
+type DefaultProps = {
+  /**
+   * Time in ms until hovercard is hidden
+   */
+  displayTimeout: number;
+  /**
+   * Position tooltip should take relative to the child element
+   */
+  position: 'top' | 'bottom' | 'left' | 'right'; // TODO: should this be enum?
+};
+
+type Props = DefaultProps & {
+  /**
+   * Classname to apply to the hovercard
+   */
+  className?: string;
+  /**
+   * Classname to apply to the hovercard container
+   */
+  containerClassName?: string;
+  /**
+   * Element to display in the header
+   */
+  header?: React.ReactNode;
+  /**
+   * Element to display in the body
+   */
+  body?: React.ReactNode;
+  /**
+   * Classname to apply to body container
+   */
+  bodyClassName?: string;
+  /**
+   * If set, is used INSTEAD OF the hover action to determine whether the hovercard is shown
+   */
+  show?: boolean;
+  /**
+   * Color of the arrow tip
+   */
+  tipColor?: string;
+  /**
+   * Offset for the arrow
+   */
+  offset?: string;
+};
+
+type State = {
+  visible: boolean;
+};
+
+class Hovercard extends React.Component<Props, State> {
   static propTypes = {
-    /**
-     * Time in ms until hovercard is hidden
-     */
     displayTimeout: PropTypes.number,
-    /**
-     * Classname to apply to the hovercard
-     */
     className: PropTypes.string,
-    /**
-     * Classname to apply to the hovercard container
-     */
     containerClassName: PropTypes.string,
-    /**
-     * Element to display in the header
-     */
     header: PropTypes.node,
-    /**
-     * Element to display in the body
-     */
     body: PropTypes.node,
-    /**
-     * Classname to apply to body container
-     */
     bodyClassName: PropTypes.string,
-    /**
-     * Position tooltip should take relative to the child element
-     */
     position: PropTypes.oneOf(VALID_DIRECTIONS),
-    /**
-     * If set, is used INSTEAD OF the hover action to determine whether the hovercard is shown
-     */
     show: PropTypes.bool,
-    /**
-     * Color of the arrow tip
-     */
     tipColor: PropTypes.string,
-    /**
-     * Offset for the arrow
-     */
     offset: PropTypes.string,
   };
 
-  static defaultProps = {
+  static defaultProps: DefaultProps = {
     displayTimeout: 100,
     position: 'top',
   };
 
-  constructor(...args) {
-    super(...args);
+  constructor(args: Props) {
+    super(args);
 
     let portal = document.getElementById('hovercard-portal');
     if (!portal) {
@@ -78,10 +104,14 @@ class Hovercard extends React.Component {
     visible: false,
   };
 
+  portalEl: HTMLElement;
+  tooltipId: string;
+  hoverWait: number | null = null;
+
   handleToggleOn = () => this.toggleHovercard(true);
   handleToggleOff = () => this.toggleHovercard(false);
 
-  toggleHovercard = visible => {
+  toggleHovercard = (visible: boolean) => {
     const {header, body, displayTimeout} = this.props;
 
     // Don't toggle hovercard if both of these are null
@@ -92,7 +122,7 @@ class Hovercard extends React.Component {
       clearTimeout(this.hoverWait);
     }
 
-    this.hoverWait = setTimeout(() => this.setState({visible}), displayTimeout);
+    this.hoverWait = window.setTimeout(() => this.setState({visible}), displayTimeout);
   };
 
   render() {
@@ -110,7 +140,7 @@ class Hovercard extends React.Component {
 
     // Maintain the hovercard class name for BC with less styles
     const cx = classNames('hovercard', className);
-    const modifiers = {
+    const modifiers: PopperProps['modifiers'] = {
       hide: {
         enabled: false,
       },
@@ -245,7 +275,7 @@ const Body = styled('div')`
   min-height: 30px;
 `;
 
-const HovercardArrow = styled('span')`
+const HovercardArrow = styled('span')<{placement: }>`
   position: absolute;
   width: 20px;
   height: 20px;
