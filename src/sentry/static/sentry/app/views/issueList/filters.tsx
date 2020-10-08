@@ -27,7 +27,6 @@ type Props = {
 
   onSortChange: (sort: string) => void;
   onSearch: (query: string) => void;
-
   onSidebarToggle: (event: React.MouseEvent) => void;
   onSavedSearchSelect: (search: SavedSearch) => void;
   onSavedSearchDelete: (search: SavedSearch) => void;
