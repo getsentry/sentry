@@ -142,7 +142,6 @@ class PluginComponentBase<
       ...props,
       formState: this.state.state,
     };
-    console.log('config', newProps.config, newProps);
     return <GenericField key={newProps.config?.name} {...newProps} />;
   }
 }
