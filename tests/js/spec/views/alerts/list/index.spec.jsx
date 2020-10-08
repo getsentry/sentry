@@ -196,9 +196,7 @@ describe('IncidentsList', function () {
     wrapper.update();
 
     expect(wrapper.find('PanelItem')).toHaveLength(0);
-    expect(wrapper.text()).toContain(
-      'There are no unresolved metric alerts in these projects'
-    );
+    expect(wrapper.text()).toContain('No unresolved metric alerts in these projects');
   });
 
   it('toggles open/closed', async function () {
