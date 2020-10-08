@@ -11,15 +11,15 @@ import {TextField} from 'app/components/forms';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import {IconAdd} from 'app/icons';
-import {Organization} from 'app/types';
+import {LightWeightOrganization} from 'app/types';
 
 type Props = {
   api: Client;
-  buttonClassName: string;
-  iconOnly: boolean;
-  withTooltip: boolean;
+  buttonClassName?: string;
+  iconOnly?: boolean;
+  withTooltip?: boolean;
   query: string;
-  organization: Organization;
+  organization: LightWeightOrganization;
 };
 
 type State = {
