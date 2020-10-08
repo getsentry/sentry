@@ -63,7 +63,8 @@ export default class SavedSearchSelector extends React.Component<Props> {
       <Tooltip
         title={
           <span>
-            {search.name} &bull; <TooltipSearchQuery>{search.query}</TooltipSearchQuery>
+            {`${search.name} \u2022 `}
+            <TooltipSearchQuery>{search.query}</TooltipSearchQuery>
           </span>
         }
         containerDisplayMode="block"
