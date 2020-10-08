@@ -7,8 +7,11 @@ import styled from '@emotion/styled';
 
 import Tooltip from 'app/components/tooltip';
 import Count from 'app/components/count';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
 import {use24Hours, getTimeFormat} from 'app/utils/dates';
 import theme from 'app/utils/theme';
+import {toTitleCase} from 'app/utils';
 import {formatFloat} from 'app/utils/formatters';
 
 type Point = {x: number; y: number[]; label?: string; color?: string};
@@ -309,6 +312,8 @@ class StackedBarChart extends React.Component<Props, State> {
   renderTooltip = (point: Point, _pointIdx: number): React.ReactNode => {
     const timeLabel = this.getTimeLabel(point);
     const totalY = point.y.reduce((a, b) => a + b);
+    const secondaryPoint = this.state.secondaryPointIndex[_pointIdx];
+    const totalY2 = secondaryPoint?.y.reduce((a, b) => a + b);
     return (
       <React.Fragment>
         <div style={{width: '130px'}}>
@@ -316,7 +321,26 @@ class StackedBarChart extends React.Component<Props, State> {
         </div>
         {this.props.label && (
           <div className="value-label">
-            {totalY.toLocaleString()} {this.props.label}
+            <div>
+              {totalY2 !== undefined && point.color && (
+                <TooltipColorIndicator color={point.color} />
+              )}
+              {totalY2 !== undefined && `${t('Filtered')} `}
+              {toTitleCase(this.props.label)}
+            </div>
+            <div>{totalY.toLocaleString()}</div>
+          </div>
+        )}
+        {this.props.label && totalY2 !== undefined && (
+          <div className="value-label">
+            <div>
+              {secondaryPoint.color && (
+                <TooltipColorIndicator color={secondaryPoint.color} />
+              )}
+              {`${t('Total')} `}
+              {toTitleCase(this.props.label)}
+            </div>
+            <div>{totalY2.toLocaleString()}</div>
           </div>
         )}
         {point.y.map((y, i) => {
@@ -550,6 +574,15 @@ const RectGroup = styled('g')<{showSecondaryPoints: boolean}>`
   &:hover {
     opacity: 1;
   }
+`;
+
+const TooltipColorIndicator = styled('span')<{color: string}>`
+  display: inline-block;
+  background-color: ${p => p.color};
+  border-radius: 50%;
+  width: 8px;
+  height: 8px;
+  margin-right: ${space(1)};
 `;
 
 export default StackedBarChart;
