@@ -910,8 +910,8 @@ export type Integration = {
   accountType: string;
   status: ObjectStatus;
   provider: BaseIntegrationProvider & {aspects: IntegrationAspects};
-  configOrganization: Field[];
-  //TODO(ts): This includes the initial data that is passed into the integration's configuration form
+  //TODO(Steve): move configData to IntegrationWithConfig when we no longer check
+  //for workspace apps
   configData: object & {
     //installationType is only for Slack migration and can be removed after migrations are done
     installationType?:
@@ -925,6 +925,11 @@ export type Integration = {
       instructions: string[];
     };
   };
+};
+
+// we include the configOrganization when we need it
+export type IntegrationWithConfig = Integration & {
+  configOrganization: Field[];
 };
 
 export type IntegrationExternalIssue = {
