@@ -9,7 +9,7 @@ import * as Layout from 'app/components/layouts/thirds';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Organization, Project, SelectValue} from 'app/types';
+import {Organization, Project} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import {decodeScalar} from 'app/utils/queryString';
 import SearchBar from 'app/views/events/searchBar';
@@ -17,11 +17,7 @@ import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 
 import TransactionVitals from './transactionVitals';
 import TransactionHeader, {Tab} from '../transactionSummary/header';
-
-const FILTER_OPTIONS: SelectValue<string>[] = [
-  {label: t('Exclude outliers'), value: 'exclude_outliers'},
-  {label: t('View All'), value: 'all'},
-];
+import {FILTER_OPTIONS} from './constants';
 
 type Props = {
   location: Location;
