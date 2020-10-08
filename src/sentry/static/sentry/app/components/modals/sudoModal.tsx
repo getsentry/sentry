@@ -1,9 +1,9 @@
 import {withRouter} from 'react-router';
 import React from 'react';
-import {ModalHeader, ModalBody} from 'react-bootstrap';
 import {WithRouterProps} from 'react-router/lib/withRouter';
 import styled from '@emotion/styled';
 
+import {ModalRenderProps} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
 import Alert from 'app/components/alert';
 import withApi from 'app/utils/withApi';
@@ -17,25 +17,25 @@ import U2fContainer from 'app/components/u2f/u2fContainer';
 import space from 'app/styles/space';
 import {Client} from 'app/api';
 
-type Props = WithRouterProps & {
-  api: Client;
-  closeModal: () => void;
-  Header: typeof ModalHeader;
-  Body: typeof ModalBody;
-  /**
-   * User is a superuser without an active su session
-   */
-  superuser?: boolean;
-  /**
-   * expects a function that returns a Promise
-   */
-  retryRequest?: () => Promise<any>;
-};
+type Props = WithRouterProps &
+  Pick<ModalRenderProps, 'Body' | 'Header'> & {
+    api: Client;
+    closeModal: () => void;
+    /**
+     * User is a superuser without an active su session
+     */
+    superuser?: boolean;
+    /**
+     * expects a function that returns a Promise
+     */
+    retryRequest?: () => Promise<any>;
+  };
 
 type State = {
   error: boolean;
   busy: boolean;
 };
+
 class SudoModal extends React.Component<Props, State> {
   state: State = {
     error: false,
