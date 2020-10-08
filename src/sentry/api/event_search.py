@@ -1701,6 +1701,16 @@ FUNCTIONS = {
             result_type="integer",
         ),
         Function(
+            "count_greater",
+            required_args=[NumericColumnNoLookup("column"), NumberRange("threshold", 0, None)],
+            aggregate=[
+                "countIf",
+                [["greaterOrEquals", [ArgValue("column"), ArgValue("threshold")]]],
+                None,
+            ],
+            result_type="integer",
+        ),
+        Function(
             "min",
             required_args=[NumericColumnNoLookup("column")],
             aggregate=["min", ArgValue("column"), None],
@@ -1807,7 +1817,7 @@ FUNCTIONS = {
         ),
         Function(
             "absolute_correlation",
-            aggregate=["abs", [["corr", ["toUnixTimestamp", ["timestamp"], "duration"]]], None],
+            aggregate=["abs", [["corr", [["toUnixTimestamp", ["timestamp"], "duration"]]]], None],
             result_type="number",
         ),
     ]
@@ -1838,15 +1848,14 @@ def get_function_alias_with_columns(function_name, columns):
     return u"{}_{}".format(function_name, columns).rstrip("_")
 
 
-def format_column_arguments(column, arguments):
-    args = column[1]
-    for i in range(len(args)):
-        if isinstance(args[i], (list, tuple)):
-            format_column_arguments(args[i], arguments)
-        elif isinstance(args[i], six.string_types):
-            args[i] = args[i].format(**arguments)
-        elif isinstance(args[i], ArgValue):
-            args[i] = arguments[args[i].arg]
+def format_column_arguments(column_args, arguments):
+    for i in range(len(column_args)):
+        if isinstance(column_args[i], (list, tuple)):
+            format_column_arguments(column_args[i][1], arguments)
+        elif isinstance(column_args[i], six.string_types):
+            column_args[i] = column_args[i].format(**arguments)
+        elif isinstance(column_args[i], ArgValue):
+            column_args[i] = arguments[column_args[i].arg]
 
 
 def parse_function(field, match=None):
@@ -1879,9 +1888,7 @@ def resolve_function(field, match=None, params=None):
 
         aggregate[0] = aggregate[0].format(**arguments)
         if isinstance(aggregate[1], (list, tuple)):
-            aggregate[1] = [
-                arguments[agg.arg] if isinstance(agg, ArgValue) else agg for agg in aggregate[1]
-            ]
+            format_column_arguments(aggregate[1], arguments)
         elif isinstance(aggregate[1], ArgValue):
             arg = aggregate[1].arg
             aggregate[1] = arguments[arg]
@@ -1894,7 +1901,7 @@ def resolve_function(field, match=None, params=None):
     elif function.column is not None:
         # These can be very nested functions, so we need to iterate through all the layers
         addition = deepcopy(function.column)
-        format_column_arguments(addition, arguments)
+        format_column_arguments(addition[1], arguments)
         if len(addition) < 3:
             addition.append(get_function_alias_with_columns(function.name, columns))
         elif len(addition) == 3 and addition[2] is None:
