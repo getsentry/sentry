@@ -35,7 +35,7 @@ const AlertHeader = ({router, organization, activeTab}: Props) => {
   return (
     <Layout.Header>
       <StyledLayoutHeaderContent>
-        <StyledLayoutTitle>{t('Alerts')} </StyledLayoutTitle>
+        <StyledLayoutTitle>{t('Alerts')}</StyledLayoutTitle>
         <StyledNavTabs underlined>
           <Feature features={['incidents']} organization={organization}>
             <li className={activeTab === 'stream' ? 'active' : ''}>

@@ -263,24 +263,22 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
           <Layout.Body>
             <Layout.Main fullWidth>
               {!this.tryRenderOnboarding() && (
-                <NavWrapper>
-                  <StyledButtonBar merged active={status}>
-                    <Button
-                      to={{pathname, query: openIncidentsQuery}}
-                      barId="open"
-                      size="small"
-                    >
-                      {t('Unresolved')}
-                    </Button>
-                    <Button
-                      to={{pathname, query: closedIncidentsQuery}}
-                      barId="closed"
-                      size="small"
-                    >
-                      {t('Resolved')}
-                    </Button>
-                  </StyledButtonBar>
-                </NavWrapper>
+                <StyledButtonBar merged active={status}>
+                  <Button
+                    to={{pathname, query: openIncidentsQuery}}
+                    barId="open"
+                    size="small"
+                  >
+                    {t('Unresolved')}
+                  </Button>
+                  <Button
+                    to={{pathname, query: closedIncidentsQuery}}
+                    barId="closed"
+                    size="small"
+                  >
+                    {t('Resolved')}
+                  </Button>
+                </StyledButtonBar>
               )}
               {this.renderList()}
             </Layout.Main>
@@ -346,11 +344,6 @@ const StyledButtonBar = styled(ButtonBar)`
 
 const PaddedTitleAndSparkLine = styled(TitleAndSparkLine)`
   padding-left: ${space(2)};
-`;
-
-const NavWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
 `;
 
 const StyledPanelHeader = styled(PanelHeader)`
