@@ -5,12 +5,11 @@ import {Panel} from 'app/components/panels';
 import {Organization} from 'app/types';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
-import {getAggregateAlias} from 'app/utils/discover/fields';
+import {WebVital, getAggregateAlias} from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
 import theme from 'app/utils/theme';
 
 import {NUM_BUCKETS, PERCENTILE, WEB_VITAL_DETAILS} from './constants';
-import {WebVital} from './types';
 import VitalCard from './vitalCard';
 import MeasurementsHistogramQuery from './measurementsHistogramQuery';
 
