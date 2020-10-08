@@ -17,7 +17,7 @@ import U2fContainer from 'app/components/u2f/u2fContainer';
 import space from 'app/styles/space';
 import {Client} from 'app/api';
 
-type OnTypeProps = NonNullable<React.ComponentProps<typeof U2fContainer>['onTap']>;
+type OnTapProps = NonNullable<React.ComponentProps<typeof U2fContainer>['onTap']>;
 
 type Props = WithRouterProps &
   Pick<ModalRenderProps, 'Body' | 'Header'> & {
@@ -68,7 +68,7 @@ class SudoModal extends React.Component<Props, State> {
     this.setState({busy: false, error: true});
   };
 
-  handleU2fTap = async (data: Parameters<OnTypeProps>[0]) => {
+  handleU2fTap = async (data: Parameters<OnTapProps>[0]) => {
     this.setState({busy: true});
 
     const {api} = this.props;
