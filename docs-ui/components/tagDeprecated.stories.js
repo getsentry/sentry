@@ -2,7 +2,7 @@ import React from 'react';
 import {withInfo} from '@storybook/addon-info';
 
 import Tooltip from 'app/components/tooltip';
-import Tag from 'app/components/tag-deprecated';
+import Tag from 'app/components/tagDeprecated';
 
 export default {
   title: 'Deprecated/TagDeprecated',

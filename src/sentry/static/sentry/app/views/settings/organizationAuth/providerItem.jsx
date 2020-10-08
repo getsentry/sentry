@@ -12,7 +12,7 @@ import FeatureDisabled from 'app/components/acl/featureDisabled';
 import Hovercard from 'app/components/hovercard';
 import SentryTypes from 'app/sentryTypes';
 import {IconLock} from 'app/icons';
-import Tag from 'app/components/tag-deprecated';
+import Tag from 'app/components/tagDeprecated';
 import {descopeFeatureName} from 'app/utils';
 
 export default class ProviderItem extends React.PureComponent {

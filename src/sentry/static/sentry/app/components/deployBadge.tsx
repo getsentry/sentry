@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Deploy} from 'app/types';
-import Tag from 'app/components/tag-deprecated';
+import Tag from 'app/components/tagDeprecated';
 import Link from 'app/components/links/link';
 import {IconOpen} from 'app/icons';
 import {stringifyQueryObject, QueryResults} from 'app/utils/tokenizeSearch';

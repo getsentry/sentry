@@ -2,7 +2,7 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import Tag from 'app/components/tag-deprecated';
+import Tag from 'app/components/tagDeprecated';
 
 describe('Tag', function () {
   it('renders', function () {

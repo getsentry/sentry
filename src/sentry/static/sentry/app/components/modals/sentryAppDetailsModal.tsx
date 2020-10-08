@@ -9,7 +9,7 @@ import {t, tct} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
 import marked, {singleLineRenderer} from 'app/utils/marked';
 import {IconFlag} from 'app/icons';
-import Tag from 'app/components/tag-deprecated';
+import Tag from 'app/components/tagDeprecated';
 import {toPermissions} from 'app/utils/consolidatedScopes';
 import CircleIndicator from 'app/components/circleIndicator';
 import {IntegrationFeature, SentryApp, Organization} from 'app/types';
