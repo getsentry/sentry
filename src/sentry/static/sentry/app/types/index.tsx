@@ -195,14 +195,17 @@ export type Project = {
   hasAccess: boolean;
   firstEvent: 'string' | null;
   firstTransactionEvent: boolean;
+  subjectTemplate: string;
+  digestsMaxDelay: number;
+  digestsMinDelay: number;
 
   // XXX: These are part of the DetailedProject serializer
   plugins: Plugin[];
   processingIssues: number;
   relayPiiConfig: string;
+  latestDeploys: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
   builtinSymbolSources?: string[];
   stats?: Array<[number, number]>;
-  latestDeploys: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
 } & AvatarProject;
 
 export type MinimalProject = Pick<Project, 'id' | 'slug'>;
@@ -513,13 +516,13 @@ export type PluginNoProject = {
   status: string;
   assets: any[]; // TODO(ts)
   doc: string;
-  version?: string;
-  author?: {name: string; url: string};
-  isHidden: boolean;
-  description?: string;
-  resourceLinks?: Array<{title: string; url: string}>;
   features: string[];
   featureDescriptions: IntegrationFeature[];
+  isHidden: boolean;
+  version?: string;
+  author?: {name: string; url: string};
+  description?: string;
+  resourceLinks?: Array<{title: string; url: string}>;
 };
 
 export type Plugin = PluginNoProject & {
@@ -617,6 +620,8 @@ export type Authenticator = {
    * Description of the authenticator
    */
   description: string;
+
+  challenge?: Record<string, any>;
 } & Partial<EnrolledAuthenticator>;
 
 export type EnrolledAuthenticator = {
@@ -905,8 +910,8 @@ export type Integration = {
   accountType: string;
   status: ObjectStatus;
   provider: BaseIntegrationProvider & {aspects: IntegrationAspects};
-  configOrganization: Field[];
-  //TODO(ts): This includes the initial data that is passed into the integration's configuration form
+  //TODO(Steve): move configData to IntegrationWithConfig when we no longer check
+  //for workspace apps
   configData: object & {
     //installationType is only for Slack migration and can be removed after migrations are done
     installationType?:
@@ -920,6 +925,11 @@ export type Integration = {
       instructions: string[];
     };
   };
+};
+
+// we include the configOrganization when we need it
+export type IntegrationWithConfig = Integration & {
+  configOrganization: Field[];
 };
 
 export type IntegrationExternalIssue = {

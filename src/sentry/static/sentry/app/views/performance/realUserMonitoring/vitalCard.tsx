@@ -16,7 +16,7 @@ import {FIRE_SVG_PATH} from 'app/icons/iconFire';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import EventView from 'app/utils/discover/eventView';
-import {formatFloat, getDuration} from 'app/utils/formatters';
+import {formatFloat, formatPercentage, getDuration} from 'app/utils/formatters';
 import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import theme from 'app/utils/theme';
 
@@ -203,7 +203,6 @@ class VitalCard extends React.Component<Props, State> {
         margin: 20,
       },
       axisTick: {
-        interval: 0,
         alignWithLabel: true,
       },
     };
@@ -295,7 +294,7 @@ class VitalCard extends React.Component<Props, State> {
     }
 
     const summaryBucket = findNearestBucketIndex(chartData, this.bucketWidth(), summary);
-    if (summaryBucket === null) {
+    if (summaryBucket === null || summaryBucket === -1) {
       return;
     }
 
@@ -360,7 +359,7 @@ class VitalCard extends React.Component<Props, State> {
       return;
     }
 
-    const failureBucket = findNearestBucketIndex(
+    let failureBucket = findNearestBucketIndex(
       chartData,
       this.bucketWidth(),
       failureThreshold
@@ -368,6 +367,7 @@ class VitalCard extends React.Component<Props, State> {
     if (failureBucket === null) {
       return;
     }
+    failureBucket = failureBucket === -1 ? 0 : failureBucket;
 
     // since we found the failure bucket, the failure threshold is
     // visible on the graph, so let's draw the fail region
@@ -398,8 +398,24 @@ class VitalCard extends React.Component<Props, State> {
         borderWidth: 1.5,
         borderType: 'dashed',
       },
-      silent: true,
     });
+
+    // TODO(tonyx): This conflicts with the types declaration of `MarkArea`
+    // if we add it in the constructor. So we opt to add it here so typescript
+    // doesn't complain.
+    series.markArea.tooltip = {
+      formatter: () =>
+        [
+          '<div class="tooltip-series tooltip-series-solo">',
+          '<span class="tooltip-label">',
+          '<strong>',
+          t('Fails threshold at %s.', getDuration(failureThreshold / 1000)),
+          '</strong>',
+          '</span>',
+          '</div>',
+          '<div class="tooltip-arrow"></div>',
+        ].join(''),
+    };
 
     const topRightPixel = mapPoint(
       {
@@ -421,7 +437,25 @@ class VitalCard extends React.Component<Props, State> {
       symbol: `path://${FIRE_SVG_PATH}`,
       symbolKeepAspect: true,
       symbolSize: [14, 16],
+      label: {
+        formatter: `~${formatPercentage(this.approxFailureRate(failureBucket), 0)}`,
+        position: 'left',
+      },
     });
+  }
+
+  approxFailureRate(failureIndex) {
+    const {chartData} = this.props;
+
+    const failures = chartData
+      .slice(failureIndex)
+      .reduce((sum, data) => sum + data.count, 0);
+    const total = chartData.reduce((sum, data) => sum + data.count, 0);
+    if (total === 0) {
+      return 0;
+    }
+
+    return failures / total;
   }
 
   render() {
