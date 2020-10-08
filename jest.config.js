@@ -19,7 +19,7 @@ module.exports = {
   },
   modulePaths: ['<rootDir>/src/sentry/static/sentry'],
   modulePathIgnorePatterns: ['<rootDir>/src/sentry/static/sentry/dist'],
-  preset: '@visual-snapshot/jest',
+  // preset: '@visual-snapshot/jest',
   setupFiles: [
     '<rootDir>/src/sentry/static/sentry/app/utils/silence-react-unsafe-warnings.js',
     '<rootDir>/tests/js/throw-on-react-error.js',
@@ -28,7 +28,9 @@ module.exports = {
   ],
   setupFilesAfterEnv: ['<rootDir>/tests/js/setupFramework.ts'],
   testMatch: ['<rootDir>/tests/js/**/*(*.)@(spec|test).(js|ts)?(x)'],
+  testEnvironment: '<rootDir>/tests/js/env',
   testPathIgnorePatterns: ['<rootDir>/tests/sentry/lang/javascript/'],
+
   unmockedModulePathPatterns: [
     '<rootDir>/node_modules/react',
     '<rootDir>/node_modules/reflux',
@@ -55,5 +57,6 @@ module.exports = {
 
   testEnvironmentOptions: {
     output: path.resolve(__dirname, '.artifacts', 'visual-snapshots', 'jest'),
+    SENTRY_DSN: 'https://3fe1dce93e3a4267979ebad67f3de327@sentry.io/4857230',
   },
 };
