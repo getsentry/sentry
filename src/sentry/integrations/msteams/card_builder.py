@@ -671,7 +671,12 @@ def build_group_card(group, event, rules, integration):
     action_cards = build_group_action_cards(group, event, rules, integration)
     body.append(action_cards)
 
-    return {"type": "AdaptiveCard", "body": body}
+    return {
+        "type": "AdaptiveCard",
+        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+        "version": "1.2",
+        "body": body,
+    }
 
 
 def build_linking_card(url):
@@ -715,6 +720,8 @@ def build_linked_card():
     return {
         "type": "AdaptiveCard",
         "body": [body],
+        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+        "version": "1.2",
     }
 
 
@@ -746,7 +753,7 @@ def build_incident_attachment(incident, metric_value=None):
     return {
         "type": "AdaptiveCard",
         "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
-        "version": "1.3",
+        "version": "1.2",
         "body": [
             {
                 "type": "ColumnSet",
