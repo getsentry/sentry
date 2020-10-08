@@ -19,12 +19,8 @@ import TransactionVitals from './transactionVitals';
 import TransactionHeader, {Tab} from '../transactionSummary/header';
 
 const FILTER_OPTIONS: SelectValue<string>[] = [
-  {label: t('Upper outer fence'), value: 'upper_outer_fence'},
-  {label: t('Upper inner fence'), value: 'upper_inner_fence'},
-  {label: t('P90'), value: 'p90'},
-  {label: t('P95'), value: 'p95'},
-  {label: t('P99'), value: 'p99'},
-  {label: t('All'), value: 'all'},
+  {label: t('Exclude outliers'), value: 'upper_inner_fence'},
+  {label: t('View All'), value: 'all'},
 ];
 
 type Props = {
