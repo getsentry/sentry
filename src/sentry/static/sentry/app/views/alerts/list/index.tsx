@@ -171,10 +171,8 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
           !hasAlertRule
             ? t('No metric alert rules exist for these projects.')
             : status === 'open'
-            ? t(
-                'Everything’s a-okay. There are no unresolved metric alerts in these projects.'
-              )
-            : t('There are no resolved metric alerts in these projects.')
+            ? t('No unresolved metric alerts in these projects.')
+            : t('No resolved metric alerts in these projects.')
         }
         description={tct('Learn more about [link:Metric Alerts]', {
           link: <ExternalLink href={DOCS_URL} />,
@@ -265,22 +263,24 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
           <Layout.Body>
             <Layout.Main fullWidth>
               {!this.tryRenderOnboarding() && (
-                <StyledButtonBar merged active={status}>
-                  <Button
-                    to={{pathname, query: openIncidentsQuery}}
-                    barId="open"
-                    size="small"
-                  >
-                    {t('Active')}
-                  </Button>
-                  <Button
-                    to={{pathname, query: closedIncidentsQuery}}
-                    barId="closed"
-                    size="small"
-                  >
-                    {t('Resolved')}
-                  </Button>
-                </StyledButtonBar>
+                <NavWrapper>
+                  <StyledButtonBar merged active={status}>
+                    <Button
+                      to={{pathname, query: openIncidentsQuery}}
+                      barId="open"
+                      size="small"
+                    >
+                      {t('Unresolved')}
+                    </Button>
+                    <Button
+                      to={{pathname, query: closedIncidentsQuery}}
+                      barId="closed"
+                      size="small"
+                    >
+                      {t('Resolved')}
+                    </Button>
+                  </StyledButtonBar>
+                </NavWrapper>
               )}
               {this.renderList()}
             </Layout.Main>
@@ -341,12 +341,16 @@ class IncidentsListContainer extends React.Component<Props> {
 }
 
 const StyledButtonBar = styled(ButtonBar)`
-  width: 100px;
   margin-bottom: ${space(1)};
 `;
 
 const PaddedTitleAndSparkLine = styled(TitleAndSparkLine)`
   padding-left: ${space(2)};
+`;
+
+const NavWrapper = styled('div')`
+  display: flex;
+  justify-content: space-between;
 `;
 
 const StyledPanelHeader = styled(PanelHeader)`

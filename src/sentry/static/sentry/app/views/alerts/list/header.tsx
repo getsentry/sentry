@@ -7,7 +7,6 @@ import {Organization} from 'app/types';
 import {navigateTo} from 'app/actionCreators/navigation';
 import {t} from 'app/locale';
 import Feature from 'app/components/acl/feature';
-import FeatureBadge from 'app/components/featureBadge';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import NavTabs from 'app/components/navTabs';
@@ -36,28 +35,18 @@ const AlertHeader = ({router, organization, activeTab}: Props) => {
   return (
     <Layout.Header>
       <StyledLayoutHeaderContent>
-        <StyledLayoutTitle>
-          {t('Alerts')}{' '}
-          <FeatureBadge
-            title={
-              activeTab === 'stream'
-                ? t('This page is in beta and currently only shows metric alerts.')
-                : undefined
-            }
-            type="beta"
-          />
-        </StyledLayoutTitle>
+        <StyledLayoutTitle>{t('Alerts')} </StyledLayoutTitle>
         <StyledNavTabs underlined>
           <Feature features={['incidents']} organization={organization}>
             <li className={activeTab === 'stream' ? 'active' : ''}>
               <Link to={`/organizations/${organization.slug}/alerts/`}>
-                {t('Stream')}
+                {t('Metric Alerts')}
               </Link>
             </li>
           </Feature>
           <li className={activeTab === 'rules' ? 'active' : ''}>
             <Link to={`/organizations/${organization.slug}/alerts/rules/`}>
-              {t('Rules')}
+              {t('Alert Rules')}
             </Link>
           </li>
         </StyledNavTabs>
