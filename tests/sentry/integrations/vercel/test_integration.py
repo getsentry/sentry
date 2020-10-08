@@ -6,7 +6,7 @@ from rest_framework.serializers import ValidationError
 
 
 from six.moves.urllib.parse import parse_qs
-from sentry.integrations.vercel import VercelIntegrationProvider
+from sentry.integrations.vercel import VercelIntegrationProvider, VercelClient
 from sentry.models import (
     Integration,
     OrganizationIntegration,
@@ -16,6 +16,7 @@ from sentry.models import (
     SentryAppInstallationForProvider,
     SentryAppInstallation,
 )
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils import IntegrationTestCase
 from sentry.utils import json
 from sentry.utils.compat.mock import patch
@@ -477,3 +478,22 @@ class VercelIntegrationTest(IntegrationTestCase):
             ).encode("utf-8")
             in resp.content
         )
+
+    @responses.activate
+    def test_handles_402(self):
+        """Test that we handle a 402 error"""
+
+        responses.add(
+            responses.POST,
+            "https://api.vercel.com/v2/now/secrets",
+            json={"uid": "sec_1"},
+            status=402,
+        )
+
+        client = VercelClient("my_access_token")
+        with self.assertRaises(IntegrationError):
+            client.create_secret(self.project.id, "SENTRY_ORG_1234567", "foo")
+
+        resp_params = responses.calls[0].response
+        assert resp_params.status_code == 402
+        assert resp_params.reason == "Payment Required"
