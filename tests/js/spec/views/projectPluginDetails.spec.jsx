@@ -61,7 +61,7 @@ describe('ProjectPluginDetails', function () {
 
   afterAll(function () {
     // eslint-disable-next-line no-console
-    console.info.restore();
+    console.info.mockRestore();
   });
 
   it('renders', function () {

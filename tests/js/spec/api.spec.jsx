@@ -1,5 +1,4 @@
 import $ from 'jquery';
-import * as Sentry from '@sentry/react';
 
 import {Client, Request, paramsToQueryArgs} from 'app/api';
 import GroupActions from 'app/actions/groupActions';
@@ -258,26 +257,6 @@ describe('api', function () {
         expect.objectContaining({query: {query: 'is:resolved'}}),
         undefined
       );
-    });
-  });
-
-  describe('Sentry reporting', function () {
-    beforeEach(function () {
-      jest.spyOn($, 'ajax');
-
-      $.ajax.mockReset();
-      Sentry.captureException.mockClear();
-
-      $.ajax.mockImplementation(async ({error}) => {
-        await tick();
-        error({
-          status: 500,
-          statusText: 'Internal server error',
-          responseJSON: {detail: 'Item was not found'},
-        });
-
-        return {};
-      });
     });
   });
 });
