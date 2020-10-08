@@ -13,36 +13,32 @@ import IssueListSearchBar from './searchBar';
 import IssueListSortOptions from './sortOptions';
 import SavedSearchSelector from './savedSearchSelector';
 
-const defaultProps = {
-  sort: '',
-  query: null as string | null,
-  onSortChange: (() => {}) as (sort: string) => void,
-  onSearch: (() => {}) as (query: string) => void,
-  onSidebarToggle: (() => {}) as (event: React.MouseEvent) => void,
-};
-
 type Props = {
   organization: Organization;
 
+  savedSearchList: SavedSearch[];
+  savedSearch: SavedSearch;
+
+  sort: string;
+  query: string;
+  isSearchDisabled: boolean;
+  queryCount: number;
+  queryMaxCount: number;
+
+  onSortChange: (sort: string) => void;
+  onSearch: (query: string) => void;
+
+  onSidebarToggle: (event: React.MouseEvent) => void;
   onSavedSearchSelect: (search: SavedSearch) => void;
   onSavedSearchDelete: (search: SavedSearch) => void;
   tagValueLoader: React.ComponentProps<typeof IssueListSearchBar>['tagValueLoader'];
   tags: NonNullable<React.ComponentProps<typeof IssueListSearchBar>['supportedTags']>;
-
-  savedSearchList?: SavedSearch[];
-  savedSearch?: SavedSearch;
-
-  isSearchDisabled?: boolean;
-  queryCount?: number;
-  queryMaxCount?: number;
-} & typeof defaultProps;
+};
 
 class IssueListFilters extends React.Component<Props> {
   static contextTypes = {
     location: PropTypes.object,
   };
-
-  static defaultProps = defaultProps;
 
   handleSavedSearchSelect = (savedSearch: SavedSearch) => {
     trackAnalyticsEvent({
