@@ -1481,6 +1481,7 @@ SENTRY_DEVSERVICES = {
     },
     "zookeeper": {
         "image": "confluentinc/cp-zookeeper:5.1.2",
+        "ports": {"2181/tcp": 2181},
         "environment": {"ZOOKEEPER_CLIENT_PORT": "2181"},
         "volumes": {"zookeeper": {"bind": "/var/lib/zookeeper"}},
         "only_if": lambda settings, options: (

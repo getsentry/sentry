@@ -120,10 +120,6 @@ jobs:
         PYTEST_SENTRY_DSN: https://6fd5cfea2d4d46b182ad214ac7810508@sentry.io/2423079
         PYTEST_ADDOPTS: "--reruns 5"
 
-        # services configuration
-        SENTRY_KAFKA_HOSTS: kafka:9093
-        SENTRY_ZOOKEEPER_HOSTS: zookeeper:2182
-        SENTRY_REDIS_HOST: redis
         # The hostname used to communicate with the PostgreSQL from sentry
         DATABASE_URL: postgresql://postgres:postgres@localhost/sentry
 
@@ -254,10 +250,6 @@ jobs:
         PYTEST_SENTRY_DSN: https://6fd5cfea2d4d46b182ad214ac7810508@sentry.io/2423079
         PYTEST_ADDOPTS: "--reruns 5"
 
-        # services configuration
-        SENTRY_KAFKA_HOSTS: kafka:9093
-        SENTRY_ZOOKEEPER_HOSTS: zookeeper:2182
-        SENTRY_REDIS_HOST: redis
         # The hostname used to communicate with the PostgreSQL from sentry
         DATABASE_URL: postgresql://postgres:postgres@localhost/sentry
 

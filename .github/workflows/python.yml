@@ -118,7 +118,6 @@ jobs:
       PYTEST_SENTRY_ALWAYS_REPORT: 1
 
       # services configuration
-      SENTRY_REDIS_HOST: redis
       DATABASE_URL: postgresql://postgres:postgres@localhost/sentry
 
       # Number of matrix instances
@@ -210,10 +209,9 @@ jobs:
       PYTEST_SENTRY_ALWAYS_REPORT: yes
 
       # services configuration
-      SENTRY_REDIS_HOST: redis
       DATABASE_URL: postgresql://postgres:postgres@localhost/sentry
-      SENTRY_KAFKA_HOSTS: localhost:9092
-      SENTRY_ZOOKEEPER_HOSTS: localhost:2181
+      SENTRY_KAFKA_HOSTS: 127.0.0.1:9092
+      SENTRY_ZOOKEEPER_HOSTS: 127.0.0.1:2181
 
       # Number of matrix instances
       TOTAL_TEST_GROUPS: ${{ strategy.job-total }}
@@ -271,6 +269,7 @@ jobs:
           pip install -e git+https://github.com/getsentry/rb.git@master#egg=rb
 
       - name: Start devservices
+        # TODO: Use devservices kafka. See https://github.com/getsentry/sentry/pull/20986#issuecomment-704510570
         run: |
           sentry init
           docker run \
