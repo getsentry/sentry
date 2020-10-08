@@ -50,10 +50,12 @@ runs:
         [ "$GITHUB_REF" = "refs/heads/master" ] && echo "PYTEST_SENTRY_ALWAYS_REPORT=1" >> $GITHUB_ENV || true
 
         # services configuration
-        echo "SENTRY_REDIS_HOST=sentry_redis" >> $GITHUB_ENV
         # The hostname used to communicate with the PostgreSQL from sentry
         echo "DATABASE_URL=postgresql://postgres:postgres@localhost/sentry" >> $GITHUB_ENV
         echo "PGPASSWORD=postgres" >> $GITHUB_ENV
+
+        # Note: some backend tests (e.g. tests/sentry/eventstream/kafka/test_consumer.py) will behave
+        # differently if these are set.
         [ "$NEED_KAFKA" = "1" ] && echo "SENTRY_KAFKA_HOSTS=localhost:9092" >> $GITHUB_ENV || true
         [ "$NEED_KAFKA" = "1" ] && echo "SENTRY_ZOOKEEPER_HOSTS=localhost:2182" >> $GITHUB_ENV || true
 
