@@ -20,6 +20,12 @@ import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {ParsedTraceType} from './types';
 import {parseTrace, getTraceDateTimeRange} from './utils';
 import TraceView from './traceView';
+import Filter, {
+  ActiveOperationFilter,
+  noFilter,
+  toggleFilter,
+  toggleAllFilters,
+} from './filter';
 
 type Props = {
   orgId: string;
@@ -30,6 +36,7 @@ type Props = {
 type State = {
   parsedTrace: ParsedTraceType;
   searchQuery: string | undefined;
+  operationNameFilters: ActiveOperationFilter;
 };
 
 class SpansInterface extends React.Component<Props, State> {
@@ -41,6 +48,7 @@ class SpansInterface extends React.Component<Props, State> {
   state: State = {
     searchQuery: undefined,
     parsedTrace: parseTrace(this.props.event),
+    operationNameFilters: noFilter,
   };
 
   static getDerivedStateFromProps(props: Props, state: State): State {
@@ -85,6 +93,23 @@ class SpansInterface extends React.Component<Props, State> {
       </AlertContainer>
     );
   }
+
+  toggleOperationNameFilter = (operationName: string) => {
+    this.setState(prevState => ({
+      operationNameFilters: toggleFilter(prevState.operationNameFilters, operationName),
+    }));
+  };
+
+  toggleAllOperationNameFilters = (operationNames: string[]) => {
+    this.setState(prevState => {
+      return {
+        operationNameFilters: toggleAllFilters(
+          prevState.operationNameFilters,
+          operationNames
+        ),
+      };
+    });
+  };
 
   render() {
     const {event, orgId, location, organization} = this.props;
@@ -149,12 +174,20 @@ class SpansInterface extends React.Component<Props, State> {
                   isLoading,
                   numOfErrors,
                 })}
-                <StyledSearchBar
-                  defaultQuery=""
-                  query={this.state.searchQuery || ''}
-                  placeholder={t('Search for spans')}
-                  onSearch={this.handleSpanFilter}
-                />
+                <Search>
+                  <Filter
+                    parsedTrace={parsedTrace}
+                    operationNameFilter={this.state.operationNameFilters}
+                    toggleOperationNameFilter={this.toggleOperationNameFilter}
+                    toggleAllOperationNameFilters={this.toggleAllOperationNameFilters}
+                  />
+                  <StyledSearchBar
+                    defaultQuery=""
+                    query={this.state.searchQuery || ''}
+                    placeholder={t('Search for spans')}
+                    onSearch={this.handleSpanFilter}
+                  />
+                </Search>
                 <Panel>
                   <TraceView
                     event={event}
@@ -163,6 +196,7 @@ class SpansInterface extends React.Component<Props, State> {
                     organization={organization}
                     parsedTrace={parsedTrace}
                     spansWithErrors={spansWithErrors}
+                    operationNameFilters={this.state.operationNameFilters}
                   />
                 </Panel>
               </React.Fragment>
@@ -174,8 +208,14 @@ class SpansInterface extends React.Component<Props, State> {
   }
 }
 
-const StyledSearchBar = styled(SearchBar)`
+const Search = styled('div')`
+  display: flex;
+  width: 100%;
   margin-bottom: ${space(1)};
+`;
+
+const StyledSearchBar = styled(SearchBar)`
+  flex-grow: 1;
 `;
 
 const AlertContainer = styled('div')`

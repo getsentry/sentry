@@ -111,10 +111,12 @@
             "properties": {
               "name": {
                 "type": "string",
-                "description": "The name for the new key.",
-                "example": "Fabulous Key"
+                "description": "The name for the new key."
               }
             }
+          },
+          "example": {
+            "name": "Fabulous Key"
           }
         }
       },

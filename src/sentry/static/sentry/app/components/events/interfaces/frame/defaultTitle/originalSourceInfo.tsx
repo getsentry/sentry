@@ -9,7 +9,7 @@ type Props = {
 
 // TODO(Priscila): Remove BR tags
 // mapUrl not always present; e.g. uploaded source maps
-const FrameDefaultTitleOriginalSourceInfo = ({mapUrl, map}: Props) => (
+const OriginalSourceInfo = ({mapUrl, map}: Props) => (
   <React.Fragment>
     <strong>{t('Source Map')}</strong>
     <br />
@@ -18,4 +18,4 @@ const FrameDefaultTitleOriginalSourceInfo = ({mapUrl, map}: Props) => (
   </React.Fragment>
 );
 
-export default FrameDefaultTitleOriginalSourceInfo;
+export default OriginalSourceInfo;

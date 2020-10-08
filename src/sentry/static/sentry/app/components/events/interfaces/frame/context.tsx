@@ -18,6 +18,8 @@ import space from 'app/styles/space';
 
 type Props = {
   frame: Frame;
+  registers: {[key: string]: string};
+  components: Array<SentryAppComponent>;
   isExpanded?: boolean;
   hasContextSource?: boolean;
   hasContextVars?: boolean;
@@ -25,11 +27,9 @@ type Props = {
   emptySourceNotation?: boolean;
   hasAssembly?: boolean;
   expandable?: boolean;
-  registers: {[key: string]: string};
-  components: Array<SentryAppComponent>;
 };
 
-const FrameContext = ({
+const Context = ({
   hasContextVars = false,
   hasContextSource = false,
   hasContextRegisters = false,
@@ -120,7 +120,7 @@ const FrameContext = ({
   );
 };
 
-export default FrameContext;
+export default Context;
 
 const StyledClippedBox = styled(ClippedBox)`
   margin-left: 0;

@@ -1580,7 +1580,7 @@ FUNCTIONS = {
     for function in [
         Function(
             "percentile",
-            required_args=[DurationColumnNoLookup("column"), NumberRange("percentile", 0, 1)],
+            required_args=[NumericColumnNoLookup("column"), NumberRange("percentile", 0, 1)],
             aggregate=[u"quantile({percentile:g})", ArgValue("column"), None],
             result_type="duration",
         ),

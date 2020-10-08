@@ -5,12 +5,11 @@ import {Panel} from 'app/components/panels';
 import {Organization} from 'app/types';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
-import {getAggregateAlias} from 'app/utils/discover/fields';
+import {WebVital, getAggregateAlias} from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
 import theme from 'app/utils/theme';
 
 import {NUM_BUCKETS, PERCENTILE, WEB_VITAL_DETAILS} from './constants';
-import {WebVital} from './types';
 import VitalCard from './vitalCard';
 import MeasurementsHistogramQuery from './measurementsHistogramQuery';
 
@@ -26,6 +25,9 @@ class TransactionVitals extends React.Component<Props> {
     const vitals = Object.values(WebVital);
 
     const colors = [...theme.charts.getColorPalette(vitals.length - 1)].reverse();
+
+    const min = decodeScalar(location.query.startMeasurements);
+    const max = decodeScalar(location.query.endMeasurements);
 
     return (
       <DiscoverQuery
@@ -43,8 +45,8 @@ class TransactionVitals extends React.Component<Props> {
                 eventView={eventView}
                 numBuckets={NUM_BUCKETS}
                 measurements={vitals.map(vital => WEB_VITAL_DETAILS[vital].slug)}
-                min={decodeScalar(location.query.startMeasurements)}
-                max={decodeScalar(location.query.endMeasurements)}
+                min={min}
+                max={max}
               >
                 {results => (
                   <React.Fragment>
@@ -66,6 +68,10 @@ class TransactionVitals extends React.Component<Props> {
                           summary={summary as number | null}
                           chartData={results.histograms[vital] ?? []}
                           colors={[colors[index]]}
+                          eventView={eventView}
+                          organization={organization}
+                          min={min}
+                          max={max}
                         />
                       );
                     })}
