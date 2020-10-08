@@ -982,8 +982,8 @@ def measurements_histogram_query(
     :param str data_filter: Indicate the filter strategy to be applied to the data.
     """
 
-    if data_filter not in ("all", "upper_inner_fence", "upper_outer_fence", "p90", "p95", "p99"):
-        data_filter = "upper_inner_fence"
+    if data_filter not in ("all", "exclude_outliers"):
+        data_filter = "exclude_outliers"
 
     multiplier = int(10 ** precision)
     if max_value is not None:
@@ -1094,15 +1094,9 @@ def find_measurements_min_max(
             min_columns.append("min(measurements.{})".format(measurement))
         if max_value is None:
             max_columns.append("max(measurements.{})".format(measurement))
-        if data_filter in ("upper_inner_fence", "upper_outer_fence"):
+        if data_filter == "exclude_outliers":
             max_columns.append("percentile(measurements.{}, 0.25)".format(measurement))
             max_columns.append("percentile(measurements.{}, 0.75)".format(measurement))
-        if data_filter == "p90":
-            max_columns.append("percentile(measurements.{}, 0.9)".format(measurement))
-        if data_filter == "p95":
-            max_columns.append("percentile(measurements.{}, 0.95)".format(measurement))
-        if data_filter == "p99":
-            max_columns.append("percentile(measurements.{}, 0.99)".format(measurement))
 
     results = query(
         selected_columns=min_columns + max_columns,
@@ -1138,25 +1132,7 @@ def find_measurements_min_max(
 
         fences = []
         for measurement in measurements:
-            if data_filter == "p90":
-                column_name = get_function_alias(
-                    "percentile(measurements.{}, 0.9)".format(measurement)
-                )
-                fences.append(row[column_name])
-
-            if data_filter == "p95":
-                column_name = get_function_alias(
-                    "percentile(measurements.{}, 0.95)".format(measurement)
-                )
-                fences.append(row[column_name])
-
-            if data_filter == "p99":
-                column_name = get_function_alias(
-                    "percentile(measurements.{}, 0.99)".format(measurement)
-                )
-                fences.append(row[column_name])
-
-            if data_filter in ("upper_inner_fence", "upper_outer_fence"):
+            if data_filter == "exclude_outliers":
                 Q1_column_name = get_function_alias(
                     "percentile(measurements.{}, 0.25)".format(measurement)
                 )
@@ -1168,13 +1144,8 @@ def find_measurements_min_max(
                 Q3 = row[Q3_column_name]
                 IQR = abs(Q3 - Q1)
 
-                if data_filter == "upper_inner_fence":
-                    upper_inner_fence = Q3 + 1.5 * IQR
-                    fences.append(upper_inner_fence)
-
-                if data_filter == "upper_outer_fence":
-                    upper_outer_fence = Q3 + 3 * IQR
-                    fences.append(upper_outer_fence)
+                upper_outer_fence = Q3 + 3 * IQR
+                fences.append(upper_outer_fence)
 
         fences = list(filter(lambda v: v is not None, fences))
         max_fence_value = max(fences) if fences else None

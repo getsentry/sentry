@@ -19,7 +19,7 @@ import TransactionVitals from './transactionVitals';
 import TransactionHeader, {Tab} from '../transactionSummary/header';
 
 const FILTER_OPTIONS: SelectValue<string>[] = [
-  {label: t('Exclude outliers'), value: 'upper_inner_fence'},
+  {label: t('Exclude outliers'), value: 'exclude_outliers'},
   {label: t('View All'), value: 'all'},
 ];
 
