@@ -35,6 +35,24 @@ describe('decodeColumnOrder', function () {
     });
   });
 
+  it('can decode measurement fields', function () {
+    const results = decodeColumnOrder([{field: 'measurements.foo', width: 123}]);
+
+    expect(Array.isArray(results)).toBeTruthy();
+
+    expect(results[0]).toEqual({
+      key: 'measurements.foo',
+      name: 'measurements.foo',
+      column: {
+        kind: 'field',
+        field: 'measurements.foo',
+      },
+      width: 123,
+      isSortable: false,
+      type: 'number',
+    });
+  });
+
   it('can decode aggregate functions with no arguments', function () {
     let results = decodeColumnOrder([{field: 'count()', width: 123}]);
 
@@ -89,6 +107,42 @@ describe('decodeColumnOrder', function () {
       column: {
         kind: 'function',
         function: ['percentile', 'transaction.duration', '0.65'],
+      },
+      width: COL_WIDTH_UNDEFINED,
+      isSortable: true,
+      type: 'duration',
+    });
+  });
+
+  it('can decode elements with aggregate functions using measurements', function () {
+    const results = decodeColumnOrder([{field: 'avg(measurements.foo)'}]);
+
+    expect(Array.isArray(results)).toBeTruthy();
+
+    expect(results[0]).toEqual({
+      key: 'avg(measurements.foo)',
+      name: 'avg(measurements.foo)',
+      column: {
+        kind: 'function',
+        function: ['avg', 'measurements.foo', undefined],
+      },
+      width: COL_WIDTH_UNDEFINED,
+      isSortable: true,
+      type: 'number',
+    });
+  });
+
+  it('can decode elements with aggregate functions with multiple arguments using measurements', function () {
+    const results = decodeColumnOrder([{field: 'percentile(measurements.lcp, 0.65)'}]);
+
+    expect(Array.isArray(results)).toBeTruthy();
+
+    expect(results[0]).toEqual({
+      key: 'percentile(measurements.lcp, 0.65)',
+      name: 'percentile(measurements.lcp, 0.65)',
+      column: {
+        kind: 'function',
+        function: ['percentile', 'measurements.lcp', '0.65'],
       },
       width: COL_WIDTH_UNDEFINED,
       isSortable: true,

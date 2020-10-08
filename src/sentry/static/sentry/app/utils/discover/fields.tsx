@@ -446,6 +446,34 @@ export const TRACING_FIELDS = [
   'epm',
 ];
 
+export enum WebVital {
+  FP = 'measurements.fp',
+  FCP = 'measurements.fcp',
+  LCP = 'measurements.lcp',
+  FID = 'measurements.fid',
+}
+
+const MEASUREMENTS: Readonly<Record<WebVital, ColumnType>> = {
+  [WebVital.FP]: 'duration',
+  [WebVital.FCP]: 'duration',
+  [WebVital.LCP]: 'duration',
+  [WebVital.FID]: 'duration',
+};
+
+const MEASUREMENT_PATTERN = /^measurements\.([a-zA-Z0-9-_.]+)$/;
+
+export function isMeasurement(field: string): boolean {
+  const results = field.match(MEASUREMENT_PATTERN);
+  return !!results;
+}
+
+export function measurementType(field: string) {
+  if (MEASUREMENTS.hasOwnProperty(field)) {
+    return MEASUREMENTS[field];
+  }
+  return 'number';
+}
+
 const AGGREGATE_PATTERN = /^([^\(]+)\((.*?)(?:\s*,\s*(.*))?\)$/;
 
 export function explodeFieldString(field: string): Column {
@@ -521,6 +549,8 @@ export function aggregateOutputType(field: string): AggregationOutputType {
     return aggregate.outputType;
   } else if (matches[2] && FIELDS.hasOwnProperty(matches[2])) {
     return FIELDS[matches[2]];
+  } else if (matches[2] && isMeasurement(matches[2])) {
+    return measurementType(matches[2]);
   }
   return 'number';
 }

@@ -13,7 +13,7 @@ import {t} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
 import {Organization, Project, GlobalSelection} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
-import {isAggregateField} from 'app/utils/discover/fields';
+import {WebVital, isAggregateField} from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
 import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
@@ -22,7 +22,6 @@ import withProjects from 'app/utils/withProjects';
 
 import {PERCENTILE} from './constants';
 import RumContent from './content';
-import {WebVital} from './types';
 import {getTransactionName} from '../utils';
 import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
 

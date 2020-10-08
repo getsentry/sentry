@@ -1,3 +1,5 @@
+import {ColumnType} from 'app/utils/discover/fields';
+
 export type HistogramData = {
   histogram: number;
   count: number;
@@ -8,15 +10,8 @@ export type Vital = {
   name: string;
   description: string;
   failureThreshold: number;
-  type: 'duration' | 'number';
+  type: ColumnType;
 };
-
-export enum WebVital {
-  FP = 'measurements.fp',
-  FCP = 'measurements.fcp',
-  LCP = 'measurements.lcp',
-  FID = 'measurements.fid',
-}
 
 export type Point = {
   x: number;

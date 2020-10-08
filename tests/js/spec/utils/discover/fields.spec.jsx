@@ -1,6 +1,8 @@
 import {
   getAggregateAlias,
   isAggregateField,
+  isMeasurement,
+  measurementType,
   explodeField,
   aggregateOutputType,
   aggregateMultiPlotType,
@@ -54,6 +56,31 @@ describe('isAggregateField', function () {
     expect(isAggregateField('thing(')).toBe(false);
     expect(isAggregateField('unique_count(user)')).toBe(true);
     expect(isAggregateField('unique_count(foo.bar.is-Enterprise_42)')).toBe(true);
+  });
+});
+
+describe('measurement', function () {
+  it('isMeasurement', function () {
+    expect(isMeasurement('measurements.fp')).toBe(true);
+    expect(isMeasurement('measurements.fcp')).toBe(true);
+    expect(isMeasurement('measurements.lcp')).toBe(true);
+    expect(isMeasurement('measurements.fid')).toBe(true);
+    expect(isMeasurement('measurements.foo')).toBe(true);
+    expect(isMeasurement('measurements.bar')).toBe(true);
+    expect(isMeasurement('timestamp')).toBe(false);
+    expect(isMeasurement('project.id')).toBe(false);
+    expect(isMeasurement('transaction')).toBe(false);
+    expect(isMeasurement('max(timestamp)')).toBe(false);
+    expect(isMeasurement('percentile(measurements.fcp, 0.5)')).toBe(false);
+  });
+
+  it('measurementType', function () {
+    expect(measurementType('measurements.fp')).toBe('duration');
+    expect(measurementType('measurements.fcp')).toBe('duration');
+    expect(measurementType('measurements.lcp')).toBe('duration');
+    expect(measurementType('measurements.fid')).toBe('duration');
+    expect(measurementType('measurements.foo')).toBe('number');
+    expect(measurementType('measurements.bar')).toBe('number');
   });
 });
 
@@ -131,6 +158,19 @@ describe('aggregateOutputType', function () {
 
     expect(aggregateOutputType('max(stack.colno)')).toEqual('number');
     expect(aggregateOutputType('max(timestamp)')).toEqual('date');
+  });
+
+  it('handles measurements', function () {
+    expect(aggregateOutputType('sum(measurements.fcp)')).toEqual('duration');
+    expect(aggregateOutputType('min(measurements.fcp)')).toEqual('duration');
+    expect(aggregateOutputType('max(measurements.fcp)')).toEqual('duration');
+    expect(aggregateOutputType('avg(measurements.fcp)')).toEqual('duration');
+    expect(aggregateOutputType('percentile(measurements.fcp, 0.5)')).toEqual('duration');
+    expect(aggregateOutputType('sum(measurements.bar)')).toEqual('number');
+    expect(aggregateOutputType('min(measurements.bar)')).toEqual('number');
+    expect(aggregateOutputType('max(measurements.bar)')).toEqual('number');
+    expect(aggregateOutputType('avg(measurements.bar)')).toEqual('number');
+    expect(aggregateOutputType('percentile(measurements.bar, 0.5)')).toEqual('number');
   });
 });
 
