@@ -123,7 +123,18 @@ describe('ExceptionStacktraceContent', () => {
     const wrapper = mount(
       <ExceptionStacktraceContent {...modifiedProps} chainedException />
     );
-    expect(wrapper.find('Line').length).toBe(1);
-    expect(wrapper.find('.filename').text()).toBe(props.stacktrace.frames[0].filename);
+
+    // There must be two elements, one being the inApp frame and the other the last frame which is non-app frame
+    expect(wrapper.find('Line').length).toBe(2);
+
+    // inApp === true
+    expect(wrapper.find('.filename').at(1).text()).toBe(
+      props.stacktrace.frames[0].filename
+    );
+
+    // inApp === false
+    expect(wrapper.find('.filename').at(0).text()).toBe(
+      props.stacktrace.frames[1].filename
+    );
   });
 });
