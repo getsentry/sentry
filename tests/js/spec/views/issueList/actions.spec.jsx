@@ -11,10 +11,6 @@ describe('IssueListActions', function () {
   let actions;
   let wrapper;
 
-  beforeEach(function () {});
-
-  afterEach(function () {});
-
   describe('Bulk', function () {
     describe('Total results greater than bulk limit', function () {
       beforeAll(function () {
@@ -268,7 +264,7 @@ describe('IssueListActions', function () {
     });
 
     afterAll(function () {
-      SelectedGroupStore.mockRestore();
+      SelectedGroupStore.deselectAll.mockRestore();
     });
 
     describe('for all items', function () {
