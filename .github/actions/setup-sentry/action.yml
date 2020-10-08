@@ -50,10 +50,6 @@ runs:
         [ "$GITHUB_REF" = "refs/heads/master" ] && echo "PYTEST_SENTRY_ALWAYS_REPORT=1" >> $GITHUB_ENV || true
 
         # services configuration
-        # The hostname used to communicate with the PostgreSQL from sentry
-        echo "DATABASE_URL=postgresql://postgres:postgres@localhost/sentry" >> $GITHUB_ENV
-        echo "PGPASSWORD=postgres" >> $GITHUB_ENV
-
         # Note: some backend tests (e.g. tests/sentry/eventstream/kafka/test_consumer.py) will behave
         # differently if these are set.
         [ "$NEED_KAFKA" = "1" ] && echo "SENTRY_KAFKA_HOSTS=127.0.0.1:9092" >> $GITHUB_ENV || true
@@ -109,6 +105,7 @@ runs:
         NEED_SNUBA: ${{ inputs.snuba }}
       run: |
         sentry init
+        # TODO: Use devservices kafka. See https://github.com/getsentry/sentry/pull/20986#issuecomment-704510570
         [ "$NEED_KAFKA" = "1" ] && docker run \
             --name sentry_zookeeper \
             -d --network host \
