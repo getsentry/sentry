@@ -21,7 +21,7 @@ export type DiscoverQueryProps = {
    * Used as the default source for cursor values.
    */
   location: Location;
-  eventView: Pick<EventView, 'isValid' | 'getEventsAPIPayload'>;
+  eventView: EventView;
   orgSlug: string;
   /**
    * Record limit to get.
@@ -193,7 +193,7 @@ class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> 
   render() {
     const {isLoading, error, tableData, pageLinks} = this.state;
 
-    const childrenProps: ChildrenProps<T> = {
+    const childrenProps: GenericChildrenProps<T> = {
       isLoading,
       error,
       tableData,

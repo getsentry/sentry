@@ -24,7 +24,6 @@ import {
   TrendChangeType,
   TrendFunctionField,
   TrendView,
-  ProjectTrendsDataEvents,
   NormalizedProjectTrend,
 } from './types';
 import {modifyTrendView, normalizeTrends, trendToColor, getTrendProjectId} from './utils';
