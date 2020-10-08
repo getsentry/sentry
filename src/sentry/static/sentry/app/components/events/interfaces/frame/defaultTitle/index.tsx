@@ -12,7 +12,7 @@ import {t} from 'app/locale';
 import {getMeta} from 'app/components/events/meta/metaProxy';
 import space from 'app/styles/space';
 
-import FrameFunctionName from '../functionName';
+import FunctionName from '../functionName';
 import {getPlatform, trimPackage} from '../utils';
 import OriginalSourceInfo from './originalSourceInfo';
 
