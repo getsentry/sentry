@@ -620,6 +620,8 @@ export type Authenticator = {
    * Description of the authenticator
    */
   description: string;
+
+  challenge?: Record<string, any>;
 } & Partial<EnrolledAuthenticator>;
 
 export type EnrolledAuthenticator = {
