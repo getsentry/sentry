@@ -57,7 +57,7 @@ runs:
         # Note: some backend tests (e.g. tests/sentry/eventstream/kafka/test_consumer.py) will behave
         # differently if these are set.
         [ "$NEED_KAFKA" = "1" ] && echo "SENTRY_KAFKA_HOSTS=localhost:9092" >> $GITHUB_ENV || true
-        [ "$NEED_KAFKA" = "1" ] && echo "SENTRY_ZOOKEEPER_HOSTS=localhost:2182" >> $GITHUB_ENV || true
+        [ "$NEED_KAFKA" = "1" ] && echo "SENTRY_ZOOKEEPER_HOSTS=sentry_zookeeper:2182" >> $GITHUB_ENV || true
 
     # Setup custom pytest matcher, see https://github.com/actions/setup-node/issues/97
     - name: Add pytest log matcher
