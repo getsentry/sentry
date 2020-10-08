@@ -18,6 +18,7 @@ import space from 'app/styles/space';
 import {Client} from 'app/api';
 
 type OnTypeProps = NonNullable<React.ComponentProps<typeof U2fContainer>['onTap']>;
+
 type Props = WithRouterProps &
   Pick<ModalRenderProps, 'Body' | 'Header'> & {
     api: Client;
