@@ -597,3 +597,30 @@ class OrganizationEventsMeasurementsHistogramEndpointTest(APITestCase, SnubaTest
         ]
 
         assert response.data["data"] == self.as_response_data(expected)
+
+    def test_histogram_exclude_outliers_data_filter(self):
+        specs = [
+            (0, 1, [("foo", 4)]),
+            (4000, 4001, [("foo", 1)]),
+        ]
+        self.populate_measurements(specs)
+
+        query = {
+            "project": [self.project.id],
+            "measurement": ["foo"],
+            "num_buckets": 5,
+            "dataFilter": "exclude_outliers",
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200
+
+        expected = [
+            (0, 1, [("foo", 4)]),
+            (1, 1, [("foo", 0)]),
+            (2, 2, [("foo", 0)]),
+            (3, 3, [("foo", 0)]),
+            (4, 4, [("foo", 0)]),
+        ]
+
+        assert response.data["data"] == self.as_response_data(expected)
