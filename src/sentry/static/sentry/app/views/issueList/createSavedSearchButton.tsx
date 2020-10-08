@@ -15,11 +15,11 @@ import {LightWeightOrganization} from 'app/types';
 
 type Props = {
   api: Client;
+  query: string;
+  organization: LightWeightOrganization;
   buttonClassName?: string;
   iconOnly?: boolean;
   withTooltip?: boolean;
-  query: string;
-  organization: LightWeightOrganization;
 };
 
 type State = {
@@ -29,6 +29,8 @@ type State = {
   error: string | null;
   query: string | null;
 };
+
+type FieldOnChangeParameters = Parameters<NonNullable<TextField['props']['onChange']>>[0];
 
 class CreateSavedSearchButton extends React.Component<Props, State> {
   state: State = {
@@ -89,12 +91,12 @@ class CreateSavedSearchButton extends React.Component<Props, State> {
     }
   };
 
-  handleChangeName = (val: string | number | boolean) => {
-    this.setState({name: val as string});
+  handleChangeName = (val: FieldOnChangeParameters) => {
+    this.setState({name: String(val)});
   };
 
-  handleChangeQuery = (val: string | number | boolean) => {
-    this.setState({query: val as string});
+  handleChangeQuery = (val: FieldOnChangeParameters) => {
+    this.setState({query: String(val)});
   };
 
   render() {
