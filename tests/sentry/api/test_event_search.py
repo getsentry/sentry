@@ -2531,7 +2531,8 @@ class ResolveFieldListTest(unittest.TestCase):
 
 class DefaultFunctionArg(FunctionArg):
     def __init__(self, name, default):
-        super(DefaultFunctionArg, self).__init__(name, has_default=True)
+        super(DefaultFunctionArg, self).__init__(name)
+        self.has_default = True
         self.default = default
 
     def get_default(self, params):
