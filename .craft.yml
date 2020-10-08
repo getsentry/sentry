@@ -1,4 +1,4 @@
-minVersion: "0.10.0"
+minVersion: "0.12.0"
 github:
   owner: getsentry
   repo: sentry
@@ -13,9 +13,16 @@ statusProvider:
 targets:
   - name: github
   - name: pypi
-  - name: docker
+  - id: Python 2 Image 
+    name: docker
     source: us.gcr.io/sentryio/sentry
     target: getsentry/sentry
+  - id: Python 3 Image
+    name: docker
+    source: us.gcr.io/sentryio/sentry
+    sourceFormat: '{{{source}}}:{{{revision}}}-py3'
+    target: getsentry/sentry
+    targetFormat: '{{{target}}}:{{{version}}}-py3'
 
 requireNames:
-  - /^sentry-.+-py27-none-any.whl$/
+  - /^sentry-.+-py2.py3-none-any.whl$/
