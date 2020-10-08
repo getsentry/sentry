@@ -99,7 +99,7 @@ class MeasurementsHistogramQuery extends React.Component<Props, State> {
       num_buckets: numBuckets,
       min,
       max,
-      data_filter: dataFilter,
+      dataFilter,
     };
     const additionalApiPayload = omit(eventView.getEventsAPIPayload(location), [
       'field',

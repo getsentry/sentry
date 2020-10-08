@@ -86,9 +86,9 @@ class RumContent extends React.Component<Props, State> {
   getActiveFilter() {
     const {location} = this.props;
 
-    const dataFilter = location.query.data_filter
-      ? decodeScalar(location.query.data_filter)
-      : 'upper_outer_fence';
+    const dataFilter = location.query.dataFilter
+      ? decodeScalar(location.query.dataFilter)
+      : FILTER_OPTIONS[0].value;
     return FILTER_OPTIONS.find(item => item.value === dataFilter) || FILTER_OPTIONS[0];
   }
 
@@ -99,7 +99,7 @@ class RumContent extends React.Component<Props, State> {
       query: {
         ...location.query,
         cursor: undefined,
-        data_filter: value,
+        dataFilter: value,
       },
     });
   };

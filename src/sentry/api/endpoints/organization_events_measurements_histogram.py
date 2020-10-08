@@ -20,7 +20,7 @@ class MeasurementsHistogramSerializer(serializers.Serializer):
     precision = serializers.IntegerField(default=0, min_value=0, max_value=4)
     min = serializers.FloatField(required=False)
     max = serializers.FloatField(required=False)
-    data_filter = serializers.CharField(required=False)
+    dataFilter = serializers.CharField(required=False)
 
 
 class OrganizationEventsMeasurementsHistogramEndpoint(OrganizationEventsV2EndpointBase):
@@ -50,7 +50,7 @@ class OrganizationEventsMeasurementsHistogramEndpoint(OrganizationEventsV2Endpoi
                         data["precision"],
                         data.get("min"),
                         data.get("max"),
-                        data.get("data_filter"),
+                        data.get("dataFilter"),
                         "api.organization-events-measurements-histogram",
                     )
 
