@@ -757,7 +757,7 @@ if __name__ == "__main__":
 
     parser = OptionParser()
     parser.add_option("--events", dest="num_events", default=1, type=int)
-    parser.add_option("--extra-events", dest="extra_events", default=True, action="store_true")
+    parser.add_option("--extra-events", dest="extra_events", default=False, action="store_true")
     parser.add_option(
         "--load-transactions", dest="load_transactions", default=False, action="store_true"
     )
