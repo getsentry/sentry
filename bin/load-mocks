@@ -598,6 +598,7 @@ def main(num_events=1, extra_events=False, load_transactions=False):
                             - timedelta(
                                 milliseconds=int(random.normalvariate(2000 + 50 * day, 250))
                             ),
+                            # match the trace from the javascript transaction
                             trace=transaction1.get_tag("trace"),
                         )
 

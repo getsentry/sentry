@@ -59,10 +59,12 @@ def transactions_query(**kwargs):
     return urlencode(options, doseq=True)
 
 
-def generate_transaction():
+def generate_transaction(trace=None):
     start_datetime = before_now(minutes=1, milliseconds=500)
     end_datetime = before_now(minutes=1)
-    event_data = load_data("transaction", timestamp=end_datetime, start_timestamp=start_datetime)
+    event_data = load_data(
+        "transaction", timestamp=end_datetime, start_timestamp=start_datetime, trace=trace
+    )
     event_data.update({"event_id": "a" * 32})
 
     # generate and build up span tree
@@ -355,7 +357,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
         # Create a child event that is linked to the parent so we have coverage
         # of traversal buttons.
-        child_event = generate_transaction()
+        child_event = generate_transaction(trace=event_data["contexts"]["trace"]["trace_id"])
         child_event["event_id"] = "b" * 32
         child_event["contexts"]["trace"]["parent_span_id"] = event_data["spans"][4]["span_id"]
         child_event["transaction"] = "z-child-transaction"

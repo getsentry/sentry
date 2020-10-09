@@ -188,6 +188,7 @@ def load_data(
             offset = span.get("data", {}).get("offset", 0)
 
             span_start = data["start_timestamp"] + offset
+            span["trace_id"] = trace
             span.setdefault("start_timestamp", span_start)
             span.setdefault("timestamp", span_start + duration)
 
