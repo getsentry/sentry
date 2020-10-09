@@ -637,7 +637,7 @@ class QueryTransformTest(TestCase):
         )
         mock_query.assert_called_with(
             selected_columns=["transaction", "duration"],
-            aggregations=[["uniq", ["duration"], "count_unique_transaction_duration"]],
+            aggregations=[["uniq", "duration", "count_unique_transaction_duration"]],
             filter_keys={"project_id": [self.project.id]},
             dataset=Dataset.Discover,
             end=None,
@@ -667,7 +667,7 @@ class QueryTransformTest(TestCase):
             selected_columns=["transaction"],
             aggregations=[
                 ["quantile(0.95)", "duration", "p95"],
-                ["uniq", ["transaction"], "count_unique_transaction"],
+                ["uniq", "transaction", "count_unique_transaction"],
             ],
             filter_keys={"project_id": [self.project.id]},
             dataset=Dataset.Discover,

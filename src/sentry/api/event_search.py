@@ -1734,7 +1734,7 @@ FUNCTIONS = {
         Function(
             "count_unique",
             optional_args=[CountColumn("column")],
-            aggregate=["uniq", [ArgValue("column")], None],
+            aggregate=["uniq", ArgValue("column"), None],
             result_type="integer",
         ),
         Function(
@@ -1938,7 +1938,14 @@ def resolve_function(field, match=None, params=None):
             format_column_arguments(aggregate[1], arguments)
         elif isinstance(aggregate[1], ArgValue):
             arg = aggregate[1].arg
-            aggregate[1] = arguments[arg]
+            # The aggregate function has only a single argument
+            # however that argument is an expression, so we have
+            # to make sure to nest it so it doesn't get treated
+            # as a list of arguments by snuba.
+            if isinstance(arguments[arg], (list, tuple)):
+                aggregate[1] = [arguments[arg]]
+            else:
+                aggregate[1] = arguments[arg]
         if aggregate[2] is None:
             aggregate[2] = get_function_alias_with_columns(function.name, columns)
         else:

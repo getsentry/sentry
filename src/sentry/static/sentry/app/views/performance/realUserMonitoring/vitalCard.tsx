@@ -368,11 +368,7 @@ class VitalCard extends React.Component<Props, State> {
   drawFailRegion(series) {
     const {chartData, vital, failureRate} = this.props;
     const {failureThreshold} = vital;
-    if (
-      this.state.refDataRect === null ||
-      this.state.refPixelRect === null ||
-      failureRate === null
-    ) {
+    if (this.state.refDataRect === null || this.state.refPixelRect === null) {
       return;
     }
 
@@ -455,7 +451,7 @@ class VitalCard extends React.Component<Props, State> {
       symbolKeepAspect: true,
       symbolSize: [14, 16],
       label: {
-        formatter: `~${formatPercentage(failureRate, 0)}`,
+        formatter: formatPercentage(failureRate ?? 0, 0),
         position: 'left',
       },
     });
