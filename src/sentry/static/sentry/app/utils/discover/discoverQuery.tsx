@@ -1,16 +1,9 @@
 import React from 'react';
-import {Location} from 'history';
 
-import {Client} from 'app/api';
 import withApi from 'app/utils/withApi';
-import EventView, {
-  MetaType,
-  isAPIPayloadSimilar,
-  LocationQuery,
-} from 'app/utils/discover/eventView';
-import {EventQuery} from 'app/actionCreators/events';
-import {TrendChangeType} from 'app/views/performance/trends/types';
-import {getCurrentTrendFunction} from 'app/views/performance/trends/utils';
+import {MetaType} from 'app/utils/discover/eventView';
+
+import GenericDiscoverQuery, {DiscoverQueryProps} from './genericDiscoverQuery';
 
 /**
  * An individual row in a DiscoverQuery result
@@ -28,218 +21,21 @@ export type TableData = {
   meta?: MetaType;
 };
 
-type ChildrenProps = {
-  isLoading: boolean;
-  error: null | string;
-  tableData: TableData | null;
-  pageLinks: null | string;
-};
-
-type Props = {
-  api: Client;
-  /**
-   * Used as the default source for cursor values.
-   */
-  location: Location;
-  eventView: EventView;
-  orgSlug: string;
+type Props = DiscoverQueryProps & {
   keyTransactions?: boolean;
-  trendChangeType?: TrendChangeType;
-  trendStats?: boolean;
-  /**
-   * Record limit to get.
-   */
-  limit?: number;
-  /**
-   * Explicit cursor value if you aren't using `location.query.cursor` because there are
-   * multiple paginated results on the page.
-   */
-  cursor?: string;
-
-  children: (props: ChildrenProps) => React.ReactNode;
 };
 
-type State = {
-  tableFetchID: symbol | undefined;
-} & ChildrenProps;
-
-type TrendsQuery = {
-  trendFunction?: string;
-  intervalRatio?: number;
-  interval?: string;
-};
-
-class DiscoverQuery extends React.Component<Props, State> {
-  static defaultProps = {
-    keyTransactions: false,
-  };
-
-  state: State = {
-    isLoading: true,
-    tableFetchID: undefined,
-    error: null,
-
-    tableData: null,
-    pageLinks: null,
-  };
-
-  componentDidMount() {
-    this.fetchData();
+function getRoute(keyTransactions?: boolean) {
+  if (keyTransactions) {
+    return 'key-transactions';
   }
+  return 'eventsv2';
+}
 
-  componentDidUpdate(prevProps: Props) {
-    // Reload data if we aren't already loading,
-    const refetchCondition = !this.state.isLoading && this.shouldRefetchData(prevProps);
-
-    // or if we've moved from an invalid view state to a valid one,
-    const eventViewValidation =
-      prevProps.eventView.isValid() === false && this.props.eventView.isValid();
-
-    // or if toggling between key transactions and all transactions
-    const togglingTransactionsView =
-      prevProps.keyTransactions !== this.props.keyTransactions;
-
-    if (refetchCondition || eventViewValidation || togglingTransactionsView) {
-      this.fetchData();
-    }
-  }
-
-  shouldRefetchData = (prevProps: Props): boolean => {
-    const thisAPIPayload = this.props.eventView.getEventsAPIPayload(this.props.location);
-    const otherAPIPayload = prevProps.eventView.getEventsAPIPayload(prevProps.location);
-
-    return (
-      !isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload) ||
-      this.shouldRefetchTrendData(prevProps) ||
-      prevProps.limit !== this.props.limit ||
-      prevProps.cursor !== this.props.cursor
-    );
-  };
-
-  shouldRefetchTrendData = (prevProps: Props): boolean => {
-    if (!this.props.trendChangeType) {
-      return false;
-    }
-
-    const thisAPIPayload = this.modifyTrendsPayload(
-      this.props.eventView.getEventsAPIPayload(this.props.location),
-      this.props.location
-    );
-    const otherAPIPayload = this.modifyTrendsPayload(
-      prevProps.eventView.getEventsAPIPayload(prevProps.location),
-      prevProps.location
-    );
-
-    return !isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
-  };
-
-  getRoute(keyTransactions, trendsType, trendStats) {
-    if (keyTransactions) {
-      return 'key-transactions';
-    }
-    if (trendsType) {
-      if (trendStats) {
-        return 'events-trends-stats';
-      } else {
-        return 'events-trends';
-      }
-    }
-    return 'eventsv2';
-  }
-
-  fetchData = () => {
-    const {
-      eventView,
-      orgSlug,
-      location,
-      limit,
-      cursor,
-      keyTransactions,
-      trendChangeType,
-      trendStats,
-    } = this.props;
-
-    if (!eventView.isValid()) {
-      return;
-    }
-
-    const route = this.getRoute(keyTransactions, trendChangeType, trendStats);
-
-    const url = `/organizations/${orgSlug}/${route}/`;
-    const tableFetchID = Symbol(`tableFetchID`);
-    const apiPayload: EventQuery &
-      LocationQuery &
-      TrendsQuery = eventView.getEventsAPIPayload(location);
-
-    this.modifyTrendsPayload(apiPayload, location);
-
-    this.setState({isLoading: true, tableFetchID});
-
-    if (limit) {
-      apiPayload.per_page = limit;
-    }
-    if (cursor) {
-      apiPayload.cursor = cursor;
-    }
-
-    this.props.api
-      .requestPromise(url, {
-        method: 'GET',
-        includeAllArgs: true,
-        query: {
-          // marking apiPayload as any so as to not cause typescript errors
-          ...(apiPayload as any),
-        },
-      })
-      .then(([data, _, jqXHR]) => {
-        if (this.state.tableFetchID !== tableFetchID) {
-          // invariant: a different request was initiated after this request
-          return;
-        }
-
-        this.setState(prevState => ({
-          isLoading: false,
-          tableFetchID: undefined,
-          error: null,
-          pageLinks: jqXHR ? jqXHR.getResponseHeader('Link') : prevState.pageLinks,
-          tableData: data,
-        }));
-      })
-      .catch(err => {
-        this.setState({
-          isLoading: false,
-          tableFetchID: undefined,
-          error: err?.responseJSON?.detail ?? null,
-          tableData: null,
-        });
-      });
-  };
-
-  modifyTrendsPayload = (
-    apiPayload: EventQuery & LocationQuery & TrendsQuery,
-    location: Location
-  ) => {
-    const {trendChangeType, eventView} = this.props;
-    if (trendChangeType) {
-      const trendFunction = getCurrentTrendFunction(location);
-      apiPayload.trendFunction = trendFunction.field;
-      apiPayload.interval = eventView.interval;
-    }
-    return apiPayload;
-  };
-
-  render() {
-    const {isLoading, error, tableData, pageLinks} = this.state;
-
-    const childrenProps = {
-      isLoading,
-      error,
-      tableData,
-      pageLinks,
-    };
-
-    return this.props.children(childrenProps);
-  }
+function DiscoverQuery(props: Props) {
+  const {keyTransactions} = props;
+  const route = getRoute(keyTransactions);
+  return <GenericDiscoverQuery<TableData, {}> route={route} {...props} />;
 }
 
 export default withApi(DiscoverQuery);
