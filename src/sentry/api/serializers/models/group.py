@@ -740,6 +740,8 @@ class GroupSerializerSnuba(GroupSerializerBase):
         "active_at",
         "first_release",
         "first_seen",
+        "last_seen",
+        "times_seen",
     }
 
     def __init__(self, environment_ids=None, start=None, end=None, search_filters=None):
