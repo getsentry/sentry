@@ -119,3 +119,20 @@ class UpdateGroupsTest(TestCase):
 
         assert group.status == GroupStatus.IGNORED
         assert send_robust.called
+
+    @patch("sentry.signals.issue_unignored.send_robust")
+    def test_unignoring_group(self, send_robust):
+        group = self.create_group(status=GroupStatus.IGNORED)
+
+        request = self.make_request(user=self.user, method="GET")
+        request.user = self.user
+        request.data = {"status": "unresolved"}
+        request.GET = QueryDict(query_string="id={}".format(group.id))
+
+        search_fn = Mock()
+        update_groups(request, [self.project], self.organization.id, search_fn)
+
+        group.refresh_from_db()
+
+        assert group.status == GroupStatus.UNRESOLVED
+        assert send_robust.called

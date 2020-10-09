@@ -51,6 +51,7 @@ from sentry.api.issue_search import convert_query_values, InvalidSearchQuery, pa
 from sentry.signals import (
     issue_deleted,
     issue_ignored,
+    issue_unignored,
     issue_resolved,
     advanced_search_feature_gated,
 )
@@ -772,6 +773,16 @@ def update_groups(request, projects, organization_id, search_fn):
             if new_status == GroupStatus.UNRESOLVED:
                 activity_type = Activity.SET_UNRESOLVED
                 activity_data = {}
+
+                for group in group_list:
+                    if group.status == GroupStatus.IGNORED:
+                        issue_unignored.send_robust(
+                            project=project,
+                            user=acting_user,
+                            group=group,
+                            transition_type="manual",
+                            sender=update_groups,
+                        )
             elif new_status == GroupStatus.IGNORED:
                 activity_type = Activity.SET_IGNORED
                 activity_data = {
