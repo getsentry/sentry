@@ -142,13 +142,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-
 
-      - name: Install rb
-        run: |
-          # XXX: wasn't able to get this working in requirements_base.
-          # It's possible if you're installing via -r but it breaks -e.
-          pip uninstall -y rb
-          pip install -e git+https://github.com/getsentry/rb.git@master#egg=rb
-
       - name: Python 3.6 backend (${{ steps.setup.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
         if: always()
         run: |
@@ -186,13 +179,6 @@ jobs:
         with:
           python: 2
           kafka: 1
-
-      - name: Install rb
-        run: |
-          # XXX: wasn't able to get this working in requirements_base.
-          # It's possible if you're installing via -r but it breaks -e.
-          pip uninstall -y rb
-          pip install -e git+https://github.com/getsentry/rb.git@master#egg=rb
 
       - name: Python 3.6 snuba backend (${{ steps.setup.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
         if: always()
