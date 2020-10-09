@@ -25,6 +25,7 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsV2EndpointBase):
                 facets = discover.get_facets(
                     query=request.GET.get("query"),
                     params=params,
+                    tags=request.GET.getlist("tag"),
                     referrer="api.organization-events-facets.top-tags",
                 )
 

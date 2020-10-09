@@ -115,6 +115,7 @@ class Tags extends React.Component<Props, State> {
 
       return segment;
     });
+
     // Ensure we don't show >100% if there's a slight mismatch between the facets
     // endpoint and the totals endpoint
     const maxTotalValues =

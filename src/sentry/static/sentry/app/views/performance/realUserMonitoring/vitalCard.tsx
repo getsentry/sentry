@@ -27,7 +27,7 @@ import theme from 'app/utils/theme';
 
 import {NUM_BUCKETS} from './constants';
 import {Card, CardSummary, CardSectionHeading, StatNumber, Description} from './styles';
-import {HistogramData, Vital, Rectangle} from './types';
+import {HistogramData, VitalDetails, Rectangle} from './types';
 import {findNearestBucketIndex, getRefRect, asPixelRect, mapPoint} from './utils';
 
 type Props = {
@@ -35,7 +35,7 @@ type Props = {
   organization: Organization;
   isLoading: boolean;
   error: boolean;
-  vital: Vital;
+  vital: VitalDetails;
   summary: number | null;
   chartData: HistogramData[];
   colors: [string];

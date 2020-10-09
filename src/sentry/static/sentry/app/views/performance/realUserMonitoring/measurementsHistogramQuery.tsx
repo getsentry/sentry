@@ -62,10 +62,7 @@ function beforeFetch(api: Client) {
   api.clear();
 }
 
-function afterFetch(
-  response: RawHistogramResponse,
-  props: RequestProps
-): Record<string, HistogramData[]> {
+function afterFetch(response: RawHistogramResponse, props: RequestProps): Histograms {
   const data = response.data;
   const {measurements} = props;
 

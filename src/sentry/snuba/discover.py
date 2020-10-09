@@ -787,7 +787,7 @@ def get_id(result):
         return result[1]
 
 
-def get_facets(query, params, limit=10, referrer=None):
+def get_facets(query, params, limit=10, tags=None, referrer=None):
     """
     High-level API for getting 'facet map' results.
 
@@ -812,7 +812,9 @@ def get_facets(query, params, limit=10, referrer=None):
         snuba_filter, translated_columns = resolve_discover_aliases(snuba_filter)
 
     # Exclude tracing tags as they are noisy and generally not helpful.
-    excluded_tags = ["tags_key", "NOT IN", ["trace", "trace.ctx", "trace.span", "project"]]
+    having = [["tags_key", "NOT IN", ["trace", "trace.ctx", "trace.span", "project"]]]
+    if tags:
+        having.append(["tags_key", "IN", tags])
 
     # Sampling keys for multi-project results as we don't need accuracy
     # with that much data.
@@ -828,7 +830,7 @@ def get_facets(query, params, limit=10, referrer=None):
             filter_keys=snuba_filter.filter_keys,
             orderby=["-count", "tags_key"],
             groupby="tags_key",
-            having=[excluded_tags],
+            having=having,
             dataset=Dataset.Discover,
             limit=limit,
             referrer=referrer,

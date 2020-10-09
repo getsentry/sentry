@@ -15,6 +15,7 @@ import {decodeScalar} from 'app/utils/queryString';
 import SearchBar from 'app/views/events/searchBar';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 
+import TransactionConditions from './transactionConditions';
 import TransactionVitals from './transactionVitals';
 import TransactionHeader, {Tab} from '../transactionSummary/header';
 import {FILTER_OPTIONS} from './constants';
@@ -157,6 +158,11 @@ class RumContent extends React.Component<Props, State> {
                 {t('Reset View')}
               </Button>
             </StyledActions>
+            <TransactionConditions
+              organization={organization}
+              location={location}
+              eventView={eventView}
+            />
             <TransactionVitals
               organization={organization}
               location={location}
