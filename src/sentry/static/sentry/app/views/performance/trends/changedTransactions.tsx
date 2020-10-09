@@ -7,7 +7,6 @@ import {Panel} from 'app/components/panels';
 import Pagination from 'app/components/pagination';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import withOrganization from 'app/utils/withOrganization';
-import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import {Organization, Project, AvatarProject} from 'app/types';
 import {decodeScalar} from 'app/utils/queryString';
 import space from 'app/styles/space';
@@ -31,11 +30,11 @@ import withApi from 'app/utils/withApi';
 import {Client} from 'app/api';
 import QuestionTooltip from 'app/components/questionTooltip';
 
+import TrendsDiscoverQuery from './trendsDiscoverQuery';
 import Chart from './chart';
 import {
   TrendChangeType,
   TrendView,
-  TrendsData,
   NormalizedTrendsTransaction,
   TrendFunctionField,
   TrendsStats,
@@ -166,20 +165,23 @@ function ChangedTransactions(props: Props) {
   const cursor = decodeScalar(location.query[trendCursorNames[trendChangeType]]);
 
   return (
-    <DiscoverQuery
+    <TrendsDiscoverQuery
       eventView={trendView}
       orgSlug={organization.slug}
       location={location}
       trendChangeType={trendChangeType}
       cursor={cursor}
       limit={5}
-      trendStats
     >
-      {({isLoading, tableData, pageLinks}) => {
-        const eventsTrendsData = (tableData as unknown) as TrendsData;
+      {({isLoading, trendsData, pageLinks}) => {
+        if (isLoading) {
+          return null;
+        }
+        if (!trendsData) {
+          return null;
+        }
         const events = normalizeTrends(
-          (eventsTrendsData && eventsTrendsData.events && eventsTrendsData.events.data) ||
-            []
+          (trendsData && trendsData.events && trendsData.events.data) || []
         );
         const selectedTransaction = getSelectedTransaction(
           location,
@@ -187,7 +189,7 @@ function ChangedTransactions(props: Props) {
           events
         );
 
-        const statsData = eventsTrendsData && eventsTrendsData.stats;
+        const statsData = trendsData?.stats;
         const transactionsList = events && events.slice ? events.slice(0, 5) : [];
 
         const trendFunction = getCurrentTrendFunction(location);
@@ -265,7 +267,7 @@ function ChangedTransactions(props: Props) {
           </TransactionsListContainer>
         );
       }}
-    </DiscoverQuery>
+    </TrendsDiscoverQuery>
   );
 }
 
