@@ -22,7 +22,7 @@ def execute_queries(relay, queries):
             try:
                 query_inst.preprocess(query)
             except InvalidQuery as exc:
-                result = {"status": "error", "error": six.binary_type(exc)}
+                result = {"status": "error", "error": six.text_type(exc)}
             else:
                 # TODO(mitsuhiko): support for pending or failing queries
                 result = {"status": "ok", "result": query_inst.execute()}
