@@ -1541,5 +1541,5 @@ export type ExceptionType = {
   rawStacktrace: RawStacktrace;
   mechanism: Mechanism | null;
   module: string | null;
-  threadId: string | null;
+  threadId: number | null;
 };
