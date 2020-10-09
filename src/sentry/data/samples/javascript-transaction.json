@@ -1,0 +1,170 @@
+{
+   "platform": "transaction",
+   "message": "",
+   "tags": [
+      [
+         "application",
+         "countries"
+      ],
+      [
+         "browser",
+         "Firefox 81.0"
+      ],
+      [
+         "browser.name",
+         "Firefox"
+      ],
+      [
+         "environment",
+         "dev"
+      ],
+      [
+         "release",
+         "v0.1"
+      ],
+      [
+         "user",
+         "ip:127.0.0.1"
+      ],
+      [
+         "trace",
+         "a7d67cf796774551a95be6543cacd459"
+      ],
+      [
+         "trace.ctx",
+         "a7d67cf796774551a95be6543cacd459-babaae0d4b7512d9"
+      ],
+      [
+         "trace.span",
+         "babaae0d4b7512d9"
+      ],
+      [
+         "transaction",
+         "/country/:countryCode"
+      ],
+      [
+         "url",
+         "http://countries:8000/country/CAN"
+      ]
+   ],
+   "breadcrumbs": {
+      "values": [
+         {
+                "type": "http",
+                "category": "ajax",
+                "timestamp": 1463077692.0,
+                "data": {
+                    "reason": "OK",
+                    "status_code": 200,
+                    "url": "http://countries:8000/country/CAN",
+                    "method": "GET"
+                }
+         }
+      ]
+   },
+   "contexts": {
+      "trace": {
+         "parent_span_id": "8988cec7cc0779c1",
+         "type": "trace",
+         "op": "pageload",
+         "trace_id": "a7d67cf796774551a95be6543cacd459",
+         "span_id": "babaae0d4b7512d9",
+         "status": "ok"
+      },
+      "browser": {
+         "version": "81.0",
+         "type": "browser",
+         "name": "Firefox"
+      }
+   },
+   "environment": "dev",
+   "extra": {},
+   "logger": "",
+   "metadata": {
+      "location": "/country/:countryCode",
+      "title": "/country/:countryCode"
+   },
+   "request": {
+      "url": "http://countries:8000/country/:countryCode",
+      "headers": [
+         [
+            "Accept",
+            "*/*"
+         ],
+         [
+            "Accept-Encoding",
+            "gzip, deflate"
+         ],
+         [
+            "Connection",
+            "keep-alive"
+         ],
+         [
+            "Content-Length",
+            ""
+         ],
+         [
+            "Content-Type",
+            "text/plain"
+         ],
+         [
+            "Host",
+            "countries:8000"
+         ],
+         [
+            "Referer",
+            "fixtures.transaction"
+         ],
+         [
+            "Sentry-Trace",
+            "a7d67cf796774551a95be6543cacd459-8988cec7cc0779c1-1"
+         ],
+         [
+          "User-Agent",
+	    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:81.0) Gecko/20100101 Firefox/81.0"
+         ]
+      ],
+      "env": {
+         "SERVER_PORT": "8000",
+         "SERVER_NAME": "a90286977562"
+      },
+      "query_string": [
+         [
+            "countryCode",
+            "CAN"
+         ]
+      ],
+      "method": "GET",
+      "inferred_content_type": "text/plain"
+   },
+   "spans": [
+      {
+         "same_process_as_parent":true,
+         "description": "GET /country_by_code/",
+         "parent_span_id": "babaae0d4b7512d9",
+         "trace_id": "a7d67cf796774551a95be6543cacd459",
+         "op": "http",
+         "data": {"duration": 1.75, "offset": 0.02},
+         "span_id": "c048b4fffdc4279d"
+      }
+   ],
+   "transaction": "/country/:countryCode",
+   "type": "transaction",
+   "user": {
+      "ip_address": "127.0.0.1"
+   },
+   "measurements": {
+      "fp": {
+         "value": 2258.060000000114
+      },
+      "fcp": {
+         "value": 2258.060000000114
+      },
+      "lcp": {
+         "value": 2807.335
+      },
+      "fid": {
+         "value": 3.4900000027846545
+      }
+   }
+}
