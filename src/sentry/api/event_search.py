@@ -207,6 +207,7 @@ ISSUE_ALIAS = "issue"
 ISSUE_ID_ALIAS = "issue.id"
 RELEASE_ALIAS = "release"
 USER_DISPLAY_ALIAS = "user.display"
+ERROR_UNHANDLED_ALIAS = "error.unhandled"
 
 
 class InvalidSearchQuery(Exception):
@@ -311,7 +312,7 @@ class SearchVisitor(NodeVisitor):
             "transaction.end_time",
         ]
     )
-    boolean_keys = set(["error.handled", "stack.in_app"])
+    boolean_keys = set(["error.handled", "error.unhandled", "stack.in_app"])
 
     unwrapped_exceptions = (InvalidSearchQuery,)
 
@@ -836,6 +837,18 @@ def convert_search_filter_to_snuba_query(search_filter, key=None):
                 1,
             ]
         return [user_display_expr, search_filter.operator, value]
+    elif name == ERROR_UNHANDLED_ALIAS:
+        # This field is the inversion of error.handled, otherwise the logic is the same.
+        if search_filter.value.raw_value == "":
+            output = 0 if search_filter.operator == "!=" else 1
+            return [["isHandled", []], "=", output]
+        if value in ("1", 1):
+            return [["notHandled", []], "=", 1]
+        if value in ("0", 0,):
+            return [["isHandled", []], "=", 1]
+        raise InvalidSearchQuery(
+            "Invalid value for error.unhandled condition. Accepted values are 1, 0"
+        )
     elif name == "error.handled":
         # Treat has filter as equivalent to handled
         if search_filter.value.raw_value == "":
@@ -1234,6 +1247,7 @@ def get_filter(query=None, params=None):
 FIELD_ALIASES = {
     "project": {"fields": ["project.id"], "column_alias": "project.id"},
     "issue": {"fields": ["issue.id"], "column_alias": "issue.id"},
+    "error.unhandled": {"fields": [["notHandled", [], "error.unhandled"]]},
     "user.display": {
         "expression": ["coalesce", ["user.email", "user.username", "user.ip"]],
         "fields": [["coalesce", ["user.email", "user.username", "user.ip"], "user.display"]],

@@ -1828,6 +1828,34 @@ class GetSnubaQueryArgsTest(TestCase):
         with pytest.raises(InvalidSearchQuery):
             get_filter("error.handled:nope")
 
+    def test_error_unhandled(self):
+        result = get_filter("error.unhandled:true")
+        assert result.conditions == [[["notHandled", []], "=", 1]]
+
+        result = get_filter("error.unhandled:false")
+        assert result.conditions == [[["isHandled", []], "=", 1]]
+
+        result = get_filter("has:error.unhandled")
+        assert result.conditions == [[["isHandled", []], "=", 0]]
+
+        result = get_filter("!has:error.unhandled")
+        assert result.conditions == [[["isHandled", []], "=", 1]]
+
+        result = get_filter("!error.unhandled:true")
+        assert result.conditions == [[["isHandled", []], "=", 1]]
+
+        result = get_filter("!error.unhandled:false")
+        assert result.conditions == [[["notHandled", []], "=", 1]]
+
+        result = get_filter("!error.unhandled:0")
+        assert result.conditions == [[["notHandled", []], "=", 1]]
+
+        with pytest.raises(InvalidSearchQuery):
+            get_filter("error.unhandled:99")
+
+        with pytest.raises(InvalidSearchQuery):
+            get_filter("error.unhandled:nope")
+
     def test_function_negation(self):
         result = get_filter("!p95():5s")
         assert result.having == [["p95", "!=", 5000.0]]
