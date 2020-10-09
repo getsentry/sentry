@@ -35,9 +35,13 @@ class VercelClient(ApiClient):
             params = params or {}
             params["teamId"] = self.team_id
         headers = {"Authorization": u"Bearer {}".format(self.access_token)}
-        return self._request(
-            method, path, headers=headers, data=data, params=params, allow_text=allow_text
-        )
+        try:
+            return self._request(
+                method, path, headers=headers, data=data, params=params, allow_text=allow_text
+            )
+        except ApiError as e:
+            if not e.code == 402:
+                raise e
 
     def get_team(self):
         assert self.team_id
