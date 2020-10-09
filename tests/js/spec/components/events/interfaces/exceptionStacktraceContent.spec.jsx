@@ -124,7 +124,7 @@ describe('ExceptionStacktraceContent', () => {
       <ExceptionStacktraceContent {...modifiedProps} chainedException />
     );
 
-    // There must be two elements, one being the inApp frame and the other 
+    // There must be two elements, one being the inApp frame and the other
     // the last frame which is non-app frame
     expect(wrapper.find('Line').length).toBe(2);
 
