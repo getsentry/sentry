@@ -4,7 +4,7 @@ import logging
 
 from django.db import transaction
 
-from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQuery
+from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.tasks import (
     create_subscription_in_snuba,
     delete_subscription_from_snuba,
@@ -14,7 +14,9 @@ from sentry.snuba.tasks import (
 logger = logging.getLogger(__name__)
 
 
-def create_snuba_query(dataset, query, aggregate, time_window, resolution, environment):
+def create_snuba_query(
+    dataset, query, aggregate, time_window, resolution, environment, event_types=None
+):
     """
     Creates a SnubaQuery.
 
@@ -25,9 +27,11 @@ def create_snuba_query(dataset, query, aggregate, time_window, resolution, envir
     :param time_window: The time window to aggregate over
     :param resolution: How often to receive updates/bucket size
     :param environment: An optional environment to filter by
+    :param event_types: A (currently) optional list of event_types that apply to this
+    query. If not passed, we'll infer a default value based on the dataset.
     :return: A list of QuerySubscriptions
     """
-    return SnubaQuery.objects.create(
+    snuba_query = SnubaQuery.objects.create(
         dataset=dataset.value,
         query=query,
         aggregate=aggregate,
@@ -35,6 +39,18 @@ def create_snuba_query(dataset, query, aggregate, time_window, resolution, envir
         resolution=int(resolution.total_seconds()),
         environment=environment,
     )
+    if not event_types:
+        event_types = [
+            SnubaQueryEventType.EventType.ERROR
+            if dataset == QueryDatasets.EVENTS
+            else SnubaQueryEventType.EventType.TRANSACTION
+        ]
+    sq_event_types = [
+        SnubaQueryEventType(snuba_query=snuba_query, type=event_type.value)
+        for event_type in set(event_types)
+    ]
+    SnubaQueryEventType.objects.bulk_create(sq_event_types)
+    return snuba_query
 
 
 def update_snuba_query(

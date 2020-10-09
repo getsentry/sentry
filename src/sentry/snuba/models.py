@@ -41,6 +41,31 @@ class SnubaQuery(Model):
         app_label = "sentry"
         db_table = "sentry_snubaquery"
 
+    @property
+    def event_types(self):
+        return [type.event_type for type in self.snubaqueryeventtype_set.all()]
+
+
+class SnubaQueryEventType(Model):
+    __core__ = True
+
+    class EventType(Enum):
+        ERROR = 0
+        DEFAULT = 1
+        TRANSACTION = 2
+
+    snuba_query = FlexibleForeignKey("sentry.SnubaQuery")
+    type = models.SmallIntegerField()
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_snubaqueryeventtype"
+        unique_together = (("snuba_query", "type"),)
+
+    @property
+    def event_type(self):
+        return self.EventType(self.type)
+
 
 class QuerySubscription(Model):
     __core__ = True
