@@ -68,7 +68,7 @@ class TransactionVitals extends React.Component<Props> {
                           error={error}
                           vital={WEB_VITAL_DETAILS[vital]}
                           summary={summary as number | null}
-                          chartData={results.histograms[vital] ?? []}
+                          chartData={results.histograms?.[vital] ?? []}
                           colors={[colors[index]]}
                           eventView={eventView}
                           organization={organization}
