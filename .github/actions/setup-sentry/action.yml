@@ -8,11 +8,11 @@ inputs:
   snuba:
     description: 'Is snuba required?'
     required: false
-    default: '1'
+    default: 'true'
   kafka:
     description: 'Is kafka required?'
     required: false
-    default: '0'
+    default: 'false'
 
 outputs:
   yarn-cache-dir:
@@ -55,9 +55,7 @@ runs:
         ### services configuration ###
         # Note: some backend tests (e.g. tests/sentry/eventstream/kafka/test_consumer.py) will behave
         # differently if these are set.
-        # Also Note: `USE_SNUBA` is only used for the Snuba test suite because we have some failing acceptance tests
-        # with Snuba enabled.
-        if [ "$NEED_KAFKA" = "1" ]; then
+        if [ "$NEED_KAFKA" = "true" ]; then
           echo "SENTRY_KAFKA_HOSTS=127.0.0.1:9092" >> $GITHUB_ENV
           echo "SENTRY_ZOOKEEPER_HOSTS=127.0.0.1:2181" >> $GITHUB_ENV
         fi
@@ -114,7 +112,7 @@ runs:
         sentry init
 
         # TODO: Use devservices kafka. See https://github.com/getsentry/sentry/pull/20986#issuecomment-704510570
-        if [ "$NEED_KAFKA" = "1" ]; then
+        if [ "$NEED_KAFKA" = "true" ]; then
           docker run \
             --name sentry_zookeeper \
             -d --network host \
@@ -132,7 +130,7 @@ runs:
             confluentinc/cp-kafka:5.1.2
         fi
 
-        if [ "$NEED_SNUBA" = "1" ]; then
+        if [ "$NEED_SNUBA" = "true" ]; then
           sentry devservices up postgres redis clickhouse snuba
         fi
 
