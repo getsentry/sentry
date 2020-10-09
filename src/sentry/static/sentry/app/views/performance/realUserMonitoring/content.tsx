@@ -65,17 +65,13 @@ class RumContent extends React.Component<Props, State> {
   handleResetView = () => {
     const {location} = this.props;
 
-    const queryParams = getParams({
-      ...(location.query || {}),
-    });
-
-    // reset the zoom parameters
-    delete queryParams.startMeasurements;
-    delete queryParams.endMeasurements;
-
     browserHistory.push({
       pathname: location.pathname,
-      query: queryParams,
+      query: {
+        ...location.query,
+        startMeasurements: undefined,
+        endMeasurements: undefined,
+      },
     });
   };
 
@@ -95,6 +91,8 @@ class RumContent extends React.Component<Props, State> {
       query: {
         ...location.query,
         cursor: undefined,
+        startMeasurements: undefined,
+        endMeasurements: undefined,
         dataFilter: value,
       },
     });
