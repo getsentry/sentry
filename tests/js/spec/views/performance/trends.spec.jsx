@@ -61,6 +61,7 @@ describe('Performance > Trends', function () {
   let trendsStatsMock;
   let baselineMock;
   beforeEach(function () {
+    browserHistory.push = jest.fn();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
@@ -246,13 +247,114 @@ describe('Performance > Trends', function () {
 
     const firstTransaction = wrapper.find('TrendsListItem').first();
     const summaryLink = firstTransaction.find('StyledSummaryLink');
-    expect(summaryLink).toHaveLength(1);
 
     expect(summaryLink.text()).toEqual('View Summary');
     expect(summaryLink.props().to.pathname).toEqual(
       '/organizations/org-slug/performance/summary/'
     );
     expect(summaryLink.props().to.query.project).toEqual(1);
+  });
+
+  it('hide from list menu action modifies query', async function () {
+    const projects = [TestStubs.Project({id: 1, slug: 'internal'}), TestStubs.Project()];
+    const data = initializeData(projects, {project: ['1']});
+
+    const wrapper = mountWithTheme(
+      <PerformanceLanding
+        organization={data.organization}
+        location={data.router.location}
+      />,
+      data.routerContext
+    );
+
+    await tick();
+    wrapper.update();
+
+    wrapper.find('DropdownLink').first().simulate('click');
+
+    const firstTransaction = wrapper.find('TrendsListItem').first();
+    const menuActions = firstTransaction.find('StyledMenuAction');
+    expect(menuActions).toHaveLength(3);
+
+    const menuAction = menuActions.at(0);
+    menuAction.simulate('click');
+
+    expect(browserHistory.push).toHaveBeenCalledWith({
+      query: expect.objectContaining({
+        project: expect.anything(),
+        query:
+          'count():>1000 transaction.duration:>0 !transaction:/organizations/:orgId/performance/',
+        view: 'TRENDS',
+      }),
+    });
+  });
+
+  it('exclude greater than list menu action modifies query', async function () {
+    const projects = [TestStubs.Project({id: 1, slug: 'internal'}), TestStubs.Project()];
+    const data = initializeData(projects, {project: ['1']});
+
+    const wrapper = mountWithTheme(
+      <PerformanceLanding
+        organization={data.organization}
+        location={data.router.location}
+      />,
+      data.routerContext
+    );
+
+    await tick();
+    wrapper.update();
+
+    wrapper.find('DropdownLink').first().simulate('click');
+
+    const firstTransaction = wrapper.find('TrendsListItem').first();
+    const menuActions = firstTransaction.find('StyledMenuAction');
+    expect(menuActions).toHaveLength(3);
+
+    const menuAction = menuActions.at(1);
+    expect(menuAction.text()).toEqual('Exclude transactions > 863ms');
+    menuAction.simulate('click');
+
+    expect(browserHistory.push).toHaveBeenCalledWith({
+      query: expect.objectContaining({
+        project: expect.anything(),
+        query: 'count():>1000 transaction.duration:>863',
+        view: 'TRENDS',
+      }),
+    });
+  });
+
+  it('exclude less than list menu action modifies query', async function () {
+    const projects = [TestStubs.Project({id: 1, slug: 'internal'}), TestStubs.Project()];
+    const data = initializeData(projects, {project: ['1']});
+
+    const wrapper = mountWithTheme(
+      <PerformanceLanding
+        organization={data.organization}
+        location={data.router.location}
+      />,
+      data.routerContext
+    );
+
+    await tick();
+    wrapper.update();
+
+    wrapper.find('DropdownLink').first().simulate('click');
+
+    const firstTransaction = wrapper.find('TrendsListItem').first();
+    const menuActions = firstTransaction.find('StyledMenuAction');
+    expect(menuActions).toHaveLength(3);
+
+    const menuAction = menuActions.at(2);
+    expect(menuAction.text()).toEqual('Exclude transactions < 863ms');
+    menuAction.simulate('click');
+
+    expect(browserHistory.push).toHaveBeenCalledWith({
+      query: expect.objectContaining({
+        project: expect.anything(),
+        query: 'count():>1000 transaction.duration:>0 transaction.duration:<863',
+        view: 'TRENDS',
+      }),
+    });
   });
 
   it('transaction link with stats period calls comparison view', async function () {
