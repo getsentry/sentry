@@ -1,9 +1,8 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import Modal from 'react-bootstrap/lib/Modal';
 
+import {Client} from 'app/api';
 import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import Access from 'app/components/acl/access';
 import Button from 'app/components/button';
 import {createSavedSearch} from 'app/actionCreators/savedSearches';
@@ -12,18 +11,29 @@ import {TextField} from 'app/components/forms';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import {IconAdd} from 'app/icons';
+import {LightWeightOrganization} from 'app/types';
 
-class CreateSavedSearchButton extends React.Component {
-  static propTypes = {
-    api: PropTypes.object.isRequired,
-    buttonClassName: PropTypes.string,
-    iconOnly: PropTypes.bool,
-    withTooltip: PropTypes.bool,
-    query: PropTypes.string.isRequired,
-    organization: SentryTypes.Organization.isRequired,
-  };
+type Props = {
+  api: Client;
+  query: string;
+  organization: LightWeightOrganization;
+  buttonClassName?: string;
+  iconOnly?: boolean;
+  withTooltip?: boolean;
+};
 
-  state = {
+type State = {
+  isModalOpen: boolean;
+  isSaving: boolean;
+  name: string;
+  error: string | null;
+  query: string | null;
+};
+
+type FieldOnChangeParameters = Parameters<NonNullable<TextField['props']['onChange']>>[0];
+
+class CreateSavedSearchButton extends React.Component<Props, State> {
+  state: State = {
     isModalOpen: false,
     isSaving: false,
     name: '',
@@ -31,7 +41,7 @@ class CreateSavedSearchButton extends React.Component {
     query: null,
   };
 
-  onSubmit = e => {
+  onSubmit = (e: React.FormEvent) => {
     const {api, organization} = this.props;
     const query = this.state.query || this.props.query;
 
@@ -63,8 +73,9 @@ class CreateSavedSearchButton extends React.Component {
       });
   };
 
-  onToggle = event => {
-    const newState = {
+  onToggle = (event?: React.MouseEvent) => {
+    const newState: State = {
+      ...this.state,
       isModalOpen: !this.state.isModalOpen,
     };
     if (newState.isModalOpen === false) {
@@ -80,12 +91,12 @@ class CreateSavedSearchButton extends React.Component {
     }
   };
 
-  handleChangeName = val => {
-    this.setState({name: val});
+  handleChangeName = (val: FieldOnChangeParameters) => {
+    this.setState({name: String(val)});
   };
 
-  handleChangeQuery = val => {
-    this.setState({query: val});
+  handleChangeQuery = (val: FieldOnChangeParameters) => {
+    this.setState({query: String(val)});
   };
 
   render() {
@@ -95,12 +106,11 @@ class CreateSavedSearchButton extends React.Component {
     return (
       <Access organization={organization} access={['org:write']}>
         <Button
-          title={withTooltip ? t('Add to organization saved searches') : null}
+          title={withTooltip ? t('Add to organization saved searches') : undefined}
           onClick={this.onToggle}
           data-test-id="save-current-search"
           size="zero"
           borderless
-          containerDisplayMode="inline-flex"
           type="button"
           aria-label={t('Add to organization saved searches')}
           icon={<IconAdd size="xs" />}
