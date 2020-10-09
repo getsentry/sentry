@@ -16,7 +16,12 @@ import {FIRE_SVG_PATH} from 'app/icons/iconFire';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import EventView from 'app/utils/discover/eventView';
-import {formatFloat, formatPercentage, getDuration} from 'app/utils/formatters';
+import {
+  formatAbbreviatedNumber,
+  formatFloat,
+  formatPercentage,
+  getDuration,
+} from 'app/utils/formatters';
 import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import theme from 'app/utils/theme';
 
@@ -210,7 +215,14 @@ class VitalCard extends React.Component<Props, State> {
     const values = series.data.map(point => point.value);
     const max = values.length ? Math.max(...values) : undefined;
 
-    const yAxis = {type: 'value', max};
+    const yAxis = {
+      type: 'value',
+      max,
+      axisLabel: {
+        color: theme.gray400,
+        formatter: formatAbbreviatedNumber,
+      },
+    };
 
     return (
       <BarChartZoom
