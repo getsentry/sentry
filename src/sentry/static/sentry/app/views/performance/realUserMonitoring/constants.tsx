@@ -46,6 +46,6 @@ export const WEB_VITAL_DETAILS: Record<WebVital, Vital> = {
 };
 
 export const FILTER_OPTIONS: SelectValue<string>[] = [
-  {label: t('Exclude outliers'), value: 'exclude_outliers'},
+  {label: t('Exclude Outliers'), value: 'exclude_outliers'},
   {label: t('View All'), value: 'all'},
 ];

@@ -151,7 +151,7 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
             self.browser.snapshot("real user monitoring - exclude outliers")
 
             self.browser.element(
-                xpath="//button//span[contains(text(), 'Exclude outliers')]"
+                xpath="//button//span[contains(text(), 'Exclude Outliers')]"
             ).click()
 
             self.browser.element(xpath="//li//span[contains(text(), 'View All')]").click()
