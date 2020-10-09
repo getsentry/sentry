@@ -234,6 +234,7 @@ from .endpoints.project_user_stats import ProjectUserStatsEndpoint
 from .endpoints.project_users import ProjectUsersEndpoint
 from .endpoints.prompts_activity import PromptsActivityEndpoint
 from .endpoints.relay_details import RelayDetailsEndpoint
+from .endpoints.relay_healthcheck import RelayHealthCheck
 from .endpoints.relay_index import RelayIndexEndpoint
 from .endpoints.relay_projectconfigs import RelayProjectConfigsEndpoint
 from .endpoints.relay_projectids import RelayProjectIdsEndpoint
@@ -406,6 +407,9 @@ urlpatterns = [
                     r"^publickeys/$",
                     RelayPublicKeysEndpoint.as_view(),
                     name="sentry-api-0-relay-publickeys",
+                ),
+                url(
+                    r"^live/$", RelayHealthCheck.as_view(), name="sentry-api-0-relays-healthcheck",
                 ),
                 url(
                     r"^(?P<relay_id>[^\/]+)/$",
