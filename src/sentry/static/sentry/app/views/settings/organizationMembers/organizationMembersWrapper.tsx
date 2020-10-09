@@ -109,6 +109,7 @@ class OrganizationMembersWrapper extends AsyncView<Props, State> {
         <SettingsPageHeader title="Members" />
 
         <AlertLink
+          data-test-id="email-invite"
           icon={<IconMail />}
           priority="info"
           onClick={() => openInviteMembersModal({source: 'members_settings'})}
