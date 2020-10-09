@@ -371,6 +371,7 @@ jobs:
           id: visual-snapshots-diff
           uses: getsentry/action-visual-snapshot@v2-pixelmatch-options
           with:
+            threshold: '0'
             api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
             github-token: ${{ secrets.GITHUB_TOKEN }}
             gcs-bucket: 'sentry-visual-snapshots'
