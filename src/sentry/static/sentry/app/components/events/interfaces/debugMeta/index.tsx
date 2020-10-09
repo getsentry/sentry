@@ -78,7 +78,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
   };
 
   componentDidMount() {
-    this.unsubscribeFromStore = DebugMetaStore.listen(this.onStoreChange);
+    this.unsubscribeFromStore = DebugMetaStore.listen(this.onStoreChange, undefined);
     cache.clearAll();
     this.filterImages();
   }
