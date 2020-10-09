@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import logging
 
 from sentry.integrations.client import ApiClient
-from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger("sentry.integrations.vercel.api")
@@ -40,9 +40,8 @@ class VercelClient(ApiClient):
                 method, path, headers=headers, data=data, params=params, allow_text=allow_text
             )
         except ApiError as e:
-            if e.code == 402:
-                raise IntegrationError("Payment Required")
-            raise IntegrationError(e.text)
+            if not e.code == 402:
+                raise e
 
     def get_team(self):
         assert self.team_id
