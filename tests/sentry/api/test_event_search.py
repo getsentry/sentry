@@ -2419,6 +2419,36 @@ class ResolveFieldListTest(unittest.TestCase):
             ],
         ]
 
+    def test_percentile_shortcuts(self):
+        columns = [
+            "",  # test default value
+            "transaction.duration",
+            "measurements.fp",
+            "measurements.fcp",
+            "measurements.lcp",
+            "measurements.fid",
+            "measurements.bar",
+        ]
+
+        for column in columns:
+            # if no column then use transaction.duration
+            snuba_column = column if column else "transaction.duration"
+            column_alias = column.replace(".", "_")
+
+            fields = [
+                field.format(column)
+                for field in ["p50({})", "p75({})", "p95({})", "p99({})", "p100({})"]
+            ]
+            result = resolve_field_list(fields, eventstore.Filter())
+
+            assert result["aggregations"] == [
+                ["quantile(0.5)", snuba_column, "p50_{}".format(column_alias).strip("_")],
+                ["quantile(0.75)", snuba_column, "p75_{}".format(column_alias).strip("_")],
+                ["quantile(0.95)", snuba_column, "p95_{}".format(column_alias).strip("_")],
+                ["quantile(0.99)", snuba_column, "p99_{}".format(column_alias).strip("_")],
+                ["max", snuba_column, "p100_{}".format(column_alias).strip("_")],
+            ]
+
     def test_rollup_with_unaggregated_fields(self):
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["message"]
