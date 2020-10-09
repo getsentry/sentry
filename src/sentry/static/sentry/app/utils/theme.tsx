@@ -402,7 +402,7 @@ const theme = {
 
   text: {
     family: '"Rubik", "Avenir Next", sans-serif',
-    familyMono: 'Monaco, Consolas, "Courier New", monospace',
+    familyMono: 'IBM Plex, Monaco, Consolas, "Courier New", monospace',
     lineHeightHeading: '1.15',
     lineHeightBody: '1.4',
   },
