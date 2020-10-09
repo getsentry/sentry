@@ -108,6 +108,8 @@ DATASET_FIELDS = {
 SNUBA_OR = "or"
 SNUBA_AND = "and"
 OPERATOR_TO_FUNCTION = {
+    "LIKE": "like",
+    "NOT LIKE": "notLike",
     "=": "equals",
     "!=": "notEquals",
     ">": "greater",
