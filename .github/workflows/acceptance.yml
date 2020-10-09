@@ -405,7 +405,7 @@ jobs:
       steps:
         - name: Diff snapshots
           id: visual-snapshots-diff
-          uses: getsentry/action-visual-snapshot@v2
+          uses: getsentry/action-visual-snapshot@v2-pixelmatch-options
           with:
             api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
             github-token: ${{ secrets.GITHUB_TOKEN }}
