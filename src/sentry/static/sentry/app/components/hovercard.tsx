@@ -227,7 +227,7 @@ type StyledHovercardProps = {
   offset?: string;
 };
 const StyledHovercard = styled('div')<StyledHovercardProps>`
-  border-radius: 4px;
+  border-radius: ${p => p.theme.borderRadius};
   text-align: left;
   padding: 0;
   line-height: 1;
