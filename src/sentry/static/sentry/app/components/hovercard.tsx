@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import classNames from 'classnames';
-import {Manager, Reference, Popper} from 'react-popper';
+import {Manager, Reference, Popper, PopperProps} from 'react-popper';
 import styled from '@emotion/styled';
 import {keyframes} from '@emotion/core';
 
@@ -10,59 +10,81 @@ import {fadeIn} from 'app/styles/animations';
 import space from 'app/styles/space';
 import {domId} from 'app/utils/domId';
 
-const VALID_DIRECTIONS = ['top', 'bottom', 'left', 'right'];
+const VALID_DIRECTIONS = ['top', 'bottom', 'left', 'right'] as const;
 
-class Hovercard extends React.Component {
+type Direction = typeof VALID_DIRECTIONS[number];
+
+type DefaultProps = {
+  /**
+   * Time in ms until hovercard is hidden
+   */
+  displayTimeout: number;
+  /**
+   * Position tooltip should take relative to the child element
+   */
+  position: Direction;
+};
+
+type Props = DefaultProps & {
+  /**
+   * Classname to apply to the hovercard
+   */
+  className?: string;
+  /**
+   * Classname to apply to the hovercard container
+   */
+  containerClassName?: string;
+  /**
+   * Element to display in the header
+   */
+  header?: React.ReactNode;
+  /**
+   * Element to display in the body
+   */
+  body?: React.ReactNode;
+  /**
+   * Classname to apply to body container
+   */
+  bodyClassName?: string;
+  /**
+   * If set, is used INSTEAD OF the hover action to determine whether the hovercard is shown
+   */
+  show?: boolean;
+  /**
+   * Color of the arrow tip
+   */
+  tipColor?: string;
+  /**
+   * Offset for the arrow
+   */
+  offset?: string;
+};
+
+type State = {
+  visible: boolean;
+};
+
+class Hovercard extends React.Component<Props, State> {
   static propTypes = {
-    /**
-     * Time in ms until hovercard is hidden
-     */
     displayTimeout: PropTypes.number,
-    /**
-     * Classname to apply to the hovercard
-     */
     className: PropTypes.string,
-    /**
-     * Classname to apply to the hovercard container
-     */
     containerClassName: PropTypes.string,
-    /**
-     * Element to display in the header
-     */
     header: PropTypes.node,
-    /**
-     * Element to display in the body
-     */
     body: PropTypes.node,
-    /**
-     * Classname to apply to body container
-     */
     bodyClassName: PropTypes.string,
-    /**
-     * Position tooltip should take relative to the child element
-     */
     position: PropTypes.oneOf(VALID_DIRECTIONS),
-    /**
-     * If set, is used INSTEAD OF the hover action to determine whether the hovercard is shown
-     */
     show: PropTypes.bool,
-    /**
-     * Color of the arrow tip
-     */
     tipColor: PropTypes.string,
-    /**
-     * Offset for the arrow
-     */
     offset: PropTypes.string,
   };
 
-  static defaultProps = {
+  static defaultProps: DefaultProps = {
     displayTimeout: 100,
     position: 'top',
   };
 
-  constructor(...args) {
-    super(...args);
+  constructor(args: Props) {
+    super(args);
 
     let portal = document.getElementById('hovercard-portal');
     if (!portal) {
@@ -78,10 +100,14 @@ class Hovercard extends React.Component {
     visible: false,
   };
 
+  portalEl: HTMLElement;
+  tooltipId: string;
+  hoverWait: number | null = null;
+
   handleToggleOn = () => this.toggleHovercard(true);
   handleToggleOff = () => this.toggleHovercard(false);
 
-  toggleHovercard = visible => {
+  toggleHovercard = (visible: boolean) => {
     const {header, body, displayTimeout} = this.props;
 
     // Don't toggle hovercard if both of these are null
@@ -92,7 +118,7 @@ class Hovercard extends React.Component {
       clearTimeout(this.hoverWait);
     }
 
-    this.hoverWait = setTimeout(() => this.setState({visible}), displayTimeout);
+    this.hoverWait = window.setTimeout(() => this.setState({visible}), displayTimeout);
   };
 
   render() {
@@ -110,7 +136,7 @@ class Hovercard extends React.Component {
 
     // Maintain the hovercard class name for BC with less styles
     const cx = classNames('hovercard', className);
-    const modifiers = {
+    const modifiers: PopperProps['modifiers'] = {
       hide: {
         enabled: false,
       },
@@ -150,8 +176,7 @@ class Hovercard extends React.Component {
                   visible={visible}
                   ref={ref}
                   style={style}
-                  placement={placement}
-                  withHeader={!!header}
+                  placement={placement as Direction}
                   offset={offset}
                   className={cx}
                   {...hoverProps}
@@ -161,7 +186,7 @@ class Hovercard extends React.Component {
                   <HovercardArrow
                     ref={arrowProps.ref}
                     style={arrowProps.style}
-                    placement={placement}
+                    placement={placement as Direction}
                     tipColor={tipColor}
                   />
                 </StyledHovercard>
@@ -176,7 +201,7 @@ class Hovercard extends React.Component {
 
 // Slide in from the same direction as the placement
 // so that the card pops into place.
-const slideIn = p => keyframes`
+const slideIn = (p: StyledHovercardProps) => keyframes`
   from {
     ${p.placement === 'top' ? 'top: -10px;' : ''}
     ${p.placement === 'bottom' ? 'top: 10px;' : ''}
@@ -191,13 +216,19 @@ const slideIn = p => keyframes`
   }
 `;
 
-const getTipColor = p => (p.placement === 'bottom' ? p.theme.gray100 : '#fff');
-const getTipDirection = p =>
+const getTipDirection = (p: HovercardArrowProps) =>
   VALID_DIRECTIONS.includes(p.placement) ? p.placement : 'top';
-const getOffset = p => p.offset ?? space(2);
 
-const StyledHovercard = styled('div')`
-  border-radius: 4px;
+const getOffset = (p: StyledHovercardProps) => p.offset ?? space(2);
+
+type StyledHovercardProps = {
+  visible: boolean;
+  placement: Direction;
+  offset?: string;
+};
+
+const StyledHovercard = styled('div')<StyledHovercardProps>`
+  border-radius: ${p => p.theme.borderRadius};
   text-align: left;
   padding: 0;
   line-height: 1;
@@ -206,7 +237,7 @@ const StyledHovercard = styled('div')`
   white-space: initial;
   color: ${p => p.theme.gray800};
   border: 1px solid ${p => p.theme.borderLight};
-  background: #fff;
+  background: ${p => p.theme.white};
   background-clip: padding-box;
   box-shadow: 0 0 35px 0 rgba(67, 62, 75, 0.2);
   width: 295px;
@@ -228,16 +259,13 @@ const StyledHovercard = styled('div')`
 `;
 
 const Header = styled('div')`
-  font-size: 14px;
+  font-size: ${p => p.theme.fontSizeMedium};
   background: ${p => p.theme.gray100};
   border-bottom: 1px solid ${p => p.theme.borderLight};
-  border-radius: 4px 4px 0 0;
+  border-radius: ${p => p.theme.borderRadiusTop};
   font-weight: 600;
   word-wrap: break-word;
-
-  /* The font needs a little extra padding. It has funny vert alignment. */
-  padding: ${space(2 * 0.6)} ${space(2 * 0.75)};
-  padding-top: ${space(2 * 0.75)};
+  padding: ${space(1.5)};
 `;
 
 const Body = styled('div')`
@@ -245,7 +273,9 @@ const Body = styled('div')`
   min-height: 30px;
 `;
 
-const HovercardArrow = styled('span')`
+type HovercardArrowProps = {placement: Direction; tipColor?: string};
+
+const HovercardArrow = styled('span')<HovercardArrowProps>`
   position: absolute;
   width: 20px;
   height: 20px;
@@ -280,7 +310,8 @@ const HovercardArrow = styled('span')`
   }
   &::after {
     border: 10px solid transparent;
-    border-${getTipDirection}-color: ${p => p.tipColor || getTipColor(p)};
+    border-${getTipDirection}-color: ${p =>
+  p.tipColor || (p.placement === 'bottom' ? p.theme.gray100 : p.theme.white)};
   }
 `;
 
