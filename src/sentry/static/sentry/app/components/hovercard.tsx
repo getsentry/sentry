@@ -273,6 +273,7 @@ const Body = styled('div')`
 `;
 
 type HovercardArrowProps = {placement: Direction; tipColor?: string};
+
 const HovercardArrow = styled('span')<HovercardArrowProps>`
   position: absolute;
   width: 20px;
