@@ -224,6 +224,7 @@ class BaseTestCase(Fixtures, Exam):
             )
         # Save the session values.
         self.save_session()
+        time.sleep(5)
 
     def load_fixture(self, filepath):
         filepath = os.path.join(MODULE_ROOT, os.pardir, os.pardir, "tests", "fixtures", filepath)
