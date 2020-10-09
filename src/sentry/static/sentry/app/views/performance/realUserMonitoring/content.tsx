@@ -13,9 +13,11 @@ import {Organization, Project} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import {decodeScalar} from 'app/utils/queryString';
 import SearchBar from 'app/views/events/searchBar';
+import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 
 import TransactionVitals from './transactionVitals';
 import TransactionHeader, {Tab} from '../transactionSummary/header';
+import {FILTER_OPTIONS} from './constants';
 
 type Props = {
   location: Location;
@@ -77,10 +79,32 @@ class RumContent extends React.Component<Props, State> {
     });
   };
 
+  getActiveFilter() {
+    const {location} = this.props;
+
+    const dataFilter = location.query.dataFilter
+      ? decodeScalar(location.query.dataFilter)
+      : FILTER_OPTIONS[0].value;
+    return FILTER_OPTIONS.find(item => item.value === dataFilter) || FILTER_OPTIONS[0];
+  }
+
+  handleFilterChange = (value: string) => {
+    const {location} = this.props;
+    browserHistory.push({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        cursor: undefined,
+        dataFilter: value,
+      },
+    });
+  };
+
   render() {
     const {transactionName, location, eventView, projects, organization} = this.props;
     const {incompatibleAlertNotice} = this.state;
     const query = decodeScalar(location.query.query) || '';
+    const activeFilter = this.getActiveFilter();
 
     const isZoomed =
       decodeScalar(location.query.startMeasurements) !== undefined ||
@@ -110,6 +134,21 @@ class RumContent extends React.Component<Props, State> {
                 fields={eventView.fields}
                 onSearch={this.handleSearch}
               />
+              <DropdownControl
+                buttonProps={{prefix: t('Filter')}}
+                label={activeFilter.label}
+              >
+                {FILTER_OPTIONS.map(({label, value}) => (
+                  <DropdownItem
+                    key={value}
+                    onSelect={this.handleFilterChange}
+                    eventKey={value}
+                    isActive={value === activeFilter.value}
+                  >
+                    {label}
+                  </DropdownItem>
+                ))}
+              </DropdownControl>
               <Button
                 onClick={this.handleResetView}
                 disabled={!isZoomed}
@@ -122,6 +161,7 @@ class RumContent extends React.Component<Props, State> {
               organization={organization}
               location={location}
               eventView={eventView}
+              dataFilter={activeFilter.value}
             />
           </Layout.Main>
         </Layout.Body>
@@ -137,7 +177,7 @@ const StyledSearchBar = styled(SearchBar)`
 const StyledActions = styled('div')`
   display: grid;
   grid-gap: ${space(2)};
-  grid-template-columns: auto max-content;
+  grid-template-columns: auto max-content max-content;
   align-items: center;
   margin-bottom: ${space(3)};
 `;

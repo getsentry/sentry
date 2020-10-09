@@ -1,5 +1,6 @@
 import {t} from 'app/locale';
 import {WebVital, measurementType} from 'app/utils/discover/fields';
+import {SelectValue} from 'app/types';
 
 import {Vital} from './types';
 
@@ -43,3 +44,8 @@ export const WEB_VITAL_DETAILS: Record<WebVital, Vital> = {
     type: measurementType(WebVital.FID),
   },
 };
+
+export const FILTER_OPTIONS: SelectValue<string>[] = [
+  {label: t('Exclude Outliers'), value: 'exclude_outliers'},
+  {label: t('View All'), value: 'all'},
+];
