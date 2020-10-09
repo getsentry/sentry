@@ -4,16 +4,25 @@ import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
 
+import {Organization} from 'app/types';
 import BarChart from 'app/components/charts/barChart';
 import BarChartZoom from 'app/components/charts/barChartZoom';
 import MarkArea from 'app/components/charts/components/markArea';
 import MarkLine from 'app/components/charts/components/markLine';
 import MarkPoint from 'app/components/charts/components/markPoint';
+import DiscoverButton from 'app/components/discoverButton';
 import Tag from 'app/components/tag';
 import {FIRE_SVG_PATH} from 'app/icons/iconFire';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {formatFloat, getDuration} from 'app/utils/formatters';
+import EventView from 'app/utils/discover/eventView';
+import {
+  formatAbbreviatedNumber,
+  formatFloat,
+  formatPercentage,
+  getDuration,
+} from 'app/utils/formatters';
+import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import theme from 'app/utils/theme';
 
 import {NUM_BUCKETS} from './constants';
@@ -23,12 +32,16 @@ import {findNearestBucketIndex, getRefRect, asPixelRect, mapPoint} from './utils
 
 type Props = {
   location: Location;
+  organization: Organization;
   isLoading: boolean;
   error: boolean;
   vital: Vital;
   summary: number | null;
   chartData: HistogramData[];
   colors: [string];
+  eventView: EventView;
+  min?: string;
+  max?: string;
 };
 
 type State = {
@@ -85,9 +98,52 @@ class VitalCard extends React.Component<Props, State> {
     return {...prevState};
   }
 
+  getFormattedStatNumber() {
+    const {isLoading, error, summary, vital} = this.props;
+    const {type} = vital;
+
+    return isLoading || error || summary === null
+      ? '\u2014'
+      : type === 'duration'
+      ? getDuration(summary / 1000, 2, true)
+      : formatFloat(summary, 2);
+  }
+
   renderSummary() {
-    const {isLoading, error, summary, vital, colors} = this.props;
-    const {slug, name, description, failureThreshold, type} = vital;
+    const {
+      isLoading,
+      error,
+      summary,
+      vital,
+      colors,
+      eventView,
+      organization,
+      min,
+      max,
+    } = this.props;
+    const {slug, name, description, failureThreshold} = vital;
+
+    const column = `measurements.${slug}`;
+
+    const newEventView = eventView
+      .withColumns([
+        {kind: 'field', field: 'transaction'},
+        {kind: 'field', field: `user.display`},
+        {kind: 'field', field: column},
+      ])
+      .withSorts([{kind: 'desc', field: column}]);
+
+    // add in any range constraints if any
+    if (min !== undefined || max !== undefined) {
+      const query = tokenizeSearch(newEventView.query ?? '');
+      if (min !== undefined) {
+        query.addTagValues(column, [`>=${min}`]);
+      }
+      if (max !== undefined) {
+        query.addTagValues(column, [`<=${max}`]);
+      }
+      newEventView.query = stringifyQueryObject(query);
+    }
 
     return (
       <CardSummary>
@@ -100,14 +156,14 @@ class VitalCard extends React.Component<Props, State> {
             <StyledTag color={theme.red400}>{t('fail')}</StyledTag>
           )}
         </CardSectionHeading>
-        <StatNumber>
-          {isLoading || error || summary === null
-            ? '\u2014'
-            : type === 'duration'
-            ? getDuration(summary / 1000, 2, true)
-            : formatFloat(summary, 2)}
-        </StatNumber>
+        <StatNumber>{this.getFormattedStatNumber()}</StatNumber>
         <Description>{description}</Description>
+        <DiscoverButton
+          size="small"
+          to={newEventView.getResultsViewUrlTarget(organization.slug)}
+        >
+          {t('Open in Discover')}
+        </DiscoverButton>
       </CardSummary>
     );
   }
@@ -152,7 +208,6 @@ class VitalCard extends React.Component<Props, State> {
         margin: 20,
       },
       axisTick: {
-        interval: 0,
         alignWithLabel: true,
       },
     };
@@ -160,7 +215,14 @@ class VitalCard extends React.Component<Props, State> {
     const values = series.data.map(point => point.value);
     const max = values.length ? Math.max(...values) : undefined;
 
-    const yAxis = {type: 'value', max};
+    const yAxis = {
+      type: 'value',
+      max,
+      axisLabel: {
+        color: theme.gray400,
+        formatter: formatAbbreviatedNumber,
+      },
+    };
 
     return (
       <BarChartZoom
@@ -244,7 +306,7 @@ class VitalCard extends React.Component<Props, State> {
     }
 
     const summaryBucket = findNearestBucketIndex(chartData, this.bucketWidth(), summary);
-    if (summaryBucket === null) {
+    if (summaryBucket === null || summaryBucket === -1) {
       return;
     }
 
@@ -283,8 +345,23 @@ class VitalCard extends React.Component<Props, State> {
         color: theme.gray700,
         type: 'solid',
       },
-      silent: true,
     });
+
+    // TODO(tonyx): This conflicts with the types declaration of `MarkLine`
+    // if we add it in the constructor. So we opt to add it here so typescript
+    // doesn't complain.
+    series.markLine.tooltip = {
+      formatter: () => {
+        return [
+          '<div class="tooltip-series tooltip-series-solo">',
+          '<span class="tooltip-label">',
+          `<strong>${t('Baseline')}</strong>`,
+          '</span>',
+          '</div>',
+          '<div class="tooltip-arrow"></div>',
+        ].join('');
+      },
+    };
   }
 
   drawFailRegion(series) {
@@ -294,7 +371,7 @@ class VitalCard extends React.Component<Props, State> {
       return;
     }
 
-    const failureBucket = findNearestBucketIndex(
+    let failureBucket = findNearestBucketIndex(
       chartData,
       this.bucketWidth(),
       failureThreshold
@@ -302,6 +379,7 @@ class VitalCard extends React.Component<Props, State> {
     if (failureBucket === null) {
       return;
     }
+    failureBucket = failureBucket === -1 ? 0 : failureBucket;
 
     // since we found the failure bucket, the failure threshold is
     // visible on the graph, so let's draw the fail region
@@ -332,8 +410,24 @@ class VitalCard extends React.Component<Props, State> {
         borderWidth: 1.5,
         borderType: 'dashed',
       },
-      silent: true,
     });
+
+    // TODO(tonyx): This conflicts with the types declaration of `MarkArea`
+    // if we add it in the constructor. So we opt to add it here so typescript
+    // doesn't complain.
+    series.markArea.tooltip = {
+      formatter: () =>
+        [
+          '<div class="tooltip-series tooltip-series-solo">',
+          '<span class="tooltip-label">',
+          '<strong>',
+          t('Fails threshold at %s.', getDuration(failureThreshold / 1000)),
+          '</strong>',
+          '</span>',
+          '</div>',
+          '<div class="tooltip-arrow"></div>',
+        ].join(''),
+    };
 
     const topRightPixel = mapPoint(
       {
@@ -355,7 +449,25 @@ class VitalCard extends React.Component<Props, State> {
       symbol: `path://${FIRE_SVG_PATH}`,
       symbolKeepAspect: true,
       symbolSize: [14, 16],
+      label: {
+        formatter: `~${formatPercentage(this.approxFailureRate(failureBucket), 0)}`,
+        position: 'left',
+      },
     });
+  }
+
+  approxFailureRate(failureIndex) {
+    const {chartData} = this.props;
+
+    const failures = chartData
+      .slice(failureIndex)
+      .reduce((sum, data) => sum + data.count, 0);
+    const total = chartData.reduce((sum, data) => sum + data.count, 0);
+    if (total === 0) {
+      return 0;
+    }
+
+    return failures / total;
   }
 
   render() {

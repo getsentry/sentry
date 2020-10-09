@@ -10,7 +10,12 @@ import Tooltip from 'app/components/tooltip';
 import {IconDelete, IconFlag, IconSettings, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {IntegrationProvider, Integration, Organization, ObjectStatus} from 'app/types';
+import {
+  IntegrationProvider,
+  IntegrationWithConfig,
+  Organization,
+  ObjectStatus,
+} from 'app/types';
 import {SingleIntegrationEvent} from 'app/utils/integrationUtil';
 import theme from 'app/utils/theme';
 
@@ -22,10 +27,10 @@ const CONFIGURABLE_FEATURES = ['commits', 'alert-rule'];
 export type Props = {
   organization: Organization;
   provider: IntegrationProvider;
-  integration: Integration;
-  onRemove: (integration: Integration) => void;
-  onDisable: (integration: Integration) => void;
-  onReAuthIntegration: (integration: Integration) => void;
+  integration: IntegrationWithConfig;
+  onRemove: (integration: IntegrationWithConfig) => void;
+  onDisable: (integration: IntegrationWithConfig) => void;
+  onReAuthIntegration: (integration: IntegrationWithConfig) => void;
   trackIntegrationEvent: (
     options: Pick<SingleIntegrationEvent, 'eventKey' | 'eventName'>
   ) => void; //analytics callback
@@ -50,7 +55,7 @@ export default class InstalledIntegration extends React.Component<Props> {
     );
   }
 
-  handleReAuthIntegration = (integration: Integration) => {
+  handleReAuthIntegration = (integration: IntegrationWithConfig) => {
     this.props.onReAuthIntegration(integration);
   };
 
@@ -61,7 +66,7 @@ export default class InstalledIntegration extends React.Component<Props> {
     });
   };
 
-  getRemovalBodyAndText(aspects: Integration['provider']['aspects']) {
+  getRemovalBodyAndText(aspects: IntegrationWithConfig['provider']['aspects']) {
     if (aspects && aspects.removal_dialog) {
       return {
         body: aspects.removal_dialog.body,
@@ -77,7 +82,7 @@ export default class InstalledIntegration extends React.Component<Props> {
     }
   }
 
-  handleRemove(integration: Integration) {
+  handleRemove(integration: IntegrationWithConfig) {
     this.props.onRemove(integration);
     this.props.trackIntegrationEvent({
       eventKey: 'integrations.uninstall_completed',

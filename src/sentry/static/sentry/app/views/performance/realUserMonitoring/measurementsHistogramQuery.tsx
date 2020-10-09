@@ -27,6 +27,7 @@ type MeasurementsData = {
   numBuckets: number;
   min?: string;
   max?: string;
+  dataFilter?: string;
 };
 
 type RequestProps = DiscoverQueryProps & MeasurementsData;
@@ -40,13 +41,13 @@ type Props = RequestProps & {
 };
 
 function getMeasurementsHistogramRequestPayload(props: any) {
-  const {eventView, location} = props;
-  const {measurements, numBuckets, min, max} = props;
+  const {measurements, numBuckets, min, max, dataFilter, eventView, location} = props;
   const baseApiPayload = {
     measurement: measurements,
     num_buckets: numBuckets,
     min,
     max,
+    dataFilter,
   };
   const additionalApiPayload = omit(eventView.getEventsAPIPayload(location), [
     'field',

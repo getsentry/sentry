@@ -103,7 +103,7 @@ if (env.SENTRY_EXTRACT_TRANSLATIONS === '1') {
  *
  * A plugin is used to remove the locale chunks from the app entry's chunk
  * dependency list, so that our compiled bundle does not expect that *all*
- * locale chunks must be loadd
+ * locale chunks must be loaded
  */
 const localeCatalogPath = path.join(
   __dirname,
@@ -518,7 +518,7 @@ const minificationPlugins = [
 
 if (IS_PRODUCTION) {
   // NOTE: can't do plugins.push(Array) because webpack/webpack#2217
-  minificationPlugins.forEach(function(plugin) {
+  minificationPlugins.forEach(function (plugin) {
     appConfig.plugins.push(plugin);
   });
 }

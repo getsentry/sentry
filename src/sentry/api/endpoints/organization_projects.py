@@ -5,27 +5,18 @@ import six
 from django.db.models import Q
 from rest_framework.response import Response
 
-from sentry.api.base import DocSection, EnvironmentMixin
+from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import ProjectSummarySerializer
 from sentry.models import Project, ProjectStatus, Team
 from sentry.search.utils import tokenize_query
-from sentry.utils.apidocs import scenario, attach_scenarios
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', '14d', and '30d'"
 
 
-@scenario("ListOrganizationProjects")
-def list_organization_projects_scenario(runner):
-    runner.request(method="GET", path="/organizations/%s/projects/" % runner.org.slug)
-
-
 class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
-    doc_section = DocSection.ORGANIZATIONS
-
-    @attach_scenarios([list_organization_projects_scenario])
     def get(self, request, organization):
         """
         List an Organization's Projects

@@ -298,7 +298,7 @@ class ParseSearchQueryTest(unittest.TestCase):
     def test_invalid_date_formats(self):
         invalid_queries = ["first_seen:hello", "first_seen:123", "first_seen:2018-01-01T00:01ZZ"]
         for invalid_query in invalid_queries:
-            with self.assertRaisesRegexp(InvalidSearchQuery, "Invalid format for date search"):
+            with self.assertRaisesRegexp(InvalidSearchQuery, "Invalid format for date field"):
                 parse_search_query(invalid_query)
 
     def test_specific_time_filter(self):
@@ -594,6 +594,38 @@ class ParseSearchQueryTest(unittest.TestCase):
             ),
         ]
 
+    def test_boolean_filter(self):
+        truthy = ("true", "TRUE", "1")
+        for val in truthy:
+            assert parse_search_query("stack.in_app:{}".format(val)) == [
+                SearchFilter(
+                    key=SearchKey(name="stack.in_app"),
+                    operator="=",
+                    value=SearchValue(raw_value=1),
+                )
+            ]
+        falsey = ("false", "FALSE", "0")
+        for val in falsey:
+            assert parse_search_query("stack.in_app:{}".format(val)) == [
+                SearchFilter(
+                    key=SearchKey(name="stack.in_app"),
+                    operator="=",
+                    value=SearchValue(raw_value=0),
+                )
+            ]
+
+        assert parse_search_query("!stack.in_app:false") == [
+            SearchFilter(
+                key=SearchKey(name="stack.in_app"), operator="=", value=SearchValue(raw_value=1),
+            )
+        ]
+
+    def test_invalid_boolean_filter(self):
+        invalid_queries = ["stack.in_app:lol", "stack.in_app:123", "stack.in_app:>true"]
+        for invalid_query in invalid_queries:
+            with self.assertRaisesRegexp(InvalidSearchQuery, "Invalid format for boolean field"):
+                parse_search_query(invalid_query)
+
     def test_numeric_filter(self):
         # Numeric format should still return a string if field isn't
         # allowed
@@ -608,7 +640,7 @@ class ParseSearchQueryTest(unittest.TestCase):
     def test_invalid_numeric_fields(self):
         invalid_queries = ["project.id:one", "issue.id:two", "transaction.duration:>hotdog"]
         for invalid_query in invalid_queries:
-            with self.assertRaisesRegexp(InvalidSearchQuery, "Invalid format for numeric search"):
+            with self.assertRaisesRegexp(InvalidSearchQuery, "Invalid format for numeric field"):
                 parse_search_query(invalid_query)
 
     def test_duration_on_non_duration_field(self):
@@ -936,6 +968,19 @@ class ParseBooleanSearchQueryTest(TestCase):
     def test_single_term(self):
         result = get_filter("user.email:foo@example.com")
         assert result.conditions == [self.ofoo]
+
+    def test_wildcard_array_field(self):
+        _filter = get_filter("error.value:Deadlock* OR !stack.filename:*.py")
+        assert _filter.conditions == [
+            [
+                _or(
+                    ["like", ["error.value", "Deadlock%"]], ["notLike", ["stack.filename", "%.py"]],
+                ),
+                "=",
+                1,
+            ]
+        ]
+        assert _filter.filter_keys == {}
 
     def test_order_of_operations(self):
         result = get_filter(
@@ -1756,10 +1801,10 @@ class GetSnubaQueryArgsTest(TestCase):
         assert "cancelled," in six.text_type(err)
 
     def test_error_handled(self):
-        result = get_filter("error.handled:1")
+        result = get_filter("error.handled:true")
         assert result.conditions == [[["isHandled", []], "=", 1]]
 
-        result = get_filter("error.handled:0")
+        result = get_filter("error.handled:false")
         assert result.conditions == [[["notHandled", []], "=", 1]]
 
         result = get_filter("has:error.handled")
@@ -1768,15 +1813,20 @@ class GetSnubaQueryArgsTest(TestCase):
         result = get_filter("!has:error.handled")
         assert result.conditions == [[["isHandled", []], "=", 0]]
 
+        result = get_filter("!error.handled:true")
+        assert result.conditions == [[["notHandled", []], "=", 1]]
+
+        result = get_filter("!error.handled:false")
+        assert result.conditions == [[["isHandled", []], "=", 1]]
+
+        result = get_filter("!error.handled:0")
+        assert result.conditions == [[["isHandled", []], "=", 1]]
+
         with pytest.raises(InvalidSearchQuery):
             get_filter("error.handled:99")
 
-        # Numeric fields can't be negated.
         with pytest.raises(InvalidSearchQuery):
-            get_filter("!error.handled:0")
-
-        with pytest.raises(InvalidSearchQuery):
-            get_filter("!error.handled:1")
+            get_filter("error.handled:nope")
 
     def test_function_negation(self):
         result = get_filter("!p95():5s")
@@ -2083,7 +2133,7 @@ class ResolveFieldListTest(unittest.TestCase):
             fields = ["percentile(id, 0.75)"]
             resolve_field_list(fields, eventstore.Filter())
         assert (
-            "percentile(id, 0.75): column argument invalid: id is not a duration column"
+            "percentile(id, 0.75): column argument invalid: id is not a numeric column"
             in six.text_type(err)
         )
 
@@ -2419,6 +2469,36 @@ class ResolveFieldListTest(unittest.TestCase):
             ],
         ]
 
+    def test_percentile_shortcuts(self):
+        columns = [
+            "",  # test default value
+            "transaction.duration",
+            "measurements.fp",
+            "measurements.fcp",
+            "measurements.lcp",
+            "measurements.fid",
+            "measurements.bar",
+        ]
+
+        for column in columns:
+            # if no column then use transaction.duration
+            snuba_column = column if column else "transaction.duration"
+            column_alias = column.replace(".", "_")
+
+            fields = [
+                field.format(column)
+                for field in ["p50({})", "p75({})", "p95({})", "p99({})", "p100({})"]
+            ]
+            result = resolve_field_list(fields, eventstore.Filter())
+
+            assert result["aggregations"] == [
+                ["quantile(0.5)", snuba_column, "p50_{}".format(column_alias).strip("_")],
+                ["quantile(0.75)", snuba_column, "p75_{}".format(column_alias).strip("_")],
+                ["quantile(0.95)", snuba_column, "p95_{}".format(column_alias).strip("_")],
+                ["quantile(0.99)", snuba_column, "p99_{}".format(column_alias).strip("_")],
+                ["max", snuba_column, "p100_{}".format(column_alias).strip("_")],
+            ]
+
     def test_rollup_with_unaggregated_fields(self):
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["message"]
@@ -2531,7 +2611,8 @@ class ResolveFieldListTest(unittest.TestCase):
 
 class DefaultFunctionArg(FunctionArg):
     def __init__(self, name, default):
-        super(DefaultFunctionArg, self).__init__(name, has_default=True)
+        super(DefaultFunctionArg, self).__init__(name)
+        self.has_default = True
         self.default = default
 
     def get_default(self, params):

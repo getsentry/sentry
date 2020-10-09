@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
@@ -9,8 +8,6 @@ from sentry.api.paginator import OffsetPaginator
 
 
 class CommitFileChangeEndpoint(OrganizationReleasesBaseEndpoint):
-    doc_section = DocSection.RELEASES
-
     def get(self, request, organization, version):
         """
         Retrieve Files Changed in a Release's Commits

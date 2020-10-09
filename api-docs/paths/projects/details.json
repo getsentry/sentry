@@ -221,23 +221,19 @@
             "properties": {
               "name": {
                 "type": "string",
-                "description": "The new name for the project.",
-                "example": "Plane Proxy"
+                "description": "The new name for the project."
               },
               "slug": {
                 "type": "string",
-                "description": "The new slug for the project.",
-                "example": "plane-proxy"
+                "description": "The new slug for the project."
               },
               "team": {
                 "type": "string",
-                "description": "The slug of new team for the project. Note, will be deprecated soon when multiple teams can have access to a project.",
-                "example": "the-inflated-philosophers"
+                "description": "The slug of new team for the project. Note, will be deprecated soon when multiple teams can have access to a project."
               },
               "platform": {
                 "type": "string",
-                "description": "The new platform for the project.",
-                "example": "javascript"
+                "description": "The new platform for the project."
               },
               "isBookmarked": {
                 "type": "boolean",
@@ -256,7 +252,8 @@
           "example": {
             "name": "Plane Proxy",
             "platform": "javascript",
-            "slug": "plane-proxy"
+            "slug": "plane-proxy",
+            "team": "the-inflated-philosophers"
           }
         }
       },

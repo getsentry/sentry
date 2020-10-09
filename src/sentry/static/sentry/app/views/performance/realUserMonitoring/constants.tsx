@@ -1,6 +1,8 @@
 import {t} from 'app/locale';
+import {WebVital, measurementType} from 'app/utils/discover/fields';
+import {SelectValue} from 'app/types';
 
-import {Vital, WebVital} from './types';
+import {Vital} from './types';
 
 export const NUM_BUCKETS = 100;
 
@@ -12,7 +14,7 @@ export const WEB_VITAL_DETAILS: Record<WebVital, Vital> = {
     name: t('First Paint'),
     description: t('Render time of the first pixel loaded in the viewport.'),
     failureThreshold: 4000,
-    type: 'duration',
+    type: measurementType(WebVital.FP),
   },
   [WebVital.FCP]: {
     slug: 'fcp',
@@ -21,7 +23,7 @@ export const WEB_VITAL_DETAILS: Record<WebVital, Vital> = {
       'Render time of the first image, text or other DOM node in the viewport.'
     ),
     failureThreshold: 4000,
-    type: 'duration',
+    type: measurementType(WebVital.FCP),
   },
   [WebVital.LCP]: {
     slug: 'lcp',
@@ -30,7 +32,7 @@ export const WEB_VITAL_DETAILS: Record<WebVital, Vital> = {
       'Render time of the largest image, text or other DOM node in the viewport.'
     ),
     failureThreshold: 4000,
-    type: 'duration',
+    type: measurementType(WebVital.LCP),
   },
   [WebVital.FID]: {
     slug: 'fid',
@@ -39,6 +41,11 @@ export const WEB_VITAL_DETAILS: Record<WebVital, Vital> = {
       'Response time of the browser to a user interaction (clicking, tapping, etc).'
     ),
     failureThreshold: 300,
-    type: 'duration',
+    type: measurementType(WebVital.FID),
   },
 };
+
+export const FILTER_OPTIONS: SelectValue<string>[] = [
+  {label: t('Exclude Outliers'), value: 'exclude_outliers'},
+  {label: t('View All'), value: 'all'},
+];

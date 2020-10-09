@@ -13,7 +13,7 @@ import {Props as AlertProps} from 'app/components/alert';
 import {Query as DiscoverQuery} from 'app/views/discover/types';
 import {SymbolicatorStatus} from 'app/components/events/interfaces/types';
 
-import {Stacktrace, RawStacktrace, Mechanism} from './stacktrace';
+import {StacktraceType, RawStacktrace, Mechanism} from './stacktrace';
 
 declare global {
   interface Window {
@@ -195,14 +195,17 @@ export type Project = {
   hasAccess: boolean;
   firstEvent: 'string' | null;
   firstTransactionEvent: boolean;
+  subjectTemplate: string;
+  digestsMaxDelay: number;
+  digestsMinDelay: number;
 
   // XXX: These are part of the DetailedProject serializer
   plugins: Plugin[];
   processingIssues: number;
   relayPiiConfig: string;
+  latestDeploys: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
   builtinSymbolSources?: string[];
   stats?: Array<[number, number]>;
-  latestDeploys: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
 } & AvatarProject;
 
 export type MinimalProject = Pick<Project, 'id' | 'slug'>;
@@ -318,6 +321,8 @@ type SDKUpdatesSuggestion =
   | UpdateSdkSuggestion
   | ChangeSdkSuggestion;
 
+type Measurement = {value: number};
+
 type SentryEventBase = {
   id: string;
   eventID: string;
@@ -367,6 +372,8 @@ type SentryEventBase = {
   };
 
   sdkUpdates?: Array<SDKUpdatesSuggestion>;
+
+  measurements?: Record<string, Measurement>;
 };
 
 export type SentryTransactionEvent = {
@@ -509,13 +516,13 @@ export type PluginNoProject = {
   status: string;
   assets: any[]; // TODO(ts)
   doc: string;
-  version?: string;
-  author?: {name: string; url: string};
-  isHidden: boolean;
-  description?: string;
-  resourceLinks?: Array<{title: string; url: string}>;
   features: string[];
   featureDescriptions: IntegrationFeature[];
+  isHidden: boolean;
+  version?: string;
+  author?: {name: string; url: string};
+  description?: string;
+  resourceLinks?: Array<{title: string; url: string}>;
 };
 
 export type Plugin = PluginNoProject & {
@@ -613,6 +620,8 @@ export type Authenticator = {
    * Description of the authenticator
    */
   description: string;
+
+  challenge?: Record<string, any>;
 } & Partial<EnrolledAuthenticator>;
 
 export type EnrolledAuthenticator = {
@@ -901,8 +910,8 @@ export type Integration = {
   accountType: string;
   status: ObjectStatus;
   provider: BaseIntegrationProvider & {aspects: IntegrationAspects};
-  configOrganization: Field[];
-  //TODO(ts): This includes the initial data that is passed into the integration's configuration form
+  //TODO(Steve): move configData to IntegrationWithConfig when we no longer check
+  //for workspace apps
   configData: object & {
     //installationType is only for Slack migration and can be removed after migrations are done
     installationType?:
@@ -916,6 +925,11 @@ export type Integration = {
       instructions: string[];
     };
   };
+};
+
+// we include the configOrganization when we need it
+export type IntegrationWithConfig = Integration & {
+  configOrganization: Field[];
 };
 
 export type IntegrationExternalIssue = {
@@ -1310,13 +1324,6 @@ export type TagWithTopValues = {
   canDelete: boolean;
 };
 
-export type Measurement = {
-  name: string;
-  key: string;
-};
-
-export type MeasurementCollection = {[key: string]: Measurement};
-
 export type Level = 'error' | 'fatal' | 'info' | 'warning' | 'sample';
 
 export type Meta = {
@@ -1530,9 +1537,9 @@ export type FilesByRepository = {
 export type ExceptionType = {
   type: string;
   value: string;
-  stacktrace: Stacktrace;
+  stacktrace: StacktraceType;
   rawStacktrace: RawStacktrace;
   mechanism: Mechanism | null;
   module: string | null;
-  threadId: string | null;
+  threadId: number | null;
 };
