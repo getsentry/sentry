@@ -2341,6 +2341,17 @@ class ResolveFieldListTest(unittest.TestCase):
             in six.text_type(err)
         )
 
+    def test_count_geq_function(self):
+        fields = ["count_geq(measurements.baz, 1000)"]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["aggregations"] == [
+            [
+                "countIf",
+                [["greaterOrEquals", ["measurements.baz", 1000]]],
+                "count_geq_measurements_baz_1000",
+            ]
+        ]
+
     def test_percentile_range(self):
         fields = [
             "percentile_range(transaction.duration, 0.5, 2020-05-01T01:12:34, 2020-05-03T06:48:57, 1)"

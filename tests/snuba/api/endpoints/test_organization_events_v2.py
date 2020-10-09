@@ -2477,6 +2477,21 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                     == "You can view up to 20 fields at a time. Please delete some and try again."
                 )
 
+    def test_count_geq_query(self):
+        self.store_event(self.transaction_data, self.project.id)
+
+        response = self.do_request({"field": "count_geq(measurements.fcp, {})".format(0)})
+        assert response.status_code == 200
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["count_geq_measurements_fcp_0"] == 1
+
+        # an value that's a little bigger than the stored fcp
+        fcp = int(self.transaction_data["measurements"]["fcp"]["value"] + 1)
+        response = self.do_request({"field": "count_geq(measurements.fcp, {})".format(fcp)})
+        assert response.status_code == 200
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["count_geq_measurements_fcp_{}".format(fcp)] == 0
+
     def test_measurements_query(self):
         self.store_event(self.transaction_data, self.project.id)
         query = {
