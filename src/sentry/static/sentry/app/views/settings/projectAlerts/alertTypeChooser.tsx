@@ -7,7 +7,6 @@ import space from 'app/styles/space';
 import Radio from 'app/components/radio';
 import textStyles from 'app/styles/text';
 import {List, ListItem} from 'app/components/list';
-import FeatureBadge from 'app/components/featureBadge';
 import Tooltip from 'app/components/tooltip';
 import Feature from 'app/components/acl/feature';
 import {Organization} from 'app/types';
@@ -65,7 +64,6 @@ const TypeChooser = ({onChange, organization, selected}: Props) => {
             onChange={() => trackedOnChange('metric')}
           />
           {t('Metric Alert')}
-          <FeatureBadge type="beta" />
         </RadioLabel>
         <Feature requireAll features={['organizations:performance-view']}>
           {({hasFeature}) =>
