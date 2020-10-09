@@ -56,7 +56,7 @@
                 "data": {
                     "reason": "OK",
                     "status_code": 200,
-                    "url": "Http://countries:8000/country/CAN",
+                    "url": "http://countries:8000/country/CAN",
                     "method": "GET"
                 }
          }
@@ -120,7 +120,7 @@
             "a7d67cf796774551a95be6543cacd459-8988cec7cc0779c1-1"
          ],
          [
-            "User-Agent",
+          "User-Agent",
 	    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:81.0) Gecko/20100101 Firefox/81.0"
          ]
       ],
