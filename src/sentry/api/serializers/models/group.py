@@ -103,14 +103,12 @@ class GroupSerializerBase(Serializer):
                 item["last_seen"] is not None and last_seen > item["last_seen"]
             ):
                 last_seen = item["last_seen"]
-        if last_seen is not None:
-            last_seen = last_seen - timedelta(days=1)
 
         if last_seen is None:
             start = datetime.now(pytz.utc) - timedelta(days=30)
         else:
             start = max(
-                min(last_seen, datetime.now(pytz.utc) - timedelta(days=14)),
+                min(last_seen - timedelta(days=1), datetime.now(pytz.utc) - timedelta(days=14)),
                 datetime.now(pytz.utc) - timedelta(days=90),
             )
 
