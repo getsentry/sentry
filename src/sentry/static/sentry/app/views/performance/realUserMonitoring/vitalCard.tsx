@@ -32,6 +32,7 @@ type Props = {
   error: boolean;
   vital: Vital;
   summary: number | null;
+  failureRate: number | null;
   chartData: HistogramData[];
   colors: [string];
   eventView: EventView;
@@ -353,9 +354,13 @@ class VitalCard extends React.Component<Props, State> {
   }
 
   drawFailRegion(series) {
-    const {chartData, vital} = this.props;
+    const {chartData, vital, failureRate} = this.props;
     const {failureThreshold} = vital;
-    if (this.state.refDataRect === null || this.state.refPixelRect === null) {
+    if (
+      this.state.refDataRect === null ||
+      this.state.refPixelRect === null ||
+      failureRate === null
+    ) {
       return;
     }
 
@@ -438,7 +443,7 @@ class VitalCard extends React.Component<Props, State> {
       symbolKeepAspect: true,
       symbolSize: [14, 16],
       label: {
-        formatter: `~${formatPercentage(this.approxFailureRate(failureBucket), 0)}`,
+        formatter: `~${formatPercentage(failureRate, 0)}`,
         position: 'left',
       },
     });

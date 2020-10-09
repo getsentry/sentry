@@ -51,21 +51,31 @@ class TransactionVitals extends React.Component<Props> {
                 {results => (
                   <React.Fragment>
                     {vitals.map((vital, index) => {
+                      const details = WEB_VITAL_DETAILS[vital];
                       const error =
                         summaryResults.error !== null || results.error !== null;
-                      const alias = getAggregateAlias(
+                      const percentile_alias = getAggregateAlias(
                         `percentile(${vital}, ${PERCENTILE})`
                       );
-                      const summary =
-                        summaryResults.tableData?.data?.[0]?.[alias] ?? null;
+                      const count_alias = getAggregateAlias(`count_geq(${vital}, 0)`);
+                      const failed_alias = getAggregateAlias(
+                        `count_geq(${vital}, ${details.failureThreshold})`
+                      );
+                      const data = summaryResults.tableData?.data?.[0];
+                      const summary = (data?.[percentile_alias] ?? null) as number | null;
+                      const numerator = (data?.[failed_alias] ?? 0) as number;
+                      const denominator = (data?.[count_alias] ?? 0) as number;
+                      const failureRate =
+                        denominator <= 0 ? null : numerator / denominator;
                       return (
                         <VitalCard
                           key={vital}
                           location={location}
                           isLoading={summaryResults.isLoading || results.isLoading}
                           error={error}
-                          vital={WEB_VITAL_DETAILS[vital]}
-                          summary={summary as number | null}
+                          vital={details}
+                          summary={summary}
+                          failureRate={failureRate}
                           chartData={results.histograms[vital] ?? []}
                           colors={[colors[index]]}
                           eventView={eventView}

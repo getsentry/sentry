@@ -2364,7 +2364,7 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["aggregations"] == [
             [
                 "abs",
-                [["corr", [["toUnixTimestamp", ["timestamp"], "duration"]]]],
+                [["corr", [["toUnixTimestamp", ["timestamp"]], "duration"]]],
                 u"absolute_correlation",
             ]
         ]

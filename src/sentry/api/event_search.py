@@ -1701,7 +1701,7 @@ FUNCTIONS = {
             result_type="integer",
         ),
         Function(
-            "count_greater",
+            "count_geq",
             required_args=[NumericColumnNoLookup("column"), NumberRange("threshold", 0, None)],
             aggregate=[
                 "countIf",
@@ -1817,7 +1817,11 @@ FUNCTIONS = {
         ),
         Function(
             "absolute_correlation",
-            aggregate=["abs", [["corr", [["toUnixTimestamp", ["timestamp"], "duration"]]]], None],
+            aggregate=[
+                "abs",
+                [["corr", [["toUnixTimestamp", ["timestamp"]], "transaction.duration"]]],
+                None,
+            ],
             result_type="number",
         ),
     ]
