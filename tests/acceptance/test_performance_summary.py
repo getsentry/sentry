@@ -65,7 +65,7 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
 
         event = make_event(
-            load_data("transaction", timestamp=before_now(minutes=1), trace="a" * 32)
+            load_data("transaction", timestamp=before_now(minutes=1), trace="a" * 32, span="ab" * 8)
         )
         self.store_event(data=event, project_id=self.project.id)
 

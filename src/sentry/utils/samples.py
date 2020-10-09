@@ -103,7 +103,13 @@ def generate_user(username=None, email=None, ip_address=None, id=None):
 
 
 def load_data(
-    platform, default=None, sample_name=None, timestamp=None, start_timestamp=None, trace=None
+    platform,
+    default=None,
+    sample_name=None,
+    timestamp=None,
+    start_timestamp=None,
+    trace=None,
+    span=None,
 ):
     # NOTE: Before editing this data, make sure you understand the context
     # in which its being used. It is NOT only used for local development and
@@ -170,7 +176,9 @@ def load_data(
 
         if trace is None:
             trace = uuid4().hex
-        span = uuid4().hex[:16]
+        if span is None:
+            span = uuid4().hex[:16]
+
         for tag in data["tags"]:
             if tag[0] == "trace":
                 tag[1] = trace
