@@ -99,9 +99,7 @@ class GroupSerializerBase(Serializer):
         # Fallback to the 30 days ago if we are not able to calculate the value.
         last_seen = None
         for item in seen_stats.values():
-            if last_seen is None or (
-                item["last_seen"] is not None and last_seen > item["last_seen"]
-            ):
+            if last_seen is None or (item["last_seen"] and last_seen > item["last_seen"]):
                 last_seen = item["last_seen"]
 
         if last_seen is None:
