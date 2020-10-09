@@ -226,6 +226,7 @@ type StyledHovercardProps = {
   placement: Direction;
   offset?: string;
 };
+
 const StyledHovercard = styled('div')<StyledHovercardProps>`
   border-radius: ${p => p.theme.borderRadius};
   text-align: left;
