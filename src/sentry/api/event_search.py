@@ -1398,16 +1398,10 @@ class IntervalDefault(NumberRange):
         return int(interval)
 
 
-def with_default(default):
-    def wrapper(instance):
-        def get_default(_):
-            return default
-
-        instance.has_default = True
-        instance.get_default = get_default
-        return instance
-
-    return wrapper
+def with_default(default, argument):
+    argument.has_default = True
+    argument.get_default = lambda *_: default
+    return argument
 
 
 class Function(object):
@@ -1576,31 +1570,31 @@ FUNCTIONS = {
         ),
         Function(
             "p50",
-            optional_args=[with_default("transaction.duration")(NumericColumnNoLookup("column"))],
+            optional_args=[with_default("transaction.duration", NumericColumnNoLookup("column"))],
             aggregate=[u"quantile(0.5)", ArgValue("column"), None],
             result_type="duration",
         ),
         Function(
             "p75",
-            optional_args=[with_default("transaction.duration")(NumericColumnNoLookup("column"))],
+            optional_args=[with_default("transaction.duration", NumericColumnNoLookup("column"))],
             aggregate=[u"quantile(0.75)", ArgValue("column"), None],
             result_type="duration",
         ),
         Function(
             "p95",
-            optional_args=[with_default("transaction.duration")(NumericColumnNoLookup("column"))],
+            optional_args=[with_default("transaction.duration", NumericColumnNoLookup("column"))],
             aggregate=[u"quantile(0.95)", ArgValue("column"), None],
             result_type="duration",
         ),
         Function(
             "p99",
-            optional_args=[with_default("transaction.duration")(NumericColumnNoLookup("column"))],
+            optional_args=[with_default("transaction.duration", NumericColumnNoLookup("column"))],
             aggregate=[u"quantile(0.99)", ArgValue("column"), None],
             result_type="duration",
         ),
         Function(
             "p100",
-            optional_args=[with_default("transaction.duration")(NumericColumnNoLookup("column"))],
+            optional_args=[with_default("transaction.duration", NumericColumnNoLookup("column"))],
             aggregate=[u"max", ArgValue("column"), None],
             result_type="duration",
         ),
