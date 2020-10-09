@@ -124,6 +124,7 @@ class GroupSerializerBase(Serializer):
             ],
             filter_keys=filter_keys,
             start=start,
+            referrer="group.unhandled-flag",
         )
 
         return dict((x["group_id"], {"unhandled": x["unhandled"]}) for x in rv["data"])
