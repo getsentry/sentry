@@ -352,7 +352,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
     def test_event_detail_view_from_transactions_query(self, mock_now):
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
 
-        event_data = generate_transaction()
+        event_data = generate_transaction(trace="a" * 32)
         self.store_event(data=event_data, project_id=self.project.id, assert_no_errors=True)
 
         # Create a child event that is linked to the parent so we have coverage
@@ -394,7 +394,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
     def test_transaction_event_detail_view_ops_filtering(self, mock_now):
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
 
-        event_data = generate_transaction()
+        event_data = generate_transaction(trace="a" * 32)
         self.store_event(data=event_data, project_id=self.project.id, assert_no_errors=True)
 
         with self.feature(FEATURE_NAMES):
