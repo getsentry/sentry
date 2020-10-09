@@ -1,4 +1,5 @@
 import React from 'react';
+import styled from '@emotion/styled';
 
 import rawStacktraceContent from 'app/components/events/interfaces/rawStacktraceContent';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -6,13 +7,14 @@ import LoadingError from 'app/components/loadingError';
 import ClippedBox from 'app/components/clippedBox';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
+import Button from 'app/components/button';
 import {t} from 'app/locale';
-import {Event, Project, Organization, PlatformType} from 'app/types';
+import {Event, Project, Organization, PlatformType, ExceptionType} from 'app/types';
 import {Client} from 'app/api';
 
 type Props = {
   projectId: Project['id'];
-  values: Array<any>;
+  values: Array<ExceptionType>;
   api: Client;
   type: 'original' | 'minified';
   platform: PlatformType;
@@ -100,12 +102,14 @@ class RawExceptionContent extends React.Component<Props, State> {
         const appleCrashReportEndpoint = this.getAppleCrashReportEndpoint(organization);
 
         downloadButton = (
-          <a
-            href={`${api.baseUrl}${appleCrashReportEndpoint}&download=1`}
-            className="btn btn-default btn-sm pull-right"
-          >
-            {t('Download')}
-          </a>
+          <DownloadBtnWrapper>
+            <Button
+              size="xsmall"
+              href={`${api.baseUrl}${appleCrashReportEndpoint}&download=1`}
+            >
+              {t('Download')}
+            </Button>
+          </DownloadBtnWrapper>
         );
       }
 
@@ -154,7 +158,7 @@ class RawExceptionContent extends React.Component<Props, State> {
     const isNative = this.isNative();
 
     return (
-      <div>
+      <React.Fragment>
         {values.map((exc, excIdx) => {
           const {downloadButton, content} = this.getContent(isNative, exc);
           if (!downloadButton && !content) {
@@ -167,9 +171,15 @@ class RawExceptionContent extends React.Component<Props, State> {
             </div>
           );
         })}
-      </div>
+      </React.Fragment>
     );
   }
 }
 
 export default withApi(withOrganization(RawExceptionContent));
+
+const DownloadBtnWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+`;
