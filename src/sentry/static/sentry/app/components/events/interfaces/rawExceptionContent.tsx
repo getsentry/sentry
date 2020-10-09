@@ -138,10 +138,7 @@ class RawExceptionContent extends React.Component<Props, State> {
 
     try {
       const data = await api.requestPromise(
-        this.getAppleCrashReportEndpoint(organization),
-        {
-          method: 'GET',
-        }
+        this.getAppleCrashReportEndpoint(organization)
       );
       this.setState({
         error: false,
