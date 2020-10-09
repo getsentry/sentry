@@ -1,10 +1,5 @@
 name: openapi-diff
 on:
-  push:
-    branches:
-      - master
-    paths:
-      - 'api-docs/**'
   pull_request:
     paths:
       - 'api-docs/**'
