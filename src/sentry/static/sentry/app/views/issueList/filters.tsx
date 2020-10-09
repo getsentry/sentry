@@ -13,12 +13,12 @@ import IssueListSearchBar from './searchBar';
 import IssueListSortOptions from './sortOptions';
 import SavedSearchSelector from './savedSearchSelector';
 
+type IssueListSearchBarProps = React.ComponentProps<typeof IssueListSearchBar>;
+
 type Props = {
   organization: Organization;
-
   savedSearchList: SavedSearch[];
   savedSearch: SavedSearch;
-
   sort: string;
   query: string;
   isSearchDisabled: boolean;
@@ -30,8 +30,8 @@ type Props = {
   onSidebarToggle: (event: React.MouseEvent) => void;
   onSavedSearchSelect: (search: SavedSearch) => void;
   onSavedSearchDelete: (search: SavedSearch) => void;
-  tagValueLoader: React.ComponentProps<typeof IssueListSearchBar>['tagValueLoader'];
-  tags: NonNullable<React.ComponentProps<typeof IssueListSearchBar>['supportedTags']>;
+  tagValueLoader: IssueListSearchBarProps['tagValueLoader'];
+  tags: NonNullable<IssueListSearchBarProps['supportedTags']>;
 };
 
 class IssueListFilters extends React.Component<Props> {
