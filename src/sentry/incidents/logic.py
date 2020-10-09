@@ -347,6 +347,7 @@ def build_incident_query_params(incident, start=None, end=None, windowed_stats=F
         snuba_query.query,
         snuba_query.aggregate,
         snuba_query.environment,
+        snuba_query.event_types,
         params=params,
     )
 

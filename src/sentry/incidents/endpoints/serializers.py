@@ -358,6 +358,9 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                 data["query"],
                 data["aggregate"],
                 data.get("environment"),
+                # TODO: We'll handle this when we add support for passing these to the
+                # serializer
+                None,
                 params={
                     "project_id": [p.id for p in project_id],
                     "start": timezone.now() - timedelta(minutes=10),
