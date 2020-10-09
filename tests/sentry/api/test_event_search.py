@@ -2004,7 +2004,7 @@ class ResolveFieldListTest(unittest.TestCase):
             "event.type",
             ["coalesce", ["user.email", "user.username", "user.ip"], "user.display"],
         ]
-        assert result["aggregations"] == [["uniq", "title", "count_unique_title"]]
+        assert result["aggregations"] == [["uniq", ["title"], "count_unique_title"]]
         assert result["groupby"] == [
             "event.type",
             ["coalesce", ["user.email", "user.username", "user.ip"], "user.display"],
@@ -2016,7 +2016,7 @@ class ResolveFieldListTest(unittest.TestCase):
         # Automatic fields should be inserted, count() should have its column dropped.
         assert result["selected_columns"] == []
         assert result["aggregations"] == [
-            ["uniq", "user", "count_unique_user"],
+            ["uniq", ["user"], "count_unique_user"],
             ["count", None, "count_id"],
             ["min", "timestamp", "min_timestamp"],
         ]
@@ -2029,7 +2029,7 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["aggregations"] == [
             [
                 "uniq",
-                ["coalesce", ["user.email", "user.username", "user.ip"]],
+                [["coalesce", ["user.email", "user.username", "user.ip"]]],
                 "count_unique_user_display",
             ],
         ]
@@ -2051,7 +2051,7 @@ class ResolveFieldListTest(unittest.TestCase):
         fields = ["count_unique(user.id)"]
         result = resolve_field_list(fields, eventstore.Filter())
         assert result["aggregations"] == [
-            ["uniq", "user.id", "count_unique_user_id"],
+            ["uniq", ["user.id"], "count_unique_user_id"],
         ]
 
     def test_aggregate_function_invalid_name(self):
@@ -2401,7 +2401,7 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["aggregations"] == [
             [
                 "abs",
-                [["corr", [["toUnixTimestamp", ["timestamp"]], "duration"]]],
+                [["corr", [["toUnixTimestamp", ["timestamp"]], "transaction.duration"]]],
                 u"absolute_correlation",
             ]
         ]
@@ -2473,7 +2473,7 @@ class ResolveFieldListTest(unittest.TestCase):
     def test_rollup_with_aggregated_fields(self):
         fields = ["count_unique(user)"]
         result = resolve_field_list(fields, eventstore.Filter(rollup=15))
-        assert result["aggregations"] == [["uniq", "user", "count_unique_user"]]
+        assert result["aggregations"] == [["uniq", ["user"], "count_unique_user"]]
         assert result["selected_columns"] == []
         assert result["groupby"] == []
 
@@ -2511,7 +2511,7 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["orderby"] == ["-count_id"]
         assert result["aggregations"] == [
             ["count", None, "count_id"],
-            ["uniq", "user", "count_unique_user"],
+            ["uniq", ["user"], "count_unique_user"],
         ]
         assert result["groupby"] == []
 

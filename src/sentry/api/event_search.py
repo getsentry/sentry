@@ -1716,7 +1716,7 @@ FUNCTIONS = {
         Function(
             "count_unique",
             optional_args=[CountColumn("column")],
-            aggregate=["uniq", ArgValue("column"), None],
+            aggregate=["uniq", [ArgValue("column")], None],
             result_type="integer",
         ),
         Function(
