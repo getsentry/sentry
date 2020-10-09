@@ -5,11 +5,11 @@ import Line from 'app/components/events/interfaces/frame/line';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import {parseAddress, getImageRange} from 'app/components/events/interfaces/utils';
-import {Stacktrace} from 'app/types/stacktrace';
+import {StacktraceType} from 'app/types/stacktrace';
 import {PlatformType, Event} from 'app/types';
 
 type Props = {
-  data: Stacktrace;
+  data: StacktraceType;
   includeSystemFrames: boolean;
   platform: PlatformType;
   event: Event;

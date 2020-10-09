@@ -13,7 +13,7 @@ import {Props as AlertProps} from 'app/components/alert';
 import {Query as DiscoverQuery} from 'app/views/discover/types';
 import {SymbolicatorStatus} from 'app/components/events/interfaces/types';
 
-import {Stacktrace, RawStacktrace, Mechanism} from './stacktrace';
+import {StacktraceType, RawStacktrace, Mechanism} from './stacktrace';
 
 declare global {
   interface Window {
@@ -1537,7 +1537,7 @@ export type FilesByRepository = {
 export type ExceptionType = {
   type: string;
   value: string;
-  stacktrace: Stacktrace;
+  stacktrace: StacktraceType;
   rawStacktrace: RawStacktrace;
   mechanism: Mechanism | null;
   module: string | null;

@@ -5,15 +5,15 @@ import StacktraceContent from 'app/components/events/interfaces/stacktraceConten
 import {Panel} from 'app/components/panels';
 import {IconWarning} from 'app/icons';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import {Stacktrace, STACK_VIEW} from 'app/types/stacktrace';
+import {StacktraceType, STACK_VIEW} from 'app/types/stacktrace';
 import {PlatformType, Event} from 'app/types';
 
 type Props = {
   stackView: STACK_VIEW;
-  data: Stacktrace | null;
+  data: StacktraceType | null;
   event: Event;
   platform: PlatformType;
-  stacktrace: Stacktrace;
+  stacktrace: StacktraceType;
   chainedException: boolean;
   expandFirstFrame?: boolean;
   newestFirst?: boolean;

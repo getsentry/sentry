@@ -11,14 +11,14 @@ export enum STACK_TYPE {
   MINIFIED = 'minified',
 }
 
-export type Stacktrace = {
+export type StacktraceType = {
   frames: Array<Frame>;
   hasSystemFrames: boolean;
   registers: Record<string, any> | null;
   framesOmitted: any;
 };
 
-export type RawStacktrace = Stacktrace | null;
+export type RawStacktrace = StacktraceType | null;
 
 type MechanismMeta = {
   errno?: {
