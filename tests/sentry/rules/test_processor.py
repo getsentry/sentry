@@ -108,7 +108,7 @@ class RuleProcessorTestFilters(TestCase):
         "tests.sentry.rules.test_processor.MockFilterFalse",
     )
 
-    @patch("sentry.constants.SENTRY_RULES", MOCK_SENTRY_RULES_WITH_FILTERS)
+    @patch("sentry.constants._SENTRY_RULES", MOCK_SENTRY_RULES_WITH_FILTERS)
     def test_filter_passes(self):
         # setup a simple alert rule with 1 condition and 1 filter that always pass
         self.event = self.store_event(data={}, project_id=self.project.id)
@@ -139,7 +139,7 @@ class RuleProcessorTestFilters(TestCase):
             assert futures[0].rule == self.rule
             assert futures[0].kwargs == {}
 
-    @patch("sentry.constants.SENTRY_RULES", MOCK_SENTRY_RULES_WITH_FILTERS)
+    @patch("sentry.constants._SENTRY_RULES", MOCK_SENTRY_RULES_WITH_FILTERS)
     def test_filter_fails(self):
         # setup a simple alert rule with 1 condition and 1 filter that doesn't pass
         self.event = self.store_event(data={}, project_id=self.project.id)
