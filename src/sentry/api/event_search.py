@@ -119,9 +119,10 @@ search               = (boolean_operator / paren_term / search_term)*
 boolean_operator     = spaces (or_operator / and_operator) spaces
 paren_term           = spaces open_paren spaces (paren_term / boolean_operator / search_term)+ spaces closed_paren spaces
 search_term          = key_val_term / quoted_raw_search / raw_search
-key_val_term         = spaces (tag_filter / time_filter / rel_time_filter / specific_time_filter / duration_filter
-                       / numeric_filter / aggregate_filter / aggregate_date_filter / aggregate_rel_date_filter / has_filter
-                       / is_filter / quoted_basic_filter / basic_filter)
+key_val_term         = spaces (tag_filter / time_filter / rel_time_filter / specific_time_filter
+                       / duration_filter / boolean_filter / numeric_filter
+                       / aggregate_filter / aggregate_date_filter / aggregate_rel_date_filter
+                       / has_filter / is_filter / quoted_basic_filter / basic_filter)
                        spaces
 raw_search           = (!key_val_term ~r"\ *(?!(?i)OR)(?!(?i)AND)([^\ ^\n ()]+)\ *" )*
 quoted_raw_search    = spaces quoted_value spaces
@@ -139,6 +140,8 @@ duration_filter      = search_key sep operator? duration_format
 specific_time_filter = search_key sep (date_format / alt_date_format)
 # Numeric comparison filter
 numeric_filter       = search_key sep operator? numeric_value
+# Boolean comparison filter
+boolean_filter       = negation? search_key sep boolean_value
 # Aggregate numeric filter
 aggregate_filter          = negation? aggregate_key sep operator? (numeric_value / duration_format)
 aggregate_date_filter     = negation? aggregate_key sep operator? (date_format / alt_date_format)
@@ -154,6 +157,7 @@ search_key           = key / quoted_key
 search_value         = quoted_value / value
 value                = ~r"[^()\s]*"
 numeric_value        = ~r"[-]?[0-9\.]+(?=\s|\)|$)"
+boolean_value        = ~r"(true|1|false|0)(?=\s|$)"i
 quoted_value         = ~r"\"((?:[^\"]|(?<=\\)[\"])*)?\""s
 key                  = ~r"[a-zA-Z0-9_\.-]+"
 function_arg         = space? key? comma? space?
@@ -283,9 +287,7 @@ class SearchVisitor(NodeVisitor):
             "project_id",
             "project.id",
             "issue.id",
-            "error.handled",
             "stack.colno",
-            "stack.in_app",
             "stack.lineno",
             "stack.stack_level",
             "transaction.duration",
@@ -309,6 +311,7 @@ class SearchVisitor(NodeVisitor):
             "transaction.end_time",
         ]
     )
+    boolean_keys = set(["error.handled", "stack.in_app"])
 
     unwrapped_exceptions = (InvalidSearchQuery,)
 
@@ -393,6 +396,26 @@ class SearchVisitor(NodeVisitor):
             return node.text
 
         return ParenExpression(children)
+
+    def visit_boolean_filter(self, node, children):
+        (negation, search_key, sep, search_value) = children
+        is_negated = self.is_negated(negation)
+
+        # Numeric and boolean filters overlap on 1 and 0 values.
+        if self.is_numeric_key(search_key.name):
+            return self.visit_numeric_filter(node, (search_key, sep, "=", search_value))
+
+        if search_key.name in self.boolean_keys:
+            if search_value.text.lower() in ("true", "1"):
+                search_value = SearchValue(0 if is_negated else 1)
+            elif search_value.text.lower() in ("false", "0"):
+                search_value = SearchValue(1 if is_negated else 0)
+            else:
+                raise InvalidSearchQuery(u"Invalid boolean field: {}".format(search_key))
+            return SearchFilter(search_key, "=", search_value)
+        else:
+            search_value = SearchValue(search_value.text)
+            return self._handle_basic_filter(search_key, "=", search_value)
 
     def visit_numeric_filter(self, node, children):
         (search_key, _, operator, search_value) = children
@@ -584,9 +607,11 @@ class SearchVisitor(NodeVisitor):
         # If a date or numeric key gets down to the basic filter, then it means
         # that the value wasn't in a valid format, so raise here.
         if search_key.name in self.date_keys:
-            raise InvalidSearchQuery("Invalid format for date search")
+            raise InvalidSearchQuery("Invalid format for date field")
+        if search_key.name in self.boolean_keys:
+            raise InvalidSearchQuery("Invalid format for boolean field")
         if self.is_numeric_key(search_key.name):
-            raise InvalidSearchQuery("Invalid format for numeric search")
+            raise InvalidSearchQuery("Invalid format for numeric field")
 
         return SearchFilter(search_key, operator, search_value)
 

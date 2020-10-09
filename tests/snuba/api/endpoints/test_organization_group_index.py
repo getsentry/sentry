@@ -144,7 +144,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
         response = self.get_response(sort_by="date", query="timesSeen:>1k")
         assert response.status_code == 400
-        assert "Invalid format for numeric search" in response.data["detail"]
+        assert "Invalid format for numeric field" in response.data["detail"]
 
     def test_invalid_sort_key(self):
         now = timezone.now()
