@@ -51,13 +51,13 @@ class SeenInfo extends React.Component {
       <div style={{width: '170px'}}>
         <div className="time-label" style={{marginBottom: '10px'}}>
           {title}
+          <br />
+          <DateTime date={date} seconds />
         </div>
         {environment && [
           <React.Fragment key="0">{toTitleCase(environment)}: </React.Fragment>,
           <React.Fragment key="0.1">
             <TimeSince date={date} />
-            <br />
-            <DateTime date={date} seconds />
             <br />
           </React.Fragment>,
         ]}
