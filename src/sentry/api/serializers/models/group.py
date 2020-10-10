@@ -755,7 +755,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
         # should try and encapsulate this logic, but if you're changing this, change it
         # there as well.
         self.start = None
-        start_params = [start, get_search_filter(search_filters, "date", ">")]
+        start_params = [_f for _f in [start, get_search_filter(search_filters, "date", ">")] if _f]
         if start_params:
             self.start = max([_f for _f in start_params if _f])
 
