@@ -74,7 +74,7 @@ const GroupReleaseStats = ({
               lastSeen={group.lastSeen}
             />
 
-            <h6 style={{marginBottom: 0}}>
+            <h6 style={{marginBottom: 5, marginTop: 30}}>
               <span>{t('Last seen')}</span>
               {environments.length > 0 && <small>({environmentLabel})</small>}
             </h6>
@@ -93,7 +93,7 @@ const GroupReleaseStats = ({
               title={t('Last seen')}
             />
 
-            <h6 style={{marginBottom: 0, marginTop: 20}}>
+            <h6 style={{marginBottom: 5, marginTop: 30}}>
               <span>{t('First seen')}</span>
               {environments.length > 0 && <small>({environmentLabel})</small>}
             </h6>
