@@ -84,10 +84,10 @@ class KafkaEventStream(SnubaProtocolEventStream):
         logger.debug("Starting post-process forwarder...")
 
         cluster_name = settings.KAFKA_TOPICS[settings.KAFKA_EVENTS]["cluster"]
-        bootstrap_servers = settings.KAFKA_CLUSTERS[cluster_name]["bootstrap.servers"]
+        cluster_options = settings.KAFKA_CLUSTERS[cluster_name]
 
         consumer = SynchronizedConsumer(
-            bootstrap_servers=bootstrap_servers,
+            cluster_options=cluster_options,
             consumer_group=consumer_group,
             commit_log_topic=commit_log_topic,
             synchronize_commit_group=synchronize_commit_group,

@@ -58,7 +58,7 @@ class QuerySubscriptionConsumer(object):
             topic = settings.KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS
         self.topic = topic
         cluster_name = settings.KAFKA_TOPICS[topic]["cluster"]
-        self.bootstrap_servers = settings.KAFKA_CLUSTERS[cluster_name]["bootstrap.servers"]
+        self.broker_config = settings.KAFKA_CLUSTERS[cluster_name]
         self.commit_batch_size = commit_batch_size
         self.initial_offset_reset = initial_offset_reset
         self.offsets = {}
@@ -69,7 +69,7 @@ class QuerySubscriptionConsumer(object):
         self.offsets.clear()
 
         conf = {
-            "bootstrap.servers": self.bootstrap_servers,
+            **self.broker_config,
             "group.id": self.group_id,
             "session.timeout.ms": 6000,
             "auto.offset.reset": self.initial_offset_reset,

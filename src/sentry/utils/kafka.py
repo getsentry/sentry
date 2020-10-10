@@ -64,13 +64,11 @@ def create_batching_kafka_consumer(topic_names, worker, **options):
 
     (cluster_name,) = cluster_names
 
-    bootstrap_servers = settings.KAFKA_CLUSTERS[cluster_name]["bootstrap.servers"]
-    if not isinstance(bootstrap_servers, (list, tuple)):
-        bootstrap_servers = bootstrap_servers.split(",")
+    cluster_options = settings.KAFKA_CLUSTERS[cluster_name]
 
     consumer = BatchingKafkaConsumer(
         topics=topic_names,
-        bootstrap_servers=bootstrap_servers,
+        cluster_options=cluster_options,
         worker=worker,
         metrics=metrics,
         metrics_default_tags={

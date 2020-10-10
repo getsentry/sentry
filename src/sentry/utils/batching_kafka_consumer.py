@@ -106,7 +106,7 @@ class BatchingKafkaConsumer(object):
         worker,
         max_batch_size,
         max_batch_time,
-        bootstrap_servers,
+        cluster_options,
         group_id,
         metrics=None,
         producer=None,
@@ -148,7 +148,7 @@ class BatchingKafkaConsumer(object):
 
         self.consumer = self.create_consumer(
             topics,
-            bootstrap_servers,
+            cluster_options,
             group_id,
             auto_offset_reset,
             queued_max_messages_kbytes,
@@ -207,7 +207,7 @@ class BatchingKafkaConsumer(object):
     def create_consumer(
         self,
         topics,
-        bootstrap_servers,
+        cluster_options,
         group_id,
         auto_offset_reset,
         queued_max_messages_kbytes,
@@ -215,8 +215,8 @@ class BatchingKafkaConsumer(object):
     ):
 
         consumer_config = {
+            **cluster_options,
             "enable.auto.commit": False,
-            "bootstrap.servers": ",".join(bootstrap_servers),
             "group.id": group_id,
             "default.topic.config": {"auto.offset.reset": auto_offset_reset},
             # overridden to reduce memory usage when there's a large backlog
@@ -229,7 +229,7 @@ class BatchingKafkaConsumer(object):
             # not be automatically created.
             admin_client = AdminClient(
                 {
-                    "bootstrap.servers": consumer_config["bootstrap.servers"],
+                    **cluster_options,
                     "allow.auto.create.topics": "true",
                 }
             )
