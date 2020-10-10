@@ -53,14 +53,14 @@ class SeenInfo extends React.Component {
           {title}
         </div>
         {environment && [
-          <React.Fragment key="0">{toTitleCase(environment)}</React.Fragment>,
+          <React.Fragment key="0">{toTitleCase(environment)}: </React.Fragment>,
           <React.Fragment key="0.1">
             <TimeSince date={date} />
             <br />
             <DateTime date={date} seconds />
           </React.Fragment>,
         ]}
-        {t('Globally: ')}
+        <div>{t('Globally: ')}</div>
         <TimeSince date={dateGlobal} />
         <br />
         <DateTime date={date} seconds />
@@ -108,7 +108,9 @@ class SeenInfo extends React.Component {
               releaseVersion={release.version}
             >
               {t('in release ')}
-              <Version version={release.version} truncate projectId={projectId} />
+              <span>
+                <Version version={release.version} truncate projectId={projectId} />
+              </span>
             </VersionHoverCard>
           </React.Fragment>
         ) : !this.props.hasRelease ? (
