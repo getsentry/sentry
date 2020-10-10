@@ -73,7 +73,27 @@ const GroupReleaseStats = ({
               firstSeen={group.firstSeen}
               lastSeen={group.lastSeen}
             />
-            <h6>
+
+            <h6 style={{marginBottom: 0}}>
+              <span>{t('Last seen')}</span>
+              {environments.length > 0 && <small>({environmentLabel})</small>}
+            </h6>
+            <SeenInfo
+              orgSlug={orgSlug}
+              projectId={projectId}
+              projectSlug={projectSlug}
+              date={getDynamicText({
+                value: group.lastSeen,
+                fixed: '2016-01-13T03:08:25Z',
+              })}
+              dateGlobal={allEnvironments.lastSeen}
+              hasRelease={hasRelease}
+              environment={shortEnvironmentLabel}
+              release={group.lastRelease || null}
+              title={t('Last seen')}
+            />
+
+            <h6 style={{marginBottom: 0, marginTop: 20}}>
               <span>{t('First seen')}</span>
               {environments.length > 0 && <small>({environmentLabel})</small>}
             </h6>
@@ -91,25 +111,6 @@ const GroupReleaseStats = ({
               environment={shortEnvironmentLabel}
               release={group.firstRelease || null}
               title={t('First seen')}
-            />
-
-            <h6>
-              <span>{t('Last seen')}</span>
-              {environments.length > 0 && <small>({environmentLabel})</small>}
-            </h6>
-            <SeenInfo
-              orgSlug={orgSlug}
-              projectId={projectId}
-              projectSlug={projectSlug}
-              date={getDynamicText({
-                value: group.lastSeen,
-                fixed: '2016-01-13T03:08:25Z',
-              })}
-              dateGlobal={allEnvironments.lastSeen}
-              hasRelease={hasRelease}
-              environment={shortEnvironmentLabel}
-              release={group.lastRelease || null}
-              title={t('Last seen')}
             />
           </React.Fragment>
         )}
