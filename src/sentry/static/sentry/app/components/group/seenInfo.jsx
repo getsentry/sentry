@@ -58,9 +58,10 @@ class SeenInfo extends React.Component {
             <TimeSince date={date} />
             <br />
             <DateTime date={date} seconds />
+            <br />
           </React.Fragment>,
         ]}
-        <div>{t('Globally: ')}</div>
+        {t('Globally: ')}
         <TimeSince date={dateGlobal} />
         <br />
         <DateTime date={date} seconds />
