@@ -742,12 +742,28 @@ class GroupSerializerSnuba(GroupSerializerBase):
         "first_seen",
         "last_seen",
         "times_seen",
+        "date",  # We merge this with start/end, so don't want to include it as its own
+        # condition
     }
 
     def __init__(self, environment_ids=None, start=None, end=None, search_filters=None):
+        from sentry.search.snuba.executors import get_search_filter
+
         self.environment_ids = environment_ids
-        self.start = start
-        self.end = end
+
+        # XXX: We copy this logic from `PostgresSnubaQueryExecutor.query`. Ideally we
+        # should try and encapsulate this logic, but if you're changing this, change it
+        # there as well.
+        self.start = None
+        start_params = [start, get_search_filter(search_filters, "date", ">")]
+        if start_params:
+            self.start = max([_f for _f in start_params if _f])
+
+        self.end = None
+        end_params = [_f for _f in [end, get_search_filter(search_filters, "date", "<")] if _f]
+        if end_params:
+            self.end = min(end_params)
+
         self.conditions = (
             [
                 convert_search_filter_to_snuba_query(search_filter)
