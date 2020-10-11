@@ -111,9 +111,6 @@ runs:
       run: |
         sentry init
 
-        # For now we will always start postgres
-        sentry devservices up postgres
-
         # TODO: Use devservices kafka. See https://github.com/getsentry/sentry/pull/20986#issuecomment-704510570
         if [ "$NEED_KAFKA" = "true" ]; then
           docker run \
@@ -135,7 +132,7 @@ runs:
         fi
 
         if [ "$NEED_SNUBA" = "true" ]; then
-          sentry devservices up redis clickhouse snuba
+          sentry devservices up postgres redis clickhouse snuba
         fi
 
         docker ps -a
