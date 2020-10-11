@@ -111,8 +111,8 @@ runs:
       run: |
         sentry init
 
-        # For now we will always start postgres and redis
-        sentry devservices up postgres redis
+        # For now we will always start postgres
+        sentry devservices up postgres
 
         # TODO: Use devservices kafka. See https://github.com/getsentry/sentry/pull/20986#issuecomment-704510570
         if [ "$NEED_KAFKA" = "true" ]; then
@@ -121,6 +121,7 @@ runs:
             -d --network host \
             -e ZOOKEEPER_CLIENT_PORT=2181 \
             confluentinc/cp-zookeeper:4.1.0
+
           docker run \
             --name sentry_kafka \
             -d --network host \
@@ -134,7 +135,7 @@ runs:
         fi
 
         if [ "$NEED_SNUBA" = "true" ]; then
-          sentry devservices up clickhouse snuba
+          sentry devservices up redis clickhouse snuba
         fi
 
         docker ps -a
