@@ -102,6 +102,7 @@ jobs:
   test-py3:
     name: 'python3.6 backend'
     runs-on: ubuntu-16.04
+    timeout-minutes: 30
     strategy:
       matrix:
         instance: [0, 1, 2]
@@ -153,6 +154,7 @@ jobs:
     name: '[ignore fails] python3.6 backend (snuba)'
     runs-on: ubuntu-16.04
     continue-on-error: true
+    timeout-minutes: 30
     strategy:
       matrix:
         instance: [0]
