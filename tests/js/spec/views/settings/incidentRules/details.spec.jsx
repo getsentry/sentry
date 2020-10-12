@@ -6,8 +6,8 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import GlobalModal from 'app/components/globalModal';
 import IncidentRulesDetails from 'app/views/settings/incidentRules/details';
 
-describe('Incident Rules Details', function() {
-  beforeAll(function() {
+describe('Incident Rules Details', function () {
+  beforeAll(function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/users/',
       body: [],
@@ -37,7 +37,7 @@ describe('Incident Rules Details', function() {
     });
   });
 
-  it('renders and edits trigger', async function() {
+  it('renders and edits trigger', async function () {
     const {organization, project, routerContext} = initializeOrg();
     const rule = TestStubs.IncidentRule();
     const req = MockApiClient.addMockResponse({
@@ -75,18 +75,12 @@ describe('Incident Rules Details', function() {
     wrapper.update();
 
     // has existing trigger
-    expect(
-      wrapper
-        .find('input[name="criticalThreshold"]')
-        .first()
-        .prop('value')
-    ).toEqual(70);
-    expect(
-      wrapper
-        .find('input[name="resolveThreshold"]')
-        .first()
-        .prop('value')
-    ).toEqual(36);
+    expect(wrapper.find('input[name="criticalThreshold"]').first().prop('value')).toEqual(
+      70
+    );
+    expect(wrapper.find('input[name="resolveThreshold"]').first().prop('value')).toEqual(
+      36
+    );
 
     expect(req).toHaveBeenCalled();
 
@@ -100,7 +94,7 @@ describe('Incident Rules Details', function() {
       .simulate('change', {target: {value: 12}});
 
     // Create a new action
-    wrapper.find('button[aria-label="Add Item"]').simulate('click');
+    wrapper.find('button[aria-label="Add New Action"]').simulate('click');
 
     // Save Trigger
     wrapper.find('button[aria-label="Save Rule"]').simulate('submit');
@@ -149,24 +143,11 @@ describe('Incident Rules Details', function() {
     wrapper.update();
 
     // Has correct values
-    expect(
-      wrapper
-        .find('input[name="criticalThreshold"]')
-        .first()
-        .prop('value')
-    ).toBe(70);
-    expect(
-      wrapper
-        .find('input[name="warningThreshold"]')
-        .first()
-        .prop('value')
-    ).toBe(13);
-    expect(
-      wrapper
-        .find('input[name="resolveThreshold"]')
-        .first()
-        .prop('value')
-    ).toBe(12);
+    expect(wrapper.find('input[name="criticalThreshold"]').first().prop('value')).toBe(
+      70
+    );
+    expect(wrapper.find('input[name="warningThreshold"]').first().prop('value')).toBe(13);
+    expect(wrapper.find('input[name="resolveThreshold"]').first().prop('value')).toBe(12);
 
     editRule.mockReset();
 

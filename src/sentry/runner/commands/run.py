@@ -207,7 +207,7 @@ def worker(**options):
         except AttributeError:
             # `worker.exitcode` was added in a newer version of Celery:
             # https://github.com/celery/celery/commit/dc28e8a5
-            # so this is an attempt to be forwards compatible
+            # so this is an attempt to be forward compatible
             pass
 
 

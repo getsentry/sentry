@@ -9,7 +9,7 @@ import Jira from './jira';
 const contexts = {};
 const registry = new Registry();
 
-// Register legacy plguins
+// Register legacy plugins
 
 // Sessionstack
 registry.add('sessionstack', SessionStackPlugin);
@@ -25,7 +25,7 @@ export default {
   DefaultIssuePlugin,
 
   add: registry.add.bind(registry),
-  addContext: function(id, component) {
+  addContext: function (id, component) {
     contexts[id] = component;
   },
   contexts,

@@ -90,7 +90,7 @@ class MonitorValidator(serializers.Serializer):
     project = ProjectField()
     name = serializers.CharField()
     status = serializers.ChoiceField(
-        choices=zip(MONITOR_STATUSES.keys(), MONITOR_STATUSES.keys()), default="active"
+        choices=zip(MONITOR_STATUSES.keys(), MONITOR_STATUSES.keys()), default=u"active"
     )
     type = serializers.ChoiceField(choices=zip(MONITOR_TYPES.keys(), MONITOR_TYPES.keys()))
     config = ObjectField()

@@ -10,7 +10,7 @@ import ProjectsStore from 'app/stores/projectsStore';
 
 jest.mock('app/utils/withLatestContext');
 
-describe('OrganizationDashboard', function() {
+describe('OrganizationDashboard', function () {
   let wrapper;
   let discoverMock;
 
@@ -39,7 +39,7 @@ describe('OrganizationDashboard', function() {
     mockRouterPush(wrapper, router);
   };
 
-  beforeEach(async function() {
+  beforeEach(async function () {
     ProjectsStore.loadInitialData(projects);
     await tick();
 
@@ -62,7 +62,7 @@ describe('OrganizationDashboard', function() {
     });
   });
 
-  afterEach(function() {
+  afterEach(function () {
     router.push.mockRestore();
     MockApiClient.clearMockResponses();
     if (wrapper) {
@@ -71,7 +71,7 @@ describe('OrganizationDashboard', function() {
     discoverMock.mockRestore();
   });
 
-  it('queries and renders discover-based widgets grouped by time', async function() {
+  it('queries and renders discover-based widgets grouped by time', async function () {
     createWrapper(TestStubs.Dashboard());
     await tick();
     wrapper.update();
@@ -121,7 +121,7 @@ describe('OrganizationDashboard', function() {
     expect(wrapper.find('LineChart')).toHaveLength(1);
   });
 
-  it('queries and renders discover-based widgets not grouped by time', async function() {
+  it('queries and renders discover-based widgets not grouped by time', async function () {
     createWrapper(
       TestStubs.Dashboard([
         TestStubs.Widget(

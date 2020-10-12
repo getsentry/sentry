@@ -37,8 +37,6 @@ const getDimensionValue = (dimension?: ReactEChartOpts['height']) => {
 type ReactEchartProps = React.ComponentProps<typeof ReactEchartsCore>;
 type ReactEChartOpts = NonNullable<ReactEchartProps['opts']>;
 
-// type EChartEventHandler<P> = (params: P, instance: ECharts) => void;
-
 /**
  * Used for soem properties that can be truncated
  */

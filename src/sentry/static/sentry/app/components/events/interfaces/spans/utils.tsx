@@ -351,10 +351,7 @@ export function getTraceDateTimeRange(input: {
     .subtract(12, 'hours')
     .format('YYYY-MM-DDTHH:mm:ss.SSS');
 
-  const end = moment
-    .unix(input.end)
-    .add(12, 'hours')
-    .format('YYYY-MM-DDTHH:mm:ss.SSS');
+  const end = moment.unix(input.end).add(12, 'hours').format('YYYY-MM-DDTHH:mm:ss.SSS');
 
   return {
     start,
@@ -550,7 +547,7 @@ export function parseTrace(event: Readonly<SentryTransactionEvent>): ParsedTrace
 }
 
 function sortSpans(firstSpan: SpanType, secondSpan: SpanType) {
-  // orphan spans come after non-ophan spans.
+  // orphan spans come after non-orphan spans.
 
   if (isOrphanSpan(firstSpan) && !isOrphanSpan(secondSpan)) {
     // sort secondSpan before firstSpan
@@ -604,6 +601,7 @@ export function isEventFromBrowserJavaScriptSDK(event: SentryTransactionEvent): 
     'sentry.javascript.browser',
     'sentry.javascript.react',
     'sentry.javascript.gatsby',
+    'sentry.javascript.ember',
   ].includes(sdkName.toLowerCase());
 }
 

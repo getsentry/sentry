@@ -14,14 +14,11 @@ from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
 
+from sentry.utils import json
 from sentry.utils.samples import load_data
 from sentry.utils.compat.mock import patch
 from sentry.utils.compat import zip
-from sentry.utils.snuba import (
-    RateLimitExceeded,
-    QueryIllegalTypeOfArgument,
-    QueryExecutionError,
-)
+from sentry.utils.snuba import RateLimitExceeded, QueryIllegalTypeOfArgument, QueryExecutionError
 
 
 class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
@@ -29,6 +26,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         super(OrganizationEventsV2EndpointTest, self).setUp()
         self.min_ago = iso_format(before_now(minutes=1))
         self.two_min_ago = iso_format(before_now(minutes=2))
+        self.transaction_data = load_data("transaction", timestamp=before_now(minutes=1))
 
     def do_request(self, query, features=None):
         if features is None:
@@ -259,11 +257,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             project_id=project.id,
         )
 
-        query = {
-            "field": ["project", "count()"],
-            "query": "project:morty",
-            "statsPeriod": "14d",
-        }
+        query = {"field": ["project", "count()"], "query": "project:morty", "statsPeriod": "14d"}
         response = self.do_request(query)
 
         assert response.status_code == 400, response.content
@@ -345,10 +339,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             data={"event_id": "a" * 32, "environment": "staging", "timestamp": self.min_ago},
             project_id=project.id,
         )
-        query = {
-            "field": ["id"],
-            "statsPeriod": "1h",
-        }
+        query = {"field": ["id"], "statsPeriod": "1h"}
         response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert response.data["data"] == [{"project.name": project.slug, "id": "a" * 32}]
@@ -359,10 +350,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             data={"event_id": "a" * 32, "environment": "staging", "timestamp": self.min_ago},
             project_id=project.id,
         )
-        query = {
-            "field": ["id", "count()"],
-            "statsPeriod": "1h",
-        }
+        query = {"field": ["id", "count()"], "statsPeriod": "1h"}
         response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert response.data["data"] == [{"project.name": project.slug, "id": "a" * 32, "count": 1}]
@@ -516,7 +504,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 "orderby": "message",
             }
             response = self.do_request(query)
-            assert response.status_code == 200
+            assert response.status_code == 200, response.data
             assert 1 == len(response.data["data"])
             assert [0] == response.data["data"][0]["error.handled"]
 
@@ -553,16 +541,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 2
         data = response.data["data"]
-        assert data[0] == {
-            "project.id": project.id,
-            "issue.id": event1.group_id,
-            "count_id": 2,
-        }
-        assert data[1] == {
-            "project.id": project.id,
-            "issue.id": event2.group_id,
-            "count_id": 1,
-        }
+        assert data[0] == {"project.id": project.id, "issue.id": event1.group_id, "count_id": 2}
+        assert data[1] == {"project.id": project.id, "issue.id": event2.group_id, "count_id": 1}
         meta = response.data["meta"]
         assert meta["count_id"] == "integer"
 
@@ -617,7 +597,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         query = {"field": ["id"], "sort": "garbage"}
         response = self.do_request(query)
         assert response.status_code == 400
-        assert "order by" in response.content
+        assert "order by" in response.data["detail"]
 
     def test_latest_release_alias(self):
         project = self.create_project()
@@ -676,10 +656,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             project_id=project.id,
         )
 
-        query = {
-            "field": ["issue.id", "count(id)", "count_unique(user)"],
-            "orderby": "issue.id",
-        }
+        query = {"field": ["issue.id", "count(id)", "count_unique(user)"], "orderby": "issue.id"}
         response = self.do_request(query)
 
         assert response.status_code == 200, response.content
@@ -1262,46 +1239,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         data = response.data["data"]
         assert len(data) == 1
         assert data[0]["count"] == 0
-
-    def test_reference_event(self):
-        project = self.create_project()
-        reference = self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "transaction": "/example",
-                "message": "how to make fast",
-                "timestamp": self.two_min_ago,
-            },
-            project_id=project.id,
-        )
-        self.store_event(
-            data={
-                "event_id": "b" * 32,
-                "transaction": "/example",
-                "message": "how to make more faster?",
-                "timestamp": self.min_ago,
-            },
-            project_id=project.id,
-        )
-        self.store_event(
-            data={
-                "event_id": "c" * 32,
-                "transaction": "/nomatch",
-                "message": "how to make fast",
-                "timestamp": self.min_ago,
-            },
-            project_id=project.id,
-        )
-        query = {
-            "field": ["transaction", "count()"],
-            "query": "",
-            "referenceEvent": "{}:{}".format(project.slug, reference.event_id),
-        }
-        response = self.do_request(query)
-        assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 1
-        data = response.data["data"]
-        assert data[0]["transaction"] == "/example"
 
     def test_stack_wildcard_condition(self):
         project = self.create_project()
@@ -2122,10 +2059,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             project_id=project.id,
         )
 
-        query = {
-            "field": ["event.type", "count_unique(issue)"],
-            "query": "count_unique(issue):>1",
-        }
+        query = {"field": ["event.type", "count_unique(issue)"], "query": "count_unique(issue):>1"}
         features = {"organizations:discover-basic": True, "organizations:global-views": True}
         response = self.do_request(query, features=features)
 
@@ -2378,16 +2312,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         event_data["type"] = "error"
         self.store_event(event_data, project_id=project.id)
 
-        fields = [
-            "http.method",
-            "http.referer",
-            "http.url",
-        ]
-        expected = [
-            "GET",
-            "fixtures.transaction",
-            "http://countries:8010/country_by_code/",
-        ]
+        fields = ["http.method", "http.referer", "http.url"]
+        expected = ["GET", "fixtures.transaction", "http://countries:8010/country_by_code/"]
 
         data = [
             {"field": fields + ["location", "count()"], "query": "event.type:error"},
@@ -2550,3 +2476,158 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                     response.data["detail"]
                     == "You can view up to 20 fields at a time. Please delete some and try again."
                 )
+
+    def test_measurements_query(self):
+        self.store_event(self.transaction_data, self.project.id)
+        query = {
+            "field": [
+                "measurements.fp",
+                "measurements.fcp",
+                "measurements.lcp",
+                "measurements.fid",
+            ]
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        for field in query["field"]:
+            measure = field.split(".", 1)[1]
+            assert (
+                response.data["data"][0][field]
+                == self.transaction_data["measurements"][measure]["value"]
+            )
+
+        query = {
+            "field": [
+                "measurements.fP",
+                "measurements.Fcp",
+                "measurements.LcP",
+                "measurements.FID",
+            ]
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        for field in query["field"]:
+            measure = field.split(".", 1)[1].lower()
+            assert (
+                response.data["data"][0][field]
+                == self.transaction_data["measurements"][measure]["value"]
+            )
+
+    def test_measurements_aggregations(self):
+        self.store_event(self.transaction_data, self.project.id)
+
+        # should try all the potential aggregates
+        query = {
+            "field": [
+                "percentile(measurements.fcp, 0.5)",
+                "count_unique(measurements.fcp)",
+                "min(measurements.fcp)",
+                "max(measurements.fcp)",
+                "avg(measurements.fcp)",
+                "sum(measurements.fcp)",
+            ],
+        }
+        response = self.do_request(query)
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert (
+            response.data["data"][0]["percentile_measurements_fcp_0_5"]
+            == self.transaction_data["measurements"]["fcp"]["value"]
+        )
+        assert response.data["data"][0]["count_unique_measurements_fcp"] == 1
+        assert (
+            response.data["data"][0]["min_measurements_fcp"]
+            == self.transaction_data["measurements"]["fcp"]["value"]
+        )
+        assert (
+            response.data["data"][0]["max_measurements_fcp"]
+            == self.transaction_data["measurements"]["fcp"]["value"]
+        )
+        assert (
+            response.data["data"][0]["avg_measurements_fcp"]
+            == self.transaction_data["measurements"]["fcp"]["value"]
+        )
+        assert (
+            response.data["data"][0]["sum_measurements_fcp"]
+            == self.transaction_data["measurements"]["fcp"]["value"]
+        )
+
+    def get_measurement_condition_response(self, query_str, field):
+        query = {
+            "field": ["transaction", "count()"] + (field if field else []),
+            "query": query_str,
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        return response
+
+    def assert_measurement_condition_without_results(self, query_str, field=None):
+        response = self.get_measurement_condition_response(query_str, field)
+        assert len(response.data["data"]) == 0
+
+    def assert_measurement_condition_with_results(self, query_str, field=None):
+        response = self.get_measurement_condition_response(query_str, field)
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["transaction"] == self.transaction_data["metadata"]["title"]
+        assert response.data["data"][0]["count"] == 1
+
+    def test_measurements_conditions(self):
+        self.store_event(self.transaction_data, self.project.id)
+
+        fcp = self.transaction_data["measurements"]["fcp"]["value"]
+
+        # equality condition
+        # We use json dumps here to ensure precision when converting from float to str
+        # This is necessary because equality on floating point values need to be precise
+        self.assert_measurement_condition_with_results(
+            "measurements.fcp:{}".format(json.dumps(fcp))
+        )
+
+        # greater than condition
+        self.assert_measurement_condition_with_results("measurements.fcp:>{}".format(fcp - 1))
+        self.assert_measurement_condition_without_results("measurements.fcp:>{}".format(fcp + 1))
+
+        # less than condition
+        self.assert_measurement_condition_with_results("measurements.fcp:<{}".format(fcp + 1))
+        self.assert_measurement_condition_without_results("measurements.fcp:<{}".format(fcp - 1))
+
+        # has condition
+        self.assert_measurement_condition_with_results("has:measurements.fcp")
+        self.assert_measurement_condition_without_results("!has:measurements.fcp")
+
+    def test_measurements_aggregation_conditions(self):
+        self.store_event(self.transaction_data, self.project.id)
+
+        fcp = self.transaction_data["measurements"]["fcp"]["value"]
+        functions = [
+            "percentile(measurements.fcp, 0.5)",
+            "min(measurements.fcp)",
+            "max(measurements.fcp)",
+            "avg(measurements.fcp)",
+            "sum(measurements.fcp)",
+        ]
+
+        for function in functions:
+            self.assert_measurement_condition_with_results(
+                "{}:>{}".format(function, fcp - 1), field=[function]
+            )
+            self.assert_measurement_condition_without_results(
+                "{}:>{}".format(function, fcp + 1), field=[function]
+            )
+            self.assert_measurement_condition_with_results(
+                "{}:<{}".format(function, fcp + 1), field=[function]
+            )
+            self.assert_measurement_condition_without_results(
+                "{}:<{}".format(function, fcp - 1), field=[function]
+            )
+
+        count_unique = "count_unique(measurements.fcp)"
+        self.assert_measurement_condition_with_results(
+            "{}:1".format(count_unique), field=[count_unique]
+        )
+        self.assert_measurement_condition_without_results(
+            "{}:0".format(count_unique), field=[count_unique]
+        )

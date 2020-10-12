@@ -28,7 +28,7 @@ from sentry.utils.distutils import (
 )
 
 
-VERSION = "20.9.0.dev0"
+VERSION = "20.10.0.dev0"
 IS_LIGHT_BUILD = os.environ.get("SENTRY_LIGHT_BUILD") == "1"
 
 
@@ -157,7 +157,8 @@ setup(
         "Operating System :: POSIX :: Linux",
         "Programming Language :: Python :: 2",
         "Programming Language :: Python :: 2.7",
-        "Programming Language :: Python :: 2 :: Only",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.6",
         "Topic :: Software Development",
         "License :: Other/Proprietary License",
     ],

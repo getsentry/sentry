@@ -61,3 +61,9 @@ export function addRoutePerformanceContext(selection: GlobalSelection) {
 
   transaction?.setTag('statsPeriod', seconds.toString());
 }
+
+export function getTransactionName(location: Location): string | undefined {
+  const {transaction} = location.query;
+
+  return decodeScalar(transaction);
+}

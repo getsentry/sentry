@@ -13,10 +13,22 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.snuba import discover
 
 
-class OrganizationEventsTrendsEndpoint(OrganizationEventsV2EndpointBase):
+class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
     trend_columns = {
         "p50": {
             "format": "percentile_range(transaction.duration, 0.5, {start}, {end}, {index})",
+            "alias": "percentile_range_",
+        },
+        "p75": {
+            "format": "percentile_range(transaction.duration, 0.75, {start}, {end}, {index})",
+            "alias": "percentile_range_",
+        },
+        "p95": {
+            "format": "percentile_range(transaction.duration, 0.95, {start}, {end}, {index})",
+            "alias": "percentile_range_",
+        },
+        "p99": {
+            "format": "percentile_range(transaction.duration, 0.99, {start}, {end}, {index})",
             "alias": "percentile_range_",
         },
         "avg": {
@@ -38,20 +50,12 @@ class OrganizationEventsTrendsEndpoint(OrganizationEventsV2EndpointBase):
         if not self.has_feature(organization, request):
             return Response(status=404)
 
-        with sentry_sdk.start_span(op="discover.endpoint", description="filter_params") as span:
-            span.set_tag("organization", organization)
-            try:
-                params = self.get_filter_params(request, organization)
-            except NoProjects:
-                return Response([])
-            params = self.quantize_date_params(request, params)
+        try:
+            params = self.get_snuba_params(request, organization)
+        except NoProjects:
+            return Response([])
 
-            has_global_views = features.has(
-                "organizations:global-views", organization, actor=request.user
-            )
-            if not has_global_views and len(params.get("project_id", [])) > 1:
-                raise ParseError(detail="You cannot view events from multiple projects.")
-
+        with sentry_sdk.start_span(op="discover.endpoint", description="trend_dates"):
             middle = params["start"] + timedelta(
                 seconds=(params["end"] - params["start"]).total_seconds() * 0.5
             )
@@ -96,8 +100,24 @@ class OrganizationEventsTrendsEndpoint(OrganizationEventsV2EndpointBase):
                 use_aggregate_conditions=True,
             )
 
+        with self.handle_query_errors():
+            return self.paginate(
+                request=request,
+                paginator=GenericOffsetPaginator(data_fn=data_fn),
+                on_results=self.build_result_handler(
+                    request, organization, params, trend_function, selected_columns, orderby
+                ),
+                default_per_page=5,
+                max_per_page=5,
+            )
+
+
+class OrganizationEventsTrendsStatsEndpoint(OrganizationEventsTrendsEndpointBase):
+    def build_result_handler(
+        self, request, organization, params, trend_function, selected_columns, orderby
+    ):
         def on_results(events_results):
-            def get_event_stats(query_columns, query, params, rollup, reference_event):
+            def get_event_stats(query_columns, query, params, rollup):
                 return discover.top_events_timeseries(
                     query_columns,
                     selected_columns,
@@ -118,6 +138,7 @@ class OrganizationEventsTrendsEndpoint(OrganizationEventsV2EndpointBase):
                     get_event_stats,
                     top_events=True,
                     query_column=trend_function,
+                    params=params,
                 )
                 if len(events_results["data"]) > 0
                 else {}
@@ -130,11 +151,13 @@ class OrganizationEventsTrendsEndpoint(OrganizationEventsV2EndpointBase):
                 "stats": stats_results,
             }
 
-        with self.handle_query_errors():
-            return self.paginate(
-                request=request,
-                paginator=GenericOffsetPaginator(data_fn=data_fn),
-                on_results=on_results,
-                default_per_page=5,
-                max_per_page=5,
-            )
+        return on_results
+
+
+class OrganizationEventsTrendsEndpoint(OrganizationEventsTrendsEndpointBase):
+    def build_result_handler(
+        self, request, organization, params, trend_function, selected_columns, orderby
+    ):
+        return lambda events_results: self.handle_results_with_meta(
+            request, organization, params["project_id"], events_results
+        )

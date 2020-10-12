@@ -706,7 +706,6 @@ def _do_save_event(
     set_current_project(project_id)
 
     from sentry.event_manager import EventManager, HashDiscarded
-    from sentry.reprocessing2 import should_save_reprocessed_event
 
     event_type = "none"
 
@@ -753,9 +752,6 @@ def _do_save_event(
             return
 
         try:
-            if not should_save_reprocessed_event(data):
-                return
-
             with metrics.timer("tasks.store.do_save_event.event_manager.save"):
                 manager = EventManager(data)
                 # event.project.organization is populated after this statement.
@@ -776,6 +772,7 @@ def _do_save_event(
                     event_processing_store.delete_by_key(cache_key)
 
         finally:
+            reprocessing2.mark_event_reprocessed(data)
             if cache_key:
                 with metrics.timer("tasks.store.do_save_event.delete_attachment_cache"):
                     attachment_cache.delete(cache_key)

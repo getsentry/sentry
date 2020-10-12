@@ -1,5 +1,6 @@
 import React from 'react';
 import maxBy from 'lodash/maxBy';
+import chunk from 'lodash/chunk';
 import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
@@ -50,12 +51,14 @@ const AVAILABLE_TIME_PERIODS: Record<TimeWindow, TimePeriod[]> = {
     TimePeriod.SIX_HOURS,
     TimePeriod.ONE_DAY,
     TimePeriod.THREE_DAYS,
+    TimePeriod.SEVEN_DAYS,
   ],
   [TimeWindow.FIVE_MINUTES]: [
     TimePeriod.ONE_DAY,
     TimePeriod.THREE_DAYS,
     TimePeriod.SEVEN_DAYS,
     TimePeriod.FOURTEEN_DAYS,
+    TimePeriod.THIRTY_DAYS,
   ],
   [TimeWindow.TEN_MINUTES]: [
     TimePeriod.ONE_DAY,
@@ -81,12 +84,42 @@ const AVAILABLE_TIME_PERIODS: Record<TimeWindow, TimePeriod[]> = {
   [TimeWindow.ONE_DAY]: [TimePeriod.THIRTY_DAYS],
 };
 
+const AGGREGATE_FUNCTIONS = {
+  avg: (seriesChunk: SeriesDataUnit[]) =>
+    AGGREGATE_FUNCTIONS.sum(seriesChunk) / seriesChunk.length,
+  sum: (seriesChunk: SeriesDataUnit[]) =>
+    seriesChunk.reduce((acc, series) => acc + series.value, 0),
+  max: (seriesChunk: SeriesDataUnit[]) =>
+    Math.max(...seriesChunk.map(series => series.value)),
+  min: (seriesChunk: SeriesDataUnit[]) =>
+    Math.min(...seriesChunk.map(series => series.value)),
+};
+
+/**
+ * Determines the number of datapoints to roll up
+ */
+const getBucketSize = (timeWindow: TimeWindow, dataPoints: number): number => {
+  const MAX_DPS = 720;
+  for (const bucketSize of [5, 10, 15, 30, 60, 120, 240]) {
+    const chunkSize = bucketSize / timeWindow;
+    if (dataPoints / chunkSize <= MAX_DPS) {
+      return bucketSize / timeWindow;
+    }
+  }
+
+  return 2;
+};
+
+type State = {
+  statsPeriod: TimePeriod;
+};
+
 /**
  * This is a chart to be used in Metric Alert rules that fetches events based on
  * query, timewindow, and aggregations.
  */
-class TriggersChart extends React.PureComponent<Props> {
-  state = {
+class TriggersChart extends React.PureComponent<Props, State> {
+  state: State = {
     statsPeriod: TimePeriod.ONE_DAY,
   };
 
@@ -115,72 +148,109 @@ class TriggersChart extends React.PureComponent<Props> {
       : statsPeriodOptions[0];
 
     return (
-      <EventsRequest
-        api={api}
-        organization={organization}
-        query={query}
-        environment={environment ? [environment] : undefined}
-        project={projects.map(({id}) => Number(id))}
-        interval={`${timeWindow}m`}
-        period={period}
-        yAxis={aggregate}
-        includePrevious={false}
-        currentSeriesName={aggregate}
-      >
-        {({loading, reloading, timeseriesData}) => {
-          let maxValue: SeriesDataUnit | undefined;
-          if (timeseriesData && timeseriesData.length && timeseriesData[0].data) {
-            maxValue = maxBy(timeseriesData[0].data, ({value}) => value);
-          }
-
+      <Feature features={['internal-catchall']} organization={organization}>
+        {({hasFeature}) => {
           return (
-            <StickyWrapper>
-              <StyledPanel>
-                <PanelBody withPadding>
-                  <Feature features={['internal-catchall']} organization={organization}>
-                    <StyledSelectControl
-                      inline={false}
-                      styles={{
-                        control: provided => ({
-                          ...provided,
-                          minHeight: '25px',
-                          height: '25px',
-                        }),
-                      }}
-                      isSearchable={false}
-                      isClearable={false}
-                      disabled={loading || reloading}
-                      name="statsPeriod"
-                      value={period}
-                      choices={statsPeriodOptions.map(timePeriod => [
-                        timePeriod,
-                        TIME_PERIOD_MAP[timePeriod],
-                      ])}
-                      onChange={this.handleStatsPeriodChange}
-                    />
-                  </Feature>
+            <EventsRequest
+              api={api}
+              organization={organization}
+              query={query}
+              environment={environment ? [environment] : undefined}
+              project={projects.map(({id}) => Number(id))}
+              interval={`${timeWindow}m`}
+              period={period}
+              yAxis={aggregate}
+              includePrevious={false}
+              currentSeriesName={aggregate}
+            >
+              {({loading, reloading, timeseriesData}) => {
+                let maxValue: SeriesDataUnit | undefined;
+                let timeseriesLength: number | undefined;
+                if (timeseriesData?.[0]?.data !== undefined) {
+                  maxValue = maxBy(timeseriesData[0].data, ({value}) => value);
+                  timeseriesLength = timeseriesData[0].data.length;
+                  if (hasFeature && timeseriesLength > 600) {
+                    const avgData: SeriesDataUnit[] = [];
+                    const minData: SeriesDataUnit[] = [];
+                    const maxData: SeriesDataUnit[] = [];
+                    const chunkSize = getBucketSize(
+                      timeWindow,
+                      timeseriesData[0].data.length
+                    );
+                    chunk(timeseriesData[0].data, chunkSize).forEach(seriesChunk => {
+                      avgData.push({
+                        name: seriesChunk[0].name,
+                        value: AGGREGATE_FUNCTIONS.avg(seriesChunk),
+                      });
+                      minData.push({
+                        name: seriesChunk[0].name,
+                        value: AGGREGATE_FUNCTIONS.min(seriesChunk),
+                      });
+                      maxData.push({
+                        name: seriesChunk[0].name,
+                        value: AGGREGATE_FUNCTIONS.max(seriesChunk),
+                      });
+                    });
+                    timeseriesData = [
+                      timeseriesData[0],
+                      {seriesName: t('Minimum'), data: minData},
+                      {seriesName: t('Average'), data: avgData},
+                      {seriesName: t('Maximum'), data: maxData},
+                    ];
+                  }
+                }
 
-                  {loading || reloading ? (
-                    <ChartPlaceholder />
-                  ) : (
-                    <React.Fragment>
-                      <TransparentLoadingMask visible={reloading} />
-                      <ThresholdsChart
-                        period={statsPeriod}
-                        maxValue={maxValue ? maxValue.value : maxValue}
-                        data={timeseriesData}
-                        triggers={triggers}
-                        resolveThreshold={resolveThreshold}
-                        thresholdType={thresholdType}
-                      />
-                    </React.Fragment>
-                  )}
-                </PanelBody>
-              </StyledPanel>
-            </StickyWrapper>
+                return (
+                  <StickyWrapper>
+                    <StyledPanel>
+                      <PanelBody withPadding>
+                        <ControlsContainer>
+                          <PeriodSelectControl
+                            inline={false}
+                            styles={{
+                              control: provided => ({
+                                ...provided,
+                                minHeight: '25px',
+                                height: '25px',
+                              }),
+                            }}
+                            isSearchable={false}
+                            isClearable={false}
+                            disabled={loading || reloading}
+                            name="statsPeriod"
+                            value={period}
+                            choices={statsPeriodOptions.map(timePeriod => [
+                              timePeriod,
+                              TIME_PERIOD_MAP[timePeriod],
+                            ])}
+                            onChange={this.handleStatsPeriodChange}
+                          />
+                        </ControlsContainer>
+
+                        {loading || reloading ? (
+                          <ChartPlaceholder />
+                        ) : (
+                          <React.Fragment>
+                            <TransparentLoadingMask visible={reloading} />
+                            <ThresholdsChart
+                              period={statsPeriod}
+                              maxValue={maxValue ? maxValue.value : maxValue}
+                              data={timeseriesData}
+                              triggers={triggers}
+                              resolveThreshold={resolveThreshold}
+                              thresholdType={thresholdType}
+                            />
+                          </React.Fragment>
+                        )}
+                      </PanelBody>
+                    </StyledPanel>
+                  </StickyWrapper>
+                );
+              }}
+            </EventsRequest>
           );
         }}
-      </EventsRequest>
+      </Feature>
     );
   }
 }
@@ -210,9 +280,15 @@ const StyledPanel = styled(Panel)`
   margin-bottom: 0;
 `;
 
-const StyledSelectControl = styled(SelectControl)`
+const ControlsContainer = styled('div')`
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: ${space(1)};
+`;
+
+const PeriodSelectControl = styled(SelectControl)`
+  display: inline-block;
   width: 180px;
-  margin: 0 0 ${space(1)} auto;
   font-weight: normal;
   text-transform: none;
   border: 0;

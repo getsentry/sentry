@@ -57,6 +57,7 @@ class ReleaseSeries extends React.Component {
   };
 
   componentDidMount() {
+    this._isMounted = true;
     const {releases} = this.props;
 
     if (releases) {
@@ -80,6 +81,11 @@ class ReleaseSeries extends React.Component {
     }
   }
 
+  componentWillUnmount() {
+    this._isMounted = false;
+    this.props.api.clear();
+  }
+
   fetchData() {
     const {api, organization, projects, environments, period, start, end} = this.props;
     const conditions = {
@@ -91,7 +97,9 @@ class ReleaseSeries extends React.Component {
     };
     getOrganizationReleases(api, organization, conditions)
       .then(releases => {
-        this.setReleasesWithSeries(releases);
+        if (this._isMounted) {
+          this.setReleasesWithSeries(releases);
+        }
       })
       .catch(() => {
         addErrorMessage(t('Error fetching releases'));
@@ -120,6 +128,7 @@ class ReleaseSeries extends React.Component {
           },
         },
         tooltip: tooltip || {
+          trigger: 'item',
           formatter: ({data}) => {
             // XXX using this.props here as this function does not get re-run
             // unless projects are changed. Using a closure variable would result

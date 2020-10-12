@@ -53,6 +53,12 @@ if six.PY2:
 
     from binascii import crc32
 
+    import imp
+
+    def new_module(name):
+        return imp.new_module(name)
+
+
 else:
     implements_to_string = _identity
     implements_iterator = _identity
@@ -78,3 +84,8 @@ else:
     def crc32(*args):
         rt = _crc32(*args)
         return rt - ((rt & 0x80000000) << 1)
+
+    import types
+
+    def new_module(name):
+        return types.ModuleType(name)

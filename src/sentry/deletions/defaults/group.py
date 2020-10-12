@@ -107,10 +107,10 @@ class GroupDeletionTask(ModelDeletionTask):
         return relations
 
     def delete_instance(self, instance):
-        from sentry.similarity import features
+        from sentry import similarity
 
-        if not self.skip_models or features not in self.skip_models:
-            features.delete(instance)
+        if not self.skip_models or similarity not in self.skip_models:
+            similarity.delete(None, instance)
 
         return super(GroupDeletionTask, self).delete_instance(instance)
 

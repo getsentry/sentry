@@ -16,11 +16,11 @@ function doSso(wrapper, apiRequest) {
   );
 }
 
-describe('SsoForm', function() {
+describe('SsoForm', function () {
   const routerContext = TestStubs.routerContext();
   const api = new MockApiClient();
 
-  it('renders', function() {
+  it('renders', function () {
     const authConfig = {
       serverHostname: 'testserver',
     };
@@ -32,7 +32,7 @@ describe('SsoForm', function() {
     );
   });
 
-  it('handles errors', async function() {
+  it('handles errors', async function () {
     const mockRequest = MockApiClient.addMockResponse({
       url: '/auth/sso-locate/',
       method: 'POST',
@@ -53,7 +53,7 @@ describe('SsoForm', function() {
     expect(wrapper.find('.alert').exists()).toBe(true);
   });
 
-  it('handles success', async function() {
+  it('handles success', async function () {
     const mockRequest = MockApiClient.addMockResponse({
       url: '/auth/sso-locate/',
       method: 'POST',

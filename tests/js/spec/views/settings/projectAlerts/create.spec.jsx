@@ -1,9 +1,9 @@
-import {browserHistory} from 'react-router';
 import React from 'react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {selectByValue} from 'sentry-test/select-new';
+import {mockRouterPush} from 'sentry-test/mockRouterPush';
 
 import * as memberActionCreators from 'app/actionCreators/members';
 import ProjectAlertsCreate from 'app/views/settings/projectAlerts/create';
@@ -13,7 +13,7 @@ import ProjectsStore from 'app/stores/projectsStore';
 
 jest.unmock('app/utils/recreateRoute');
 
-describe('ProjectAlertsCreate', function() {
+describe('ProjectAlertsCreate', function () {
   const projectAlertRuleDetailsRoutes = [
     {
       path: '/organizations/:orgId/alerts/',
@@ -72,8 +72,7 @@ describe('ProjectAlertsCreate', function() {
     },
   ];
 
-  beforeEach(async function() {
-    browserHistory.replace = jest.fn();
+  beforeEach(async function () {
     memberActionCreators.fetchOrgMembers = jest.fn();
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/rules/configuration/',
@@ -93,12 +92,12 @@ describe('ProjectAlertsCreate', function() {
     });
   });
 
-  afterEach(function() {
+  afterEach(function () {
     MockApiClient.clearMockResponses();
   });
 
   const createWrapper = (props = {}) => {
-    const {organization, project, routerContext} = initializeOrg(props);
+    const {organization, project, routerContext, router} = initializeOrg(props);
     ProjectsStore.loadInitialData([project]);
     const params = {orgId: organization.slug, projectId: project.slug};
     const wrapper = mountWithTheme(
@@ -110,22 +109,25 @@ describe('ProjectAlertsCreate', function() {
               pathname: `/organizations/org-slug/alerts/rules/${project.slug}/new/`,
             }}
             routes={projectAlertRuleDetailsRoutes}
+            router={router}
           />
         </AlertBuilderProjectProvider>
       </AlertsContainer>,
       routerContext
     );
+    mockRouterPush(wrapper, router);
 
     return {
       wrapper,
       organization,
       project,
+      router,
     };
   };
 
-  describe('Issue Alert', function() {
-    describe('With Metric Alerts', function() {
-      beforeEach(function() {
+  describe('Issue Alert', function () {
+    describe('With Metric Alerts', function () {
+      beforeEach(function () {
         MockApiClient.addMockResponse({
           url: '/organizations/org-slug/tags/',
           body: [],
@@ -146,7 +148,7 @@ describe('ProjectAlertsCreate', function() {
           body: TestStubs.EventsStats(),
         });
       });
-      it('forces user to select Metric or Issue alert', async function() {
+      it('forces user to select Metric or Issue alert', async function () {
         const {wrapper} = createWrapper({
           organization: {features: ['incidents']},
         });
@@ -171,8 +173,8 @@ describe('ProjectAlertsCreate', function() {
       });
     });
 
-    describe('Without Metric Alerts', function() {
-      it('loads default values', function() {
+    describe('Without Metric Alerts', function () {
+      it('loads default values', function () {
         const {wrapper} = createWrapper();
         expect(memberActionCreators.fetchOrgMembers).toHaveBeenCalled();
         expect(wrapper.find('SelectControl[name="environment"]').prop('value')).toBe(
@@ -184,8 +186,8 @@ describe('ProjectAlertsCreate', function() {
         expect(wrapper.find('SelectControl[name="frequency"]').prop('value')).toBe('30');
       });
 
-      it('updates values and saves', async function() {
-        const {wrapper} = createWrapper({
+      it('updates values and saves', async function () {
+        const {wrapper, router} = createWrapper({
           organization: {
             features: ['alert-filters'],
           },
@@ -212,7 +214,7 @@ describe('ProjectAlertsCreate', function() {
         selectByValue(
           wrapper,
           'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
-          {selector: 'Select[placeholder="Add a condition..."]'}
+          {selector: 'Select[placeholder="Add optional condition..."]'}
         );
 
         wrapper
@@ -225,7 +227,7 @@ describe('ProjectAlertsCreate', function() {
         selectByValue(
           wrapper,
           'sentry.rules.conditions.tagged_event.TaggedEventCondition',
-          {selector: 'Select[placeholder="Add a condition..."]'}
+          {selector: 'Select[placeholder="Add optional condition..."]'}
         );
 
         // Edit new Condition
@@ -245,7 +247,7 @@ describe('ProjectAlertsCreate', function() {
         selectByValue(
           wrapper,
           'sentry.rules.filters.age_comparison.AgeComparisonFilter',
-          {selector: 'Select[placeholder="Add a filter..."]'}
+          {selector: 'Select[placeholder="Add optional filter..."]'}
         );
 
         wrapper
@@ -258,7 +260,7 @@ describe('ProjectAlertsCreate', function() {
         selectByValue(
           wrapper,
           'sentry.rules.filters.age_comparison.AgeComparisonFilter',
-          {selector: 'Select[placeholder="Add a filter..."]'}
+          {selector: 'Select[placeholder="Add optional filter..."]'}
         );
 
         const filterRuleNode = wrapper.find('RuleNode').at(1);
@@ -269,7 +271,7 @@ describe('ProjectAlertsCreate', function() {
 
         // Add an action and remove it
         selectByValue(wrapper, 'sentry.rules.actions.notify_event.NotifyEventAction', {
-          selector: 'Select[placeholder="Add an action..."]',
+          selector: 'Select[placeholder="Add action..."]',
         });
 
         wrapper
@@ -283,7 +285,7 @@ describe('ProjectAlertsCreate', function() {
           wrapper,
           'sentry.rules.actions.notify_event_service.NotifyEventServiceAction',
           {
-            selector: 'Select[placeholder="Add an action..."]',
+            selector: 'Select[placeholder="Add action..."]',
           }
         );
 
@@ -330,9 +332,7 @@ describe('ProjectAlertsCreate', function() {
         );
 
         await tick();
-        expect(browserHistory.replace).toHaveBeenCalledWith(
-          '/organizations/org-slug/alerts/rules/'
-        );
+        expect(router.push).toHaveBeenCalledWith('/organizations/org-slug/alerts/rules/');
       });
     });
   });

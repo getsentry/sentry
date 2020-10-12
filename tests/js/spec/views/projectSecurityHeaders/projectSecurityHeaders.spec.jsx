@@ -4,12 +4,12 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ProjectSecurityHeaders from 'app/views/settings/projectSecurityHeaders';
 
-describe('ProjectSecurityHeaders', function() {
+describe('ProjectSecurityHeaders', function () {
   const org = TestStubs.Organization();
   const project = TestStubs.Project();
   const url = `/projects/${org.slug}/${project.slug}/`;
 
-  beforeEach(function() {
+  beforeEach(function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/keys/`,
@@ -18,7 +18,7 @@ describe('ProjectSecurityHeaders', function() {
     });
   });
 
-  it('renders', function() {
+  it('renders', function () {
     const wrapper = mountWithTheme(
       <ProjectSecurityHeaders
         organization={org}

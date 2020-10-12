@@ -48,6 +48,7 @@ from sentry.models import (
     Project,
     ProjectKey,
     Release,
+    ReleaseCommit,
     ReleaseEnvironment,
     ReleaseProject,
     ReleaseProjectEnvironment,
@@ -110,19 +111,22 @@ def plugin_is_regression(group, event):
 
 
 def has_pending_commit_resolution(group):
-    return (
+    """
+    Checks that the most recent commit that fixes a group has had a chance to release
+    """
+    recent_group_link = (
         GroupLink.objects.filter(
             group_id=group.id,
             linked_type=GroupLink.LinkedType.commit,
             relationship=GroupLink.Relationship.resolves,
         )
-        .extra(
-            where=[
-                "NOT EXISTS(SELECT 1 FROM sentry_releasecommit where commit_id = sentry_grouplink.linked_id)"
-            ]
-        )
-        .exists()
+        .order_by("-datetime")
+        .first()
     )
+    if recent_group_link is None:
+        return False
+
+    return not ReleaseCommit.objects.filter(commit__id=recent_group_link.linked_id).exists()
 
 
 def get_max_crashreports(model, allow_none=False):
@@ -149,7 +153,7 @@ def get_stored_crashreports(cache_key, event, max_crashreports):
 
     # Fall-through if max_crashreports was bumped to get a more accurate number.
     return EventAttachment.objects.filter(
-        group_id=event.group_id, file__type__in=CRASH_REPORT_TYPES
+        group_id=event.group_id, type__in=CRASH_REPORT_TYPES
     ).count()
 
 
@@ -570,7 +574,7 @@ def _get_or_create_release_many(jobs, projects):
         )
 
         for job in jobs_to_update:
-            # dont allow a conflicting 'release' tag
+            # Don't allow a conflicting 'release' tag
             data = job["data"]
             pop_tag(data, "release")
             set_tag(data, "sentry:release", release.version)
@@ -1301,6 +1305,7 @@ def save_attachment(
         group_id=group_id,
         name=attachment.name,
         file=file,
+        type=attachment.type,
     )
 
     track_outcome(

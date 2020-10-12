@@ -186,7 +186,6 @@ def configure_sdk():
             RustInfoIntegration(),
             RedisIntegration(),
         ],
-        traceparent_v2=True,
         **sdk_options
     )
 

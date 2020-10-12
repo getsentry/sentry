@@ -48,15 +48,6 @@ class AssistantActivityTest(APITestCase):
         assert resp.status_code == 200
         assert resp.data == guides_with_seen
 
-    def test_validate_guides(self):
-        # Steps in different guides should not have the same target.
-        guides = list(self.guides.values())
-        for i in range(len(guides)):
-            for j in range(0, i):
-                steps_i = set(s["target"] for s in guides[i]["steps"])
-                steps_j = set(s["target"] for s in guides[j]["steps"])
-                assert not (steps_i & steps_j)
-
 
 class AssistantActivityV2Test(APITestCase):
     endpoint = "sentry-api-0-assistant"

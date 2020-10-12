@@ -8,7 +8,7 @@ import ExternalLink from 'app/components/links/externalLink';
 import {IconInfo, IconCheckmark, IconWarning, IconNot} from 'app/icons';
 
 export default {
-  title: 'UI/Alerts/Alert',
+  title: 'Core/Alerts/Alert',
 };
 
 export const Default = withInfo('Inline alert messages')(() => (

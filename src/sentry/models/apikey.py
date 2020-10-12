@@ -29,26 +29,26 @@ class ApiKey(Model):
     __core__ = True
 
     organization = FlexibleForeignKey("sentry.Organization", related_name="key_set")
-    label = models.CharField(max_length=64, blank=True, default="Default")
+    label = models.CharField(max_length=64, blank=True, default=u"Default")
     key = models.CharField(max_length=32, unique=True)
     scopes = BitField(
         flags=(
-            ("project:read", "project:read"),
-            ("project:write", "project:write"),
-            ("project:admin", "project:admin"),
-            ("project:releases", "project:releases"),
-            ("team:read", "team:read"),
-            ("team:write", "team:write"),
-            ("team:admin", "team:admin"),
-            ("event:read", "event:read"),
-            ("event:write", "event:write"),
-            ("event:admin", "event:admin"),
-            ("org:read", "org:read"),
-            ("org:write", "org:write"),
-            ("org:admin", "org:admin"),
-            ("member:read", "member:read"),
-            ("member:write", "member:write"),
-            ("member:admin", "member:admin"),
+            (u"project:read", u"project:read"),
+            (u"project:write", u"project:write"),
+            (u"project:admin", u"project:admin"),
+            (u"project:releases", u"project:releases"),
+            (u"team:read", u"team:read"),
+            (u"team:write", u"team:write"),
+            (u"team:admin", u"team:admin"),
+            (u"event:read", u"event:read"),
+            (u"event:write", u"event:write"),
+            (u"event:admin", u"event:admin"),
+            (u"org:read", u"org:read"),
+            (u"org:write", u"org:write"),
+            (u"org:admin", u"org:admin"),
+            (u"member:read", u"member:read"),
+            (u"member:write", u"member:write"),
+            (u"member:admin", u"member:admin"),
         )
     )
     scope_list = ArrayField(of=models.TextField)

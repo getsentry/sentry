@@ -867,7 +867,7 @@ def delete_alert_rule(alert_rule, user=None):
         if incidents:
             alert_rule.update(status=AlertRuleStatus.SNAPSHOT.value)
             AlertRuleActivity.objects.create(
-                alert_rule=alert_rule, user=user, type=AlertRuleActivityType.DELETED.value,
+                alert_rule=alert_rule, user=user, type=AlertRuleActivityType.DELETED.value
             )
         else:
             alert_rule.delete()
@@ -1115,7 +1115,7 @@ def update_alert_rule_trigger_action(
             organization = trigger_action.alert_rule_trigger.alert_rule.organization
 
             target_identifier, target_display = get_target_identifier_display_for_integration(
-                type, target_identifier, organization, integration.id,
+                type, target_identifier, organization, integration.id
             )
             updated_fields["target_display"] = target_display
 
@@ -1124,7 +1124,7 @@ def update_alert_rule_trigger_action(
             organization = trigger_action.alert_rule_trigger.alert_rule.organization
 
             target_identifier, target_display = get_alert_rule_trigger_action_sentry_app(
-                organization, sentry_app.id,
+                organization, sentry_app.id
             )
             updated_fields["target_display"] = target_display
 
@@ -1243,6 +1243,7 @@ def get_alertable_sentry_apps(organization_id, with_metric_alerts=False):
         installations__organization_id=organization_id,
         is_alertable=True,
         installations__status=SentryAppInstallationStatus.INSTALLED,
+        installations__date_deleted=None,
     )
 
     if with_metric_alerts:
@@ -1284,13 +1285,13 @@ def get_column_from_aggregate(aggregate):
 
 def check_aggregate_column_support(aggregate):
     column = get_column_from_aggregate(aggregate)
-    return column is None or column in SUPPORTED_COLUMNS or column in TRANSLATABLE_COLUMNS.keys()
+    return column is None or column in SUPPORTED_COLUMNS or column in TRANSLATABLE_COLUMNS
 
 
 def translate_aggregate_field(aggregate, reverse=False):
     column = get_column_from_aggregate(aggregate)
     if not reverse:
-        if column in TRANSLATABLE_COLUMNS.keys():
+        if column in TRANSLATABLE_COLUMNS:
             return aggregate.replace(column, TRANSLATABLE_COLUMNS[column])
     else:
         if column is not None:

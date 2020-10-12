@@ -9,7 +9,7 @@ import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import space from 'app/styles/space';
 
 export default {
-  title: 'UI/EmptyMessage',
+  title: 'Layouts/EmptyState/EmptyMessage',
 };
 
 export const Default = withInfo('Super Generic')(() => (

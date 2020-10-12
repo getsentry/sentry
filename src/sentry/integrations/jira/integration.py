@@ -793,7 +793,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         transitions = client.get_transitions(external_issue.key)
 
         try:
-            transition = [t for t in transitions if t["to"]["id"] == jira_status][0]
+            transition = [t for t in transitions if t.get("to", {}).get("id") == jira_status][0]
         except IndexError:
             # TODO(jess): Email for failure
             logger.warning(
@@ -844,16 +844,23 @@ class JiraIntegrationProvider(IntegrationProvider):
         # since the integration won't have been fully configured on JIRA's side
         # yet, we can't make API calls for more details like the server name or
         # Icon.
-        return {
-            "provider": "jira",
-            "external_id": state["clientKey"],
-            "name": "JIRA",
-            "metadata": {
+        # two ways build_integration can be called
+        if state.get("jira"):
+            metadata = state["jira"]["metadata"]
+            external_id = state["jira"]["external_id"]
+        else:
+            external_id = state["clientKey"]
+            metadata = {
                 "oauth_client_id": state["oauthClientId"],
                 # public key is possibly deprecated, so we can maybe remove this
                 "public_key": state["publicKey"],
                 "shared_secret": state["sharedSecret"],
                 "base_url": state["baseUrl"],
                 "domain_name": state["baseUrl"].replace("https://", ""),
-            },
+            }
+        return {
+            "external_id": external_id,
+            "provider": "jira",
+            "name": "JIRA",
+            "metadata": metadata,
         }

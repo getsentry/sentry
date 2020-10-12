@@ -87,6 +87,7 @@ class EmailActionHandler(ActionHandler):
             html_template=u"sentry/emails/incidents/trigger.html",
             type="incident.alert_rule_{}".format(display.lower()),
             context=context,
+            headers={"category": "metric_alert_email"},
         )
 
 
@@ -153,7 +154,7 @@ class PagerDutyActionHandler(ActionHandler):
     AlertRuleTriggerAction.Type.SENTRY_APP,
     [AlertRuleTriggerAction.TargetType.SENTRY_APP],
 )
-class IntegrationActionHandler(ActionHandler):
+class SentryAppActionHandler(ActionHandler):
     def fire(self, metric_value):
         self.send_alert(metric_value)
 
@@ -161,8 +162,9 @@ class IntegrationActionHandler(ActionHandler):
         self.send_alert(metric_value)
 
     def send_alert(self, metric_value):
-        # TODO: finish
-        pass
+        from sentry.rules.actions.notify_event_service import send_incident_alert_notification
+
+        send_incident_alert_notification(self.action, self.incident, metric_value)
 
 
 def format_duration(minutes):
@@ -184,14 +186,6 @@ def format_duration(minutes):
 
     seconds = int(minutes // 60)
     return "{:d} second{}".format(seconds, pluralize(seconds))
-
-
-INCIDENT_STATUS_KEY = {
-    IncidentStatus.OPEN: "open",
-    IncidentStatus.CLOSED: "resolved",
-    IncidentStatus.CRITICAL: "critical",
-    IncidentStatus.WARNING: "warning",
-}
 
 
 def generate_incident_trigger_email_context(project, incident, alert_rule_trigger, status):
@@ -241,7 +235,7 @@ def generate_incident_trigger_email_context(project, incident, alert_rule_trigge
         # if resolve threshold and threshold type is *BELOW* then show '>'
         "threshold_direction_string": ">" if show_greater_than_string else "<",
         "status": INCIDENT_STATUS[IncidentStatus(incident.status)],
-        "status_key": INCIDENT_STATUS_KEY[IncidentStatus(incident.status)],
+        "status_key": INCIDENT_STATUS[IncidentStatus(incident.status)].lower(),
         "is_critical": incident.status == IncidentStatus.CRITICAL,
         "is_warning": incident.status == IncidentStatus.WARNING,
         "unsubscribe_link": None,

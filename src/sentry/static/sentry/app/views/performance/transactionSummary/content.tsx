@@ -16,19 +16,20 @@ import SearchBar from 'app/views/events/searchBar';
 import {decodeScalar} from 'app/utils/queryString';
 import withProjects from 'app/utils/withProjects';
 
-import TransactionHeader from './header';
+import TransactionHeader, {Tab} from './header';
 import TransactionList from './transactionList';
 import UserStats from './userStats';
 import TransactionSummaryCharts from './charts';
 import RelatedIssues from './relatedIssues';
 import SidebarCharts from './sidebarCharts';
+import StatusBreakdown from './statusBreakdown';
 
 type Props = {
   location: Location;
   eventView: EventView;
   transactionName: string;
   organization: Organization;
-  totalValues: number | null;
+  totalValues: Record<string, number>;
   projects: Project[];
 };
 
@@ -88,6 +89,8 @@ class SummaryContent extends React.Component<Props, State> {
     } = this.props;
     const {incompatibleAlertNotice} = this.state;
     const query = decodeScalar(location.query.query) || '';
+    const totalCount = totalValues.count;
+    const slowDuration = totalValues?.p95;
 
     return (
       <React.Fragment>
@@ -97,6 +100,7 @@ class SummaryContent extends React.Component<Props, State> {
           organization={organization}
           projects={projects}
           transactionName={transactionName}
+          currentTab={Tab.TransactionSummary}
           handleIncompatibleQuery={this.handleIncompatibleQuery}
         />
         <Layout.Body>
@@ -115,13 +119,14 @@ class SummaryContent extends React.Component<Props, State> {
               organization={organization}
               location={location}
               eventView={eventView}
-              totalValues={totalValues}
+              totalValues={totalCount}
             />
             <TransactionList
               organization={organization}
               transactionName={transactionName}
               location={location}
               eventView={eventView}
+              slowDuration={slowDuration}
             />
             <RelatedIssues
               organization={organization}
@@ -136,12 +141,17 @@ class SummaryContent extends React.Component<Props, State> {
             <UserStats
               organization={organization}
               location={location}
-              eventView={eventView}
+              totals={totalValues}
             />
             <SidebarCharts organization={organization} eventView={eventView} />
+            <StatusBreakdown
+              eventView={eventView}
+              organization={organization}
+              location={location}
+            />
             <Tags
               generateUrl={this.generateTagUrl}
-              totalValues={totalValues}
+              totalValues={totalCount}
               eventView={eventView}
               organization={organization}
               location={location}

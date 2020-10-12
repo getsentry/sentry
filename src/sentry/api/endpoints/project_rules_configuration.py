@@ -1,6 +1,8 @@
 from __future__ import absolute_import
 
+from sentry import features
 from sentry.api.bases.project import ProjectEndpoint
+from sentry.constants import MIGRATED_CONDITIONS
 from sentry.rules import rules
 from rest_framework.response import Response
 
@@ -15,9 +17,13 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
         condition_list = []
         filter_list = []
 
+        project_has_filters = features.has("projects:alert-filters", project)
         # TODO: conditions need to be based on actions
         for rule_type, rule_cls in rules:
             node = rule_cls(project)
+            # skip over conditions if they are not in the migrated set for a project with alert-filters
+            if project_has_filters and node.id in MIGRATED_CONDITIONS:
+                continue
             context = {"id": node.id, "label": node.label, "enabled": node.is_enabled()}
             if hasattr(node, "prompt"):
                 context["prompt"] = node.prompt

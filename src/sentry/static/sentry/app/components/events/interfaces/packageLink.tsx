@@ -12,6 +12,7 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 type Props = {
   onClick: (event: React.MouseEvent<HTMLAnchorElement>) => void;
   withLeadHint: boolean;
+  includeSystemFrames: boolean;
   packagePath?: string;
   isClickable?: boolean;
 };
@@ -26,17 +27,28 @@ class PackageLink extends React.Component<Props> {
   };
 
   render() {
-    const {packagePath, isClickable, withLeadHint, children} = this.props;
+    const {
+      packagePath,
+      isClickable,
+      withLeadHint,
+      children,
+      includeSystemFrames,
+    } = this.props;
 
     return (
       <Package
         onClick={this.handleClick}
         isClickable={isClickable}
         withLeadHint={withLeadHint}
+        includeSystemFrames={includeSystemFrames}
       >
         {defined(packagePath) ? (
           <Tooltip title={packagePath}>
-            <PackageName isClickable={isClickable} withLeadHint={withLeadHint}>
+            <PackageName
+              isClickable={isClickable}
+              withLeadHint={withLeadHint}
+              includeSystemFrames={includeSystemFrames}
+            >
               {trimPackage(packagePath)}
             </PackageName>
           </Tooltip>
@@ -81,17 +93,21 @@ const Package = styled('a')<Partial<Props>>`
 
   align-items: flex-start;
 
-  ${p => p.withLeadHint && `max-width: 76px;`}
+  ${p =>
+    p.withLeadHint && (p.includeSystemFrames ? `max-width: 89px;` : `max-width: 76px;`)}
 
   @media (min-width: ${p => p.theme.breakpoints[2]}) and (max-width: ${p =>
-  p.theme.breakpoints[3]})  {
-    ${p => p.withLeadHint && `max-width: 63px;`}
+    p.theme.breakpoints[3]}) {
+    ${p =>
+      p.withLeadHint && (p.includeSystemFrames ? `max-width: 76px;` : `max-width: 63px;`)}
   }
-
 `;
 
-const PackageName = styled('span')<Pick<Props, 'isClickable' | 'withLeadHint'>>`
-  max-width: ${p => (p.withLeadHint && p.isClickable ? '45px' : '104px')};
+const PackageName = styled('span')<
+  Pick<Props, 'isClickable' | 'withLeadHint' | 'includeSystemFrames'>
+>`
+  max-width: ${p =>
+    p.withLeadHint && p.isClickable && !p.includeSystemFrames ? '45px' : '104px'};
   ${overflowEllipsis}
 `;
 

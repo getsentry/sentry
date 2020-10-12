@@ -32,7 +32,7 @@ class SentryInstrumentation {
 
     this.initialBuild = false;
     this.Sentry = require('@sentry/node');
-    require('@sentry/apm'); // This is required to patch Sentry
+    require('@sentry/tracing'); // This is required to patch Sentry
 
     this.Sentry.init({
       dsn: 'https://3d282d186d924374800aa47006227ce9@sentry.io/2053674',

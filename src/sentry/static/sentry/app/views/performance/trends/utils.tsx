@@ -1,6 +1,7 @@
 import React from 'react';
 import {Location} from 'history';
 import styled from '@emotion/styled';
+import moment from 'moment';
 
 import theme from 'app/utils/theme';
 import {
@@ -18,10 +19,10 @@ import {Sort, Field} from 'app/utils/discover/fields';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import Count from 'app/components/count';
-import {Organization} from 'app/types';
+import {Organization, Project} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import {Client} from 'app/api';
-import {getUtcDateString} from 'app/utils/dates';
+import {getUtcDateString, parsePeriodToHours} from 'app/utils/dates';
 import {IconArrow} from 'app/icons';
 
 import {
@@ -31,7 +32,8 @@ import {
   TrendsTransaction,
   NormalizedTrendsTransaction,
   TrendFunctionField,
-  TrendsStats,
+  ProjectTrend,
+  NormalizedProjectTrend,
 } from './types';
 import {BaselineQueryResults} from '../transactionSummary/baselineQuery';
 
@@ -44,6 +46,27 @@ export const TRENDS_FUNCTIONS: TrendFunction[] = [
     alias: 'percentile_range',
     chartLabel: 'p50()',
     legendLabel: 'p50',
+  },
+  {
+    label: 'Duration (p75)',
+    field: TrendFunctionField.P75,
+    alias: 'percentile_range',
+    chartLabel: 'p75()',
+    legendLabel: 'p75',
+  },
+  {
+    label: 'Duration (p95)',
+    field: TrendFunctionField.P95,
+    alias: 'percentile_range',
+    chartLabel: 'p95()',
+    legendLabel: 'p95',
+  },
+  {
+    label: 'Duration (p99)',
+    field: TrendFunctionField.P99,
+    alias: 'percentile_range',
+    chartLabel: 'p99()',
+    legendLabel: 'p99',
   },
   {
     label: 'Duration (average)',
@@ -87,9 +110,14 @@ export const trendToColor = {
   [TrendChangeType.REGRESSION]: theme.red400,
 };
 
-export const trendOffsetQueryKeys = {
-  [TrendChangeType.IMPROVED]: 'improvedOffset',
-  [TrendChangeType.REGRESSION]: 'regressionOffset',
+export const trendSelectedQueryKeys = {
+  [TrendChangeType.IMPROVED]: 'improvedSelected',
+  [TrendChangeType.REGRESSION]: 'regressionSelected',
+};
+
+export const trendCursorNames = {
+  [TrendChangeType.IMPROVED]: 'improvedCursor',
+  [TrendChangeType.REGRESSION]: 'regressionCursor',
 };
 
 export function getCurrentTrendFunction(location: Location): TrendFunction {
@@ -132,15 +160,28 @@ export function transformDeltaSpread(
   );
 }
 
+export function getTrendProjectId(
+  trend: NormalizedTrendsTransaction | NormalizedProjectTrend,
+  projects?: Project[]
+): string | undefined {
+  if (!trend.project || !projects) {
+    return undefined;
+  }
+  const transactionProject = projects.find(project => project.slug === trend.project);
+  return transactionProject?.id;
+}
+
 export function modifyTrendView(
   trendView: TrendView,
   location: Location,
-  trendsType: TrendChangeType
+  trendsType: TrendChangeType,
+  isProjectOnly?: boolean
 ) {
   const trendFunction = getCurrentTrendFunction(location);
 
   const trendFunctionFields = TRENDS_FUNCTIONS.map(({field}) => field);
-  const fields = [...trendFunctionFields, 'transaction', 'project', 'count()'].map(
+  const transactionField = isProjectOnly ? [] : ['transaction'];
+  const fields = [...trendFunctionFields, ...transactionField, 'project', 'count()'].map(
     field => ({
       field,
     })
@@ -186,7 +227,6 @@ export async function getTrendBaselinesForTransaction(
   api: Client,
   organization: Organization,
   eventView: EventView,
-  statsData: TrendsStats,
   intervalRatio: number,
   transaction: NormalizedTrendsTransaction
 ) {
@@ -196,17 +236,30 @@ export async function getTrendBaselinesForTransaction(
   const scopeQueryToTransaction = ` transaction:${transaction.transaction}`;
 
   const globalSelectionQuery = eventView.getGlobalSelectionQuery();
+  const statsPeriod = eventView.statsPeriod;
+
   delete globalSelectionQuery.statsPeriod;
   const baseApiPayload = {
     ...globalSelectionQuery,
     query: eventView.query + scopeQueryToTransaction,
   };
 
-  const stats = Object.values(statsData)[0].data;
+  const hasStartEnd = eventView.start && eventView.end;
 
-  const seriesStart = stats[0][0] * 1000;
-  const seriesEnd = stats.slice(-1)[0][0] * 1000;
-  const seriesSplit = seriesStart + (seriesEnd - seriesStart) * intervalRatio;
+  let seriesStart = moment(eventView.start);
+  let seriesEnd = moment(eventView.end);
+
+  if (!hasStartEnd) {
+    seriesEnd = transaction.received_at;
+    seriesStart = seriesEnd
+      .clone()
+      .subtract(parsePeriodToHours(statsPeriod || DEFAULT_TRENDS_STATS_PERIOD), 'hours');
+  }
+
+  const startTime = seriesStart.toDate().getTime();
+  const endTime = seriesEnd.toDate().getTime();
+
+  const seriesSplit = moment(startTime + (endTime - startTime) * intervalRatio);
 
   const previousPeriodPayload = {
     ...baseApiPayload,
@@ -286,10 +339,18 @@ export function transformValueDelta(
  * This will normalize the trends transactions while the current trend function and current data are out of sync
  * To minimize extra renders with missing results.
  */
-export function normalizeTrendsTransactions(data: TrendsTransaction[]) {
+export function normalizeTrends(
+  data: Array<TrendsTransaction>
+): Array<NormalizedTrendsTransaction>;
+
+export function normalizeTrends(data: Array<ProjectTrend>): Array<NormalizedProjectTrend>;
+
+export function normalizeTrends(
+  data: Array<TrendsTransaction | ProjectTrend>
+): Array<NormalizedTrendsTransaction | NormalizedProjectTrend> {
+  const received_at = moment(); // Adding the received time for the transaction so calls to get baseline always line up with the transaction
   return data.map(row => {
     const {
-      transaction,
       project,
       count_range_1,
       count_range_2,
@@ -308,15 +369,26 @@ export function normalizeTrendsTransactions(data: TrendsTransaction[]) {
       }
     });
 
-    return {
+    const normalized = {
       ...aliasedFields,
-      transaction,
       project,
 
       count_range_1,
       count_range_2,
       percentage_count_range_2_count_range_1,
-    } as NormalizedTrendsTransaction;
+      received_at,
+    };
+
+    if ('transaction' in row) {
+      return {
+        ...normalized,
+        transaction: row.transaction,
+      } as NormalizedTrendsTransaction;
+    } else {
+      return {
+        ...normalized,
+      } as NormalizedProjectTrend;
+    }
   });
 }
 
@@ -333,7 +405,7 @@ export function getTrendAliasedMinus(alias: string) {
 }
 
 export function getSelectedQueryKey(trendChangeType: TrendChangeType) {
-  return trendOffsetQueryKeys[trendChangeType];
+  return trendSelectedQueryKeys[trendChangeType];
 }
 
 /**

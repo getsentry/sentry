@@ -26,6 +26,7 @@ import os.path
 import pytest
 import requests
 import six
+import time
 import inspect
 from uuid import uuid4
 from contextlib import contextmanager
@@ -53,6 +54,7 @@ from rest_framework.test import APITestCase as BaseAPITestCase
 from six.moves.urllib.parse import urlencode
 
 from sentry import auth
+from sentry import eventstore
 from sentry.auth.providers.dummy import DummyProvider
 from sentry.auth.superuser import (
     Superuser,
@@ -642,6 +644,7 @@ class IntegrationTestCase(TestCase):
         self.setup_path = reverse(
             "sentry-extension-setup", kwargs={"provider_id": self.provider.key}
         )
+        self.configure_path = u"/extensions/{}/configure/".format(self.provider.key)
 
         self.pipeline.initialize()
         self.save_session()
@@ -678,6 +681,28 @@ class SnubaTestCase(BaseTestCase):
             if stored_group is not None:
                 self.store_group(stored_group)
             return stored_event
+
+    def wait_for_event_count(self, project_id, total, attempts=2):
+        """
+        Wait until the event count reaches the provided value or until attempts is reached.
+
+        Useful when you're storing several events and need to ensure that snuba/clickhouse
+        state has settled.
+        """
+        # Verify that events have settled in snuba's storage.
+        # While snuba is synchronous, clickhouse isn't entirely synchronous.
+        attempt = 0
+        snuba_filter = eventstore.Filter(project_ids=[project_id])
+        while attempt < attempts:
+            events = eventstore.get_events(snuba_filter)
+            if len(events) >= total:
+                break
+            attempt += 1
+            time.sleep(0.05)
+        if attempt == attempts:
+            assert False, "Could not ensure event was persisted within {} attempt(s)".format(
+                attempt
+            )
 
     def store_session(self, session):
         assert (
@@ -950,7 +975,7 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
             "groupby": ["time"],
             "rollup": 86400,
         }
-        self.geo_erorrs_query = {
+        self.geo_errors_query = {
             "name": "errorsByGeo",
             "fields": ["geo.country_code"],
             "conditions": [["geo.country_code", "IS NOT NULL", None]],

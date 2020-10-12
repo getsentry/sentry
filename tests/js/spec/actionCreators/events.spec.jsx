@@ -1,7 +1,7 @@
 import {Client} from 'app/api';
 import {doEventsRequest} from 'app/actionCreators/events';
 
-describe('Events ActionCreator', function() {
+describe('Events ActionCreator', function () {
   const api = new Client();
   const organization = TestStubs.Organization();
   const project = TestStubs.Project();
@@ -13,7 +13,7 @@ describe('Events ActionCreator', function() {
 
   let mock;
 
-  beforeEach(function() {
+  beforeEach(function () {
     MockApiClient.clearMockResponses();
     mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
@@ -30,7 +30,7 @@ describe('Events ActionCreator', function() {
     });
   });
 
-  it('requests events stats with relative period', function() {
+  it('requests events stats with relative period', function () {
     doEventsRequest(api, {
       ...opts,
       includePrevious: false,
@@ -49,7 +49,7 @@ describe('Events ActionCreator', function() {
     );
   });
 
-  it('requests events stats with relative period including previous period', function() {
+  it('requests events stats with relative period including previous period', function () {
     doEventsRequest(api, {
       ...opts,
       includePrevious: true,
@@ -68,7 +68,7 @@ describe('Events ActionCreator', function() {
     );
   });
 
-  it('requests events stats with absolute period', async function() {
+  it('requests events stats with absolute period', async function () {
     const start = new Date('2017-10-12T12:00:00.000Z');
     const end = new Date('2017-10-17T00:00:00.000Z');
     doEventsRequest(api, {
@@ -92,7 +92,7 @@ describe('Events ActionCreator', function() {
     );
   });
 
-  it('requests events stats with absolute period including previous period', async function() {
+  it('requests events stats with absolute period including previous period', async function () {
     const start = new Date('2017-10-12T12:00:00.000Z');
     const end = new Date('2017-10-17T00:00:00.000Z');
     await doEventsRequest(api, {

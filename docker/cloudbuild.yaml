@@ -1,5 +1,6 @@
 steps:
 - name: 'gcr.io/kaniko-project/executor:v0.22.0'
+  id: builder-image
   args: [
     '--cache=true',
     '--build-arg', 'SOURCE_COMMIT=$COMMIT_SHA',
@@ -8,11 +9,15 @@ steps:
   ]
   timeout: 180s
 - name: 'us.gcr.io/$PROJECT_ID/sentry-builder:$COMMIT_SHA'
+  id: builder-run
   env: [
     'SOURCE_COMMIT=$COMMIT_SHA'
   ]
   timeout: 360s
 - name: 'gcr.io/kaniko-project/executor:v0.22.0'
+  id: runtime-image-py2
+  waitFor:
+    - builder-run
   args: [
     '--cache=true',
     '--build-arg', 'SOURCE_COMMIT=$COMMIT_SHA',
@@ -20,8 +25,22 @@ steps:
     '-f', './docker/Dockerfile'
   ]
   timeout: 300s
-# Smoke tests
+- name: 'gcr.io/kaniko-project/executor:v0.22.0'
+  id: runtime-image-py3
+  waitFor:
+    - builder-run
+  args: [
+    '--cache=true',
+    '--build-arg', 'SOURCE_COMMIT=$COMMIT_SHA',
+    '--build-arg', 'PY_VER=3.6.10',
+    '--destination=us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA-py3',
+    '-f', './docker/Dockerfile'
+  ]
+  timeout: 300s
 - name: 'gcr.io/$PROJECT_ID/docker-compose'
+  id: e2e-test-py2
+  waitFor:
+    - runtime-image-py2
   entrypoint: 'bash'
   env:
   - 'SENTRY_IMAGE=us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA'
@@ -33,12 +52,43 @@ steps:
   - |
     mkdir onpremise && cd onpremise
     curl -L "https://github.com/getsentry/onpremise/archive/master.tar.gz" | tar xzf - --strip-components=1
-    # The following trick is from https://stackoverflow.com/a/52400857/90297 with great gratuity
+    echo '{"version": "3.4", "networks":{"default":{"external":{"name":"cloudbuild"}}}}' > docker-compose.override.yml
+    ./install.sh
+    set +e
+    ./test.sh
+    test_return=$?
+    set -e
+    if [[ $test_return -ne 0 ]]; then
+      echo "Test failed.";
+      docker-compose ps;
+      docker-compose logs nginx web relay;
+      exit $test_return;
+    fi
+  timeout: 450s
+- name: 'gcr.io/$PROJECT_ID/docker-compose'
+  id: e2e-test-py3
+  waitFor:
+    - runtime-image-py3
+    - e2e-test-py2
+  entrypoint: 'bash'
+  env:
+  - 'SENTRY_IMAGE=us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA-py3'
+  - 'SENTRY_TEST_HOST=http://nginx'
+  - 'CI=1'
+  args:
+  - '-e'
+  - '-c'
+  - |
+    mkdir onpremise && cd onpremise
+    curl -L "https://github.com/getsentry/onpremise/archive/master.tar.gz" | tar xzf - --strip-components=1
     echo '{"version": "3.4", "networks":{"default":{"external":{"name":"cloudbuild"}}}}' > docker-compose.override.yml
     ./install.sh
     ./test.sh || docker-compose logs nginx web relay
-  timeout: 300s
+  timeout: 450s
 - name: 'gcr.io/cloud-builders/docker'
+  id: docker-push
+  waitFor:
+    - e2e-test-py2
   secretEnv: ['DOCKER_PASSWORD']
   entrypoint: 'bash'
   args:
@@ -56,7 +106,31 @@ steps:
     docker push getsentry/sentry:$COMMIT_SHA
     docker tag us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA getsentry/sentry:latest
     docker push getsentry/sentry:latest
+- name: 'gcr.io/cloud-builders/docker'
+  id: docker-push-py3
+  waitFor:
+    - e2e-test-py3
+  secretEnv: ['DOCKER_PASSWORD']
+  entrypoint: 'bash'
+  args:
+  - '-e'
+  - '-c'
+  - |
+    # Only push to Docker Hub from master
+    [ "$BRANCH_NAME" != "master" ] && exit 0
+    # Need to pull the image first due to Kaniko
+    docker pull us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA-py3
+    echo "$$DOCKER_PASSWORD" | docker login --username=sentrybuilder --password-stdin
+    docker tag us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA-py3 getsentry/sentry:$SHORT_SHA-py3
+    docker push getsentry/sentry:$SHORT_SHA-py3
+    docker tag us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA-py3 getsentry/sentry:$COMMIT_SHA-py3
+    docker push getsentry/sentry:$COMMIT_SHA-py3
+    docker tag us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA-py3 getsentry/sentry:latest-py3
+    docker push getsentry/sentry:latest-py3
 - name: 'node:12'
+  id: zeus-upload
+  waitFor:
+    - builder-run
   secretEnv: ['ZEUS_HOOK_BASE']
   entrypoint: 'bash'
   args:
