@@ -28,6 +28,8 @@ def get_search_filter(search_filters, name, operator):
     :param operator: '<' or '>'
     :return: The value of the field if found, else None
     """
+    if not search_filters:
+        return None
     assert operator in ("<", ">")
     comparator = max if operator.startswith(">") else min
     found_val = None
