@@ -75,13 +75,9 @@ class RequestInterface extends React.Component {
             {/* Translators: this means "formatted" rendering (fancy tables) */}
             {t('Formatted')}
           </Button>
-          <MonoButton
-            barId="curl"
-            size="xsmall"
-            onClick={this.toggleView.bind(this, 'curl')}
-          >
+          <Button barId="curl" size="xsmall" onClick={this.toggleView.bind(this, 'curl')}>
             curl
-          </MonoButton>
+          </Button>
         </ButtonBar>
       );
     }
@@ -149,10 +145,6 @@ const StyledIconOpen = styled(IconOpen)`
   &:hover {
     color: ${p => p.theme.gray600};
   }
-`;
-
-const MonoButton = styled(Button)`
-  font-family: ${p => p.theme.text.familyMono};
 `;
 
 export default RequestInterface;
