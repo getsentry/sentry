@@ -119,9 +119,10 @@ search               = (boolean_operator / paren_term / search_term)*
 boolean_operator     = spaces (or_operator / and_operator) spaces
 paren_term           = spaces open_paren spaces (paren_term / boolean_operator / search_term)+ spaces closed_paren spaces
 search_term          = key_val_term / quoted_raw_search / raw_search
-key_val_term         = spaces (tag_filter / time_filter / rel_time_filter / specific_time_filter / duration_filter
-                       / numeric_filter / aggregate_filter / aggregate_date_filter / aggregate_rel_date_filter / has_filter
-                       / is_filter / quoted_basic_filter / basic_filter)
+key_val_term         = spaces (tag_filter / time_filter / rel_time_filter / specific_time_filter
+                       / duration_filter / boolean_filter / numeric_filter
+                       / aggregate_filter / aggregate_date_filter / aggregate_rel_date_filter
+                       / has_filter / is_filter / quoted_basic_filter / basic_filter)
                        spaces
 raw_search           = (!key_val_term ~r"\ *(?!(?i)OR)(?!(?i)AND)([^\ ^\n ()]+)\ *" )*
 quoted_raw_search    = spaces quoted_value spaces
@@ -139,6 +140,8 @@ duration_filter      = search_key sep operator? duration_format
 specific_time_filter = search_key sep (date_format / alt_date_format)
 # Numeric comparison filter
 numeric_filter       = search_key sep operator? numeric_value
+# Boolean comparison filter
+boolean_filter       = negation? search_key sep boolean_value
 # Aggregate numeric filter
 aggregate_filter          = negation? aggregate_key sep operator? (numeric_value / duration_format)
 aggregate_date_filter     = negation? aggregate_key sep operator? (date_format / alt_date_format)
@@ -154,6 +157,7 @@ search_key           = key / quoted_key
 search_value         = quoted_value / value
 value                = ~r"[^()\s]*"
 numeric_value        = ~r"[-]?[0-9\.]+(?=\s|\)|$)"
+boolean_value        = ~r"(true|1|false|0)(?=\s|$)"i
 quoted_value         = ~r"\"((?:[^\"]|(?<=\\)[\"])*)?\""s
 key                  = ~r"[a-zA-Z0-9_\.-]+"
 function_arg         = space? key? comma? space?
@@ -283,9 +287,7 @@ class SearchVisitor(NodeVisitor):
             "project_id",
             "project.id",
             "issue.id",
-            "error.handled",
             "stack.colno",
-            "stack.in_app",
             "stack.lineno",
             "stack.stack_level",
             "transaction.duration",
@@ -309,6 +311,7 @@ class SearchVisitor(NodeVisitor):
             "transaction.end_time",
         ]
     )
+    boolean_keys = set(["error.handled", "stack.in_app"])
 
     unwrapped_exceptions = (InvalidSearchQuery,)
 
@@ -393,6 +396,26 @@ class SearchVisitor(NodeVisitor):
             return node.text
 
         return ParenExpression(children)
+
+    def visit_boolean_filter(self, node, children):
+        (negation, search_key, sep, search_value) = children
+        is_negated = self.is_negated(negation)
+
+        # Numeric and boolean filters overlap on 1 and 0 values.
+        if self.is_numeric_key(search_key.name):
+            return self.visit_numeric_filter(node, (search_key, sep, "=", search_value))
+
+        if search_key.name in self.boolean_keys:
+            if search_value.text.lower() in ("true", "1"):
+                search_value = SearchValue(0 if is_negated else 1)
+            elif search_value.text.lower() in ("false", "0"):
+                search_value = SearchValue(1 if is_negated else 0)
+            else:
+                raise InvalidSearchQuery(u"Invalid boolean field: {}".format(search_key))
+            return SearchFilter(search_key, "=", search_value)
+        else:
+            search_value = SearchValue(search_value.text)
+            return self._handle_basic_filter(search_key, "=", search_value)
 
     def visit_numeric_filter(self, node, children):
         (search_key, _, operator, search_value) = children
@@ -584,9 +607,11 @@ class SearchVisitor(NodeVisitor):
         # If a date or numeric key gets down to the basic filter, then it means
         # that the value wasn't in a valid format, so raise here.
         if search_key.name in self.date_keys:
-            raise InvalidSearchQuery("Invalid format for date search")
+            raise InvalidSearchQuery("Invalid format for date field")
+        if search_key.name in self.boolean_keys:
+            raise InvalidSearchQuery("Invalid format for boolean field")
         if self.is_numeric_key(search_key.name):
-            raise InvalidSearchQuery("Invalid format for numeric search")
+            raise InvalidSearchQuery("Invalid format for numeric field")
 
         return SearchFilter(search_key, operator, search_value)
 
@@ -1249,15 +1274,15 @@ class ArgValue(object):
 
 
 class FunctionArg(object):
-    def __init__(self, name, has_default=False):
+    def __init__(self, name):
         self.name = name
-        self.has_default = has_default
-
-    def normalize(self, value):
-        return value
+        self.has_default = False
 
     def get_default(self, params):
         raise InvalidFunctionArgument(u"{} has no defaults".format(self.name))
+
+    def normalize(self, value):
+        return value
 
 
 class NullColumn(FunctionArg):
@@ -1268,7 +1293,8 @@ class NullColumn(FunctionArg):
     """
 
     def __init__(self, name):
-        super(NullColumn, self).__init__(name, has_default=True)
+        super(NullColumn, self).__init__(name)
+        self.has_default = True
 
     def get_default(self, params):
         return None
@@ -1279,7 +1305,8 @@ class NullColumn(FunctionArg):
 
 class CountColumn(FunctionArg):
     def __init__(self, name):
-        super(CountColumn, self).__init__(name, has_default=True)
+        super(CountColumn, self).__init__(name)
+        self.has_default = True
 
     def get_default(self, params):
         return None
@@ -1358,8 +1385,8 @@ class StringArrayColumn(FunctionArg):
 
 
 class NumberRange(FunctionArg):
-    def __init__(self, name, start, end, has_default=False):
-        super(NumberRange, self).__init__(name, has_default=has_default)
+    def __init__(self, name, start, end):
+        super(NumberRange, self).__init__(name)
         self.start = start
         self.end = end
 
@@ -1381,7 +1408,8 @@ class NumberRange(FunctionArg):
 
 class IntervalDefault(NumberRange):
     def __init__(self, name, start, end):
-        super(IntervalDefault, self).__init__(name, start, end, has_default=True)
+        super(IntervalDefault, self).__init__(name, start, end)
+        self.has_default = True
 
     def get_default(self, params):
         if not params or not params.get("start") or not params.get("end"):
@@ -1393,6 +1421,12 @@ class IntervalDefault(NumberRange):
 
         interval = (params["end"] - params["start"]).total_seconds()
         return int(interval)
+
+
+def with_default(default, argument):
+    argument.has_default = True
+    argument.get_default = lambda *_: default
+    return argument
 
 
 class Function(object):
@@ -1561,25 +1595,34 @@ FUNCTIONS = {
         ),
         Function(
             "p50",
-            aggregate=[u"quantile(0.5)", "transaction.duration", None],
+            optional_args=[with_default("transaction.duration", NumericColumnNoLookup("column"))],
+            aggregate=[u"quantile(0.5)", ArgValue("column"), None],
             result_type="duration",
         ),
         Function(
             "p75",
-            aggregate=[u"quantile(0.75)", "transaction.duration", None],
+            optional_args=[with_default("transaction.duration", NumericColumnNoLookup("column"))],
+            aggregate=[u"quantile(0.75)", ArgValue("column"), None],
             result_type="duration",
         ),
         Function(
             "p95",
-            aggregate=[u"quantile(0.95)", "transaction.duration", None],
+            optional_args=[with_default("transaction.duration", NumericColumnNoLookup("column"))],
+            aggregate=[u"quantile(0.95)", ArgValue("column"), None],
             result_type="duration",
         ),
         Function(
             "p99",
-            aggregate=[u"quantile(0.99)", "transaction.duration", None],
+            optional_args=[with_default("transaction.duration", NumericColumnNoLookup("column"))],
+            aggregate=[u"quantile(0.99)", ArgValue("column"), None],
             result_type="duration",
         ),
-        Function("p100", aggregate=[u"max", "transaction.duration", None], result_type="duration",),
+        Function(
+            "p100",
+            optional_args=[with_default("transaction.duration", NumericColumnNoLookup("column"))],
+            aggregate=[u"max", ArgValue("column"), None],
+            result_type="duration",
+        ),
         Function(
             "eps",
             optional_args=[IntervalDefault("interval", 1, None)],
