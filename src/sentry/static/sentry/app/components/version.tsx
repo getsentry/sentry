@@ -161,6 +161,7 @@ const VersionText = styled('span')<{truncate?: boolean}>`
   ${p =>
     p.truncate &&
     `max-width: 100%;
+  display: block;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;`}

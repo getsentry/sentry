@@ -139,6 +139,10 @@ const TooltipWrapper = styled('span')`
     position: relative;
     top: 1px;
   }
+
+  a {
+    display: inline;
+  }
 `;
 
 export default SeenInfo;
