@@ -51,8 +51,6 @@ class SeenInfo extends React.Component {
       <div style={{width: '170px'}}>
         <div className="time-label" style={{marginBottom: '10px'}}>
           {title}
-          <br />
-          <DateTime date={date} seconds />
         </div>
         {environment && [
           <React.Fragment key="0">{toTitleCase(environment)}: </React.Fragment>,
@@ -85,7 +83,7 @@ class SeenInfo extends React.Component {
           <TooltipWrapper>
             <Tooltip title={this.getTooltipTitle()} disableForVisualTest>
               <IconInfo size="xs" color="gray500" />
-              <TimeSince className="dotted-underline" date={date} />
+              <TimeSince date={date} />
             </Tooltip>
           </TooltipWrapper>
         ) : dateGlobal && environment === '' ? (
@@ -93,22 +91,18 @@ class SeenInfo extends React.Component {
             <Tooltip title={this.getTooltipTitle()} disableForVisualTest>
               <TimeSince date={dateGlobal} />
             </Tooltip>
-            <br />
-            <small>
-              <DateTime date={dateGlobal} seconds />
-            </small>
           </React.Fragment>
         ) : (
           <React.Fragment>{t('n/a')} </React.Fragment>
         )}
         {defined(release) ? (
           <React.Fragment>
+            {t('in release ')}
             <VersionHoverCard
               orgSlug={orgSlug}
               projectSlug={projectSlug}
               releaseVersion={release.version}
             >
-              {t('in release ')}
               <span>
                 <Version version={release.version} truncate projectId={projectId} />
               </span>
@@ -116,17 +110,27 @@ class SeenInfo extends React.Component {
           </React.Fragment>
         ) : !this.props.hasRelease ? (
           <React.Fragment>
-            <small style={{marginLeft: 5}}>
+            <NotConfigured>
               <a href={this.getReleaseTrackingUrl()}>{t('Releases not configured')}</a>
-            </small>
+            </NotConfigured>
           </React.Fragment>
         ) : (
-          <React.Fragment>{t('n/a')}</React.Fragment>
+          <React.Fragment>{t('Release n/a')}</React.Fragment>
         )}
+        <StyledDateTime date={date} seconds />
       </DateWrapper>
     );
   }
 }
+
+const NotConfigured = styled('span')`
+  margin-left: ${space(0.25)};
+`;
+
+const StyledDateTime = styled(DateTime)`
+  display: block;
+  color: ${p => p.theme.gray500};
+`;
 
 const DateWrapper = styled('div')`
   margin-bottom: ${space(2)};
