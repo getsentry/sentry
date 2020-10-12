@@ -164,17 +164,23 @@ jobs:
 
       - uses: volta-cli/action@v1
 
+      - name: Set python version output
+        id: python-version
+        run: |
+          echo "::set-output name=python-version::$(awk 'FNR == 2' .python-version)"
+
+
       # Until GH composite actions can use `uses`, we need to setup python here
       - uses: actions/setup-python@v2
         with:
-          python-version: 2.7.17
+          python-version: ${{ steps.python-version.outputs.python-version }}
 
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
-          python: 2
-          kafka: 1
+          python: 3
+          kafka: true
 
       - name: Python 3.6 snuba backend (${{ steps.setup.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
         if: always()
