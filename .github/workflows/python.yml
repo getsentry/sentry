@@ -110,9 +110,6 @@ jobs:
     env:
       MIGRATIONS_TEST_MIGRATE: 1
 
-      # Number of matrix instances
-      TOTAL_TEST_GROUPS: ${{ strategy.job-total }}
-
     steps:
       - uses: actions/checkout@v2
 
@@ -147,8 +144,6 @@ jobs:
         if: always()
         run: |
           make travis-test-postgres
-        env:
-          TEST_GROUP: ${{ matrix.instance }}
 
   test-py3-snuba:
     name: '[ignore fails] python3.6 backend (snuba)'
@@ -163,7 +158,6 @@ jobs:
       # Note: `USE_SNUBA` is only used for the Snuba test suite because we have some failing acceptance tests with Snuba enabled.
       USE_SNUBA: 1
       MIGRATIONS_TEST_MIGRATE: 1
-      TOTAL_TEST_GROUPS: ${{ strategy.job-total }} # Number of matrix instances
 
     steps:
       - uses: actions/checkout@v2
@@ -186,5 +180,3 @@ jobs:
         if: always()
         run: |
           make travis-test-snuba
-        env:
-          TEST_GROUP: ${{ matrix.instance }}

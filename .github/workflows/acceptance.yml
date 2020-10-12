@@ -107,8 +107,6 @@ jobs:
           instance: [0, 1, 2]
 
       env:
-        # Number of matrix instances
-        TOTAL_TEST_GROUPS: ${{ strategy.job-total }}
         VISUAL_SNAPSHOT_ENABLE: 1
 
       steps:
@@ -161,7 +159,6 @@ jobs:
           env:
             PYTEST_SNAPSHOTS_DIR: ${{ steps.setup.outputs.acceptance-dir }}
             USE_SNUBA: 1
-            TEST_GROUP: ${{ matrix.instance }}
 
         - name: Save snapshots
           if: always()
@@ -179,8 +176,6 @@ jobs:
 
       env:
         MIGRATIONS_TEST_MIGRATE: 1
-        # Number of matrix instances
-        TOTAL_TEST_GROUPS: ${{ strategy.job-total }}
         VISUAL_SNAPSHOT_ENABLE: 1
 
       steps:
@@ -239,7 +234,6 @@ jobs:
           env:
             PYTEST_SNAPSHOTS_DIR: ${{ steps.setup.outputs.acceptance-dir }}
             USE_SNUBA: 1
-            TEST_GROUP: ${{ matrix.instance }}
 
         # TODO(joshuarli): SENTRY_PYTHON3=1, snapshots, visual-diff needs py3-acceptance.
 

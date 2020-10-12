@@ -36,6 +36,8 @@ runs:
       env:
         PYTHON_VERSION: ${{ inputs.python }}
         NEED_KAFKA: ${{ inputs.kafka }}
+        MATRIX_INSTANCE: ${{ matrix.instance }}
+        MATRIX_INSTANCE_TOTAL: ${{ strategy.job-total }}
       run: |
         echo "PIP_DISABLE_PIP_VERSION_CHECK=on" >> $GITHUB_ENV
         echo "MIGRATIONS_TEST_MIGRATE=0" >> $GITHUB_ENV
@@ -51,6 +53,11 @@ runs:
         ### pytest-sentry configuration ###
         echo "PYTEST_SENTRY_DSN=https://6fd5cfea2d4d46b182ad214ac7810508@sentry.io/2423079" >> $GITHUB_ENV
         echo "PYTEST_ADDOPTS=--reruns 5" >> $GITHUB_ENV
+        # this handles pytest test sharding
+        if [ "$MATRIX_INSTANCE" ]; then
+          echo "TEST_GROUP=$MATRIX_INSTANCE" >> $GITHUB_ENV
+          echo "TOTAL_TEST_GROUPS=$MATRIX_INSTANCE_TOTAL" >> $GITHUB_ENV
+        fi
         # This records failures on master to sentry in order to detect flakey tests, as it's
         # expected that people have failing tests on their PRs
         [ "$GITHUB_REF" = "refs/heads/master" ] && echo "PYTEST_SENTRY_ALWAYS_REPORT=1" >> $GITHUB_ENV || true
