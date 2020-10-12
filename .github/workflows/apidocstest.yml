@@ -27,48 +27,39 @@ jobs:
       DATABASE_URL: postgresql://postgres:postgres@localhost/sentry
 
     steps:
-      - name: Install System Dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            libxmlsec1-dev \
-            libmaxminddb-dev
       - uses: actions/checkout@v2
 
       - uses: volta-cli/action@v1
 
-      - name: Set up outputs
-        id: config
+      - name: Set python version output
+        id: python-version
         run: |
-          echo "::set-output name=yarn-cache-dir::$(yarn cache dir)"
           echo "::set-output name=python-version::$(awk 'FNR == 2' .python-version)"
 
-      - uses: actions/cache@v2
+      # Until GH composite actions can use `uses`, we need to setup python here
+      - uses: actions/setup-python@v2
+        with:
+          python-version: ${{ steps.python-version.outputs.python-version }}
+
+      - name: Setup sentry python env
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          python: 3
+
+      - name: yarn cache
+        uses: actions/cache@v2
         id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
         with:
-          path: ${{ steps.config.outputs.yarn-cache-dir }}
+          path: ${{ steps.setup.outputs.yarn-cache-dir }}
           key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
           restore-keys: |
             ${{ runner.os }}-yarn-
 
-      - name: Set up Python ${{ steps.config.outputs.python-version }}
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ steps.config.outputs.python-version}}
-
-      - name: Install pip
-        run: |
-          pip install --no-cache-dir --upgrade "pip>=20.0.2"
-
-      - name: Get pip cache dir
-        id: pip-cache
-        run: |
-          echo "::set-output name=dir::$(pip cache dir)"
-
       - name: pip cache
         uses: actions/cache@v2
         with:
-          path: ${{ steps.pip-cache.outputs.dir }}
+          path: ${{ steps.setup.outputs.pip-cache-dir }}
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements-*.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
@@ -76,26 +67,6 @@ jobs:
       - name: Install Javascript Dependencies
         run: |
           yarn install --frozen-lockfile
-
-      - name: Install Python Dependencies
-        env:
-          PGPASSWORD: postgres
-        run: |
-          python setup.py install_egg_info
-          pip install wheel # GitHub Actions does not have this installed by default (unlike Travis)
-          pip install -U -e ".[dev]"
-
-      - name: Start devservices
-        run: |
-          sentry init
-          sentry devservices up postgres redis clickhouse snuba
-
-      # Setup custom pytest matcher, see https://github.com/actions/setup-node/issues/97
-      - name: Add pytest log matcher
-        if: always()
-        run: |
-          echo "::remove-matcher owner=pytest::"
-          echo "::add-matcher::.github/pytest.json"
 
       - name: Run API docs tests
         run: |
