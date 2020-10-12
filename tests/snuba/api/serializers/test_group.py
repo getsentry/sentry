@@ -2,13 +2,10 @@
 
 from __future__ import absolute_import
 
-from sentry.utils.compat import mock
 import six
 
 from datetime import timedelta
-
 from django.utils import timezone
-from sentry.utils.compat.mock import patch
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import (
@@ -30,6 +27,8 @@ from sentry.models import (
 )
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.utils.compat import mock
+from sentry.utils.compat.mock import patch
 
 
 class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
