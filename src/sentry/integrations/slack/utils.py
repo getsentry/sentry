@@ -46,7 +46,7 @@ LEVEL_TO_COLOR = {
 MEMBER_PREFIX = "@"
 CHANNEL_PREFIX = "#"
 strip_channel_chars = "".join([MEMBER_PREFIX, CHANNEL_PREFIX])
-SLACK_DEFAULT_TIMEOUT = 10
+SLACK_DEFAULT_TIMEOUT = 0.00001
 
 
 def get_integration_type(integration):
@@ -361,7 +361,7 @@ def strip_channel_name(name):
     return name.lstrip(strip_channel_chars)
 
 
-def get_channel_id(organization, integration_id, name):
+def get_channel_id(organization, integration_id, name, use_async_lookup=False):
     """
    Fetches the internal slack id of a channel.
    :param organization: The organization that is using this integration
@@ -381,15 +381,21 @@ def get_channel_id(organization, integration_id, name):
     except Integration.DoesNotExist:
         return None, None, False
 
+    if use_async_lookup:
+        timeout = 3 * 60
+    else:
+        timeout = SLACK_DEFAULT_TIMEOUT
+
     # XXX(meredith): For large accounts that have many, many channels it's
     # possible for us to timeout while attempting to paginate through to find the channel id
     # This means some users are unable to create/update alert rules. To avoid this, we attempt
     # to find the channel id asynchronously if it takes longer than a certain amount of time,
     # which I have set as the SLACK_DEFAULT_TIMEOUT - arbitrarily - to 10 seconds.
-    return get_channel_id_with_timeout(integration, name, SLACK_DEFAULT_TIMEOUT)
+    return get_channel_id_with_timeout(integration, name, timeout)
 
 
 def get_channel_id_with_timeout(integration, name, timeout):
+    print("lookup with", timeout)
     """
     Fetches the internal slack id of a channel.
     :param integration: The slack integration
@@ -420,6 +426,8 @@ def get_channel_id_with_timeout(integration, name, timeout):
     id_data = None
     found_duplicate = False
     for list_type, result_name, prefix in list_types:
+        if timeout < 1:
+            return (prefix, None, True)
         cursor = ""
         while True:
             endpoint = "/%s.list" % list_type

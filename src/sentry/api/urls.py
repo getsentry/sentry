@@ -319,6 +319,9 @@ from sentry.incidents.endpoints.project_alert_rule_index import (
     ProjectAlertRuleIndexEndpoint,
     ProjectCombinedRuleIndexEndpoint,
 )
+from sentry.incidents.endpoints.project_alert_rule_task_details import (
+    ProjectAlertRuleTaskDetailsEndpoint,
+)
 from sentry.incidents.endpoints.organization_incident_activity_index import (
     OrganizationIncidentActivityIndexEndpoint,
 )
@@ -1235,6 +1238,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/alert-rules/$",
                     ProjectAlertRuleIndexEndpoint.as_view(),
                     name="sentry-api-0-project-alert-rules",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/alert-rule-task/(?P<task_uuid>[^\/]+)/$",
+                    ProjectAlertRuleTaskDetailsEndpoint.as_view(),
+                    name="sentry-api-0-project-rule-task-details",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/combined-rules/$",

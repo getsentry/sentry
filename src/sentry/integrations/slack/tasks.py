@@ -4,11 +4,14 @@ import six
 from uuid import uuid4
 
 from django.conf import settings
+from rest_framework import serializers
 
+from sentry.auth.access import SystemAccess
 from sentry.utils import json
 from sentry.tasks.base import instrumented_task
 from sentry.mediators import project_rules
-from sentry.models import Integration, Project, Rule
+from sentry.models import Integration, Project, Rule, Organization
+from sentry.incidents.endpoints.serializers import AlertRuleSerializer
 from sentry.integrations.slack.utils import get_channel_id_with_timeout, strip_channel_name
 from sentry.utils.redis import redis_clusters
 from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
@@ -71,6 +74,7 @@ def find_channel_id_for_rule(project, actions, uuid, rule_id=None, **kwargs):
     integration_id = None
     channel_name = None
 
+    # TODO: make work for multiple Slack actions
     for action in actions:
         if action.get("workspace") and action.get("channel"):
             integration_id = action["workspace"]
@@ -120,3 +124,35 @@ def find_channel_id_for_rule(project, actions, uuid, rule_id=None, **kwargs):
         return
     # if we never find the channel name we failed :(
     redis_rule_status.set_value("failed")
+
+
+@instrumented_task(
+    name="sentry.integrations.slack.search_channel_id_metric_alerts", queue="integrations"
+)
+def find_channel_id_for_alert_rule(organization_id, uuid, rule_id=None, **kwargs):
+    redis_rule_status = RedisRuleStatus(uuid)
+
+    try:
+        organization = Organization.objects.get(id=organization_id)
+    except Organization.DoesNotExist:
+        redis_rule_status.set_value("failed")
+        return
+
+    print("do task lookup")
+    kwargs["use_async_lookup"] = True
+    serializer = AlertRuleSerializer(
+        context={"organization": organization, "access": SystemAccess()}, data=kwargs,
+    )
+    if serializer.is_valid():
+        try:
+            alert_rule = serializer.save()
+            redis_rule_status.set_value("success", alert_rule.id)
+            return
+        except serializers.ValidationError:
+            # channel doesn't exist error
+            redis_rule_status.set_value("failed")
+            return
+
+    # some other error
+    redis_rule_status.set_value("failed")
+    return

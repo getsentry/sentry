@@ -68,6 +68,10 @@ class InvalidTriggerActionError(Exception):
     pass
 
 
+class ChannelLookupTimeoutError(Exception):
+    pass
+
+
 def create_incident(
     organization,
     type_,
@@ -561,6 +565,7 @@ def create_alert_rule(
     excluded_projects=None,
     dataset=QueryDatasets.EVENTS,
     user=None,
+    **kwargs
 ):
     """
     Creates an alert rule for an organization.
@@ -1042,7 +1047,13 @@ def get_subscriptions_from_alert_rule(alert_rule, projects):
 
 
 def create_alert_rule_trigger_action(
-    trigger, type, target_type, target_identifier=None, integration=None, sentry_app=None
+    trigger,
+    type,
+    target_type,
+    target_identifier=None,
+    integration=None,
+    sentry_app=None,
+    use_async_lookup=False,
 ):
     """
     Creates an AlertRuleTriggerAction
@@ -1055,14 +1066,18 @@ def create_alert_rule_trigger_action(
     :param sentry_app: (Optional) The Sentry App related to this action.
     :return: The created action
     """
-
+    print("create_alert_rule_trigger_action", use_async_lookup)
     target_display = None
     if type.value in AlertRuleTriggerAction.INTEGRATION_TYPES:
         if target_type != AlertRuleTriggerAction.TargetType.SPECIFIC:
             raise InvalidTriggerActionError("Must specify specific target type")
 
         target_identifier, target_display = get_target_identifier_display_for_integration(
-            type.value, target_identifier, trigger.alert_rule.organization, integration.id
+            type.value,
+            target_identifier,
+            trigger.alert_rule.organization,
+            integration.id,
+            use_async_lookup=use_async_lookup,
         )
     elif type == AlertRuleTriggerAction.Type.SENTRY_APP:
         target_identifier, target_display = get_alert_rule_trigger_action_sentry_app(
@@ -1136,6 +1151,7 @@ def update_alert_rule_trigger_action(
 def get_target_identifier_display_for_integration(type, target_value, *args, **kwargs):
     # target_value is the Slack username or channel name
     if type == AlertRuleTriggerAction.Type.SLACK.value:
+        print("get_target_identifier_display_for_integration", kwargs)
         target_identifier = get_alert_rule_trigger_action_slack_channel_id(
             target_value, *args, **kwargs
         )
@@ -1155,11 +1171,16 @@ def get_target_identifier_display_for_integration(type, target_value, *args, **k
     return target_identifier, target_value
 
 
-def get_alert_rule_trigger_action_slack_channel_id(name, organization, integration_id):
+def get_alert_rule_trigger_action_slack_channel_id(
+    name, organization, integration_id, use_async_lookup
+):
     from sentry.integrations.slack.utils import get_channel_id
 
     try:
-        _prefix, channel_id, timed_out = get_channel_id(organization, integration_id, name)
+        print("get_alert_rule_trigger_action_slack_channel_id", use_async_lookup)
+        _prefix, channel_id, timed_out = get_channel_id(
+            organization, integration_id, name, use_async_lookup
+        )
     except DuplicateDisplayNameError as e:
         integration = Integration.objects.get(id=integration_id)
         domain = integration.metadata["domain_name"]
@@ -1170,7 +1191,7 @@ def get_alert_rule_trigger_action_slack_channel_id(name, organization, integrati
         )
 
     if timed_out:
-        raise InvalidTriggerActionError(
+        raise ChannelLookupTimeoutError(
             "Could not find channel %s. We have timed out trying to look for it. " % name
         )
 
