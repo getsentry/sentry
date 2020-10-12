@@ -386,17 +386,16 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   handleValidateRuleName = () => {
     const isRuleNameEmpty = !this.state.rule?.name.trim();
 
-    if (isRuleNameEmpty) {
-      this.setState(prevState => ({
-        detailedError: {
-          ...prevState.detailedError,
-          name: [t('Field Required')],
-        },
-      }));
+    if (!isRuleNameEmpty) {
       return;
     }
 
-    return;
+    this.setState(prevState => ({
+      detailedError: {
+        ...prevState.detailedError,
+        name: [t('Field Required')],
+      },
+    }));
   };
 
   renderLoading() {
