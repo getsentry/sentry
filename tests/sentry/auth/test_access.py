@@ -8,7 +8,6 @@ from sentry.models import AuthProvider, AuthIdentity, Organization, ObjectStatus
 from sentry.testutils import TestCase
 
 
-# force python tests
 class FromUserTest(TestCase):
     def test_no_access(self):
         organization = self.create_organization()
