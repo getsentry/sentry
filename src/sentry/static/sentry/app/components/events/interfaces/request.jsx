@@ -63,24 +63,24 @@ class RequestInterface extends React.Component {
       parsedUrl.href = fullUrl;
     }
 
-    // let actions;
-    // if (!this.isPartial() && fullUrl) {
-    const actions = (
-      <ButtonBar merged active={view}>
-        <Button
-          barId="formatted"
-          size="xsmall"
-          onClick={this.toggleView.bind(this, 'formatted')}
-        >
-          {/* Translators: this means "formatted" rendering (fancy tables) */}
-          {t('Formatted')}
-        </Button>
-        <Button barId="curl" size="xsmall" onClick={this.toggleView.bind(this, 'curl')}>
-          curl
-        </Button>
-      </ButtonBar>
-    );
-    // }
+    let actions;
+    if (!this.isPartial() && fullUrl) {
+      actions = (
+        <ButtonBar merged active={view}>
+          <Button
+            barId="formatted"
+            size="xsmall"
+            onClick={this.toggleView.bind(this, 'formatted')}
+          >
+            {/* Translators: this means "formatted" rendering (fancy tables) */}
+            {t('Formatted')}
+          </Button>
+          <Button barId="curl" size="xsmall" onClick={this.toggleView.bind(this, 'curl')}>
+            curl
+          </Button>
+        </ButtonBar>
+      );
+    }
 
     const title = (
       <Header key="title">
