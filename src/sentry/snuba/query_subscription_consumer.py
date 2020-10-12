@@ -69,7 +69,6 @@ class QuerySubscriptionConsumer(object):
         self.offsets.clear()
 
         conf = {
-            **self.broker_config,
             "group.id": self.group_id,
             "session.timeout.ms": 6000,
             "auto.offset.reset": self.initial_offset_reset,
@@ -78,6 +77,7 @@ class QuerySubscriptionConsumer(object):
             "enable.partition.eof": "false",
             "default.topic.config": {"auto.offset.reset": self.initial_offset_reset},
         }
+        conf.update(self.broker_config)
 
         def on_assign(consumer, partitions):
             for partition in partitions:
