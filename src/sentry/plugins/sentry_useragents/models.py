@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-from ua_parser.user_agent_parser import Parse
-
 import sentry
 from sentry.plugins.bases.tag import TagPlugin
 
@@ -33,12 +31,19 @@ class UserAgentPlugin(TagPlugin):
         for key, value in headers:
             if key != "User-Agent":
                 continue
+
+            # ua_parser is imported here, and not module level, because it takes ~300ms to warmup,
+            # and that penalty is seen even in running sentry cli or pytest.
+            from ua_parser.user_agent_parser import Parse
+
             ua = Parse(value)
             if not ua:
                 continue
+
             result = self.get_tag_from_ua(ua)
             if result:
                 output.append(result)
+
         return output
 
 
