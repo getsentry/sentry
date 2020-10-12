@@ -7,372 +7,372 @@ on:
   pull_request:
 
 jobs:
-  parse-commit-message:
-    if: ${{ github.ref != 'refs/heads/master' }}
-    runs-on: ubuntu-16.04
-    outputs:
-      commit: ${{ steps.commit.outputs.message }}
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
+    parse-commit-message:
+      if: ${{ github.ref != 'refs/heads/master' }}
+      runs-on: ubuntu-16.04
+      outputs:
+        commit: ${{ steps.commit.outputs.message }}
+      steps:
+        - uses: actions/checkout@v2
+          with:
+            ref: ${{ github.event.pull_request.head.sha }}
 
-      - name: Parse commit message
-        id: commit
-        run: |
-          echo "::set-output name=message::$(git show -s --format=%B)"
+        - name: Parse commit message
+          id: commit
+          run: |
+            echo "::set-output name=message::$(git show -s --format=%B)"
 
-  getsentry:
-    needs: parse-commit-message
-    if: ${{ contains(needs.parse-commit-message.outputs.commit, '#test-getsentry') }}
-    runs-on: ubuntu-16.04
-    steps:
-      - name: getsentry token
-        id: getsentry
-        uses: getsentry/action-github-app-token@v1
-        with:
-          app_id: ${{ secrets.SENTRY_INTERNAL_APP_ID }}
-          private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
+    getsentry:
+      needs: parse-commit-message
+      if: ${{ contains(needs.parse-commit-message.outputs.commit, '#test-getsentry') }}
+      runs-on: ubuntu-16.04
+      steps:
+        - name: getsentry token
+          id: getsentry
+          uses: getsentry/action-github-app-token@v1
+          with:
+            app_id: ${{ secrets.SENTRY_INTERNAL_APP_ID }}
+            private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
 
-      # Notify getsentry
-      - name: Dispatch getsentry tests
-        uses: actions/github-script@v3
-        with:
-          github-token: ${{ steps.getsentry.outputs.token }}
-          script: |
-            github.actions.createWorkflowDispatch({
-              owner: 'getsentry',
-              repo: 'getsentry',
-              workflow_id: 'acceptance.yml',
-              ref: 'master',
-              inputs: {
-                'sentry-sha': '${{ github.event.pull_request.head.sha }}',
-              }
-            })
+        # Notify getsentry
+        - name: Dispatch getsentry tests
+          uses: actions/github-script@v3
+          with:
+            github-token: ${{ steps.getsentry.outputs.token }}
+            script: |
+              github.actions.createWorkflowDispatch({
+                owner: 'getsentry',
+                repo: 'getsentry',
+                workflow_id: 'acceptance.yml',
+                ref: 'master',
+                inputs: {
+                  'sentry-sha': '${{ github.event.pull_request.head.sha }}',
+                }
+              })
 
-  jest:
-    runs-on: ubuntu-latest
-    env:
-      VISUAL_HTML_ENABLE: 1
-    steps:
-      - uses: actions/checkout@v2
+    jest:
+      runs-on: ubuntu-latest
+      env:
+        VISUAL_HTML_ENABLE: 1
+      steps:
+        - uses: actions/checkout@v2
 
-      - uses: volta-cli/action@v1
+        - uses: volta-cli/action@v1
 
-      # See https://github.com/actions/cache/blob/master/examples.md#node---yarn for example
-      - name: Get yarn cache directory path
-        id: yarn-cache-dir-path
-        run: echo "::set-output name=dir::$(yarn cache dir)"
+        # See https://github.com/actions/cache/blob/master/examples.md#node---yarn for example
+        - name: Get yarn cache directory path
+          id: yarn-cache-dir-path
+          run: echo "::set-output name=dir::$(yarn cache dir)"
 
-      - uses: actions/cache@v1
-        id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
-        with:
-          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
-          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-yarn-
+        - uses: actions/cache@v1
+          id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
+          with:
+            path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
+            key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+            restore-keys: |
+              ${{ runner.os }}-yarn-
 
-      - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        - name: Install dependencies
+          run: yarn install --frozen-lockfile
 
-      - name: jest
-        run: |
-          NODE_ENV=production yarn build-css
-          yarn test-ci --forceExit
+        - name: jest
+          run: |
+            NODE_ENV=production yarn build-css
+            yarn test-ci --forceExit
 
-      - name: Save HTML artifacts
-        uses: actions/upload-artifact@v2
-        with:
-          name: jest-html
-          path: .artifacts/visual-snapshots/jest
+        - name: Save HTML artifacts
+          uses: actions/upload-artifact@v2
+          with:
+            name: jest-html
+            path: .artifacts/visual-snapshots/jest
 
-      - name: Create Images from HTML
-        uses: getsentry/action-html-to-image@main
-        with:
-          base-path: .artifacts/visual-snapshots/jest
-          css-path: src/sentry/static/sentry/dist/sentry.css
+        - name: Create Images from HTML
+          uses: getsentry/action-html-to-image@main
+          with:
+            base-path: .artifacts/visual-snapshots/jest
+            css-path: src/sentry/static/sentry/dist/sentry.css
 
-      - name: Save snapshots
-        if: always()
-        uses: getsentry/action-visual-snapshot@v2
-        with:
-          save-only: true
-          snapshot-path: .artifacts/visual-snapshots
+        - name: Save snapshots
+          if: always()
+          uses: getsentry/action-visual-snapshot@v2
+          with:
+            save-only: true
+            snapshot-path: .artifacts/visual-snapshots
 
-  acceptance:
-    # TODO(joshuarli): Convert to py3 with snapshots. See other TODO as well.
-    runs-on: ubuntu-16.04
-    strategy:
-      matrix:
-        instance: [0, 1, 2]
+    acceptance:
+      # TODO(joshuarli): Convert to py3 with snapshots. See other TODO as well.
+      runs-on: ubuntu-16.04
+      strategy:
+        matrix:
+          instance: [0, 1, 2]
 
-    env:
-      PIP_DISABLE_PIP_VERSION_CHECK: on
-      # PIP_QUIET: 1
+      env:
+        PIP_DISABLE_PIP_VERSION_CHECK: on
+        # PIP_QUIET: 1
 
-      SENTRY_LIGHT_BUILD: 1
-      SENTRY_SKIP_BACKEND_VALIDATION: 1
-      MIGRATIONS_TEST_MIGRATE: 0
+        SENTRY_LIGHT_BUILD: 1
+        SENTRY_SKIP_BACKEND_VALIDATION: 1
+        MIGRATIONS_TEST_MIGRATE: 0
 
-      NODE_OPTIONS: --max-old-space-size=4096
-      NODE_ENV: development
+        NODE_OPTIONS: --max-old-space-size=4096
+        NODE_ENV: development
 
-      PYTEST_SENTRY_DSN: https://6fd5cfea2d4d46b182ad214ac7810508@sentry.io/2423079
-      PYTEST_ADDOPTS: "--reruns 5"
+        PYTEST_SENTRY_DSN: https://6fd5cfea2d4d46b182ad214ac7810508@sentry.io/2423079
+        PYTEST_ADDOPTS: "--reruns 5"
 
-      # services configuration
-      SENTRY_KAFKA_HOSTS: kafka:9093
-      SENTRY_ZOOKEEPER_HOSTS: zookeeper:2182
-      SENTRY_REDIS_HOST: redis
-      # The hostname used to communicate with the PostgreSQL from sentry
-      DATABASE_URL: postgresql://postgres:postgres@localhost/sentry
+        # services configuration
+        SENTRY_KAFKA_HOSTS: kafka:9093
+        SENTRY_ZOOKEEPER_HOSTS: zookeeper:2182
+        SENTRY_REDIS_HOST: redis
+        # The hostname used to communicate with the PostgreSQL from sentry
+        DATABASE_URL: postgresql://postgres:postgres@localhost/sentry
 
-      # Number of matrix instances
-      TOTAL_TEST_GROUPS: ${{ strategy.job-total }}
+        # Number of matrix instances
+        TOTAL_TEST_GROUPS: ${{ strategy.job-total }}
 
-      VISUAL_SNAPSHOT_ENABLE: 1
+        VISUAL_SNAPSHOT_ENABLE: 1
 
-    steps:
-      - name: Install System Dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            libxmlsec1-dev \
-            libmaxminddb-dev
+      steps:
+        - name: Install System Dependencies
+          run: |
+            sudo apt-get update
+            sudo apt-get install -y --no-install-recommends \
+              libxmlsec1-dev \
+              libmaxminddb-dev
 
-      - uses: actions/checkout@v2
+        - uses: actions/checkout@v2
 
-      - uses: volta-cli/action@v1
+        - uses: volta-cli/action@v1
 
-      - name: Set up outputs
-        id: config
-        env:
-          MATRIX_INSTANCE: ${{ matrix.instance }}
-        run: |
-          echo "::set-output name=yarn-cache-dir::$(yarn cache dir)"
-          echo "::set-output name=python-version::2.7.17"
-          echo "::set-output name=matrix-instance-number::$(($MATRIX_INSTANCE+1))"
-          echo "::set-output name=acceptance-dir::.artifacts/visual-snapshots/acceptance"
+        - name: Set up outputs
+          id: config
+          env:
+            MATRIX_INSTANCE: ${{ matrix.instance }}
+          run: |
+            echo "::set-output name=yarn-cache-dir::$(yarn cache dir)"
+            echo "::set-output name=python-version::2.7.17"
+            echo "::set-output name=matrix-instance-number::$(($MATRIX_INSTANCE+1))"
+            echo "::set-output name=acceptance-dir::.artifacts/visual-snapshots/acceptance"
 
-      - uses: actions/cache@v1
-        id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
-        with:
-          path: ${{ steps.config.outputs.yarn-cache-dir }}
-          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-yarn-
+        - uses: actions/cache@v1
+          id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
+          with:
+            path: ${{ steps.config.outputs.yarn-cache-dir }}
+            key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+            restore-keys: |
+              ${{ runner.os }}-yarn-
 
-      - name: Set up Python ${{ steps.config.outputs.python-version }}
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ steps.config.outputs.python-version}}
+        - name: Set up Python ${{ steps.config.outputs.python-version }}
+          uses: actions/setup-python@v2
+          with:
+            python-version: ${{ steps.config.outputs.python-version}}
 
-      - name: Install pip
-        run: |
-          pip install --no-cache-dir --upgrade "pip>=20.0.2"
+        - name: Install pip
+          run: |
+            pip install --no-cache-dir --upgrade "pip>=20.0.2"
 
-      - name: Get pip cache dir
-        id: pip-cache
-        run: |
-          echo "::set-output name=dir::$(pip cache dir)"
+        - name: Get pip cache dir
+          id: pip-cache
+          run: |
+            echo "::set-output name=dir::$(pip cache dir)"
 
-      - name: pip cache
-        uses: actions/cache@v1
-        with:
-          path: ${{ steps.pip-cache.outputs.dir }}
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements-*.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
+        - name: pip cache
+          uses: actions/cache@v1
+          with:
+            path: ${{ steps.pip-cache.outputs.dir }}
+            key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements-*.txt') }}
+            restore-keys: |
+              ${{ runner.os }}-pip-
 
-      - name: Install Javascript Dependencies
-        run: |
-          yarn install --frozen-lockfile
+        - name: Install Javascript Dependencies
+          run: |
+            yarn install --frozen-lockfile
 
-      - name: Install Python Dependencies
-        env:
-          PGPASSWORD: postgres
-        run: |
-          python setup.py install_egg_info
-          pip install wheel # GitHub Actions does not have this installed by default (unlike Travis)
-          pip install -U -e ".[dev]"
+        - name: Install Python Dependencies
+          env:
+            PGPASSWORD: postgres
+          run: |
+            python setup.py install_egg_info
+            pip install wheel # GitHub Actions does not have this installed by default (unlike Travis)
+            pip install -U -e ".[dev]"
 
-      - name: Start devservices
-        run: |
-          sentry init
-          sentry devservices up postgres redis clickhouse snuba
+        - name: Start devservices
+          run: |
+            sentry init
+            sentry devservices up postgres redis clickhouse snuba
 
-      - name: webpack
-        run: |
-          yarn webpack --display errors-only
+        - name: webpack
+          run: |
+            yarn webpack --display errors-only
 
-      # Setup custom pytest matcher, see https://github.com/actions/setup-node/issues/97
-      - name: Add pytest log matcher
-        if: always()
-        run: |
-          echo "::remove-matcher owner=pytest::"
-          echo "::add-matcher::.github/pytest.json"
+        # Setup custom pytest matcher, see https://github.com/actions/setup-node/issues/97
+        - name: Add pytest log matcher
+          if: always()
+          run: |
+            echo "::remove-matcher owner=pytest::"
+            echo "::add-matcher::.github/pytest.json"
 
-      - name: Run acceptance tests (#${{ steps.config.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
-        if: always()
-        run: |
-          mkdir -p ${{ steps.config.outputs.acceptance-dir }}
-          mkdir -p ${{ steps.config.outputs.acceptance-dir }}-mobile
-          mkdir -p ${{ steps.config.outputs.acceptance-dir }}-tooltips
-          [ "$GITHUB_REF" = "refs/heads/master" ] && export PYTEST_SENTRY_ALWAYS_REPORT=1
-          make run-acceptance
-        env:
-          PYTEST_SNAPSHOTS_DIR: ${{ steps.config.outputs.acceptance-dir }}
-          USE_SNUBA: 1
-          TEST_GROUP: ${{ matrix.instance }}
+        - name: Run acceptance tests (#${{ steps.config.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
+          if: always()
+          run: |
+            mkdir -p ${{ steps.config.outputs.acceptance-dir }}
+            mkdir -p ${{ steps.config.outputs.acceptance-dir }}-mobile
+            mkdir -p ${{ steps.config.outputs.acceptance-dir }}-tooltips
+            [ "$GITHUB_REF" = "refs/heads/master" ] && export PYTEST_SENTRY_ALWAYS_REPORT=1
+            make run-acceptance
+          env:
+            PYTEST_SNAPSHOTS_DIR: ${{ steps.config.outputs.acceptance-dir }}
+            USE_SNUBA: 1
+            TEST_GROUP: ${{ matrix.instance }}
 
-      - name: Save snapshots
-        if: always()
-        uses: getsentry/action-visual-snapshot@v2
-        with:
-          save-only: true
-          snapshot-path: .artifacts/visual-snapshots
+        - name: Save snapshots
+          if: always()
+          uses: getsentry/action-visual-snapshot@v2
+          with:
+            save-only: true
+            snapshot-path: .artifacts/visual-snapshots
 
-  py3-acceptance:
-    name: 'python3.6 acceptance'
-    runs-on: ubuntu-16.04
-    strategy:
-      matrix:
-        instance: [0, 1, 2]
+    py3-acceptance:
+      name: 'python3.6 acceptance'
+      runs-on: ubuntu-16.04
+      strategy:
+        matrix:
+          instance: [0, 1, 2]
 
-    env:
-      SENTRY_PYTHON3: 1
-      PIP_DISABLE_PIP_VERSION_CHECK: on
-      # PIP_QUIET: 1
+      env:
+        SENTRY_PYTHON3: 1
+        PIP_DISABLE_PIP_VERSION_CHECK: on
+        # PIP_QUIET: 1
 
-      SENTRY_LIGHT_BUILD: 1
-      SENTRY_SKIP_BACKEND_VALIDATION: 1
-      MIGRATIONS_TEST_MIGRATE: 1
+        SENTRY_LIGHT_BUILD: 1
+        SENTRY_SKIP_BACKEND_VALIDATION: 1
+        MIGRATIONS_TEST_MIGRATE: 1
 
-      NODE_OPTIONS: --max-old-space-size=4096
-      NODE_ENV: development
+        NODE_OPTIONS: --max-old-space-size=4096
+        NODE_ENV: development
 
-      PYTEST_SENTRY_DSN: https://6fd5cfea2d4d46b182ad214ac7810508@sentry.io/2423079
-      PYTEST_ADDOPTS: "--reruns 5"
+        PYTEST_SENTRY_DSN: https://6fd5cfea2d4d46b182ad214ac7810508@sentry.io/2423079
+        PYTEST_ADDOPTS: "--reruns 5"
 
-      # services configuration
-      SENTRY_KAFKA_HOSTS: kafka:9093
-      SENTRY_ZOOKEEPER_HOSTS: zookeeper:2182
-      SENTRY_REDIS_HOST: redis
-      # The hostname used to communicate with the PostgreSQL from sentry
-      DATABASE_URL: postgresql://postgres:postgres@localhost/sentry
+        # services configuration
+        SENTRY_KAFKA_HOSTS: kafka:9093
+        SENTRY_ZOOKEEPER_HOSTS: zookeeper:2182
+        SENTRY_REDIS_HOST: redis
+        # The hostname used to communicate with the PostgreSQL from sentry
+        DATABASE_URL: postgresql://postgres:postgres@localhost/sentry
 
-      # Number of matrix instances
-      TOTAL_TEST_GROUPS: ${{ strategy.job-total }}
+        # Number of matrix instances
+        TOTAL_TEST_GROUPS: ${{ strategy.job-total }}
 
-      VISUAL_SNAPSHOT_ENABLE: 1
+        VISUAL_SNAPSHOT_ENABLE: 1
 
-    steps:
-      - name: Install System Dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            libxmlsec1-dev \
-            libmaxminddb-dev
+      steps:
+        - name: Install System Dependencies
+          run: |
+            sudo apt-get update
+            sudo apt-get install -y --no-install-recommends \
+              libxmlsec1-dev \
+              libmaxminddb-dev
 
-      - uses: actions/checkout@v2
+        - uses: actions/checkout@v2
 
-      - uses: volta-cli/action@v1
+        - uses: volta-cli/action@v1
 
-      - name: Set up outputs
-        id: config
-        env:
-          MATRIX_INSTANCE: ${{ matrix.instance }}
-        run: |
-          echo "::set-output name=yarn-cache-dir::$(yarn cache dir)"
-          echo "::set-output name=python-version::$(awk 'FNR == 2' .python-version)"
-          echo "::set-output name=matrix-instance-number::$(($MATRIX_INSTANCE+1))"
-          echo "::set-output name=acceptance-dir::.artifacts/visual-snapshots/acceptance"
+        - name: Set up outputs
+          id: config
+          env:
+            MATRIX_INSTANCE: ${{ matrix.instance }}
+          run: |
+            echo "::set-output name=yarn-cache-dir::$(yarn cache dir)"
+            echo "::set-output name=python-version::$(awk 'FNR == 2' .python-version)"
+            echo "::set-output name=matrix-instance-number::$(($MATRIX_INSTANCE+1))"
+            echo "::set-output name=acceptance-dir::.artifacts/visual-snapshots/acceptance"
 
-      - uses: actions/cache@v1
-        id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
-        with:
-          path: ${{ steps.config.outputs.yarn-cache-dir }}
-          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-yarn-
+        - uses: actions/cache@v1
+          id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
+          with:
+            path: ${{ steps.config.outputs.yarn-cache-dir }}
+            key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+            restore-keys: |
+              ${{ runner.os }}-yarn-
 
-      - name: Set up Python ${{ steps.config.outputs.python-version }}
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ steps.config.outputs.python-version}}
+        - name: Set up Python ${{ steps.config.outputs.python-version }}
+          uses: actions/setup-python@v2
+          with:
+            python-version: ${{ steps.config.outputs.python-version}}
 
-      - name: Install pip
-        run: |
-          pip install --no-cache-dir --upgrade "pip>=20.0.2"
+        - name: Install pip
+          run: |
+            pip install --no-cache-dir --upgrade "pip>=20.0.2"
 
-      - name: Get pip cache dir
-        id: pip-cache
-        run: |
-          echo "::set-output name=dir::$(pip cache dir)"
+        - name: Get pip cache dir
+          id: pip-cache
+          run: |
+            echo "::set-output name=dir::$(pip cache dir)"
 
-      - name: pip cache
-        uses: actions/cache@v1
-        with:
-          path: ${{ steps.pip-cache.outputs.dir }}
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements-*.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
+        - name: pip cache
+          uses: actions/cache@v1
+          with:
+            path: ${{ steps.pip-cache.outputs.dir }}
+            key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements-*.txt') }}
+            restore-keys: |
+              ${{ runner.os }}-pip-
 
-      - name: Install Javascript Dependencies
-        run: |
-          yarn install --frozen-lockfile
+        - name: Install Javascript Dependencies
+          run: |
+            yarn install --frozen-lockfile
 
-      - name: Install Python Dependencies
-        env:
-          PGPASSWORD: postgres
-        run: |
-          python setup.py install_egg_info
-          pip install wheel # GitHub Actions does not have this installed by default (unlike Travis)
-          pip install -U -e ".[dev]"
+        - name: Install Python Dependencies
+          env:
+            PGPASSWORD: postgres
+          run: |
+            python setup.py install_egg_info
+            pip install wheel # GitHub Actions does not have this installed by default (unlike Travis)
+            pip install -U -e ".[dev]"
 
-      - name: Start devservices
-        run: |
-          sentry init
-          sentry devservices up postgres redis clickhouse snuba
+        - name: Start devservices
+          run: |
+            sentry init
+            sentry devservices up postgres redis clickhouse snuba
 
-      - name: webpack
-        run: |
-          yarn webpack --display errors-only
+        - name: webpack
+          run: |
+            yarn webpack --display errors-only
 
-      # Setup custom pytest matcher, see https://github.com/actions/setup-node/issues/97
-      - name: Add pytest log matcher
-        if: always()
-        run: |
-          echo "::remove-matcher owner=pytest::"
-          echo "::add-matcher::.github/pytest.json"
+        # Setup custom pytest matcher, see https://github.com/actions/setup-node/issues/97
+        - name: Add pytest log matcher
+          if: always()
+          run: |
+            echo "::remove-matcher owner=pytest::"
+            echo "::add-matcher::.github/pytest.json"
 
-      - name: Run acceptance tests (#${{ steps.config.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
-        if: always()
-        run: |
-          mkdir -p ${{ steps.config.outputs.acceptance-dir }}
-          mkdir -p ${{ steps.config.outputs.acceptance-dir }}-mobile
-          mkdir -p ${{ steps.config.outputs.acceptance-dir }}-tooltips
-          [ "$GITHUB_REF" = "refs/heads/master" ] && export PYTEST_SENTRY_ALWAYS_REPORT=1
-          make run-acceptance
-        env:
-          PYTEST_SNAPSHOTS_DIR: ${{ steps.config.outputs.acceptance-dir }}
-          USE_SNUBA: 1
-          TEST_GROUP: ${{ matrix.instance }}
+        - name: Run acceptance tests (#${{ steps.config.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
+          if: always()
+          run: |
+            mkdir -p ${{ steps.config.outputs.acceptance-dir }}
+            mkdir -p ${{ steps.config.outputs.acceptance-dir }}-mobile
+            mkdir -p ${{ steps.config.outputs.acceptance-dir }}-tooltips
+            [ "$GITHUB_REF" = "refs/heads/master" ] && export PYTEST_SENTRY_ALWAYS_REPORT=1
+            make run-acceptance
+          env:
+            PYTEST_SNAPSHOTS_DIR: ${{ steps.config.outputs.acceptance-dir }}
+            USE_SNUBA: 1
+            TEST_GROUP: ${{ matrix.instance }}
 
-      # TODO(joshuarli): SENTRY_PYTHON3=1, snapshots, visual-diff needs py3-acceptance.
+        # TODO(joshuarli): SENTRY_PYTHON3=1, snapshots, visual-diff needs py3-acceptance.
 
-  visual-diff:
-    if: ${{ github.ref != 'refs/heads/master' }}
-    needs: [acceptance, jest]
-    runs-on: ubuntu-16.04
+    visual-diff:
+      if: ${{ github.ref != 'refs/heads/master' }}
+      needs: [acceptance, jest]
+      runs-on: ubuntu-16.04
 
-    steps:
-      - name: Diff snapshots
-        id: visual-snapshots-diff
-        uses: getsentry/action-visual-snapshot@v2-pixelmatch-options
-        with:
-          threshold: '0'
-          api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          gcs-bucket: 'sentry-visual-snapshots'
-          gcp-service-account-key: ${{ secrets.SNAPSHOT_GOOGLE_SERVICE_ACCOUNT_KEY }}
+      steps:
+        - name: Diff snapshots
+          id: visual-snapshots-diff
+          uses: getsentry/action-visual-snapshot@v2-pixelmatch-options
+          with:
+            threshold: '0'
+            api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
+            github-token: ${{ secrets.GITHUB_TOKEN }}
+            gcs-bucket: 'sentry-visual-snapshots'
+            gcp-service-account-key: ${{ secrets.SNAPSHOT_GOOGLE_SERVICE_ACCOUNT_KEY }}
