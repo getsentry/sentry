@@ -120,8 +120,13 @@ class GroupSerializerBase(Serializer):
             dataset=Dataset.Events,
             selected_columns=[
                 "group_id",
-                ["has", ["exception_stacks.mechanism_handled", 0], "unhandled"],
+                [
+                    "argMax",
+                    [["has", ["exception_stacks.mechanism_handled", 0]], "timestamp"],
+                    "unhandled",
+                ],
             ],
+            groupby=["group_id"],
             filter_keys=filter_keys,
             start=start,
             referrer="group.unhandled-flag",
