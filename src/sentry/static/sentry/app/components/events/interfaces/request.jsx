@@ -75,7 +75,12 @@ class RequestInterface extends React.Component {
             {/* Translators: this means "formatted" rendering (fancy tables) */}
             {t('Formatted')}
           </Button>
-          <Button barId="curl" size="xsmall" onClick={this.toggleView.bind(this, 'curl')}>
+          <Button
+            data-test-id="curl"
+            barId="curl"
+            size="xsmall"
+            onClick={this.toggleView.bind(this, 'curl')}
+          >
             curl
           </Button>
         </ButtonBar>
