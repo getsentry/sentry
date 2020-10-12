@@ -4,6 +4,7 @@ from uuid import uuid4
 import six
 import logging
 
+from django.http import HttpResponse
 from django.utils.translation import ugettext_lazy as _
 from rest_framework.serializers import ValidationError
 from six.moves.urllib.parse import urlencode
@@ -203,7 +204,11 @@ class VercelIntegration(IntegrationInstallation):
         # data = {"project_mappings": [[sentry_project_id, vercel_project_id]]}
         vercel_client = self.get_client()
         config = self.org_integration.config
-        new_mappings = data["project_mappings"]
+        try:
+            new_mappings = data["project_mappings"]
+        except KeyError:
+            return HttpResponse("Failed to update configuration.")
+
         old_mappings = config.get("project_mappings") or []
 
         for mapping in new_mappings:
