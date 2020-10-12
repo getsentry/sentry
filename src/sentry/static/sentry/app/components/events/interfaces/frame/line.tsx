@@ -37,9 +37,11 @@ type Props = {
   registers: Record<string, string>;
   components: Array<SentryAppComponent>;
   showingAbsoluteAddress: boolean;
-  onAddressToggle: React.MouseEventHandler<SVGElement>;
+  onAddressToggle: (event: React.MouseEvent<SVGElement>) => void;
   image: React.ComponentProps<typeof DebugImage>['image'];
   maxLengthOfRelativeAddress: number;
+  isFrameAfterLastNonApp: boolean;
+  includeSystemFrames: boolean;
   isExpanded?: boolean;
 };
 
@@ -63,6 +65,7 @@ export class Line extends React.Component<Props, State> {
     onAddressToggle: PropTypes.func,
     image: PropTypes.object,
     maxLengthOfRelativeAddress: PropTypes.number,
+    isFrameAfterLastNonApp: PropTypes.bool,
   };
 
   static defaultProps = {
@@ -180,7 +183,8 @@ export class Line extends React.Component<Props, State> {
   }
 
   leadsToApp() {
-    return !this.props.data.inApp && this.props.nextFrame && this.props.nextFrame.inApp;
+    const {data, nextFrame} = this.props;
+    return !data.inApp && ((nextFrame && nextFrame.inApp) || !nextFrame);
   }
 
   isFoundByStackScanning() {
@@ -200,9 +204,11 @@ export class Line extends React.Component<Props, State> {
     if (func.match(/^@objc\s/)) {
       return [t('Objective-C -> Swift shim frame'), warningIcon];
     }
+
     if (func.match(/^__?hidden#\d+/)) {
       return [t('Hidden function from bitcode build'), errorIcon];
     }
+
     if (!symbolicatorStatus && func === '<unknown>') {
       // Only render this if the event was not symbolicated.
       return [t('No function name was supplied by the client SDK.'), warningIcon];
@@ -236,11 +242,27 @@ export class Line extends React.Component<Props, State> {
   }
 
   renderLeadHint() {
-    if (this.leadsToApp() && !this.state.isExpanded) {
-      return <LeadHint className="leads-to-app-hint">{t('Called from: ')}</LeadHint>;
-    } else {
+    const {isExpanded} = this.state;
+
+    if (isExpanded) {
       return null;
     }
+
+    const leadsToApp = this.leadsToApp();
+
+    if (!leadsToApp) {
+      return null;
+    }
+
+    const {nextFrame} = this.props;
+
+    return !nextFrame ? (
+      <LeadHint className="leads-to-app-hint" width="115px">
+        {t('Crashed in non-app: ')}
+      </LeadHint>
+    ) : (
+      <LeadHint className="leads-to-app-hint">{t('Called from: ')}</LeadHint>
+    );
   }
 
   renderRepeats() {
@@ -285,6 +307,8 @@ export class Line extends React.Component<Props, State> {
       onAddressToggle,
       image,
       maxLengthOfRelativeAddress,
+      isFrameAfterLastNonApp,
+      includeSystemFrames,
     } = this.props;
     const [hint, hintIcon] = this.getFrameHint();
 
@@ -294,10 +318,11 @@ export class Line extends React.Component<Props, State> {
     return (
       <StrictClick onClick={this.isExpandable() ? this.toggleContext : undefined}>
         <DefaultLine className="title as-table">
-          <NativeLineContent>
+          <NativeLineContent isFrameAfterLastNonApp={isFrameAfterLastNonApp}>
             <PackageInfo>
               {leadHint}
               <PackageLink
+                includeSystemFrames={includeSystemFrames}
                 withLeadHint={leadHint !== null}
                 packagePath={data.package}
                 onClick={this.scrollToImage}
@@ -419,21 +444,21 @@ const PackageInfo = styled('div')`
   }
 `;
 
-const NativeLineContent = styled('div')`
+const NativeLineContent = styled('div')<{isFrameAfterLastNonApp: boolean}>`
   display: grid;
   flex: 1;
   grid-gap: ${space(0.5)};
-  grid-template-columns: 117px 1fr;
+  grid-template-columns: ${p => (p.isFrameAfterLastNonApp ? '167px' : '117px')} 1fr;
   align-items: flex-start;
   justify-content: flex-start;
 
   @media (min-width: ${props => props.theme.breakpoints[0]}) {
-    grid-template-columns: 150px 117px 1fr auto;
+    grid-template-columns: ${p => (p.isFrameAfterLastNonApp ? '200px' : '150px')} 117px 1fr auto;
   }
 
   @media (min-width: ${props => props.theme.breakpoints[2]}) and (max-width: ${props =>
       props.theme.breakpoints[3]}) {
-    grid-template-columns: 130px 117px 1fr auto;
+    grid-template-columns: ${p => (p.isFrameAfterLastNonApp ? '180px' : '130px')} 117px 1fr auto;
   }
 `;
 
@@ -466,9 +491,9 @@ const StyledIconRefresh = styled(IconRefresh)`
   margin-right: ${space(0.25)};
 `;
 
-const LeadHint = styled('div')`
+const LeadHint = styled('div')<{width?: string}>`
   ${overflowEllipsis}
-  width: 67px;
+  width: ${p => (p.width ? p.width : '67px')}
 `;
 
 export default withSentryAppComponents(Line, {componentType: 'stacktrace-link'});
