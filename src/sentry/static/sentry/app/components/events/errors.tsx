@@ -3,12 +3,15 @@ import React from 'react';
 import styled from '@emotion/styled';
 import uniqWith from 'lodash/uniqWith';
 import isEqual from 'lodash/isEqual';
+import {css} from '@emotion/core';
 
+import Button from 'app/components/button';
 import EventErrorItem from 'app/components/events/errorItem';
 import {Event} from 'app/types';
 import {IconWarning} from 'app/icons';
 import {t, tn} from 'app/locale';
 import space from 'app/styles/space';
+import {Theme} from 'app/utils/theme';
 
 import {BannerContainer, BannerSummary} from './styles';
 
@@ -63,9 +66,13 @@ class EventErrors extends React.Component<Props, State> {
               numErrors
             )}
           </span>
-          <a data-test-id="event-error-toggle" onClick={this.toggle}>
+          <StyledButton
+            data-test-id="event-error-toggle"
+            priority="link"
+            onClick={this.toggle}
+          >
             {isOpen ? t('Hide') : t('Show')}
-          </a>
+          </StyledButton>
         </BannerSummary>
         <ErrorList
           data-test-id="event-error-details"
@@ -80,15 +87,22 @@ class EventErrors extends React.Component<Props, State> {
   }
 }
 
+const linkStyle = ({theme}: {theme: Theme}) => css`
+  font-weight: bold;
+  color: ${theme.gray600};
+  :hover {
+    color: ${theme.gray700};
+  }
+`;
+
+const StyledButton = styled(Button)`
+  ${linkStyle}
+`;
+
 const StyledBanner = styled(BannerContainer)`
   margin-top: -1px;
-
   a {
-    font-weight: bold;
-    color: ${p => p.theme.gray600};
-    &:hover {
-      color: ${p => p.theme.gray700};
-    }
+    ${linkStyle}
   }
 `;
 
