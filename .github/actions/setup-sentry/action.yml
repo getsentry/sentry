@@ -24,6 +24,9 @@ outputs:
   acceptance-dir:
     description: "Path to acceptance visual snapshot artifacts"
     value: ${{ steps.config.outputs.acceptance-dir }}
+  matrix-instance-number:
+    description: "The matrix instance number (starting at 1)"
+    value: ${{ steps.config.outputs.matrix-instance-number }}
 
 runs:
   using: "composite"
