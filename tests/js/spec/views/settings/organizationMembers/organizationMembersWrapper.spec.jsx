@@ -193,7 +193,7 @@ describe('OrganizationMembersWrapper', function () {
       TestStubs.routerContext()
     );
 
-    const inviteButton = wrapper.find('StyledButton[aria-label="Invite Members"]');
+    const inviteButton = wrapper.find('StyledLink');
     inviteButton.simulate('click');
 
     expect(openInviteMembersModal).toHaveBeenCalled();
@@ -212,7 +212,7 @@ describe('OrganizationMembersWrapper', function () {
       TestStubs.routerContext()
     );
 
-    const inviteButton = wrapper.find('StyledButton[aria-label="Invite Members"]');
+    const inviteButton = wrapper.find('StyledLink');
     inviteButton.simulate('click');
 
     expect(openInviteMembersModal).toHaveBeenCalled();

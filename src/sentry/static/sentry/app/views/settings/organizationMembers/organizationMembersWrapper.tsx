@@ -4,18 +4,16 @@ import {RouteComponentProps} from 'react-router/lib/Router';
 
 import {openInviteMembersModal} from 'app/actionCreators/modal';
 import {Organization, Member} from 'app/types';
-import {Panel} from 'app/components/panels';
 import {t} from 'app/locale';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import AsyncView from 'app/views/asyncView';
 import Badge from 'app/components/badge';
-import Button from 'app/components/button';
 import {IconMail} from 'app/icons';
 import ListLink from 'app/components/links/listLink';
+import AlertLink from 'app/components/alertLink';
 import NavTabs from 'app/components/navTabs';
 import routeTitleGen from 'app/utils/routeTitle';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 
 type Props = {
@@ -110,21 +108,14 @@ class OrganizationMembersWrapper extends AsyncView<Props, State> {
       <React.Fragment>
         <SettingsPageHeader title="Members" />
 
-        <StyledPanel>
-          <IconMail size="lg" />
-          <TextContainer>
-            <Heading>{t('Invite new members')}</Heading>
-            <SubText>
-              {t('Invite new members by email to join your organization')}
-            </SubText>
-          </TextContainer>
-          <Button
-            priority="primary"
-            onClick={() => openInviteMembersModal({source: 'members_settings'})}
-          >
-            {t('Invite Members')}
-          </Button>
-        </StyledPanel>
+        <AlertLink
+          data-test-id="email-invite"
+          icon={<IconMail />}
+          priority="info"
+          onClick={() => openInviteMembersModal({source: 'members_settings'})}
+        >
+          {t('Invite new members by email to join your organization')}
+        </AlertLink>
 
         {this.showNavTabs && (
           <NavTabs underlined>
@@ -167,33 +158,6 @@ class OrganizationMembersWrapper extends AsyncView<Props, State> {
     );
   }
 }
-
-const StyledPanel = styled(Panel)`
-  padding: 18px;
-  margin-top: -14px;
-  margin-bottom: 40px;
-  display: grid;
-  grid-template-columns: max-content auto max-content;
-  grid-gap: ${space(3)};
-  align-content: center;
-`;
-
-const TextContainer = styled('div')`
-  display: inline-grid;
-  grid-gap: ${space(1)};
-`;
-
-const Heading = styled('h1')`
-  margin: 0;
-  font-weight: 400;
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-`;
-
-const SubText = styled('p')`
-  margin: 0;
-  color: ${p => p.theme.gray600};
-  font-size: 15px;
-`;
 
 const StyledBadge = styled(Badge)`
   margin-left: -12px;

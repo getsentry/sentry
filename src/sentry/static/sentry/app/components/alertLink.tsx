@@ -13,6 +13,7 @@ type Priority = 'info' | 'warning' | 'success' | 'error' | 'muted';
 type LinkProps = React.ComponentPropsWithoutRef<typeof Link>;
 
 type OtherProps = {
+  ['data-test-id']?: string;
   icon?: string | React.ReactNode;
   onClick?: (e: React.MouseEvent) => void;
 };
@@ -50,10 +51,12 @@ class AlertLink extends React.Component<Props> {
       openInNewTab,
       to,
       href,
+      ['data-test-id']: dataTestId,
     } = this.props;
 
     return (
       <StyledLink
+        data-test-id={dataTestId}
         to={to}
         href={href}
         onClick={onClick}

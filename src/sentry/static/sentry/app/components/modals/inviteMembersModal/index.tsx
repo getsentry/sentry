@@ -7,7 +7,7 @@ import {MEMBER_ROLES} from 'app/constants';
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {uniqueId} from 'app/utils/guid';
-import {IconCheckmark, IconWarning, IconAdd, IconMail} from 'app/icons';
+import {IconCheckmark, IconWarning, IconAdd} from 'app/icons';
 import Button from 'app/components/button';
 import HookOrDefault from 'app/components/hookOrDefault';
 import QuestionTooltip from 'app/components/questionTooltip';
@@ -315,7 +315,6 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
     const hookRenderer: InviteModalRenderFunc = ({sendInvites, canSend, headerInfo}) => (
       <React.Fragment>
         <Heading>
-          <IconMail size="lg" />
           {t('Invite New Members')}
           {!this.willInvite && (
             <QuestionTooltip
