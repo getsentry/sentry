@@ -650,6 +650,24 @@ class GroupListTest(APITestCase, SnubaTestCase):
                 before_now_100_seconds
             ).replace(tzinfo=timezone.utc)
 
+    def test_aggregate_stats_regression_test(self):
+        with self.feature("organizations:dynamic-issue-counts"):
+            self.store_event(
+                data={
+                    "timestamp": iso_format(before_now(seconds=500)),
+                    "fingerprint": ["group-1"],
+                },
+                project_id=self.project.id,
+            )
+
+            self.login_as(user=self.user)
+            response = self.get_response(
+                sort_by="date", limit=10, query="times_seen:>0 last_seen:-1h date:-1h"
+            )
+
+            assert response.status_code == 200
+            assert len(response.data) == 1
+
     def test_skipped_fields(self):
         with self.feature("organizations:dynamic-issue-counts"):
             event = self.store_event(

@@ -70,7 +70,7 @@ const IconWrapper = styled('div')`
   margin-bottom: ${space(1)};
 `;
 
-const Title = styled('h1')`
+const Title = styled('strong')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   margin-bottom: ${space(1)};
 `;
