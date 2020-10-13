@@ -95,17 +95,6 @@ runs:
         echo "::set-output name=matrix-instance-number::$(($MATRIX_INSTANCE+1))"
         echo "::set-output name=acceptance-dir::.artifacts/visual-snapshots/acceptance"
 
-    - name: Install pip
-      shell: bash
-      run: |
-        pip install --no-cache-dir --upgrade "pip>=20.0.2"
-
-    - name: Get pip cache dir
-      id: pip-cache
-      shell: bash
-      run: |
-        echo "::set-output name=pip-cache::$(pip cache dir)"
-
     - name: Install python dependencies
       shell: bash
       run: |

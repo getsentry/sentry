@@ -64,19 +64,14 @@ jobs:
         with:
           python-version: ${{ steps.config.outputs.python-version}}
 
-      - name: Install pip
-        run: |
-          pip install --no-cache-dir --upgrade "pip>=20.0.2"
-
-      - name: Get pip cache dir
-        id: pip-cache
-        run: |
-          echo "::set-output name=dir::$(pip cache dir)"
+      - name: Setup pip
+        uses: ./.github/actions/setup-pip
+        id: pip
 
       - name: pip cache
-        uses: actions/cache@v1
+        uses: actions/cache@v2
         with:
-          path: ${{ steps.pip-cache.outputs.dir }}
+          path: ${{ steps.pip.outputs.pip-cache-dir }}
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements-*.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
@@ -120,25 +115,28 @@ jobs:
         run: |
           echo "::set-output name=python-version::$(awk 'FNR == 2' .python-version)"
 
-
       # Until GH composite actions can use `uses`, we need to setup python here
       - uses: actions/setup-python@v2
         with:
           python-version: ${{ steps.python-version.outputs.python-version }}
+
+      - name: Setup pip
+        uses: ./.github/actions/setup-pip
+        id: pip
+
+      - name: pip cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.pip.outputs.pip-cache-dir }}
+          key: ${{ runner.os }}-pip-py${{ steps.python-version.outputs.python-version }}-${{ hashFiles('**/requirements-*.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-py${{ steps.python-version.outputs.python-version }}
 
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
           python: 3
-
-      - name: pip cache
-        uses: actions/cache@v1
-        with:
-          path: ${{ steps.setup.outputs.pip-cache-dir }}
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements-*.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
 
       - name: Python 3.6 backend (${{ steps.setup.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
         if: always()
@@ -169,11 +167,22 @@ jobs:
         run: |
           echo "::set-output name=python-version::$(awk 'FNR == 2' .python-version)"
 
-
       # Until GH composite actions can use `uses`, we need to setup python here
       - uses: actions/setup-python@v2
         with:
           python-version: ${{ steps.python-version.outputs.python-version }}
+
+      - name: Setup pip
+        uses: ./.github/actions/setup-pip
+        id: pip
+
+      - name: pip cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.pip.outputs.pip-cache-dir }}
+          key: ${{ runner.os }}-pip-py${{ steps.python-version.outputs.python-version }}-${{ hashFiles('**/requirements-*.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-py${{ steps.python-version.outputs.python-version }}
 
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
