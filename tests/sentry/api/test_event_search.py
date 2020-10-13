@@ -1040,6 +1040,10 @@ class ParseBooleanSearchQueryTest(TestCase):
             ]
         ]
 
+    def test_grouping_boolean_filter(self):
+        result = get_filter("(event.type:error) AND (stack.in_app:true)")
+        assert result.conditions == [["event.type", "=", "error"], ["stack.in_app", "=", 1]]
+
     def test_grouping_simple(self):
         result = get_filter("(user.email:foo@example.com OR user.email:bar@example.com)")
         assert result.conditions == [[_or(self.foo, self.bar), "=", 1]]

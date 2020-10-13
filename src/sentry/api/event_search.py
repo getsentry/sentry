@@ -157,7 +157,7 @@ search_key           = key / quoted_key
 search_value         = quoted_value / value
 value                = ~r"[^()\s]*"
 numeric_value        = ~r"[-]?[0-9\.]+(?=\s|\)|$)"
-boolean_value        = ~r"(true|1|false|0)(?=\s|$)"i
+boolean_value        = ~r"(true|1|false|0)(?=\s|\)|$)"i
 quoted_value         = ~r"\"((?:[^\"]|(?<=\\)[\"])*)?\""s
 key                  = ~r"[a-zA-Z0-9_\.-]+"
 function_arg         = space? key? comma? space?
