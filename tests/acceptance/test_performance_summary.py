@@ -64,7 +64,9 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
     def test_view_details_from_summary(self, mock_now):
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
 
-        event = make_event(load_data("transaction", timestamp=before_now(minutes=1)))
+        event = make_event(
+            load_data("transaction", timestamp=before_now(minutes=1), trace="a" * 32, span="ab" * 8)
+        )
         self.store_event(data=event, project_id=self.project.id)
 
         with self.feature(FEATURE_NAMES):
