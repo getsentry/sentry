@@ -361,7 +361,7 @@ def strip_channel_name(name):
     return name.lstrip(strip_channel_chars)
 
 
-def get_channel_id(organization, integration_id, name):
+def get_channel_id(organization, integration, name):
     """
    Fetches the internal slack id of a channel.
    :param organization: The organization that is using this integration
@@ -374,12 +374,6 @@ def get_channel_id(organization, integration_id, name):
    """
 
     name = strip_channel_name(name)
-    try:
-        integration = Integration.objects.get(
-            provider="slack", organizations=organization, id=integration_id
-        )
-    except Integration.DoesNotExist:
-        return None, None, False
 
     # XXX(meredith): For large accounts that have many, many channels it's
     # possible for us to timeout while attempting to paginate through to find the channel id

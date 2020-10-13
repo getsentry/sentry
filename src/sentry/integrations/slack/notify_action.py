@@ -80,9 +80,10 @@ class SlackNotifyServiceForm(forms.Form):
         # are assuming that they passed in the correct channel_id for the channel
         if not channel_id:
             try:
-                channel_prefix, channel_id, timed_out = self.channel_transformer(workspace, channel)
+                channel_prefix, channel_id, timed_out = self.channel_transformer(
+                    integration, channel
+                )
             except DuplicateDisplayNameError as e:
-                integration = Integration.objects.get(id=workspace)
                 domain = integration.metadata["domain_name"]
 
                 params = {"channel": e.message, "domain": domain}
@@ -225,5 +226,5 @@ class SlackNotifyServiceAction(EventAction):
             self.data, integrations=self.get_integrations(), channel_transformer=self.get_channel_id
         )
 
-    def get_channel_id(self, integration_id, name):
-        return get_channel_id(self.project.organization, integration_id, name)
+    def get_channel_id(self, integration, name):
+        return get_channel_id(self.project.organization, integration, name)
