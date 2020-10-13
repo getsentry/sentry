@@ -13,7 +13,7 @@
  *    }
  */
 
-type QueryObj = {
+export type QueryObj = {
   [key: string]: string;
 };
 
