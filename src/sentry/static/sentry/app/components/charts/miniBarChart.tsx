@@ -20,6 +20,14 @@ const defaultProps = {
 
 type Props = React.ComponentProps<typeof BarChart> & {
   /**
+   * Colors to use on the chart.
+   */
+  colors: string[];
+  /**
+   * Hover state colors to use on the chart.
+   */
+  emphasisColors: string[];
+    /**
    * A list of series to be rendered as markLine components on the chart
    * This is often used to indicate start/end markers on the xAxis
    */
@@ -28,16 +36,6 @@ type Props = React.ComponentProps<typeof BarChart> & {
    * Whether timestamps are should be shown in UTC or local timezone.
    */
   utc?: boolean;
-
-  /**
-   * Colors to use on the chart.
-   */
-  colors: string[];
-
-  /**
-   * Hover state colors to use on the chart.
-   */
-  emphasisColors: string[];
 };
 
 class MiniBarChart extends React.Component<Props> {
