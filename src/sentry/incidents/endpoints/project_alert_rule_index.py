@@ -74,7 +74,6 @@ class ProjectAlertRuleIndexEndpoint(ProjectEndpoint):
         )
 
     def post(self, request, project):
-        print("post")
         """
         Create an alert rule
         """

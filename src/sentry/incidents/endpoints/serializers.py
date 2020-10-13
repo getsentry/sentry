@@ -171,7 +171,6 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
         return attrs
 
     def create(self, validated_data):
-        print("AlertRuleTriggerActionSerializer", validated_data)
         try:
             return create_alert_rule_trigger_action(
                 trigger=self.context["trigger"], **validated_data
@@ -242,7 +241,6 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
             raise serializers.ValidationError("This label is already in use for this alert rule")
 
     def _handle_actions(self, alert_rule_trigger, actions, use_async_lookup=False):
-        print("_handle_actions", use_async_lookup)
         if actions is not None:
             # Delete actions we don't have present in the updated data.
             action_ids = [x["id"] for x in actions if "id" in x]
@@ -266,7 +264,6 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
                 else:
                     action_instance = None
 
-                print("AlertRuleTriggerSerializer", use_async_lookup)
                 action_data["use_async_lookup"] = use_async_lookup
                 action_serializer = AlertRuleTriggerActionSerializer(
                     context={

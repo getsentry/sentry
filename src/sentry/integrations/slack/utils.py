@@ -46,7 +46,7 @@ LEVEL_TO_COLOR = {
 MEMBER_PREFIX = "@"
 CHANNEL_PREFIX = "#"
 strip_channel_chars = "".join([MEMBER_PREFIX, CHANNEL_PREFIX])
-SLACK_DEFAULT_TIMEOUT = 0.00001
+SLACK_DEFAULT_TIMEOUT = 10
 
 
 def get_integration_type(integration):
@@ -395,7 +395,6 @@ def get_channel_id(organization, integration_id, name, use_async_lookup=False):
 
 
 def get_channel_id_with_timeout(integration, name, timeout):
-    print("lookup with", timeout)
     """
     Fetches the internal slack id of a channel.
     :param integration: The slack integration
@@ -426,8 +425,6 @@ def get_channel_id_with_timeout(integration, name, timeout):
     id_data = None
     found_duplicate = False
     for list_type, result_name, prefix in list_types:
-        if timeout < 1:
-            return (prefix, None, True)
         cursor = ""
         while True:
             endpoint = "/%s.list" % list_type

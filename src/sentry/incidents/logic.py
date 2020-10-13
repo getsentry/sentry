@@ -1066,7 +1066,6 @@ def create_alert_rule_trigger_action(
     :param sentry_app: (Optional) The Sentry App related to this action.
     :return: The created action
     """
-    print("create_alert_rule_trigger_action", use_async_lookup)
     target_display = None
     if type.value in AlertRuleTriggerAction.INTEGRATION_TYPES:
         if target_type != AlertRuleTriggerAction.TargetType.SPECIFIC:
@@ -1151,7 +1150,6 @@ def update_alert_rule_trigger_action(
 def get_target_identifier_display_for_integration(type, target_value, *args, **kwargs):
     # target_value is the Slack username or channel name
     if type == AlertRuleTriggerAction.Type.SLACK.value:
-        print("get_target_identifier_display_for_integration", kwargs)
         target_identifier = get_alert_rule_trigger_action_slack_channel_id(
             target_value, *args, **kwargs
         )
@@ -1177,7 +1175,6 @@ def get_alert_rule_trigger_action_slack_channel_id(
     from sentry.integrations.slack.utils import get_channel_id
 
     try:
-        print("get_alert_rule_trigger_action_slack_channel_id", use_async_lookup)
         _prefix, channel_id, timed_out = get_channel_id(
             organization, integration_id, name, use_async_lookup
         )
@@ -1204,7 +1201,7 @@ def get_alert_rule_trigger_action_slack_channel_id(
     return channel_id
 
 
-def get_alert_rule_trigger_action_msteams_channel_id(name, organization, integration_id):
+def get_alert_rule_trigger_action_msteams_channel_id(name, organization, integration_id, **kwargs):
     from sentry.integrations.msteams.utils import get_channel_id
 
     channel_id = get_channel_id(organization, integration_id, name)
@@ -1216,7 +1213,9 @@ def get_alert_rule_trigger_action_msteams_channel_id(name, organization, integra
     return channel_id
 
 
-def get_alert_rule_trigger_action_pagerduty_service(target_value, organization, integration_id):
+def get_alert_rule_trigger_action_pagerduty_service(
+    target_value, organization, integration_id, **kwargs
+):
     try:
         service = PagerDutyService.objects.get(id=target_value)
     except PagerDutyService.DoesNotExist:

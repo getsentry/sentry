@@ -12,6 +12,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.mediators import project_rules
 from sentry.models import Integration, Project, Rule, Organization
 from sentry.incidents.endpoints.serializers import AlertRuleSerializer
+from sentry.incidents.logic import ChannelLookupTimeoutError
 from sentry.integrations.slack.utils import get_channel_id_with_timeout, strip_channel_name
 from sentry.utils.redis import redis_clusters
 from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
@@ -129,16 +130,14 @@ def find_channel_id_for_rule(project, actions, uuid, rule_id=None, **kwargs):
 @instrumented_task(
     name="sentry.integrations.slack.search_channel_id_metric_alerts", queue="integrations"
 )
-def find_channel_id_for_alert_rule(organization_id, uuid, rule_id=None, **kwargs):
+def find_channel_id_for_alert_rule(organization_id, uuid, **kwargs):
     redis_rule_status = RedisRuleStatus(uuid)
-
     try:
         organization = Organization.objects.get(id=organization_id)
     except Organization.DoesNotExist:
         redis_rule_status.set_value("failed")
         return
 
-    print("do task lookup")
     kwargs["use_async_lookup"] = True
     serializer = AlertRuleSerializer(
         context={"organization": organization, "access": SystemAccess()}, data=kwargs,
@@ -148,11 +147,10 @@ def find_channel_id_for_alert_rule(organization_id, uuid, rule_id=None, **kwargs
             alert_rule = serializer.save()
             redis_rule_status.set_value("success", alert_rule.id)
             return
-        except serializers.ValidationError:
-            # channel doesn't exist error
+        except (serializers.ValidationError, ChannelLookupTimeoutError):
+            # channel doesn't exist error or validation error
             redis_rule_status.set_value("failed")
             return
-
     # some other error
     redis_rule_status.set_value("failed")
     return

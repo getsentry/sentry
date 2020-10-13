@@ -36,7 +36,6 @@ class ProjectAlertRuleDetailsEndpoint(ProjectAlertRuleEndpoint):
             alert_rule = serializer.save()
             return Response(serialize(alert_rule, request.user), status=status.HTTP_200_OK)
 
-        print("errors", serializer.errors)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, project, alert_rule):
