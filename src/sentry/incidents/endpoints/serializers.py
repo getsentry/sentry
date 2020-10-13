@@ -93,7 +93,6 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
             "target_display": {"required": False},
             "integration": {"required": False, "allow_null": True},
             "sentry_app": {"required": False, "allow_null": True},
-            "target_value": {"required": False, "allow_null": True},
             "use_async_lookup": {"required": False, "allow_null": True},
         }
 

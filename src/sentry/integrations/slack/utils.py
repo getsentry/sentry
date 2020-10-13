@@ -381,6 +381,7 @@ def get_channel_id(organization, integration_id, name, use_async_lookup=False):
     except Integration.DoesNotExist:
         return None, None, False
 
+    # longer lookup for the async job
     if use_async_lookup:
         timeout = 3 * 60
     else:
