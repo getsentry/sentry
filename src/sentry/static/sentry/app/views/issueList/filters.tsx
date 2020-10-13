@@ -12,6 +12,7 @@ import QueryCount from 'app/components/queryCount';
 import IssueListSearchBar from './searchBar';
 import IssueListSortOptions from './sortOptions';
 import SavedSearchSelector from './savedSearchSelector';
+import {TagValueLoader} from './types';
 
 type IssueListSearchBarProps = React.ComponentProps<typeof IssueListSearchBar>;
 
@@ -30,7 +31,7 @@ type Props = {
   onSidebarToggle: (event: React.MouseEvent) => void;
   onSavedSearchSelect: (search: SavedSearch) => void;
   onSavedSearchDelete: (search: SavedSearch) => void;
-  tagValueLoader: IssueListSearchBarProps['tagValueLoader'];
+  tagValueLoader: TagValueLoader;
   tags: NonNullable<IssueListSearchBarProps['supportedTags']>;
 };
 
