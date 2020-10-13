@@ -1,7 +1,6 @@
 import React from 'react';
 import {withInfo} from '@storybook/addon-info';
 
-import MiniBarChart from 'app/components/charts/miniBarChart';
 import BarChart from 'app/components/charts/barChart';
 
 export default {
