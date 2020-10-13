@@ -8,8 +8,23 @@ import VersionHoverCard from 'app/components/versionHoverCard';
 import Tooltip from 'app/components/tooltip';
 import {defined, toTitleCase} from 'app/utils';
 import {t} from 'app/locale';
+import {Release} from 'app/types';
 
-class SeenInfo extends React.Component {
+type RelaxedDateType = React.ComponentProps<typeof TimeSince>['date'];
+
+type Props = {
+  orgSlug: string;
+  projectSlug: string;
+  projectId: string;
+  hasRelease: boolean;
+  title: string;
+  date: RelaxedDateType;
+  dateGlobal: RelaxedDateType;
+  release?: Release;
+  environment?: string;
+};
+
+class SeenInfo extends React.Component<Props> {
   static propTypes = {
     orgSlug: PropTypes.string.isRequired,
     projectSlug: PropTypes.string.isRequired,
@@ -28,11 +43,10 @@ class SeenInfo extends React.Component {
     organization: PropTypes.object,
   };
 
-  shouldComponentUpdate(nextProps, _nextState) {
-    return (
-      (this.props.release || {}).version !== (nextProps.release || {}).version ||
-      this.props.date !== nextProps.date
-    );
+  shouldComponentUpdate(nextProps: Props) {
+    const {date, release} = this.props;
+
+    return release?.version !== nextProps.release?.version || date !== nextProps.date;
   }
 
   getReleaseTrackingUrl() {
@@ -48,13 +62,16 @@ class SeenInfo extends React.Component {
       <div style={{width: '170px'}}>
         <div className="time-label">{title}</div>
         <dl className="flat">
-          {environment && [
-            <dt key="0">{toTitleCase(environment)}:</dt>,
-            <dd key="0.1">
-              <TimeSince date={date} />
-              <br />
-            </dd>,
-          ]}
+          {environment && (
+            <React.Fragment>
+              <dt key="0">{toTitleCase(environment)}:</dt>,
+              <dd key="0.1">
+                <TimeSince date={date} />
+                <br />
+              </dd>
+              ,
+            </React.Fragment>
+          )}
           <dt key="1">{t('Globally:')}</dt>
           <dd key="1.1">
             <TimeSince date={dateGlobal} />
