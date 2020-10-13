@@ -179,13 +179,10 @@ export function modifyTrendView(
 ) {
   const trendFunction = getCurrentTrendFunction(location);
 
-  const trendFunctionFields = TRENDS_FUNCTIONS.map(({field}) => field);
   const transactionField = isProjectOnly ? [] : ['transaction'];
-  const fields = [...trendFunctionFields, ...transactionField, 'project', 'count()'].map(
-    field => ({
-      field,
-    })
-  ) as Field[];
+  const fields = [...transactionField, 'project', 'count()'].map(field => ({
+    field,
+  })) as Field[];
 
   const trendSort = {
     field: `percentage_${trendFunction.alias}_2_${trendFunction.alias}_1`,
