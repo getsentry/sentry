@@ -51,7 +51,7 @@ const IssueListSidebar = createReactClass<Props, State>({
   },
 
   getInitialState() {
-    const queryObj: QueryObj = queryToObj(this.props.query);
+    const queryObj = queryToObj(this.props.query);
     return {
       queryObj,
       textFilter: queryObj.__text,
@@ -61,10 +61,10 @@ const IssueListSidebar = createReactClass<Props, State>({
   componentWillReceiveProps(nextProps: Props) {
     // If query was updated by another source (e.g. SearchBar),
     // clobber state of sidebar with new query.
-    const query: string = objToQuery(this.state.queryObj);
+    const query = objToQuery(this.state.queryObj);
 
     if (!isEqual(nextProps.query, query)) {
-      const queryObj: QueryObj = queryToObj(nextProps.query);
+      const queryObj = queryToObj(nextProps.query);
       this.setState({
         queryObj,
         textFilter: queryObj.__text,
@@ -73,7 +73,7 @@ const IssueListSidebar = createReactClass<Props, State>({
   },
 
   onSelectTag(tag: Tag, value: string) {
-    const newQuery: QueryObj = {...this.state.queryObj};
+    const newQuery = {...this.state.queryObj};
     if (value) {
       newQuery[tag.key] = value;
     } else {
@@ -95,7 +95,7 @@ const IssueListSidebar = createReactClass<Props, State>({
   onTextFilterSubmit(evt: React.ChangeEvent<HTMLInputElement>) {
     evt && evt.preventDefault();
 
-    const newQueryObj: QueryObj = {
+    const newQueryObj = {
       ...this.state.queryObj,
       __text: this.state.textFilter,
     };
@@ -109,7 +109,7 @@ const IssueListSidebar = createReactClass<Props, State>({
   },
 
   onQueryChange() {
-    const query: string = objToQuery(this.state.queryObj);
+    const query = objToQuery(this.state.queryObj);
     this.props.onQueryChange && this.props.onQueryChange(query);
   },
 
