@@ -41,6 +41,18 @@ jobs:
         with:
           python-version: ${{ steps.python-version.outputs.python-version }}
 
+      - name: Setup pip
+        uses: ./.github/actions/setup-pip
+        id: pip
+
+      - name: pip cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.pip.outputs.pip-cache-dir }}
+          key: ${{ runner.os }}-pip-py${{ steps.python-version.outputs.python-version }}-${{ hashFiles('**/requirements-*.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-py${{ steps.python-version.outputs.python-version }}
+
       - name: Setup sentry python env
         uses: ./.github/actions/setup-sentry
         id: setup
@@ -55,14 +67,6 @@ jobs:
           key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
           restore-keys: |
             ${{ runner.os }}-yarn-
-
-      - name: pip cache
-        uses: actions/cache@v2
-        with:
-          path: ${{ steps.setup.outputs.pip-cache-dir }}
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements-*.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
 
       - name: Install Javascript Dependencies
         run: |
