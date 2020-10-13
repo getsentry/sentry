@@ -13,10 +13,8 @@ type Props = {
 };
 
 class IssueListContainer extends React.Component<Props> {
-  constructor(props: Props) {
-    super(props);
-
-    // Setup in the constructor as render() may be expensive
+  componentDidMount() {
+    // Setup here as render() may be expensive
     this.startMetricCollection();
   }
 
