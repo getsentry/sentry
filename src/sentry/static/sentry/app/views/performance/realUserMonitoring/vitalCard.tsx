@@ -37,7 +37,7 @@ type Props = {
   error: boolean;
   vital: Vital;
   summary: number | null;
-  failureRate: number | null;
+  failureRate: number;
   chartData: HistogramData[];
   colors: [string];
   eventView: EventView;
@@ -451,7 +451,7 @@ class VitalCard extends React.Component<Props, State> {
       symbolKeepAspect: true,
       symbolSize: [14, 16],
       label: {
-        formatter: formatPercentage(failureRate ?? 0, 0),
+        formatter: formatPercentage(failureRate, 0),
         position: 'left',
       },
     });

@@ -56,19 +56,18 @@ class TransactionVitals extends React.Component<Props> {
                       const details = WEB_VITAL_DETAILS[vital];
                       const error =
                         summaryResults.error !== null || results.error !== null;
-                      const percentile_alias = getAggregateAlias(
+                      const percentileAlias = getAggregateAlias(
                         `percentile(${vital}, ${PERCENTILE})`
                       );
-                      const count_alias = getAggregateAlias(`count_geq(${vital}, 0)`);
-                      const failed_alias = getAggregateAlias(
+                      const countAlias = getAggregateAlias(`count_geq(${vital}, 0)`);
+                      const failedAlias = getAggregateAlias(
                         `count_geq(${vital}, ${details.failureThreshold})`
                       );
                       const data = summaryResults.tableData?.data?.[0];
-                      const summary = (data?.[percentile_alias] ?? null) as number | null;
-                      const numerator = (data?.[failed_alias] ?? 0) as number;
-                      const denominator = (data?.[count_alias] ?? 0) as number;
-                      const failureRate =
-                        denominator <= 0 ? null : numerator / denominator;
+                      const summary = (data?.[percentileAlias] ?? null) as number | null;
+                      const numerator = (data?.[failedAlias] ?? 0) as number;
+                      const denominator = (data?.[countAlias] ?? 0) as number;
+                      const failureRate = denominator <= 0 ? 0 : numerator / denominator;
                       return (
                         <VitalCard
                           key={vital}
