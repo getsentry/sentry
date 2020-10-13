@@ -96,10 +96,12 @@ class ProjectAlertRuleIndexEndpoint(ProjectEndpoint):
             try:
                 alert_rule = serializer.save()
             except ChannelLookupTimeoutError:
-                data["organization_id"] = project.organization_id
+                # need to kick off an async job for Slack
                 client = tasks.RedisRuleStatus()
                 uuid_context = {"uuid": client.uuid}
+                # add params to data
                 data.update(uuid_context)
+                data["organization_id"] = project.organization_id
                 tasks.find_channel_id_for_alert_rule.apply_async(kwargs=data)
                 return Response(uuid_context, status=202)
             else:

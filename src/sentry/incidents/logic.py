@@ -1101,6 +1101,7 @@ def update_alert_rule_trigger_action(
     target_identifier=None,
     integration=None,
     sentry_app=None,
+    use_async_lookup=False,
 ):
     """
     Updates values on an AlertRuleTriggerAction
@@ -1129,7 +1130,11 @@ def update_alert_rule_trigger_action(
             organization = trigger_action.alert_rule_trigger.alert_rule.organization
 
             target_identifier, target_display = get_target_identifier_display_for_integration(
-                type, target_identifier, organization, integration.id
+                type,
+                target_identifier,
+                organization,
+                integration.id,
+                use_async_lookup=use_async_lookup,
             )
             updated_fields["target_display"] = target_display
 

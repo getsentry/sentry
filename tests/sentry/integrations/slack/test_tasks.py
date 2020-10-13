@@ -295,7 +295,7 @@ class SlackTasksTest(TestCase):
         }
 
         with self.tasks():
-            with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            with self.feature(["organizations:incidents"]):
                 find_channel_id_for_alert_rule(**data)
 
         assert not AlertRule.objects.filter(name="New Rule").exists()
