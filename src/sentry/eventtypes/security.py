@@ -24,11 +24,19 @@ def _normalize_uri(value):
     return urlunsplit((scheme, hostname, "", None, None))
 
 
+# Note on title of these events.  For whatever reason all these event types
+# do not compute a title themselves.  Instead what happens it that they share
+# the behavior with the default event which extracts the default title from the
+# log message.  This means the `compute_title` function never computes a title.
+# Instead the title is directly placed within the metadata int he default
+# `extract_metadata` if a title is not otherwise placed there already.
+
+
 class CspEvent(DefaultEvent):
     key = "csp"
 
-    def get_metadata(self, data):
-        metadata = DefaultEvent.get_metadata(self, data)
+    def extract_metadata(self, data):
+        metadata = DefaultEvent.extract_metadata(self, data)
         metadata["uri"] = _normalize_uri(data["csp"].get("blocked_uri") or "")
         metadata["directive"] = data["csp"].get("effective_directive")
         return metadata
@@ -40,8 +48,8 @@ class CspEvent(DefaultEvent):
 class HpkpEvent(DefaultEvent):
     key = "hpkp"
 
-    def get_metadata(self, data):
-        metadata = DefaultEvent.get_metadata(self, data)
+    def extract_metadata(self, data):
+        metadata = DefaultEvent.extract_metadata(self, data)
         metadata["origin"] = data["hpkp"].get("hostname")
         return metadata
 
@@ -52,8 +60,8 @@ class HpkpEvent(DefaultEvent):
 class ExpectCTEvent(DefaultEvent):
     key = "expectct"
 
-    def get_metadata(self, data):
-        metadata = DefaultEvent.get_metadata(self, data)
+    def extract_metadata(self, data):
+        metadata = DefaultEvent.extract_metadata(self, data)
         metadata["origin"] = data["expectct"].get("hostname")
         return metadata
 
@@ -64,8 +72,8 @@ class ExpectCTEvent(DefaultEvent):
 class ExpectStapleEvent(DefaultEvent):
     key = "expectstaple"
 
-    def get_metadata(self, data):
-        metadata = DefaultEvent.get_metadata(self, data)
+    def extract_metadata(self, data):
+        metadata = DefaultEvent.extract_metadata(self, data)
         metadata["origin"] = data["expectstaple"].get("hostname")
         return metadata
 

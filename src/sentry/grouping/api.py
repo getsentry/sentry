@@ -17,6 +17,7 @@ from sentry.grouping.utils import (
     is_default_fingerprint_var,
     hash_from_values,
     resolve_fingerprint_values,
+    expand_title_template,
 )
 
 
@@ -129,8 +130,14 @@ def get_fingerprinting_config_for_project(project):
 
 
 def apply_server_fingerprinting(event, config):
-    new_fingerprint = config.get_fingerprint_values_for_event(event)
-    if new_fingerprint is not None:
+    rv = config.get_fingerprint_values_for_event(event)
+    if rv is not None:
+        new_fingerprint, attributes = rv
+
+        # A custom title attribute is stored in the event to override the
+        # default title.
+        if "title" in attributes:
+            event["title"] = expand_title_template(attributes["title"], event)
         event["fingerprint"] = new_fingerprint
 
 
@@ -215,7 +222,7 @@ def get_grouping_variants_for_event(event, config=None):
             )
             rv[key] = ComponentVariant(component, config)
 
-        fingerprint = resolve_fingerprint_values(fingerprint, event)
+        fingerprint = resolve_fingerprint_values(fingerprint, event.data)
         rv["custom-fingerprint"] = CustomFingerprintVariant(fingerprint)
 
     # If the fingerprints are unsalted, we can return them right away.
@@ -227,7 +234,7 @@ def get_grouping_variants_for_event(event, config=None):
     # Otherwise we need to salt each of the components.
     else:
         rv = {}
-        fingerprint = resolve_fingerprint_values(fingerprint, event)
+        fingerprint = resolve_fingerprint_values(fingerprint, event.data)
         for (key, component) in six.iteritems(components):
             rv[key] = SaltedComponentVariant(fingerprint, component, config)
 
