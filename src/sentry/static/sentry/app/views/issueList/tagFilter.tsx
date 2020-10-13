@@ -30,23 +30,14 @@ type State = {
 };
 
 class IssueListTagFilter extends React.Component<Props, State> {
-  static tagValueToSelectFormat = ({value}: TagValue): SelectOption => ({
-    value,
-    label: value,
-  });
-
   static defaultProps = defaultProps;
 
-  constructor(props: Props) {
-    super(props);
-    this.state = {
-      query: '',
-      isLoading: false,
-      value: this.props.value,
-      textValue: this.props.value,
-    };
-    this.api = new Client();
-  }
+  state: State = {
+    query: '',
+    isLoading: false,
+    value: this.props.value,
+    textValue: this.props.value,
+  };
 
   UNSAFE_componentWillReceiveProps(nextProps: Props) {
     if (nextProps.value !== this.state.value) {
@@ -64,7 +55,7 @@ class IssueListTagFilter extends React.Component<Props, State> {
     this.api.clear();
   }
 
-  api: Client;
+  api = new Client();
 
   handleLoadOptions = () => {
     const {tag, tagValueLoader} = this.props;
@@ -84,7 +75,12 @@ class IssueListTagFilter extends React.Component<Props, State> {
       .then(resp => {
         this.setState({
           isLoading: false,
-          options: Object.values(resp).map(IssueListTagFilter.tagValueToSelectFormat),
+          options: Object.values(resp).map(
+            ({value}: TagValue): SelectOption => ({
+              value,
+              label: value,
+            })
+          ),
         });
       })
       .catch(() => {
