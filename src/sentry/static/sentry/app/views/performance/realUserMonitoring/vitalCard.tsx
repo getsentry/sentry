@@ -197,7 +197,8 @@ class VitalCard extends React.Component<Props, State> {
   handleDataZoomCancelled = () => {};
 
   renderHistogram() {
-    const {location, colors} = this.props;
+    const {location, colors, vital} = this.props;
+    const {slug} = vital;
 
     const series = this.getTransformedData();
 
@@ -228,8 +229,8 @@ class VitalCard extends React.Component<Props, State> {
       <BarChartZoom
         minZoomWidth={NUM_BUCKETS}
         location={location}
-        paramStart="startMeasurements"
-        paramEnd="endMeasurements"
+        paramStart={`${slug}Start`}
+        paramEnd={`${slug}End`}
         xAxisIndex={[0]}
         buckets={this.computeBuckets()}
         onDataZoomCancelled={this.handleDataZoomCancelled}

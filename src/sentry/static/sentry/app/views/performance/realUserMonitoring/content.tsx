@@ -11,13 +11,21 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
+import {WebVital} from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
 import SearchBar from 'app/views/events/searchBar';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 
 import TransactionVitals from './transactionVitals';
 import TransactionHeader, {Tab} from '../transactionSummary/header';
-import {FILTER_OPTIONS} from './constants';
+import {FILTER_OPTIONS, WEB_VITAL_DETAILS} from './constants';
+
+const ZOOM_KEYS = Object.values(WebVital).reduce((zoomKeys: string[], vital) => {
+  const vitalSlug = WEB_VITAL_DETAILS[vital].slug;
+  zoomKeys.push(`${vitalSlug}Start`);
+  zoomKeys.push(`${vitalSlug}End`);
+  return zoomKeys;
+}, []);
 
 type Props = {
   location: Location;
@@ -65,13 +73,13 @@ class RumContent extends React.Component<Props, State> {
   handleResetView = () => {
     const {location} = this.props;
 
+    const query = {...location.query};
+    // reset all zoom parameters when resetting the view
+    ZOOM_KEYS.forEach(key => delete query[key]);
+
     browserHistory.push({
       pathname: location.pathname,
-      query: {
-        ...location.query,
-        startMeasurements: undefined,
-        endMeasurements: undefined,
-      },
+      query,
     });
   };
 
@@ -86,15 +94,18 @@ class RumContent extends React.Component<Props, State> {
 
   handleFilterChange = (value: string) => {
     const {location} = this.props;
+
+    const query = {
+      ...location.query,
+      cursor: undefined,
+      dataFilter: value,
+    };
+    // reset all zoom parameters when changing the filter
+    ZOOM_KEYS.forEach(key => delete query[key]);
+
     browserHistory.push({
       pathname: location.pathname,
-      query: {
-        ...location.query,
-        cursor: undefined,
-        startMeasurements: undefined,
-        endMeasurements: undefined,
-        dataFilter: value,
-      },
+      query,
     });
   };
 
@@ -104,9 +115,9 @@ class RumContent extends React.Component<Props, State> {
     const query = decodeScalar(location.query.query) || '';
     const activeFilter = this.getActiveFilter();
 
-    const isZoomed =
-      decodeScalar(location.query.startMeasurements) !== undefined ||
-      decodeScalar(location.query.endMeasurements) !== undefined;
+    const isZoomed = ZOOM_KEYS.map(key => location.query[key]).some(
+      value => value !== undefined
+    );
 
     return (
       <React.Fragment>
