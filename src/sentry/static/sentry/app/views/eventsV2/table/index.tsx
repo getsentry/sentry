@@ -8,7 +8,7 @@ import {Organization, TagCollection} from 'app/types';
 import {metric} from 'app/utils/analytics';
 import withApi from 'app/utils/withApi';
 import withTags from 'app/utils/withTags';
-import withMeasurements, {MeasurementCollection} from 'app/utils/withMeasurements';
+import Measurements, {MeasurementCollection} from 'app/utils/measurements/measurements';
 import Pagination from 'app/components/pagination';
 import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
 import {TableData} from 'app/utils/discover/discoverQuery';
@@ -147,29 +147,35 @@ class Table extends React.PureComponent<TableProps, TableState> {
   };
 
   render() {
-    const {eventView, tags, measurements} = this.props;
+    const {eventView, tags} = this.props;
     const {pageLinks, tableData, isLoading, error} = this.state;
     const tagKeys = Object.values(tags).map(({key}) => key);
-    const measurementKeys = Object.values(measurements).map(({key}) => key);
 
     return (
       <Container>
-        <TableView
-          {...this.props}
-          isLoading={isLoading}
-          error={error}
-          eventView={eventView}
-          tableData={tableData}
-          tagKeys={tagKeys}
-          measurementKeys={measurementKeys}
-        />
+        <Measurements>
+          {({measurements}) => {
+            const measurementKeys = Object.values(measurements).map(({key}) => key);
+            return (
+              <TableView
+                {...this.props}
+                isLoading={isLoading}
+                error={error}
+                eventView={eventView}
+                tableData={tableData}
+                tagKeys={tagKeys}
+                measurementKeys={measurementKeys}
+              />
+            );
+          }}
+        </Measurements>
         <Pagination pageLinks={pageLinks} />
       </Container>
     );
   }
 }
 
-export default withApi(withMeasurements(withTags(Table)));
+export default withApi(withTags(Table));
 
 const Container = styled('div')`
   min-width: 0;

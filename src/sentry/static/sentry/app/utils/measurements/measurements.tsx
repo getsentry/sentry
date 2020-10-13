@@ -7,10 +7,6 @@ export type Measurement = {
 
 export type MeasurementCollection = {[key: string]: Measurement};
 
-type InjectedMeasurementsProps = {
-  measurements: MeasurementCollection;
-};
-
 const MEASUREMENTS: MeasurementCollection = {
   'measurements.fp': {name: 'First Paint', key: 'measurements.fp'},
   'measurements.fcp': {name: 'First Contentful Paint', key: 'measurements.fcp'},
@@ -18,20 +14,22 @@ const MEASUREMENTS: MeasurementCollection = {
   'measurements.fid': {name: 'First Input Delay', key: 'measurements.fid'},
 };
 
-const withMeasurements = <P extends InjectedMeasurementsProps>(
-  WrappedComponent: React.ComponentType<P>
-) =>
-  class extends React.Component<Omit<P, keyof InjectedMeasurementsProps>> {
-    render() {
-      return (
-        <WrappedComponent
-          {...({
-            measurements: MEASUREMENTS,
-            ...this.props,
-          } as P)}
-        />
-      );
-    }
-  };
+type ChildrenProps = {
+  measurements: MeasurementCollection;
+};
 
-export default withMeasurements;
+type Props = {
+  children: (props: ChildrenProps) => React.ReactNode;
+};
+
+function Measurements(props: Props) {
+  return (
+    <React.Fragment>
+      {props.children({
+        measurements: MEASUREMENTS,
+      })}
+    </React.Fragment>
+  );
+}
+
+export default Measurements;
