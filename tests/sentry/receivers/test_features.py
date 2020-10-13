@@ -22,7 +22,7 @@ class FeatureAdoptionTest(TestCase, SnubaTestCase):
             project=self.project,
             group=self.group,
             user=self.owner,
-            transition_type="automatic",
+            transition_type="manual",
             sender=type(self.project),
         )
         assert mock_record.called
