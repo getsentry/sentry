@@ -1,11 +1,12 @@
-name: generate migration sql
+name: migrations
 on:
   pull_request:
     paths:
       - 'src/sentry/migrations/*'
 
 jobs:
-  task:
+  sql:
+    name: Generate SQL
     runs-on: ubuntu-16.04
 
     steps:
@@ -25,7 +26,7 @@ jobs:
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
-          python: 3
+          python: 2
 
       - name: Get changed migration files
         id: file
@@ -45,16 +46,6 @@ jobs:
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements-*.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
-
-      # - name: Install Python Dependencies
-        # env:
-          # PGPASSWORD: postgres
-        # run: |
-          # python setup.py install_egg_info
-          # pip install wheel # GitHub Actions does not have this installed by default (unlike Travis)
-          # pip install -U -e ".[dev]"
-          # psql -c 'create database sentry;' -h localhost -U postgres
-          # sentry init
 
       - name: Generate SQL for migration
         uses: getsentry/action-migrations@v1.0.7

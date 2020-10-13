@@ -23,7 +23,6 @@ class Migration(migrations.Migration):
     # want to create an index concurrently when adding one to an existing table.
     atomic = True
 
-    # boop
     dependencies = [("sentry", "0073_migrate_alert_query_model")]
 
     operations = [
