@@ -12,17 +12,12 @@ jobs:
     steps:
       - uses: actions/checkout@v1
 
-      - name: Set python version output
-        id: python-version
-        run: |
-          echo "::set-output name=python-version::$(awk 'FNR == 2' .python-version)"
-
       # Until GH composite actions can use `uses`, we need to setup python here
       - uses: actions/setup-python@v2
         with:
-          python-version: ${{ steps.python-version.outputs.python-version }}
+          python-version: 2.7.17
 
-      - name: Setup sentry python env
+      - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
