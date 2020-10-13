@@ -945,7 +945,9 @@ class EventManagerTest(TestCase):
                     "csp": {
                         "effective_directive": "script-src",
                         "blocked_uri": "http://example.com",
-                    }
+                    },
+                    # this normally is noramlized in relay as part of ingest
+                    "logentry": {"message": "Blocked 'script' from 'example.com'"},
                 }
             )
         )
@@ -958,9 +960,9 @@ class EventManagerTest(TestCase):
         assert group.data.get("metadata") == {
             "directive": "script-src",
             "uri": "example.com",
-            # Relay will add a logentry that fixes this title, just not as part of StoreNormalizer
-            "title": "<unlabeled event>",
+            "message": "Blocked 'script' from 'example.com'",
         }
+        assert group.title == "Blocked 'script' from 'example.com'"
 
     def test_transaction_event_type(self):
         manager = EventManager(

@@ -54,7 +54,10 @@ export function getTitle(event: Event | Group): EventTitle {
     result.title = metadata.directive || '';
     result.subtitle = metadata.uri || '';
   } else if (type === 'expectct' || type === 'expectstaple' || type === 'hpkp') {
-    result.title = metadata.message || '';
+    // Due to a regression some reports did not have message persisted
+    // (https://github.com/getsentry/sentry/pull/19794) so we need to fall
+    // back to the computed title for these.
+    result.title = metadata.message || result.title || '';
     result.subtitle = metadata.origin || '';
   } else if (type === 'default') {
     result.title = metadata.title || '';
