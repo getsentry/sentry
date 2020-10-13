@@ -66,7 +66,13 @@ class SlackNotifyServiceForm(forms.Form):
         cleaned_data = super(SlackNotifyServiceForm, self).clean()
 
         workspace = cleaned_data.get("workspace")
-        # TODO(Steve): Add check that workspace exists
+        try:
+            integration = Integration.objects.get(id=workspace)
+        except Integration.DoesNotExist:
+            raise forms.ValidationError(
+                _("Slack workspace is a required field.",), code="invalid",
+            )
+
         channel = cleaned_data.get("channel", "")
 
         # XXX(meredith): If the user is creating/updating a rule via the API and provides
