@@ -129,7 +129,7 @@ class TransactionHeader extends React.Component<Props> {
                   to={`${baseUrl}rum/${location.search}`}
                   isActive={() => currentTab === Tab.RealUserMonitoring}
                 >
-                  {t('Real User Monitoring')}
+                  {t('Web Vitals')}
                 </ListLink>
               </StyledNavTabs>
             );
