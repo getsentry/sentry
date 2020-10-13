@@ -4,19 +4,17 @@ import DocumentTitle from 'react-document-title';
 import {PageContent} from 'app/styles/organization';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
-import SentryTypes from 'app/sentryTypes';
+import {Organization} from 'app/types';
 import {metric} from 'app/utils/analytics';
 import withOrganization, {isLightweightOrganization} from 'app/utils/withOrganization';
 
-class IssueListContainer extends React.Component {
-  static propTypes = {
-    organization: SentryTypes.Organization,
-  };
+type Props = {
+  organization: Organization;
+};
 
-  constructor(props) {
-    super(props);
-
-    // Setup in the constructor as render() may be expensive
+class IssueListContainer extends React.Component<Props> {
+  componentDidMount() {
+    // Setup here as render() may be expensive
     this.startMetricCollection();
   }
 
@@ -28,8 +26,8 @@ class IssueListContainer extends React.Component {
    * lightweight organization
    */
   startMetricCollection() {
-    const isLightWeight = isLightweightOrganization(this.props.organization);
-    const startType = isLightWeight ? 'cold-start' : 'warm-start';
+    const isLightWeight: boolean = isLightweightOrganization(this.props.organization);
+    const startType: string = isLightWeight ? 'cold-start' : 'warm-start';
     metric.mark({name: 'page-issue-list-start', data: {start_type: startType}});
     metric.startTransaction({
       name: '/organizations/:orgId/issues/',
