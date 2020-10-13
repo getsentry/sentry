@@ -15,12 +15,7 @@ type Marker = {
   symbolSize?: number;
 };
 
-const defaultProps = {
-  colors: [theme.gray300, theme.purple300, theme.purple400],
-  emphasisColors: [theme.gray400, theme.purple400, theme.purple500],
-};
-
-type Props = React.ComponentProps<typeof BaseChart> & {
+type DefaultProps = {
   /**
    * Colors to use on the chart.
    */
@@ -29,16 +24,33 @@ type Props = React.ComponentProps<typeof BaseChart> & {
    * Hover state colors to use on the chart.
    */
   emphasisColors: string[];
-  /**
-   * A list of series to be rendered as markLine components on the chart
-   * This is often used to indicate start/end markers on the xAxis
-   */
-  markers?: Marker[];
-  /**
-   * Whether timestamps are should be shown in UTC or local timezone.
-   */
-  utc?: boolean;
 };
+
+const defaultProps: DefaultProps = {
+  colors: [theme.gray300, theme.purple300, theme.purple400],
+  emphasisColors: [theme.gray400, theme.purple400, theme.purple500],
+};
+
+type Props = React.ComponentProps<typeof BaseChart> &
+  DefaultProps & {
+    /**
+     * Colors to use on the chart.
+     */
+    colors: string[];
+    /**
+     * Hover state colors to use on the chart.
+     */
+    emphasisColors: string[];
+    /**
+     * A list of series to be rendered as markLine components on the chart
+     * This is often used to indicate start/end markers on the xAxis
+     */
+    markers?: Marker[];
+    /**
+     * Whether timestamps are should be shown in UTC or local timezone.
+     */
+    utc?: boolean;
+  };
 
 class MiniBarChart extends React.Component<Props> {
   static defaultProps = defaultProps;
