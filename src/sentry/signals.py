@@ -78,6 +78,7 @@ issue_assigned = BetterSignal(providing_args=["project", "group", "user"])
 issue_resolved = BetterSignal(
     providing_args=["organization_id", "project", "group", "user", "resolution_type"]
 )
+issue_unresolved = BetterSignal(providing_args=["project", "user", "group", "transition_type"])
 
 advanced_search = BetterSignal(providing_args=["project"])
 advanced_search_feature_gated = BetterSignal(providing_args=["organization", "user"])
@@ -91,7 +92,7 @@ release_created = BetterSignal(providing_args=["release"])
 deploy_created = BetterSignal(providing_args=["deploy"])
 ownership_rule_created = BetterSignal(providing_args=["project"])
 issue_ignored = BetterSignal(providing_args=["project", "user", "group_list", "activity_data"])
-issue_unresolved = BetterSignal(providing_args=["project", "user", "group", "transition_type"])
+issue_unignored = BetterSignal(providing_args=["project", "user", "group", "transition_type"])
 
 terms_accepted = BetterSignal(providing_args=["organization", "user", "ip_address"])
 team_created = BetterSignal(providing_args=["organization", "user", "team"])
