@@ -135,32 +135,66 @@ export const AGGREGATIONS = {
 
   // Tracing functions.
   p50: {
-    parameters: [],
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['duration'],
+        defaultValue: 'transaction.duration',
+        required: false,
+      },
+    ],
     outputType: 'duration',
     isSortable: true,
     multiPlotType: 'line',
   },
   p75: {
-    parameters: [],
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['duration'],
+        defaultValue: 'transaction.duration',
+        required: false,
+      },
+    ],
     outputType: 'duration',
     isSortable: true,
     multiPlotType: 'line',
   },
   p95: {
-    parameters: [],
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['duration'],
+        defaultValue: 'transaction.duration',
+        required: false,
+      },
+    ],
     outputType: 'duration',
     type: [],
     isSortable: true,
     multiPlotType: 'line',
   },
   p99: {
-    parameters: [],
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['duration'],
+        defaultValue: 'transaction.duration',
+        required: false,
+      },
+    ],
     outputType: 'duration',
     isSortable: true,
     multiPlotType: 'line',
   },
   p100: {
-    parameters: [],
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['duration'],
+        required: false,
+      },
+    ],
     outputType: 'duration',
     isSortable: true,
     multiPlotType: 'line',
