@@ -1,9 +1,11 @@
 import React from 'react';
+import {EChartOption} from 'echarts';
 
 import theme from 'app/utils/theme';
 import {getFormattedDate} from 'app/utils/dates';
 
 import BarChart from './barChart';
+import BaseChart from './baseChart';
 import {truncationFormatter} from './utils';
 
 type Marker = {
@@ -18,7 +20,7 @@ const defaultProps = {
   emphasisColors: [theme.gray400, theme.purple400, theme.purple500],
 };
 
-type Props = React.ComponentProps<typeof BarChart> & {
+type Props = React.ComponentProps<typeof BaseChart> & {
   /**
    * Colors to use on the chart.
    */
@@ -48,7 +50,7 @@ class MiniBarChart extends React.Component<Props> {
     // Ensure bars overlap and that empty values display as we're disabling the axis lines.
     if (series.length) {
       series = series.map((original, i: number) => {
-        const updated = {...original, cursor: 'normal'};
+        const updated: EChartOption.SeriesBar = {...original, cursor: 'normal'};
         if (i === 0) {
           updated.barMinHeight = 1;
           updated.barGap = '-100%';
