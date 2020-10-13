@@ -27,7 +27,7 @@ type Props = React.ComponentProps<typeof BarChart> & {
    * Hover state colors to use on the chart.
    */
   emphasisColors: string[];
-    /**
+  /**
    * A list of series to be rendered as markLine components on the chart
    * This is often used to indicate start/end markers on the xAxis
    */
