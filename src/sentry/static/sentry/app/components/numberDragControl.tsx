@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {IconArrow} from 'app/icons';
 import space from 'app/styles/space';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 
 type NumberDragControlProps = {
   onChange: (delta: number, event: React.MouseEvent<HTMLDivElement>) => void;
@@ -40,6 +41,14 @@ class NumberDragControl extends React.Component<Props, State> {
           if (event.button !== 0) {
             return;
           }
+
+          // XXX(epurkhiser): We can remove this later, just curious if people
+          // are actually using the drag control
+          trackAnalyticsEvent({
+            eventName: 'Number Drag Control: Clicked',
+            eventKey: 'number_drag_control.clicked',
+          });
+
           event.currentTarget.requestPointerLock();
           this.setState({isClicked: true});
         }}

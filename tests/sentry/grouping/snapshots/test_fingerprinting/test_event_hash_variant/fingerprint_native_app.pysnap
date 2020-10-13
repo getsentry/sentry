@@ -1,5 +1,5 @@
 ---
-created: '2019-07-23T21:55:25.921295Z'
+created: '2020-08-19T12:18:25.550151Z'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
@@ -16,7 +16,19 @@ config:
 fingerprint:
 - symcache-error
 variants:
+  app:
+    component:
+      contributes: false
+      contributes_to_similarity: true
+      hint: custom fingerprint takes precedence
+    type: component
   custom-fingerprint:
     type: custom-fingerprint
     values:
     - symcache-error
+  system:
+    component:
+      contributes: false
+      contributes_to_similarity: true
+      hint: custom fingerprint takes precedence
+    type: component

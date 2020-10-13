@@ -24,6 +24,11 @@ class DiscoverQueryPermission(OrganizationPermission):
 class DiscoverQueryEndpoint(OrganizationEndpoint):
     permission_classes = (DiscoverQueryPermission,)
 
+    def has_feature(self, request, organization):
+        return features.has(
+            "organizations:discover", organization, actor=request.user
+        ) or features.has("organizations:discover-basic", organization, actor=request.user)
+
     def handle_results(self, snuba_results, requested_query, projects):
         if "project.name" in requested_query["selected_columns"]:
             project_name_index = requested_query["selected_columns"].index("project.name")
@@ -99,7 +104,7 @@ class DiscoverQueryEndpoint(OrganizationEndpoint):
             )
 
     def post(self, request, organization):
-        if not features.has("organizations:discover", organization, actor=request.user):
+        if not self.has_feature(request, organization):
             return Response(status=404)
 
         try:
@@ -147,7 +152,7 @@ class DiscoverQueryEndpoint(OrganizationEndpoint):
             limit=serialized.get("limit"),
             aggregations=serialized.get("aggregations"),
             rollup=serialized.get("rollup"),
-            filter_keys={"project.id": projects_map.keys()},
+            filter_keys={"project.id": list(projects_map.keys())},
             arrayjoin=serialized.get("arrayjoin"),
             request=request,
             turbo=serialized.get("turbo"),

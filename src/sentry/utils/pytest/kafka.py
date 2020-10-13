@@ -118,22 +118,15 @@ def scope_consumers():
 
     """
     all_consumers = {
-        "ingest_events": None,
-        "ingest_transactions": None,
-        "ingest_attachments": None,
+        # Relay is configured to use this topic for all ingest messages. See
+        # `templates/config.yml`.
+        "ingest-events": None,
         "outcomes": None,
     }
+
     yield all_consumers
 
-    for (consumer, consumer_name) in (
-        (all_consumers.get(consumer_name), consumer_name)
-        for consumer_name in (
-            "ingest_events",
-            "ingest_transactions",
-            "ingest_attachments",
-            "outcomes",
-        )
-    ):
+    for consumer_name, consumer in six.iteritems(all_consumers):
         if consumer is not None:
             try:
                 # stop the consumer
@@ -148,7 +141,7 @@ def session_ingest_consumer(scope_consumers, kafka_admin, task_runner):
     """
     Returns a factory for a session ingest consumer.
 
-    Note/Warning: Once an inject consumer is created it will be reused by all tests in the session.
+    Note/Warning: Once an ingest consumer is created it will be reused by all tests in the session.
     The ingest consumer is created the first time with the provided settings and then reused.
     If you don't want this behaviour DO NOT USE this fixture (create a fixture, similar with this one,
     that returns a new consumer at each invocation rather then reusing it)
@@ -157,30 +150,36 @@ def session_ingest_consumer(scope_consumers, kafka_admin, task_runner):
     """
 
     def ingest_consumer(settings):
-        from sentry.ingest.ingest_consumer import ConsumerType, get_ingest_consumer
+        from sentry.ingest.ingest_consumer import (
+            create_batching_kafka_consumer,
+            IngestConsumerWorker,
+        )
 
-        if scope_consumers["ingest_events"] is not None:
-            return scope_consumers[
-                "ingest_events"
-            ]  # reuse whatever was already created (will ignore the settings)
+        # Relay is configured to use this topic for all ingest messages. See
+        # `templates/config.yml`.
+        topic_event_name = "ingest-events"
+
+        if scope_consumers[topic_event_name] is not None:
+            # reuse whatever was already created (will ignore the settings)
+            return scope_consumers[topic_event_name]
 
         # first time the consumer is requested, create it using settings
-        topic_event_name = ConsumerType.get_topic_name(ConsumerType.Events)
         admin = kafka_admin(settings)
         admin.delete_topic(topic_event_name)
 
         # simulate the event ingestion task
         group_id = "test-consumer"
 
-        consumer = get_ingest_consumer(
+        consumer = create_batching_kafka_consumer(
+            topic_names=[topic_event_name],
+            worker=IngestConsumerWorker(),
             max_batch_size=1,
             max_batch_time=10,
             group_id=group_id,
-            consumer_types=[ConsumerType.Events],
             auto_offset_reset="earliest",
         )
 
-        scope_consumers["ingest_events"] = consumer
+        scope_consumers[topic_event_name] = consumer
 
         return consumer
 
@@ -207,8 +206,8 @@ def wait_for_ingest_consumer(session_ingest_consumer, task_runner):
     assert result == expected_result
     """
 
-    def factory(settings):
-        consumer = session_ingest_consumer(settings)
+    def factory(settings, **kwargs):
+        consumer = session_ingest_consumer(settings, **kwargs)
 
         def waiter(exit_predicate, max_time=MAX_SECONDS_WAITING_FOR_EVENT):
             """

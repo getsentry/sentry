@@ -10,7 +10,6 @@ from rest_framework import serializers, status
 from uuid import uuid4
 
 from sentry import roles
-from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.fields import AvatarField
@@ -35,7 +34,6 @@ from sentry.models import (
     OrganizationStatus,
 )
 from sentry.tasks.deletion import delete_organization
-from sentry.utils.apidocs import scenario, attach_scenarios
 from sentry.utils.cache import memoize
 
 ERR_DEFAULT_ORG = u"You cannot remove the default organization."
@@ -98,6 +96,7 @@ ORG_OPTIONS = (
     ),
     ("relayPiiConfig", "sentry:relay_pii_config", six.text_type, None),
     ("allowJoinRequests", "sentry:join_requests", bool, org_serializers.JOIN_REQUESTS_DEFAULT),
+    ("apdexThreshold", "sentry:apdex_threshold", int, None),
 )
 
 delete_logger = logging.getLogger("sentry.deletions.api")
@@ -105,21 +104,6 @@ delete_logger = logging.getLogger("sentry.deletions.api")
 DELETION_STATUSES = frozenset(
     [OrganizationStatus.PENDING_DELETION, OrganizationStatus.DELETION_IN_PROGRESS]
 )
-
-
-@scenario("RetrieveOrganization")
-def retrieve_organization_scenario(runner):
-    runner.request(method="GET", path="/organizations/%s/" % runner.org.slug)
-
-
-@scenario("UpdateOrganization")
-def update_organization_scenario(runner):
-    with runner.isolated_org("Badly Misnamed") as org:
-        runner.request(
-            method="PUT",
-            path="/organizations/%s/" % org.slug,
-            data={"name": "Impeccably Designated", "slug": "impeccably-designated"},
-        )
 
 
 class OrganizationSerializer(serializers.Serializer):
@@ -155,6 +139,7 @@ class OrganizationSerializer(serializers.Serializer):
     trustedRelays = ListField(child=TrustedRelaySerializer(), required=False)
     allowJoinRequests = serializers.BooleanField(required=False)
     relayPiiConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    apdexThreshold = serializers.IntegerField(min_value=1, required=False)
 
     @memoize
     def _has_legacy_rate_limits(self):
@@ -414,9 +399,6 @@ class OwnerOrganizationSerializer(OrganizationSerializer):
 
 
 class OrganizationDetailsEndpoint(OrganizationEndpoint):
-    doc_section = DocSection.ORGANIZATIONS
-
-    @attach_scenarios([retrieve_organization_scenario])
     def get(self, request, organization):
         """
         Retrieve an Organization
@@ -440,7 +422,6 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
 
         return self.respond(context)
 
-    @attach_scenarios([update_organization_scenario])
     def put(self, request, organization):
         """
         Update an Organization

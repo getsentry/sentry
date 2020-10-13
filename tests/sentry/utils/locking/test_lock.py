@@ -1,15 +1,15 @@
 from __future__ import absolute_import
 
+import unittest
 from sentry.utils.compat import mock
 import pytest
 
-from sentry.testutils import TestCase
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.locking.backends import LockBackend
 from sentry.utils.locking.lock import Lock
 
 
-class LockTestCase(TestCase):
+class LockTestCase(unittest.TestCase):
     def test_procedural_interface(self):
         backend = mock.Mock(spec=LockBackend)
         key = "lock"

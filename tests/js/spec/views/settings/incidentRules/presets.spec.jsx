@@ -18,7 +18,7 @@ jest.mock('app/views/alerts/utils', () => {
   };
 });
 
-describe('Incident Presets', function() {
+describe('Incident Presets', function () {
   const {org, projects} = initializeOrg();
 
   const mockStats = {
@@ -32,12 +32,12 @@ describe('Incident Presets', function() {
 
   const findPresetByName = name => PRESET_AGGREGATES.find(p => p.name === name);
 
-  describe('CTAs', function() {
-    beforeEach(function() {
+  describe('CTAs', function () {
+    beforeEach(function () {
       getIncidentDiscoverUrl.mockClear();
     });
 
-    it('creates the CTA for error count', function() {
+    it('creates the CTA for error count', function () {
       const preset = findPresetByName('Error count');
 
       const incident = {
@@ -74,7 +74,7 @@ describe('Incident Presets', function() {
       );
     });
 
-    it('creates the CTA for unique user count', function() {
+    it('creates the CTA for unique user count', function () {
       const preset = findPresetByName('Users affected');
 
       const incident = {
@@ -111,10 +111,10 @@ describe('Incident Presets', function() {
       );
     });
 
-    describe('Latency CTA', function() {
+    describe('Latency CTA', function () {
       const preset = findPresetByName('Latency');
 
-      it('creates the CTA for multiple transaction latency', function() {
+      it('creates the CTA for multiple transaction latency', function () {
         // Incident rule WITHOUT a specific transaction
         const incident = {
           title: 'Test error alert',
@@ -153,7 +153,7 @@ describe('Incident Presets', function() {
         );
       });
 
-      it('creates the CTA for a specific transaction latency', function() {
+      it('creates the CTA for a specific transaction latency', function () {
         // Incident rule WITH a specific transaction
         const incident = {
           title: 'Test error alert',
@@ -175,6 +175,7 @@ describe('Incident Presets', function() {
         expect(transactionSummaryRouteWithQuery).toHaveBeenCalledWith({
           orgSlug: org.slug,
           transaction: 'do_work',
+          projectID: [],
           query: {
             start: '1970-01-01T00:00:00',
             end: '1970-01-01T00:02:00',
@@ -190,10 +191,10 @@ describe('Incident Presets', function() {
       });
     });
 
-    describe('Apdex CTA', function() {
+    describe('Apdex CTA', function () {
       const preset = findPresetByName('Apdex');
 
-      it('creates the CTA for multiple transaction apdex', function() {
+      it('creates the CTA for multiple transaction apdex', function () {
         // Incident rule WITHOUT a specific transaction
         const incident = {
           title: 'Test error alert',
@@ -232,7 +233,7 @@ describe('Incident Presets', function() {
         );
       });
 
-      it('creates the CTA for a specific transaction apdex', function() {
+      it('creates the CTA for a specific transaction apdex', function () {
         // Incident rule WITH a specific transaction
         const incident = {
           title: 'Test error alert',
@@ -254,6 +255,7 @@ describe('Incident Presets', function() {
         expect(transactionSummaryRouteWithQuery).toHaveBeenCalledWith({
           orgSlug: org.slug,
           transaction: 'do_work',
+          projectID: [],
           query: {
             start: '1970-01-01T00:00:00',
             end: '1970-01-01T00:02:00',
@@ -269,10 +271,10 @@ describe('Incident Presets', function() {
       });
     });
 
-    describe('Transaction count CTA', function() {
+    describe('Transaction count CTA', function () {
       const preset = findPresetByName('Transaction Count');
 
-      it('creates the CTA for multiple transaction counts', function() {
+      it('creates the CTA for multiple transaction counts', function () {
         // Incident rule WITHOUT a specific transaction
         const incident = {
           title: 'Test error alert',
@@ -310,7 +312,7 @@ describe('Incident Presets', function() {
         );
       });
 
-      it('creates the CTA for a specific transaction count', function() {
+      it('creates the CTA for a specific transaction count', function () {
         // Incident rule WITH a specific transaction
         const incident = {
           title: 'Test error alert',
@@ -332,6 +334,7 @@ describe('Incident Presets', function() {
         expect(transactionSummaryRouteWithQuery).toHaveBeenCalledWith({
           orgSlug: org.slug,
           transaction: 'do_work',
+          projectID: [],
           query: {
             start: '1970-01-01T00:00:00',
             end: '1970-01-01T00:02:00',
@@ -346,10 +349,10 @@ describe('Incident Presets', function() {
       });
     });
 
-    describe('Failure rate CTA', function() {
+    describe('Failure rate CTA', function () {
       const preset = findPresetByName('Failure rate');
 
-      it('creates the CTA for multiple transaction failure rates', function() {
+      it('creates the CTA for multiple transaction failure rates', function () {
         // Incident rule WITHOUT a specific transaction
         const incident = {
           title: 'Test error alert',
@@ -388,7 +391,7 @@ describe('Incident Presets', function() {
         );
       });
 
-      it('creates the CTA for a specific transaction count', function() {
+      it('creates the CTA for a specific transaction count', function () {
         // Incident rule WITH a specific transaction
         const incident = {
           title: 'Test error alert',

@@ -11,7 +11,7 @@ import {
 
 import IssueAlertOptions from 'app/views/projectInstall/issueAlertOptions';
 
-describe('IssueAlertOptions', function() {
+describe('IssueAlertOptions', function () {
   const {organization, routerContext} = initializeOrg();
   const URL = `/projects/${organization.slug}/rule-conditions/`;
   let props;

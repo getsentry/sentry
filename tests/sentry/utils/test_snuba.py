@@ -1,15 +1,19 @@
 from __future__ import absolute_import
 
+import unittest
+
 from datetime import datetime, timedelta
 from django.utils import timezone
 
 import pytest
 import pytz
 
-from sentry.models import GroupRelease, Release
+from sentry.models import GroupRelease, Release, Project
 from sentry.testutils import TestCase
+from sentry.utils.compat import mock
 from sentry.utils.snuba import (
     _prepare_query_params,
+    get_query_params_to_update_for_projects,
     get_snuba_translators,
     get_json_type,
     get_snuba_column_name,
@@ -165,6 +169,22 @@ class SnubaUtilsTest(TestCase):
         assert get_snuba_column_name("organization") == "tags[organization]"
         assert get_snuba_column_name("unknown-key") == "tags[unknown-key]"
 
+        # measurements are not available on the Events dataset, so it's seen as a tag
+        assert get_snuba_column_name("measurements_key", Dataset.Events) == "tags[measurements_key]"
+        assert get_snuba_column_name("measurements.key", Dataset.Events) == "tags[measurements.key]"
+
+        # measurements are available on the Discover and Transactions dataset, so its parsed as such
+        assert get_snuba_column_name("measurements_key", Dataset.Discover) == "measurements.key"
+        assert get_snuba_column_name("measurements_key", Dataset.Transactions) == "measurements.key"
+        assert get_snuba_column_name("measurements.key", Dataset.Discover) == "measurements[key]"
+        assert (
+            get_snuba_column_name("measurements.key", Dataset.Transactions) == "measurements[key]"
+        )
+        assert get_snuba_column_name("measurements.KEY", Dataset.Discover) == "measurements[key]"
+        assert (
+            get_snuba_column_name("measurements.KEY", Dataset.Transactions) == "measurements[key]"
+        )
+
 
 class PrepareQueryParamsTest(TestCase):
     def test_events_dataset_with_project_id(self):
@@ -174,6 +194,26 @@ class PrepareQueryParamsTest(TestCase):
 
         kwargs, _, _ = _prepare_query_params(query_params)
         assert kwargs["project"] == [self.project.id]
+
+    def test_with_deleted_project(self):
+        query_params = SnubaQueryParams(
+            dataset=Dataset.Events, filter_keys={"project_id": [self.project.id]}
+        )
+
+        self.project.delete()
+        with pytest.raises(UnqualifiedQueryError):
+            get_query_params_to_update_for_projects(query_params)
+
+    @mock.patch("sentry.models.Project.objects.get_from_cache", side_effect=Project.DoesNotExist)
+    def test_with_some_deleted_projects(self, mock_project):
+        other_project = self.create_project(organization=self.organization, slug="a" * 32)
+        query_params = SnubaQueryParams(
+            dataset=Dataset.Events, filter_keys={"project_id": [self.project.id, other_project.id]}
+        )
+
+        other_project.delete()
+        organization_id, _ = get_query_params_to_update_for_projects(query_params)
+        assert organization_id == self.organization.id
 
     def test_outcomes_dataset_with_org_id(self):
         query_params = SnubaQueryParams(
@@ -203,7 +243,7 @@ class PrepareQueryParamsTest(TestCase):
             _prepare_query_params(query_params)
 
 
-class QuantizeTimeTest(TestCase):
+class QuantizeTimeTest(unittest.TestCase):
     def setUp(self):
         self.now = timezone.now().replace(microsecond=0)
 

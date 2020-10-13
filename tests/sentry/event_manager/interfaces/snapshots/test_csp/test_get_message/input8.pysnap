@@ -1,19 +1,10 @@
 ---
-created: '2019-03-14T17:12:35.174624Z'
+created: '2020-07-09T22:22:50.727784Z'
 creator: sentry
 source: tests/sentry/event_manager/interfaces/test_csp.py
 ---
-culprit: ''
 errors: null
-message: Blocked 'script' from 'cdn.ajaxapis.com'
-origin: http://example.com/foo
-tags:
-- - effective-directive
-  - script-src-elem
-- - blocked-uri
-  - http://cdn.ajaxapis.com/foo
 to_json:
   blocked_uri: http://cdn.ajaxapis.com/foo
   document_uri: http://example.com/foo
   effective_directive: script-src-elem
-  violated_directive: ''

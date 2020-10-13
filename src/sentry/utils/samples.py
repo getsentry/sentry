@@ -4,6 +4,7 @@ import os.path
 import random
 import pytz
 import six
+from uuid import uuid4
 
 from datetime import datetime, timedelta
 from django.utils import timezone
@@ -101,7 +102,15 @@ def generate_user(username=None, email=None, ip_address=None, id=None):
     ).to_json()
 
 
-def load_data(platform, default=None, sample_name=None, timestamp=None, start_timestamp=None):
+def load_data(
+    platform,
+    default=None,
+    sample_name=None,
+    timestamp=None,
+    start_timestamp=None,
+    trace=None,
+    span=None,
+):
     # NOTE: Before editing this data, make sure you understand the context
     # in which its being used. It is NOT only used for local development and
     # has production consequences.
@@ -126,7 +135,8 @@ def load_data(platform, default=None, sample_name=None, timestamp=None, start_ti
 
         # Verify by checking if the file is within our folder explicitly
         # avoids being able to have a name that invokes traversing directories.
-        json_path = "%s.json" % platform.encode("utf-8")
+        json_path = u"{}.json".format(platform)
+
         if json_path not in all_samples:
             continue
 
@@ -164,6 +174,21 @@ def load_data(platform, default=None, sample_name=None, timestamp=None, start_ti
             start_timestamp = start_timestamp.replace(tzinfo=pytz.utc)
         data["start_timestamp"] = to_timestamp(start_timestamp)
 
+        if trace is None:
+            trace = uuid4().hex
+        if span is None:
+            span = uuid4().hex[:16]
+
+        for tag in data["tags"]:
+            if tag[0] == "trace":
+                tag[1] = trace
+            elif tag[0] == "trace.ctx":
+                tag[1] = trace + "-" + span
+            elif tag[0] == "trace.span":
+                tag[1] = span
+        data["contexts"]["trace"]["trace_id"] = trace
+        data["contexts"]["trace"]["span_id"] = span
+
         for span in data.get("spans", []):
             # Use data to generate span timestamps consistently and based
             # on event timestamp
@@ -171,6 +196,7 @@ def load_data(platform, default=None, sample_name=None, timestamp=None, start_ti
             offset = span.get("data", {}).get("offset", 0)
 
             span_start = data["start_timestamp"] + offset
+            span["trace_id"] = trace
             span.setdefault("start_timestamp", span_start)
             span.setdefault("timestamp", span_start + duration)
 
@@ -215,11 +241,21 @@ def load_data(platform, default=None, sample_name=None, timestamp=None, start_ti
     return data
 
 
-def create_sample_event(project, platform=None, default=None, raw=True, sample_name=None, **kwargs):
+def create_sample_event(
+    project,
+    platform=None,
+    default=None,
+    raw=True,
+    sample_name=None,
+    timestamp=None,
+    start_timestamp=None,
+    trace=None,
+    **kwargs
+):
     if not platform and not default:
         return
 
-    data = load_data(platform, default, sample_name)
+    data = load_data(platform, default, sample_name, timestamp, start_timestamp, trace)
 
     if not data:
         return

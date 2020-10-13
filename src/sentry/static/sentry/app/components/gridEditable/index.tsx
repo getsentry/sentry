@@ -66,7 +66,9 @@ type GridEditableProps<DataRow, ColumnKey> = {
     ) => React.ReactNode;
     renderBodyCell?: (
       column: GridColumnOrder<ColumnKey>,
-      dataRow: DataRow
+      dataRow: DataRow,
+      rowIndex: number,
+      columnIndex: number
     ) => React.ReactNode;
     onResizeColumn?: (
       columnIndex: number,
@@ -280,21 +282,23 @@ class GridEditable<
           prependColumns.map((item, i) => (
             <GridHeadCellStatic key={`prepend-${i}`}>{item}</GridHeadCellStatic>
           ))}
-        {/* Note that this.onResizeMouseDown assumes GridResizer is nested
+        {
+          /* Note that this.onResizeMouseDown assumes GridResizer is nested
             1 levels under GridHeadCell */
-        columnOrder.map((column, i) => (
-          <GridHeadCell key={`${i}.${column.key}`} isFirst={i === 0}>
-            {grid.renderHeadCell ? grid.renderHeadCell(column, i) : column.name}
-            {i !== numColumn - 1 && (
-              <GridResizer
-                dataRows={!error && !isLoading && data ? data.length : 0}
-                onMouseDown={e => this.onResizeMouseDown(e, i)}
-                onDoubleClick={e => this.onResetColumnSize(e, i)}
-                onContextMenu={this.onResizeMouseDown}
-              />
-            )}
-          </GridHeadCell>
-        ))}
+          columnOrder.map((column, i) => (
+            <GridHeadCell key={`${i}.${column.key}`} isFirst={i === 0}>
+              {grid.renderHeadCell ? grid.renderHeadCell(column, i) : column.name}
+              {i !== numColumn - 1 && (
+                <GridResizer
+                  dataRows={!error && !isLoading && data ? data.length : 0}
+                  onMouseDown={e => this.onResizeMouseDown(e, i)}
+                  onDoubleClick={e => this.onResetColumnSize(e, i)}
+                  onContextMenu={this.onResizeMouseDown}
+                />
+              )}
+            </GridHeadCell>
+          ))
+        }
       </GridRow>
     );
   }
@@ -331,7 +335,9 @@ class GridEditable<
           ))}
         {columnOrder.map((col, i) => (
           <GridBodyCell key={`${col.key}${i}`}>
-            {grid.renderBodyCell ? grid.renderBodyCell(col, dataRow) : dataRow[col.key]}
+            {grid.renderBodyCell
+              ? grid.renderBodyCell(col, dataRow, row, i)
+              : dataRow[col.key]}
           </GridBodyCell>
         ))}
       </GridRow>

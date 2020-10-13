@@ -8,7 +8,7 @@ import six
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.crypto import constant_time_compare
 from requests.exceptions import RequestException
-from sentry import http, options
+from sentry import http, options, VERSION
 from sentry.api.base import Endpoint
 from sentry.models import (
     OrganizationIntegration,
@@ -22,6 +22,10 @@ from sentry.utils.compat import filter
 from sentry.web.decorators import transaction_start
 
 logger = logging.getLogger("sentry.integrations.vercel.webhooks")
+
+
+class NoCommitFoundError(IntegrationError):
+    pass
 
 
 def verify_signature(request):
@@ -83,8 +87,8 @@ class VercelWebhookEndpoint(Endpoint):
         elif meta.get("bitbucketCommitSha"):
             repository = u"%s/%s" % (meta["bitbucketRepoOwner"], meta["bitbucketRepoName"])
         else:
-            # this should really never happen
-            raise IntegrationError("No commit found")
+            # this can happen with manual builds
+            raise NoCommitFoundError("No commit found")
 
         release_payload = {
             "version": commit_sha,
@@ -116,7 +120,7 @@ class VercelWebhookEndpoint(Endpoint):
             logger.info(
                 "Ignoring deployment for environment: %s" % payload["target"], extra=logging_params
             )
-            return self.respond(status=202)
+            return self.respond(status=204)
 
         # Steps:
         # 1. Find all org integrations that match the external id
@@ -160,12 +164,16 @@ class VercelWebhookEndpoint(Endpoint):
                 except SentryAppInstallationToken.DoesNotExist:
                     logger.info("Token not found", extra=logging_params)
                     return self.respond({"detail": "Token not found"}, status=404)
+                except NoCommitFoundError:
+                    logger.info("No commit found", extra=logging_params)
+                    return self.respond({"detail": "No commit found"}, status=404)
 
                 session = http.build_session()
                 url = absolute_uri("/api/0/organizations/%s/releases/" % organization.slug)
                 headers = {
                     "Accept": "application/json",
-                    "Authorization": "Bearer %s" % token,
+                    "Authorization": u"Bearer %s" % token,
+                    "User-Agent": u"sentry_vercel/{}".format(VERSION),
                 }
                 json_error = None
 
@@ -203,4 +211,4 @@ class VercelWebhookEndpoint(Endpoint):
 
                 # we are going to quit after the first project match as there shouldn't be multiple matches
                 return self.respond(status=201)
-        return self.respond(status=202)
+        return self.respond(status=204)

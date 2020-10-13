@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from sentry.grouping.utils import hash_from_values, DEFAULT_FINGERPRINT_VALUES
+from sentry.grouping.utils import hash_from_values, is_default_fingerprint_var
 
 
 class BaseVariant(object):
@@ -25,6 +25,9 @@ class BaseVariant(object):
         rv.update(self._get_metadata_as_dict())
         return rv
 
+    def encode_for_similarity(self):
+        raise NotImplementedError()
+
     def __repr__(self):
         return "<%s %r (%s)>" % (self.__class__.__name__, self.get_hash(), self.type)
 
@@ -44,6 +47,9 @@ class ChecksumVariant(BaseVariant):
             return "hashed legacy checksum"
         return "legacy checksum"
 
+    def encode_for_similarity(self):
+        return ()
+
     def get_hash(self):
         return self.hash
 
@@ -51,6 +57,9 @@ class ChecksumVariant(BaseVariant):
 class FallbackVariant(BaseVariant):
     id = "fallback"
     contributes = True
+
+    def encode_for_similarity(self):
+        return ()
 
     def get_hash(self):
         return hash_from_values([])
@@ -78,6 +87,9 @@ class ComponentVariant(BaseVariant):
     def get_hash(self):
         return self.component.get_hash()
 
+    def encode_for_similarity(self):
+        return self.component.encode_for_similarity()
+
     def _get_metadata_as_dict(self):
         return {"component": self.component.as_dict(), "config": self.config.as_dict()}
 
@@ -96,6 +108,10 @@ class CustomFingerprintVariant(BaseVariant):
 
     def get_hash(self):
         return hash_from_values(self.values)
+
+    def encode_for_similarity(self):
+        for value in self.values:
+            yield ("fingerprint", "ident-shingle"), [value]
 
     def _get_metadata_as_dict(self):
         return {"values": self.values}
@@ -119,11 +135,19 @@ class SaltedComponentVariant(ComponentVariant):
             return None
         final_values = []
         for value in self.values:
-            if value in DEFAULT_FINGERPRINT_VALUES:
+            if is_default_fingerprint_var(value):
                 final_values.extend(self.component.iter_values())
             else:
                 final_values.append(value)
         return hash_from_values(final_values)
+
+    def encode_for_similarity(self):
+        for x in ComponentVariant.encode_for_similarity(self):
+            yield x
+
+        for value in self.values:
+            if not is_default_fingerprint_var(value):
+                yield ("fingerprint", "ident-shingle"), [value]
 
     def _get_metadata_as_dict(self):
         rv = ComponentVariant._get_metadata_as_dict(self)

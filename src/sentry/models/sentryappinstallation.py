@@ -28,6 +28,21 @@ class SentryAppInstallationForProvider(DefaultFieldsModel):
         db_table = "sentry_sentryappinstallationforprovider"
         unique_together = (("provider", "organization"),)
 
+    @classmethod
+    def get_token(cls, organization_id, provider):
+        installation_for_provider = SentryAppInstallationForProvider.objects.select_related(
+            "sentry_app_installation"
+        ).get(organization_id=organization_id, provider=provider)
+        sentry_app_installation = installation_for_provider.sentry_app_installation
+
+        # find a token associated with the installation so we can use it for authentication
+        sentry_app_installation_token = (
+            SentryAppInstallationToken.objects.select_related("api_token")
+            .filter(sentry_app_installation=sentry_app_installation)
+            .first()
+        )
+        return sentry_app_installation_token.api_token.token
+
 
 class SentryAppInstallationToken(Model):
     __core__ = False
@@ -86,7 +101,7 @@ class SentryAppInstallation(ParanoidModel):
         related_name="sentry_app_installation",
     )
 
-    # Only use this token for public integrtions since each install has only token at a time
+    # Only use this token for public integrations since each install has only token at a time
     # An installation gets an access token once the Grant has been exchanged,
     # and is updated when the token gets refreshed.
     #

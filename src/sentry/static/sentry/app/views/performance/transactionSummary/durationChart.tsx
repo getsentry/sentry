@@ -21,7 +21,7 @@ import EventView from 'app/utils/discover/eventView';
 import withApi from 'app/utils/withApi';
 import {decodeScalar} from 'app/utils/queryString';
 import theme from 'app/utils/theme';
-import {getDuration} from 'app/utils/formatters';
+import {tooltipFormatter, axisLabelFormatter} from 'app/utils/discover/charts';
 import getDynamicText from 'app/utils/getDynamicText';
 
 import {HeaderTitleLegend} from '../styles';
@@ -110,16 +110,33 @@ class DurationChart extends React.Component<Props> {
       selected: seriesSelection,
     };
 
-    const tooltip = {
-      valueFormatter(value: number) {
-        return getDuration(value / 1000, 2);
-      },
-    };
-
     const datetimeSelection = {
       start: start || null,
       end: end || null,
       period: statsPeriod,
+    };
+
+    const chartOptions = {
+      grid: {
+        left: '10px',
+        right: '10px',
+        top: '40px',
+        bottom: '0px',
+      },
+      seriesOptions: {
+        showSymbol: false,
+      },
+      tooltip: {
+        trigger: 'axis',
+        valueFormatter: tooltipFormatter,
+      },
+      yAxis: {
+        axisLabel: {
+          color: theme.gray400,
+          // p50() coerces the axis to be time based
+          formatter: (value: number) => axisLabelFormatter(value, 'p50()'),
+        },
+      },
     };
 
     return (
@@ -193,6 +210,7 @@ class DurationChart extends React.Component<Props> {
                     period={statsPeriod}
                     utc={utc}
                     projects={project}
+                    environments={environment}
                   >
                     {({releaseSeries}) => (
                       <TransitionChart loading={loading} reloading={reloading}>
@@ -201,19 +219,10 @@ class DurationChart extends React.Component<Props> {
                           value: (
                             <AreaChart
                               {...zoomRenderProps}
+                              {...chartOptions}
                               legend={legend}
                               onLegendSelectChanged={this.handleLegendSelectChanged}
                               series={[...series, ...releaseSeries]}
-                              seriesOptions={{
-                                showSymbol: false,
-                              }}
-                              tooltip={tooltip}
-                              grid={{
-                                left: '10px',
-                                right: '10px',
-                                top: '40px',
-                                bottom: '0px',
-                              }}
                             />
                           ),
                           fixed: 'Duration Chart',

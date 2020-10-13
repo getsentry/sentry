@@ -8,10 +8,6 @@ from sentry.testutils import APITestCase
 
 
 class ProjectRuleConfigurationTest(APITestCase):
-    def setUp(self):
-        self.project.flags.has_issue_alerts_targeting = False
-        self.project.save()
-
     def test_simple(self):
         self.login_as(user=self.user)
 
@@ -26,7 +22,7 @@ class ProjectRuleConfigurationTest(APITestCase):
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
-        assert len(response.data["actions"]) == 4
+        assert len(response.data["actions"]) == 5
         assert len(response.data["conditions"]) == 9
 
     @property
@@ -62,17 +58,8 @@ class ProjectRuleConfigurationTest(APITestCase):
             assert len(response.data["actions"]) == expected_actions
             assert len(response.data["conditions"]) == 0
 
-    def test_filter_out_notify_email_action(self):
-        self.run_mock_rules_test(0, {})
-
-    def test_filter_show_notify_email_action_migrated_project(self):
-        self.project.flags.has_issue_alerts_targeting = True
-        self.project.save()
+    def test_filter_show_notify_email_action(self):
         self.run_mock_rules_test(1, {})
-
-    def test_filter_show_notify_email_action_override(self):
-        self.run_mock_rules_test(0, {"issue_alerts_targeting": "0"})
-        self.run_mock_rules_test(1, {"issue_alerts_targeting": "1"})
 
     def test_show_notify_event_service_action(self):
         rules = RuleRegistry()

@@ -91,10 +91,10 @@ describe('CreateAlertButton', () => {
     const eventView = EventView.fromSavedQuery({
       ...ALL_VIEWS.find(view => view.name === 'Errors by URL'),
       query: 'event.type:error',
-      yAxis: 'count_unique(issue.id)',
+      yAxis: 'count_unique(issue)',
       projects: [2],
     });
-    expect(eventView.getYAxis()).toBe('count_unique(issue.id)');
+    expect(eventView.getYAxis()).toBe('count_unique(issue)');
     const wrapper = generateWrappedComponent(organization, eventView);
     wrapper.simulate('click');
     expect(onIncompatibleQueryMock).toHaveBeenCalledTimes(1);
@@ -102,7 +102,7 @@ describe('CreateAlertButton', () => {
       onIncompatibleQueryMock.mock.calls[0][0](onCloseMock)
     );
     expect(errorsAlert.text()).toBe(
-      'An alert can’t use the metric count_unique(issue.id) just yet. Select another metric and try again.'
+      'An alert can’t use the metric count_unique(issue) just yet. Select another metric and try again.'
     );
   });
 
@@ -158,10 +158,7 @@ describe('CreateAlertButton', () => {
     const errorsAlert = mountWithTheme(
       onIncompatibleQueryMock.mock.calls[0][0](onCloseMock)
     );
-    errorsAlert
-      .find('[aria-label="Close"]')
-      .at(0)
-      .simulate('click');
+    errorsAlert.find('[aria-label="Close"]').at(0).simulate('click');
     expect(onCloseMock).toHaveBeenCalledTimes(1);
   });
 

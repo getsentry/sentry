@@ -9,6 +9,7 @@ import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import ExternalLink from 'app/components/links/externalLink';
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
+import {IconInfo} from 'app/icons';
 import PermissionAlert from 'app/views/settings/project/permissionAlert';
 import PluginList from 'app/components/pluginList';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
@@ -51,14 +52,14 @@ class DataForwardingStats extends AsyncComponent<StatProps, StatState> {
     const {projectId} = this.props.params;
     //y is an array of size one which denotes how many events were forwarded in that period
     const stats = this.state.stats.map(p => ({x: p[0], y: [p[1]]}));
-    const fowardedAny = stats.some(({y}) => y[0]);
+    const forwardedAny = stats.some(({y}) => y[0]);
 
     return (
       <Panel>
         <SentryDocumentTitle title={t('Data Forwarding')} objSlug={projectId} />
         <PanelHeader>{t('Forwarded events in the last 30 days (by day)')}</PanelHeader>
         <PanelBody>
-          {fowardedAny ? (
+          {forwardedAny ? (
             <StackedBarChart
               style={{
                 border: 'none',
@@ -161,7 +162,7 @@ class ProjectDataForwarding extends AsyncComponent<Props, State> {
               </TextBlock>
               <PermissionAlert />
 
-              <Alert icon="icon-circle-info">
+              <Alert icon={<IconInfo size="md" />}>
                 {tct(
                   `Sentry forwards [em:all applicable events] to the provider, in
                 some cases this may be a significant volume of data.`,

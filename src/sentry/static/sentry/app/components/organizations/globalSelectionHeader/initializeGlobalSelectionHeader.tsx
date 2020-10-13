@@ -82,6 +82,7 @@ class InitializeGlobalSelectionHeader extends React.Component<Props> {
      * This happens e.g. using browser's navigation button, in which case
      * we need to update our store to reflect URL changes
      */
+
     if (prevProps.location.query !== this.props.location.query) {
       const oldQuery = getStateFromQuery(prevProps.location.query, {
         allowEmptyPeriod: true,
@@ -100,10 +101,11 @@ class InitializeGlobalSelectionHeader extends React.Component<Props> {
        */
       if (!isEqual(oldQuery.project, newQuery.project)) {
         updateProjects(newQuery.project || [], null, {environments: newEnvironments});
-      }
-      if (!isEqual(oldQuery.environment, newQuery.project)) {
-        // Projects changing will also change environments, so only update environments
-        // by itself if projects is unchanged
+      } else if (!isEqual(oldQuery.environment, newQuery.environment)) {
+        /**
+         * When the project stays the same, it's still possible that the environment
+         * changed, so explictly update the enviornment
+         */
         updateEnvironments(newEnvironments);
       }
 

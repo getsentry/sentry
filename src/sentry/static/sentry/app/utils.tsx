@@ -91,7 +91,7 @@ export function sortArray<T>(arr: Array<T>, score_fn: (entry: T) => string): Arr
   return arr;
 }
 
-export function objectIsEmpty(obj: object): boolean {
+export function objectIsEmpty(obj = {}): boolean {
   for (const prop in obj) {
     if (obj.hasOwnProperty(prop)) {
       return false;
@@ -133,10 +133,7 @@ export function isUrl(str: any): boolean {
 }
 
 export function escape(str: string): string {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 export function percent(value: number, totalValue: number): number {

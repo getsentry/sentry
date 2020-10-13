@@ -1,7 +1,7 @@
 import React from 'react';
 
 import {t} from 'app/locale';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconClose} from 'app/icons/iconClose';
 import Link from 'app/components/links/link';
 
 import AggregationRow from './aggregation';
@@ -67,7 +67,7 @@ export default class Aggregations extends React.Component<AggregationsProps> {
             />
             <div>
               <Link to="" onClick={() => this.removeRow(idx)}>
-                <InlineSvg src="icon-circle-close" height="38px" />
+                <IconClose isCircled />
               </Link>
             </div>
           </SelectListItem>

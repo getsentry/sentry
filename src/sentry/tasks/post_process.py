@@ -5,7 +5,6 @@ import time
 import sentry_sdk
 
 from django.conf import settings
-from sentry_sdk.tracing import Span
 
 from sentry import features
 from sentry.utils.cache import cache
@@ -15,7 +14,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.redis import redis_clusters
 from sentry.utils.safe import safe_execute
-from sentry.utils.sdk import set_current_project
+from sentry.utils.sdk import set_current_project, bind_organization_context
 
 logger = logging.getLogger("sentry")
 
@@ -117,25 +116,60 @@ def handle_owner_assignment(project, group, event):
 
 
 @instrumented_task(name="sentry.tasks.post_process.post_process_group")
-def post_process_group(event, is_new, is_regression, is_new_group_environment, **kwargs):
+def post_process_group(
+    is_new, is_regression, is_new_group_environment, cache_key, group_id=None, event=None, **kwargs
+):
     """
     Fires post processing hooks for a group.
     """
-    set_current_project(event.project_id)
-
+    from sentry.eventstore.models import Event
+    from sentry.eventstore.processing import event_processing_store
     from sentry.utils import snuba
+    from sentry.reprocessing2 import is_reprocessed_event
 
     with snuba.options_override({"consistent": True}):
-        if check_event_already_post_processed(event):
+        # We use the data being present/missing in the processing store
+        # to ensure that we don't duplicate work should the forwarding consumers
+        # need to rewind history.
+        #
+        # While we always send the cache_key and never send the event parameter now,
+        # the code to handle `event` has to stick around for a self-hosted release cycle.
+        if cache_key and event is None:
+            data = event_processing_store.get(cache_key)
+            if not data:
+                logger.info(
+                    "post_process.skipped",
+                    extra={"cache_key": cache_key, "reason": "missing_cache"},
+                )
+                return
+            event = Event(
+                project_id=data["project"], event_id=data["event_id"], group_id=group_id, data=data
+            )
+        elif event and check_event_already_post_processed(event):
+            if cache_key:
+                event_processing_store.delete_by_key(cache_key)
+            logger.info(
+                "post_process.skipped",
+                extra={
+                    "reason": "duplicate",
+                    "project_id": event.project_id,
+                    "event_id": event.event_id,
+                },
+            )
+            return
+
+        if is_reprocessed_event(event.data):
             logger.info(
                 "post_process.skipped",
                 extra={
                     "project_id": event.project_id,
                     "event_id": event.event_id,
-                    "reason": "duplicate",
+                    "reason": "reprocessed",
                 },
             )
             return
+
+        set_current_project(event.project_id)
 
         # NOTE: we must pass through the full Event object, and not an
         # event_id since the Event object may not actually have been stored
@@ -150,17 +184,18 @@ def post_process_group(event, is_new, is_regression, is_new_group_environment, *
         event.data = EventDict(event.data, skip_renormalization=True)
 
         if event.group_id:
-            # Re-bind Group since we're pickling the whole Event object
-            # which may contain a stale Project.
+            # Re-bind Group since we're reading the Event object
+            # from cache, which may contain a stale group and project
             event.group, _ = get_group_with_redirect(event.group_id)
             event.group_id = event.group.id
 
-        # Re-bind Project and Org since we're pickling the whole Event object
-        # which may contain stale parent models.
+        # Re-bind Project and Org since we're reading the Event object
+        # from cache which may contain stale parent models.
         event.project = Project.objects.get_from_cache(id=event.project_id)
         event.project._organization_cache = Organization.objects.get_from_cache(
             id=event.project.organization_id
         )
+        bind_organization_context(event.project.organization)
 
         _capture_stats(event, is_new)
 
@@ -179,8 +214,8 @@ def post_process_group(event, is_new, is_regression, is_new_group_environment, *
             # objects back and forth isn't super efficient
             for callback, futures in rp.apply():
                 has_alert = True
-                with sentry_sdk.start_span(
-                    Span(op="post_process_group", transaction="rule_processor_apply", sampled=True)
+                with sentry_sdk.start_transaction(
+                    op="post_process_group", name="rule_processor_apply", sampled=True
                 ):
                     safe_execute(callback, event, futures)
 
@@ -220,6 +255,8 @@ def post_process_group(event, is_new, is_regression, is_new_group_environment, *
             event=event,
             primary_hash=kwargs.get("primary_hash"),
         )
+        with metrics.timer("tasks.post_process.delete_event_cache"):
+            event_processing_store.delete_by_key(cache_key)
 
 
 def process_snoozes(group):

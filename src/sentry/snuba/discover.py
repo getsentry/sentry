@@ -7,53 +7,50 @@ import logging
 
 from collections import namedtuple
 from copy import deepcopy
-from datetime import timedelta
 from math import ceil, floor
 
 from sentry import options
 from sentry.api.event_search import (
+    FIELD_ALIASES,
     get_filter,
     get_function_alias,
     is_function,
-    resolve_field_list,
     InvalidSearchQuery,
-    FIELD_ALIASES,
+    resolve_field_list,
 )
 
 from sentry import eventstore
 
-from sentry.models import Project, ProjectStatus, Group
+from sentry.models import Group
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
+from sentry.utils.compat import filter
 from sentry.utils.snuba import (
     Dataset,
-    SnubaTSResult,
-    raw_query,
-    to_naive_timestamp,
     naiveify_datetime,
+    raw_query,
     resolve_snuba_aliases,
     resolve_column,
+    SNUBA_AND,
+    SNUBA_OR,
+    SnubaTSResult,
+    to_naive_timestamp,
 )
 
 __all__ = (
-    "ReferenceEvent",
     "PaginationResult",
     "InvalidSearchQuery",
-    "create_reference_event_conditions",
     "query",
     "key_transaction_query",
     "timeseries_query",
     "top_events_timeseries",
-    "get_pagination_ids",
     "get_facets",
     "transform_results",
     "zerofill",
+    "measurements_histogram_query",
 )
 
 
 logger = logging.getLogger(__name__)
-
-ReferenceEvent = namedtuple("ReferenceEvent", ["organization", "slug", "fields", "start", "end"])
-ReferenceEvent.__new__.__defaults__ = (None, None)
 
 PaginationResult = namedtuple("PaginationResult", ["next", "previous", "oldest", "latest"])
 FacetResult = namedtuple("FacetResult", ["key", "value", "count"])
@@ -73,81 +70,6 @@ def is_real_column(col):
         return False
 
     return True
-
-
-def find_reference_event(reference_event):
-    try:
-        project_slug, event_id = reference_event.slug.split(":")
-    except ValueError:
-        raise InvalidSearchQuery("Invalid reference event format")
-
-    column_names = [
-        resolve_discover_column(col) for col in reference_event.fields if is_real_column(col)
-    ]
-    # We don't need to run a query if there are no columns
-    if not column_names:
-        return None
-
-    try:
-        project = Project.objects.get(
-            slug=project_slug,
-            organization=reference_event.organization,
-            status=ProjectStatus.VISIBLE,
-        )
-    except Project.DoesNotExist:
-        raise InvalidSearchQuery("Invalid reference event project")
-
-    start = None
-    end = None
-    if reference_event.start:
-        start = reference_event.start - timedelta(seconds=5)
-    if reference_event.end:
-        end = reference_event.end + timedelta(seconds=5)
-
-    # We use raw_query here because generating conditions from an eventstore
-    # event requires non-trivial translation from the flat list of fields into
-    # structured fields like message, stack, and tags.
-    event = raw_query(
-        selected_columns=column_names,
-        filter_keys={"project_id": [project.id], "event_id": [event_id]},
-        start=start,
-        end=end,
-        dataset=Dataset.Discover,
-        limit=1,
-        referrer="discover.find_reference_event",
-    )
-    if "error" in event or len(event["data"]) != 1:
-        raise InvalidSearchQuery("Unable to find reference event")
-
-    return event["data"][0]
-
-
-def create_reference_event_conditions(reference_event):
-    """
-    Create a list of conditions based on a Reference object.
-
-    This is useful when you want to get results that match an exemplar
-    event. A use case of this is generating pagination links for, or getting
-    timeseries results of the records inside a single aggregated row.
-
-    reference_event (ReferenceEvent) The reference event to build conditions from.
-    """
-    conditions = []
-    event_data = find_reference_event(reference_event)
-    if event_data is None:
-        return conditions
-
-    field_names = [resolve_discover_column(col) for col in reference_event.fields]
-    for (i, field) in enumerate(reference_event.fields):
-        value = event_data.get(field_names[i], None)
-        # If the value is a sequence use the first element as snuba
-        # doesn't support `=` or `IN` operations on fields like exception_frames.filename
-        if isinstance(value, (list, set)) and value:
-            value = value.pop()
-        if value:
-            conditions.append([field, "=", value])
-
-    return conditions
 
 
 # TODO (evanh) This whole function is here because we are using the max value to
@@ -226,7 +148,8 @@ def find_histogram_buckets(field, params, conditions):
 
 def zerofill_histogram(results, column_meta, orderby, sentry_function_alias, snuba_function_alias):
     parts = snuba_function_alias.split("_")
-    if len(parts) < 2:
+    # the histogram alias looks like `histogram_column_numbuckets_bucketsize_bucketoffest`
+    if len(parts) < 5 or parts[0] != "histogram":
         raise Exception(u"{} is not a valid histogram alias".format(snuba_function_alias))
 
     bucket_offset, bucket_size, num_buckets = int(parts[-1]), int(parts[-2]), int(parts[-3])
@@ -323,23 +246,12 @@ def transform_results(result, translated_columns, snuba_filter, selected_columns
     if selected_columns is None:
         selected_columns = []
 
-    # Determine user related fields to prune based on what wasn't selected.
-    user_fields = FIELD_ALIASES["user"]["fields"]
-    user_fields_to_remove = [field for field in user_fields if field not in selected_columns]
-
-    # If the user field was selected update the meta data
-    has_user = selected_columns and "user" in selected_columns
     meta = []
     for col in result["meta"]:
         # Translate back column names that were converted to snuba format
         col["name"] = translated_columns.get(col["name"], col["name"])
         # Remove user fields as they will be replaced by the alias.
-        if has_user and col["name"] in user_fields_to_remove:
-            continue
         meta.append(col)
-    if has_user:
-        meta.append({"name": "user", "type": "Nullable(String)"})
-    result["meta"] = meta
 
     def get_row(row):
         transformed = {}
@@ -348,14 +260,6 @@ def transform_results(result, translated_columns, snuba_filter, selected_columns
                 value = 0
             transformed[translated_columns.get(key, key)] = value
 
-        if has_user:
-            for field in user_fields:
-                if field in transformed and transformed[field]:
-                    transformed["user"] = transformed[field]
-                    break
-            # Remove user component fields once the alias is resolved.
-            for field in user_fields_to_remove:
-                del transformed[field]
         return transformed
 
     if len(translated_columns):
@@ -377,7 +281,7 @@ def transform_results(result, translated_columns, snuba_filter, selected_columns
             for snuba_name, sentry_name in six.iteritems(translated_columns):
                 if sentry_name == col["name"]:
                     with sentry_sdk.start_span(
-                        op="discover.discover", description="transform_results.histogram_zerofill",
+                        op="discover.discover", description="transform_results.histogram_zerofill"
                     ) as span:
                         span.set_data("histogram_function", snuba_name)
                         result["data"] = zerofill_histogram(
@@ -392,54 +296,6 @@ def transform_results(result, translated_columns, snuba_filter, selected_columns
     return result
 
 
-# TODO(evanh) This is only here for backwards compatibilty with old queries using these deprecated
-# aliases. Once we migrate the queries these can go away.
-OLD_FUNCTIONS_TO_NEW = {
-    "p75": "p75()",
-    "p95": "p95()",
-    "p99": "p99()",
-    "last_seen": "last_seen()",
-    "latest_event": "latest_event()",
-    "apdex": "apdex(300)",
-    "impact": "impact(300)",
-    "rpm": "epm()",
-    "rps": "eps()",
-}
-
-
-def transform_deprecated_functions_in_columns(columns):
-    new_list = []
-    translations = {}
-    for column in columns:
-        if column in OLD_FUNCTIONS_TO_NEW:
-            new_column = OLD_FUNCTIONS_TO_NEW[column]
-            translations[get_function_alias(new_column)] = column
-            new_list.append(new_column)
-        elif column.replace("()", "") in OLD_FUNCTIONS_TO_NEW:
-            new_column = OLD_FUNCTIONS_TO_NEW[column.replace("()", "")]
-            translations[get_function_alias(new_column)] = column.replace("()", "")
-            new_list.append(new_column)
-        else:
-            new_list.append(column)
-
-    return new_list, translations
-
-
-def transform_deprecated_functions_in_query(query):
-    if query is None:
-        return query
-
-    for old_function in OLD_FUNCTIONS_TO_NEW:
-        if old_function + "()" in query:
-            replacement = OLD_FUNCTIONS_TO_NEW[old_function]
-            query = query.replace(old_function + "()", replacement)
-        elif old_function + ":" in query:
-            replacement = OLD_FUNCTIONS_TO_NEW[old_function]
-            query = query.replace(old_function, replacement)
-
-    return query
-
-
 def query(
     selected_columns,
     query,
@@ -447,7 +303,6 @@ def query(
     orderby=None,
     offset=None,
     limit=50,
-    reference_event=None,
     referrer=None,
     auto_fields=False,
     use_aggregate_conditions=False,
@@ -469,8 +324,6 @@ def query(
     orderby (None|str|Sequence[str]) The field to order results by.
     offset (None|int) The record offset to read.
     limit (int) The number of records to fetch.
-    reference_event (ReferenceEvent) A reference event object. Used to generate additional
-                    conditions based on the provided reference.
     referrer (str|None) A referrer string to help locate the origin of this query.
     auto_fields (bool) Set to true to have project + eventid fields automatically added.
     conditions (Sequence[any]) List of conditions that are passed directly to snuba without
@@ -478,17 +331,14 @@ def query(
     """
     if not selected_columns:
         raise InvalidSearchQuery("No columns selected")
+    else:
+        # We clobber this value throughout this code, so copy the value
+        selected_columns = selected_columns[:]
 
     with sentry_sdk.start_span(
         op="discover.discover", description="query.filter_transform"
     ) as span:
         span.set_data("query", query)
-        # TODO(evanh): These can be removed once we migrate the frontend / saved queries
-        # to use the new function values
-        selected_columns, function_translations = transform_deprecated_functions_in_columns(
-            selected_columns
-        )
-        query = transform_deprecated_functions_in_query(query)
 
         snuba_filter = get_filter(query, params)
         if not use_aggregate_conditions:
@@ -498,6 +348,7 @@ def query(
     # Do that here, and format the bucket number in to the columns before passing it through
     # to event search.
     idx = 0
+    function_translations = {}
     for col in selected_columns:
         if col.startswith("histogram("):
             with sentry_sdk.start_span(
@@ -506,40 +357,32 @@ def query(
                 span.set_data("histogram", col)
                 histogram_column = find_histogram_buckets(col, params, snuba_filter.conditions)
                 selected_columns[idx] = histogram_column
-                function_translations[get_function_alias(histogram_column)] = get_function_alias(
-                    col
-                )
+                snuba_name = get_function_alias(histogram_column)
+                sentry_name = get_function_alias(col)
+                function_translations[snuba_name] = sentry_name
+                # Since we're completely renaming the histogram function, we need to also check if we are
+                # ordering by the histogram values, and change that.
+                if orderby is not None:
+                    orderby = list(orderby) if isinstance(orderby, (list, tuple)) else [orderby]
+                    for i, ordering in enumerate(orderby):
+                        if sentry_name == ordering.lstrip("-"):
+                            ordering = "{}{}".format(
+                                "-" if ordering.startswith("-") else "", snuba_name
+                            )
+                            orderby[i] = ordering
 
             break
 
         idx += 1
 
     with sentry_sdk.start_span(op="discover.discover", description="query.field_translations"):
-        # Check to see if we are ordering by any functions and convert the orderby to be the correct alias.
-        if orderby:
-            orderby = orderby if isinstance(orderby, (list, tuple)) else [orderby]
-            new_orderby = []
-            for ordering in orderby:
-                is_reversed = ordering.startswith("-")
-                ordering = ordering.lstrip("-")
-                for snuba_name, sentry_name in six.iteritems(function_translations):
-                    if sentry_name == ordering:
-                        ordering = snuba_name
-                        break
-
-                ordering = "{}{}".format("-" if is_reversed else "", ordering)
-                new_orderby.append(ordering)
-
-            snuba_filter.orderby = new_orderby
+        if orderby is not None:
+            orderby = list(orderby) if isinstance(orderby, (list, tuple)) else [orderby]
+            snuba_filter.orderby = [get_function_alias(o) for o in orderby]
 
         snuba_filter.update_with(
             resolve_field_list(selected_columns, snuba_filter, auto_fields=auto_fields)
         )
-
-        if reference_event:
-            ref_conditions = create_reference_event_conditions(reference_event)
-            if ref_conditions:
-                snuba_filter.conditions.extend(ref_conditions)
 
         # Resolve the public aliases into the discover dataset names.
         snuba_filter, translated_columns = resolve_discover_aliases(
@@ -548,15 +391,41 @@ def query(
 
         # Make sure that any aggregate conditions are also in the selected columns
         for having_clause in snuba_filter.having:
-            found = any(
-                having_clause[0] == agg_clause[-1] for agg_clause in snuba_filter.aggregations
-            )
-            if not found:
-                raise InvalidSearchQuery(
-                    u"Aggregate {} used in a condition but is not a selected column.".format(
-                        having_clause[0]
+            # The first element of the having can be an alias, or a nested array of functions. Loop through to make sure
+            # any referenced functions are in the aggregations.
+            if isinstance(having_clause[0], (list, tuple)):
+                # Functions are of the form [fn, [args]]
+                args_to_check = [[having_clause[0]]]
+                conditions_not_in_aggregations = []
+                while len(args_to_check) > 0:
+                    args = args_to_check.pop()
+                    for arg in args:
+                        if arg[0] in [SNUBA_AND, SNUBA_OR]:
+                            args_to_check.extend(arg[1])
+                        else:
+                            alias = arg[1][0]
+                            found = any(
+                                alias == agg_clause[-1] for agg_clause in snuba_filter.aggregations
+                            )
+                            if not found:
+                                conditions_not_in_aggregations.append(alias)
+
+                if len(conditions_not_in_aggregations) > 0:
+                    raise InvalidSearchQuery(
+                        u"Aggregate(s) {} used in a condition but are not in the selected columns.".format(
+                            ", ".join(conditions_not_in_aggregations)
+                        )
                     )
+            else:
+                found = any(
+                    having_clause[0] == agg_clause[-1] for agg_clause in snuba_filter.aggregations
                 )
+                if not found:
+                    raise InvalidSearchQuery(
+                        u"Aggregate {} used in a condition but is not a selected column.".format(
+                            having_clause[0]
+                        )
+                    )
 
         if conditions is not None:
             snuba_filter.conditions.extend(conditions)
@@ -630,21 +499,12 @@ def key_transaction_query(selected_columns, user_query, params, orderby, referre
     )
 
 
-def get_timeseries_snuba_filter(selected_columns, query, params, rollup, reference_event=None):
-    # TODO(evanh): These can be removed once we migrate the frontend / saved queries
-    # to use the new function values
-    selected_columns, _ = transform_deprecated_functions_in_columns(selected_columns)
-    query = transform_deprecated_functions_in_query(query)
-
+def get_timeseries_snuba_filter(selected_columns, query, params, rollup, default_count=True):
     snuba_filter = get_filter(query, params)
     if not snuba_filter.start and not snuba_filter.end:
         raise InvalidSearchQuery("Cannot get timeseries result without a start and end.")
 
     snuba_filter.update_with(resolve_field_list(selected_columns, snuba_filter, auto_fields=False))
-    if reference_event:
-        ref_conditions = create_reference_event_conditions(reference_event)
-        if ref_conditions:
-            snuba_filter.conditions.extend(ref_conditions)
 
     # Resolve the public aliases into the discover dataset names.
     snuba_filter, translated_columns = resolve_discover_aliases(snuba_filter)
@@ -653,7 +513,7 @@ def get_timeseries_snuba_filter(selected_columns, query, params, rollup, referen
 
     # Change the alias of the first aggregation to count. This ensures compatibility
     # with other parts of the timeseries endpoint expectations
-    if len(snuba_filter.aggregations) == 1:
+    if len(snuba_filter.aggregations) == 1 and default_count:
         snuba_filter.aggregations[0][2] = "count"
 
     return snuba_filter, translated_columns
@@ -707,7 +567,7 @@ def key_transaction_timeseries_query(selected_columns, query, params, rollup, re
         return SnubaTSResult({"data": result}, snuba_filter.start, snuba_filter.end, rollup)
 
 
-def timeseries_query(selected_columns, query, params, rollup, reference_event=None, referrer=None):
+def timeseries_query(selected_columns, query, params, rollup, referrer=None):
     """
     High-level API for doing arbitrary user timeseries queries against events.
 
@@ -725,17 +585,13 @@ def timeseries_query(selected_columns, query, params, rollup, reference_event=No
     query (str) Filter query string to create conditions from.
     params (Dict[str, str]) Filtering parameters with start, end, project_id, environment,
     rollup (int) The bucket width in seconds
-    reference_event (ReferenceEvent) A reference event object. Used to generate additional
-                    conditions based on the provided reference.
     referrer (str|None) A referrer string to help locate the origin of this query.
     """
     with sentry_sdk.start_span(
         op="discover.discover", description="timeseries.filter_transform"
     ) as span:
         span.set_data("query", query)
-        snuba_filter, _ = get_timeseries_snuba_filter(
-            selected_columns, query, params, rollup, reference_event
-        )
+        snuba_filter, _ = get_timeseries_snuba_filter(selected_columns, query, params, rollup)
 
     with sentry_sdk.start_span(op="discover.discover", description="timeseries.snuba_query"):
         result = raw_query(
@@ -787,6 +643,7 @@ def top_events_timeseries(
     limit,
     organization,
     referrer=None,
+    top_events=None,
 ):
     """
     High-level API for doing arbitrary user timeseries queries for a limited number of top events
@@ -807,26 +664,30 @@ def top_events_timeseries(
     organization (Organization) Used to map group ids to short ids
     referrer (str|None) A referrer string to help locate the origin of this query.
     """
-    with sentry_sdk.start_span(op="discover.discover", description="top_events.fetch_events"):
-        top_events = query(
-            selected_columns,
-            query=user_query,
-            params=params,
-            orderby=orderby,
-            limit=limit,
-            referrer=referrer,
-            use_aggregate_conditions=True,
-        )
+    if top_events is None:
+        with sentry_sdk.start_span(op="discover.discover", description="top_events.fetch_events"):
+            top_events = query(
+                selected_columns,
+                query=user_query,
+                params=params,
+                orderby=orderby,
+                limit=limit,
+                referrer=referrer,
+                use_aggregate_conditions=True,
+            )
 
     with sentry_sdk.start_span(
         op="discover.discover", description="top_events.filter_transform"
     ) as span:
         span.set_data("query", user_query)
         snuba_filter, translated_columns = get_timeseries_snuba_filter(
-            timeseries_columns + selected_columns, user_query, params, rollup
+            list(set(timeseries_columns + selected_columns)),
+            user_query,
+            params,
+            rollup,
+            default_count=False,
         )
 
-        user_fields = FIELD_ALIASES["user"]["fields"]
         for field in selected_columns:
             # project is handled by filter_keys already
             if field in ["project", "project.id"]:
@@ -845,14 +706,6 @@ def top_events_timeseries(
                 # timestamp needs special handling, creating a big OR instead
                 if field == "timestamp":
                     snuba_filter.conditions.append([["timestamp", "=", value] for value in values])
-                # A user field can be any of its field aliases, do an OR across all the user fields
-                elif field == "user":
-                    snuba_filter.conditions.append(
-                        [
-                            [resolve_discover_column(user_field), "IN", values]
-                            for user_field in user_fields
-                        ]
-                    )
                 elif None in values:
                     non_none_values = [value for value in values if value is not None]
                     condition = [[["isNull", [resolve_discover_column(field)]], "=", 1]]
@@ -889,12 +742,6 @@ def top_events_timeseries(
             translated_columns.get(groupby, groupby) for groupby in snuba_filter.groupby
         ]
 
-        if "user" in selected_columns:
-            # Determine user related fields to prune based on what wasn't selected, since transform_results does the same
-            for field in user_fields:
-                if field not in selected_columns:
-                    translated_groupby.remove(field)
-            translated_groupby.append("user")
         issues = {}
         if "issue" in selected_columns:
             issues = Group.issues_mapping(
@@ -909,10 +756,7 @@ def top_events_timeseries(
         # Using the top events add the order to the results
         for index, item in enumerate(top_events["data"]):
             result_key = create_result_key(item, translated_groupby, issues)
-            results[result_key] = {
-                "order": index,
-                "data": [],
-            }
+            results[result_key] = {"order": index, "data": []}
         for row in result["data"]:
             result_key = create_result_key(row, translated_groupby, issues)
             if result_key in results:
@@ -920,7 +764,7 @@ def top_events_timeseries(
             else:
                 logger.warning(
                     "discover.top-events.timeseries.key-mismatch",
-                    extra={"result_key": result_key, "top_event_keys": results.keys()},
+                    extra={"result_key": result_key, "top_event_keys": list(results.keys())},
                 )
         for key, item in six.iteritems(results):
             results[key] = SnubaTSResult(
@@ -943,65 +787,6 @@ def get_id(result):
         return result[1]
 
 
-def get_pagination_ids(event, query, params, organization, reference_event=None, referrer=None):
-    """
-    High-level API for getting pagination data for an event + filter
-
-    The provided event is used as a reference event to find events
-    that are older and newer than the current one.
-
-    event (Event) The event to find related events for.
-    query (str) Filter query string to create conditions from.
-    params (Dict[str, str]) Filtering parameters with start, end, project_id, environment,
-    reference_event (ReferenceEvent) A reference event object. Used to generate additional
-                                    conditions based on the provided reference.
-    referrer (str|None) A referrer string to help locate the origin of this query.
-    """
-    # TODO(evanh): This can be removed once we migrate the frontend / saved queries
-    # to use the new function values
-    query = transform_deprecated_functions_in_query(query)
-
-    snuba_filter = get_filter(query, params)
-
-    if reference_event:
-        ref_conditions = create_reference_event_conditions(reference_event)
-        if ref_conditions:
-            snuba_filter.conditions.extend(ref_conditions)
-
-    result = {
-        "next": eventstore.get_next_event_id(event, filter=snuba_filter),
-        "previous": eventstore.get_prev_event_id(event, filter=snuba_filter),
-        "latest": eventstore.get_latest_event_id(event, filter=snuba_filter),
-        "oldest": eventstore.get_earliest_event_id(event, filter=snuba_filter),
-    }
-
-    # translate project ids to slugs
-
-    project_ids = set([tuple[0] for tuple in result.values() if tuple])
-
-    project_slugs = {}
-    projects = Project.objects.filter(
-        id__in=list(project_ids), organization=organization, status=ProjectStatus.VISIBLE
-    ).values("id", "slug")
-
-    for project in projects:
-        project_slugs[project["id"]] = project["slug"]
-
-    def into_pagination_record(project_slug_event_id):
-
-        if not project_slug_event_id:
-            return None
-
-        project_id = int(project_slug_event_id[0])
-
-        return "{}:{}".format(project_slugs[project_id], project_slug_event_id[1])
-
-    for key, value in result.items():
-        result[key] = into_pagination_record(value)
-
-    return PaginationResult(**result)
-
-
 def get_facets(query, params, limit=10, referrer=None):
     """
     High-level API for getting 'facet map' results.
@@ -1021,10 +806,6 @@ def get_facets(query, params, limit=10, referrer=None):
         op="discover.discover", description="facets.filter_transform"
     ) as span:
         span.set_data("query", query)
-        # TODO(evanh): This can be removed once we migrate the frontend / saved queries
-        # to use the new function values
-        query = transform_deprecated_functions_in_query(query)
-
         snuba_filter = get_filter(query, params)
 
         # Resolve the public aliases into the discover dataset names.
@@ -1061,7 +842,8 @@ def get_facets(query, params, limit=10, referrer=None):
     # sentry.options. To test the lowest acceptable sampling rate, we use 0.1 which
     # is equivalent to turbo. We don't use turbo though as we need to re-scale data, and
     # using turbo could cause results to be wrong if the value of turbo is changed in snuba.
-    sample_rate = 0.1 if key_names["data"][0]["count"] > 10000 else None
+    sampling_enabled = options.get("discover2.tags_facet_enable_sampling")
+    sample_rate = 0.1 if (sampling_enabled and key_names["data"][0]["count"] > 10000) else None
     # Rescale the results if we're sampling
     multiplier = 1 / sample_rate if sample_rate is not None else 1
 
@@ -1163,5 +945,274 @@ def get_facets(query, params, limit=10, referrer=None):
                     for r in tag_values["data"]
                 ]
             )
+
+    return results
+
+
+HistogramParams = namedtuple("HistogramParams", ["bucket_size", "start_offset", "multiplier"])
+
+
+def measurements_histogram_query(
+    measurements,
+    user_query,
+    params,
+    num_buckets,
+    precision=0,
+    min_value=None,
+    max_value=None,
+    data_filter=None,
+    referrer=None,
+):
+    """
+    API for generating histograms specifically for measurements.
+
+    This function allows you to generate histograms for multiple measurements
+    at once. The resulting histograms will have their bins aligned.
+
+    :param [str] measurements: The list of measurements for which you want to
+        generate histograms for.
+    :param str user_query: Filter query string to create conditions from.
+    :param {str: str} params: Filtering parameters with start, end, project_id, environment
+    :param int num_buckets: The number of buckets the histogram should contain.
+    :param int precision: The number of decimal places to preserve, default 0.
+    :param float min_value: The minimum value allowed to be in the histogram.
+        If left unspecified, it is queried using `user_query` and `params`.
+    :param float max_value: The maximum value allowed to be in the histogram.
+        If left unspecified, it is queried using `user_query` and `params`.
+    :param str data_filter: Indicate the filter strategy to be applied to the data.
+    """
+
+    multiplier = int(10 ** precision)
+    if max_value is not None:
+        # We want the specified max_value to be exclusive, and the queried max_value
+        # to be inclusive. So we adjust the specified max_value using the multiplier.
+        max_value -= 0.1 / multiplier
+    min_value, max_value = find_measurements_min_max(
+        measurements, min_value, max_value, user_query, params, data_filter
+    )
+
+    key_col = "array_join(measurements_key)"
+    histogram_params = find_measurements_histogram_params(
+        num_buckets, min_value, max_value, multiplier
+    )
+    histogram_col = get_measurements_histogram_col(histogram_params)
+
+    conditions = [[get_function_alias(key_col), "IN", measurements]]
+
+    # make sure to bound the bins as to not get too many results
+    if min_value is not None:
+        min_bin = histogram_params.start_offset
+        conditions.append([get_function_alias(histogram_col), ">=", min_bin])
+    if max_value is not None:
+        max_bin = histogram_params.start_offset + histogram_params.bucket_size * num_buckets
+        conditions.append([get_function_alias(histogram_col), "<=", max_bin])
+
+    results = query(
+        selected_columns=[key_col, histogram_col, "count()"],
+        conditions=conditions,
+        query=user_query,
+        params=params,
+        # the zerofill step assumes it is ordered by the bin then name
+        orderby=[get_function_alias(histogram_col), get_function_alias(key_col)],
+        limit=len(measurements) * num_buckets,
+        referrer=referrer,
+        auto_fields=True,
+        use_aggregate_conditions=True,
+    )
+
+    return normalize_measurements_histogram(
+        measurements, num_buckets, key_col, histogram_params, results
+    )
+
+
+def get_measurements_histogram_col(params):
+    return u"measurements_histogram({:d}, {:d}, {:d})".format(*params)
+
+
+def find_measurements_histogram_params(num_buckets, min_value, max_value, multiplier):
+    """
+    Compute the parameters to use for measurements histogram. Using the provided
+    arguments, ensure that the generated histogram encapsolates the desired range.
+
+    :param int num_buckets: The number of buckets the histogram should contain.
+    :param float min_value: The minimum value allowed to be in the histogram inclusive.
+    :param float max_value: The maximum value allowed to be in the histogram inclusive.
+    :param int multipler: The multiplier we should use to preserve the desired precision.
+    """
+
+    # finding the bounds might result in None if there isn't sufficient data
+    if min_value is None or max_value is None:
+        return HistogramParams(1, 0, multiplier)
+
+    scaled_min = multiplier * min_value
+    scaled_max = multiplier * max_value
+
+    # align the first bin with the minimum value
+    start_offset = int(floor(scaled_min))
+
+    bucket_size = int(ceil((scaled_max - scaled_min) / float(num_buckets)))
+
+    if bucket_size == 0:
+        bucket_size = 1
+
+    # Sometimes the max value lies on the bucket boundary, and since the end
+    # of the bucket is exclusive, it gets excluded. To account for that, we
+    # increase the width of the buckets to cover the max value.
+    if start_offset + num_buckets * bucket_size <= scaled_max:
+        bucket_size += 1
+
+    return HistogramParams(bucket_size, start_offset, multiplier)
+
+
+def find_measurements_min_max(
+    measurements, min_value, max_value, user_query, params, data_filter=None
+):
+    """
+    Find the min/max value of the specified measurements. If either min/max is already
+    specified, it will be used and not queried for.
+
+    :param [str] measurements: The list of measurements for which you want to
+        generate the histograms for.
+    :param float min_value: The minimum value allowed to be in the histogram.
+        If left unspecified, it is queried using `user_query` and `params`.
+    :param float max_value: The maximum value allowed to be in the histogram.
+        If left unspecified, it is queried using `user_query` and `params`.
+    :param str user_query: Filter query string to create conditions from.
+    :param {str: str} params: Filtering parameters with start, end, project_id, environment
+    :param str data_filter: Indicate the filter strategy to be applied to the data.
+    """
+
+    if min_value is not None and max_value is not None:
+        return min_value, max_value
+
+    min_columns, max_columns = [], []
+    for measurement in measurements:
+        if min_value is None:
+            min_columns.append("min(measurements.{})".format(measurement))
+        if max_value is None:
+            max_columns.append("max(measurements.{})".format(measurement))
+        if data_filter == "exclude_outliers":
+            max_columns.append("percentile(measurements.{}, 0.25)".format(measurement))
+            max_columns.append("percentile(measurements.{}, 0.75)".format(measurement))
+
+    results = query(
+        selected_columns=min_columns + max_columns,
+        query=user_query,
+        params=params,
+        limit=1,
+        referrer="api.organization-events-measurements-min-max",
+        auto_fields=True,
+        use_aggregate_conditions=True,
+    )
+
+    data = results.get("data")
+
+    # there should be exactly 1 row in the results, but if something went wrong here,
+    # we force the min/max to be None to coerce an empty histogram
+    if data is None or len(data) != 1:
+        return None, None
+
+    row = data[0]
+
+    if min_value is None:
+        min_values = [row[get_function_alias(column)] for column in min_columns]
+        min_values = list(filter(lambda v: v is not None, min_values))
+        min_value = min(min_values) if min_values else None
+
+    if max_value is None:
+        max_values = [
+            row[get_function_alias("max(measurements.{})".format(measurement))]
+            for measurement in measurements
+        ]
+        max_values = list(filter(lambda v: v is not None, max_values))
+        max_value = max(max_values) if max_values else None
+
+        fences = []
+        if data_filter == "exclude_outliers":
+            for measurement in measurements:
+                # also known as the first quartile
+                p25_column = get_function_alias(
+                    "percentile(measurements.{}, 0.25)".format(measurement)
+                )
+                # also known as the third quartile
+                p75_column = get_function_alias(
+                    "percentile(measurements.{}, 0.75)".format(measurement)
+                )
+
+                first_quartile = row[p25_column]
+                third_quartile = row[p75_column]
+
+                if first_quartile is not None and third_quartile is not None:
+                    interquartile_range = abs(third_quartile - first_quartile)
+
+                    upper_outer_fence = third_quartile + 3 * interquartile_range
+                    fences.append(upper_outer_fence)
+
+        max_fence_value = max(fences) if fences else None
+
+        candidates = [max_fence_value, max_value]
+        candidates = list(filter(lambda v: v is not None, candidates))
+        max_value = min(candidates) if candidates else None
+
+    return min_value, max_value
+
+
+def normalize_measurements_histogram(measurements, num_buckets, key_col, histogram_params, results):
+    """
+    Normalizes the histogram results by renaming the columns to key and bin
+    and make sure to zerofill any missing values.
+
+    :param [str] measurements: The list of measurements for which you want to
+        generate the histograms for.
+    :param int num_buckets: The number of buckets the histogram should contain.
+    :param str key_col: The column of the key name.
+    :param HistogramParms histogram_params: The histogram parameters used.
+    :param any results: The results from the histogram query that may be missing
+        bins and needs to be normalized.
+    """
+
+    measurements = sorted(measurements)
+    key_name = get_function_alias(key_col)
+    bin_name = get_function_alias(get_measurements_histogram_col(histogram_params))
+
+    # adjust the meta for the renamed columns
+    meta = results["meta"]
+    new_meta = []
+
+    meta_map = {key_name: "key", bin_name: "bin"}
+    for col in meta:
+        new_meta.append({"type": col["type"], "name": meta_map.get(col["name"], col["name"])})
+
+    results["meta"] = new_meta
+
+    # zerofill and rename the columns while making sure to adjust for precision
+    data = results["data"]
+    new_data = []
+
+    bucket_maps = {m: {} for m in measurements}
+    for row in data:
+        measurement = row[key_name]
+        # we expect the bin the be an integer, this is because all floating
+        # point values are rounded during the calculation
+        bucket = int(row[bin_name])
+        # ignore unexpected measurements
+        if measurement in bucket_maps:
+            bucket_maps[measurement][bucket] = row["count"]
+
+    for i in range(num_buckets):
+        bucket = histogram_params.start_offset + histogram_params.bucket_size * i
+        for measurement in measurements:
+            # we want to rename the columns here
+            row = {
+                "key": measurement,
+                "bin": bucket,
+                "count": bucket_maps[measurement].get(bucket, 0),
+            }
+            # make sure to adjust for the precision if necessary
+            if histogram_params.multiplier > 1:
+                row["bin"] /= float(histogram_params.multiplier)
+            new_data.append(row)
+
+    results["data"] = new_data
 
     return results

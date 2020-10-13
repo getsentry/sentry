@@ -192,10 +192,9 @@ class QueryList extends React.Component<Props> {
           dateStatus={dateStatus}
           onEventClick={() => {
             trackAnalyticsEvent({
-              eventKey: 'discover_v2.prebuilt_query_click',
-              eventName: 'Discoverv2: Click a pre-built query',
+              eventKey: 'discover_v2.saved_query_click',
+              eventName: 'Discoverv2: Click a saved query',
               organization_id: parseInt(this.props.organization.id, 10),
-              query_name: eventView.name,
             });
           }}
           renderGraph={() => (
@@ -231,12 +230,12 @@ class QueryList extends React.Component<Props> {
     return (
       <React.Fragment>
         <QueryGrid>{this.renderQueries()}</QueryGrid>
-        <Pagination
+        <PaginationRow
           pageLinks={pageLinks}
           onCursor={(cursor: string, path: string, query: Query, direction: number) => {
             const offset = Number(cursor.split(':')[1]);
 
-            const newQuery = {...query, cursor};
+            const newQuery: Query & {cursor?: string} = {...query, cursor};
             const isPrevious = direction === -1;
 
             if (offset <= 0 && isPrevious) {
@@ -253,6 +252,10 @@ class QueryList extends React.Component<Props> {
     );
   }
 }
+
+const PaginationRow = styled(Pagination)`
+  margin-bottom: 20px;
+`;
 
 const QueryGrid = styled('div')`
   display: grid;

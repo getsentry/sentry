@@ -85,15 +85,9 @@ def run():
 @click.option(
     "--noinput", default=False, is_flag=True, help="Do not prompt the user for input of any kind."
 )
-@click.option(
-    "--uwsgi/--no-uwsgi",
-    default=True,
-    is_flag=True,
-    help="Use uWSGI (default) or non-uWSGI (useful for debuggers such as PyCharm's)",
-)
 @log_options()
 @configuration
-def web(bind, workers, upgrade, with_lock, noinput, uwsgi):
+def web(bind, workers, upgrade, with_lock, noinput):
     "Run web service."
     if upgrade:
         click.echo("Performing upgrade before service startup...")
@@ -113,28 +107,9 @@ def web(bind, workers, upgrade, with_lock, noinput, uwsgi):
                 raise
 
     with managed_bgtasks(role="web"):
-        if not uwsgi:
-            click.echo(
-                "Running simple HTTP server. Note that chunked file "
-                "uploads will likely not work.",
-                err=True,
-            )
+        from sentry.services.http import SentryHTTPServer
 
-            from django.conf import settings
-
-            host = bind[0] or settings.SENTRY_WEB_HOST
-            port = bind[1] or settings.SENTRY_WEB_PORT
-            click.echo("Address: http://%s:%s/" % (host, port))
-
-            from wsgiref.simple_server import make_server
-            from sentry.wsgi import application
-
-            httpd = make_server(host, port, application)
-            httpd.serve_forever()
-        else:
-            from sentry.services.http import SentryHTTPServer
-
-            SentryHTTPServer(host=bind[0], port=bind[1], workers=workers).run()
+        SentryHTTPServer(host=bind[0], port=bind[1], workers=workers).run()
 
 
 @run.command()
@@ -232,7 +207,7 @@ def worker(**options):
         except AttributeError:
             # `worker.exitcode` was added in a newer version of Celery:
             # https://github.com/celery/celery/commit/dc28e8a5
-            # so this is an attempt to be forwards compatible
+            # so this is an attempt to be forward compatible
             pass
 
 
@@ -430,8 +405,8 @@ def batching_kafka_options(group):
 @click.option(
     "--concurrency",
     type=int,
-    default=1,
-    help="Spawn this many threads to process messages. Defaults to 1.",
+    default=None,
+    help="(Deprecated) Ingest consumers no longer use multiple processing threads.",
 )
 @configuration
 def ingest_consumer(consumer_types, all_consumer_types, **options):
@@ -454,6 +429,10 @@ def ingest_consumer(consumer_types, all_consumer_types, **options):
 
     if not all_consumer_types and not consumer_types:
         raise click.ClickException("Need to specify --all-consumer-types or --consumer-type")
+
+    concurrency = options.pop("concurrency", None)
+    if concurrency is not None:
+        click.echo("Warning: `concurrency` argument is deprecated and will be removed.", err=True)
 
     with metrics.global_tags(
         ingest_consumer_types=",".join(sorted(consumer_types)), _all_threads=True

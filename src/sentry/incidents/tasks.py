@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import logging
+
 from django.db import transaction
 from django.core.urlresolvers import reverse
 from django.utils import timezone
@@ -10,6 +12,7 @@ from sentry.incidents.models import (
     AlertRuleTriggerAction,
     AlertRuleStatus,
     Incident,
+    IncidentProject,
     PendingIncidentSnapshot,
     IncidentSnapshot,
     IncidentActivity,
@@ -24,6 +27,8 @@ from sentry.tasks.base import instrumented_task
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
 from sentry.utils import metrics
+
+logger = logging.getLogger(__name__)
 
 INCIDENTS_SNUBA_SUBSCRIPTION_TYPE = "incidents"
 
@@ -110,6 +115,7 @@ def handle_snuba_query_update(subscription_update, subscription):
     """
     from sentry.incidents.subscription_processor import SubscriptionProcessor
 
+    # noinspection SpellCheckingInspection
     with metrics.timer("incidents.subscription_procesor.process_update"):
         SubscriptionProcessor(subscription).process_update(subscription_update)
 
@@ -213,10 +219,14 @@ def process_pending_incident_snapshots():
             process_pending_incident_snapshots.apply_async(countdown=1)
             break
         else:
-            with transaction.atomic():
-                if (
-                    incident.status == IncidentStatus.CLOSED.value
-                    and not IncidentSnapshot.objects.filter(incident=incident).exists()
-                ):
-                    create_incident_snapshot(incident, windowed_stats=True)
-                pending_snapshot.delete()
+            try:
+                with transaction.atomic():
+                    if (
+                        incident.status == IncidentStatus.CLOSED.value
+                        and not IncidentSnapshot.objects.filter(incident=incident).exists()
+                    ):
+                        if IncidentProject.objects.filter(incident=incident).exists():
+                            create_incident_snapshot(incident, windowed_stats=True)
+                    pending_snapshot.delete()
+            except Exception:
+                logger.exception("An error occurred while taking an incident snapshot")

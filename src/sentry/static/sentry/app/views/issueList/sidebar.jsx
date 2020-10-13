@@ -4,8 +4,10 @@ import createReactClass from 'create-react-class';
 import isEqual from 'lodash/isEqual';
 import debounce from 'lodash/debounce';
 import map from 'lodash/map';
+import styled from '@emotion/styled';
 
 import LoadingIndicator from 'app/components/loadingIndicator';
+import {IconClose} from 'app/icons/iconClose';
 import {queryToObj, objToQuery} from 'app/utils/stream';
 import {t} from 'app/locale';
 
@@ -30,7 +32,7 @@ const IssueListSidebar = createReactClass({
     return {
       tags: {},
       query: '',
-      onQueryChange: function() {},
+      onQueryChange: function () {},
     };
   },
 
@@ -72,11 +74,11 @@ const IssueListSidebar = createReactClass({
     );
   },
 
-  onTextChange: function(evt) {
+  onTextChange: function (evt) {
     this.setState({textFilter: evt.target.value});
   },
 
-  debouncedTextChange: debounce(function(text) {
+  debouncedTextChange: debounce(function (text) {
     this.setState(
       {
         queryObj: {...this.state.queryObj, __text: text},
@@ -133,9 +135,7 @@ const IssueListSidebar = createReactClass({
                   value={this.state.textFilter}
                 />
                 {this.state.textFilter && (
-                  <a className="search-clear-form" onClick={this.onClearSearch}>
-                    <span className="icon-circle-cross" />
-                  </a>
+                  <StyledIconClose size="xs" onClick={this.onClearSearch} />
                 )}
               </form>
               <hr />
@@ -157,5 +157,17 @@ const IssueListSidebar = createReactClass({
     );
   },
 });
+
+const StyledIconClose = styled(IconClose)`
+  cursor: pointer;
+  position: absolute;
+  top: 13px;
+  right: 10px;
+  color: ${p => p.theme.gray400};
+
+  &:hover {
+    color: ${p => p.theme.gray500};
+  }
+`;
 
 export default IssueListSidebar;

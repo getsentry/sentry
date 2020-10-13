@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import {Project} from 'app/types';
 import {PageContent} from 'app/styles/organization';
-import {toTitleCase, defined} from 'app/utils';
+import {defined} from 'app/utils';
 import {t, tct} from 'app/locale';
 import Alert from 'app/components/alert';
 import Duration from 'app/components/duration';
@@ -20,7 +20,7 @@ import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 import {Panel, PanelBody, PanelFooter} from 'app/components/panels';
 import Button from 'app/components/button';
-import {AlertRuleThresholdType, Trigger} from 'app/views/settings/incidentRules/types';
+import {AlertRuleThresholdType} from 'app/views/settings/incidentRules/types';
 import {makeDefaultCta} from 'app/views/settings/incidentRules/presets';
 import {DATASET_EVENT_TYPE_FILTERS} from 'app/views/settings/incidentRules/constants';
 
@@ -33,7 +33,7 @@ import {
   IncidentStatus,
   IncidentStatusMethod,
 } from '../types';
-import {getIncidentMetricPreset} from '../utils';
+import {getIncidentMetricPreset, DATA_SOURCE_LABELS} from '../utils';
 
 type Props = {
   incident?: Incident;
@@ -50,18 +50,18 @@ export default class DetailsBody extends React.Component<Props> {
    * Return a string describing the threshold based on the threshold and the type
    */
   getThresholdText(
-    trigger: Trigger | undefined,
-    key: 'alertThreshold' | 'resolveThreshold'
+    value: number | '' | null | undefined,
+    thresholdType: AlertRuleThresholdType,
+    isAlert: boolean = false
   ) {
-    if (!trigger || typeof trigger[key] !== 'number') {
+    if (!defined(value)) {
       return '';
     }
 
-    const isAbove = trigger.thresholdType === AlertRuleThresholdType.ABOVE;
-    const isAlert = key === 'alertThreshold';
+    const isAbove = thresholdType === AlertRuleThresholdType.ABOVE;
     const direction = isAbove === isAlert ? '>' : '<';
 
-    return `${direction} ${trigger[key]}`;
+    return `${direction} ${value}`;
   }
 
   renderRuleDetails() {
@@ -81,7 +81,7 @@ export default class DetailsBody extends React.Component<Props> {
     return (
       <RuleDetails>
         <span>{t('Data Source')}</span>
-        <span>{t(toTitleCase(incident.alertRule?.dataset))}</span>
+        <span>{DATA_SOURCE_LABELS[incident.alertRule?.dataset]}</span>
 
         <span>{t('Metric')}</span>
         <span>{incident.alertRule?.aggregate}</span>
@@ -99,26 +99,36 @@ export default class DetailsBody extends React.Component<Props> {
         )}
 
         <span>{t('Critical Trigger')}</span>
-        <span>{this.getThresholdText(criticalTrigger, 'alertThreshold')}</span>
-
-        {defined(criticalTrigger?.resolveThreshold) && (
-          <React.Fragment>
-            <span>{t('Critical Resolution')}</span>
-            <span>{this.getThresholdText(criticalTrigger, 'resolveThreshold')}</span>
-          </React.Fragment>
-        )}
+        <span>
+          {this.getThresholdText(
+            criticalTrigger?.alertThreshold,
+            incident.alertRule?.thresholdType,
+            true
+          )}
+        </span>
 
         {defined(warningTrigger) && (
           <React.Fragment>
             <span>{t('Warning Trigger')}</span>
-            <span>{this.getThresholdText(warningTrigger, 'alertThreshold')}</span>
+            <span>
+              {this.getThresholdText(
+                warningTrigger?.alertThreshold,
+                incident.alertRule?.thresholdType,
+                true
+              )}
+            </span>
+          </React.Fragment>
+        )}
 
-            {defined(warningTrigger?.resolveThreshold) && (
-              <React.Fragment>
-                <span>{t('Warning Resolution')}</span>
-                <span>{this.getThresholdText(warningTrigger, 'resolveThreshold')}</span>
-              </React.Fragment>
-            )}
+        {defined(incident.alertRule?.resolveThreshold) && (
+          <React.Fragment>
+            <span>{t('Resolution')}</span>
+            <span>
+              {this.getThresholdText(
+                incident.alertRule?.resolveThreshold,
+                incident.alertRule?.thresholdType
+              )}
+            </span>
           </React.Fragment>
         )}
       </RuleDetails>
@@ -221,9 +231,10 @@ export default class DetailsBody extends React.Component<Props> {
                 {incident && stats ? (
                   <Chart
                     triggers={incident.alertRule.triggers}
+                    resolveThreshold={incident.alertRule.resolveThreshold}
                     aggregate={incident.alertRule.aggregate}
                     data={stats.eventStats.data}
-                    detected={incident.dateDetected}
+                    started={incident.dateStarted}
                     closed={incident.dateClosed || undefined}
                   />
                 ) : (
@@ -261,9 +272,14 @@ export default class DetailsBody extends React.Component<Props> {
                 <span>{t('Alert Rule')}</span>
                 {incident?.alertRule?.status !== AlertRuleStatus.SNAPSHOT && (
                   <SideHeaderLink
-                    to={{
-                      pathname: `/settings/${params.orgId}/projects/${incident?.projects[0]}/alerts/metric-rules/${incident?.alertRule?.id}/`,
-                    }}
+                    disabled={!!incident?.id}
+                    to={
+                      incident?.id
+                        ? {
+                            pathname: `/organizations/${params.orgId}/alerts/metric-rules/${incident?.projects[0]}/${incident?.alertRule?.id}/`,
+                          }
+                        : ''
+                    }
                   >
                     {t('View Alert Rule')}
                   </SideHeaderLink>
@@ -319,10 +335,6 @@ const SidebarHeading = styled(SectionHeading)`
 `;
 
 const SideHeaderLink = styled(Link)`
-  display: grid;
-  grid-auto-flow: column;
-  align-items: center;
-  grid-gap: ${space(0.5)};
   font-weight: normal;
 `;
 

@@ -105,7 +105,7 @@ class AuthSAML2Test(AuthProviderTestCase):
 
     def accept_auth(self, **kargs):
         saml_response = self.load_fixture("saml2_auth_response.xml")
-        saml_response = base64.b64encode(saml_response)
+        saml_response = base64.b64encode(saml_response).decode("utf-8")
 
         # Disable validation of the SAML2 mock response
         is_valid = "onelogin.saml2.response.OneLogin_Saml2_Response.is_valid"

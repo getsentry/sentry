@@ -1,5 +1,6 @@
-/* global process */
 import {Transition} from 'framer-motion';
+
+import {IS_CI} from 'app/constants';
 
 /**
  * Use with a framer-motion transition to disable the animation in testing
@@ -15,9 +16,9 @@ import {Transition} from 'framer-motion';
  *
  * This function simply disables the animation `type`.
  */
-const testableTransition = !process.env.IS_CI
+const testableTransition = !IS_CI
   ? (t?: Transition) => t
-  : function(transition?: Transition): Transition {
+  : function (transition?: Transition): Transition {
       return {
         ...transition,
         delay: 0,

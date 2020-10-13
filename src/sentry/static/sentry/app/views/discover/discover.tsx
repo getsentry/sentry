@@ -1,23 +1,16 @@
 import {browserHistory} from 'react-router';
 import React from 'react';
 import moment from 'moment';
-import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {getUtcDateString} from 'app/utils/dates';
 import {t, tct} from 'app/locale';
-import {IconWarning} from 'app/icons';
 import {updateProjects, updateDateTime} from 'app/actionCreators/globalSelection';
 import ConfigStore from 'app/stores/configStore';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import Alert from 'app/components/alert';
-import Feature from 'app/components/acl/feature';
-import Link from 'app/components/links/link';
 import PageHeading from 'app/components/pageHeading';
 import {Organization} from 'app/types';
-import space from 'app/styles/space';
 import localStorage from 'app/utils/localStorage';
-import {getDiscoverLandingUrl} from 'app/utils/discover/urls';
 
 import {
   DiscoverContainer,
@@ -50,7 +43,7 @@ import createResultManager from './resultManager';
 import {SavedQuery} from './types';
 
 type DefaultProps = {
-  utc: boolean;
+  utc: boolean | null;
 };
 
 type Props = DefaultProps & {
@@ -409,7 +402,6 @@ export default class Discover extends React.Component<Props, State> {
     } = this.props;
 
     const shouldDisplayResult = resultManager.shouldDisplayResult();
-    const discoverUrl = getDiscoverLandingUrl(organization);
 
     return (
       <DiscoverContainer>
@@ -445,17 +437,6 @@ export default class Discover extends React.Component<Props, State> {
               />
             </QueryPanel>
           )}
-          <Feature
-            features={['organizations:discover-basic']}
-            organization={organization}
-          >
-            <SwitchLink
-              href={getDiscoverLandingUrl(organization)}
-              onClick={this.onGoLegacyDiscover}
-            >
-              {t('Go to New Discover')}
-            </SwitchLink>
-          </Feature>
         </Sidebar>
 
         <DiscoverGlobalSelectionHeader
@@ -477,7 +458,6 @@ export default class Discover extends React.Component<Props, State> {
                 savedQuery={savedQuery}
                 onToggleEdit={toggleEditMode}
                 onFetchPage={this.onFetchPage}
-                discover2Url={discoverUrl}
               />
             )}
             {!shouldDisplayResult && (
@@ -487,11 +467,6 @@ export default class Discover extends React.Component<Props, State> {
                     <PageHeading>{t('Discover')}</PageHeading>
                   </HeadingContainer>
                 </div>
-                <Alert type="warning" icon={<IconWarning size="sm" />}>
-                  This discover view is deprecated. Check out our new visualization and
-                  querying capabilities in <Link to={discoverUrl}>the new Discover</Link>{' '}
-                  today.
-                </Alert>
                 <Intro updateQuery={this.updateAndRunQuery} />
               </React.Fragment>
             )}
@@ -502,9 +477,3 @@ export default class Discover extends React.Component<Props, State> {
     );
   }
 }
-
-const SwitchLink = styled('a')`
-  font-size: ${p => p.theme.fontSizeSmall};
-  margin-left: ${space(3)};
-  margin-bottom: ${space(1)};
-`;

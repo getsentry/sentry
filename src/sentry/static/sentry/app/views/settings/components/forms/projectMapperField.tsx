@@ -235,6 +235,7 @@ export class RenderField extends React.Component<RenderProps, State> {
             value={selectedMappedValue}
           />
           <StyledAddProjectButton
+            type="button"
             disabled={!selectedSentryProjectId || !selectedMappedValue}
             size="small"
             priority="primary"
@@ -255,7 +256,7 @@ export class RenderField extends React.Component<RenderProps, State> {
               type="button"
               size="small"
               priority="default"
-              icon="icon-exit"
+              icon={<IconOpen />}
               href={nextUrl}
               external
             >

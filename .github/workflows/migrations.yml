@@ -18,9 +18,6 @@ jobs:
         # The hostname used to communicate with the PostgreSQL from sentry
         DATABASE_URL: postgresql://postgres:postgres@localhost/sentry
 
-        # Use this to override the django version in the requirements file.
-        DJANGO_VERSION: ">=1.11,<1.12"
-
       services:
         postgres:
           image: postgres:9.6
@@ -38,7 +35,13 @@ jobs:
             --health-retries 5
 
       steps:
-        # Checkout codebase
+        - name: Install System Dependencies
+          run: |
+            sudo apt-get update
+            sudo apt-get install -y --no-install-recommends \
+              libxmlsec1-dev \
+              libmaxminddb-dev
+
         - uses: actions/checkout@v1
 
         - name: Get changed migration files
@@ -47,33 +50,22 @@ jobs:
             echo $(git diff --diff-filter=AM --name-only origin/master HEAD)
             echo "::set-output name=modified::$(git diff --diff-filter=AM --name-only origin/master HEAD | grep 'src/sentry/migrations/')"
 
-
-        # Python
-        #   Use `.python-version` to avoid duplication
-        #   XXX: can't actually read from .python-version because GitHub Actions
-        #   does not support our version (2.7.16)
-        #
-        #   XXX: Using `2.7` as GHA image only seems to keep one minor version around and will break
-        #   CI if we pin it to a specific patch version.
         - name: Set up outputs
           id: config
           env:
             MATRIX_INSTANCE: ${{ matrix.instance }}
           run: |
-            echo "::set-output name=python-version::2.7"
+            echo "::set-output name=python-version::2.7.17"
 
-        # setup python
         - name: Set up Python ${{ steps.config.outputs.python-version }}
-          uses: actions/setup-python@v1
+          uses: actions/setup-python@v2
           with:
             python-version: ${{ steps.config.outputs.python-version}}
 
-        # setup pip
         - name: Install pip
           run: |
             pip install --no-cache-dir --upgrade "pip>=20.0.2"
 
-        # pip cache
         - name: Get pip cache dir
           id: pip-cache
           run: |
@@ -86,11 +78,6 @@ jobs:
             key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements-*.txt') }}
             restore-keys: |
               ${{ runner.os }}-pip-
-
-        - name: Install System Dependencies
-          run: |
-            sudo apt-get update
-            sudo apt-get install libxmlsec1-dev libmaxminddb-dev
 
         - name: Install Python Dependencies
           env:

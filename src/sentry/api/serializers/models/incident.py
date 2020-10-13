@@ -5,7 +5,8 @@ from collections import defaultdict
 import six
 
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.incidents.models import Incident, IncidentProject, IncidentSeen, IncidentSubscription
+from sentry.incidents.models import Incident, IncidentProject, IncidentSubscription
+from sentry.models import User
 from sentry.snuba.models import QueryDatasets
 from sentry.utils.db import attach_foreignkey
 
@@ -33,6 +34,7 @@ class IncidentSerializer(Serializer):
         return results
 
     def serialize(self, obj, attrs, user):
+        date_closed = obj.date_closed.replace(second=0, microsecond=0) if obj.date_closed else None
         return {
             "id": six.text_type(obj.id),
             "identifier": six.text_type(obj.identifier),
@@ -46,7 +48,7 @@ class IncidentSerializer(Serializer):
             "dateStarted": obj.date_started,
             "dateDetected": obj.date_detected,
             "dateCreated": obj.date_added,
-            "dateClosed": obj.date_closed,
+            "dateClosed": date_closed,
         }
 
 
@@ -66,21 +68,15 @@ class DetailedIncidentSerializer(IncidentSerializer):
         return results
 
     def _get_incident_seen_list(self, incident, user):
-        incident_seen = list(
-            IncidentSeen.objects.filter(incident=incident)
-            .select_related("user")
-            .order_by("-last_seen")
+        seen_by_list = list(
+            User.objects.filter(incidentseen__incident=incident).order_by(
+                "-incidentseen__last_seen"
+            )
         )
 
-        seen_by_list = []
-        has_seen = False
+        has_seen = any(seen_by for seen_by in seen_by_list if seen_by.id == user.id)
 
-        for seen_by in incident_seen:
-            if seen_by.user == user:
-                has_seen = True
-            seen_by_list.append(serialize(seen_by))
-
-        return {"seen_by": seen_by_list, "has_seen": has_seen}
+        return {"seen_by": serialize(seen_by_list), "has_seen": has_seen}
 
     def serialize(self, obj, attrs, user):
         context = super(DetailedIncidentSerializer, self).serialize(obj, attrs, user)
@@ -105,6 +101,6 @@ class DetailedIncidentSerializer(IncidentSerializer):
             condition = "event.type:transaction"
 
         if condition:
-            query = "{} {}".format(condition, query) if query else condition
+            query = u"{} {}".format(condition, query) if query else condition
 
         return query

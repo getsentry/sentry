@@ -1,7 +1,7 @@
 import React from 'react';
-import toJson from 'enzyme-to-json';
 
-import {shallow} from 'sentry-test/enzyme';
+import {initializeOrg} from 'sentry-test/initializeOrg';
+import {mountWithTheme, shallow} from 'sentry-test/enzyme';
 
 import EventOrGroupHeader from 'app/components/eventOrGroupHeader';
 
@@ -17,15 +17,16 @@ const data = {
   culprit: 'culprit',
 };
 
-describe('EventOrGroupHeader', function() {
-  describe('Group', function() {
+describe('EventOrGroupHeader', function () {
+  const {routerContext} = initializeOrg();
+  describe('Group', function () {
     const groupData = {
       ...data,
       level: 'error',
       id: 'id',
     };
-    it('renders with `type = error`', function() {
-      const component = shallow(
+    it('renders with `type = error`', function () {
+      const component = mountWithTheme(
         <EventOrGroupHeader
           orgId="orgId"
           data={{
@@ -34,14 +35,15 @@ describe('EventOrGroupHeader', function() {
               type: 'error',
             },
           }}
-        />
+        />,
+        routerContext
       );
 
-      expect(toJson(component)).toMatchSnapshot();
+      expect(component).toSnapshot();
     });
 
-    it('renders with `type = csp`', function() {
-      const component = shallow(
+    it('renders with `type = csp`', function () {
+      const component = mountWithTheme(
         <EventOrGroupHeader
           params={{orgId: 'orgId'}}
           data={{
@@ -50,14 +52,15 @@ describe('EventOrGroupHeader', function() {
               type: 'csp',
             },
           }}
-        />
+        />,
+        routerContext
       );
 
-      expect(toJson(component)).toMatchSnapshot();
+      expect(component).toSnapshot();
     });
 
-    it('renders with `type = default`', function() {
-      const component = shallow(
+    it('renders with `type = default`', function () {
+      const component = mountWithTheme(
         <EventOrGroupHeader
           params={{orgId: 'orgId'}}
           data={{
@@ -66,14 +69,15 @@ describe('EventOrGroupHeader', function() {
               type: 'default',
             },
           }}
-        />
+        />,
+        routerContext
       );
 
-      expect(toJson(component)).toMatchSnapshot();
+      expect(component).toSnapshot();
     });
   });
 
-  describe('Event', function() {
+  describe('Event', function () {
     const eventData = {
       ...data,
       id: 'id',
@@ -82,8 +86,8 @@ describe('EventOrGroupHeader', function() {
       culprit: undefined,
     };
 
-    it('renders with `type = error`', function() {
-      const component = shallow(
+    it('renders with `type = error`', function () {
+      const component = mountWithTheme(
         <EventOrGroupHeader
           params={{orgId: 'orgId'}}
           data={{
@@ -92,14 +96,15 @@ describe('EventOrGroupHeader', function() {
               type: 'error',
             },
           }}
-        />
+        />,
+        routerContext
       );
 
-      expect(toJson(component)).toMatchSnapshot();
+      expect(component).toSnapshot();
     });
 
-    it('renders with `type = csp`', function() {
-      const component = shallow(
+    it('renders with `type = csp`', function () {
+      const component = mountWithTheme(
         <EventOrGroupHeader
           params={{orgId: 'orgId'}}
           data={{
@@ -108,14 +113,15 @@ describe('EventOrGroupHeader', function() {
               type: 'csp',
             },
           }}
-        />
+        />,
+        routerContext
       );
 
-      expect(toJson(component)).toMatchSnapshot();
+      expect(component).toSnapshot();
     });
 
-    it('renders with `type = default`', function() {
-      const component = shallow(
+    it('renders with `type = default`', function () {
+      const component = mountWithTheme(
         <EventOrGroupHeader
           params={{orgId: 'orgId'}}
           data={{
@@ -124,14 +130,15 @@ describe('EventOrGroupHeader', function() {
               type: 'default',
             },
           }}
-        />
+        />,
+        routerContext
       );
 
-      expect(toJson(component)).toMatchSnapshot();
+      expect(component).toSnapshot();
     });
 
-    it('hides level tag', function() {
-      const component = shallow(
+    it('hides level tag', function () {
+      const component = mountWithTheme(
         <EventOrGroupHeader
           projectId="projectId"
           hideLevel
@@ -141,13 +148,14 @@ describe('EventOrGroupHeader', function() {
               type: 'default',
             },
           }}
-        />
+        />,
+        routerContext
       );
 
-      expect(toJson(component)).toMatchSnapshot();
+      expect(component).toSnapshot();
     });
 
-    it('keeps sort in link when query has sort', function() {
+    it('keeps sort in link when query has sort', function () {
       const query = {
         sort: 'freq',
       };
@@ -165,15 +173,12 @@ describe('EventOrGroupHeader', function() {
         />
       );
 
-      const title = component
-        .dive()
-        .instance()
-        .getTitle();
+      const title = component.dive().instance().getTitle();
 
       expect(title.props.to.query.sort).toEqual('freq');
     });
 
-    it('lack of project adds allp parameter', function() {
+    it('lack of project adds allp parameter', function () {
       const query = {};
 
       const component = shallow(
@@ -189,10 +194,7 @@ describe('EventOrGroupHeader', function() {
         />
       );
 
-      const title = component
-        .dive()
-        .instance()
-        .getTitle();
+      const title = component.dive().instance().getTitle();
 
       expect(title.props.to.query._allp).toEqual(1);
     });

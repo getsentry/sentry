@@ -7,7 +7,7 @@ import {t, tct} from 'app/locale';
 import {trackAdhocEvent} from 'app/utils/analytics';
 import EmailField from 'app/views/settings/components/forms/emailField';
 import Form from 'app/views/settings/components/forms/form';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconMegaphone} from 'app/icons';
 import NarrowLayout from 'app/components/narrowLayout';
 import space from 'app/styles/space';
 
@@ -56,7 +56,7 @@ class OrganizationJoinRequest extends React.Component<Props, State> {
       return (
         <NarrowLayout maxWidth="550px">
           <SuccessModal>
-            <MegaphoneIcon src="icon-megaphone" size="5em" />
+            <StyledIconMegaphone size="5em" />
             <StyledHeader>{t('Request Sent')}</StyledHeader>
             <StyledText>{t('Your request to join has been sent.')}</StyledText>
             <ReceiveEmailMessage>
@@ -69,7 +69,7 @@ class OrganizationJoinRequest extends React.Component<Props, State> {
 
     return (
       <NarrowLayout maxWidth="650px">
-        <MegaphoneIcon src="icon-megaphone" size="5em" />
+        <StyledIconMegaphone size="5em" />
         <StyledHeader>{t('Request to Join')}</StyledHeader>
         <StyledText>
           {tct('Ask the admins if you can join the [orgId] organization.', {
@@ -105,7 +105,7 @@ const SuccessModal = styled('div')`
   padding-bottom: ${space(4)};
 `;
 
-const MegaphoneIcon = styled(InlineSvg)`
+const StyledIconMegaphone = styled(IconMegaphone)`
   padding-bottom: ${space(3)};
 `;
 

@@ -17,7 +17,7 @@ class AlertRuleDetailsBase(object):
             "time_window": 10,
             "query": "level:error",
             "threshold_type": 0,
-            "resolve_threshold": 1,
+            "resolve_threshold": 100,
             "alert_threshold": 0,
             "aggregate": "count_unique(user)",
             "threshold_period": 1,
@@ -26,8 +26,6 @@ class AlertRuleDetailsBase(object):
                 {
                     "label": "critical",
                     "alertThreshold": 200,
-                    "resolveThreshold": 100,
-                    "thresholdType": 0,
                     "actions": [
                         {"type": "email", "targetType": "team", "targetIdentifier": self.team.id}
                     ],
@@ -35,8 +33,6 @@ class AlertRuleDetailsBase(object):
                 {
                     "label": "warning",
                     "alertThreshold": 150,
-                    "resolveThreshold": 100,
-                    "thresholdType": 0,
                     "actions": [
                         {"type": "email", "targetType": "team", "targetIdentifier": self.team.id},
                         {"type": "email", "targetType": "user", "targetIdentifier": self.user.id},
@@ -134,6 +130,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         )
 
         test_params = self.valid_params.copy()
+        test_params["resolve_threshold"] = self.alert_rule.resolve_threshold
         test_params.update({"name": "what"})
 
         self.login_as(self.user)
@@ -148,6 +145,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
 
     def test_not_updated_fields(self):
         test_params = self.valid_params.copy()
+        test_params["resolve_threshold"] = self.alert_rule.resolve_threshold
         test_params["aggregate"] = self.alert_rule.snuba_query.aggregate
 
         self.create_member(

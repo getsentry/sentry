@@ -1,13 +1,13 @@
 from __future__ import absolute_import
 
-from sentry.api.bases.project import ProjectEndpoint, StrictProjectPermission
+from sentry import features
+from sentry.api.bases.project import ProjectEndpoint
+from sentry.constants import MIGRATED_CONDITIONS
 from sentry.rules import rules
 from rest_framework.response import Response
 
 
 class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
-    permission_classes = (StrictProjectPermission,)
-
     def get(self, request, project):
         """
         Retrieve the list of configuration options for a given project.
@@ -15,23 +15,18 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
 
         action_list = []
         condition_list = []
+        filter_list = []
 
-        has_issue_alerts_targeting = (
-            project.flags.has_issue_alerts_targeting
-            or request.query_params.get("issue_alerts_targeting") == "1"
-        )
+        project_has_filters = features.has("projects:alert-filters", project)
         # TODO: conditions need to be based on actions
         for rule_type, rule_cls in rules:
             node = rule_cls(project)
+            # skip over conditions if they are not in the migrated set for a project with alert-filters
+            if project_has_filters and node.id in MIGRATED_CONDITIONS:
+                continue
             context = {"id": node.id, "label": node.label, "enabled": node.is_enabled()}
             if hasattr(node, "prompt"):
                 context["prompt"] = node.prompt
-
-            if (
-                node.id == "sentry.mail.actions.NotifyEmailAction"
-                and not has_issue_alerts_targeting
-            ):
-                continue
 
             if hasattr(node, "form_fields"):
                 context["formFields"] = node.form_fields
@@ -47,9 +42,11 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
 
             if rule_type.startswith("condition/"):
                 condition_list.append(context)
+            elif rule_type.startswith("filter/"):
+                filter_list.append(context)
             elif rule_type.startswith("action/"):
                 action_list.append(context)
 
-        context = {"actions": action_list, "conditions": condition_list}
+        context = {"actions": action_list, "conditions": condition_list, "filters": filter_list}
 
         return Response(context)

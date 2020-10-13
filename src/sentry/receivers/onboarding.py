@@ -112,6 +112,13 @@ def record_raven_installed(project, user, **kwargs):
 
 @first_event_received.connect(weak=False)
 def record_first_event(project, event, **kwargs):
+    if event.get_event_type() == "transaction":
+        record_first_transaction(project, event)
+    else:
+        record_first_error(project, event)
+
+
+def record_first_error(project, event):
     """
     Requires up to 2 database calls, but should only run with the first event in
     any project, so performance should not be a huge bottleneck.
@@ -172,6 +179,25 @@ def record_first_event(project, event, **kwargs):
                 project_id=project.id,
                 platform=event.platform,
             )
+
+
+def record_first_transaction(project, event):
+    OrganizationOnboardingTask.objects.record(
+        organization_id=project.organization_id,
+        task=OnboardingTask.FIRST_TRANSACTION,
+        status=OnboardingTaskStatus.COMPLETE,
+        date_completed=event.datetime,
+    )
+
+    user = Organization.objects.get(id=project.organization_id).get_default_owner()
+
+    analytics.record(
+        "first_transaction.sent",
+        user_id=user.id,
+        organization_id=project.organization_id,
+        project_id=project.id,
+        platform=event.platform,
+    )
 
 
 @member_invited.connect(weak=False)

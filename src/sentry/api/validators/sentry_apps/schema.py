@@ -1,11 +1,12 @@
 from __future__ import absolute_import
 
 import logging
-import json
 
-from jsonschema import Draft4Validator
+from jsonschema import Draft7Validator
 from jsonschema.exceptions import best_match
 from jsonschema.exceptions import ValidationError as SchemaValidationError
+
+from sentry.utils import json
 
 
 logger = logging.getLogger(__name__)
@@ -43,6 +44,8 @@ SCHEMA = {
                 "type": {"type": "string", "enum": ["select"]},
                 "label": {"type": "string"},
                 "name": {"type": "string"},
+                "async": {"type": "boolean"},
+                "skip_load_on_open": {"type": "boolean"},
                 "uri": {"$ref": "#/definitions/uri"},
                 "options": {"$ref": "#/definitions/options"},
                 "depends_on": {"type": "array", "minItems": 1, "items": {"type": "string"}},
@@ -243,6 +246,6 @@ def validate_ui_element_schema(instance):
 
 
 def validate(instance, schema):
-    v = Draft4Validator(schema)
+    v = Draft7Validator(schema)
     if not v.is_valid(instance):
         raise best_match(v.iter_errors(instance))

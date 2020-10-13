@@ -112,7 +112,7 @@ const OrganizationContext = createReactClass({
     // If a new project was created, we need to re-fetch the
     // org details endpoint, which will propagate re-rendering
     // for the entire component tree
-    fetchOrganizationDetails(this.props.api, this.getOrganizationSlug(), true);
+    fetchOrganizationDetails(this.props.api, this.getOrganizationSlug(), true, true);
   },
 
   getOrganizationSlug() {

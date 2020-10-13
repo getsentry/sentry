@@ -3,7 +3,6 @@ from __future__ import absolute_import
 from django.db import IntegrityError, transaction
 from rest_framework.response import Response
 
-from sentry.api.base import DocSection
 from sentry.api.bases.dashboard import OrganizationDashboardEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import get_next_dashboard_order, WidgetSerializer
@@ -11,9 +10,6 @@ from sentry.models import Widget, WidgetDataSource
 
 
 class OrganizationDashboardWidgetsEndpoint(OrganizationDashboardEndpoint):
-
-    doc_section = DocSection.ORGANIZATIONS
-
     def post(self, request, organization, dashboard):
         """
         Create a New Widget for an Organization's Dashboard

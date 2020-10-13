@@ -1,3 +1,4 @@
+import {LightWeightOrganization} from 'app/types';
 import {assert} from 'app/types/utils';
 
 export type Sort = {
@@ -190,19 +191,9 @@ export const AGGREGATIONS = {
     multiPlotType: 'line',
   },
   apdex: {
-    parameters: [
-      {
-        kind: 'value',
-        dataType: 'number',
-        defaultValue: '300',
-        required: true,
-      },
-    ],
-    outputType: 'number',
-    isSortable: true,
-    multiPlotType: 'line',
-  },
-  impact: {
+    generateDefaultValue({parameter, organization}: DefaultValueInputs) {
+      return organization.apdexThreshold?.toString() ?? parameter.defaultValue;
+    },
     parameters: [
       {
         kind: 'value',
@@ -216,6 +207,9 @@ export const AGGREGATIONS = {
     multiPlotType: 'line',
   },
   user_misery: {
+    generateDefaultValue({parameter, organization}: DefaultValueInputs) {
+      return organization.apdexThreshold?.toString() ?? parameter.defaultValue;
+    },
     parameters: [
       {
         kind: 'value',
@@ -253,11 +247,32 @@ export type AggregationOutputType = Extract<
 
 export type PlotType = 'line' | 'area';
 
+type DefaultValueInputs = {
+  parameter: AggregateParameter;
+  organization: LightWeightOrganization;
+};
+
 export type Aggregation = {
+  /**
+   * Used by functions that need to define their default values dynamically
+   * based on the organization, or parameter data.
+   */
+  generateDefaultValue?: (data: DefaultValueInputs) => string;
+  /**
+   * List of parameters for the function.
+   */
   parameters: Readonly<AggregateParameter[]>;
-  // null means to inherit from the column.
+  /**
+   * The output type. Null means to inherit from the field.
+   */
   outputType: AggregationOutputType | null;
+  /**
+   * Can this function be used in a sort result
+   */
   isSortable: boolean;
+  /**
+   * How this function should be plotted when shown in a multiseries result (top5)
+   */
   multiPlotType: PlotType;
 };
 
@@ -284,6 +299,7 @@ enum FieldKey {
   GEO_COUNTRY_CODE = 'geo.country_code',
   GEO_REGION = 'geo.region',
   HTTP_METHOD = 'http.method',
+  HTTP_REFERER = 'http.referer',
   HTTP_URL = 'http.url',
   ID = 'id',
   ISSUE = 'issue',
@@ -315,11 +331,11 @@ enum FieldKey {
   TRANSACTION_DURATION = 'transaction.duration',
   TRANSACTION_OP = 'transaction.op',
   TRANSACTION_STATUS = 'transaction.status',
-  USER = 'user',
   USER_EMAIL = 'user.email',
   USER_ID = 'user.id',
   USER_IP = 'user.ip',
   USER_USERNAME = 'user.username',
+  USER_DISPLAY = 'user.display',
 }
 
 /**
@@ -344,7 +360,6 @@ export const FIELDS: Readonly<Record<FieldKey, ColumnType>> = {
   // tags.key and tags.value are omitted on purpose as well.
 
   [FieldKey.TRANSACTION]: 'string',
-  [FieldKey.USER]: 'string',
   [FieldKey.USER_ID]: 'string',
   [FieldKey.USER_EMAIL]: 'string',
   [FieldKey.USER_USERNAME]: 'string',
@@ -352,6 +367,7 @@ export const FIELDS: Readonly<Record<FieldKey, ColumnType>> = {
   [FieldKey.SDK_NAME]: 'string',
   [FieldKey.SDK_VERSION]: 'string',
   [FieldKey.HTTP_METHOD]: 'string',
+  [FieldKey.HTTP_REFERER]: 'string',
   [FieldKey.HTTP_URL]: 'string',
   [FieldKey.OS_BUILD]: 'string',
   [FieldKey.OS_KERNEL_VERSION]: 'string',
@@ -395,6 +411,7 @@ export const FIELDS: Readonly<Record<FieldKey, ColumnType>> = {
   // Field alises defined in src/sentry/api/event_search.py
   [FieldKey.PROJECT]: 'string',
   [FieldKey.ISSUE]: 'string',
+  [FieldKey.USER_DISPLAY]: 'string',
 };
 
 export type FieldTag = {
@@ -424,11 +441,38 @@ export const TRACING_FIELDS = [
   'percentile',
   'failure_rate',
   'apdex',
-  'impact',
   'user_misery',
   'eps',
   'epm',
 ];
+
+export enum WebVital {
+  FP = 'measurements.fp',
+  FCP = 'measurements.fcp',
+  LCP = 'measurements.lcp',
+  FID = 'measurements.fid',
+}
+
+const MEASUREMENTS: Readonly<Record<WebVital, ColumnType>> = {
+  [WebVital.FP]: 'duration',
+  [WebVital.FCP]: 'duration',
+  [WebVital.LCP]: 'duration',
+  [WebVital.FID]: 'duration',
+};
+
+const MEASUREMENT_PATTERN = /^measurements\.([a-zA-Z0-9-_.]+)$/;
+
+export function isMeasurement(field: string): boolean {
+  const results = field.match(MEASUREMENT_PATTERN);
+  return !!results;
+}
+
+export function measurementType(field: string) {
+  if (MEASUREMENTS.hasOwnProperty(field)) {
+    return MEASUREMENTS[field];
+  }
+  return 'number';
+}
 
 const AGGREGATE_PATTERN = /^([^\(]+)\((.*?)(?:\s*,\s*(.*))?\)$/;
 
@@ -505,6 +549,8 @@ export function aggregateOutputType(field: string): AggregationOutputType {
     return aggregate.outputType;
   } else if (matches[2] && FIELDS.hasOwnProperty(matches[2])) {
     return FIELDS[matches[2]];
+  } else if (matches[2] && isMeasurement(matches[2])) {
+    return measurementType(matches[2]);
   }
   return 'number';
 }

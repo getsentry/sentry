@@ -18,8 +18,8 @@ import {IconWarning} from 'app/icons';
 import theme from 'app/utils/theme';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import ErrorPanel from 'app/components/charts/errorPanel';
-import {getDuration, formatPercentage} from 'app/utils/formatters';
-import {aggregateOutputType, aggregateMultiPlotType} from 'app/utils/discover/fields';
+import {tooltipFormatter, axisLabelFormatter} from 'app/utils/discover/charts';
+import {aggregateMultiPlotType} from 'app/utils/discover/fields';
 
 import EventsRequest from './eventsRequest';
 
@@ -39,7 +39,12 @@ type ChartProps = {
   yAxis: string;
 };
 
-class Chart extends React.Component<ChartProps> {
+type State = {
+  seriesSelection: Record<string, boolean>;
+  forceUpdate: boolean;
+};
+
+class Chart extends React.Component<ChartProps, State> {
   static propTypes = {
     loading: PropTypes.bool,
     reloading: PropTypes.bool,
@@ -54,7 +59,20 @@ class Chart extends React.Component<ChartProps> {
     yAxis: PropTypes.string,
   };
 
-  shouldComponentUpdate(nextProps: ChartProps) {
+  state: State = {
+    seriesSelection: {},
+    forceUpdate: false,
+  };
+
+  shouldComponentUpdate(nextProps: ChartProps, nextState: State) {
+    if (nextState.forceUpdate) {
+      return true;
+    }
+
+    if (!isEqual(this.state.seriesSelection, nextState.seriesSelection)) {
+      return true;
+    }
+
     if (nextProps.reloading || !nextProps.timeseriesData) {
       return false;
     }
@@ -88,11 +106,27 @@ class Chart extends React.Component<ChartProps> {
     return AreaChart;
   }
 
+  handleLegendSelectChanged = legendChange => {
+    const {selected} = legendChange;
+    const seriesSelection = Object.keys(selected).reduce((state, key) => {
+      // we only want them to be able to disable the Releases series,
+      // and not any of the other possible series here
+      state[key] = key === 'Releases' ? selected[key] : true;
+      return state;
+    }, {});
+
+    // we have to force an update here otherwise ECharts will
+    // update its internal state and disable the series
+    this.setState({seriesSelection, forceUpdate: true}, () =>
+      this.setState({forceUpdate: false})
+    );
+  };
+
   render() {
     const {
       loading: _loading,
       reloading: _reloading,
-      yAxis: _yaxis,
+      yAxis,
       releaseSeries,
       zoomRenderProps,
       timeseriesData,
@@ -102,11 +136,16 @@ class Chart extends React.Component<ChartProps> {
       previousSeriesName,
       ...props
     } = this.props;
+    const {seriesSelection} = this.state;
+
+    const data = [currentSeriesName ?? t('Current'), previousSeriesName ?? t('Previous')];
+    if (Array.isArray(releaseSeries)) {
+      data.push(t('Releases'));
+    }
 
     const legend = showLegend && {
       right: 16,
       top: 12,
-      selectedMode: false,
       icon: 'circle',
       itemHeight: 8,
       itemWidth: 8,
@@ -117,10 +156,34 @@ class Chart extends React.Component<ChartProps> {
         fontSize: 11,
         fontFamily: 'Rubik',
       },
-      data: [currentSeriesName ?? t('Current'), previousSeriesName ?? t('Previous'), ''],
+      data,
+      selected: seriesSelection,
     };
 
-    const colors = theme.charts.getColorPalette(timeseriesData.length - 2);
+    const chartOptions = {
+      colors: theme.charts.getColorPalette(timeseriesData.length - 2),
+      grid: {
+        left: '24px',
+        right: '24px',
+        top: '32px',
+        bottom: '12px',
+      },
+      seriesOptions: {
+        showSymbol: false,
+      },
+      tooltip: {
+        trigger: 'axis',
+        truncate: 80,
+        valueFormatter: (value: number) => tooltipFormatter(value, yAxis),
+      },
+      yAxis: {
+        axisLabel: {
+          color: theme.gray400,
+          formatter: (value: number) => axisLabelFormatter(value, yAxis),
+        },
+      },
+    };
+
     const Component = this.getChartComponent();
     const series = Array.isArray(releaseSeries)
       ? [...timeseriesData, ...releaseSeries]
@@ -130,19 +193,11 @@ class Chart extends React.Component<ChartProps> {
       <Component
         {...props}
         {...zoomRenderProps}
+        {...chartOptions}
         legend={legend}
+        onLegendSelectChanged={this.handleLegendSelectChanged}
         series={series}
-        seriesOptions={{
-          showSymbol: false,
-        }}
         previousPeriod={previousTimeseriesData ? [previousTimeseriesData] : null}
-        colors={colors}
-        grid={{
-          left: '24px',
-          right: '24px',
-          top: '32px',
-          bottom: '12px',
-        }}
       />
     );
   }
@@ -183,7 +238,7 @@ type Props = {
   /**
    * Should datetimes be formatted in UTC?
    */
-  utc?: boolean;
+  utc?: boolean | null;
   /**
    * Don't show the previous period's data. Will automatically disable
    * when start/end are used.
@@ -284,23 +339,6 @@ class EventsChart extends React.Component<Props> {
       previousName ?? yAxis ? t('previous %s', yAxis) : undefined;
     const currentSeriesName = currentName ?? yAxis;
 
-    const tooltip = {
-      truncate: 80,
-      valueFormatter(value: number) {
-        switch (aggregateOutputType(yAxis)) {
-          case 'integer':
-            return value.toLocaleString();
-          case 'number':
-            return value.toLocaleString();
-          case 'percentage':
-            return formatPercentage(value, 2);
-          case 'duration':
-            return getDuration(value / 1000, 2);
-          default:
-            return value;
-        }
-      },
-    };
     const intervalVal = showDaily ? '1d' : interval || getInterval(this.props, true);
 
     let chartImplementation = ({
@@ -327,7 +365,6 @@ class EventsChart extends React.Component<Props> {
           <TransparentLoadingMask visible={reloading} />
           <Chart
             {...zoomRenderProps}
-            tooltip={tooltip}
             loading={loading}
             reloading={reloading}
             utc={utc}
@@ -354,6 +391,7 @@ class EventsChart extends React.Component<Props> {
           start={start}
           end={end}
           projects={projects}
+          environments={environments}
         >
           {({releaseSeries}) => previousChart({...chartProps, releaseSeries})}
         </ReleaseSeries>

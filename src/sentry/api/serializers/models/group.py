@@ -1,10 +1,12 @@
 from __future__ import absolute_import, print_function
 
+import functools
 import itertools
 from collections import defaultdict
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 import six
+import pytz
 import logging
 
 from django.conf import settings
@@ -13,8 +15,9 @@ from django.utils import timezone
 
 import sentry_sdk
 
-from sentry import tagstore, tsdb
+from sentry import tagstore, tsdb, features
 from sentry.app import env
+from sentry.api.event_search import convert_search_filter_to_snuba_query
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer
 from sentry.api.fields.actor import Actor
@@ -42,11 +45,15 @@ from sentry.models import (
     User,
     UserOption,
     UserOptionValue,
+    Organization,
 )
+from sentry.tagstore.snuba.backend import fix_tag_value_data
 from sentry.tsdb.snuba import SnubaTSDB
+from sentry.utils import snuba
 from sentry.utils.db import attach_foreignkey
 from sentry.utils.safe import safe_execute
 from sentry.utils.compat import map, zip
+from sentry.utils.snuba import Dataset, raw_query
 
 SUBSCRIPTION_REASON_MAP = {
     GroupSubscriptionReason.comment: "commented",
@@ -82,6 +89,50 @@ class GroupSerializerBase(Serializer):
             - user_count
         """
         raise NotImplementedError
+
+    def _get_group_snuba_stats(self, item_list, seen_stats):
+        filter_keys = {}
+
+        # Try to figure out what is a reasonable time frame to look into stats,
+        # based on a given "seen stats".  We try to pick a day prior to the earliest last seen,
+        # but it has to be at least 14 days, and not more than 90 days ago.
+        # Fallback to the 30 days ago if we are not able to calculate the value.
+        last_seen = None
+        for item in seen_stats.values():
+            if last_seen is None or last_seen > item["last_seen"]:
+                last_seen = item["last_seen"]
+        if last_seen is not None:
+            last_seen = last_seen - timedelta(days=1)
+
+        if last_seen is None:
+            start = datetime.now(pytz.utc) - timedelta(days=30)
+        else:
+            start = max(
+                min(last_seen, datetime.now(pytz.utc) - timedelta(days=14)),
+                datetime.now(pytz.utc) - timedelta(days=90),
+            )
+
+        for item in item_list:
+            filter_keys.setdefault("project_id", []).append(item.project_id)
+            filter_keys.setdefault("group_id", []).append(item.id)
+
+        rv = raw_query(
+            dataset=Dataset.Events,
+            selected_columns=[
+                "group_id",
+                [
+                    "argMax",
+                    [["has", ["exception_stacks.mechanism_handled", 0]], "timestamp"],
+                    "unhandled",
+                ],
+            ],
+            groupby=["group_id"],
+            filter_keys=filter_keys,
+            start=start,
+            referrer="group.unhandled-flag",
+        )
+
+        return dict((x["group_id"], {"unhandled": x["unhandled"]}) for x in rv["data"])
 
     def _get_subscriptions(self, item_list, user):
         """
@@ -254,6 +305,11 @@ class GroupSerializerBase(Serializer):
 
         # should only have 1 org at this point
         organization_id = organization_id_list[0]
+        organization = Organization.objects.get_from_cache(id=organization_id)
+
+        has_unhandled_flag = features.has(
+            "organizations:unhandled-issue-flag", organization, actor=user
+        )
 
         # find all the integration installs that have issue tracking
         for integration in Integration.objects.filter(organizations=organization_id):
@@ -284,6 +340,10 @@ class GroupSerializerBase(Serializer):
             or {}
         )
         merge_list_dictionaries(annotations_by_group_id, local_annotations_by_group_id)
+
+        snuba_stats = {}
+        if has_unhandled_flag:
+            snuba_stats = self._get_group_snuba_stats(item_list, seen_stats)
 
         for item in item_list:
             active_date = item.active_at or item.first_seen
@@ -331,6 +391,9 @@ class GroupSerializerBase(Serializer):
                 "resolution_actor": resolution_actor,
                 "share_id": share_ids.get(item.id),
             }
+
+            if has_unhandled_flag:
+                result[item]["is_unhandled"] = bool(snuba_stats.get(item.id, {}).get("unhandled"))
 
             result[item].update(seen_stats.get(item, {}))
         return result
@@ -433,18 +496,13 @@ class GroupSerializerBase(Serializer):
         permalink = self._get_permalink(obj, user)
         is_subscribed, subscription_details = self._get_subscription(attrs)
         share_id = attrs["share_id"]
-
-        return {
+        group_dict = {
             "id": six.text_type(obj.id),
             "shareId": share_id,
             "shortId": obj.qualified_short_id,
-            "count": six.text_type(attrs["times_seen"]),
-            "userCount": attrs["user_count"],
             "title": obj.title,
             "culprit": obj.culprit,
             "permalink": permalink,
-            "firstSeen": attrs["first_seen"],
-            "lastSeen": attrs["last_seen"],
             "logger": obj.logger or None,
             "level": LOG_LEVELS.get(obj.level, "unknown"),
             "status": status_label,
@@ -466,6 +524,21 @@ class GroupSerializerBase(Serializer):
             "subscriptionDetails": subscription_details,
             "hasSeen": attrs["has_seen"],
             "annotations": attrs["annotations"],
+        }
+
+        # This attribute is currently feature gated
+        if "is_unhandled" in attrs:
+            group_dict["isUnhandled"] = attrs["is_unhandled"]
+
+        group_dict.update(self._convert_seen_stats(attrs))
+        return group_dict
+
+    def _convert_seen_stats(self, stats):
+        return {
+            "count": six.text_type(stats["times_seen"]),
+            "userCount": stats["user_count"],
+            "firstSeen": stats["first_seen"],
+            "lastSeen": stats["last_seen"],
         }
 
 
@@ -523,23 +596,64 @@ class GroupStatsMixin(object):
         "24h": StatsPeriod(24, timedelta(hours=1)),
     }
 
+    CUSTOM_ROLLUP_CHOICES = {
+        "1h": timedelta(hours=1).total_seconds(),
+        "2h": timedelta(hours=2).total_seconds(),
+        "3h": timedelta(hours=3).total_seconds(),
+        "6h": timedelta(hours=6).total_seconds(),
+        "12h": timedelta(hours=12).total_seconds(),
+        "24h": timedelta(hours=24).total_seconds(),
+    }
+
+    CUSTOM_SEGMENTS = 29  # for 30 segments use 1/29th intervals
+    CUSTOM_SEGMENTS_12H = 35  # for 12h 36 segments, otherwise 15-16-17 bars is too few
+    CUSTOM_ROLLUP_6H = timedelta(hours=6).total_seconds()  # rollups should be increments of 6hs
+
     def query_tsdb(self, group_ids, query_params):
         raise NotImplementedError
 
-    def get_stats(self, item_list, user):
+    def get_stats(self, item_list, user, **kwargs):
         if self.stats_period:
-            # we need to compute stats at 1d (1h resolution), and 14d
+            # we need to compute stats at 1d (1h resolution), and 14d or a custom given period
             group_ids = [g.id for g in item_list]
 
-            segments, interval = self.STATS_PERIOD_CHOICES[self.stats_period]
-            now = timezone.now()
-            query_params = {
-                "start": now - ((segments - 1) * interval),
-                "end": now,
-                "rollup": int(interval.total_seconds()),
-            }
+            if self.stats_period == "auto":
+                total_period = (self.stats_period_end - self.stats_period_start).total_seconds()
+                if total_period < timedelta(hours=24).total_seconds():
+                    rollup = total_period / self.CUSTOM_SEGMENTS
+                elif total_period < self.CUSTOM_SEGMENTS * self.CUSTOM_ROLLUP_CHOICES["1h"]:
+                    rollup = self.CUSTOM_ROLLUP_CHOICES["1h"]
+                elif total_period < self.CUSTOM_SEGMENTS * self.CUSTOM_ROLLUP_CHOICES["2h"]:
+                    rollup = self.CUSTOM_ROLLUP_CHOICES["2h"]
+                elif total_period < self.CUSTOM_SEGMENTS * self.CUSTOM_ROLLUP_CHOICES["3h"]:
+                    rollup = self.CUSTOM_ROLLUP_CHOICES["3h"]
+                elif total_period < self.CUSTOM_SEGMENTS * self.CUSTOM_ROLLUP_CHOICES["6h"]:
+                    rollup = self.CUSTOM_ROLLUP_CHOICES["6h"]
+                elif (
+                    total_period < self.CUSTOM_SEGMENTS_12H * self.CUSTOM_ROLLUP_CHOICES["12h"]
+                ):  # 36 segments is ok
+                    rollup = self.CUSTOM_ROLLUP_CHOICES["12h"]
+                elif total_period < self.CUSTOM_SEGMENTS * self.CUSTOM_ROLLUP_CHOICES["24h"]:
+                    rollup = self.CUSTOM_ROLLUP_CHOICES["24h"]
+                else:
+                    delta_day = self.CUSTOM_ROLLUP_CHOICES["24h"]
+                    rollup = round(total_period / (self.CUSTOM_SEGMENTS * delta_day)) * delta_day
 
-            return self.query_tsdb(group_ids, query_params)
+                query_params = {
+                    "start": self.stats_period_start,
+                    "end": self.stats_period_end,
+                    "rollup": int(rollup),
+                }
+            else:
+                segments, interval = self.STATS_PERIOD_CHOICES[self.stats_period]
+                now = timezone.now()
+                query_params = {
+                    "start": now - ((segments - 1) * interval),
+                    "end": now,
+                    "rollup": int(interval.total_seconds()),
+                }
+
+            return self.query_tsdb(group_ids, query_params, **kwargs)
 
 
 class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
@@ -547,19 +661,23 @@ class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
         self,
         environment_func=None,
         stats_period=None,
+        stats_period_start=None,
+        stats_period_end=None,
         matching_event_id=None,
         matching_event_environment=None,
     ):
         super(StreamGroupSerializer, self).__init__(environment_func)
 
         if stats_period is not None:
-            assert stats_period in self.STATS_PERIOD_CHOICES
+            assert stats_period in self.STATS_PERIOD_CHOICES or stats_period == "auto"
 
         self.stats_period = stats_period
+        self.stats_period_start = stats_period_start
+        self.stats_period_end = stats_period_end
         self.matching_event_id = matching_event_id
         self.matching_event_environment = matching_event_environment
 
-    def query_tsdb(self, group_ids, query_params):
+    def query_tsdb(self, group_ids, query_params, **kwargs):
         try:
             environment = self.environment_func()
         except Environment.DoesNotExist:
@@ -619,40 +737,99 @@ class SharedGroupSerializer(GroupSerializer):
 
 
 class GroupSerializerSnuba(GroupSerializerBase):
-    def __init__(self, environment_ids=None, start=None, end=None):
-        self.environment_ids = environment_ids
-        self.start = start
-        self.end = end
+    skip_snuba_fields = {
+        "query",
+        "status",
+        "bookmarked_by",
+        "assigned_to",
+        "unassigned",
+        "subscribed_by",
+        "active_at",
+        "first_release",
+        "first_seen",
+        "last_seen",
+        "times_seen",
+        "date",  # We merge this with start/end, so don't want to include it as its own
+        # condition
+    }
 
-    def _get_seen_stats(self, item_list, user):
+    def __init__(self, environment_ids=None, start=None, end=None, search_filters=None):
+        from sentry.search.snuba.executors import get_search_filter
+
+        self.environment_ids = environment_ids
+
+        # XXX: We copy this logic from `PostgresSnubaQueryExecutor.query`. Ideally we
+        # should try and encapsulate this logic, but if you're changing this, change it
+        # there as well.
+        self.start = None
+        start_params = [_f for _f in [start, get_search_filter(search_filters, "date", ">")] if _f]
+        if start_params:
+            self.start = max([_f for _f in start_params if _f])
+
+        self.end = None
+        end_params = [_f for _f in [end, get_search_filter(search_filters, "date", "<")] if _f]
+        if end_params:
+            self.end = min(end_params)
+
+        self.conditions = (
+            [
+                convert_search_filter_to_snuba_query(search_filter)
+                for search_filter in search_filters
+                if search_filter.key.name not in self.skip_snuba_fields
+            ]
+            if search_filters is not None
+            else []
+        )
+
+    def _execute_seen_stats_query(
+        self, item_list, start=None, end=None, conditions=None, environment_ids=None
+    ):
         project_ids = list(set([item.project_id for item in item_list]))
         group_ids = [item.id for item in item_list]
-        user_counts = tagstore.get_groups_user_counts(
-            project_ids,
-            group_ids,
-            environment_ids=self.environment_ids,
-            start=self.start,
-            end=self.end,
+        aggregations = [
+            ["count()", "", "times_seen"],
+            ["min", "timestamp", "first_seen"],
+            ["max", "timestamp", "last_seen"],
+            ["uniq", "tags[sentry:user]", "count"],
+        ]
+        filters = {"project_id": project_ids, "group_id": group_ids}
+        if self.environment_ids:
+            filters["environment"] = self.environment_ids
+        result = snuba.aliased_query(
+            dataset=snuba.Dataset.Events,
+            start=start,
+            end=end,
+            groupby=["group_id"],
+            conditions=conditions,
+            filter_keys=filters,
+            aggregations=aggregations,
+            referrer="serializers.GroupSerializerSnuba._execute_seen_stats_query",
         )
-
-        seen_data = tagstore.get_group_seen_values_for_environments(
-            project_ids, group_ids, self.environment_ids, start=self.start, end=self.end
-        )
+        seen_data = {
+            issue["group_id"]: fix_tag_value_data(
+                dict(filter(lambda key: key[0] != "group_id", six.iteritems(issue)))
+            )
+            for issue in result["data"]
+        }
+        user_counts = {item_id: value["count"] for item_id, value in seen_data.items()}
         last_seen = {item_id: value["last_seen"] for item_id, value in seen_data.items()}
-        if not self.environment_ids:
-            first_seen = {item.id: item.first_seen for item in item_list}
-            times_seen = {item.id: item.times_seen for item in item_list}
-        else:
-            first_seen = {
-                ge["group_id"]: ge["first_seen__min"]
-                for ge in GroupEnvironment.objects.filter(
-                    group_id__in=[item.id for item in item_list],
-                    environment_id__in=self.environment_ids,
-                )
-                .values("group_id")
-                .annotate(Min("first_seen"))
-            }
+        if start or end or conditions:
+            first_seen = {item_id: value["first_seen"] for item_id, value in seen_data.items()}
             times_seen = {item_id: value["times_seen"] for item_id, value in seen_data.items()}
+        else:
+            if environment_ids:
+                first_seen = {
+                    ge["group_id"]: ge["first_seen__min"]
+                    for ge in GroupEnvironment.objects.filter(
+                        group_id__in=[item.id for item in item_list],
+                        environment_id__in=environment_ids,
+                    )
+                    .values("group_id")
+                    .annotate(Min("first_seen"))
+                }
+            else:
+                first_seen = {item.id: item.first_seen for item in item_list}
+            times_seen = {item.id: item.times_seen for item in item_list}
 
         attrs = {}
         for item in item_list:
@@ -662,34 +839,98 @@ class GroupSerializerSnuba(GroupSerializerBase):
                 "last_seen": last_seen.get(item.id),
                 "user_count": user_counts.get(item.id, 0),
             }
-
         return attrs
+
+    def _get_seen_stats(self, item_list, user):
+        return self._execute_seen_stats_query(
+            item_list=item_list,
+            start=self.start,
+            end=self.end,
+            conditions=self.conditions,
+            environment_ids=self.environment_ids,
+        )
 
 
 class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
-    def __init__(self, environment_ids=None, stats_period=None, matching_event_id=None):
-        super(StreamGroupSerializerSnuba, self).__init__(environment_ids)
+    def __init__(
+        self,
+        environment_ids=None,
+        stats_period=None,
+        stats_period_start=None,
+        stats_period_end=None,
+        matching_event_id=None,
+        start=None,
+        end=None,
+        search_filters=None,
+        has_dynamic_issue_counts=False,
+    ):
+        super(StreamGroupSerializerSnuba, self).__init__(
+            environment_ids, start, end, search_filters
+        )
 
         if stats_period is not None:
-            assert stats_period in self.STATS_PERIOD_CHOICES
+            assert stats_period in self.STATS_PERIOD_CHOICES or (
+                stats_period == "auto" and stats_period_start and stats_period_end
+            )
 
         self.stats_period = stats_period
+        self.stats_period_start = stats_period_start
+        self.stats_period_end = stats_period_end
         self.matching_event_id = matching_event_id
+        self.has_dynamic_issue_counts = has_dynamic_issue_counts
 
-    def query_tsdb(self, group_ids, query_params):
+    def _get_seen_stats(self, item_list, user):
+        partial_execute_seen_stats_query = functools.partial(
+            self._execute_seen_stats_query,
+            item_list=item_list,
+            environment_ids=self.environment_ids,
+            start=self.start,
+            end=self.end,
+        )
+        time_range_result = partial_execute_seen_stats_query()
+        if self.has_dynamic_issue_counts:
+            filtered_result = (
+                partial_execute_seen_stats_query(conditions=self.conditions)
+                if self.conditions
+                else None
+            )
+            lifetime_result = (
+                partial_execute_seen_stats_query(start=None, end=None)
+                if self.start or self.end
+                else time_range_result
+            )
+            for item in item_list:
+                time_range_result[item].update(
+                    {
+                        "filtered": filtered_result.get(item) if self.conditions else None,
+                        "lifetime": lifetime_result.get(item),
+                    }
+                )
+        return time_range_result
+
+    def query_tsdb(self, group_ids, query_params, conditions=None, environment_ids=None, **kwargs):
         return snuba_tsdb.get_range(
             model=snuba_tsdb.models.group,
             keys=group_ids,
-            environment_ids=self.environment_ids,
+            environment_ids=environment_ids,
+            conditions=conditions,
             **query_params
         )
 
     def get_attrs(self, item_list, user):
         attrs = super(StreamGroupSerializerSnuba, self).get_attrs(item_list, user)
-
         if self.stats_period:
-            stats = self.get_stats(item_list, user)
+            partial_get_stats = functools.partial(
+                self.get_stats, item_list=item_list, user=user, environment_ids=self.environment_ids
+            )
+            stats = partial_get_stats()
+            if self.has_dynamic_issue_counts:
+                filtered_stats = (
+                    partial_get_stats(conditions=self.conditions) if self.conditions else None
+                )
             for item in item_list:
+                if self.has_dynamic_issue_counts and self.conditions:
+                    attrs[item].update({"filtered_stats": filtered_stats[item.id]})
                 attrs[item].update({"stats": stats[item.id]})
 
         return attrs
@@ -702,5 +943,19 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
 
         if self.matching_event_id:
             result["matchingEventId"] = self.matching_event_id
+
+        if self.has_dynamic_issue_counts:
+            result["lifetime"] = self._convert_seen_stats(attrs["lifetime"])
+            if self.stats_period:
+                result["lifetime"].update({"stats": None})  # Not needed in current implementation
+
+            if self.conditions:
+                result["filtered"] = self._convert_seen_stats(attrs["filtered"])
+                if self.stats_period:
+                    result["filtered"].update(
+                        {"stats": {self.stats_period: attrs["filtered_stats"]}}
+                    )
+            else:
+                result["filtered"] = None
 
         return result

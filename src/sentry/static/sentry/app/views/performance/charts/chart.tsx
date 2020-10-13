@@ -7,6 +7,7 @@ import {Series} from 'app/types/echarts';
 import AreaChart from 'app/components/charts/areaChart';
 import ChartZoom from 'app/components/charts/chartZoom';
 import {aggregateOutputType} from 'app/utils/discover/fields';
+import {tooltipFormatter, axisLabelFormatter} from 'app/utils/discover/charts';
 import theme from 'app/utils/theme';
 
 type Props = {
@@ -32,7 +33,7 @@ function computeAxisMax(data) {
   const power = Math.log10(maxValue);
   const magnitude = min([max([10 ** (power - Math.floor(power)), 0]), 10]) as number;
 
-  let scale;
+  let scale: number;
   if (magnitude <= 2.5) {
     scale = 0.2;
   } else if (magnitude <= 5) {
@@ -98,11 +99,23 @@ class Chart extends React.Component<Props> {
           gridIndex: 0,
           scale: true,
           max: dataMax,
+          axisLabel: {
+            color: theme.gray400,
+            formatter(value: number) {
+              return axisLabelFormatter(value, data[0].seriesName);
+            },
+          },
         },
         {
           gridIndex: 1,
           scale: true,
           max: dataMax,
+          axisLabel: {
+            color: theme.gray400,
+            formatter(value: number) {
+              return axisLabelFormatter(value, data[1].seriesName);
+            },
+          },
         },
       ],
       utc,
@@ -110,7 +123,8 @@ class Chart extends React.Component<Props> {
       showTimeInTooltip: true,
       colors: [colors[0], colors[1]],
       tooltip: {
-        nameFormatter(value) {
+        valueFormatter: tooltipFormatter,
+        nameFormatter(value: string) {
           return value === 'epm()' ? 'tpm()' : value;
         },
       },

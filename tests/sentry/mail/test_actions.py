@@ -9,6 +9,7 @@ from sentry.testutils import TestCase
 from sentry.testutils.cases import RuleTestCase
 from sentry.tasks.post_process import post_process_group
 from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils.helpers.eventprocessing import write_event_to_cache
 
 
 class NotifyEmailFormTest(TestCase):
@@ -97,7 +98,7 @@ class NotifyEmailTest(RuleTestCase):
 
     def test_simple(self):
         event = self.get_event()
-        rule = self.get_rule()
+        rule = self.get_rule(data={"targetType": "IssueOwners"})
 
         results = list(rule.after(event=event, state=self.get_state()))
         assert len(results) == 1
@@ -128,7 +129,11 @@ class NotifyEmailTest(RuleTestCase):
 
         with self.tasks():
             post_process_group(
-                event=event, is_new=True, is_regression=False, is_new_group_environment=False
+                event=event,
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=False,
+                cache_key=write_event_to_cache(event),
             )
 
         assert len(mail.outbox) == 1

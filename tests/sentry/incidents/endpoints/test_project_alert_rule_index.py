@@ -1,17 +1,18 @@
 from __future__ import absolute_import
 
 import six
-import json
 import requests
 import pytz
 
 from exam import fixture
 from freezegun import freeze_time
 
+from sentry.utils import json
 from sentry.api.serializers import serialize
 from sentry.incidents.models import AlertRule
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils import TestCase, APITestCase
+from sentry.testutils import APITestCase
+from sentry.snuba.models import QueryDatasets
 from tests.sentry.api.serializers.test_alert_rule import BaseAlertRuleSerializerTest
 
 
@@ -42,6 +43,19 @@ class AlertRuleListEndpointTest(APITestCase):
             resp = self.get_valid_response(self.organization.slug, self.project.slug)
 
         assert resp.data == serialize([alert_rule])
+
+    def test_no_perf_alerts(self):
+        self.create_team(organization=self.organization, members=[self.user])
+        alert_rule = self.create_alert_rule()
+        perf_alert_rule = self.create_alert_rule(query="p95", dataset=QueryDatasets.TRANSACTIONS)
+        self.login_as(self.user)
+        with self.feature("organizations:incidents"):
+            resp = self.get_valid_response(self.organization.slug, self.project.slug)
+            assert resp.data == serialize([alert_rule])
+
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            resp = self.get_valid_response(self.organization.slug, self.project.slug)
+            assert resp.data == serialize([perf_alert_rule, alert_rule])
 
     def test_no_feature(self):
         self.create_team(organization=self.organization, members=[self.user])
@@ -76,12 +90,12 @@ class AlertRuleCreateEndpointTest(APITestCase):
             "aggregate": "count()",
             "query": "",
             "timeWindow": "300",
+            "resolveThreshold": 100,
+            "thresholdType": 0,
             "triggers": [
                 {
                     "label": "critical",
                     "alertThreshold": 200,
-                    "resolveThreshold": 100,
-                    "thresholdType": 0,
                     "actions": [
                         {"type": "email", "targetType": "team", "targetIdentifier": self.team.id}
                     ],
@@ -89,8 +103,6 @@ class AlertRuleCreateEndpointTest(APITestCase):
                 {
                     "label": "warning",
                     "alertThreshold": 150,
-                    "resolveThreshold": 100,
-                    "thresholdType": 0,
                     "actions": [
                         {"type": "email", "targetType": "team", "targetIdentifier": self.team.id},
                         {"type": "email", "targetType": "user", "targetIdentifier": self.user.id},
@@ -100,7 +112,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
             "projects": [self.project.slug],
             "name": "JustAValidTestRule",
         }
-        with self.feature("organizations:incidents"):
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
             resp = self.get_valid_response(
                 self.organization.slug, self.project.slug, status_code=201, **valid_alert_rule
             )
@@ -125,7 +137,22 @@ class AlertRuleCreateEndpointTest(APITestCase):
         assert resp.status_code == 403
 
 
-class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, TestCase):
+class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, APITestCase):
+    endpoint = "sentry-api-0-project-combined-rules"
+
+    def test_no_perf_alerts(self):
+        self.create_team(organization=self.organization, members=[self.user])
+        self.create_alert_rule()
+        perf_alert_rule = self.create_alert_rule(query="p95", dataset=QueryDatasets.TRANSACTIONS)
+        self.login_as(self.user)
+        with self.feature("organizations:incidents"):
+            resp = self.get_valid_response(self.organization.slug, self.project.slug)
+            assert perf_alert_rule.id not in [x["id"] for x in list(resp.data)]
+
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            resp = self.get_valid_response(self.organization.slug, self.project.slug)
+            assert perf_alert_rule.id in [int(x["id"]) for x in list(resp.data)]
+
     def setup_project_and_rules(self):
         self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
         self.team = self.create_team(organization=self.org, name="Mariachi Band")
@@ -157,7 +184,7 @@ class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, TestCase
 
     def test_invalid_limit(self):
         self.setup_project_and_rules()
-        with self.feature("organizations:incidents"):
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
             request_data = {"per_page": "notaninteger"}
             response = self.client.get(
                 path=self.combined_rules_url, data=request_data, content_type="application/json"
@@ -167,7 +194,7 @@ class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, TestCase
     def test_limit_higher_than_results_no_cursor(self):
         self.setup_project_and_rules()
         # Test limit above result count (which is 4), no cursor.
-        with self.feature("organizations:incidents"):
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
             request_data = {"per_page": "5"}
             response = self.client.get(
                 path=self.combined_rules_url, data=request_data, content_type="application/json"
@@ -185,7 +212,7 @@ class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, TestCase
         self.setup_project_and_rules()
 
         # Test Limit as 1, no cursor:
-        with self.feature("organizations:incidents"):
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
             request_data = {"per_page": "1"}
             response = self.client.get(
                 path=self.combined_rules_url, data=request_data, content_type="application/json"
@@ -202,7 +229,7 @@ class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, TestCase
         next_cursor = links[1]["cursor"]
 
         # Test Limit as 1, next page of previous request:
-        with self.feature("organizations:incidents"):
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
             request_data = {"cursor": next_cursor, "per_page": "1"}
             response = self.client.get(
                 path=self.combined_rules_url, data=request_data, content_type="application/json"
@@ -217,7 +244,7 @@ class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, TestCase
         self.setup_project_and_rules()
 
         # Test Limit as 2, no cursor:
-        with self.feature("organizations:incidents"):
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
             request_data = {"per_page": "2"}
             response = self.client.get(
                 path=self.combined_rules_url, data=request_data, content_type="application/json"
@@ -235,7 +262,7 @@ class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, TestCase
         )
         next_cursor = links[1]["cursor"]
         # Test Limit 2, next page of previous request:
-        with self.feature("organizations:incidents"):
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
             request_data = {"cursor": next_cursor, "per_page": "2"}
             response = self.client.get(
                 path=self.combined_rules_url, data=request_data, content_type="application/json"
@@ -253,7 +280,7 @@ class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, TestCase
         next_cursor = links[1]["cursor"]
 
         # Test Limit 2, next page of previous request - should get no results since there are only 4 total:
-        with self.feature("organizations:incidents"):
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
             request_data = {"cursor": next_cursor, "per_page": "2"}
             response = self.client.get(
                 path=self.combined_rules_url, data=request_data, content_type="application/json"
@@ -275,7 +302,7 @@ class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, TestCase
         )
         self.three_alert_rule = self.create_alert_rule(projects=self.projects)
 
-        with self.feature("organizations:incidents"):
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
             request_data = {"per_page": "2"}
             response = self.client.get(
                 path=self.combined_rules_url, data=request_data, content_type="application/json"
@@ -293,7 +320,7 @@ class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, TestCase
         next_cursor = links[1]["cursor"]
         assert next_cursor.split(":")[1] == "1"  # Assert offset is properly calculated.
 
-        with self.feature("organizations:incidents"):
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
             request_data = {"cursor": next_cursor, "per_page": "2"}
             response = self.client.get(
                 path=self.combined_rules_url, data=request_data, content_type="application/json"

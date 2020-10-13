@@ -8,8 +8,9 @@ import {defined, OmitHtmlDivProps} from 'app/utils';
 import space from 'app/styles/space';
 import Count from 'app/components/count';
 import Tooltip from 'app/components/tooltip';
-import {TableDataRow} from 'app/views/eventsV2/table/types';
+import {TableDataRow} from 'app/utils/discover/discoverQuery';
 import {IconChevron, IconWarning} from 'app/icons';
+import globalTheme from 'app/utils/theme';
 
 import {
   toPercent,
@@ -30,7 +31,7 @@ import {
   MINIMAP_SPAN_BAR_HEIGHT,
   NUM_OF_SPANS_FIT_IN_MINI_MAP,
 } from './header';
-import {SPAN_ROW_HEIGHT, SpanRow, zIndex} from './styles';
+import {SPAN_ROW_HEIGHT, SpanRow, zIndex, getHatchPattern} from './styles';
 import * as DividerHandlerManager from './dividerHandlerManager';
 import * as CursorGuideHandler from './cursorGuideHandler';
 import SpanDetail from './spanDetail';
@@ -145,7 +146,7 @@ const INTERSECTION_THRESHOLDS: Array<number> = [
 
 const TOGGLE_BUTTON_MARGIN_RIGHT = 16;
 const TOGGLE_BUTTON_MAX_WIDTH = 30;
-const TOGGLE_BORDER_BOX = TOGGLE_BUTTON_MAX_WIDTH + TOGGLE_BUTTON_MARGIN_RIGHT;
+export const TOGGLE_BORDER_BOX = TOGGLE_BUTTON_MAX_WIDTH + TOGGLE_BUTTON_MARGIN_RIGHT;
 const MARGIN_LEFT = 0;
 
 type DurationDisplay = 'left' | 'right' | 'inset';
@@ -169,6 +170,25 @@ const getDurationDisplay = ({
     return 'left';
   }
   return 'inset';
+};
+
+export const getBackgroundColor = ({
+  showStriping,
+  showDetail,
+  theme,
+}: {
+  showStriping?: boolean;
+  showDetail?: boolean;
+  theme: any;
+}) => {
+  if (!theme) {
+    return theme.white;
+  }
+
+  if (showDetail) {
+    return theme.gray800;
+  }
+  return showStriping ? theme.gray100 : theme.white;
 };
 
 type SpanBarProps = {
@@ -617,8 +637,9 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
           if (spanNumber > spanNumberToStopMoving) {
             // if the last span bar appears on the minimap, we do not want the minimap
             // to keep panning upwards
-            minimapSlider.style.top = `-${spanNumberToStopMoving *
-              MINIMAP_SPAN_BAR_HEIGHT}px`;
+            minimapSlider.style.top = `-${
+              spanNumberToStopMoving * MINIMAP_SPAN_BAR_HEIGHT
+            }px`;
             return;
           }
 
@@ -670,60 +691,44 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
   ) {
     if (this.state.showDetail) {
-      // we would like to hide the divider lines when the span details
-      // has been expanded
-      return null;
+      // Mock component to preserve layout spacing
+      return (
+        <DividerLine
+          style={{
+            position: 'relative',
+            backgroundColor: getBackgroundColor({
+              theme: globalTheme,
+              showDetail: true,
+            }),
+          }}
+        />
+      );
     }
 
-    const {
-      dividerPosition,
-      addDividerLineRef,
-      addGhostDividerLineRef,
-    } = dividerHandlerChildrenProps;
+    const {addDividerLineRef} = dividerHandlerChildrenProps;
 
-    // We display the ghost divider line for whenever the divider line is being dragged.
-    // The ghost divider line indicates the original position of the divider line
-    const ghostDivider = (
+    return (
       <DividerLine
-        ref={addGhostDividerLineRef()}
+        ref={addDividerLineRef()}
         style={{
-          left: toPercent(dividerPosition),
-          display: 'none',
+          position: 'relative',
         }}
+        onMouseEnter={() => {
+          dividerHandlerChildrenProps.setHover(true);
+        }}
+        onMouseLeave={() => {
+          dividerHandlerChildrenProps.setHover(false);
+        }}
+        onMouseOver={() => {
+          dividerHandlerChildrenProps.setHover(true);
+        }}
+        onMouseDown={dividerHandlerChildrenProps.onDragStart}
         onClick={event => {
-          // the ghost divider line should not be interactive.
           // we prevent the propagation of the clicks from this component to prevent
           // the span detail from being opened.
           event.stopPropagation();
         }}
       />
-    );
-
-    return (
-      <React.Fragment>
-        {ghostDivider}
-        <DividerLine
-          ref={addDividerLineRef()}
-          style={{
-            left: toPercent(dividerPosition),
-          }}
-          onMouseEnter={() => {
-            dividerHandlerChildrenProps.setHover(true);
-          }}
-          onMouseLeave={() => {
-            dividerHandlerChildrenProps.setHover(false);
-          }}
-          onMouseOver={() => {
-            dividerHandlerChildrenProps.setHover(true);
-          }}
-          onMouseDown={dividerHandlerChildrenProps.onDragStart}
-          onClick={event => {
-            // we prevent the propagation of the clicks from this component to prevent
-            // the span detail from being opened.
-            event.stopPropagation();
-          }}
-        />
-      </React.Fragment>
     );
   }
 
@@ -748,27 +753,34 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     const duration = Math.abs(endTimestamp - startTimestamp);
     const durationString = getHumanDuration(duration);
     const bounds = this.getBounds();
-    const {dividerPosition} = dividerHandlerChildrenProps;
+    const {dividerPosition, addGhostDividerLineRef} = dividerHandlerChildrenProps;
     const displaySpanBar = defined(bounds.left) && defined(bounds.width);
     const durationDisplay = getDurationDisplay(bounds);
 
     return (
-      <SpanRowCellContainer>
+      <SpanRowCellContainer showDetail={this.state.showDetail}>
         <SpanRowCell
+          data-type="span-row-cell"
           showDetail={this.state.showDetail}
           style={{
-            left: 0,
-            width: toPercent(dividerPosition),
+            width: `calc(${toPercent(dividerPosition)} - 0.5px)`,
+          }}
+          onClick={() => {
+            this.toggleDisplayDetail();
           }}
         >
           {this.renderTitle()}
         </SpanRowCell>
+        {this.renderDivider(dividerHandlerChildrenProps)}
         <SpanRowCell
+          data-type="span-row-cell"
           showDetail={this.state.showDetail}
           showStriping={spanNumber % 2 !== 0}
           style={{
-            left: toPercent(dividerPosition),
-            width: toPercent(1 - dividerPosition),
+            width: `calc(${toPercent(1 - dividerPosition)} - 0.5px)`,
+          }}
+          onClick={() => {
+            this.toggleDisplayDetail();
           }}
         >
           {displaySpanBar && (
@@ -792,7 +804,28 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
           )}
           {this.renderCursorGuide()}
         </SpanRowCell>
-        {this.renderDivider(dividerHandlerChildrenProps)}
+        {!this.state.showDetail && (
+          <DividerLineGhostContainer
+            style={{
+              width: `calc(${toPercent(dividerPosition)} + 0.5px)`,
+              display: 'none',
+            }}
+          >
+            <DividerLine
+              ref={addGhostDividerLineRef()}
+              style={{
+                right: 0,
+              }}
+              className="hovering"
+              onClick={event => {
+                // the ghost divider line should not be interactive.
+                // we prevent the propagation of the clicks from this component to prevent
+                // the span detail from being opened.
+                event.stopPropagation();
+              }}
+            />
+          </DividerLineGhostContainer>
+        )}
       </SpanRowCellContainer>
     );
   }
@@ -810,9 +843,6 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
         visible={isSpanVisible}
         showBorder={this.state.showDetail}
         data-test-id="span-row"
-        onClick={() => {
-          this.toggleDisplayDetail();
-        }}
       >
         <DividerHandlerManager.Consumer>
           {(
@@ -825,42 +855,31 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   }
 }
 
-const getBackgroundColor = ({
-  showStriping,
-  showDetail,
-  theme,
-}: {
-  showStriping?: boolean;
-  showDetail?: boolean;
-  theme: any;
-}) => {
-  if (!theme) {
-    return theme.white;
-  }
-
-  if (showDetail) {
-    return theme.gray800;
-  }
-  return showStriping ? theme.gray100 : theme.white;
-};
-
 type SpanRowCellProps = OmitHtmlDivProps<{
   showStriping?: boolean;
   showDetail?: boolean;
 }>;
 
-const SpanRowCell = styled('div')<SpanRowCellProps>`
-  position: absolute;
+export const SpanRowCell = styled('div')<SpanRowCellProps>`
+  position: relative;
   padding: ${space(0.5)} 1px;
   height: 100%;
   overflow: hidden;
   background-color: ${p => getBackgroundColor(p)};
+  transition: background-color 125ms ease-in-out;
   color: ${p => (p.showDetail ? p.theme.white : 'inherit')};
 `;
 
-const SpanRowCellContainer = styled('div')`
+export const SpanRowCellContainer = styled('div')<SpanRowCellProps>`
+  display: flex;
   position: relative;
   height: ${SPAN_ROW_HEIGHT}px;
+
+  user-select: none;
+
+  &:hover > div[data-type='span-row-cell'] {
+    background-color: ${p => (p.showDetail ? p.theme.gray800 : p.theme.gray200)};
+  }
 `;
 
 const CursorGuide = styled('div')`
@@ -877,23 +896,42 @@ export const DividerLine = styled('div')`
   position: absolute;
   height: 100%;
   width: 1px;
-  transform: translateX(-50%);
-  transition: all 125ms ease-in-out;
-  border-width: 0 2px;
-  border-color: rgba(0, 0, 0, 0);
-  border-style: solid;
-  box-sizing: content-box;
-  background-clip: content-box;
+  transition: background-color 125ms ease-in-out;
   z-index: ${zIndex.dividerLine};
+
+  /* enhanced hit-box */
+  &:after {
+    content: '';
+    z-index: -1;
+    position: absolute;
+    left: -2px;
+    top: 0;
+    width: 5px;
+    height: 100%;
+  }
 
   &.hovering {
     background-color: ${p => p.theme.gray800};
-    width: 2px;
-    cursor: col-resize;
+    width: 3px;
+    transform: translateX(-1px);
+    margin-right: -2px;
+
+    cursor: ew-resize;
+
+    &:after {
+      left: -2px;
+      width: 7px;
+    }
   }
 `;
 
-const SpanBarTitleContainer = styled('div')`
+export const DividerLineGhostContainer = styled('div')`
+  position: absolute;
+  width: 100%;
+  height: 100%;
+`;
+
+export const SpanBarTitleContainer = styled('div')`
   display: flex;
   align-items: center;
   height: 100%;
@@ -904,7 +942,7 @@ const SpanBarTitleContainer = styled('div')`
   user-select: none;
 `;
 
-const SpanBarTitle = styled('div')`
+export const SpanBarTitle = styled('div')`
   position: relative;
   height: 100%;
   font-size: ${p => p.theme.fontSizeSmall};
@@ -919,7 +957,7 @@ type TogglerTypes = OmitHtmlDivProps<{
   isLast?: boolean;
 }>;
 
-const SpanTreeTogglerContainer = styled('div')<TogglerTypes>`
+export const SpanTreeTogglerContainer = styled('div')<TogglerTypes>`
   position: relative;
   height: ${SPAN_ROW_HEIGHT}px;
   width: ${p => (p.hasToggler ? '40px' : '12px')};
@@ -931,7 +969,7 @@ const SpanTreeTogglerContainer = styled('div')<TogglerTypes>`
   align-items: center;
 `;
 
-const SpanTreeConnector = styled('div')<TogglerTypes & {orphanBranch: boolean}>`
+export const SpanTreeConnector = styled('div')<TogglerTypes & {orphanBranch: boolean}>`
   height: ${p => (p.isLast ? SPAN_ROW_HEIGHT / 2 : SPAN_ROW_HEIGHT)}px;
   width: 100%;
   border-left: 1px ${p => (p.orphanBranch ? 'dashed' : 'solid')}
@@ -962,7 +1000,7 @@ const SpanTreeConnector = styled('div')<TogglerTypes & {orphanBranch: boolean}>`
   }
 `;
 
-const ConnectorBar = styled('div')<{orphanBranch: boolean}>`
+export const ConnectorBar = styled('div')<{orphanBranch: boolean}>`
   height: 250%;
 
   border-left: 1px ${p => (p.orphanBranch ? 'dashed' : 'solid')}
@@ -1003,7 +1041,7 @@ type SpanTreeTogglerAndDivProps = OmitHtmlDivProps<{
   disabled: boolean;
 }>;
 
-const SpanTreeToggler = styled('div')<SpanTreeTogglerAndDivProps>`
+export const SpanTreeToggler = styled('div')<SpanTreeTogglerAndDivProps>`
   height: 16px;
   white-space: nowrap;
   min-width: 30px;
@@ -1062,25 +1100,14 @@ const DurationPill = styled('div')<{
   }
 `;
 
-const getHatchPattern = ({spanBarHatch}) => {
-  if (spanBarHatch === true) {
-    return `
-      background-image: linear-gradient(45deg, #dedae3 10%, #f4f2f7 10%, #f4f2f7 50%, #dedae3 50%, #dedae3 60%, #f4f2f7 60%, #f4f2f7 100%);
-      background-size: 6.5px 6.5px;
-  `;
-  }
-
-  return null;
-};
-
-const SpanBarRectangle = styled('div')<{spanBarHatch: boolean}>`
+export const SpanBarRectangle = styled('div')<{spanBarHatch: boolean}>`
   position: relative;
   height: 100%;
   min-width: 1px;
   user-select: none;
   transition: border-color 0.15s ease-in-out;
   border-right: 1px solid rgba(0, 0, 0, 0);
-  ${getHatchPattern}
+  ${p => getHatchPattern(p, '#dedae3', '#f4f2f7')}
 `;
 
 const StyledIconWarning = styled(IconWarning)`
@@ -1088,12 +1115,12 @@ const StyledIconWarning = styled(IconWarning)`
   margin-bottom: ${space(0.25)};
 `;
 
-const StyledIconChevron = styled(IconChevron)`
+export const StyledIconChevron = styled(IconChevron)`
   width: 7px;
   margin-left: ${space(0.25)};
 `;
 
-const OperationName = styled('span')<{spanErrors: TableDataRow[]}>`
+export const OperationName = styled('span')<{spanErrors: TableDataRow[]}>`
   color: ${p => (p.spanErrors.length ? p.theme.error : 'inherit')};
 `;
 

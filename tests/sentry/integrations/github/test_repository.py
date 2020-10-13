@@ -21,7 +21,7 @@ def stub_installation_token():
     ten_hours = datetime.datetime.utcnow() + datetime.timedelta(hours=10)
     responses.add(
         responses.POST,
-        "https://api.github.com/installations/654321/access_tokens",
+        "https://api.github.com/app/installations/654321/access_tokens",
         json={"token": "v1.install-token", "expires_at": ten_hours.strftime("%Y-%m-%dT%H:%M:%SZ")},
     )
 
@@ -215,7 +215,7 @@ class GitHubAppsProviderTest(PluginTestCase):
         assert responses.calls[0].response.status_code == 404
         assert (
             responses.calls[1].response.url
-            == u"https://api.github.com/installations/654321/access_tokens"
+            == u"https://api.github.com/app/installations/654321/access_tokens"
         )
         assert responses.calls[1].response.status_code == 200
         assert (

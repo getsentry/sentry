@@ -5,8 +5,7 @@ import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import InlineSvg from 'app/components/inlineSvg';
-import {IconLock, IconChevron, IconInfo, IconSettings} from 'app/icons';
+import {IconClose, IconLock, IconChevron, IconInfo, IconSettings} from 'app/icons';
 import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
@@ -91,7 +90,7 @@ class HeaderItem extends React.Component<Props> {
           </Hint>
         )}
         {hasSelected && !locked && allowClear && (
-          <StyledClose {...textColorProps} src="icon-close" onClick={this.handleClear} />
+          <StyledClose {...textColorProps} onClick={this.handleClear} />
         )}
         {settingsLink && (
           <SettingsIconLink to={settingsLink}>
@@ -157,6 +156,7 @@ const IconContainer = styled('span', {shouldForwardProp: isPropValid})<ColorProp
   color: ${getColor};
   margin-right: ${space(1.5)};
   display: flex;
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const Hint = styled('div')`
@@ -165,7 +165,7 @@ const Hint = styled('div')`
   margin-right: ${space(1)};
 `;
 
-const StyledClose = styled(InlineSvg, {shouldForwardProp: isPropValid})<ColorProps>`
+const StyledClose = styled(IconClose, {shouldForwardProp: isPropValid})<ColorProps>`
   color: ${getColor};
   height: ${space(1.5)};
   width: ${space(1.5)};

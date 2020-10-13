@@ -11,6 +11,7 @@ from django.utils import timezone
 
 from sentry import options
 from sentry.eventstore.models import Event as NewEvent
+from sentry.utils.dates import to_timestamp
 
 
 def backfill_eventstream(apps, schema_editor):
@@ -53,6 +54,10 @@ def backfill_eventstream(apps, schema_editor):
         for event in _events:
             event.project = projects.get(event.project_id)
             event.group = groups.get(event.group_id)
+            # When migrating old data from Sentry 9.0.0 to 9.1.2 to 10 in rapid succession, the event timestamp may be
+            # missing. This adds it back
+            if "timestamp" not in event.data.data:
+                event.data.data['timestamp'] = to_timestamp(event.datetime)
         eventstore.bind_nodes(_events, "data")
 
     if skip_backfill:
@@ -74,8 +79,8 @@ def backfill_eventstream(apps, schema_editor):
             project_id=e.project_id, event_id=e.event_id, group_id=e.group_id, data=e.data.data
         )
         primary_hash = event.get_primary_hash()
-        if event.project is None or event.group is None:
-            print("Skipped {} as group or project information is invalid.\n".format(event))
+        if event.project is None or event.group is None or len(event.data) == 0:
+            print("Skipped {} as group, project or node data information is invalid.\n".format(event))
             continue
 
         try:
@@ -93,7 +98,7 @@ def backfill_eventstream(apps, schema_editor):
             processed += 1
         except Exception as error:
             print(
-                "An error occured while trying to instert the following event: {}\n.----\n{}".format(
+                "An error occured while trying to migrate the following event: {}\n.----\n{}".format(
                     event, error
                 )
             )

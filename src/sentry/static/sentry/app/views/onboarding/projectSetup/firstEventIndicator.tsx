@@ -121,8 +121,6 @@ const ReceivedIndicator = styled(IconCheckmark)`
   color: #fff;
   background: ${p => p.theme.green400};
   border-radius: 50%;
-  height: 20px;
-  width: 20px;
   padding: 5px;
   margin: 0 2px;
 `;

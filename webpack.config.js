@@ -1,8 +1,8 @@
 /*eslint-env node*/
 /*eslint import/no-nodejs-modules:0 */
 const fs = require('fs');
-
 const path = require('path');
+
 const {CleanWebpackPlugin} = require('clean-webpack-plugin'); // installed via npm
 const webpack = require('webpack');
 const ExtractTextPlugin = require('mini-css-extract-plugin');
@@ -26,7 +26,6 @@ const IS_PRODUCTION = env.NODE_ENV === 'production';
 const IS_TEST = env.NODE_ENV === 'test' || env.TEST_SUITE;
 const IS_STORYBOOK = env.STORYBOOK_BUILD === '1';
 const IS_CI = !!env.CI || !!env.TRAVIS;
-const IS_PERCY = env.CI && !!env.PERCY_TOKEN && !!env.TRAVIS;
 const IS_DEPLOY_PREVIEW = !!env.NOW_GITHUB_DEPLOYMENT;
 const IS_UI_DEV_ONLY = !!env.SENTRY_UI_DEV_ONLY;
 const DEV_MODE = !(IS_PRODUCTION || IS_CI);
@@ -104,7 +103,7 @@ if (env.SENTRY_EXTRACT_TRANSLATIONS === '1') {
  *
  * A plugin is used to remove the locale chunks from the app entry's chunk
  * dependency list, so that our compiled bundle does not expect that *all*
- * locale chunks must be loadd
+ * locale chunks must be loaded
  */
 const localeCatalogPath = path.join(
   __dirname,
@@ -308,7 +307,6 @@ let appConfig = {
     new webpack.DefinePlugin({
       'process.env': {
         NODE_ENV: JSON.stringify(env.NODE_ENV),
-        IS_PERCY: JSON.stringify(IS_PERCY),
         IS_CI: JSON.stringify(IS_CI),
         DEPLOY_PREVIEW_CONFIG: JSON.stringify(DEPLOY_PREVIEW_CONFIG),
         EXPERIMENTAL_SPA: JSON.stringify(SENTRY_EXPERIMENTAL_SPA),
@@ -333,7 +331,7 @@ let appConfig = {
       ? [
           new ForkTsCheckerWebpackPlugin({
             eslint: TS_FORK_WITH_ESLINT,
-            tsconfig: path.resolve(__dirname, './tsconfig.json'),
+            tsconfig: path.resolve(__dirname, './config/tsconfig.build.json'),
           }),
         ]
       : []),
@@ -432,11 +430,18 @@ if (
   if (!IS_UI_DEV_ONLY) {
     // This proxies to local backend server
     const backendAddress = `http://localhost:${SENTRY_BACKEND_PORT}/`;
+    const relayAddress = 'http://127.0.0.1:7899';
 
     appConfig.devServer = {
       ...appConfig.devServer,
       publicPath: '/_webpack',
-      proxy: {'!/_webpack': backendAddress},
+      // syntax for matching is using https://www.npmjs.com/package/micromatch
+      proxy: {
+        '/api/store/**': relayAddress,
+        '/api/{1..9}*({0..9})/**': relayAddress,
+        '/api/0/relays/outcomes/': relayAddress,
+        '!/_webpack': backendAddress,
+      },
       before: app =>
         app.use((req, _res, next) => {
           req.url = req.url.replace(/^\/_static\/[^\/]+\/sentry\/dist/, '/_webpack');
@@ -452,8 +457,7 @@ if (
 // to a development index.html -- thus, completely separating the frontend
 // from serving any pages through the backend.
 //
-// THIS IS EXPERIMENTAL and has limitations (e.g. CSRF issues will stop you
-// from writing to the API).
+// THIS IS EXPERIMENTAL and has limitations (e.g. you can't use SSO)
 //
 // Various sentry pages still rely on django to serve html views.
 if (IS_UI_DEV_ONLY) {
@@ -469,6 +473,9 @@ if (IS_UI_DEV_ONLY) {
         target: 'https://sentry.io',
         secure: false,
         changeOrigin: true,
+        headers: {
+          Referer: 'https://sentry.io/',
+        },
       },
     ],
     historyApiFallback: {
@@ -511,7 +518,7 @@ const minificationPlugins = [
 
 if (IS_PRODUCTION) {
   // NOTE: can't do plugins.push(Array) because webpack/webpack#2217
-  minificationPlugins.forEach(function(plugin) {
+  minificationPlugins.forEach(function (plugin) {
     appConfig.plugins.push(plugin);
   });
 }

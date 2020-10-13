@@ -30,7 +30,42 @@ class SlackNotifyActionTest(RuleTestCase):
         assert form.cleaned_data["channel"] == expected_channel
 
     @responses.activate
-    def test_applies_correctly(self):
+    def test_upgrade_notice_workspace_app(self):
+        event = self.get_event()
+        rule = self.get_rule(data={"workspace": self.integration.id, "channel": "#my-channel"})
+
+        results = list(rule.after(event=event, state=self.get_state()))
+        assert len(results) == 1
+
+        responses.add(
+            method=responses.POST,
+            url="https://slack.com/api/chat.postMessage",
+            body='{"ok": true}',
+            status=200,
+            content_type="application/json",
+        )
+
+        # Trigger rule callback
+        results[0].callback(event, futures=[])
+        data = parse_qs(responses.calls[0].request.body)
+
+        assert "attachments" in data
+        attachments = json.loads(data["attachments"][0])
+
+        # all workspaces apps should have the upgrade notice
+        assert len(attachments) == 2
+        assert attachments[1]["title"] == event.title
+
+    @responses.activate
+    def test_no_upgrade_notice_bot_app(self):
+        self.integration.metadata.update(
+            {
+                "installation_type": "born_as_bot",
+                "access_token": "xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+            }
+        )
+        self.integration.save()
+
         event = self.get_event()
 
         rule = self.get_rule(data={"workspace": self.integration.id, "channel": "#my-channel"})
@@ -231,3 +266,16 @@ class SlackNotifyActionTest(RuleTestCase):
 
         assert not form.is_valid()
         assert len(form.errors) == 1
+
+    def test_channel_id_provided(self):
+        rule = self.get_rule(
+            data={
+                "workspace": self.integration.id,
+                "channel": "#my-channel",
+                "input_channel_id": "C2349874",
+                "tags": "",
+            }
+        )
+
+        form = rule.get_form_instance()
+        assert form.is_valid()

@@ -4,27 +4,28 @@ import {browserHistory} from 'react-router';
 import {Location} from 'history';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
-import * as Sentry from '@sentry/react';
 
 import {Client} from 'app/api';
 import {t} from 'app/locale';
-import {fetchTotalCount} from 'app/actionCreators/events';
 import {loadOrganizationTags} from 'app/actionCreators/tags';
 import {Organization, Project, GlobalSelection} from 'app/types';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import {PageContent} from 'app/styles/organization';
-import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
+import EventView from 'app/utils/discover/eventView';
 import {isAggregateField} from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
 import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
 
 import SummaryContent from './content';
+import {addRoutePerformanceContext, getTransactionName} from '../utils';
 
 type Props = {
   api: Client;
@@ -38,16 +39,18 @@ type Props = {
 
 type State = {
   eventView: EventView | undefined;
-  totalValues: number | null;
 };
+
+// Used to cast the totals request to numbers
+// as React.ReactText
+type TotalValues = Record<string, number>;
 
 class TransactionSummary extends React.Component<Props, State> {
   state: State = {
     eventView: generateSummaryEventView(
       this.props.location,
-      getTransactionName(this.props)
+      getTransactionName(this.props.location)
     ),
-    totalValues: null,
   };
 
   static getDerivedStateFromProps(nextProps: Props, prevState: State): State {
@@ -55,59 +58,31 @@ class TransactionSummary extends React.Component<Props, State> {
       ...prevState,
       eventView: generateSummaryEventView(
         nextProps.location,
-        getTransactionName(nextProps)
+        getTransactionName(nextProps.location)
       ),
     };
   }
 
   componentDidMount() {
     const {api, organization, selection} = this.props;
-    this.fetchTotalCount();
     loadOrganizationTags(api, organization.slug, selection);
+    addRoutePerformanceContext(selection);
   }
 
-  componentDidUpdate(prevProps: Props, prevState: State) {
-    const {api, organization, location, selection} = this.props;
-    const {eventView} = this.state;
-
-    if (eventView && prevState.eventView) {
-      const currentQuery = eventView.getEventsAPIPayload(location);
-      const prevQuery = prevState.eventView.getEventsAPIPayload(prevProps.location);
-      if (!isAPIPayloadSimilar(currentQuery, prevQuery)) {
-        this.fetchTotalCount();
-      }
-    }
+  componentDidUpdate(prevProps: Props) {
+    const {api, organization, selection} = this.props;
 
     if (
       !isEqual(prevProps.selection.projects, selection.projects) ||
       !isEqual(prevProps.selection.datetime, selection.datetime)
     ) {
       loadOrganizationTags(api, organization.slug, selection);
-    }
-  }
-
-  async fetchTotalCount() {
-    const {api, organization, location} = this.props;
-    const {eventView} = this.state;
-    if (!eventView || !eventView.isValid()) {
-      return;
-    }
-
-    this.setState({totalValues: null});
-    try {
-      const totals = await fetchTotalCount(
-        api,
-        organization.slug,
-        eventView.getEventsAPIPayload(location)
-      );
-      this.setState({totalValues: totals});
-    } catch (err) {
-      Sentry.captureException(err);
+      addRoutePerformanceContext(selection);
     }
   }
 
   getDocumentTitle(): string {
-    const name = getTransactionName(this.props);
+    const name = getTransactionName(this.props.location);
 
     const hasTransactionName = typeof name === 'string' && String(name).trim().length > 0;
 
@@ -118,10 +93,48 @@ class TransactionSummary extends React.Component<Props, State> {
     return [t('Summary'), t('Performance')].join(' - ');
   }
 
+  getTotalsEventView(
+    organization: Organization,
+    eventView: EventView
+  ): [EventView, TotalValues] {
+    const threshold = organization.apdexThreshold.toString();
+
+    const totalsView = eventView.withColumns([
+      {
+        kind: 'function',
+        function: ['apdex', threshold, undefined],
+      },
+      {
+        kind: 'function',
+        function: ['user_misery', threshold, undefined],
+      },
+      {
+        kind: 'function',
+        function: ['p95', '', undefined],
+      },
+      {
+        kind: 'function',
+        function: ['count', '', undefined],
+      },
+      {
+        kind: 'function',
+        function: ['count_unique', 'user', undefined],
+      },
+    ]);
+    const emptyValues = {
+      count: 0,
+      [`apdex_${threshold}`]: 0,
+      [`user_misery_${threshold}`]: 0,
+      p95: 0,
+      count_unique_user: 0,
+    };
+    return [totalsView, emptyValues];
+  }
+
   render() {
     const {organization, location} = this.props;
-    const {eventView, totalValues} = this.state;
-    const transactionName = getTransactionName(this.props);
+    const {eventView} = this.state;
+    const transactionName = getTransactionName(location);
     if (!eventView || transactionName === undefined) {
       // If there is no transaction name, redirect to the Performance landing page
 
@@ -133,19 +146,36 @@ class TransactionSummary extends React.Component<Props, State> {
       });
       return null;
     }
+    const [totalsView, emptyValues] = this.getTotalsEventView(organization, eventView);
 
     return (
       <SentryDocumentTitle title={this.getDocumentTitle()} objSlug={organization.slug}>
         <GlobalSelectionHeader>
           <StyledPageContent>
             <LightWeightNoProjectMessage organization={organization}>
-              <SummaryContent
+              <DiscoverQuery
+                eventView={totalsView}
+                orgSlug={organization.slug}
                 location={location}
-                organization={organization}
-                eventView={eventView}
-                transactionName={transactionName}
-                totalValues={totalValues}
-              />
+              >
+                {({tableData, isLoading}) => {
+                  if (isLoading) {
+                    return <LoadingIndicator />;
+                  }
+                  const totals = (tableData && tableData.data.length
+                    ? tableData.data[0]
+                    : emptyValues) as TotalValues;
+                  return (
+                    <SummaryContent
+                      location={location}
+                      organization={organization}
+                      eventView={eventView}
+                      transactionName={transactionName}
+                      totalValues={totals}
+                    />
+                  );
+                }}
+              </DiscoverQuery>
             </LightWeightNoProjectMessage>
           </StyledPageContent>
         </GlobalSelectionHeader>
@@ -158,13 +188,6 @@ const StyledPageContent = styled(PageContent)`
   padding: 0;
 `;
 
-function getTransactionName(props: Props): string | undefined {
-  const {location} = props;
-  const {transaction} = location.query;
-
-  return decodeScalar(transaction);
-}
-
 function generateSummaryEventView(
   location: Location,
   transactionName: string | undefined
@@ -175,23 +198,26 @@ function generateSummaryEventView(
   // Use the user supplied query but overwrite any transaction or event type
   // conditions they applied.
   const query = decodeScalar(location.query.query) || '';
-  const conditions = Object.assign(tokenizeSearch(query), {
-    'event.type': ['transaction'],
-    transaction: [transactionName],
-  });
+  const conditions = tokenizeSearch(query);
+  conditions
+    .setTagValues('event.type', ['transaction'])
+    .setTagValues('transaction', [transactionName]);
 
-  Object.keys(conditions).forEach(field => {
-    if (isAggregateField(field)) delete conditions[field];
+  Object.keys(conditions.tagValues).forEach(field => {
+    if (isAggregateField(field)) conditions.removeTag(field);
   });
 
   // Handle duration filters from the latency chart
   if (location.query.startDuration || location.query.endDuration) {
-    conditions['transaction.duration'] = [
-      decodeScalar(location.query.startDuration),
-      decodeScalar(location.query.endDuration),
-    ]
-      .filter(item => item)
-      .map((item, index) => (index === 0 ? `>${item}` : `<${item}`));
+    conditions.setTagValues(
+      'transaction.duration',
+      [
+        decodeScalar(location.query.startDuration),
+        decodeScalar(location.query.endDuration),
+      ]
+        .filter(item => item)
+        .map((item, index) => (index === 0 ? `>${item}` : `<${item}`))
+    );
   }
 
   return EventView.fromNewQueryWithLocation(
@@ -199,7 +225,7 @@ function generateSummaryEventView(
       id: undefined,
       version: 2,
       name: transactionName,
-      fields: ['id', 'user', 'transaction.duration', 'timestamp'],
+      fields: ['id', 'user.display', 'transaction.duration', 'timestamp'],
       query: stringifyQueryObject(conditions),
       projects: [],
     },

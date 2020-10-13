@@ -26,6 +26,8 @@ from sentry.models import (
     Team,
     TeamStatus,
 )
+from sentry.utils import metrics, ratelimits
+
 
 ERR_NO_AUTH = "You cannot remove this member with an unauthenticated API request."
 ERR_INSUFFICIENT_ROLE = "You cannot remove a member who has more access than you."
@@ -33,6 +35,7 @@ ERR_INSUFFICIENT_SCOPE = "You are missing the member:admin scope."
 ERR_ONLY_OWNER = "You cannot remove the only remaining owner of the organization."
 ERR_UNINVITABLE = "You cannot send an invitation to a user who is already a full member."
 ERR_EXPIRED = "You cannot resend an expired invitation without regenerating the token."
+ERR_RATE_LIMITED = "You are being rate limited for too many invitations."
 
 
 def get_allowed_roles(request, organization, member=None):
@@ -160,6 +163,17 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
         # access level
         if result.get("reinvite"):
             if om.is_pending:
+                if ratelimits.for_organization_member_invite(
+                    organization=organization, email=om.email, user=request.user, auth=request.auth,
+                ):
+                    metrics.incr(
+                        "member-invite.attempt",
+                        instance="rate_limited",
+                        skip_internal=True,
+                        sample_rate=1.0,
+                    )
+                    return Response({"detail": ERR_RATE_LIMITED}, status=429)
+
                 if result.get("regenerate"):
                     if request.access.has_scope("member:admin"):
                         om.regenerate_token()

@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import json
 from copy import deepcopy
 from uuid import uuid4
 
@@ -18,7 +17,6 @@ from sentry.incidents.action_handlers import (
 )
 from sentry.incidents.logic import create_alert_rule_trigger, create_alert_rule_trigger_action
 from sentry.incidents.models import (
-    AlertRuleThresholdType,
     AlertRuleTriggerAction,
     Incident,
     IncidentStatus,
@@ -27,6 +25,7 @@ from sentry.incidents.models import (
 )
 from sentry.incidents.tasks import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.snuba.query_subscription_consumer import QuerySubscriptionConsumer, subscriber_registry
+from sentry.utils import json
 
 from sentry.testutils import TestCase
 
@@ -55,11 +54,14 @@ class HandleSnubaQueryUpdateTest(TestCase):
     def rule(self):
         with self.tasks():
             rule = self.create_alert_rule(
-                name="some rule", query="", aggregate="count()", time_window=1, threshold_period=1
+                name="some rule",
+                query="",
+                aggregate="count()",
+                time_window=1,
+                threshold_period=1,
+                resolve_threshold=10,
             )
-            trigger = create_alert_rule_trigger(
-                rule, "hi", AlertRuleThresholdType.ABOVE, 100, resolve_threshold=10
-            )
+            trigger = create_alert_rule_trigger(rule, "hi", 100)
             create_alert_rule_trigger_action(
                 trigger,
                 AlertRuleTriggerAction.Type.EMAIL,
@@ -120,7 +122,7 @@ class HandleSnubaQueryUpdateTest(TestCase):
             ).exclude(status=IncidentStatus.CLOSED.value)
 
         consumer = QuerySubscriptionConsumer("hi", topic=self.topic)
-        with self.feature(["organizations:incidents", "organizations:incidents-performance"]):
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
             with self.assertChanges(
                 lambda: active_incident().exists(), before=False, after=True
             ), self.tasks():

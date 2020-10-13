@@ -9,11 +9,13 @@ export function transactionSummaryRouteWithQuery({
   transaction,
   projectID,
   query,
+  unselectedSeries = 'p100()',
 }: {
   orgSlug: string;
   transaction: string;
-  projectID?: string | string[];
   query: Query;
+  unselectedSeries?: string | string[];
+  projectID?: string | string[];
 }) {
   const pathname = generateTransactionSummaryRoute({
     orgSlug,
@@ -29,6 +31,7 @@ export function transactionSummaryRouteWithQuery({
       start: query.start,
       end: query.end,
       query: query.query,
+      unselectedSeries,
     },
   };
 }

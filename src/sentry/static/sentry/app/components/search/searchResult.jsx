@@ -8,6 +8,7 @@ import {IconInput, IconLink, IconSettings} from 'app/icons';
 import PluginIcon from 'app/plugins/components/pluginIcon';
 import SettingsSearch from 'app/views/settings/components/settingsSearch';
 import highlightFuseMatches from 'app/utils/highlightFuseMatches';
+import space from 'app/styles/space';
 
 class SearchResult extends React.Component {
   static propTypes = {
@@ -45,13 +46,16 @@ class SearchResult extends React.Component {
         'issue',
         'event',
         'integration',
-        'doc',
-        'faq',
+        'help-docs',
+        'help-develop',
+        'help-help-center',
+        'help-blog',
       ]),
 
       resultIcon: PropTypes.node,
       title: PropTypes.node,
       description: PropTypes.node,
+      extra: PropTypes.node,
       model: PropTypes.object,
     }),
     matches: PropTypes.array,
@@ -59,7 +63,7 @@ class SearchResult extends React.Component {
 
   renderContent() {
     const {highlighted, item, matches, params} = this.props;
-    const {sourceType, model} = item;
+    const {sourceType, model, extra} = item;
     let {title, description} = item;
 
     if (matches) {
@@ -101,6 +105,7 @@ class SearchResult extends React.Component {
           <SearchTitle>{title}</SearchTitle>
         </div>
         {description && <SearchDetail>{description}</SearchDetail>}
+        {extra && <ExtraDetail>{extra}</ExtraDetail>}
       </React.Fragment>
     );
   }
@@ -159,6 +164,12 @@ const SearchDetail = styled('div')`
   opacity: 0.8;
 `;
 
+const ExtraDetail = styled('div')`
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.gray500};
+  margin-top: ${space(0.5)};
+`;
+
 const BadgeDetail = styled('div')`
   line-height: 1.3;
   color: ${p => (p.highlighted ? p.theme.purple500 : null)};
@@ -189,5 +200,5 @@ const HighlightMarker = styled('mark')`
   padding: 0;
   background: transparent;
   font-weight: bold;
-  color: inherit;
+  color: ${p => p.theme.pink400};
 `;

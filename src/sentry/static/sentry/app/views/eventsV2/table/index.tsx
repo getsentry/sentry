@@ -4,15 +4,16 @@ import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
 import {t} from 'app/locale';
-import {Organization, Tag} from 'app/types';
+import {Organization, TagCollection} from 'app/types';
 import {metric} from 'app/utils/analytics';
 import withApi from 'app/utils/withApi';
 import withTags from 'app/utils/withTags';
+import withMeasurements, {MeasurementCollection} from 'app/utils/withMeasurements';
 import Pagination from 'app/components/pagination';
 import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
+import {TableData} from 'app/utils/discover/discoverQuery';
 
 import TableView from './tableView';
-import {TableData} from './types';
 
 type TableProps = {
   api: Client;
@@ -20,7 +21,8 @@ type TableProps = {
   eventView: EventView;
   organization: Organization;
   showTags: boolean;
-  tags: {[key: string]: Tag};
+  tags: TagCollection;
+  measurements: MeasurementCollection;
   setError: (msg: string, code: number) => void;
   title: string;
   onChangeShowTags: () => void;
@@ -145,9 +147,10 @@ class Table extends React.PureComponent<TableProps, TableState> {
   };
 
   render() {
-    const {eventView, tags} = this.props;
+    const {eventView, tags, measurements} = this.props;
     const {pageLinks, tableData, isLoading, error} = this.state;
     const tagKeys = Object.values(tags).map(({key}) => key);
+    const measurementKeys = Object.values(measurements).map(({key}) => key);
 
     return (
       <Container>
@@ -158,6 +161,7 @@ class Table extends React.PureComponent<TableProps, TableState> {
           eventView={eventView}
           tableData={tableData}
           tagKeys={tagKeys}
+          measurementKeys={measurementKeys}
         />
         <Pagination pageLinks={pageLinks} />
       </Container>
@@ -165,7 +169,7 @@ class Table extends React.PureComponent<TableProps, TableState> {
   }
 }
 
-export default withApi(withTags(Table));
+export default withApi(withMeasurements(withTags(Table)));
 
 const Container = styled('div')`
   min-width: 0;

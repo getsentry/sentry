@@ -3,14 +3,13 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {css} from '@emotion/core';
 
-import InlineSvg from 'app/components/inlineSvg';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import space from 'app/styles/space';
 
 type Props = {
   title?: React.ReactNode;
   description?: React.ReactNode;
-  icon?: string | React.ReactNode;
+  icon?: React.ReactNode;
   action?: React.ReactElement;
   size?: 'large' | 'medium';
   leftAligned?: boolean;
@@ -30,11 +29,7 @@ const EmptyMessage = styled(
     ...props
   }: EmptyMessageProps) => (
     <div data-test-id="empty-message" {...props}>
-      {icon && (
-        <IconWrapper>
-          {typeof icon === 'string' ? <InlineSvg src={icon} size="32px" /> : icon}
-        </IconWrapper>
-      )}
+      {icon && <IconWrapper>{icon}</IconWrapper>}
       {title && <Title>{title}</Title>}
       {description && <Description>{description}</Description>}
       {children && <Description noMargin>{children}</Description>}
@@ -64,7 +59,7 @@ const EmptyMessage = styled(
 EmptyMessage.propTypes = {
   title: PropTypes.node,
   description: PropTypes.node,
-  icon: PropTypes.oneOfType([PropTypes.string, PropTypes.node]),
+  icon: PropTypes.node,
   action: PropTypes.element,
   // Currently only the `large` option changes the size - can add more size options as necessary
   size: PropTypes.oneOf(['large', 'medium']),
@@ -75,7 +70,7 @@ const IconWrapper = styled('div')`
   margin-bottom: ${space(1)};
 `;
 
-const Title = styled('h1')`
+const Title = styled('strong')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   margin-bottom: ${space(1)};
 `;

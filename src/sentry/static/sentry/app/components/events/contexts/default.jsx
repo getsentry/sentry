@@ -20,7 +20,7 @@ class DefaultContextType extends React.Component {
   }
 
   render() {
-    return <ContextBlock knownData={this.getKnownData()} alias={this.props.alias} />;
+    return <ContextBlock data={this.getKnownData()} alias={this.props.alias} />;
   }
 }
 

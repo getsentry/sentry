@@ -7,9 +7,7 @@ import getDynamicText from 'app/utils/getDynamicText';
 import BarChart from 'app/components/charts/barChart';
 import LineChart from 'app/components/charts/lineChart';
 import PageHeading from 'app/components/pageHeading';
-import {IconEdit, IconWarning} from 'app/icons';
-import Alert from 'app/components/alert';
-import Link from 'app/components/links/link';
+import {IconEdit} from 'app/icons';
 
 import {
   getChartData,
@@ -42,11 +40,10 @@ import {SavedQuery} from '../types';
 type ResultProps = {
   data: any;
   location: any;
-  discover2Url: string;
   savedQuery: SavedQuery | null; // Provided if it's a saved search
   onFetchPage: (nextOrPrev: string) => void;
   onToggleEdit: () => void;
-  utc: boolean;
+  utc: boolean | null;
 };
 
 type ResultState = {
@@ -204,7 +201,6 @@ class Result extends React.Component<ResultProps, ResultState> {
   render() {
     const {
       data: {baseQuery, byDayQuery},
-      discover2Url,
       savedQuery,
       onFetchPage,
       utc,
@@ -232,10 +228,6 @@ class Result extends React.Component<ResultProps, ResultState> {
           <HeadingContainer>
             {savedQuery ? this.renderSavedQueryHeader() : this.renderQueryResultHeader()}
           </HeadingContainer>
-          <Alert type="warning" icon={<IconWarning size="sm" />}>
-            This discover view is deprecated. Check out our new visualization and querying
-            capabilities in <Link to={discover2Url}>the new Discover</Link> today.
-          </Alert>
           {this.renderToggle()}
         </div>
         <ResultInnerContainer ref={this.setDimensions}>

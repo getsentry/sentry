@@ -12,7 +12,7 @@ import {getParams} from 'app/components/organizations/globalSelectionHeader/getP
 import {Panel} from 'app/components/panels';
 import getDynamicText from 'app/utils/getDynamicText';
 import EventView from 'app/utils/discover/eventView';
-import {DisplayModes} from 'app/utils/discover/types';
+import {TOP_N, DisplayModes} from 'app/utils/discover/types';
 import {decodeScalar} from 'app/utils/queryString';
 import withApi from 'app/utils/withApi';
 
@@ -45,21 +45,22 @@ class ResultsChart extends React.Component<ResultsChartProps> {
     const yAxisValue = eventView.getYAxis();
 
     const globalSelection = eventView.getGlobalSelection();
-    const start = globalSelection.start
-      ? getUtcToLocalDateObject(globalSelection.start)
+    const start = globalSelection.datetime.start
+      ? getUtcToLocalDateObject(globalSelection.datetime.start)
       : null;
 
-    const end = globalSelection.end ? getUtcToLocalDateObject(globalSelection.end) : null;
+    const end = globalSelection.datetime.end
+      ? getUtcToLocalDateObject(globalSelection.datetime.end)
+      : null;
 
     const {utc} = getParams(location.query);
     const apiPayload = eventView.getEventsAPIPayload(location);
+    const display = eventView.getDisplayMode();
     const isTopEvents =
-      eventView.display === DisplayModes.TOP5 ||
-      eventView.display === DisplayModes.DAILYTOP5;
-
-    const isDaily =
-      eventView.display === DisplayModes.DAILYTOP5 ||
-      eventView.display === DisplayModes.DAILY;
+      display === DisplayModes.TOP5 || display === DisplayModes.DAILYTOP5;
+    const isPeriod = display === DisplayModes.DEFAULT || display === DisplayModes.TOP5;
+    const isDaily = display === DisplayModes.DAILYTOP5 || display === DisplayModes.DAILY;
+    const isPrevious = display === DisplayModes.PREVIOUS;
 
     return (
       <React.Fragment>
@@ -72,17 +73,17 @@ class ResultsChart extends React.Component<ResultsChartProps> {
               organization={organization}
               showLegend
               yAxis={yAxisValue}
-              projects={globalSelection.project}
-              environments={globalSelection.environment}
+              projects={globalSelection.projects}
+              environments={globalSelection.environments}
               start={start}
               end={end}
-              period={globalSelection.statsPeriod}
-              disablePrevious={eventView.display !== DisplayModes.PREVIOUS}
-              disableReleases={eventView.display !== DisplayModes.RELEASES}
+              period={globalSelection.datetime.period}
+              disablePrevious={!isPrevious}
+              disableReleases={!isPeriod}
               field={isTopEvents ? apiPayload.field : undefined}
               interval={eventView.interval}
               showDaily={isDaily}
-              topEvents={isTopEvents ? 5 : undefined}
+              topEvents={isTopEvents ? TOP_N : undefined}
               orderby={isTopEvents ? decodeScalar(apiPayload.sort) : undefined}
               utc={utc === 'true'}
               confirmedQuery={confirmedQuery}

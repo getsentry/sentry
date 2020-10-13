@@ -1,5 +1,5 @@
-# This is the image to be run
-FROM python:2.7.16-slim-buster
+ARG PY_VER=2.7.16
+FROM python:${PY_VER}-slim-buster
 
 LABEL maintainer="oss@sentry.io"
 LABEL org.opencontainers.image.title="Sentry"
@@ -73,10 +73,6 @@ RUN set -x \
   && buildDeps="$buildDeps \
   libmaxminddb-dev \
   "\
-  # librabbitmq
-  && buildDeps="$buildDeps \
-  make \
-  " \
   # xmlsec
   && buildDeps="$buildDeps \
   libxmlsec1-dev \
@@ -85,10 +81,6 @@ RUN set -x \
   && apt-get update \
   && apt-get install -y --no-install-recommends $buildDeps \
   && pip install -r /tmp/dist/requirements.txt \
-  # Separate these due to https://git.io/fjyz6
-  # Otherwise librabbitmq will install the latest amqp version,
-  # violating kombu's amqp<2.0 constraint.
-  && pip install librabbitmq==1.6.1 \
   && mkdir /tmp/uwsgi-dogstatsd \
   && wget -O - https://github.com/eventbrite/uwsgi-dogstatsd/archive/filters-and-tags.tar.gz | \
   tar -xzf - -C /tmp/uwsgi-dogstatsd --strip-components=1 \
@@ -119,7 +111,6 @@ RUN set -x \
   \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/* \
-  && python -c 'import librabbitmq' \
   # Fully verify that the C extension is correctly installed, it unfortunately
   # requires a full check into maxminddb.extension.Reader
   && python -c 'import maxminddb.extension; maxminddb.extension.Reader' \

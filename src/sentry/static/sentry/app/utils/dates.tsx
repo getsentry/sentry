@@ -2,6 +2,7 @@ import moment from 'moment';
 
 import ConfigStore from 'app/stores/configStore';
 import {parseStatsPeriod} from 'app/components/organizations/globalSelectionHeader/getParams';
+import {DateString} from 'app/types';
 
 // TODO(billy): Move to TimeRangeSelector specific utils
 export const DEFAULT_DAY_START_TIME = '00:00:00';
@@ -53,10 +54,7 @@ export function getUserTimezone(): string {
  * Given a UTC date, return a Date object in local time
  */
 export function getUtcToLocalDateObject(date: moment.MomentInput): Date {
-  return moment
-    .utc(date)
-    .local()
-    .toDate();
+  return moment.utc(date).local().toDate();
 }
 
 /**
@@ -143,9 +141,7 @@ export function getPeriodAgo(
   period: moment.unitOfTime.DurationConstructor,
   unit: string
 ): object {
-  return moment()
-    .local()
-    .subtract(period, unit);
+  return moment().local().subtract(period, unit);
 }
 
 // Get the start of the day (midnight) for a period ago
@@ -209,6 +205,21 @@ export function parsePeriodToHours(str: string): number {
     default:
       return -1;
   }
+}
+
+export function statsPeriodToDays(
+  statsPeriod: string | undefined,
+  start: DateString | undefined,
+  end: DateString | undefined
+) {
+  if (statsPeriod && statsPeriod.endsWith('d')) {
+    return parseInt(statsPeriod.slice(0, -1), 10);
+  } else if (statsPeriod && statsPeriod.endsWith('h')) {
+    return parseInt(statsPeriod.slice(0, -1), 10) / 24;
+  } else if (start && end) {
+    return (new Date(end).getTime() - new Date(start).getTime()) / (24 * 60 * 60 * 1000);
+  }
+  return 0;
 }
 
 export const use24Hours = () => ConfigStore.get('user')?.options?.clock24Hours;

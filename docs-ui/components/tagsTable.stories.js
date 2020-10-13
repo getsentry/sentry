@@ -1,5 +1,4 @@
 import React from 'react';
-import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 import {text} from '@storybook/addon-knobs';
 
@@ -27,18 +26,23 @@ const event = {
   ],
 };
 
-storiesOf('UI|TagsTable', module).add(
-  'default',
-  withInfo(
-    'Display a table of tags with each value as a link, generally to another search result.'
-  )(() => {
-    return (
-      <TagsTable
-        title={text('title', 'Event Tags')}
-        query="event.type:error"
-        event={event}
-        generateUrl={tag => `/issues/search?key=${tag.key}&value=${tag.value}`}
-      />
-    );
-  })
-);
+export default {
+  title: 'Core/Tables/TagsTable',
+};
+
+export const Default = withInfo(
+  'Display a table of tags with each value as a link, generally to another search result.'
+)(() => {
+  return (
+    <TagsTable
+      title={text('title', 'Event Tags')}
+      query="event.type:error"
+      event={event}
+      generateUrl={tag => `/issues/search?key=${tag.key}&value=${tag.value}`}
+    />
+  );
+});
+
+Default.story = {
+  name: 'default',
+};

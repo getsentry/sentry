@@ -6,7 +6,7 @@ export const DEFAULT_EVENT_VIEW: Readonly<NewQuery> = {
   name: t('All Events'),
   query: '',
   projects: [],
-  fields: ['title', 'event.type', 'project', 'user', 'timestamp'],
+  fields: ['title', 'event.type', 'project', 'user.display', 'timestamp'],
   orderby: '-timestamp',
   version: 2,
   range: '24h',
@@ -15,7 +15,7 @@ export const DEFAULT_EVENT_VIEW: Readonly<NewQuery> = {
 export const TRANSACTION_VIEWS: Readonly<Array<NewQuery>> = [
   {
     id: undefined,
-    name: t('Transactions'),
+    name: t('Transactions by Volume'),
     fields: [
       'transaction',
       'project',
@@ -43,15 +43,17 @@ export const ALL_VIEWS: Readonly<Array<NewQuery>> = [
     projects: [],
     version: 2,
     range: '24h',
+    display: 'top5',
   },
   {
     id: undefined,
     name: t('Errors by URL'),
-    fields: ['url', 'count()', 'count_unique(issue.id)'],
+    fields: ['url', 'count()', 'count_unique(issue)'],
     orderby: '-count',
-    query: 'event.type:error',
+    query: 'event.type:error has:url',
     projects: [],
     version: 2,
     range: '24h',
+    display: 'top5',
   },
 ];

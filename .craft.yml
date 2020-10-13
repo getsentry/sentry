@@ -9,7 +9,7 @@ statusProvider:
   name: github
   config:
     contexts:
-      - 'Trigger: 7973c658-e248-4a14-8552-7a66caa7fc0c'
+      - 'onpremise-builder (sentryio)'
 targets:
   - name: github
   - name: pypi

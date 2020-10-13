@@ -1,8 +1,10 @@
 from __future__ import absolute_import
 
+import hashlib
+import hmac
 import responses
 
-
+from sentry import VERSION
 from sentry.models import (
     Integration,
     OrganizationIntegration,
@@ -15,7 +17,7 @@ from sentry.testutils.helpers import override_options
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
-from .testutils import EXAMPLE_DEPLOYMENT_WEBHOOK_RESPONSE
+from .testutils import EXAMPLE_DEPLOYMENT_WEBHOOK_RESPONSE, DEPLOYMENT_WEBHOOK_NO_COMMITS
 
 signature = "74b587857986545361e8a4253b74cd6224d34869"
 secret = "AiK52QASLJXmCXX3X9gO2Zyh"
@@ -90,7 +92,8 @@ class VercelReleasesTest(APITestCase):
             assert response.status_code == 201
 
             assert len(responses.calls) == 2
-            release_body = json.loads(responses.calls[0].request.body)
+            release_request = responses.calls[0].request
+            release_body = json.loads(release_request.body)
             set_refs_body = json.loads(responses.calls[1].request.body)
             assert release_body == {
                 "projects": [self.project.slug],
@@ -106,6 +109,7 @@ class VercelReleasesTest(APITestCase):
                     }
                 ],
             }
+            assert release_request.headers["User-Agent"] == u"sentry_vercel/{}".format(VERSION)
 
     @responses.activate
     def test_no_match(self):
@@ -127,7 +131,7 @@ class VercelReleasesTest(APITestCase):
             )
 
             assert len(responses.calls) == 0
-            assert response.status_code == 202
+            assert response.status_code == 204
 
     @responses.activate
     def test_no_integration(self):
@@ -240,7 +244,7 @@ class VercelReleasesTest(APITestCase):
         def request_callback(request):
             payload = json.loads(request.body)
             status_code = 400 if payload.get("refs") else 200
-            return (status_code, {}, {})
+            return (status_code, {}, json.dumps({}))
 
         responses.add_callback(
             responses.POST,
@@ -259,3 +263,22 @@ class VercelReleasesTest(APITestCase):
             assert len(responses.calls) == 2
             assert response.status_code == 400
             assert "Error setting refs" in response.data["detail"]
+
+    @responses.activate
+    def test_manual_vercel_deploy(self):
+        local_signature = hmac.new(
+            key="vercel-client-secret".encode("utf-8"),
+            msg=DEPLOYMENT_WEBHOOK_NO_COMMITS.encode("utf-8"),
+            digestmod=hashlib.sha1,
+        ).hexdigest()
+
+        response = self.client.post(
+            path=webhook_url,
+            data=DEPLOYMENT_WEBHOOK_NO_COMMITS,
+            content_type="application/json",
+            HTTP_X_ZEIT_SIGNATURE=local_signature,
+        )
+
+        assert response.status_code == 404
+        assert "No commit found" == response.data["detail"]
+        assert len(responses.calls) == 0

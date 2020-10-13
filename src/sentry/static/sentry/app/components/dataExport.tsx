@@ -9,7 +9,6 @@ import Button from 'app/components/button';
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import withApi from 'app/utils/withApi';
-import FeatureBadge from 'app/components/featureBadge';
 import withOrganization from 'app/utils/withOrganization';
 
 //! Coordinate with other ExportQueryType (src/sentry/data_export/base.py)
@@ -93,9 +92,9 @@ class DataExport extends React.Component<Props, State> {
     const {inProgress} = this.state;
     const {children, disabled, icon} = this.props;
     return (
-      <Feature features={['organizations:data-export']}>
+      <Feature features={['organizations:discover-query']}>
         {inProgress ? (
-          <NewButton
+          <Button
             size="small"
             priority="default"
             title="You can get on with your life. We'll email you when your data's ready."
@@ -104,9 +103,9 @@ class DataExport extends React.Component<Props, State> {
             icon={icon}
           >
             {t("We're working on it...")}
-          </NewButton>
+          </Button>
         ) : (
-          <NewButton
+          <Button
             onClick={debounce(this.startDataExport, 500)}
             disabled={disabled || false}
             size="small"
@@ -116,19 +115,12 @@ class DataExport extends React.Component<Props, State> {
             {...this.props}
           >
             {children ? children : t('Export All to CSV')}
-          </NewButton>
+          </Button>
         )}
       </Feature>
     );
   }
 }
-
-const NewButton = ({children, ...buttonProps}) => (
-  <Button {...buttonProps}>
-    {children}
-    <FeatureBadge type="new" noTooltip />
-  </Button>
-);
 
 export {DataExport};
 export default withApi(withOrganization(DataExport));

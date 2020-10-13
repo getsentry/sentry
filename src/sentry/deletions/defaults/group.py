@@ -4,6 +4,7 @@ import os
 from sentry import eventstore, nodestore
 from sentry.eventstore.models import Event
 from sentry.models import EventAttachment, UserReport
+from sentry.reprocessing2 import delete_unprocessed_events
 
 from ..base import BaseDeletionTask, BaseRelation, ModelDeletionTask, ModelRelation
 
@@ -51,6 +52,8 @@ class EventDataDeletionTask(BaseDeletionTask):
         # Remove from nodestore
         node_ids = [Event.generate_node_id(self.project_id, event.event_id) for event in events]
         nodestore.delete_multi(node_ids)
+
+        delete_unprocessed_events(events)
 
         # Remove EventAttachment and UserReport
         event_ids = [event.event_id for event in events]
@@ -104,10 +107,10 @@ class GroupDeletionTask(ModelDeletionTask):
         return relations
 
     def delete_instance(self, instance):
-        from sentry.similarity import features
+        from sentry import similarity
 
-        if not self.skip_models or features not in self.skip_models:
-            features.delete(instance)
+        if not self.skip_models or similarity not in self.skip_models:
+            similarity.delete(None, instance)
 
         return super(GroupDeletionTask, self).delete_instance(instance)
 

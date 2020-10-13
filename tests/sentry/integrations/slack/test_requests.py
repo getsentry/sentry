@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import json
 import hmac
 import time
 import six
@@ -8,9 +7,9 @@ from datetime import datetime
 from hashlib import sha256
 from six.moves.urllib.parse import urlencode
 
-from sentry.utils.compat import mock
-
 from sentry import options
+from sentry.utils import json
+from sentry.utils.compat import mock
 from sentry.utils.cache import memoize
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import override_options
@@ -112,9 +111,9 @@ class SlackEventRequestTest(TestCase):
 
     def set_signature(self, secret, data):
         timestamp = six.text_type(int(time.mktime(datetime.utcnow().timetuple())))
-        req = six.binary_type("v0:%s:%s" % (timestamp, six.binary_type(data)))
+        req = b"v0:%s:%s" % (timestamp.encode("utf-8"), data)
 
-        signature = "v0=" + hmac.new(six.binary_type(secret), req, sha256).hexdigest()
+        signature = "v0=" + hmac.new(secret.encode("utf-8"), req, sha256).hexdigest()
         self.request.META["HTTP_X_SLACK_REQUEST_TIMESTAMP"] = timestamp
         self.request.META["HTTP_X_SLACK_SIGNATURE"] = signature
 
@@ -162,7 +161,7 @@ class SlackEventRequestTest(TestCase):
             self.request.data = {"challenge": "abc123", "type": "url_verification"}
 
             # we get a url encoded body with Slack
-            self.request.body = urlencode(self.request.data)
+            self.request.body = urlencode(self.request.data).encode("utf-8")
 
             self.set_signature(options.get("slack.signing-secret"), self.request.body)
             self.slack_request.validate()
@@ -172,7 +171,7 @@ class SlackEventRequestTest(TestCase):
             self.request.data = {"challenge": "abc123", "type": "url_verification"}
 
             # we get a url encoded body with Slack
-            self.request.body = urlencode(self.request.data)
+            self.request.body = urlencode(self.request.data).encode("utf-8")
 
             self.set_signature(options.get("slack-v2.signing-secret"), self.request.body)
             self.slack_request.validate()
@@ -185,7 +184,7 @@ class SlackEventRequestTest(TestCase):
                 "challenge": "abc123",
                 "type": "url_verification",
             }
-            self.request.body = urlencode(self.request.data)
+            self.request.body = urlencode(self.request.data).encode("utf-8")
 
             self.set_signature("bad_key", self.request.body)
             with self.assertRaises(SlackRequestError) as e:
@@ -198,7 +197,7 @@ class SlackEventRequestTest(TestCase):
             "challenge": "abc123",
             "type": "url_verification",
         }
-        self.request.body = json.dumps(self.request.data)
+        self.request.body = json.dumps(self.request.data).encode("utf-8")
 
         self.slack_request.validate()
 

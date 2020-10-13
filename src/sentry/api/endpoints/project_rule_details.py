@@ -4,19 +4,38 @@ from rest_framework import status
 from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint, ProjectSettingPermission
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.rule import RuleSerializer
 from sentry.integrations.slack import tasks
 from sentry.mediators import project_rules
-from sentry.models import AuditLogEntryEvent, Rule, RuleStatus
+from sentry.models import AuditLogEntryEvent, Rule, RuleActivity, RuleActivityType, RuleStatus
 from sentry.web.decorators import transaction_start
 
 
 class ProjectRuleDetailsEndpoint(ProjectEndpoint):
     permission_classes = [ProjectSettingPermission]
 
+    def convert_args(self, request, rule_id, *args, **kwargs):
+        args, kwargs = super(ProjectRuleDetailsEndpoint, self).convert_args(
+            request, *args, **kwargs
+        )
+        project = kwargs["project"]
+
+        if not rule_id.isdigit():
+            raise ResourceDoesNotExist
+
+        try:
+            kwargs["rule"] = Rule.objects.get(
+                project=project, id=rule_id, status__in=[RuleStatus.ACTIVE, RuleStatus.INACTIVE]
+            )
+        except Rule.DoesNotExist:
+            raise ResourceDoesNotExist
+
+        return args, kwargs
+
     @transaction_start("ProjectRuleDetailsEndpoint")
-    def get(self, request, project, rule_id):
+    def get(self, request, project, rule):
         """
         Retrieve a rule
 
@@ -25,13 +44,12 @@ class ProjectRuleDetailsEndpoint(ProjectEndpoint):
             {method} {path}
 
         """
-        rule = Rule.objects.get(
-            project=project, id=rule_id, status__in=[RuleStatus.ACTIVE, RuleStatus.INACTIVE]
-        )
-        return Response(serialize(rule, request.user))
+        data = serialize(rule, request.user)
+
+        return Response(data)
 
     @transaction_start("ProjectRuleDetailsEndpoint")
-    def put(self, request, project, rule_id):
+    def put(self, request, project, rule):
         """
         Update a rule
 
@@ -41,23 +59,30 @@ class ProjectRuleDetailsEndpoint(ProjectEndpoint):
             {{
               "name": "My rule name",
               "conditions": [],
+              "filters": [],
               "actions": [],
-              "actionMatch": "all"
+              "actionMatch": "all",
+              "filterMatch": "all"
             }}
 
         """
-        rule = Rule.objects.get(project=project, id=rule_id)
-
         serializer = RuleSerializer(context={"project": project}, data=request.data, partial=True)
 
         if serializer.is_valid():
             data = serializer.validated_data
+
+            # combine filters and conditions into one conditions criteria for the rule object
+            conditions = data["conditions"]
+            if "filters" in data:
+                conditions.extend(data["filters"])
+
             kwargs = {
                 "name": data["name"],
                 "environment": data.get("environment"),
                 "project": project,
                 "action_match": data["actionMatch"],
-                "conditions": data["conditions"],
+                "filter_match": data.get("filterMatch"),
+                "conditions": conditions,
                 "actions": data["actions"],
                 "frequency": data.get("frequency"),
             }
@@ -71,7 +96,9 @@ class ProjectRuleDetailsEndpoint(ProjectEndpoint):
                 return Response(context, status=202)
 
             updated_rule = project_rules.Updater.run(rule=rule, request=request, **kwargs)
-
+            RuleActivity.objects.create(
+                rule=updated_rule, user=request.user, type=RuleActivityType.UPDATED.value
+            )
             self.create_audit_entry(
                 request=request,
                 organization=project.organization,
@@ -85,15 +112,14 @@ class ProjectRuleDetailsEndpoint(ProjectEndpoint):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @transaction_start("ProjectRuleDetailsEndpoint")
-    def delete(self, request, project, rule_id):
+    def delete(self, request, project, rule):
         """
         Delete a rule
         """
-        rule = Rule.objects.get(
-            project=project, id=rule_id, status__in=[RuleStatus.ACTIVE, RuleStatus.INACTIVE]
-        )
-
         rule.update(status=RuleStatus.PENDING_DELETION)
+        RuleActivity.objects.create(
+            rule=rule, user=request.user, type=RuleActivityType.DELETED.value
+        )
         self.create_audit_entry(
             request=request,
             organization=project.organization,

@@ -7,10 +7,11 @@ import {RequestOptions} from 'app/api';
 import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
-import {IconWarning} from 'app/icons';
+import {IconFlag, IconOpen, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Integration, IntegrationProvider} from 'app/types';
+import {IntegrationWithConfig, IntegrationProvider} from 'app/types';
+import {ProjectMapperType} from 'app/views/settings/components/forms/type';
 import {sortArray} from 'app/utils';
 import {isSlackWorkspaceApp, getReauthAlertText} from 'app/utils/integrationUtil';
 import withOrganization from 'app/utils/withOrganization';
@@ -20,7 +21,7 @@ import AddIntegrationButton from './addIntegrationButton';
 import InstalledIntegration from './installedIntegration';
 
 type State = {
-  configurations: Integration[];
+  configurations: IntegrationWithConfig[];
   information: {providers: IntegrationProvider[]};
 };
 
@@ -63,12 +64,23 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
   get alerts() {
     const provider = this.provider;
     const metadata = this.metadata;
-    const alerts = metadata.aspects.alerts || [];
+    // The server response for integration installations includes old icon CSS classes
+    // We map those to the currently in use values to their react equivalents
+    // and fallback to IconFlag just in case.
+    const alerts = (metadata.aspects.alerts || []).map(item => {
+      switch (item.icon) {
+        case 'icon-warning':
+        case 'icon-warning-sm':
+          return {...item, icon: <IconWarning />};
+        default:
+          return {...item, icon: <IconFlag />};
+      }
+    });
 
     if (!provider.canAdd && metadata.aspects.externalInstall) {
       alerts.push({
         type: 'warning',
-        icon: 'icon-exit',
+        icon: <IconOpen />,
         text: metadata.aspects.externalInstall.noticeText,
       });
     }
@@ -103,7 +115,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
     return this.metadata.features;
   }
 
-  onInstall = (integration: Integration) => {
+  onInstall = (integration: IntegrationWithConfig) => {
     // Merge the new integration into the list. If we're updating an
     // integration overwrite the old integration.
     const keyedItems = keyBy(this.state.configurations, i => i.id);
@@ -115,7 +127,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
     this.setState({configurations});
   };
 
-  onRemove = (integration: Integration) => {
+  onRemove = (integration: IntegrationWithConfig) => {
     const {orgId} = this.props.params;
 
     const origIntegrations = [...this.state.configurations];
@@ -134,10 +146,26 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
     this.api.request(`/organizations/${orgId}/integrations/${integration.id}/`, options);
   };
 
-  onDisable = (integration: Integration) => {
+  onDisable = (integration: IntegrationWithConfig) => {
     let url: string;
-    const [domainName, orgName] = integration.domainName.split('/');
 
+    if (integration.provider.key === 'vercel') {
+      // kind of a hack since this isn't what the url was stored for
+      // but it's exactly what we need and contains the configuration id
+      // e.g. https://vercel.com/dashboard/<team>/integrations/icfg_ySlF4UDnHcIPrAAXjGEiwtxo
+      const field = integration.configOrganization.find(
+        config => config.type === 'project_mapper'
+      );
+
+      if (field) {
+        const mappingField = field as ProjectMapperType;
+        url = mappingField.nextButton.url || '';
+        window.open(url, '_blank');
+      }
+      return;
+    }
+
+    const [domainName, orgName] = integration.domainName.split('/');
     if (integration.accountType === 'User') {
       url = `https://${domainName}/settings/installations/`;
     } else {
@@ -191,7 +219,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
     if (metadata.aspects.externalInstall) {
       return (
         <Button
-          icon="icon-exit"
+          icon={<IconOpen />}
           href={metadata.aspects.externalInstall.url}
           onClick={this.handleExternalInstall}
           external

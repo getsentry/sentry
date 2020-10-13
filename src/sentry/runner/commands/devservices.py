@@ -121,10 +121,10 @@ def up(services, project, exclude, fast):
     for service in exclude:
         if service not in containers:
             click.secho(
-                "Service `{}` is not known or not enabled.\n".format(service), err=True, fg="red",
+                "Service `{}` is not known or not enabled.\n".format(service), err=True, fg="red"
             )
             click.secho(
-                "Services that are available:\n" + "\n".join(containers.keys()) + "\n", err=True,
+                "Services that are available:\n" + "\n".join(containers.keys()) + "\n", err=True
             )
             raise click.Abort()
 
@@ -138,8 +138,7 @@ def up(services, project, exclude, fast):
                     fg="red",
                 )
                 click.secho(
-                    "Services that are available:\n" + "\n".join(containers.keys()) + "\n",
-                    err=True,
+                    "Services that are available:\n" + "\n".join(containers.keys()) + "\n", err=True
                 )
                 raise click.Abort()
             selected_containers[service] = containers[service]
@@ -182,7 +181,10 @@ def _prepare_containers(project, silent=False):
         options["name"] = project + "_" + name
         options.setdefault("ports", {})
         options.setdefault("environment", {})
-        options.setdefault("restart_policy", {"Name": "on-failure"})
+        # set policy to unless-stopped to avoid automatically restarting containers on boot
+        # this is important given you can start multiple sets of containers that can conflict
+        # with each other
+        options.setdefault("restart_policy", {"Name": "unless-stopped"})
         options["ports"] = ensure_interface(options["ports"])
         containers[name] = options
 
@@ -205,7 +207,7 @@ def _start_service(client, name, containers, project, fast=False, always_start=F
         options["environment"].pop("DEFAULT_BROKERS", None)
         options["command"] = ["devserver", "--no-workers"]
 
-    for key, value in options["environment"].items():
+    for key, value in list(options["environment"].items()):
         options["environment"][key] = value.format(containers=containers)
 
     pull = options.pop("pull", False)
@@ -222,7 +224,7 @@ def _start_service(client, name, containers, project, fast=False, always_start=F
                 click.secho("> Pulling image '%s'" % options["image"], err=True, fg="green")
                 client.images.pull(options["image"])
 
-    for mount in options.get("volumes", {}).keys():
+    for mount in list(options.get("volumes", {}).keys()):
         if "/" not in mount:
             get_or_create(client, "volume", project + "_" + mount)
             options["volumes"][project + "_" + mount] = options["volumes"].pop(mount)
@@ -232,8 +234,10 @@ def _start_service(client, name, containers, project, fast=False, always_start=F
         listening = "(listening: %s)" % ", ".join(map(text_type, options["ports"].values()))
 
     # If a service is associated with the devserver, then do not run the created container.
-    # This was mainly added since it was not desirable for reverse_proxy to occupy port 8000 on the
+    # This was mainly added since it was not desirable for nginx to occupy port 8000 on the
     # first "devservices up".
+    # Nowadays that nginx is gone again, it's still nice to be able to shut
+    # down services within devserver.
     # See https://github.com/getsentry/sentry/pull/18362#issuecomment-616785458
     with_devserver = options.pop("with_devserver", False)
 
@@ -345,8 +349,7 @@ def rm(project, services):
                     fg="red",
                 )
                 click.secho(
-                    "Services that are available:\n" + "\n".join(containers.keys()) + "\n",
-                    err=True,
+                    "Services that are available:\n" + "\n".join(containers.keys()) + "\n", err=True
                 )
                 raise click.Abort()
             selected_containers[service] = containers[service]

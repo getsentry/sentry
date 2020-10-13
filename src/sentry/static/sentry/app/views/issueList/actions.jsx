@@ -51,7 +51,7 @@ const getBulkConfirmMessage = (action, queryCount) => {
 };
 
 const getConfirm = (numIssues, allInQuerySelected, query, queryCount) =>
-  function(action, canBeUndone, append = '') {
+  function (action, canBeUndone, append = '') {
     const question = allInQuerySelected
       ? getBulkConfirmMessage(`${action}${append}`, queryCount)
       : tn(
@@ -88,7 +88,7 @@ const getConfirm = (numIssues, allInQuerySelected, query, queryCount) =>
   };
 
 const getLabel = (numIssues, allInQuerySelected) =>
-  function(action, append = '') {
+  function (action, append = '') {
     const capitalized = capitalize(action);
     const text = allInQuerySelected
       ? t(`Bulk ${action} issues`)
@@ -144,6 +144,7 @@ const IssueListActions = createReactClass({
   propTypes: {
     api: PropTypes.object,
     allResultsVisible: PropTypes.bool,
+    organization: SentryTypes.Organization.isRequired,
     orgId: PropTypes.string.isRequired,
     selection: SentryTypes.GlobalSelection.isRequired,
     groupIds: PropTypes.instanceOf(Array).isRequired,
@@ -375,10 +376,12 @@ const IssueListActions = createReactClass({
   render() {
     const {
       allResultsVisible,
+      organization,
       orgId,
       queryCount,
       query,
       realtimeActive,
+      selection,
       statsPeriod,
     } = this.props;
     const issues = this.state.selectedIds;
@@ -392,6 +395,7 @@ const IssueListActions = createReactClass({
     } = this.state;
     const confirm = getConfirm(numIssues, allInQuerySelected, query, queryCount);
     const label = getLabel(numIssues, allInQuerySelected);
+    const hasDynamicIssueCounts = organization.features.includes('dynamic-issue-counts');
 
     // merges require a single project to be active in an org context
     // selectedProjectSlug is null when 0 or >1 projects are selected.
@@ -557,29 +561,50 @@ const IssueListActions = createReactClass({
               >
                 {t('24h')}
               </GraphToggle>
-
-              <GraphToggle
-                active={statsPeriod === '14d'}
-                onClick={this.handleSelectStatsPeriod.bind(this, '14d')}
-              >
-                {t('14d')}
-              </GraphToggle>
+              {hasDynamicIssueCounts ? (
+                <GraphToggle
+                  active={statsPeriod === 'auto'}
+                  onClick={this.handleSelectStatsPeriod.bind(this, 'auto')}
+                >
+                  {selection.datetime.period || t('Custom')}
+                </GraphToggle>
+              ) : (
+                <GraphToggle
+                  active={statsPeriod === '14d'}
+                  onClick={this.handleSelectStatsPeriod.bind(this, '14d')}
+                >
+                  {t('14d')}
+                </GraphToggle>
+              )}
             </GraphHeader>
           </GraphHeaderWrapper>
-          <EventsOrUsersLabel className="align-right">
-            {t('Events')}
-            <StyledQuestionTooltip
-              title={t('Number of events since the issue was created')}
-              size="xs"
-            />
-          </EventsOrUsersLabel>
-          <EventsOrUsersLabel className="align-right">
-            {t('Users')}
-            <StyledQuestionTooltip
-              title={t('Unique users affected since the issue was created')}
-              size="xs"
-            />
-          </EventsOrUsersLabel>
+          {hasDynamicIssueCounts ? (
+            <React.Fragment>
+              <EventsOrUsersLabel className="align-right">
+                {t('Events')}
+              </EventsOrUsersLabel>
+              <EventsOrUsersLabel className="align-right">
+                {t('Users')}
+              </EventsOrUsersLabel>
+            </React.Fragment>
+          ) : (
+            <React.Fragment>
+              <EventsOrUsersLabel className="align-right">
+                {t('Events')}
+                <StyledQuestionTooltip
+                  title={t('Number of events since the issue was created')}
+                  size="xs"
+                />
+              </EventsOrUsersLabel>
+              <EventsOrUsersLabel className="align-right">
+                {t('Users')}
+                <StyledQuestionTooltip
+                  title={t('Unique users affected since the issue was created')}
+                  size="xs"
+                />
+              </EventsOrUsersLabel>
+            </React.Fragment>
+          )}
           <AssigneesLabel className="align-right hidden-xs hidden-sm">
             <ToolbarHeader>{t('Assignee')}</ToolbarHeader>
           </AssigneesLabel>

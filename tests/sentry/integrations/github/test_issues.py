@@ -34,7 +34,7 @@ class GitHubIssueBasicTest(TestCase):
     def test_get_allowed_assignees(self, mock_get_jwt):
         responses.add(
             responses.POST,
-            "https://api.github.com/installations/github_external_id/access_tokens",
+            "https://api.github.com/app/installations/github_external_id/access_tokens",
             json={"token": "token_1", "expires_at": "2018-10-11T22:14:10Z"},
         )
 
@@ -61,7 +61,7 @@ class GitHubIssueBasicTest(TestCase):
     def test_create_issue(self, mock_get_jwt):
         responses.add(
             responses.POST,
-            "https://api.github.com/installations/github_external_id/access_tokens",
+            "https://api.github.com/app/installations/github_external_id/access_tokens",
             json={"token": "token_1", "expires_at": "2018-10-11T22:14:10Z"},
         )
 
@@ -102,7 +102,7 @@ class GitHubIssueBasicTest(TestCase):
     def test_get_repo_issues(self, mock_get_jwt):
         responses.add(
             responses.POST,
-            "https://api.github.com/installations/github_external_id/access_tokens",
+            "https://api.github.com/app/installations/github_external_id/access_tokens",
             json={"token": "token_1", "expires_at": "2018-10-11T22:14:10Z"},
         )
 
@@ -126,7 +126,7 @@ class GitHubIssueBasicTest(TestCase):
         issue_id = 321
         responses.add(
             responses.POST,
-            "https://api.github.com/installations/github_external_id/access_tokens",
+            "https://api.github.com/app/installations/github_external_id/access_tokens",
             json={"token": "token_1", "expires_at": "2018-10-11T22:14:10Z"},
         )
 
@@ -165,7 +165,7 @@ class GitHubIssueBasicTest(TestCase):
 
         responses.add(
             responses.POST,
-            "https://api.github.com/installations/github_external_id/access_tokens",
+            "https://api.github.com/app/installations/github_external_id/access_tokens",
             json={"token": "token_1", "expires_at": "2018-10-11T22:14:10Z"},
         )
 
@@ -215,7 +215,7 @@ class GitHubIssueBasicTest(TestCase):
     def after_link_issue(self, mock_get_jwt):
         responses.add(
             responses.POST,
-            "https://api.github.com/installations/github_external_id/access_tokens",
+            "https://api.github.com/app/installations/github_external_id/access_tokens",
             json={"token": "token_1", "expires_at": "2018-10-11T22:14:10Z"},
         )
 
@@ -284,7 +284,7 @@ class GitHubIssueBasicTest(TestCase):
         )
         responses.add(
             responses.POST,
-            "https://api.github.com/installations/github_external_id/access_tokens",
+            "https://api.github.com/app/installations/github_external_id/access_tokens",
             json={"token": "token_1", "expires_at": "2018-10-11T22:14:10Z"},
         )
         event = self.store_event(
@@ -333,7 +333,7 @@ class GitHubIssueBasicTest(TestCase):
         )
         responses.add(
             responses.POST,
-            "https://api.github.com/installations/github_external_id/access_tokens",
+            "https://api.github.com/app/installations/github_external_id/access_tokens",
             json={"token": "token_1", "expires_at": "2018-10-11T22:14:10Z"},
         )
         event = self.store_event(

@@ -14,8 +14,10 @@ import IntegrationRepos from 'app/views/organizationIntegrations/integrationRepo
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import withOrganization from 'app/utils/withOrganization';
-import {Organization, Integration, IntegrationProvider} from 'app/types';
+import {Organization, IntegrationWithConfig, IntegrationProvider} from 'app/types';
 import {trackIntegrationEvent} from 'app/utils/integrationUtil';
+import {singleLineRenderer} from 'app/utils/marked';
+import Alert from 'app/components/alert';
 
 type RouteParams = {
   orgId: string;
@@ -26,7 +28,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
 };
 type State = AsyncView['state'] & {
   config: {providers: IntegrationProvider[]};
-  integration: Integration;
+  integration: IntegrationWithConfig;
 };
 class ConfigureIntegration extends AsyncView<Props, State> {
   getEndpoints(): [string, string][] {
@@ -123,6 +125,14 @@ class ConfigureIntegration extends AsyncView<Props, State> {
               }
             />
           </Form>
+        )}
+
+        {integration.dynamicDisplayInformation?.configure_integration?.instructions.map(
+          instruction => (
+            <Alert type="info">
+              <span dangerouslySetInnerHTML={{__html: singleLineRenderer(instruction)}} />
+            </Alert>
+          )
         )}
 
         {provider && provider.features.includes('alert-rule') && (

@@ -10,7 +10,9 @@ import {getParams} from 'app/components/organizations/globalSelectionHeader/getP
 
 const MAX_TAGS = 1000;
 
-function tagFetchSuccess(tags: Tag[]) {
+function tagFetchSuccess(tags: Tag[] | undefined) {
+  // We occasionally get undefined passed in when APIs are having a bad time.
+  tags = tags || [];
   const trimmedTags = tags.slice(0, MAX_TAGS);
 
   if (tags.length > MAX_TAGS) {
@@ -84,7 +86,8 @@ export function fetchTagValues(
   tagKey: string,
   search: string | null = null,
   projectIds: string[] | null = null,
-  endpointParams: Query | null = null
+  endpointParams: Query | null = null,
+  includeTransactions = false
 ) {
   const url = `/organizations/${orgId}/tags/${tagKey}/values/`;
 
@@ -105,6 +108,9 @@ export function fetchTagValues(
     if (endpointParams.statsPeriod) {
       query.statsPeriod = endpointParams.statsPeriod;
     }
+  }
+  if (includeTransactions) {
+    query.includeTransactions = '1';
   }
 
   return api.requestPromise(url, {

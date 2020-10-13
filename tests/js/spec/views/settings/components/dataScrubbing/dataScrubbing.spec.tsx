@@ -1,19 +1,13 @@
 import React from 'react';
-import sortBy from 'lodash/sortBy';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import DataScrubbing from 'app/views/settings/components/dataScrubbing';
-import {
-  ProjectId,
-  MethodType,
-  RuleType,
-} from 'app/views/settings/components/dataScrubbing/types';
-import {
-  getMethodLabel,
-  getRuleLabel,
-} from 'app/views/settings/components/dataScrubbing/utils';
+import {ProjectId} from 'app/views/settings/components/dataScrubbing/types';
 import {addSuccessMessage} from 'app/actionCreators/indicator';
+import {openModal} from 'app/actionCreators/modal';
+
+jest.mock('app/actionCreators/modal');
 
 // @ts-ignore
 const relayPiiConfig = TestStubs.DataScrubbingRelayPiiConfig();
@@ -89,7 +83,7 @@ describe('Data Scrubbing', () => {
       //PanelBody
       const panelBody = wrapper.find('PanelBody');
       expect(panelBody).toHaveLength(1);
-      expect(panelBody.find('ListItem')).toHaveLength(2);
+      expect(panelBody.find('ListItem')).toHaveLength(3);
 
       // OrganizationRules
       const organizationRules = panelBody.find('OrganizationRules');
@@ -148,7 +142,7 @@ describe('Data Scrubbing', () => {
       //PanelBody
       const panelBody = wrapper.find('PanelBody');
       expect(panelBody).toHaveLength(1);
-      expect(panelBody.find('ListItem')).toHaveLength(2);
+      expect(panelBody.find('ListItem')).toHaveLength(3);
 
       // OrganizationRules
       const organizationRules = panelBody.find('OrganizationRules');
@@ -193,7 +187,7 @@ describe('Data Scrubbing', () => {
       expect(organizationRules).toHaveLength(1);
       expect(organizationRules.find('Header').text()).toEqual('Organization Rules');
       const listItems = organizationRules.find('ListItem');
-      expect(listItems).toHaveLength(2);
+      expect(listItems).toHaveLength(3);
       expect(listItems.at(0).find('[role="button"]')).toHaveLength(0);
     });
 
@@ -214,10 +208,7 @@ describe('Data Scrubbing', () => {
       });
 
       const listItems = wrapper.find('ListItem');
-      const deleteButton = listItems
-        .at(0)
-        .find('[aria-label="Delete Rule"]')
-        .hostNodes();
+      const deleteButton = listItems.at(0).find('[aria-label="Delete Rule"]').hostNodes();
 
       deleteButton.simulate('click');
       expect(mockDelete).toHaveBeenCalled();
@@ -244,48 +235,7 @@ describe('Data Scrubbing', () => {
 
       addbutton.simulate('click');
 
-      // Modal
-      const addRuleModal = wrapper.find('[data-test-id="add-rule-modal"]').hostNodes();
-      expect(addRuleModal).toHaveLength(1);
-
-      expect(addRuleModal.find('.modal-header >*:last-child').text()).toEqual(
-        'Add an advanced data scrubbing rule'
-      );
-
-      // Method Field
-      const methodField = addRuleModal.find('SelectField[name="method"]');
-      expect(methodField.exists()).toBe(true);
-      const methodFieldProps = methodField.props();
-      expect(methodFieldProps.value).toEqual(MethodType.MASK);
-
-      const methodFieldOptions = sortBy(Object.values(MethodType)).map(value => ({
-        ...getMethodLabel(value),
-        value,
-      }));
-      expect(methodFieldProps.options).toEqual(methodFieldOptions);
-
-      // Type Field
-      const typeField = addRuleModal.find('SelectField[name="type"]');
-      expect(typeField.exists()).toBe(true);
-      const typeFieldProps = typeField.props();
-      expect(typeFieldProps.value).toEqual(RuleType.CREDITCARD);
-
-      const typeFieldOptions = sortBy(Object.values(RuleType)).map(value => ({
-        label: getRuleLabel(value),
-        value,
-      }));
-      expect(typeFieldProps.options).toEqual(typeFieldOptions);
-
-      // Source Field
-      const sourceField = addRuleModal.find('StyledInput[name="source"]');
-      expect(sourceField.exists()).toBe(true);
-
-      // Close Dialog
-      const cancelButton = addRuleModal.find('[aria-label="Cancel"]').hostNodes();
-      expect(cancelButton.exists()).toBe(true);
-      cancelButton.simulate('click');
-
-      expect(wrapper.find('[data-test-id="add-rule-modal"]')).toHaveLength(0);
+      expect(openModal).toHaveBeenCalled();
     });
 
     it('Open Edit Rule Modal', () => {
@@ -302,59 +252,7 @@ describe('Data Scrubbing', () => {
 
       editButton.at(0).simulate('click');
 
-      // Modal
-      const editRuleModal = wrapper.find('[data-test-id="edit-rule-modal"]').hostNodes();
-      expect(editRuleModal).toHaveLength(1);
-
-      expect(editRuleModal.find('.modal-header >*:last-child').text()).toEqual(
-        'Edit an advanced data scrubbing rule'
-      );
-
-      // Method Field
-      const methodField = editRuleModal.find('SelectField[name="method"]');
-      expect(methodField.exists()).toBe(true);
-      const methodFieldProps = methodField.props();
-      expect(methodFieldProps.value).toEqual(MethodType.REPLACE);
-
-      const methodFieldOptions = sortBy(Object.values(MethodType)).map(value => ({
-        ...getMethodLabel(value),
-        value,
-      }));
-      expect(methodFieldProps.options).toEqual(methodFieldOptions);
-
-      // Placeholder Field
-      const placeholderField = editRuleModal.find('Input[name="placeholder"]');
-      expect(placeholderField.exists()).toBe(true);
-      expect(placeholderField.props().value).toEqual(
-        relayPiiConfig.rules[0].redaction.text
-      );
-
-      // Type Field
-      const typeField = editRuleModal.find('SelectField[name="type"]');
-      expect(typeField.exists()).toBe(true);
-      const typeFieldProps = typeField.props();
-      expect(typeFieldProps.value).toEqual(RuleType.PASSWORD);
-
-      const typeFieldOptions = sortBy(Object.values(RuleType)).map(value => ({
-        label: getRuleLabel(value),
-        value,
-      }));
-      expect(typeFieldProps.options).toEqual(typeFieldOptions);
-
-      // Source Field
-      const sourceField = editRuleModal.find('StyledInput[name="source"]');
-      expect(sourceField.exists()).toBe(true);
-
-      expect(sourceField.props().value).toEqual(
-        Object.keys(relayPiiConfig.applications)[0]
-      );
-
-      // Close Dialog
-      const cancelButton = editRuleModal.find('[aria-label="Cancel"]').hostNodes();
-      expect(cancelButton.exists()).toBe(true);
-      cancelButton.simulate('click');
-
-      expect(wrapper.find('[data-test-id="edit-rule-modal"]')).toHaveLength(0);
+      expect(openModal).toHaveBeenCalled();
     });
   });
 });

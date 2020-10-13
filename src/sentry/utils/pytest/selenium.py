@@ -8,36 +8,26 @@ import os
 import sys
 import pytest
 
+from contextlib import contextmanager
 from datetime import datetime
-from django.conf import settings
 from django.utils.text import slugify
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException, WebDriverException
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.common.action_chains import ActionChains
-from six.moves.urllib.parse import quote, urlparse
+from six.moves.urllib.parse import urlparse
 
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.compat import map
-
-# if we're not running in a PR, we kill the PERCY_TOKEN because its a push
-# to a branch, and we dont want percy comparing things
-# we do need to ensure its run on master so that changes get updated
-if (
-    os.environ.get("TRAVIS_PULL_REQUEST", "false") == "false"
-    and os.environ.get("TRAVIS_BRANCH", "master") != "master"
-):
-    os.environ.setdefault("PERCY_ENABLE", "0")
 
 logger = logging.getLogger("sentry.testutils")
 
 
 class Browser(object):
-    def __init__(self, driver, live_server, percy):
+    def __init__(self, driver, live_server):
         self.driver = driver
         self.live_server_url = live_server.url
-        self.percy = percy
         self.domain = urlparse(self.live_server_url).hostname
         self._has_initialized_cookie_store = False
 
@@ -70,6 +60,67 @@ class Browser(object):
         self._has_initialized_cookie_store = True
         return self
 
+    def set_emulated_media(self, features, media=""):
+        """
+        This is used to emulate different media features (e.g. color scheme)
+        """
+        return self.driver.execute_cdp_cmd(
+            "Emulation.setEmulatedMedia", {"media": media, "features": features}
+        )
+
+    def get_content_height(self):
+        """
+        Get height of current DOM contents
+
+        Adapted from https://stackoverflow.com/questions/41721734/take-screenshot-of-full-page-with-selenium-python-with-chromedriver/52572919#52572919
+        """
+
+        return self.driver.execute_script("return document.body.parentNode.scrollHeight")
+
+    def set_window_size(self, width=None, height=None, fit_content=False):
+        """
+        Sets the window size.
+
+        If width is not passed, then use current window width (this is useful if you
+        need to fit contents height into the viewport).
+        If height is not passed, then resize to fit the document contents.
+        """
+
+        previous_size = self.driver.get_window_size()
+        width = width if width is not None else previous_size["width"]
+
+        if fit_content:
+            # In order to set window height to content height, we must make sure
+            # width has not changed (otherwise contents will shift,
+            # and we require two resizes)
+            self.driver.set_window_size(width, previous_size["height"])
+            height = self.get_content_height()
+        else:
+            height = height if height is not None else self.get_content_height()
+
+        self.driver.set_window_size(width, height)
+
+        return {
+            "previous": previous_size,
+            "current": {"width": width, "height": height},
+        }
+
+    def set_viewport(self, width, height, fit_content):
+        size = self.set_window_size(width, height, fit_content)
+        try:
+            yield size
+        finally:
+            # restore previous size
+            self.set_window_size(size["previous"]["width"], size["previous"]["height"])
+
+    @contextmanager
+    def full_viewport(self, width=None, height=None):
+        return self.set_viewport(width, height, fit_content=True)
+
+    @contextmanager
+    def mobile_viewport(self, width=375, height=812):
+        return self.set_viewport(width, height, fit_content=True)
+
     def element(self, selector=None, xpath=None):
         """
         Get an element from the page. This method will wait for the element to show up.
@@ -81,6 +132,18 @@ class Browser(object):
         else:
             self.wait_until(selector)
             return self.driver.find_element_by_css_selector(selector)
+
+    def elements(self, selector=None, xpath=None):
+        """
+        Get elements from the page. This method will wait for the element to show up.
+        """
+
+        if xpath is not None:
+            self.wait_until(xpath=xpath)
+            return self.driver.find_elements_by_xpath(xpath)
+        else:
+            self.wait_until(selector)
+            return self.driver.find_elements_by_css_selector(selector)
 
     def element_exists(self, selector):
         """
@@ -190,6 +253,33 @@ class Browser(object):
 
         return self
 
+    def wait_for_images_loaded(self, timeout=10):
+        wait = WebDriverWait(self.driver, timeout)
+        wait.until(
+            lambda driver: driver.execute_script(
+                """return Object.values(document.querySelectorAll('img')).map(el => el.complete).every(i => i)"""
+            )
+        )
+
+        return self
+
+    def wait_for_fonts_loaded(self, timeout=10):
+        wait = WebDriverWait(self.driver, timeout)
+        wait.until(
+            lambda driver: driver.execute_script("""return document.fonts.status === 'loaded'""")
+        )
+
+        return self
+
+    def blur(self):
+        """
+        Find focused elements and call blur. Useful for snapshot testing that can potentially capture
+        the text cursor blinking
+        """
+        self.driver.execute_script("document.querySelectorAll(':focus').forEach(el => el.blur())")
+
+        return self
+
     @property
     def switch_to(self):
         return self.driver.switch_to
@@ -203,7 +293,7 @@ class Browser(object):
         """
         self.driver.implicitly_wait(duration)
 
-    def snapshot(self, name):
+    def snapshot(self, name, mobile_only=False):
         """
         Capture a screenshot of the current state of the page.
         """
@@ -221,11 +311,38 @@ class Browser(object):
                 time.sleep(1)
 
         if os.environ.get("VISUAL_SNAPSHOT_ENABLE") == "1":
-            self.save_screenshot(
-                u".artifacts/visual-snapshots/acceptance/{}.png".format(slugify(name))
-            )
+            # wait for external assets to be loaded
+            self.wait_for_images_loaded()
+            self.wait_for_fonts_loaded()
 
-        self.percy.snapshot(name=name)
+            snapshot_dir = os.environ.get(
+                "PYTEST_SNAPSHOTS_DIR", ".artifacts/visual-snapshots/acceptance"
+            )
+            # Note: below will fail if these directories do not exist
+
+            if not mobile_only:
+                # This will make sure we resize viewport height to fit contents
+                with self.full_viewport():
+                    self.driver.find_element_by_tag_name("body").screenshot(
+                        u"{}/{}.png".format(snapshot_dir, slugify(name))
+                    )
+                    has_tooltips = self.driver.execute_script(
+                        "return window.__openAllTooltips && window.__openAllTooltips()"
+                    )
+                    if has_tooltips:
+                        self.driver.find_element_by_tag_name("body").screenshot(
+                            u"{}-tooltips/{}.png".format(snapshot_dir, slugify(name))
+                        )
+                        self.driver.execute_script(
+                            "window.__closeAllTooltips && window.__closeAllTooltips()"
+                        )
+
+            with self.mobile_viewport():
+                # switch to a mobile sized viewport
+                self.driver.find_element_by_tag_name("body").screenshot(
+                    u"{}-mobile/{}.png".format(snapshot_dir, slugify(name))
+                )
+
         return self
 
     def get_local_storage_items(self):
@@ -326,29 +443,13 @@ def pytest_configure(config):
     )
 
 
-@pytest.fixture(scope="session")
-def percy(request):
-    import percy
-
-    # Initialize Percy.
-    loader = percy.ResourceLoader(
-        root_dir=settings.STATIC_ROOT, base_url=quote(settings.STATIC_URL)
-    )
-    percy_config = percy.Config(default_widths=settings.PERCY_DEFAULT_TESTING_WIDTHS)
-    percy = percy.Runner(loader=loader, config=percy_config)
-    percy.initialize_build()
-
-    request.addfinalizer(percy.finalize_build)
-    return percy
-
-
 @TimedRetryPolicy.wrap(timeout=15, exceptions=(WebDriverException,), log_original_error=True)
 def start_chrome(**chrome_args):
     return webdriver.Chrome(**chrome_args)
 
 
 @pytest.fixture(scope="function")
-def browser(request, percy, live_server):
+def browser(request, live_server):
     window_size = request.config.getoption("window_size")
     window_width, window_height = map(int, window_size.split("x", 1))
 
@@ -358,6 +459,7 @@ def browser(request, percy, live_server):
         options = webdriver.ChromeOptions()
         options.add_argument("no-sandbox")
         options.add_argument("disable-gpu")
+        options.add_argument("disable-dev-shm-usage")
         options.add_argument(u"window-size={}".format(window_size))
         if headless:
             options.add_argument("headless")
@@ -397,14 +499,13 @@ def browser(request, percy, live_server):
     request.node._driver = driver
     request.addfinalizer(fin)
 
-    browser = Browser(driver, live_server, percy)
+    browser = Browser(driver, live_server)
+
+    browser.set_emulated_media([{"name": "prefers-reduced-motion", "value": "reduce"}])
 
     if hasattr(request, "cls"):
         request.cls.browser = browser
     request.node.browser = browser
-
-    # bind webdriver to percy for snapshots
-    percy.loader.webdriver = driver
 
     return driver
 

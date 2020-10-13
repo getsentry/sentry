@@ -8,7 +8,7 @@ import {Client} from 'app/api';
 
 jest.mock('app/api');
 
-describe('Issues -> Merged View', function() {
+describe('Issues -> Merged View', function () {
   const events = TestStubs.DetailedEvents();
   const mockData = {
     merged: [
@@ -31,14 +31,14 @@ describe('Issues -> Merged View', function() {
       tags: [],
     },
   };
-  beforeAll(function() {
+  beforeAll(function () {
     Client.addMockResponse({
       url: '/issues/groupId/hashes/?limit=50&query=',
       body: mockData.merged,
     });
   });
 
-  it('renders initially with loading component', function() {
+  it('renders initially with loading component', function () {
     const wrapper = mountWithTheme(
       <GroupMergedView
         project={TestStubs.Project({slug: 'projectId'})}
@@ -51,7 +51,7 @@ describe('Issues -> Merged View', function() {
     expect(wrapper.find('LoadingIndicator')).toHaveLength(1);
   });
 
-  it('renders with mocked data', async function() {
+  it('renders with mocked data', async function () {
     const wrapper = mountWithTheme(
       <GroupMergedView
         project={TestStubs.Project({slug: 'projectId'})}
@@ -67,7 +67,6 @@ describe('Issues -> Merged View', function() {
             group: PropTypes.object,
           },
         ]),
-        disableLifecycleMethods: false,
       }
     );
 
@@ -76,6 +75,6 @@ describe('Issues -> Merged View', function() {
     wrapper.update();
     expect(wrapper.find('LoadingIndicator')).toHaveLength(0);
 
-    expect(wrapper).toMatchSnapshot();
+    expect(wrapper).toSnapshot();
   });
 });

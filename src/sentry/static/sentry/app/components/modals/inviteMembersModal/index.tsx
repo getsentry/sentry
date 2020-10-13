@@ -7,11 +7,10 @@ import {MEMBER_ROLES} from 'app/constants';
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {uniqueId} from 'app/utils/guid';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconCheckmark, IconWarning, IconAdd} from 'app/icons';
 import Button from 'app/components/button';
 import HookOrDefault from 'app/components/hookOrDefault';
 import QuestionTooltip from 'app/components/questionTooltip';
-import {IconAdd, IconMail} from 'app/icons';
 import space from 'app/styles/space';
 import AsyncComponent from 'app/components/asyncComponent';
 import {Organization, Team} from 'app/types';
@@ -264,7 +263,7 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
 
       return (
         <StatusMessage status="success">
-          <InlineSvg src="icon-checkmark-sm" size="16px" />
+          <IconCheckmark size="sm" />
           {errorCount > 0
             ? tct('Sent [invites], [failed] failed to send.', tctComponents)
             : tct('Sent [invites]', tctComponents)}
@@ -275,7 +274,7 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
     if (this.hasDuplicateEmails) {
       return (
         <StatusMessage status="error">
-          <InlineSvg src="icon-warning-sm" size="16px" />
+          <IconWarning size="sm" />
           {t('Duplicate emails between invite rows.')}
         </StatusMessage>
       );
@@ -316,7 +315,6 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
     const hookRenderer: InviteModalRenderFunc = ({sendInvites, canSend, headerInfo}) => (
       <React.Fragment>
         <Heading>
-          <IconMail size="lg" />
           {t('Invite New Members')}
           {!this.willInvite && (
             <QuestionTooltip

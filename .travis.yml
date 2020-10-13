@@ -30,8 +30,6 @@ env:
     - SENTRY_LIGHT_BUILD=1
     - SENTRY_SKIP_BACKEND_VALIDATION=1
     - MIGRATIONS_TEST_MIGRATE=0
-    # Use this to override the django version in the requirements file.
-    - DJANGO_VERSION=">=1.11,<1.12"
     - VOLTA_VERSION=0.8.1
     - VOLTA_HOME="${HOME}/.volta"
     - PATH="${HOME}/.volta/bin:${PATH}"
@@ -83,7 +81,7 @@ start_snuba: &start_snuba |-
     --name sentry_clickhouse \
     -d --network host \
     --ulimit nofile=262144:262144 \
-    yandex/clickhouse-server:19.11 \
+    yandex/clickhouse-server:20.3.9.70 \
 
   docker run \
     --name sentry_snuba \
@@ -93,12 +91,10 @@ start_snuba: &start_snuba |-
     -e CLICKHOUSE_PORT=9000 \
     getsentry/snuba
 
+  docker exec sentry_snuba snuba migrations migrate --force
+
 script:
-  # certain commands require sentry init to be run, but this is only true for
-  # running things within Travis
   - make travis-test-$TEST_SUITE
-  # installing dependencies for after_* steps here ensures they get cached
-  # since those steps execute after travis runs `store build cache`
 
 after_failure:
   - dmesg | tail -n 100
@@ -133,6 +129,7 @@ base_postgres: &postgres_default
   install:
     - python setup.py install_egg_info
     - pip install -U -e ".[dev]"
+    - sentry init
   before_script:
     - psql -c 'create database sentry;' -U postgres
 
@@ -152,6 +149,7 @@ base_acceptance: &acceptance_default
     - *install_node_dependencies
     - python setup.py install_egg_info
     - pip install -U -e ".[dev]"
+    - sentry init
     - |
       CHROME_MAJOR_VERSION="$(dpkg -s google-chrome-stable | sed -nr 's/Version: ([0-9]+).*/\1/p')"
       wget -N "https://chromedriver.storage.googleapis.com/$(curl https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${CHROME_MAJOR_VERSION})/chromedriver_linux64.zip" -P ~/
@@ -179,29 +177,14 @@ matrix:
         - *install_node_dependencies
 
     - python: 3.7
-      name: 'pre-commit hooks (includes python linting + format check) and dependency scanning'
+      name: 'pre-commit hooks (includes python linting + format check)'
       install:
-        # XXX: this must be synced with requirements-dev.txt
-        - pip install 'sentry-flake8==0.3.0'
         - SENTRY_NO_VIRTUALENV_CREATION=1 make setup-git
       script:
         # Run pre-commit to lint and format check files that were changed (but not deleted) compared to master.
         # XXX: there is a very small chance that it'll expand to exceed Linux's limits
         #      `getconf ARG_MAX` - max # bytes of args + environ for exec()
         - pre-commit run --files $(git diff --diff-filter=d --name-only master)
-        # If pre-commit was good, then we scan dependencies.
-        # Note that this isn't moved to an after_script since that would override what we already have.
-        # XXX: ideally we don't have to install sentry in its entirety just to scan dependencies...
-        # see the note in bin/scan on why this needs to be done for now.
-        # Note that this will mostly noop because we pull in a cached venv from Travis.
-        - SENTRY_LIGHT_BUILD=1 SENTRY_PYTHON3=1 pip install -e .
-        - pip install safety
-        # XXX: fun fact, as of April 2020 travis preinstalls numpy 1.15.4 in their 3.7 environments
-        # and the safety scanner won't like that (safety id 36810)
-        # Previously we had 36810 ignored in bin/scan until it was removed because it was fixed in
-        # travis 2.7. So this is isolated to at least travis 3.7.
-        - pip uninstall -y numpy
-        - bin/scan
 
     - <<: *postgres_default
       name: 'Backend with migrations [Postgres] (1/2)'
@@ -211,12 +194,18 @@ matrix:
       env: TEST_SUITE=postgres DB=postgres TOTAL_TEST_GROUPS=2 TEST_GROUP=1 MIGRATIONS_TEST_MIGRATE=1
 
     - <<: *acceptance_default
-      name: 'Acceptance'
-      env: TEST_SUITE=acceptance USE_SNUBA=1
+      name: 'Acceptance (1/3)'
+      env: TEST_SUITE=acceptance USE_SNUBA=1 TOTAL_TEST_GROUPS=3 TEST_GROUP=0
+    - <<: *acceptance_default
+      name: 'Acceptance (2/3)'
+      env: TEST_SUITE=acceptance USE_SNUBA=1 TOTAL_TEST_GROUPS=3 TEST_GROUP=1
+    - <<: *acceptance_default
+      name: 'Acceptance (3/3)'
+      env: TEST_SUITE=acceptance USE_SNUBA=1 TOTAL_TEST_GROUPS=3 TEST_GROUP=2
 
     - <<: *acceptance_default
       name: 'Plugins'
-      env: TEST_SUITE=plugins DB=postgres PERCY_TOKEN=${PLUGIN_PERCY_TOKEN}
+      env: TEST_SUITE=plugins DB=postgres
 
     - python: 2.7
       name: 'Frontend [test]'
@@ -243,6 +232,7 @@ matrix:
       install:
         - python setup.py install_egg_info
         - pip install -U -e ".[dev]"
+        - sentry init
       before_script:
         - psql -c 'create database sentry;' -U postgres
 
@@ -252,7 +242,7 @@ matrix:
       before_install:
         - *base_install
         - *start_snuba
-        - docker run -d --network host --name symbolicator us.gcr.io/sentryio/symbolicator:latest run
+        - docker run -d -v $PWD/config/symbolicator/:/etc/symbolicator --network host --name symbolicator us.gcr.io/sentryio/symbolicator:latest run -c /etc/symbolicator/config.yml
         - docker ps -a
 
     - <<: *postgres_default
@@ -284,31 +274,9 @@ matrix:
       install:
         - python setup.py install_egg_info
         - pip install -U -e ".[dev]"
+        - sentry init
       before_script:
         - psql -c 'create database sentry;' -U postgres
-
-    # XXX: this needs to be the same as postgres_default (other than python, name, env, and the rb package override)
-    # NOTE: Migrations need to also be ported to py3.6, but the errors just clog up everything.
-    #       So for now, we're unblocking that by not having MIGRATIONS_TEST_MIGRATE=1.
-    # Allowed to fail!
-    # - python: 3.6
-    #   name: 'Python 3.6 backend (no migrations) [Postgres]'
-    #   env: TEST_SUITE=postgres DB=postgres SENTRY_PYTHON3=1 PYTEST_ADDOPTS="" PYTEST_SENTRY_ALWAYS_REPORT=no
-    #   services:
-    #     - memcached
-    #     - redis-server
-    #     - postgresql
-    #   before_install:
-    #     - *base_install
-    #     - *start_snuba
-    #     - docker ps -a
-    #   install:
-    #     - python setup.py install_egg_info
-    #     - pip install -U -e ".[dev]"
-    #     - pip uninstall -y rb
-    #     - pip install -e git+https://github.com/joshuarli/rb.git@505ad7665baba66c7c492b01b0e83d433ed2eb8e#egg=rb
-    #   before_script:
-    #     - psql -c 'create database sentry;' -U postgres
 
     # Deploy 'storybook' (component & style guide)
     - name: 'Storybook Deploy'

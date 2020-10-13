@@ -104,7 +104,7 @@ class GitHubClientMixin(ApiClient):
 
     def create_token(self):
         return self.post(
-            u"/installations/{}/access_tokens".format(self.integration.external_id),
+            u"/app/installations/{}/access_tokens".format(self.integration.external_id),
             headers={
                 "Authorization": "Bearer %s" % self.get_jwt(),
                 # TODO(jess): remove this whenever it's out of preview

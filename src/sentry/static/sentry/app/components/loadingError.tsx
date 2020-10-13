@@ -36,8 +36,9 @@ class LoadingError extends React.Component<Props> {
   render() {
     const {message, onRetry} = this.props;
     return (
-      <Alert type="error" icon={<IconInfo size="lg" />}>
+      <Alert type="error">
         <Content>
+          <IconInfo size="lg" />
           <div data-test-id="loading-error-message">{message}</div>
           {onRetry && (
             <Button onClick={onRetry} priority="default" size="small">
@@ -55,6 +56,6 @@ export default LoadingError;
 const Content = styled('div')`
   display: grid;
   grid-gap: ${space(1)};
-  grid-template-columns: auto max-content;
+  grid-template-columns: min-content auto max-content;
   align-items: center;
 `;

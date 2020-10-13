@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import abc
-import json
 from uuid import uuid4
 
 import responses
@@ -16,6 +15,7 @@ from sentry.snuba.tasks import (
     update_subscription_in_snuba,
     delete_subscription_from_snuba,
 )
+from sentry.utils import json
 from sentry.testutils import TestCase
 
 
@@ -177,8 +177,8 @@ class BuildSnubaFilterTest(TestCase):
         )
         assert snuba_filter
         assert snuba_filter.conditions == [
-            ["tags[sentry:release]", "=", "latest"],
             ["type", "=", "error"],
+            ["tags[sentry:release]", "=", "latest"],
         ]
         assert snuba_filter.aggregations == [["uniq", "tags[sentry:user]", u"count_unique_user"]]
 
@@ -201,27 +201,36 @@ class BuildSnubaFilterTest(TestCase):
         )
         assert snuba_filter
         assert snuba_filter.conditions == [
-            [
-                ["email", "=", "anengineer@work.io"],
-                ["username", "=", "anengineer@work.io"],
-                ["ip_address", "=", "anengineer@work.io"],
-                ["user_id", "=", "anengineer@work.io"],
-            ],
             ["type", "=", "error"],
+            ["tags[sentry:user]", "=", "anengineer@work.io"],
         ]
         assert snuba_filter.aggregations == [[u"count", None, u"count"]]
 
     def test_user_query_transactions(self):
         snuba_filter = build_snuba_filter(
-            QueryDatasets.TRANSACTIONS, "user:anengineer@work.io", "p95()", None,
+            QueryDatasets.TRANSACTIONS, "user:anengineer@work.io", "p95()", None
+        )
+        assert snuba_filter
+        assert snuba_filter.conditions == [["user", "=", "anengineer@work.io"]]
+        assert snuba_filter.aggregations == [[u"quantile(0.95)", "duration", u"p95"]]
+
+    def test_boolean_query(self):
+        snuba_filter = build_snuba_filter(
+            QueryDatasets.EVENTS, "release:latest OR release:123", "count_unique(user)", None
         )
         assert snuba_filter
         assert snuba_filter.conditions == [
+            ["type", "=", "error"],
             [
-                ["user_email", "=", "anengineer@work.io"],
-                ["user_name", "=", "anengineer@work.io"],
-                ["ip_address", "=", "anengineer@work.io"],
-                ["user_id", "=", "anengineer@work.io"],
+                [
+                    "or",
+                    [
+                        ["equals", ["tags[sentry:release]", "'latest'"]],
+                        ["equals", ["tags[sentry:release]", "'123'"]],
+                    ],
+                ],
+                "=",
+                1,
             ],
         ]
-        assert snuba_filter.aggregations == [[u"quantile(0.95)", "duration", u"p95"]]
+        assert snuba_filter.aggregations == [["uniq", "tags[sentry:user]", u"count_unique_user"]]

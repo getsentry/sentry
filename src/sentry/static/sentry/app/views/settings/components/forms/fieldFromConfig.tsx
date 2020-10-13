@@ -23,12 +23,14 @@ import {Field} from './type';
 type Props = {
   field: Field;
   highlighted?: boolean;
-  disabled?: boolean;
+  disabled?: boolean | ((props) => boolean);
   flexibleControlStateSize?: boolean;
   stacked?: boolean;
   inline?: boolean;
   onBlur?: (value, event) => void;
-  access?: Scope[];
+  access?: Set<Scope>;
+  deprecatedSelectControl?: boolean;
+  noOptionsMessage?: () => string;
 };
 
 export default class FieldFromConfig extends React.Component<Props> {

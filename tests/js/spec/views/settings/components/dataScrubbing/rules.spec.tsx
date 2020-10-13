@@ -2,7 +2,7 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import Rules from 'app/views/settings/components/dataScrubbing/rulesList';
+import Rules from 'app/views/settings/components/dataScrubbing/rules';
 import convertRelayPiiConfig from 'app/views/settings/components/dataScrubbing/convertRelayPiiConfig';
 
 // @ts-ignore
@@ -16,7 +16,7 @@ const handleDelete = jest.fn();
 describe('Rules', () => {
   it('default render', () => {
     const wrapper = mountWithTheme(<Rules rules={rules} />);
-    expect(wrapper.find('ListItem')).toHaveLength(2);
+    expect(wrapper.find('ListItem')).toHaveLength(3);
   });
 
   it('render correct description', () => {
@@ -37,53 +37,41 @@ describe('Rules', () => {
 
   it('render edit and delete buttons', () => {
     const wrapper = mountWithTheme(
-      <Rules
-        rules={rules}
-        onShowEditRuleModal={handleShowEditRule}
-        onDeleteRule={handleDelete}
-      />
+      <Rules rules={rules} onEditRule={handleShowEditRule} onDeleteRule={handleDelete} />
     );
-    expect(wrapper.find('[aria-label="Edit Rule"]').hostNodes()).toHaveLength(2);
-    expect(wrapper.find('[aria-label="Delete Rule"]').hostNodes()).toHaveLength(2);
+    expect(wrapper.find('[aria-label="Edit Rule"]').hostNodes()).toHaveLength(3);
+    expect(wrapper.find('[aria-label="Delete Rule"]').hostNodes()).toHaveLength(3);
   });
 
   it('render disabled edit and delete buttons', () => {
     const wrapper = mountWithTheme(
       <Rules
         rules={rules}
-        onShowEditRuleModal={handleShowEditRule}
+        onEditRule={handleShowEditRule}
         onDeleteRule={handleDelete}
         disabled
       />
     );
     expect(
-      wrapper
-        .find('[aria-label="Edit Rule"]')
-        .hostNodes()
-        .at(0)
-        .prop('aria-disabled')
+      wrapper.find('[aria-label="Edit Rule"]').hostNodes().at(0).prop('aria-disabled')
     ).toEqual(true);
 
     expect(
-      wrapper
-        .find('[aria-label="Delete Rule"]')
-        .hostNodes()
-        .at(0)
-        .prop('aria-disabled')
+      wrapper.find('[aria-label="Delete Rule"]').hostNodes().at(0).prop('aria-disabled')
     ).toEqual(true);
   });
 
   it('render edit button only', () => {
     const wrapper = mountWithTheme(
-      <Rules rules={rules} onShowEditRuleModal={handleShowEditRule} />
+      <Rules rules={rules} onEditRule={handleShowEditRule} />
     );
-    expect(wrapper.find('[aria-label="Edit Rule"]').hostNodes()).toHaveLength(2);
+    expect(wrapper.find('[aria-label="Edit Rule"]').hostNodes()).toHaveLength(3);
     expect(wrapper.find('[aria-label="Delete Rule"]')).toHaveLength(0);
   });
 
   it('render delete button only', () => {
     const wrapper = mountWithTheme(<Rules rules={rules} onDeleteRule={handleDelete} />);
     expect(wrapper.find('[aria-label="Edit Rule"]')).toHaveLength(0);
-    expect(wrapper.find('[aria-label="Delete Rule"]').hostNodes()).toHaveLength(2);
+    expect(wrapper.find('[aria-label="Delete Rule"]').hostNodes()).toHaveLength(3);
   });
 });

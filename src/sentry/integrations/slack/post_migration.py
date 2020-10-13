@@ -13,7 +13,7 @@ from .client import SlackClient
 logger = logging.getLogger(__name__)
 
 
-doc_link = "https://docs.sentry.io/workflow/integrations/global-integrations/#upgrading-slack"
+doc_link = "https://docs.sentry.io/product/integrations/slack/#upgrading-slack"
 
 
 def build_migration_attachment():

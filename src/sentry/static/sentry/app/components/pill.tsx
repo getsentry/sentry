@@ -22,12 +22,12 @@ class Pill extends React.PureComponent<PillProps> {
       case 'true':
       case true:
         type = 'positive';
-        renderValue = 'yes';
+        renderValue = 'true';
         break;
       case 'false':
       case false:
         type = 'negative';
-        renderValue = 'no';
+        renderValue = 'false';
         break;
       case null:
       case undefined:
@@ -104,6 +104,8 @@ const PillValue = styled(PillName)<PillValueProps>`
     `0 ${p.theme.button.borderRadius} ${p.theme.button.borderRadius} 0`};
   font-family: ${p => p.theme.text.familyMono};
   max-width: 100%;
+  display: flex;
+  align-items: center;
 
   > a {
     max-width: 100%;
@@ -119,7 +121,6 @@ const PillValue = styled(PillName)<PillValueProps>`
     display: inline;
     margin: 0 0 0 ${space(1)};
     color: ${p => p.theme.gray500};
-    line-height: 1.2;
     &:hover {
       color: ${p => p.theme.gray700};
     }

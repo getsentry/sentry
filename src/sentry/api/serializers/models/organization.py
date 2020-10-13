@@ -23,6 +23,7 @@ from sentry.constants import (
     SCRAPE_JAVASCRIPT_DEFAULT,
     JOIN_REQUESTS_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
+    APDEX_THRESHOLD_DEFAULT,
 )
 
 from sentry.lang.native.utils import convert_crashreport_count
@@ -264,6 +265,9 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 ),
                 "relayPiiConfig": six.text_type(obj.get_option("sentry:relay_pii_config") or u"")
                 or None,
+                "apdexThreshold": int(
+                    obj.get_option("sentry:apdex_threshold", APDEX_THRESHOLD_DEFAULT)
+                ),
             }
         )
 

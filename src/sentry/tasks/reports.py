@@ -136,7 +136,12 @@ def merge_sequences(target, other, function=operator.add):
     sequences must be equal.
     """
     assert len(target) == len(other), "sequence lengths must match"
-    return type(target)([function(x, y) for x, y in zip(target, other)])
+
+    rt_type = type(target)
+    if rt_type == range:
+        rt_type = list
+
+    return rt_type([function(x, y) for x, y in zip(target, other)])
 
 
 def merge_mappings(target, other, function=lambda x, y: x + y):
@@ -408,7 +413,7 @@ class RedisReportBackend(ReportBackend):
         )
 
     def __encode(self, report):
-        return zlib.compress(json.dumps(list(report)))
+        return zlib.compress(json.dumps(list(report)).encode("utf-8"))
 
     def __decode(self, value):
         if value is None:
@@ -540,6 +545,7 @@ def build_message(timestamp, duration, organization, user, reports):
             "report": to_context(organization, interval, reports),
             "user": user,
         },
+        headers={"category": "organization_report_email"},
     )
 
     message.add_users((user.id,))
@@ -759,6 +765,8 @@ def to_context(organization, interval, reports):
 def get_percentile(values, percentile):
     # XXX: ``values`` must be sorted.
     assert 1 >= percentile > 0
+    if len(values) == 0:
+        return 0
     if percentile == 1:
         index = -1
     else:
@@ -774,7 +782,7 @@ def colorize(spectrum, values):
     for i, color in enumerate(spectrum, 1):
         legend[color] = calculate_percentile(i * width)
 
-    find_index = functools.partial(bisect.bisect_left, legend.values())
+    find_index = functools.partial(bisect.bisect_left, list(legend.values()))
 
     results = []
     for value in values:

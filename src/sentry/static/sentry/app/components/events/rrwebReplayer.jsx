@@ -30,39 +30,51 @@ class RRWebReplayer extends Component {
 }
 
 export default styled(RRWebReplayer)`
-  .rr-player,
-  .rr-player__frame {
+  .rr-player {
     width: auto !important;
-    max-width: 600px;
-    overflow: hidden;
-    margin: 0 auto;
+  }
+  .rr-player__frame {
+    width: 100% !important;
+  }
 
-    @media (min-width: ${theme.breakpoints[3]}) {
-      max-width: 800px;
-    }
+  .rr-player iframe {
+    width: 100% !important;
+    height: 100% !important;
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    border: 0;
   }
 
   .replayer-wrapper {
-    float: left;
-    clear: both;
+    transform: scale(0.6) translate(0, 0) !important;
     transform-origin: top left;
-    left: 50%;
-    top: 50%;
+    width: 166.66%;
+    height: 166.66%;
+    overflow: hidden;
+    position: relative;
+    box-shadow: inset 0 -1px 3px rgba(0, 0, 0, 0.08);
+  }
+
+  .replayer-mouse,
+  .replayer-mouse:after {
+    z-index: ${theme.zIndex.tooltip};
   }
 
   .rr-controller {
     width: 100%;
-    height: 80px;
+    display: block;
+    padding: ${theme.space[2]}px 0;
     background: #fff;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-around;
-    align-items: center;
     border-radius: 0 0 5px 5px;
+    box-shadow: 0 -1px 3px 0 rgba(0, 0, 0, 0.1);
+    position: relative;
   }
 
   .rr-timeline {
-    width: 80%;
+    width: 100%;
     display: flex;
     align-items: center;
   }

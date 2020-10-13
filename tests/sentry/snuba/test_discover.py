@@ -6,7 +6,6 @@ import pytest
 from sentry.utils.compat.mock import patch
 from datetime import datetime, timedelta
 
-from sentry import eventstore
 from sentry.api.event_search import InvalidSearchQuery
 from sentry.snuba import discover
 from sentry.testutils import TestCase, SnubaTestCase
@@ -144,14 +143,14 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         data = result["data"]
         assert len(data) == 1
         assert data[0]["project.id"] == self.project.id
-        assert data[0]["user"] == "bruce@example.com", "alias prefers email"
+        assert data[0]["user"] == "id:99"
         assert data[0]["release"] == "first-release"
 
         assert len(result["meta"]) == 3
         assert result["meta"] == [
             {"name": "project.id", "type": "UInt64"},
-            {"name": "release", "type": "Nullable(String)"},
             {"name": "user", "type": "Nullable(String)"},
+            {"name": "release", "type": "Nullable(String)"},
         ]
 
     def test_field_alias_with_component(self):
@@ -163,14 +162,14 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         data = result["data"]
         assert len(data) == 1
         assert data[0]["project.id"] == self.project.id
-        assert data[0]["user"] == "bruce@example.com", "alias prefers email"
+        assert data[0]["user"] == "id:99"
         assert data[0]["user.email"] == "bruce@example.com"
 
         assert len(result["meta"]) == 3
         assert result["meta"] == [
             {"name": "project.id", "type": "UInt64"},
-            {"name": "user.email", "type": "Nullable(String)"},
             {"name": "user", "type": "Nullable(String)"},
+            {"name": "user.email", "type": "Nullable(String)"},
         ]
 
     def test_field_aliasing_in_aggregate_functions_and_groupby(self):
@@ -279,52 +278,162 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         assert data[0]["id"] == self.event.event_id
         assert data[0]["message"] == self.event.message
 
-    def test_reference_event(self):
-        two_minutes = before_now(minutes=2)
-        five_minutes = before_now(minutes=5)
-        self.store_event(
-            data={"event_id": "a" * 32, "message": "oh no", "timestamp": iso_format(two_minutes)},
-            project_id=self.project.id,
-        )
-        self.store_event(
-            data={
-                "event_id": "b" * 32,
-                "message": "no match",
-                "timestamp": iso_format(two_minutes),
-            },
-            project_id=self.project.id,
-        )
-        ref = discover.ReferenceEvent(
-            self.organization,
-            "{}:{}".format(self.project.slug, "a" * 32),
-            ["message", "count()"],
-            two_minutes,
-            two_minutes,
-        )
-        result = discover.query(
-            selected_columns=["id", "message"],
-            query="",
-            reference_event=ref,
-            params={"project_id": [self.project.id]},
-        )
-        assert len(result["data"]) == 2
-        for row in result["data"]:
-            assert row["message"] == "oh no"
+    def test_conditional_filter(self):
+        project2 = self.create_project(organization=self.organization)
+        project3 = self.create_project(organization=self.organization)
 
-        # make an invalid reference with old dates
-        ref = discover.ReferenceEvent(
-            self.organization,
-            "{}:{}".format(self.project.slug, "a" * 32),
-            ["message", "count()"],
-            five_minutes,
-            five_minutes,
+        self.store_event(
+            data={"message": "aaaaa", "timestamp": iso_format(before_now(minutes=1))},
+            project_id=project2.id,
         )
+        self.store_event(
+            data={"message": "bbbbb", "timestamp": iso_format(before_now(minutes=1))},
+            project_id=project3.id,
+        )
+
+        result = discover.query(
+            selected_columns=["project", "message"],
+            query="project:{} OR project:{}".format(self.project.slug, project2.slug),
+            params={"project_id": [self.project.id, project2.id]},
+            orderby="message",
+        )
+
+        data = result["data"]
+        assert len(data) == 2
+        assert data[0]["project"] == project2.slug
+        assert data[1]["project"] == self.project.slug
+
+    def test_nested_conditional_filter(self):
+        project2 = self.create_project(organization=self.organization)
+        self.store_event(
+            data={"release": "a" * 32, "timestamp": iso_format(before_now(minutes=1))},
+            project_id=self.project.id,
+        )
+        self.event = self.store_event(
+            data={"release": "b" * 32, "timestamp": iso_format(before_now(minutes=1))},
+            project_id=self.project.id,
+        )
+        self.event = self.store_event(
+            data={"release": "c" * 32, "timestamp": iso_format(before_now(minutes=1))},
+            project_id=self.project.id,
+        )
+        self.event = self.store_event(
+            data={"release": "a" * 32, "timestamp": iso_format(before_now(minutes=1))},
+            project_id=project2.id,
+        )
+
+        result = discover.query(
+            selected_columns=["release"],
+            query="(release:{} OR release:{}) AND project:{}".format(
+                "a" * 32, "b" * 32, self.project.slug
+            ),
+            params={"project_id": [self.project.id, project2.id]},
+            orderby="release",
+        )
+
+        data = result["data"]
+        assert len(data) == 2
+        assert data[0]["release"] == "a" * 32
+        assert data[1]["release"] == "b" * 32
+
+    def test_conditions_with_special_columns(self):
+        for val in ["a", "b", "c"]:
+            data = load_data("transaction")
+            data["timestamp"] = iso_format(before_now(seconds=1))
+            data["transaction"] = val * 32
+            data["message"] = val * 32
+            data["tags"] = {"sub_customer.is-Enterprise-42": val * 32}
+            self.store_event(data=data, project_id=self.project.id)
+
+        result = discover.query(
+            selected_columns=["title", "message"],
+            query="event.type:transaction (title:{} OR message:{})".format("a" * 32, "b" * 32),
+            params={"project_id": [self.project.id]},
+            orderby="title",
+        )
+
+        data = result["data"]
+        assert len(data) == 2
+        assert data[0]["title"] == "a" * 32
+        assert data[1]["title"] == "b" * 32
+
+        result = discover.query(
+            selected_columns=["title", "sub_customer.is-Enterprise-42"],
+            query="event.type:transaction (title:{} AND sub_customer.is-Enterprise-42:{})".format(
+                "a" * 32, "a" * 32
+            ),
+            params={"project_id": [self.project.id]},
+            orderby="title",
+        )
+
+        data = result["data"]
+        assert len(data) == 1
+        assert data[0]["title"] == "a" * 32
+        assert data[0]["sub_customer.is-Enterprise-42"] == "a" * 32
+
+    def test_conditions_with_aggregates(self):
+        events = [("a", 2), ("b", 3), ("c", 4)]
+        for ev in events:
+            val = ev[0] * 32
+            for i in range(ev[1]):
+                data = load_data("transaction")
+                data["timestamp"] = iso_format(before_now(seconds=1))
+                data["transaction"] = "{}-{}".format(val, i)
+                data["message"] = val
+                data["tags"] = {"trek": val}
+                self.store_event(data=data, project_id=self.project.id)
+
+        result = discover.query(
+            selected_columns=["trek", "count()"],
+            query="event.type:transaction (trek:{} OR trek:{}) AND count():>2".format(
+                "a" * 32, "b" * 32
+            ),
+            params={"project_id": [self.project.id]},
+            orderby="trek",
+            use_aggregate_conditions=True,
+        )
+
+        data = result["data"]
+        assert len(data) == 1
+        assert data[0]["trek"] == "b" * 32
+        assert data[0]["count"] == 3
+
+    def test_conditions_with_nested_aggregates(self):
+        events = [("a", 2), ("b", 3), ("c", 4)]
+        for ev in events:
+            val = ev[0] * 32
+            for i in range(ev[1]):
+                data = load_data("transaction")
+                data["timestamp"] = iso_format(before_now(seconds=1))
+                data["transaction"] = "{}-{}".format(val, i)
+                data["message"] = val
+                data["tags"] = {"trek": val}
+                self.store_event(data=data, project_id=self.project.id)
+
+        result = discover.query(
+            selected_columns=["trek", "count()"],
+            query="(event.type:transaction AND (trek:{} AND (transaction:*{}* AND count():>2)))".format(
+                "b" * 32, "b" * 32
+            ),
+            params={"project_id": [self.project.id]},
+            orderby="trek",
+            use_aggregate_conditions=True,
+        )
+
+        data = result["data"]
+        assert len(data) == 1
+        assert data[0]["trek"] == "b" * 32
+        assert data[0]["count"] == 3
+
         with pytest.raises(InvalidSearchQuery):
             discover.query(
-                selected_columns=["id", "message"],
-                query="",
-                reference_event=ref,
+                selected_columns=["trek", "transaction"],
+                query="(event.type:transaction AND (trek:{} AND (transaction:*{}* AND count():>2)))".format(
+                    "b" * 32, "b" * 32
+                ),
                 params={"project_id": [self.project.id]},
+                orderby="trek",
+                use_aggregate_conditions=True,
             )
 
 
@@ -365,32 +474,15 @@ class QueryTransformTest(TestCase):
     @patch("sentry.snuba.discover.raw_query")
     def test_selected_columns_field_alias_macro(self, mock_query):
         mock_query.return_value = {
-            "meta": [
-                {"name": "user_id"},
-                {"name": "username"},
-                {"name": "email"},
-                {"name": "ip_address"},
-                {"name": "project_id"},
-            ],
-            "data": [
-                {
-                    "user_id": "1",
-                    "username": "",
-                    "email": "a@example.org",
-                    "ip_address": "",
-                    "project_id": self.project.id,
-                }
-            ],
+            "meta": [{"name": "user"}, {"name": "project_id"}],
+            "data": [{"user": "a@example.org", "project_id": self.project.id}],
         }
         discover.query(
             selected_columns=["user", "project"], query="", params={"project_id": [self.project.id]}
         )
         mock_query.assert_called_with(
             selected_columns=[
-                "email",
-                "username",
-                "ip_address",
-                "user_id",
+                "user",
                 "project_id",
                 [
                     "transform",
@@ -400,7 +492,7 @@ class QueryTransformTest(TestCase):
                         ["array", [u"'{}'".format(self.project.slug)]],
                         "''",
                     ],
-                    "`project`",
+                    "project",
                 ],
             ],
             aggregations=[],
@@ -441,7 +533,7 @@ class QueryTransformTest(TestCase):
                         ["array", [u"'{}'".format(project2.slug)]],
                         "''",
                     ],
-                    "`project`",
+                    "project",
                 ],
             ],
             aggregations=[],
@@ -482,7 +574,7 @@ class QueryTransformTest(TestCase):
                         ["array", [u"'{}'".format(project2.slug)]],
                         "''",
                     ],
-                    "`project`",
+                    "project",
                 ],
             ],
             aggregations=[[u"quantile(0.99)", "duration", u"p99"]],
@@ -502,8 +594,8 @@ class QueryTransformTest(TestCase):
     @patch("sentry.snuba.discover.raw_query")
     def test_selected_columns_no_auto_fields(self, mock_query):
         mock_query.return_value = {
-            "meta": [{"name": "user_id"}, {"name": "email"}],
-            "data": [{"user_id": "1", "email": "a@example.org"}],
+            "meta": [{"name": "count"}],
+            "data": [{"count": 1}],
         }
         discover.query(
             selected_columns=["count()"],
@@ -561,37 +653,6 @@ class QueryTransformTest(TestCase):
 
     @patch("sentry.snuba.discover.raw_query")
     def test_selected_columns_aggregate_alias(self, mock_query):
-        mock_query.return_value = {
-            "meta": [{"name": "transaction"}, {"name": "p95"}],
-            "data": [{"transaction": "api.do_things", "p95": 200}],
-        }
-        discover.query(
-            selected_columns=["transaction", "p95", "count_unique(transaction)"],
-            query="",
-            params={"project_id": [self.project.id]},
-            auto_fields=True,
-        )
-        mock_query.assert_called_with(
-            selected_columns=["transaction"],
-            aggregations=[
-                ["quantile(0.95)", "duration", "p95"],
-                ["uniq", "transaction", "count_unique_transaction"],
-            ],
-            filter_keys={"project_id": [self.project.id]},
-            dataset=Dataset.Discover,
-            groupby=["transaction"],
-            conditions=[],
-            end=None,
-            start=None,
-            orderby=None,
-            having=[],
-            limit=50,
-            offset=None,
-            referrer=None,
-        )
-
-    @patch("sentry.snuba.discover.raw_query")
-    def test_selected_columns_aggregate_alias_with_brackets(self, mock_query):
         mock_query.return_value = {
             "meta": [{"name": "transaction"}, {"name": "p95"}],
             "data": [{"transaction": "api.do_things", "p95": 200}],
@@ -664,6 +725,117 @@ class QueryTransformTest(TestCase):
         mock_query.assert_called_with(
             selected_columns=["transaction"],
             aggregations=[["uniqIf(user, greater(duration, 1200))", None, "user_misery_300"]],
+            filter_keys={"project_id": [self.project.id]},
+            dataset=Dataset.Discover,
+            groupby=["transaction"],
+            conditions=[],
+            end=None,
+            start=None,
+            orderby=None,
+            having=[],
+            limit=50,
+            offset=None,
+            referrer=None,
+        )
+
+    @patch("sentry.snuba.discover.raw_query")
+    def test_selected_columns_percentile_range_function(self, mock_query):
+        mock_query.return_value = {
+            "meta": [{"name": "transaction"}, {"name": "firstPercentile"}],
+            "data": [{"transaction": "api.do_things", "firstPercentile": 15}],
+        }
+        discover.query(
+            selected_columns=[
+                "transaction",
+                "percentile_range(transaction.duration, 0.5, 2020-05-02T13:45:01, 2020-05-02T14:45:01, 1)",
+            ],
+            query="",
+            params={"project_id": [self.project.id]},
+            auto_fields=True,
+        )
+        mock_query.assert_called_with(
+            selected_columns=["transaction"],
+            aggregations=[
+                [
+                    "quantileIf(0.50)(duration,and(greaterOrEquals(timestamp,toDateTime('2020-05-02T13:45:01')),less(timestamp,toDateTime('2020-05-02T14:45:01'))))",
+                    None,
+                    "percentile_range_1",
+                ]
+            ],
+            filter_keys={"project_id": [self.project.id]},
+            dataset=Dataset.Discover,
+            groupby=["transaction"],
+            conditions=[],
+            end=None,
+            start=None,
+            orderby=None,
+            having=[],
+            limit=50,
+            offset=None,
+            referrer=None,
+        )
+
+    @patch("sentry.snuba.discover.raw_query")
+    def test_selected_columns_avg_range_function(self, mock_query):
+        mock_query.return_value = {
+            "meta": [{"name": "transaction"}, {"name": "firstAverage"}],
+            "data": [{"transaction": "api.do_things", "firstAverage": 15}],
+        }
+        discover.query(
+            selected_columns=[
+                "transaction",
+                "avg_range(transaction.duration, 2020-05-02T13:45:01, 2020-05-02T14:45:01, 1)",
+            ],
+            query="",
+            params={"project_id": [self.project.id]},
+            auto_fields=True,
+        )
+        mock_query.assert_called_with(
+            selected_columns=["transaction"],
+            aggregations=[
+                [
+                    "avgIf(duration,and(greaterOrEquals(timestamp,toDateTime('2020-05-02T13:45:01')),less(timestamp,toDateTime('2020-05-02T14:45:01'))))",
+                    None,
+                    "avg_range_1",
+                ]
+            ],
+            filter_keys={"project_id": [self.project.id]},
+            dataset=Dataset.Discover,
+            groupby=["transaction"],
+            conditions=[],
+            end=None,
+            start=None,
+            orderby=None,
+            having=[],
+            limit=50,
+            offset=None,
+            referrer=None,
+        )
+
+    @patch("sentry.snuba.discover.raw_query")
+    def test_selected_columns_user_misery_range_function(self, mock_query):
+        mock_query.return_value = {
+            "meta": [{"name": "transaction"}, {"name": "firstUserMisery"}],
+            "data": [{"transaction": "api.do_things", "firstUserMisery": 15}],
+        }
+        discover.query(
+            selected_columns=[
+                "transaction",
+                "user_misery_range(300, 2020-05-02T13:45:01, 2020-05-02T14:45:01, 1)",
+            ],
+            query="",
+            params={"project_id": [self.project.id]},
+            auto_fields=True,
+        )
+        mock_query.assert_called_with(
+            selected_columns=["transaction"],
+            aggregations=[
+                [
+                    "uniqIf(user,and(greater(duration,1200),and(greaterOrEquals(timestamp,toDateTime('2020-05-02T13:45:01')),less(timestamp,toDateTime('2020-05-02T14:45:01')))))",
+                    None,
+                    "user_misery_range_1",
+                ]
+            ],
             filter_keys={"project_id": [self.project.id]},
             dataset=Dataset.Discover,
             groupby=["transaction"],
@@ -824,7 +996,7 @@ class QueryTransformTest(TestCase):
             selected_columns=["transaction"],
             conditions=[
                 ["type", "=", "transaction"],
-                [["match", ["email", "'(?i)^.*\@sentry\.io$'"]], "=", 1],
+                [["match", ["email", "'(?i)^.*@sentry\.io$'"]], "=", 1],
                 [["positionCaseInsensitive", ["message", "'recent-searches'"]], "!=", 0],
             ],
             aggregations=[["count", None, "count"]],
@@ -853,7 +1025,7 @@ class QueryTransformTest(TestCase):
         )
         mock_query.assert_called_with(
             selected_columns=["transaction", "duration"],
-            conditions=[["contexts[http.method]", "=", "GET"]],
+            conditions=[["http_method", "=", "GET"]],
             filter_keys={"project_id": [self.project.id]},
             groupby=[],
             dataset=Dataset.Discover,
@@ -942,7 +1114,7 @@ class QueryTransformTest(TestCase):
         )
         mock_query.assert_called_with(
             selected_columns=["transaction", "duration"],
-            conditions=[["contexts[http.method]", "=", "GET"]],
+            conditions=[["http_method", "=", "GET"]],
             filter_keys={"project_id": [self.project.id]},
             groupby=[],
             dataset=Dataset.Discover,
@@ -972,7 +1144,7 @@ class QueryTransformTest(TestCase):
         )
         mock_query.assert_called_with(
             selected_columns=["transaction"],
-            conditions=[["contexts[http.method]", "=", "GET"]],
+            conditions=[["http_method", "=", "GET"]],
             filter_keys={"project_id": [self.project.id]},
             groupby=["transaction"],
             dataset=Dataset.Discover,
@@ -995,15 +1167,15 @@ class QueryTransformTest(TestCase):
         start_time = before_now(minutes=10)
         end_time = before_now(seconds=1)
         discover.query(
-            selected_columns=["transaction", "p95"],
-            query="http.method:GET p95:>5",
+            selected_columns=["transaction", "p95()"],
+            query="http.method:GET p95():>5",
             params={"project_id": [self.project.id], "start": start_time, "end": end_time},
             use_aggregate_conditions=True,
         )
 
         mock_query.assert_called_with(
             selected_columns=["transaction"],
-            conditions=[["contexts[http.method]", "=", "GET"]],
+            conditions=[["http_method", "=", "GET"]],
             filter_keys={"project_id": [self.project.id]},
             groupby=["transaction"],
             dataset=Dataset.Discover,
@@ -1037,15 +1209,15 @@ class QueryTransformTest(TestCase):
         ]
         for query_string, value in test_cases:
             discover.query(
-                selected_columns=["transaction", "p95"],
-                query="http.method:GET p95:>{}".format(query_string),
+                selected_columns=["transaction", "p95()"],
+                query="http.method:GET p95():>{}".format(query_string),
                 params={"project_id": [self.project.id], "start": start_time, "end": end_time},
                 use_aggregate_conditions=True,
             )
 
             mock_query.assert_called_with(
                 selected_columns=["transaction"],
-                conditions=[["contexts[http.method]", "=", "GET"]],
+                conditions=[["http_method", "=", "GET"]],
                 filter_keys={"project_id": [self.project.id]},
                 groupby=["transaction"],
                 dataset=Dataset.Discover,
@@ -1076,7 +1248,7 @@ class QueryTransformTest(TestCase):
 
         mock_query.assert_called_with(
             selected_columns=["transaction"],
-            conditions=[["contexts[http.method]", "=", "GET"]],
+            conditions=[["http_method", "=", "GET"]],
             filter_keys={"project_id": [self.project.id]},
             groupby=["transaction"],
             dataset=Dataset.Discover,
@@ -1107,7 +1279,7 @@ class QueryTransformTest(TestCase):
         )
         mock_query.assert_called_with(
             selected_columns=["transaction"],
-            conditions=[["contexts[http.method]", "=", "GET"]],
+            conditions=[["http_method", "=", "GET"]],
             filter_keys={"project_id": [self.project.id]},
             groupby=["transaction"],
             dataset=Dataset.Discover,
@@ -1148,7 +1320,7 @@ class QueryTransformTest(TestCase):
             )
             mock_query.assert_called_with(
                 selected_columns=["transaction"],
-                conditions=[["contexts[http.method]", "=", "GET"]],
+                conditions=[["http_method", "=", "GET"]],
                 filter_keys={"project_id": [self.project.id]},
                 groupby=["transaction"],
                 dataset=Dataset.Discover,
@@ -1432,7 +1604,7 @@ class QueryTransformTest(TestCase):
 
     @patch("sentry.snuba.discover.raw_query")
     def test_histogram_zerofill_missing_results_desc_sort(self, mock_query):
-        seed = range(0, 11, 2)
+        seed = list(range(0, 11, 2))
         seed.reverse()
         mock_query.side_effect = [
             {"data": [{"max_transaction.duration": 10000, "min_transaction.duration": 0}]},
@@ -1567,6 +1739,602 @@ class QueryTransformTest(TestCase):
         assert results["data"][-1]["histogram_transaction_duration_10"] == 64733000000
         assert results["data"][-1]["count"] == 1
 
+    @patch("sentry.snuba.discover.raw_query")
+    def test_measurements_histogram_min_max(self, mock_query):
+        # no rows returned from snuba
+        mock_query.side_effect = [{"meta": [], "data": []}]
+        values = discover.find_measurements_min_max(
+            ["foo"], None, None, "", {"project_id": [self.project.id]}
+        )
+        assert values == (None, None)
+
+        # more than 2 rows returned snuba
+        mock_query.side_effect = [{"meta": [], "data": [{}, {}]}]
+        values = discover.find_measurements_min_max(
+            ["foo"], None, None, "", {"project_id": [self.project.id]}
+        )
+        assert values == (None, None)
+
+        # None rows are returned from snuba
+        mock_query.side_effect = [
+            {
+                "meta": [{"name": "min_measurements_foo"}, {"name": "max_measurements_foo"}],
+                "data": [{"min_measurements_foo": None, "max_measurements_foo": None}],
+            },
+        ]
+        values = discover.find_measurements_min_max(
+            ["foo"], None, None, "", {"project_id": [self.project.id]}
+        )
+        assert values == (None, None)
+
+        # use the given min/max
+        values = discover.find_measurements_min_max(
+            ["foo"], 1, 2, "", {"project_id": [self.project.id]}
+        )
+        assert values == (1, 2)
+
+        # use the given min, but query for max
+        mock_query.side_effect = [
+            {"meta": [{"name": "max_measurements_foo"}], "data": [{"max_measurements_foo": 3.45}]},
+        ]
+        values = discover.find_measurements_min_max(
+            ["foo"], 1.23, None, "", {"project_id": [self.project.id]}
+        )
+        assert values == (1.23, 3.45)
+
+        # use the given max, but query for min
+        mock_query.side_effect = [
+            {"meta": [{"name": "min_measurements_foo"}], "data": [{"min_measurements_foo": 1.23}]},
+        ]
+        values = discover.find_measurements_min_max(
+            ["foo"], None, 3.45, "", {"project_id": [self.project.id]}
+        )
+        assert values == (1.23, 3.45)
+
+        # single min/max returned from snuba
+        mock_query.side_effect = [
+            {
+                "meta": [{"name": "min_measurements_foo"}, {"name": "max_measurements_foo"}],
+                "data": [{"min_measurements_foo": 1.23, "max_measurements_foo": 3.45}],
+            },
+        ]
+        values = discover.find_measurements_min_max(
+            ["foo"], None, None, "", {"project_id": [self.project.id]}
+        )
+        assert values == (1.23, 3.45)
+
+        # multiple min/max returned from snuba
+        mock_query.side_effect = [
+            {
+                "meta": [
+                    {"name": "min_measurements_foo"},
+                    {"name": "min_measurements_bar"},
+                    {"name": "min_measurements_baz"},
+                    {"name": "max_measurements_foo"},
+                    {"name": "max_measurements_bar"},
+                    {"name": "max_measurements_baz"},
+                ],
+                "data": [
+                    {
+                        "min_measurements_foo": 1.23,
+                        "min_measurements_bar": 1.34,
+                        "min_measurements_baz": 1.45,
+                        "max_measurements_foo": 3.45,
+                        "max_measurements_bar": 3.56,
+                        "max_measurements_baz": 3.67,
+                    }
+                ],
+            },
+        ]
+        values = discover.find_measurements_min_max(
+            ["foo", "bar", "baz"], None, None, "", {"project_id": [self.project.id]}
+        )
+        assert values == (1.23, 3.67)
+
+        # multiple min/max with some Nones returned from snuba
+        mock_query.side_effect = [
+            {
+                "meta": [
+                    {"name": "min_measurements_foo"},
+                    {"name": "min_measurements_bar"},
+                    {"name": "min_measurements_baz"},
+                    {"name": "max_measurements_foo"},
+                    {"name": "max_measurements_bar"},
+                    {"name": "max_measurements_baz"},
+                ],
+                "data": [
+                    {
+                        "min_measurements_foo": 1.23,
+                        "min_measurements_bar": None,
+                        "min_measurements_baz": 1.45,
+                        "max_measurements_foo": 3.45,
+                        "max_measurements_bar": None,
+                        "max_measurements_baz": 3.67,
+                    }
+                ],
+            },
+        ]
+        values = discover.find_measurements_min_max(
+            ["foo", "bar", "baz"], None, None, "", {"project_id": [self.project.id]}
+        )
+        assert values == (1.23, 3.67)
+
+    def test_measurements_histogram_params(self):
+        # min and max is None
+        assert discover.find_measurements_histogram_params(1, None, None, 1) == (1, 0, 1)
+        # min is None
+        assert discover.find_measurements_histogram_params(1, None, 1, 10) == (1, 0, 10)
+        # max is None
+        assert discover.find_measurements_histogram_params(1, 1, None, 100) == (1, 0, 100)
+
+        assert discover.find_measurements_histogram_params(10, 0, 9, 1) == (1, 0, 1)
+        assert discover.find_measurements_histogram_params(10, 0, 10, 1) == (2, 0, 1)
+        assert discover.find_measurements_histogram_params(10, 0, 99, 1) == (10, 0, 1)
+        assert discover.find_measurements_histogram_params(10, 0, 100, 1) == (11, 0, 1)
+        assert discover.find_measurements_histogram_params(5, 10, 19, 10) == (19, 100, 10)
+        assert discover.find_measurements_histogram_params(5, 10, 19.9, 10) == (20, 100, 10)
+        assert discover.find_measurements_histogram_params(10, 10, 20, 1) == (2, 10, 1)
+        assert discover.find_measurements_histogram_params(10, 10, 20, 10) == (11, 100, 10)
+        assert discover.find_measurements_histogram_params(10, 10, 20, 100) == (101, 1000, 100)
+
+    def test_measurements_histogram_normalization_empty(self):
+        results = {
+            "meta": [
+                {"name": "array_join_measurements_key", "type": "String"},
+                {"name": "measurements_histogram_1_0_1", "type": "Float64"},
+                {"name": "count", "type": "UInt64"},
+            ],
+            "data": [],
+        }
+        normalized_results = discover.normalize_measurements_histogram(
+            ["foo"], 3, "array_join(measurements_key)", discover.HistogramParams(1, 0, 1), results,
+        )
+        assert normalized_results == {
+            "meta": [
+                {"name": "key", "type": "String"},
+                {"name": "bin", "type": "Float64"},
+                {"name": "count", "type": "UInt64"},
+            ],
+            "data": [
+                {"key": "foo", "bin": 0, "count": 0},
+                {"key": "foo", "bin": 1, "count": 0},
+                {"key": "foo", "bin": 2, "count": 0},
+            ],
+        }
+
+    def test_measurements_histogram_normalization_empty_multiple(self):
+        results = {
+            "meta": [
+                {"name": "array_join_measurements_key", "type": "String"},
+                {"name": "measurements_histogram_1_0_1", "type": "Float64"},
+                {"name": "count", "type": "UInt64"},
+            ],
+            "data": [],
+        }
+        normalized_results = discover.normalize_measurements_histogram(
+            ["bar", "foo"],
+            3,
+            "array_join(measurements_key)",
+            discover.HistogramParams(1, 0, 1),
+            results,
+        )
+        assert normalized_results == {
+            "meta": [
+                {"name": "key", "type": "String"},
+                {"name": "bin", "type": "Float64"},
+                {"name": "count", "type": "UInt64"},
+            ],
+            "data": [
+                {"key": "bar", "bin": 0, "count": 0},
+                {"key": "foo", "bin": 0, "count": 0},
+                {"key": "bar", "bin": 1, "count": 0},
+                {"key": "foo", "bin": 1, "count": 0},
+                {"key": "bar", "bin": 2, "count": 0},
+                {"key": "foo", "bin": 2, "count": 0},
+            ],
+        }
+
+    def test_measurements_histogram_normalization_full(self):
+        results = {
+            "meta": [
+                {"name": "array_join_measurements_key", "type": "String"},
+                {"name": "measurements_histogram_1_0_1", "type": "Float64"},
+                {"name": "count", "type": "UInt64"},
+            ],
+            "data": [
+                {
+                    "array_join_measurements_key": "foo",
+                    "measurements_histogram_1_0_1": 0,
+                    "count": 3,
+                },
+                {
+                    "array_join_measurements_key": "foo",
+                    "measurements_histogram_1_0_1": 1,
+                    "count": 2,
+                },
+                {
+                    "array_join_measurements_key": "foo",
+                    "measurements_histogram_1_0_1": 2,
+                    "count": 1,
+                },
+            ],
+        }
+        normalized_results = discover.normalize_measurements_histogram(
+            ["foo"], 3, "array_join(measurements_key)", discover.HistogramParams(1, 0, 1), results,
+        )
+        assert normalized_results == {
+            "meta": [
+                {"name": "key", "type": "String"},
+                {"name": "bin", "type": "Float64"},
+                {"name": "count", "type": "UInt64"},
+            ],
+            "data": [
+                {"key": "foo", "bin": 0, "count": 3},
+                {"key": "foo", "bin": 1, "count": 2},
+                {"key": "foo", "bin": 2, "count": 1},
+            ],
+        }
+
+    def test_measurements_histogram_normalization_full_multiple(self):
+        results = {
+            "meta": [
+                {"name": "array_join_measurements_key", "type": "String"},
+                {"name": "measurements_histogram_1_0_1", "type": "Float64"},
+                {"name": "count", "type": "UInt64"},
+            ],
+            "data": [
+                {
+                    "array_join_measurements_key": "bar",
+                    "measurements_histogram_1_0_1": 0,
+                    "count": 1,
+                },
+                {
+                    "array_join_measurements_key": "foo",
+                    "measurements_histogram_1_0_1": 0,
+                    "count": 3,
+                },
+                {
+                    "array_join_measurements_key": "bar",
+                    "measurements_histogram_1_0_1": 1,
+                    "count": 2,
+                },
+                {
+                    "array_join_measurements_key": "foo",
+                    "measurements_histogram_1_0_1": 1,
+                    "count": 2,
+                },
+                {
+                    "array_join_measurements_key": "bar",
+                    "measurements_histogram_1_0_1": 2,
+                    "count": 3,
+                },
+                {
+                    "array_join_measurements_key": "foo",
+                    "measurements_histogram_1_0_1": 2,
+                    "count": 1,
+                },
+            ],
+        }
+        normalized_results = discover.normalize_measurements_histogram(
+            ["bar", "foo"],
+            3,
+            "array_join(measurements_key)",
+            discover.HistogramParams(1, 0, 1),
+            results,
+        )
+        assert normalized_results == {
+            "meta": [
+                {"name": "key", "type": "String"},
+                {"name": "bin", "type": "Float64"},
+                {"name": "count", "type": "UInt64"},
+            ],
+            "data": [
+                {"key": "bar", "bin": 0, "count": 1},
+                {"key": "foo", "bin": 0, "count": 3},
+                {"key": "bar", "bin": 1, "count": 2},
+                {"key": "foo", "bin": 1, "count": 2},
+                {"key": "bar", "bin": 2, "count": 3},
+                {"key": "foo", "bin": 2, "count": 1},
+            ],
+        }
+
+    def test_measurements_histogram_normalization_partial(self):
+        results = {
+            "meta": [
+                {"name": "array_join_measurements_key", "type": "String"},
+                {"name": "measurements_histogram_1_0_1", "type": "Float64"},
+                {"name": "count", "type": "UInt64"},
+            ],
+            "data": [
+                {
+                    "array_join_measurements_key": "foo",
+                    "measurements_histogram_1_0_1": 0,
+                    "count": 3,
+                },
+            ],
+        }
+        normalized_results = discover.normalize_measurements_histogram(
+            ["foo"], 3, "array_join(measurements_key)", discover.HistogramParams(1, 0, 1), results,
+        )
+        assert normalized_results == {
+            "meta": [
+                {"name": "key", "type": "String"},
+                {"name": "bin", "type": "Float64"},
+                {"name": "count", "type": "UInt64"},
+            ],
+            "data": [
+                {"key": "foo", "bin": 0, "count": 3},
+                {"key": "foo", "bin": 1, "count": 0},
+                {"key": "foo", "bin": 2, "count": 0},
+            ],
+        }
+
+    def test_measurements_histogram_normalization_partial_multiple(self):
+        results = {
+            "meta": [
+                {"name": "array_join_measurements_key", "type": "String"},
+                {"name": "measurements_histogram_1_0_1", "type": "Float64"},
+                {"name": "count", "type": "UInt64"},
+            ],
+            "data": [
+                {
+                    "array_join_measurements_key": "foo",
+                    "measurements_histogram_1_0_1": 0,
+                    "count": 3,
+                },
+                {
+                    "array_join_measurements_key": "bar",
+                    "measurements_histogram_1_0_1": 2,
+                    "count": 3,
+                },
+            ],
+        }
+        normalized_results = discover.normalize_measurements_histogram(
+            ["bar", "foo"],
+            3,
+            "array_join(measurements_key)",
+            discover.HistogramParams(1, 0, 1),
+            results,
+        )
+        assert normalized_results == {
+            "meta": [
+                {"name": "key", "type": "String"},
+                {"name": "bin", "type": "Float64"},
+                {"name": "count", "type": "UInt64"},
+            ],
+            "data": [
+                {"key": "bar", "bin": 0, "count": 0},
+                {"key": "foo", "bin": 0, "count": 3},
+                {"key": "bar", "bin": 1, "count": 0},
+                {"key": "foo", "bin": 1, "count": 0},
+                {"key": "bar", "bin": 2, "count": 3},
+                {"key": "foo", "bin": 2, "count": 0},
+            ],
+        }
+
+    def test_measurements_histogram_normalization_ignore_unexpected_rows(self):
+        results = {
+            "meta": [
+                {"name": "array_join_measurements_key", "type": "String"},
+                {"name": "measurements_histogram_1_0_1", "type": "Float64"},
+                {"name": "count", "type": "UInt64"},
+            ],
+            "data": [
+                {
+                    "array_join_measurements_key": "foo",
+                    "measurements_histogram_1_0_1": 0,
+                    "count": 3,
+                },
+                # this row shouldn't be used because "baz" isn't an expected measurement
+                {
+                    "array_join_measurements_key": "baz",
+                    "measurements_histogram_1_0_1": 1,
+                    "count": 3,
+                },
+                {
+                    "array_join_measurements_key": "bar",
+                    "measurements_histogram_1_0_1": 2,
+                    "count": 3,
+                },
+                # this row shouldn't be used because 3 isn't an expected bin
+                {
+                    "array_join_measurements_key": "bar",
+                    "measurements_histogram_1_0_1": 3,
+                    "count": 3,
+                },
+            ],
+        }
+        normalized_results = discover.normalize_measurements_histogram(
+            ["bar", "foo"],
+            3,
+            "array_join(measurements_key)",
+            discover.HistogramParams(1, 0, 1),
+            results,
+        )
+        assert normalized_results == {
+            "meta": [
+                {"name": "key", "type": "String"},
+                {"name": "bin", "type": "Float64"},
+                {"name": "count", "type": "UInt64"},
+            ],
+            "data": [
+                {"key": "bar", "bin": 0, "count": 0},
+                {"key": "foo", "bin": 0, "count": 3},
+                {"key": "bar", "bin": 1, "count": 0},
+                {"key": "foo", "bin": 1, "count": 0},
+                {"key": "bar", "bin": 2, "count": 3},
+                {"key": "foo", "bin": 2, "count": 0},
+            ],
+        }
+
+    def test_measurements_histogram_normalization_adjust_for_precision(self):
+        results = {
+            "meta": [
+                {"name": "array_join_measurements_key", "type": "String"},
+                {"name": "measurements_histogram_25_0_100", "type": "Float64"},
+                {"name": "count", "type": "UInt64"},
+            ],
+            "data": [
+                {
+                    "array_join_measurements_key": "foo",
+                    "measurements_histogram_25_0_100": 0,
+                    "count": 3,
+                },
+                {
+                    "array_join_measurements_key": "foo",
+                    "measurements_histogram_25_0_100": 25,
+                    "count": 2,
+                },
+                {
+                    "array_join_measurements_key": "foo",
+                    "measurements_histogram_25_0_100": 50,
+                    "count": 1,
+                },
+                {
+                    "array_join_measurements_key": "foo",
+                    "measurements_histogram_25_0_100": 75,
+                    "count": 1,
+                },
+            ],
+        }
+        normalized_results = discover.normalize_measurements_histogram(
+            ["foo"],
+            4,
+            "array_join(measurements_key)",
+            discover.HistogramParams(25, 0, 100),
+            results,
+        )
+        assert normalized_results == {
+            "meta": [
+                {"name": "key", "type": "String"},
+                {"name": "bin", "type": "Float64"},
+                {"name": "count", "type": "UInt64"},
+            ],
+            "data": [
+                {"key": "foo", "bin": 0, "count": 3},
+                {"key": "foo", "bin": 0.25, "count": 2},
+                {"key": "foo", "bin": 0.50, "count": 1},
+                {"key": "foo", "bin": 0.75, "count": 1},
+            ],
+        }
+
+    @patch("sentry.snuba.discover.raw_query")
+    def test_measurements_histogram(self, mock_query):
+        mock_query.side_effect = [
+            {
+                "meta": [{"name": "min_measurements_foo"}, {"name": "max_measurements_foo"}],
+                "data": [
+                    {
+                        "min_measurements_bar": 2,
+                        "min_measurements_foo": 0,
+                        "max_measurements_bar": 2,
+                        "max_measurements_foo": 2,
+                    }
+                ],
+            },
+            {
+                "meta": [
+                    {"name": "array_join_measurements_key", "type": "String"},
+                    {"name": "measurements_histogram_1_0_1", "type": "Float64"},
+                    {"name": "count", "type": "UInt64"},
+                ],
+                "data": [
+                    {
+                        "array_join_measurements_key": "bar",
+                        "measurements_histogram_1_0_1": 0,
+                        "count": 3,
+                    },
+                    {
+                        "array_join_measurements_key": "foo",
+                        "measurements_histogram_1_0_1": 0,
+                        "count": 3,
+                    },
+                    {
+                        "array_join_measurements_key": "foo",
+                        "measurements_histogram_1_0_1": 2,
+                        "count": 1,
+                    },
+                ],
+            },
+        ]
+        results = discover.measurements_histogram_query(
+            ["bar", "foo"], "", {"project_id": [self.project.id]}, 3, 0
+        )
+        assert results == {
+            "meta": [
+                {"name": "key", "type": "String"},
+                {"name": "bin", "type": "Float64"},
+                {"name": "count", "type": "UInt64"},
+            ],
+            "data": [
+                {"key": "bar", "bin": 0, "count": 3},
+                {"key": "foo", "bin": 0, "count": 3},
+                {"key": "bar", "bin": 1, "count": 0},
+                {"key": "foo", "bin": 1, "count": 0},
+                {"key": "bar", "bin": 2, "count": 0},
+                {"key": "foo", "bin": 2, "count": 1},
+            ],
+        }
+
+    @patch("sentry.snuba.discover.raw_query")
+    def test_measurements_histogram_with_optionals(self, mock_query):
+        mock_query.side_effect = [
+            {
+                "meta": [
+                    {"name": "array_join_measurements_key", "type": "String"},
+                    {"name": "measurements_histogram_5_5_10", "type": "Float64"},
+                    {"name": "count", "type": "UInt64"},
+                ],
+                "data": [
+                    # this row shouldn't be used because it lies outside the boundary
+                    {
+                        "array_join_measurements_key": "foo",
+                        "measurements_histogram_5_5_10": 0,
+                        "count": 1,
+                    },
+                    {
+                        "array_join_measurements_key": "foo",
+                        "measurements_histogram_5_5_10": 5,
+                        "count": 3,
+                    },
+                    {
+                        "array_join_measurements_key": "bar",
+                        "measurements_histogram_5_5_10": 10,
+                        "count": 2,
+                    },
+                    {
+                        "array_join_measurements_key": "foo",
+                        "measurements_histogram_5_5_10": 15,
+                        "count": 1,
+                    },
+                    # this row shouldn't be used because it lies outside the boundary
+                    {
+                        "array_join_measurements_key": "bar",
+                        "measurements_histogram_5_5_10": 30,
+                        "count": 2,
+                    },
+                ],
+            },
+        ]
+        results = discover.measurements_histogram_query(
+            ["bar", "foo"], "", {"project_id": [self.project.id]}, 3, 1, 0.5, 2
+        )
+        assert results == {
+            "meta": [
+                {"name": "key", "type": "String"},
+                {"name": "bin", "type": "Float64"},
+                {"name": "count", "type": "UInt64"},
+            ],
+            "data": [
+                {"key": "bar", "bin": 0.5, "count": 0},
+                {"key": "foo", "bin": 0.5, "count": 3},
+                {"key": "bar", "bin": 1.0, "count": 2},
+                {"key": "foo", "bin": 1.0, "count": 0},
+                {"key": "bar", "bin": 1.5, "count": 0},
+                {"key": "foo", "bin": 1.5, "count": 1},
+            ],
+        }
+
 
 class TimeseriesQueryTest(SnubaTestCase, TestCase):
     def setUp(self):
@@ -1641,19 +2409,6 @@ class TimeseriesQueryTest(SnubaTestCase, TestCase):
 
     def test_field_alias(self):
         result = discover.timeseries_query(
-            selected_columns=["p95"],
-            query="event.type:transaction transaction:api.issue.delete",
-            params={
-                "start": self.day_ago,
-                "end": self.day_ago + timedelta(hours=2),
-                "project_id": [self.project.id],
-            },
-            rollup=3600,
-        )
-        assert len(result.data["data"]) == 3
-
-    def test_field_alias_with_brackets(self):
-        result = discover.timeseries_query(
             selected_columns=["p95()"],
             query="event.type:transaction transaction:api.issue.delete",
             params={
@@ -1725,368 +2480,78 @@ class TimeseriesQueryTest(SnubaTestCase, TestCase):
             val["count"] for val in result.data["data"] if "count" in val
         ], result.data["data"]
 
-    def test_reference_event(self):
-        ref = discover.ReferenceEvent(
-            self.organization,
-            "{}:{}".format(self.project.slug, "a" * 32),
-            ["message", "count()", "last_seen"],
+    def test_conditional_filter(self):
+        project2 = self.create_project(organization=self.organization)
+        project3 = self.create_project(organization=self.organization)
+
+        self.store_event(
+            data={"message": "hello", "timestamp": iso_format(before_now(minutes=1))},
+            project_id=project2.id,
         )
+        self.store_event(
+            data={"message": "hello", "timestamp": iso_format(before_now(minutes=1))},
+            project_id=project3.id,
+        )
+
         result = discover.timeseries_query(
             selected_columns=["count()"],
-            query="",
+            query="project:{} OR project:{}".format(self.project.slug, project2.slug),
             params={
-                "start": self.day_ago,
-                "end": self.day_ago + timedelta(hours=3),
-                "project_id": [self.project.id],
+                "start": before_now(minutes=5),
+                "end": before_now(seconds=1),
+                "project_id": [self.project.id, project2.id, project3.id],
             },
-            reference_event=ref,
             rollup=3600,
         )
-        assert len(result.data["data"]) == 4
-        assert [1, 1] == [val["count"] for val in result.data["data"] if "count" in val]
 
+        data = result.data["data"]
+        assert len([d for d in data if "count" in d]) == 1
+        for d in data:
+            if "count" in d:
+                assert d["count"] == 1
 
-class CreateReferenceEventConditionsTest(SnubaTestCase, TestCase):
-    def test_bad_slug_format(self):
-        ref = discover.ReferenceEvent(self.organization, "lol", ["title"])
-        with pytest.raises(InvalidSearchQuery):
-            discover.create_reference_event_conditions(ref)
-
-    def test_unknown_project(self):
-        event = self.store_event(
-            data={"message": "oh no!", "timestamp": iso_format(before_now(seconds=1))},
+    def test_nested_conditional_filter(self):
+        project2 = self.create_project(organization=self.organization)
+        self.store_event(
+            data={"release": "a" * 32, "timestamp": iso_format(before_now(minutes=1))},
             project_id=self.project.id,
         )
-        ref = discover.ReferenceEvent(
-            self.organization, "nope:{}".format(event.event_id), ["title"]
+        self.event = self.store_event(
+            data={"release": "b" * 32, "timestamp": iso_format(before_now(minutes=1))},
+            project_id=self.project.id,
         )
-        with pytest.raises(InvalidSearchQuery):
-            discover.create_reference_event_conditions(ref)
+        self.event = self.store_event(
+            data={"release": "c" * 32, "timestamp": iso_format(before_now(minutes=1))},
+            project_id=self.project.id,
+        )
+        self.event = self.store_event(
+            data={"release": "a" * 32, "timestamp": iso_format(before_now(minutes=1))},
+            project_id=project2.id,
+        )
 
-    def test_unknown_event(self):
-        with pytest.raises(InvalidSearchQuery):
-            slug = "{}:deadbeef".format(self.project.slug)
-            ref = discover.ReferenceEvent(self.organization, slug, ["message"])
-            discover.create_reference_event_conditions(ref)
-
-    def test_unknown_event_and_no_fields(self):
-        slug = "{}:deadbeef".format(self.project.slug)
-        ref = discover.ReferenceEvent(self.organization, slug, [])
-        result = discover.create_reference_event_conditions(ref)
-        assert len(result) == 0
-
-    def test_no_fields(self):
-        event = self.store_event(
-            data={
-                "message": "oh no!",
-                "transaction": "/issues/{issue_id}",
-                "timestamp": iso_format(before_now(seconds=1)),
+        result = discover.timeseries_query(
+            selected_columns=["release", "count()"],
+            query="(release:{} OR release:{}) AND project:{}".format(
+                "a" * 32, "b" * 32, self.project.slug
+            ),
+            params={
+                "start": before_now(minutes=5),
+                "end": before_now(seconds=1),
+                "project_id": [self.project.id, project2.id],
             },
-            project_id=self.project.id,
-        )
-        slug = "{}:{}".format(self.project.slug, event.event_id)
-        ref = discover.ReferenceEvent(self.organization, slug, [])
-        result = discover.create_reference_event_conditions(ref)
-        assert len(result) == 0
-
-    def test_basic_fields(self):
-        event = self.store_event(
-            data={
-                "message": "oh no!",
-                "transaction": "/issues/{issue_id}",
-                "timestamp": iso_format(before_now(seconds=1)),
-            },
-            project_id=self.project.id,
+            rollup=3600,
         )
 
-        slug = "{}:{}".format(self.project.slug, event.event_id)
-        ref = discover.ReferenceEvent(
-            self.organization, slug, ["message", "transaction", "unknown-field"]
-        )
-        result = discover.create_reference_event_conditions(ref)
-        assert result == [
-            ["message", "=", "oh no! /issues/{issue_id}"],
-            ["transaction", "=", "/issues/{issue_id}"],
-        ]
-
-    def test_geo_field(self):
-        event = self.store_event(
-            data={
-                "message": "oh no!",
-                "transaction": "/issues/{issue_id}",
-                "user": {
-                    "id": 1,
-                    "geo": {"country_code": "US", "region": "CA", "city": "San Francisco"},
-                },
-                "timestamp": iso_format(before_now(seconds=1)),
-            },
-            project_id=self.project.id,
-        )
-        slug = "{}:{}".format(self.project.slug, event.event_id)
-        ref = discover.ReferenceEvent(
-            self.organization, slug, ["geo.city", "geo.region", "geo.country_code"]
-        )
-        result = discover.create_reference_event_conditions(ref)
-        assert result == [
-            ["geo.city", "=", "San Francisco"],
-            ["geo.region", "=", "CA"],
-            ["geo.country_code", "=", "US"],
-        ]
-
-    def test_sdk_field(self):
-        event = self.store_event(
-            data={
-                "message": "oh no!",
-                "transaction": "/issues/{issue_id}",
-                "sdk": {"name": "sentry-python", "version": "5.0.12"},
-                "timestamp": iso_format(before_now(seconds=1)),
-            },
-            project_id=self.project.id,
-        )
-        slug = "{}:{}".format(self.project.slug, event.event_id)
-        ref = discover.ReferenceEvent(self.organization, slug, ["sdk.version", "sdk.name"])
-        result = discover.create_reference_event_conditions(ref)
-        assert result == [["sdk.version", "=", "5.0.12"], ["sdk.name", "=", "sentry-python"]]
-
-    def test_error_field(self):
-        data = load_data("php")
-        data["timestamp"] = iso_format(before_now(seconds=1))
-        event = self.store_event(data=data, project_id=self.project.id)
-
-        slug = "{}:{}".format(self.project.slug, event.event_id)
-        ref = discover.ReferenceEvent(
-            self.organization, slug, ["error.value", "error.type", "error.handled"]
-        )
-        result = discover.create_reference_event_conditions(ref)
-        assert result == [
-            ["error.value", "=", "This is a test exception sent from the Raven CLI."],
-            ["error.type", "=", "Exception"],
-        ]
-
-    def test_stack_field(self):
-        data = load_data("php")
-        data["timestamp"] = iso_format(before_now(seconds=1))
-        event = self.store_event(data=data, project_id=self.project.id)
-
-        slug = "{}:{}".format(self.project.slug, event.event_id)
-        ref = discover.ReferenceEvent(self.organization, slug, ["stack.filename", "stack.function"])
-        result = discover.create_reference_event_conditions(ref)
-        assert result == [
-            ["stack.filename", "=", "/Users/example/Development/raven-php/bin/raven"],
-            ["stack.function", "=", "raven_cli_test"],
-        ]
-
-    def test_tag_value(self):
-        event = self.store_event(
-            data={
-                "message": "oh no!",
-                "timestamp": iso_format(before_now(seconds=1)),
-                "tags": {"customer_id": 1, "color": "red"},
-            },
-            project_id=self.project.id,
-        )
-        slug = "{}:{}".format(self.project.slug, event.event_id)
-        ref = discover.ReferenceEvent(self.organization, slug, ["nope", "color", "customer_id"])
-        result = discover.create_reference_event_conditions(ref)
-        assert result == [["color", "=", "red"], ["customer_id", "=", "1"]]
-
-    def test_context_value(self):
-        event = self.store_event(
-            data={
-                "message": "oh no!",
-                "timestamp": iso_format(before_now(seconds=1)),
-                "contexts": {
-                    "os": {"version": "10.14.6", "type": "os", "name": "Mac OS X"},
-                    "browser": {"type": "browser", "name": "Firefox", "version": "69"},
-                    "gpu": {"type": "gpu", "name": "nvidia 8600", "vendor": "nvidia"},
-                },
-            },
-            project_id=self.project.id,
-        )
-        slug = "{}:{}".format(self.project.slug, event.event_id)
-        ref = discover.ReferenceEvent(self.organization, slug, ["gpu.name", "browser.name"])
-        result = discover.create_reference_event_conditions(ref)
-        assert result == [["gpu.name", "=", "nvidia 8600"], ["browser.name", "=", "Firefox"]]
-
-    def test_issue_field(self):
-        event = self.store_event(
-            data={
-                "message": "oh no!",
-                "timestamp": iso_format(before_now(seconds=1)),
-                "contexts": {
-                    "os": {"version": "10.14.6", "type": "os", "name": "Mac OS X"},
-                    "browser": {"type": "browser", "name": "Firefox", "version": "69"},
-                    "gpu": {"type": "gpu", "name": "nvidia 8600", "vendor": "nvidia"},
-                },
-            },
-            project_id=self.project.id,
-        )
-        slug = "{}:{}".format(self.project.slug, event.event_id)
-        ref = discover.ReferenceEvent(self.organization, slug, ["issue.id"])
-        result = discover.create_reference_event_conditions(ref)
-        assert result == [["issue.id", "=", event.group_id]]
+        data = result.data["data"]
+        data = result.data["data"]
+        assert len([d for d in data if "count" in d]) == 1
+        for d in data:
+            if "count" in d:
+                assert d["count"] == 2
 
 
 def format_project_event(project_slug, event_id):
     return "{}:{}".format(project_slug, event_id)
-
-
-class GetPaginationIdsTest(SnubaTestCase, TestCase):
-    def setUp(self):
-        super(GetPaginationIdsTest, self).setUp()
-
-        self.project = self.create_project()
-        self.project_2 = self.create_project()
-        self.min_ago = before_now(minutes=1)
-        self.day_ago = before_now(days=1)
-
-        self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "message": "very bad",
-                "type": "default",
-                "platform": "python",
-                "timestamp": iso_format(before_now(minutes=4)),
-                "tags": {"foo": "1"},
-            },
-            project_id=self.project.id,
-        )
-        self.store_event(
-            data={
-                "event_id": "b" * 32,
-                "message": "very bad",
-                "type": "default",
-                "platform": "python",
-                "timestamp": iso_format(before_now(minutes=3)),
-                "tags": {"foo": "1"},
-            },
-            project_id=self.project.id,
-        )
-        self.store_event(
-            data={
-                "event_id": "c" * 32,
-                "message": "very bad",
-                "type": "default",
-                "platform": "python",
-                "timestamp": iso_format(before_now(minutes=2)),
-                "tags": {"foo": "1"},
-            },
-            project_id=self.project.id,
-        )
-        self.store_event(
-            data={
-                "event_id": "e" * 32,
-                "message": "very bad",
-                "type": "default",
-                "platform": "python",
-                "timestamp": iso_format(before_now(minutes=2, seconds=30)),
-                "tags": {"foo": "1"},
-            },
-            project_id=self.project_2.id,
-        )
-        self.event = eventstore.get_event_by_id(self.project.id, "b" * 32)
-
-    def test_no_related_events(self):
-        result = discover.get_pagination_ids(
-            self.event,
-            "foo:bar",
-            {"project_id": [self.project.id], "start": self.min_ago, "end": self.day_ago},
-            self.organization,
-        )
-        assert result.previous is None
-        assert result.next is None
-        assert result.oldest is None
-        assert result.latest is None
-
-    def test_invalid_conditions(self):
-        with pytest.raises(InvalidSearchQuery):
-            discover.get_pagination_ids(
-                self.event,
-                "foo:(11",
-                {"project_id": [self.project.id], "end": self.min_ago, "start": self.day_ago},
-                self.organization,
-            )
-
-    def test_matching_conditions(self):
-        result = discover.get_pagination_ids(
-            self.event,
-            "foo:1",
-            {"project_id": [self.project.id], "end": self.min_ago, "start": self.day_ago},
-            self.organization,
-        )
-        assert result.previous == format_project_event(self.project.slug, "a" * 32)
-        assert result.next == format_project_event(self.project.slug, "c" * 32)
-        assert result.oldest == format_project_event(self.project.slug, "a" * 32)
-        assert result.latest == format_project_event(self.project.slug, "c" * 32)
-
-    def test_reference_event_matching(self):
-        # Create an event that won't match the reference
-        self.store_event(
-            data={
-                "event_id": "d" * 32,
-                "message": "completely bad",
-                "type": "default",
-                "platform": "python",
-                "timestamp": iso_format(before_now(minutes=2)),
-                "tags": {"foo": "1"},
-            },
-            project_id=self.project.id,
-        )
-        reference = discover.ReferenceEvent(
-            self.organization, "{}:{}".format(self.project.slug, self.event.event_id), ["message"]
-        )
-        result = discover.get_pagination_ids(
-            self.event,
-            "foo:1",
-            {"project_id": [self.project.id], "end": self.min_ago, "start": self.day_ago},
-            self.organization,
-            reference_event=reference,
-        )
-        assert result.previous == format_project_event(self.project.slug, "a" * 32)
-        assert result.next == format_project_event(self.project.slug, "c" * 32)
-        assert result.oldest == format_project_event(self.project.slug, "a" * 32)
-        assert result.latest == format_project_event(self.project.slug, "c" * 32)
-
-    def test_date_params_included(self):
-        # Create an event that is outside the date range
-        self.store_event(
-            data={
-                "event_id": "d" * 32,
-                "message": "very bad",
-                "type": "default",
-                "platform": "python",
-                "timestamp": iso_format(before_now(days=2)),
-                "tags": {"foo": "1"},
-            },
-            project_id=self.project.id,
-        )
-        result = discover.get_pagination_ids(
-            self.event,
-            "foo:1",
-            {"project_id": [self.project.id], "end": self.min_ago, "start": self.day_ago},
-            self.organization,
-        )
-        assert result.previous == format_project_event(self.project.slug, "a" * 32)
-        assert result.next == format_project_event(self.project.slug, "c" * 32)
-        assert result.oldest == format_project_event(self.project.slug, "a" * 32)
-        assert result.latest == format_project_event(self.project.slug, "c" * 32)
-
-    def test_multi_projects(self):
-        result = discover.get_pagination_ids(
-            self.event,
-            "foo:1",
-            {
-                "project_id": [self.project.id, self.project_2.id],
-                "end": self.min_ago,
-                "start": self.day_ago,
-            },
-            self.organization,
-        )
-
-        assert result.previous == format_project_event(self.project.slug, "a" * 32)
-        assert result.next == format_project_event(self.project_2.slug, "e" * 32)
-        assert result.oldest == format_project_event(self.project.slug, "a" * 32)
-        assert result.latest == format_project_event(self.project.slug, "c" * 32)
 
 
 class GetFacetsTest(SnubaTestCase, TestCase):
@@ -2246,7 +2711,7 @@ class GetFacetsTest(SnubaTestCase, TestCase):
         assert "color" in keys
         assert "toy" not in keys
 
-        result = discover.get_facets("color:red p95:>1", params)
+        result = discover.get_facets("color:red p95():>1", params)
         keys = {r.key for r in result}
         assert "color" in keys
         assert "toy" not in keys

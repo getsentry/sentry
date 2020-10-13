@@ -96,3 +96,30 @@ class OrganizationIncidentDetailsTest(SnubaTestCase, APITestCase):
             [{"count": 2}],
             [{"count": 2}],
         ]
+
+    def test_start_bucket_outside_range(self):
+        now = self.now - timedelta(minutes=1)
+        with freeze_time(now):
+            incident_start = now - timedelta(minutes=2)
+            self.create_event(incident_start - timedelta(minutes=1))
+            self.create_event(incident_start - timedelta(minutes=6))
+            self.create_event(incident_start + timedelta(minutes=1))
+            alert_rule = self.create_alert_rule(time_window=30)
+            incident = self.create_incident(
+                date_started=incident_start, query="", alert_rule=alert_rule
+            )
+
+            with self.feature("organizations:incidents"):
+                resp = self.get_valid_response(incident.organization.slug, incident.identifier)
+
+            assert resp.data["totalEvents"] == 3
+            assert resp.data["uniqueUsers"] == 0
+            for i, data in enumerate(resp.data["eventStats"]["data"]):
+                if data[1]:
+                    break
+            # We don't care about the empty rows, we just want to find this block of rows
+            # with counts somewhere in the data
+            assert [data[1] for data in resp.data["eventStats"]["data"][i : i + 3]] == [
+                [{"count": 3}],
+                [{"count": 1}],
+            ]

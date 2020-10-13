@@ -1,13 +1,13 @@
 import React from 'react';
 
-import {shallow} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {MultipleCheckboxField} from 'app/components/forms';
 
-describe('MultipleCheckboxField', function() {
-  describe('render()', function() {
-    it('renders without form context', function() {
-      const wrapper = shallow(
+describe('MultipleCheckboxField', function () {
+  describe('render()', function () {
+    it('renders without form context', function () {
+      const wrapper = mountWithTheme(
         <MultipleCheckboxField
           name="fieldName"
           choices={[
@@ -17,11 +17,11 @@ describe('MultipleCheckboxField', function() {
           value={['1']}
         />
       );
-      expect(wrapper).toMatchSnapshot();
+      expect(wrapper).toSnapshot();
     });
 
-    it('renders with form context', function() {
-      const wrapper = shallow(
+    it('renders with form context', function () {
+      const wrapper = mountWithTheme(
         <MultipleCheckboxField
           name="fieldName"
           choices={[
@@ -40,7 +40,7 @@ describe('MultipleCheckboxField', function() {
           },
         }
       );
-      expect(wrapper).toMatchSnapshot();
+      expect(wrapper).toSnapshot();
     });
   });
 });

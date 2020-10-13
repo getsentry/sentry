@@ -78,6 +78,11 @@ INTERNAL_IPS = ()
 # List of IP subnets which should not be accessible
 SENTRY_DISALLOWED_IPS = ()
 
+# When resolving DNS for external sources (source map fetching, webhooks, etc),
+# ensure that domains are fully resolved first to avoid poking internal
+# search domains.
+SENTRY_ENSURE_FQDN = False
+
 # Hosts that are allowed to use system token authentication.
 # http://en.wikipedia.org/wiki/Reserved_IP_addresses
 INTERNAL_SYSTEM_IPS = (
@@ -113,13 +118,15 @@ else:
 
 NODE_MODULES_ROOT = os.path.normpath(NODE_MODULES_ROOT)
 
-RELAY_CONFIG_DIR = os.path.normpath(
-    os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "config", "relay")
+DEVSERVICES_CONFIG_DIR = os.path.normpath(
+    os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "config")
 )
 
-REVERSE_PROXY_CONFIG = os.path.normpath(
-    os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "config", "reverse_proxy", "nginx.conf")
-)
+CLICKHOUSE_CONFIG_PATH = os.path.join(DEVSERVICES_CONFIG_DIR, "clickhouse", "config.xml")
+
+RELAY_CONFIG_DIR = os.path.join(DEVSERVICES_CONFIG_DIR, "relay")
+
+SYMBOLICATOR_CONFIG_DIR = os.path.join(DEVSERVICES_CONFIG_DIR, "symbolicator")
 
 sys.path.insert(0, os.path.normpath(os.path.join(PROJECT_ROOT, os.pardir)))
 
@@ -262,7 +269,6 @@ USE_TZ = True
 # response modifying middleware reset the Content-Length header.
 # This is because CommonMiddleware Sets the Content-Length header for non-streaming responses.
 MIDDLEWARE_CLASSES = (
-    "sentry.middleware.proxy.ChunkedMiddleware",
     "sentry.middleware.proxy.DecompressBodyMiddleware",
     "sentry.middleware.security.SecurityHeadersMiddleware",
     "sentry.middleware.maintenance.ServicesUnavailableMiddleware",
@@ -419,9 +425,6 @@ SESSION_SERIALIZER = "django.contrib.sessions.serializers.PickleSerializer"
 GOOGLE_OAUTH2_CLIENT_ID = ""
 GOOGLE_OAUTH2_CLIENT_SECRET = ""
 
-GITHUB_APP_ID = ""
-GITHUB_API_SECRET = ""
-
 BITBUCKET_CONSUMER_KEY = ""
 BITBUCKET_CONSUMER_SECRET = ""
 
@@ -489,6 +492,11 @@ BROKER_TRANSPORT_OPTIONS = {}
 # though it would cause timeouts/recursions in some cases
 CELERY_ALWAYS_EAGER = False
 
+# We use the old task protocol because during benchmarking we noticed that it's faster
+# than the new protocol. If we ever need to bump this it should be fine, there were no
+# compatibility issues, just need to run benchmarks and do some tests to make sure
+# things run ok.
+CELERY_TASK_PROTOCOL = 1
 CELERY_EAGER_PROPAGATES_EXCEPTIONS = True
 CELERY_IGNORE_RESULT = True
 CELERY_SEND_EVENTS = False
@@ -502,6 +510,9 @@ CELERY_DEFAULT_ROUTING_KEY = "default"
 CELERY_CREATE_MISSING_QUEUES = True
 CELERY_REDIRECT_STDOUTS = False
 CELERYD_HIJACK_ROOT_LOGGER = False
+CELERY_TASK_SERIALIZER = "pickle"
+CELERY_RESULT_SERIALIZER = "pickle"
+CELERY_ACCEPT_CONTENT = {"pickle"}
 CELERY_IMPORTS = (
     "sentry.data_export.tasks",
     "sentry.discover.tasks",
@@ -536,6 +547,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.unmerge",
     "sentry.tasks.update_user_reports",
     "sentry.tasks.relay",
+    "sentry.tasks.release_registry",
 )
 CELERY_QUEUES = [
     Queue("activity.notify", routing_key="activity.notify"),
@@ -687,6 +699,11 @@ CELERYBEAT_SCHEDULE = {
         "schedule": timedelta(hours=1),
         "options": {"expires": 3600, "queue": "incidents"},
     },
+    "fetch-release-registry-data": {
+        "task": "sentry.tasks.release_registry.fetch_release_registry_data",
+        "schedule": timedelta(minutes=5),
+        "options": {"expires": 3600},
+    },
 }
 
 BGTASKS = {
@@ -712,11 +729,7 @@ LOGGING = {
     "handlers": {
         "null": {"class": "logging.NullHandler"},
         "console": {"class": "sentry.logging.handlers.StructLogHandler"},
-        "internal": {
-            "level": "ERROR",
-            "filters": ["sentry:internal"],
-            "class": "sentry_sdk.integrations.logging.EventHandler",
-        },
+        "internal": {"level": "ERROR", "class": "sentry_sdk.integrations.logging.EventHandler"},
         "metrics": {
             "level": "WARNING",
             "filters": ["important_django_request"],
@@ -724,16 +737,15 @@ LOGGING = {
         },
         "django_internal": {
             "level": "WARNING",
-            "filters": ["sentry:internal", "important_django_request"],
+            "filters": ["important_django_request"],
             "class": "sentry_sdk.integrations.logging.EventHandler",
         },
     },
     "filters": {
-        "sentry:internal": {"()": "sentry.utils.sdk.SentryInternalFilter"},
         "important_django_request": {
             "()": "sentry.logging.handlers.MessageContainsFilter",
             "contains": ["CSRF"],
-        },
+        }
     },
     "root": {"level": "NOTSET", "handlers": ["console", "internal"]},
     # LOGGING.overridable is a list of loggers including root that will change
@@ -745,6 +757,7 @@ LOGGING = {
         "sentry_plugins": {"level": "INFO"},
         "sentry.files": {"level": "WARNING"},
         "sentry.minidumps": {"handlers": ["internal"], "propagate": False},
+        "sentry.reprocessing": {"handlers": ["internal"], "propagate": False},
         "sentry.interfaces": {"handlers": ["internal"], "propagate": False},
         # This only needs to go to Sentry for now.
         "sentry.similarity": {"handlers": ["internal"], "propagate": False},
@@ -789,10 +802,6 @@ REST_FRAMEWORK = {
 
 CRISPY_TEMPLATE_PACK = "bootstrap3"
 
-# Percy config for visual regression testing.
-
-PERCY_DEFAULT_TESTING_WIDTHS = (1280, 375)
-
 # Sentry and internal client configuration
 
 SENTRY_FEATURES = {
@@ -804,19 +813,15 @@ SENTRY_FEATURES = {
     "organizations:android-mappings": False,
     # Enable obtaining and using API keys.
     "organizations:api-keys": False,
-    # Move release artifacts to settings.
-    "organizations:artifacts-in-settings": False,
     # Enable explicit use of AND and OR in search.
     "organizations:boolean-search": False,
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
     # is not enabled).
     "organizations:create": True,
-    # Enable the 'data-export' interface.
-    "organizations:data-export": False,
     # Enable the 'discover' interface.
     "organizations:discover": False,
     # Enable attaching arbitrary files to events.
-    "organizations:event-attachments": False,
+    "organizations:event-attachments": True,
     # Allow organizations to configure built-in symbol sources.
     "organizations:symbol-sources": True,
     # Allow organizations to configure custom external symbol sources.
@@ -827,26 +832,16 @@ SENTRY_FEATURES = {
     "organizations:discover-basic": True,
     # Enable discover 2 custom queries and saved queries
     "organizations:discover-query": True,
-    # Enable create alert rule on the discover page
-    "organizations:create-from-discover": False,
     # Enable Performance view
     "organizations:performance-view": False,
     # Enable multi project selection
     "organizations:global-views": False,
-    # Turns on grouping info.
-    "organizations:grouping-info": True,
-    # Lets organizations upgrade grouping configs and tweak them
-    "organizations:tweak-grouping-config": True,
     # Lets organizations manage grouping configs
     "organizations:set-grouping-config": False,
-    # Enable Releases v2 feature
-    "organizations:releases-v2": True,
     # Enable rule page.
     "organizations:rule-page": False,
     # Enable incidents feature
     "organizations:incidents": False,
-    # Enable incidents performance feature
-    "organizations:incidents-performance": False,
     # Enable integration functionality to create and link groups to issues on
     # external services.
     "organizations:integrations-issue-basic": True,
@@ -854,9 +849,16 @@ SENTRY_FEATURES = {
     # issues on external services.
     "organizations:integrations-issue-sync": True,
     # Enable interface functionality to receive event hooks.
-    "organizations:integrations-event-hooks": False,
-    # Enable the Vercel integration
-    "organizations:integrations-vercel": False,
+    "organizations:integrations-event-hooks": True,
+    # Enable integration functionality to work with alert rules
+    "organizations:integrations-alert-rule": True,
+    # Enable integration functionality to work with alert rules (specifically chat integrations)
+    "organizations:integrations-chat-unfurl": True,
+    # Enable integration functionality to work with alert rules (specifically incident
+    # management integrations)
+    "organizations:integrations-incident-management": True,
+    # Allow orgs to install AzureDevops with limited scopes
+    "organizations:integrations-vsts-limited-scopes": False,
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
     # Enable experimental performance improvements.
@@ -866,15 +868,17 @@ SENTRY_FEATURES = {
     "organizations:internal-catchall": False,
     # Enable inviting members to organizations.
     "organizations:invite-members": True,
+    # Enable rate limits for inviting members.
+    "organizations:invite-members-rate-limits": True,
+    # Enable measurements-based product features.
+    "organizations:measurements": False,
     # Enable org-wide saved searches and user pinned search
     "organizations:org-saved-searches": False,
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
-    # Enable access to more advanced (alpha) datascrubbing settings.
-    "organizations:datascrubbers-v2": True,
-    # Enable the new version of interface/breadcrumbs
-    "organizations:breadcrumbs-v2": False,
+    # Enable the new Related Events feature
+    "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
     # https://github.com/getsentry/relay.
     "organizations:relay": False,
@@ -887,6 +891,17 @@ SENTRY_FEATURES = {
     "organizations:sso-saml2": True,
     # Enable Rippling SSO functionality.
     "organizations:sso-rippling": False,
+    # Enable transaction comparison view for performance.
+    "organizations:transaction-comparison": False,
+    # Enable trends view for performance.
+    "organizations:trends": False,
+    # Enable graph for subscription quota for errors, transactions and
+    # attachments
+    "organizations:usage-stats-graph": False,
+    # Enable dynamic issue counts and user counts in the issue stream
+    "organizations:dynamic-issue-counts": False,
+    # Return unhandled information on the issue level
+    "organizations:unhandled-issue-flag": False,
     # Enable functionality to specify custom inbound filters on events.
     "projects:custom-inbound-filters": False,
     # Enable data forwarding functionality for projects.
@@ -904,6 +919,8 @@ SENTRY_FEATURES = {
     "projects:plugins": True,
     # Enable functionality for rate-limiting events on projects.
     "projects:rate-limits": True,
+    # Enable version 2 of reprocessing (completely distinct from v1)
+    "projects:reprocessing-v2": False,
     # Enable functionality for sampling of events on projects.
     "projects:sample-events": False,
     # Enable functionality to trigger service hooks upon event ingestion.
@@ -1375,6 +1392,14 @@ SENTRY_ENCRYPTION_SCHEMES = (
 )
 
 # Delay (in ms) to induce on API responses
+#
+# Simulates a small amount of lag which helps uncover more obvious race
+# conditions in UI interactions. It's also needed to test (or implement) any
+# kind of loading scenarios. Without this we will just implicitly lower the
+# overall quality of software we ship because we will not experience it in the
+# same way we would in production.
+#
+# See discussion on https://github.com/getsentry/sentry/pull/20187
 SENTRY_API_RESPONSE_DELAY = 150 if IS_DEV else None
 
 # Watchers for various application purposes (such as compiling static media)
@@ -1402,9 +1427,15 @@ SENTRY_WATCHERS = (
 # will split the requests between Relay and Sentry (all store requests will be passed to Relay, and the
 # rest will be forwarded to Sentry)
 SENTRY_USE_RELAY = True
-SENTRY_RELAY_PORT = 3000
-SENTRY_REVERSE_PROXY_PORT = 8000
+SENTRY_RELAY_PORT = 7899
 
+# The chunk size for attachments in blob store. Should be a power of two.
+SENTRY_ATTACHMENT_BLOB_SIZE = 8 * 1024 * 1024  # 8MB
+
+# The chunk size for files in the chunk upload. This is used for native debug
+# files and source maps, and directly translates to the chunk size in blob
+# store. MUST be a power of two.
+SENTRY_CHUNK_UPLOAD_BLOB_SIZE = 8 * 1024 * 1024  # 8MB
 
 # SENTRY_DEVSERVICES = {
 #     "service-name": {
@@ -1467,6 +1498,10 @@ SENTRY_DEVSERVICES = {
             "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP": "INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT",
             "KAFKA_INTER_BROKER_LISTENER_NAME": "INTERNAL",
             "KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR": "1",
+            "KAFKA_OFFSETS_TOPIC_NUM_PARTITIONS": "1",
+            "KAFKA_LOG_RETENTION_HOURS": "24",
+            "KAFKA_MESSAGE_MAX_BYTES": "50000000",
+            "KAFKA_MAX_REQUEST_SIZE": "50000000",
         },
         "volumes": {"kafka": {"bind": "/var/lib/kafka"}},
         "only_if": lambda settings, options: (
@@ -1474,10 +1509,19 @@ SENTRY_DEVSERVICES = {
         ),
     },
     "clickhouse": {
-        "image": "yandex/clickhouse-server:19.17.4.11",
+        "image": "yandex/clickhouse-server:20.3.9.70",
         "ports": {"9000/tcp": 9000, "9009/tcp": 9009, "8123/tcp": 8123},
         "ulimits": [{"name": "nofile", "soft": 262144, "hard": 262144}],
-        "volumes": {"clickhouse": {"bind": "/var/lib/clickhouse"}},
+        "volumes": {
+            "clickhouse": {"bind": "/var/lib/clickhouse"},
+            CLICKHOUSE_CONFIG_PATH: {"bind": "/etc/clickhouse-server/config.d/sentry.xml"},
+        },
+        "environment": {
+            # This limits Clickhouse's memory to 30% of the host memory
+            # If you have high volume and your search return incomplete results
+            # You might want to change this to a higher value (and ensure your host has enough memory)
+            "MAX_MEMORY_USAGE_RATIO": "0.3"
+        },
         "only_if": lambda settings, options: (
             "snuba" in settings.SENTRY_EVENTSTREAM or "kafka" in settings.SENTRY_EVENTSTREAM
         ),
@@ -1518,23 +1562,14 @@ SENTRY_DEVSERVICES = {
         "image": "us.gcr.io/sentryio/symbolicator:latest",
         "pull": True,
         "ports": {"3021/tcp": 3021},
-        "command": ["run"],
+        "volumes": {SYMBOLICATOR_CONFIG_DIR: {"bind": "/etc/symbolicator"}},
+        "command": ["run", "--config", "/etc/symbolicator/config.yml"],
         "only_if": lambda settings, options: options.get("symbolicator.enabled"),
-    },
-    "proxy": {
-        "image": "nginx:1.16.1",
-        "ports": {"80/tcp": SENTRY_REVERSE_PROXY_PORT},
-        "volumes": {REVERSE_PROXY_CONFIG: {"bind": "/etc/nginx/nginx.conf"}},
-        "only_if": lambda settings, options: settings.SENTRY_USE_RELAY,
-        # This directive tells `devservices up` that the reverse_proxy is not to be
-        # started up, only pulled and made available for `devserver` which will start
-        # it with `devservices attach --is-devserver reverse_proxy`.
-        "with_devserver": True,
     },
     "relay": {
         "image": "us.gcr.io/sentryio/relay:latest",
         "pull": True,
-        "ports": {"3000/tcp": SENTRY_RELAY_PORT},
+        "ports": {"7899/tcp": SENTRY_RELAY_PORT},
         "volumes": {RELAY_CONFIG_DIR: {"bind": "/etc/relay"}},
         "command": ["run", "--config", "/etc/relay"],
         "only_if": lambda settings, options: settings.SENTRY_USE_RELAY,
@@ -1571,6 +1606,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.vsts_extension.VstsExtensionIntegrationProvider",
     "sentry.integrations.pagerduty.integration.PagerDutyIntegrationProvider",
     "sentry.integrations.vercel.VercelIntegrationProvider",
+    "sentry.integrations.msteams.MsTeamsIntegrationProvider",
 )
 
 
@@ -1579,6 +1615,7 @@ def get_sentry_sdk_config():
         "release": sentry.__build__,
         "environment": ENVIRONMENT,
         "in_app_include": ["sentry", "sentry_plugins"],
+        "_experiments": {"smart_transaction_trimming": True},
         "debug": True,
         "send_default_pii": True,
     }
@@ -1608,6 +1645,20 @@ EMAIL_HOST_PASSWORD = DEAD
 EMAIL_USE_TLS = DEAD
 SERVER_EMAIL = DEAD
 EMAIL_SUBJECT_PREFIX = DEAD
+
+# Shared btw Auth Provider and Social Auth Plugin
+GITHUB_APP_ID = DEAD
+GITHUB_API_SECRET = DEAD
+
+# Used by Auth Provider
+GITHUB_REQUIRE_VERIFIED_EMAIL = DEAD
+GITHUB_API_DOMAIN = DEAD
+GITHUB_BASE_DOMAIN = DEAD
+
+# Used by Social Auth Plugin
+GITHUB_EXTENDED_PERMISSIONS = DEAD
+GITHUB_ORGANIZATION = DEAD
+
 
 SUDO_URL = "sentry-sudo"
 
@@ -1756,7 +1807,7 @@ SENTRY_BUILTIN_SOURCES = {
         "id": "sentry:electron",
         "name": "Electron",
         "layout": {"type": "native"},
-        "url": "https://electron-symbols.githubapp.com/",
+        "url": "https://symbols.electronjs.org/",
         "filters": {"filetypes": ["pdb", "breakpad", "sourcebundle"]},
         "is_public": True,
     },
@@ -1833,6 +1884,9 @@ KAFKA_TOPICS = {
     # Topic for receiving transaction events (APM events) from Relay
     KAFKA_INGEST_TRANSACTIONS: {"cluster": "default", "topic": KAFKA_INGEST_TRANSACTIONS},
 }
+
+# If True, consumers will create the topics if they don't exist
+KAFKA_CONSUMER_AUTO_CREATE_TOPICS = True
 
 # For Jira, only approved apps can use the access_email_addresses scope
 # This scope allows Sentry to use the email endpoint (https://developer.atlassian.com/cloud/jira/platform/rest/v3/#api-rest-api-3-user-email-get)
@@ -1920,3 +1974,32 @@ SENTRY_REQUEST_METRIC_ALLOWED_PATHS = (
     "sentry.incidents.endpoints",
 )
 SENTRY_MAIL_ADAPTER_BACKEND = "sentry.mail.adapter.MailAdapter"
+
+# Project ID used by synthetic monitoring
+# Synthetic monitoring recurringly send events, prepared with specific
+# attributes, which can be identified through the whole processing pipeline and
+# observed mainly for producing stable metrics.
+SENTRY_SYNTHETIC_MONITORING_PROJECT_ID = None
+
+# Similarity cluster to use
+# Similarity-v1: uses hardcoded set of event properties for diffing
+SENTRY_SIMILARITY_INDEX_REDIS_CLUSTER = "default"
+# Similarity-v2: uses grouping components for diffing (None = fallback to setting for v1)
+SENTRY_SIMILARITY2_INDEX_REDIS_CLUSTER = None
+
+# The grouping strategy to use for driving similarity-v2. You can add multiple
+# strategies here to index them all. This is useful for transitioning a
+# similarity dataset to newer grouping configurations.
+#
+# The dictionary value represents the redis prefix to use.
+#
+# Check out `test_similarity_config_migration` to understand the procedure and risks.
+SENTRY_SIMILARITY_GROUPING_CONFIGURATIONS_TO_INDEX = {
+    "similarity:2020-07-23": "a",
+}
+
+SENTRY_USE_UWSGI = True
+
+SENTRY_REPROCESSING_ATTACHMENT_CHUNK_SIZE = 2 ** 20
+
+SENTRY_REPROCESSING_SYNC_REDIS_CLUSTER = "default"

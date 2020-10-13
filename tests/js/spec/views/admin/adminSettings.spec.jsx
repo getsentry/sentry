@@ -1,14 +1,14 @@
 import React from 'react';
 
-import {shallow} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
 import AdminSettings from 'app/views/admin/adminSettings';
 
 // TODO(dcramer): this doesnt really test anything as we need to
 // mock the API Response/wait on it
-describe('AdminSettings', function() {
-  describe('render()', function() {
+describe('AdminSettings', function () {
+  describe('render()', function () {
     beforeEach(() => {
       Client.addMockResponse({
         url: '/internal/options/',
@@ -116,13 +116,13 @@ describe('AdminSettings', function() {
       });
     });
 
-    it('renders', function() {
-      const wrapper = shallow(<AdminSettings params={{}} />, {
+    it('renders', function () {
+      const wrapper = mountWithTheme(<AdminSettings params={{}} />, {
         context: {
           router: TestStubs.router(),
         },
       });
-      expect(wrapper).toMatchSnapshot();
+      expect(wrapper).toSnapshot();
     });
   });
 });

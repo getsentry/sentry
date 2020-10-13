@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import json
 import unittest
 from copy import deepcopy
 from datetime import timedelta
@@ -12,6 +11,7 @@ from dateutil.parser import parse as parse_date
 from django.conf import settings
 from exam import fixture, patcher
 
+from sentry.utils import json
 from sentry.utils.compat.mock import Mock
 from sentry.snuba.models import QueryDatasets, QuerySubscription
 from sentry.snuba.query_subscription_consumer import (

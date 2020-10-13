@@ -1,51 +1,42 @@
 import {RouteComponentProps} from 'react-router/lib/Router';
-import DocumentTitle from 'react-document-title';
 import React from 'react';
 import flatten from 'lodash/flatten';
 import omit from 'lodash/omit';
 import styled from '@emotion/styled';
 
-import {IconAdd, IconSettings, IconCheckmark} from 'app/icons';
-import {Organization} from 'app/types';
-import {PageContent, PageHeader} from 'app/styles/organization';
+import {IconCheckmark} from 'app/icons';
+import {Organization, Project} from 'app/types';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import {navigateTo} from 'app/actionCreators/navigation';
 import {t, tct} from 'app/locale';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
-import FeatureBadge from 'app/components/featureBadge';
+import Feature from 'app/components/acl/feature';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import ExternalLink from 'app/components/links/externalLink';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import PageHeading from 'app/components/pageHeading';
 import Pagination from 'app/components/pagination';
+import * as Layout from 'app/components/layouts/thirds';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import Projects from 'app/utils/projects';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
-import Access from 'app/components/acl/access';
-import ConfigStore from 'app/stores/configStore';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import {promptsUpdate} from 'app/actionCreators/prompts';
+import Alert from 'app/components/alert';
 
 import {Incident} from '../types';
+import AlertHeader from './header';
 import {TableLayout, TitleAndSparkLine} from './styles';
 import AlertListRow from './row';
+import CreateRuleButton from './createRuleButton';
+import Onboarding from './onboarding';
 
 const DEFAULT_QUERY_STATUS = 'open';
 
 const DOCS_URL =
   'https://docs.sentry.io/workflow/alerts-notifications/alerts/?_ga=2.21848383.580096147.1592364314-1444595810.1582160976';
-
-const trackDocumentationClicked = (org: Organization) =>
-  trackAnalyticsEvent({
-    eventKey: 'alert_stream.documentation_clicked',
-    eventName: 'Alert Stream: Documentation Clicked',
-    organization_id: org.id,
-    user_id: ConfigStore.get('user').id,
-  });
 
 function getQueryStatus(status: any): 'open' | 'closed' {
   return ['open', 'closed'].includes(status) ? status : DEFAULT_QUERY_STATUS;
@@ -91,7 +82,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
   async onLoadAllEndpointsSuccess() {
     const {incidentList} = this.state;
 
-    if (incidentList.length !== 0) {
+    if (!incidentList || incidentList.length !== 0) {
       this.setState({hasAlertRule: true, firstVisitShown: false});
       return;
     }
@@ -141,59 +132,34 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
     this.setState({hasAlertRule, firstVisitShown, loading: false});
   }
 
-  /**
-   * Incidents list is currently at the organization level, but the link needs to
-   * go down to a specific project scope.
-   */
-  handleAddAlertRule = (e: React.MouseEvent) => {
-    const {router, params} = this.props;
-    e.preventDefault();
-    navigateTo(`/settings/${params.orgId}/projects/:projectId/alerts/new/`, router);
-  };
-
-  /**
-   * Incidents list is currently at the organization level, but the link needs to
-   * go down to a specific project scope.
-   */
-  handleNavigateToSettings = (e: React.MouseEvent) => {
-    const {router, params} = this.props;
-    e.preventDefault();
-
-    navigateTo(`/settings/${params.orgId}/projects/:projectId/alerts/`, router);
-  };
-
-  tryRenderFirstVisit() {
+  tryRenderOnboarding() {
     const {firstVisitShown} = this.state;
 
     if (!firstVisitShown) {
       return null;
     }
 
-    return (
-      <WelcomeEmptyMessage
-        leftAligned
-        size="medium"
-        title={t('Find the signal in the noise')}
-        description={t(
-          'You’ve got 5 minutes, 2 million lines of code, and an inbox with 300 new messages. Alerts tell you what went wrong and why.'
-        )}
-        action={
-          <ButtonBar gap={1}>
-            <Button size="small" external href={DOCS_URL}>
-              {t('View Features')}
-            </Button>
-            <AddAlertRuleButton {...this.props} />
-          </ButtonBar>
-        }
-      />
+    const actions = (
+      <React.Fragment>
+        <Button size="small" external href={DOCS_URL}>
+          {t('View Features')}
+        </Button>
+        <CreateRuleButton
+          {...this.props}
+          iconProps={{size: 'xs'}}
+          buttonProps={{size: 'small'}}
+        />
+      </React.Fragment>
     );
+
+    return <Onboarding actions={actions} />;
   }
 
   tryRenderEmpty() {
     const {hasAlertRule, incidentList} = this.state;
     const status = getQueryStatus(this.props.location.query.status);
 
-    if (incidentList.length > 0) {
+    if (!incidentList || incidentList.length > 0) {
       return null;
     }
 
@@ -205,10 +171,8 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
           !hasAlertRule
             ? t('No metric alert rules exist for these projects.')
             : status === 'open'
-            ? t(
-                'Everything’s a-okay. There are no unresolved metric alerts in these projects.'
-              )
-            : t('There are no resolved metric alerts in these projects.')
+            ? t('No unresolved metric alerts in these projects.')
+            : t('No resolved metric alerts in these projects.')
         }
         description={tct('Learn more about [link:Metric Alerts]', {
           link: <ExternalLink href={DOCS_URL} />,
@@ -222,13 +186,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
   }
 
   renderList() {
-    const {
-      loading,
-      incidentList,
-      incidentListPageLinks,
-      hasAlertRule,
-      firstVisitShown,
-    } = this.state;
+    const {loading, incidentList, incidentListPageLinks, hasAlertRule} = this.state;
 
     const {orgId} = this.props.params;
     const allProjectsFromIncidents = new Set(
@@ -243,53 +201,53 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
 
     return (
       <React.Fragment>
-        <Panel>
-          {!loading && !firstVisitShown && (
-            <StyledPanelHeader>
-              <TableLayout status={status}>
-                <PaddedTitleAndSparkLine status={status}>
-                  <div>{t('Alert')}</div>
-                  {status === 'open' && <div>{t('Graph')}</div>}
-                </PaddedTitleAndSparkLine>
-                <div>{t('Project')}</div>
-                <div>{t('Triggered')}</div>
-                {status === 'closed' && <div>{t('Duration')}</div>}
-                {status === 'closed' && <div>{t('Resolved')}</div>}
-              </TableLayout>
-            </StyledPanelHeader>
-          )}
-          {showLoadingIndicator ? (
-            <LoadingIndicator />
-          ) : (
-            this.tryRenderFirstVisit() ??
-            this.tryRenderEmpty() ?? (
-              <PanelBody>
-                <Projects orgId={orgId} slugs={Array.from(allProjectsFromIncidents)}>
-                  {({initiallyLoaded, projects}) =>
-                    incidentList.map(incident => (
-                      <AlertListRow
-                        key={incident.id}
-                        projectsLoaded={initiallyLoaded}
-                        projects={projects}
-                        incident={incident}
-                        orgId={orgId}
-                        filteredStatus={status}
-                      />
-                    ))
-                  }
-                </Projects>
-              </PanelBody>
-            )
-          )}
-        </Panel>
+        {this.tryRenderOnboarding() ?? (
+          <Panel>
+            {!loading && (
+              <StyledPanelHeader>
+                <TableLayout status={status}>
+                  <PaddedTitleAndSparkLine status={status}>
+                    <div>{t('Alert')}</div>
+                    {status === 'open' && <div>{t('Graph')}</div>}
+                  </PaddedTitleAndSparkLine>
+                  <div>{t('Project')}</div>
+                  <div>{t('Triggered')}</div>
+                  {status === 'closed' && <div>{t('Duration')}</div>}
+                  {status === 'closed' && <div>{t('Resolved')}</div>}
+                </TableLayout>
+              </StyledPanelHeader>
+            )}
+            {showLoadingIndicator ? (
+              <LoadingIndicator />
+            ) : (
+              this.tryRenderEmpty() ?? (
+                <PanelBody>
+                  <Projects orgId={orgId} slugs={Array.from(allProjectsFromIncidents)}>
+                    {({initiallyLoaded, projects}) =>
+                      incidentList.map(incident => (
+                        <AlertListRow
+                          key={incident.id}
+                          projectsLoaded={initiallyLoaded}
+                          projects={projects as Project[]}
+                          incident={incident}
+                          orgId={orgId}
+                          filteredStatus={status}
+                        />
+                      ))
+                    }
+                  </Projects>
+                </PanelBody>
+              )
+            )}
+          </Panel>
+        )}
         <Pagination pageLinks={incidentListPageLinks} />
       </React.Fragment>
     );
   }
 
   renderBody() {
-    const {loading, firstVisitShown} = this.state;
-    const {params, location, organization} = this.props;
+    const {params, location, organization, router} = this.props;
     const {pathname, query} = location;
     const {orgId} = params;
 
@@ -299,74 +257,34 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
     const status = getQueryStatus(query.status);
 
     return (
-      <DocumentTitle title={`Alerts- ${orgId} - Sentry`}>
+      <SentryDocumentTitle title={t('Alerts')} objSlug={orgId}>
         <GlobalSelectionHeader organization={organization} showDateSelector={false}>
-          <PageContent>
-            <PageHeader>
-              <StyledPageHeading>
-                {t('Alerts')} <FeatureBadge type="beta" />
-              </StyledPageHeading>
-
-              {!loading && !firstVisitShown ? (
-                <Actions gap={1}>
-                  <AddAlertRuleButton {...this.props} />
-
+          <AlertHeader organization={organization} router={router} activeTab="stream" />
+          <Layout.Body>
+            <Layout.Main fullWidth>
+              {!this.tryRenderOnboarding() && (
+                <StyledButtonBar merged active={status}>
                   <Button
-                    onClick={this.handleNavigateToSettings}
-                    href="#"
+                    to={{pathname, query: openIncidentsQuery}}
+                    barId="open"
                     size="small"
-                    icon={<IconSettings size="xs" />}
                   >
-                    {t('View Rules')}
+                    {t('Unresolved')}
                   </Button>
-
-                  <ButtonBar merged active={status}>
-                    <Button
-                      to={{pathname, query: openIncidentsQuery}}
-                      barId="open"
-                      size="small"
-                    >
-                      {t('Active')}
-                    </Button>
-                    <Button
-                      to={{pathname, query: closedIncidentsQuery}}
-                      barId="closed"
-                      size="small"
-                    >
-                      {t('Resolved')}
-                    </Button>
-                  </ButtonBar>
-                </Actions>
-              ) : (
-                // Keep an empty Actions container around to keep the height of
-                // the header correct so we don't jitter between loading
-                // states.
-                <Actions>{null}</Actions>
+                  <Button
+                    to={{pathname, query: closedIncidentsQuery}}
+                    barId="closed"
+                    size="small"
+                  >
+                    {t('Resolved')}
+                  </Button>
+                </StyledButtonBar>
               )}
-            </PageHeader>
-
-            <Alert type="info" icon="icon-circle-info">
-              {tct(
-                'This page is in beta and currently only shows [link:metric alerts]. [contactLink:Please contact us if you have any feedback.]',
-                {
-                  link: (
-                    <ExternalLink
-                      onClick={() => trackDocumentationClicked(organization)}
-                      href={DOCS_URL}
-                    />
-                  ),
-                  contactLink: (
-                    <ExternalLink href="mailto:alerting-feedback@sentry.io">
-                      {t('Please contact us if you have any feedback.')}
-                    </ExternalLink>
-                  ),
-                }
-              )}
-            </Alert>
-            {this.renderList()}
-          </PageContent>
+              {this.renderList()}
+            </Layout.Main>
+          </Layout.Body>
         </GlobalSelectionHeader>
-      </DocumentTitle>
+      </SentryDocumentTitle>
     );
   }
 }
@@ -394,40 +312,35 @@ class IncidentsListContainer extends React.Component<Props> {
     });
   }
 
+  renderNoAccess() {
+    return (
+      <Layout.Body>
+        <Layout.Main fullWidth>
+          <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+        </Layout.Main>
+      </Layout.Body>
+    );
+  }
+
   render() {
-    return <IncidentsList {...this.props} />;
+    const {organization} = this.props;
+
+    return (
+      <Feature
+        features={['organizations:incidents']}
+        organization={organization}
+        hookName="feature-disabled:alerts-page"
+        renderDisabled={this.renderNoAccess}
+      >
+        <IncidentsList {...this.props} />
+      </Feature>
+    );
   }
 }
 
-const AddAlertRuleButton = ({router, params, organization}: Props) => (
-  <Access organization={organization} access={['project:write']}>
-    {({hasAccess}) => (
-      <Button
-        disabled={!hasAccess}
-        title={
-          !hasAccess
-            ? t('Users with admin permission or higher can create alert rules.')
-            : undefined
-        }
-        onClick={e => {
-          e.preventDefault();
-
-          navigateTo(`/settings/${params.orgId}/projects/:projectId/alerts/new/`, router);
-        }}
-        priority="primary"
-        href="#"
-        size="small"
-        icon={<IconAdd isCircled size="xs" />}
-      >
-        {t('Add Alert Rule')}
-      </Button>
-    )}
-  </Access>
-);
-
-const StyledPageHeading = styled(PageHeading)`
-  display: flex;
-  align-items: center;
+const StyledButtonBar = styled(ButtonBar)`
+  width: 100px;
+  margin-bottom: ${space(1)};
 `;
 
 const PaddedTitleAndSparkLine = styled(TitleAndSparkLine)`
@@ -437,15 +350,6 @@ const PaddedTitleAndSparkLine = styled(TitleAndSparkLine)`
 const StyledPanelHeader = styled(PanelHeader)`
   /* Match table row padding for the grid to align */
   padding: ${space(1.5)} ${space(2)} ${space(1.5)} 0;
-`;
-
-const Actions = styled(ButtonBar)`
-  height: 32px;
-`;
-
-const WelcomeEmptyMessage = styled(EmptyMessage)`
-  margin: ${space(4)};
-  max-width: 550px;
 `;
 
 export default withOrganization(IncidentsListContainer);

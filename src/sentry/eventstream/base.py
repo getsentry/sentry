@@ -2,8 +2,9 @@ from __future__ import absolute_import
 
 import logging
 
-from sentry.utils.services import Service
 from sentry.tasks.post_process import post_process_group
+from sentry.utils.services import Service
+from sentry.utils.cache import cache_key_for_event
 
 
 logger = logging.getLogger(__name__)
@@ -43,12 +44,17 @@ class EventStream(Service):
         if skip_consume:
             logger.info("post_process.skip.raw_event", extra={"event_id": event.event_id})
         else:
+            cache_key = cache_key_for_event(
+                {"project": event.project_id, "event_id": event.event_id}
+            )
             post_process_group.delay(
-                event=event,
+                event=None,
                 is_new=is_new,
                 is_regression=is_regression,
                 is_new_group_environment=is_new_group_environment,
                 primary_hash=primary_hash,
+                cache_key=cache_key,
+                group_id=event.group_id,
             )
 
     def insert(

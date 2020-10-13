@@ -23,7 +23,7 @@ def get_crash_files(events):
     if event_ids:
         attachments = EventAttachment.objects.filter(event_id__in=event_ids).select_related("file")
         for attachment in attachments:
-            if attachment.file.type in CRASH_FILE_TYPES:
+            if attachment.type in CRASH_FILE_TYPES:
                 rv[attachment.event_id] = attachment
     return rv
 
@@ -278,6 +278,7 @@ class EventSerializer(Serializer):
         return {
             "startTimestamp": obj.data.get("start_timestamp"),
             "endTimestamp": obj.data.get("timestamp"),
+            "measurements": obj.data.get("measurements"),
         }
 
     def __serialize_error_attrs(self, attrs, obj):

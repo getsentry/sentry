@@ -254,7 +254,9 @@ def record_inbound_filter_toggled(project, **kwargs):
 
 
 @alert_rule_created.connect(weak=False)
-def record_alert_rule_created(user, project, rule, rule_type, **kwargs):
+def record_alert_rule_created(
+    user, project, rule, rule_type, referrer=None, session_id=None, **kwargs
+):
     if rule_type == "issue" and rule.label == DEFAULT_RULE_LABEL and rule.data == DEFAULT_RULE_DATA:
         return
 
@@ -273,8 +275,11 @@ def record_alert_rule_created(user, project, rule, rule_type, **kwargs):
         user_id=user_id,
         default_user_id=default_user_id,
         organization_id=project.organization_id,
+        project_id=project.id,
         rule_id=rule.id,
         rule_type=rule_type,
+        referrer=referrer,
+        session_id=session_id,
     )
 
 

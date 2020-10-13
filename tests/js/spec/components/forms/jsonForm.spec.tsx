@@ -9,16 +9,16 @@ import {fields} from 'app/data/forms/projectGeneralSettings';
 // @ts-ignore
 const user = TestStubs.User({});
 
-describe('JsonForm', function() {
-  describe('form prop', function() {
-    it('default', function() {
+describe('JsonForm', function () {
+  describe('form prop', function () {
+    it('default', function () {
       const wrapper = mountWithTheme(
         <JsonForm forms={accountDetailsFields} additionalFieldProps={{user}} />
       );
-      expect(wrapper).toMatchSnapshot();
+      expect(wrapper).toSnapshot();
     });
 
-    it('missing additionalFieldProps required in "valid" prop', function() {
+    it('missing additionalFieldProps required in "valid" prop', function () {
       // eslint-disable-next-line no-console
       console.error = jest.fn();
       try {
@@ -28,7 +28,7 @@ describe('JsonForm', function() {
       }
     });
 
-    it('should ALWAYS hide panel, if all fields have visible set to false  AND there is no renderHeader & renderFooter -  visible prop is of type boolean', function() {
+    it('should ALWAYS hide panel, if all fields have visible set to false  AND there is no renderHeader & renderFooter -  visible prop is of type boolean', function () {
       const modifiedAccountDetails = accountDetailsFields.map(accountDetailsField => ({
         ...accountDetailsField,
         fields: accountDetailsField.fields.map(field => ({...field, visible: false})),
@@ -41,7 +41,7 @@ describe('JsonForm', function() {
       expect(wrapper.find('FormPanel')).toHaveLength(0);
     });
 
-    it('should ALWAYS hide panel, if all fields have visible set to false AND there is no renderHeader & renderFooter -  visible prop is of type func', function() {
+    it('should ALWAYS hide panel, if all fields have visible set to false AND there is no renderHeader & renderFooter -  visible prop is of type func', function () {
       const modifiedAccountDetails = accountDetailsFields.map(accountDetailsField => ({
         ...accountDetailsField,
         fields: accountDetailsField.fields.map(field => ({
@@ -57,7 +57,7 @@ describe('JsonForm', function() {
       expect(wrapper.find('FormPanel')).toHaveLength(0);
     });
 
-    it('should NOT hide panel, if at least one field has visible set to true -  no visible prop (1 field) + visible prop is of type func (2 field)', function() {
+    it('should NOT hide panel, if at least one field has visible set to true -  no visible prop (1 field) + visible prop is of type func (2 field)', function () {
       // accountDetailsFields has two fields. The second field will always have visible set to false, because the username and the email are the same 'foo@example.com'
       const wrapper = mountWithTheme(
         <JsonForm forms={accountDetailsFields} additionalFieldProps={{user}} />
@@ -67,7 +67,7 @@ describe('JsonForm', function() {
       expect(wrapper.find('input')).toHaveLength(1);
     });
 
-    it('should NOT hide panel, if all fields have visible set to false AND a prop renderHeader is passed', function() {
+    it('should NOT hide panel, if all fields have visible set to false AND a prop renderHeader is passed', function () {
       const modifiedAccountDetails = accountDetailsFields.map(accountDetailsField => ({
         ...accountDetailsField,
         fields: accountDetailsField.fields.map(field => ({...field, visible: false})),
@@ -85,7 +85,7 @@ describe('JsonForm', function() {
       expect(wrapper.find('input')).toHaveLength(0);
     });
 
-    it('should NOT hide panel, if all fields have visible set to false AND a prop renderFooter is passed', function() {
+    it('should NOT hide panel, if all fields have visible set to false AND a prop renderFooter is passed', function () {
       const modifiedAccountDetails = accountDetailsFields.map(accountDetailsField => ({
         ...accountDetailsField,
         fields: accountDetailsField.fields.map(field => ({...field, visible: false})),
@@ -104,15 +104,15 @@ describe('JsonForm', function() {
     });
   });
 
-  describe('fields prop', function() {
+  describe('fields prop', function () {
     const jsonFormFields = [fields.slug, fields.platform];
 
-    it('default', function() {
+    it('default', function () {
       const wrapper = mountWithTheme(<JsonForm fields={jsonFormFields} />);
-      expect(wrapper).toMatchSnapshot();
+      expect(wrapper).toSnapshot();
     });
 
-    it('missing additionalFieldProps required in "valid" prop', function() {
+    it('missing additionalFieldProps required in "valid" prop', function () {
       // eslint-disable-next-line no-console
       console.error = jest.fn();
       try {
@@ -126,14 +126,14 @@ describe('JsonForm', function() {
       }
     });
 
-    it('should NOT hide panel, if at least one field has visible set to true - no visible prop', function() {
+    it('should NOT hide panel, if at least one field has visible set to true - no visible prop', function () {
       // slug and platform have no visible prop, that means they will be always visible
       const wrapper = mountWithTheme(<JsonForm fields={jsonFormFields} />);
       expect(wrapper.find('FormPanel')).toHaveLength(1);
       expect(wrapper.find('input')).toHaveLength(2);
     });
 
-    it('should NOT hide panel, if at least one field has visible set to true -  visible prop is of type boolean', function() {
+    it('should NOT hide panel, if at least one field has visible set to true -  visible prop is of type boolean', function () {
       // slug and platform have no visible prop, that means they will be always visible
       const wrapper = mountWithTheme(
         <JsonForm fields={jsonFormFields.map(field => ({...field, visible: true}))} />
@@ -142,7 +142,7 @@ describe('JsonForm', function() {
       expect(wrapper.find('input')).toHaveLength(2);
     });
 
-    it('should NOT hide panel, if at least one field has visible set to true -  visible prop is of type func', function() {
+    it('should NOT hide panel, if at least one field has visible set to true -  visible prop is of type func', function () {
       // slug and platform have no visible prop, that means they will be always visible
       const wrapper = mountWithTheme(
         <JsonForm
@@ -153,7 +153,7 @@ describe('JsonForm', function() {
       expect(wrapper.find('input')).toHaveLength(2);
     });
 
-    it('should ALWAYS hide panel, if all fields have visible set to false -  visible prop is of type boolean', function() {
+    it('should ALWAYS hide panel, if all fields have visible set to false -  visible prop is of type boolean', function () {
       // slug and platform have no visible prop, that means they will be always visible
       const wrapper = mountWithTheme(
         <JsonForm fields={jsonFormFields.map(field => ({...field, visible: false}))} />
@@ -161,7 +161,7 @@ describe('JsonForm', function() {
       expect(wrapper.find('FormPanel')).toHaveLength(0);
     });
 
-    it('should ALWAYS hide panel, if all fields have visible set to false - visible prop is of type function', function() {
+    it('should ALWAYS hide panel, if all fields have visible set to false - visible prop is of type function', function () {
       // slug and platform have no visible prop, that means they will be always visible
       const wrapper = mountWithTheme(
         <JsonForm

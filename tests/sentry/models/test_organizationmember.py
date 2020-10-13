@@ -22,8 +22,8 @@ class OrganizationMemberTest(TestCase):
         member = OrganizationMember(id=1, organization_id=1, email="foo@example.com")
         with self.settings(
             SECRET_KEY=(
-                "\xfc]C\x8a\xd2\x93\x04\x00\x81\xeak\x94\x02H"
-                "\x1d\xcc&P'q\x12\xa2\xc0\xf2v\x7f\xbb*lX"
+                b"\xfc]C\x8a\xd2\x93\x04\x00\x81\xeak\x94\x02H"
+                b"\x1d\xcc&P'q\x12\xa2\xc0\xf2v\x7f\xbb*lX"
             )
         ):
             assert member.legacy_token == "df41d9dfd4ba25d745321e654e15b5d0"

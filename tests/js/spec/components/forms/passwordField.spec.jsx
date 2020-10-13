@@ -1,23 +1,23 @@
 import React from 'react';
 
-import {shallow} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {PasswordField} from 'app/components/forms';
 
-describe('PasswordField', function() {
-  describe('render()', function() {
-    it('renders', function() {
-      const wrapper = shallow(<PasswordField name="fieldName" />);
-      expect(wrapper).toMatchSnapshot();
+describe('PasswordField', function () {
+  describe('render()', function () {
+    it('renders', function () {
+      const wrapper = mountWithTheme(<PasswordField name="fieldName" />);
+      expect(wrapper).toSnapshot();
     });
 
-    it('renders with value', function() {
-      const wrapper = shallow(<PasswordField name="fieldName" value="foobar" />);
-      expect(wrapper).toMatchSnapshot();
+    it('renders with value', function () {
+      const wrapper = mountWithTheme(<PasswordField name="fieldName" value="foobar" />);
+      expect(wrapper).toSnapshot();
     });
 
-    it('renders with form context', function() {
-      const wrapper = shallow(<PasswordField name="fieldName" />, {
+    it('renders with form context', function () {
+      const wrapper = mountWithTheme(<PasswordField name="fieldName" />, {
         context: {
           form: {
             data: {
@@ -27,7 +27,7 @@ describe('PasswordField', function() {
           },
         },
       });
-      expect(wrapper).toMatchSnapshot();
+      expect(wrapper).toSnapshot();
     });
   });
 });

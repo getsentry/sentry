@@ -57,9 +57,9 @@ class ProjectKey(Model):
     roles = BitField(
         flags=(
             # access to post events to the store endpoint
-            ("store", "Event API access"),
+            (u"store", u"Event API access"),
             # read/write access to rest API
-            ("api", "Web API access"),
+            (u"api", u"Web API access"),
         ),
         default=["store"],
     )
@@ -194,37 +194,23 @@ class ProjectKey(Model):
     def csp_endpoint(self):
         endpoint = self.get_endpoint()
 
-        return "%s%s?sentry_key=%s" % (
-            endpoint,
-            reverse("sentry-api-csp-report", args=[self.project_id]),
-            self.public_key,
-        )
+        return "%s/api/%s/csp-report/?sentry_key=%s" % (endpoint, self.project_id, self.public_key)
 
     @property
     def security_endpoint(self):
         endpoint = self.get_endpoint()
 
-        return "%s%s?sentry_key=%s" % (
-            endpoint,
-            reverse("sentry-api-security-report", args=[self.project_id]),
-            self.public_key,
-        )
+        return "%s/api/%s/security/?sentry_key=%s" % (endpoint, self.project_id, self.public_key)
 
     @property
     def minidump_endpoint(self):
         endpoint = self.get_endpoint()
 
-        return "%s%s/?sentry_key=%s" % (
-            endpoint,
-            reverse("sentry-api-minidump", args=[self.project_id]),
-            self.public_key,
-        )
+        return "%s/api/%s/minidump/?sentry_key=%s" % (endpoint, self.project_id, self.public_key)
 
     @property
     def unreal_endpoint(self):
-        return self.get_endpoint() + reverse(
-            "sentry-api-unreal", args=[self.project_id, self.public_key]
-        )
+        return "%s/api/%s/unreal/%s/" % (self.get_endpoint(), self.project_id, self.public_key)
 
     @property
     def js_sdk_loader_cdn_url(self):

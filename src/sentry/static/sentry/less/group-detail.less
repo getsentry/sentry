@@ -68,22 +68,11 @@
       margin-right: 5px;
     }
 
-    .icon-checkmark {
-      font-size: 13px;
-    }
-
     .group-resolve.active {
       background: @green;
       color: #fff;
       border-color: @green-dark;
       text-shadow: 0 1px 0 rgba(0, 0, 0, 0.15);
-    }
-
-    .group-bookmark .icon-star-solid {
-      position: relative;
-      top: 1px;
-      margin-left: -1px;
-      margin-right: -1px;
     }
 
     .group-bookmark.active {
@@ -324,6 +313,7 @@
   margin: -20px -40px;
   background: #fff;
   flex-direction: column;
+  flex: 1;
 
   @media (min-width: 1200px) {
     flex-direction: row;
@@ -591,12 +581,6 @@
     }
   }
 
-  .icon-skip-forward,
-  .icon-skip-back {
-    position: relative;
-    top: 1px;
-  }
-
   time {
     color: @60;
   }
@@ -812,10 +796,6 @@ div.traceback > ul {
     position: relative;
     margin: 0;
     border-top: 1px solid @trim;
-
-    .box-clippable .clip-fade {
-      bottom: 0;
-    }
 
     h3 {
       font-size: 22px;
@@ -1033,19 +1013,6 @@ div.traceback > ul {
 
       &.expanded {
         display: block;
-      }
-    }
-
-    .box-clippable {
-      margin-left: 0;
-      margin-right: 0;
-
-      &:first-of-type {
-        margin-top: 0;
-      }
-
-      &:first-child {
-        margin-top: -20px;
       }
     }
 
@@ -1425,6 +1392,8 @@ span.val {
 }
 
 .val-dict {
+  display: inline;
+
   .val-dict-items {
     display: block;
     padding: 0 0 0 15px;
@@ -1448,56 +1417,8 @@ span.val {
     padding: 0 0 0 15px;
 
     .val-array-item {
-      display: flex;
-      flex-direction: row;
-    }
-  }
-}
-
-.val-toggle {
-  > a.val-toggle-link:before {
-    content: '+';
-  }
-
-  > .val-array-items,
-  > .val-dict-items {
-    display: none;
-  }
-
-  &.val-toggle-open {
-    > a.val-toggle-link:before {
-      content: '-';
-    }
-
-    > .val-array-items,
-    > .val-dict-items {
       display: block;
     }
-  }
-
-  a.val-toggle-link {
-    background: @link-color;
-    border-radius: 2px;
-    color: white;
-    font-weight: bold;
-    font-size: 10px;
-    line-height: 11px;
-    text-align: center;
-    height: 11px;
-    width: 11px;
-    display: inline-block;
-
-    &:hover {
-      background: @link-color-hover;
-    }
-  }
-
-  &.val-toggle-open > a.val-toggle-link {
-    background: @gray-light;
-  }
-
-  &.val-toggle-open > a.val-toggle-link:hover {
-    background: @gray;
   }
 }
 

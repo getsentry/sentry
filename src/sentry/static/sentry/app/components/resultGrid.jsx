@@ -8,6 +8,7 @@ import withApi from 'app/utils/withApi';
 import DropdownLink from 'app/components/dropdownLink';
 import MenuItem from 'app/components/menuItem';
 import Pagination from 'app/components/pagination';
+import {IconSearch} from 'app/icons';
 
 class Filter extends React.Component {
   static propTypes = {
@@ -158,10 +159,10 @@ const ResultGrid = createReactClass({
       sortOptions: [],
       filters: {},
       defaultSort: '',
-      keyForRow: function(row) {
+      keyForRow: function (row) {
         return row.id;
       },
-      columnsForRow: function() {
+      columnsForRow: function () {
         return [];
       },
       defaultParams: {
@@ -324,7 +325,7 @@ const ResultGrid = createReactClass({
                     onChange={this.onQueryChange}
                   />
                   <button type="submit" className="btn btn-sm btn-primary">
-                    <span className="icon-search" />
+                    <IconSearch size="xs" />
                   </button>
                 </div>
               </form>

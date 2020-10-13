@@ -9,7 +9,7 @@ import moment from 'moment';
 
 import {DEFAULT_PER_PAGE} from 'app/constants';
 import {EventQuery} from 'app/actionCreators/events';
-import {SavedQuery, NewQuery, SelectValue, User} from 'app/types';
+import {GlobalSelection, SavedQuery, NewQuery, SelectValue, User} from 'app/types';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
 import {TableColumn, TableColumnSort} from 'app/views/eventsV2/table/types';
@@ -26,7 +26,13 @@ import {
   generateFieldAsString,
 } from './fields';
 import {getSortField} from './fieldRenderers';
-import {CHART_AXIS_OPTIONS, DisplayModes, DISPLAY_MODE_OPTIONS} from './types';
+import {
+  CHART_AXIS_OPTIONS,
+  DisplayModes,
+  DISPLAY_MODE_OPTIONS,
+  DISPLAY_MODE_FALLBACK_OPTIONS,
+} from './types';
+import {statsPeriodToDays} from '../dates';
 
 // Metadata mapping for discover results.
 export type MetaType = Record<string, ColumnType>;
@@ -34,7 +40,7 @@ export type MetaType = Record<string, ColumnType>;
 // Data in discover results.
 export type EventData = Record<string, any>;
 
-type LocationQuery = {
+export type LocationQuery = {
   start?: string | string[];
   end?: string | string[];
   utc?: string | string[];
@@ -442,22 +448,41 @@ class EventView {
     return newQuery;
   }
 
-  // TODO(mark) Refactor this to return the GlobalSelection type instead.
-  // We'll likely also need a function somewhere to convert GlobalSelection
-  // into query parameters, as that is how this method is currently used.
-  getGlobalSelection(): {
-    start: string | undefined;
-    end: string | undefined;
-    statsPeriod: string | undefined;
-    environment: string[];
-    project: number[];
-  } {
+  getGlobalSelection(): GlobalSelection {
     return {
-      start: this.start,
-      end: this.end,
-      statsPeriod: this.statsPeriod,
-      project: this.project as number[],
-      environment: this.environment as string[],
+      projects: this.project as number[],
+      environments: this.environment as string[],
+      datetime: {
+        start: this.start ?? null,
+        end: this.end ?? null,
+        period: this.statsPeriod ?? '',
+        // TODO(tony) Add support for the Use UTC option from
+        // the global headers, currently, that option is not
+        // supported and all times are assumed to be UTC
+        utc: true,
+      },
+    };
+  }
+
+  getGlobalSelectionQuery(): Query {
+    const {
+      environments: environment,
+      projects,
+      datetime: {start, end, period, utc},
+    } = this.getGlobalSelection();
+    return {
+      project: projects.map(proj => proj.toString()),
+      environment,
+      utc: utc ? 'true' : 'false',
+
+      // since these values are from `getGlobalSelection`
+      // we know they have type `string | null`
+      start: (start ?? undefined) as string | undefined,
+      end: (end ?? undefined) as string | undefined,
+
+      // we can't use the ?? operator here as we want to
+      // convert the empty string to undefined
+      statsPeriod: period ? period : undefined,
     };
   }
 
@@ -526,6 +551,10 @@ class EventView {
     return this.fields.some(field => isAggregateField(field.field));
   }
 
+  hasIdField() {
+    return this.fields.some(field => field.field === 'id');
+  }
+
   numOfColumns(): number {
     return this.fields.length;
   }
@@ -536,18 +565,7 @@ class EventView {
 
   getDays(): number {
     const statsPeriod = decodeScalar(this.statsPeriod);
-
-    if (statsPeriod && statsPeriod.endsWith('d')) {
-      return parseInt(statsPeriod.slice(0, -1), 10);
-    } else if (statsPeriod && statsPeriod.endsWith('h')) {
-      return parseInt(statsPeriod.slice(0, -1), 10) / 24;
-    } else if (this.start && this.end) {
-      return (
-        (new Date(this.end).getTime() - new Date(this.start).getTime()) /
-        (24 * 60 * 60 * 1000)
-      );
-    }
-    return 0;
+    return statsPeriodToDays(statsPeriod, this.start, this.end);
   }
 
   clone(): EventView {
@@ -900,7 +918,7 @@ class EventView {
     const environment = this.environment as string[];
 
     // generate event query
-    const eventQuery: EventQuery & LocationQuery = Object.assign(
+    const eventQuery = Object.assign(
       omit(picked, DATETIME_QUERY_STRING_KEYS),
       normalizedTimeWindowParams,
       {
@@ -911,7 +929,7 @@ class EventView {
         per_page: DEFAULT_PER_PAGE,
         query: this.query,
       }
-    );
+    ) as EventQuery & LocationQuery;
 
     if (!eventQuery.sort) {
       delete eventQuery.sort;
@@ -1008,23 +1026,51 @@ class EventView {
   }
 
   getDisplayOptions(): SelectValue<string>[] {
-    if (!this.start && !this.end) {
-      return DISPLAY_MODE_OPTIONS;
-    }
     return DISPLAY_MODE_OPTIONS.map(item => {
       if (item.value === DisplayModes.PREVIOUS) {
-        return {...item, disabled: true};
+        if (this.start || this.end) {
+          return {...item, disabled: true};
+        }
       }
+
+      if (item.value === DisplayModes.TOP5 || item.value === DisplayModes.DAILYTOP5) {
+        if (this.getAggregateFields().length === 0) {
+          return {...item, disabled: true};
+        }
+      }
+
+      if (item.value === DisplayModes.DAILY || item.value === DisplayModes.DAILYTOP5) {
+        if (this.getDays() < 1) {
+          return {...item, disabled: true};
+        }
+      }
+
       return item;
     });
   }
 
   getDisplayMode() {
+    const mode = this.display ?? DisplayModes.DEFAULT;
     const displayOptions = this.getDisplayOptions();
-    const selectedOption = displayOptions.find(option => option.value === this.display);
-    if (selectedOption && !selectedOption.disabled) {
-      return this.display ?? DisplayModes.DEFAULT;
+
+    let display = (Object.values(DisplayModes) as string[]).includes(mode)
+      ? mode
+      : DisplayModes.DEFAULT;
+    const cond = option => option.value === display;
+
+    // Just in case we define a fallback chain that results in an infinite loop.
+    // The number 5 isn't anything special, its just larger than the longest fallback
+    // chain that exists and isn't too big.
+    for (let i = 0; i < 5; i++) {
+      const selectedOption = displayOptions.find(cond);
+      if (selectedOption && !selectedOption.disabled) {
+        return display;
+      }
+      display = DISPLAY_MODE_FALLBACK_OPTIONS[display];
     }
+
+    // after trying to find an enabled display mode and failing to find one,
+    // we just use the default display mode
     return DisplayModes.DEFAULT;
   }
 }

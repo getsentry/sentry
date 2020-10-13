@@ -3,6 +3,7 @@ import debounce from 'lodash/debounce';
 import {Query} from 'history';
 
 import {Client} from 'app/api';
+import {PlatformKey} from 'app/data/platformCategories';
 import {Project, Team} from 'app/types';
 import {
   addLoadingMessage,
@@ -118,7 +119,7 @@ export function loadStatsForProject(api: Client, project: string, params: Update
   _debouncedLoadStats(api, _projectStatsToFetch, params);
 }
 
-export function setActiveProject(project: Project) {
+export function setActiveProject(project: Project | null) {
   ProjectActions.setActive(project);
 }
 
@@ -306,17 +307,19 @@ export function sendSampleEvent(api: Client, orgSlug: string, projectSlug: strin
  * @param team The team slug to assign the project to
  * @param name Name of the project
  * @param platform The platform key of the project
+ * @param options Additional options such as creating default alert rules
  */
 export function createProject(
   api: Client,
   orgSlug: string,
   team: string,
   name: string,
-  platform: string
+  platform: string,
+  options: {defaultRules?: boolean} = {}
 ) {
   return api.requestPromise(`/teams/${orgSlug}/${team}/projects/`, {
     method: 'POST',
-    data: {name, platform},
+    data: {name, platform, default_rules: options.defaultRules},
   });
 }
 
@@ -333,7 +336,7 @@ export function loadDocs(
   api: Client,
   orgSlug: string,
   projectSlug: string,
-  platform: string
+  platform: PlatformKey
 ) {
   return api.requestPromise(`/projects/${orgSlug}/${projectSlug}/docs/${platform}/`);
 }

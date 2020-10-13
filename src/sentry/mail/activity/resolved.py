@@ -9,3 +9,6 @@ class ResolvedActivityEmail(ActivityEmail):
 
     def get_description(self):
         return u"{author} marked {an issue} as resolved"
+
+    def get_category(self):
+        return "resolved_activity_email"

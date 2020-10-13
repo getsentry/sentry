@@ -4,6 +4,7 @@ import CHART_PALETTE from 'app/constants/chartPalette';
 
 const colors = {
   white: '#FFFFFF',
+  black: '#1D1127',
 
   gray100: '#FAF9FB',
   gray200: '#F2F0F5',
@@ -67,16 +68,105 @@ const colors = {
   get borderDark() {
     return colors.gray400;
   },
+} as const;
 
-  borderRadius: '4px',
-  borderRadiusBottom: '0 0 4px 4px',
-  borderRadiusTop: '4px 4px 0 0',
-  headerSelectorRowHeight: 44,
-  headerSelectorLabelHeight: 28,
+const aliases = {
+  /**
+   * Primary text color
+   */
+  textColor: colors.gray800, // TODO(dark): colors.gray500
 
-  dropShadowLightest: '0 1px 2px rgba(0, 0, 0, 0.04)',
-  dropShadowLight: '0 2px 0 rgba(37, 11, 54, 0.04)',
-  dropShadowHeavy: '0 1px 4px 1px rgba(47,40,55,0.08), 0 4px 16px 0 rgba(47,40,55,0.12)',
+  /**
+   * Text that should not have as much emphasis
+   */
+  subText: colors.gray400,
+
+  /**
+   * Background for the main content area of a page?
+   */
+  bodyBackground: colors.gray100,
+
+  /**
+   * Primary background color
+   */
+  background: colors.white,
+
+  /**
+   * Secondary background color used as a slight contrast against primary background
+   */
+  backgroundSecondary: colors.gray100,
+
+  /**
+   * Background for the header of a page
+   */
+  headerBackground: colors.white,
+
+  /**
+   * Primary border color
+   */
+  border: colors.gray200,
+
+  /**
+   * A color that denotes a "success", or something good
+   */
+  success: colors.green400, // TODO(dark): colors.green300,
+
+  /**
+   * A color that denotes an error, or something that is wrong
+   */
+  error: colors.red400, // TODO(dark): colors.red300,
+
+  /**
+   * A color that indicates something is disabled where user can not interact or use
+   * it in the usual manner (implies that there is an "enabled" state)
+   */
+  disabled: colors.gray400, // TODO(dark): colors.gray200,
+
+  /**
+   * Indicates that something is "active" or "selected"
+   */
+  active: colors.pink300,
+
+  /**
+   * Link color indicates that something is clickable
+   */
+  linkColor: colors.purple300,
+
+  /**
+   * ...
+   */
+  secondaryButton: colors.purple300,
+
+  /**
+   * Gradient for sidebar
+   */
+  sidebarGradient:
+    'linear-gradient(294.17deg,#2f1937 35.57%,#452650 92.42%,#452650 92.42%)',
+
+  /**
+   * Form placeholder text color
+   */
+  formPlaceholder: colors.gray200,
+
+  /**
+   * Default form text color
+   */
+  formText: colors.gray500,
+
+  /**
+   *
+   */
+  rowBackground: colors.gray100,
+
+  /**
+   * Color of lines that flow across the background of the chart to indicate axes levels
+   */
+  chartLineColor: colors.gray200,
+
+  /**
+   * Color for chart label text
+   */
+  chartLabel: colors.gray300,
 } as const;
 
 const warning = {
@@ -131,14 +221,7 @@ const badge = {
   },
 };
 
-const aliases = {
-  textColor: colors.gray800,
-  success: colors.green400,
-  error: colors.red400,
-  disabled: colors.borderDark,
-} as const;
-
-const button = {
+const generateButtonTheme = alias => ({
   borderRadius: '3px',
 
   default: {
@@ -148,9 +231,7 @@ const button = {
     backgroundActive: colors.white,
     border: '#d8d2de',
     borderActive: '#c9c0d1',
-    focusShadow: color(colors.gray300)
-      .alpha(0.5)
-      .string(),
+    focusShadow: color(colors.gray300).alpha(0.5).string(),
   },
   primary: {
     color: colors.white,
@@ -159,9 +240,7 @@ const button = {
     backgroundActive: '#4e3fb4',
     border: '#3d328e',
     borderActive: '#352b7b',
-    focusShadow: color(colors.purple400)
-      .alpha(0.4)
-      .string(),
+    focusShadow: color(colors.purple400).alpha(0.4).string(),
   },
   success: {
     color: colors.white,
@@ -170,9 +249,7 @@ const button = {
     backgroundActive: colors.green400,
     border: '#7ccca5',
     borderActive: '#7ccca5',
-    focusShadow: color(colors.green400)
-      .alpha(0.5)
-      .string(),
+    focusShadow: color(colors.green400).alpha(0.5).string(),
   },
   danger: {
     color: colors.white,
@@ -181,9 +258,7 @@ const button = {
     backgroundActive: '#bf2a1d',
     border: '#bf2a1d',
     borderActive: '#7d1c13',
-    focusShadow: color(colors.red400)
-      .alpha(0.5)
-      .string(),
+    focusShadow: color(colors.red400).alpha(0.5).string(),
   },
   link: {
     color: colors.blue400,
@@ -195,15 +270,15 @@ const button = {
     focusShadow: false,
   },
   disabled: {
-    color: aliases.disabled,
-    colorActive: aliases.disabled,
+    color: alias.disabled,
+    colorActive: alias.disabled,
     border: '#e3e5e6',
     borderActive: '#e3e5e6',
     background: colors.white,
     backgroundActive: colors.white,
     focusShadow: false,
   },
-} as const;
+});
 
 const iconSizes = {
   xs: '12px',
@@ -211,6 +286,7 @@ const iconSizes = {
   md: '20px',
   lg: '24px',
   xl: '32px',
+  xxl: '72px',
 };
 
 const theme = {
@@ -240,8 +316,8 @@ const theme = {
     },
     traceView: {
       spanTreeToggler: 900,
-      rowInfoMessage: 900,
       dividerLine: 909,
+      rowInfoMessage: 910,
       minimapContainer: 999,
     },
 
@@ -260,6 +336,9 @@ const theme = {
     },
 
     globalSelectionHeader: 1009,
+
+    settingsSidebarNavMask: 1017,
+    settingsSidebarNav: 1018,
     sidebarPanel: 1019,
     sidebar: 1020,
     orgAndUserMenu: 1030,
@@ -279,6 +358,16 @@ const theme = {
 
   grid: 8,
 
+  borderRadius: '4px',
+  borderRadiusBottom: '0 0 4px 4px',
+  borderRadiusTop: '4px 4px 0 0',
+  headerSelectorRowHeight: 44,
+  headerSelectorLabelHeight: 28,
+
+  dropShadowLightest: '0 1px 2px rgba(0, 0, 0, 0.04)',
+  dropShadowLight: '0 2px 0 rgba(37, 11, 54, 0.04)',
+  dropShadowHeavy: '0 1px 4px 1px rgba(47,40,55,0.08), 0 4px 16px 0 rgba(47,40,55,0.12)',
+
   // Relative font sizes
   fontSizeRelativeSmall: '0.9em',
 
@@ -295,7 +384,7 @@ const theme = {
     maxCrumbWidth: '240px',
 
     containerWidth: '1440px',
-    headerHeight: '115px',
+    headerHeight: '69px',
     sidebarWidth: '220px',
   },
 
@@ -323,7 +412,7 @@ const theme = {
 
   alert,
   badge,
-  button,
+  button: generateButtonTheme(aliases),
 
   charts: {
     colors: CHART_PALETTE[CHART_PALETTE.length - 1],
@@ -355,5 +444,9 @@ const theme = {
 export type Theme = typeof theme;
 export type Color = keyof typeof colors;
 export type IconSize = keyof typeof iconSizes;
+export type Aliases = typeof aliases;
 
 export default theme;
+
+// This should never be used directly (except in storybook)
+export {aliases};

@@ -3,7 +3,7 @@ import React from 'react';
 
 import Button from 'app/components/button';
 import {t} from 'app/locale';
-import {IconBell} from 'app/icons/iconBell';
+import {IconBell} from 'app/icons';
 
 type Props = {
   onClick: (e: React.MouseEvent) => void;

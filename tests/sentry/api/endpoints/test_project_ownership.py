@@ -89,4 +89,4 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
             self.path, {"raw": "*.js idont@exist.com admin@localhost #faketeam #tiger-team"}
         )
         assert resp.status_code == 400
-        assert resp.data == {"raw": ["Invalid rule owners: idont@exist.com, #faketeam"]}
+        assert resp.data == {"raw": ["Invalid rule owners: #faketeam, idont@exist.com"]}

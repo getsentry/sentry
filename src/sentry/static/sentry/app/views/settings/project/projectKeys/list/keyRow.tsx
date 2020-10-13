@@ -74,7 +74,7 @@ class KeyRow extends React.Component<Props> {
     ];
 
     return (
-      <ClientKeyItemPanel>
+      <Panel>
         <PanelHeader hasButtons>
           <Title disabled={!data.isActive}>
             <PanelHeaderLink to={editUrl}>{data.label}</PanelHeaderLink>
@@ -92,26 +92,23 @@ class KeyRow extends React.Component<Props> {
           </Controls>
         </PanelHeader>
 
-        <ClippedBox clipHeight={300} defaultClipped btnText={t('Expand')}>
+        <StyledClippedBox clipHeight={300} defaultClipped btnText={t('Expand')}>
           <StyledPanelBody disabled={!data.isActive}>
             <ProjectKeyCredentials projectId={`${data.projectId}`} data={data} />
           </StyledPanelBody>
-        </ClippedBox>
-      </ClientKeyItemPanel>
+        </StyledClippedBox>
+      </Panel>
     );
   }
 }
 
 export default KeyRow;
 
-const ClientKeyItemPanel = styled(Panel)`
-  .box-clippable {
-    padding: 0;
-    margin: 0;
-
-    .clip-fade {
-      padding-bottom: 20px;
-    }
+const StyledClippedBox = styled(ClippedBox)`
+  padding: 0;
+  margin: 0;
+  > *:last-child {
+    padding-bottom: ${space(3)};
   }
 `;
 

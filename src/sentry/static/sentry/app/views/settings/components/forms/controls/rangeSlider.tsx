@@ -140,9 +140,9 @@ class RangeSlider extends React.Component<Props, State> {
     }
   }
 
-  getActualValue = sliderValue => {
+  getActualValue = (sliderValue: State['sliderValue']): number | '' => {
     const {allowedValues} = this.props;
-    let value;
+    let value: number | '';
 
     if (allowedValues) {
       // If `allowedValues` is defined, then `sliderValue` represents index to `allowedValues`

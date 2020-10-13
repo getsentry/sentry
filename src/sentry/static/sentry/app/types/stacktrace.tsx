@@ -1,12 +1,50 @@
-import {Frame} from 'app/components/events/interfaces/frame/types';
+import {Frame} from 'app/types';
 
-export type StackViewType = 'app' | 'full' | 'raw';
+export enum STACK_VIEW {
+  RAW = 'raw',
+  FULL = 'full',
+  APP = 'app',
+}
 
-export type Stacktrace = {
+export enum STACK_TYPE {
+  ORIGINAL = 'original',
+  MINIFIED = 'minified',
+}
+
+export type StacktraceType = {
   frames: Array<Frame>;
   hasSystemFrames: boolean;
-  registers: {[key: string]: string} | null;
+  registers: Record<string, any> | null;
   framesOmitted: any;
 };
 
-export type RawStacktrace = null | Stacktrace;
+export type RawStacktrace = StacktraceType | null;
+
+type MechanismMeta = {
+  errno?: {
+    number: number;
+    name?: string;
+  };
+  mach_exception?: {
+    exception: number;
+    code: number;
+    subcode: number;
+    name?: string;
+  };
+  signal?: {
+    number: number;
+    code?: number;
+    name?: string;
+    code_name?: string;
+  };
+};
+
+export type Mechanism = {
+  handled: boolean;
+  synthetic: boolean;
+  type: string;
+  meta?: MechanismMeta;
+  data?: object;
+  description?: string;
+  help_link?: string;
+};

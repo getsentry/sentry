@@ -12,8 +12,7 @@ import {Artifact} from 'app/types';
 import Confirm from 'app/components/confirm';
 import Access from 'app/components/acl/access';
 import Tooltip from 'app/components/tooltip';
-
-import Tag from '../../components/tag';
+import Tag from 'app/components/tag';
 
 type Props = {
   artifact: Artifact;
@@ -48,9 +47,7 @@ const SourceMapsArtifactRow = ({artifact, onDelete, downloadUrl}: Props) => {
           <Access access={['project:write']}>
             {({hasAccess}) => (
               <Tooltip
-                title={t(
-                  'You do not have the required permission to download this artifact.'
-                )}
+                title={t('You do not have permission to download artifacts.')}
                 disabled={hasAccess}
               >
                 <Button
@@ -63,16 +60,29 @@ const SourceMapsArtifactRow = ({artifact, onDelete, downloadUrl}: Props) => {
               </Tooltip>
             )}
           </Access>
-          <Confirm
-            message={t('Are you sure you want to remove this artifact?')}
-            onConfirm={handleDeleteClick}
-          >
-            <Button
-              size="small"
-              icon={<IconDelete size="sm" />}
-              title={t('Remove Artifact')}
-            />
-          </Confirm>
+
+          <Access access={['project:releases']}>
+            {({hasAccess}) => (
+              <Tooltip
+                disabled={hasAccess}
+                title={t('You do not have permission to delete artifacts.')}
+              >
+                <Confirm
+                  message={t('Are you sure you want to remove this artifact?')}
+                  onConfirm={handleDeleteClick}
+                  disabled={!hasAccess}
+                >
+                  <Button
+                    size="small"
+                    icon={<IconDelete size="sm" />}
+                    title={t('Remove Artifact')}
+                    label={t('Remove Artifact')}
+                    disabled={!hasAccess}
+                  />
+                </Confirm>
+              </Tooltip>
+            )}
+          </Access>
         </ButtonBar>
       </ActionsColumn>
     </React.Fragment>

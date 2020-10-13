@@ -93,7 +93,7 @@ class IssueListTagFilter extends React.Component {
     this.debouncedTextChange(value);
   };
 
-  debouncedTextChange = debounce(function(text) {
+  debouncedTextChange = debounce(function (text) {
     this.handleChange(text);
   }, 150);
 

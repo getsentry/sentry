@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 
 import {Client} from 'app/api';
 import {Event, EventAttachment} from 'app/types';
@@ -14,11 +15,14 @@ import space from 'app/styles/space';
 import AttachmentUrl from 'app/utils/attachmentUrl';
 import withApi from 'app/utils/withApi';
 
+import EventAttachmentsCrashReportsNotice from './eventAttachmentsCrashReportsNotice';
+
 type Props = {
   api: Client;
   event: Event;
   orgId: string;
   projectId: string;
+  location: Location;
 };
 
 type State = {
@@ -90,38 +94,52 @@ class EventAttachments extends React.Component<Props, State> {
   };
 
   render() {
+    const {event, projectId, orgId, location} = this.props;
     const {attachmentList} = this.state;
-    if (!attachmentList.length) {
+    const crashFileStripped = event.metadata.stripped_crash;
+
+    if (!attachmentList.length && !crashFileStripped) {
       return null;
     }
-    const {event, projectId} = this.props;
+
     const title = t('Attachments (%s)', attachmentList.length);
 
     return (
       <EventDataSection type="attachments" title={title}>
-        <Panel>
-          <PanelBody>
-            {attachmentList.map(attachment => (
-              <PanelItem key={attachment.id} alignItems="center">
-                <AttachmentName>{attachment.name}</AttachmentName>
-                <FileSizeWithGap bytes={attachment.size} />
-                <AttachmentUrl
-                  projectId={projectId}
-                  eventId={event.id}
-                  attachment={attachment}
-                >
-                  {url => (
-                    <EventAttachmentActions
-                      url={url}
-                      onDelete={this.handleDelete}
-                      attachmentId={attachment.id}
-                    />
-                  )}
-                </AttachmentUrl>
-              </PanelItem>
-            ))}
-          </PanelBody>
-        </Panel>
+        {crashFileStripped && (
+          <EventAttachmentsCrashReportsNotice
+            orgSlug={orgId}
+            projectSlug={projectId}
+            groupId={event.groupID!}
+            location={location}
+          />
+        )}
+
+        {attachmentList.length > 0 && (
+          <Panel>
+            <PanelBody>
+              {attachmentList.map(attachment => (
+                <PanelItem key={attachment.id} alignItems="center">
+                  <AttachmentName>{attachment.name}</AttachmentName>
+                  <FileSizeWithGap bytes={attachment.size} />
+                  <AttachmentUrl
+                    projectId={projectId}
+                    eventId={event.id}
+                    attachment={attachment}
+                  >
+                    {url => (
+                      <EventAttachmentActions
+                        url={url}
+                        onDelete={this.handleDelete}
+                        attachmentId={attachment.id}
+                      />
+                    )}
+                  </AttachmentUrl>
+                </PanelItem>
+              ))}
+            </PanelBody>
+          </Panel>
+        )}
       </EventDataSection>
     );
   }

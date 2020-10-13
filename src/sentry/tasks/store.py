@@ -9,11 +9,9 @@ from django.utils import timezone
 from django.conf import settings
 
 import sentry_sdk
-from sentry_sdk.tracing import Span
 from sentry_relay.processing import StoreNormalizer
 
-from sentry import features, reprocessing, options
-from sentry.relay.config import get_project_config
+from sentry import reprocessing, options, reprocessing2
 from sentry.datascrubbing import scrub_data
 from sentry.constants import DEFAULT_STORE_NORMALIZER_ARGS
 from sentry.attachments import attachment_cache
@@ -69,7 +67,7 @@ def should_process(data):
 
 
 def submit_process(
-    project, from_reprocessing, cache_key, event_id, start_time, data, data_has_changed=None,
+    project, from_reprocessing, cache_key, event_id, start_time, data_has_changed=None,
 ):
     task = process_event_from_reprocessing if from_reprocessing else process_event
     task.delay(
@@ -89,9 +87,11 @@ def submit_symbolicate(project, from_reprocessing, cache_key, event_id, start_ti
     task.delay(cache_key=cache_key, start_time=start_time, event_id=event_id)
 
 
-def submit_save_event(project, cache_key, event_id, start_time, data):
+def submit_save_event(project, from_reprocessing, cache_key, event_id, start_time, data):
     if cache_key:
         data = None
+
+    # XXX: honor from_reprocessing
 
     save_event.delay(
         cache_key=cache_key,
@@ -130,24 +130,20 @@ def _do_preprocess_event(cache_key, data, start_time, event_id, process_task, pr
     from_reprocessing = process_task is process_event_from_reprocessing
 
     if should_process_with_symbolicator(data):
+        reprocessing2.backup_unprocessed_event(project=project, data=original_data)
         submit_symbolicate(
             project, from_reprocessing, cache_key, event_id, start_time, original_data
         )
         return
 
     if should_process(data):
+        reprocessing2.backup_unprocessed_event(project=project, data=original_data)
         submit_process(
-            project,
-            from_reprocessing,
-            cache_key,
-            event_id,
-            start_time,
-            original_data,
-            data_has_changed=False,
+            project, from_reprocessing, cache_key, event_id, start_time, data_has_changed=False,
         )
         return
 
-    submit_save_event(project, cache_key, event_id, start_time, original_data)
+    submit_save_event(project, from_reprocessing, cache_key, event_id, start_time, original_data)
 
 
 @instrumented_task(
@@ -297,12 +293,10 @@ def symbolicate_event(cache_key, start_time=None, event_id=None, **kwargs):
     :param int start_time: the timestamp when the event was ingested
     :param string event_id: the event identifier
     """
-    with sentry_sdk.start_span(
-        Span(
-            op="tasks.store.symbolicate_event",
-            transaction="TaskSymbolicateEvent",
-            sampled=sample_symbolicate_event_apm(),
-        )
+    with sentry_sdk.start_transaction(
+        op="tasks.store.symbolicate_event",
+        name="TaskSymbolicateEvent",
+        sampled=sample_symbolicate_event_apm(),
     ):
         return _do_symbolicate_event(
             cache_key=cache_key,
@@ -319,12 +313,10 @@ def symbolicate_event(cache_key, start_time=None, event_id=None, **kwargs):
     soft_time_limit=60,
 )
 def symbolicate_event_from_reprocessing(cache_key, start_time=None, event_id=None, **kwargs):
-    with sentry_sdk.start_span(
-        Span(
-            op="tasks.store.symbolicate_event_from_reprocessing",
-            transaction="TaskSymbolicateEvent",
-            sampled=sample_symbolicate_event_apm(),
-        )
+    with sentry_sdk.start_transaction(
+        op="tasks.store.symbolicate_event_from_reprocessing",
+        name="TaskSymbolicateEvent",
+        sampled=sample_symbolicate_event_apm(),
     ):
         return _do_symbolicate_event(
             cache_key=cache_key,
@@ -461,15 +453,11 @@ def _do_process_event(
             with metrics.timer(
                 "tasks.store.datascrubbers.scrub", tags={"from_symbolicate": from_symbolicate}
             ):
-                project_config = get_project_config(project)
-
-                new_data = safe_execute(scrub_data, project_config=project_config, event=data.data)
+                new_data = safe_execute(scrub_data, project=project, event=data.data)
 
                 # XXX(markus): When datascrubbing is finally "totally stable", we might want
                 # to drop the event if it crashes to avoid saving PII
-                if new_data is not None and features.has(
-                    "organizations:datascrubbers-v2", project.organization, actor=None
-                ):
+                if new_data is not None:
                     data.data = new_data
 
     # TODO(dcramer): ideally we would know if data changed by default
@@ -536,7 +524,8 @@ def _do_process_event(
 
         cache_key = event_processing_store.store(data)
 
-    submit_save_event(project, cache_key, event_id, start_time, data)
+    from_reprocessing = process_task is process_event_from_reprocessing
+    submit_save_event(project, from_reprocessing, cache_key, event_id, start_time, data)
 
 
 @instrumented_task(
@@ -556,12 +545,8 @@ def process_event(cache_key, start_time=None, event_id=None, data_has_changed=No
     :param string event_id: the event identifier
     :param boolean data_has_changed: set to True if the event data was changed in previous tasks
     """
-    with sentry_sdk.start_span(
-        Span(
-            op="tasks.store.process_event",
-            transaction="TaskProcessEvent",
-            sampled=sample_process_event_apm(),
-        )
+    with sentry_sdk.start_transaction(
+        op="tasks.store.process_event", name="TaskProcessEvent", sampled=sample_process_event_apm(),
     ):
         return _do_process_event(
             cache_key=cache_key,
@@ -581,12 +566,10 @@ def process_event(cache_key, start_time=None, event_id=None, data_has_changed=No
 def process_event_from_reprocessing(
     cache_key, start_time=None, event_id=None, data_has_changed=None, **kwargs
 ):
-    with sentry_sdk.start_span(
-        Span(
-            op="tasks.store.process_event_from_reprocessing",
-            transaction="TaskProcessEvent",
-            sampled=sample_process_event_apm(),
-        )
+    with sentry_sdk.start_transaction(
+        op="tasks.store.process_event_from_reprocessing",
+        name="TaskProcessEvent",
+        sampled=sample_process_event_apm(),
     ):
         return _do_process_event(
             cache_key=cache_key,
@@ -637,6 +620,13 @@ def create_failed_event(
     if not reprocessing.event_supports_reprocessing(data):
         return False
 
+    # If this event has just been reprocessed with reprocessing-v2, we don't
+    # put it through reprocessing-v1 again. The value of reprocessing-v2 is
+    # partially that one sees the entire event even in its failed state, all
+    # the time.
+    if reprocessing2.is_reprocessed_event(data):
+        return False
+
     reprocessing_active = ProjectOption.objects.get_value(
         project_id, "sentry:reprocessing_active", REPROCESSING_DEFAULT
     )
@@ -677,6 +667,7 @@ def create_failed_event(
     # modifications to take place.
     delete_raw_event(project_id, event_id)
     data = event_processing_store.get(cache_key)
+
     if data is None:
         metrics.incr("events.failed", tags={"reason": "cache", "stage": "raw"}, skip_internal=False)
         error_logger.error("process.failed_raw.empty", extra={"cache_key": cache_key})
@@ -700,7 +691,6 @@ def create_failed_event(
             type=issue["type"],
             data=issue["data"],
         )
-
     event_processing_store.delete_by_key(cache_key)
 
     return True
@@ -768,15 +758,22 @@ def _do_save_event(
                 manager.save(
                     project_id, assume_normalized=True, start_time=start_time, cache_key=cache_key
                 )
-
+                # Put the updated event back into the cache so that post_process
+                # has the most recent data.
+                data = manager.get_data()
+                if isinstance(data, CANONICAL_TYPES):
+                    data = dict(data.items())
+                with metrics.timer("tasks.store.do_save_event.write_processing_cache"):
+                    event_processing_store.store(data)
         except HashDiscarded:
-            pass
-
-        finally:
+            # Delete the event payload from cache since it won't show up in post-processing.
             if cache_key:
                 with metrics.timer("tasks.store.do_save_event.delete_cache"):
                     event_processing_store.delete_by_key(cache_key)
 
+        finally:
+            reprocessing2.mark_event_reprocessed(data)
+            if cache_key:
                 with metrics.timer("tasks.store.do_save_event.delete_attachment_cache"):
                     attachment_cache.delete(cache_key)
 
@@ -784,6 +781,56 @@ def _do_save_event(
                 metrics.timing(
                     "events.time-to-process", time() - start_time, instance=data["platform"]
                 )
+
+            time_synthetic_monitoring_event(data, project_id, start_time)
+
+
+def time_synthetic_monitoring_event(data, project_id, start_time):
+    """
+    For special events produced by the recurring synthetic monitoring
+    functions, emit timing metrics for:
+
+    - "events.synthetic-monitoring.time-to-ingest-total" - Total time with
+    the client submission latency included. Rely on timestamp provided by
+    client as part of the event payload.
+
+    - "events.synthetic-monitoring.time-to-process" - Processing time inside
+    by sentry. `start_time` is added to the payload by the system entrypoint
+    (relay).
+
+    If an event was produced by synthetic monitoring and metrics emitted,
+    returns `True` otherwise returns `False`.
+    """
+    sm_project_id = getattr(settings, "SENTRY_SYNTHETIC_MONITORING_PROJECT_ID", None)
+    if sm_project_id is None or project_id != sm_project_id:
+        return False
+
+    extra = data.get("extra", {}).get("_sentry_synthetic_monitoring")
+    if not extra:
+        return False
+
+    now = time()
+    tags = {
+        "target": extra["target"],
+        "source_region": extra["source_region"],
+        "source": extra["source"],
+    }
+
+    metrics.timing(
+        "events.synthetic-monitoring.time-to-ingest-total",
+        now - data["timestamp"],
+        tags=tags,
+        sample_rate=1.0,
+    )
+
+    if start_time:
+        metrics.timing(
+            "events.synthetic-monitoring.time-to-process",
+            now - start_time,
+            tags=tags,
+            sample_rate=1.0,
+        )
+    return True
 
 
 @instrumented_task(

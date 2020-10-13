@@ -10,12 +10,12 @@ import MarkPoint from 'app/components/charts/components/markPoint';
 import MarkLine from 'app/components/charts/components/markLine';
 
 import closedSymbol from './closedSymbol';
-import detectedSymbol from './detectedSymbol';
+import startedSymbol from './startedSymbol';
 
 type Data = [number, {count: number}[]];
 /**
  * So we'll have to see how this looks with real data, but echarts requires
- * an explicit (x,y) value to draw a symbol (incident detected/closed bubble).
+ * an explicit (x,y) value to draw a symbol (incident started/closed bubble).
  *
  * This uses the closest date *without* going over.
  *
@@ -41,22 +41,23 @@ function getNearbyIndex(data: Data[], needle: number) {
 type Props = {
   data: Data[];
   aggregate: string;
-  detected: string;
+  started: string;
   closed?: string;
   triggers?: Trigger[];
+  resolveThreshold?: number | '' | null;
 };
 
 const Chart = (props: Props) => {
-  const {aggregate, data, detected, closed, triggers} = props;
-  const detectedTs = detected && moment.utc(detected).unix();
+  const {aggregate, data, started, closed, triggers, resolveThreshold} = props;
+  const startedTs = started && moment.utc(started).unix();
   const closedTs = closed && moment.utc(closed).unix();
   const chartData = data.map(([ts, val]) => [
     ts * 1000,
     val.length ? val.reduce((acc, {count} = {count: 0}) => acc + count, 0) : 0,
   ]);
 
-  const detectedCoordinate = detectedTs
-    ? chartData[getNearbyIndex(data, detectedTs)]
+  const startedCoordinate = startedTs
+    ? chartData[getNearbyIndex(data, startedTs)]
     : undefined;
   const showClosedMarker =
     data && closedTs && data[data.length - 1] && data[data.length - 1][0] >= closedTs
@@ -73,25 +74,18 @@ const Chart = (props: Props) => {
     typeof warningTrigger?.alertThreshold === 'number'
       ? warningTrigger?.alertThreshold
       : undefined;
-  const warningTriggerResolveThreshold =
-    typeof warningTrigger?.resolveThreshold === 'number'
-      ? warningTrigger?.resolveThreshold
-      : undefined;
   const criticalTriggerAlertThreshold =
     typeof criticalTrigger?.alertThreshold === 'number'
       ? criticalTrigger?.alertThreshold
       : undefined;
-  const criticalTriggerResolveThreshold =
-    typeof criticalTrigger?.resolveThreshold === 'number'
-      ? criticalTrigger?.resolveThreshold
-      : undefined;
+  const alertResolveThreshold =
+    typeof resolveThreshold === 'number' ? resolveThreshold : undefined;
 
   const marklinePrecision = Math.max(
     ...[
       warningTriggerAlertThreshold,
-      warningTriggerResolveThreshold,
       criticalTriggerAlertThreshold,
-      criticalTriggerResolveThreshold,
+      alertResolveThreshold,
     ].map(decimal => {
       if (!decimal || !isFinite(decimal)) return 0;
       let e = 1;
@@ -124,9 +118,9 @@ const Chart = (props: Props) => {
               {
                 labelForValue: seriesName,
                 seriesName,
-                symbol: `image://${detectedSymbol}`,
+                symbol: `image://${startedSymbol}`,
                 name: t('Alert Triggered'),
-                coord: detectedCoordinate,
+                coord: startedCoordinate,
               },
               ...(closedTs
                 ? [
@@ -140,7 +134,7 @@ const Chart = (props: Props) => {
                     },
                   ]
                 : []),
-            ],
+            ] as any, // TODO(ts): data on this type is likely incomplete (needs @types/echarts@4.6.2)
           }),
         },
         warningTrigger &&
@@ -153,7 +147,7 @@ const Chart = (props: Props) => {
               data: [
                 {
                   yAxis: warningTriggerAlertThreshold,
-                },
+                } as any, // TODO(ts): data on this type is likely incomplete (needs @types/echarts@4.6.2)
               ],
               precision: marklinePrecision,
               label: {
@@ -162,30 +156,7 @@ const Chart = (props: Props) => {
                 formatter: 'WARNING',
                 color: theme.yellow400,
                 fontSize: 10,
-              },
-            }),
-            data: [],
-          },
-        warningTrigger &&
-          warningTriggerResolveThreshold && {
-            name: 'Warning Resolve',
-            type: 'line',
-            markLine: MarkLine({
-              silent: true,
-              lineStyle: {color: theme.gray400},
-              data: [
-                {
-                  yAxis: warningTriggerResolveThreshold,
-                },
-              ],
-              precision: marklinePrecision,
-              label: {
-                show: true,
-                position: 'insideEndBottom',
-                formatter: 'WARNING RESOLUTION',
-                color: theme.gray400,
-                fontSize: 10,
-              },
+              } as any, // TODO(ts): Color is not an exposed option for label,
             }),
             data: [],
           },
@@ -199,7 +170,7 @@ const Chart = (props: Props) => {
               data: [
                 {
                   yAxis: criticalTriggerAlertThreshold,
-                },
+                } as any, // TODO(ts): data on this type is likely incomplete (needs @types/echarts@4.6.2)
               ],
               precision: marklinePrecision,
               label: {
@@ -208,12 +179,12 @@ const Chart = (props: Props) => {
                 formatter: 'CRITICAL',
                 color: theme.red400,
                 fontSize: 10,
-              },
+              } as any, // TODO(ts): Color is not an exposed option for label,
             }),
             data: [],
           },
         criticalTrigger &&
-          criticalTriggerResolveThreshold && {
+          alertResolveThreshold && {
             name: 'Critical Resolve',
             type: 'line',
             markLine: MarkLine({
@@ -221,8 +192,8 @@ const Chart = (props: Props) => {
               lineStyle: {color: theme.gray400},
               data: [
                 {
-                  yAxis: criticalTriggerResolveThreshold,
-                },
+                  yAxis: alertResolveThreshold,
+                } as any, // TODO(ts): data on this type is likely incomplete (needs @types/echarts@4.6.2)
               ],
               precision: marklinePrecision,
               label: {
@@ -231,7 +202,7 @@ const Chart = (props: Props) => {
                 formatter: 'CRITICAL RESOLUTION',
                 color: theme.gray400,
                 fontSize: 10,
-              },
+              } as any, // TODO(ts): Color is not an option for label,
             }),
             data: [],
           },

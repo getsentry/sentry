@@ -7,8 +7,10 @@ from django.db.models import Q
 from rest_framework.response import Response
 from rest_framework.exceptions import ParseError
 
+from sentry import analytics
+
 from sentry.api.bases import NoProjects
-from sentry.api.base import DocSection, EnvironmentMixin
+from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import InvalidRepository
 from sentry.api.paginator import OffsetPaginator, MergingOffsetPaginator
@@ -27,7 +29,6 @@ from sentry.snuba.sessions import (
     get_oldest_health_data_for_releases,
     STATS_PERIODS,
 )
-from sentry.utils.apidocs import scenario, attach_scenarios
 from sentry.utils.cache import cache
 from sentry.utils.compat import zip as izip
 
@@ -40,51 +41,6 @@ def get_stats_period_detail(key, choices):
 
 
 _release_suffix = re.compile(r"^(.*)\s+\(([^)]+)\)\s*$")
-
-
-@scenario("CreateNewOrganizationReleaseWithRef")
-def create_new_org_release_ref_scenario(runner):
-    runner.request(
-        method="POST",
-        path="/organizations/%s/releases/" % (runner.org.slug,),
-        data={
-            "version": "2.0rc2",
-            "ref": "6ba09a7c53235ee8a8fa5ee4c1ca8ca886e7fdbb",
-            "projects": [runner.default_project.slug],
-        },
-    )
-
-
-@scenario("CreateNewOrganizationReleaseWithCommits")
-def create_new_org_release_commit_scenario(runner):
-    runner.request(
-        method="POST",
-        path="/organizations/%s/releases/" % (runner.org.slug,),
-        data={
-            "version": "2.0rc3",
-            "projects": [runner.default_project.slug],
-            "commits": [
-                {
-                    "patch_set": [
-                        {"path": "path/to/added-file.html", "type": "A"},
-                        {"path": "path/to/modified-file.html", "type": "M"},
-                        {"path": "path/to/deleted-file.html", "type": "D"},
-                    ],
-                    "repository": "owner-name/repo-name",
-                    "author_name": "Author Name",
-                    "author_email": "author_email@example.com",
-                    "timestamp": "2018-09-20T11:50:22+03:00",
-                    "message": "This is the commit message.",
-                    "id": "8371445ab8a9facd271df17038ff295a48accae7",
-                }
-            ],
-        },
-    )
-
-
-@scenario("ListOrganizationReleases")
-def list_org_releases_scenario(runner):
-    runner.request(method="GET", path="/organizations/%s/releases/" % (runner.org.slug,))
 
 
 class ReleaseSerializerWithProjects(ReleaseWithVersionSerializer):
@@ -156,9 +112,6 @@ def debounce_update_release_health_data(organization, project_ids):
 
 
 class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, EnvironmentMixin):
-    doc_section = DocSection.RELEASES
-
-    @attach_scenarios([list_org_releases_scenario])
     def get(self, request, organization):
         """
         List an Organization's Releases
@@ -279,11 +232,11 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
                 health_stat=health_stat,
                 health_stats_period=health_stats_period,
                 summary_stats_period=summary_stats_period,
+                environments=filter_params.get("environment") or None,
             ),
             **paginator_kwargs
         )
 
-    @attach_scenarios([create_new_org_release_ref_scenario, create_new_org_release_commit_scenario])
     def post(self, request, organization):
         """
         Create a New Release for an Organization
@@ -411,5 +364,13 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
             else:
                 status = 201
 
+            analytics.record(
+                "release.created",
+                user_id=request.user.id if request.user and request.user.id else None,
+                organization_id=organization.id,
+                project_ids=[project.id for project in projects],
+                user_agent=request.META.get("HTTP_USER_AGENT", ""),
+                created_status=status,
+            )
             return Response(serialize(release, request.user), status=status)
         return Response(serializer.errors, status=400)

@@ -5,7 +5,6 @@ import logging
 from django.db import IntegrityError, transaction
 from rest_framework.response import Response
 
-from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
@@ -38,8 +37,6 @@ def load_dist(results):
 
 
 class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint):
-    doc_section = DocSection.RELEASES
-
     def get(self, request, organization, version):
         """
         List an Organization Release's Files

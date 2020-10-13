@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import pytest
+
 from sentry.ownership.grammar import Rule, Matcher, Owner, parse_rules, dump_schema, load_schema
 
 fixture_data = """
@@ -117,3 +119,9 @@ def test_matcher_test_tags():
     assert Matcher("tags.foo", "foo_value").test(data)
     assert Matcher("tags.bar", "barval").test(data)
     assert not Matcher("tags.barz", "barval").test(data)
+
+
+@pytest.mark.parametrize("data", [{}, {"tags": None}, {"tags": [None]}])
+def test_matcher_test_tags_without_tag_data(data):
+    assert not Matcher("tags.foo", "foo_value").test(data)
+    assert not Matcher("tags.bar", "barval").test(data)

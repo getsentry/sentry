@@ -4,20 +4,21 @@ import styled from '@emotion/styled';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Deploy} from 'app/types';
-import Tag from 'app/views/settings/components/tag';
+import Tag from 'app/components/tag';
 import Link from 'app/components/links/link';
 import {IconOpen} from 'app/icons';
-import {stringifyQueryObject} from 'app/utils/tokenizeSearch';
+import {stringifyQueryObject, QueryResults} from 'app/utils/tokenizeSearch';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 
 type Props = {
   deploy: Deploy;
+  projectId?: number;
   orgSlug?: string;
   version?: string;
   className?: string;
 };
 
-const DeployBadge = ({deploy, orgSlug, version, className}: Props) => {
+const DeployBadge = ({deploy, orgSlug, projectId, version, className}: Props) => {
   const shouldLinkToIssues = !!orgSlug && !!version;
 
   const badge = (
@@ -36,12 +37,9 @@ const DeployBadge = ({deploy, orgSlug, version, className}: Props) => {
       to={{
         pathname: `/organizations/${orgSlug}/issues/`,
         query: {
-          project: null,
+          project: projectId ?? null,
           environment: deploy.environment,
-          query: stringifyQueryObject({
-            query: [],
-            release: [version!],
-          }),
+          query: stringifyQueryObject(new QueryResults([`release:${version!}`])),
         },
       }}
       title={t('Open in Issues')}

@@ -8,6 +8,7 @@ from rest_framework import serializers
 
 from django.db import transaction
 from django.utils import timezone
+from django.utils.encoding import force_text
 
 from sentry.api.event_search import InvalidSearchQuery
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
@@ -54,6 +55,7 @@ action_target_type_to_string = {
     AlertRuleTriggerAction.TargetType.USER: "user",
     AlertRuleTriggerAction.TargetType.TEAM: "team",
     AlertRuleTriggerAction.TargetType.SPECIFIC: "specific",
+    AlertRuleTriggerAction.TargetType.SENTRY_APP: "sentry_app",
 }
 string_to_action_target_type = {v: k for (k, v) in action_target_type_to_string.items()}
 
@@ -76,11 +78,12 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
 
     class Meta:
         model = AlertRuleTriggerAction
-        fields = ["id", "type", "target_type", "target_identifier", "integration"]
+        fields = ["id", "type", "target_type", "target_identifier", "integration", "sentry_app"]
         extra_kwargs = {
             "target_identifier": {"required": True},
             "target_display": {"required": False},
             "integration": {"required": False, "allow_null": True},
+            "sentry_app": {"required": False, "allow_null": True},
         }
 
     def validate_type(self, type):
@@ -148,6 +151,12 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
                     {"integration": "Integration must be provided for slack"}
                 )
 
+        elif attrs.get("type") == AlertRuleTriggerAction.Type.SENTRY_APP:
+            if not attrs.get("sentry_app"):
+                raise serializers.ValidationError(
+                    {"sentry_app": "SentryApp must be provided for sentry_app"}
+                )
+
         return attrs
 
     def create(self, validated_data):
@@ -156,7 +165,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
                 trigger=self.context["trigger"], **validated_data
             )
         except InvalidTriggerActionError as e:
-            raise serializers.ValidationError(e.message)
+            raise serializers.ValidationError(force_text(e))
 
     def update(self, instance, validated_data):
         if "id" in validated_data:
@@ -164,7 +173,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
         try:
             return update_alert_rule_trigger_action(instance, **validated_data)
         except InvalidTriggerActionError as e:
-            raise serializers.ValidationError(e.message)
+            raise serializers.ValidationError(force_text(e))
 
 
 class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
@@ -180,36 +189,16 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
     # TODO: These might be slow for many projects, since it will query for each
     # individually. If we find this to be a problem then we can look into batching.
     excluded_projects = serializers.ListField(child=ProjectField(), required=False)
-    actions = serializers.ListField(required=True)
+    actions = serializers.ListField(required=False)
 
     class Meta:
         model = AlertRuleTrigger
-        fields = [
-            "id",
-            "label",
-            "threshold_type",
-            "alert_threshold",
-            "resolve_threshold",
-            "excluded_projects",
-            "actions",
-        ]
-        extra_kwargs = {
-            "label": {"min_length": 1, "max_length": 64},
-            "threshold_type": {"required": False},
-        }
-
-    def validate_threshold_type(self, threshold_type):
-        try:
-            return AlertRuleThresholdType(threshold_type)
-        except ValueError:
-            raise serializers.ValidationError(
-                "Invalid threshold type, valid values are %s"
-                % [item.value for item in AlertRuleThresholdType]
-            )
+        fields = ["id", "label", "alert_threshold", "excluded_projects", "actions"]
+        extra_kwargs = {"label": {"min_length": 1, "max_length": 64}}
 
     def create(self, validated_data):
         try:
-            actions = validated_data.pop("actions")
+            actions = validated_data.pop("actions", None)
             alert_rule_trigger = create_alert_rule_trigger(
                 alert_rule=self.context["alert_rule"], **validated_data
             )
@@ -243,6 +232,9 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
             for action_data in actions:
                 if "integration_id" in action_data:
                     action_data["integration"] = action_data.pop("integration_id")
+
+                if "sentry_app_id" in action_data:
+                    action_data["sentry_app"] = action_data.pop("sentry_app_id")
 
                 if "id" in action_data:
                     action_instance = AlertRuleTriggerAction.objects.get(
@@ -314,7 +306,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         extra_kwargs = {
             "name": {"min_length": 1, "max_length": 64},
             "include_all_projects": {"default": False},
-            "threshold_type": {"required": False},
+            "threshold_type": {"required": True},
             "resolve_threshold": {"required": False},
         }
 
@@ -325,7 +317,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                     "Invalid Metric: We do not currently support this field."
                 )
         except InvalidSearchQuery as e:
-            raise serializers.ValidationError("Invalid Metric: {}".format(e.message))
+            raise serializers.ValidationError("Invalid Metric: {}".format(force_text(e)))
         return translate_aggregate_field(aggregate)
 
     def validate_dataset(self, dataset):
@@ -346,9 +338,12 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             )
 
     def validate(self, data):
-        """Performs validation on an alert rule's data
-        This includes ensuring there is either 1 or 2 triggers, which each have actions, and have proper thresholds set.
-        The critical trigger should both alert and resolve 'after' the warning trigger (whether that means > or < the value depends on threshold type).
+        """
+        Performs validation on an alert rule's data.
+        This includes ensuring there is either 1 or 2 triggers, which each have
+        actions, and have proper thresholds set. The critical trigger should
+        both alert and resolve 'after' the warning trigger (whether that means
+        > or < the value depends on threshold type).
         """
         data.setdefault("dataset", QueryDatasets.EVENTS)
         project_id = data.get("projects")
@@ -370,7 +365,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                 },
             )
         except (InvalidSearchQuery, ValueError) as e:
-            raise serializers.ValidationError("Invalid Query or Metric: {}".format(e.message))
+            raise serializers.ValidationError("Invalid Query or Metric: {}".format(force_text(e)))
         else:
             if not snuba_filter.aggregations:
                 raise serializers.ValidationError(
@@ -412,71 +407,36 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                     'Trigger {} must be labeled "{}"'.format(i + 1, expected_label)
                 )
         critical = triggers[0]
-        data["threshold_type"] = threshold_type = data.get(
-            "threshold_type",
-            AlertRuleThresholdType(
-                critical.get("threshold_type", AlertRuleThresholdType.ABOVE.value)
-            ),
-        )
+        threshold_type = data["threshold_type"]
+
         self._validate_trigger_thresholds(threshold_type, critical, data.get("resolve_threshold"))
 
         if len(triggers) == 2:
             warning = triggers[1]
-            if critical["threshold_type"] != warning["threshold_type"]:
-                raise serializers.ValidationError(
-                    "Must have matching threshold types (i.e. critical and warning "
-                    "triggers must both be an upper or lower bound)"
-                )
             self._validate_trigger_thresholds(
                 threshold_type, warning, data.get("resolve_threshold")
             )
             self._validate_critical_warning_triggers(threshold_type, critical, warning)
 
-        # Temporarily fetch resolve threshold from the triggers if one isn't explicitly
-        # passed to the alert rule.
-        if "resolve_threshold" not in data:
-            trigger_resolve_thresholds = [
-                trigger["resolve_threshold"]
-                for trigger in triggers
-                if trigger.get("resolve_threshold")
-            ]
-            if trigger_resolve_thresholds:
-                data["resolve_threshold"] = (
-                    min(trigger_resolve_thresholds)
-                    if threshold_type == AlertRuleThresholdType.ABOVE
-                    else max(trigger_resolve_thresholds)
-                )
-            else:
-                data["resolve_threshold"] = None
-        else:
-            for trigger in triggers:
-                trigger["resolve_threshold"] = data["resolve_threshold"]
-
-        # Triggers have passed checks. Check that all triggers have at least one action now.
-        for trigger in triggers:
-            actions = trigger.get("actions")
-            if not actions:
-                raise serializers.ValidationError(
-                    '"' + trigger["label"] + '" trigger must have an action.'
-                )
-
         return data
 
     def _validate_trigger_thresholds(self, threshold_type, trigger, resolve_threshold):
-        resolve_threshold = (
-            resolve_threshold if resolve_threshold is not None else trigger.get("resolve_threshold")
-        )
         if resolve_threshold is None:
             return
+        is_integer = (
+            type(trigger["alert_threshold"]) is int or trigger["alert_threshold"].is_integer()
+        ) and (type(resolve_threshold) is int or resolve_threshold.is_integer())
         # Since we're comparing non-inclusive thresholds here (>, <), we need
         # to modify the values when we compare. An example of why:
         # Alert > 0, resolve < 1. This means that we want to alert on values
         # of 1 or more, and resolve on values of 0 or less. This is valid, but
         # without modifying the values, this boundary case will fail.
         if threshold_type == AlertRuleThresholdType.ABOVE:
-            alert_op, alert_add, resolve_add = operator.lt, 1, -1
+            alert_op = operator.lt
+            alert_add, resolve_add = (1, -1) if is_integer else (0, 0)
         else:
-            alert_op, alert_add, resolve_add = operator.gt, -1, 1
+            alert_op = operator.gt
+            alert_add, resolve_add = (-1, 1) if is_integer else (0, 0)
 
         if alert_op(trigger["alert_threshold"] + alert_add, resolve_threshold + resolve_add):
             raise serializers.ValidationError(
@@ -497,18 +457,15 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                     threshold_type
                 )
             )
-        elif alert_op(critical["resolve_threshold"], warning["resolve_threshold"]):
-            raise serializers.ValidationError(
-                "Critical trigger must have a resolution threshold {} (or equal to) "
-                "warning trigger".format(threshold_type)
-            )
 
     def create(self, validated_data):
         try:
             with transaction.atomic():
                 triggers = validated_data.pop("triggers")
                 alert_rule = create_alert_rule(
-                    organization=self.context["organization"], **validated_data
+                    user=self.context.get("user", None),
+                    organization=self.context["organization"],
+                    **validated_data
                 )
                 self._handle_triggers(alert_rule, triggers)
                 return alert_rule

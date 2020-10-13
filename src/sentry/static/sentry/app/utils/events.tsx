@@ -4,7 +4,7 @@ import {Event, Group} from 'app/types';
 /**
  * Extract the display message from an event.
  */
-export function getMessage(event: Event): string | undefined {
+export function getMessage(event: Event | Group): string | undefined {
   const {metadata, type, culprit} = event;
 
   switch (type) {
@@ -24,7 +24,7 @@ export function getMessage(event: Event): string | undefined {
 /**
  * Get the location from an event.
  */
-export function getLocation(event: Event): string | null {
+export function getLocation(event: Event | Group): string | null {
   if (event.type === 'error' && isNativePlatform(event.platform)) {
     return event.metadata.filename || null;
   }
@@ -61,4 +61,11 @@ export function getTitle(event: Event | Group): EventTitle {
   }
 
   return result;
+}
+
+/**
+ * Returns a short eventId with only 8 characters
+ */
+export function getShortEventId(eventId: string) {
+  return eventId.substring(0, 8);
 }

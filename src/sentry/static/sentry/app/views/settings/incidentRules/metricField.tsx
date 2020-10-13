@@ -58,12 +58,13 @@ const help = ({name, model}: {name: string; model: FormModel}) => {
     .map((preset, i, list) => (
       <React.Fragment key={preset.name}>
         <Tooltip title={t('This preset is selected')} disabled={!preset.selected}>
-          <PresetLink
+          <PresetButton
+            type="button"
             onClick={() => model.setValue(name, preset.default)}
             disabled={preset.selected}
           >
             {preset.name}
-          </PresetLink>
+          </PresetButton>
         </Tooltip>
         {i + 1 < list.length && ', '}
       </React.Fragment>
@@ -125,7 +126,7 @@ const AggregateHeader = styled('div')`
   margin-bottom: ${space(1)};
 `;
 
-const PresetLink = styled(Button)<{disabled: boolean}>`
+const PresetButton = styled(Button)<{disabled: boolean}>`
   ${p =>
     p.disabled &&
     css`
@@ -137,7 +138,7 @@ const PresetLink = styled(Button)<{disabled: boolean}>`
     `}
 `;
 
-PresetLink.defaultProps = {
+PresetButton.defaultProps = {
   priority: 'link',
   borderless: true,
 };

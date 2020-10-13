@@ -1,28 +1,28 @@
 import React from 'react';
-import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 import styled from '@emotion/styled';
 
 import * as newIconset from 'app/icons';
 
-storiesOf('Style|Icons', module).add(
-  'Icon Set',
-  withInfo('Replace `InlineSvg` with icon components')(() => {
-    return (
-      <SwatchWrapper>
-        <Header>Icon Set</Header>
-        <Swatches>
-          {Object.entries(newIconset).map(([key, Icon]) => (
-            <Swatch key={key}>
-              <Icon />
-              <LabelWrapper>{key}</LabelWrapper>
-            </Swatch>
-          ))}
-        </Swatches>
-      </SwatchWrapper>
-    );
-  })
-);
+export default {
+  title: 'Core/Style/Icons',
+};
+
+export const IconSet = withInfo('Replace `InlineSvg` with icon components')(() => {
+  return (
+    <SwatchWrapper>
+      <Header>Icon Set</Header>
+      <Swatches>
+        {Object.entries(newIconset).map(([key, Icon]) => (
+          <Swatch key={key}>
+            <Icon />
+            <LabelWrapper>{key}</LabelWrapper>
+          </Swatch>
+        ))}
+      </Swatches>
+    </SwatchWrapper>
+  );
+});
 
 const Header = styled('h5')`
   margin-bottom: 16px;

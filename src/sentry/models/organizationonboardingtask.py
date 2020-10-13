@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import six
 from django.conf import settings
 from django.core.cache import cache
 from django.db import models, IntegrityError, transaction
@@ -26,6 +27,7 @@ class OnboardingTask(object):
     USER_REPORTS = 8
     ISSUE_TRACKER = 9
     ALERT_RULE = 10
+    FIRST_TRANSACTION = 11
 
 
 class OnboardingTaskStatus(object):
@@ -87,6 +89,7 @@ class OrganizationOnboardingTask(Model):
         (OnboardingTask.USER_REPORTS, "setup_user_reports"),
         (OnboardingTask.ISSUE_TRACKER, "setup_issue_tracker"),
         (OnboardingTask.ALERT_RULE, "setup_alert_rules"),
+        (OnboardingTask.FIRST_TRANSACTION, "setup_transactions"),
     )
 
     STATUS_CHOICES = (
@@ -116,6 +119,7 @@ class OrganizationOnboardingTask(Model):
             OnboardingTask.SOURCEMAPS,
             OnboardingTask.ISSUE_TRACKER,
             OnboardingTask.ALERT_RULE,
+            OnboardingTask.FIRST_TRANSACTION,
         ]
     )
 
@@ -129,13 +133,14 @@ class OrganizationOnboardingTask(Model):
             OnboardingTask.USER_REPORTS,
             OnboardingTask.ISSUE_TRACKER,
             OnboardingTask.ALERT_RULE,
+            OnboardingTask.FIRST_TRANSACTION,
         ]
     )
 
     organization = FlexibleForeignKey("sentry.Organization")
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=True)  # user that completed
-    task = BoundedPositiveIntegerField(choices=TASK_CHOICES)
-    status = BoundedPositiveIntegerField(choices=STATUS_CHOICES)
+    task = BoundedPositiveIntegerField(choices=[(k, six.text_type(v)) for k, v in TASK_CHOICES])
+    status = BoundedPositiveIntegerField(choices=[(k, six.text_type(v)) for k, v in STATUS_CHOICES])
     completion_seen = models.DateTimeField(null=True)
     date_completed = models.DateTimeField(default=timezone.now)
     project = FlexibleForeignKey("sentry.Project", db_constraint=False, null=True)

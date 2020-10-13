@@ -24,11 +24,11 @@ class DataExportDetailsTest(APITestCase):
         )
 
     def test_content(self):
-        with self.feature("organizations:data-export"):
+        with self.feature("organizations:discover-query"):
             response = self.get_valid_response(self.organization.slug, self.data_export.id)
         assert response.data["id"] == self.data_export.id
         assert response.data["user"] == {
-            "id": six.binary_type(self.user.id),
+            "id": six.text_type(self.user.id),
             "email": self.user.email,
             "username": self.user.username,
         }
@@ -39,7 +39,7 @@ class DataExportDetailsTest(APITestCase):
         }
 
     def test_early(self):
-        with self.feature("organizations:data-export"):
+        with self.feature("organizations:discover-query"):
             response = self.get_valid_response(self.organization.slug, self.data_export.id)
         assert response.data["dateFinished"] is None
         assert response.data["dateExpired"] is None
@@ -50,7 +50,7 @@ class DataExportDetailsTest(APITestCase):
             date_finished=timezone.now() - timedelta(weeks=2),
             date_expired=timezone.now() + timedelta(weeks=1),
         )
-        with self.feature("organizations:data-export"):
+        with self.feature("organizations:discover-query"):
             response = self.get_valid_response(self.organization.slug, self.data_export.id)
         assert response.data["dateFinished"] is not None
         assert response.data["dateFinished"] == self.data_export.date_finished
@@ -63,7 +63,7 @@ class DataExportDetailsTest(APITestCase):
             date_finished=timezone.now() - timedelta(weeks=2),
             date_expired=timezone.now() - timedelta(weeks=1),
         )
-        with self.feature("organizations:data-export"):
+        with self.feature("organizations:discover-query"):
             response = self.get_valid_response(self.organization.slug, self.data_export.id)
         assert response.data["dateFinished"] is not None
         assert response.data["dateFinished"] == self.data_export.date_finished
@@ -72,7 +72,7 @@ class DataExportDetailsTest(APITestCase):
         assert response.data["status"] == ExportStatus.Expired
 
     def test_no_file(self):
-        with self.feature("organizations:data-export"):
+        with self.feature("organizations:discover-query"):
             response = self.get_valid_response(self.organization.slug, self.data_export.id)
         assert response.data["checksum"] is None
         assert response.data["fileName"] is None
@@ -84,7 +84,7 @@ class DataExportDetailsTest(APITestCase):
         )
         file.putfile(six.BytesIO(contents))
         self.data_export.update(file=file)
-        with self.feature("organizations:data-export"):
+        with self.feature("organizations:discover-query"):
             response = self.get_valid_response(self.organization.slug, self.data_export.id)
         assert response.data["checksum"] == sha1(contents).hexdigest()
         assert response.data["fileName"] == "test.csv"

@@ -6,13 +6,14 @@ import {t} from 'app/locale';
 import EventDataSection from 'app/components/events/eventDataSection';
 import SentryTypes from 'app/sentryTypes';
 import {isStacktraceNewestFirst} from 'app/components/events/interfaces/stacktrace';
-import CrashHeader from 'app/components/events/interfaces/crashHeader';
 import CrashContent from 'app/components/events/interfaces/crashContent';
 import Pills from 'app/components/pills';
 import Pill from 'app/components/pill';
 import {defined} from 'app/utils';
+import CrashTitle from 'app/components/events/interfaces/crashHeader/crashTitle';
+import CrashActions from 'app/components/events/interfaces/crashHeader/crashActions';
 
-import ThreadSelector from './threadSelector/threadSelector';
+import ThreadSelector from './threadSelector';
 import getThreadStacktrace from './threadSelector/getThreadStacktrace';
 import getThreadException from './threadSelector/getThreadException';
 
@@ -163,6 +164,10 @@ class ThreadsInterface extends React.Component {
     });
   };
 
+  handleChange = newState => {
+    this.setState(newState);
+  };
+
   render() {
     const threads = this.props.data.values || [];
 
@@ -176,42 +181,47 @@ class ThreadsInterface extends React.Component {
     const exception = this.getException();
     const stacktrace = this.getStacktrace();
 
-    const titleProps = {
-      platform: evt.platform,
-      stacktrace,
-      stackView,
+    const commonCrashHeaderProps = {
       newestFirst,
       hideGuide,
-      stackType,
-      onChange: newState => this.setState(newState),
+      onChange: this.handleChange,
     };
 
-    const title =
-      threads.length > 1 ? (
-        <CrashHeader
-          title={null}
-          beforeTitle={
-            <ThreadSelector
-              threads={threads}
-              activeThread={activeThread}
-              event={this.props.event}
-              onChange={this.onSelectNewThread}
-            />
-          }
-          thread={activeThread}
-          exception={exception}
-          {...titleProps}
-        />
-      ) : (
-        <CrashHeader title={t('Stacktrace')} {...titleProps} />
-      );
+    const hasThreads = threads.length > 1;
 
     return (
       <EventDataSection
         event={evt}
         type={this.props.type}
-        title={title}
-        showPermalink={!threads.length > 1}
+        title={
+          hasThreads ? (
+            <CrashTitle
+              title={null}
+              beforeTitle={
+                <ThreadSelector
+                  threads={threads}
+                  activeThread={activeThread}
+                  event={this.props.event}
+                  onChange={this.onSelectNewThread}
+                />
+              }
+            />
+          ) : (
+            <CrashTitle title={t('Stacktrace')} />
+          )
+        }
+        actions={
+          <CrashActions
+            stackView={stackView}
+            platform={evt.platform}
+            stacktrace={stacktrace}
+            stackType={stackType}
+            thread={hasThreads ? activeThread : undefined}
+            exception={hasThreads ? exception : undefined}
+            {...commonCrashHeaderProps}
+          />
+        }
+        showPermalink={!hasThreads}
         wrapTitle={false}
       >
         <Thread

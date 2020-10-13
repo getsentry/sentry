@@ -50,7 +50,7 @@ class ProjectDebugFileManager(BaseManager):
         ).values("file__checksum")
 
         for values in found:
-            missing.discard(values.values()[0])
+            missing.discard(list(values.values())[0])
 
         return sorted(missing)
 
@@ -110,7 +110,7 @@ class ProjectDebugFile(Model):
     object_name = models.TextField()
     cpu_name = models.CharField(max_length=40)
     project = FlexibleForeignKey("sentry.Project", null=True)
-    debug_id = models.CharField(max_length=64, db_column="uuid")
+    debug_id = models.CharField(max_length=64, db_column=u"uuid")
     code_id = models.CharField(max_length=64, null=True)
     data = JSONField(null=True)
     objects = ProjectDebugFileManager()

@@ -9,7 +9,7 @@ import ActorAvatar from 'app/components/avatar/actorAvatar';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import Hovercard from 'app/components/hovercard';
-import {IconCommit} from 'app/icons';
+import {IconCommit, IconWarning} from 'app/icons';
 import Link from 'app/components/links/link';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
@@ -76,7 +76,7 @@ class SuggestedOwnerHovercard extends React.Component {
               {actor.name || actor.email}
             </HovercardHeader>
             {actor.id === undefined && (
-              <EmailAlert icon="icon-warning-sm" type="warning">
+              <EmailAlert icon={<IconWarning size="xs" />} type="warning">
                 {tct(
                   'The email [actorEmail] is not a member of your organization. [inviteUser:Invite] them or link additional emails in [accountSettings:account settings].',
                   {
@@ -174,6 +174,7 @@ const CommitMessage = styled(({message = '', date, ...props}) => (
   color: ${p => p.theme.gray800};
   font-size: 11px;
   margin-top: ${space(0.25)};
+  hyphens: auto;
 `;
 
 const CommitDate = styled(({date, ...props}) => (

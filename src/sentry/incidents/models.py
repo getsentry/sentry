@@ -246,10 +246,10 @@ class TimeSeriesSnapshot(Model):
 
 
 class IncidentActivityType(Enum):
-    DETECTED = 1
+    CREATED = 1
     STATUS_CHANGE = 2
     COMMENT = 3
-    STARTED = 4
+    DETECTED = 4
 
 
 class IncidentActivity(Model):
@@ -286,6 +286,7 @@ class IncidentSubscription(Model):
 class AlertRuleStatus(Enum):
     PENDING = 0
     SNAPSHOT = 4
+    DISABLED = 5
 
 
 class AlertRuleThresholdType(Enum):
@@ -310,8 +311,7 @@ class AlertRuleManager(BaseManager):
     def fetch_for_organization(self, organization, projects=None):
         queryset = self.filter(organization=organization)
         if projects is not None:
-            queryset = queryset.filter(snuba_query__subscriptions__project__in=projects)
-
+            queryset = queryset.filter(snuba_query__subscriptions__project__in=projects).distinct()
         return queryset
 
     def fetch_for_project(self, project):
@@ -398,6 +398,17 @@ class AlertRule(Model):
 
     __repr__ = sane_repr("id", "name", "date_added")
 
+    @property
+    def created_by(self):
+        try:
+            created_activity = AlertRuleActivity.objects.get(
+                alert_rule=self, type=AlertRuleActivityType.CREATED.value
+            )
+            return created_activity.user
+        except AlertRuleActivity.DoesNotExist:
+            pass
+        return None
+
 
 class TriggerStatus(Enum):
     ACTIVE = 0
@@ -483,7 +494,7 @@ class AlertRuleTrigger(Model):
 
     alert_rule = FlexibleForeignKey("sentry.AlertRule")
     label = models.TextField()
-    threshold_type = models.SmallIntegerField()
+    threshold_type = models.SmallIntegerField(null=True)
     alert_threshold = models.FloatField()
     resolve_threshold = models.FloatField(null=True)
     triggered_incidents = models.ManyToManyField(
@@ -527,15 +538,21 @@ class AlertRuleTriggerAction(Model):
         EMAIL = 0
         PAGERDUTY = 1
         SLACK = 2
+        MSTEAMS = 3
+        SENTRY_APP = 4
+
+    INTEGRATION_TYPES = frozenset((Type.PAGERDUTY.value, Type.SLACK.value, Type.MSTEAMS.value))
 
     class TargetType(Enum):
-        # A direct reference, like an email address, Slack channel or PagerDuty service
+        # A direct reference, like an email address, Slack channel, or PagerDuty service
         SPECIFIC = 0
         # A specific user. This could be used to grab the user's email address.
         USER = 1
         # A specific team. This could be used to send an email to everyone associated
         # with a team.
         TEAM = 2
+        # A Sentry App instead of any of the above.
+        SENTRY_APP = 3
 
     TypeRegistration = namedtuple(
         "TypeRegistration",
@@ -544,6 +561,7 @@ class AlertRuleTriggerAction(Model):
 
     alert_rule_trigger = FlexibleForeignKey("sentry.AlertRuleTrigger")
     integration = FlexibleForeignKey("sentry.Integration", null=True)
+    sentry_app = FlexibleForeignKey("sentry.SentryApp", null=True)
     type = models.SmallIntegerField()
     target_type = models.SmallIntegerField()
     # Identifier used to perform the action on a given target
@@ -619,7 +637,32 @@ class AlertRuleTriggerAction(Model):
 
     @classmethod
     def get_registered_types(cls):
-        return cls._type_registrations.values()
+        return list(cls._type_registrations.values())
+
+
+class AlertRuleActivityType(Enum):
+    CREATED = 1
+    DELETED = 2
+    UPDATED = 3
+    ENABLED = 4
+    DISABLED = 5
+    SNAPSHOT = 6
+
+
+class AlertRuleActivity(Model):
+    __core__ = True
+
+    alert_rule = FlexibleForeignKey("sentry.AlertRule")
+    previous_alert_rule = FlexibleForeignKey(
+        "sentry.AlertRule", null=True, related_name="previous_alert_rule"
+    )
+    user = FlexibleForeignKey("sentry.User", null=True)
+    type = models.IntegerField()
+    date_added = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_alertruleactivity"
 
 
 post_delete.connect(AlertRuleManager.clear_subscription_cache, sender=QuerySubscription)

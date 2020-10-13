@@ -1,0 +1,41 @@
+---
+created: '2020-08-21T21:07:51.105494Z'
+creator: sentry
+source: tests/sentry/grouping/similarity/test_features.py
+---
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","Execute"],["module","Microsoft.AspNetCore.Mvc.Internal.ActionMethodExecutor+SyncObjectResultExecutor"]],[["function","Execute"],["module","Microsoft.Extensions.Internal.ObjectMethodExecutor"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","Execute"],["module","Microsoft.Extensions.Internal.ObjectMethodExecutor"]],[["function","lambda_method"],["module","(unknown)"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","HandleNonSuccessAndDebuggerNotification"],["module","System.Runtime.CompilerServices.TaskAwaiter"]],[["function","Throw"],["module","System.Runtime.ExceptionServices.ExceptionDispatchInfo"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","Invoke"],["module","Microsoft.AspNetCore.Diagnostics.DeveloperExceptionPageMiddleware"]],[["function","HandleNonSuccessAndDebuggerNotification"],["module","System.Runtime.CompilerServices.TaskAwaiter"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","Invoke"],["module","Microsoft.AspNetCore.Routing.EndpointMiddleware"]],[["function","HandleNonSuccessAndDebuggerNotification"],["module","System.Runtime.CompilerServices.TaskAwaiter"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","Invoke"],["module","Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware"]],[["function","HandleNonSuccessAndDebuggerNotification"],["module","System.Runtime.CompilerServices.TaskAwaiter"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","InvokeActionMethodAsync"],["module","Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"]],[["function","Execute"],["module","Microsoft.AspNetCore.Mvc.Internal.ActionMethodExecutor+SyncObjectResultExecutor"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","InvokeAsync"],["module","Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"]],[["function","HandleNonSuccessAndDebuggerNotification"],["module","System.Runtime.CompilerServices.TaskAwaiter"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","InvokeFilterPipelineAsync"],["module","Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"]],[["function","Next"],["module","Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","InvokeInnerFilterAsync"],["module","Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"]],[["function","Next"],["module","Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","InvokeNextActionFilterAsync"],["module","Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"]],[["function","HandleNonSuccessAndDebuggerNotification"],["module","System.Runtime.CompilerServices.TaskAwaiter"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","InvokeNextResourceFilter"],["module","Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"]],[["function","HandleNonSuccessAndDebuggerNotification"],["module","System.Runtime.CompilerServices.TaskAwaiter"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","Next"],["module","Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"]],[["function","Rethrow"],["module","Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","Next"],["module","Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"]],[["function","Rethrow"],["module","Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","Rethrow"],["module","Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"]],[["function","Throw"],["module","System.Runtime.ExceptionServices.ExceptionDispatchInfo"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","Rethrow"],["module","Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"]],[["function","Throw"],["module","System.Runtime.ExceptionServices.ExceptionDispatchInfo"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","Throw"],["module","System.Runtime.ExceptionServices.ExceptionDispatchInfo"]],[["function","Invoke"],["module","Microsoft.AspNetCore.Routing.EndpointMiddleware"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","Throw"],["module","System.Runtime.ExceptionServices.ExceptionDispatchInfo"]],[["function","Invoke"],["module","Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","Throw"],["module","System.Runtime.ExceptionServices.ExceptionDispatchInfo"]],[["function","InvokeActionMethodAsync"],["module","Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","Throw"],["module","System.Runtime.ExceptionServices.ExceptionDispatchInfo"]],[["function","InvokeAsync"],["module","Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","Throw"],["module","System.Runtime.ExceptionServices.ExceptionDispatchInfo"]],[["function","InvokeFilterPipelineAsync"],["module","Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","Throw"],["module","System.Runtime.ExceptionServices.ExceptionDispatchInfo"]],[["function","InvokeInnerFilterAsync"],["module","Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","Throw"],["module","System.Runtime.ExceptionServices.ExceptionDispatchInfo"]],[["function","InvokeNextActionFilterAsync"],["module","Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","Throw"],["module","System.Runtime.ExceptionServices.ExceptionDispatchInfo"]],[["function","InvokeNextResourceFilter"],["module","Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","lambda_method"],["module","(unknown)"]],[["filename","valuescontroller.cs"],["function","Get"],["module","SentryTest2.Controllers.ValuesController"]]]
+similarity:2020-07-23:type:ident-shingle: "System.Exception"
+similarity:2020-07-23:value:character-5-shingle: " exce"
+similarity:2020-07-23:value:character-5-shingle: "c exc"
+similarity:2020-07-23:value:character-5-shingle: "cepti"
+similarity:2020-07-23:value:character-5-shingle: "eptio"
+similarity:2020-07-23:value:character-5-shingle: "excep"
+similarity:2020-07-23:value:character-5-shingle: "nc ex"
+similarity:2020-07-23:value:character-5-shingle: "ption"
+similarity:2020-07-23:value:character-5-shingle: "sync "
+similarity:2020-07-23:value:character-5-shingle: "xcept"
+similarity:2020-07-23:value:character-5-shingle: "ync e"

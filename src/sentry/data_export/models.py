@@ -1,11 +1,11 @@
 from __future__ import absolute_import
 
-import json
 import logging
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.db import models
 from django.utils import timezone
+from django.utils.encoding import force_text
 
 from sentry.db.models import (
     BoundedBigIntegerField,
@@ -15,6 +15,7 @@ from sentry.db.models import (
     Model,
     sane_repr,
 )
+from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
 from .base import ExportQueryType, ExportStatus, DEFAULT_EXPIRATION
@@ -65,7 +66,7 @@ class ExportedData(Model):
     @staticmethod
     def format_date(date):
         # Example: 12:21 PM on July 21, 2020 (UTC)
-        return None if date is None else date.strftime("%-I:%M %p on %B %d, %Y (%Z)")
+        return None if date is None else force_text(date.strftime("%-I:%M %p on %B %d, %Y (%Z)"))
 
     def delete_file(self):
         if self.file:

@@ -90,8 +90,16 @@
               </div>
             </form>
           </div>
-          {% if github_login_link or vsts_login_link %}
+          {% if google_login_link or github_login_link or vsts_login_link %}
           <div class="auth-provider-column">
+            {% if google_login_link %}
+              <p>
+                <a class="btn btn-default btn-login-google" href="{{ google_login_link }}" style="display: block">
+                  <span class="provider-logo google"></span> Sign in with Google
+                </a>
+              </p>
+            {% endif %}
+
             {% if github_login_link %}
               <p>
                 <a class="btn btn-default btn-login-github" href="{{ github_login_link }}" style="display: block">

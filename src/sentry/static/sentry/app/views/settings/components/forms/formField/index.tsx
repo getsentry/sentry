@@ -85,11 +85,12 @@ type Props = {
   hideErrorMessage?: boolean;
   selectionInfoFunction?: (props) => null | React.ReactNode;
   inline?: ObserverOrValue<boolean>;
-  placeholder?: ObserverOrValue<string>;
+  placeholder?: ObserverOrValue<React.ReactNode>;
   visible?: boolean | ((props: Props) => boolean);
   formatMessageValue?: boolean | Function; //used in prettyFormString
   defaultValue?: any; //TODO(TS): Do we need this?
   resetOnError?: boolean;
+  transformInput?: (value: any) => any;
 } & Omit<FieldControl['props'], typeof propsToObserver[number]> &
   Omit<Field['props'], 'inline'>;
 
