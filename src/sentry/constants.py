@@ -215,8 +215,9 @@ TAG_LABELS = {
 
 PROTECTED_TAG_KEYS = frozenset(["environment", "release", "sentry:release"])
 
-# TODO(dcramer): once this is more flushed out we want this to be extendable
-SENTRY_RULES = (
+# Don't use this variable directly. If you want a list of rules that are registered in
+# the system, access them via the `rules` registry in sentry/rules/__init__.py
+_SENTRY_RULES = (
     "sentry.mail.actions.NotifyEmailAction",
     "sentry.rules.actions.notify_event.NotifyEventAction",
     "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",

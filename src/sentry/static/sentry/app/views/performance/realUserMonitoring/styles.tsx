@@ -18,19 +18,20 @@ export const CardSummary = styled(CardSection)`
   position: relative;
   border-right: 1px solid ${p => p.theme.borderLight};
   grid-column: 1/1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 `;
 
 export const CardSectionHeading = styled(SectionHeading)`
   margin: 0px;
 `;
 
-export const StatNumber = styled('div')`
-  font-size: 36px;
-  margin: ${space(2)} 0px;
-  color: ${p => p.theme.gray700};
+export const Description = styled('div')`
+  font-size: ${p => p.theme.fontSizeMedium};
+  color: ${p => p.theme.gray600};
 `;
 
-export const Description = styled('p')`
-  font-size: ${p => p.theme.fontSizeMedium};
-  margin: ${space(1)} 0px;
+export const StatNumber = styled('div')`
+  font-size: 32px;
 `;
