@@ -75,9 +75,13 @@ class RequestInterface extends React.Component {
             {/* Translators: this means "formatted" rendering (fancy tables) */}
             {t('Formatted')}
           </Button>
-          <Button barId="curl" size="xsmall" onClick={this.toggleView.bind(this, 'curl')}>
+          <MonoButton
+            barId="curl"
+            size="xsmall"
+            onClick={this.toggleView.bind(this, 'curl')}
+          >
             curl
-          </Button>
+          </MonoButton>
         </ButtonBar>
       );
     }
@@ -117,6 +121,10 @@ class RequestInterface extends React.Component {
     );
   }
 }
+
+const MonoButton = styled(Button)`
+  font-family: ${p => p.theme.text.familyMono};
+`;
 
 const Path = styled('span')`
   color: ${p => p.theme.gray700};
