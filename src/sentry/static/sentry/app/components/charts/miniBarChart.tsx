@@ -62,7 +62,11 @@ class MiniBarChart extends React.Component<Props> {
     // Ensure bars overlap and that empty values display as we're disabling the axis lines.
     if (series.length) {
       series = series.map((original, i: number) => {
-        const updated: EChartOption.SeriesBar = {...original, cursor: 'normal'};
+        const updated = {
+          ...original,
+          cursor: 'normal',
+          type: 'bar',
+        } as EChartOption.SeriesBar;
         if (i === 0) {
           updated.barMinHeight = 1;
           updated.barGap = '-100%';
