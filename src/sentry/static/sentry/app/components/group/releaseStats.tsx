@@ -1,9 +1,11 @@
 import React from 'react';
+import styled from '@emotion/styled';
 
 import LoadingIndicator from 'app/components/loadingIndicator';
 import GroupReleaseChart from 'app/components/group/releaseChart';
 import SeenInfo from 'app/components/group/seenInfo';
 import getDynamicText from 'app/utils/getDynamicText';
+import space from 'app/styles/space';
 import {t} from 'app/locale';
 import {Environment, Group, Organization, Project} from 'app/types';
 
@@ -74,10 +76,10 @@ const GroupReleaseStats = ({
               lastSeen={group.lastSeen}
             />
 
-            <h6 style={{marginBottom: 5, marginTop: 30}}>
+            <Subheading>
               <span>{t('Last seen')}</span>
               {environments.length > 0 && <small>({environmentLabel})</small>}
-            </h6>
+            </Subheading>
             <SeenInfo
               orgSlug={orgSlug}
               projectId={projectId}
@@ -93,10 +95,10 @@ const GroupReleaseStats = ({
               title={t('Last seen')}
             />
 
-            <h6 style={{marginBottom: 5, marginTop: 30}}>
+            <Subheading>
               <span>{t('First seen')}</span>
               {environments.length > 0 && <small>({environmentLabel})</small>}
-            </h6>
+            </Subheading>
 
             <SeenInfo
               orgSlug={orgSlug}
@@ -118,5 +120,10 @@ const GroupReleaseStats = ({
     </div>
   );
 };
+
+const Subheading = styled('h6')`
+  margin-bottom: ${space(0.25)} !important;
+  margin-top: ${space(4)};
+`;
 
 export default React.memo(GroupReleaseStats);
