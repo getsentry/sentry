@@ -430,13 +430,7 @@ def record_integration_added(integration, organization, user, **kwargs):
         id=integration.id,
     )
     metrics.incr(
-        "integration.added",
-        sample_rate=1.0,
-        tags={
-            "integration": integration.provider,
-            "integation_id": integration.id,
-            "organization": organization.id,
-        },
+        "integration.added", sample_rate=1.0, tags={"integration_slug": integration.provider},
     )
 
 
