@@ -59,9 +59,9 @@ class TransactionVitals extends React.Component<Props> {
                       const percentileAlias = getAggregateAlias(
                         `percentile(${vital}, ${PERCENTILE})`
                       );
-                      const countAlias = getAggregateAlias(`count_geq(${vital}, 0)`);
+                      const countAlias = getAggregateAlias(`count_at_least(${vital}, 0)`);
                       const failedAlias = getAggregateAlias(
-                        `count_geq(${vital}, ${details.failureThreshold})`
+                        `count_at_least(${vital}, ${details.failureThreshold})`
                       );
                       const data = summaryResults.tableData?.data?.[0];
                       const summary = (data?.[percentileAlias] ?? null) as number | null;

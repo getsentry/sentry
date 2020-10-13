@@ -2341,14 +2341,14 @@ class ResolveFieldListTest(unittest.TestCase):
             in six.text_type(err)
         )
 
-    def test_count_geq_function(self):
-        fields = ["count_geq(measurements.baz, 1000)"]
+    def test_count_at_least_function(self):
+        fields = ["count_at_least(measurements.baz, 1000)"]
         result = resolve_field_list(fields, eventstore.Filter())
         assert result["aggregations"] == [
             [
                 "countIf",
                 [["greaterOrEquals", ["measurements.baz", 1000]]],
-                "count_geq_measurements_baz_1000",
+                "count_at_least_measurements_baz_1000",
             ]
         ]
 

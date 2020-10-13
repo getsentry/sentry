@@ -170,9 +170,10 @@ function generateRumEventView(
       name: transactionName,
       fields: [
         ...Object.values(WebVital).map(vital => `percentile(${vital}, ${PERCENTILE})`),
-        ...Object.values(WebVital).map(vital => `count_geq(${vital}, 0)`),
+        ...Object.values(WebVital).map(vital => `count_at_least(${vital}, 0)`),
         ...Object.values(WebVital).map(
-          vital => `count_geq(${vital}, ${WEB_VITAL_DETAILS[vital].failureThreshold})`
+          vital =>
+            `count_at_least(${vital}, ${WEB_VITAL_DETAILS[vital].failureThreshold})`
         ),
       ],
       query: stringifyQueryObject(conditions),

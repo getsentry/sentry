@@ -1744,7 +1744,7 @@ FUNCTIONS = {
             result_type="integer",
         ),
         Function(
-            "count_geq",
+            "count_at_least",
             required_args=[NumericColumnNoLookup("column"), NumberRange("threshold", 0, None)],
             aggregate=[
                 "countIf",
