@@ -9,7 +9,7 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import {IconClose} from 'app/icons/iconClose';
 import {queryToObj, objToQuery, QueryObj} from 'app/utils/stream';
 import {t} from 'app/locale';
-import {TagCollection} from 'app/types';
+import {Tag, TagCollection} from 'app/types';
 import SentryTypes from 'app/sentryTypes';
 
 import {TagValueLoader} from './types';
@@ -58,7 +58,7 @@ const IssueListSidebar = createReactClass<Props, State>({
     };
   },
 
-  componentWillReceiveProps(nextProps) {
+  componentWillReceiveProps(nextProps: Props) {
     // If query was updated by another source (e.g. SearchBar),
     // clobber state of sidebar with new query.
     const query: string = objToQuery(this.state.queryObj);
@@ -72,7 +72,7 @@ const IssueListSidebar = createReactClass<Props, State>({
     }
   },
 
-  onSelectTag(tag, value) {
+  onSelectTag(tag: Tag, value: string) {
     const newQuery: QueryObj = {...this.state.queryObj};
     if (value) {
       newQuery[tag.key] = value;
@@ -88,11 +88,11 @@ const IssueListSidebar = createReactClass<Props, State>({
     );
   },
 
-  onTextChange: function (evt) {
+  onTextChange: function (evt: React.ChangeEvent<HTMLInputElement>) {
     this.setState({textFilter: evt.target.value});
   },
 
-  onTextFilterSubmit(evt) {
+  onTextFilterSubmit(evt: React.ChangeEvent<HTMLInputElement>) {
     evt && evt.preventDefault();
 
     const newQueryObj: QueryObj = {
