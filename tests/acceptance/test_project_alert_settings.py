@@ -27,7 +27,7 @@ class ProjectAlertSettingsTest(AcceptanceTestCase):
         condition_data = [
             {
                 "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
-                "name": "The issue is first seen",
+                "name": "A new issue is created",
             },
             {
                 "id": "sentry.rules.conditions.every_event.EveryEventCondition",
