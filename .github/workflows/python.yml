@@ -128,9 +128,9 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ${{ steps.pip.outputs.pip-cache-dir }}
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements-*.txt') }}
+          key: ${{ runner.os }}-pip-py${{ steps.python-version.outputs.python-version }}-${{ hashFiles('**/requirements-*.txt') }}
           restore-keys: |
-            ${{ runner.os }}-pip-
+            ${{ runner.os }}-pip-py${{ steps.python-version.outputs.python-version }}
 
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
@@ -180,9 +180,9 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ${{ steps.pip.outputs.pip-cache-dir }}
-          key: ${{ runner.os }}-pip-py3-${{ hashFiles('**/requirements-*.txt') }}
+          key: ${{ runner.os }}-pip-py${{ steps.python-version.outputs.python-version }}-${{ hashFiles('**/requirements-*.txt') }}
           restore-keys: |
-            ${{ runner.os }}-pip-py3
+            ${{ runner.os }}-pip-py${{ steps.python-version.outputs.python-version }}
 
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry

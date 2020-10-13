@@ -1,6 +1,7 @@
-# TODO(gha): Move this into `setup-sentry` action when
-# GitHub adds support for using other actions in composite actions
-# as ideally this would do `uses: actions/cache` in here instead of workflow
+# TODO(gha): Move restoring pip caches in here when GitHub
+# adds support for using other actions in composite actions
+# as ideally this action would do `uses: actions/cache` in here
+# instead of parent workflow
 name: 'pip Setup'
 description: 'Installs pip and configures cache dir as output. This is hopefully temporary, until composite actions can use other actions.'
 
