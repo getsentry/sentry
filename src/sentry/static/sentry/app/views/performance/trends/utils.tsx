@@ -373,10 +373,9 @@ export function getSelectedQueryKey(trendChangeType: TrendChangeType) {
 }
 
 export function movingAverage(data, index, size) {
-  const halfSize = Math.round(size / 2);
   return (
     data
-      .slice(index - halfSize, index + halfSize)
+      .slice(index - size, index)
       .map(a => a.value)
       .reduce((a, b) => a + b, 0) / size
   );

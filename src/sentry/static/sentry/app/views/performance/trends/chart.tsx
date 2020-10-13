@@ -63,20 +63,13 @@ function transformEventStats(data: EventsStatsData, seriesName?: string): Series
 
 function transformEventStatsSmoothed(data: Series[], seriesName?: string): Series[] {
   const currentData = data[0].data;
-  const resultData = [] as SeriesDataUnit[];
-  const firstValue = movingAverage(currentData, AVERAGE_WINDOW / 2, AVERAGE_WINDOW);
-  const lastValue = movingAverage(
-    currentData,
-    currentData.length - AVERAGE_WINDOW / 2,
-    AVERAGE_WINDOW
-  );
+  const resultData: SeriesDataUnit[] = [];
+  const firstValue = movingAverage(currentData, AVERAGE_WINDOW, AVERAGE_WINDOW);
 
   for (let i = 0; i < currentData.length; i++) {
     let value = 0;
-    if (i < AVERAGE_WINDOW / 2) {
+    if (i < AVERAGE_WINDOW) {
       value = firstValue;
-    } else if (i > currentData.length - AVERAGE_WINDOW / 2) {
-      value = lastValue;
     } else {
       value = movingAverage(currentData, i, AVERAGE_WINDOW);
     }
