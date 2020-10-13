@@ -148,7 +148,7 @@ class TriggersChart extends React.PureComponent<Props, State> {
       : statsPeriodOptions[0];
 
     return (
-      <Feature features={['internal-catchall']} organization={organization}>
+      <Feature features={['metric-alert-builder-aggregate']} organization={organization}>
         {({hasFeature}) => {
           return (
             <EventsRequest
