@@ -267,9 +267,13 @@ def load_script(path):
     # with. (This can prevent lots of bizarre behavior when dealing with
     # clusters of Redis servers.)
     def call_script(client, keys, args):
-        # XXX: Script is a list here. We're doing this to work around the lack of
-        # `nonlocal` in python 3, so that we only instantiate the script once.
+        # Executes load_script's path as a Lua script on a Redis server.
+        # Takes the client to execute the script on as the first argument,
+        # followed by the values that will be provided as ``KEYS`` and ``ARGV``
+        # to the script as two sequence arguments.
         if not script:
+            # XXX: Script is a list here. We're doing this to work around the lack of
+            # `nonlocal` in python 3, so that we only instantiate the script once.
             script.append(
                 Script(client, resource_string("sentry", posixpath.join("scripts", path)))
             )
@@ -277,14 +281,6 @@ def load_script(path):
             # as possible. It will always be overridden on `__call__` anyway.
             script[0].registered_client = None
         return script[0](keys, args, client)
-
-    call_script.__doc__ = u"""Executes {!r} as a Lua script on a Redis server.
-
-Takes the client to execute the script on as the first argument,
-followed by the values that will be provided as ``KEYS`` and ``ARGV``
-to the script as two sequence arguments.""".format(
-        path
-    )
 
     return call_script
 
