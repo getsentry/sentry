@@ -61,8 +61,6 @@ class SeenInfo extends React.Component {
         ]}
         {t('Globally: ')}
         <TimeSince date={dateGlobal} />
-        <br />
-        <DateTime date={date} seconds />
       </div>
     );
   }
@@ -129,6 +127,7 @@ const NotConfigured = styled('span')`
 
 const StyledDateTime = styled(DateTime)`
   display: block;
+  font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.gray500};
 `;
 
