@@ -8,7 +8,7 @@ import {Organization, TagCollection} from 'app/types';
 import {metric} from 'app/utils/analytics';
 import withApi from 'app/utils/withApi';
 import withTags from 'app/utils/withTags';
-import Measurements, {MeasurementCollection} from 'app/utils/measurements/measurements';
+import Measurements from 'app/utils/measurements/measurements';
 import Pagination from 'app/components/pagination';
 import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
 import {TableData} from 'app/utils/discover/discoverQuery';
@@ -22,7 +22,6 @@ type TableProps = {
   organization: Organization;
   showTags: boolean;
   tags: TagCollection;
-  measurements: MeasurementCollection;
   setError: (msg: string, code: number) => void;
   title: string;
   onChangeShowTags: () => void;

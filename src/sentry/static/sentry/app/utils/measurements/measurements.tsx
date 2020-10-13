@@ -1,11 +1,11 @@
 import React from 'react';
 
-export type Measurement = {
+type Measurement = {
   name: string;
   key: string;
 };
 
-export type MeasurementCollection = {[key: string]: Measurement};
+type MeasurementCollection = {[key: string]: Measurement};
 
 const MEASUREMENTS: MeasurementCollection = {
   'measurements.fp': {name: 'First Paint', key: 'measurements.fp'},
