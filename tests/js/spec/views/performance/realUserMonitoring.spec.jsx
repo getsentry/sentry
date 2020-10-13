@@ -62,7 +62,7 @@ const vitals = [
   },
 ];
 
-describe('Performance > Real User Monitoring', function () {
+describe('Performance > Web Vitals', function () {
   beforeEach(function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
@@ -188,7 +188,7 @@ describe('Performance > Real User Monitoring', function () {
     wrapper.update();
 
     expect(wrapper.find('Breadcrumb').text()).toEqual(
-      expect.stringContaining('Real User Monitoring')
+      expect.stringContaining('Web Vitals')
     );
   });
 

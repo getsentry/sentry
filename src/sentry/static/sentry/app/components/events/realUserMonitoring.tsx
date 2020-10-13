@@ -94,7 +94,7 @@ class RealUserMonitoring extends React.Component<Props> {
 
     return (
       <Container>
-        <SectionHeading>{t('Real User Monitoring')}</SectionHeading>
+        <SectionHeading>{t('Web Vitals')}</SectionHeading>
         <Measurements>{this.renderMeasurements()}</Measurements>
       </Container>
     );
