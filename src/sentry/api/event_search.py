@@ -2015,13 +2015,18 @@ def resolve_field(field, params=None):
     return ([field], None)
 
 
-def resolve_field_list(fields, snuba_filter, auto_fields=True):
+def resolve_field_list(fields, snuba_filter, auto_fields=True, auto_aggregations=None):
     """
     Expand a list of fields based on aliases and aggregate functions.
 
     Returns a dist of aggregations, selected_columns, and
     groupby that can be merged into the result of get_snuba_query_args()
     to build a more complete snuba query based on event search conventions.
+
+    Auto aggregates are aggregates that will be automatically added to the
+    list of aggregations when they're used in a condition. This is so that
+    they can be used in a condition without having to manually add the
+    aggregate to a field.
     """
     aggregations = []
     columns = []
@@ -2049,6 +2054,14 @@ def resolve_field_list(fields, snuba_filter, auto_fields=True):
 
         if agg_additions:
             aggregations.extend(agg_additions)
+
+    having_aggregates = [having[0] for having in snuba_filter.having]
+    if auto_aggregations is not None and len(having_aggregates) > 0:
+        for agg in auto_aggregations:
+            _, agg_additions = resolve_field(agg, snuba_filter.date_params)
+
+            if agg_additions[0][-1] in having_aggregates and agg_additions not in aggregations:
+                aggregations.extend(agg_additions)
 
     rollup = snuba_filter.rollup
     if not rollup and auto_fields:

@@ -305,6 +305,7 @@ def query(
     limit=50,
     referrer=None,
     auto_fields=False,
+    auto_aggregations=None,
     use_aggregate_conditions=False,
     conditions=None,
 ):
@@ -326,6 +327,8 @@ def query(
     limit (int) The number of records to fetch.
     referrer (str|None) A referrer string to help locate the origin of this query.
     auto_fields (bool) Set to true to have project + eventid fields automatically added.
+    auto_aggregations (Sequence[str]) A list of aggregates, that automatically get added when used in conditions
+    use_aggregate_conditions (bool) Set to true if aggregates conditions should be used at all
     conditions (Sequence[any]) List of conditions that are passed directly to snuba without
                     any additional processing.
     """
@@ -381,7 +384,12 @@ def query(
             snuba_filter.orderby = [get_function_alias(o) for o in orderby]
 
         snuba_filter.update_with(
-            resolve_field_list(selected_columns, snuba_filter, auto_fields=auto_fields)
+            resolve_field_list(
+                selected_columns,
+                snuba_filter,
+                auto_fields=auto_fields,
+                auto_aggregations=auto_aggregations,
+            )
         )
 
         # Resolve the public aliases into the discover dataset names.
