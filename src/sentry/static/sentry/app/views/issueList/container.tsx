@@ -10,7 +10,6 @@ import withOrganization, {isLightweightOrganization} from 'app/utils/withOrganiz
 
 type Props = {
   organization: Organization;
-  children: React.ReactNode;
 };
 
 class IssueListContainer extends React.Component<Props> {
