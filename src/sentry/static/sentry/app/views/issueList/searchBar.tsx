@@ -4,13 +4,15 @@ import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import {Client} from 'app/api';
-import {SavedSearchType, Tag, TagValue, Organization, SavedSearch} from 'app/types';
+import {SavedSearchType, Tag, Organization, SavedSearch} from 'app/types';
 import {fetchRecentSearches} from 'app/actionCreators/savedSearches';
 import SentryTypes from 'app/sentryTypes';
 import SmartSearchBar from 'app/components/smartSearchBar';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import {SearchItem} from 'app/components/smartSearchBar/types';
+
+import {TagValueLoader} from './types';
 
 const SEARCH_ITEMS: SearchItem[] = [
   {
@@ -48,11 +50,7 @@ const SEARCH_ITEMS: SearchItem[] = [
 type Props = React.ComponentProps<typeof SmartSearchBar> & {
   api: Client;
   organization: Organization;
-  tagValueLoader: (
-    key: string,
-    search: string,
-    projectIds?: string[]
-  ) => Promise<TagValue[]>;
+  tagValueLoader: TagValueLoader;
   projectIds?: string[];
   savedSearch?: SavedSearch;
   isOpen?: boolean;
