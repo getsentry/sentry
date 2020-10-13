@@ -23,8 +23,8 @@ type DefaultProps = {
 
 type Props = DefaultProps & {
   orgId: string;
-  loading?: boolean;
   tagValueLoader: TagValueLoader;
+  loading?: boolean;
 };
 
 type State = {

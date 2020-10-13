@@ -13,9 +13,7 @@
  *    }
  */
 
-export type QueryObj = {
-  [key: string]: string;
-};
+export type QueryObj = Record<string, string>;
 
 export function queryToObj(queryStr = ''): QueryObj {
   const text: string[] = [];
