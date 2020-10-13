@@ -64,19 +64,14 @@ jobs:
         with:
           python-version: ${{ steps.config.outputs.python-version}}
 
-      - name: Install pip
-        run: |
-          pip install --no-cache-dir --upgrade "pip>=20.0.2"
-
-      - name: Get pip cache dir
-        id: pip-cache
-        run: |
-          echo "::set-output name=dir::$(pip cache dir)"
+      - name: Setup pip
+        uses: ./.github/actions/setup-pip
+        id: pip
 
       - name: pip cache
-        uses: actions/cache@v1
+        uses: actions/cache@v2
         with:
-          path: ${{ steps.pip-cache.outputs.dir }}
+          path: ${{ steps.pip.outputs.pip-cache-dir }}
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements-*.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
@@ -130,7 +125,7 @@ jobs:
         id: pip
 
       - name: pip cache
-        uses: actions/cache@v1
+        uses: actions/cache@v2
         with:
           path: ${{ steps.pip.outputs.pip-cache-dir }}
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements-*.txt') }}
@@ -182,7 +177,7 @@ jobs:
         id: pip
 
       - name: pip cache
-        uses: actions/cache@v1
+        uses: actions/cache@v2
         with:
           path: ${{ steps.pip.outputs.pip-cache-dir }}
           key: ${{ runner.os }}-pip-py3-${{ hashFiles('**/requirements-*.txt') }}
