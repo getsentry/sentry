@@ -844,7 +844,7 @@ def convert_search_filter_to_snuba_query(search_filter, key=None):
             return [["isHandled", []], "=", output]
         if value in ("1", 1):
             return [["notHandled", []], "=", 1]
-        if value in ("0", 0,):
+        if value in ("0", 0):
             return [["isHandled", []], "=", 1]
         raise InvalidSearchQuery(
             "Invalid value for error.unhandled condition. Accepted values are 1, 0"
@@ -1247,11 +1247,14 @@ def get_filter(query=None, params=None):
 FIELD_ALIASES = {
     "project": {"fields": ["project.id"], "column_alias": "project.id"},
     "issue": {"fields": ["issue.id"], "column_alias": "issue.id"},
-    "error.unhandled": {"fields": [["notHandled", [], "error.unhandled"]]},
-    "user.display": {
+    ERROR_UNHANDLED_ALIAS: {
+        "fields": [["notHandled", [], ERROR_UNHANDLED_ALIAS]],
+        "column_alias": ERROR_UNHANDLED_ALIAS,
+    },
+    USER_DISPLAY_ALIAS: {
         "expression": ["coalesce", ["user.email", "user.username", "user.ip"]],
-        "fields": [["coalesce", ["user.email", "user.username", "user.ip"], "user.display"]],
-        "column_alias": "user.display",
+        "fields": [["coalesce", ["user.email", "user.username", "user.ip"], USER_DISPLAY_ALIAS]],
+        "column_alias": USER_DISPLAY_ALIAS,
     },
 }
 
