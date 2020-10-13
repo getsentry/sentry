@@ -210,7 +210,7 @@ class ProjectSerializer(Serializer):
                                 feature_name[len(_PROJECT_SCOPE_PREFIX) :]
                             )
 
-                        batch_checked.add(feature)
+                        batch_checked.add(feature_name)
 
         for feature_name in features.all(feature_type=ProjectFeature).keys():
             if feature_name in batch_checked:
