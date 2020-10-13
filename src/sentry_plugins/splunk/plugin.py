@@ -292,11 +292,6 @@ class SplunkPlugin(CorePluginMixin, Plugin):
                 # If we get a ReadTimeout we don't need to raise an error here.
                 # Just log and return.
                 return
-
-            if isinstance(exc, SplunkError) and exc.status_code == 403:
-                # 403s are not errors or actionable for us do not re-raise
-                return
-
             raise
 
         metrics.incr(
