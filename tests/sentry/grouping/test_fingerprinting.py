@@ -22,6 +22,7 @@ app:true                                        -> {{ default }}
 logger:sentry.*                                 -> logger-, {{ logger }}
 message:"\\x\\xff"                              -> stuff
 logger:sentry.*                                 -> logger-{{ logger }}, title="Message from {{ logger }}"
+logger:sentry.*                                 -> logger-{{ logger }} title="Message from {{ logger }}"
 """
     )
     assert rules._to_config_structure() == {
@@ -46,6 +47,11 @@ logger:sentry.*                                 -> logger-{{ logger }}, title="M
                 "attributes": {},
             },
             {"matchers": [["message", u"\\x\xff"]], "fingerprint": ["stuff"], "attributes": {}},
+            {
+                "matchers": [["logger", "sentry.*"]],
+                "fingerprint": ["logger-", "{{ logger }}"],
+                "attributes": {"title": "Message from {{ logger }}"},
+            },
             {
                 "matchers": [["logger", "sentry.*"]],
                 "fingerprint": ["logger-", "{{ logger }}"],
