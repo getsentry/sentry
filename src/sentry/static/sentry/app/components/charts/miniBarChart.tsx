@@ -133,6 +133,7 @@ class MiniBarChart extends React.Component<Props> {
 
     const chartOptions = {
       colors,
+      animation: false,
       tooltip: {
         trigger: 'axis',
       },
