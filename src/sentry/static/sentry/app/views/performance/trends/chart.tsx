@@ -64,12 +64,13 @@ function transformEventStats(data: EventsStatsData, seriesName?: string): Series
 function transformEventStatsSmoothed(data: Series[], seriesName?: string): Series[] {
   const currentData = data[0].data;
   const resultData: SeriesDataUnit[] = [];
-  const firstValue = movingAverage(currentData, AVERAGE_WINDOW, AVERAGE_WINDOW);
 
-  for (let i = 0; i < currentData.length; i++) {
-    let value = 0;
+  // Start at 1 so we don't ge NaN from the movingAverage
+  for (let i = 1; i < currentData.length; i++) {
+    let value;
     if (i < AVERAGE_WINDOW) {
-      value = firstValue;
+      // A rougher movingAverage for these points, but this way there isn't a gap
+      value = movingAverage(currentData, i, i);
     } else {
       value = movingAverage(currentData, i, AVERAGE_WINDOW);
     }
