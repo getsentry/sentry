@@ -57,6 +57,8 @@ class TransactionVitals extends React.Component<Props> {
               colors={color}
               eventView={eventView}
               organization={organization}
+              min={min}
+              max={max}
             />
           )}
         </MeasurementsHistogramQuery>

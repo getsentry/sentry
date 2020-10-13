@@ -6,7 +6,10 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ProjectsStore from 'app/stores/projectsStore';
 import RealUserMonitoring from 'app/views/performance/realUserMonitoring';
-import {WEB_VITAL_DETAILS} from 'app/views/performance/realUserMonitoring/constants';
+import {
+  WEB_VITAL_DETAILS,
+  ZOOM_KEYS,
+} from 'app/views/performance/realUserMonitoring/constants';
 
 function initialize({project, features, transaction, query} = {}) {
   features = features || ['measurements'];
@@ -255,7 +258,12 @@ describe('Performance > Real User Monitoring', function () {
 
     it('renders open in discover buttons with greater than condition', function () {
       const {organization, router, routerContext} = initialize({
-        query: {startMeasurements: '10'},
+        query: {
+          fpStart: '10',
+          fcpStart: '10',
+          lcpStart: '10',
+          fidStart: '10',
+        },
       });
 
       const wrapper = mountWithTheme(
@@ -283,7 +291,12 @@ describe('Performance > Real User Monitoring', function () {
 
     it('renders open in discover buttons with less than condition', function () {
       const {organization, router, routerContext} = initialize({
-        query: {endMeasurements: '10'},
+        query: {
+          fpEnd: '20',
+          fcpEnd: '20',
+          lcpEnd: '20',
+          fidEnd: '20',
+        },
       });
 
       const wrapper = mountWithTheme(
@@ -302,7 +315,7 @@ describe('Performance > Real User Monitoring', function () {
         expect(button.prop('to')).toEqual(
           expect.objectContaining({
             query: expect.objectContaining({
-              query: expect.stringContaining(`measurements.${vitals[i].slug}:<=10`),
+              query: expect.stringContaining(`measurements.${vitals[i].slug}:<=20`),
             }),
           })
         );
@@ -312,8 +325,14 @@ describe('Performance > Real User Monitoring', function () {
     it('renders open in discover buttons with both condition', function () {
       const {organization, router, routerContext} = initialize({
         query: {
-          startMeasurements: '10',
-          endMeasurements: '20',
+          fpStart: '10',
+          fpEnd: '20',
+          fcpStart: '10',
+          fcpEnd: '20',
+          lcpStart: '10',
+          lcpEnd: '20',
+          fidStart: '10',
+          fidEnd: '20',
         },
       });
 
@@ -369,7 +388,7 @@ describe('Performance > Real User Monitoring', function () {
     it('enables button on left zoom', function () {
       const {organization, router, routerContext} = initialize({
         query: {
-          startMeasurements: '20',
+          lcpStart: '20',
         },
       });
 
@@ -390,7 +409,7 @@ describe('Performance > Real User Monitoring', function () {
     it('enables button on right zoom', function () {
       const {organization, router, routerContext} = initialize({
         query: {
-          endMeasurements: '20',
+          fpEnd: '20',
         },
       });
 
@@ -411,8 +430,8 @@ describe('Performance > Real User Monitoring', function () {
     it('enables button on left and right zoom', function () {
       const {organization, router, routerContext} = initialize({
         query: {
-          startMeasurements: '20',
-          endMeasurements: '20',
+          fcpStart: '20',
+          fcpEnd: '20',
         },
       });
 
@@ -433,8 +452,8 @@ describe('Performance > Real User Monitoring', function () {
     it('resets view properly', function () {
       const {organization, router, routerContext} = initialize({
         query: {
-          startMeasurements: '20',
-          endMeasurements: '20',
+          fidStart: '20',
+          lcpEnd: '20',
         },
       });
 
@@ -449,10 +468,12 @@ describe('Performance > Real User Monitoring', function () {
 
       wrapper.find('Button[data-test-id="reset-view"]').simulate('click');
       expect(browserHistory.push).toHaveBeenCalledWith({
-        query: expect.not.objectContaining({
-          startMeasurements: expect.anything(),
-          endMeasurements: expect.anything(),
-        }),
+        query: expect.not.objectContaining(
+          ZOOM_KEYS.reduce((obj, key) => {
+            obj[key] = expect.anything();
+            return obj;
+          }, {})
+        ),
       });
     });
   });

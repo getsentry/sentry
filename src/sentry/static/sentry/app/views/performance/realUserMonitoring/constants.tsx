@@ -51,6 +51,13 @@ export const FILTER_OPTIONS: SelectValue<string>[] = [
   {label: t('View All'), value: 'all'},
 ];
 
+export const ZOOM_KEYS = Object.values(WebVital).reduce((zoomKeys: string[], vital) => {
+  const vitalSlug = WEB_VITAL_DETAILS[vital].slug;
+  zoomKeys.push(`${vitalSlug}Start`);
+  zoomKeys.push(`${vitalSlug}End`);
+  return zoomKeys;
+}, []);
+
 /**
  * This defines the grouping for histograms. Histograms that are in the same group
  * will be queried together on initial load for alignment. However, the zoom controls
