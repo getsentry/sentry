@@ -7,6 +7,8 @@ import {t, tct} from 'app/locale';
 import SelectControl from 'app/components/forms/selectControl';
 import {Tag, TagValue} from 'app/types';
 
+import {TagValueLoader} from './types';
+
 const defaultProps = {
   value: '',
 };
@@ -16,11 +18,7 @@ type SelectOption = Record<'value' | 'label', string>;
 type Props = {
   tag: Tag;
   onSelect: (tag: Tag, value: string | null) => void;
-  tagValueLoader: (
-    key: string,
-    search: string,
-    projectIds?: string[]
-  ) => Promise<TagValue[]>;
+  tagValueLoader: TagValueLoader;
 } & typeof defaultProps;
 
 type State = {
