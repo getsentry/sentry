@@ -88,7 +88,7 @@ setup(
     name="sentry",
     version=VERSION,
     author="Sentry",
-    author_email="hello@sentry.io",
+    author_email="oss@sentry.io",
     url="https://sentry.io",
     description="A realtime logging and aggregation server.",
     long_description=open(os.path.join(ROOT, "README.md")).read(),
