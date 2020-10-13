@@ -7,9 +7,9 @@ from sentry.testutils import SnubaTestCase, TestCase
 from sentry.utils.compat.mock import patch
 
 
-class FeatureAdoptionTest(TestCase, SnubaTestCase):
+class SignalsTest(TestCase, SnubaTestCase):
     def setUp(self):
-        super(FeatureAdoptionTest, self).setUp()
+        super(SignalsTest, self).setUp()
         self.now = timezone.now()
         self.owner = self.create_user()
         self.organization = self.create_organization(owner=self.owner)
