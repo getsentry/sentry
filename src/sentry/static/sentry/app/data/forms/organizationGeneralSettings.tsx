@@ -80,6 +80,16 @@ const formGroups: JsonFormObject[] = [
         ),
         visible: ({features}) => features.has('event-attachments'),
       },
+      {
+        name: 'debugFilesRole',
+        type: 'array',
+        choices: ({initialData = {}}) =>
+          initialData?.availableRoles?.map((r: MemberRole) => [r.id, r.name]) ?? [],
+        label: t('Debug Files Access'),
+        help: t(
+          'Permissions required to download debug information files, proguard mappings and source maps.'
+        ),
+      },
     ],
   },
 ];

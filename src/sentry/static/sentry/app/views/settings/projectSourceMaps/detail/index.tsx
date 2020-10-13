@@ -124,6 +124,7 @@ class ProjectSourceMapsDetail extends AsyncView<Props, State> {
   }
 
   renderArtifacts() {
+    const {organization} = this.props;
     const {artifacts} = this.state;
     const artifactApiUrl = this.api.baseUrl + this.getArtifactsUrl();
 
@@ -138,6 +139,7 @@ class ProjectSourceMapsDetail extends AsyncView<Props, State> {
           artifact={artifact}
           onDelete={this.handleArtifactDelete}
           downloadUrl={`${artifactApiUrl}${artifact.id}/?download=1`}
+          downloadRole={organization.debugFilesRole}
         />
       );
     });

@@ -1,10 +1,9 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 
 import {Organization, EventAttachment} from 'app/types';
 import ConfigStore from 'app/stores/configStore';
 import withOrganization from 'app/utils/withOrganization';
-import SentryTypes from 'app/sentryTypes';
+import Role from 'app/components/acl/role';
 
 type Props = {
   organization: Organization;
@@ -15,14 +14,6 @@ type Props = {
 };
 
 class AttachmentUrl extends React.PureComponent<Props> {
-  static propTypes = {
-    organization: SentryTypes.Organization.isRequired,
-    projectId: PropTypes.string.isRequired,
-    eventId: PropTypes.string.isRequired,
-    attachment: SentryTypes.EventAttachment.isRequired,
-    children: PropTypes.func.isRequired,
-  };
-
   hasAttachmentsRole() {
     const user = ConfigStore.get('user');
     if (!user) {
@@ -50,8 +41,12 @@ class AttachmentUrl extends React.PureComponent<Props> {
   }
 
   render() {
-    const {children} = this.props;
-    return children(this.hasAttachmentsRole() ? this.getDownloadUrl() : null);
+    const {children, organization} = this.props;
+    return (
+      <Role role={organization.attachmentsRole}>
+        {({hasRole}) => children(hasRole ? this.getDownloadUrl() : null)}
+      </Role>
+    );
   }
 }
 
