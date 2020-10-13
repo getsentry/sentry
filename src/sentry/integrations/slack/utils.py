@@ -365,7 +365,7 @@ def get_channel_id(organization, integration, name):
     """
    Fetches the internal slack id of a channel.
    :param organization: The organization that is using this integration
-   :param integration: The integration of this slack integration
+   :param integration: The slack integration
    :param name: The name of the channel
    :return: a tuple of three values
        1. prefix: string (`"#"` or `"@"`)
