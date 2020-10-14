@@ -30,7 +30,6 @@ import {
 import {DragManagerChildrenProps} from './dragManager';
 import SpanGroup from './spanGroup';
 import {SpanRowMessage} from './styles';
-import * as DividerHandlerManager from './dividerHandlerManager';
 import {FilterSpans} from './traceView';
 import {ActiveOperationFilter} from './filter';
 
@@ -60,8 +59,6 @@ class SpanTree extends React.Component<PropType> {
 
     return true;
   }
-
-  traceViewRef = React.createRef<HTMLDivElement>();
 
   generateInfoMessage(input: {
     isCurrentSpanHidden: boolean;
@@ -373,12 +370,10 @@ class SpanTree extends React.Component<PropType> {
     });
 
     return (
-      <DividerHandlerManager.Provider interactiveLayerRef={this.traceViewRef}>
-        <TraceViewContainer ref={this.traceViewRef}>
-          {spanTree}
-          {infoMessage}
-        </TraceViewContainer>
-      </DividerHandlerManager.Provider>
+      <TraceViewContainer>
+        {spanTree}
+        {infoMessage}
+      </TraceViewContainer>
     );
   }
 }

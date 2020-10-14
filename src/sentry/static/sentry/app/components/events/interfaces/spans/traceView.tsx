@@ -14,6 +14,7 @@ import {generateRootSpan, getSpanID, getTraceContext} from './utils';
 import TraceViewHeader from './header';
 import * as CursorGuideHandler from './cursorGuideHandler';
 import {ActiveOperationFilter} from './filter';
+import * as DividerHandlerManager from './dividerHandlerManager';
 
 type IndexedFusedSpan = {
   span: RawSpanType;
@@ -65,6 +66,7 @@ class TraceView extends React.PureComponent<Props, State> {
     }
   }
 
+  traceViewRef = React.createRef<HTMLDivElement>();
   minimapInteractiveRef = React.createRef<HTMLDivElement>();
 
   async filterOnSpans(searchQuery: string | undefined) {
@@ -195,17 +197,21 @@ class TraceView extends React.PureComponent<Props, State> {
             dragProps={dragProps}
             trace={parsedTrace}
           >
-            {this.renderHeader(dragProps, parsedTrace)}
-            <SpanTree
-              event={event}
-              trace={parsedTrace}
-              dragProps={dragProps}
-              filterSpans={this.state.filterSpans}
-              orgId={orgId}
-              organization={organization}
-              spansWithErrors={spansWithErrors}
-              operationNameFilters={operationNameFilters}
-            />
+            <DividerHandlerManager.Provider interactiveLayerRef={this.traceViewRef}>
+              <div ref={this.traceViewRef}>
+                {this.renderHeader(dragProps, parsedTrace)}
+                <SpanTree
+                  event={event}
+                  trace={parsedTrace}
+                  dragProps={dragProps}
+                  filterSpans={this.state.filterSpans}
+                  orgId={orgId}
+                  organization={organization}
+                  spansWithErrors={spansWithErrors}
+                  operationNameFilters={operationNameFilters}
+                />
+              </div>
+            </DividerHandlerManager.Provider>
           </CursorGuideHandler.Provider>
         )}
       </DragManager>
