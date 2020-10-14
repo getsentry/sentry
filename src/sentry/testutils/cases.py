@@ -177,13 +177,16 @@ class BaseTestCase(Fixtures, Exam):
         request.successful_authenticator = None
         return request
 
+    def retry_debug(i):
+        print("RETRYING login as: ", i)
+        return 1.0
+
     # TODO(dcramer): ideally superuser_sso would be False by default, but that would require
     # a lot of tests changing
-    @TimedRetryPolicy.wrap(timeout=5)
+    @TimedRetryPolicy.wrap(delay=retry_debug, timeout=5)
     def login_as(
         self, user, organization_id=None, organization_ids=None, superuser=False, superuser_sso=True
     ):
-        print("hit login_as")
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
 
         request = self.make_request()
