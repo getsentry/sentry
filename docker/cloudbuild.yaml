@@ -10,9 +10,8 @@ steps:
   timeout: 180s
 - name: 'us.gcr.io/$PROJECT_ID/sentry-builder:$COMMIT_SHA'
   id: builder-run
-  env: [
-    'SOURCE_COMMIT=$COMMIT_SHA'
-  ]
+  env:
+    - 'SOURCE_COMMIT=$COMMIT_SHA'
   timeout: 360s
 - name: 'gcr.io/kaniko-project/executor:v0.22.0'
   id: runtime-image-py2
@@ -42,10 +41,6 @@ steps:
   waitFor:
     - runtime-image-py2
   entrypoint: 'bash'
-  env:
-  - 'SENTRY_IMAGE=us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA'
-  - 'SENTRY_TEST_HOST=http://nginx'
-  - 'CI=1'
   args:
   - '-e'
   - '-c'
@@ -72,9 +67,7 @@ steps:
     - e2e-test-py2
   entrypoint: 'bash'
   env:
-  - 'SENTRY_IMAGE=us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA-py3'
-  - 'SENTRY_TEST_HOST=http://nginx'
-  - 'CI=1'
+  - 'SENTRY_PYTHON3=1'
   args:
   - '-e'
   - '-c'
@@ -98,14 +91,14 @@ steps:
     # Only push to Docker Hub from master
     [ "$BRANCH_NAME" != "master" ] && exit 0
     # Need to pull the image first due to Kaniko
-    docker pull us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA
+    docker pull $SENTRY_IMAGE
     echo "$$DOCKER_PASSWORD" | docker login --username=sentrybuilder --password-stdin
-    docker tag us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA getsentry/sentry:$SHORT_SHA
-    docker push getsentry/sentry:$SHORT_SHA
-    docker tag us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA getsentry/sentry:$COMMIT_SHA
-    docker push getsentry/sentry:$COMMIT_SHA
-    docker tag us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA getsentry/sentry:latest
-    docker push getsentry/sentry:latest
+    docker $SENTRY_IMAGE $DOCKER_REPO:$SHORT_SHA
+    docker push $DOCKER_REPO:$SHORT_SHA
+    docker $SENTRY_IMAGE $DOCKER_REPO:$COMMIT_SHA
+    docker push $DOCKER_REPO:$COMMIT_SHA
+    docker $SENTRY_IMAGE $DOCKER_REPO:latest
+    docker push $DOCKER_REPO:latest
 - name: 'gcr.io/cloud-builders/docker'
   id: docker-push-py3
   waitFor:
@@ -119,14 +112,14 @@ steps:
     # Only push to Docker Hub from master
     [ "$BRANCH_NAME" != "master" ] && exit 0
     # Need to pull the image first due to Kaniko
-    docker pull us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA-py3
+    docker pull $SENTRY_IMAGE-py3
     echo "$$DOCKER_PASSWORD" | docker login --username=sentrybuilder --password-stdin
-    docker tag us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA-py3 getsentry/sentry:$SHORT_SHA-py3
-    docker push getsentry/sentry:$SHORT_SHA-py3
-    docker tag us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA-py3 getsentry/sentry:$COMMIT_SHA-py3
-    docker push getsentry/sentry:$COMMIT_SHA-py3
-    docker tag us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA-py3 getsentry/sentry:latest-py3
-    docker push getsentry/sentry:latest-py3
+    docker $SENTRY_IMAGE-py3 $DOCKER_REPO:$SHORT_SHA-py3
+    docker push $DOCKER_REPO:$SHORT_SHA-py3
+    docker $SENTRY_IMAGE-py3 $DOCKER_REPO:$COMMIT_SHA-py3
+    docker push $DOCKER_REPO:$COMMIT_SHA-py3
+    docker $SENTRY_IMAGE-py3 $DOCKER_REPO:latest-py3
+    docker push $DOCKER_REPO:latest-py3
 - name: 'node:12'
   id: zeus-upload
   waitFor:
@@ -145,6 +138,11 @@ timeout: 2400s
 options:
   # We need more memory for Webpack builds & e2e onpremise tests
   machineType: 'N1_HIGHCPU_8'
+  env:
+    - 'SENTRY_IMAGE=us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA'
+    - 'DOCKER_REPO=getsentry/sentry'
+    - 'SENTRY_TEST_HOST=http://nginx'
+    - 'CI=1'
 secrets:
 - kmsKeyName: projects/sentryio/locations/global/keyRings/service-credentials/cryptoKeys/cloudbuild
   secretEnv:
