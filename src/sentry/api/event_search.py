@@ -1355,7 +1355,7 @@ class DateArg(FunctionArg):
             raise InvalidFunctionArgument(
                 u"{} is in the wrong format, expected a date like 2020-03-14T15:14:15".format(value)
             )
-        return value
+        return u"'{}'".format(value)
 
 
 class NumericColumn(FunctionArg):
@@ -1805,15 +1805,24 @@ FUNCTIONS = {
         Function(
             "percentile_range",
             required_args=[
-                DurationColumn("column"),
+                DurationColumnNoLookup("column"),
                 NumberRange("percentile", 0, 1),
                 DateArg("start"),
                 DateArg("end"),
                 NumberRange("index", 1, None),
             ],
             aggregate=[
-                u"quantileIf({percentile:.2f})({column},and(greaterOrEquals(timestamp,toDateTime('{start}')),less(timestamp,toDateTime('{end}'))))",
-                None,
+                u"quantileIf({percentile:.2f})",
+                [
+                    ArgValue("column"),
+                    [
+                        "and",
+                        [
+                            ["lessOrEquals", [["toDateTime", [ArgValue("start")]], "timestamp"]],
+                            ["greater", [["toDateTime", [ArgValue("end")]], "timestamp"]],
+                        ],
+                    ],
+                ],
                 "percentile_range_{index:g}",
             ],
             result_type="duration",
@@ -1821,14 +1830,23 @@ FUNCTIONS = {
         Function(
             "avg_range",
             required_args=[
-                DurationColumn("column"),
+                DurationColumnNoLookup("column"),
                 DateArg("start"),
                 DateArg("end"),
                 NumberRange("index", 1, None),
             ],
             aggregate=[
-                u"avgIf({column},and(greaterOrEquals(timestamp,toDateTime('{start}')),less(timestamp,toDateTime('{end}'))))",
-                None,
+                u"avgIf",
+                [
+                    ArgValue("column"),
+                    [
+                        "and",
+                        [
+                            ["lessOrEquals", [["toDateTime", [ArgValue("start")]], "timestamp"]],
+                            ["greater", [["toDateTime", [ArgValue("end")]], "timestamp"]],
+                        ],
+                    ],
+                ],
                 "avg_range_{index:g}",
             ],
             result_type="duration",
@@ -1843,8 +1861,28 @@ FUNCTIONS = {
             ],
             calculated_args=[{"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0}],
             aggregate=[
-                u"uniqIf(user,and(greater(duration,{tolerated:g}),and(greaterOrEquals(timestamp,toDateTime('{start}')),less(timestamp,toDateTime('{end}')))))",
-                None,
+                u"uniqIf",
+                [
+                    "user",
+                    [
+                        "and",
+                        [
+                            # Currently, the column resolution on aggregates doesn't recurse, so we use
+                            # `duration` (snuba name) rather than `transaction.duration` (sentry name).
+                            ["greater", ["duration", ArgValue("tolerated")]],
+                            [
+                                "and",
+                                [
+                                    [
+                                        "lessOrEquals",
+                                        [["toDateTime", [ArgValue("start")]], "timestamp"],
+                                    ],
+                                    ["greater", [["toDateTime", [ArgValue("end")]], "timestamp"]],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
                 "user_misery_range_{index:g}",
             ],
             result_type="duration",
@@ -1853,8 +1891,16 @@ FUNCTIONS = {
             "count_range",
             required_args=[DateArg("start"), DateArg("end"), NumberRange("index", 1, None)],
             aggregate=[
-                u"countIf(and(greaterOrEquals(timestamp,toDateTime('{start}')),less(timestamp,toDateTime('{end}'))))",
-                None,
+                u"countIf",
+                [
+                    [
+                        "and",
+                        [
+                            ["lessOrEquals", [["toDateTime", [ArgValue("start")]], "timestamp"]],
+                            ["greater", [["toDateTime", [ArgValue("end")]], "timestamp"]],
+                        ],
+                    ],
+                ],
                 "count_range_{index:g}",
             ],
             result_type="integer",
