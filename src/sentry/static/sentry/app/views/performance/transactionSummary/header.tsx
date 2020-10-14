@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 
 import {Organization, Project} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
+import {WebVital} from 'app/utils/discover/fields';
 import Feature from 'app/components/acl/feature';
 import CreateAlertButton from 'app/components/createAlertButton';
 import * as Layout from 'app/components/layouts/thirds';
@@ -12,6 +13,9 @@ import ListLink from 'app/components/links/listLink';
 import NavTabs from 'app/components/navTabs';
 import {t} from 'app/locale';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
+import DiscoverQuery from 'app/utils/discover/discoverQuery';
+import {decodeScalar} from 'app/utils/queryString';
+import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import Breadcrumb from 'app/views/performance/breadcrumb';
 
 import KeyTransactionButton from './keyTransactionButton';
@@ -117,6 +121,33 @@ class TransactionHeader extends React.Component<Props> {
             if (!hasFeature) {
               return null;
             }
+
+            const query = tokenizeSearch(decodeScalar(location.query.query) || '')
+              .setTagValues('event.type', ['transaction'])
+              .setTagValues('transaction.op', ['pageload'])
+              .setTagValues('transaction', [transactionName]);
+
+            query.addOp('(');
+            Object.values(WebVital).forEach((vital, index) => {
+              if (index !== 0) {
+                query.addOp('OR');
+              }
+              query.addStringTag(`has:${vital}`);
+            });
+            query.addOp(')');
+
+            const eventView = EventView.fromNewQueryWithLocation(
+              {
+                id: undefined,
+                version: 2,
+                name: transactionName,
+                fields: ['count()'],
+                query: stringifyQueryObject(query),
+                projects: [],
+              },
+              location
+            );
+
             return (
               <StyledNavTabs>
                 <ListLink
@@ -125,12 +156,30 @@ class TransactionHeader extends React.Component<Props> {
                 >
                   {t('Overview')}
                 </ListLink>
-                <ListLink
-                  to={`${baseUrl}rum/${location.search}`}
-                  isActive={() => currentTab === Tab.RealUserMonitoring}
+                <DiscoverQuery
+                  location={location}
+                  orgSlug={organization.slug}
+                  eventView={eventView}
+                  limit={1}
                 >
-                  {t('Web Vitals')}
-                </ListLink>
+                  {({isLoading, error, tableData}) => {
+                    if (
+                      isLoading ||
+                      error !== null ||
+                      (tableData?.data?.[0]?.count ?? 0) <= 0
+                    ) {
+                      return null;
+                    }
+                    return (
+                      <ListLink
+                        to={`${baseUrl}rum/${location.search}`}
+                        isActive={() => currentTab === Tab.RealUserMonitoring}
+                      >
+                        {t('Web Vitals')}
+                      </ListLink>
+                    );
+                  }}
+                </DiscoverQuery>
               </StyledNavTabs>
             );
           }}
