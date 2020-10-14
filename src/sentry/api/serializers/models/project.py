@@ -212,7 +212,7 @@ class ProjectSerializer(Serializer):
 
                         batch_checked.add(feature_name)
 
-        for feature_name in features.all(feature_type=ProjectFeature).keys():
+        for feature_name in project_features:
             if feature_name in batch_checked:
                 continue
             abbreviated_feature = feature_name[len(_PROJECT_SCOPE_PREFIX) :]
