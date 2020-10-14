@@ -48,6 +48,21 @@ class IntegrationExternalProject(DefaultFieldsModel):
         unique_together = (("organization_integration_id", "external_id"),)
 
 
+class RepositoryProjectPathConfig(DefaultFieldsModel):
+    __core__ = False
+
+    repository = FlexibleForeignKey("sentry.Repository")
+    project = FlexibleForeignKey("sentry.Project", db_constraint=False)
+    input_path = models.TextField()
+    output_path = models.TextField()
+    default_branch = models.TextField(null=True)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_repositoryprojectpathconfig"
+        unique_together = (("project", "input_path"),)
+
+
 class OrganizationIntegration(DefaultFieldsModel):
     __core__ = False
 
