@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from copy import deepcopy
-from datetime import timedelta
+from datetime import datetime, timedelta
 from itertools import chain
 
 import six
@@ -9,7 +9,7 @@ from django.db import transaction
 from django.db.models.signals import post_save
 from django.utils import timezone
 
-from sentry import analytics
+from sentry import analytics, quotas
 from sentry.api.event_search import get_filter, resolve_field
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
 from sentry.incidents import tasks
@@ -386,6 +386,10 @@ def calculate_incident_time_range(incident, start=None, end=None, windowed_stats
             end = min(end, latest_end_date)
 
             start = end - timedelta(seconds=time_window * WINDOWED_STATS_DATA_POINTS)
+
+    retention = quotas.get_event_retention(organization=incident.organization) or 90
+    if start < datetime.utcnow() - timedelta(days=retention):
+        start = datetime.utcnow() - timedelta(days=retention)
 
     return start, end
 

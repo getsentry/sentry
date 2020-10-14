@@ -279,6 +279,7 @@ def process_snoozes(group):
         return False
 
     if not snooze.is_valid(group, test_rates=True):
+        # TODO Put group in the inbox, track snooze vars
         snooze.delete()
         group.update(status=GroupStatus.UNRESOLVED)
         return True

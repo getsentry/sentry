@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import pytest
 import responses
-from datetime import timedelta
+from datetime import datetime, timedelta
 from exam import fixture, patcher
 from freezegun import freeze_time
 
@@ -538,6 +538,26 @@ class CreateIncidentSnapshotTest(TestCase, BaseIncidentsTest):
         aggregates = get_incident_aggregates(incident)
         assert snapshot.unique_users == aggregates["unique_users"]
         assert snapshot.total_events == aggregates["count"]
+
+    def test_windowed_capped_start(self):
+        # When calculating start/end time for long incidents, the start can be
+        # further in the past than we support based on an org's retention period.
+        # This test ensures we cap the query so we never query further back in time than retention.
+
+        time_window = 1500  # more than 24 hours, so gets capped at 10 days
+        alert_rule = self.create_alert_rule(time_window=time_window)
+
+        incident = self.create_incident(self.organization)
+        incident.update(
+            status=IncidentStatus.CLOSED.value,
+            alert_rule=alert_rule,
+            date_started=datetime.utcnow() - timedelta(days=100),
+            date_closed=datetime.utcnow() - timedelta(days=1),
+        )
+
+        start, end = calculate_incident_time_range(incident)
+        assert start == datetime.utcnow() - timedelta(days=90)
+        assert end == incident.date_closed + timedelta(minutes=time_window)
 
     def test_windowed_capped_end(self):
         # When processing PendingIncidentSnapshots, the task could run later than we'd like the
