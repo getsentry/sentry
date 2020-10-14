@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-from copy import deepcopy
-
 from rest_framework import status
 from rest_framework.response import Response
 
@@ -16,6 +14,7 @@ from sentry.api.paginator import (
 from sentry.api.serializers import serialize, CombinedRuleSerializer
 from sentry.incidents.endpoints.serializers import AlertRuleSerializer
 from sentry.incidents.models import AlertRule
+from sentry.incidents.logic import add_target_idenfitier_display, InvalidTriggerActionError
 from sentry.signals import alert_rule_created
 from sentry.snuba.dataset import Dataset
 from sentry.models import Rule, RuleStatus
@@ -78,7 +77,10 @@ class ProjectAlertRuleIndexEndpoint(ProjectEndpoint):
         if not features.has("organizations:incidents", project.organization, actor=request.user):
             raise ResourceDoesNotExist
 
-        data = deepcopy(request.data)
+        try:
+            data = add_target_idenfitier_display(request.data, project.organization)
+        except InvalidTriggerActionError as e:
+            return Response([e.message], status=status.HTTP_400_BAD_REQUEST)
         data["projects"] = [project.slug]
 
         serializer = AlertRuleSerializer(

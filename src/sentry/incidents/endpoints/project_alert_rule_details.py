@@ -7,7 +7,12 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.alert_rule import AlertRuleSerializer
 from sentry.incidents.endpoints.bases import ProjectAlertRuleEndpoint
 from sentry.incidents.endpoints.serializers import AlertRuleSerializer as DrfAlertRuleSerializer
-from sentry.incidents.logic import AlreadyDeletedError, delete_alert_rule
+from sentry.incidents.logic import (
+    AlreadyDeletedError,
+    InvalidTriggerActionError,
+    delete_alert_rule,
+    add_target_idenfitier_display,
+)
 
 
 class ProjectAlertRuleDetailsEndpoint(ProjectAlertRuleEndpoint):
@@ -21,6 +26,11 @@ class ProjectAlertRuleDetailsEndpoint(ProjectAlertRuleEndpoint):
         return Response(data)
 
     def put(self, request, project, alert_rule):
+        try:
+            data = add_target_idenfitier_display(request.data, project.organization)
+        except InvalidTriggerActionError as e:
+            return Response([e.message], status=status.HTTP_400_BAD_REQUEST)
+
         serializer = DrfAlertRuleSerializer(
             context={
                 "organization": project.organization,
@@ -28,7 +38,7 @@ class ProjectAlertRuleDetailsEndpoint(ProjectAlertRuleEndpoint):
                 "user": request.user,
             },
             instance=alert_rule,
-            data=request.data,
+            data=data,
             partial=True,
         )
 

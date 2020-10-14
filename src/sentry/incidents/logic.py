@@ -1042,7 +1042,13 @@ def get_subscriptions_from_alert_rule(alert_rule, projects):
 
 
 def create_alert_rule_trigger_action(
-    trigger, type, target_type, target_identifier=None, integration=None, sentry_app=None
+    trigger,
+    type,
+    target_type,
+    target_identifier=None,
+    target_display=None,
+    integration=None,
+    sentry_app=None,
 ):
     """
     Creates an AlertRuleTriggerAction
@@ -1055,19 +1061,6 @@ def create_alert_rule_trigger_action(
     :param sentry_app: (Optional) The Sentry App related to this action.
     :return: The created action
     """
-
-    target_display = None
-    if type.value in AlertRuleTriggerAction.INTEGRATION_TYPES:
-        if target_type != AlertRuleTriggerAction.TargetType.SPECIFIC:
-            raise InvalidTriggerActionError("Must specify specific target type")
-
-        target_identifier, target_display = get_target_identifier_display_for_integration(
-            type.value, target_identifier, trigger.alert_rule.organization, integration.id
-        )
-    elif type == AlertRuleTriggerAction.Type.SENTRY_APP:
-        target_identifier, target_display = get_alert_rule_trigger_action_sentry_app(
-            trigger.alert_rule.organization, sentry_app.id
-        )
 
     return AlertRuleTriggerAction.objects.create(
         alert_rule_trigger=trigger,
@@ -1085,6 +1078,7 @@ def update_alert_rule_trigger_action(
     type=None,
     target_type=None,
     target_identifier=None,
+    target_display=None,
     integration=None,
     sentry_app=None,
 ):
@@ -1108,44 +1102,52 @@ def update_alert_rule_trigger_action(
     if sentry_app is not None:
         updated_fields["sentry_app"] = sentry_app
     if target_identifier is not None:
-        type = updated_fields.get("type", trigger_action.type)
-
-        if type in AlertRuleTriggerAction.INTEGRATION_TYPES:
-            integration = updated_fields.get("integration", trigger_action.integration)
-            organization = trigger_action.alert_rule_trigger.alert_rule.organization
-
-            target_identifier, target_display = get_target_identifier_display_for_integration(
-                type, target_identifier, organization, integration.id
-            )
-            updated_fields["target_display"] = target_display
-
-        elif type == AlertRuleTriggerAction.Type.SENTRY_APP.value:
-            sentry_app = updated_fields.get("sentry_app", trigger_action.sentry_app)
-            organization = trigger_action.alert_rule_trigger.alert_rule.organization
-
-            target_identifier, target_display = get_alert_rule_trigger_action_sentry_app(
-                organization, sentry_app.id
-            )
-            updated_fields["target_display"] = target_display
-
         updated_fields["target_identifier"] = target_identifier
+    if target_display is not None:
+        updated_fields["target_display"] = target_display
     trigger_action.update(**updated_fields)
     return trigger_action
 
 
+def add_target_idenfitier_display(data, organization):
+    data = deepcopy(data)
+    for trigger in data["triggers"]:
+        for action in trigger["actions"]:
+            target_identifier, target_display = get_target_identifier_display_for_action(
+                action, organization
+            )
+            if target_identifier:
+                action["targetIdentifier"] = target_identifier
+            if target_display:
+                action["targetDisplay"] = target_display
+    return data
+
+
+def get_target_identifier_display_for_action(action, organization):
+    if action["type"] in ["slack", "msteams", "pagerduty"]:
+        if action["targetType"] != "specific":
+            raise InvalidTriggerActionError("Must specify specific target type")
+        return get_target_identifier_display_for_integration(
+            action["type"], action["targetIdentifier"], organization, action["integrationId"]
+        )
+    elif action["type"] == "sentry_app":
+        return get_alert_rule_trigger_action_sentry_app(organization, action["sentryAppId"])
+    return (None, None)
+
+
 def get_target_identifier_display_for_integration(type, target_value, *args, **kwargs):
     # target_value is the Slack username or channel name
-    if type == AlertRuleTriggerAction.Type.SLACK.value:
+    if type == "slack":
         target_identifier = get_alert_rule_trigger_action_slack_channel_id(
             target_value, *args, **kwargs
         )
     # target_value is the MSTeams username or channel name
-    elif type == AlertRuleTriggerAction.Type.MSTEAMS.value:
+    elif type == "msteams":
         target_identifier = get_alert_rule_trigger_action_msteams_channel_id(
             target_value, *args, **kwargs
         )
     # target_value is the ID of the PagerDuty service
-    elif type == AlertRuleTriggerAction.Type.PAGERDUTY.value:
+    elif type == "pagerduty":
         target_identifier, target_value = get_alert_rule_trigger_action_pagerduty_service(
             target_value, *args, **kwargs
         )
