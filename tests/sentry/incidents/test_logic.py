@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import pytest
+import pytz
 import responses
 from datetime import datetime, timedelta
 from exam import fixture, patcher
@@ -556,13 +557,13 @@ class CreateIncidentSnapshotTest(TestCase, BaseIncidentsTest):
         )
 
         start, end = calculate_incident_time_range(incident)
-        assert start == datetime.utcnow() - timedelta(days=90)
-        assert end == incident.date_closed + timedelta(minutes=time_window)
+        assert start == datetime.utcnow().replace(tzinfo=pytz.utc) - timedelta(days=90)
+        assert end == incident.date_closed.replace(tzinfo=pytz.utc) + timedelta(minutes=time_window)
 
         incident.update(date_closed=datetime.utcnow() - timedelta(days=95),)
 
         start, end = calculate_incident_time_range(incident)
-        assert start == datetime.utcnow() - timedelta(days=90)
+        assert start == datetime.utcnow().replace(tzinfo=pytz.utc) - timedelta(days=90)
         assert end == start
 
     def test_windowed_capped_end(self):
