@@ -26,6 +26,7 @@ class TransactionVitals extends React.Component<Props> {
     isLoading: boolean,
     error: boolean,
     summary: number | null,
+    failureRate: number,
     histogram: HistogramData[],
     color: [string],
     min?: string,
@@ -53,6 +54,7 @@ class TransactionVitals extends React.Component<Props> {
               error={error || results.error !== null}
               vital={vitalDetails}
               summary={summary}
+              failureRate={failureRate}
               chartData={results.histograms?.[vital] ?? []}
               colors={color}
               eventView={eventView}
@@ -71,6 +73,7 @@ class TransactionVitals extends React.Component<Props> {
           error={error}
           vital={vitalDetails}
           summary={summary}
+          failureRate={failureRate}
           chartData={histogram}
           colors={color}
           eventView={eventView}
@@ -99,9 +102,22 @@ class TransactionVitals extends React.Component<Props> {
           return (
             <React.Fragment>
               {vitals.map((vital, index) => {
-                const alias = getAggregateAlias(`percentile(${vital}, ${PERCENTILE})`);
-                const summary = summaryResults.tableData?.data?.[0]?.[alias] ?? null;
-                const vitalSlug = WEB_VITAL_DETAILS[vital].slug;
+                const details = WEB_VITAL_DETAILS[vital];
+                const vitalSlug = details.slug;
+                const data = summaryResults.tableData?.data?.[0];
+
+                const percentileAlias = getAggregateAlias(
+                  `percentile(${vital}, ${PERCENTILE})`
+                );
+                const summary = data?.[percentileAlias] ?? null;
+
+                const countAlias = getAggregateAlias(`count_at_least(${vital}, 0)`);
+                const failedAlias = getAggregateAlias(
+                  `count_at_least(${vital}, ${details.failureThreshold})`
+                );
+                const numerator = (data?.[failedAlias] ?? 0) as number;
+                const denominator = (data?.[countAlias] ?? 0) as number;
+                const failureRate = denominator <= 0 ? 0 : numerator / denominator;
 
                 return (
                   <React.Fragment key={vital}>
@@ -110,6 +126,7 @@ class TransactionVitals extends React.Component<Props> {
                       isLoading,
                       error,
                       summary,
+                      failureRate,
                       multiHistogramResults.histograms?.[vital] ?? [],
                       [colors[index]],
                       decodeScalar(location.query[`${vitalSlug}Start`]),

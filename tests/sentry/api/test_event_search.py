@@ -2046,7 +2046,7 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["aggregations"] == [
             [
                 "uniq",
-                ["coalesce", ["user.email", "user.username", "user.ip"]],
+                [["coalesce", ["user.email", "user.username", "user.ip"]]],
                 "count_unique_user_display",
             ],
         ]
@@ -2345,6 +2345,17 @@ class ResolveFieldListTest(unittest.TestCase):
             in six.text_type(err)
         )
 
+    def test_count_at_least_function(self):
+        fields = ["count_at_least(measurements.baz, 1000)"]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["aggregations"] == [
+            [
+                "countIf",
+                [["greaterOrEquals", ["measurements.baz", 1000]]],
+                "count_at_least_measurements_baz_1000",
+            ]
+        ]
+
     def test_percentile_range(self):
         fields = [
             "percentile_range(transaction.duration, 0.5, 2020-05-01T01:12:34, 2020-05-03T06:48:57, 1)"
@@ -2418,7 +2429,7 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["aggregations"] == [
             [
                 "abs",
-                [["corr", ["toUnixTimestamp", ["timestamp"], "duration"]]],
+                [["corr", [["toUnixTimestamp", ["timestamp"]], "transaction.duration"]]],
                 u"absolute_correlation",
             ]
         ]

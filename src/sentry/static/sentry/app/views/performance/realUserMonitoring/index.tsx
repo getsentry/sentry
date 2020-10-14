@@ -20,7 +20,7 @@ import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
 
-import {PERCENTILE} from './constants';
+import {PERCENTILE, WEB_VITAL_DETAILS} from './constants';
 import RumContent from './content';
 import {getTransactionName} from '../utils';
 import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
@@ -168,7 +168,14 @@ function generateRumEventView(
       id: undefined,
       version: 2,
       name: transactionName,
-      fields: Object.values(WebVital).map(vital => `percentile(${vital}, ${PERCENTILE})`),
+      fields: [
+        ...Object.values(WebVital).map(vital => `percentile(${vital}, ${PERCENTILE})`),
+        ...Object.values(WebVital).map(vital => `count_at_least(${vital}, 0)`),
+        ...Object.values(WebVital).map(
+          vital =>
+            `count_at_least(${vital}, ${WEB_VITAL_DETAILS[vital].failureThreshold})`
+        ),
+      ],
       query: stringifyQueryObject(conditions),
       projects: [],
     },
