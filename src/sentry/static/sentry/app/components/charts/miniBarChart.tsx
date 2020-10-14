@@ -15,21 +15,18 @@ type Marker = {
   symbolSize?: number;
 };
 
-type DefaultProps = {
+const defaultProps = {
   /**
    * Colors to use on the chart.
    */
-  colors: string[];
+  colors: [theme.gray300, theme.purple300, theme.purple400],
   /**
    * Hover state colors to use on the chart.
    */
-  emphasisColors: string[];
-};
-
-const defaultProps: DefaultProps = {
-  colors: [theme.gray300, theme.purple300, theme.purple400],
   emphasisColors: [theme.gray400, theme.purple400, theme.purple500],
 };
+
+type DefaultProps = typeof defaultProps;
 
 type Props = React.ComponentProps<typeof BaseChart> &
   DefaultProps & {
