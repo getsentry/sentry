@@ -105,7 +105,7 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
                 repository_id=repo.id, organization_id=organization.id
             ).exists()
 
-            countdown = 0 if has_commits else 0
+            countdown = 3600 if has_commits else 0
 
             repo.rename_on_pending_deletion()
 

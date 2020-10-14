@@ -58,6 +58,7 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
 
         elif status:
             queryset = queryset.none()
+
         return self.paginate(
             request=request,
             queryset=queryset,
