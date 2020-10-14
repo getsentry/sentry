@@ -87,13 +87,7 @@ export default class RequestIntegrationModal extends AsyncComponent<Props, State
         <Body>
           <TextBlock>
             {t(
-              'Looks like your organization owner, manager, or admin needs to install %s. Want to send them a request?',
-              name
-            )}
-          </TextBlock>
-          <TextBlock>
-            {t(
-              '(Optional) You’ve got good reasons for installing the %s Integration. Share them with your organization owner.',
+              'Looks like your organization owner, manager, or admin needs to install %s. Want to send them a request?.',
               name
             )}
           </TextBlock>
@@ -101,6 +95,10 @@ export default class RequestIntegrationModal extends AsyncComponent<Props, State
             inline={false}
             flexibleControlStateSize
             stacked
+            label={t(
+              '(Optional) You’ve got good reasons for installing the %s Integration. Share them with your organization owner.',
+              name
+            )}
             name="message"
             type="string"
             onChange={value => this.setState({message: value})}
