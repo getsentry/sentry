@@ -2055,8 +2055,8 @@ def resolve_field_list(fields, snuba_filter, auto_fields=True, auto_aggregations
         if agg_additions:
             aggregations.extend(agg_additions)
 
-    having_aggregates = [having[0] for having in snuba_filter.having]
-    if auto_aggregations is not None and len(having_aggregates) > 0:
+    if auto_aggregations is not None and snuba_filter.having:
+        having_aggregates = [having[0] for having in snuba_filter.having]
         for agg in auto_aggregations:
             _, agg_additions = resolve_field(agg, snuba_filter.date_params)
 
