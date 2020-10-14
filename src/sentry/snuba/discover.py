@@ -737,7 +737,8 @@ def top_events_timeseries(
         span.set_data("result_count", len(result.get("data", [])))
         result = transform_results(result, translated_columns, snuba_filter, selected_columns)
 
-        translated_columns["project_id"] = "project"
+        if "project" in selected_columns:
+            translated_columns["project_id"] = "project"
         translated_groupby = [
             translated_columns.get(groupby, groupby) for groupby in snuba_filter.groupby
         ]

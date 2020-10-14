@@ -100,11 +100,13 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
             queryset = queryset.order_by("slug").select_related("organization")
             return Response(serialize(list(queryset), request.user, ProjectSummarySerializer()))
         else:
-
             def serialize_on_result(result):
+                transaction_stats = request.GET.get("transactionStats")
                 environment_id = self._get_environment_id_from_request(request, organization.id)
                 serializer = ProjectSummarySerializer(
-                    environment_id=environment_id, stats_period=stats_period,
+                    environment_id=environment_id,
+                    stats_period=stats_period,
+                    transaction_stats=transaction_stats,
                 )
                 return serialize(result, request.user, serializer)
 
