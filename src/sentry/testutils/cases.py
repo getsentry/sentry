@@ -183,6 +183,7 @@ class BaseTestCase(Fixtures, Exam):
     def login_as(
         self, user, organization_id=None, organization_ids=None, superuser=False, superuser_sso=True
     ):
+        print("hit login_as")
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
 
         request = self.make_request()
