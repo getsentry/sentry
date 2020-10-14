@@ -13,7 +13,9 @@ export const WEB_VITAL_DETAILS: Record<WebVital, Vital> = {
   [WebVital.FP]: {
     slug: 'fp',
     name: t('First Paint'),
-    description: t('Render time of the first pixel loaded in the viewport.'),
+    description: t(
+      'Render time of the first pixel loaded in the viewport (may overlap with FCP).'
+    ),
     failureThreshold: 4000,
     type: measurementType(WebVital.FP),
   },

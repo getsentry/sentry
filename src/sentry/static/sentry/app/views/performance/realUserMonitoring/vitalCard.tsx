@@ -158,12 +158,14 @@ class VitalCard extends React.Component<Props, State> {
         </CardSectionHeading>
         <StatNumber>{this.getFormattedStatNumber()}</StatNumber>
         <Description>{description}</Description>
-        <DiscoverButton
-          size="small"
-          to={newEventView.getResultsViewUrlTarget(organization.slug)}
-        >
-          {t('Open in Discover')}
-        </DiscoverButton>
+        <div>
+          <DiscoverButton
+            size="small"
+            to={newEventView.getResultsViewUrlTarget(organization.slug)}
+          >
+            {t('Open in Discover')}
+          </DiscoverButton>
+        </div>
       </CardSummary>
     );
   }
@@ -487,8 +489,8 @@ type IndicatorProps = {
 
 const Indicator = styled('div')<IndicatorProps>`
   position: absolute;
+  top: 20px;
   left: 0px;
-  margin-top: ${space(0.5)};
   width: 6px;
   height: 18px;
   border-radius: 0 3px 3px 0;
@@ -504,8 +506,6 @@ const StyledTag = styled(Tag)<TagProps>`
   right: ${space(3)};
   background-color: ${p => p.color};
   color: ${p => p.theme.white};
-  text-transform: uppercase;
-  font-weight: 500;
 `;
 
 function formatDuration(duration: number) {
