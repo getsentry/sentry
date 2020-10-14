@@ -388,7 +388,6 @@ export class Line extends React.Component<Props, State> {
       'system-frame': !data.inApp,
       'frame-errors': data.errors,
       'leads-to-app': this.leadsToApp(),
-      [this.getPlatform()]: true,
     });
     const props = {className};
 
