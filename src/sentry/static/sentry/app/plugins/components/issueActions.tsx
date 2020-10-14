@@ -7,10 +7,55 @@ import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import PluginComponentBase from 'app/components/bases/pluginComponentBase';
 import {t} from 'app/locale';
+import {Organization, Project, Plugin, Group} from 'app/types';
 
-class IssueActions extends PluginComponentBase {
-  constructor(props) {
-    super(props);
+type Field = {
+  has_autocomplete?: boolean;
+  depends?: string[];
+} & Parameters<typeof PluginComponentBase.prototype.renderField>[0]['config'];
+
+type ActionType = 'link' | 'create' | 'unlink';
+type FieldStateValue = typeof FormState[keyof typeof FormState];
+
+type Props = {
+  actionType: ActionType;
+  group: Group;
+  project: Project;
+  organization: Organization;
+  plugin: Plugin & {
+    issue?: {
+      issue_id: string;
+      label: string;
+      url: string;
+    };
+  };
+  onSuccess?: (data: any) => void;
+  onError?: (data: any) => void;
+  onLoadSuccess?: Function;
+};
+
+type State = {
+  createFormData: Record<string, any>;
+  linkFormData: Record<string, any>;
+  unlinkFormData: Record<string, any>;
+  createFieldList?: Field[];
+  linkFieldList?: Field[];
+  unlinkFieldList?: Field[];
+  dependentFieldState: Record<string, FieldStateValue>;
+  error?: {
+    message: string;
+    error_type?: string;
+    auth_url?: string;
+    has_auth_configured?: boolean;
+    required_auth_settings?: string[];
+    errors?: Record<string, string>;
+  };
+  loading?: boolean;
+} & PluginComponentBase['state'];
+
+class IssueActions extends PluginComponentBase<Props, State> {
+  constructor(props: Props, context) {
+    super(props, context);
 
     this.createIssue = this.onSave.bind(this, this.createIssue.bind(this));
     this.linkIssue = this.onSave.bind(this, this.linkIssue.bind(this));
@@ -18,19 +63,23 @@ class IssueActions extends PluginComponentBase {
     this.onSuccess = this.onSaveSuccess.bind(this, this.onSuccess.bind(this));
     this.errorHandler = this.onLoadError.bind(this, this.errorHandler.bind(this));
 
-    Object.assign(this.state, {
-      createFieldList: null,
-      linkFieldList: null,
+    this.state = {
+      ...this.state,
       loading: ['link', 'create'].includes(this.props.actionType),
       state: ['link', 'create'].includes(this.props.actionType)
         ? FormState.LOADING
         : FormState.READY,
-      error: null,
       createFormData: {},
       linkFormData: {},
       dependentFieldState: {},
-    });
+    };
   }
+
+  static propTypes = {
+    plugin: PropTypes.object.isRequired,
+    actionType: PropTypes.oneOf(['unlink', 'link', 'create']).isRequired,
+    onSuccess: PropTypes.func,
+  };
 
   getGroup() {
     return this.props.group;
@@ -45,11 +94,29 @@ class IssueActions extends PluginComponentBase {
   }
 
   getFieldListKey() {
-    return this.props.actionType + 'FieldList';
+    switch (this.props.actionType) {
+      case 'link':
+        return 'linkFieldList';
+      case 'unlink':
+        return 'unlinkFieldList';
+      case 'create':
+        return 'createFieldList';
+      default:
+        throw new Error('Unexpeced action type');
+    }
   }
 
-  getFormDataKey() {
-    return this.props.actionType + 'FormData';
+  getFormDataKey(actionType?: ActionType) {
+    switch (actionType || this.props.actionType) {
+      case 'link':
+        return 'linkFormData';
+      case 'unlink':
+        return 'unlinkFormData';
+      case 'create':
+        return 'createFormData';
+      default:
+        throw new Error('Unexpeced action type');
+    }
   }
 
   getFormData() {
@@ -118,9 +185,12 @@ class IssueActions extends PluginComponentBase {
     }
   };
 
-  updateOptionsOfDependentField = (field, choices) => {
+  updateOptionsOfDependentField = (field: Field, choices: Field['choices']) => {
     const formListKey = this.getFieldListKey();
     let fieldList = this.state[formListKey];
+    if (!fieldList) {
+      return;
+    }
 
     //find the location of the field in our list and replace it
     const indexOfField = fieldList.findIndex(({name}) => name === field.name);
@@ -130,20 +200,24 @@ class IssueActions extends PluginComponentBase {
     fieldList = fieldList.slice();
     fieldList[indexOfField] = field;
 
-    this.setState({[formListKey]: fieldList});
+    this.setState({[formListKey]: fieldList} as {
+      [x in typeof formListKey]: Field[];
+    });
   };
 
-  resetOptionsOfDependentField = field => {
+  resetOptionsOfDependentField = (field: Field) => {
     this.updateOptionsOfDependentField(field, []);
     const formDataKey = this.getFormDataKey();
     const formData = {...this.state[formDataKey]};
     formData[field.name] = '';
-    this.setState({[formDataKey]: formData});
+    this.setState({[formDataKey]: formData} as {
+      [x in typeof formDataKey]: Record<string, any>;
+    });
     this.setDependentFieldState(field.name, FormState.DISABLED);
   };
 
-  getInputProps(field) {
-    const props = {};
+  getInputProps(field: Field) {
+    const props: {isLoading?: boolean; readonly?: boolean} = {};
 
     //special logic for fields that have dependencies
     if (field.depends && field.depends.length > 0) {
@@ -164,7 +238,7 @@ class IssueActions extends PluginComponentBase {
     return props;
   }
 
-  setError(error, defaultMessage) {
+  setError(error, defaultMessage: string) {
     let errorBody;
     if (error.status === 400 && error.responseJSON) {
       errorBody = error.responseJSON;
@@ -175,7 +249,7 @@ class IssueActions extends PluginComponentBase {
   }
 
   errorHandler(error) {
-    const state = {
+    const state: Pick<State, 'loading' | 'error'> = {
       loading: false,
     };
     if (error.status === 400 && error.responseJSON) {
@@ -186,8 +260,8 @@ class IssueActions extends PluginComponentBase {
     this.setState(state);
   }
 
-  onLoadSuccess(...args) {
-    super.onLoadSuccess(...args);
+  onLoadSuccess() {
+    super.onLoadSuccess();
 
     //dependent fields need to be set to disabled upon loading
     const fieldList = this.getFieldList();
@@ -209,7 +283,7 @@ class IssueActions extends PluginComponentBase {
           this.setState(
             {
               createFieldList: data,
-              error: null,
+              error: undefined,
               loading: false,
               createFormData,
             },
@@ -228,7 +302,7 @@ class IssueActions extends PluginComponentBase {
           this.setState(
             {
               linkFieldList: data,
-              error: null,
+              error: undefined,
               loading: false,
               linkFormData,
             },
@@ -277,8 +351,8 @@ class IssueActions extends PluginComponentBase {
     });
   }
 
-  changeField(action, name, value) {
-    const formDataKey = action + 'FormData';
+  changeField(action: ActionType, name: string, value: any) {
+    const formDataKey = this.getFormDataKey(action);
 
     //copy so we don't mutate
     const formData = {...this.state[formDataKey]};
@@ -299,15 +373,17 @@ class IssueActions extends PluginComponentBase {
 
     if (impactedField) {
       //if every dependent field is set, then search
-      if (!impactedField.depends.some(dependentField => !formData[dependentField])) {
+      if (!impactedField.depends?.some(dependentField => !formData[dependentField])) {
         callback = () => this.loadOptionsForDependentField(impactedField);
       } else {
         //otherwise reset the options
         callback = () => this.resetOptionsOfDependentField(impactedField);
       }
     }
-
-    this.setState({[formDataKey]: formData}, callback);
+    const newState = {[formDataKey]: formData} as {
+      [x in typeof formDataKey]: Record<string, any>;
+    };
+    this.setState(newState, callback);
   }
 
   renderForm() {
@@ -411,7 +487,7 @@ class IssueActions extends PluginComponentBase {
     }
     if (error.error_type === 'auth') {
       let authUrl = error.auth_url;
-      if (authUrl.indexOf('?') === -1) {
+      if (authUrl?.indexOf('?') === -1) {
         authUrl += '?next=' + encodeURIComponent(document.location.pathname);
       } else {
         authUrl += '&next=' + encodeURIComponent(document.location.pathname);
@@ -440,7 +516,7 @@ class IssueActions extends PluginComponentBase {
               </p>
               <p>The following settings must be configured:</p>
               <ul>
-                {error.required_auth_settings.map((setting, i) => (
+                {error.required_auth_settings?.map((setting, i) => (
                   <li key={i}>
                     <code>{setting}</code>
                   </li>
@@ -457,7 +533,7 @@ class IssueActions extends PluginComponentBase {
         </div>
       );
     } else if (error.error_type === 'validation') {
-      const errors = [];
+      const errors: React.ReactElement[] = [];
       for (const name in error.errors) {
         errors.push(<p key={name}>{error.errors[name]}</p>);
       }
@@ -484,11 +560,5 @@ class IssueActions extends PluginComponentBase {
     );
   }
 }
-
-IssueActions.propTypes = {
-  plugin: PropTypes.object.isRequired,
-  actionType: PropTypes.oneOf(['unlink', 'link', 'create']).isRequired,
-  onSuccess: PropTypes.func,
-};
 
 export default IssueActions;
