@@ -520,6 +520,49 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             assert [None] == response.data["data"][0]["error.handled"]
             assert [1] == response.data["data"][1]["error.handled"]
 
+    def test_error_unhandled_condition(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+        prototype = load_data("android-ndk")
+        events = (
+            ("a" * 32, "not handled", False),
+            ("b" * 32, "was handled", True),
+            ("c" * 32, "undefined", None),
+        )
+        for event in events:
+            prototype["event_id"] = event[0]
+            prototype["message"] = event[1]
+            prototype["exception"]["values"][0]["value"] = event[1]
+            prototype["exception"]["values"][0]["mechanism"]["handled"] = event[2]
+            prototype["timestamp"] = self.two_min_ago
+            self.store_event(data=prototype, project_id=project.id)
+
+        with self.feature("organizations:discover-basic"):
+            query = {
+                "field": ["message", "error.unhandled", "error.handled"],
+                "query": "error.unhandled:true",
+                "orderby": "message",
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.data
+            assert 1 == len(response.data["data"])
+            assert [0] == response.data["data"][0]["error.handled"]
+            assert 1 == response.data["data"][0]["error.unhandled"]
+
+        with self.feature("organizations:discover-basic"):
+            query = {
+                "field": ["message", "error.handled", "error.unhandled"],
+                "query": "error.unhandled:false",
+                "orderby": "message",
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.data
+            assert 2 == len(response.data["data"])
+            assert [None] == response.data["data"][0]["error.handled"]
+            assert 0 == response.data["data"][0]["error.unhandled"]
+            assert [1] == response.data["data"][1]["error.handled"]
+            assert 0 == response.data["data"][1]["error.unhandled"]
+
     def test_implicit_groupby(self):
         project = self.create_project()
         self.store_event(

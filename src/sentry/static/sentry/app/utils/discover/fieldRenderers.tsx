@@ -81,7 +81,7 @@ const FIELD_FORMATTERS: FieldFormatters = {
   boolean: {
     isSortable: true,
     renderFunc: (field, data) => {
-      const value = data[field] ? t('yes') : t('no');
+      const value = data[field] ? t('true') : t('false');
       return <Container>{value}</Container>;
     },
   },
