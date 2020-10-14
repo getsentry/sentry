@@ -7,7 +7,6 @@ import TimeSince from 'app/components/timeSince';
 import Version from 'app/components/version';
 import VersionHoverCard from 'app/components/versionHoverCard';
 import space from 'app/styles/space';
-import {IconInfo} from 'app/icons';
 import Tooltip from 'app/components/tooltip';
 import {defined, toTitleCase} from 'app/utils';
 import {t} from 'app/locale';
@@ -95,7 +94,6 @@ class SeenInfo extends React.Component<Props> {
         {date ? (
           <TooltipWrapper>
             <Tooltip title={this.getTooltipTitle()} disableForVisualTest>
-              <IconInfo size="xs" color="gray500" />
               <TimeSince date={date} />
             </Tooltip>
           </TooltipWrapper>
