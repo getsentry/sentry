@@ -42,17 +42,6 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
         "count_range": {"format": "count_range({start}, {end}, {index})", "alias": "count_range_"},
         "percentage": {"format": "percentage({alias}2, {alias}1)"},
     }
-    # Aggregations that will be automatically added if they're included in the query
-    # this is so they're only added as needed
-    auto_aggregations = [
-        "p50()",
-        "p75()",
-        "p95()",
-        "p99()",
-        "avg(transaction.duration)",
-        "count()",
-        "absolute_correlation()",
-    ]
 
     def has_feature(self, organization, request):
         return features.has("organizations:trends", organization, actor=request.user)
@@ -107,7 +96,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
                 limit=limit,
                 referrer="api.trends.get-percentage-change",
                 auto_fields=True,
-                auto_aggregations=self.auto_aggregations,
+                auto_aggregations=True,
                 use_aggregate_conditions=True,
             )
 

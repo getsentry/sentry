@@ -1355,6 +1355,24 @@ class QueryTransformTest(TestCase):
             )
 
     @patch("sentry.snuba.discover.raw_query")
+    def test_aggregate_condition_missing_with_auto(self, mock_query):
+        mock_query.return_value = {
+            "meta": [{"name": "transaction"}, {"name": "duration"}],
+            "data": [{"transaction": "api.do_things", "duration": 200}],
+        }
+        start_time = before_now(minutes=10)
+        end_time = before_now(seconds=1)
+
+        with pytest.raises(InvalidSearchQuery):
+            discover.query(
+                selected_columns=["transaction"],
+                query="http.method:GET max(time):>5",
+                params={"project_id": [self.project.id], "start": start_time, "end": end_time},
+                use_aggregate_conditions=True,
+                auto_aggregations=True,
+            )
+
+    @patch("sentry.snuba.discover.raw_query")
     def test_auto_aggregation(self, mock_query):
         mock_query.return_value = {
             "meta": [{"name": "transaction"}, {"name": "duration"}],
@@ -1364,15 +1382,15 @@ class QueryTransformTest(TestCase):
         end_time = before_now(seconds=1)
 
         discover.query(
-            selected_columns=["transaction"],
+            selected_columns=["transaction", "p95()"],
             query="http.method:GET max(time):>5",
             params={"project_id": [self.project.id], "start": start_time, "end": end_time},
             use_aggregate_conditions=True,
-            auto_aggregations=["max(time)"],
+            auto_aggregations=True,
         )
         mock_query.assert_called_with(
             selected_columns=["transaction"],
-            aggregations=[["max", "time", "max_time"]],
+            aggregations=[["quantile(0.95)", "duration", "p95"], ["max", "time", "max_time"]],
             filter_keys={"project_id": [self.project.id]},
             dataset=Dataset.Discover,
             groupby=["transaction"],
@@ -1381,6 +1399,38 @@ class QueryTransformTest(TestCase):
             end=end_time,
             orderby=None,
             having=[["max_time", ">", 5.0]],
+            limit=50,
+            offset=None,
+            referrer=None,
+        )
+
+    @patch("sentry.snuba.discover.raw_query")
+    def test_auto_aggregation_with_boolean_conditions(self, mock_query):
+        mock_query.return_value = {
+            "meta": [{"name": "transaction"}, {"name": "duration"}],
+            "data": [{"transaction": "api.do_things", "duration": 200}],
+        }
+        start_time = before_now(minutes=10)
+        end_time = before_now(seconds=1)
+
+        discover.query(
+            selected_columns=["transaction", "min(time)"],
+            query="max(time):>5 AND min(time):<10",
+            params={"project_id": [self.project.id], "start": start_time, "end": end_time},
+            use_aggregate_conditions=True,
+            auto_aggregations=True,
+        )
+        mock_query.assert_called_with(
+            selected_columns=["transaction"],
+            aggregations=[["min", "time", "min_time"], ["max", "time", "max_time"]],
+            filter_keys={"project_id": [self.project.id]},
+            dataset=Dataset.Discover,
+            groupby=["transaction"],
+            conditions=[],
+            start=start_time,
+            end=end_time,
+            orderby=None,
+            having=[["max_time", ">", 5.0], ["min_time", "<", 10.0]],
             limit=50,
             offset=None,
             referrer=None,

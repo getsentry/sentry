@@ -1163,6 +1163,7 @@ def get_filter(query=None, params=None):
         "having": [],
         "project_ids": [],
         "group_ids": [],
+        "condition_aggregates": [],
     }
 
     projects_to_filter = []
@@ -1182,6 +1183,9 @@ def get_filter(query=None, params=None):
             for func in and_conditions:
                 kwargs["conditions"].append(convert_function_to_condition(func))
         if having:
+            kwargs["condition_aggregates"] = [
+                term.key.name for term in parsed_terms if isinstance(term, AggregateFilter)
+            ]
             and_having = flatten_condition_tree(having, SNUBA_AND)
             for func in and_having:
                 kwargs["having"].append(convert_function_to_condition(func))
@@ -1201,6 +1205,7 @@ def get_filter(query=None, params=None):
                     kwargs["group_ids"].extend(group_ids)
             elif isinstance(term, AggregateFilter):
                 converted_filter = convert_aggregate_filter_to_snuba_query(term, params)
+                kwargs["condition_aggregates"].append(term.key.name)
                 if converted_filter:
                     kwargs["having"].append(converted_filter)
 
@@ -2015,7 +2020,7 @@ def resolve_field(field, params=None):
     return ([field], None)
 
 
-def resolve_field_list(fields, snuba_filter, auto_fields=True, auto_aggregations=None):
+def resolve_field_list(fields, snuba_filter, auto_fields=True, auto_aggregations=False):
     """
     Expand a list of fields based on aliases and aggregate functions.
 
@@ -2055,12 +2060,12 @@ def resolve_field_list(fields, snuba_filter, auto_fields=True, auto_aggregations
         if agg_additions:
             aggregations.extend(agg_additions)
 
-    if auto_aggregations is not None and snuba_filter.having:
-        having_aggregates = [having[0] for having in snuba_filter.having]
-        for agg in auto_aggregations:
+    # Only auto aggregate when there's one other so we the group by is not unexpectedly changed
+    if auto_aggregations and snuba_filter.having and len(aggregations) > 0:
+        for agg in snuba_filter.condition_aggregates:
             _, agg_additions = resolve_field(agg, snuba_filter.date_params)
 
-            if agg_additions[0][-1] in having_aggregates and agg_additions not in aggregations:
+            if agg_additions[0] not in aggregations:
                 aggregations.extend(agg_additions)
 
     rollup = snuba_filter.rollup

@@ -305,7 +305,7 @@ def query(
     limit=50,
     referrer=None,
     auto_fields=False,
-    auto_aggregations=None,
+    auto_aggregations=False,
     use_aggregate_conditions=False,
     conditions=None,
 ):
@@ -327,8 +327,9 @@ def query(
     limit (int) The number of records to fetch.
     referrer (str|None) A referrer string to help locate the origin of this query.
     auto_fields (bool) Set to true to have project + eventid fields automatically added.
-    auto_aggregations (Sequence[str]) A list of aggregates, that automatically get added when used in conditions
-    use_aggregate_conditions (bool) Set to true if aggregates conditions should be used at all
+    auto_aggregations (bool) Whether aggregates should be added automatically if they're used
+                    in conditions, and there's at least one aggregate already.
+    use_aggregate_conditions (bool) Set to true if aggregates conditions should be used at all.
     conditions (Sequence[any]) List of conditions that are passed directly to snuba without
                     any additional processing.
     """
@@ -430,7 +431,7 @@ def query(
                 )
                 if not found:
                     raise InvalidSearchQuery(
-                        u"Aggregate {} used in a condition but is not a selected column.".format(
+                        u"Aggregate {} used in a condition but is not a selected column, and could not be automatically added.".format(
                             having_clause[0]
                         )
                     )
@@ -503,6 +504,7 @@ def key_transaction_query(selected_columns, user_query, params, orderby, referre
         orderby=orderby,
         referrer=referrer,
         conditions=key_transaction_conditions(queryset),
+        auto_aggregations=True,
         use_aggregate_conditions=True,
     )
 
@@ -681,6 +683,7 @@ def top_events_timeseries(
                 orderby=orderby,
                 limit=limit,
                 referrer=referrer,
+                auto_aggregations=True,
                 use_aggregate_conditions=True,
             )
 
@@ -1110,6 +1113,7 @@ def find_measurements_min_max(
         limit=1,
         referrer="api.organization-events-measurements-min-max",
         auto_fields=True,
+        auto_aggregations=True,
         use_aggregate_conditions=True,
     )
 
