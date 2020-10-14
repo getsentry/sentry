@@ -386,11 +386,10 @@ class IssueActions extends PluginComponentBase<Props, State> {
   }
 
   renderForm() {
-    let form;
     switch (this.props.actionType) {
       case 'create':
         if (this.state.createFieldList) {
-          form = (
+          return (
             <Form
               onSubmit={this.createIssue}
               submitLabel={t('Create Issue')}
@@ -426,7 +425,7 @@ class IssueActions extends PluginComponentBase<Props, State> {
         break;
       case 'link':
         if (this.state.linkFieldList) {
-          form = (
+          return (
             <Form onSubmit={this.linkIssue} submitLabel={t('Link Issue')} footerClass="">
               {this.state.linkFieldList.map(field => {
                 if (field.has_autocomplete) {
@@ -457,7 +456,7 @@ class IssueActions extends PluginComponentBase<Props, State> {
         }
         break;
       case 'unlink':
-        form = (
+        return (
           <div>
             <p>{t('Are you sure you want to unlink this issue?')}</p>
             <button onClick={this.unlinkIssue} className="btn btn-danger">
@@ -465,11 +464,10 @@ class IssueActions extends PluginComponentBase<Props, State> {
             </button>
           </div>
         );
-        break;
       default:
-        form = null;
+        return null;
     }
-    return form;
+    return null;
   }
 
   getPluginConfigureUrl() {
