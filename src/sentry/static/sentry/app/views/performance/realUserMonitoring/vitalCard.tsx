@@ -16,7 +16,12 @@ import {FIRE_SVG_PATH} from 'app/icons/iconFire';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import EventView from 'app/utils/discover/eventView';
-import {formatFloat, formatPercentage, getDuration} from 'app/utils/formatters';
+import {
+  formatAbbreviatedNumber,
+  formatFloat,
+  formatPercentage,
+  getDuration,
+} from 'app/utils/formatters';
 import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import theme from 'app/utils/theme';
 
@@ -32,6 +37,7 @@ type Props = {
   error: boolean;
   vital: Vital;
   summary: number | null;
+  failureRate: number;
   chartData: HistogramData[];
   colors: [string];
   eventView: EventView;
@@ -153,12 +159,14 @@ class VitalCard extends React.Component<Props, State> {
         </CardSectionHeading>
         <StatNumber>{this.getFormattedStatNumber()}</StatNumber>
         <Description>{description}</Description>
-        <DiscoverButton
-          size="small"
-          to={newEventView.getResultsViewUrlTarget(organization.slug)}
-        >
-          {t('Open in Discover')}
-        </DiscoverButton>
+        <div>
+          <DiscoverButton
+            size="small"
+            to={newEventView.getResultsViewUrlTarget(organization.slug)}
+          >
+            {t('Open in Discover')}
+          </DiscoverButton>
+        </div>
       </CardSummary>
     );
   }
@@ -210,7 +218,14 @@ class VitalCard extends React.Component<Props, State> {
     const values = series.data.map(point => point.value);
     const max = values.length ? Math.max(...values) : undefined;
 
-    const yAxis = {type: 'value', max};
+    const yAxis = {
+      type: 'value',
+      max,
+      axisLabel: {
+        color: theme.gray400,
+        formatter: formatAbbreviatedNumber,
+      },
+    };
 
     return (
       <BarChartZoom
@@ -353,7 +368,7 @@ class VitalCard extends React.Component<Props, State> {
   }
 
   drawFailRegion(series) {
-    const {chartData, vital} = this.props;
+    const {chartData, vital, failureRate} = this.props;
     const {failureThreshold} = vital;
     if (this.state.refDataRect === null || this.state.refPixelRect === null) {
       return;
@@ -438,7 +453,7 @@ class VitalCard extends React.Component<Props, State> {
       symbolKeepAspect: true,
       symbolSize: [14, 16],
       label: {
-        formatter: `~${formatPercentage(this.approxFailureRate(failureBucket), 0)}`,
+        formatter: formatPercentage(failureRate, 0),
         position: 'left',
       },
     });
@@ -474,8 +489,8 @@ type IndicatorProps = {
 
 const Indicator = styled('div')<IndicatorProps>`
   position: absolute;
+  top: 20px;
   left: 0px;
-  margin-top: ${space(0.5)};
   width: 6px;
   height: 18px;
   border-radius: 0 3px 3px 0;
@@ -491,8 +506,6 @@ const StyledTag = styled(Tag)<TagProps>`
   right: ${space(3)};
   background-color: ${p => p.color};
   color: ${p => p.theme.white};
-  text-transform: uppercase;
-  font-weight: 500;
 `;
 
 function formatDuration(duration: number) {

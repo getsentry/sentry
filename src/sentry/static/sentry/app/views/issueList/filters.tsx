@@ -2,52 +2,45 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
+import {Organization, SavedSearch} from 'app/types';
 import {PageHeader} from 'app/styles/organization';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {t} from 'app/locale';
 import PageHeading from 'app/components/pageHeading';
 import QueryCount from 'app/components/queryCount';
-import SentryTypes from 'app/sentryTypes';
 
 import IssueListSearchBar from './searchBar';
 import IssueListSortOptions from './sortOptions';
 import SavedSearchSelector from './savedSearchSelector';
+import {TagValueLoader} from './types';
 
-class IssueListFilters extends React.Component {
-  static propTypes = {
-    organization: SentryTypes.Organization,
+type IssueListSearchBarProps = React.ComponentProps<typeof IssueListSearchBar>;
 
-    savedSearchList: PropTypes.arrayOf(SentryTypes.SavedSearch),
-    savedSearch: SentryTypes.SavedSearch,
+type Props = {
+  organization: Organization;
+  savedSearchList: SavedSearch[];
+  savedSearch: SavedSearch;
+  sort: string;
+  query: string;
+  isSearchDisabled: boolean;
+  queryCount: number;
+  queryMaxCount: number;
 
-    sort: PropTypes.string,
-    query: PropTypes.string,
-    isSearchDisabled: PropTypes.bool,
-    queryCount: PropTypes.number,
-    queryMaxCount: PropTypes.number,
+  onSortChange: (sort: string) => void;
+  onSearch: (query: string) => void;
+  onSidebarToggle: (event: React.MouseEvent) => void;
+  onSavedSearchSelect: (search: SavedSearch) => void;
+  onSavedSearchDelete: (search: SavedSearch) => void;
+  tagValueLoader: TagValueLoader;
+  tags: NonNullable<IssueListSearchBarProps['supportedTags']>;
+};
 
-    onSortChange: PropTypes.func,
-    onSearch: PropTypes.func,
-    onSidebarToggle: PropTypes.func,
-    onSavedSearchSelect: PropTypes.func.isRequired,
-    onSavedSearchDelete: PropTypes.func.isRequired,
-    tagValueLoader: PropTypes.func.isRequired,
-    tags: PropTypes.object.isRequired,
-  };
-
+class IssueListFilters extends React.Component<Props> {
   static contextTypes = {
     location: PropTypes.object,
   };
 
-  static defaultProps = {
-    sort: '',
-    query: null,
-    onSortChange: function () {},
-    onSearch: function () {},
-    onSidebarToggle: function () {},
-  };
-
-  handleSavedSearchSelect = savedSearch => {
+  handleSavedSearchSelect = (savedSearch: SavedSearch) => {
     trackAnalyticsEvent({
       eventKey: 'organization_saved_search.selected',
       eventName: 'Organization Saved Search: Selected saved search',
@@ -117,7 +110,7 @@ class IssueListFilters extends React.Component {
   }
 }
 
-const SearchContainer = styled('div')`
+const SearchContainer = styled('div')<{isWide: boolean}>`
   display: flex;
   width: ${p => (p.isWide ? '70%' : '58.3%')};
 `;
