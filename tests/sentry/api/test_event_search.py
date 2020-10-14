@@ -2391,8 +2391,6 @@ class ResolveFieldListTest(unittest.TestCase):
         result = resolve_field_list(fields, eventstore.Filter())
         assert result["aggregations"] == [
             [
-                # u"quantileIf(0.50)(duration,and(greaterOrEquals(timestamp,toDateTime('2020-05-01T01:12:34')),less(timestamp,toDateTime('2020-05-03T06:48:57'))))",
-                # None,
                 "quantileIf(0.50)",
                 [
                     "transaction.duration",
