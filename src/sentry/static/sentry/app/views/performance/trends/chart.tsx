@@ -14,11 +14,16 @@ import EventView from 'app/utils/discover/eventView';
 import {OrganizationSummary, EventsStatsData} from 'app/types';
 import LineChart from 'app/components/charts/lineChart';
 import ChartZoom from 'app/components/charts/chartZoom';
-import {Series} from 'app/types/echarts';
+import {Series, SeriesDataUnit} from 'app/types/echarts';
 import theme from 'app/utils/theme';
 import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
 
-import {trendToColor, getIntervalRatio, getCurrentTrendFunction} from './utils';
+import {
+  getCurrentTrendFunction,
+  getIntervalRatio,
+  movingAverage,
+  trendToColor,
+} from './utils';
 import {TrendChangeType, TrendsStats, NormalizedTrendsTransaction} from './types';
 
 const QUERY_KEYS = [
@@ -29,6 +34,7 @@ const QUERY_KEYS = [
   'end',
   'statsPeriod',
 ] as const;
+const AVERAGE_WINDOW = 10;
 
 type ViewProps = Pick<EventView, typeof QUERY_KEYS[number]>;
 
@@ -51,6 +57,33 @@ function transformEventStats(data: EventsStatsData, seriesName?: string): Series
         name: timestamp * 1000,
         value: countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
       })),
+    },
+  ];
+}
+
+function transformEventStatsSmoothed(data: Series[], seriesName?: string): Series[] {
+  const currentData = data[0].data;
+  const resultData: SeriesDataUnit[] = [];
+  resultData.push(currentData[0]);
+
+  // Start at 1 so we don't get NaN from the movingAverage
+  for (let i = 1; i < currentData.length; i++) {
+    let value;
+    if (i < AVERAGE_WINDOW) {
+      // A rougher movingAverage for these points, but this way there isn't a gap
+      value = movingAverage(currentData, i, i);
+    } else {
+      value = movingAverage(currentData, i, AVERAGE_WINDOW);
+    }
+    resultData.push({
+      name: currentData[i].name,
+      value,
+    });
+  }
+  return [
+    {
+      seriesName: 'smoothed ' + seriesName || 'Current',
+      data: resultData,
     },
   ];
 }
@@ -215,6 +248,10 @@ class Chart extends React.Component<Props> {
 
     const trendFunction = getCurrentTrendFunction(location);
     const results = transformEventStats(data, trendFunction.chartLabel);
+    const smoothedResults = transformEventStatsSmoothed(
+      results,
+      trendFunction.chartLabel
+    );
 
     const start = props.start ? getUtcToLocalDateObject(props.start) : undefined;
 
@@ -229,7 +266,9 @@ class Chart extends React.Component<Props> {
 
     const chartOptions = {
       tooltip: {
-        valueFormatter: tooltipFormatter,
+        valueFormatter: (value, seriesName) => {
+          return tooltipFormatter(value, seriesName.replace('smoothed ', ''));
+        },
       },
       yAxis: {
         axisLabel: {
@@ -249,6 +288,20 @@ class Chart extends React.Component<Props> {
           environments={environment}
         >
           {zoomRenderProps => {
+            const smoothedSeries = smoothedResults
+              ? smoothedResults
+                  .map(values => {
+                    return {
+                      ...values,
+                      color: lineColor,
+                      lineStyle: {
+                        opacity: 1,
+                      },
+                    };
+                  })
+                  .reverse()
+              : [];
+
             const series = results
               ? results
                   .map(values => {
@@ -256,7 +309,7 @@ class Chart extends React.Component<Props> {
                       ...values,
                       color: lineColor,
                       lineStyle: {
-                        opacity: 1,
+                        opacity: 0.25,
                       },
                     };
                   })
@@ -282,7 +335,12 @@ class Chart extends React.Component<Props> {
                         <LineChart
                           {...zoomRenderProps}
                           {...chartOptions}
-                          series={[...series, ...releaseSeries, ...intervalSeries]}
+                          series={[
+                            ...smoothedSeries,
+                            ...series,
+                            ...releaseSeries,
+                            ...intervalSeries,
+                          ]}
                           seriesOptions={{
                             showSymbol: false,
                           }}
