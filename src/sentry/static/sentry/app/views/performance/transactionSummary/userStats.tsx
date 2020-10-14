@@ -6,10 +6,17 @@ import {Organization} from 'app/types';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
+import {WebVital, getAggregateAlias} from 'app/utils/discover/fields';
 import {getTermHelp} from 'app/views/performance/data';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {SectionHeading} from 'app/components/charts/styles';
 import UserMisery from 'app/components/userMisery';
+import {
+  PERCENTILE as VITAL_PERCENTILE,
+  WEB_VITAL_DETAILS,
+} from 'app/views/performance/realUserMonitoring/constants';
+
+const VITALS = [WebVital.FP, WebVital.FCP, WebVital.LCP, WebVital.FID];
 
 type Props = {
   totals: Record<string, number>;
@@ -21,6 +28,7 @@ function UserStats({totals, location, organization}: Props) {
   let userMisery = <StatNumber>{'\u2014'}</StatNumber>;
   const threshold = organization.apdexThreshold;
   let apdex: React.ReactNode = <StatNumber>{'\u2014'}</StatNumber>;
+  let vitalsPassRate: React.ReactNode = null;
 
   if (totals) {
     const miserableUsers = Number(totals[`user_misery_${threshold}`]);
@@ -40,6 +48,22 @@ function UserStats({totals, location, organization}: Props) {
     const apdexKey = `apdex_${threshold}`;
     const formatter = getFieldRenderer(apdexKey, {[apdexKey]: 'number'});
     apdex = formatter(totals, {organization, location});
+
+    const [vitalsPassed, vitalsTotal] = VITALS.reduce(
+      ([passed, total], vital) => {
+        const aggregate = `percentile(${vital}, ${VITAL_PERCENTILE})`;
+        const alias = getAggregateAlias(aggregate);
+        if (!isNaN(totals[alias])) {
+          total += 1;
+          if (totals[alias] < WEB_VITAL_DETAILS[vital].failureThreshold) {
+            passed += 1;
+          }
+        }
+        return [passed, total];
+      },
+      [0, 0]
+    );
+    vitalsPassRate = <StatNumber>{`${vitalsPassed} / ${vitalsTotal}`}</StatNumber>;
   }
 
   return (
@@ -48,6 +72,12 @@ function UserStats({totals, location, organization}: Props) {
         <SectionHeading>{t('Apdex Score')}</SectionHeading>
         <StatNumber>{apdex}</StatNumber>
       </div>
+      {vitalsPassRate !== null && (
+        <div>
+          <SectionHeading>{t('Web Vitals')}</SectionHeading>
+          <StatNumber>{vitalsPassRate}</StatNumber>
+        </div>
+      )}
       <UserMiseryContainer>
         <SectionHeading>
           {t('User Misery')}
