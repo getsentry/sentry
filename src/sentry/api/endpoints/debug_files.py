@@ -12,7 +12,7 @@ from django.http import StreamingHttpResponse, HttpResponse, Http404
 from rest_framework.response import Response
 from symbolic import normalize_debug_id, SymbolicError
 
-from sentry import ratelimits
+from sentry import ratelimits, roles
 
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.paginator import OffsetPaginator
@@ -24,6 +24,7 @@ from sentry.models import (
     create_files_from_dif_zip,
     Release,
     ReleaseFile,
+    OrganizationMember,
 )
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.tasks.assemble import (
@@ -33,6 +34,9 @@ from sentry.tasks.assemble import (
     ChunkFileState,
 )
 from sentry.utils import json
+from sentry.auth.superuser import is_active_superuser
+from sentry.auth.system import is_system_auth
+from sentry.constants import DEBUG_FILES_ROLE_DEFAULT
 
 
 logger = logging.getLogger("sentry.api")
@@ -47,6 +51,32 @@ def upload_from_request(request, project):
     fileobj = request.data["file"]
     files = create_files_from_dif_zip(fileobj, project=project)
     return Response(serialize(files, request.user), status=201)
+
+
+def has_download_permission(request, project):
+    if is_system_auth(request.auth) or is_active_superuser(request):
+        return True
+
+    if not request.user.is_authenticated():
+        return False
+
+    organization = project.organization
+    required_role = (
+        organization.get_option("sentry:debug_files_role") or DEBUG_FILES_ROLE_DEFAULT
+    )
+
+    try:
+        current_role = (
+            OrganizationMember.objects.filter(organization=organization, user=request.user)
+            .values_list("role", flat=True)
+            .get()
+        )
+    except OrganizationMember.DoesNotExist:
+        return False
+
+    required_role = roles.get(required_role)
+    current_role = roles.get(current_role)
+    return current_role.priority >= required_role.priority
 
 
 class DebugFilesEndpoint(ProjectEndpoint):
@@ -101,7 +131,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
         :auth: required
         """
         download_requested = request.GET.get("id") is not None
-        if download_requested and (request.access.has_scope("project:write")):
+        if download_requested and (has_download_permission(request, project)):
             return self.download(request.GET.get("id"), project)
 
         code_id = request.GET.get("code_id")
