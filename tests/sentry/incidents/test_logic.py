@@ -559,6 +559,12 @@ class CreateIncidentSnapshotTest(TestCase, BaseIncidentsTest):
         assert start == datetime.utcnow() - timedelta(days=90)
         assert end == incident.date_closed + timedelta(minutes=time_window)
 
+        incident.update(date_closed=datetime.utcnow() - timedelta(days=95),)
+
+        start, end = calculate_incident_time_range(incident)
+        assert start == datetime.utcnow() - timedelta(days=90)
+        assert end == start
+
     def test_windowed_capped_end(self):
         # When processing PendingIncidentSnapshots, the task could run later than we'd like the
         # end to actually be, so we have logic to cap it to 10 datapoints, or 10 days, whichever is less. This tests that logic.
