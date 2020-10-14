@@ -1288,6 +1288,7 @@ export type Tag = {
   values?: string[];
   totalValues?: number;
   predefined?: boolean;
+  isInput?: boolean;
 };
 
 export type TagCollection = {[key: string]: Tag};
