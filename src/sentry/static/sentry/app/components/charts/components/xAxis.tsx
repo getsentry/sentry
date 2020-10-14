@@ -51,8 +51,8 @@ export default function XAxis({
     axisLine: {
       lineStyle: {
         color: theme.gray400,
-        ...(axisLine || {}),
       },
+      ...(axisLine || {}),
     },
     axisTick: {
       lineStyle: {
