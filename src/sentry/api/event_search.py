@@ -157,7 +157,7 @@ search_key           = key / quoted_key
 search_value         = quoted_value / value
 value                = ~r"[^()\s]*"
 numeric_value        = ~r"[-]?[0-9\.]+(?=\s|\)|$)"
-boolean_value        = ~r"(true|1|false|0)(?=\s|$)"i
+boolean_value        = ~r"(true|1|false|0)(?=\s|\)|$)"i
 quoted_value         = ~r"\"((?:[^\"]|(?<=\\)[\"])*)?\""s
 key                  = ~r"[a-zA-Z0-9_\.-]+"
 function_arg         = space? key? comma? space?
@@ -1274,15 +1274,15 @@ class ArgValue(object):
 
 
 class FunctionArg(object):
-    def __init__(self, name, has_default=False):
+    def __init__(self, name):
         self.name = name
-        self.has_default = has_default
-
-    def normalize(self, value):
-        return value
+        self.has_default = False
 
     def get_default(self, params):
         raise InvalidFunctionArgument(u"{} has no defaults".format(self.name))
+
+    def normalize(self, value):
+        return value
 
 
 class NullColumn(FunctionArg):
@@ -1293,7 +1293,8 @@ class NullColumn(FunctionArg):
     """
 
     def __init__(self, name):
-        super(NullColumn, self).__init__(name, has_default=True)
+        super(NullColumn, self).__init__(name)
+        self.has_default = True
 
     def get_default(self, params):
         return None
@@ -1304,7 +1305,8 @@ class NullColumn(FunctionArg):
 
 class CountColumn(FunctionArg):
     def __init__(self, name):
-        super(CountColumn, self).__init__(name, has_default=True)
+        super(CountColumn, self).__init__(name)
+        self.has_default = True
 
     def get_default(self, params):
         return None
@@ -1383,8 +1385,8 @@ class StringArrayColumn(FunctionArg):
 
 
 class NumberRange(FunctionArg):
-    def __init__(self, name, start, end, has_default=False):
-        super(NumberRange, self).__init__(name, has_default=has_default)
+    def __init__(self, name, start, end):
+        super(NumberRange, self).__init__(name)
         self.start = start
         self.end = end
 
@@ -1406,7 +1408,8 @@ class NumberRange(FunctionArg):
 
 class IntervalDefault(NumberRange):
     def __init__(self, name, start, end):
-        super(IntervalDefault, self).__init__(name, start, end, has_default=True)
+        super(IntervalDefault, self).__init__(name, start, end)
+        self.has_default = True
 
     def get_default(self, params):
         if not params or not params.get("start") or not params.get("end"):
@@ -1418,6 +1421,12 @@ class IntervalDefault(NumberRange):
 
         interval = (params["end"] - params["start"]).total_seconds()
         return int(interval)
+
+
+def with_default(default, argument):
+    argument.has_default = True
+    argument.get_default = lambda *_: default
+    return argument
 
 
 class Function(object):
@@ -1586,25 +1595,34 @@ FUNCTIONS = {
         ),
         Function(
             "p50",
-            aggregate=[u"quantile(0.5)", "transaction.duration", None],
+            optional_args=[with_default("transaction.duration", NumericColumnNoLookup("column"))],
+            aggregate=[u"quantile(0.5)", ArgValue("column"), None],
             result_type="duration",
         ),
         Function(
             "p75",
-            aggregate=[u"quantile(0.75)", "transaction.duration", None],
+            optional_args=[with_default("transaction.duration", NumericColumnNoLookup("column"))],
+            aggregate=[u"quantile(0.75)", ArgValue("column"), None],
             result_type="duration",
         ),
         Function(
             "p95",
-            aggregate=[u"quantile(0.95)", "transaction.duration", None],
+            optional_args=[with_default("transaction.duration", NumericColumnNoLookup("column"))],
+            aggregate=[u"quantile(0.95)", ArgValue("column"), None],
             result_type="duration",
         ),
         Function(
             "p99",
-            aggregate=[u"quantile(0.99)", "transaction.duration", None],
+            optional_args=[with_default("transaction.duration", NumericColumnNoLookup("column"))],
+            aggregate=[u"quantile(0.99)", ArgValue("column"), None],
             result_type="duration",
         ),
-        Function("p100", aggregate=[u"max", "transaction.duration", None], result_type="duration",),
+        Function(
+            "p100",
+            optional_args=[with_default("transaction.duration", NumericColumnNoLookup("column"))],
+            aggregate=[u"max", ArgValue("column"), None],
+            result_type="duration",
+        ),
         Function(
             "eps",
             optional_args=[IntervalDefault("interval", 1, None)],
@@ -1726,6 +1744,16 @@ FUNCTIONS = {
             result_type="integer",
         ),
         Function(
+            "count_at_least",
+            required_args=[NumericColumnNoLookup("column"), NumberRange("threshold", 0, None)],
+            aggregate=[
+                "countIf",
+                [["greaterOrEquals", [ArgValue("column"), ArgValue("threshold")]]],
+                None,
+            ],
+            result_type="integer",
+        ),
+        Function(
             "min",
             required_args=[NumericColumnNoLookup("column")],
             aggregate=["min", ArgValue("column"), None],
@@ -1832,7 +1860,11 @@ FUNCTIONS = {
         ),
         Function(
             "absolute_correlation",
-            aggregate=["abs", [["corr", ["toUnixTimestamp", ["timestamp"], "duration"]]], None],
+            aggregate=[
+                "abs",
+                [["corr", [["toUnixTimestamp", ["timestamp"]], "transaction.duration"]]],
+                None,
+            ],
             result_type="number",
         ),
     ]
@@ -1863,15 +1895,14 @@ def get_function_alias_with_columns(function_name, columns):
     return u"{}_{}".format(function_name, columns).rstrip("_")
 
 
-def format_column_arguments(column, arguments):
-    args = column[1]
-    for i in range(len(args)):
-        if isinstance(args[i], (list, tuple)):
-            format_column_arguments(args[i], arguments)
-        elif isinstance(args[i], six.string_types):
-            args[i] = args[i].format(**arguments)
-        elif isinstance(args[i], ArgValue):
-            args[i] = arguments[args[i].arg]
+def format_column_arguments(column_args, arguments):
+    for i in range(len(column_args)):
+        if isinstance(column_args[i], (list, tuple)):
+            format_column_arguments(column_args[i][1], arguments)
+        elif isinstance(column_args[i], six.string_types):
+            column_args[i] = column_args[i].format(**arguments)
+        elif isinstance(column_args[i], ArgValue):
+            column_args[i] = arguments[column_args[i].arg]
 
 
 def parse_function(field, match=None):
@@ -1904,12 +1935,17 @@ def resolve_function(field, match=None, params=None):
 
         aggregate[0] = aggregate[0].format(**arguments)
         if isinstance(aggregate[1], (list, tuple)):
-            aggregate[1] = [
-                arguments[agg.arg] if isinstance(agg, ArgValue) else agg for agg in aggregate[1]
-            ]
+            format_column_arguments(aggregate[1], arguments)
         elif isinstance(aggregate[1], ArgValue):
             arg = aggregate[1].arg
-            aggregate[1] = arguments[arg]
+            # The aggregate function has only a single argument
+            # however that argument is an expression, so we have
+            # to make sure to nest it so it doesn't get treated
+            # as a list of arguments by snuba.
+            if isinstance(arguments[arg], (list, tuple)):
+                aggregate[1] = [arguments[arg]]
+            else:
+                aggregate[1] = arguments[arg]
         if aggregate[2] is None:
             aggregate[2] = get_function_alias_with_columns(function.name, columns)
         else:
@@ -1919,7 +1955,7 @@ def resolve_function(field, match=None, params=None):
     elif function.column is not None:
         # These can be very nested functions, so we need to iterate through all the layers
         addition = deepcopy(function.column)
-        format_column_arguments(addition, arguments)
+        format_column_arguments(addition[1], arguments)
         if len(addition) < 3:
             addition.append(get_function_alias_with_columns(function.name, columns))
         elif len(addition) == 3 and addition[2] is None:

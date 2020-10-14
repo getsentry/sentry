@@ -41,6 +41,7 @@ const EventTagsPill = ({
   const locationSearch = `?${queryString.stringify(query)}`;
   const isRelease = tag.key === 'release';
   const isTrace = tag.key === 'trace';
+
   return (
     <Pill key={tag.key} name={tag.key} value={tag.value}>
       <Link

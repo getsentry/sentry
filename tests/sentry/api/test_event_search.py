@@ -969,6 +969,19 @@ class ParseBooleanSearchQueryTest(TestCase):
         result = get_filter("user.email:foo@example.com")
         assert result.conditions == [self.ofoo]
 
+    def test_wildcard_array_field(self):
+        _filter = get_filter("error.value:Deadlock* OR !stack.filename:*.py")
+        assert _filter.conditions == [
+            [
+                _or(
+                    ["like", ["error.value", "Deadlock%"]], ["notLike", ["stack.filename", "%.py"]],
+                ),
+                "=",
+                1,
+            ]
+        ]
+        assert _filter.filter_keys == {}
+
     def test_order_of_operations(self):
         result = get_filter(
             "user.email:foo@example.com OR user.email:bar@example.com AND user.email:foobar@example.com"
@@ -1026,6 +1039,10 @@ class ParseBooleanSearchQueryTest(TestCase):
                 1,
             ]
         ]
+
+    def test_grouping_boolean_filter(self):
+        result = get_filter("(event.type:error) AND (stack.in_app:true)")
+        assert result.conditions == [["event.type", "=", "error"], ["stack.in_app", "=", 1]]
 
     def test_grouping_simple(self):
         result = get_filter("(user.email:foo@example.com OR user.email:bar@example.com)")
@@ -2029,7 +2046,7 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["aggregations"] == [
             [
                 "uniq",
-                ["coalesce", ["user.email", "user.username", "user.ip"]],
+                [["coalesce", ["user.email", "user.username", "user.ip"]]],
                 "count_unique_user_display",
             ],
         ]
@@ -2328,6 +2345,17 @@ class ResolveFieldListTest(unittest.TestCase):
             in six.text_type(err)
         )
 
+    def test_count_at_least_function(self):
+        fields = ["count_at_least(measurements.baz, 1000)"]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["aggregations"] == [
+            [
+                "countIf",
+                [["greaterOrEquals", ["measurements.baz", 1000]]],
+                "count_at_least_measurements_baz_1000",
+            ]
+        ]
+
     def test_percentile_range(self):
         fields = [
             "percentile_range(transaction.duration, 0.5, 2020-05-01T01:12:34, 2020-05-03T06:48:57, 1)"
@@ -2401,7 +2429,7 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["aggregations"] == [
             [
                 "abs",
-                [["corr", ["toUnixTimestamp", ["timestamp"], "duration"]]],
+                [["corr", [["toUnixTimestamp", ["timestamp"]], "transaction.duration"]]],
                 u"absolute_correlation",
             ]
         ]
@@ -2455,6 +2483,36 @@ class ResolveFieldListTest(unittest.TestCase):
                 "minus_user_misery_range_1_user_misery_range_2",
             ],
         ]
+
+    def test_percentile_shortcuts(self):
+        columns = [
+            "",  # test default value
+            "transaction.duration",
+            "measurements.fp",
+            "measurements.fcp",
+            "measurements.lcp",
+            "measurements.fid",
+            "measurements.bar",
+        ]
+
+        for column in columns:
+            # if no column then use transaction.duration
+            snuba_column = column if column else "transaction.duration"
+            column_alias = column.replace(".", "_")
+
+            fields = [
+                field.format(column)
+                for field in ["p50({})", "p75({})", "p95({})", "p99({})", "p100({})"]
+            ]
+            result = resolve_field_list(fields, eventstore.Filter())
+
+            assert result["aggregations"] == [
+                ["quantile(0.5)", snuba_column, "p50_{}".format(column_alias).strip("_")],
+                ["quantile(0.75)", snuba_column, "p75_{}".format(column_alias).strip("_")],
+                ["quantile(0.95)", snuba_column, "p95_{}".format(column_alias).strip("_")],
+                ["quantile(0.99)", snuba_column, "p99_{}".format(column_alias).strip("_")],
+                ["max", snuba_column, "p100_{}".format(column_alias).strip("_")],
+            ]
 
     def test_rollup_with_unaggregated_fields(self):
         with pytest.raises(InvalidSearchQuery) as err:
@@ -2568,7 +2626,8 @@ class ResolveFieldListTest(unittest.TestCase):
 
 class DefaultFunctionArg(FunctionArg):
     def __init__(self, name, default):
-        super(DefaultFunctionArg, self).__init__(name, has_default=True)
+        super(DefaultFunctionArg, self).__init__(name)
+        self.has_default = True
         self.default = default
 
     def get_default(self, params):

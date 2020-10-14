@@ -57,7 +57,7 @@ class Breadcrumb extends React.Component<Props> {
 
         crumbs.push({
           to: rumTarget,
-          label: t('Real User Monitoring'),
+          label: t('Web Vitals'),
           preserveGlobalSelection: true,
         });
       } else {
