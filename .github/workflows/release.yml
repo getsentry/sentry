@@ -59,7 +59,7 @@ jobs:
           GIT_AUTHOR_NAME: getsentry-bot
           EMAIL: bot@getsentry.com
           ZEUS_API_TOKEN: ${{ secrets.ZEUS_API_TOKEN }}
-     - uses: getsentry/craft@master
+      - uses: getsentry/craft@master
         with:
           action: publish
           version: ${{ env.RELEASE_VERSION }}
