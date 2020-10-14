@@ -689,6 +689,7 @@ def update_alert_rule(
     include_all_projects=None,
     excluded_projects=None,
     user=None,
+    **kwargs
 ):
     """
     Updates an alert rule.
