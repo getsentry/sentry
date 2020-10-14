@@ -73,19 +73,14 @@ const AnnotatedText = ({value, meta, ...props}: Props) => {
   };
 
   return (
-    <Wrapper {...props}>
+    <span {...props}>
       {renderValue()}
       {meta?.err && renderErrors(meta.err)}
-    </Wrapper>
+    </span>
   );
 };
 
 export default AnnotatedText;
-
-const Wrapper = styled('span')`
-  display: inline-flex;
-  align-items: center;
-`;
 
 const StyledIconWarning = styled(IconWarning)`
   padding-left: ${space(0.75)};
