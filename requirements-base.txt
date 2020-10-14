@@ -11,7 +11,7 @@ django-picklefield>=0.3.0,<1.1.0
 django-sudo>=3.0.0,<4.0.0
 Django>=1.11,<1.12
 djangorestframework==3.6.4
-email-reply-parser>=0.2.0,<0.3.0
+email-reply-parser>=0.5.0,<0.6.0
 enum34>=1.1.6,<1.2.0 ; python_version < "3.4"
 functools32>=3.2.3,<3.3 ; python_version < "3.2"
 futures>=3.2.0,<4.0.0 ; python_version < "3.2"
