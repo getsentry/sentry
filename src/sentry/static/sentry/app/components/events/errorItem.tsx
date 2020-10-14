@@ -86,15 +86,15 @@ class EventErrorItem extends React.Component<Props, State> {
   }
 
   renderPath() {
-    const data = this.props.error.data || {};
+    const {name} = this.props.error.data || {};
 
-    if (!data.name || typeof data.name !== 'string') {
+    if (!name || typeof name !== 'string') {
       return null;
     }
 
     return (
       <React.Fragment>
-        <b>{data.name}</b>
+        <strong>{name}</strong>
         {': '}
       </React.Fragment>
     );

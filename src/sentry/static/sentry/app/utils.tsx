@@ -4,7 +4,7 @@ import isObject from 'lodash/isObject';
 import isString from 'lodash/isString';
 import isUndefined from 'lodash/isUndefined';
 
-import {Project} from 'app/types';
+import {Project, EventTag} from 'app/types';
 import {appendTagCondition} from 'app/utils/queryString';
 
 function arrayIsEqual(arr?: any[], other?: any[], deep?: boolean): boolean {
@@ -273,10 +273,7 @@ export type OmitHtmlDivProps<P extends object> = Omit<
 > &
   P;
 
-export function generateQueryWithTag(
-  prevQuery: Query,
-  tag: {key: string; value: string}
-): Query {
+export function generateQueryWithTag(prevQuery: Query, tag: EventTag): Query {
   const query = {...prevQuery};
 
   // some tags are dedicated query strings since other parts of the app consumes this,

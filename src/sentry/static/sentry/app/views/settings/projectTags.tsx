@@ -84,7 +84,6 @@ class ProjectTags extends AsyncView<Props, State> {
 
         <Panel>
           <PanelHeader>{t('Tags')}</PanelHeader>
-
           <PanelBody>
             {isEmpty ? (
               <EmptyMessage>
