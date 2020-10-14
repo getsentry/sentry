@@ -24,6 +24,8 @@ import Confirm from 'app/components/confirm';
 import Version from 'app/components/version';
 import TextOverflow from 'app/components/textOverflow';
 import space from 'app/styles/space';
+import Access from 'app/components/acl/access';
+import Tooltip from 'app/components/tooltip';
 
 import SourceMapsArtifactRow from './sourceMapsArtifactRow';
 
@@ -170,18 +172,30 @@ class ProjectSourceMapsDetail extends AsyncView<Props, State> {
               >
                 {t('Go to Release')}
               </ReleaseButton>
-              <Confirm
-                message={t(
-                  'Are you sure you want to remove all artifacts in this archive?'
+              <Access access={['project:releases']}>
+                {({hasAccess}) => (
+                  <Tooltip
+                    disabled={hasAccess}
+                    title={t('You do not have permission to delete artifacts.')}
+                  >
+                    <Confirm
+                      message={t(
+                        'Are you sure you want to remove all artifacts in this archive?'
+                      )}
+                      onConfirm={this.handleArchiveDelete}
+                      disabled={!hasAccess}
+                    >
+                      <Button
+                        icon={<IconDelete size="sm" />}
+                        title={t('Remove All Artifacts')}
+                        label={t('Remove All Artifacts')}
+                        disabled={!hasAccess}
+                      />
+                    </Confirm>
+                  </Tooltip>
                 )}
-                onConfirm={this.handleArchiveDelete}
-              >
-                <Button
-                  icon={<IconDelete size="sm" />}
-                  title={t('Remove All Artifacts')}
-                  label={t('Remove All Artifacts')}
-                />
-              </Confirm>
+              </Access>
+
               <SearchBar
                 placeholder={t('Filter artifacts')}
                 onSearch={this.handleSearch}
