@@ -64,8 +64,9 @@ function transformEventStats(data: EventsStatsData, seriesName?: string): Series
 function transformEventStatsSmoothed(data: Series[], seriesName?: string): Series[] {
   const currentData = data[0].data;
   const resultData: SeriesDataUnit[] = [];
+  resultData.push(currentData[0]);
 
-  // Start at 1 so we don't ge NaN from the movingAverage
+  // Start at 1 so we don't get NaN from the movingAverage
   for (let i = 1; i < currentData.length; i++) {
     let value;
     if (i < AVERAGE_WINDOW) {
