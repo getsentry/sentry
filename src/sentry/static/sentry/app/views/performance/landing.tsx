@@ -18,6 +18,7 @@ import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMess
 import Alert from 'app/components/alert';
 import Feature from 'app/components/acl/feature';
 import EventView from 'app/utils/discover/eventView';
+import {generateAggregateFields} from 'app/utils/discover/fields';
 import space from 'app/styles/space';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
@@ -373,7 +374,7 @@ class PerformanceLanding extends React.Component<Props, State> {
                     organization={organization}
                     projectIds={eventView.project}
                     query={filterString}
-                    fields={eventView.fields}
+                    fields={generateAggregateFields(organization, eventView.fields)}
                     onSearch={this.handleSearch}
                   />
                   <Charts

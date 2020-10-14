@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 
 import {GlobalSelection, Organization} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
-import {Field} from 'app/utils/discover/fields';
+import {generateAggregateFields} from 'app/utils/discover/fields';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import {t} from 'app/locale';
 import Feature from 'app/components/acl/feature';
@@ -93,11 +93,11 @@ class TrendsContent extends React.Component<Props, State> {
     const {previousTrendFunction} = this.state;
 
     const trendView = eventView.clone() as TrendView;
-    const fields = [
-      ...TRENDS_FUNCTIONS.map(({field}) => field),
-      'count()',
-      'absolute_correlation()',
-    ].map(field => ({field})) as Field[];
+    const fields = generateAggregateFields(organization, [
+      {
+        field: 'absolute_correlation()',
+      },
+    ]);
     const currentTrendFunction = getCurrentTrendFunction(location);
     const query = getTransactionSearchQuery(location);
     const showChangedProjects = hasMultipleProjects(selection);
