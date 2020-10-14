@@ -31,7 +31,6 @@ type Props = {
   };
   onSuccess?: (data: any) => void;
   onError?: (data: any) => void;
-  onLoadSuccess?: Function;
 };
 
 type State = {
