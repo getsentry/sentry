@@ -370,15 +370,15 @@ class SpanTree extends React.Component<PropType> {
     });
 
     return (
-      <TraceViewContainer>
+      <SpanTreeContainer>
         {spanTree}
         {infoMessage}
-      </TraceViewContainer>
+      </SpanTreeContainer>
     );
   }
 }
 
-const TraceViewContainer = styled('div')`
+const SpanTreeContainer = styled('div')`
   overflow-x: hidden;
   border-bottom-left-radius: 3px;
   border-bottom-right-radius: 3px;

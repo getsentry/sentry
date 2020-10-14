@@ -23,6 +23,7 @@ import {
   RawSpanType,
 } from './types';
 import {zIndex} from './styles';
+import * as DividerHandlerManager from './dividerHandlerManager';
 
 export const MINIMAP_CONTAINER_HEIGHT = 106;
 export const MINIMAP_SPAN_BAR_HEIGHT = 4;
@@ -268,61 +269,97 @@ class TraceViewHeader extends React.Component<PropType> {
 
   render() {
     return (
-      <HeaderContainer>
-        <ActualMinimap trace={this.props.trace} />
-        <CursorGuideHandler.Consumer>
-          {({displayCursorGuide, hideCursorGuide, mouseLeft, showCursorGuide}) => (
-            <div
-              ref={this.props.minimapInteractiveRef}
-              style={{
-                width: '100%',
-                height: `${MINIMAP_HEIGHT + TIME_AXIS_HEIGHT}px`,
-                position: 'absolute',
-                left: 0,
-                top: 0,
-              }}
-              onMouseEnter={event => {
-                displayCursorGuide(event.pageX);
-              }}
-              onMouseLeave={() => {
-                hideCursorGuide();
-              }}
-              onMouseMove={event => {
-                displayCursorGuide(event.pageX);
-              }}
-              onMouseDown={event => {
-                const target = event.target;
+      <DividerHandlerManager.Consumer>
+        {(
+          dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
+        ) => {
+          const {dividerPosition} = dividerHandlerChildrenProps;
 
-                if (
-                  target instanceof Element &&
-                  target.getAttribute &&
-                  target.getAttribute('data-ignore')
-                ) {
-                  // ignore this event if we need to
-                  return;
-                }
+          return (
+            <React.Fragment>
+              <SpanViewControls
+                style={{
+                  width: `calc(${toPercent(dividerPosition)} - 0.5px)`,
+                }}
+              >
+                <SvgComponent height={`${MINIMAP_HEIGHT + TIME_AXIS_HEIGHT + 1}px`} />
+              </SpanViewControls>
+              <SpanViewHeaderContainer>
+                <div
+                  style={{
+                    width: `calc(${toPercent(dividerPosition)} - 0.5px)`,
+                  }}
+                />
+                <Divider />
+                <Header
+                  style={{
+                    width: `calc(${toPercent(1 - dividerPosition)} - 0.5px)`,
+                  }}
+                >
+                  <ActualMinimap trace={this.props.trace} />
+                  <CursorGuideHandler.Consumer>
+                    {({
+                      displayCursorGuide,
+                      hideCursorGuide,
+                      mouseLeft,
+                      showCursorGuide,
+                    }) => (
+                      <div
+                        ref={this.props.minimapInteractiveRef}
+                        style={{
+                          width: '100%',
+                          height: `${MINIMAP_HEIGHT + TIME_AXIS_HEIGHT}px`,
+                          position: 'absolute',
+                          left: 0,
+                          top: 0,
+                        }}
+                        onMouseEnter={event => {
+                          displayCursorGuide(event.pageX);
+                        }}
+                        onMouseLeave={() => {
+                          hideCursorGuide();
+                        }}
+                        onMouseMove={event => {
+                          displayCursorGuide(event.pageX);
+                        }}
+                        onMouseDown={event => {
+                          const target = event.target;
 
-                this.props.dragProps.onWindowSelectionDragStart(event);
-              }}
-            >
-              <MinimapContainer>
-                {this.renderFog(this.props.dragProps)}
-                {this.renderCursorGuide({
-                  showCursorGuide,
-                  mouseLeft,
-                  cursorGuideHeight: MINIMAP_HEIGHT,
-                })}
-                {this.renderViewHandles(this.props.dragProps)}
-                {this.renderWindowSelection(this.props.dragProps)}
-              </MinimapContainer>
-              {this.renderTimeAxis({
-                showCursorGuide,
-                mouseLeft,
-              })}
-            </div>
-          )}
-        </CursorGuideHandler.Consumer>
-      </HeaderContainer>
+                          if (
+                            target instanceof Element &&
+                            target.getAttribute &&
+                            target.getAttribute('data-ignore')
+                          ) {
+                            // ignore this event if we need to
+                            return;
+                          }
+
+                          this.props.dragProps.onWindowSelectionDragStart(event);
+                        }}
+                      >
+                        <MinimapContainer>
+                          {this.renderFog(this.props.dragProps)}
+                          {this.renderCursorGuide({
+                            showCursorGuide,
+                            mouseLeft,
+                            cursorGuideHeight: MINIMAP_HEIGHT,
+                          })}
+                          {this.renderViewHandles(this.props.dragProps)}
+                          {this.renderWindowSelection(this.props.dragProps)}
+                        </MinimapContainer>
+                        {this.renderTimeAxis({
+                          showCursorGuide,
+                          mouseLeft,
+                        })}
+                      </div>
+                    )}
+                  </CursorGuideHandler.Consumer>
+                </Header>
+              </SpanViewHeaderContainer>
+            </React.Fragment>
+          );
+        }}
+      </DividerHandlerManager.Consumer>
     );
   }
 }
@@ -491,6 +528,7 @@ const TimeAxis = styled('div')`
   color: ${p => p.theme.gray500};
   font-size: 10px;
   font-weight: 500;
+  overflow: hidden;
 `;
 
 const TickLabelContainer = styled('div')`
@@ -572,15 +610,37 @@ const DurationGuideBox = styled('div')<{alignLeft: boolean}>`
   }};
 `;
 
-const HeaderContainer = styled('div')`
+const SpanViewHeaderContainer = styled('div')`
   width: 100%;
   position: sticky;
   left: 0;
   top: 0;
   z-index: ${zIndex.minimapContainer};
+  height: ${MINIMAP_HEIGHT + TIME_AXIS_HEIGHT + 1}px;
+  display: flex;
+`;
+
+const Header = styled('div')`
+  position: relative;
   background-color: ${p => p.theme.white};
   border-bottom: 1px solid ${p => p.theme.borderDark};
   height: ${MINIMAP_HEIGHT + TIME_AXIS_HEIGHT + 1}px;
+`;
+
+const Divider = styled('div')`
+  background-color: ${p => p.theme.borderDark};
+  width: 1px;
+  height: ${MINIMAP_HEIGHT + TIME_AXIS_HEIGHT + 1}px;
+`;
+
+const SpanViewControls = styled('div')`
+  overflow: hidden;
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: ${MINIMAP_HEIGHT + TIME_AXIS_HEIGHT + 1}px;
+  background-color: ${p => p.theme.white};
+  border-bottom: 1px solid ${p => p.theme.borderDark};
 `;
 
 const MinimapBackground = styled('div')`

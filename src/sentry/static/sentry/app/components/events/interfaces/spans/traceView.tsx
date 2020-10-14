@@ -1,5 +1,6 @@
 import React from 'react';
 import pick from 'lodash/pick';
+import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
@@ -198,7 +199,7 @@ class TraceView extends React.PureComponent<Props, State> {
             trace={parsedTrace}
           >
             <DividerHandlerManager.Provider interactiveLayerRef={this.traceViewRef}>
-              <div ref={this.traceViewRef}>
+              <TraceViewContainer ref={this.traceViewRef}>
                 {this.renderHeader(dragProps, parsedTrace)}
                 <SpanTree
                   event={event}
@@ -210,7 +211,7 @@ class TraceView extends React.PureComponent<Props, State> {
                   spansWithErrors={spansWithErrors}
                   operationNameFilters={operationNameFilters}
                 />
-              </div>
+              </TraceViewContainer>
             </DividerHandlerManager.Provider>
           </CursorGuideHandler.Provider>
         )}
@@ -218,5 +219,7 @@ class TraceView extends React.PureComponent<Props, State> {
     );
   }
 }
+
+const TraceViewContainer = styled('div')``;
 
 export default TraceView;
