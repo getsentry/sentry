@@ -138,13 +138,11 @@ class TransactionVitals extends React.Component<Props> {
         >
           {results => (
             <React.Fragment>
-              {VITAL_GROUPS.map((vitalGroup, i) => {
-                return (
-                  <React.Fragment key={i}>
-                    {this.renderVitalGroup(vitalGroup.group, results, vitalGroup.colors)}
-                  </React.Fragment>
-                );
-              })}
+              {VITAL_GROUPS.map(vitalGroup => (
+                <React.Fragment key={vitalGroup.group.join('')}>
+                  {this.renderVitalGroup(vitalGroup.group, results, vitalGroup.colors)}
+                </React.Fragment>
+              ))}
             </React.Fragment>
           )}
         </DiscoverQuery>
