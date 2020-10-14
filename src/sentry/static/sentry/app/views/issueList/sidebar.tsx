@@ -22,7 +22,6 @@ type DefaultProps = {
 };
 
 type Props = DefaultProps & {
-  orgId: string;
   tagValueLoader: TagValueLoader;
   loading?: boolean;
 };
@@ -36,7 +35,6 @@ const IssueListSidebar = createReactClass<Props, State>({
   displayName: 'IssueListSidebar',
 
   propTypes: {
-    orgId: PropTypes.string.isRequired,
     tags: PropTypes.objectOf(SentryTypes.Tag).isRequired,
     query: PropTypes.string,
     onQueryChange: PropTypes.func.isRequired,
@@ -72,7 +70,7 @@ const IssueListSidebar = createReactClass<Props, State>({
     }
   },
 
-  onSelectTag(tag: Tag, value: string) {
+  onSelectTag(tag: Tag, value: string | null) {
     const newQuery = {...this.state.queryObj};
     if (value) {
       newQuery[tag.key] = value;
@@ -123,7 +121,7 @@ const IssueListSidebar = createReactClass<Props, State>({
   },
 
   render() {
-    const {loading, orgId, tagValueLoader, tags} = this.props;
+    const {loading, tagValueLoader, tags} = this.props;
     return (
       <div className="stream-sidebar">
         {loading ? (
@@ -152,7 +150,6 @@ const IssueListSidebar = createReactClass<Props, State>({
                 key={tag.key}
                 tag={tag}
                 onSelect={this.onSelectTag}
-                orgId={orgId}
                 tagValueLoader={tagValueLoader}
               />
             ))}
