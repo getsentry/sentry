@@ -12,10 +12,10 @@ type Props = {
   address: string;
   startingAddress: string | null;
   isAbsolute: boolean;
-  onToggle?: React.MouseEventHandler<SVGElement>;
   isFoundByStackScanning: boolean;
   isInlineFrame: boolean;
   maxLengthOfRelativeAddress: number;
+  onToggle: (event: React.MouseEvent<SVGElement>) => void;
 };
 
 class TogglableAddress extends React.Component<Props> {
