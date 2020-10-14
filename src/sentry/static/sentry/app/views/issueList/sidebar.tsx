@@ -2,38 +2,50 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import isEqual from 'lodash/isEqual';
-import debounce from 'lodash/debounce';
 import map from 'lodash/map';
 import styled from '@emotion/styled';
 
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {IconClose} from 'app/icons/iconClose';
-import {queryToObj, objToQuery} from 'app/utils/stream';
+import {queryToObj, objToQuery, QueryObj} from 'app/utils/stream';
 import {t} from 'app/locale';
+import {Tag, TagCollection} from 'app/types';
+import SentryTypes from 'app/sentryTypes';
 
+import {TagValueLoader} from './types';
 import IssueListTagFilter from './tagFilter';
 
-const TEXT_FILTER_DEBOUNCE_IN_MS = 300;
+type DefaultProps = {
+  tags: TagCollection;
+  query: string;
+  onQueryChange: () => void;
+};
 
-const IssueListSidebar = createReactClass({
+type Props = DefaultProps & {
+  tagValueLoader: TagValueLoader;
+  loading?: boolean;
+};
+
+type State = {
+  queryObj: QueryObj;
+  textFilter: string;
+};
+
+const IssueListSidebar = createReactClass<Props, State>({
   displayName: 'IssueListSidebar',
 
   propTypes: {
-    orgId: PropTypes.string.isRequired,
-
-    tags: PropTypes.object.isRequired,
+    tags: PropTypes.objectOf(SentryTypes.Tag).isRequired,
     query: PropTypes.string,
     onQueryChange: PropTypes.func.isRequired,
     loading: PropTypes.bool,
     tagValueLoader: PropTypes.func.isRequired,
   },
 
-  getDefaultProps() {
-    return {
-      tags: {},
-      query: '',
-      onQueryChange: function () {},
-    };
+  defaultProps: {
+    tags: {},
+    query: '',
+    onQueryChange: function () {},
   },
 
   getInitialState() {
@@ -44,7 +56,7 @@ const IssueListSidebar = createReactClass({
     };
   },
 
-  componentWillReceiveProps(nextProps) {
+  componentWillReceiveProps(nextProps: Props) {
     // If query was updated by another source (e.g. SearchBar),
     // clobber state of sidebar with new query.
     const query = objToQuery(this.state.queryObj);
@@ -58,7 +70,7 @@ const IssueListSidebar = createReactClass({
     }
   },
 
-  onSelectTag(tag, value) {
+  onSelectTag(tag: Tag, value: string | null) {
     const newQuery = {...this.state.queryObj};
     if (value) {
       newQuery[tag.key] = value;
@@ -74,20 +86,11 @@ const IssueListSidebar = createReactClass({
     );
   },
 
-  onTextChange: function (evt) {
+  onTextChange: function (evt: React.ChangeEvent<HTMLInputElement>) {
     this.setState({textFilter: evt.target.value});
   },
 
-  debouncedTextChange: debounce(function (text) {
-    this.setState(
-      {
-        queryObj: {...this.state.queryObj, __text: text},
-      },
-      this.onQueryChange
-    );
-  }, TEXT_FILTER_DEBOUNCE_IN_MS),
-
-  onTextFilterSubmit(evt) {
+  onTextFilterSubmit(evt: React.ChangeEvent<HTMLInputElement>) {
     evt && evt.preventDefault();
 
     const newQueryObj = {
@@ -118,7 +121,7 @@ const IssueListSidebar = createReactClass({
   },
 
   render() {
-    const {loading, orgId, tagValueLoader, tags} = this.props;
+    const {loading, tagValueLoader, tags} = this.props;
     return (
       <div className="stream-sidebar">
         {loading ? (
@@ -147,7 +150,6 @@ const IssueListSidebar = createReactClass({
                 key={tag.key}
                 tag={tag}
                 onSelect={this.onSelectTag}
-                orgId={orgId}
                 tagValueLoader={tagValueLoader}
               />
             ))}

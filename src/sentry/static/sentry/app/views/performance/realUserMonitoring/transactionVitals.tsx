@@ -53,21 +53,30 @@ class TransactionVitals extends React.Component<Props> {
                 {results => (
                   <React.Fragment>
                     {vitals.map((vital, index) => {
+                      const details = WEB_VITAL_DETAILS[vital];
                       const error =
                         summaryResults.error !== null || results.error !== null;
-                      const alias = getAggregateAlias(
+                      const percentileAlias = getAggregateAlias(
                         `percentile(${vital}, ${PERCENTILE})`
                       );
-                      const summary =
-                        summaryResults.tableData?.data?.[0]?.[alias] ?? null;
+                      const countAlias = getAggregateAlias(`count_at_least(${vital}, 0)`);
+                      const failedAlias = getAggregateAlias(
+                        `count_at_least(${vital}, ${details.failureThreshold})`
+                      );
+                      const data = summaryResults.tableData?.data?.[0];
+                      const summary = (data?.[percentileAlias] ?? null) as number | null;
+                      const numerator = (data?.[failedAlias] ?? 0) as number;
+                      const denominator = (data?.[countAlias] ?? 0) as number;
+                      const failureRate = denominator <= 0 ? 0 : numerator / denominator;
                       return (
                         <VitalCard
                           key={vital}
                           location={location}
                           isLoading={summaryResults.isLoading || results.isLoading}
                           error={error}
-                          vital={WEB_VITAL_DETAILS[vital]}
-                          summary={summary as number | null}
+                          vital={details}
+                          summary={summary}
+                          failureRate={failureRate}
                           chartData={results.histograms?.[vital] ?? []}
                           colors={[colors[index]]}
                           eventView={eventView}

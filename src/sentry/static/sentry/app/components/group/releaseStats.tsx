@@ -34,7 +34,7 @@ const GroupReleaseStats = ({
       ? t('selected environments')
       : environments.length === 1
       ? environments[0].displayName
-      : null;
+      : undefined;
 
   const projectId = project.id;
   const projectSlug = project.slug;
