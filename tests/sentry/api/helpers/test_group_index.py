@@ -67,8 +67,9 @@ class ValidateSearchFilterPermissionsTest(TestCase):
 
 
 class UpdateGroupsTest(TestCase):
+    @patch("sentry.signals.issue_unresolved.send_robust")
     @patch("sentry.signals.issue_ignored.send_robust")
-    def test_unresolving_resolved_group(self, send_robust):
+    def test_unresolving_resolved_group(self, send_robust, send_unresolved):
         resolved_group = self.create_group(status=GroupStatus.RESOLVED)
         assert resolved_group.status == GroupStatus.RESOLVED
 
@@ -84,6 +85,7 @@ class UpdateGroupsTest(TestCase):
 
         assert resolved_group.status == GroupStatus.UNRESOLVED
         assert not send_robust.called
+        assert send_unresolved.called
 
     @patch("sentry.signals.issue_resolved.send_robust")
     def test_resolving_unresolved_group(self, send_robust):

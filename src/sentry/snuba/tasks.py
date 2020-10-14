@@ -16,13 +16,13 @@ from sentry.utils.snuba import (
 # TODO: If we want to support security events here we'll need a way to
 # differentiate within the dataset. For now we can just assume all subscriptions
 # created within this dataset are just for errors.
-DATASET_CONDITIONS = {QueryDatasets.EVENTS: [["type", "=", "error"]]}
+DATASET_CONDITIONS = {QueryDatasets.EVENTS: "event.type:error"}
 
 
-def apply_dataset_conditions(dataset, conditions):
+def apply_dataset_query_conditions(dataset, query):
     if dataset in DATASET_CONDITIONS:
-        conditions = conditions + DATASET_CONDITIONS[dataset]
-    return conditions
+        query = u"({}) AND ({})".format(DATASET_CONDITIONS[dataset], query)
+    return query
 
 
 @instrumented_task(
@@ -128,12 +128,12 @@ def build_snuba_filter(dataset, query, aggregate, environment, params=None):
         if dataset == QueryDatasets.EVENTS
         else resolve_column(Dataset.Transactions)
     )
+    query = apply_dataset_query_conditions(dataset, query)
     snuba_filter = get_filter(query, params=params)
     snuba_filter.update_with(resolve_field_list([aggregate], snuba_filter, auto_fields=False))
     snuba_filter = resolve_snuba_aliases(snuba_filter, resolve_func)[0]
     if environment:
         snuba_filter.conditions.append(["environment", "=", environment.name])
-    snuba_filter.conditions = apply_dataset_conditions(dataset, snuba_filter.conditions)
     return snuba_filter
 
 

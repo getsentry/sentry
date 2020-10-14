@@ -1144,7 +1144,6 @@ class SmartSearchBar extends React.Component<Props, State> {
                 <CreateSavedSearchButton
                   query={this.state.query}
                   organization={organization}
-                  disabled={!hasQuery}
                   withTooltip
                   iconOnly
                   buttonClassName={css`
@@ -1204,7 +1203,6 @@ class SmartSearchBar extends React.Component<Props, State> {
                     <CreateSavedSearchButton
                       query={this.state.query}
                       organization={organization}
-                      disabled={!hasQuery}
                       buttonClassName={css`
                         ${getDropdownElementStyles({
                           showBelowMediaQuery: 2,

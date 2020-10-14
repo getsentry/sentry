@@ -53,6 +53,7 @@ from sentry.signals import (
     issue_ignored,
     issue_unignored,
     issue_resolved,
+    issue_unresolved,
     advanced_search_feature_gated,
 )
 from sentry.tasks.deletion import delete_groups as delete_groups_task
@@ -777,6 +778,14 @@ def update_groups(request, projects, organization_id, search_fn):
                 for group in group_list:
                     if group.status == GroupStatus.IGNORED:
                         issue_unignored.send_robust(
+                            project=project,
+                            user=acting_user,
+                            group=group,
+                            transition_type="manual",
+                            sender=update_groups,
+                        )
+                    else:
+                        issue_unresolved.send_robust(
                             project=project,
                             user=acting_user,
                             group=group,

@@ -17,11 +17,12 @@ type Props = {
   organization: Organization;
   location: Location;
   eventView: EventView;
+  dataFilter?: string;
 };
 
 class TransactionVitals extends React.Component<Props> {
   render() {
-    const {location, organization, eventView} = this.props;
+    const {location, organization, eventView, dataFilter} = this.props;
     const vitals = Object.values(WebVital);
 
     const colors = [...theme.charts.getColorPalette(vitals.length - 1)].reverse();
@@ -47,6 +48,7 @@ class TransactionVitals extends React.Component<Props> {
                 measurements={vitals.map(vital => WEB_VITAL_DETAILS[vital].slug)}
                 min={min}
                 max={max}
+                dataFilter={dataFilter}
               >
                 {results => (
                   <React.Fragment>
@@ -66,7 +68,7 @@ class TransactionVitals extends React.Component<Props> {
                           error={error}
                           vital={WEB_VITAL_DETAILS[vital]}
                           summary={summary as number | null}
-                          chartData={results.histograms[vital] ?? []}
+                          chartData={results.histograms?.[vital] ?? []}
                           colors={[colors[index]]}
                           eventView={eventView}
                           organization={organization}

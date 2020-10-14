@@ -78,6 +78,7 @@ issue_assigned = BetterSignal(providing_args=["project", "group", "user"])
 issue_resolved = BetterSignal(
     providing_args=["organization_id", "project", "group", "user", "resolution_type"]
 )
+issue_unresolved = BetterSignal(providing_args=["project", "user", "group", "transition_type"])
 
 advanced_search = BetterSignal(providing_args=["project"])
 advanced_search_feature_gated = BetterSignal(providing_args=["organization", "user"])

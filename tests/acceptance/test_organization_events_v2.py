@@ -59,10 +59,16 @@ def transactions_query(**kwargs):
     return urlencode(options, doseq=True)
 
 
-def generate_transaction():
+def generate_transaction(trace=None, span=None):
     start_datetime = before_now(minutes=1, milliseconds=500)
     end_datetime = before_now(minutes=1)
-    event_data = load_data("transaction", timestamp=end_datetime, start_timestamp=start_datetime)
+    event_data = load_data(
+        "transaction",
+        timestamp=end_datetime,
+        start_timestamp=start_datetime,
+        trace=trace,
+        span=span,
+    )
     event_data.update({"event_id": "a" * 32})
 
     # generate and build up span tree
@@ -350,12 +356,14 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
     def test_event_detail_view_from_transactions_query(self, mock_now):
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
 
-        event_data = generate_transaction()
+        event_data = generate_transaction(trace="a" * 32, span="ab" * 8)
         self.store_event(data=event_data, project_id=self.project.id, assert_no_errors=True)
 
         # Create a child event that is linked to the parent so we have coverage
         # of traversal buttons.
-        child_event = generate_transaction()
+        child_event = generate_transaction(
+            trace=event_data["contexts"]["trace"]["trace_id"], span="bc" * 8
+        )
         child_event["event_id"] = "b" * 32
         child_event["contexts"]["trace"]["parent_span_id"] = event_data["spans"][4]["span_id"]
         child_event["transaction"] = "z-child-transaction"
@@ -392,7 +400,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
     def test_transaction_event_detail_view_ops_filtering(self, mock_now):
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
 
-        event_data = generate_transaction()
+        event_data = generate_transaction(trace="a" * 32, span="ab" * 8)
         self.store_event(data=event_data, project_id=self.project.id, assert_no_errors=True)
 
         with self.feature(FEATURE_NAMES):
