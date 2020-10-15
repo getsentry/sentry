@@ -303,9 +303,19 @@ def create_incident_snapshot(incident, windowed_stats=False):
     """
     assert incident.status == IncidentStatus.CLOSED.value
 
+    start, end = calculate_incident_time_range(incident, windowed_stats=windowed_stats)
+    if start == end:
+        return IncidentSnapshot.objects.create(
+            incident=incident,
+            event_stats_snapshot=TimeSeriesSnapshot.objects.create(
+                start=start, end=end, values=[], period=0,
+            ),
+            unique_users=0,
+            total_events=0,
+        )
+
     event_stats_snapshot = create_event_stat_snapshot(incident, windowed_stats=windowed_stats)
     aggregates = get_incident_aggregates(incident)
-
     return IncidentSnapshot.objects.create(
         incident=incident,
         event_stats_snapshot=event_stats_snapshot,
@@ -314,19 +324,22 @@ def create_incident_snapshot(incident, windowed_stats=False):
     )
 
 
-def create_event_stat_snapshot(incident, windowed_stats=False):
+def create_event_stat_snapshot(incident, windowed_stats=False, start=None, end=None):
     """
     Creates an event stats snapshot for an incident in a given period of time.
     """
 
     event_stats = get_incident_event_stats(incident, windowed_stats=windowed_stats)
     start, end = calculate_incident_time_range(incident, windowed_stats=windowed_stats)
-    return TimeSeriesSnapshot.objects.create(
-        start=start,
-        end=end,
-        values=[[row["time"], row["count"]] for row in event_stats.data["data"]],
-        period=event_stats.rollup,
-    )
+
+    if start == end:
+        values = None
+        period = None
+    else:
+        values = [[row["time"], row["count"]] for row in event_stats.data["data"]]
+        period = event_stats.rollup
+
+    return TimeSeriesSnapshot.objects.create(start=start, end=end, values=values, period=period,)
 
 
 def build_incident_query_params(incident, start=None, end=None, windowed_stats=False):
@@ -388,10 +401,7 @@ def calculate_incident_time_range(incident, start=None, end=None, windowed_stats
             start = end - timedelta(seconds=time_window * WINDOWED_STATS_DATA_POINTS)
 
     retention = quotas.get_event_retention(organization=incident.organization) or 90
-    start = max(
-        start.replace(tzinfo=timezone.utc),
-        datetime.utcnow().replace(tzinfo=timezone.utc) - timedelta(days=retention),
-    )
+    start = max(start.replace(tzinfo=timezone.utc), datetime.utcnow() - timedelta(days=retention),)
     end = max(start, end.replace(tzinfo=timezone.utc))
 
     return start, end
