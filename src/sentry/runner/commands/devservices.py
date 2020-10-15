@@ -48,6 +48,9 @@ def devservices():
 
     Do not use in production!
     """
+    # Disable backend validation so no devservices commands depend on like,
+    # redis to be already running.
+    os.environ["SENTRY_SKIP_BACKEND_VALIDATION"] = "1"
 
 
 @devservices.command()
@@ -66,9 +69,6 @@ def attach(project, fast, service):
     Note: This does not update images, you will have to use `devservices up`
     for that.
     """
-
-    os.environ["SENTRY_SKIP_BACKEND_VALIDATION"] = "1"
-
     from sentry.runner import configure
 
     configure()
@@ -110,8 +110,6 @@ def up(services, project, exclude, fast):
 
     You may also exclude services, for example: --exclude redis --exclude postgres.
     """
-    os.environ["SENTRY_SKIP_BACKEND_VALIDATION"] = "1"
-
     from sentry.runner import configure
 
     configure()
