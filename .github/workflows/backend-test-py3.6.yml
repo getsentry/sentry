@@ -24,6 +24,7 @@ jobs:
         uses: getsentry/paths-filter@v2
         id: changes
         with:
+          token: ${{ github.token }}
           filters: |
             backend:
               - '*.py'
