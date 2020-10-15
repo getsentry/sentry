@@ -46,6 +46,33 @@ export const WEB_VITAL_DETAILS: Record<WebVital, Vital> = {
     failureThreshold: 300,
     type: measurementType(WebVital.FID),
   },
+  [WebVital.CLS]: {
+    slug: 'cls',
+    name: t('Cumulative Layout Shift'),
+    description: t(
+      'The sum total of all individual layout shift scores for every unexpected layout shift that occurs during the entire lifespan of the page.'
+    ),
+    failureThreshold: 0.1,
+    type: measurementType(WebVital.CLS),
+  },
+  [WebVital.TTFB]: {
+    slug: 'ttfb',
+    name: t('Time to First Byte'),
+    description: t(
+      "The time that it takes for a user's browser to receive the first byte of page content."
+    ),
+    failureThreshold: 600,
+    type: measurementType(WebVital.TTFB),
+  },
+  [WebVital.RequestTime]: {
+    slug: 'ttfb.requesttime',
+    name: t('Request Time'),
+    description: t(
+      'Captures the time spent making the request and receiving the first byte of the response.'
+    ),
+    failureThreshold: 600,
+    type: measurementType(WebVital.TTFB),
+  },
 };
 
 export const FILTER_OPTIONS: SelectValue<string>[] = [
