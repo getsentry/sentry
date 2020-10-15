@@ -1,6 +1,7 @@
 import {browserHistory} from 'react-router';
 import {Params} from 'react-router/lib/Router';
 import Cookies from 'js-cookie';
+import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
 import classNames from 'classnames';
@@ -36,6 +37,7 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
 import ProcessingIssueList from 'app/components/stream/processingIssueList';
 import {GlobalSelection, Organization, SavedSearch, TagCollection} from 'app/types';
+import SentryTypes from 'app/sentryTypes';
 import StreamGroup from 'app/components/stream/group';
 import StreamManager from 'app/utils/streamManager';
 import parseApiError from 'app/utils/parseApiError';
@@ -84,6 +86,15 @@ type State = {
 
 const IssueListOverview = createReactClass<Props, State>({
   displayName: 'IssueListOverview',
+
+  propTypes: {
+    organization: SentryTypes.Organization,
+    selection: SentryTypes.GlobalSelection,
+    savedSearch: SentryTypes.SavedSearch,
+    savedSearches: PropTypes.arrayOf(SentryTypes.SavedSearch),
+    savedSearchLoading: PropTypes.bool.isRequired,
+    tags: PropTypes.object,
+  },
 
   mixins: [Reflux.listenTo(GroupStore, 'onGroupChange') as any],
 
