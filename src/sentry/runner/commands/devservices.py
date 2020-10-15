@@ -9,23 +9,12 @@ from six import text_type
 from sentry.utils.compat import map
 
 
-def get_docker_client():
-    import docker
-
-    client = docker.from_env()
-    try:
-        client.ping()
-        return client
-    except Exception:
-        raise click.ClickException("Make sure Docker is running.")
-
-
 def get_or_create(client, thing, name):
-    import docker
+    from docker.errors import NotFound
 
     try:
         return getattr(client, thing + "s").get(name)
-    except docker.errors.NotFound:
+    except NotFound:
         click.secho("> Creating '%s' %s" % (name, thing), err=True, fg="yellow")
         return getattr(client, thing + "s").create(name)
 
@@ -42,12 +31,21 @@ def ensure_interface(ports):
 
 
 @click.group()
-def devservices():
+@click.pass_context
+def devservices(ctx):
     """
     Manage dependent development services required for Sentry.
 
     Do not use in production!
     """
+    import docker
+
+    ctx.obj["client"] = docker.from_env()
+    try:
+        ctx.obj["client"].ping()
+    except Exception:
+        raise click.ClickException("Make sure Docker is running.")
+
     # Disable backend validation so no devservices commands depend on like,
     # redis to be already running.
     os.environ["SENTRY_SKIP_BACKEND_VALIDATION"] = "1"
@@ -57,7 +55,8 @@ def devservices():
 @click.option("--project", default="sentry")
 @click.option("--fast", is_flag=True, default=False, help="Never pull and reuse containers.")
 @click.argument("service", nargs=1)
-def attach(project, fast, service):
+@click.pass_context
+def attach(ctx, project, fast, service):
     """
     Run a single devservice in foreground, as opposed to `up` which runs all of
     them in the background.
@@ -73,12 +72,13 @@ def attach(project, fast, service):
 
     configure()
 
-    client = get_docker_client()
     containers = _prepare_containers(project, silent=True)
     if service not in containers:
         raise click.ClickException("Service `{}` is not known or not enabled.".format(service))
 
-    container = _start_service(client, service, containers, project, fast=fast, always_start=True)
+    container = _start_service(
+        ctx.obj["client"], service, containers, project, fast=fast, always_start=True
+    )
 
     def exit_handler(*_):
         try:
@@ -101,7 +101,8 @@ def attach(project, fast, service):
 @click.option("--project", default="sentry")
 @click.option("--exclude", multiple=True, help="Service to ignore and not run. Repeatable option.")
 @click.option("--fast", is_flag=True, default=False, help="Never pull and reuse containers.")
-def up(services, project, exclude, fast):
+@click.pass_context
+def up(ctx, services, project, exclude, fast):
     """
     Run/update dependent services.
 
@@ -151,11 +152,10 @@ def up(services, project, exclude, fast):
             fg="red",
         )
 
-    client = get_docker_client()
-    get_or_create(client, "network", project)
+    get_or_create(ctx.obj["client"], "network", project)
 
     for name in selected_services:
-        _start_service(client, name, containers, project, fast=fast)
+        _start_service(ctx.obj["client"], name, containers, project, fast=fast)
 
 
 def _prepare_containers(project, silent=False):
@@ -193,7 +193,7 @@ def _prepare_containers(project, silent=False):
 
 def _start_service(client, name, containers, project, fast=False, always_start=False):
     from django.conf import settings
-    import docker
+    from docker.errors import NotFound
 
     options = containers[name]
 
@@ -218,7 +218,7 @@ def _start_service(client, name, containers, project, fast=False, always_start=F
             # (the image doesn't exist), regardless of pull=True.
             try:
                 client.images.get(options["image"])
-            except docker.errors.NotFound:
+            except NotFound:
                 click.secho("> Pulling image '%s'" % options["image"], err=True, fg="green")
                 client.images.pull(options["image"])
 
@@ -255,7 +255,7 @@ def _start_service(client, name, containers, project, fast=False, always_start=F
     container = None
     try:
         container = client.containers.get(options["name"])
-    except docker.errors.NotFound:
+    except NotFound:
         pass
 
     if container is not None:
@@ -294,7 +294,8 @@ def _start_service(client, name, containers, project, fast=False, always_start=F
 @devservices.command()
 @click.option("--project", default="sentry")
 @click.argument("service", nargs=-1)
-def down(project, service):
+@click.pass_context
+def down(ctx, project, service):
     """
     Shut down services without deleting their underlying containers and data.
     Useful if you want to temporarily relieve resources on your computer.
@@ -302,13 +303,11 @@ def down(project, service):
     The default is everything, however you may pass positional arguments to specify
     an explicit list of services to bring down.
     """
-    client = get_docker_client()
-
     prefix = project + "_"
 
     # TODO: make more like devservices rm
 
-    for container in client.containers.list(all=True):
+    for container in ctx.obj["client"].containers.list(all=True):
         if container.name.startswith(prefix):
             if not service or container.name[len(prefix) :] in service:
                 click.secho("> Stopping '%s' container" % container.name, err=True, fg="red")
@@ -318,7 +317,8 @@ def down(project, service):
 @devservices.command()
 @click.option("--project", default="sentry")
 @click.argument("services", nargs=-1)
-def rm(project, services):
+@click.pass_context
+def rm(ctx, project, services):
     """
     Shut down and delete all services and associated data.
     Useful if you'd like to start with a fresh slate.
@@ -326,9 +326,7 @@ def rm(project, services):
     The default is everything, however you may pass positional arguments to specify
     an explicit list of services to remove.
     """
-    import docker
-
-    client = get_docker_client()
+    from docker.errors import NotFound
 
     from sentry.runner import configure
 
@@ -366,8 +364,8 @@ Are you sure you want to continue?"""
 
     for service_name, container_options in containers.items():
         try:
-            container = client.containers.get(container_options["name"])
-        except docker.errors.NotFound:
+            container = ctx.obj["client"].containers.get(container_options["name"])
+        except NotFound:
             click.secho(
                 "> WARNING: non-existent container '%s'" % container_options["name"],
                 err=True,
@@ -382,7 +380,7 @@ Are you sure you want to continue?"""
 
     prefix = project + "_"
 
-    for volume in client.volumes.list():
+    for volume in ctx.obj["client"].volumes.list():
         if volume.name.startswith(prefix):
             if not services or volume.name[len(prefix) :] in services:
                 click.secho("> Removing '%s' volume" % volume.name, err=True, fg="red")
@@ -390,8 +388,8 @@ Are you sure you want to continue?"""
 
     if not services:
         try:
-            network = client.networks.get(project)
-        except docker.errors.NotFound:
+            network = ctx.obj["client"].networks.get(project)
+        except NotFound:
             pass
         else:
             click.secho("> Removing '%s' network" % network.name, err=True, fg="red")
