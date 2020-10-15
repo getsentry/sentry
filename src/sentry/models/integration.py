@@ -54,14 +54,14 @@ class RepositoryProjectPathConfig(DefaultFieldsModel):
     repository = FlexibleForeignKey("sentry.Repository")
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)
     organization_integration = FlexibleForeignKey("sentry.OrganizationIntegration")
-    input_path = models.TextField()
-    output_path = models.TextField()
+    stack_root = models.TextField()
+    source_root = models.TextField()
     default_branch = models.TextField(null=True)
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_repositoryprojectpathconfig"
-        unique_together = (("project", "input_path"),)
+        unique_together = (("project", "stack_root"),)
 
 
 class OrganizationIntegration(DefaultFieldsModel):
