@@ -7,7 +7,6 @@ import EventOrGroupHeader from 'app/components/eventOrGroupHeader';
 
 const data = {
   metadata: {
-    title: 'metadata title',
     type: 'metadata type',
     directive: 'metadata directive',
     uri: 'metadata uri',

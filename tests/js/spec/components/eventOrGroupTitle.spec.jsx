@@ -3,11 +3,10 @@ import React from 'react';
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
-
+//TODO:
 describe('EventOrGroupTitle', function () {
   const data = {
     metadata: {
-      title: 'metadata title',
       type: 'metadata type',
       directive: 'metadata directive',
       uri: 'metadata uri',
@@ -58,5 +57,22 @@ describe('EventOrGroupTitle', function () {
     );
 
     expect(component).toSnapshot();
+  });
+
+  it('renders with title override', function () {
+    const component = mountWithTheme(
+      <EventOrGroupTitle
+        data={{
+          ...data,
+          type: 'error',
+          metadata: {
+            ...data.metadata,
+            title: 'metadata title',
+          },
+        }}
+      />
+    );
+
+    expect(component.text()).toContain('metadata title');
   });
 });

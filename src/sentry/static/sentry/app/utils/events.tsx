@@ -59,8 +59,10 @@ export function getTitle(event: Event | Group): EventTitle {
     // back to the computed title for these.
     result.title = metadata.message || result.title || '';
     result.subtitle = metadata.origin || '';
-  } else if (type === 'default') {
-    result.title = metadata.title || '';
+  }
+
+  if (metadata.title) {
+    result.title = metadata.title;
   }
 
   return result;
