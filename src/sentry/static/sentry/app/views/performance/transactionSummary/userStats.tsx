@@ -9,7 +9,7 @@ import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import {WebVital, getAggregateAlias} from 'app/utils/discover/fields';
 import {getTermHelp} from 'app/views/performance/data';
 import QuestionTooltip from 'app/components/questionTooltip';
-import {SectionHeading} from 'app/components/charts/styles';
+import {SectionHeading, SectionValue} from 'app/components/charts/styles';
 import UserMisery from 'app/components/userMisery';
 import {
   PERCENTILE as VITAL_PERCENTILE,
@@ -53,7 +53,7 @@ function UserStats({totals, location, organization}: Props) {
       ([passed, total], vital) => {
         const aggregate = `percentile(${vital}, ${VITAL_PERCENTILE})`;
         const alias = getAggregateAlias(aggregate);
-        if (!isNaN(totals[alias])) {
+        if (totals[alias] !== null && !isNaN(totals[alias])) {
           total += 1;
           if (totals[alias] < WEB_VITAL_DETAILS[vital].failureThreshold) {
             passed += 1;
@@ -63,7 +63,9 @@ function UserStats({totals, location, organization}: Props) {
       },
       [0, 0]
     );
-    vitalsPassRate = <StatNumber>{`${vitalsPassed} / ${vitalsTotal}`}</StatNumber>;
+    if (vitalsTotal > 0) {
+      vitalsPassRate = <StatNumber>{`${vitalsPassed} / ${vitalsTotal}`}</StatNumber>;
+    }
   }
 
   return (
@@ -76,6 +78,7 @@ function UserStats({totals, location, organization}: Props) {
         <div>
           <SectionHeading>{t('Web Vitals')}</SectionHeading>
           <StatNumber>{vitalsPassRate}</StatNumber>
+          <StyledSectionValue>{t('Passed')}</StyledSectionValue>
         </div>
       )}
       <UserMiseryContainer>
@@ -111,6 +114,11 @@ const StatNumber = styled('div')`
   > div {
     text-align: left;
   }
+`;
+
+const StyledSectionValue = styled(SectionValue)`
+  margin: ${space(1)} 0;
+  color: #2c58a8;
 `;
 
 export default UserStats;

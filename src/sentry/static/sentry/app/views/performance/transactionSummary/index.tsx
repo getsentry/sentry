@@ -129,7 +129,7 @@ class TransactionSummary extends React.Component<Props, State> {
       ...[WebVital.FP, WebVital.FCP, WebVital.LCP, WebVital.FID].map(
         vital =>
           ({
-            kind: 'function' as 'function',
+            kind: 'function',
             function: ['percentile', vital, VITAL_PERCENTILE.toString()],
           } as Column)
       ),
