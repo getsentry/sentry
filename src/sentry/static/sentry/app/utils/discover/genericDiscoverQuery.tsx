@@ -120,6 +120,7 @@ class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> 
     return (
       !isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload) ||
       prevProps.limit !== this.props.limit ||
+      prevProps.route !== this.props.route ||
       prevProps.cursor !== this.props.cursor
     );
   };
