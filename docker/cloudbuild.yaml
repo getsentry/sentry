@@ -157,8 +157,9 @@ steps:
   - |
     # Only push to Zeus from releases/*
     [[ ! "$BRANCH_NAME" =~ ^releases/ ]] && exit 0
-    npx -p "@zeus-ci/cli" zeus job update --build $BUILD_ID --job 1 --ref $COMMIT_SHA --build-label GCB --job-label "OSS Packages" --status passed
+    npx -p "@zeus-ci/cli" zeus job update --build $BUILD_ID --job 1 --ref $COMMIT_SHA --build-label GCB --job-label "OSS Packages"
     npx -p "@zeus-ci/cli" zeus upload --build $BUILD_ID --job 1 --type "application/x-pywheel+zip" dist/*.whl
+    npx -p "@zeus-ci/cli" zeus job update --build $BUILD_ID --job 1 --ref $COMMIT_SHA --build-label GCB --job-label "OSS Packages" --status passed
 timeout: 2400s
 options:
   # We need more memory for Webpack builds & e2e onpremise tests
