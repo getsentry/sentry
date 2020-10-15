@@ -893,6 +893,8 @@ SENTRY_FEATURES = {
     "organizations:sso-saml2": True,
     # Enable Rippling SSO functionality.
     "organizations:sso-rippling": False,
+    # Enable workaround for migrating IdP instances
+    "organizations:sso-migration": False,
     # Enable transaction comparison view for performance.
     "organizations:transaction-comparison": False,
     # Enable trends view for performance.
