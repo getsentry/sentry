@@ -31,7 +31,10 @@ import withProjects from 'app/utils/withProjects';
 
 import SummaryContent from './content';
 import {addRoutePerformanceContext, getTransactionName} from '../utils';
-import {PERCENTILE as VITAL_PERCENTILE} from '../realUserMonitoring/constants';
+import {
+  PERCENTILE as VITAL_PERCENTILE,
+  WEB_VITAL_DETAILS,
+} from '../realUserMonitoring/constants';
 
 type Props = {
   api: Client;
@@ -126,13 +129,15 @@ class TransactionSummary extends React.Component<Props, State> {
         kind: 'function',
         function: ['count_unique', 'user', undefined],
       },
-      ...[WebVital.FP, WebVital.FCP, WebVital.LCP, WebVital.FID].map(
-        vital =>
-          ({
-            kind: 'function',
-            function: ['percentile', vital, VITAL_PERCENTILE.toString()],
-          } as Column)
-      ),
+      ...Object.values(WebVital)
+        .filter(vital => WEB_VITAL_DETAILS[vital].includeInSummary)
+        .map(
+          vital =>
+            ({
+              kind: 'function',
+              function: ['percentile', vital, VITAL_PERCENTILE.toString()],
+            } as Column)
+        ),
     ]);
     const emptyValues = totalsView.fields.reduce((values, field) => {
       values[getAggregateAlias(field.field)] = 0;

@@ -16,8 +16,6 @@ import {
   WEB_VITAL_DETAILS,
 } from 'app/views/performance/realUserMonitoring/constants';
 
-const VITALS = [WebVital.FP, WebVital.FCP, WebVital.LCP, WebVital.FID];
-
 type Props = {
   totals: Record<string, number>;
   location: Location;
@@ -49,20 +47,21 @@ function UserStats({totals, location, organization}: Props) {
     const formatter = getFieldRenderer(apdexKey, {[apdexKey]: 'number'});
     apdex = formatter(totals, {organization, location});
 
-    const [vitalsPassed, vitalsTotal] = VITALS.reduce(
-      ([passed, total], vital) => {
-        const aggregate = `percentile(${vital}, ${VITAL_PERCENTILE})`;
-        const alias = getAggregateAlias(aggregate);
-        if (totals[alias] !== null && !isNaN(totals[alias])) {
-          total += 1;
-          if (totals[alias] < WEB_VITAL_DETAILS[vital].failureThreshold) {
-            passed += 1;
+    const [vitalsPassed, vitalsTotal] = Object.values(WebVital)
+      .filter(vital => WEB_VITAL_DETAILS[vital].includeInSummary)
+      .reduce(
+        ([passed, total], vital) => {
+          const alias = getAggregateAlias(`percentile(${vital}, ${VITAL_PERCENTILE})`);
+          if (totals[alias] !== null && !isNaN(totals[alias])) {
+            total += 1;
+            if (totals[alias] < WEB_VITAL_DETAILS[vital].failureThreshold) {
+              passed += 1;
+            }
           }
-        }
-        return [passed, total];
-      },
-      [0, 0]
-    );
+          return [passed, total];
+        },
+        [0, 0]
+      );
     if (vitalsTotal > 0) {
       vitalsPassRate = <StatNumber>{`${vitalsPassed} / ${vitalsTotal}`}</StatNumber>;
     }
