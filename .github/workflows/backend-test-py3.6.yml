@@ -20,7 +20,13 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - uses: volta-cli/action@v1
+      - uses: getsentry/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            backend:
+              - '**.py'
+              - 'requirements*.txt'
 
       - name: Set python version output
         id: python-version
@@ -34,10 +40,12 @@ jobs:
 
       - name: Setup pip
         uses: ./.github/actions/setup-pip
+        if: steps.changes.outputs.backend == 'true'
         id: pip
 
       - name: pip cache
         uses: actions/cache@v2
+        if: steps.changes.outputs.backend == 'true'
         with:
           path: ${{ steps.pip.outputs.pip-cache-dir }}
           key: ${{ runner.os }}-pip-py${{ steps.python-version.outputs.python-version }}-${{ hashFiles('**/requirements-*.txt') }}
@@ -46,10 +54,12 @@ jobs:
 
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
+        if: steps.changes.outputs.backend == 'true'
         id: setup
         with:
           python: 3
 
       - name: Run backend test [py3.6] (${{ steps.setup.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
+        if: steps.changes.outputs.backend == 'true'
         run: |
           make travis-test-postgres
