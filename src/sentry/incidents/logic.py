@@ -308,7 +308,7 @@ def create_incident_snapshot(incident, windowed_stats=False):
         return IncidentSnapshot.objects.create(
             incident=incident,
             event_stats_snapshot=TimeSeriesSnapshot.objects.create(
-                start=start, end=end, values=[], period=0,
+                start=start, end=end, values=[], period=incident.alert_rule.snuba_query.time_window,
             ),
             unique_users=0,
             total_events=0,
