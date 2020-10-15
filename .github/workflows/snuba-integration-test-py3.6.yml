@@ -53,7 +53,6 @@ jobs:
           python: 3
           kafka: true
 
-      - name: Python 3.6 snuba backend (${{ steps.setup.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
-        if: always()
+      - name: Run snuba test [py3.6] (${{ steps.setup.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
         run: |
           make travis-test-snuba

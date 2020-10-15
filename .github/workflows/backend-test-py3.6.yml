@@ -50,7 +50,6 @@ jobs:
         with:
           python: 3
 
-      - name: Python 3.6 backend (${{ steps.setup.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
-        if: always()
+      - name: Run backend test [py3.6] (${{ steps.setup.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
         run: |
           make travis-test-postgres
