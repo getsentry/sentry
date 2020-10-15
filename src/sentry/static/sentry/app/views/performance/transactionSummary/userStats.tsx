@@ -2,6 +2,7 @@ import React from 'react';
 import {Location} from 'history';
 import styled from '@emotion/styled';
 
+import Feature from 'app/components/acl/feature';
 import {Organization} from 'app/types';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
@@ -73,13 +74,15 @@ function UserStats({totals, location, organization}: Props) {
         <SectionHeading>{t('Apdex Score')}</SectionHeading>
         <StatNumber>{apdex}</StatNumber>
       </div>
-      {vitalsPassRate !== null && (
-        <div>
-          <SectionHeading>{t('Web Vitals')}</SectionHeading>
-          <StatNumber>{vitalsPassRate}</StatNumber>
-          <StyledSectionValue>{t('Passed')}</StyledSectionValue>
-        </div>
-      )}
+      <Feature features={['measurements']} organization={organization}>
+        {vitalsPassRate !== null && (
+          <div>
+            <SectionHeading>{t('Web Vitals')}</SectionHeading>
+            <StatNumber>{vitalsPassRate}</StatNumber>
+            <StyledSectionValue>{t('Passed')}</StyledSectionValue>
+          </div>
+        )}
+      </Feature>
       <UserMiseryContainer>
         <SectionHeading>
           {t('User Misery')}
