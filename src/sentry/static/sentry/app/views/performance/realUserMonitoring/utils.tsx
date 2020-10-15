@@ -106,7 +106,7 @@ export function asPixelRect(chartRef: ECharts, dataRect: Rectangle): Rectangle |
     dataRect.point1.y,
   ]);
 
-  if (isNaN(point1[0]) || isNaN(point1[1])) {
+  if (isNaN(point1?.[0]) || isNaN(point1?.[1])) {
     return null;
   }
 
@@ -115,7 +115,7 @@ export function asPixelRect(chartRef: ECharts, dataRect: Rectangle): Rectangle |
     dataRect.point2.y,
   ]);
 
-  if (isNaN(point2[0]) || isNaN(point2[1])) {
+  if (isNaN(point2?.[0]) || isNaN(point2?.[1])) {
     return null;
   }
 
