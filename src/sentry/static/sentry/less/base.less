@@ -33,6 +33,26 @@ h2,
 h3,
 h4,
 h5,
+h6,
+p,
+ul,
+ol,
+table,
+dl,
+blockquote,
+form,
+pre,
+.auto-select-text,
+.section,
+[class^='highlight-'] {
+  margin-bottom: 20px;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
 h6 {
   margin: 0 0 20px;
   line-height: 1.2;
@@ -268,16 +288,6 @@ dfn {
 }
 
 //
-// Address variable `h1` font-size and margin within `section` and `article`
-// contexts in Firefox 4+, Safari, and Chrome.
-//
-
-h1 {
-  font-size: 2em;
-  margin: 0.67em 0;
-}
-
-//
 // Address styling not present in IE 8/9.
 //
 
@@ -351,6 +361,8 @@ hr {
 
 pre {
   overflow: auto;
+  word-break: break-all;
+  white-space: pre-wrap;
 }
 
 //
@@ -543,40 +555,4 @@ table {
 td,
 th {
   padding: 0;
-}
-
-h1,
-h2,
-h3,
-h4,
-h5,
-h6,
-p,
-ul,
-ol,
-table,
-dl,
-blockquote,
-form,
-pre,
-.auto-select-text,
-.section,
-[class^='highlight-'] {
-  margin-bottom: 20px;
-
-  &:last-child {
-    margin-bottom: 0;
-  }
-}
-
-p,
-ul,
-ol,
-blockquote {
-  line-height: 1.5;
-}
-
-pre {
-  word-break: break-all;
-  white-space: pre-wrap;
 }
