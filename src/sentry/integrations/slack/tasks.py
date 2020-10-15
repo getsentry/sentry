@@ -12,6 +12,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.mediators import project_rules
 from sentry.models import Integration, Project, Rule, Organization
 from sentry.incidents.endpoints.serializers import AlertRuleSerializer
+from sentry.incidents.models import AlertRule
 from sentry.incidents.logic import ChannelLookupTimeoutError
 from sentry.integrations.slack.utils import get_channel_id_with_timeout, strip_channel_name
 from sentry.utils.redis import redis_clusters
@@ -130,13 +131,21 @@ def find_channel_id_for_rule(project, actions, uuid, rule_id=None, **kwargs):
 @instrumented_task(
     name="sentry.integrations.slack.search_channel_id_metric_alerts", queue="integrations"
 )
-def find_channel_id_for_alert_rule(organization_id, uuid, data):
+def find_channel_id_for_alert_rule(organization_id, uuid, data, alert_rule_id=None):
     redis_rule_status = RedisRuleStatus(uuid)
     try:
         organization = Organization.objects.get(id=organization_id)
     except Organization.DoesNotExist:
         redis_rule_status.set_value("failed")
         return
+
+    alert_rule = None
+    if alert_rule_id:
+        try:
+            alert_rule = AlertRule.objects.get(organization_id=organization_id, id=alert_rule_id)
+        except AlertRule.DoesNotExist:
+            redis_rule_status.set_value("failed")
+            return
 
     # we use SystemAccess here because we can't pass the access instance from the request into the task
     # this means at this point we won't raise any validation errors associated with permissions
@@ -145,6 +154,7 @@ def find_channel_id_for_alert_rule(organization_id, uuid, data):
     serializer = AlertRuleSerializer(
         context={"organization": organization, "access": SystemAccess(), "use_async_lookup": True},
         data=data,
+        instance=alert_rule,
     )
     if serializer.is_valid():
         try:

@@ -44,6 +44,7 @@ class ProjectAlertRuleDetailsEndpoint(ProjectAlertRuleEndpoint):
                     "organization_id": project.organization_id,
                     "uuid": client.uuid,
                     "data": data,
+                    "alert_rule_id": alert_rule.id,
                 }
                 tasks.find_channel_id_for_alert_rule.apply_async(kwargs=task_args)
                 return Response({"uuid": client.uuid}, status=202)
