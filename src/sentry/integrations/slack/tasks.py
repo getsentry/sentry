@@ -138,6 +138,10 @@ def find_channel_id_for_alert_rule(organization_id, uuid, data):
         redis_rule_status.set_value("failed")
         return
 
+    # we use SystemAccess here because we can't pass the access instance from the request into the task
+    # this means at this point we won't raise any validation errors associated with permissions
+    # however, we should only be calling this task after we tried saving the alert rule first
+    # which will catch those kinds of validation errors
     serializer = AlertRuleSerializer(
         context={"organization": organization, "access": SystemAccess(), "use_async_lookup": True},
         data=data,
@@ -147,6 +151,7 @@ def find_channel_id_for_alert_rule(organization_id, uuid, data):
             alert_rule = serializer.save()
             redis_rule_status.set_value("success", alert_rule.id)
             return
+        # we can still get a validation error for the channel not existing
         except (serializers.ValidationError, ChannelLookupTimeoutError):
             # channel doesn't exist error or validation error
             redis_rule_status.set_value("failed")
