@@ -187,8 +187,33 @@ class ProjectSerializer(Serializer):
             projects_by_org[project.organization].append(project)
 
         features_by_project = defaultdict(list)
-        for feature_name in features.all(feature_type=ProjectFeature).keys():
-            if not feature_name.startswith(_PROJECT_SCOPE_PREFIX):
+        project_features = [
+            feature
+            for feature in features.all(feature_type=ProjectFeature).keys()
+            if feature.startswith(_PROJECT_SCOPE_PREFIX)
+        ]
+
+        batch_checked = set()
+        for (organization, projects) in projects_by_org.items():
+            batch_features = features.batch_has(
+                project_features, actor=user, projects=projects, organization=organization
+            )
+
+            # batch_has has found some features
+            if batch_features:
+                for project in projects:
+                    for feature_name, active in batch_features.get(
+                        "project:{}".format(project.id), {}
+                    ):
+                        if active:
+                            features_by_project[project].append(
+                                feature_name[len(_PROJECT_SCOPE_PREFIX) :]
+                            )
+
+                        batch_checked.add(feature_name)
+
+        for feature_name in project_features:
+            if feature_name in batch_checked:
                 continue
             abbreviated_feature = feature_name[len(_PROJECT_SCOPE_PREFIX) :]
             for (organization, projects) in projects_by_org.items():

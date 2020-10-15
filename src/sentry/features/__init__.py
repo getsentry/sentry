@@ -140,6 +140,7 @@ requires_snuba = (
 add = default_manager.add
 get = default_manager.get
 has = default_manager.has
+batch_has = default_manager.batch_has
 all = default_manager.all
 add_handler = default_manager.add_handler
 add_entity_handler = default_manager.add_entity_handler
