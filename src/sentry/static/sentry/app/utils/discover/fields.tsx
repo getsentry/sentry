@@ -135,32 +135,66 @@ export const AGGREGATIONS = {
 
   // Tracing functions.
   p50: {
-    parameters: [],
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['duration'],
+        defaultValue: 'transaction.duration',
+        required: false,
+      },
+    ],
     outputType: 'duration',
     isSortable: true,
     multiPlotType: 'line',
   },
   p75: {
-    parameters: [],
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['duration'],
+        defaultValue: 'transaction.duration',
+        required: false,
+      },
+    ],
     outputType: 'duration',
     isSortable: true,
     multiPlotType: 'line',
   },
   p95: {
-    parameters: [],
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['duration'],
+        defaultValue: 'transaction.duration',
+        required: false,
+      },
+    ],
     outputType: 'duration',
     type: [],
     isSortable: true,
     multiPlotType: 'line',
   },
   p99: {
-    parameters: [],
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['duration'],
+        defaultValue: 'transaction.duration',
+        required: false,
+      },
+    ],
     outputType: 'duration',
     isSortable: true,
     multiPlotType: 'line',
   },
   p100: {
-    parameters: [],
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['duration'],
+        required: false,
+      },
+    ],
     outputType: 'duration',
     isSortable: true,
     multiPlotType: 'line',
@@ -291,6 +325,7 @@ enum FieldKey {
   DIST = 'dist',
   ENVIRONMENT = 'environment',
   ERROR_HANDLED = 'error.handled',
+  ERROR_UNHANDLED = 'error.unhandled',
   ERROR_MECHANISM = 'error.mechanism',
   ERROR_TYPE = 'error.type',
   ERROR_VALUE = 'error.value',
@@ -388,6 +423,7 @@ export const FIELDS: Readonly<Record<FieldKey, ColumnType>> = {
   [FieldKey.ERROR_VALUE]: 'string',
   [FieldKey.ERROR_MECHANISM]: 'string',
   [FieldKey.ERROR_HANDLED]: 'boolean',
+  [FieldKey.ERROR_UNHANDLED]: 'boolean',
   [FieldKey.STACK_ABS_PATH]: 'string',
   [FieldKey.STACK_FILENAME]: 'string',
   [FieldKey.STACK_PACKAGE]: 'string',
@@ -475,6 +511,36 @@ export function measurementType(field: string) {
 }
 
 const AGGREGATE_PATTERN = /^([^\(]+)\((.*?)(?:\s*,\s*(.*))?\)$/;
+
+export function generateAggregateFields(
+  organization: LightWeightOrganization,
+  eventFields: readonly Field[] | Field[]
+): Field[] {
+  const functions = Object.keys(AGGREGATIONS);
+  const fields = Object.values(eventFields).map(field => field.field);
+  functions.forEach(func => {
+    const parameters = AGGREGATIONS[func].parameters.map(param => {
+      const generator = AGGREGATIONS[func].generateDefaultValue;
+      if (typeof generator === 'undefined') {
+        return param;
+      }
+      return {
+        ...param,
+        defaultValue: generator({parameter: param, organization}),
+      };
+    });
+
+    if (parameters.every(param => typeof param.defaultValue !== 'undefined')) {
+      const newField = `${func}(${parameters
+        .map(param => param.defaultValue)
+        .join(',')})`;
+      if (fields.indexOf(newField) === -1) {
+        fields.push(newField);
+      }
+    }
+  });
+  return fields.map(field => ({field})) as Field[];
+}
 
 export function explodeFieldString(field: string): Column {
   const results = field.match(AGGREGATE_PATTERN);

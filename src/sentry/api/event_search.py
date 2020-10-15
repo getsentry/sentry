@@ -157,7 +157,7 @@ search_key           = key / quoted_key
 search_value         = quoted_value / value
 value                = ~r"[^()\s]*"
 numeric_value        = ~r"[-]?[0-9\.]+(?=\s|\)|$)"
-boolean_value        = ~r"(true|1|false|0)(?=\s|$)"i
+boolean_value        = ~r"(true|1|false|0)(?=\s|\)|$)"i
 quoted_value         = ~r"\"((?:[^\"]|(?<=\\)[\"])*)?\""s
 key                  = ~r"[a-zA-Z0-9_\.-]+"
 function_arg         = space? key? comma? space?
@@ -207,6 +207,7 @@ ISSUE_ALIAS = "issue"
 ISSUE_ID_ALIAS = "issue.id"
 RELEASE_ALIAS = "release"
 USER_DISPLAY_ALIAS = "user.display"
+ERROR_UNHANDLED_ALIAS = "error.unhandled"
 
 
 class InvalidSearchQuery(Exception):
@@ -311,7 +312,7 @@ class SearchVisitor(NodeVisitor):
             "transaction.end_time",
         ]
     )
-    boolean_keys = set(["error.handled", "stack.in_app"])
+    boolean_keys = set(["error.handled", "error.unhandled", "stack.in_app"])
 
     unwrapped_exceptions = (InvalidSearchQuery,)
 
@@ -836,6 +837,18 @@ def convert_search_filter_to_snuba_query(search_filter, key=None):
                 1,
             ]
         return [user_display_expr, search_filter.operator, value]
+    elif name == ERROR_UNHANDLED_ALIAS:
+        # This field is the inversion of error.handled, otherwise the logic is the same.
+        if search_filter.value.raw_value == "":
+            output = 0 if search_filter.operator == "!=" else 1
+            return [["isHandled", []], "=", output]
+        if value in ("1", 1):
+            return [["notHandled", []], "=", 1]
+        if value in ("0", 0):
+            return [["isHandled", []], "=", 1]
+        raise InvalidSearchQuery(
+            "Invalid value for error.unhandled condition. Accepted values are 1, 0"
+        )
     elif name == "error.handled":
         # Treat has filter as equivalent to handled
         if search_filter.value.raw_value == "":
@@ -1163,6 +1176,7 @@ def get_filter(query=None, params=None):
         "having": [],
         "project_ids": [],
         "group_ids": [],
+        "condition_aggregates": [],
     }
 
     projects_to_filter = []
@@ -1182,6 +1196,9 @@ def get_filter(query=None, params=None):
             for func in and_conditions:
                 kwargs["conditions"].append(convert_function_to_condition(func))
         if having:
+            kwargs["condition_aggregates"] = [
+                term.key.name for term in parsed_terms if isinstance(term, AggregateFilter)
+            ]
             and_having = flatten_condition_tree(having, SNUBA_AND)
             for func in and_having:
                 kwargs["having"].append(convert_function_to_condition(func))
@@ -1201,6 +1218,7 @@ def get_filter(query=None, params=None):
                     kwargs["group_ids"].extend(group_ids)
             elif isinstance(term, AggregateFilter):
                 converted_filter = convert_aggregate_filter_to_snuba_query(term, params)
+                kwargs["condition_aggregates"].append(term.key.name)
                 if converted_filter:
                     kwargs["having"].append(converted_filter)
 
@@ -1234,10 +1252,14 @@ def get_filter(query=None, params=None):
 FIELD_ALIASES = {
     "project": {"fields": ["project.id"], "column_alias": "project.id"},
     "issue": {"fields": ["issue.id"], "column_alias": "issue.id"},
-    "user.display": {
+    ERROR_UNHANDLED_ALIAS: {
+        "fields": [["notHandled", [], ERROR_UNHANDLED_ALIAS]],
+        "column_alias": ERROR_UNHANDLED_ALIAS,
+    },
+    USER_DISPLAY_ALIAS: {
         "expression": ["coalesce", ["user.email", "user.username", "user.ip"]],
-        "fields": [["coalesce", ["user.email", "user.username", "user.ip"], "user.display"]],
-        "column_alias": "user.display",
+        "fields": [["coalesce", ["user.email", "user.username", "user.ip"], USER_DISPLAY_ALIAS]],
+        "column_alias": USER_DISPLAY_ALIAS,
     },
 }
 
@@ -1744,6 +1766,16 @@ FUNCTIONS = {
             result_type="integer",
         ),
         Function(
+            "count_at_least",
+            required_args=[NumericColumnNoLookup("column"), NumberRange("threshold", 0, None)],
+            aggregate=[
+                "countIf",
+                [["greaterOrEquals", [ArgValue("column"), ArgValue("threshold")]]],
+                None,
+            ],
+            result_type="integer",
+        ),
+        Function(
             "min",
             required_args=[NumericColumnNoLookup("column")],
             aggregate=["min", ArgValue("column"), None],
@@ -1850,7 +1882,11 @@ FUNCTIONS = {
         ),
         Function(
             "absolute_correlation",
-            aggregate=["abs", [["corr", ["toUnixTimestamp", ["timestamp"], "duration"]]], None],
+            aggregate=[
+                "abs",
+                [["corr", [["toUnixTimestamp", ["timestamp"]], "transaction.duration"]]],
+                None,
+            ],
             result_type="number",
         ),
     ]
@@ -1881,15 +1917,14 @@ def get_function_alias_with_columns(function_name, columns):
     return u"{}_{}".format(function_name, columns).rstrip("_")
 
 
-def format_column_arguments(column, arguments):
-    args = column[1]
-    for i in range(len(args)):
-        if isinstance(args[i], (list, tuple)):
-            format_column_arguments(args[i], arguments)
-        elif isinstance(args[i], six.string_types):
-            args[i] = args[i].format(**arguments)
-        elif isinstance(args[i], ArgValue):
-            args[i] = arguments[args[i].arg]
+def format_column_arguments(column_args, arguments):
+    for i in range(len(column_args)):
+        if isinstance(column_args[i], (list, tuple)):
+            format_column_arguments(column_args[i][1], arguments)
+        elif isinstance(column_args[i], six.string_types):
+            column_args[i] = column_args[i].format(**arguments)
+        elif isinstance(column_args[i], ArgValue):
+            column_args[i] = arguments[column_args[i].arg]
 
 
 def parse_function(field, match=None):
@@ -1922,12 +1957,17 @@ def resolve_function(field, match=None, params=None):
 
         aggregate[0] = aggregate[0].format(**arguments)
         if isinstance(aggregate[1], (list, tuple)):
-            aggregate[1] = [
-                arguments[agg.arg] if isinstance(agg, ArgValue) else agg for agg in aggregate[1]
-            ]
+            format_column_arguments(aggregate[1], arguments)
         elif isinstance(aggregate[1], ArgValue):
             arg = aggregate[1].arg
-            aggregate[1] = arguments[arg]
+            # The aggregate function has only a single argument
+            # however that argument is an expression, so we have
+            # to make sure to nest it so it doesn't get treated
+            # as a list of arguments by snuba.
+            if isinstance(arguments[arg], (list, tuple)):
+                aggregate[1] = [arguments[arg]]
+            else:
+                aggregate[1] = arguments[arg]
         if aggregate[2] is None:
             aggregate[2] = get_function_alias_with_columns(function.name, columns)
         else:
@@ -1937,7 +1977,7 @@ def resolve_function(field, match=None, params=None):
     elif function.column is not None:
         # These can be very nested functions, so we need to iterate through all the layers
         addition = deepcopy(function.column)
-        format_column_arguments(addition, arguments)
+        format_column_arguments(addition[1], arguments)
         if len(addition) < 3:
             addition.append(get_function_alias_with_columns(function.name, columns))
         elif len(addition) == 3 and addition[2] is None:
@@ -2015,13 +2055,18 @@ def resolve_field(field, params=None):
     return ([field], None)
 
 
-def resolve_field_list(fields, snuba_filter, auto_fields=True):
+def resolve_field_list(fields, snuba_filter, auto_fields=True, auto_aggregations=False):
     """
     Expand a list of fields based on aliases and aggregate functions.
 
     Returns a dist of aggregations, selected_columns, and
     groupby that can be merged into the result of get_snuba_query_args()
     to build a more complete snuba query based on event search conventions.
+
+    Auto aggregates are aggregates that will be automatically added to the
+    list of aggregations when they're used in a condition. This is so that
+    they can be used in a condition without having to manually add the
+    aggregate to a field.
     """
     aggregations = []
     columns = []
@@ -2049,6 +2094,14 @@ def resolve_field_list(fields, snuba_filter, auto_fields=True):
 
         if agg_additions:
             aggregations.extend(agg_additions)
+
+    # Only auto aggregate when there's one other so we the group by is not unexpectedly changed
+    if auto_aggregations and snuba_filter.having and len(aggregations) > 0:
+        for agg in snuba_filter.condition_aggregates:
+            _, agg_additions = resolve_field(agg, snuba_filter.date_params)
+
+            if agg_additions[0] not in aggregations:
+                aggregations.extend(agg_additions)
 
     rollup = snuba_filter.rollup
     if not rollup and auto_fields:

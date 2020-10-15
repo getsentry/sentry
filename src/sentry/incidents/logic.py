@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from copy import deepcopy
-from datetime import timedelta
+from datetime import datetime, timedelta
 from itertools import chain
 
 import six
@@ -9,7 +9,7 @@ from django.db import transaction
 from django.db.models.signals import post_save
 from django.utils import timezone
 
-from sentry import analytics
+from sentry import analytics, quotas
 from sentry.api.event_search import get_filter, resolve_field
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
 from sentry.incidents import tasks
@@ -307,9 +307,19 @@ def create_incident_snapshot(incident, windowed_stats=False):
     """
     assert incident.status == IncidentStatus.CLOSED.value
 
+    start, end = calculate_incident_time_range(incident, windowed_stats=windowed_stats)
+    if start == end:
+        return IncidentSnapshot.objects.create(
+            incident=incident,
+            event_stats_snapshot=TimeSeriesSnapshot.objects.create(
+                start=start, end=end, values=[], period=incident.alert_rule.snuba_query.time_window,
+            ),
+            unique_users=0,
+            total_events=0,
+        )
+
     event_stats_snapshot = create_event_stat_snapshot(incident, windowed_stats=windowed_stats)
     aggregates = get_incident_aggregates(incident)
-
     return IncidentSnapshot.objects.create(
         incident=incident,
         event_stats_snapshot=event_stats_snapshot,
@@ -325,6 +335,7 @@ def create_event_stat_snapshot(incident, windowed_stats=False):
 
     event_stats = get_incident_event_stats(incident, windowed_stats=windowed_stats)
     start, end = calculate_incident_time_range(incident, windowed_stats=windowed_stats)
+
     return TimeSeriesSnapshot.objects.create(
         start=start,
         end=end,
@@ -390,6 +401,13 @@ def calculate_incident_time_range(incident, start=None, end=None, windowed_stats
             end = min(end, latest_end_date)
 
             start = end - timedelta(seconds=time_window * WINDOWED_STATS_DATA_POINTS)
+
+    retention = quotas.get_event_retention(organization=incident.organization) or 90
+    start = max(
+        start.replace(tzinfo=timezone.utc),
+        datetime.utcnow().replace(tzinfo=timezone.utc) - timedelta(days=retention),
+    )
+    end = max(start, end.replace(tzinfo=timezone.utc))
 
     return start, end
 
@@ -1181,11 +1199,15 @@ def get_alert_rule_trigger_action_slack_channel_id(
     from sentry.integrations.slack.utils import get_channel_id
 
     try:
+        integration = Integration.objects.get(id=integration_id)
+    except Integration.DoesNotExist:
+        raise InvalidTriggerActionError("Slack workspace is a required field.")
+
+    try:
         _prefix, channel_id, timed_out = get_channel_id(
-            organization, integration_id, name, use_async_lookup
+            organization, integration, name, use_async_lookup
         )
     except DuplicateDisplayNameError as e:
-        integration = Integration.objects.get(id=integration_id)
         domain = integration.metadata["domain_name"]
 
         raise InvalidTriggerActionError(

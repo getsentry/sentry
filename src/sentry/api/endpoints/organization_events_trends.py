@@ -88,7 +88,6 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
                     count_column["format"].format(start=start, end=middle, index="1"),
                     count_column["format"].format(start=middle, end=end, index="2"),
                     percentage_column["format"].format(alias=count_column["alias"]),
-                    "absolute_correlation()",
                 ],
                 query=query,
                 params=params,
@@ -97,6 +96,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
                 limit=limit,
                 referrer="api.trends.get-percentage-change",
                 auto_fields=True,
+                auto_aggregations=True,
                 use_aggregate_conditions=True,
             )
 
