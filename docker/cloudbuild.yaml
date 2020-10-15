@@ -41,11 +41,13 @@ steps:
   waitFor:
     - runtime-image-py2
   entrypoint: 'bash'
+  env:
+  - 'SENTRY_IMAGE=us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA'
   args:
   - '-e'
   - '-c'
   - |
-    mkdir onpremise && cd onpremise
+    mkdir -p onpremise && cd onpremise
     curl -L "https://github.com/getsentry/onpremise/archive/master.tar.gz" | tar xzf - --strip-components=1
     echo '{"version": "3.4", "networks":{"default":{"external":{"name":"cloudbuild"}}}}' > docker-compose.override.yml
     ./install.sh
@@ -67,12 +69,13 @@ steps:
     - e2e-test-py2
   entrypoint: 'bash'
   env:
+  - 'SENTRY_IMAGE=us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA'
   - 'SENTRY_PYTHON3=1'
   args:
   - '-e'
   - '-c'
   - |
-    mkdir onpremise && cd onpremise
+    mkdir -p onpremise && cd onpremise
     curl -L "https://github.com/getsentry/onpremise/archive/master.tar.gz" | tar xzf - --strip-components=1
     echo '{"version": "3.4", "networks":{"default":{"external":{"name":"cloudbuild"}}}}' > docker-compose.override.yml
     ./install.sh
@@ -139,7 +142,6 @@ options:
   # We need more memory for Webpack builds & e2e onpremise tests
   machineType: 'N1_HIGHCPU_8'
   env:
-    - 'SENTRY_IMAGE=us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA'
     - 'DOCKER_REPO=getsentry/sentry'
     - 'SENTRY_TEST_HOST=http://nginx'
     - 'CI=1'
