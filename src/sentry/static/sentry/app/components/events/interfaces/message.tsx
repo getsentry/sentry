@@ -1,10 +1,12 @@
 import React from 'react';
+import styled from '@emotion/styled';
 
 import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValueList';
 import EventDataSection from 'app/components/events/eventDataSection';
 import Annotated from 'app/components/events/meta/annotated';
 import {t} from 'app/locale';
 import {objectIsEmpty} from 'app/utils';
+import space from 'app/styles/space';
 
 type Props = {
   data: {
@@ -34,13 +36,17 @@ const Message = ({data}: Props) => {
   };
 
   return (
-    <EventDataSection type="message" title={t('Message')}>
+    <StyledEventDataSection type="message" title={t('Message')}>
       <Annotated object={data} objectKey="formatted">
         {value => <pre className="plain">{value}</pre>}
       </Annotated>
       {renderParams()}
-    </EventDataSection>
+    </StyledEventDataSection>
   );
 };
+
+const StyledEventDataSection = styled(EventDataSection)`
+  padding-bottom: ${space(3)};
+`;
 
 export default Message;
