@@ -139,7 +139,14 @@ def record_first_error(project, event):
         },
     )
 
-    user = Organization.objects.get(id=project.organization_id).get_default_owner()
+    try:
+        user = Organization.objects.get(id=project.organization_id).get_default_owner()
+    except IndexError:
+        logging.getLogger("sentry").warn(
+            "Cannot record first event for organization (%s) due to missing owners",
+            project.organization_id,
+        )
+        return
 
     if rows_affected or created:
         analytics.record(
@@ -189,7 +196,14 @@ def record_first_transaction(project, event):
         date_completed=event.datetime,
     )
 
-    user = Organization.objects.get(id=project.organization_id).get_default_owner()
+    try:
+        user = Organization.objects.get(id=project.organization_id).get_default_owner()
+    except IndexError:
+        logging.getLogger("sentry").warn(
+            "Cannot record first transaction for organization (%s) due to missing owners",
+            project.organization_id,
+        )
+        return
 
     analytics.record(
         "first_transaction.sent",
@@ -246,7 +260,15 @@ def record_release_received(project, event, **kwargs):
         project_id=project.id,
     )
     if success:
-        user = Organization.objects.get(id=project.organization_id).get_default_owner()
+        try:
+            user = Organization.objects.get(id=project.organization_id).get_default_owner()
+        except IndexError:
+            logging.getLogger("sentry").warn(
+                "Cannot record release recieved for organization (%s) due to missing owners",
+                project.organization_id,
+            )
+            return
+
         analytics.record(
             "first_release_tag.sent",
             user_id=user.id,
@@ -272,7 +294,15 @@ def record_user_context_received(project, event, **kwargs):
             project_id=project.id,
         )
         if success:
-            user = Organization.objects.get(id=project.organization_id).get_default_owner()
+            try:
+                user = Organization.objects.get(id=project.organization_id).get_default_owner()
+            except IndexError:
+                logging.getLogger("sentry").warn(
+                    "Cannot record user context received for organization (%s) due to missing owners",
+                    project.organization_id,
+                )
+                return
+
             analytics.record(
                 "first_user_context.sent",
                 user_id=user.id,
@@ -294,7 +324,14 @@ def record_sourcemaps_received(project, event, **kwargs):
         project_id=project.id,
     )
     if success:
-        user = Organization.objects.get(id=project.organization_id).get_default_owner()
+        try:
+            user = Organization.objects.get(id=project.organization_id).get_default_owner()
+        except IndexError:
+            logging.getLogger("sentry").warn(
+                "Cannot record sourcemaps received for organization (%s) due to missing owners",
+                project.organization_id,
+            )
+            return
         analytics.record(
             "first_sourcemaps.sent",
             user_id=user.id,
@@ -374,7 +411,15 @@ def record_issue_tracker_used(plugin, project, user, **kwargs):
         user_id = default_user_id = user.id
     else:
         user_id = None
-        default_user_id = project.organization.get_default_owner().id
+        try:
+            default_user_id = project.organization.get_default_owner().id
+        except IndexError:
+            logging.getLogger("sentry").warn(
+                "Cannot record issue tracker used for organization (%s) due to missing owners",
+                project.organization_id,
+            )
+            return
+
     analytics.record(
         "issue_tracker.used",
         user_id=user_id,
