@@ -121,11 +121,11 @@ steps:
         # Need to pull the image first due to Kaniko
         docker pull $$SENTRY_IMAGE
         echo "$$DOCKER_PASSWORD" | docker login --username=sentrybuilder --password-stdin
-        docker $$SENTRY_IMAGE $$DOCKER_REPO:$SHORT_SHA
+        docker tag $$SENTRY_IMAGE $$DOCKER_REPO:$SHORT_SHA
         docker push $$DOCKER_REPO:$SHORT_SHA
-        docker $$SENTRY_IMAGE $$DOCKER_REPO:$COMMIT_SHA
+        docker tag $$SENTRY_IMAGE $$DOCKER_REPO:$COMMIT_SHA
         docker push $$DOCKER_REPO:$COMMIT_SHA
-        docker $$SENTRY_IMAGE $$DOCKER_REPO:nightly
+        docker tag $$SENTRY_IMAGE $$DOCKER_REPO:nightly
         docker push $$DOCKER_REPO:nightly
   - name: 'gcr.io/cloud-builders/docker'
     id: docker-push-py3
@@ -142,11 +142,11 @@ steps:
         # Need to pull the image first due to Kaniko
         docker pull $$SENTRY_IMAGE-py3
         echo "$$DOCKER_PASSWORD" | docker login --username=sentrybuilder --password-stdin
-        docker $$SENTRY_IMAGE-py3 $$DOCKER_REPO:$SHORT_SHA-py3
+        docker tag $$SENTRY_IMAGE-py3 $$DOCKER_REPO:$SHORT_SHA-py3
         docker push $$DOCKER_REPO:$SHORT_SHA-py3
-        docker $$SENTRY_IMAGE-py3 $$DOCKER_REPO:$COMMIT_SHA-py3
+        docker tag $$SENTRY_IMAGE-py3 $$DOCKER_REPO:$COMMIT_SHA-py3
         docker push $$DOCKER_REPO:$COMMIT_SHA-py3
-        docker $$SENTRY_IMAGE-py3 $$DOCKER_REPO:nightly-py3
+        docker tag $$SENTRY_IMAGE-py3 $$DOCKER_REPO:nightly-py3
         docker push $$DOCKER_REPO:nightly-py3
   - name: 'node:12'
     id: zeus-upload
