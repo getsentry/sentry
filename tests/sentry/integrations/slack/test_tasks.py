@@ -223,7 +223,7 @@ class SlackTasksTest(TestCase):
         }
 
         with self.tasks():
-            with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            with self.feature(["organizations:incidents"]):
                 find_channel_id_for_alert_rule(**data)
 
         rule = AlertRule.objects.get(name="New Rule")
