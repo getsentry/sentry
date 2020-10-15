@@ -237,7 +237,12 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
             )
 
         resp.data["uuid"] = "abc123"
-        kwargs = {"organization_id": self.organization.id, "uuid": "abc123", "data": test_params}
+        kwargs = {
+            "organization_id": self.organization.id,
+            "uuid": "abc123",
+            "alert_rule_id": self.alert_rule.id,
+            "data": test_params,
+        }
         mock_find_channel_id_for_alert_rule.assert_called_once_with(kwargs=kwargs)
 
 

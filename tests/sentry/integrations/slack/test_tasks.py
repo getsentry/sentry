@@ -67,7 +67,6 @@ class SlackTasksTest(TestCase):
             ],
             "projects": [self.project1.slug],
             "name": "New Rule",
-            "uuid": self.uuid,
             "organization_id": self.org.id,
         }
 
@@ -214,10 +213,10 @@ class SlackTasksTest(TestCase):
         return_value=("#", "chan-id", False),
     )
     def test_task_new_alert_rule(self, mock_get_channel_id, mock_set_value):
-        alert_rule = self.metic_alert_data
+        alert_rule_data = self.metic_alert_data
 
         data = {
-            "data": alert_rule,
+            "data": alert_rule_data,
             "uuid": self.uuid,
             "organization_id": self.org.id,
         }
@@ -239,10 +238,10 @@ class SlackTasksTest(TestCase):
         return_value=("#", None, False),
     )
     def test_task_failed_id_lookup(self, mock_get_channel_id, mock_set_value):
-        alert_rule = self.metic_alert_data
+        alert_rule_data = self.metic_alert_data
 
         data = {
-            "data": alert_rule,
+            "data": alert_rule_data,
             "uuid": self.uuid,
             "organization_id": self.org.id,
         }
@@ -261,10 +260,10 @@ class SlackTasksTest(TestCase):
         return_value=("#", None, True),
     )
     def test_task_timeout_id_lookup(self, mock_get_channel_id, mock_set_value):
-        alert_rule = self.metic_alert_data
+        alert_rule_data = self.metic_alert_data
 
         data = {
-            "data": alert_rule,
+            "data": alert_rule_data,
             "uuid": self.uuid,
             "organization_id": self.org.id,
         }
@@ -276,3 +275,33 @@ class SlackTasksTest(TestCase):
         assert not AlertRule.objects.filter(name="New Rule").exists()
         mock_set_value.assert_called_with("failed")
         mock_get_channel_id.assert_called_with(self.integration, "my-channel", 180)
+
+    @patch.object(RedisRuleStatus, "set_value", return_value=None)
+    @patch(
+        "sentry.integrations.slack.utils.get_channel_id_with_timeout",
+        return_value=("#", "chan-id", False),
+    )
+    def test_task_existing_metric_alert(self, mock_get_channel_id, mock_set_value):
+        alert_rule_data = self.metic_alert_data
+        alert_rule = self.create_alert_rule(
+            organization=self.org, projects=[self.project1], name="New Rule", user=self.user
+        )
+
+        data = {
+            "data": alert_rule_data,
+            "uuid": self.uuid,
+            "organization_id": self.org.id,
+            "alert_rule_id": alert_rule.id,
+        }
+
+        with self.tasks():
+            with self.feature(["organizations:incidents"]):
+                find_channel_id_for_alert_rule(**data)
+
+        rule = AlertRule.objects.get(name="New Rule")
+        mock_set_value.assert_called_with("success", rule.id)
+        mock_get_channel_id.assert_called_with(self.integration, "my-channel", 180)
+
+        trigger_action = AlertRuleTriggerAction.objects.get(integration=self.integration.id)
+        assert trigger_action.target_identifier == "chan-id"
+        assert AlertRule.objects.get(id=alert_rule.id)
