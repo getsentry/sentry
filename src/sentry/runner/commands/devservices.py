@@ -117,19 +117,9 @@ def up(services, project, exclude, fast):
     configure()
 
     containers = _prepare_containers(project, silent=True)
-
-    for service in exclude:
-        if service not in containers:
-            click.secho(
-                "Service `{}` is not known or not enabled.\n".format(service), err=True, fg="red"
-            )
-            click.secho(
-                "Services that are available:\n" + "\n".join(containers.keys()) + "\n", err=True
-            )
-            raise click.Abort()
+    selected_services = set()
 
     if services:
-        selected_containers = {}
         for service in services:
             if service not in containers:
                 click.secho(
@@ -141,8 +131,20 @@ def up(services, project, exclude, fast):
                     "Services that are available:\n" + "\n".join(containers.keys()) + "\n", err=True
                 )
                 raise click.Abort()
-            selected_containers[service] = containers[service]
-        containers = selected_containers
+            selected_services.add(service)
+    else:
+        selected_services = set(containers.keys())
+
+    for service in exclude:
+        if service not in containers:
+            click.secho(
+                "Service `{}` is not known or not enabled.\n".format(service), err=True, fg="red"
+            )
+            click.secho(
+                "Services that are available:\n" + "\n".join(containers.keys()) + "\n", err=True
+            )
+            raise click.Abort()
+        selected_services.remove(service)
 
     if fast:
         click.secho(
@@ -154,9 +156,7 @@ def up(services, project, exclude, fast):
     client = get_docker_client()
     get_or_create(client, "network", project)
 
-    for name, container_options in containers.items():
-        if name in exclude:
-            continue
+    for name in selected_services:
         _start_service(client, name, containers, project, fast=fast)
 
 
