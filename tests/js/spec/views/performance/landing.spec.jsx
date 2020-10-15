@@ -311,8 +311,24 @@ describe('Performance > Landing', function () {
     expect(browserHistory.push).toHaveBeenCalledTimes(0);
   });
 
-  it('Default page (trends) with trends feature will update filters if none are set', async function () {
+  it('Default page (transactions) with trends feature will not update filters if none are set', async function () {
     const data = initializeTrendsData({view: undefined}, false);
+
+    const wrapper = mountWithTheme(
+      <PerformanceLanding
+        organization={data.organization}
+        location={data.router.location}
+      />,
+      data.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    expect(browserHistory.push).toHaveBeenCalledTimes(0);
+  });
+
+  it('Visiting trends with trends feature will update filters if none are set', async function () {
+    const data = initializeTrendsData({view: FilterViews.TRENDS}, false);
 
     const wrapper = mountWithTheme(
       <PerformanceLanding
