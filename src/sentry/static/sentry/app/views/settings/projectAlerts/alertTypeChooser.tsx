@@ -5,7 +5,6 @@ import Card from 'app/components/card';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import Radio from 'app/components/radio';
-import textStyles from 'app/styles/text';
 import {List, ListItem} from 'app/components/list';
 import Tooltip from 'app/components/tooltip';
 import Feature from 'app/components/acl/feature';
@@ -181,7 +180,6 @@ const TypeCard = styled(Card)`
   cursor: pointer;
   padding: ${space(4)};
   margin-bottom: ${space(3)};
-  ${textStyles};
 `;
 
 export default TypeChooser;

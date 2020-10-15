@@ -10,7 +10,6 @@ import NavTabs from 'app/components/navTabs';
 import {IconMarkdown} from 'app/icons';
 import marked from 'app/utils/marked';
 import space from 'app/styles/space';
-import textStyles from 'app/styles/text';
 
 import {Mentionable, Mentioned, MentionChangeEvent, CreateError} from './types';
 import Mentionables from './mentionables';
@@ -197,7 +196,7 @@ class NoteInput extends React.Component<Props, State> {
           </MarkdownTab>
         </NoteInputNavTabs>
 
-        <NoteInputBody>
+        <div>
           {preview ? (
             <NotePreview
               minHeight={minHeight}
@@ -230,7 +229,7 @@ class NoteInput extends React.Component<Props, State> {
               />
             </MentionsInput>
           )}
-        </NoteInputBody>
+        </div>
 
         <Footer>
           <div>{errorMessage && <ErrorMessage>{errorMessage}</ErrorMessage>}</div>
@@ -342,10 +341,6 @@ const NoteInputForm = styled('form')`
   transition: padding 0.2s ease-in-out;
 
   ${getNoteInputErrorStyles}
-`;
-
-const NoteInputBody = styled('div')`
-  ${textStyles}
 `;
 
 const Footer = styled('div')`
