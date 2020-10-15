@@ -26,11 +26,19 @@ import ToolbarHeader from 'app/components/toolbarHeader';
 import Tooltip from 'app/components/tooltip';
 import withApi from 'app/utils/withApi';
 import QuestionTooltip from 'app/components/questionTooltip';
+import {Client} from 'app/api';
+import {
+  GlobalSelection,
+  Organization,
+  Group,
+  Project,
+  UpdateResolutionStatus,
+} from 'app/types';
 
 const BULK_LIMIT = 1000;
 const BULK_LIMIT_STR = BULK_LIMIT.toLocaleString();
 
-const getBulkConfirmMessage = (action, queryCount) => {
+const getBulkConfirmMessage = (action: string, queryCount: number) => {
   if (queryCount > BULK_LIMIT) {
     return tct(
       'Are you sure you want to [action] the first [bulkNumber] issues that match the search?',
@@ -50,7 +58,12 @@ const getBulkConfirmMessage = (action, queryCount) => {
   );
 };
 
-const getConfirm = (numIssues, allInQuerySelected, query, queryCount) =>
+const getConfirm = (
+  numIssues: number,
+  allInQuerySelected: boolean,
+  query: string,
+  queryCount: number
+) =>
   function (action, canBeUndone, append = '') {
     const question = allInQuerySelected
       ? getBulkConfirmMessage(`${action}${append}`, queryCount)
@@ -87,7 +100,7 @@ const getConfirm = (numIssues, allInQuerySelected, query, queryCount) =>
     );
   };
 
-const getLabel = (numIssues, allInQuerySelected) =>
+const getLabel = (numIssues: number, allInQuerySelected: boolean) =>
   function (action, append = '') {
     const capitalized = capitalize(action);
     const text = allInQuerySelected
@@ -101,7 +114,13 @@ const getLabel = (numIssues, allInQuerySelected) =>
     return text + append;
   };
 
-const ExtraDescription = ({all, query, queryCount}) => {
+type ExtraDescriptionProps = {
+  all: boolean;
+  query: string;
+  queryCount: number;
+};
+
+const ExtraDescription = ({all, query, queryCount}: ExtraDescriptionProps) => {
   if (!all) {
     return null;
   }
@@ -132,13 +151,32 @@ const ExtraDescription = ({all, query, queryCount}) => {
   );
 };
 
-ExtraDescription.propTypes = {
-  all: PropTypes.bool,
-  query: PropTypes.string,
-  queryCount: PropTypes.number,
+type Props = {
+  api: Client;
+  allResultsVisible: boolean;
+  organization: Organization;
+  orgId: string;
+  selection: GlobalSelection;
+  groupIds: string[];
+  onRealtimeChange: (realtime: boolean) => void;
+  onSelectStatsPeriod: (period: string) => void;
+  realtimeActive: boolean;
+  statsPeriod: string;
+  query: string;
+  queryCount: number;
 };
 
-const IssueListActions = createReactClass({
+type State = {
+  datePickerActive: boolean;
+  anySelected: boolean;
+  multiSelected: boolean;
+  pageSelected: boolean;
+  allInQuerySelected: boolean;
+  selectedIds: Set<string>;
+  selectedProjectSlug?: string;
+};
+
+const IssueListActions = createReactClass<Props, State>({
   displayName: 'IssueListActions',
 
   propTypes: {
@@ -156,14 +194,7 @@ const IssueListActions = createReactClass({
     queryCount: PropTypes.number,
   },
 
-  mixins: [Reflux.listenTo(SelectedGroupStore, 'handleSelectedGroupChange')],
-
-  getDefaultProps() {
-    return {
-      hasReleases: false,
-      latestRelease: null,
-    };
-  },
+  mixins: [Reflux.listenTo(SelectedGroupStore, 'handleSelectedGroupChange') as any],
 
   getInitialState() {
     return {
@@ -176,8 +207,8 @@ const IssueListActions = createReactClass({
     };
   },
 
-  actionSelectedGroups(callback) {
-    let selectedIds;
+  actionSelectedGroups(callback: (itemIds: string[] | undefined) => void) {
+    let selectedIds: string[] | undefined;
 
     if (this.state.allInQuerySelected) {
       selectedIds = undefined; // undefined means "all"
@@ -201,12 +232,12 @@ const IssueListActions = createReactClass({
     const selected = SelectedGroupStore.getSelectedIds();
     const projects = [...selected]
       .map(id => GroupStore.get(id))
-      .filter(group => group && group.project)
+      .filter((group): group is Group => !!(group && group.project))
       .map(group => group.project.slug);
 
     const uniqProjects = uniq(projects);
 
-    let selectedProjectSlug = null;
+    let selectedProjectSlug = null as string | null;
     // we only want selectedProjectSlug set if there is 1 project
     // more or fewer should result in a null so that the action toolbar
     // can behave correctly.
@@ -224,7 +255,7 @@ const IssueListActions = createReactClass({
     });
   },
 
-  handleSelectStatsPeriod(period) {
+  handleSelectStatsPeriod(period: string) {
     return this.props.onSelectStatsPeriod(period);
   },
 
@@ -234,7 +265,7 @@ const IssueListActions = createReactClass({
     });
   },
 
-  handleUpdate(data) {
+  handleUpdate(data: UpdateResolutionStatus) {
     const {selection} = this.props;
     this.actionSelectedGroups(itemIds => {
       addLoadingMessage(t('Saving changes\u2026'));
@@ -322,7 +353,16 @@ const IssueListActions = createReactClass({
     this.props.onRealtimeChange(!this.props.realtimeActive);
   },
 
-  shouldConfirm(action) {
+  shouldConfirm(
+    action:
+      | 'resolve'
+      | 'unresolve'
+      | 'ignore'
+      | 'unbookmark'
+      | 'bookmark'
+      | 'merge'
+      | 'delete'
+  ) {
     const selectedItems = SelectedGroupStore.getSelectedIds();
     switch (action) {
       case 'resolve':
@@ -413,8 +453,12 @@ const IssueListActions = createReactClass({
                 {({projects, initiallyLoaded, fetchError}) => {
                   const selectedProject = projects[0];
                   return this.renderResolveActions({
-                    hasReleases: new Set(selectedProject.features).has('releases'),
-                    latestRelease: selectedProject.latestRelease,
+                    hasReleases: selectedProject.hasOwnProperty('features')
+                      ? new Set((selectedProject as Project).features).has('releases')
+                      : false,
+                    latestRelease: selectedProject.hasOwnProperty('latestRelease')
+                      ? (selectedProject as Project).latestRelease
+                      : undefined,
                     projectId: selectedProject.slug,
                     confirm,
                     label,
@@ -455,7 +499,6 @@ const IssueListActions = createReactClass({
             <div className="btn-group">
               <DropdownLink
                 key="actions"
-                btnGroup
                 caret={false}
                 className="btn btn-sm btn-default action-more"
                 title={
@@ -500,6 +543,7 @@ const IssueListActions = createReactClass({
                     shouldConfirm={this.shouldConfirm('unbookmark')}
                     message={confirm('remove', false, ' from your bookmarks')}
                     confirmLabel={label('remove', ' from your bookmarks')}
+                    title={t('Remove from Bookmarks')}
                   >
                     {t('Remove from Bookmarks')}
                   </ActionLink>
@@ -513,6 +557,7 @@ const IssueListActions = createReactClass({
                     shouldConfirm={this.shouldConfirm('unresolve')}
                     message={confirm('unresolve', true)}
                     confirmLabel={label('unresolve')}
+                    title={t('Set status to: Unresolved')}
                   >
                     {t('Set status to: Unresolved')}
                   </ActionLink>
@@ -526,7 +571,7 @@ const IssueListActions = createReactClass({
                     shouldConfirm={this.shouldConfirm('delete')}
                     message={confirm('delete', false)}
                     confirmLabel={label('delete')}
-                    selectAllActive={pageSelected}
+                    title={t('Delete Issues')}
                   >
                     {t('Delete Issues')}
                   </ActionLink>
@@ -594,6 +639,7 @@ const IssueListActions = createReactClass({
                 <StyledQuestionTooltip
                   title={t('Number of events since the issue was created')}
                   size="xs"
+                  position="top"
                 />
               </EventsOrUsersLabel>
               <EventsOrUsersLabel className="align-right">
@@ -601,6 +647,7 @@ const IssueListActions = createReactClass({
                 <StyledQuestionTooltip
                   title={t('Unique users affected since the issue was created')}
                   size="xs"
+                  position="top"
                 />
               </EventsOrUsersLabel>
             </React.Fragment>
@@ -713,7 +760,7 @@ const StyledToolbarHeader = styled(ToolbarHeader)`
   flex: 1;
 `;
 
-const GraphToggle = styled('a')`
+const GraphToggle = styled('a')<{active: boolean}>`
   font-size: 13px;
   padding-left: 8px;
 
