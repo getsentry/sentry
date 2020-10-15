@@ -520,6 +520,49 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             assert [None] == response.data["data"][0]["error.handled"]
             assert [1] == response.data["data"][1]["error.handled"]
 
+    def test_error_unhandled_condition(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+        prototype = load_data("android-ndk")
+        events = (
+            ("a" * 32, "not handled", False),
+            ("b" * 32, "was handled", True),
+            ("c" * 32, "undefined", None),
+        )
+        for event in events:
+            prototype["event_id"] = event[0]
+            prototype["message"] = event[1]
+            prototype["exception"]["values"][0]["value"] = event[1]
+            prototype["exception"]["values"][0]["mechanism"]["handled"] = event[2]
+            prototype["timestamp"] = self.two_min_ago
+            self.store_event(data=prototype, project_id=project.id)
+
+        with self.feature("organizations:discover-basic"):
+            query = {
+                "field": ["message", "error.unhandled", "error.handled"],
+                "query": "error.unhandled:true",
+                "orderby": "message",
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.data
+            assert 1 == len(response.data["data"])
+            assert [0] == response.data["data"][0]["error.handled"]
+            assert 1 == response.data["data"][0]["error.unhandled"]
+
+        with self.feature("organizations:discover-basic"):
+            query = {
+                "field": ["message", "error.handled", "error.unhandled"],
+                "query": "error.unhandled:false",
+                "orderby": "message",
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.data
+            assert 2 == len(response.data["data"])
+            assert [None] == response.data["data"][0]["error.handled"]
+            assert 0 == response.data["data"][0]["error.unhandled"]
+            assert [1] == response.data["data"][1]["error.handled"]
+            assert 0 == response.data["data"][1]["error.unhandled"]
+
     def test_implicit_groupby(self):
         project = self.create_project()
         self.store_event(
@@ -2476,6 +2519,21 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                     response.data["detail"]
                     == "You can view up to 20 fields at a time. Please delete some and try again."
                 )
+
+    def test_count_at_least_query(self):
+        self.store_event(self.transaction_data, self.project.id)
+
+        response = self.do_request({"field": "count_at_least(measurements.fcp, {})".format(0)})
+        assert response.status_code == 200
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["count_at_least_measurements_fcp_0"] == 1
+
+        # a value that's a little bigger than the stored fcp
+        fcp = int(self.transaction_data["measurements"]["fcp"]["value"] + 1)
+        response = self.do_request({"field": "count_at_least(measurements.fcp, {})".format(fcp)})
+        assert response.status_code == 200
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["count_at_least_measurements_fcp_{}".format(fcp)] == 0
 
     def test_measurements_query(self):
         self.store_event(self.transaction_data, self.project.id)

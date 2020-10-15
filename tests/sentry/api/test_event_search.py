@@ -1040,6 +1040,10 @@ class ParseBooleanSearchQueryTest(TestCase):
             ]
         ]
 
+    def test_grouping_boolean_filter(self):
+        result = get_filter("(event.type:error) AND (stack.in_app:true)")
+        assert result.conditions == [["event.type", "=", "error"], ["stack.in_app", "=", 1]]
+
     def test_grouping_simple(self):
         result = get_filter("(user.email:foo@example.com OR user.email:bar@example.com)")
         assert result.conditions == [[_or(self.foo, self.bar), "=", 1]]
@@ -1828,6 +1832,34 @@ class GetSnubaQueryArgsTest(TestCase):
         with pytest.raises(InvalidSearchQuery):
             get_filter("error.handled:nope")
 
+    def test_error_unhandled(self):
+        result = get_filter("error.unhandled:true")
+        assert result.conditions == [[["notHandled", []], "=", 1]]
+
+        result = get_filter("error.unhandled:false")
+        assert result.conditions == [[["isHandled", []], "=", 1]]
+
+        result = get_filter("has:error.unhandled")
+        assert result.conditions == [[["isHandled", []], "=", 0]]
+
+        result = get_filter("!has:error.unhandled")
+        assert result.conditions == [[["isHandled", []], "=", 1]]
+
+        result = get_filter("!error.unhandled:true")
+        assert result.conditions == [[["isHandled", []], "=", 1]]
+
+        result = get_filter("!error.unhandled:false")
+        assert result.conditions == [[["notHandled", []], "=", 1]]
+
+        result = get_filter("!error.unhandled:0")
+        assert result.conditions == [[["notHandled", []], "=", 1]]
+
+        with pytest.raises(InvalidSearchQuery):
+            get_filter("error.unhandled:99")
+
+        with pytest.raises(InvalidSearchQuery):
+            get_filter("error.unhandled:nope")
+
     def test_function_negation(self):
         result = get_filter("!p95():5s")
         assert result.having == [["p95", "!=", 5000.0]]
@@ -2042,7 +2074,7 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["aggregations"] == [
             [
                 "uniq",
-                ["coalesce", ["user.email", "user.username", "user.ip"]],
+                [["coalesce", ["user.email", "user.username", "user.ip"]]],
                 "count_unique_user_display",
             ],
         ]
@@ -2341,6 +2373,17 @@ class ResolveFieldListTest(unittest.TestCase):
             in six.text_type(err)
         )
 
+    def test_count_at_least_function(self):
+        fields = ["count_at_least(measurements.baz, 1000)"]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["aggregations"] == [
+            [
+                "countIf",
+                [["greaterOrEquals", ["measurements.baz", 1000]]],
+                "count_at_least_measurements_baz_1000",
+            ]
+        ]
+
     def test_percentile_range(self):
         fields = [
             "percentile_range(transaction.duration, 0.5, 2020-05-01T01:12:34, 2020-05-03T06:48:57, 1)"
@@ -2414,7 +2457,7 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["aggregations"] == [
             [
                 "abs",
-                [["corr", ["toUnixTimestamp", ["timestamp"], "duration"]]],
+                [["corr", [["toUnixTimestamp", ["timestamp"]], "transaction.duration"]]],
                 u"absolute_correlation",
             ]
         ]

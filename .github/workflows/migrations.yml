@@ -5,95 +5,46 @@ on:
       - 'src/sentry/migrations/*'
 
 jobs:
-    sql:
-      name: Generate SQL
-      runs-on: ubuntu-16.04
+  sql:
+    name: Generate SQL
+    runs-on: ubuntu-16.04
 
-      env:
-        PIP_DISABLE_PIP_VERSION_CHECK: on
-        SENTRY_LIGHT_BUILD: 1
-        SENTRY_SKIP_BACKEND_VALIDATION: 1
-        MIGRATIONS_TEST_MIGRATE: 0
+    steps:
+      - uses: actions/checkout@v1
 
-        # The hostname used to communicate with the PostgreSQL from sentry
-        DATABASE_URL: postgresql://postgres:postgres@localhost/sentry
+      # Until GH composite actions can use `uses`, we need to setup python here
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 2.7.17
 
-      services:
-        postgres:
-          image: postgres:9.6
-          env:
-            POSTGRES_USER: postgres
-            POSTGRES_PASSWORD: postgres
-          ports:
-            # Maps tcp port 5432 on service container to the host
-            - 5432:5432
-          # needed because the postgres container does not provide a healthcheck
-          options: >-
-            --health-cmd pg_isready
-            --health-interval 10s
-            --health-timeout 5s
-            --health-retries 5
+      - name: Setup pip
+        uses: ./.github/actions/setup-pip
+        id: pip
 
-      steps:
-        - name: Install System Dependencies
-          run: |
-            sudo apt-get update
-            sudo apt-get install -y --no-install-recommends \
-              libxmlsec1-dev \
-              libmaxminddb-dev
+      - name: pip cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.pip.outputs.pip-cache-dir }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements-*.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
 
-        - uses: actions/checkout@v1
+      - name: Setup sentry env
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          python: 2
 
-        - name: Get changed migration files
-          id: file
-          run: |
-            echo $(git diff --diff-filter=AM --name-only origin/master HEAD)
-            echo "::set-output name=modified::$(git diff --diff-filter=AM --name-only origin/master HEAD | grep 'src/sentry/migrations/')"
+      - name: Get changed migration files
+        id: file
+        run: |
+          echo $(git diff --diff-filter=AM --name-only origin/master HEAD)
+          echo "::set-output name=modified::$(git diff --diff-filter=AM --name-only origin/master HEAD | grep 'src/sentry/migrations/')"
 
-        - name: Set up outputs
-          id: config
-          env:
-            MATRIX_INSTANCE: ${{ matrix.instance }}
-          run: |
-            echo "::set-output name=python-version::2.7.17"
-
-        - name: Set up Python ${{ steps.config.outputs.python-version }}
-          uses: actions/setup-python@v2
-          with:
-            python-version: ${{ steps.config.outputs.python-version}}
-
-        - name: Install pip
-          run: |
-            pip install --no-cache-dir --upgrade "pip>=20.0.2"
-
-        - name: Get pip cache dir
-          id: pip-cache
-          run: |
-            echo "::set-output name=dir::$(pip cache dir)"
-
-        - name: pip cache
-          uses: actions/cache@v1
-          with:
-            path: ${{ steps.pip-cache.outputs.dir }}
-            key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements-*.txt') }}
-            restore-keys: |
-              ${{ runner.os }}-pip-
-
-        - name: Install Python Dependencies
-          env:
-            PGPASSWORD: postgres
-          run: |
-            python setup.py install_egg_info
-            pip install wheel # GitHub Actions does not have this installed by default (unlike Travis)
-            pip install -U -e ".[dev]"
-            psql -c 'create database sentry;' -h localhost -U postgres
-            sentry init
-
-        - name: Generate SQL for migration
-          uses: getsentry/action-migrations@v1.0.7
-          env:
-            SENTRY_LOG_LEVEL: ERROR
-            PGPASSWORD: postgres
-          with:
-            githubToken: ${{ secrets.GITHUB_TOKEN }}
-            migration: ${{ steps.file.outputs.modified }}
+      - name: Generate SQL for migration
+        uses: getsentry/action-migrations@v1.0.7
+        env:
+          SENTRY_LOG_LEVEL: ERROR
+        with:
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          migration: ${{ steps.file.outputs.modified }}

@@ -57,7 +57,7 @@ export const BannerSummary = styled('p')`
     flex-shrink: 0;
     flex-grow: 0;
     margin-right: ${space(1)};
-    margin-top: ${space(0.5)};
+    margin-top: 2px;
   }
 
   & > span {

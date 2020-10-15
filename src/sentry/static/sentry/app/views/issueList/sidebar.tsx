@@ -1,50 +1,56 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import isEqual from 'lodash/isEqual';
-import debounce from 'lodash/debounce';
 import map from 'lodash/map';
 import styled from '@emotion/styled';
 
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {IconClose} from 'app/icons/iconClose';
-import {queryToObj, objToQuery} from 'app/utils/stream';
+import {queryToObj, objToQuery, QueryObj} from 'app/utils/stream';
 import {t} from 'app/locale';
+import {Tag, TagCollection} from 'app/types';
+import SentryTypes from 'app/sentryTypes';
 
+import {TagValueLoader} from './types';
 import IssueListTagFilter from './tagFilter';
 
-const TEXT_FILTER_DEBOUNCE_IN_MS = 300;
+type DefaultProps = {
+  tags: TagCollection;
+  query: string;
+  onQueryChange: (query: string) => void;
+};
 
-const IssueListSidebar = createReactClass({
-  displayName: 'IssueListSidebar',
+type Props = DefaultProps & {
+  tagValueLoader: TagValueLoader;
+  loading?: boolean;
+};
 
-  propTypes: {
-    orgId: PropTypes.string.isRequired,
+type State = {
+  queryObj: QueryObj;
+  textFilter: string;
+};
 
-    tags: PropTypes.object.isRequired,
+class IssueListSidebar extends React.Component<Props, State> {
+  static propTypes: any = {
+    tags: PropTypes.objectOf(SentryTypes.Tag).isRequired,
     query: PropTypes.string,
     onQueryChange: PropTypes.func.isRequired,
     loading: PropTypes.bool,
     tagValueLoader: PropTypes.func.isRequired,
-  },
+  };
 
-  getDefaultProps() {
-    return {
-      tags: {},
-      query: '',
-      onQueryChange: function () {},
-    };
-  },
+  static defaultProps: DefaultProps = {
+    tags: {},
+    query: '',
+    onQueryChange: function () {},
+  };
 
-  getInitialState() {
-    const queryObj = queryToObj(this.props.query);
-    return {
-      queryObj,
-      textFilter: queryObj.__text,
-    };
-  },
+  state: State = {
+    queryObj: queryToObj(this.props.query),
+    textFilter: queryToObj(this.props.query).__text,
+  };
 
-  componentWillReceiveProps(nextProps) {
+  componentWillReceiveProps(nextProps: Props) {
     // If query was updated by another source (e.g. SearchBar),
     // clobber state of sidebar with new query.
     const query = objToQuery(this.state.queryObj);
@@ -56,9 +62,9 @@ const IssueListSidebar = createReactClass({
         textFilter: queryObj.__text,
       });
     }
-  },
+  }
 
-  onSelectTag(tag, value) {
+  onSelectTag(tag: Tag, value: string | null) {
     const newQuery = {...this.state.queryObj};
     if (value) {
       newQuery[tag.key] = value;
@@ -72,22 +78,13 @@ const IssueListSidebar = createReactClass({
       },
       this.onQueryChange
     );
-  },
+  }
 
-  onTextChange: function (evt) {
+  onTextChange = (evt: React.ChangeEvent<HTMLInputElement>) => {
     this.setState({textFilter: evt.target.value});
-  },
+  };
 
-  debouncedTextChange: debounce(function (text) {
-    this.setState(
-      {
-        queryObj: {...this.state.queryObj, __text: text},
-      },
-      this.onQueryChange
-    );
-  }, TEXT_FILTER_DEBOUNCE_IN_MS),
-
-  onTextFilterSubmit(evt) {
+  onTextFilterSubmit(evt?: React.FormEvent<HTMLFormElement>) {
     evt && evt.preventDefault();
 
     const newQueryObj = {
@@ -101,12 +98,12 @@ const IssueListSidebar = createReactClass({
       },
       this.onQueryChange
     );
-  },
+  }
 
   onQueryChange() {
     const query = objToQuery(this.state.queryObj);
     this.props.onQueryChange && this.props.onQueryChange(query);
-  },
+  }
 
   onClearSearch() {
     this.setState(
@@ -115,10 +112,10 @@ const IssueListSidebar = createReactClass({
       },
       this.onTextFilterSubmit
     );
-  },
+  }
 
   render() {
-    const {loading, orgId, tagValueLoader, tags} = this.props;
+    const {loading, tagValueLoader, tags} = this.props;
     return (
       <div className="stream-sidebar">
         {loading ? (
@@ -147,7 +144,6 @@ const IssueListSidebar = createReactClass({
                 key={tag.key}
                 tag={tag}
                 onSelect={this.onSelectTag}
-                orgId={orgId}
                 tagValueLoader={tagValueLoader}
               />
             ))}
@@ -155,8 +151,8 @@ const IssueListSidebar = createReactClass({
         )}
       </div>
     );
-  },
-});
+  }
+}
 
 const StyledIconClose = styled(IconClose)`
   cursor: pointer;
