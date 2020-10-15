@@ -346,6 +346,9 @@ def query(
 
         snuba_filter = get_filter(query, params)
         if not use_aggregate_conditions:
+            assert (
+                not auto_aggregations
+            ), "Auto aggregations cannot be used without enabling aggregaet conditions"
             snuba_filter.having = []
 
     # We need to run a separate query to be able to properly bucket the values for the histogram

@@ -28,7 +28,7 @@ class Filter(object):
     aggregations (Sequence[Any, str|None, str]): Aggregate functions to fetch.
     groupby (Sequence[str]): List of columns to group results by
 
-    _condition_aggregates (Sequence[str]): List of aggregates used in the condition
+    condition_aggregates (Sequence[str]): List of aggregates used in the condition
     """
 
     def __init__(

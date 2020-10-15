@@ -1373,6 +1373,24 @@ class QueryTransformTest(TestCase):
             )
 
     @patch("sentry.snuba.discover.raw_query")
+    def test_no_aggregate_conditions_with_auto(self, mock_query):
+        mock_query.return_value = {
+            "meta": [{"name": "transaction"}, {"name": "duration"}],
+            "data": [{"transaction": "api.do_things", "duration": 200}],
+        }
+        start_time = before_now(minutes=10)
+        end_time = before_now(seconds=1)
+
+        with pytest.raises(AssertionError):
+            discover.query(
+                selected_columns=["transaction"],
+                query="http.method:GET max(time):>5",
+                params={"project_id": [self.project.id], "start": start_time, "end": end_time},
+                use_aggregate_conditions=False,
+                auto_aggregations=True,
+            )
+
+    @patch("sentry.snuba.discover.raw_query")
     def test_auto_aggregation(self, mock_query):
         mock_query.return_value = {
             "meta": [{"name": "transaction"}, {"name": "duration"}],
