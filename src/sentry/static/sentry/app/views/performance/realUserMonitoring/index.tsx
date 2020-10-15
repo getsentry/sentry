@@ -163,9 +163,9 @@ function generateRumEventView(
     if (isAggregateField(field)) conditions.removeTag(field);
   });
 
-  const vitals = Object.keys(WEB_VITAL_DETAILS).filter(key => {
-    return !!VITAL_GROUPS.find(group => group.group.includes(key as WebVital));
-  }) as WebVital[];
+  const vitals = VITAL_GROUPS.reduce((allVitals: WebVital[], group) => {
+    return allVitals.concat(group.group);
+  }, []);
 
   return EventView.fromNewQueryWithLocation(
     {
