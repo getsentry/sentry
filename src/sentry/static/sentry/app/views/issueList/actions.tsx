@@ -9,6 +9,14 @@ import styled from '@emotion/styled';
 import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
 import {t, tct, tn} from 'app/locale';
 import {IconEllipsis, IconPause, IconPlay} from 'app/icons';
+import {Client} from 'app/api';
+import {
+  GlobalSelection,
+  Group,
+  Organization,
+  Project,
+  UpdateResolutionStatus,
+} from 'app/types';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 import ActionLink from 'app/components/actions/actionLink';
@@ -26,14 +34,6 @@ import ToolbarHeader from 'app/components/toolbarHeader';
 import Tooltip from 'app/components/tooltip';
 import withApi from 'app/utils/withApi';
 import QuestionTooltip from 'app/components/questionTooltip';
-import {Client} from 'app/api';
-import {
-  GlobalSelection,
-  Organization,
-  Group,
-  Project,
-  UpdateResolutionStatus,
-} from 'app/types';
 
 const BULK_LIMIT = 1000;
 const BULK_LIMIT_STR = BULK_LIMIT.toLocaleString();
@@ -237,13 +237,10 @@ const IssueListActions = createReactClass<Props, State>({
 
     const uniqProjects = uniq(projects);
 
-    let selectedProjectSlug = null as string | null;
     // we only want selectedProjectSlug set if there is 1 project
     // more or fewer should result in a null so that the action toolbar
     // can behave correctly.
-    if (uniqProjects.length === 1) {
-      selectedProjectSlug = uniqProjects[0];
-    }
+    const selectedProjectSlug = uniqProjects.length === 1 ? uniqProjects[0] : null;
 
     this.setState({
       pageSelected: SelectedGroupStore.allSelected(),
