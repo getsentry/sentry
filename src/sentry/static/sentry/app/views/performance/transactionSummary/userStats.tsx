@@ -3,6 +3,7 @@ import {Location} from 'history';
 import styled from '@emotion/styled';
 
 import Feature from 'app/components/acl/feature';
+import Link from 'app/components/links/link';
 import {Organization} from 'app/types';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
@@ -10,8 +11,9 @@ import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import {WebVital, getAggregateAlias} from 'app/utils/discover/fields';
 import {getTermHelp} from 'app/views/performance/data';
 import QuestionTooltip from 'app/components/questionTooltip';
-import {SectionHeading, SectionValue} from 'app/components/charts/styles';
+import {SectionHeading} from 'app/components/charts/styles';
 import UserMisery from 'app/components/userMisery';
+import {generateWebVitalsRoute} from 'app/views/performance/realUserMonitoring/utils';
 import {
   PERCENTILE as VITAL_PERCENTILE,
   WEB_VITAL_DETAILS,
@@ -68,6 +70,8 @@ function UserStats({totals, location, organization}: Props) {
     }
   }
 
+  const webVitalsRoute = generateWebVitalsRoute({orgSlug: organization.slug});
+
   return (
     <Container>
       <div>
@@ -79,7 +83,9 @@ function UserStats({totals, location, organization}: Props) {
           <div>
             <SectionHeading>{t('Web Vitals')}</SectionHeading>
             <StatNumber>{vitalsPassRate}</StatNumber>
-            <StyledSectionValue>{t('Passed')}</StyledSectionValue>
+            <Link to={`${webVitalsRoute}${location.search}`}>
+              <SectionValue>{t('Passed')}</SectionValue>
+            </Link>
           </div>
         )}
       </Feature>
@@ -118,9 +124,8 @@ const StatNumber = styled('div')`
   }
 `;
 
-const StyledSectionValue = styled(SectionValue)`
-  margin: ${space(1)} 0;
-  color: #2c58a8;
+const SectionValue = styled('span')`
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 export default UserStats;

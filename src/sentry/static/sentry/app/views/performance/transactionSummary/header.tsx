@@ -15,6 +15,8 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 import Breadcrumb from 'app/views/performance/breadcrumb';
 
 import KeyTransactionButton from './keyTransactionButton';
+import {generateTransactionSummaryRoute} from './utils';
+import {generateWebVitalsRoute} from '../realUserMonitoring/utils';
 
 export enum Tab {
   TransactionSummary,
@@ -84,14 +86,8 @@ class TransactionHeader extends React.Component<Props> {
     );
   }
 
-  get baseUrl() {
-    const {organization} = this.props;
-    return `/organizations/${organization.slug}/performance/summary/`;
-  }
-
   render() {
     const {organization, location, transactionName, currentTab} = this.props;
-    const baseUrl = this.baseUrl;
 
     return (
       <Layout.Header>
@@ -117,16 +113,22 @@ class TransactionHeader extends React.Component<Props> {
             if (!hasFeature) {
               return null;
             }
+            const transactionSummaryRoute = generateTransactionSummaryRoute({
+              orgSlug: organization.slug,
+            });
+            const webVitalsRoute = generateWebVitalsRoute({
+              orgSlug: organization.slug,
+            });
             return (
               <StyledNavTabs>
                 <ListLink
-                  to={`${baseUrl}${location.search}`}
+                  to={`${transactionSummaryRoute}${location.search}`}
                   isActive={() => currentTab === Tab.TransactionSummary}
                 >
                   {t('Overview')}
                 </ListLink>
                 <ListLink
-                  to={`${baseUrl}rum/${location.search}`}
+                  to={`${webVitalsRoute}/${location.search}`}
                   isActive={() => currentTab === Tab.RealUserMonitoring}
                 >
                   {t('Web Vitals')}
