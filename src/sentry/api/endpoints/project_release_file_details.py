@@ -8,8 +8,8 @@ from rest_framework.response import Response
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.api.endpoints import has_download_permission
 from sentry.models import Release, ReleaseFile
+from sentry.api.endpoints.debug_files import has_download_permission
 
 
 class ReleaseFileSerializer(serializers.Serializer):

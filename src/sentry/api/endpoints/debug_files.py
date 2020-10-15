@@ -133,6 +133,8 @@ class DebugFilesEndpoint(ProjectEndpoint):
         download_requested = request.GET.get("id") is not None
         if download_requested and (has_download_permission(request, project)):
             return self.download(request.GET.get("id"), project)
+        elif download_requested:
+            return Response(status=403)
 
         code_id = request.GET.get("code_id")
         debug_id = request.GET.get("debug_id")
