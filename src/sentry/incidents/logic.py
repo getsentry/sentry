@@ -324,13 +324,14 @@ def create_incident_snapshot(incident, windowed_stats=False):
     )
 
 
-def create_event_stat_snapshot(incident, windowed_stats=False, start=None, end=None):
+def create_event_stat_snapshot(incident, windowed_stats=False):
     """
     Creates an event stats snapshot for an incident in a given period of time.
     """
 
     event_stats = get_incident_event_stats(incident, windowed_stats=windowed_stats)
     start, end = calculate_incident_time_range(incident, windowed_stats=windowed_stats)
+
     return TimeSeriesSnapshot.objects.create(
         start=start,
         end=end,
