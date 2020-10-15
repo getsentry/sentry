@@ -88,7 +88,9 @@ const IssueListOverview = createReactClass<Props, State>({
   displayName: 'IssueListOverview',
 
   propTypes: {
+    location: PropTypes.object,
     organization: SentryTypes.Organization,
+    params: PropTypes.object,
     selection: SentryTypes.GlobalSelection,
     savedSearch: SentryTypes.SavedSearch,
     savedSearches: PropTypes.arrayOf(SentryTypes.SavedSearch),
@@ -528,6 +530,13 @@ const IssueListOverview = createReactClass<Props, State>({
 
       // Remove the query as saved searches bring their own query string.
       delete query.query;
+
+      // If we aren't going to another page in the same search
+      // drop the query and replace the current project, with the saved search search project
+      // if available.
+      if (!query.cursor && savedSearch.projectId) {
+        query.project = [savedSearch.projectId];
+      }
     } else {
       path = `/organizations/${organization.slug}/issues/`;
     }
