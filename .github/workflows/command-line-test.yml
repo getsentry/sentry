@@ -1,0 +1,43 @@
+name: command line
+on:
+  push:
+    branches:
+      - master
+      - releases/**
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-16.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: volta-cli/action@v1
+
+      # Until GH composite actions can use `uses`, we need to setup python here
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 2.7.17
+
+      - name: Setup pip
+        uses: ./.github/actions/setup-pip
+        id: pip
+
+      - name: pip cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.pip.outputs.pip-cache-dir }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements-*.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Setup sentry env
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          python: 2
+
+      - name: Run test
+        run: |
+          make test-cli
