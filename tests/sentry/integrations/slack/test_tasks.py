@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import responses
 
+from exam import fixture
 from uuid import uuid4
 
 from sentry.utils import json
@@ -41,6 +42,34 @@ class SlackTasksTest(TestCase):
             content_type="application/json",
             body=json.dumps(channels),
         )
+
+    @fixture
+    def metic_alert_data(self):
+        return {
+            "aggregate": "count()",
+            "query": "",
+            "timeWindow": "300",
+            "resolveThreshold": 100,
+            "thresholdType": 0,
+            "triggers": [
+                {
+                    "label": "critical",
+                    "alertThreshold": 200,
+                    "actions": [
+                        {
+                            "type": "slack",
+                            "targetIdentifier": "my-channel",
+                            "targetType": "specific",
+                            "integration": self.integration.id,
+                        }
+                    ],
+                },
+            ],
+            "projects": [self.project1.slug],
+            "name": "New Rule",
+            "uuid": self.uuid,
+            "organization_id": self.org.id,
+        }
 
     @responses.activate
     @patch.object(RedisRuleStatus, "set_value", return_value=None)
@@ -185,31 +214,7 @@ class SlackTasksTest(TestCase):
         return_value=("#", "chan-id", False),
     )
     def test_task_new_alert_rule(self, mock_get_channel_id, mock_set_value):
-        alert_rule = {
-            "aggregate": "count()",
-            "query": "",
-            "timeWindow": "300",
-            "resolveThreshold": 100,
-            "thresholdType": 0,
-            "triggers": [
-                {
-                    "label": "critical",
-                    "alertThreshold": 200,
-                    "actions": [
-                        {
-                            "type": "slack",
-                            "targetIdentifier": "my-channel",
-                            "targetType": "specific",
-                            "integration": self.integration.id,
-                        }
-                    ],
-                },
-            ],
-            "projects": [self.project1.slug],
-            "name": "New Rule",
-            "uuid": self.uuid,
-            "organization_id": self.org.id,
-        }
+        alert_rule = self.metic_alert_data
 
         data = {
             "data": alert_rule,
@@ -234,29 +239,7 @@ class SlackTasksTest(TestCase):
         return_value=("#", None, False),
     )
     def test_task_failed_id_lookup(self, mock_get_channel_id, mock_set_value):
-        alert_rule = {
-            "aggregate": "count()",
-            "query": "",
-            "timeWindow": "300",
-            "resolveThreshold": 100,
-            "thresholdType": 0,
-            "triggers": [
-                {
-                    "label": "critical",
-                    "alertThreshold": 200,
-                    "actions": [
-                        {
-                            "type": "slack",
-                            "targetIdentifier": "my-channel",
-                            "targetType": "specific",
-                            "integration": self.integration.id,
-                        }
-                    ],
-                },
-            ],
-            "projects": [self.project1.slug],
-            "name": "New Rule",
-        }
+        alert_rule = self.metic_alert_data
 
         data = {
             "data": alert_rule,
@@ -278,31 +261,8 @@ class SlackTasksTest(TestCase):
         return_value=("#", None, True),
     )
     def test_task_timeout_id_lookup(self, mock_get_channel_id, mock_set_value):
-        alert_rule = {
-            "aggregate": "count()",
-            "query": "",
-            "timeWindow": "300",
-            "resolveThreshold": 100,
-            "thresholdType": 0,
-            "triggers": [
-                {
-                    "label": "critical",
-                    "alertThreshold": 200,
-                    "actions": [
-                        {
-                            "type": "slack",
-                            "targetIdentifier": "my-channel",
-                            "targetType": "specific",
-                            "integration": self.integration.id,
-                        }
-                    ],
-                },
-            ],
-            "projects": [self.project1.slug],
-            "name": "New Rule",
-            "uuid": self.uuid,
-            "organization_id": self.org.id,
-        }
+        alert_rule = self.metic_alert_data
+
         data = {
             "data": alert_rule,
             "uuid": self.uuid,
