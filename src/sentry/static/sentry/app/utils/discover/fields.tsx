@@ -512,6 +512,36 @@ export function measurementType(field: string) {
 
 const AGGREGATE_PATTERN = /^([^\(]+)\((.*?)(?:\s*,\s*(.*))?\)$/;
 
+export function generateAggregateFields(
+  organization: LightWeightOrganization,
+  eventFields: readonly Field[] | Field[]
+): Field[] {
+  const functions = Object.keys(AGGREGATIONS);
+  const fields = Object.values(eventFields).map(field => field.field);
+  functions.forEach(func => {
+    const parameters = AGGREGATIONS[func].parameters.map(param => {
+      const generator = AGGREGATIONS[func].generateDefaultValue;
+      if (typeof generator === 'undefined') {
+        return param;
+      }
+      return {
+        ...param,
+        defaultValue: generator({parameter: param, organization}),
+      };
+    });
+
+    if (parameters.every(param => typeof param.defaultValue !== 'undefined')) {
+      const newField = `${func}(${parameters
+        .map(param => param.defaultValue)
+        .join(',')})`;
+      if (fields.indexOf(newField) === -1) {
+        fields.push(newField);
+      }
+    }
+  });
+  return fields.map(field => ({field})) as Field[];
+}
+
 export function explodeFieldString(field: string): Column {
   const results = field.match(AGGREGATE_PATTERN);
 

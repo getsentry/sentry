@@ -76,6 +76,7 @@ class DiscoverProcessor(object):
                 limit=limit,
                 referrer="data_export.tasks.discover",
                 auto_fields=True,
+                auto_aggregations=True,
                 use_aggregate_conditions=True,
             )
 

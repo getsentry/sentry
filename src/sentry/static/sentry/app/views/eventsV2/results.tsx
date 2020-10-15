@@ -24,6 +24,7 @@ import Confirm from 'app/components/confirm';
 import space from 'app/styles/space';
 import SearchBar from 'app/views/events/searchBar';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
+import {generateAggregateFields} from 'app/utils/discover/fields';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
@@ -375,6 +376,9 @@ class Results extends React.Component<Props, State> {
       incompatibleAlertNotice,
       confirmedQuery,
     } = this.state;
+    const fields = eventView.hasAggregateField()
+      ? generateAggregateFields(organization, eventView.fields)
+      : eventView.fields;
     const query = decodeScalar(location.query.query) || '';
     const title = this.getDocumentTitle();
 
@@ -397,7 +401,7 @@ class Results extends React.Component<Props, State> {
                   organization={organization}
                   projectIds={eventView.project}
                   query={query}
-                  fields={eventView.fields}
+                  fields={fields}
                   onSearch={this.handleSearch}
                 />
                 <ResultsChart

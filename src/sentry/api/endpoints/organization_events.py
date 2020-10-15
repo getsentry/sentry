@@ -103,6 +103,7 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
                 limit=limit,
                 referrer=request.GET.get("referrer", "api.organization-events-v2"),
                 auto_fields=True,
+                auto_aggregations=True,
                 use_aggregate_conditions=True,
             )
 
