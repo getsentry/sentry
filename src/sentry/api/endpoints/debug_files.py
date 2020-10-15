@@ -61,9 +61,7 @@ def has_download_permission(request, project):
         return False
 
     organization = project.organization
-    required_role = (
-        organization.get_option("sentry:debug_files_role") or DEBUG_FILES_ROLE_DEFAULT
-    )
+    required_role = organization.get_option("sentry:debug_files_role") or DEBUG_FILES_ROLE_DEFAULT
 
     try:
         current_role = (
