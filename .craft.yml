@@ -13,11 +13,11 @@ statusProvider:
 targets:
   - name: github
   - name: pypi
-  - id: Python 2 Image 
+  - id: py2-image
     name: docker
     source: us.gcr.io/sentryio/sentry
     target: getsentry/sentry
-  - id: Python 3 Image
+  - id: py3-image
     name: docker
     source: us.gcr.io/sentryio/sentry
     sourceFormat: '{{{source}}}:{{{revision}}}-py3'
