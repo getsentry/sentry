@@ -55,7 +55,7 @@ export async function fetchOrgMembers(
   return [];
 }
 
-type IndexedMembersByProject = {
+export type IndexedMembersByProject = {
   [key: string]: Member['user'][];
 };
 

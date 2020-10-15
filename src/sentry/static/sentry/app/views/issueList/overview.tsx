@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
+import {Params} from 'react-router/lib/Router';
 import Cookies from 'js-cookie';
-import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
 import classNames from 'classnames';
@@ -9,6 +9,7 @@ import isEqual from 'lodash/isEqual';
 import pickBy from 'lodash/pickBy';
 import * as qs from 'query-string';
 import {withProfiler} from '@sentry/react';
+import {Location} from 'history';
 
 import {Client} from 'app/api';
 import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD} from 'app/constants';
@@ -21,7 +22,11 @@ import {
   resetSavedSearches,
 } from 'app/actionCreators/savedSearches';
 import {extractSelectionParameters} from 'app/components/organizations/globalSelectionHeader/utils';
-import {fetchOrgMembers, indexMembersByProject} from 'app/actionCreators/members';
+import {
+  fetchOrgMembers,
+  IndexedMembersByProject,
+  indexMembersByProject,
+} from 'app/actionCreators/members';
 import {loadOrganizationTags, fetchTagValues} from 'app/actionCreators/tags';
 import {getUtcDateString} from 'app/utils/dates';
 import CursorPoller from 'app/utils/cursorPoller';
@@ -30,7 +35,7 @@ import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
 import ProcessingIssueList from 'app/components/stream/processingIssueList';
-import SentryTypes from 'app/sentryTypes';
+import {GlobalSelection, Organization, SavedSearch, TagCollection} from 'app/types';
 import StreamGroup from 'app/components/stream/group';
 import StreamManager from 'app/utils/streamManager';
 import parseApiError from 'app/utils/parseApiError';
@@ -53,19 +58,34 @@ const DEFAULT_GRAPH_STATS_PERIOD = '24h';
 const STATS_PERIODS = new Set(['14d', '24h']);
 const DYNAMIC_COUNTS_STATS_PERIODS = new Set(['14d', '24h', 'auto']);
 
-const IssueListOverview = createReactClass({
+type Props = {
+  location: Location;
+  organization: Organization;
+  params: Params;
+  selection: GlobalSelection;
+  savedSearch: SavedSearch;
+  savedSearches: SavedSearch[];
+  savedSearchLoading: boolean;
+  tags: TagCollection;
+};
+
+type State = {
+  groupIds: number[];
+  selectAllActive: boolean;
+  realtimeActive: boolean;
+  pageLinks: string;
+  queryCount: number | null;
+  error: boolean;
+  isSidebarVisible: boolean;
+  issuesLoading: boolean;
+  tagsLoading: boolean;
+  memberList: IndexedMembersByProject;
+};
+
+const IssueListOverview = createReactClass<Props, State>({
   displayName: 'IssueListOverview',
 
-  propTypes: {
-    organization: SentryTypes.Organization,
-    selection: SentryTypes.GlobalSelection,
-    savedSearch: SentryTypes.SavedSearch,
-    savedSearches: PropTypes.arrayOf(SentryTypes.SavedSearch),
-    savedSearchLoading: PropTypes.bool.isRequired,
-    tags: PropTypes.object,
-  },
-
-  mixins: [Reflux.listenTo(GroupStore, 'onGroupChange')],
+  mixins: [Reflux.listenTo(GroupStore, 'onGroupChange') as any],
 
   getInitialState() {
     const realtimeActiveCookie = Cookies.get('realtimeActive');
@@ -85,17 +105,15 @@ const IssueListOverview = createReactClass({
       issuesLoading: true,
       tagsLoading: true,
       memberList: {},
-      // the project for the selected issues
-      // Will only be set if selected issues all belong
-      // to one project.
-      selectedProject: null,
     };
   },
 
   componentDidMount() {
     this.api = new Client();
     this._streamManager = new StreamManager(GroupStore);
+    const links = parseLinkHeader(this.state.pageLinks);
     this._poller = new CursorPoller({
+      endpoint: links.previous?.href || '',
       success: this.onRealtimePoll,
     });
 
@@ -107,7 +125,7 @@ const IssueListOverview = createReactClass({
     this.fetchSavedSearches();
   },
 
-  componentDidUpdate(prevProps, prevState) {
+  componentDidUpdate(prevProps: Props, prevState: State) {
     // Fire off profiling/metrics first
     if (prevState.issuesLoading && !this.state.issuesLoading) {
       // First Meaningful Paint for /organizations/:orgId/issues/
@@ -220,14 +238,9 @@ const IssueListOverview = createReactClass({
     return this.props.location.query.sort || DEFAULT_SORT;
   },
 
-  getDefaultGroupStatsPeriod() {
-    return this.props.organization.features.includes('dynamic-issue-counts')
-      ? 'auto'
-      : DEFAULT_GRAPH_STATS_PERIOD;
-  },
-
   getGroupStatsPeriod() {
-    const currentPeriod = this.props.location.query.groupStatsPeriod;
+    const currentPeriod =
+      this.props.location.query?.groupStatsPeriod || DEFAULT_GRAPH_STATS_PERIOD;
     return (this.props.organization.features.includes('dynamic-issue-counts')
       ? DYNAMIC_COUNTS_STATS_PERIODS
       : STATS_PERIODS
@@ -333,7 +346,7 @@ const IssueListOverview = createReactClass({
         const {orgId} = this.props.params;
         // If this is a direct hit, we redirect to the intended result directly.
         if (jqXHR.getResponseHeader('X-Sentry-Direct-Hit') === '1') {
-          let redirect;
+          let redirect: string;
           if (data[0] && data[0].matchingEventId) {
             const {id, matchingEventId} = data[0];
             redirect = `/organizations/${orgId}/issues/${id}/events/${matchingEventId}/`;
@@ -398,20 +411,20 @@ const IssueListOverview = createReactClass({
     return `/organizations/${params.orgId}/issues/`;
   },
 
-  onRealtimeChange(realtime) {
+  onRealtimeChange(realtime: boolean) {
     Cookies.set('realtimeActive', realtime.toString());
     this.setState({
       realtimeActive: realtime,
     });
   },
 
-  onSelectStatsPeriod(period) {
+  onSelectStatsPeriod(period: string) {
     if (period !== this.getGroupStatsPeriod()) {
       this.transitionTo({groupStatsPeriod: period});
     }
   },
 
-  onRealtimePoll(data, _links) {
+  onRealtimePoll(data: any, _links: any) {
     // Note: We do not update state with cursors from polling,
     // `CursorPoller` updates itself with new cursors
     this._streamManager.unshift(data);
@@ -424,7 +437,7 @@ const IssueListOverview = createReactClass({
     }
   },
 
-  onIssueListSidebarSearch(query) {
+  onIssueListSidebarSearch(query: string) {
     analytics('search.searched', {
       org_id: this.props.organization.id,
       query,
@@ -435,7 +448,7 @@ const IssueListOverview = createReactClass({
     this.onSearch(query);
   },
 
-  onSearch(query) {
+  onSearch(query: string) {
     if (query === this.state.query) {
       // if query is the same, just re-fetch data
       this.fetchData();
@@ -445,13 +458,15 @@ const IssueListOverview = createReactClass({
     }
   },
 
-  onSortChange(sort) {
+  onSortChange(sort: string) {
     this.transitionTo({sort});
   },
 
-  onCursorChange(cursor, _path, query, pageDiff) {
+  onCursorChange(cursor: string | undefined, _path, query, pageDiff: number) {
     const queryPageInt = parseInt(query.page, 10);
-    let nextPage = isNaN(queryPageInt) ? pageDiff : queryPageInt + pageDiff;
+    let nextPage: number | undefined = isNaN(queryPageInt)
+      ? pageDiff
+      : queryPageInt + pageDiff;
 
     // unset cursor and page when we navigate back to the first page
     // also reset cursor if somehow the previous button is enabled on
@@ -486,7 +501,10 @@ const IssueListOverview = createReactClass({
     return links && !links.previous.results && !links.next.results;
   },
 
-  transitionTo(newParams = {}, savedSearch = this.props.savedSearch) {
+  transitionTo: function (
+    newParams: Params = {},
+    savedSearch: SavedSearch = this.props.savedSearch
+  ) {
     const query = {
       ...this.getEndpointParams(),
       ...newParams,
@@ -499,13 +517,6 @@ const IssueListOverview = createReactClass({
 
       // Remove the query as saved searches bring their own query string.
       delete query.query;
-
-      // If we aren't going to another page in the same search
-      // drop the query and replace the current project, with the saved search search project
-      // if available.
-      if (!query.cursor && savedSearch.projectId) {
-        query.project = [savedSearch.projectId];
-      }
     } else {
       path = `/organizations/${organization.slug}/issues/`;
     }
@@ -519,7 +530,7 @@ const IssueListOverview = createReactClass({
     }
   },
 
-  renderGroupNodes(ids, groupStatsPeriod) {
+  renderGroupNodes(ids: string[], groupStatsPeriod: string) {
     const topIssue = ids[0];
     const {memberList} = this.state;
 
@@ -553,7 +564,7 @@ const IssueListOverview = createReactClass({
   },
 
   renderStreamBody() {
-    let body;
+    let body: React.ReactNode;
     if (this.state.issuesLoading) {
       body = this.renderLoading();
     } else if (this.state.error) {
@@ -580,16 +591,11 @@ const IssueListOverview = createReactClass({
     fetchSavedSearches(this.api, organization.slug);
   },
 
-  onSavedSearchCreate(newSavedSearch) {
-    // Navigate to new saved search
-    this.transitionTo(null, newSavedSearch);
-  },
-
-  onSavedSearchSelect(savedSearch) {
+  onSavedSearchSelect(savedSearch: SavedSearch) {
     this.setState({issuesLoading: true}, () => this.transitionTo(null, savedSearch));
   },
 
-  onSavedSearchDelete(search) {
+  onSavedSearchDelete(search: SavedSearch) {
     const {orgId} = this.props.params;
 
     deleteSavedSearch(this.api, orgId, search).then(() => {
@@ -602,7 +608,7 @@ const IssueListOverview = createReactClass({
     });
   },
 
-  tagValueLoader(key, search) {
+  tagValueLoader(key: string, search: string) {
     const {orgId} = this.props.params;
     const projectIds = this.getGlobalSearchProjectIds();
     const endpointParams = this.getEndpointParams();
@@ -619,7 +625,7 @@ const IssueListOverview = createReactClass({
       classes.push('show-sidebar');
     }
 
-    const {params, organization, savedSearch, savedSearches, tags} = this.props;
+    const {organization, savedSearch, savedSearches, tags} = this.props;
     const query = this.getQuery();
 
     return (
@@ -627,7 +633,6 @@ const IssueListOverview = createReactClass({
         <div className="stream-content">
           <IssueListFilters
             organization={organization}
-            searchId={params.searchId}
             query={query}
             savedSearch={savedSearch}
             sort={this.getSort()}
@@ -635,7 +640,6 @@ const IssueListOverview = createReactClass({
             queryMaxCount={this.state.queryMaxCount}
             onSortChange={this.onSortChange}
             onSearch={this.onSearch}
-            onSavedSearchCreate={this.onSavedSearchCreate}
             onSavedSearchSelect={this.onSavedSearchSelect}
             onSavedSearchDelete={this.onSavedSearchDelete}
             onSidebarToggle={this.onSidebarToggle}
