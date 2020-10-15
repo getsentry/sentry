@@ -149,6 +149,10 @@ const ErrorRobotWrapper = styled('div')<{gradient: boolean}>`
           background-image: linear-gradient(to bottom, #F8F9FA, #ffffff);
          `
       : ''};
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    text-align: center;
+  }
 `;
 
 const Wrapper = styled('div')`
@@ -170,17 +174,30 @@ const Robot = styled('div')`
   height: 260px;
   background: url(${robotBackground});
   background-size: cover;
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    margin: 0 auto;
+    width: 110px;
+    height: 130px;
+  }
 `;
 
 const Eye = styled('span')`
   width: 12px;
   height: 12px;
-  border-radius: 12px;
+  border-radius: 50%;
   position: absolute;
   top: 70px;
   left: 81px;
   transform: translateZ(0);
   animation: blink-eye 0.6s infinite;
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    width: 6px;
+    height: 6px;
+    top: 35px;
+    left: 41px;
+  }
 
   @keyframes blink-eye {
     0% {
