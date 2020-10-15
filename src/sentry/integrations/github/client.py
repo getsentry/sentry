@@ -4,6 +4,8 @@ from datetime import datetime
 
 from sentry.integrations.github.utils import get_jwt
 from sentry.integrations.client import ApiClient
+from sentry.shared_integrations.exceptions import ApiError
+from sentry.web.decorators import transaction_start
 
 
 class GitHubClientMixin(ApiClient):
@@ -111,6 +113,15 @@ class GitHubClientMixin(ApiClient):
                 "Accept": "application/vnd.github.machine-man-preview+json",
             },
         )
+
+    @transaction_start("GitHubClientMixin")
+    def check_source_code_link(self, path):
+        self.allow_text = True
+        try:
+            return self.head(path=path).status_code == 200
+        except ApiError as e:
+            if e.code == 404:
+                return False
 
 
 class GitHubAppsClient(GitHubClientMixin):
