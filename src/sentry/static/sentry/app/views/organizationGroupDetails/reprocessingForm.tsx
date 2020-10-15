@@ -9,6 +9,7 @@ import {ModalRenderProps} from 'app/actionCreators/modal';
 import FeatureBadge from 'app/components/featureBadge';
 import NumberField from 'app/components/forms/numberField';
 import {List, ListItem} from 'app/components/list';
+import Alert from 'app/components/alert';
 import ApiForm from 'app/components/forms/apiForm';
 import ExternalLink from 'app/components/links/externalLink';
 
@@ -40,9 +41,12 @@ class ReprocessingForm extends React.Component<Props> {
           <FeatureBadge type="alpha" />
         </Header>
         <Body>
+          <Alert type="warning">
+            {t('This is a preview feature that’s currently under development.')}
+          </Alert>
           <p>
             {t(
-              'Reprocessing applies any new debug files or grouping configuration to an Issue. Right now, this is a preview feature. So before you give it a try, you should probably consider these impacts:'
+              'Reprocessing applies any new debug files or grouping configuration to an Issue. Before you give it a try, you should probably consider these impacts:'
             )}
           </p>
 
@@ -62,21 +66,20 @@ class ReprocessingForm extends React.Component<Props> {
             <ListItem>
               {' '}
               {tct(
-                '[strong:Enable Native crash reports to reprocess Minidump crash reports.] Note that this requires attachment storage.',
+                '[strong:Store Native crash reports to reprocess Minidump crash reports.] Note that this requires attachment storage.',
                 {strong: <strong />}
               )}
             </ListItem>
             <ListItem>
               {tct(
-                '[strong:Reprocessed events count towards your organization’s quota]. Sorry, but rate limits and spike protection don’t apply here.',
+                '[strong:Reprocessed events count towards your organization’s quota]. Rate limits and spike protection don’t apply here.',
                 {strong: <strong />}
               )}
             </ListItem>
             <ListItem>
-              {tct(
-                '[strong:Wait one hour before attempting to reprocess missing debug files.] Something didn’t work? Take a break, get a snack, try again in an hour.',
-                {strong: <strong />}
-              )}
+              {tct('Wait one hour before attempting to reprocess missing debug files.', {
+                strong: <strong />,
+              })}
             </ListItem>
             <ListItem>
               {tct(
@@ -89,7 +92,6 @@ class ReprocessingForm extends React.Component<Props> {
               )}
             </ListItem>
           </StyledList>
-
           <ApiForm
             apiEndpoint={this.getEndpoint()}
             apiMethod="POST"
