@@ -20,7 +20,8 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - uses: getsentry/paths-filter@v2
+      - name: Check for python file changes
+        uses: getsentry/paths-filter@v2
         id: changes
         with:
           filters: |
