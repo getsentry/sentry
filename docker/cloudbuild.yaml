@@ -96,6 +96,8 @@ steps:
     - e2e-test-py2
   secretEnv: ['DOCKER_PASSWORD']
   entrypoint: 'bash'
+  env:
+  - 'SENTRY_IMAGE=us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA'
   args:
   - '-e'
   - '-c'
@@ -117,6 +119,8 @@ steps:
     - e2e-test-py3
   secretEnv: ['DOCKER_PASSWORD']
   entrypoint: 'bash'
+  env:
+  - 'SENTRY_IMAGE=us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA'
   args:
   - '-e'
   - '-c'
