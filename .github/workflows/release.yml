@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: Version to release
+        description: Version to release (optional)
         required: false
       skip_prepare:
         description: Skip preparation step (assume a release branch is ready)
@@ -16,11 +16,11 @@ on:
   schedule:
     # We want the release to be at 9-10am Pacific Time
     # We also want it to be 1 hour before the on-prem release
-    - cron:  '0 17 15 * *'
+    - cron: '0 17 15 * *'
 jobs:
   release:
     runs-on: ubuntu-latest
-    name: "Release a new version"
+    name: 'Release a new version'
     steps:
       - id: killswitch
         if: ${{ !github.event.inputs.force }}
