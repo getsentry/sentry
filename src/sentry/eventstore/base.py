@@ -27,6 +27,8 @@ class Filter(object):
     selected_columns (Sequence[str]): List of columns to select
     aggregations (Sequence[Any, str|None, str]): Aggregate functions to fetch.
     groupby (Sequence[str]): List of columns to group results by
+
+    condition_aggregates (Sequence[str]): List of aggregates used in the condition
     """
 
     def __init__(
@@ -43,6 +45,7 @@ class Filter(object):
         rollup=None,
         groupby=None,
         orderby=None,
+        condition_aggregates=None,
     ):
         self.start = start
         self.end = end
@@ -57,6 +60,7 @@ class Filter(object):
         self.aggregations = aggregations if aggregations is not None else []
         self.groupby = groupby
         self.orderby = orderby
+        self.condition_aggregates = condition_aggregates
 
     @property
     def filter_keys(self):
