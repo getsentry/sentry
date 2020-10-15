@@ -61,7 +61,7 @@ export function getTitle(event: Event | Group): EventTitle {
     result.subtitle = metadata.origin || '';
   }
 
-  if (metadata.title) {
+  if (metadata?.title) {
     result.title = metadata.title;
   }
 

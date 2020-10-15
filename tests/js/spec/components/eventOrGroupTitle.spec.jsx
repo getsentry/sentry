@@ -3,7 +3,7 @@ import React from 'react';
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
-//TODO:
+
 describe('EventOrGroupTitle', function () {
   const data = {
     metadata: {
