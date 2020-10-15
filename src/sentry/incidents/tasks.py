@@ -206,16 +206,18 @@ def process_pending_incident_snapshots():
     batch_size = 50
 
     now = timezone.now()
-    pending_snapshots = PendingIncidentSnapshot.objects.filter(
-        target_run_date__lte=now
-    ).select_related("incident")
+    pending_snapshots = (
+        PendingIncidentSnapshot.objects.filter(target_run_date__lte=now)
+        .order_by("-id")
+        .select_related("incident")[: batch_size + 1]
+    )
 
     if not pending_snapshots:
         return
 
     for processed, pending_snapshot in enumerate(pending_snapshots):
         incident = pending_snapshot.incident
-        if processed > batch_size:
+        if processed >= batch_size:
             process_pending_incident_snapshots.apply_async(countdown=1)
             break
         else:
