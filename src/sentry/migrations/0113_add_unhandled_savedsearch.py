@@ -39,7 +39,7 @@ class Migration(migrations.Migration):
 
 
     dependencies = [
-        ('sentry', '0111_snuba_query_event_type'),
+        ('sentry', '0112_groupinboxmodel'),
     ]
 
     operations = [
