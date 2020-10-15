@@ -37,6 +37,7 @@ type Props = {
   error: boolean;
   vital: Vital;
   summary: number | null;
+  failureRate: number;
   chartData: HistogramData[];
   colors: [string];
   eventView: EventView;
@@ -99,10 +100,10 @@ class VitalCard extends React.Component<Props, State> {
   }
 
   getFormattedStatNumber() {
-    const {isLoading, error, summary, vital} = this.props;
+    const {summary, vital} = this.props;
     const {type} = vital;
 
-    return isLoading || error || summary === null
+    return summary === null
       ? '\u2014'
       : type === 'duration'
       ? getDuration(summary / 1000, 2, true)
@@ -110,17 +111,7 @@ class VitalCard extends React.Component<Props, State> {
   }
 
   renderSummary() {
-    const {
-      isLoading,
-      error,
-      summary,
-      vital,
-      colors,
-      eventView,
-      organization,
-      min,
-      max,
-    } = this.props;
+    const {summary, vital, colors, eventView, organization, min, max} = this.props;
     const {slug, name, description, failureThreshold} = vital;
 
     const column = `measurements.${slug}`;
@@ -128,7 +119,7 @@ class VitalCard extends React.Component<Props, State> {
     const newEventView = eventView
       .withColumns([
         {kind: 'field', field: 'transaction'},
-        {kind: 'field', field: `user.display`},
+        {kind: 'field', field: 'user.display'},
         {kind: 'field', field: column},
       ])
       .withSorts([{kind: 'desc', field: column}]);
@@ -150,7 +141,7 @@ class VitalCard extends React.Component<Props, State> {
         <Indicator color={colors[0]} />
         <CardSectionHeading>
           {`${name} (${slug.toUpperCase()})`}
-          {isLoading || error || summary === null ? null : summary < failureThreshold ? (
+          {summary === null ? null : summary < failureThreshold ? (
             <StyledTag color={theme.purple500}>{t('pass')}</StyledTag>
           ) : (
             <StyledTag color={theme.red400}>{t('fail')}</StyledTag>
@@ -199,7 +190,8 @@ class VitalCard extends React.Component<Props, State> {
   handleDataZoomCancelled = () => {};
 
   renderHistogram() {
-    const {location, colors} = this.props;
+    const {location, colors, vital} = this.props;
+    const {slug} = vital;
 
     const series = this.getTransformedData();
 
@@ -230,8 +222,8 @@ class VitalCard extends React.Component<Props, State> {
       <BarChartZoom
         minZoomWidth={NUM_BUCKETS}
         location={location}
-        paramStart="startMeasurements"
-        paramEnd="endMeasurements"
+        paramStart={`${slug}Start`}
+        paramEnd={`${slug}End`}
         xAxisIndex={[0]}
         buckets={this.computeBuckets()}
         onDataZoomCancelled={this.handleDataZoomCancelled}
@@ -367,7 +359,7 @@ class VitalCard extends React.Component<Props, State> {
   }
 
   drawFailRegion(series) {
-    const {chartData, vital} = this.props;
+    const {chartData, vital, failureRate} = this.props;
     const {failureThreshold} = vital;
     if (this.state.refDataRect === null || this.state.refPixelRect === null) {
       return;
@@ -452,7 +444,7 @@ class VitalCard extends React.Component<Props, State> {
       symbolKeepAspect: true,
       symbolSize: [14, 16],
       label: {
-        formatter: `~${formatPercentage(this.approxFailureRate(failureBucket), 0)}`,
+        formatter: formatPercentage(failureRate, 0),
         position: 'left',
       },
     });
