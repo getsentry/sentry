@@ -1529,7 +1529,7 @@ SENTRY_DEVSERVICES = {
         ),
     },
     "snuba": {
-        "image": "getsentry/snuba:latest",
+        "image": "getsentry/snuba:nightly",
         "pull": True,
         "ports": {"1218/tcp": 1218},
         "command": ["devserver"],
@@ -1561,7 +1561,7 @@ SENTRY_DEVSERVICES = {
         in settings.CACHES.get("default", {}).get("BACKEND"),
     },
     "symbolicator": {
-        "image": "us.gcr.io/sentryio/symbolicator:latest",
+        "image": "us.gcr.io/sentryio/symbolicator:nightly",
         "pull": True,
         "ports": {"3021/tcp": 3021},
         "volumes": {SYMBOLICATOR_CONFIG_DIR: {"bind": "/etc/symbolicator"}},
@@ -1569,7 +1569,7 @@ SENTRY_DEVSERVICES = {
         "only_if": lambda settings, options: options.get("symbolicator.enabled"),
     },
     "relay": {
-        "image": "us.gcr.io/sentryio/relay:latest",
+        "image": "us.gcr.io/sentryio/relay:nightly",
         "pull": True,
         "ports": {"7899/tcp": SENTRY_RELAY_PORT},
         "volumes": {RELAY_CONFIG_DIR: {"bind": "/etc/relay"}},
