@@ -97,10 +97,12 @@ describe('Performance > Web Vitals', function () {
     });
 
     const histogramData = [];
+    const webVitals = Object.entries(WEB_VITAL_DETAILS)
+      .filter(([, value]) => value.display)
+      .map(([, detail]) => detail.slug);
+
     for (let i = 0; i < 100; i++) {
-      for (const measurement of Object.values(WEB_VITAL_DETAILS).map(
-        detail => detail.slug
-      )) {
+      for (const measurement of webVitals) {
         histogramData.push({
           key: measurement,
           bin: i,

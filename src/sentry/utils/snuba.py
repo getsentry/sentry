@@ -1313,4 +1313,6 @@ def is_duration_measurement(key):
         "measurements.fcp",
         "measurements.lcp",
         "measurements.fid",
+        "measurements.ttfb",
+        "measurements.ttfb.requesttime",
     ]
