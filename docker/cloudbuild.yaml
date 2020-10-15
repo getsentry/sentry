@@ -120,8 +120,8 @@ steps:
     docker push $DOCKER_REPO:$SHORT_SHA
     docker $SENTRY_IMAGE $DOCKER_REPO:$COMMIT_SHA
     docker push $DOCKER_REPO:$COMMIT_SHA
-    docker $SENTRY_IMAGE $DOCKER_REPO:latest
-    docker push $DOCKER_REPO:latest
+    docker $SENTRY_IMAGE $DOCKER_REPO:nightly
+    docker push $DOCKER_REPO:nightly
 - name: 'gcr.io/cloud-builders/docker'
   id: docker-push-py3
   waitFor:
@@ -143,8 +143,8 @@ steps:
     docker push $DOCKER_REPO:$SHORT_SHA-py3
     docker $SENTRY_IMAGE-py3 $DOCKER_REPO:$COMMIT_SHA-py3
     docker push $DOCKER_REPO:$COMMIT_SHA-py3
-    docker $SENTRY_IMAGE-py3 $DOCKER_REPO:latest-py3
-    docker push $DOCKER_REPO:latest-py3
+    docker $SENTRY_IMAGE-py3 $DOCKER_REPO:nightly-py3
+    docker push $DOCKER_REPO:nightly-py3
 - name: 'node:12'
   id: zeus-upload
   waitFor:
