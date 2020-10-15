@@ -12,7 +12,6 @@ type PluginComponent =
 
 export default class Registry {
   plugins: Record<string, PluginComponent> = {};
-  assetCache = {};
 
   isLoaded(data: Plugin) {
     return defined(this.plugins[data.id]);
