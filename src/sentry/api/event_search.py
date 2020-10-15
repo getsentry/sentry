@@ -1818,6 +1818,24 @@ FUNCTIONS = {
                     [
                         "and",
                         [
+                            # NOTE: These conditions are written in this seemingly backwards way
+                            # because of how snuba special cases the following syntax
+                            # ["a", ["b", ["c", ["d"]]]
+                            #
+                            # This array is can be interpreted 2 ways
+                            # 1. a(b(c(d))) the way snuba interprets it
+                            #   - snuba special cases it when it detects an array where the first
+                            #     element is a literal, and the second element is an array and
+                            #     treats it as a function call rather than 2 separate arguments
+                            # 2. a(b, c(d)) the way we want it to be interpreted
+                            #
+                            # Because of how snuba interprets this expression, it makes it impossible
+                            # to specify a function with 2 arguments whose first argument is a literal
+                            # and the second argument is an expression.
+                            #
+                            # Working with this limitation, we have to invert the conditions in
+                            # order to express a function whose first argument is an expression while
+                            # the second argument is a literal.
                             ["lessOrEquals", [["toDateTime", [ArgValue("start")]], "timestamp"]],
                             ["greater", [["toDateTime", [ArgValue("end")]], "timestamp"]],
                         ],
@@ -1842,6 +1860,7 @@ FUNCTIONS = {
                     [
                         "and",
                         [
+                            # see `percentile_range` for why the conditions are backwards
                             ["lessOrEquals", [["toDateTime", [ArgValue("start")]], "timestamp"]],
                             ["greater", [["toDateTime", [ArgValue("end")]], "timestamp"]],
                         ],
@@ -1873,6 +1892,7 @@ FUNCTIONS = {
                             [
                                 "and",
                                 [
+                                    # see `percentile_range` for why the conditions are backwards
                                     [
                                         "lessOrEquals",
                                         [["toDateTime", [ArgValue("start")]], "timestamp"],
@@ -1896,6 +1916,7 @@ FUNCTIONS = {
                     [
                         "and",
                         [
+                            # see `percentile_range` for why the conditions are backwards
                             ["lessOrEquals", [["toDateTime", [ArgValue("start")]], "timestamp"]],
                             ["greater", [["toDateTime", [ArgValue("end")]], "timestamp"]],
                         ],
