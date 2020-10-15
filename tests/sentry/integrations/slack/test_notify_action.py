@@ -279,3 +279,12 @@ class SlackNotifyActionTest(RuleTestCase):
 
         form = rule.get_form_instance()
         assert form.is_valid()
+
+    def test_invalid_workspace(self):
+        # the workspace _should_ be the integration id
+
+        rule = self.get_rule(data={"workspace": "unknown", "channel": "#my-channel", "tags": ""})
+
+        form = rule.get_form_instance()
+        assert not form.is_valid()
+        assert [u"Slack workspace is a required field."] in form.errors.values()
