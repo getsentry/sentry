@@ -64,8 +64,6 @@ steps:
       - get-onpremise-repo
     entrypoint: 'bash'
     dir: onpremise
-    env:
-      - 'SENTRY_IMAGE=us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA'
     args:
       - '-e'
       - '-c'
@@ -91,7 +89,6 @@ steps:
     entrypoint: 'bash'
     dir: onpremise
     env:
-      - 'SENTRY_IMAGE=us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA'
       - 'SENTRY_PYTHON3=1'
     args:
       - '-e'
@@ -115,8 +112,6 @@ steps:
       - e2e-test-py2
     secretEnv: ['DOCKER_PASSWORD']
     entrypoint: 'bash'
-    env:
-      - 'SENTRY_IMAGE=us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA'
     args:
       - '-e'
       - '-c'
@@ -124,22 +119,20 @@ steps:
         # Only push to Docker Hub from master
         [ "$BRANCH_NAME" != "master" ] && exit 0
         # Need to pull the image first due to Kaniko
-        docker pull $SENTRY_IMAGE
+        docker pull $$SENTRY_IMAGE
         echo "$$DOCKER_PASSWORD" | docker login --username=sentrybuilder --password-stdin
-        docker $SENTRY_IMAGE $DOCKER_REPO:$SHORT_SHA
-        docker push $DOCKER_REPO:$SHORT_SHA
-        docker $SENTRY_IMAGE $DOCKER_REPO:$COMMIT_SHA
-        docker push $DOCKER_REPO:$COMMIT_SHA
-        docker $SENTRY_IMAGE $DOCKER_REPO:nightly
-        docker push $DOCKER_REPO:nightly
+        docker $$SENTRY_IMAGE $$DOCKER_REPO:$SHORT_SHA
+        docker push $$DOCKER_REPO:$SHORT_SHA
+        docker $$SENTRY_IMAGE $$DOCKER_REPO:$COMMIT_SHA
+        docker push $$DOCKER_REPO:$COMMIT_SHA
+        docker $$SENTRY_IMAGE $$DOCKER_REPO:nightly
+        docker push $$DOCKER_REPO:nightly
   - name: 'gcr.io/cloud-builders/docker'
     id: docker-push-py3
     waitFor:
       - e2e-test-py3
     secretEnv: ['DOCKER_PASSWORD']
     entrypoint: 'bash'
-    env:
-      - 'SENTRY_IMAGE=us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA'
     args:
       - '-e'
       - '-c'
@@ -147,14 +140,14 @@ steps:
         # Only push to Docker Hub from master
         [ "$BRANCH_NAME" != "master" ] && exit 0
         # Need to pull the image first due to Kaniko
-        docker pull $SENTRY_IMAGE-py3
+        docker pull $$SENTRY_IMAGE-py3
         echo "$$DOCKER_PASSWORD" | docker login --username=sentrybuilder --password-stdin
-        docker $SENTRY_IMAGE-py3 $DOCKER_REPO:$SHORT_SHA-py3
-        docker push $DOCKER_REPO:$SHORT_SHA-py3
-        docker $SENTRY_IMAGE-py3 $DOCKER_REPO:$COMMIT_SHA-py3
-        docker push $DOCKER_REPO:$COMMIT_SHA-py3
-        docker $SENTRY_IMAGE-py3 $DOCKER_REPO:nightly-py3
-        docker push $DOCKER_REPO:nightly-py3
+        docker $$SENTRY_IMAGE-py3 $$DOCKER_REPO:$SHORT_SHA-py3
+        docker push $$DOCKER_REPO:$SHORT_SHA-py3
+        docker $$SENTRY_IMAGE-py3 $$DOCKER_REPO:$COMMIT_SHA-py3
+        docker push $$DOCKER_REPO:$COMMIT_SHA-py3
+        docker $$SENTRY_IMAGE-py3 $$DOCKER_REPO:nightly-py3
+        docker push $$DOCKER_REPO:nightly-py3
   - name: 'node:12'
     id: zeus-upload
     waitFor:
@@ -167,14 +160,14 @@ steps:
       - |
         # Only push to Zeus from releases/*
         [[ ! "$BRANCH_NAME" =~ ^releases/ ]] && exit 0
-        npx -p "@zeus-ci/cli" zeus job update --build $BUILD_ID --job 1 --ref $COMMIT_SHA --build-label GCB --job-label "OSS Packages"
-        npx -p "@zeus-ci/cli" zeus upload --build $BUILD_ID --job 1 --type "application/x-pywheel+zip" dist/*.whl
         npx -p "@zeus-ci/cli" zeus job update --build $BUILD_ID --job 1 --ref $COMMIT_SHA --build-label GCB --job-label "OSS Packages" --status passed
+        npx -p "@zeus-ci/cli" zeus upload --build $BUILD_ID --job 1 --type "application/x-pywheel+zip" dist/*.whl
 timeout: 2400s
 options:
   # We need more memory for Webpack builds & e2e onpremise tests
   machineType: 'N1_HIGHCPU_8'
   env:
+    - 'SENTRY_IMAGE=us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA'
     - 'DOCKER_REPO=getsentry/sentry'
     - 'SENTRY_TEST_HOST=http://nginx'
     - 'CI=1'
