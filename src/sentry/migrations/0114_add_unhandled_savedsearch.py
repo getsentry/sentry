@@ -39,7 +39,7 @@ class Migration(migrations.Migration):
 
 
     dependencies = [
-        ('sentry', '0112_groupinboxmodel'),
+        ('sentry', '0113_add_repositoryprojectpathconfig'),
     ]
 
     operations = [
