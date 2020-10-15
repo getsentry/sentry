@@ -79,14 +79,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
 
     class Meta:
         model = AlertRuleTriggerAction
-        fields = [
-            "id",
-            "type",
-            "target_type",
-            "target_identifier",
-            "integration",
-            "sentry_app",
-        ]
+        fields = ["id", "type", "target_type", "target_identifier", "integration", "sentry_app"]
         extra_kwargs = {
             "target_identifier": {"required": True},
             "target_display": {"required": False},
@@ -170,9 +163,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
     def create(self, validated_data):
         try:
             return create_alert_rule_trigger_action(
-                trigger=self.context["trigger"],
-                # use_async_lookup=self.context.get("use_async_lookp"),
-                **validated_data
+                trigger=self.context["trigger"], **validated_data
             )
         except InvalidTriggerActionError as e:
             raise serializers.ValidationError(force_text(e))
@@ -203,13 +194,7 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
 
     class Meta:
         model = AlertRuleTrigger
-        fields = [
-            "id",
-            "label",
-            "alert_threshold",
-            "excluded_projects",
-            "actions",
-        ]
+        fields = ["id", "label", "alert_threshold", "excluded_projects", "actions"]
         extra_kwargs = {"label": {"min_length": 1, "max_length": 64}}
 
     def create(self, validated_data):
