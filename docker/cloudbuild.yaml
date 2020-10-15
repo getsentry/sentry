@@ -53,6 +53,7 @@ steps:
     - runtime-image-py2
     - get-onpremise-repo
   entrypoint: 'bash'
+  dir: onpremise
   env:
   - 'SENTRY_IMAGE=us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA'
   args:
@@ -78,6 +79,7 @@ steps:
     - get-onpremise-repo
     - e2e-test-py2
   entrypoint: 'bash'
+  dir: onpremise
   env:
   - 'SENTRY_IMAGE=us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA'
   - 'SENTRY_PYTHON3=1'
