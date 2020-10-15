@@ -37,9 +37,21 @@ steps:
   ]
   timeout: 300s
 - name: 'gcr.io/$PROJECT_ID/docker-compose'
+  id: get-onpremise-repo
+  waitFor:  ['-']
+  entrypoint: 'bash'
+  args:
+  - '-e'
+  - '-c'
+  - |
+    mkdir onpremise && cd onpremise
+    curl -L "https://github.com/getsentry/onpremise/archive/master.tar.gz" | tar xzf - --strip-components=1
+    echo '{"version": "3.4", "networks":{"default":{"external":{"name":"cloudbuild"}}}}' > docker-compose.override.yml
+- name: 'gcr.io/$PROJECT_ID/docker-compose'
   id: e2e-test-py2
   waitFor:
     - runtime-image-py2
+    - get-onpremise-repo
   entrypoint: 'bash'
   env:
   - 'SENTRY_IMAGE=us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA'
@@ -47,9 +59,6 @@ steps:
   - '-e'
   - '-c'
   - |
-    mkdir -p onpremise && cd onpremise
-    curl -L "https://github.com/getsentry/onpremise/archive/master.tar.gz" | tar xzf - --strip-components=1
-    echo '{"version": "3.4", "networks":{"default":{"external":{"name":"cloudbuild"}}}}' > docker-compose.override.yml
     ./install.sh
     set +e
     ./test.sh
@@ -66,6 +75,7 @@ steps:
   id: e2e-test-py3
   waitFor:
     - runtime-image-py3
+    - get-onpremise-repo
     - e2e-test-py2
   entrypoint: 'bash'
   env:
@@ -75,9 +85,6 @@ steps:
   - '-e'
   - '-c'
   - |
-    mkdir -p onpremise && cd onpremise
-    curl -L "https://github.com/getsentry/onpremise/archive/master.tar.gz" | tar xzf - --strip-components=1
-    echo '{"version": "3.4", "networks":{"default":{"external":{"name":"cloudbuild"}}}}' > docker-compose.override.yml
     ./install.sh
     set +e
     ./test.sh
