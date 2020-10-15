@@ -6,7 +6,7 @@ import SessionStackPlugin from './sessionstack';
 import SessionStackContextType from './sessionstack/contexts/sessionstack';
 import Jira from './jira';
 
-const contexts = {};
+const contexts: Record<string, any> = {};
 const registry = new Registry();
 
 // Register legacy plugins
@@ -20,17 +20,21 @@ registry.add('jira', Jira);
 
 export {BasePlugin, registry, DefaultIssuePlugin};
 
+const add: typeof registry.add = registry.add.bind(registry);
+const get: typeof registry.get = registry.get.bind(registry);
+const isLoaded: typeof registry.isLoaded = registry.isLoaded.bind(registry);
+const load: typeof registry.load = registry.load.bind(registry);
+
 export default {
   BasePlugin,
   DefaultIssuePlugin,
 
-  add: registry.add.bind(registry),
-  addContext: function (id, component) {
+  add,
+  addContext: function (id: string, component: React.ElementType) {
     contexts[id] = component;
   },
   contexts,
-  get: registry.get.bind(registry),
-  isLoaded: registry.isLoaded.bind(registry),
-  load: registry.load.bind(registry),
-  loadAll: registry.loadAll.bind(registry),
+  get,
+  isLoaded,
+  load,
 };
