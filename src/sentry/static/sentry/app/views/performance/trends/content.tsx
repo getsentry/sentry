@@ -22,6 +22,8 @@ import {TRENDS_FUNCTIONS, getCurrentTrendFunction, getSelectedQueryKey} from './
 import ChangedTransactions from './changedTransactions';
 import ChangedProjects from './changedProjects';
 import {FilterViews} from '../landing';
+import Alert from 'app/components/alert';
+import ExternalLink from 'app/components/links/externalLink';
 
 type Props = {
   organization: Organization;
@@ -99,6 +101,14 @@ class TrendsContent extends React.Component<Props, State> {
     return (
       <Feature features={['trends']}>
         <DefaultTrends location={location} eventView={eventView}>
+          <Alert type="info">
+            {t(
+              "Performance trends is a new beta feature for organizations who have turned on Early Adopter in their account settings. We'd love to hear any feedback you have at"
+            )}{' '}
+            <ExternalLink href="mailto:performance-feedback@sentry.io">
+              performance-feedback@sentry.io
+            </ExternalLink>
+          </Alert>
           <StyledSearchContainer>
             <StyledSearchBar
               organization={organization}
