@@ -7,49 +7,6 @@ on:
   pull_request:
 
 jobs:
-  parse-commit-message:
-    if: ${{ github.ref != 'refs/heads/master' }}
-    runs-on: ubuntu-16.04
-    outputs:
-      commit: ${{ steps.commit.outputs.message }}
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-
-      - name: Parse commit message
-        id: commit
-        run: |
-          echo "::set-output name=message::$(git show -s --format=%B)"
-
-  getsentry:
-    needs: parse-commit-message
-    if: ${{ contains(needs.parse-commit-message.outputs.commit, '#test-getsentry') }}
-    runs-on: ubuntu-16.04
-    steps:
-      - name: getsentry token
-        id: getsentry
-        uses: getsentry/action-github-app-token@v1
-        with:
-          app_id: ${{ secrets.SENTRY_INTERNAL_APP_ID }}
-          private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
-
-      # Notify getsentry
-      - name: Dispatch getsentry tests
-        uses: actions/github-script@v3
-        with:
-          github-token: ${{ steps.getsentry.outputs.token }}
-          script: |
-            github.actions.createWorkflowDispatch({
-              owner: 'getsentry',
-              repo: 'getsentry',
-              workflow_id: 'acceptance.yml',
-              ref: 'master',
-              inputs: {
-                'sentry-sha': '${{ github.event.pull_request.head.sha }}',
-              }
-            })
-
   jest:
     runs-on: ubuntu-16.04
     env:
