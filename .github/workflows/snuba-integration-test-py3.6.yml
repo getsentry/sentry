@@ -29,7 +29,7 @@ jobs:
           token: ${{ github.token }}
           filters: |
             backend:
-              - '**.py'
+              - '**/*.py'
               - 'requirements*.txt'
 
       - name: Set python version output
