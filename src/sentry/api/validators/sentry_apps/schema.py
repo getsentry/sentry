@@ -204,11 +204,14 @@ def validate_component(schema):
 
 
 def check_elements_is_array(instance):
-    if not isinstance(instance["elements"], list):
+    if "elements" in instance and not isinstance(instance["elements"], list):
         raise SchemaValidationError("'elements' should be an array of objects")
 
 
 def check_each_element_for_error(instance):
+    if "elements" not in instance:
+        return
+
     for element in instance["elements"]:
         if "type" not in element:
             raise SchemaValidationError("Each element needs a 'type' field")
