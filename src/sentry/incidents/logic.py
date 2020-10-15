@@ -331,15 +331,12 @@ def create_event_stat_snapshot(incident, windowed_stats=False, start=None, end=N
 
     event_stats = get_incident_event_stats(incident, windowed_stats=windowed_stats)
     start, end = calculate_incident_time_range(incident, windowed_stats=windowed_stats)
-
-    if start == end:
-        values = None
-        period = None
-    else:
-        values = [[row["time"], row["count"]] for row in event_stats.data["data"]]
-        period = event_stats.rollup
-
-    return TimeSeriesSnapshot.objects.create(start=start, end=end, values=values, period=period,)
+    return TimeSeriesSnapshot.objects.create(
+        start=start,
+        end=end,
+        values=[[row["time"], row["count"]] for row in event_stats.data["data"]],
+        period=event_stats.rollup,
+    )
 
 
 def build_incident_query_params(incident, start=None, end=None, windowed_stats=False):
