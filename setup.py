@@ -32,15 +32,6 @@ VERSION = "20.11.0.dev0"
 IS_LIGHT_BUILD = os.environ.get("SENTRY_LIGHT_BUILD") == "1"
 
 
-def get_requirements(env):
-    with open(u"requirements-{}.txt".format(env)) as fp:
-        return [x.strip() for x in fp.read().split("\n") if not x.startswith("#")]
-
-
-install_requires = get_requirements("base")
-dev_requires = get_requirements("dev")
-
-
 class SentrySDistCommand(SDistCommand):
     # If we are not a light build we want to also execute build_assets as
     # part of our source build pipeline.
@@ -84,6 +75,19 @@ cmdclass = {
 }
 
 
+def get_requirements(env):
+    with open(u"requirements-{}.txt".format(env)) as fp:
+        return [x.strip() for x in fp.read().split("\n") if not x.startswith("#")]
+
+
+# Only include dev requirements in non-binary distributions as we don't want these
+# to be listed in the wheels. Main reason for this is being able to use git/URL dependencies
+# for development, which will be rejected by PyPI when trying to upload the wheel.
+extras_require = {"rabbitmq": ["amqp==2.6.1"]}
+if not sys.argv[1:][0].startswith("bdist"):
+    extras_require["dev"] = get_requirements("dev")
+
+
 setup(
     name="sentry",
     version=VERSION,
@@ -96,8 +100,8 @@ setup(
     package_dir={"": "src"},
     packages=find_packages("src"),
     zip_safe=False,
-    install_requires=install_requires,
-    extras_require={"dev": dev_requires, "rabbitmq": ["amqp==2.6.1"]},
+    install_requires=get_requirements("base"),
+    extras_require=extras_require,
     cmdclass=cmdclass,
     license="BSL-1.1",
     include_package_data=True,
