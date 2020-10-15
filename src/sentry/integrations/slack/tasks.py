@@ -130,7 +130,7 @@ def find_channel_id_for_rule(project, actions, uuid, rule_id=None, **kwargs):
 @instrumented_task(
     name="sentry.integrations.slack.search_channel_id_metric_alerts", queue="integrations"
 )
-def find_channel_id_for_alert_rule(organization_id, uuid, **kwargs):
+def find_channel_id_for_alert_rule(organization_id, uuid, data):
     redis_rule_status = RedisRuleStatus(uuid)
     try:
         organization = Organization.objects.get(id=organization_id)
@@ -138,9 +138,9 @@ def find_channel_id_for_alert_rule(organization_id, uuid, **kwargs):
         redis_rule_status.set_value("failed")
         return
 
-    kwargs["use_async_lookup"] = True
     serializer = AlertRuleSerializer(
-        context={"organization": organization, "access": SystemAccess()}, data=kwargs,
+        context={"organization": organization, "access": SystemAccess(), "use_async_lookup": True},
+        data=data,
     )
     if serializer.is_valid():
         try:

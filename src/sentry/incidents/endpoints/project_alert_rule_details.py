@@ -40,12 +40,13 @@ class ProjectAlertRuleDetailsEndpoint(ProjectAlertRuleEndpoint):
             except ChannelLookupTimeoutError:
                 # need to kick off an async job for Slack
                 client = tasks.RedisRuleStatus()
-                uuid_context = {"uuid": client.uuid}
-                # add params to data
-                data.update(uuid_context)
-                data["organization_id"] = project.organization_id
-                tasks.find_channel_id_for_alert_rule.apply_async(kwargs=data)
-                return Response(uuid_context, status=202)
+                task_args = {
+                    "organization_id": project.organization_id,
+                    "uuid": client.uuid,
+                    "data": data,
+                }
+                tasks.find_channel_id_for_alert_rule.apply_async(kwargs=task_args)
+                return Response({"uuid": client.uuid}, status=202)
             else:
                 return Response(serialize(alert_rule, request.user), status=status.HTTP_200_OK)
 

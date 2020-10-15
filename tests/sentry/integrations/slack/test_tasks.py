@@ -185,7 +185,7 @@ class SlackTasksTest(TestCase):
         return_value=("#", "chan-id", False),
     )
     def test_task_new_alert_rule(self, mock_get_channel_id, mock_set_value):
-        data = {
+        alert_rule = {
             "aggregate": "count()",
             "query": "",
             "timeWindow": "300",
@@ -207,6 +207,12 @@ class SlackTasksTest(TestCase):
             ],
             "projects": [self.project1.slug],
             "name": "New Rule",
+            "uuid": self.uuid,
+            "organization_id": self.org.id,
+        }
+
+        data = {
+            "data": alert_rule,
             "uuid": self.uuid,
             "organization_id": self.org.id,
         }
@@ -228,7 +234,51 @@ class SlackTasksTest(TestCase):
         return_value=("#", None, False),
     )
     def test_task_failed_id_lookup(self, mock_get_channel_id, mock_set_value):
+        alert_rule = {
+            "aggregate": "count()",
+            "query": "",
+            "timeWindow": "300",
+            "resolveThreshold": 100,
+            "thresholdType": 0,
+            "triggers": [
+                {
+                    "label": "critical",
+                    "alertThreshold": 200,
+                    "actions": [
+                        {
+                            "type": "slack",
+                            "targetIdentifier": "my-channel",
+                            "targetType": "specific",
+                            "integration": self.integration.id,
+                        }
+                    ],
+                },
+            ],
+            "projects": [self.project1.slug],
+            "name": "New Rule",
+        }
+
         data = {
+            "data": alert_rule,
+            "uuid": self.uuid,
+            "organization_id": self.org.id,
+        }
+
+        with self.tasks():
+            with self.feature(["organizations:incidents", "organizations:performance-view"]):
+                find_channel_id_for_alert_rule(**data)
+
+        assert not AlertRule.objects.filter(name="New Rule").exists()
+        mock_set_value.assert_called_with("failed")
+        mock_get_channel_id.assert_called_with(self.integration, "my-channel", 180)
+
+    @patch.object(RedisRuleStatus, "set_value", return_value=None)
+    @patch(
+        "sentry.integrations.slack.utils.get_channel_id_with_timeout",
+        return_value=("#", None, True),
+    )
+    def test_task_timeout_id_lookup(self, mock_get_channel_id, mock_set_value):
+        alert_rule = {
             "aggregate": "count()",
             "query": "",
             "timeWindow": "300",
@@ -253,43 +303,8 @@ class SlackTasksTest(TestCase):
             "uuid": self.uuid,
             "organization_id": self.org.id,
         }
-
-        with self.tasks():
-            with self.feature(["organizations:incidents", "organizations:performance-view"]):
-                find_channel_id_for_alert_rule(**data)
-
-        assert not AlertRule.objects.filter(name="New Rule").exists()
-        mock_set_value.assert_called_with("failed")
-        mock_get_channel_id.assert_called_with(self.integration, "my-channel", 180)
-
-    @patch.object(RedisRuleStatus, "set_value", return_value=None)
-    @patch(
-        "sentry.integrations.slack.utils.get_channel_id_with_timeout",
-        return_value=("#", None, True),
-    )
-    def test_task_timeout_id_lookup(self, mock_get_channel_id, mock_set_value):
         data = {
-            "aggregate": "count()",
-            "query": "",
-            "timeWindow": "300",
-            "resolveThreshold": 100,
-            "thresholdType": 0,
-            "triggers": [
-                {
-                    "label": "critical",
-                    "alertThreshold": 200,
-                    "actions": [
-                        {
-                            "type": "slack",
-                            "targetIdentifier": "my-channel",
-                            "targetType": "specific",
-                            "integration": self.integration.id,
-                        }
-                    ],
-                },
-            ],
-            "projects": [self.project1.slug],
-            "name": "New Rule",
+            "data": alert_rule,
             "uuid": self.uuid,
             "organization_id": self.org.id,
         }

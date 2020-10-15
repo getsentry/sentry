@@ -75,7 +75,6 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
     id = serializers.IntegerField(required=False)
     type = serializers.CharField()
     target_type = serializers.CharField()
-    use_async_lookup = serializers.BooleanField(required=False, default=False)
 
     class Meta:
         model = AlertRuleTriggerAction
@@ -86,14 +85,12 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
             "target_identifier",
             "integration",
             "sentry_app",
-            "use_async_lookup",
         ]
         extra_kwargs = {
             "target_identifier": {"required": True},
             "target_display": {"required": False},
             "integration": {"required": False, "allow_null": True},
             "sentry_app": {"required": False, "allow_null": True},
-            "use_async_lookup": {"required": False, "allow_null": True},
         }
 
     def validate_type(self, type):
@@ -166,13 +163,16 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
                 raise serializers.ValidationError(
                     {"sentry_app": "SentryApp must be provided for sentry_app"}
                 )
-
+        attrs["use_async_lookup"] = self.context.get("use_async_lookp")
+        print("AlertRuleTriggerActionSerializer", self.context)
         return attrs
 
     def create(self, validated_data):
         try:
             return create_alert_rule_trigger_action(
-                trigger=self.context["trigger"], **validated_data
+                trigger=self.context["trigger"],
+                # use_async_lookup=self.context.get("use_async_lookp"),
+                **validated_data
             )
         except InvalidTriggerActionError as e:
             raise serializers.ValidationError(force_text(e))
@@ -200,7 +200,6 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
     # individually. If we find this to be a problem then we can look into batching.
     excluded_projects = serializers.ListField(child=ProjectField(), required=False)
     actions = serializers.ListField(required=False)
-    use_async_lookup = serializers.BooleanField(required=False, default=False)
 
     class Meta:
         model = AlertRuleTrigger
@@ -210,18 +209,16 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
             "alert_threshold",
             "excluded_projects",
             "actions",
-            "use_async_lookup",
         ]
         extra_kwargs = {"label": {"min_length": 1, "max_length": 64}}
 
     def create(self, validated_data):
         try:
             actions = validated_data.pop("actions", None)
-            use_async_lookup = validated_data.pop("use_async_lookup", False)
             alert_rule_trigger = create_alert_rule_trigger(
                 alert_rule=self.context["alert_rule"], **validated_data
             )
-            self._handle_actions(alert_rule_trigger, actions, use_async_lookup)
+            self._handle_actions(alert_rule_trigger, actions)
 
             return alert_rule_trigger
         except AlertRuleTriggerLabelAlreadyUsedError:
@@ -229,17 +226,17 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
 
     def update(self, instance, validated_data):
         actions = validated_data.pop("actions")
-        use_async_lookup = validated_data.pop("use_async_lookup", False)
         if "id" in validated_data:
             validated_data.pop("id")
         try:
             alert_rule_trigger = update_alert_rule_trigger(instance, **validated_data)
-            self._handle_actions(alert_rule_trigger, actions, use_async_lookup)
+            self._handle_actions(alert_rule_trigger, actions)
             return alert_rule_trigger
         except AlertRuleTriggerLabelAlreadyUsedError:
             raise serializers.ValidationError("This label is already in use for this alert rule")
 
-    def _handle_actions(self, alert_rule_trigger, actions, use_async_lookup=False):
+    def _handle_actions(self, alert_rule_trigger, actions):
+        print("AlertRuleTriggerSerializer", self.context.get("use_async_lookup"))
         if actions is not None:
             # Delete actions we don't have present in the updated data.
             action_ids = [x["id"] for x in actions if "id" in x]
@@ -262,14 +259,13 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
                     )
                 else:
                     action_instance = None
-
-                action_data["use_async_lookup"] = use_async_lookup
                 action_serializer = AlertRuleTriggerActionSerializer(
                     context={
                         "alert_rule": alert_rule_trigger.alert_rule,
                         "trigger": alert_rule_trigger,
                         "organization": self.context["organization"],
                         "access": self.context["access"],
+                        "use_async_lookup": self.context.get("use_async_lookup"),
                     },
                     instance=action_instance,
                     data=action_data,
@@ -306,7 +302,6 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
     )
     threshold_period = serializers.IntegerField(default=1, min_value=1, max_value=20)
     aggregate = serializers.CharField(required=True, min_length=1)
-    use_async_lookup = serializers.BooleanField(required=False, default=False)
 
     class Meta:
         model = AlertRule
@@ -324,14 +319,12 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             "include_all_projects",
             "excluded_projects",
             "triggers",
-            "use_async_lookup",
         ]
         extra_kwargs = {
             "name": {"min_length": 1, "max_length": 64},
             "include_all_projects": {"default": False},
             "threshold_type": {"required": True},
             "resolve_threshold": {"required": False},
-            "use_async_lookup": {"required": False},
         }
 
     def validate_aggregate(self, aggregate):
@@ -509,6 +502,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             raise serializers.ValidationError("This name is already in use for this organization")
 
     def _handle_triggers(self, alert_rule, triggers):
+        print("rule ser", self.context.get("use_async_lookup"))
         if triggers is not None:
             # Delete triggers we don't have present in the incoming data
             trigger_ids = [x["id"] for x in triggers if "id" in x]
@@ -526,12 +520,12 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                 else:
                     trigger_instance = None
 
-                trigger_data["use_async_lookup"] = self.initial_data.get("use_async_lookup", False)
                 trigger_serializer = AlertRuleTriggerSerializer(
                     context={
                         "alert_rule": alert_rule,
                         "organization": self.context["organization"],
                         "access": self.context["access"],
+                        "use_async_lookup": self.context.get("use_async_lookup"),
                     },
                     instance=trigger_instance,
                     data=trigger_data,
