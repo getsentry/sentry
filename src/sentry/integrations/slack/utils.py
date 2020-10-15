@@ -426,6 +426,9 @@ def get_channel_id_with_timeout(integration, name, timeout):
     id_data = None
     found_duplicate = False
     for list_type, result_name, prefix in list_types:
+        if timeout < 100:
+            return (prefix, None, True)
+
         cursor = ""
         while True:
             endpoint = "/%s.list" % list_type

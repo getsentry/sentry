@@ -1,7 +1,9 @@
 from __future__ import absolute_import
 
 import six
+
 from exam import fixture
+from mock import patch
 from rest_framework import serializers
 
 from sentry.auth.access import from_user
@@ -13,7 +15,7 @@ from sentry.incidents.endpoints.serializers import (
     string_to_action_type,
     string_to_action_target_type,
 )
-from sentry.incidents.logic import create_alert_rule_trigger
+from sentry.incidents.logic import create_alert_rule_trigger, ChannelLookupTimeoutError
 from sentry.incidents.models import AlertRule, AlertRuleThresholdType, AlertRuleTriggerAction
 from sentry.models import Integration, Environment
 from sentry.snuba.models import QueryDatasets
@@ -79,6 +81,14 @@ class TestAlertRuleSerializer(TestCase):
         serializer = AlertRuleSerializer(context=self.context, data=base_params)
         assert not serializer.is_valid()
         assert serializer.errors == errors
+
+    def setup_slack_integration(self):
+        self.integration = Integration.objects.create(
+            external_id="1",
+            provider="slack",
+            metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
+        )
+        self.integration.add_organization(self.organization, self.user)
 
     def test_validation_no_params(self):
         serializer = AlertRuleSerializer(context=self.context, data={})
@@ -372,6 +382,67 @@ class TestAlertRuleSerializer(TestCase):
             {"thresholdType": "a"}, {"thresholdType": ["A valid integer is required."]}
         )
         self.run_fail_validation_test({"thresholdType": 50}, {"thresholdType": invalid_values})
+
+    @patch(
+        "sentry.integrations.slack.utils.get_channel_id_with_timeout",
+        return_value=("#", None, True),
+    )
+    def test_channel_timeout(self, mock_get_channel_id):
+        self.setup_slack_integration()
+        trigger = {
+            "label": "critical",
+            "alertThreshold": 200,
+            "actions": [
+                {
+                    "type": "slack",
+                    "targetIdentifier": "my-channel",
+                    "targetType": "specific",
+                    "integration": self.integration.id,
+                }
+            ],
+        }
+        base_params = self.valid_params.copy()
+        base_params.update({"triggers": [trigger]})
+        serializer = AlertRuleSerializer(context=self.context, data=base_params)
+        # error is raised during save
+        assert serializer.is_valid()
+        with self.assertRaises(ChannelLookupTimeoutError) as err:
+            serializer.save()
+        assert (
+            err.exception.message
+            == "Could not find channel my-channel. We have timed out trying to look for it."
+        )
+
+    @patch(
+        "sentry.integrations.slack.utils.get_channel_id_with_timeout",
+        return_value=("#", None, True),
+    )
+    def test_invalid_team_with_channel_timeout(self, mock_get_channel_id):
+        self.setup_slack_integration()
+        other_org = self.create_organization()
+        new_team = self.create_team(organization=other_org)
+        trigger = {
+            "label": "critical",
+            "alertThreshold": 200,
+            "actions": [
+                {
+                    "type": "slack",
+                    "targetIdentifier": "my-channel",
+                    "targetType": "specific",
+                    "integration": self.integration.id,
+                },
+                {"type": "email", "targetType": "team", "targetIdentifier": new_team.id},
+            ],
+        }
+        base_params = self.valid_params.copy()
+        base_params.update({"triggers": [trigger]})
+        serializer = AlertRuleSerializer(context=self.context, data=base_params)
+        # error is raised during save
+        assert serializer.is_valid()
+        with self.assertRaises(serializers.ValidationError) as err:
+            serializer.save()
+        assert err.exception.detail == {"nonFieldErrors": ["Team does not exist"]}
+        mock_get_channel_id.assert_called_with(self.integration, "my-channel", 10)
 
 
 class TestAlertRuleTriggerSerializer(TestCase):
