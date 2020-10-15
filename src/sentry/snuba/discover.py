@@ -405,6 +405,7 @@ def query(
         for having_clause in snuba_filter.having:
             # The first element of the having can be an alias, or a nested array of functions. Loop through to make sure
             # any referenced functions are in the aggregations.
+            error_extra = u", and could not be automatically added" if auto_aggregations else u""
             if isinstance(having_clause[0], (list, tuple)):
                 # Functions are of the form [fn, [args]]
                 args_to_check = [[having_clause[0]]]
@@ -424,8 +425,8 @@ def query(
 
                 if len(conditions_not_in_aggregations) > 0:
                     raise InvalidSearchQuery(
-                        u"Aggregate(s) {} used in a condition but are not in the selected columns.".format(
-                            ", ".join(conditions_not_in_aggregations)
+                        u"Aggregate(s) {} used in a condition but are not in the selected columns{}.".format(
+                            ", ".join(conditions_not_in_aggregations), error_extra,
                         )
                     )
             else:
@@ -434,8 +435,8 @@ def query(
                 )
                 if not found:
                     raise InvalidSearchQuery(
-                        u"Aggregate {} used in a condition but is not a selected column, and could not be automatically added.".format(
-                            having_clause[0]
+                        u"Aggregate {} used in a condition but is not a selected column{}.".format(
+                            having_clause[0], error_extra,
                         )
                     )
 
