@@ -119,9 +119,10 @@ search               = (boolean_operator / paren_term / search_term)*
 boolean_operator     = spaces (or_operator / and_operator) spaces
 paren_term           = spaces open_paren spaces (paren_term / boolean_operator / search_term)+ spaces closed_paren spaces
 search_term          = key_val_term / quoted_raw_search / raw_search
-key_val_term         = spaces (tag_filter / time_filter / rel_time_filter / specific_time_filter / duration_filter
-                       / numeric_filter / aggregate_filter / aggregate_date_filter / aggregate_rel_date_filter / has_filter
-                       / is_filter / quoted_basic_filter / basic_filter)
+key_val_term         = spaces (tag_filter / time_filter / rel_time_filter / specific_time_filter
+                       / duration_filter / boolean_filter / numeric_filter
+                       / aggregate_filter / aggregate_date_filter / aggregate_rel_date_filter
+                       / has_filter / is_filter / quoted_basic_filter / basic_filter)
                        spaces
 raw_search           = (!key_val_term ~r"\ *(?!(?i)OR)(?!(?i)AND)([^\ ^\n ()]+)\ *" )*
 quoted_raw_search    = spaces quoted_value spaces
@@ -139,6 +140,8 @@ duration_filter      = search_key sep operator? duration_format
 specific_time_filter = search_key sep (date_format / alt_date_format)
 # Numeric comparison filter
 numeric_filter       = search_key sep operator? numeric_value
+# Boolean comparison filter
+boolean_filter       = negation? search_key sep boolean_value
 # Aggregate numeric filter
 aggregate_filter          = negation? aggregate_key sep operator? (numeric_value / duration_format)
 aggregate_date_filter     = negation? aggregate_key sep operator? (date_format / alt_date_format)
@@ -154,6 +157,7 @@ search_key           = key / quoted_key
 search_value         = quoted_value / value
 value                = ~r"[^()\s]*"
 numeric_value        = ~r"[-]?[0-9\.]+(?=\s|\)|$)"
+boolean_value        = ~r"(true|1|false|0)(?=\s|\)|$)"i
 quoted_value         = ~r"\"((?:[^\"]|(?<=\\)[\"])*)?\""s
 key                  = ~r"[a-zA-Z0-9_\.-]+"
 function_arg         = space? key? comma? space?
@@ -203,6 +207,7 @@ ISSUE_ALIAS = "issue"
 ISSUE_ID_ALIAS = "issue.id"
 RELEASE_ALIAS = "release"
 USER_DISPLAY_ALIAS = "user.display"
+ERROR_UNHANDLED_ALIAS = "error.unhandled"
 
 
 class InvalidSearchQuery(Exception):
@@ -283,9 +288,7 @@ class SearchVisitor(NodeVisitor):
             "project_id",
             "project.id",
             "issue.id",
-            "error.handled",
             "stack.colno",
-            "stack.in_app",
             "stack.lineno",
             "stack.stack_level",
             "transaction.duration",
@@ -309,6 +312,7 @@ class SearchVisitor(NodeVisitor):
             "transaction.end_time",
         ]
     )
+    boolean_keys = set(["error.handled", "error.unhandled", "stack.in_app"])
 
     unwrapped_exceptions = (InvalidSearchQuery,)
 
@@ -393,6 +397,26 @@ class SearchVisitor(NodeVisitor):
             return node.text
 
         return ParenExpression(children)
+
+    def visit_boolean_filter(self, node, children):
+        (negation, search_key, sep, search_value) = children
+        is_negated = self.is_negated(negation)
+
+        # Numeric and boolean filters overlap on 1 and 0 values.
+        if self.is_numeric_key(search_key.name):
+            return self.visit_numeric_filter(node, (search_key, sep, "=", search_value))
+
+        if search_key.name in self.boolean_keys:
+            if search_value.text.lower() in ("true", "1"):
+                search_value = SearchValue(0 if is_negated else 1)
+            elif search_value.text.lower() in ("false", "0"):
+                search_value = SearchValue(1 if is_negated else 0)
+            else:
+                raise InvalidSearchQuery(u"Invalid boolean field: {}".format(search_key))
+            return SearchFilter(search_key, "=", search_value)
+        else:
+            search_value = SearchValue(search_value.text)
+            return self._handle_basic_filter(search_key, "=", search_value)
 
     def visit_numeric_filter(self, node, children):
         (search_key, _, operator, search_value) = children
@@ -584,9 +608,11 @@ class SearchVisitor(NodeVisitor):
         # If a date or numeric key gets down to the basic filter, then it means
         # that the value wasn't in a valid format, so raise here.
         if search_key.name in self.date_keys:
-            raise InvalidSearchQuery("Invalid format for date search")
+            raise InvalidSearchQuery("Invalid format for date field")
+        if search_key.name in self.boolean_keys:
+            raise InvalidSearchQuery("Invalid format for boolean field")
         if self.is_numeric_key(search_key.name):
-            raise InvalidSearchQuery("Invalid format for numeric search")
+            raise InvalidSearchQuery("Invalid format for numeric field")
 
         return SearchFilter(search_key, operator, search_value)
 
@@ -811,6 +837,18 @@ def convert_search_filter_to_snuba_query(search_filter, key=None):
                 1,
             ]
         return [user_display_expr, search_filter.operator, value]
+    elif name == ERROR_UNHANDLED_ALIAS:
+        # This field is the inversion of error.handled, otherwise the logic is the same.
+        if search_filter.value.raw_value == "":
+            output = 0 if search_filter.operator == "!=" else 1
+            return [["isHandled", []], "=", output]
+        if value in ("1", 1):
+            return [["notHandled", []], "=", 1]
+        if value in ("0", 0):
+            return [["isHandled", []], "=", 1]
+        raise InvalidSearchQuery(
+            "Invalid value for error.unhandled condition. Accepted values are 1, 0"
+        )
     elif name == "error.handled":
         # Treat has filter as equivalent to handled
         if search_filter.value.raw_value == "":
@@ -1209,10 +1247,14 @@ def get_filter(query=None, params=None):
 FIELD_ALIASES = {
     "project": {"fields": ["project.id"], "column_alias": "project.id"},
     "issue": {"fields": ["issue.id"], "column_alias": "issue.id"},
-    "user.display": {
+    ERROR_UNHANDLED_ALIAS: {
+        "fields": [["notHandled", [], ERROR_UNHANDLED_ALIAS]],
+        "column_alias": ERROR_UNHANDLED_ALIAS,
+    },
+    USER_DISPLAY_ALIAS: {
         "expression": ["coalesce", ["user.email", "user.username", "user.ip"]],
-        "fields": [["coalesce", ["user.email", "user.username", "user.ip"], "user.display"]],
-        "column_alias": "user.display",
+        "fields": [["coalesce", ["user.email", "user.username", "user.ip"], USER_DISPLAY_ALIAS]],
+        "column_alias": USER_DISPLAY_ALIAS,
     },
 }
 
@@ -1249,15 +1291,15 @@ class ArgValue(object):
 
 
 class FunctionArg(object):
-    def __init__(self, name, has_default=False):
+    def __init__(self, name):
         self.name = name
-        self.has_default = has_default
-
-    def normalize(self, value):
-        return value
+        self.has_default = False
 
     def get_default(self, params):
         raise InvalidFunctionArgument(u"{} has no defaults".format(self.name))
+
+    def normalize(self, value):
+        return value
 
 
 class NullColumn(FunctionArg):
@@ -1268,7 +1310,8 @@ class NullColumn(FunctionArg):
     """
 
     def __init__(self, name):
-        super(NullColumn, self).__init__(name, has_default=True)
+        super(NullColumn, self).__init__(name)
+        self.has_default = True
 
     def get_default(self, params):
         return None
@@ -1279,7 +1322,8 @@ class NullColumn(FunctionArg):
 
 class CountColumn(FunctionArg):
     def __init__(self, name):
-        super(CountColumn, self).__init__(name, has_default=True)
+        super(CountColumn, self).__init__(name)
+        self.has_default = True
 
     def get_default(self, params):
         return None
@@ -1358,8 +1402,8 @@ class StringArrayColumn(FunctionArg):
 
 
 class NumberRange(FunctionArg):
-    def __init__(self, name, start, end, has_default=False):
-        super(NumberRange, self).__init__(name, has_default=has_default)
+    def __init__(self, name, start, end):
+        super(NumberRange, self).__init__(name)
         self.start = start
         self.end = end
 
@@ -1381,7 +1425,8 @@ class NumberRange(FunctionArg):
 
 class IntervalDefault(NumberRange):
     def __init__(self, name, start, end):
-        super(IntervalDefault, self).__init__(name, start, end, has_default=True)
+        super(IntervalDefault, self).__init__(name, start, end)
+        self.has_default = True
 
     def get_default(self, params):
         if not params or not params.get("start") or not params.get("end"):
@@ -1393,6 +1438,12 @@ class IntervalDefault(NumberRange):
 
         interval = (params["end"] - params["start"]).total_seconds()
         return int(interval)
+
+
+def with_default(default, argument):
+    argument.has_default = True
+    argument.get_default = lambda *_: default
+    return argument
 
 
 class Function(object):
@@ -1555,31 +1606,40 @@ FUNCTIONS = {
     for function in [
         Function(
             "percentile",
-            required_args=[DurationColumnNoLookup("column"), NumberRange("percentile", 0, 1)],
+            required_args=[NumericColumnNoLookup("column"), NumberRange("percentile", 0, 1)],
             aggregate=[u"quantile({percentile:g})", ArgValue("column"), None],
             result_type="duration",
         ),
         Function(
             "p50",
-            aggregate=[u"quantile(0.5)", "transaction.duration", None],
+            optional_args=[with_default("transaction.duration", NumericColumnNoLookup("column"))],
+            aggregate=[u"quantile(0.5)", ArgValue("column"), None],
             result_type="duration",
         ),
         Function(
             "p75",
-            aggregate=[u"quantile(0.75)", "transaction.duration", None],
+            optional_args=[with_default("transaction.duration", NumericColumnNoLookup("column"))],
+            aggregate=[u"quantile(0.75)", ArgValue("column"), None],
             result_type="duration",
         ),
         Function(
             "p95",
-            aggregate=[u"quantile(0.95)", "transaction.duration", None],
+            optional_args=[with_default("transaction.duration", NumericColumnNoLookup("column"))],
+            aggregate=[u"quantile(0.95)", ArgValue("column"), None],
             result_type="duration",
         ),
         Function(
             "p99",
-            aggregate=[u"quantile(0.99)", "transaction.duration", None],
+            optional_args=[with_default("transaction.duration", NumericColumnNoLookup("column"))],
+            aggregate=[u"quantile(0.99)", ArgValue("column"), None],
             result_type="duration",
         ),
-        Function("p100", aggregate=[u"max", "transaction.duration", None], result_type="duration",),
+        Function(
+            "p100",
+            optional_args=[with_default("transaction.duration", NumericColumnNoLookup("column"))],
+            aggregate=[u"max", ArgValue("column"), None],
+            result_type="duration",
+        ),
         Function(
             "eps",
             optional_args=[IntervalDefault("interval", 1, None)],
@@ -1701,6 +1761,16 @@ FUNCTIONS = {
             result_type="integer",
         ),
         Function(
+            "count_at_least",
+            required_args=[NumericColumnNoLookup("column"), NumberRange("threshold", 0, None)],
+            aggregate=[
+                "countIf",
+                [["greaterOrEquals", [ArgValue("column"), ArgValue("threshold")]]],
+                None,
+            ],
+            result_type="integer",
+        ),
+        Function(
             "min",
             required_args=[NumericColumnNoLookup("column")],
             aggregate=["min", ArgValue("column"), None],
@@ -1807,7 +1877,11 @@ FUNCTIONS = {
         ),
         Function(
             "absolute_correlation",
-            aggregate=["abs", [["corr", ["toUnixTimestamp", ["timestamp"], "duration"]]], None],
+            aggregate=[
+                "abs",
+                [["corr", [["toUnixTimestamp", ["timestamp"]], "transaction.duration"]]],
+                None,
+            ],
             result_type="number",
         ),
     ]
@@ -1838,15 +1912,14 @@ def get_function_alias_with_columns(function_name, columns):
     return u"{}_{}".format(function_name, columns).rstrip("_")
 
 
-def format_column_arguments(column, arguments):
-    args = column[1]
-    for i in range(len(args)):
-        if isinstance(args[i], (list, tuple)):
-            format_column_arguments(args[i], arguments)
-        elif isinstance(args[i], six.string_types):
-            args[i] = args[i].format(**arguments)
-        elif isinstance(args[i], ArgValue):
-            args[i] = arguments[args[i].arg]
+def format_column_arguments(column_args, arguments):
+    for i in range(len(column_args)):
+        if isinstance(column_args[i], (list, tuple)):
+            format_column_arguments(column_args[i][1], arguments)
+        elif isinstance(column_args[i], six.string_types):
+            column_args[i] = column_args[i].format(**arguments)
+        elif isinstance(column_args[i], ArgValue):
+            column_args[i] = arguments[column_args[i].arg]
 
 
 def parse_function(field, match=None):
@@ -1879,12 +1952,17 @@ def resolve_function(field, match=None, params=None):
 
         aggregate[0] = aggregate[0].format(**arguments)
         if isinstance(aggregate[1], (list, tuple)):
-            aggregate[1] = [
-                arguments[agg.arg] if isinstance(agg, ArgValue) else agg for agg in aggregate[1]
-            ]
+            format_column_arguments(aggregate[1], arguments)
         elif isinstance(aggregate[1], ArgValue):
             arg = aggregate[1].arg
-            aggregate[1] = arguments[arg]
+            # The aggregate function has only a single argument
+            # however that argument is an expression, so we have
+            # to make sure to nest it so it doesn't get treated
+            # as a list of arguments by snuba.
+            if isinstance(arguments[arg], (list, tuple)):
+                aggregate[1] = [arguments[arg]]
+            else:
+                aggregate[1] = arguments[arg]
         if aggregate[2] is None:
             aggregate[2] = get_function_alias_with_columns(function.name, columns)
         else:
@@ -1894,7 +1972,7 @@ def resolve_function(field, match=None, params=None):
     elif function.column is not None:
         # These can be very nested functions, so we need to iterate through all the layers
         addition = deepcopy(function.column)
-        format_column_arguments(addition, arguments)
+        format_column_arguments(addition[1], arguments)
         if len(addition) < 3:
             addition.append(get_function_alias_with_columns(function.name, columns))
         elif len(addition) == 3 and addition[2] is None:

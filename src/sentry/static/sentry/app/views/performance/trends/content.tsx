@@ -97,7 +97,7 @@ class TrendsContent extends React.Component<Props, State> {
     const showChangedProjects = hasMultipleProjects(selection);
 
     return (
-      <Feature features={['trends', 'internal-catchall']} requireAll={false}>
+      <Feature features={['trends']}>
         <DefaultTrends location={location} eventView={eventView}>
           <StyledSearchContainer>
             <StyledSearchBar
@@ -180,8 +180,8 @@ class DefaultTrends extends React.Component<DefaultTrendsProps> {
     if (queryString || this.hasPushedDefaults) {
       return <React.Fragment>{children}</React.Fragment>;
     } else {
-      conditions.setTag('count()', ['>1000']);
-      conditions.setTag('transaction.duration', ['>0']);
+      conditions.setTagValues('count()', ['>1000']);
+      conditions.setTagValues('transaction.duration', ['>0']);
     }
 
     const query = stringifyQueryObject(conditions);
@@ -219,7 +219,7 @@ const TrendsLayoutContainer = styled('div')`
   display: grid;
   grid-gap: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: stretch;
   }

@@ -50,44 +50,28 @@ jobs:
             libxmlsec1-dev \
             libmaxminddb-dev
 
-      # Checkout codebase
       - uses: actions/checkout@v2
 
-      # Python
-      #   Use `.python-version` to avoid duplication
-      #   XXX: can't actually read from .python-version because GitHub Actions
-      #   does not support our version (2.7.16)
-      #
-      #   XXX: Using `2.7` as GHA image only seems to keep one minor version around and will break
-      #   CI if we pin it to a specific patch version.
       - name: Set up outputs
         id: config
         env:
           MATRIX_INSTANCE: ${{ matrix.instance }}
         run: |
-          echo "::set-output name=python-version::2.7"
+          echo "::set-output name=python-version::2.7.17"
 
-      # setup python
       - name: Set up Python ${{ steps.config.outputs.python-version }}
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v2
         with:
           python-version: ${{ steps.config.outputs.python-version}}
 
-      # setup pip
-      - name: Install pip
-        run: |
-          pip install --no-cache-dir --upgrade "pip>=20.0.2"
-
-      # pip cache
-      - name: Get pip cache dir
-        id: pip-cache
-        run: |
-          echo "::set-output name=dir::$(pip cache dir)"
+      - name: Setup pip
+        uses: ./.github/actions/setup-pip
+        id: pip
 
       - name: pip cache
-        uses: actions/cache@v1
+        uses: actions/cache@v2
         with:
-          path: ${{ steps.pip-cache.outputs.dir }}
+          path: ${{ steps.pip.outputs.pip-cache-dir }}
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements-*.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
@@ -113,202 +97,101 @@ jobs:
   test-py3:
     name: 'python3.6 backend'
     runs-on: ubuntu-16.04
+    timeout-minutes: 30
     strategy:
       matrix:
-        instance: [0, 1, 2, 3]
+        instance: [0, 1, 2]
 
     env:
-      SENTRY_PYTHON3: 1
-      PIP_DISABLE_PIP_VERSION_CHECK: on
-
-      SENTRY_LIGHT_BUILD: 1
-      SENTRY_SKIP_BACKEND_VALIDATION: 1
       MIGRATIONS_TEST_MIGRATE: 1
-      PYTEST_SENTRY_DSN: https://6fd5cfea2d4d46b182ad214ac7810508@sentry.io/2423079
-      # XXX(py3): Reruns are disabled for until all tests are passing.
-      PYTEST_ADDOPTS: ""
-      PYTEST_SENTRY_ALWAYS_REPORT: no
-
-      # services configuration
-      SENTRY_REDIS_HOST: redis
-      DATABASE_URL: postgresql://postgres:postgres@localhost/sentry
-
-      # Number of matrix instances
-      TOTAL_TEST_GROUPS: ${{ strategy.job-total }}
 
     steps:
-      - name: Install System Dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            libxmlsec1-dev \
-            libmaxminddb-dev
-
       - uses: actions/checkout@v2
 
-      - name: Set up outputs
-        id: config
-        env:
-          MATRIX_INSTANCE: ${{ matrix.instance }}
-        run: |
-          # XXX(py3): Minors that aren't latest seem to not be available.
-          echo "::set-output name=python-version::3.6.12"
-          echo "::set-output name=matrix-instance-number::$(($MATRIX_INSTANCE+1))"
+      - uses: volta-cli/action@v1
 
-      - name: Set up Python ${{ steps.config.outputs.python-version }}
-        uses: actions/setup-python@v1
+      - name: Set python version output
+        id: python-version
+        run: |
+          echo "::set-output name=python-version::$(awk 'FNR == 2' .python-version)"
+
+      # Until GH composite actions can use `uses`, we need to setup python here
+      - uses: actions/setup-python@v2
         with:
-          python-version: ${{ steps.config.outputs.python-version}}
+          python-version: ${{ steps.python-version.outputs.python-version }}
 
-      - name: Install pip
-        run: |
-          pip install --no-cache-dir --upgrade "pip>=20.0.2"
-
-      - name: Get pip cache dir
-        id: pip-cache
-        run: |
-          echo "::set-output name=dir::$(pip cache dir)"
+      - name: Setup pip
+        uses: ./.github/actions/setup-pip
+        id: pip
 
       - name: pip cache
-        uses: actions/cache@v1
+        uses: actions/cache@v2
         with:
-          path: ${{ steps.pip-cache.outputs.dir }}
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements-*.txt') }}
+          path: ${{ steps.pip.outputs.pip-cache-dir }}
+          key: ${{ runner.os }}-pip-py${{ steps.python-version.outputs.python-version }}-${{ hashFiles('**/requirements-*.txt') }}
           restore-keys: |
-            ${{ runner.os }}-pip-
+            ${{ runner.os }}-pip-py${{ steps.python-version.outputs.python-version }}
 
-      - name: Install Python Dependencies
-        env:
-          PGPASSWORD: postgres
-        run: |
-          python setup.py install_egg_info
-          pip install wheel # GitHub Actions does not have this installed by default (unlike Travis)
-          pip install -U -e ".[dev]"
-          # XXX: wasn't able to get this working in requirements_base.
-          # It's possible if you're installing via -r but it breaks -e.
-          pip uninstall -y rb
-          pip install -e git+https://github.com/getsentry/rb.git@master#egg=rb
+      - name: Setup sentry env
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          python: 3
 
-      - name: Start devservices
-        run: |
-          sentry init
-          sentry devservices up postgres redis clickhouse snuba
-
-      - name: Python 3.6 backend (${{ steps.config.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
+      - name: Python 3.6 backend (${{ steps.setup.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
         if: always()
         run: |
           make travis-test-postgres
-        env:
-          TEST_GROUP: ${{ matrix.instance }}
 
   test-py3-snuba:
     name: '[ignore fails] python3.6 backend (snuba)'
     runs-on: ubuntu-16.04
     continue-on-error: true
+    timeout-minutes: 30
     strategy:
       matrix:
         instance: [0]
 
     env:
-      SENTRY_PYTHON3: 1
-      PIP_DISABLE_PIP_VERSION_CHECK: on
-
+      # Note: `USE_SNUBA` is only used for the Snuba test suite because we have some failing acceptance tests with Snuba enabled.
       USE_SNUBA: 1
-      SENTRY_LIGHT_BUILD: 1
-      SENTRY_SKIP_BACKEND_VALIDATION: 1
       MIGRATIONS_TEST_MIGRATE: 1
 
-      PYTEST_SENTRY_DSN: https://6fd5cfea2d4d46b182ad214ac7810508@sentry.io/2423079
-      # XXX(py3): Reruns are disabled for until all tests are passing.
-      PYTEST_ADDOPTS: ""
-      PYTEST_SENTRY_ALWAYS_REPORT: no
-
-      # services configuration
-      SENTRY_REDIS_HOST: redis
-      DATABASE_URL: postgresql://postgres:postgres@localhost/sentry
-      SENTRY_KAFKA_HOSTS: localhost:9092
-      SENTRY_ZOOKEEPER_HOSTS: localhost:2181
-
-      # Number of matrix instances
-      TOTAL_TEST_GROUPS: ${{ strategy.job-total }}
-
     steps:
-      - name: Install System Dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            libxmlsec1-dev \
-            libmaxminddb-dev
-
       - uses: actions/checkout@v2
 
-      - name: Set up outputs
-        id: config
-        env:
-          MATRIX_INSTANCE: ${{ matrix.instance }}
-        run: |
-          # XXX(py3): Minors that aren't latest seem to not be available.
-          echo "::set-output name=python-version::3.6.12"
-          echo "::set-output name=matrix-instance-number::$(($MATRIX_INSTANCE+1))"
+      - uses: volta-cli/action@v1
 
-      - name: Set up Python ${{ steps.config.outputs.python-version }}
-        uses: actions/setup-python@v1
+      - name: Set python version output
+        id: python-version
+        run: |
+          echo "::set-output name=python-version::$(awk 'FNR == 2' .python-version)"
+
+      # Until GH composite actions can use `uses`, we need to setup python here
+      - uses: actions/setup-python@v2
         with:
-          python-version: ${{ steps.config.outputs.python-version}}
+          python-version: ${{ steps.python-version.outputs.python-version }}
 
-      - name: Install pip
-        run: |
-          pip install --no-cache-dir --upgrade "pip>=20.0.2"
-
-      - name: Get pip cache dir
-        id: pip-cache
-        run: |
-          echo "::set-output name=dir::$(pip cache dir)"
+      - name: Setup pip
+        uses: ./.github/actions/setup-pip
+        id: pip
 
       - name: pip cache
-        uses: actions/cache@v1
+        uses: actions/cache@v2
         with:
-          path: ${{ steps.pip-cache.outputs.dir }}
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements-*.txt') }}
+          path: ${{ steps.pip.outputs.pip-cache-dir }}
+          key: ${{ runner.os }}-pip-py${{ steps.python-version.outputs.python-version }}-${{ hashFiles('**/requirements-*.txt') }}
           restore-keys: |
-            ${{ runner.os }}-pip-
+            ${{ runner.os }}-pip-py${{ steps.python-version.outputs.python-version }}
 
-      - name: Install Python Dependencies
-        env:
-          PGPASSWORD: postgres
-        run: |
-          python setup.py install_egg_info
-          pip install wheel # GitHub Actions does not have this installed by default (unlike Travis)
-          pip install -U -e ".[dev]"
-          # XXX: wasn't able to get this working in requirements_base.
-          # It's possible if you're installing via -r but it breaks -e.
-          pip uninstall -y rb
-          pip install -e git+https://github.com/getsentry/rb.git@master#egg=rb
+      - name: Setup sentry env
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          python: 3
+          kafka: true
 
-      - name: Start devservices
-        run: |
-          sentry init
-          docker run \
-            --name sentry_zookeeper \
-            -d --network host \
-            -e ZOOKEEPER_CLIENT_PORT=2181 \
-            confluentinc/cp-zookeeper:4.1.0
-
-          docker run \
-            --name sentry_kafka \
-            -d --network host \
-            -e KAFKA_ZOOKEEPER_CONNECT=127.0.0.1:2181 \
-            -e KAFKA_LISTENERS=INTERNAL://0.0.0.0:9093,EXTERNAL://0.0.0.0:9092 \
-            -e KAFKA_ADVERTISED_LISTENERS=INTERNAL://127.0.0.1:9093,EXTERNAL://127.0.0.1:9092 \
-            -e KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT \
-            -e KAFKA_INTER_BROKER_LISTENER_NAME=INTERNAL \
-            -e KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1 \
-            confluentinc/cp-kafka:5.1.2
-          sentry devservices up postgres redis clickhouse snuba
-
-      - name: Python 3.6 snuba backend (${{ steps.config.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
+      - name: Python 3.6 snuba backend (${{ steps.setup.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
         if: always()
         run: |
           make travis-test-snuba
-        env:
-          TEST_GROUP: ${{ matrix.instance }}

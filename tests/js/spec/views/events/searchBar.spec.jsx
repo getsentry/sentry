@@ -71,6 +71,24 @@ describe('SearchBar', function () {
     MockApiClient.clearMockResponses();
   });
 
+  it('autocompletes has suggestions correctly', async function () {
+    const wrapper = mountWithTheme(<SearchBar {...props} />, options);
+    await tick();
+    setQuery(wrapper, 'has:');
+
+    await tick();
+    await wrapper.update();
+
+    expect(wrapper.find('SearchDropdown').prop('searchSubstring')).toEqual('');
+    expect(wrapper.find('SearchDropdown Description').first().text()).toEqual('gpu');
+
+    selectFirstAutocompleteItem(wrapper);
+    await wrapper.update();
+    // the trailing space is important here as without it, autocomplete suggestions will
+    // try to complete `has:gpu` thinking the token has not ended yet
+    expect(wrapper.find('input').prop('value')).toBe('has:gpu ');
+  });
+
   it('searches and selects an event field value', async function () {
     const wrapper = mountWithTheme(<SearchBar {...props} />, options);
     await tick();

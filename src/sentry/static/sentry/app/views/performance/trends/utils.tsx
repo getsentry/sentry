@@ -4,15 +4,7 @@ import styled from '@emotion/styled';
 import moment from 'moment';
 
 import theme from 'app/utils/theme';
-import {
-  getDiffInMinutes,
-  THIRTY_DAYS,
-  TWENTY_FOUR_HOURS,
-  ONE_HOUR,
-  DateTimeObject,
-  ONE_WEEK,
-  TWO_WEEKS,
-} from 'app/components/charts/utils';
+import {getInterval} from 'app/components/charts/utils';
 import {decodeScalar} from 'app/utils/queryString';
 import Duration from 'app/components/duration';
 import {Sort, Field} from 'app/utils/discover/fields';
@@ -76,34 +68,6 @@ export const TRENDS_FUNCTIONS: TrendFunction[] = [
     legendLabel: 'average',
   },
 ];
-
-/**
- * This function will increase the interval to help smooth trends
- */
-export function chartIntervalFunction(dateTimeSelection: DateTimeObject) {
-  const diffInMinutes = getDiffInMinutes(dateTimeSelection);
-  if (diffInMinutes >= THIRTY_DAYS) {
-    return '24h';
-  }
-
-  if (diffInMinutes >= TWO_WEEKS) {
-    return '12h';
-  }
-
-  if (diffInMinutes >= ONE_WEEK) {
-    return '6h';
-  }
-
-  if (diffInMinutes >= TWENTY_FOUR_HOURS) {
-    return '30m';
-  }
-
-  if (diffInMinutes <= ONE_HOUR) {
-    return '90s';
-  }
-
-  return '60s';
-}
 
 export const trendToColor = {
   [TrendChangeType.IMPROVED]: theme.green400,
@@ -301,7 +265,7 @@ function getQueryInterval(location: Location, eventView: TrendView) {
     period: statsPeriod,
   };
 
-  const intervalFromSmoothing = chartIntervalFunction(datetimeSelection);
+  const intervalFromSmoothing = getInterval(datetimeSelection, true);
 
   return intervalFromQueryParam || intervalFromSmoothing;
 }
@@ -406,6 +370,15 @@ export function getTrendAliasedMinus(alias: string) {
 
 export function getSelectedQueryKey(trendChangeType: TrendChangeType) {
   return trendSelectedQueryKeys[trendChangeType];
+}
+
+export function movingAverage(data, index, size) {
+  return (
+    data
+      .slice(index - size, index)
+      .map(a => a.value)
+      .reduce((a, b) => a + b, 0) / size
+  );
 }
 
 /**

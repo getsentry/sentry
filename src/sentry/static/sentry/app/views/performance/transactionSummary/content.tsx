@@ -16,7 +16,7 @@ import SearchBar from 'app/views/events/searchBar';
 import {decodeScalar} from 'app/utils/queryString';
 import withProjects from 'app/utils/withProjects';
 
-import TransactionHeader from './header';
+import TransactionHeader, {Tab} from './header';
 import TransactionList from './transactionList';
 import UserStats from './userStats';
 import TransactionSummaryCharts from './charts';
@@ -100,6 +100,7 @@ class SummaryContent extends React.Component<Props, State> {
           organization={organization}
           projects={projects}
           transactionName={transactionName}
+          currentTab={Tab.TransactionSummary}
           handleIncompatibleQuery={this.handleIncompatibleQuery}
         />
         <Layout.Body>

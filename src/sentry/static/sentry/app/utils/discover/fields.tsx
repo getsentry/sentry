@@ -135,32 +135,66 @@ export const AGGREGATIONS = {
 
   // Tracing functions.
   p50: {
-    parameters: [],
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['duration'],
+        defaultValue: 'transaction.duration',
+        required: false,
+      },
+    ],
     outputType: 'duration',
     isSortable: true,
     multiPlotType: 'line',
   },
   p75: {
-    parameters: [],
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['duration'],
+        defaultValue: 'transaction.duration',
+        required: false,
+      },
+    ],
     outputType: 'duration',
     isSortable: true,
     multiPlotType: 'line',
   },
   p95: {
-    parameters: [],
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['duration'],
+        defaultValue: 'transaction.duration',
+        required: false,
+      },
+    ],
     outputType: 'duration',
     type: [],
     isSortable: true,
     multiPlotType: 'line',
   },
   p99: {
-    parameters: [],
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['duration'],
+        defaultValue: 'transaction.duration',
+        required: false,
+      },
+    ],
     outputType: 'duration',
     isSortable: true,
     multiPlotType: 'line',
   },
   p100: {
-    parameters: [],
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['duration'],
+        required: false,
+      },
+    ],
     outputType: 'duration',
     isSortable: true,
     multiPlotType: 'line',
@@ -291,6 +325,7 @@ enum FieldKey {
   DIST = 'dist',
   ENVIRONMENT = 'environment',
   ERROR_HANDLED = 'error.handled',
+  ERROR_UNHANDLED = 'error.unhandled',
   ERROR_MECHANISM = 'error.mechanism',
   ERROR_TYPE = 'error.type',
   ERROR_VALUE = 'error.value',
@@ -388,6 +423,7 @@ export const FIELDS: Readonly<Record<FieldKey, ColumnType>> = {
   [FieldKey.ERROR_VALUE]: 'string',
   [FieldKey.ERROR_MECHANISM]: 'string',
   [FieldKey.ERROR_HANDLED]: 'boolean',
+  [FieldKey.ERROR_UNHANDLED]: 'boolean',
   [FieldKey.STACK_ABS_PATH]: 'string',
   [FieldKey.STACK_FILENAME]: 'string',
   [FieldKey.STACK_PACKAGE]: 'string',
@@ -445,6 +481,34 @@ export const TRACING_FIELDS = [
   'eps',
   'epm',
 ];
+
+export enum WebVital {
+  FP = 'measurements.fp',
+  FCP = 'measurements.fcp',
+  LCP = 'measurements.lcp',
+  FID = 'measurements.fid',
+}
+
+const MEASUREMENTS: Readonly<Record<WebVital, ColumnType>> = {
+  [WebVital.FP]: 'duration',
+  [WebVital.FCP]: 'duration',
+  [WebVital.LCP]: 'duration',
+  [WebVital.FID]: 'duration',
+};
+
+const MEASUREMENT_PATTERN = /^measurements\.([a-zA-Z0-9-_.]+)$/;
+
+export function isMeasurement(field: string): boolean {
+  const results = field.match(MEASUREMENT_PATTERN);
+  return !!results;
+}
+
+export function measurementType(field: string) {
+  if (MEASUREMENTS.hasOwnProperty(field)) {
+    return MEASUREMENTS[field];
+  }
+  return 'number';
+}
 
 const AGGREGATE_PATTERN = /^([^\(]+)\((.*?)(?:\s*,\s*(.*))?\)$/;
 
@@ -521,6 +585,8 @@ export function aggregateOutputType(field: string): AggregationOutputType {
     return aggregate.outputType;
   } else if (matches[2] && FIELDS.hasOwnProperty(matches[2])) {
     return FIELDS[matches[2]];
+  } else if (matches[2] && isMeasurement(matches[2])) {
+    return measurementType(matches[2]);
   }
   return 'number';
 }

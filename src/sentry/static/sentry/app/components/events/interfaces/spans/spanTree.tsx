@@ -2,7 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {SentryTransactionEvent, Organization} from 'app/types';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import {TableData} from 'app/utils/discover/discoverQuery';
 
 import {
@@ -32,6 +32,7 @@ import SpanGroup from './spanGroup';
 import {SpanRowMessage} from './styles';
 import * as DividerHandlerManager from './dividerHandlerManager';
 import {FilterSpans} from './traceView';
+import {ActiveOperationFilter} from './filter';
 
 type RenderedSpanTree = {
   spanTree: JSX.Element | null;
@@ -48,6 +49,7 @@ type PropType = {
   filterSpans: FilterSpans | undefined;
   event: SentryTransactionEvent;
   spansWithErrors: TableData | null | undefined;
+  operationNameFilters: ActiveOperationFilter;
 };
 
 class SpanTree extends React.Component<PropType> {
@@ -91,11 +93,23 @@ class SpanTree extends React.Component<PropType> {
 
     if (showFilteredSpansMessage) {
       if (!isCurrentSpanHidden) {
-        messages.push(
-          <span key="spans-filtered">
-            <strong>{numOfFilteredSpansAbove}</strong> {t('spans filtered out')}
-          </span>
-        );
+        if (numOfFilteredSpansAbove === 1) {
+          messages.push(
+            <span key="spans-filtered">
+              {tct('[numOfSpans] hidden span', {
+                numOfSpans: <strong>{numOfFilteredSpansAbove}</strong>,
+              })}
+            </span>
+          );
+        } else {
+          messages.push(
+            <span key="spans-filtered">
+              {tct('[numOfSpans] hidden spans', {
+                numOfSpans: <strong>{numOfFilteredSpansAbove}</strong>,
+              })}
+            </span>
+          );
+        }
       }
     }
 
@@ -107,7 +121,18 @@ class SpanTree extends React.Component<PropType> {
   }
 
   isSpanFilteredOut(span: Readonly<RawSpanType>): boolean {
-    const {filterSpans} = this.props;
+    const {filterSpans, operationNameFilters} = this.props;
+
+    if (operationNameFilters.type === 'active_filter') {
+      const operationName = getSpanOperation(span);
+
+      if (
+        typeof operationName === 'string' &&
+        !operationNameFilters.operationNames.has(operationName)
+      ) {
+        return true;
+      }
+    }
 
     if (!filterSpans) {
       return false;

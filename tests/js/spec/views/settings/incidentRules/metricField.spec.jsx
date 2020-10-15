@@ -68,7 +68,7 @@ describe('MetricField', function () {
       'Failure rate'
     );
 
-    selectByLabel(wrapper, 'p95()', {selector: 'QueryField'});
+    selectByLabel(wrapper, 'p95(…)', {selector: 'QueryField'});
 
     expect(wrapper.find('FieldHelp Button[disabled=true]').text()).toEqual('Latency');
   });

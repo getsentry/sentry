@@ -233,7 +233,7 @@ const IssueListOverview = createReactClass({
       : STATS_PERIODS
     ).has(currentPeriod)
       ? currentPeriod
-      : this.getDefaultGroupStatsPeriod();
+      : DEFAULT_GRAPH_STATS_PERIOD;
   },
 
   getEndpointParams() {
@@ -263,7 +263,7 @@ const IssueListOverview = createReactClass({
     }
 
     const groupStatsPeriod = this.getGroupStatsPeriod();
-    if (groupStatsPeriod !== this.getDefaultGroupStatsPeriod()) {
+    if (groupStatsPeriod !== DEFAULT_GRAPH_STATS_PERIOD) {
       params.groupStatsPeriod = groupStatsPeriod;
     }
 

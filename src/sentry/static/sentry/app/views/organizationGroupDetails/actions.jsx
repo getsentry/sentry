@@ -317,7 +317,7 @@ const GroupDetailsActions = createReactClass({
             <Tooltip title={t('Reprocess this issue')}>
               <div className={buttonClassName} onClick={this.onReprocess}>
                 <IconWrapper>
-                  <IconRefresh isSolid size="xs" />
+                  <IconRefresh size="xs" />
                 </IconWrapper>
               </div>
             </Tooltip>

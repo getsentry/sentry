@@ -23,6 +23,8 @@ import {
   getAggregateAlias,
   TRACING_FIELDS,
   Aggregation,
+  isMeasurement,
+  measurementType,
 } from 'app/utils/discover/fields';
 
 import {ALL_VIEWS, TRANSACTION_VIEWS} from './data';
@@ -67,10 +69,16 @@ export function decodeColumnOrder(
         column.type = aggregate.outputType;
       } else if (FIELDS.hasOwnProperty(col.function[1])) {
         column.type = FIELDS[col.function[1]];
+      } else if (isMeasurement(col.function[1])) {
+        column.type = measurementType(col.function[1]);
       }
       column.isSortable = aggregate && aggregate.isSortable;
     } else if (col.kind === 'field') {
-      column.type = FIELDS[col.field];
+      if (FIELDS.hasOwnProperty(col.field)) {
+        column.type = FIELDS[col.field];
+      } else if (isMeasurement(col.field)) {
+        column.type = measurementType(col.field);
+      }
     }
     column.column = col;
 
@@ -393,7 +401,7 @@ function generateExpandedConditions(
       continue;
     }
 
-    parsedQuery.setTag(key, [conditions[key]]);
+    parsedQuery.setTagValues(key, [conditions[key]]);
   }
 
   return stringifyQueryObject(parsedQuery);
@@ -402,6 +410,7 @@ function generateExpandedConditions(
 type FieldGeneratorOpts = {
   organization: LightWeightOrganization;
   tagKeys?: string[] | null;
+  measurementKeys?: string[] | null;
   aggregations?: Record<string, Aggregation>;
   fields?: Record<string, ColumnType>;
 };
@@ -409,6 +418,7 @@ type FieldGeneratorOpts = {
 export function generateFieldOptions({
   organization,
   tagKeys,
+  measurementKeys,
   aggregations = AGGREGATIONS,
   fields = FIELDS,
 }: FieldGeneratorOpts) {
@@ -474,6 +484,18 @@ export function generateFieldOptions({
         value: {
           kind: FieldValueKind.TAG,
           meta: {name: tagValue, dataType: 'string'},
+        },
+      };
+    });
+  }
+
+  if (measurementKeys !== undefined && measurementKeys !== null) {
+    measurementKeys.forEach(measurement => {
+      fieldOptions[`measurement:${measurement}`] = {
+        label: measurement,
+        value: {
+          kind: FieldValueKind.MEASUREMENT,
+          meta: {name: measurement, dataType: measurementType(measurement)},
         },
       };
     });

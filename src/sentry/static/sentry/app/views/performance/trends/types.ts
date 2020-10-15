@@ -1,12 +1,20 @@
 import moment from 'moment';
 
-import EventView from 'app/utils/discover/eventView';
+import EventView, {LocationQuery} from 'app/utils/discover/eventView';
 import {EventsStatsData} from 'app/types';
+import {EventQuery} from 'app/actionCreators/events';
 
 export type TrendView = EventView & {
   orderby?: string;
   trendFunction?: string;
 };
+
+export type TrendsQuery = EventQuery &
+  LocationQuery & {
+    trendFunction?: string;
+    intervalRatio?: number;
+    interval?: string;
+  };
 
 export type TrendFunction = {
   label: string;

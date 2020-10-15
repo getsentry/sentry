@@ -1,12 +1,11 @@
-# This is the image to be run
-FROM python:2.7.16-slim-buster
+ARG PY_VER=2.7.16
+FROM python:${PY_VER}-slim-buster
 
 LABEL maintainer="oss@sentry.io"
 LABEL org.opencontainers.image.title="Sentry"
 LABEL org.opencontainers.image.description="Sentry runtime image"
 LABEL org.opencontainers.image.url="https://sentry.io/"
-LABEL org.opencontainers.image.documentation="https://github.com/getsentry/onpremise/tree/v10"
-LABEL org.opencontainers.image.source="https://github.com/getsentry/sentry"
+LABEL org.opencontainers.image.documentation="https://develop.sentry.dev/self-hosted/"
 LABEL org.opencontainers.image.vendor="Functional Software, Inc."
 LABEL org.opencontainers.image.authors="oss@sentry.io"
 
@@ -132,4 +131,5 @@ CMD ["run", "web"]
 ARG SOURCE_COMMIT
 ENV SENTRY_BUILD=${SOURCE_COMMIT:-unknown}
 LABEL org.opencontainers.image.revision=$SOURCE_COMMIT
+LABEL org.opencontainers.image.source="https://github.com/getsentry/sentry/tree/${SOURCE_COMMIT:-master}/"
 LABEL org.opencontainers.image.licenses="https://github.com/getsentry/sentry/blob/${SOURCE_COMMIT:-master}/LICENSE"
