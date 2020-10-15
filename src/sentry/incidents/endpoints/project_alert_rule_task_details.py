@@ -37,7 +37,6 @@ class ProjectAlertRuleTaskDetailsEndpoint(ProjectEndpoint):
                 context["alert_rule"] = serialize(alert_rule, request.user)
             except AlertRule.DoesNotExist:
                 raise Http404
-
         if status == "failed":
             context["error"] = error
 

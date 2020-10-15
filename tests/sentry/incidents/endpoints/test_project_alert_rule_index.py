@@ -191,9 +191,12 @@ class AlertRuleCreateEndpointTest(APITestCase):
             )
         resp.data["uuid"] = "abc123"
         assert not AlertRule.objects.filter(name="JustAValidTestRule").exists()
-        data = valid_alert_rule.copy()
-        data.update({"organization_id": self.organization.id, "uuid": "abc123"})
-        mock_find_channel_id_for_alert_rule.assert_called_once_with(kwargs=data)
+        kwargs = {
+            "organization_id": self.organization.id,
+            "uuid": "abc123",
+            "data": valid_alert_rule,
+        }
+        mock_find_channel_id_for_alert_rule.assert_called_once_with(kwargs=kwargs)
 
 
 class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, APITestCase):

@@ -1242,7 +1242,7 @@ urlpatterns = [
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/alert-rule-task/(?P<task_uuid>[^\/]+)/$",
                     ProjectAlertRuleTaskDetailsEndpoint.as_view(),
-                    name="sentry-api-0-project-rule-task-details",
+                    name="sentry-api-0-project-alert-rule-task-details",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/combined-rules/$",
