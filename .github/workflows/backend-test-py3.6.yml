@@ -18,7 +18,8 @@ jobs:
       MIGRATIONS_TEST_MIGRATE: 1
 
     steps:
-      - uses: actions/checkout@v2
+      # Using v1 for the paths-filter action
+      - uses: actions/checkout@v1
 
       - name: Check for python file changes
         uses: getsentry/paths-filter@v2
