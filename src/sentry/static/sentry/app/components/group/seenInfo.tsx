@@ -1,10 +1,13 @@
-import PropTypes from 'prop-types';
 import React from 'react';
+import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
 import DateTime from 'app/components/dateTime';
 import TimeSince from 'app/components/timeSince';
 import Version from 'app/components/version';
 import VersionHoverCard from 'app/components/versionHoverCard';
+import space from 'app/styles/space';
+import {IconInfo} from 'app/icons';
 import Tooltip from 'app/components/tooltip';
 import {defined, toTitleCase} from 'app/utils';
 import {t} from 'app/locale';
@@ -60,24 +63,19 @@ class SeenInfo extends React.Component<Props> {
 
     return (
       <div style={{width: '170px'}}>
-        <div className="time-label">{title}</div>
-        <dl className="flat">
-          {environment && (
-            <React.Fragment>
-              <dt key="0">{toTitleCase(environment)}:</dt>,
-              <dd key="0.1">
-                <TimeSince date={date} />
-                <br />
-              </dd>
-              ,
-            </React.Fragment>
-          )}
-          <dt key="1">{t('Globally:')}</dt>
-          <dd key="1.1">
-            <TimeSince date={dateGlobal} />
+        <div className="time-label" style={{marginBottom: '10px'}}>
+          {title}
+        </div>
+        {environment && (
+          <React.Fragment>
+            {toTitleCase(environment)}
+            {': '}
+            <TimeSince date={date} />
             <br />
-          </dd>
-        </dl>
+          </React.Fragment>
+        )}
+        {t('Globally: ')}
+        <TimeSince date={dateGlobal} />
       </div>
     );
   }
@@ -93,54 +91,76 @@ class SeenInfo extends React.Component<Props> {
       projectId,
     } = this.props;
     return (
-      <dl className="seen-info">
-        <dt key={0}>{t('When')}:</dt>
+      <DateWrapper>
         {date ? (
-          <dd key={1}>
+          <TooltipWrapper>
             <Tooltip title={this.getTooltipTitle()} disableForVisualTest>
-              <TimeSince className="dotted-underline" date={date} />
+              <IconInfo size="xs" color="gray500" />
+              <TimeSince date={date} />
             </Tooltip>
-            <br />
-            <small>
-              <DateTime date={date} seconds />
-            </small>
-          </dd>
+          </TooltipWrapper>
         ) : dateGlobal && environment === '' ? (
-          <dd key={1}>
+          <React.Fragment>
             <Tooltip title={this.getTooltipTitle()} disableForVisualTest>
               <TimeSince date={dateGlobal} />
             </Tooltip>
-            <br />
-            <small>
-              <DateTime date={dateGlobal} seconds />
-            </small>
-          </dd>
+          </React.Fragment>
         ) : (
-          <dd key={1}>{t('n/a')}</dd>
+          <React.Fragment>{t('n/a')} </React.Fragment>
         )}
-        <dt key={4}>{t('Release')}:</dt>
         {defined(release) ? (
-          <dd key={5}>
+          <React.Fragment>
+            {t('in release ')}
             <VersionHoverCard
               orgSlug={orgSlug}
               projectSlug={projectSlug}
               releaseVersion={release.version}
             >
-              <Version version={release.version} truncate projectId={projectId} />
+              <span>
+                <Version version={release.version} truncate projectId={projectId} />
+              </span>
             </VersionHoverCard>
-          </dd>
+          </React.Fragment>
         ) : !this.props.hasRelease ? (
-          <dd key={5}>
-            <small style={{marginLeft: 5, fontStyle: 'italic'}}>
-              <a href={this.getReleaseTrackingUrl()}>{t('not configured')}</a>
-            </small>
-          </dd>
+          <React.Fragment>
+            <NotConfigured>
+              <a href={this.getReleaseTrackingUrl()}>{t('Releases not configured')}</a>
+            </NotConfigured>
+          </React.Fragment>
         ) : (
-          <dd key={5}>{t('n/a')}</dd>
+          <React.Fragment>{t('Release n/a')}</React.Fragment>
         )}
-      </dl>
+        <StyledDateTime date={date} seconds />
+      </DateWrapper>
     );
   }
 }
+
+const NotConfigured = styled('span')`
+  margin-left: ${space(0.25)};
+`;
+
+const StyledDateTime = styled(DateTime)`
+  display: block;
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.gray500};
+`;
+
+const DateWrapper = styled('div')`
+  margin-bottom: ${space(2)};
+`;
+
+const TooltipWrapper = styled('span')`
+  margin-right: ${space(0.25)};
+  svg {
+    margin-right: ${space(0.5)};
+    position: relative;
+    top: 1px;
+  }
+
+  a {
+    display: inline;
+  }
+`;
 
 export default SeenInfo;
