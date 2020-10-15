@@ -9,6 +9,7 @@ import withApi from 'app/utils/withApi';
 import {Client} from 'app/api';
 import {LightWeightOrganization, Project} from 'app/types';
 import {defined} from 'app/utils';
+import robotBackground from 'app/../images/spot/sentry-robot.png';
 
 type Props = {
   api: Client;
@@ -103,35 +104,32 @@ class ErrorRobot extends React.Component<Props, State> {
         className="awaiting-events"
         gradient={gradient}
       >
-        <div className="wrap">
-          <div className="robot">
-            <span className="eye" />
-          </div>
-          <h3>Waiting for events…</h3>
-          <p>
-            <span>
-              <span>Our error robot is waiting to </span>
-              <span className="strikethrough">
-                <span>devour</span>
-              </span>
-              <span> receive your first event.</span>
-            </span>
-          </p>
-          <p>
-            {project && (
-              <Button
-                data-test-id="install-instructions"
-                priority="primary"
-                to={`/${org.slug}/${project.slug}/getting-started/${
-                  project.platform || ''
-                }`}
-              >
-                {t('Installation Instructions')}
-              </Button>
-            )}
-          </p>
-          {sampleLink}
-        </div>
+        <Wrapper>
+          <Robot>
+            <Eye />
+          </Robot>
+          <MessageContainer>
+            <h3>Waiting for events…</h3>
+            <p>
+              Our error robot is waiting to <Strikethrough>devour</Strikethrough> receive
+              your first event.
+            </p>
+            <p>
+              {project && (
+                <Button
+                  data-test-id="install-instructions"
+                  priority="primary"
+                  to={`/${org.slug}/${project.slug}/getting-started/${
+                    project.platform || ''
+                  }`}
+                >
+                  {t('Installation Instructions')}
+                </Button>
+              )}
+            </p>
+            {sampleLink}
+          </MessageContainer>
+        </Wrapper>
       </ErrorRobotWrapper>
     );
   }
@@ -142,6 +140,7 @@ export {ErrorRobot};
 export default withApi(ErrorRobot);
 
 const ErrorRobotWrapper = styled('div')<{gradient: boolean}>`
+  padding: 20px;
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.08);
   border-radius: 0 0 3px 3px;
   ${p =>
@@ -150,4 +149,65 @@ const ErrorRobotWrapper = styled('div')<{gradient: boolean}>`
           background-image: linear-gradient(to bottom, #F8F9FA, #ffffff);
          `
       : ''};
+`;
+
+const Wrapper = styled('div')`
+  max-width: 740px;
+  margin: 0 auto;
+  padding: 20px auto;
+  font-size: 18px;
+  min-height: 260px;
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    display: flex;
+  }
+`;
+
+const Robot = styled('div')`
+  display: block;
+  position: relative;
+  width: 220px;
+  height: 260px;
+  background: url(${robotBackground});
+  background-size: cover;
+`;
+
+const Eye = styled('span')`
+  width: 12px;
+  height: 12px;
+  border-radius: 12px;
+  position: absolute;
+  top: 70px;
+  left: 81px;
+  transform: translateZ(0);
+  animation: blink-eye 0.6s infinite;
+
+  @keyframes blink-eye {
+    0% {
+      background: #e03e2f;
+      box-shadow: 0 0 10px #e03e2f;
+    }
+
+    50% {
+      background: #4a4d67;
+      box-shadow: none;
+    }
+
+    100% {
+      background: #e03e2f;
+      box-shadow: 0 0 10px #e03e2f;
+    }
+  }
+`;
+
+const MessageContainer = styled('div')`
+  align-self: center;
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    margin-left: 20px;
+  }
+`;
+
+const Strikethrough = styled('span')`
+  text-decoration: line-through;
 `;
