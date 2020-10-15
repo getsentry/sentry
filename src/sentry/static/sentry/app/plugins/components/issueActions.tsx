@@ -199,9 +199,7 @@ class IssueActions extends PluginComponentBase<Props, State> {
     fieldList = fieldList.slice();
     fieldList[indexOfField] = field;
 
-    this.setState({[formListKey]: fieldList} as {
-      [x in typeof formListKey]: Field[];
-    });
+    this.setState(prevState => ({...prevState, [formListKey]: fieldList}));
   };
 
   resetOptionsOfDependentField = (field: Field) => {
@@ -209,9 +207,7 @@ class IssueActions extends PluginComponentBase<Props, State> {
     const formDataKey = this.getFormDataKey();
     const formData = {...this.state[formDataKey]};
     formData[field.name] = '';
-    this.setState({[formDataKey]: formData} as {
-      [x in typeof formDataKey]: Record<string, any>;
-    });
+    this.setState(prevState => ({...prevState, [formDataKey]: formData}));
     this.setDependentFieldState(field.name, FormState.DISABLED);
   };
 
@@ -379,10 +375,7 @@ class IssueActions extends PluginComponentBase<Props, State> {
         callback = () => this.resetOptionsOfDependentField(impactedField);
       }
     }
-    const newState = {[formDataKey]: formData} as {
-      [x in typeof formDataKey]: Record<string, any>;
-    };
-    this.setState(newState, callback);
+    this.setState(prevState => ({...prevState, [formDataKey]: formData}), callback);
   }
 
   renderForm() {
