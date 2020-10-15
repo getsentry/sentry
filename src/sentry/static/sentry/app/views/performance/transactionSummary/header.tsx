@@ -28,6 +28,7 @@ type Props = {
   projects: Project[];
   transactionName: string;
   currentTab: Tab;
+  hasWebVitals: boolean;
   handleIncompatibleQuery: React.ComponentProps<
     typeof CreateAlertButton
   >['onIncompatibleQuery'];
@@ -90,7 +91,13 @@ class TransactionHeader extends React.Component<Props> {
   }
 
   render() {
-    const {organization, location, transactionName, currentTab} = this.props;
+    const {
+      organization,
+      location,
+      transactionName,
+      currentTab,
+      hasWebVitals,
+    } = this.props;
     const baseUrl = this.baseUrl;
 
     return (
@@ -125,12 +132,14 @@ class TransactionHeader extends React.Component<Props> {
                 >
                   {t('Overview')}
                 </ListLink>
-                <ListLink
-                  to={`${baseUrl}rum/${location.search}`}
-                  isActive={() => currentTab === Tab.RealUserMonitoring}
-                >
-                  {t('Web Vitals')}
-                </ListLink>
+                {hasWebVitals && (
+                  <ListLink
+                    to={`${baseUrl}rum/${location.search}`}
+                    isActive={() => currentTab === Tab.RealUserMonitoring}
+                  >
+                    {t('Web Vitals')}
+                  </ListLink>
+                )}
               </StyledNavTabs>
             );
           }}
