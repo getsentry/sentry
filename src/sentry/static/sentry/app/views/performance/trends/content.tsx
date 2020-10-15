@@ -15,6 +15,8 @@ import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 import {decodeScalar} from 'app/utils/queryString';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
+import Alert from 'app/components/alert';
+import ExternalLink from 'app/components/links/externalLink';
 
 import {getTransactionSearchQuery} from '../utils';
 import {TrendChangeType, TrendView, TrendFunctionField} from './types';
@@ -22,8 +24,6 @@ import {TRENDS_FUNCTIONS, getCurrentTrendFunction, getSelectedQueryKey} from './
 import ChangedTransactions from './changedTransactions';
 import ChangedProjects from './changedProjects';
 import {FilterViews} from '../landing';
-import Alert from 'app/components/alert';
-import ExternalLink from 'app/components/links/externalLink';
 
 type Props = {
   organization: Organization;
