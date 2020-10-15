@@ -38,6 +38,7 @@ class OrganizationPluginDetailedView(AcceptanceTestCase):
         self.browser.click('[id="react-select-2-option-0"]')
         # check if we got to the configuration page with the form
         self.browser.wait_until_not(".loading-indicator")
+        self.browser.snapshot("integrations - plugin config form")
         assert self.browser.element_exists_by_test_id("plugin-config")
 
     def test_uninstallation(self):
