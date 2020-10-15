@@ -37,9 +37,8 @@ steps:
   ]
   timeout: 300s
 - name: 'gcr.io/$PROJECT_ID/docker-compose'
-  id: e2e-test-py2
-  waitFor:
-    - runtime-image-py2
+  id: get-onpremise-repo
+  waitFor:  ['-']
   entrypoint: 'bash'
   args:
   - '-e'
@@ -48,6 +47,19 @@ steps:
     mkdir onpremise && cd onpremise
     curl -L "https://github.com/getsentry/onpremise/archive/master.tar.gz" | tar xzf - --strip-components=1
     echo '{"version": "3.4", "networks":{"default":{"external":{"name":"cloudbuild"}}}}' > docker-compose.override.yml
+- name: 'gcr.io/$PROJECT_ID/docker-compose'
+  id: e2e-test-py2
+  waitFor:
+    - runtime-image-py2
+    - get-onpremise-repo
+  entrypoint: 'bash'
+  dir: onpremise
+  env:
+  - 'SENTRY_IMAGE=us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA'
+  args:
+  - '-e'
+  - '-c'
+  - |
     ./install.sh
     set +e
     ./test.sh
@@ -64,19 +76,28 @@ steps:
   id: e2e-test-py3
   waitFor:
     - runtime-image-py3
+    - get-onpremise-repo
     - e2e-test-py2
   entrypoint: 'bash'
+  dir: onpremise
   env:
+  - 'SENTRY_IMAGE=us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA'
   - 'SENTRY_PYTHON3=1'
   args:
   - '-e'
   - '-c'
   - |
-    mkdir onpremise && cd onpremise
-    curl -L "https://github.com/getsentry/onpremise/archive/master.tar.gz" | tar xzf - --strip-components=1
-    echo '{"version": "3.4", "networks":{"default":{"external":{"name":"cloudbuild"}}}}' > docker-compose.override.yml
     ./install.sh
-    ./test.sh || docker-compose logs nginx web relay
+    set +e
+    ./test.sh
+    test_return=$?
+    set -e
+    if [[ $test_return -ne 0 ]]; then
+      echo "Test failed.";
+      docker-compose ps;
+      docker-compose logs nginx web relay;
+      exit $test_return;
+    fi
   timeout: 450s
 - name: 'gcr.io/cloud-builders/docker'
   id: docker-push
@@ -84,6 +105,8 @@ steps:
     - e2e-test-py2
   secretEnv: ['DOCKER_PASSWORD']
   entrypoint: 'bash'
+  env:
+  - 'SENTRY_IMAGE=us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA'
   args:
   - '-e'
   - '-c'
@@ -105,6 +128,8 @@ steps:
     - e2e-test-py3
   secretEnv: ['DOCKER_PASSWORD']
   entrypoint: 'bash'
+  env:
+  - 'SENTRY_IMAGE=us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA'
   args:
   - '-e'
   - '-c'
@@ -139,7 +164,6 @@ options:
   # We need more memory for Webpack builds & e2e onpremise tests
   machineType: 'N1_HIGHCPU_8'
   env:
-    - 'SENTRY_IMAGE=us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA'
     - 'DOCKER_REPO=getsentry/sentry'
     - 'SENTRY_TEST_HOST=http://nginx'
     - 'CI=1'
