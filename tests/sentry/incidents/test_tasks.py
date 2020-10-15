@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import six
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 from django.core.urlresolvers import reverse
 from django.utils import timezone
 from exam import fixture, patcher
@@ -294,3 +294,26 @@ class ProcessPendingIncidentSnapshots(TestCase):
         assert not IncidentSnapshot.objects.filter(incident=incident).exists()
         assert IncidentSnapshot.objects.filter(incident=incident).count() == 0
         assert IncidentSnapshot.objects.all().count() == 0
+
+    def test_empty_snapshot(self):
+        incident = self.create_incident(
+            title="incident",
+            status=IncidentStatus.CLOSED.value,
+            date_started=datetime(2020, 5, 1),
+            date_closed=datetime(2020, 5, 5),
+        )
+        pending = PendingIncidentSnapshot.objects.create(
+            incident=incident, target_run_date=timezone.now()
+        )
+
+        assert IncidentSnapshot.objects.all().count() == 0
+
+        with self.tasks():
+            process_pending_incident_snapshots()
+
+        assert not PendingIncidentSnapshot.objects.filter(id=pending.id).exists()
+        snapshot = IncidentSnapshot.objects.get(incident=incident)
+        assert snapshot.event_stats_snapshot.values == []
+        assert snapshot.event_stats_snapshot.period == incident.alert_rule.snuba_query.time_window
+        assert snapshot.unique_users == 0
+        assert snapshot.total_events == 0

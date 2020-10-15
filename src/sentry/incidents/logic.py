@@ -303,9 +303,19 @@ def create_incident_snapshot(incident, windowed_stats=False):
     """
     assert incident.status == IncidentStatus.CLOSED.value
 
+    start, end = calculate_incident_time_range(incident, windowed_stats=windowed_stats)
+    if start == end:
+        return IncidentSnapshot.objects.create(
+            incident=incident,
+            event_stats_snapshot=TimeSeriesSnapshot.objects.create(
+                start=start, end=end, values=[], period=incident.alert_rule.snuba_query.time_window,
+            ),
+            unique_users=0,
+            total_events=0,
+        )
+
     event_stats_snapshot = create_event_stat_snapshot(incident, windowed_stats=windowed_stats)
     aggregates = get_incident_aggregates(incident)
-
     return IncidentSnapshot.objects.create(
         incident=incident,
         event_stats_snapshot=event_stats_snapshot,
@@ -321,6 +331,7 @@ def create_event_stat_snapshot(incident, windowed_stats=False):
 
     event_stats = get_incident_event_stats(incident, windowed_stats=windowed_stats)
     start, end = calculate_incident_time_range(incident, windowed_stats=windowed_stats)
+
     return TimeSeriesSnapshot.objects.create(
         start=start,
         end=end,
