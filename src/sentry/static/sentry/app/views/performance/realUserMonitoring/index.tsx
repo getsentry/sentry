@@ -164,7 +164,7 @@ function generateRumEventView(
   });
 
   const vitals = VITAL_GROUPS.reduce((allVitals: WebVital[], group) => {
-    return allVitals.concat(group.group);
+    return allVitals.concat(group.vitals);
   }, []);
 
   return EventView.fromNewQueryWithLocation(

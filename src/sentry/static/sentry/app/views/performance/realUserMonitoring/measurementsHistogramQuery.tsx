@@ -25,8 +25,9 @@ type Histograms = Record<string, HistogramData[]>;
 type MeasurementsData = {
   measurements: string[];
   numBuckets: number;
-  min?: string;
-  max?: string;
+  min?: number;
+  max?: number;
+  precision?: number;
   dataFilter?: string;
 };
 
@@ -41,12 +42,22 @@ type Props = RequestProps & {
 };
 
 function getMeasurementsHistogramRequestPayload(props: any) {
-  const {measurements, numBuckets, min, max, dataFilter, eventView, location} = props;
-  const baseApiPayload = {
-    measurement: measurements,
-    num_buckets: numBuckets,
+  const {
+    measurements,
+    numBuckets,
     min,
     max,
+    precision,
+    dataFilter,
+    eventView,
+    location,
+  } = props;
+  const baseApiPayload = {
+    measurement: measurements,
+    numBuckets,
+    min,
+    max,
+    precision,
     dataFilter,
   };
   const additionalApiPayload = omit(eventView.getEventsAPIPayload(location), [
@@ -85,6 +96,20 @@ function afterFetch(
 }
 
 function MeasurementsHistogramQuery(props: Props) {
+  const {children, measurements} = props;
+  if (measurements.length === 0) {
+    return (
+      <React.Fragment>
+        {children({
+          isLoading: false,
+          error: null,
+          pageLinks: null,
+          histograms: {},
+        })}
+      </React.Fragment>
+    );
+  }
+
   return (
     <GenericDiscoverQuery<Histograms, MeasurementsData>
       route="events-measurements-histogram"
