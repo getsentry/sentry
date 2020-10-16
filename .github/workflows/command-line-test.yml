@@ -9,23 +9,31 @@ on:
 jobs:
   test:
     runs-on: ubuntu-16.04
-    timeout-minutes: 20
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v2
 
-      - uses: volta-cli/action@v1
+      - name: Check for python file changes
+        uses: getsentry/paths-filter@v2
+        id: changes
+        with:
+          token: ${{ github.token }}
+          filters: .github/file-filters.yml
 
       # Until GH composite actions can use `uses`, we need to setup python here
       - uses: actions/setup-python@v2
+        if: steps.changes.outputs.backend == 'true'
         with:
           python-version: 2.7.17
 
       - name: Setup pip
         uses: ./.github/actions/setup-pip
         id: pip
+        if: steps.changes.outputs.backend == 'true'
 
       - name: pip cache
         uses: actions/cache@v2
+        if: steps.changes.outputs.backend == 'true'
         with:
           path: ${{ steps.pip.outputs.pip-cache-dir }}
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements-*.txt') }}
@@ -35,9 +43,11 @@ jobs:
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         id: setup
+        if: steps.changes.outputs.backend == 'true'
         with:
           python: 2
 
       - name: Run test
+        if: steps.changes.outputs.backend == 'true'
         run: |
           make test-cli
