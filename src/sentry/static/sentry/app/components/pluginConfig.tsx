@@ -24,7 +24,7 @@ type Props = {
   project: Project;
   data: Plugin;
   onDisablePlugin: (data: Plugin) => void;
-  enabled: boolean;
+  enabled?: boolean;
   api: Client;
 };
 
