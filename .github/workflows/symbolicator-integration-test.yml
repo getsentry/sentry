@@ -38,6 +38,7 @@ jobs:
         with:
           python: 2
           snuba: true
+          kafka: true
 
       - name: Start symbolicator
         run: |

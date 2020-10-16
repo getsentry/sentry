@@ -38,6 +38,7 @@ jobs:
         with:
           python: 2
           snuba: true
+          kafka: true
 
       - run: |
           # pull relay we'll run and kill it for each test
