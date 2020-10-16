@@ -38,12 +38,22 @@ const Message = ({data}: Props) => {
   return (
     <StyledEventDataSection type="message" title={t('Message')}>
       <Annotated object={data} objectKey="formatted">
-        {value => <pre className="plain">{value}</pre>}
+        {value => <StyledPre>{value}</StyledPre>}
       </Annotated>
       {renderParams()}
     </StyledEventDataSection>
   );
 };
+
+const StyledPre = styled('pre')`
+  background-color: inherit;
+  padding: 0;
+  border: 0;
+  white-space: pre-wrap;
+  word-break: break-all;
+  box-shadow: none;
+  margin-bottom: 20px;
+`;
 
 const StyledEventDataSection = styled(EventDataSection)`
   padding-bottom: ${space(3)};
