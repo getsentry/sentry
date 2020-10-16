@@ -4,23 +4,24 @@ import React from 'react';
 import BookmarkStar from 'app/components/projects/bookmarkStar';
 import Link from 'app/components/links/link';
 import ProjectLabel from 'app/components/projectLabel';
-import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
+import {Project, Organization} from 'app/types';
 
-class ProjectItem extends React.Component {
-  static propTypes = {
-    project: SentryTypes.Project,
-    organization: SentryTypes.Organization,
+type Props = {
+  project: Project;
+  organization: Organization;
+};
+
+type State = {
+  isBookmarked: boolean;
+};
+
+class ProjectItem extends React.Component<Props, State> {
+  state = {
+    isBookmarked: this.props.project.isBookmarked,
   };
 
-  constructor(props) {
-    super(props);
-    this.state = {
-      isBookmarked: this.props.project.isBookmarked,
-    };
-  }
-
-  handleToggleBookmark = isBookmarked => {
+  handleToggleBookmark = (isBookmarked: State['isBookmarked']) => {
     this.setState({isBookmarked});
   };
 
@@ -28,7 +29,7 @@ class ProjectItem extends React.Component {
     const {project, organization} = this.props;
 
     return (
-      <Container key={project.id}>
+      <Wrapper>
         <BookmarkLink
           organization={organization}
           project={project}
@@ -38,12 +39,12 @@ class ProjectItem extends React.Component {
         <Link to={`/settings/${organization.slug}/projects/${project.slug}/`}>
           <ProjectLabel project={project} />
         </Link>
-      </Container>
+      </Wrapper>
     );
   }
 }
 
-const Container = styled('div')`
+const Wrapper = styled('div')`
   display: flex;
   align-items: center;
 `;
