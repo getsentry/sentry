@@ -4,7 +4,7 @@ import {ECharts} from 'echarts';
 import {HistogramData, Rectangle, Point} from './types';
 
 export function generateVitalsRoute({orgSlug}: {orgSlug: String}): string {
-  return `/organizations/${orgSlug}/performance/summary/rum/`;
+  return `/organizations/${orgSlug}/performance/summary/vitals/`;
 }
 
 export function vitalsRouteWithQuery({
