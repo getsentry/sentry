@@ -46,7 +46,7 @@ jobs:
           docker run \
             -d \
             -v $PWD/config/symbolicator/:/etc/symbolicator \
-            --network sentry \
+            --network host \
             --name symbolicator \
             us.gcr.io/sentryio/symbolicator:latest \
             run -c /etc/symbolicator/config.yml

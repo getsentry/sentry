@@ -175,7 +175,7 @@ test-snuba:
 
 test-symbolicator:
 	@echo "--> Running symbolicator tests"
-	py.test tests/symbolicator -s -vv --cov . --cov-report="xml:.artifacts/symbolicator.coverage.xml" --junit-xml=".artifacts/symbolicator.junit.xml"
+	py.test tests/symbolicator -vv --cov . --cov-report="xml:.artifacts/symbolicator.coverage.xml" --junit-xml=".artifacts/symbolicator.junit.xml"
 	@echo ""
 
 test-acceptance: node-version-check
@@ -192,7 +192,7 @@ test-plugins:
 
 test-relay-integration:
 	@echo "--> Running Relay integration tests"
-	pytest tests/relay_integration -s -vv
+	pytest tests/relay_integration -vv
 	@echo ""
 
 test-api-docs:
