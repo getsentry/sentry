@@ -43,7 +43,7 @@ type Props = {
   onUpdate: (params: UpdateParams) => void;
   disabled?: boolean;
   shouldConfirm?: boolean;
-  confirmMessage?: string;
+  confirmMessage?: React.ReactNode;
 } & typeof defaultProps;
 
 type State = {
