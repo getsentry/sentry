@@ -118,10 +118,9 @@ class GitHubClientMixin(ApiClient):
     def check_source_code_link(self, path):
         self.allow_text = True
         try:
-            return self.head(path=path).status_code == 200
+            return self.head_cached(path=path).status_code
         except ApiError as e:
-            if e.code == 404:
-                return False
+            return e.code
 
 
 class GitHubAppsClient(GitHubClientMixin):
