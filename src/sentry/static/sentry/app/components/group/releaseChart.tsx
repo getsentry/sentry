@@ -6,8 +6,43 @@ import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
 import {intcomma} from 'app/utils';
 import theme from 'app/utils/theme';
+import {Group, GroupStats, Release} from 'app/types';
 
-class GroupReleaseChart extends React.Component {
+type Markers = React.ComponentProps<typeof StackedBarChart>['markers'];
+
+/**
+ * Stats are provided indexed by statsPeriod strings.
+ */
+type StatsGroup = {
+  [key: string]: GroupStats[];
+};
+
+/**
+ * Lookup map for formatting tooltips.
+ */
+type StatsMap = {
+  [key: number]: number;
+};
+
+type Props = {
+  group: Group;
+  statsPeriod: string;
+  release: Release;
+  className?: string;
+  environment?: string;
+  firstSeen?: string;
+  lastSeen?: string;
+  title?: string;
+  releaseStats?: StatsGroup;
+  environmentStats?: StatsGroup;
+};
+
+type State = {
+  releasePoints: StatsMap;
+  envPoints: StatsMap;
+};
+
+class GroupReleaseChart extends React.Component<Props, State> {
   static propTypes = {
     group: SentryTypes.Group.isRequired,
     release: PropTypes.shape({
@@ -20,28 +55,25 @@ class GroupReleaseChart extends React.Component {
     title: PropTypes.string,
   };
 
-  constructor(...args) {
-    super(...args);
-    this.state = this.getNextState(this.props);
-  }
+  state = this.getNextState(this.props);
 
-  UNSAFE_componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps: Props) {
     this.setState(this.getNextState(nextProps));
   }
 
-  getNextState(props) {
+  getNextState(props: Props) {
     const releaseStats = props.releaseStats;
-    const releasePoints = {};
+    const releasePoints: StatsMap = {};
     if (releaseStats) {
-      releaseStats[props.statsPeriod].forEach(point => {
+      releaseStats[props.statsPeriod].forEach((point: GroupStats) => {
         releasePoints[point[0]] = point[1];
       });
     }
 
     const envStats = props.environmentStats;
-    const envPoints = {};
+    const envPoints: StatsMap = {};
     if (envStats) {
-      envStats[props.statsPeriod]?.forEach(point => {
+      envStats[props.statsPeriod]?.forEach((point: GroupStats) => {
         envPoints[point[0]] = point[1];
       });
     }
@@ -125,7 +157,7 @@ class GroupReleaseChart extends React.Component {
       };
     });
 
-    const markers = [];
+    const markers: Markers = [];
 
     if (this.props.firstSeen) {
       const firstSeenX = new Date(this.props.firstSeen).getTime() / 1000;
