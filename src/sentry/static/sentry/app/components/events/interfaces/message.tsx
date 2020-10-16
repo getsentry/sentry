@@ -52,7 +52,7 @@ const StyledPre = styled('pre')`
   white-space: pre-wrap;
   word-break: break-all;
   box-shadow: none;
-  margin-bottom: ${space(3)};
+  margin-bottom: ${space(3)} !important;
 `;
 
 const StyledEventDataSection = styled(EventDataSection)`
