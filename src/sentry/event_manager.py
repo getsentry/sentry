@@ -59,7 +59,7 @@ from sentry.models import (
 )
 from sentry.plugins.base import plugins
 from sentry import quotas
-from sentry.signals import first_event_received
+from sentry.signals import first_event_received, issue_unresolved
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.utils import json, metrics
 from sentry.utils.canonical import CanonicalKeyDict
@@ -997,6 +997,13 @@ def _handle_regression(group, event, release):
             last_seen=date,
             status=GroupStatus.UNRESOLVED,
         )
+    )
+    issue_unresolved.send_robust(
+        project=group.project,
+        user=None,
+        group=group,
+        transition_type="automatic",
+        sender="handle_regression",
     )
 
     group.active_at = date

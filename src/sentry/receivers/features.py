@@ -24,6 +24,8 @@ from sentry.signals import (
     issue_assigned,
     issue_resolved,
     issue_ignored,
+    issue_unresolved,
+    issue_unignored,
     issue_deleted,
     member_joined,
     ownership_rule_created,
@@ -200,6 +202,24 @@ def record_issue_resolved(organization_id, project, group, user, resolution_type
         organization_id=organization_id,
         group_id=group.id,
         resolution_type=resolution_type,
+    )
+
+
+@issue_unresolved.connect(weak=False)
+def record_issue_unresolved(project, user, group, transition_type, **kwargs):
+    if user and user.is_authenticated():
+        user_id = default_user_id = user.id
+    else:
+        user_id = None
+        default_user_id = project.organization.get_default_owner().id
+
+    analytics.record(
+        "issue.unresolved",
+        user_id=user_id,
+        default_user_id=default_user_id,
+        organization_id=project.organization_id,
+        group_id=group.id,
+        transition_type=transition_type,
     )
 
 
@@ -395,6 +415,24 @@ def record_issue_ignored(project, user, group_list, activity_data, **kwargs):
             ignore_user_count=activity_data.get("ignoreUserCount"),
             ignore_user_window=activity_data.get("ignoreUserWindow"),
         )
+
+
+@issue_unignored.connect(weak=False)
+def record_issue_unignored(project, user, group, transition_type, **kwargs):
+    if user and user.is_authenticated():
+        user_id = default_user_id = user.id
+    else:
+        user_id = None
+        default_user_id = project.organization.get_default_owner().id
+
+    analytics.record(
+        "issue.unignored",
+        user_id=user_id,
+        default_user_id=default_user_id,
+        organization_id=project.organization_id,
+        group_id=group.id,
+        transition_type=transition_type,
+    )
 
 
 @team_created.connect(weak=False)
