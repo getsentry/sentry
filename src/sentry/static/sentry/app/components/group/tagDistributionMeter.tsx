@@ -1,30 +1,38 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 
+import {Group, Organization, TagWithTopValues} from 'app/types';
+import {IOSDeviceList} from 'app/types/iOSDeviceList';
 import {deviceNameMapper, loadDeviceListModule} from 'app/components/deviceName';
-import SentryTypes from 'app/sentryTypes';
 import TagDistributionMeter from 'app/components/tagDistributionMeter';
 
-class GroupTagDistributionMeter extends React.Component {
-  static propTypes = {
-    group: SentryTypes.Group.isRequired,
-    tag: PropTypes.string.isRequired,
-    name: PropTypes.string,
-    organization: SentryTypes.Organization.isRequired,
-    totalValues: PropTypes.number,
-    topValues: PropTypes.array,
-  };
+type Props = {
+  group: Group;
+  tag: string;
+  name: string;
+  organization: Organization;
+  totalValues: number;
+  topValues: TagWithTopValues['topValues'];
+  projectId: string;
+};
 
-  state = {
+type State = {
+  loading: boolean;
+  error: boolean;
+  iOSDeviceList: IOSDeviceList | undefined;
+};
+
+class GroupTagDistributionMeter extends React.Component<Props, State> {
+  state: State = {
     loading: true,
     error: false,
+    iOSDeviceList: undefined,
   };
 
-  UNSAFE_componentWillMount() {
+  componentDidMount() {
     this.fetchData();
   }
 
-  shouldComponentUpdate(nextProps, nextState) {
+  shouldComponentUpdate(nextProps: Props, nextState: State) {
     return (
       this.state.loading !== nextState.loading ||
       this.state.error !== nextState.error ||
@@ -59,24 +67,19 @@ class GroupTagDistributionMeter extends React.Component {
 
   render() {
     const {organization, group, tag, totalValues, topValues} = this.props;
-    const {loading, error} = this.state;
+    const {loading, error, iOSDeviceList} = this.state;
 
     const url = `/organizations/${organization.slug}/issues/${group.id}/tags/${tag}/`;
 
-    let segments = [];
-
-    if (topValues) {
-      segments = this.state.iOSDeviceList
-        ? topValues.map(value => ({
-            ...value,
-            name: deviceNameMapper(value.name || '', this.state.iOSDeviceList) || '',
-            url,
-          }))
-        : topValues.map(value => ({
-            ...value,
-            url,
-          }));
-    }
+    const segments = topValues
+      ? topValues.map(value => ({
+          ...value,
+          name: iOSDeviceList
+            ? deviceNameMapper(value.name || '', iOSDeviceList) || ''
+            : value.name,
+          url,
+        }))
+      : [];
 
     return (
       <TagDistributionMeter
