@@ -10,10 +10,10 @@ import EventsRequest from 'app/components/charts/eventsRequest';
 import AreaChart from 'app/components/charts/areaChart';
 import {getInterval} from 'app/components/charts/utils';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
+import {axisLabelFormatter} from 'app/utils/discover/charts';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import LoadingContainer from 'app/components/loading/loadingContainer';
 import {IconWarning} from 'app/icons';
-import {formatAbbreviatedNumber} from 'app/utils/formatters';
 import theme from 'app/utils/theme';
 import EventView from 'app/utils/discover/eventView';
 
@@ -133,7 +133,7 @@ class MiniGraph extends React.Component<Props> {
                   color: theme.gray400,
                   fontFamily: theme.text.family,
                   fontSize: 12,
-                  formatter: formatAbbreviatedNumber,
+                  formatter: (value: number) => axisLabelFormatter(value, yAxis, true),
                   inside: true,
                   showMinLabel: false,
                   showMaxLabel: false,

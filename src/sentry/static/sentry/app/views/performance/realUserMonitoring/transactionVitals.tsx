@@ -7,9 +7,9 @@ import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
 import {WebVital, getAggregateAlias} from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
-import theme from 'app/utils/theme';
 
-import {NUM_BUCKETS, PERCENTILE, WEB_VITAL_DETAILS} from './constants';
+import {NUM_BUCKETS, PERCENTILE, WEB_VITAL_DETAILS, VITAL_GROUPS} from './constants';
+import {HistogramData} from './types';
 import VitalCard from './vitalCard';
 import MeasurementsHistogramQuery from './measurementsHistogramQuery';
 
@@ -21,78 +21,149 @@ type Props = {
 };
 
 class TransactionVitals extends React.Component<Props> {
-  render() {
+  renderVitalCard(
+    vital: WebVital,
+    isLoading: boolean,
+    error: boolean,
+    summary: number | null,
+    failureRate: number,
+    histogram: HistogramData[],
+    color: [string],
+    min?: string,
+    max?: string
+  ) {
     const {location, organization, eventView, dataFilter} = this.props;
-    const vitals = Object.values(WebVital);
+    const vitalDetails = WEB_VITAL_DETAILS[vital];
 
-    const colors = [...theme.charts.getColorPalette(vitals.length - 1)].reverse();
+    if (min !== undefined || max !== undefined) {
+      return (
+        <MeasurementsHistogramQuery
+          location={location}
+          orgSlug={organization.slug}
+          eventView={eventView}
+          numBuckets={NUM_BUCKETS}
+          measurements={[vitalDetails.slug]}
+          dataFilter={dataFilter}
+          min={min}
+          max={max}
+        >
+          {results => (
+            <VitalCard
+              location={location}
+              isLoading={isLoading || results.isLoading}
+              error={error || results.error !== null}
+              vital={vitalDetails}
+              summary={summary}
+              failureRate={failureRate}
+              chartData={results.histograms?.[vital] ?? []}
+              colors={color}
+              eventView={eventView}
+              organization={organization}
+              min={min}
+              max={max}
+            />
+          )}
+        </MeasurementsHistogramQuery>
+      );
+    } else {
+      return (
+        <VitalCard
+          location={location}
+          isLoading={isLoading}
+          error={error}
+          vital={vitalDetails}
+          summary={summary}
+          failureRate={failureRate}
+          chartData={histogram}
+          colors={color}
+          eventView={eventView}
+          organization={organization}
+        />
+      );
+    }
+  }
 
-    const min = decodeScalar(location.query.startMeasurements);
-    const max = decodeScalar(location.query.endMeasurements);
+  renderVitalGroup(vitals: WebVital[], summaryResults: any, colors: string[]) {
+    const {location, organization, eventView, dataFilter} = this.props;
 
     return (
-      <DiscoverQuery
+      <MeasurementsHistogramQuery
         location={location}
         orgSlug={organization.slug}
         eventView={eventView}
-        limit={1}
+        numBuckets={NUM_BUCKETS}
+        measurements={vitals.map(vital => WEB_VITAL_DETAILS[vital].slug)}
+        dataFilter={dataFilter}
       >
-        {summaryResults => {
+        {multiHistogramResults => {
+          const isLoading = summaryResults.isLoading || multiHistogramResults.isLoading;
+          const error =
+            summaryResults.error !== null || multiHistogramResults.error !== null;
           return (
-            <Panel>
-              <MeasurementsHistogramQuery
-                location={location}
-                orgSlug={organization.slug}
-                eventView={eventView}
-                numBuckets={NUM_BUCKETS}
-                measurements={vitals.map(vital => WEB_VITAL_DETAILS[vital].slug)}
-                min={min}
-                max={max}
-                dataFilter={dataFilter}
-              >
-                {results => (
-                  <React.Fragment>
-                    {vitals.map((vital, index) => {
-                      const details = WEB_VITAL_DETAILS[vital];
-                      const error =
-                        summaryResults.error !== null || results.error !== null;
-                      const percentileAlias = getAggregateAlias(
-                        `percentile(${vital}, ${PERCENTILE})`
-                      );
-                      const countAlias = getAggregateAlias(`count_at_least(${vital}, 0)`);
-                      const failedAlias = getAggregateAlias(
-                        `count_at_least(${vital}, ${details.failureThreshold})`
-                      );
-                      const data = summaryResults.tableData?.data?.[0];
-                      const summary = (data?.[percentileAlias] ?? null) as number | null;
-                      const numerator = (data?.[failedAlias] ?? 0) as number;
-                      const denominator = (data?.[countAlias] ?? 0) as number;
-                      const failureRate = denominator <= 0 ? 0 : numerator / denominator;
-                      return (
-                        <VitalCard
-                          key={vital}
-                          location={location}
-                          isLoading={summaryResults.isLoading || results.isLoading}
-                          error={error}
-                          vital={details}
-                          summary={summary}
-                          failureRate={failureRate}
-                          chartData={results.histograms?.[vital] ?? []}
-                          colors={[colors[index]]}
-                          eventView={eventView}
-                          organization={organization}
-                          min={min}
-                          max={max}
-                        />
-                      );
-                    })}
+            <React.Fragment>
+              {vitals.map((vital, index) => {
+                const details = WEB_VITAL_DETAILS[vital];
+                const vitalSlug = details.slug;
+                const data = summaryResults.tableData?.data?.[0];
+
+                const percentileAlias = getAggregateAlias(
+                  `percentile(${vital}, ${PERCENTILE})`
+                );
+                const summary = data?.[percentileAlias] ?? null;
+
+                const countAlias = getAggregateAlias(`count_at_least(${vital}, 0)`);
+                const failedAlias = getAggregateAlias(
+                  `count_at_least(${vital}, ${details.failureThreshold})`
+                );
+                const numerator = (data?.[failedAlias] ?? 0) as number;
+                const denominator = (data?.[countAlias] ?? 0) as number;
+                const failureRate = denominator <= 0 ? 0 : numerator / denominator;
+
+                return (
+                  <React.Fragment key={vital}>
+                    {this.renderVitalCard(
+                      vital,
+                      isLoading,
+                      error,
+                      summary,
+                      failureRate,
+                      multiHistogramResults.histograms?.[vital] ?? [],
+                      [colors[index]],
+                      decodeScalar(location.query[`${vitalSlug}Start`]),
+                      decodeScalar(location.query[`${vitalSlug}End`])
+                    )}
                   </React.Fragment>
-                )}
-              </MeasurementsHistogramQuery>
-            </Panel>
+                );
+              })}
+            </React.Fragment>
           );
         }}
-      </DiscoverQuery>
+      </MeasurementsHistogramQuery>
+    );
+  }
+
+  render() {
+    const {location, organization, eventView} = this.props;
+
+    return (
+      <Panel>
+        <DiscoverQuery
+          location={location}
+          orgSlug={organization.slug}
+          eventView={eventView}
+          limit={1}
+        >
+          {results => (
+            <React.Fragment>
+              {VITAL_GROUPS.map(vitalGroup => (
+                <React.Fragment key={vitalGroup.group.join('')}>
+                  {this.renderVitalGroup(vitalGroup.group, results, vitalGroup.colors)}
+                </React.Fragment>
+              ))}
+            </React.Fragment>
+          )}
+        </DiscoverQuery>
+      </Panel>
     );
   }
 }

@@ -6,19 +6,18 @@ import {IconSize} from 'app/utils/theme';
 import {t} from 'app/locale';
 import {SectionHeading} from 'app/components/charts/styles';
 import {Panel} from 'app/components/panels';
-import {getDuration} from 'app/utils/formatters';
 import space from 'app/styles/space';
 import Tooltip from 'app/components/tooltip';
 import {IconFire} from 'app/icons';
 import {WEB_VITAL_DETAILS} from 'app/views/performance/realUserMonitoring/constants';
+import {formattedValue} from 'app/utils/measurements/index';
 
 // translate known short form names into their long forms
-const LONG_MEASUREMENT_NAMES = {
-  fid: 'First Input Delay',
-  fp: 'First Paint',
-  fcp: 'First Contentful Paint',
-  lcp: 'Largest Contentful Paint',
-};
+const LONG_MEASUREMENT_NAMES = Object.fromEntries(
+  Object.values(WEB_VITAL_DETAILS).map(value => {
+    return [value.slug, value.name];
+  })
+);
 
 type Props = {
   organization: Organization;
@@ -56,6 +55,9 @@ class RealUserMonitoring extends React.Component<Props> {
 
       const failedThreshold = record ? value >= record.failureThreshold : false;
 
+      const currentValue = formattedValue(record, value);
+      const thresholdValue = formattedValue(record, record?.failureThreshold ?? 0);
+
       return (
         <div key={name}>
           <StyledPanel failedThreshold={failedThreshold}>
@@ -64,10 +66,7 @@ class RealUserMonitoring extends React.Component<Props> {
               {failedThreshold ? (
                 <WarningIconContainer size="sm">
                   <Tooltip
-                    title={`${getDuration(value / 1000, 3)} >= ${getDuration(
-                      record!.failureThreshold / 1000,
-                      3
-                    )}`}
+                    title={t('Fails threshold at %s.', thresholdValue)}
                     position="top"
                     containerDisplayMode="inline-block"
                   >
@@ -75,9 +74,7 @@ class RealUserMonitoring extends React.Component<Props> {
                   </Tooltip>
                 </WarningIconContainer>
               ) : null}
-              <Value failedThreshold={failedThreshold}>
-                {getDuration(value / 1000, 3)}
-              </Value>
+              <Value failedThreshold={failedThreshold}>{currentValue}</Value>
             </ValueRow>
           </StyledPanel>
         </div>

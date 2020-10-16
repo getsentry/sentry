@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 
 import {GlobalSelection, Organization} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
+import {generateAggregateFields} from 'app/utils/discover/fields';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import {t} from 'app/locale';
 import Feature from 'app/components/acl/feature';
@@ -15,6 +16,8 @@ import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 import {decodeScalar} from 'app/utils/queryString';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
+import Alert from 'app/components/alert';
+import ExternalLink from 'app/components/links/externalLink';
 
 import {getTransactionSearchQuery} from '../utils';
 import {TrendChangeType, TrendView, TrendFunctionField} from './types';
@@ -92,6 +95,11 @@ class TrendsContent extends React.Component<Props, State> {
     const {previousTrendFunction} = this.state;
 
     const trendView = eventView.clone() as TrendView;
+    const fields = generateAggregateFields(organization, [
+      {
+        field: 'absolute_correlation()',
+      },
+    ]);
     const currentTrendFunction = getCurrentTrendFunction(location);
     const query = getTransactionSearchQuery(location);
     const showChangedProjects = hasMultipleProjects(selection);
@@ -99,12 +107,20 @@ class TrendsContent extends React.Component<Props, State> {
     return (
       <Feature features={['trends']}>
         <DefaultTrends location={location} eventView={eventView}>
+          <Alert type="info">
+            {t(
+              "Performance trends is a new beta feature for organizations who have turned on Early Adopter in their account settings. We'd love to hear any feedback you have at"
+            )}{' '}
+            <ExternalLink href="mailto:performance-feedback@sentry.io">
+              performance-feedback@sentry.io
+            </ExternalLink>
+          </Alert>
           <StyledSearchContainer>
             <StyledSearchBar
               organization={organization}
               projectIds={trendView.project}
               query={query}
-              fields={trendView.fields}
+              fields={fields}
               onSearch={this.handleSearch}
             />
             <TrendsDropdown>
