@@ -1,7 +1,7 @@
-# TODO(billy): this workflow has not been re-named from `acceptance.yml` because
+# TODO(billy): this workflow has not been re-named from `acceptance` because
 # Visual Snapshots compares against artifacts from the same workflow name (on main branch)
-# We should rename this file when we have a more finalized naming scheme.
-name: visual snapshots and acceptance
+# We should rename this when we have a more finalized naming scheme.
+name: acceptance
 on:
   push:
     branches:
