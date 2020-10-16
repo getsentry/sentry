@@ -27,14 +27,14 @@ class ProjectAlertRuleTaskDetailsEndpoint(ProjectEndpoint):
         error = result.get("error")
 
         # if the status is "pending" we don't have a rule yet or error
-        context = {"status": status, "rule": None, "error": None}
+        context = {"status": status, "alertRule": None, "error": None}
 
         if rule_id and status == "success":
             try:
                 alert_rule = AlertRule.objects.get(
                     snuba_query__subscriptions__project=project, id=rule_id
                 )
-                context["alert_rule"] = serialize(alert_rule, request.user)
+                context["alertRule"] = serialize(alert_rule, request.user)
             except AlertRule.DoesNotExist:
                 raise Http404
         if status == "failed":

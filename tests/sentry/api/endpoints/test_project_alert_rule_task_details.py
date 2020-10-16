@@ -36,7 +36,7 @@ class ProjectAlertRuleTaskDetailsTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response.data["status"] == "pending"
-        assert response.data["rule"] is None
+        assert response.data["alertRule"] is None
 
     @patch("sentry.integrations.slack.tasks.RedisRuleStatus.get_value")
     def test_status_failed(self, mock_get_value):
@@ -46,7 +46,7 @@ class ProjectAlertRuleTaskDetailsTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response.data["status"] == "failed"
-        assert response.data["rule"] is None
+        assert response.data["alertRule"] is None
         assert response.data["error"] == "This failed"
 
     @patch("sentry.integrations.slack.tasks.RedisRuleStatus.get_value")
@@ -58,7 +58,7 @@ class ProjectAlertRuleTaskDetailsTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data["status"] == "success"
 
-        rule_data = response.data["alert_rule"]
+        rule_data = response.data["alertRule"]
         assert rule_data["id"] == six.text_type(self.rule.id)
         assert rule_data["name"] == self.rule.name
 
