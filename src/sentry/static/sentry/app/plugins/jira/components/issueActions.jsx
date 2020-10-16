@@ -1,9 +1,9 @@
 import React from 'react';
 
 import {Form, FormState} from 'app/components/forms';
-import DefaultIssuePlugin from 'app/plugins/defaultIssuePlugin';
+import DefaultIssueActions from 'app/plugins/components/issueActions';
 
-class IssueActions extends DefaultIssuePlugin.DefaultIssueActions {
+class IssueActions extends DefaultIssueActions {
   changeField(action, name, value) {
     const key = action + 'FormData';
     const formData = {
