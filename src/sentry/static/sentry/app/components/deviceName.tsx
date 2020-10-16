@@ -80,16 +80,9 @@ export default class DeviceName extends React.Component<Props, State> {
     const deviceName = deviceNameMapper(value, iOSDeviceList);
 
     return (
-      <Wrapper data-test-id="loaded-device-name">
+      <span data-test-id="loaded-device-name">
         {children ? children(deviceName) : deviceName}
-      </Wrapper>
+      </span>
     );
   }
 }
-
-const Wrapper = styled('span')`
-  vertical-align: middle;
-  span {
-    vertical-align: middle;
-  }
-`;
