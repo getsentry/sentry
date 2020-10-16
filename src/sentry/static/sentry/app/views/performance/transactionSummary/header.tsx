@@ -13,10 +13,11 @@ import NavTabs from 'app/components/navTabs';
 import {t} from 'app/locale';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import Breadcrumb from 'app/views/performance/breadcrumb';
+import {decodeScalar} from 'app/utils/queryString';
 
 import KeyTransactionButton from './keyTransactionButton';
-import {generateTransactionSummaryRoute} from './utils';
-import {generateWebVitalsRoute} from '../realUserMonitoring/utils';
+import {transactionSummaryRouteWithQuery} from './utils';
+import {vitalsRouteWithQuery} from '../realUserMonitoring/utils';
 
 export enum Tab {
   TransactionSummary,
@@ -113,22 +114,28 @@ class TransactionHeader extends React.Component<Props> {
             if (!hasFeature) {
               return null;
             }
-            const transactionSummaryRoute = generateTransactionSummaryRoute({
+            const summaryTarget = transactionSummaryRouteWithQuery({
               orgSlug: organization.slug,
+              transaction: transactionName,
+              projectID: decodeScalar(location.query.project),
+              query: location.query,
             });
-            const webVitalsRoute = generateWebVitalsRoute({
+            const vitalsTarget = vitalsRouteWithQuery({
               orgSlug: organization.slug,
+              transaction: transactionName,
+              projectID: decodeScalar(location.query.project),
+              query: location.query,
             });
             return (
               <StyledNavTabs>
                 <ListLink
-                  to={`${transactionSummaryRoute}${location.search}`}
+                  to={summaryTarget}
                   isActive={() => currentTab === Tab.TransactionSummary}
                 >
                   {t('Overview')}
                 </ListLink>
                 <ListLink
-                  to={`${webVitalsRoute}/${location.search}`}
+                  to={vitalsTarget}
                   isActive={() => currentTab === Tab.RealUserMonitoring}
                 >
                   {t('Web Vitals')}

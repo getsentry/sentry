@@ -4,16 +4,17 @@ import styled from '@emotion/styled';
 
 import Feature from 'app/components/acl/feature';
 import Link from 'app/components/links/link';
-import {Organization} from 'app/types';
-import space from 'app/styles/space';
-import {t} from 'app/locale';
-import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
-import {WebVital, getAggregateAlias} from 'app/utils/discover/fields';
-import {getTermHelp} from 'app/views/performance/data';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {SectionHeading} from 'app/components/charts/styles';
 import UserMisery from 'app/components/userMisery';
-import {generateWebVitalsRoute} from 'app/views/performance/realUserMonitoring/utils';
+import {t} from 'app/locale';
+import {Organization} from 'app/types';
+import space from 'app/styles/space';
+import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
+import {WebVital, getAggregateAlias} from 'app/utils/discover/fields';
+import {decodeScalar} from 'app/utils/queryString';
+import {getTermHelp} from 'app/views/performance/data';
+import {vitalsRouteWithQuery} from 'app/views/performance/realUserMonitoring/utils';
 import {
   PERCENTILE as VITAL_PERCENTILE,
   WEB_VITAL_DETAILS,
@@ -23,9 +24,10 @@ type Props = {
   totals: Record<string, number>;
   location: Location;
   organization: Organization;
+  transactionName: string;
 };
 
-function UserStats({totals, location, organization}: Props) {
+function UserStats({totals, location, organization, transactionName}: Props) {
   let userMisery = <StatNumber>{'\u2014'}</StatNumber>;
   const threshold = organization.apdexThreshold;
   let apdex: React.ReactNode = <StatNumber>{'\u2014'}</StatNumber>;
@@ -70,7 +72,12 @@ function UserStats({totals, location, organization}: Props) {
     }
   }
 
-  const webVitalsRoute = generateWebVitalsRoute({orgSlug: organization.slug});
+  const webVitalsTarget = vitalsRouteWithQuery({
+    orgSlug: organization.slug,
+    transaction: transactionName,
+    projectID: decodeScalar(location.query.project),
+    query: location.query,
+  });
 
   return (
     <Container>
@@ -83,7 +90,7 @@ function UserStats({totals, location, organization}: Props) {
           <div>
             <SectionHeading>{t('Web Vitals')}</SectionHeading>
             <StatNumber>{vitalsPassRate}</StatNumber>
-            <Link to={`${webVitalsRoute}${location.search}`}>
+            <Link to={webVitalsTarget}>
               <SectionValue>{t('Passed')}</SectionValue>
             </Link>
           </div>
