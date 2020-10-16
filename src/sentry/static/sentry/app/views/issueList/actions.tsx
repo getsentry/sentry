@@ -655,44 +655,42 @@ const IssueListActions = createReactClass<Props, State>({
         </StyledFlex>
 
         {!allResultsVisible && pageSelected && (
-          <div className="row stream-select-all-notice">
-            <div className="col-md-12">
-              {allInQuerySelected ? (
-                <strong>
+          <SelectAllNotice>
+            {allInQuerySelected ? (
+              <strong>
+                {queryCount >= BULK_LIMIT
+                  ? tct(
+                      'Selected up to the first [count] issues that match this search query.',
+                      {
+                        count: BULK_LIMIT_STR,
+                      }
+                    )
+                  : tct('Selected all [count] issues that match this search query.', {
+                      count: queryCount,
+                    })}
+              </strong>
+            ) : (
+              <span>
+                {tn(
+                  '%s issue on this page selected.',
+                  '%s issues on this page selected.',
+                  numIssues
+                )}
+                <a onClick={this.handleApplyToAll}>
                   {queryCount >= BULK_LIMIT
                     ? tct(
-                        'Selected up to the first [count] issues that match this search query.',
+                        'Select the first [count] issues that match this search query.',
                         {
                           count: BULK_LIMIT_STR,
                         }
                       )
-                    : tct('Selected all [count] issues that match this search query.', {
+                    : tct('Select all [count] issues that match this search query.', {
                         count: queryCount,
                       })}
-                </strong>
-              ) : (
-                <span>
-                  {tn(
-                    '%s issue on this page selected.',
-                    '%s issues on this page selected.',
-                    numIssues
-                  )}
-                  <a onClick={this.handleApplyToAll}>
-                    {queryCount >= BULK_LIMIT
-                      ? tct(
-                          'Select the first [count] issues that match this search query.',
-                          {
-                            count: BULK_LIMIT_STR,
-                          }
-                        )
-                      : tct('Select all [count] issues that match this search query.', {
-                          count: queryCount,
-                        })}
-                  </a>
-                </span>
-              )}
-            </div>
-          </div>
+                </a>
+              </span>
+            )}
+          </SelectAllNotice>
         )}
       </Sticky>
     );
@@ -808,6 +806,24 @@ const AssigneesLabel = styled('div')`
 const IconPad = styled('span')`
   position: relative;
   top: ${space(0.25)};
+`;
+
+const SelectAllNotice = styled('div')`
+  display: flex;
+  justify-content: center;
+  background-color: #fffdf7;
+  border: 1px solid #e7d796;
+  margin: 0 -1px -1px;
+  z-index: 2;
+
+  > div {
+    text-align: center;
+    padding: 3px 10px;
+
+    a {
+      margin-left: 0.5em;
+    }
+  }
 `;
 
 export {IssueListActions};

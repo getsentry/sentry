@@ -44,13 +44,13 @@ describe('IssueListActions', function () {
 
       it('after checking "Select all" checkbox, displays bulk select message', async function () {
         wrapper.find('ActionsCheckbox Checkbox').simulate('change');
-        expect(wrapper.find('.stream-select-all-notice')).toSnapshot();
+        expect(wrapper.find('SelectAllNotice')).toSnapshot();
       });
 
       it('can bulk select', function () {
-        wrapper.find('.stream-select-all-notice a').simulate('click');
+        wrapper.find('SelectAllNotice').find('a').simulate('click');
 
-        expect(wrapper.find('.stream-select-all-notice')).toSnapshot();
+        expect(wrapper.find('SelectAllNotice')).toSnapshot();
       });
 
       it('bulk resolves', async function () {
@@ -107,13 +107,13 @@ describe('IssueListActions', function () {
 
       it('after checking "Select all" checkbox, displays bulk select message', async function () {
         wrapper.find('ActionsCheckbox Checkbox').simulate('change');
-        expect(wrapper.find('.stream-select-all-notice')).toSnapshot();
+        expect(wrapper.find('SelectAllNotice')).toSnapshot();
       });
 
       it('can bulk select', function () {
-        wrapper.find('.stream-select-all-notice a').simulate('click');
+        wrapper.find('SelectAllNotice').find('a').simulate('click');
 
-        expect(wrapper.find('.stream-select-all-notice')).toSnapshot();
+        expect(wrapper.find('SelectAllNotice')).toSnapshot();
       });
 
       it('bulk resolves', async function () {
