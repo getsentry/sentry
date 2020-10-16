@@ -585,6 +585,12 @@ class CreateIncidentSnapshotTest(TestCase, BaseIncidentsTest):
         start, end = calculate_incident_time_range(incident, windowed_stats=True)
         assert end == incident.current_end_date + timedelta(minutes=100)
 
+    def test_skip_existing(self):
+        incident = self.create_incident(self.organization)
+        incident.update(status=IncidentStatus.CLOSED.value)
+        create_incident_snapshot(incident, windowed_stats=False)
+        assert create_incident_snapshot(incident, windowed_stats=False) is None
+
 
 @freeze_time()
 class GetIncidentStatsTest(TestCase, BaseIncidentsTest):

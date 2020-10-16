@@ -487,6 +487,9 @@ export enum WebVital {
   FCP = 'measurements.fcp',
   LCP = 'measurements.lcp',
   FID = 'measurements.fid',
+  CLS = 'measurements.cls',
+  TTFB = 'measurements.ttfb',
+  RequestTime = 'measurements.ttfb.requesttime',
 }
 
 const MEASUREMENTS: Readonly<Record<WebVital, ColumnType>> = {
@@ -494,6 +497,9 @@ const MEASUREMENTS: Readonly<Record<WebVital, ColumnType>> = {
   [WebVital.FCP]: 'duration',
   [WebVital.LCP]: 'duration',
   [WebVital.FID]: 'duration',
+  [WebVital.CLS]: 'number',
+  [WebVital.TTFB]: 'duration',
+  [WebVital.RequestTime]: 'duration',
 };
 
 const MEASUREMENT_PATTERN = /^measurements\.([a-zA-Z0-9-_.]+)$/;

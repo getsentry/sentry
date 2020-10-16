@@ -16,6 +16,8 @@ import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 import {decodeScalar} from 'app/utils/queryString';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
+import Alert from 'app/components/alert';
+import ExternalLink from 'app/components/links/externalLink';
 
 import {getTransactionSearchQuery} from '../utils';
 import {TrendChangeType, TrendView, TrendFunctionField} from './types';
@@ -105,6 +107,14 @@ class TrendsContent extends React.Component<Props, State> {
     return (
       <Feature features={['trends']}>
         <DefaultTrends location={location} eventView={eventView}>
+          <Alert type="info">
+            {t(
+              "Performance trends is a new beta feature for organizations who have turned on Early Adopter in their account settings. We'd love to hear any feedback you have at"
+            )}{' '}
+            <ExternalLink href="mailto:performance-feedback@sentry.io">
+              performance-feedback@sentry.io
+            </ExternalLink>
+          </Alert>
           <StyledSearchContainer>
             <StyledSearchBar
               organization={organization}
