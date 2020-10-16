@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import sentry_sdk
+
 from rest_framework import serializers
 from rest_framework.response import Response
 from django.db.models import Q
@@ -69,6 +71,10 @@ class OrganizationSearchesEndpoint(OrganizationEndpoint):
                     else:
                         results.append(saved_search)
         else:
+            with sentry_sdk.push_scope() as scope:
+                scope.level = "warning"
+                sentry_sdk.capture_message("Deprecated project saved search used")
+
             org_searches = Q(
                 Q(owner=request.user) | Q(owner__isnull=True),
                 ~Q(query__in=DEFAULT_SAVED_SEARCH_QUERIES),
