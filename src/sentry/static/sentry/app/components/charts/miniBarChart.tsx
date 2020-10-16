@@ -19,25 +19,15 @@ const defaultProps = {
   /**
    * Colors to use on the chart.
    */
-  colors: [theme.gray300, theme.purple300, theme.purple400],
+  colors: [theme.gray300, theme.purple300, theme.purple400] as string[],
   /**
    * Hover state colors to use on the chart.
    */
-  emphasisColors: [theme.gray400, theme.purple400, theme.purple500],
+  emphasisColors: [theme.gray400, theme.purple400, theme.purple500] as string[],
 };
 
-type DefaultProps = typeof defaultProps;
-
 type Props = React.ComponentProps<typeof BaseChart> &
-  DefaultProps & {
-    /**
-     * Colors to use on the chart.
-     */
-    colors: string[];
-    /**
-     * Hover state colors to use on the chart.
-     */
-    emphasisColors: string[];
+  typeof defaultProps & {
     /**
      * A list of series to be rendered as markLine components on the chart
      * This is often used to indicate start/end markers on the xAxis
