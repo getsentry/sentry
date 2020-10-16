@@ -16,9 +16,25 @@ import PluginIcon from 'app/plugins/components/pluginIcon';
 import plugins from 'app/plugins';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
+import {Organization, Project, Plugin} from 'app/types';
+import {Client} from 'app/api';
 
-class PluginConfig extends React.Component {
-  static propTypes = {
+type Props = {
+  organization: Organization;
+  project: Project;
+  data: Plugin;
+  onDisablePlugin: (data: Plugin) => void;
+  enabled: boolean;
+  api: Client;
+};
+
+type State = {
+  loading?: boolean;
+  testResults: string;
+};
+
+class PluginConfig extends React.Component<Props, State> {
+  static propTypes: any = {
     api: PropTypes.object,
     organization: PropTypes.object.isRequired,
     project: PropTypes.object.isRequired,
@@ -40,15 +56,15 @@ class PluginConfig extends React.Component {
     this.loadPlugin(this.props.data);
   }
 
-  UNSAFE_componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps: Props) {
     this.loadPlugin(nextProps.data);
   }
 
-  shouldComponentUpdate(nextProps, nextState) {
+  shouldComponentUpdate(nextProps: Props, nextState: State) {
     return !isEqual(nextState, this.state) || !isEqual(nextProps.data, this.props.data);
   }
 
-  loadPlugin(data) {
+  loadPlugin(data: Plugin) {
     this.setState(
       {
         loading: true,
