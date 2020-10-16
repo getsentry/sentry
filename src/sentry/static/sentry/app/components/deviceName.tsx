@@ -89,4 +89,7 @@ export default class DeviceName extends React.Component<Props, State> {
 
 const Wrapper = styled('span')`
   vertical-align: middle;
+  span {
+    vertical-align: middle;
+  }
 `;
