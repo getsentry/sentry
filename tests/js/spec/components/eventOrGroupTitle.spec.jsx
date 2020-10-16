@@ -49,8 +49,10 @@ describe('EventOrGroupTitle', function () {
       <EventOrGroupTitle
         data={{
           ...data,
-          ...{
-            type: 'default',
+          type: 'default',
+          metadata: {
+            ...data.metadata,
+            title: 'metadata title',
           },
         }}
       />
