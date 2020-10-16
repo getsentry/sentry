@@ -105,7 +105,7 @@ class ErrorRobot extends React.Component<Props, State> {
         className="awaiting-events"
         gradient={gradient}
       >
-        <Robot>
+        <Robot aria-hidden>
           <Eye />
         </Robot>
         <MessageContainer>
