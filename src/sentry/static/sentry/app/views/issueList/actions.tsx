@@ -451,7 +451,7 @@ const IssueListActions = createReactClass<Props, State>({
                   const selectedProject = projects[0];
                   return this.renderResolveActions({
                     hasReleases: selectedProject.hasOwnProperty('features')
-                      ? new Set((selectedProject as Project).features).has('releases')
+                      ? (selectedProject as Project).features.includes('releases')
                       : false,
                     latestRelease: selectedProject.hasOwnProperty('latestRelease')
                       ? (selectedProject as Project).latestRelease
