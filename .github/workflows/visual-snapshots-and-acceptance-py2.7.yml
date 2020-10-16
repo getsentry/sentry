@@ -64,6 +64,7 @@ jobs:
     # TODO(joshuarli): Convert to py3 with snapshots. See other TODO as well.
     name: python2.7 acceptance
     runs-on: ubuntu-16.04
+    timeout-minutes: 20
     strategy:
       matrix:
         instance: [0, 1, 2]
