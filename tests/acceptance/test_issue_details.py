@@ -85,7 +85,7 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
         self.page.visit_issue(self.org.slug, event.group.id)
         self.browser.wait_until_not(".loading")
         self.browser.move_to(".traceback li:nth-child(2)")
-        self.browser.snapshot("issue details cocoa frame line hover", False, True)
+        self.browser.snapshot("issue details cocoa frame line hover")
 
     def test_unity_event(self):
         event = self.create_sample_event(default="unity", platform="csharp")
