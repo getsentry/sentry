@@ -48,7 +48,7 @@ describe('IssueListActions', function () {
       });
 
       it('can bulk select', function () {
-        wrapper.find('SelectAllNotice').find('a').simulate('click');
+        wrapper.find('SelectAllNotice').find('button').simulate('click');
 
         expect(wrapper.find('SelectAllNotice')).toSnapshot();
       });
@@ -111,7 +111,7 @@ describe('IssueListActions', function () {
       });
 
       it('can bulk select', function () {
-        wrapper.find('SelectAllNotice').find('a').simulate('click');
+        wrapper.find('SelectAllNotice').find('button').simulate('click');
 
         expect(wrapper.find('SelectAllNotice')).toSnapshot();
       });

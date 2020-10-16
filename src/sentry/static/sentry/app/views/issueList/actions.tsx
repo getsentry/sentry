@@ -20,6 +20,7 @@ import {
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 import ActionLink from 'app/components/actions/actionLink';
+import Button from 'app/components/button';
 import Checkbox from 'app/components/checkbox';
 import DropdownLink from 'app/components/dropdownLink';
 import ExternalLink from 'app/components/links/externalLink';
@@ -670,13 +671,17 @@ const IssueListActions = createReactClass<Props, State>({
                     })}
               </strong>
             ) : (
-              <span>
+              <React.Fragment>
                 {tn(
                   '%s issue on this page selected.',
                   '%s issues on this page selected.',
                   numIssues
                 )}
-                <a onClick={this.handleApplyToAll}>
+                <SelectAllButton
+                  type="button"
+                  priority="link"
+                  onClick={this.handleApplyToAll}
+                >
                   {queryCount >= BULK_LIMIT
                     ? tct(
                         'Select the first [count] issues that match this search query.',
@@ -687,8 +692,8 @@ const IssueListActions = createReactClass<Props, State>({
                     : tct('Select all [count] issues that match this search query.', {
                         count: queryCount,
                       })}
-                </a>
-              </span>
+                </SelectAllButton>
+              </React.Fragment>
             )}
           </SelectAllNotice>
         )}
@@ -813,17 +818,15 @@ const SelectAllNotice = styled('div')`
   justify-content: center;
   background-color: #fffdf7;
   border: 1px solid #e7d796;
+  text-align: center;
   margin: 0 -1px -1px;
+  padding: ${space(0.5)} ${space(1.5)};
   z-index: 2;
+`;
 
-  > div {
-    text-align: center;
-    padding: 3px 10px;
-
-    a {
-      margin-left: 0.5em;
-    }
-  }
+const SelectAllButton = styled(Button)`
+  margin-left: ${space(1)};
+  font-size: ${p => p.theme.fontSizeLarge};
 `;
 
 export {IssueListActions};
