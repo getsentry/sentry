@@ -2520,6 +2520,47 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                     == "You can view up to 20 fields at a time. Please delete some and try again."
                 )
 
+    def test_percentile_function_meta_types(self):
+        project = self.create_project()
+        data = load_data(
+            "transaction",
+            timestamp=before_now(minutes=1),
+            start_timestamp=before_now(minutes=1, seconds=5),
+        )
+        self.store_event(data, project_id=project.id)
+
+        query = {
+            "field": [
+                "transaction",
+                "percentile(transaction.duration, 0.95)",
+                "percentile(measurements.fp, 0.95)",
+                "percentile(measurements.fcp, 0.95)",
+                "percentile(measurements.lcp, 0.95)",
+                "percentile(measurements.fid, 0.95)",
+                "percentile(measurements.ttfb, 0.95)",
+                "percentile(measurements.ttfb.requesttime, 0.95)",
+                "percentile(measurements.cls, 0.95)",
+                "percentile(measurements.foo, 0.95)",
+                "percentile(measurements.bar, 0.95)",
+            ],
+            "query": "",
+            "orderby": ["transaction"],
+        }
+        response = self.do_request(query)
+
+        assert response.status_code == 200, response.content
+        meta = response.data["meta"]
+        assert meta["percentile_transaction_duration_0_95"] == "duration"
+        assert meta["percentile_measurements_fp_0_95"] == "duration"
+        assert meta["percentile_measurements_fcp_0_95"] == "duration"
+        assert meta["percentile_measurements_lcp_0_95"] == "duration"
+        assert meta["percentile_measurements_fid_0_95"] == "duration"
+        assert meta["percentile_measurements_ttfb_0_95"] == "duration"
+        assert meta["percentile_measurements_ttfb_requesttime_0_95"] == "duration"
+        assert meta["percentile_measurements_cls_0_95"] == "number"
+        assert meta["percentile_measurements_foo_0_95"] == "number"
+        assert meta["percentile_measurements_bar_0_95"] == "number"
+
     def test_count_at_least_query(self):
         self.store_event(self.transaction_data, self.project.id)
 

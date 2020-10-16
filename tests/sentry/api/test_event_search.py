@@ -16,6 +16,7 @@ from sentry.api.event_search import (
     event_search_grammar,
     Function,
     FunctionArg,
+    with_default,
     get_filter,
     resolve_field_list,
     parse_search_query,
@@ -2781,14 +2782,9 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["groupby"] == []
 
 
-class DefaultFunctionArg(FunctionArg):
-    def __init__(self, name, default):
-        super(DefaultFunctionArg, self).__init__(name)
-        self.has_default = True
-        self.default = default
-
-    def get_default(self, params):
-        return self.default
+def with_type(type, argument):
+    argument.get_type = lambda *_: type
+    return argument
 
 
 class FunctionTest(unittest.TestCase):
@@ -2799,7 +2795,7 @@ class FunctionTest(unittest.TestCase):
         self.fn_w_optionals = Function(
             "w_optionals",
             required_args=[FunctionArg("arg1")],
-            optional_args=[DefaultFunctionArg("arg2", "default")],
+            optional_args=[with_default("default", FunctionArg("arg2"))],
             transform="",
         )
 
@@ -2852,7 +2848,7 @@ class FunctionTest(unittest.TestCase):
             Function(
                 "test",
                 required_args=[FunctionArg("arg1")],
-                optional_args=[DefaultFunctionArg("arg1", "default")],
+                optional_args=[with_default("default", FunctionArg("arg1"))],
                 transform="",
             )
 
@@ -2871,7 +2867,29 @@ class FunctionTest(unittest.TestCase):
         ):
             Function(
                 "test",
-                optional_args=[DefaultFunctionArg("arg1", "default")],
+                optional_args=[with_default("default", FunctionArg("arg1"))],
                 calculated_args=[{"name": "arg1", "fn": lambda x: x}],
                 transform="",
             )
+
+    def test_default_result_type(self):
+        fn = Function("fn", transform="")
+        assert fn.get_result_type() is None
+
+        fn = Function("fn", transform="", default_result_type="number")
+        assert fn.get_result_type() == "number"
+
+    def test_result_type_fn(self):
+        fn = Function("fn", transform="", result_type_fn=lambda *_: None)
+        assert fn.get_result_type("fn()", []) is None
+
+        fn = Function("fn", transform="", result_type_fn=lambda *_: "number")
+        assert fn.get_result_type("fn()", []) == "number"
+
+        fn = Function(
+            "fn",
+            required_args=[with_type("number", FunctionArg("arg1"))],
+            transform="",
+            result_type_fn=lambda args, columns: args[0].get_type(columns[0]),
+        )
+        assert fn.get_result_type("fn()", ["arg1"]) == "number"
