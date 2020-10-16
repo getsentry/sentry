@@ -1,7 +1,7 @@
 # TODO(billy): this workflow has not been re-named from `acceptance.yml` because
 # Visual Snapshots compares against artifacts from the same workflow name (on main branch)
 # We should rename this file when we have a more finalized naming scheme.
-name: acceptance [py2.7] and visual snapshots
+name: visual snapshots and acceptance
 on:
   push:
     branches:
@@ -62,6 +62,7 @@ jobs:
 
   acceptance:
     # TODO(joshuarli): Convert to py3 with snapshots. See other TODO as well.
+    name: python2.7 acceptance
     runs-on: ubuntu-16.04
     strategy:
       matrix:

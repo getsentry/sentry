@@ -9,7 +9,7 @@ on:
 jobs:
   # TODO(billy): Currently, keeping name the same because of `required` status checks
   py3-acceptance:
-    name: 'python3.6 acceptance'
+    name: python3.6 acceptance
     runs-on: ubuntu-16.04
     strategy:
       matrix:
