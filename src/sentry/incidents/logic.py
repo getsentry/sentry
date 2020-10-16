@@ -1229,7 +1229,9 @@ def get_alert_rule_trigger_action_slack_channel_id(
     return channel_id
 
 
-def get_alert_rule_trigger_action_msteams_channel_id(name, organization, integration_id, **kwargs):
+def get_alert_rule_trigger_action_msteams_channel_id(
+    name, organization, integration_id, use_async_lookup=False
+):
     from sentry.integrations.msteams.utils import get_channel_id
 
     channel_id = get_channel_id(organization, integration_id, name)
@@ -1242,7 +1244,7 @@ def get_alert_rule_trigger_action_msteams_channel_id(name, organization, integra
 
 
 def get_alert_rule_trigger_action_pagerduty_service(
-    target_value, organization, integration_id, **kwargs
+    target_value, organization, integration_id, use_async_lookup=False
 ):
     try:
         service = PagerDutyService.objects.get(id=target_value)

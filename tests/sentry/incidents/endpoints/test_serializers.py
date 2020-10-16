@@ -409,7 +409,7 @@ class TestAlertRuleSerializer(TestCase):
         with self.assertRaises(ChannelLookupTimeoutError) as err:
             serializer.save()
         assert (
-            err.exception.message
+            six.text_type(err.exception)
             == "Could not find channel my-channel. We have timed out trying to look for it."
         )
 

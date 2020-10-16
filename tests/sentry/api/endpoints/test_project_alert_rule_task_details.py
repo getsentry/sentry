@@ -5,8 +5,8 @@ from uuid import uuid4
 
 from django.core.urlresolvers import reverse
 
-from sentry.utils.compat.mock import patch
 from sentry.testutils import APITestCase
+from sentry.integrations.slack.tasks import RedisRuleStatus
 
 
 class ProjectAlertRuleTaskDetailsTest(APITestCase):
@@ -28,31 +28,31 @@ class ProjectAlertRuleTaskDetailsTest(APITestCase):
             },
         )
 
-    @patch("sentry.integrations.slack.tasks.RedisRuleStatus.get_value")
-    def test_status_pending(self, mock_get_value):
+    def set_value(self, status, rule_id=None):
+        client = RedisRuleStatus(self.uuid)
+        client.set_value(status, rule_id)
+
+    def test_status_pending(self):
         self.login_as(user=self.user)
-        mock_get_value.return_value = {"status": "pending"}
+        self.set_value("pending")
         response = self.client.get(self.url, format="json")
 
         assert response.status_code == 200, response.content
         assert response.data["status"] == "pending"
         assert response.data["alertRule"] is None
 
-    @patch("sentry.integrations.slack.tasks.RedisRuleStatus.get_value")
-    def test_status_failed(self, mock_get_value):
+    def test_status_failed(self):
         self.login_as(user=self.user)
-        mock_get_value.return_value = {"status": "failed", "error": "This failed"}
+        self.set_value("failed", self.rule.id)
         response = self.client.get(self.url, format="json")
 
         assert response.status_code == 200, response.content
         assert response.data["status"] == "failed"
         assert response.data["alertRule"] is None
-        assert response.data["error"] == "This failed"
 
-    @patch("sentry.integrations.slack.tasks.RedisRuleStatus.get_value")
-    def test_status_success(self, mock_get_value):
+    def test_status_success(self):
+        self.set_value("success", self.rule.id)
         self.login_as(user=self.user)
-        mock_get_value.return_value = {"status": "success", "rule_id": self.rule.id}
         response = self.client.get(self.url, format="json")
 
         assert response.status_code == 200, response.content
@@ -62,12 +62,10 @@ class ProjectAlertRuleTaskDetailsTest(APITestCase):
         assert rule_data["id"] == six.text_type(self.rule.id)
         assert rule_data["name"] == self.rule.name
 
-    @patch("sentry.integrations.slack.tasks.RedisRuleStatus.get_value")
-    def test_wrong_no_alert_rule(self, mock_get_value):
+    def test_wrong_no_alert_rule(self):
         rule_id = self.rule.id
+        self.set_value("success", rule_id)
         self.rule.delete()
         self.login_as(user=self.user)
-        mock_get_value.return_value = {"status": "success", "rule_id": rule_id}
         response = self.client.get(self.url, format="json")
-
         assert response.status_code == 404
