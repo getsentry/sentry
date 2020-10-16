@@ -9,7 +9,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-16.04
-    timeout-minutes: 20
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v2
 
@@ -41,10 +41,11 @@ jobs:
 
       - name: Start symbolicator
         run: |
+          echo $PWD
           docker run \
             -d \
             -v $PWD/config/symbolicator/:/etc/symbolicator \
-            --network host \
+            --network sentry \
             --name symbolicator \
             us.gcr.io/sentryio/symbolicator:latest \
             run -c /etc/symbolicator/config.yml
