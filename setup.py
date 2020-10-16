@@ -105,6 +105,8 @@ setup(
     cmdclass=cmdclass,
     license="BSL-1.1",
     include_package_data=True,
+    package_data={"sentry": ["static/sentry/dist/**"]},
+    exclude_package_data={"sentry": ["static/sentry/**"]},
     entry_points={
         "console_scripts": ["sentry = sentry.runner:main"],
         "sentry.apps": [
