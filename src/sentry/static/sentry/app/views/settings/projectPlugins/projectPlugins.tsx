@@ -26,9 +26,7 @@ type Props = {
   onChange: React.ComponentProps<typeof ProjectPluginRow>['onChange'];
 } & WithRouterProps<{orgId: string}>;
 
-type State = {};
-
-class ProjectPlugins extends Component<Props, State> {
+class ProjectPlugins extends Component<Props> {
   static propTypes = {
     plugins: PropTypes.arrayOf(SentryTypes.PluginShape),
     loading: PropTypes.bool,
