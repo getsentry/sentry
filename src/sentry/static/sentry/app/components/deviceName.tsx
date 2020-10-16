@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from '@emotion/styled';
 
 import {IOSDeviceList} from 'app/types/iOSDeviceList';
 
@@ -79,9 +80,13 @@ export default class DeviceName extends React.Component<Props, State> {
     const deviceName = deviceNameMapper(value, iOSDeviceList);
 
     return (
-      <span data-test-id="loaded-device-name">
+      <Wrapper data-test-id="loaded-device-name">
         {children ? children(deviceName) : deviceName}
-      </span>
+      </Wrapper>
     );
   }
 }
+
+const Wrapper = styled('span')`
+  vertical-align: middle;
+`;
