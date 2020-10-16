@@ -59,6 +59,9 @@ jobs:
           GIT_AUTHOR_NAME: getsentry-bot
           EMAIL: bot@getsentry.com
           ZEUS_API_TOKEN: ${{ secrets.ZEUS_API_TOKEN }}
+      # Wait until the builds start. Craft should do this automatically
+      # but it is broken now.
+      - run: sleep 10
       - uses: getsentry/craft@master
         with:
           action: publish
