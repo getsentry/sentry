@@ -134,7 +134,7 @@ const StyledPill = styled('li')<{type?: PILL_TYPE}>`
   border: 1px solid ${p => p.theme.borderDark};
   border-radius: ${p => p.theme.button.borderRadius};
   box-shadow: ${p => p.theme.dropShadowLightest};
-  line-height: 1;
+  line-height: 1.2;
   max-width: 100%;
   :last-child {
     margin-right: 0;
