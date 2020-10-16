@@ -17,7 +17,6 @@ import RouteError from 'app/views/routeError';
 import SentryTypes from 'app/sentryTypes';
 import {Plugin} from 'app/types';
 
-import {DEPRECATED_PLUGINS} from './constants';
 import ProjectPluginRow from './projectPluginRow';
 
 type Props = {
@@ -79,9 +78,6 @@ class ProjectPlugins extends Component<Props, State> {
 
           {plugins
             .filter(p => {
-              if (DEPRECATED_PLUGINS.includes(p.id) && !p.enabled) {
-                return false;
-              }
               return !p.isHidden;
             })
             .map(plugin => (
