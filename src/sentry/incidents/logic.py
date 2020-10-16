@@ -302,6 +302,8 @@ def create_incident_snapshot(incident, windowed_stats=False):
     and total events, plus a time series snapshot of the entire incident.
     """
     assert incident.status == IncidentStatus.CLOSED.value
+    if IncidentSnapshot.objects.filter(incident=incident).exists():
+        return None
 
     start, end = calculate_incident_time_range(incident, windowed_stats=windowed_stats)
     if start == end:
@@ -1177,9 +1179,13 @@ def get_alert_rule_trigger_action_slack_channel_id(name, organization, integrati
     from sentry.integrations.slack.utils import get_channel_id
 
     try:
-        _prefix, channel_id, timed_out = get_channel_id(organization, integration_id, name)
-    except DuplicateDisplayNameError as e:
         integration = Integration.objects.get(id=integration_id)
+    except Integration.DoesNotExist:
+        raise InvalidTriggerActionError("Slack workspace is a required field.")
+
+    try:
+        _prefix, channel_id, timed_out = get_channel_id(organization, integration, name)
+    except DuplicateDisplayNameError as e:
         domain = integration.metadata["domain_name"]
 
         raise InvalidTriggerActionError(

@@ -102,7 +102,10 @@ class PluginConfig extends React.Component {
       typeof this.props.enabled !== 'undefined' ? this.props.enabled : data.enabled;
 
     return (
-      <Panel className={`plugin-config ref-plugin-config-${data.id}`}>
+      <Panel
+        className={`plugin-config ref-plugin-config-${data.id}`}
+        data-test-id="plugin-config"
+      >
         <PanelHeader hasButtons>
           <PluginName>
             <StyledPluginIcon pluginId={data.id} />

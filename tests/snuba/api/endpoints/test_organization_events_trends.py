@@ -61,8 +61,6 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
         events = response.data
 
         assert len(events["data"]) == 1
-        # Shouldn't do an exact match here because we aren't using the stable correlation function
-        assert events["data"][0].pop("absolute_correlation") > 0.2
         assert events["data"][0] == {
             "count_range_1": 1,
             "count_range_2": 3,
@@ -94,8 +92,6 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
         events = response.data
 
         assert len(events["data"]) == 1
-        # Shouldn't do an exact match here because we aren't using the stable correlation function
-        assert events["data"][0].pop("absolute_correlation") > 0.2
         assert events["data"][0] == {
             "count_range_1": 1,
             "count_range_2": 3,
@@ -127,8 +123,6 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
         events = response.data
 
         assert len(events["data"]) == 1
-        # Shouldn't do an exact match here because we aren't using the stable correlation function
-        assert events["data"][0].pop("absolute_correlation") > 0.2
         assert events["data"][0] == {
             "count_range_1": 1,
             "count_range_2": 3,
@@ -160,8 +154,6 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
         events = response.data
 
         assert len(events["data"]) == 1
-        # Shouldn't do an exact match here because we aren't using the stable correlation function
-        assert events["data"][0].pop("absolute_correlation") > 0.2
         assert events["data"][0] == {
             "count_range_1": 1,
             "count_range_2": 3,
@@ -193,8 +185,6 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
         events = response.data
 
         assert len(events["data"]) == 1
-        # Shouldn't do an exact match here because we aren't using the stable correlation function
-        assert events["data"][0].pop("absolute_correlation") > 0.2
         assert events["data"][0] == {
             "count_range_2": 3,
             "count_range_1": 1,
@@ -226,8 +216,6 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
         events = response.data
 
         assert len(events["data"]) == 1
-        # Shouldn't do an exact match here because we aren't using the stable correlation function
-        assert events["data"][0].pop("absolute_correlation") > 0.2
         assert events["data"][0] == {
             "count_range_2": 3,
             "count_range_1": 1,
@@ -275,7 +263,38 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
         events = response.data
 
         assert len(events["data"]) == 1
-        # Shouldn't do an exact match here because we aren't using the stable correlation function
+        assert events["data"][0] == {
+            "count_range_2": 4,
+            "count_range_1": 0,
+            "transaction": self.prototype["transaction"],
+            "project": self.project.slug,
+            "percentile_range_1": 0,
+            "percentile_range_2": 2000.0,
+            "percentage_count_range_2_count_range_1": None,
+            "minus_percentile_range_2_percentile_range_1": 0,
+            "percentage_percentile_range_2_percentile_range_1": None,
+        }
+
+    def test_auto_aggregation(self):
+        # absolute_correlation is automatically added, and not a part of data otherwise
+        with self.feature("organizations:trends"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    # Set the timeframe to where the second range has no transactions so all the counts/percentile are 0
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "start": iso_format(self.day_ago - timedelta(hours=2)),
+                    "field": ["project", "transaction"],
+                    "query": "event.type:transaction absolute_correlation():>0.2",
+                    "project": [self.project.id],
+                },
+            )
+        assert response.status_code == 200, response.content
+
+        events = response.data
+
+        assert len(events["data"]) == 1
         assert events["data"][0].pop("absolute_correlation") > 0.2
         assert events["data"][0] == {
             "count_range_2": 4,
@@ -317,8 +336,6 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
         result_stats = response.data["stats"]
 
         assert len(events["data"]) == 1
-        # Shouldn't do an exact match here because we aren't using the stable correlation function
-        assert events["data"][0].pop("absolute_correlation") > 0.2
         assert events["data"][0] == {
             "count_range_1": 1,
             "count_range_2": 3,
@@ -357,8 +374,6 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
         result_stats = response.data["stats"]
 
         assert len(events["data"]) == 1
-        # Shouldn't do an exact match here because we aren't using the stable correlation function
-        assert events["data"][0].pop("absolute_correlation") > 0.2
         assert events["data"][0] == {
             "count_range_1": 1,
             "count_range_2": 3,
@@ -397,8 +412,6 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
         result_stats = response.data["stats"]
 
         assert len(events["data"]) == 1
-        # Shouldn't do an exact match here because we aren't using the stable correlation function
-        assert events["data"][0].pop("absolute_correlation") > 0.2
         assert events["data"][0] == {
             "count_range_1": 1,
             "count_range_2": 3,
@@ -437,8 +450,6 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
         result_stats = response.data["stats"]
 
         assert len(events["data"]) == 1
-        # Shouldn't do an exact match here because we aren't using the stable correlation function
-        assert events["data"][0].pop("absolute_correlation") > 0.2
         assert events["data"][0] == {
             "count_range_1": 1,
             "count_range_2": 3,
@@ -477,8 +488,6 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
         result_stats = response.data["stats"]
 
         assert len(events["data"]) == 1
-        # Shouldn't do an exact match here because we aren't using the stable correlation function
-        assert events["data"][0].pop("absolute_correlation") > 0.2
         assert events["data"][0] == {
             "count_range_2": 3,
             "count_range_1": 1,
@@ -517,8 +526,6 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
         result_stats = response.data["stats"]
 
         assert len(events["data"]) == 1
-        # Shouldn't do an exact match here because we aren't using the stable correlation function
-        assert events["data"][0].pop("absolute_correlation") > 0.2
         assert events["data"][0] == {
             "count_range_2": 3,
             "count_range_1": 1,
@@ -573,8 +580,6 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
         result_stats = response.data["stats"]
 
         assert len(events["data"]) == 1
-        # Shouldn't do an exact match here because we aren't using the stable correlation function
-        assert events["data"][0].pop("absolute_correlation") > 0.2
         assert events["data"][0] == {
             "count_range_2": 4,
             "count_range_1": 0,
