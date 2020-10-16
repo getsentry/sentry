@@ -80,25 +80,29 @@ export const FILTER_OPTIONS: SelectValue<string>[] = [
   {label: t('View All'), value: 'all'},
 ];
 
-export const ZOOM_KEYS = Object.values(WebVital).reduce((zoomKeys: string[], vital) => {
-  const vitalSlug = WEB_VITAL_DETAILS[vital].slug;
-  zoomKeys.push(`${vitalSlug}Start`);
-  zoomKeys.push(`${vitalSlug}End`);
-  return zoomKeys;
-}, []);
-
 /**
  * This defines the grouping for histograms. Histograms that are in the same group
  * will be queried together on initial load for alignment. However, the zoom controls
  * are defined for each measurement independently.
  */
+const _VITAL_GROUPS = [[WebVital.FP, WebVital.FCP, WebVital.LCP], [WebVital.FID]];
+
 const _COLORS = [
-  ...theme.charts.getColorPalette(Object.values(WebVital).length - 1),
+  ...theme.charts.getColorPalette(
+    _VITAL_GROUPS.reduce((count, group) => count + group.length, 0) - 1
+  ),
 ].reverse();
-export const VITAL_GROUPS = [
-  [WebVital.FP, WebVital.FCP, WebVital.LCP],
-  [WebVital.FID],
-].map(group => ({
+
+export const VITAL_GROUPS = _VITAL_GROUPS.map(group => ({
   group,
   colors: _COLORS.splice(0, group.length),
 }));
+
+export const ZOOM_KEYS = _VITAL_GROUPS.reduce((keys: string[], group) => {
+  group.forEach(vital => {
+    const vitalSlug = WEB_VITAL_DETAILS[vital].slug;
+    keys.push(`${vitalSlug}Start`);
+    keys.push(`${vitalSlug}End`);
+  });
+  return keys;
+}, []);
