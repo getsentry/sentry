@@ -757,8 +757,23 @@ class QueryTransformTest(TestCase):
             selected_columns=["transaction"],
             aggregations=[
                 [
-                    "quantileIf(0.50)(duration,and(greaterOrEquals(timestamp,toDateTime('2020-05-02T13:45:01')),less(timestamp,toDateTime('2020-05-02T14:45:01'))))",
-                    None,
+                    "quantileIf(0.50)",
+                    [
+                        "duration",
+                        [
+                            "and",
+                            [
+                                [
+                                    "lessOrEquals",
+                                    [["toDateTime", ["'2020-05-02T13:45:01'"]], "timestamp"],
+                                ],
+                                [
+                                    "greater",
+                                    [["toDateTime", ["'2020-05-02T14:45:01'"]], "timestamp"],
+                                ],
+                            ],
+                        ],
+                    ],
                     "percentile_range_1",
                 ]
             ],
@@ -794,8 +809,23 @@ class QueryTransformTest(TestCase):
             selected_columns=["transaction"],
             aggregations=[
                 [
-                    "avgIf(duration,and(greaterOrEquals(timestamp,toDateTime('2020-05-02T13:45:01')),less(timestamp,toDateTime('2020-05-02T14:45:01'))))",
-                    None,
+                    "avgIf",
+                    [
+                        "duration",
+                        [
+                            "and",
+                            [
+                                [
+                                    "lessOrEquals",
+                                    [["toDateTime", ["'2020-05-02T13:45:01'"]], "timestamp"],
+                                ],
+                                [
+                                    "greater",
+                                    [["toDateTime", ["'2020-05-02T14:45:01'"]], "timestamp"],
+                                ],
+                            ],
+                        ],
+                    ],
                     "avg_range_1",
                 ]
             ],
@@ -831,8 +861,35 @@ class QueryTransformTest(TestCase):
             selected_columns=["transaction"],
             aggregations=[
                 [
-                    "uniqIf(user,and(greater(duration,1200),and(greaterOrEquals(timestamp,toDateTime('2020-05-02T13:45:01')),less(timestamp,toDateTime('2020-05-02T14:45:01')))))",
-                    None,
+                    "uniqIf",
+                    [
+                        "user",
+                        [
+                            "and",
+                            [
+                                ["greater", ["duration", 1200]],
+                                [
+                                    "and",
+                                    [
+                                        [
+                                            "lessOrEquals",
+                                            [
+                                                ["toDateTime", ["'2020-05-02T13:45:01'"]],
+                                                "timestamp",
+                                            ],
+                                        ],
+                                        [
+                                            "greater",
+                                            [
+                                                ["toDateTime", ["'2020-05-02T14:45:01'"]],
+                                                "timestamp",
+                                            ],
+                                        ],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
                     "user_misery_range_1",
                 ]
             ],
