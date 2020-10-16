@@ -41,8 +41,8 @@ type Props = {
   chartData: HistogramData[];
   colors: [string];
   eventView: EventView;
-  min?: string;
-  max?: string;
+  min?: number;
+  max?: number;
 };
 
 type State = {
