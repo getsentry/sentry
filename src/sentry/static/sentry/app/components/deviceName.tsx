@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from '@emotion/styled';
 
 import {IOSDeviceList} from 'app/types/iOSDeviceList';
 
