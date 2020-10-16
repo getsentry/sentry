@@ -409,7 +409,7 @@ class BatchingKafkaConsumer(object):
             except KafkaException as e:
                 if e.args[0].code() in (
                     KafkaError.REQUEST_TIMED_OUT,
-                    KafkaError.NOT_COORDINATOR_FOR_GROUP,
+                    KafkaError.NOT_COORDINATOR,
                     KafkaError._WAIT_COORD,
                 ):
                     logger.warning("Commit failed: %s (%d retries)", e, retries)
