@@ -29,6 +29,7 @@ import ProjectAvatar from 'app/components/avatar/projectAvatar';
 import withApi from 'app/utils/withApi';
 import {Client} from 'app/api';
 import QuestionTooltip from 'app/components/questionTooltip';
+import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 
 import TrendsDiscoverQuery from './trendsDiscoverQuery';
 import Chart from './chart';
@@ -146,6 +147,54 @@ function handleChangeSelected(location: Location, trendChangeType: TrendChangeTy
       query,
     });
   };
+}
+
+enum FilterSymbols {
+  GREATER_THAN = '>',
+  LESS_THAN = '<',
+}
+
+function handleFilterTransaction(location: Location, transaction: string) {
+  const queryString = decodeScalar(location.query.query);
+  const conditions = tokenizeSearch(queryString || '');
+
+  conditions.addTagValues('!transaction', [transaction]);
+
+  const query = stringifyQueryObject(conditions);
+
+  browserHistory.push({
+    pathname: location.pathname,
+    query: {
+      ...location.query,
+      query: String(query).trim(),
+    },
+  });
+}
+
+function handleFilterDuration(location: Location, value: number, symbol: FilterSymbols) {
+  const durationTag = 'transaction.duration';
+  const queryString = decodeScalar(location.query.query);
+  const conditions = tokenizeSearch(queryString || '');
+
+  const existingValues = conditions.getTagValues(durationTag);
+
+  existingValues.forEach(existingValue => {
+    if (existingValue.startsWith(symbol)) {
+      conditions.removeTagValue(durationTag, existingValue);
+    }
+  });
+
+  conditions.addTagValues(durationTag, [`${symbol}${value}`]);
+
+  const query = stringifyQueryObject(conditions);
+
+  browserHistory.push({
+    pathname: location.pathname,
+    query: {
+      ...location.query,
+      query: String(query).trim(),
+    },
+  });
 }
 
 function ChangedTransactions(props: Props) {
@@ -323,14 +372,30 @@ function TrendsListItem(props: TrendsListItemProps) {
     0
   );
 
+  const previousDuration = getDuration(
+    previousPeriodValue / 1000,
+    previousPeriodValue < 1000 ? 0 : 2
+  );
+  const currentDuration = getDuration(
+    currentPeriodValue / 1000,
+    currentPeriodValue < 1000 ? 0 : 2
+  );
+
   const percentChangeExplanation = t(
     'Over this period, the duration for %s has %s %s from %s to %s',
     currentTrendFunction,
     trendChangeType === TrendChangeType.IMPROVED ? t('decreased') : t('increased'),
     absolutePercentChange,
-    getDuration(previousPeriodValue / 1000, previousPeriodValue < 1000 ? 0 : 2),
-    getDuration(currentPeriodValue / 1000, currentPeriodValue < 1000 ? 0 : 2)
+    previousDuration,
+    currentDuration
   );
+
+  const longestPeriodValue =
+    trendChangeType === TrendChangeType.IMPROVED
+      ? previousPeriodValue
+      : currentPeriodValue;
+  const longestDuration =
+    trendChangeType === TrendChangeType.IMPROVED ? previousDuration : currentDuration;
 
   return (
     <ListItemContainer data-test-id={'trends-list-item-' + trendChangeType}>
@@ -359,7 +424,7 @@ function TrendsListItem(props: TrendsListItemProps) {
             {transaction.transaction}
           </TransactionName>
         </Tooltip>
-        <DropdownLink
+        <StyledDropdownLink
           caret={false}
           title={
             <StyledButton
@@ -372,7 +437,34 @@ function TrendsListItem(props: TrendsListItemProps) {
           <MenuItem>
             <TransactionSummaryLink {...props} />
           </MenuItem>
-        </DropdownLink>
+          <MenuItem
+            onClick={() => handleFilterTransaction(location, transaction.transaction)}
+          >
+            <StyledMenuAction>{t('Hide from list')}</StyledMenuAction>
+          </MenuItem>
+          <MenuItem
+            onClick={() =>
+              handleFilterDuration(
+                location,
+                longestPeriodValue,
+                FilterSymbols.GREATER_THAN
+              )
+            }
+          >
+            <StyledMenuAction>
+              {t('Exclude transactions > %s', longestDuration)}
+            </StyledMenuAction>
+          </MenuItem>
+          <MenuItem
+            onClick={() =>
+              handleFilterDuration(location, longestPeriodValue, FilterSymbols.LESS_THAN)
+            }
+          >
+            <StyledMenuAction>
+              {t('Exclude transactions < %s', longestDuration)}
+            </StyledMenuAction>
+          </MenuItem>
+        </StyledDropdownLink>
       </ItemTransactionName>
       <ItemTransactionPercentage>
         <Tooltip title={percentChangeExplanation}>
@@ -529,11 +621,24 @@ const DurationChange = styled('a')`
   margin: 0 ${space(1)};
 `;
 
+const StyledMenuAction = styled('div')`
+  white-space: nowrap;
+  color: ${p => p.theme.textColor};
+`;
+
 const StyledSummaryLink = styled(Link)`
+  .dropdown-menu li & {
+    padding: 0;
+  }
+  padding: 0;
   color: ${p => p.theme.textColor};
   :hover {
     color: ${p => p.theme.textColor};
   }
+`;
+
+const StyledDropdownLink = styled(DropdownLink)`
+  min-width: 200px;
 `;
 
 const StyledEmptyStateWarning = styled(EmptyStateWarning)`
