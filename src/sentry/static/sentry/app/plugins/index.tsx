@@ -6,7 +6,7 @@ import SessionStackPlugin from './sessionstack';
 import SessionStackContextType from './sessionstack/contexts/sessionstack';
 import Jira from './jira';
 
-const contexts: Record<string, any> = {};
+const contexts: Record<string, React.ElementType> = {};
 const registry = new Registry();
 
 // Register legacy plugins
