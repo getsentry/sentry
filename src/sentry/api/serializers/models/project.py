@@ -187,6 +187,9 @@ class ProjectSerializer(Serializer):
         }
         if self.environment_id:
             query = u"{} environment:{}".format(query, self.environment_id)
+
+        # Generate a query result to skip the top_events.find query
+        top_events = {"data": [{"project_id": p} for p in project_ids]}
         stats = discover.top_events_timeseries(
             timeseries_columns=["count()"],
             selected_columns=["project_id"],
@@ -197,6 +200,7 @@ class ProjectSerializer(Serializer):
             limit=10000,
             organization=None,
             referrer="api.serializer.projects.get_stats",
+            top_events=top_events,
         )
         results = {}
         for project_id in project_ids:
