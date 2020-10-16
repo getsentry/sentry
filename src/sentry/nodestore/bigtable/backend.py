@@ -172,7 +172,7 @@ class BigtableNodeStorage(NodeStorage):
         self._set_cache_item(id, data)
 
     def encode_row(self, id, data, ttl=None):
-        data = json_dumps(data)
+        data = json_dumps(data).encode("utf-8")
 
         row = self.connection.row(id)
         # Call to delete is just a state mutation,

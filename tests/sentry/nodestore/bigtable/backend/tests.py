@@ -10,7 +10,7 @@ from sentry.utils.compat import mock
 @pytest.mark.skip(reason="Bigtable is not available in CI")
 class BigtableNodeStorageTest(TestCase):
     def setUp(self):
-        self.ns = BigtableNodeStorage()
+        self.ns = BigtableNodeStorage(project="test")
         self.ns.bootstrap()
 
     def test_get(self):
@@ -51,6 +51,10 @@ class BigtableNodeStorageTest(TestCase):
         self.ns.delete_multi([nodes[0][0], nodes[1][0]])
         assert not self.ns.get(nodes[0][0])
         assert not self.ns.get(nodes[1][0])
+
+    def test_compression(self):
+        self.ns.compression = True
+        self.test_get()
 
     def test_cache(self):
         node_1 = ("a" * 32, {"foo": "a"})
