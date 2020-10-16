@@ -260,6 +260,7 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
                     try:
                         action_serializer.save()
                     except ChannelLookupTimeoutError as e:
+                        # raise the lookup error after the rest of the validation is complete
                         channel_lookup_timeout_error = e
                 else:
                     raise serializers.ValidationError(action_serializer.errors)
@@ -525,6 +526,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                     try:
                         trigger_serializer.save()
                     except ChannelLookupTimeoutError as e:
+                        # raise the lookup error after the rest of the validation is complete
                         channel_lookup_timeout_error = e
                 else:
                     raise serializers.ValidationError(trigger_serializer.errors)
