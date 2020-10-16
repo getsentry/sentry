@@ -25,7 +25,10 @@ const {env} = process;
 const IS_PRODUCTION = env.NODE_ENV === 'production';
 const IS_TEST = env.NODE_ENV === 'test' || env.TEST_SUITE;
 const IS_STORYBOOK = env.STORYBOOK_BUILD === '1';
-const IS_CI = !!env.CI || !!env.TRAVIS;
+// This is used to stop rendering dynamic content for tests/snapshots
+// We want it in the case where we are running tests and it is in CI,
+// this should not happen in local
+const IS_CI = (!!env.CI || !!env.TRAVIS) && !!env.VISUAL_SNAPSHOT_ENABLE;
 const IS_DEPLOY_PREVIEW = !!env.NOW_GITHUB_DEPLOYMENT;
 const IS_UI_DEV_ONLY = !!env.SENTRY_UI_DEV_ONLY;
 const DEV_MODE = !(IS_PRODUCTION || IS_CI);
