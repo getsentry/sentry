@@ -64,7 +64,7 @@ class IssueListSidebar extends React.Component<Props, State> {
     }
   }
 
-  onSelectTag(tag: Tag, value: string | null) {
+  onSelectTag = (tag: Tag, value: string | null) => {
     const newQuery = {...this.state.queryObj};
     if (value) {
       newQuery[tag.key] = value;
@@ -78,13 +78,13 @@ class IssueListSidebar extends React.Component<Props, State> {
       },
       this.onQueryChange
     );
-  }
+  };
 
   onTextChange = (evt: React.ChangeEvent<HTMLInputElement>) => {
     this.setState({textFilter: evt.target.value});
   };
 
-  onTextFilterSubmit(evt?: React.FormEvent<HTMLFormElement>) {
+  onTextFilterSubmit = (evt?: React.FormEvent<HTMLFormElement>) => {
     evt && evt.preventDefault();
 
     const newQueryObj = {
@@ -98,21 +98,21 @@ class IssueListSidebar extends React.Component<Props, State> {
       },
       this.onQueryChange
     );
-  }
+  };
 
-  onQueryChange() {
+  onQueryChange = () => {
     const query = objToQuery(this.state.queryObj);
     this.props.onQueryChange && this.props.onQueryChange(query);
-  }
+  };
 
-  onClearSearch() {
+  onClearSearch = () => {
     this.setState(
       {
         textFilter: '',
       },
       this.onTextFilterSubmit
     );
-  }
+  };
 
   render() {
     const {loading, tagValueLoader, tags} = this.props;
