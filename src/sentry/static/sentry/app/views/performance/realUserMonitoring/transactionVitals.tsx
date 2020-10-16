@@ -107,13 +107,17 @@ class TransactionVitals extends React.Component<Props> {
       {}
     );
 
+    const allZoomed = vitals.every(
+      vital => bounds[vital]?.start !== undefined || bounds[vital]?.end !== undefined
+    );
+
     return (
       <MeasurementsHistogramQuery
         location={location}
         orgSlug={organization.slug}
         eventView={eventView}
         numBuckets={NUM_BUCKETS}
-        measurements={vitals.map(vital => WEB_VITAL_DETAILS[vital].slug)}
+        measurements={allZoomed ? [] : vitals.map(vital => WEB_VITAL_DETAILS[vital].slug)}
         min={min}
         max={max}
         precision={precision}
@@ -154,8 +158,8 @@ class TransactionVitals extends React.Component<Props> {
                       failureRate,
                       multiHistogramResults.histograms?.[vital] ?? [],
                       [colors[index]],
-                      start === undefined ? min : parseInt(start, 10),
-                      end === undefined ? min : parseInt(end, 10),
+                      start !== undefined ? parseInt(start, 10) : undefined,
+                      end !== undefined ? parseInt(end, 10) : undefined,
                       precision
                     )}
                   </React.Fragment>

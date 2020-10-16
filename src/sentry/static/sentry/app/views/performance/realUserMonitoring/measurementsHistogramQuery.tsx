@@ -96,6 +96,20 @@ function afterFetch(
 }
 
 function MeasurementsHistogramQuery(props: Props) {
+  const {children, measurements} = props;
+  if (measurements.length === 0) {
+    return (
+      <React.Fragment>
+        {children({
+          isLoading: false,
+          error: null,
+          pageLinks: null,
+          histograms: {},
+        })}
+      </React.Fragment>
+    );
+  }
+
   return (
     <GenericDiscoverQuery<Histograms, MeasurementsData>
       route="events-measurements-histogram"
