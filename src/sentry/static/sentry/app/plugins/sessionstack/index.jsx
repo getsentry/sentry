@@ -6,7 +6,7 @@ import Settings from './components/settings';
 
 class SessionStackPlugin extends BasePlugin {
   renderSettings(props) {
-    return <Settings plugin={this} {...props} />;
+    return <Settings plugin={this.plugin} {...props} />;
   }
 }
 
