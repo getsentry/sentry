@@ -27,10 +27,7 @@ jobs:
         id: changes
         with:
           token: ${{ github.token }}
-          filters: |
-            backend:
-              - '**/*.py'
-              - 'requirements*.txt'
+          filters: .github/file-filters.yml
 
       - name: Set python version output
         id: python-version
