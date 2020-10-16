@@ -46,6 +46,33 @@ export const WEB_VITAL_DETAILS: Record<WebVital, Vital> = {
     failureThreshold: 300,
     type: measurementType(WebVital.FID),
   },
+  [WebVital.CLS]: {
+    slug: 'cls',
+    name: t('Cumulative Layout Shift'),
+    description: t(
+      'The sum total of all individual layout shift scores for every unexpected layout shift that occurs during the entire lifespan of the page.'
+    ),
+    failureThreshold: 0.1,
+    type: measurementType(WebVital.CLS),
+  },
+  [WebVital.TTFB]: {
+    slug: 'ttfb',
+    name: t('Time to First Byte'),
+    description: t(
+      "The time that it takes for a user's browser to receive the first byte of page content."
+    ),
+    failureThreshold: 600,
+    type: measurementType(WebVital.TTFB),
+  },
+  [WebVital.RequestTime]: {
+    slug: 'ttfb.requesttime',
+    name: t('Request Time'),
+    description: t(
+      'Captures the time spent making the request and receiving the first byte of the response.'
+    ),
+    failureThreshold: 600,
+    type: measurementType(WebVital.TTFB),
+  },
 };
 
 export const FILTER_OPTIONS: SelectValue<string>[] = [
@@ -53,25 +80,29 @@ export const FILTER_OPTIONS: SelectValue<string>[] = [
   {label: t('View All'), value: 'all'},
 ];
 
-export const ZOOM_KEYS = Object.values(WebVital).reduce((zoomKeys: string[], vital) => {
-  const vitalSlug = WEB_VITAL_DETAILS[vital].slug;
-  zoomKeys.push(`${vitalSlug}Start`);
-  zoomKeys.push(`${vitalSlug}End`);
-  return zoomKeys;
-}, []);
-
 /**
  * This defines the grouping for histograms. Histograms that are in the same group
  * will be queried together on initial load for alignment. However, the zoom controls
  * are defined for each measurement independently.
  */
+const _VITAL_GROUPS = [[WebVital.FP, WebVital.FCP, WebVital.LCP], [WebVital.FID]];
+
 const _COLORS = [
-  ...theme.charts.getColorPalette(Object.values(WebVital).length - 1),
+  ...theme.charts.getColorPalette(
+    _VITAL_GROUPS.reduce((count, group) => count + group.length, 0) - 1
+  ),
 ].reverse();
-export const VITAL_GROUPS = [
-  [WebVital.FP, WebVital.FCP, WebVital.LCP],
-  [WebVital.FID],
-].map(group => ({
+
+export const VITAL_GROUPS = _VITAL_GROUPS.map(group => ({
   group,
   colors: _COLORS.splice(0, group.length),
 }));
+
+export const ZOOM_KEYS = _VITAL_GROUPS.reduce((keys: string[], group) => {
+  group.forEach(vital => {
+    const vitalSlug = WEB_VITAL_DETAILS[vital].slug;
+    keys.push(`${vitalSlug}Start`);
+    keys.push(`${vitalSlug}End`);
+  });
+  return keys;
+}, []);

@@ -757,8 +757,23 @@ class QueryTransformTest(TestCase):
             selected_columns=["transaction"],
             aggregations=[
                 [
-                    "quantileIf(0.50)(duration,and(greaterOrEquals(timestamp,toDateTime('2020-05-02T13:45:01')),less(timestamp,toDateTime('2020-05-02T14:45:01'))))",
-                    None,
+                    "quantileIf(0.50)",
+                    [
+                        "duration",
+                        [
+                            "and",
+                            [
+                                [
+                                    "lessOrEquals",
+                                    [["toDateTime", ["'2020-05-02T13:45:01'"]], "timestamp"],
+                                ],
+                                [
+                                    "greater",
+                                    [["toDateTime", ["'2020-05-02T14:45:01'"]], "timestamp"],
+                                ],
+                            ],
+                        ],
+                    ],
                     "percentile_range_1",
                 ]
             ],
@@ -794,8 +809,23 @@ class QueryTransformTest(TestCase):
             selected_columns=["transaction"],
             aggregations=[
                 [
-                    "avgIf(duration,and(greaterOrEquals(timestamp,toDateTime('2020-05-02T13:45:01')),less(timestamp,toDateTime('2020-05-02T14:45:01'))))",
-                    None,
+                    "avgIf",
+                    [
+                        "duration",
+                        [
+                            "and",
+                            [
+                                [
+                                    "lessOrEquals",
+                                    [["toDateTime", ["'2020-05-02T13:45:01'"]], "timestamp"],
+                                ],
+                                [
+                                    "greater",
+                                    [["toDateTime", ["'2020-05-02T14:45:01'"]], "timestamp"],
+                                ],
+                            ],
+                        ],
+                    ],
                     "avg_range_1",
                 ]
             ],
@@ -831,8 +861,35 @@ class QueryTransformTest(TestCase):
             selected_columns=["transaction"],
             aggregations=[
                 [
-                    "uniqIf(user,and(greater(duration,1200),and(greaterOrEquals(timestamp,toDateTime('2020-05-02T13:45:01')),less(timestamp,toDateTime('2020-05-02T14:45:01')))))",
-                    None,
+                    "uniqIf",
+                    [
+                        "user",
+                        [
+                            "and",
+                            [
+                                ["greater", ["duration", 1200]],
+                                [
+                                    "and",
+                                    [
+                                        [
+                                            "lessOrEquals",
+                                            [
+                                                ["toDateTime", ["'2020-05-02T13:45:01'"]],
+                                                "timestamp",
+                                            ],
+                                        ],
+                                        [
+                                            "greater",
+                                            [
+                                                ["toDateTime", ["'2020-05-02T14:45:01'"]],
+                                                "timestamp",
+                                            ],
+                                        ],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
                     "user_misery_range_1",
                 ]
             ],
@@ -1353,6 +1410,106 @@ class QueryTransformTest(TestCase):
                 params={"project_id": [self.project.id], "start": start_time, "end": end_time},
                 use_aggregate_conditions=True,
             )
+
+    @patch("sentry.snuba.discover.raw_query")
+    def test_aggregate_condition_missing_with_auto(self, mock_query):
+        mock_query.return_value = {
+            "meta": [{"name": "transaction"}, {"name": "duration"}],
+            "data": [{"transaction": "api.do_things", "duration": 200}],
+        }
+        start_time = before_now(minutes=10)
+        end_time = before_now(seconds=1)
+
+        with pytest.raises(InvalidSearchQuery):
+            discover.query(
+                selected_columns=["transaction"],
+                query="http.method:GET max(time):>5",
+                params={"project_id": [self.project.id], "start": start_time, "end": end_time},
+                use_aggregate_conditions=True,
+                auto_aggregations=True,
+            )
+
+    @patch("sentry.snuba.discover.raw_query")
+    def test_no_aggregate_conditions_with_auto(self, mock_query):
+        mock_query.return_value = {
+            "meta": [{"name": "transaction"}, {"name": "duration"}],
+            "data": [{"transaction": "api.do_things", "duration": 200}],
+        }
+        start_time = before_now(minutes=10)
+        end_time = before_now(seconds=1)
+
+        with pytest.raises(AssertionError):
+            discover.query(
+                selected_columns=["transaction"],
+                query="http.method:GET max(time):>5",
+                params={"project_id": [self.project.id], "start": start_time, "end": end_time},
+                use_aggregate_conditions=False,
+                auto_aggregations=True,
+            )
+
+    @patch("sentry.snuba.discover.raw_query")
+    def test_auto_aggregation(self, mock_query):
+        mock_query.return_value = {
+            "meta": [{"name": "transaction"}, {"name": "duration"}],
+            "data": [{"transaction": "api.do_things", "duration": 200}],
+        }
+        start_time = before_now(minutes=10)
+        end_time = before_now(seconds=1)
+
+        discover.query(
+            selected_columns=["transaction", "p95()"],
+            query="http.method:GET max(time):>5",
+            params={"project_id": [self.project.id], "start": start_time, "end": end_time},
+            use_aggregate_conditions=True,
+            auto_aggregations=True,
+        )
+        mock_query.assert_called_with(
+            selected_columns=["transaction"],
+            aggregations=[["quantile(0.95)", "duration", "p95"], ["max", "time", "max_time"]],
+            filter_keys={"project_id": [self.project.id]},
+            dataset=Dataset.Discover,
+            groupby=["transaction"],
+            conditions=[["http_method", "=", "GET"]],
+            start=start_time,
+            end=end_time,
+            orderby=None,
+            having=[["max_time", ">", 5.0]],
+            limit=50,
+            offset=None,
+            referrer=None,
+        )
+
+    @patch("sentry.snuba.discover.raw_query")
+    def test_auto_aggregation_with_boolean_conditions(self, mock_query):
+        mock_query.return_value = {
+            "meta": [{"name": "transaction"}, {"name": "duration"}],
+            "data": [{"transaction": "api.do_things", "duration": 200}],
+        }
+        start_time = before_now(minutes=10)
+        end_time = before_now(seconds=1)
+
+        discover.query(
+            selected_columns=["transaction", "min(time)"],
+            query="max(time):>5 AND min(time):<10",
+            params={"project_id": [self.project.id], "start": start_time, "end": end_time},
+            use_aggregate_conditions=True,
+            auto_aggregations=True,
+        )
+        mock_query.assert_called_with(
+            selected_columns=["transaction"],
+            aggregations=[["min", "time", "min_time"], ["max", "time", "max_time"]],
+            filter_keys={"project_id": [self.project.id]},
+            dataset=Dataset.Discover,
+            groupby=["transaction"],
+            conditions=[],
+            start=start_time,
+            end=end_time,
+            orderby=None,
+            having=[["max_time", ">", 5.0], ["min_time", "<", 10.0]],
+            limit=50,
+            offset=None,
+            referrer=None,
+        )
 
     @patch("sentry.snuba.discover.raw_query")
     def test_function_conditions(self, mock_query):

@@ -13,16 +13,27 @@ statusProvider:
 targets:
   - name: github
   - name: pypi
-  - id: py2-image
+  - id: py2-release
     name: docker
     source: us.gcr.io/sentryio/sentry
     target: getsentry/sentry
-  - id: py3-image
+  - id: py2-latest
+    name: docker
+    source: us.gcr.io/sentryio/sentry
+    target: getsentry/sentry
+    targetFormat: '{{{target}}}:latest'
+  - id: py3-release
     name: docker
     source: us.gcr.io/sentryio/sentry
     sourceFormat: '{{{source}}}:{{{revision}}}-py3'
     target: getsentry/sentry
     targetFormat: '{{{target}}}:{{{version}}}-py3'
+  - id: py3-latest
+    name: docker
+    source: us.gcr.io/sentryio/sentry
+    sourceFormat: '{{{source}}}:{{{revision}}}-py3'
+    target: getsentry/sentry
+    targetFormat: '{{{target}}}:latest-py3'
 
 requireNames:
   - /^sentry-.+-py2.py3-none-any.whl$/

@@ -93,6 +93,7 @@ default_manager.add("organizations:slack-migration", OrganizationFeature)  # NOQ
 default_manager.add("organizations:sso-basic", OrganizationFeature)  # NOQA
 default_manager.add("organizations:sso-rippling", OrganizationFeature)  # NOQA
 default_manager.add("organizations:sso-saml2", OrganizationFeature)  # NOQA
+default_manager.add("organizations:sso-migration", OrganizationFeature)  # NOQA
 default_manager.add("organizations:symbol-sources", OrganizationFeature)  # NOQA
 default_manager.add("organizations:transaction-comparison", OrganizationFeature)  # NOQA
 default_manager.add("organizations:trends", OrganizationFeature)  # NOQA

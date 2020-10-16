@@ -4,10 +4,10 @@ from __future__ import absolute_import
 import os
 import sys
 
-if os.environ.get("SENTRY_PYTHON3") and sys.version_info[:2] != (3, 6):
+if os.environ.get("SENTRY_PYTHON3") == "1" and sys.version_info[:2] != (3, 6):
     sys.exit("Error: Sentry [In EXPERIMENTAL python 3 mode] requires Python 3.6.")
 
-if not os.environ.get("SENTRY_PYTHON3") and sys.version_info[:2] != (2, 7):
+if os.environ.get("SENTRY_PYTHON3") != "1" and sys.version_info[:2] != (2, 7):
     sys.exit("Error: Sentry requires Python 2.7.")
 
 from distutils.command.build import build as BuildCommand
@@ -28,17 +28,8 @@ from sentry.utils.distutils import (
 )
 
 
-VERSION = "20.10.0.dev0"
+VERSION = "20.11.0.dev0"
 IS_LIGHT_BUILD = os.environ.get("SENTRY_LIGHT_BUILD") == "1"
-
-
-def get_requirements(env):
-    with open(u"requirements-{}.txt".format(env)) as fp:
-        return [x.strip() for x in fp.read().split("\n") if not x.startswith("#")]
-
-
-install_requires = get_requirements("base")
-dev_requires = get_requirements("dev")
 
 
 class SentrySDistCommand(SDistCommand):
@@ -84,6 +75,19 @@ cmdclass = {
 }
 
 
+def get_requirements(env):
+    with open(u"requirements-{}.txt".format(env)) as fp:
+        return [x.strip() for x in fp.read().split("\n") if not x.startswith("#")]
+
+
+# Only include dev requirements in non-binary distributions as we don't want these
+# to be listed in the wheels. Main reason for this is being able to use git/URL dependencies
+# for development, which will be rejected by PyPI when trying to upload the wheel.
+extras_require = {"rabbitmq": ["amqp==2.6.1"]}
+if not sys.argv[1:][0].startswith("bdist"):
+    extras_require["dev"] = get_requirements("dev")
+
+
 setup(
     name="sentry",
     version=VERSION,
@@ -96,8 +100,8 @@ setup(
     package_dir={"": "src"},
     packages=find_packages("src"),
     zip_safe=False,
-    install_requires=install_requires,
-    extras_require={"dev": dev_requires, "rabbitmq": ["amqp==2.6.1"]},
+    install_requires=get_requirements("base"),
+    extras_require=extras_require,
     cmdclass=cmdclass,
     license="BSL-1.1",
     include_package_data=True,

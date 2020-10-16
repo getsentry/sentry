@@ -567,16 +567,11 @@ describe('Performance > Trends', function () {
           : aliasedFieldDivide;
 
       const defaultTrendsFields = ['project', 'count()'];
-      const trendFunctionFields = TRENDS_FUNCTIONS.map(({field}) => field);
 
-      const transactionFields = [
-        ...trendFunctionFields,
-        'transaction',
-        ...defaultTrendsFields,
-      ];
-      const projectFields = [...trendFunctionFields, ...defaultTrendsFields];
+      const transactionFields = ['transaction', ...defaultTrendsFields];
+      const projectFields = [...defaultTrendsFields];
 
-      expect(transactionFields).toHaveLength(8);
+      expect(transactionFields).toHaveLength(3);
       expect(projectFields).toHaveLength(transactionFields.length - 1);
 
       // Improved projects call
