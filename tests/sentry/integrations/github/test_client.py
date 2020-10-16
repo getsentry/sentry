@@ -4,6 +4,7 @@ import responses
 from sentry.utils.compat import mock
 
 from sentry.testutils import TestCase
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.models import Integration
 
 
@@ -44,40 +45,47 @@ class GitHubAppsClientTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_check_source_code_link(self, get_jwt):
+    def test_get_file_url(self, get_jwt):
         responses.add(
             method=responses.POST,
             url="https://api.github.com/app/installations/1/access_tokens",
             body='{"token": "12345token", "expires_at": "2030-01-01T00:00:00Z"}',
-            status=200,
             content_type="application/json",
         )
 
-        path = u"https://github.com/getsentry/sentry/blob/master/src/sentry/integrations/github/client.py#L22"
+        repo = "getsentry/sentry"
+        path = "/src/sentry/integrations/github/client.py"
+        url = "https://api.github.com/repos/{}/contents/{}".format(repo, path)
 
         responses.add(
-            method=responses.HEAD, url=path, status=200,
+            method=responses.GET,
+            url=url,
+            json={
+                "html_url": "https://github.com/getsentry/sentry/blob/master/src/sentry/integrations/github/client.py"
+            },
         )
 
-        resp = self.client.check_source_code_link(path)
-        assert resp == 200
+        resp = self.client.get_file_url(repo, path)
+        assert (
+            resp
+            == "https://github.com/getsentry/sentry/blob/master/src/sentry/integrations/github/client.py"
+        )
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_check_bad_source_code_link(self, get_jwt):
+    def test_not_get_file_url(self, get_jwt):
         responses.add(
             method=responses.POST,
             url="https://api.github.com/app/installations/1/access_tokens",
             body='{"token": "12345token", "expires_at": "2030-01-01T00:00:00Z"}',
-            status=200,
             content_type="application/json",
         )
 
-        path = u"https://github.com/getsentry/sentry/blob/master/src/santry/integrations/github/client.py#L22"
+        repo = "getsentry/sentry"
+        path = "/src/santry/integrations/github/client.py"
+        url = "https://api.github.com/repos/{}/contents/{}".format(repo, path)
 
-        responses.add(
-            method=responses.HEAD, url=path, status=404,
-        )
+        responses.add(method=responses.GET, url=url, status=404)
 
-        resp = self.client.check_source_code_link(path)
-        assert resp == 404
+        with self.assertRaises(ApiError):
+            self.client.get_file_url(repo, path)

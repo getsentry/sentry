@@ -285,19 +285,6 @@ class BaseApiClient(object):
     def get(self, *args, **kwargs):
         return self.request("GET", *args, **kwargs)
 
-    def head(self, *args, **kwargs):
-        return self.request("HEAD", *args, **kwargs)
-
-    def head_cached(self, *args, **kwargs):
-        path = kwargs.get("path", None)
-        key = self.get_cache_prefix() + md5_text(self.build_url(path)).hexdigest()
-
-        result = cache.get(key)
-        if result is None:
-            result = self.request("HEAD", *args, **kwargs)
-            cache.set(key, result, self.cache_time)
-        return result
-
     def patch(self, *args, **kwargs):
         return self.request("PATCH", *args, **kwargs)
 

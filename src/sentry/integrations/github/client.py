@@ -4,7 +4,6 @@ from datetime import datetime
 
 from sentry.integrations.github.utils import get_jwt
 from sentry.integrations.client import ApiClient
-from sentry.shared_integrations.exceptions import ApiError
 from sentry.web.decorators import transaction_start
 
 
@@ -115,12 +114,8 @@ class GitHubClientMixin(ApiClient):
         )
 
     @transaction_start("GitHubClientMixin")
-    def check_source_code_link(self, path):
-        self.allow_text = True
-        try:
-            return self.head_cached(path=path).status_code
-        except ApiError as e:
-            return e.code
+    def get_file_url(self, repo, path):
+        return self.get_cached(path="/repos/{}/contents/{}".format(repo, path))["html_url"]
 
 
 class GitHubAppsClient(GitHubClientMixin):
