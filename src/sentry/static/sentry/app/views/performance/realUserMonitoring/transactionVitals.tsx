@@ -3,13 +3,14 @@ import {Location} from 'history';
 
 import {Panel} from 'app/components/panels';
 import {Organization} from 'app/types';
-import DiscoverQuery from 'app/utils/discover/discoverQuery';
+import DiscoverQuery, {TableData} from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
 import {WebVital, getAggregateAlias} from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
+import {GenericChildrenProps} from 'app/utils/discover/genericDiscoverQuery';
 
 import {NUM_BUCKETS, PERCENTILE, WEB_VITAL_DETAILS, VITAL_GROUPS} from './constants';
-import {HistogramData} from './types';
+import {HistogramData, VitalGroup} from './types';
 import VitalCard from './vitalCard';
 import MeasurementsHistogramQuery from './measurementsHistogramQuery';
 
@@ -29,8 +30,9 @@ class TransactionVitals extends React.Component<Props> {
     failureRate: number,
     histogram: HistogramData[],
     color: [string],
-    min?: string,
-    max?: string
+    min?: number,
+    max?: number,
+    precision?: number
   ) {
     const {location, organization, eventView, dataFilter} = this.props;
     const vitalDetails = WEB_VITAL_DETAILS[vital];
@@ -43,9 +45,10 @@ class TransactionVitals extends React.Component<Props> {
           eventView={eventView}
           numBuckets={NUM_BUCKETS}
           measurements={[vitalDetails.slug]}
-          dataFilter={dataFilter}
           min={min}
           max={max}
+          precision={precision}
+          dataFilter={dataFilter}
         >
           {results => (
             <VitalCard
@@ -61,6 +64,7 @@ class TransactionVitals extends React.Component<Props> {
               organization={organization}
               min={min}
               max={max}
+              precision={precision}
             />
           )}
         </MeasurementsHistogramQuery>
@@ -78,13 +82,36 @@ class TransactionVitals extends React.Component<Props> {
           colors={color}
           eventView={eventView}
           organization={organization}
+          precision={precision}
         />
       );
     }
   }
 
-  renderVitalGroup(vitals: WebVital[], summaryResults: any, colors: string[]) {
+  renderVitalGroup(group: VitalGroup, summaryResults: GenericChildrenProps<TableData>) {
     const {location, organization, eventView, dataFilter} = this.props;
+    const {vitals, colors, min, max, precision} = group;
+
+    const bounds = vitals.reduce(
+      (
+        allBounds: Partial<
+          Record<WebVital, {start: string | undefined; end: string | undefined}>
+        >,
+        vital: WebVital
+      ) => {
+        const slug = WEB_VITAL_DETAILS[vital].slug;
+        allBounds[vital] = {
+          start: decodeScalar(location.query[`${slug}Start`]),
+          end: decodeScalar(location.query[`${slug}End`]),
+        };
+        return allBounds;
+      },
+      {}
+    );
+
+    const allZoomed = vitals.every(
+      vital => bounds[vital]?.start !== undefined || bounds[vital]?.end !== undefined
+    );
 
     return (
       <MeasurementsHistogramQuery
@@ -92,7 +119,10 @@ class TransactionVitals extends React.Component<Props> {
         orgSlug={organization.slug}
         eventView={eventView}
         numBuckets={NUM_BUCKETS}
-        measurements={vitals.map(vital => WEB_VITAL_DETAILS[vital].slug)}
+        measurements={allZoomed ? [] : vitals.map(vital => WEB_VITAL_DETAILS[vital].slug)}
+        min={min}
+        max={max}
+        precision={precision}
         dataFilter={dataFilter}
       >
         {multiHistogramResults => {
@@ -103,13 +133,12 @@ class TransactionVitals extends React.Component<Props> {
             <React.Fragment>
               {vitals.map((vital, index) => {
                 const details = WEB_VITAL_DETAILS[vital];
-                const vitalSlug = details.slug;
                 const data = summaryResults.tableData?.data?.[0];
 
                 const percentileAlias = getAggregateAlias(
                   `percentile(${vital}, ${PERCENTILE})`
                 );
-                const summary = data?.[percentileAlias] ?? null;
+                const summary = (data?.[percentileAlias] ?? null) as number | null;
 
                 const countAlias = getAggregateAlias(`count_at_least(${vital}, 0)`);
                 const failedAlias = getAggregateAlias(
@@ -118,6 +147,8 @@ class TransactionVitals extends React.Component<Props> {
                 const numerator = (data?.[failedAlias] ?? 0) as number;
                 const denominator = (data?.[countAlias] ?? 0) as number;
                 const failureRate = denominator <= 0 ? 0 : numerator / denominator;
+
+                const {start, end} = bounds[vital] ?? {};
 
                 return (
                   <React.Fragment key={vital}>
@@ -129,8 +160,9 @@ class TransactionVitals extends React.Component<Props> {
                       failureRate,
                       multiHistogramResults.histograms?.[vital] ?? [],
                       [colors[index]],
-                      decodeScalar(location.query[`${vitalSlug}Start`]),
-                      decodeScalar(location.query[`${vitalSlug}End`])
+                      start !== undefined ? parseInt(start, 10) : undefined,
+                      end !== undefined ? parseInt(end, 10) : undefined,
+                      precision
                     )}
                   </React.Fragment>
                 );
@@ -156,8 +188,8 @@ class TransactionVitals extends React.Component<Props> {
           {results => (
             <React.Fragment>
               {VITAL_GROUPS.map(vitalGroup => (
-                <React.Fragment key={vitalGroup.group.join('')}>
-                  {this.renderVitalGroup(vitalGroup.group, results, vitalGroup.colors)}
+                <React.Fragment key={vitalGroup.vitals.join('')}>
+                  {this.renderVitalGroup(vitalGroup, results)}
                 </React.Fragment>
               ))}
             </React.Fragment>

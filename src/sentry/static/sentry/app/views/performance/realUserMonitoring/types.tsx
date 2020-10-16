@@ -1,4 +1,4 @@
-import {ColumnType} from 'app/utils/discover/fields';
+import {ColumnType, WebVital} from 'app/utils/discover/fields';
 
 export type HistogramData = {
   histogram: number;
@@ -12,6 +12,14 @@ export type Vital = {
   failureThreshold: number;
   type: ColumnType;
   includeInSummary?: boolean;
+};
+
+export type VitalGroup = {
+  vitals: WebVital[];
+  colors: string[];
+  min?: number;
+  max?: number;
+  precision?: number;
 };
 
 export type Point = {
