@@ -64,6 +64,8 @@ steps:
       - get-onpremise-repo
     entrypoint: 'bash'
     dir: onpremise
+    env:
+      - 'CI=1'
     args:
       - '-e'
       - '-c'
@@ -89,6 +91,7 @@ steps:
     entrypoint: 'bash'
     dir: onpremise
     env:
+      - 'CI=1'
       - 'SENTRY_PYTHON3=1'
     args:
       - '-e'
@@ -170,7 +173,6 @@ options:
     - 'SENTRY_IMAGE=us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA'
     - 'DOCKER_REPO=getsentry/sentry'
     - 'SENTRY_TEST_HOST=http://nginx'
-    - 'CI=1'
 secrets:
   - kmsKeyName: projects/sentryio/locations/global/keyRings/service-credentials/cryptoKeys/cloudbuild
     secretEnv:
