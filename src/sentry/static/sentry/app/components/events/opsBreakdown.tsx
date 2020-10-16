@@ -218,8 +218,8 @@ class OpsBreakdown extends React.Component<Props> {
 
     return (
       <StyledBreakdown>
-        <BreakdownHeader>
-          <SectionHeading>{t('Operation Breakdown')}</SectionHeading>
+        <SectionHeading>
+          {t('Operation Breakdown')}
           <QuestionTooltip
             position="top"
             size="sm"
@@ -228,7 +228,7 @@ class OpsBreakdown extends React.Component<Props> {
               'Durations are calculated by summing span durations over the course of the transaction. Percentages are then calculated by dividing the individual op duration by the sum of total op durations. Overlapping/parallel spans are only counted once.'
             )}
           />
-        </BreakdownHeader>
+        </SectionHeading>
         {breakdown.map(currOp => {
           const {name, percentage, totalInterval} = currOp;
 
@@ -305,11 +305,6 @@ const Dur = styled('div')`
 const Pct = styled('div')`
   min-width: 40px;
   text-align: right;
-`;
-
-const BreakdownHeader = styled('div')`
-  display: flex;
-  align-items: center;
 `;
 
 function mergeInterval(intervals: TimeWindowSpan[]): TimeWindowSpan[] {

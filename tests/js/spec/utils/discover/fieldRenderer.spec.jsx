@@ -47,7 +47,7 @@ describe('getFieldRenderer', function () {
     const renderer = getFieldRenderer('boolValue', {boolValue: 'boolean'});
     const wrapper = mount(renderer(data, {location, organization}));
     const text = wrapper.find('Container');
-    expect(text.text()).toEqual('yes');
+    expect(text.text()).toEqual('true');
   });
 
   it('can render integer fields', function () {

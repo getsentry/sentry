@@ -1,12 +1,18 @@
 import React from 'react';
-import {Location} from 'history';
 import omit from 'lodash/omit';
 
 import {Client} from 'app/api';
-import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
+import GenericDiscoverQuery, {
+  DiscoverQueryProps,
+  GenericChildrenProps,
+} from 'app/utils/discover/genericDiscoverQuery';
 import withApi from 'app/utils/withApi';
 
 import {HistogramData} from './types';
+
+type RawHistogramResponse = {
+  data: RawHistogramData[];
+};
 
 type RawHistogramData = {
   key: string;
@@ -14,151 +20,84 @@ type RawHistogramData = {
   count: number;
 };
 
-type ChildrenProps = {
-  isLoading: boolean;
-  error: string | null;
-  histograms: Record<string, HistogramData[]>;
-};
+type Histograms = Record<string, HistogramData[]>;
 
-type Props = {
-  api: Client;
-  location: Location;
-  orgSlug: string;
-  eventView: EventView;
-  // these measurement names should NOT be prefixed with `measurements.`
+type MeasurementsData = {
   measurements: string[];
   numBuckets: number;
-  children: (props: ChildrenProps) => React.ReactNode;
   min?: string;
   max?: string;
+  dataFilter?: string;
 };
 
-type State = {
-  fetchId: symbol | null;
-} & ChildrenProps;
+type RequestProps = DiscoverQueryProps & MeasurementsData;
 
-class MeasurementsHistogramQuery extends React.Component<Props, State> {
-  state: State = {
-    isLoading: true,
-    fetchId: null,
-    error: null,
-    histograms: {},
+type ChildrenProps = Omit<GenericChildrenProps<MeasurementsData>, 'tableData'> & {
+  histograms: Histograms | null;
+};
+
+type Props = RequestProps & {
+  children: (props: ChildrenProps) => React.ReactNode;
+};
+
+function getMeasurementsHistogramRequestPayload(props: any) {
+  const {measurements, numBuckets, min, max, dataFilter, eventView, location} = props;
+  const baseApiPayload = {
+    measurement: measurements,
+    num_buckets: numBuckets,
+    min,
+    max,
+    dataFilter,
   };
+  const additionalApiPayload = omit(eventView.getEventsAPIPayload(location), [
+    'field',
+    'sort',
+    'per_page',
+  ]);
+  const apiPayload = Object.assign(baseApiPayload, additionalApiPayload);
+  return apiPayload;
+}
 
-  componentDidMount() {
-    this.fetchData();
-  }
+function beforeFetch(api: Client) {
+  api.clear();
+}
 
-  componentDidUpdate(prevProps: Props) {
-    // Reload data if the payload changes
-    const refetchCondition = this.shouldRefetchData(prevProps);
+function afterFetch(
+  response: RawHistogramResponse,
+  props: RequestProps
+): Record<string, HistogramData[]> {
+  const data = response.data;
+  const {measurements} = props;
 
-    // or if we've moved from an invalid view state to a valid one,
-    const eventViewValidation =
-      !prevProps.eventView.isValid() && this.props.eventView.isValid();
+  const histogramData = measurements.reduce((record, measurement) => {
+    record[`measurements.${measurement}`] = [];
+    return record;
+  }, {});
 
-    const minMaxChanged =
-      prevProps.min !== this.props.min || prevProps.max !== this.props.max;
-
-    if (refetchCondition || eventViewValidation || minMaxChanged) {
-      this.fetchData();
-    }
-  }
-
-  shouldRefetchData(prevProps: Props): boolean {
-    const thisAPIPayload = this.props.eventView.getEventsAPIPayload(this.props.location);
-    const otherAPIPayload = prevProps.eventView.getEventsAPIPayload(prevProps.location);
-
-    return !isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
-  }
-
-  fetchData = () => {
-    const {eventView, location, orgSlug, measurements, numBuckets, min, max} = this.props;
-
-    if (!eventView.isValid()) {
-      return;
-    }
-
-    const url = `/organizations/${orgSlug}/events-measurements-histogram/`;
-    const fetchId = Symbol('fetchId');
-
-    const baseApiPayload = {
-      measurement: measurements,
-      num_buckets: numBuckets,
-      min,
-      max,
-    };
-    const additionalApiPayload = omit(eventView.getEventsAPIPayload(location), [
-      'field',
-      'sort',
-      'per_page',
-    ]);
-    const apiPayload = Object.assign(baseApiPayload, additionalApiPayload);
-
-    this.setState({isLoading: true, fetchId});
-
-    // clear any previous api requests as there should just be 1 in-flight at any time
-    this.props.api.clear();
-    this.props.api
-      .requestPromise(url, {
-        method: 'GET',
-        includeAllArgs: true,
-        query: {
-          ...apiPayload,
-        },
-      })
-      .then(
-        ([data, _status, _jqXHR]) => {
-          if (this.state.fetchId !== fetchId) {
-            return;
-          }
-
-          this.setState({
-            isLoading: false,
-            fetchId: null,
-            error: null,
-            histograms: this.formatData(data.data),
-          });
-        },
-        err => {
-          this.setState({
-            isLoading: false,
-            fetchId: null,
-            error: err?.responseJSON?.detail ?? null,
-            histograms: {},
-          });
-        }
-      );
-  };
-
-  formatData(data: RawHistogramData[]): Record<string, HistogramData[]> {
-    const {measurements} = this.props;
-
-    const histogramData = measurements.reduce((record, measurement) => {
-      record[`measurements.${measurement}`] = [];
-      return record;
-    }, {});
-
-    data.forEach(row => {
-      histogramData[`measurements.${row.key}`].push({
-        histogram: row.bin,
-        count: row.count,
-      });
+  data?.forEach(row => {
+    histogramData[`measurements.${row.key}`].push({
+      histogram: row.bin,
+      count: row.count,
     });
+  });
 
-    return histogramData;
-  }
+  return histogramData;
+}
 
-  render() {
-    const {children} = this.props;
-    const {isLoading, error, histograms} = this.state;
-
-    return children({
-      isLoading,
-      error,
-      histograms,
-    });
-  }
+function MeasurementsHistogramQuery(props: Props) {
+  return (
+    <GenericDiscoverQuery<Histograms, MeasurementsData>
+      route="events-measurements-histogram"
+      getRequestPayload={getMeasurementsHistogramRequestPayload}
+      beforeFetch={beforeFetch}
+      afterFetch={afterFetch}
+      {...omit(props, 'children')}
+    >
+      {({tableData, ...rest}) => {
+        return props.children({histograms: tableData, ...rest});
+      }}
+    </GenericDiscoverQuery>
+  );
 }
 
 export default withApi(MeasurementsHistogramQuery);

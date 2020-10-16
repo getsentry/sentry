@@ -23,6 +23,8 @@ import {
   getAggregateAlias,
   TRACING_FIELDS,
   Aggregation,
+  isMeasurement,
+  measurementType,
 } from 'app/utils/discover/fields';
 
 import {ALL_VIEWS, TRANSACTION_VIEWS} from './data';
@@ -67,14 +69,16 @@ export function decodeColumnOrder(
         column.type = aggregate.outputType;
       } else if (FIELDS.hasOwnProperty(col.function[1])) {
         column.type = FIELDS[col.function[1]];
+      } else if (isMeasurement(col.function[1])) {
+        column.type = measurementType(col.function[1]);
       }
       column.isSortable = aggregate && aggregate.isSortable;
     } else if (col.kind === 'field') {
-      // TODO(tonyx): this needs a more robust solution
-      // also not all measurements are durations, some are numbers
-      column.type = col.field.startsWith('measurements.')
-        ? 'duration'
-        : FIELDS[col.field];
+      if (FIELDS.hasOwnProperty(col.field)) {
+        column.type = FIELDS[col.field];
+      } else if (isMeasurement(col.field)) {
+        column.type = measurementType(col.field);
+      }
     }
     column.column = col;
 
@@ -491,8 +495,7 @@ export function generateFieldOptions({
         label: measurement,
         value: {
           kind: FieldValueKind.MEASUREMENT,
-          // TODO(tonyx): not all measurements are durations, some are numbers
-          meta: {name: measurement, dataType: 'duration'},
+          meta: {name: measurement, dataType: measurementType(measurement)},
         },
       };
     });

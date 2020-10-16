@@ -13,16 +13,15 @@ import {t} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
 import {Organization, Project, GlobalSelection} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
-import {isAggregateField} from 'app/utils/discover/fields';
+import {WebVital, isAggregateField} from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
 import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
 
-import {PERCENTILE} from './constants';
+import {PERCENTILE, WEB_VITAL_DETAILS, VITAL_GROUPS} from './constants';
 import RumContent from './content';
-import {WebVital} from './types';
 import {getTransactionName} from '../utils';
 import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
 
@@ -164,12 +163,23 @@ function generateRumEventView(
     if (isAggregateField(field)) conditions.removeTag(field);
   });
 
+  const vitals = VITAL_GROUPS.reduce((allVitals: WebVital[], group) => {
+    return allVitals.concat(group.group);
+  }, []);
+
   return EventView.fromNewQueryWithLocation(
     {
       id: undefined,
       version: 2,
       name: transactionName,
-      fields: Object.values(WebVital).map(vital => `percentile(${vital}, ${PERCENTILE})`),
+      fields: [
+        ...vitals.map(vital => `percentile(${vital}, ${PERCENTILE})`),
+        ...vitals.map(vital => `count_at_least(${vital}, 0)`),
+        ...vitals.map(
+          vital =>
+            `count_at_least(${vital}, ${WEB_VITAL_DETAILS[vital].failureThreshold})`
+        ),
+      ],
       query: stringifyQueryObject(conditions),
       projects: [],
     },

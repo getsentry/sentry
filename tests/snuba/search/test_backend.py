@@ -1428,6 +1428,8 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
                 val = "123"
             elif key in IssueSearchVisitor.date_keys:
                 val = "2019-01-01"
+            elif key in IssueSearchVisitor.boolean_keys:
+                val = "true"
             else:
                 val = "abadcafedeadbeefdeaffeedabadfeed"
                 test_query("!%s:%s" % (key, val))

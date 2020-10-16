@@ -85,6 +85,7 @@ from sentry.tagstore.snuba import SnubaTagStorage
 from sentry.utils import json
 from sentry.utils.auth import SSO_SESSION_KEY
 from sentry.testutils.helpers.datetime import iso_format
+from sentry.utils.retries import TimedRetryPolicy
 
 from .fixtures import Fixtures
 from .factories import Factories
@@ -178,6 +179,7 @@ class BaseTestCase(Fixtures, Exam):
 
     # TODO(dcramer): ideally superuser_sso would be False by default, but that would require
     # a lot of tests changing
+    @TimedRetryPolicy.wrap(timeout=5)
     def login_as(
         self, user, organization_id=None, organization_ids=None, superuser=False, superuser_sso=True
     ):
@@ -700,7 +702,9 @@ class SnubaTestCase(BaseTestCase):
             attempt += 1
             time.sleep(0.05)
         if attempt == attempts:
-            assert False, "Could not ensure event was persisted within 10 attempts"
+            assert False, "Could not ensure event was persisted within {} attempt(s)".format(
+                attempt
+            )
 
     def store_session(self, session):
         assert (

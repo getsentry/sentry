@@ -108,6 +108,8 @@ DATASET_FIELDS = {
 SNUBA_OR = "or"
 SNUBA_AND = "and"
 OPERATOR_TO_FUNCTION = {
+    "LIKE": "like",
+    "NOT LIKE": "notLike",
     "=": "equals",
     "!=": "notEquals",
     ">": "greater",
@@ -802,6 +804,8 @@ def resolve_column(dataset):
     def _resolve_column(col):
         if col is None:
             return col
+        if isinstance(col, float):
+            return col
         if isinstance(col, six.string_types) and (
             col.startswith("tags[") or QUOTED_LITERAL_RE.match(col)
         ):
@@ -1031,22 +1035,23 @@ def resolve_snuba_aliases(snuba_filter, resolve_func, function_translations=None
         if isinstance(aggregation[1], six.string_types):
             aggregation[1] = resolve_func(aggregation[1])
         elif isinstance(aggregation[1], (set, tuple, list)):
-            # The aggregation has another function call as its parameter
-            func_index = get_function_index(aggregation[1])
-            if func_index is not None:
-                # Resolve the columns on the nested function, and add a wrapping
-                # list to become a valid query expression.
-                aggregation[1] = [
-                    [aggregation[1][0], [resolve_func(col) for col in aggregation[1][1]]]
-                ]
-            else:
-                # Parameter is a list of fields.
-                aggregation[1] = [
-                    resolve_func(col)
-                    if not isinstance(col, (set, tuple, list)) and col not in derived_columns
-                    else col
-                    for col in aggregation[1]
-                ]
+            formatted = []
+            for argument in aggregation[1]:
+                # The aggregation has another function call as its parameter
+                func_index = get_function_index(argument)
+                if func_index is not None:
+                    # Resolve the columns on the nested function, and add a wrapping
+                    # list to become a valid query expression.
+                    formatted.append([argument[0], [resolve_func(col) for col in argument[1]]])
+                else:
+                    # Parameter is a list of fields.
+                    formatted.append(
+                        resolve_func(argument)
+                        if not isinstance(argument, (set, tuple, list))
+                        and argument not in derived_columns
+                        else argument
+                    )
+            aggregation[1] = formatted
     resolved.aggregations = aggregations
 
     conditions = resolved.conditions
@@ -1308,4 +1313,6 @@ def is_duration_measurement(key):
         "measurements.fcp",
         "measurements.lcp",
         "measurements.fid",
+        "measurements.ttfb",
+        "measurements.ttfb.requesttime",
     ]

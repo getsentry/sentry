@@ -4,10 +4,10 @@ from __future__ import absolute_import
 import os
 import sys
 
-if os.environ.get("SENTRY_PYTHON3") and sys.version_info[:2] != (3, 6):
+if os.environ.get("SENTRY_PYTHON3") == "1" and sys.version_info[:2] != (3, 6):
     sys.exit("Error: Sentry [In EXPERIMENTAL python 3 mode] requires Python 3.6.")
 
-if not os.environ.get("SENTRY_PYTHON3") and sys.version_info[:2] != (2, 7):
+if os.environ.get("SENTRY_PYTHON3") != "1" and sys.version_info[:2] != (2, 7):
     sys.exit("Error: Sentry requires Python 2.7.")
 
 from distutils.command.build import build as BuildCommand
@@ -28,7 +28,7 @@ from sentry.utils.distutils import (
 )
 
 
-VERSION = "20.10.0.dev0"
+VERSION = "20.11.0.dev0"
 IS_LIGHT_BUILD = os.environ.get("SENTRY_LIGHT_BUILD") == "1"
 
 
@@ -88,7 +88,7 @@ setup(
     name="sentry",
     version=VERSION,
     author="Sentry",
-    author_email="hello@sentry.io",
+    author_email="oss@sentry.io",
     url="https://sentry.io",
     description="A realtime logging and aggregation server.",
     long_description=open(os.path.join(ROOT, "README.md")).read(),

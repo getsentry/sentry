@@ -51,10 +51,11 @@ export function findNearestBucketIndex(
   // it's possible that the data is not available yet or the x axis is out of range
   if (
     !chartData.length ||
-    xAxis < chartData[0].histogram ||
     xAxis >= chartData[chartData.length - 1].histogram + bucketWidth
   ) {
     return null;
+  } else if (xAxis < chartData[0].histogram) {
+    return -1;
   }
 
   return Math.floor((xAxis - chartData[0].histogram) / bucketWidth);
@@ -105,7 +106,7 @@ export function asPixelRect(chartRef: ECharts, dataRect: Rectangle): Rectangle |
     dataRect.point1.y,
   ]);
 
-  if (isNaN(point1[0]) || isNaN(point1[1])) {
+  if (isNaN(point1?.[0]) || isNaN(point1?.[1])) {
     return null;
   }
 
@@ -114,7 +115,7 @@ export function asPixelRect(chartRef: ECharts, dataRect: Rectangle): Rectangle |
     dataRect.point2.y,
   ]);
 
-  if (isNaN(point2[0]) || isNaN(point2[1])) {
+  if (isNaN(point2?.[0]) || isNaN(point2?.[1])) {
     return null;
   }
 

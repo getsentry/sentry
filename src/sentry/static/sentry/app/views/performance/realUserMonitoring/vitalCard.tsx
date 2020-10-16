@@ -16,7 +16,12 @@ import {FIRE_SVG_PATH} from 'app/icons/iconFire';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import EventView from 'app/utils/discover/eventView';
-import {formatFloat, formatPercentage, getDuration} from 'app/utils/formatters';
+import {
+  formatAbbreviatedNumber,
+  formatFloat,
+  formatPercentage,
+  getDuration,
+} from 'app/utils/formatters';
 import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import theme from 'app/utils/theme';
 
@@ -32,6 +37,7 @@ type Props = {
   error: boolean;
   vital: Vital;
   summary: number | null;
+  failureRate: number;
   chartData: HistogramData[];
   colors: [string];
   eventView: EventView;
@@ -94,10 +100,10 @@ class VitalCard extends React.Component<Props, State> {
   }
 
   getFormattedStatNumber() {
-    const {isLoading, error, summary, vital} = this.props;
+    const {summary, vital} = this.props;
     const {type} = vital;
 
-    return isLoading || error || summary === null
+    return summary === null
       ? '\u2014'
       : type === 'duration'
       ? getDuration(summary / 1000, 2, true)
@@ -105,17 +111,7 @@ class VitalCard extends React.Component<Props, State> {
   }
 
   renderSummary() {
-    const {
-      isLoading,
-      error,
-      summary,
-      vital,
-      colors,
-      eventView,
-      organization,
-      min,
-      max,
-    } = this.props;
+    const {summary, vital, colors, eventView, organization, min, max} = this.props;
     const {slug, name, description, failureThreshold} = vital;
 
     const column = `measurements.${slug}`;
@@ -123,7 +119,7 @@ class VitalCard extends React.Component<Props, State> {
     const newEventView = eventView
       .withColumns([
         {kind: 'field', field: 'transaction'},
-        {kind: 'field', field: `user.display`},
+        {kind: 'field', field: 'user.display'},
         {kind: 'field', field: column},
       ])
       .withSorts([{kind: 'desc', field: column}]);
@@ -145,7 +141,7 @@ class VitalCard extends React.Component<Props, State> {
         <Indicator color={colors[0]} />
         <CardSectionHeading>
           {`${name} (${slug.toUpperCase()})`}
-          {isLoading || error || summary === null ? null : summary < failureThreshold ? (
+          {summary === null ? null : summary < failureThreshold ? (
             <StyledTag color={theme.purple500}>{t('pass')}</StyledTag>
           ) : (
             <StyledTag color={theme.red400}>{t('fail')}</StyledTag>
@@ -153,12 +149,14 @@ class VitalCard extends React.Component<Props, State> {
         </CardSectionHeading>
         <StatNumber>{this.getFormattedStatNumber()}</StatNumber>
         <Description>{description}</Description>
-        <DiscoverButton
-          size="small"
-          to={newEventView.getResultsViewUrlTarget(organization.slug)}
-        >
-          {t('Open in Discover')}
-        </DiscoverButton>
+        <div>
+          <DiscoverButton
+            size="small"
+            to={newEventView.getResultsViewUrlTarget(organization.slug)}
+          >
+            {t('Open in Discover')}
+          </DiscoverButton>
+        </div>
       </CardSummary>
     );
   }
@@ -192,7 +190,8 @@ class VitalCard extends React.Component<Props, State> {
   handleDataZoomCancelled = () => {};
 
   renderHistogram() {
-    const {location, colors} = this.props;
+    const {location, colors, vital} = this.props;
+    const {slug} = vital;
 
     const series = this.getTransformedData();
 
@@ -203,7 +202,6 @@ class VitalCard extends React.Component<Props, State> {
         margin: 20,
       },
       axisTick: {
-        interval: 0,
         alignWithLabel: true,
       },
     };
@@ -211,14 +209,21 @@ class VitalCard extends React.Component<Props, State> {
     const values = series.data.map(point => point.value);
     const max = values.length ? Math.max(...values) : undefined;
 
-    const yAxis = {type: 'value', max};
+    const yAxis = {
+      type: 'value',
+      max,
+      axisLabel: {
+        color: theme.gray400,
+        formatter: formatAbbreviatedNumber,
+      },
+    };
 
     return (
       <BarChartZoom
         minZoomWidth={NUM_BUCKETS}
         location={location}
-        paramStart="startMeasurements"
-        paramEnd="endMeasurements"
+        paramStart={`${slug}Start`}
+        paramEnd={`${slug}End`}
         xAxisIndex={[0]}
         buckets={this.computeBuckets()}
         onDataZoomCancelled={this.handleDataZoomCancelled}
@@ -295,7 +300,7 @@ class VitalCard extends React.Component<Props, State> {
     }
 
     const summaryBucket = findNearestBucketIndex(chartData, this.bucketWidth(), summary);
-    if (summaryBucket === null) {
+    if (summaryBucket === null || summaryBucket === -1) {
       return;
     }
 
@@ -354,13 +359,13 @@ class VitalCard extends React.Component<Props, State> {
   }
 
   drawFailRegion(series) {
-    const {chartData, vital} = this.props;
+    const {chartData, vital, failureRate} = this.props;
     const {failureThreshold} = vital;
     if (this.state.refDataRect === null || this.state.refPixelRect === null) {
       return;
     }
 
-    const failureBucket = findNearestBucketIndex(
+    let failureBucket = findNearestBucketIndex(
       chartData,
       this.bucketWidth(),
       failureThreshold
@@ -368,6 +373,7 @@ class VitalCard extends React.Component<Props, State> {
     if (failureBucket === null) {
       return;
     }
+    failureBucket = failureBucket === -1 ? 0 : failureBucket;
 
     // since we found the failure bucket, the failure threshold is
     // visible on the graph, so let's draw the fail region
@@ -438,7 +444,7 @@ class VitalCard extends React.Component<Props, State> {
       symbolKeepAspect: true,
       symbolSize: [14, 16],
       label: {
-        formatter: `~${formatPercentage(this.approxFailureRate(failureBucket), 0)}`,
+        formatter: formatPercentage(failureRate, 0),
         position: 'left',
       },
     });
@@ -474,8 +480,8 @@ type IndicatorProps = {
 
 const Indicator = styled('div')<IndicatorProps>`
   position: absolute;
+  top: 20px;
   left: 0px;
-  margin-top: ${space(0.5)};
   width: 6px;
   height: 18px;
   border-radius: 0 3px 3px 0;
@@ -491,8 +497,6 @@ const StyledTag = styled(Tag)<TagProps>`
   right: ${space(3)};
   background-color: ${p => p.color};
   color: ${p => p.theme.white};
-  text-transform: uppercase;
-  font-weight: 500;
 `;
 
 function formatDuration(duration: number) {

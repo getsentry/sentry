@@ -17,7 +17,9 @@ import {PageContent} from 'app/styles/organization';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import Alert from 'app/components/alert';
 import Feature from 'app/components/acl/feature';
+import FeatureBadge from 'app/components/featureBadge';
 import EventView from 'app/utils/discover/eventView';
+import {generateAggregateFields} from 'app/utils/discover/fields';
 import space from 'app/styles/space';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
@@ -43,9 +45,9 @@ import TrendsContent from './trends/content';
 import {modifyTrendsViewDefaultPeriod, DEFAULT_TRENDS_STATS_PERIOD} from './trends/utils';
 
 export enum FilterViews {
-  TRENDS = 'TRENDS',
   ALL_TRANSACTIONS = 'ALL_TRANSACTIONS',
   KEY_TRANSACTIONS = 'KEY_TRANSACTIONS',
+  TRENDS = 'TRENDS',
 }
 
 const VIEWS = Object.values(FilterViews).filter(view => view !== 'TRENDS');
@@ -153,7 +155,7 @@ class PerformanceLanding extends React.Component<Props, State> {
       case FilterViews.KEY_TRANSACTIONS:
         return t('By Key Transaction');
       case FilterViews.TRENDS:
-        return t('By Trends');
+        return t('By Trend');
       default:
         throw Error(`Unknown view: ${currentView}`);
     }
@@ -173,14 +175,11 @@ class PerformanceLanding extends React.Component<Props, State> {
     return stringifyQueryObject(parsed);
   }
 
-  getCurrentView(hasTrendsFeature?: boolean): string {
+  getCurrentView(): string {
     const {location} = this.props;
     const currentView = location.query.view as FilterViews;
     if (Object.values(FilterViews).includes(currentView)) {
       return currentView;
-    }
-    if (hasTrendsFeature) {
-      return FilterViews.TRENDS;
     }
     return FilterViews.ALL_TRANSACTIONS;
   }
@@ -263,7 +262,7 @@ class PerformanceLanding extends React.Component<Props, State> {
       <Feature features={['trends']}>
         {({hasFeature}) =>
           hasFeature ? (
-            <ButtonBar merged active={this.getCurrentView(hasFeature)}>
+            <ButtonBar merged active={this.getCurrentView()}>
               {VIEWS_WITH_TRENDS.map(viewKey => {
                 return (
                   <Button
@@ -274,6 +273,7 @@ class PerformanceLanding extends React.Component<Props, State> {
                     onClick={() => this.handleViewChange(viewKey)}
                   >
                     {this.getViewLabel(viewKey)}
+                    {viewKey === FilterViews.TRENDS && <StyledFeatureBadge type="beta" />}
                   </Button>
                 );
               })}
@@ -331,7 +331,7 @@ class PerformanceLanding extends React.Component<Props, State> {
 
   render() {
     const {organization, location, router, projects} = this.props;
-    const currentView = this.getCurrentView(organization.features.includes('trends'));
+    const currentView = this.getCurrentView();
     const isTrendsView = currentView === FilterViews.TRENDS;
     const eventView = isTrendsView
       ? modifyTrendsViewDefaultPeriod(this.state.eventView, location)
@@ -373,7 +373,7 @@ class PerformanceLanding extends React.Component<Props, State> {
                     organization={organization}
                     projectIds={eventView.project}
                     query={filterString}
-                    fields={eventView.fields}
+                    fields={generateAggregateFields(organization, eventView.fields)}
                     onSearch={this.handleSearch}
                   />
                   <Charts
@@ -416,6 +416,10 @@ const StyledSearchBar = styled(SearchBar)`
   flex-grow: 1;
 
   margin-bottom: ${space(2)};
+`;
+
+const StyledFeatureBadge = styled(FeatureBadge)`
+  height: 12px;
 `;
 
 export default withApi(

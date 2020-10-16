@@ -1,11 +1,15 @@
 import React from 'react';
+import {browserHistory} from 'react-router';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ProjectsStore from 'app/stores/projectsStore';
 import RealUserMonitoring from 'app/views/performance/realUserMonitoring';
-import {WEB_VITAL_DETAILS} from 'app/views/performance/realUserMonitoring/constants';
+import {
+  WEB_VITAL_DETAILS,
+  ZOOM_KEYS,
+} from 'app/views/performance/realUserMonitoring/constants';
 
 function initialize({project, features, transaction, query} = {}) {
   features = features || ['measurements'];
@@ -61,7 +65,7 @@ const vitals = [
   },
 ];
 
-describe('Performance > Real User Monitoring', function () {
+describe('Performance > Web Vitals', function () {
   beforeEach(function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
@@ -93,10 +97,12 @@ describe('Performance > Real User Monitoring', function () {
     });
 
     const histogramData = [];
+    const webVitals = Object.entries(WEB_VITAL_DETAILS)
+      .filter(([, value]) => value.display)
+      .map(([, detail]) => detail.slug);
+
     for (let i = 0; i < 100; i++) {
-      for (const measurement of Object.values(WEB_VITAL_DETAILS).map(
-        detail => detail.slug
-      )) {
+      for (const measurement of webVitals) {
         histogramData.push({
           key: measurement,
           bin: i,
@@ -187,7 +193,7 @@ describe('Performance > Real User Monitoring', function () {
     wrapper.update();
 
     expect(wrapper.find('Breadcrumb').text()).toEqual(
-      expect.stringContaining('Real User Monitoring')
+      expect.stringContaining('Web Vitals')
     );
   });
 
@@ -222,7 +228,7 @@ describe('Performance > Real User Monitoring', function () {
   });
 
   describe('Open in Discover button', function () {
-    it('renders open in discover buttons with required props', async function () {
+    it('renders open in discover buttons with required props', function () {
       const {project, organization, router, routerContext} = initialize();
 
       const wrapper = mountWithTheme(
@@ -233,9 +239,6 @@ describe('Performance > Real User Monitoring', function () {
         />,
         routerContext
       );
-
-      await tick();
-      wrapper.update();
 
       const buttons = wrapper.find('DiscoverButton');
       expect(buttons).toHaveLength(4);
@@ -255,9 +258,14 @@ describe('Performance > Real User Monitoring', function () {
       });
     });
 
-    it('renders open in discover buttons with greater than condition', async function () {
+    it('renders open in discover buttons with greater than condition', function () {
       const {organization, router, routerContext} = initialize({
-        query: {startMeasurements: '10'},
+        query: {
+          fpStart: '10',
+          fcpStart: '10',
+          lcpStart: '10',
+          fidStart: '10',
+        },
       });
 
       const wrapper = mountWithTheme(
@@ -268,9 +276,6 @@ describe('Performance > Real User Monitoring', function () {
         />,
         routerContext
       );
-
-      await tick();
-      wrapper.update();
 
       const buttons = wrapper.find('DiscoverButton');
       expect(buttons).toHaveLength(4);
@@ -286,42 +291,13 @@ describe('Performance > Real User Monitoring', function () {
       });
     });
 
-    it('renders open in discover buttons with less than condition', async function () {
-      const {organization, router, routerContext} = initialize({
-        query: {endMeasurements: '10'},
-      });
-
-      const wrapper = mountWithTheme(
-        <RealUserMonitoring
-          organization={organization}
-          location={router.location}
-          router={router}
-        />,
-        routerContext
-      );
-
-      await tick();
-      wrapper.update();
-
-      const buttons = wrapper.find('DiscoverButton');
-      expect(buttons).toHaveLength(4);
-
-      buttons.forEach((button, i) => {
-        expect(button.prop('to')).toEqual(
-          expect.objectContaining({
-            query: expect.objectContaining({
-              query: expect.stringContaining(`measurements.${vitals[i].slug}:<=10`),
-            }),
-          })
-        );
-      });
-    });
-
-    it('renders open in discover buttons with both condition', async function () {
+    it('renders open in discover buttons with less than condition', function () {
       const {organization, router, routerContext} = initialize({
         query: {
-          startMeasurements: '10',
-          endMeasurements: '20',
+          fpEnd: '20',
+          fcpEnd: '20',
+          lcpEnd: '20',
+          fidEnd: '20',
         },
       });
 
@@ -334,8 +310,42 @@ describe('Performance > Real User Monitoring', function () {
         routerContext
       );
 
-      await tick();
-      wrapper.update();
+      const buttons = wrapper.find('DiscoverButton');
+      expect(buttons).toHaveLength(4);
+
+      buttons.forEach((button, i) => {
+        expect(button.prop('to')).toEqual(
+          expect.objectContaining({
+            query: expect.objectContaining({
+              query: expect.stringContaining(`measurements.${vitals[i].slug}:<=20`),
+            }),
+          })
+        );
+      });
+    });
+
+    it('renders open in discover buttons with both condition', function () {
+      const {organization, router, routerContext} = initialize({
+        query: {
+          fpStart: '10',
+          fpEnd: '20',
+          fcpStart: '10',
+          fcpEnd: '20',
+          lcpStart: '10',
+          lcpEnd: '20',
+          fidStart: '10',
+          fidEnd: '20',
+        },
+      });
+
+      const wrapper = mountWithTheme(
+        <RealUserMonitoring
+          organization={organization}
+          location={router.location}
+          router={router}
+        />,
+        routerContext
+      );
 
       const buttons = wrapper.find('DiscoverButton');
       expect(buttons).toHaveLength(4);
@@ -355,6 +365,117 @@ describe('Performance > Real User Monitoring', function () {
             }),
           })
         );
+      });
+    });
+  });
+
+  describe('reset view', function () {
+    it('disables button on default view', function () {
+      const {organization, router, routerContext} = initialize();
+
+      const wrapper = mountWithTheme(
+        <RealUserMonitoring
+          organization={organization}
+          location={router.location}
+          router={router}
+        />,
+        routerContext
+      );
+
+      expect(
+        wrapper.find('Button[data-test-id="reset-view"]').prop('disabled')
+      ).toBeTruthy();
+    });
+
+    it('enables button on left zoom', function () {
+      const {organization, router, routerContext} = initialize({
+        query: {
+          lcpStart: '20',
+        },
+      });
+
+      const wrapper = mountWithTheme(
+        <RealUserMonitoring
+          organization={organization}
+          location={router.location}
+          router={router}
+        />,
+        routerContext
+      );
+
+      expect(
+        wrapper.find('Button[data-test-id="reset-view"]').prop('disabled')
+      ).toBeFalsy();
+    });
+
+    it('enables button on right zoom', function () {
+      const {organization, router, routerContext} = initialize({
+        query: {
+          fpEnd: '20',
+        },
+      });
+
+      const wrapper = mountWithTheme(
+        <RealUserMonitoring
+          organization={organization}
+          location={router.location}
+          router={router}
+        />,
+        routerContext
+      );
+
+      expect(
+        wrapper.find('Button[data-test-id="reset-view"]').prop('disabled')
+      ).toBeFalsy();
+    });
+
+    it('enables button on left and right zoom', function () {
+      const {organization, router, routerContext} = initialize({
+        query: {
+          fcpStart: '20',
+          fcpEnd: '20',
+        },
+      });
+
+      const wrapper = mountWithTheme(
+        <RealUserMonitoring
+          organization={organization}
+          location={router.location}
+          router={router}
+        />,
+        routerContext
+      );
+
+      expect(
+        wrapper.find('Button[data-test-id="reset-view"]').prop('disabled')
+      ).toBeFalsy();
+    });
+
+    it('resets view properly', function () {
+      const {organization, router, routerContext} = initialize({
+        query: {
+          fidStart: '20',
+          lcpEnd: '20',
+        },
+      });
+
+      const wrapper = mountWithTheme(
+        <RealUserMonitoring
+          organization={organization}
+          location={router.location}
+          router={router}
+        />,
+        routerContext
+      );
+
+      wrapper.find('Button[data-test-id="reset-view"]').simulate('click');
+      expect(browserHistory.push).toHaveBeenCalledWith({
+        query: expect.not.objectContaining(
+          ZOOM_KEYS.reduce((obj, key) => {
+            obj[key] = expect.anything();
+            return obj;
+          }, {})
+        ),
       });
     });
   });

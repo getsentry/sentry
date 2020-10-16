@@ -13,7 +13,7 @@ import {Props as AlertProps} from 'app/components/alert';
 import {Query as DiscoverQuery} from 'app/views/discover/types';
 import {SymbolicatorStatus} from 'app/components/events/interfaces/types';
 
-import {Stacktrace, RawStacktrace, Mechanism} from './stacktrace';
+import {StacktraceType, RawStacktrace, Mechanism} from './stacktrace';
 
 declare global {
   interface Window {
@@ -620,6 +620,8 @@ export type Authenticator = {
    * Description of the authenticator
    */
   description: string;
+
+  challenge?: Record<string, any>;
 } & Partial<EnrolledAuthenticator>;
 
 export type EnrolledAuthenticator = {
@@ -908,8 +910,8 @@ export type Integration = {
   accountType: string;
   status: ObjectStatus;
   provider: BaseIntegrationProvider & {aspects: IntegrationAspects};
-  configOrganization: Field[];
-  //TODO(ts): This includes the initial data that is passed into the integration's configuration form
+  //TODO(Steve): move configData to IntegrationWithConfig when we no longer check
+  //for workspace apps
   configData: object & {
     //installationType is only for Slack migration and can be removed after migrations are done
     installationType?:
@@ -923,6 +925,11 @@ export type Integration = {
       instructions: string[];
     };
   };
+};
+
+// we include the configOrganization when we need it
+export type IntegrationWithConfig = Integration & {
+  configOrganization: Field[];
 };
 
 export type IntegrationExternalIssue = {
@@ -1281,6 +1288,7 @@ export type Tag = {
   values?: string[];
   totalValues?: number;
   predefined?: boolean;
+  isInput?: boolean;
 };
 
 export type TagCollection = {[key: string]: Tag};
@@ -1320,7 +1328,7 @@ export type TagWithTopValues = {
 export type Level = 'error' | 'fatal' | 'info' | 'warning' | 'sample';
 
 export type Meta = {
-  chunks: Array<Chunks>;
+  chunks: Array<ChunkType>;
   len: number;
   rem: Array<MetaRemark>;
   err: Array<MetaError>;
@@ -1329,11 +1337,11 @@ export type Meta = {
 export type MetaError = [string, any];
 export type MetaRemark = Array<string | number>;
 
-export type Chunks = {
+export type ChunkType = {
   text: string;
   type: string;
-  remark?: string;
-  rule_id?: string;
+  rule_id: string | number;
+  remark?: string | number;
 };
 
 export enum ResolutionStatus {
@@ -1530,9 +1538,9 @@ export type FilesByRepository = {
 export type ExceptionType = {
   type: string;
   value: string;
-  stacktrace: Stacktrace;
+  stacktrace: StacktraceType;
   rawStacktrace: RawStacktrace;
   mechanism: Mechanism | null;
   module: string | null;
-  threadId: string | null;
+  threadId: number | null;
 };

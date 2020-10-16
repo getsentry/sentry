@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import logging
+
 from django.db import transaction
 from django.core.urlresolvers import reverse
 from django.utils import timezone
@@ -26,7 +28,10 @@ from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
 from sentry.utils import metrics
 
+logger = logging.getLogger(__name__)
+
 INCIDENTS_SNUBA_SUBSCRIPTION_TYPE = "incidents"
+INCIDENT_SNAPSHOT_BATCH_SIZE = 50
 
 
 @instrumented_task(name="sentry.incidents.tasks.send_subscriber_notifications", queue="incidents")
@@ -192,34 +197,40 @@ def auto_resolve_snapshot_incidents(alert_rule_id, **kwargs):
 @instrumented_task(
     name="sentry.incidents.tasks.process_pending_incident_snapshots", queue="incident_snapshots"
 )
-def process_pending_incident_snapshots():
+def process_pending_incident_snapshots(next_id=None):
     """
     Processes PendingIncidentSnapshots and creates a snapshot for any snapshot that
     has passed it's target_run_date.
     """
     from sentry.incidents.logic import create_incident_snapshot
 
-    batch_size = 50
-
     now = timezone.now()
-    pending_snapshots = PendingIncidentSnapshot.objects.filter(
-        target_run_date__lte=now
-    ).select_related("incident")
+    pending_snapshots = PendingIncidentSnapshot.objects.filter(target_run_date__lte=now)
+    if next_id is not None:
+        pending_snapshots = pending_snapshots.filter(id__lte=next_id)
+    pending_snapshots = pending_snapshots.order_by("-id").select_related("incident")[
+        : INCIDENT_SNAPSHOT_BATCH_SIZE + 1
+    ]
 
     if not pending_snapshots:
         return
 
     for processed, pending_snapshot in enumerate(pending_snapshots):
         incident = pending_snapshot.incident
-        if processed > batch_size:
-            process_pending_incident_snapshots.apply_async(countdown=1)
+        if processed >= INCIDENT_SNAPSHOT_BATCH_SIZE:
+            process_pending_incident_snapshots.apply_async(
+                countdown=1, kwargs={"next_id": pending_snapshot.id}
+            )
             break
         else:
-            with transaction.atomic():
-                if (
-                    incident.status == IncidentStatus.CLOSED.value
-                    and not IncidentSnapshot.objects.filter(incident=incident).exists()
-                ):
-                    if IncidentProject.objects.filter(incident=incident).exists():
-                        create_incident_snapshot(incident, windowed_stats=True)
-                pending_snapshot.delete()
+            try:
+                with transaction.atomic():
+                    if (
+                        incident.status == IncidentStatus.CLOSED.value
+                        and not IncidentSnapshot.objects.filter(incident=incident).exists()
+                    ):
+                        if IncidentProject.objects.filter(incident=incident).exists():
+                            create_incident_snapshot(incident, windowed_stats=True)
+                    pending_snapshot.delete()
+            except Exception:
+                logger.exception("An error occurred while taking an incident snapshot")
