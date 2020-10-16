@@ -20,7 +20,7 @@ const defaultProps = {
   /**
    * Colors to use on the chart.
    */
-  colors: [theme.gray400, theme.purple400] as string[],
+  colors: [theme.gray400, theme.purple400, theme.purple500] as string[],
 };
 
 type Props = React.ComponentProps<typeof BaseChart> &
