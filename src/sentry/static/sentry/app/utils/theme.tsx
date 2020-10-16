@@ -223,7 +223,7 @@ const badge = {
 
 const tag = {
   default: {
-    background: colors.gray100,
+    background: colors.gray200,
     iconColor: colors.purple400,
   },
   promotion: {
