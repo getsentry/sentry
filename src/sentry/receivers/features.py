@@ -38,6 +38,7 @@ from sentry.signals import (
     team_created,
     user_feedback_received,
 )
+from sentry.utils import metrics
 from sentry.utils.javascript import has_sourcemap
 
 DEFAULT_TAGS = frozenset(
@@ -465,6 +466,9 @@ def record_integration_added(integration, organization, user, **kwargs):
         organization_id=organization.id,
         provider=integration.provider,
         id=integration.id,
+    )
+    metrics.incr(
+        "integration.added", sample_rate=1.0, tags={"integration_slug": integration.provider},
     )
 
 

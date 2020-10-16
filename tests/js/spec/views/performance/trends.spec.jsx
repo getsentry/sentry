@@ -465,16 +465,11 @@ describe('Performance > Trends', function () {
           : aliasedFieldDivide;
 
       const defaultTrendsFields = ['project', 'count()'];
-      const trendFunctionFields = TRENDS_FUNCTIONS.map(({field}) => field);
 
-      const transactionFields = [
-        ...trendFunctionFields,
-        'transaction',
-        ...defaultTrendsFields,
-      ];
-      const projectFields = [...trendFunctionFields, ...defaultTrendsFields];
+      const transactionFields = ['transaction', ...defaultTrendsFields];
+      const projectFields = [...defaultTrendsFields];
 
-      expect(transactionFields).toHaveLength(8);
+      expect(transactionFields).toHaveLength(3);
       expect(projectFields).toHaveLength(transactionFields.length - 1);
 
       // Improved projects call
@@ -486,7 +481,7 @@ describe('Performance > Trends', function () {
             trendFunction: trendFunction.field,
             sort,
             query: expect.stringContaining(aliasedQueryDivide + ':<1'),
-            interval: '12h',
+            interval: '30m',
             field: projectFields,
             statsPeriod: '14d',
           }),
@@ -502,7 +497,7 @@ describe('Performance > Trends', function () {
             trendFunction: trendFunction.field,
             sort,
             query: expect.stringContaining(aliasedQueryDivide + ':<1'),
-            interval: '12h',
+            interval: '30m',
             field: transactionFields,
             statsPeriod: '14d',
           }),
@@ -518,7 +513,7 @@ describe('Performance > Trends', function () {
             trendFunction: trendFunction.field,
             sort: '-' + sort,
             query: expect.stringContaining(aliasedQueryDivide + ':>1'),
-            interval: '12h',
+            interval: '30m',
             field: projectFields,
             statsPeriod: '14d',
           }),
@@ -534,7 +529,7 @@ describe('Performance > Trends', function () {
             trendFunction: trendFunction.field,
             sort: '-' + sort,
             query: expect.stringContaining(aliasedQueryDivide + ':>1'),
-            interval: '12h',
+            interval: '30m',
             field: transactionFields,
             statsPeriod: '14d',
           }),

@@ -147,7 +147,9 @@ class IntegrationProvider(PipelineProvider):
     # whether or not the integration installation be initiated from Sentry
     can_add = True
 
-    # can the integration be disabled ?
+    # if the integration can be uninstalled in Sentry, set to False
+    # if True, the integration must be uninstalled from the other platform
+    # which is uninstalled/disabled via wehbook
     can_disable = False
 
     # if the integration has no application-style access token, associate
