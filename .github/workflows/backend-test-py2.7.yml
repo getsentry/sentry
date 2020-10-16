@@ -1,0 +1,65 @@
+name: backend [py2.7]
+on:
+  push:
+    branches:
+      - master
+      - releases/**
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-16.04
+    timeout-minutes: 30
+    strategy:
+      matrix:
+        instance: [0, 1, 2]
+
+    env:
+      MIGRATIONS_TEST_MIGRATE: 1
+
+    steps:
+      - uses: actions/checkout@v2
+
+      # If we make these jobs "required" to merge on GH, then on every PR, GitHub automatically
+      # creates a status check in the "pending" state. This means that the workflow needs to run
+      # for every PR in order to update the status checks.
+      #
+      # In order to optimize CI usage, we want the tests to only run when python files change,
+      # since frontend changes should have no effect on these test suites. We cannot use GH workflow
+      # path filters because entire workflow would be skipped vs skipping individual jobs which
+      # would still allow this status check to pass.
+      - name: Check for python file changes
+        uses: getsentry/paths-filter@v2
+        id: changes
+        with:
+          token: ${{ github.token }}
+          filters: .github/file-filters.yml
+
+      # Until GH composite actions can use `uses`, we need to setup python here
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 2.7.17
+
+      - name: Setup pip
+        uses: ./.github/actions/setup-pip
+        id: pip
+
+      - name: pip cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.pip.outputs.pip-cache-dir }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements-*.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Setup sentry env
+        uses: ./.github/actions/setup-sentry
+        if: steps.changes.outputs.backend == 'true'
+        id: setup
+        with:
+          python: 2
+
+      - name: Run backend test [py2.7] (${{ steps.setup.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
+        if: steps.changes.outputs.backend == 'true'
+        run: |
+          make travis-test-postgres
