@@ -246,9 +246,8 @@ describe('Performance > Trends', function () {
     wrapper.find('DropdownLink').first().simulate('click');
 
     const firstTransaction = wrapper.find('TrendsListItem').first();
-    const summaryLink = firstTransaction.find('StyledSummaryLink');
+    const summaryLink = firstTransaction.find('ItemTransactionName');
 
-    expect(summaryLink.text()).toEqual('View Summary');
     expect(summaryLink.props().to.pathname).toEqual(
       '/organizations/org-slug/performance/summary/'
     );
@@ -276,7 +275,7 @@ describe('Performance > Trends', function () {
     const menuActions = firstTransaction.find('StyledMenuAction');
     expect(menuActions).toHaveLength(3);
 
-    const menuAction = menuActions.at(0);
+    const menuAction = menuActions.at(2);
     menuAction.simulate('click');
 
     expect(browserHistory.push).toHaveBeenCalledWith({
@@ -310,8 +309,8 @@ describe('Performance > Trends', function () {
     const menuActions = firstTransaction.find('StyledMenuAction');
     expect(menuActions).toHaveLength(3);
 
-    const menuAction = menuActions.at(1);
-    expect(menuAction.text()).toEqual('Exclude transactions > 863ms');
+    const menuAction = menuActions.at(0);
+    expect(menuAction.text()).toEqual('Exclude > 863ms');
     menuAction.simulate('click');
 
     expect(browserHistory.push).toHaveBeenCalledWith({
@@ -344,8 +343,8 @@ describe('Performance > Trends', function () {
     const menuActions = firstTransaction.find('StyledMenuAction');
     expect(menuActions).toHaveLength(3);
 
-    const menuAction = menuActions.at(2);
-    expect(menuAction.text()).toEqual('Exclude transactions < 863ms');
+    const menuAction = menuActions.at(1);
+    expect(menuAction.text()).toEqual('Exclude < 863ms');
     menuAction.simulate('click');
 
     expect(browserHistory.push).toHaveBeenCalledWith({
