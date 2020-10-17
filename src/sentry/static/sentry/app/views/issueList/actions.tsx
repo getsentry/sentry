@@ -20,7 +20,6 @@ import {
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 import ActionLink from 'app/components/actions/actionLink';
-import Button from 'app/components/button';
 import Checkbox from 'app/components/checkbox';
 import DropdownLink from 'app/components/dropdownLink';
 import ExternalLink from 'app/components/links/externalLink';
@@ -677,11 +676,7 @@ const IssueListActions = createReactClass<Props, State>({
                   '%s issues on this page selected.',
                   numIssues
                 )}
-                <SelectAllButton
-                  type="button"
-                  priority="link"
-                  onClick={this.handleApplyToAll}
-                >
+                <SelectAllLink onClick={this.handleApplyToAll}>
                   {queryCount >= BULK_LIMIT
                     ? tct(
                         'Select the first [count] issues that match this search query.',
@@ -692,7 +687,7 @@ const IssueListActions = createReactClass<Props, State>({
                     : tct('Select all [count] issues that match this search query.', {
                         count: queryCount,
                       })}
-                </SelectAllButton>
+                </SelectAllLink>
               </React.Fragment>
             )}
           </SelectAllNotice>
@@ -814,8 +809,6 @@ const IconPad = styled('span')`
 `;
 
 const SelectAllNotice = styled('div')`
-  display: flex;
-  justify-content: center;
   background-color: #fffdf7;
   border: 1px solid #e7d796;
   text-align: center;
@@ -824,9 +817,10 @@ const SelectAllNotice = styled('div')`
   z-index: 2;
 `;
 
-const SelectAllButton = styled(Button)`
+const SelectAllLink = styled('a')`
   margin-left: ${space(1)};
   font-size: ${p => p.theme.fontSizeLarge};
+  color: ${p => p.theme.blue400};
 `;
 
 export {IssueListActions};
