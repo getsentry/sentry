@@ -58,7 +58,7 @@ class QuerySubscriptionConsumer(object):
             topic = settings.KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS
         self.topic = topic
         cluster_name = settings.KAFKA_TOPICS[topic]["cluster"]
-        self.broker_config = settings.KAFKA_CLUSTERS[cluster_name]
+        self.cluster_options = settings.KAFKA_CLUSTERS[cluster_name]
         self.commit_batch_size = commit_batch_size
         self.initial_offset_reset = initial_offset_reset
         self.offsets = {}
@@ -68,7 +68,8 @@ class QuerySubscriptionConsumer(object):
         logger.debug("Starting snuba query subscriber")
         self.offsets.clear()
 
-        conf = {
+        conf = self.cluster_options.copy()
+        conf.update({
             "group.id": self.group_id,
             "session.timeout.ms": 6000,
             "auto.offset.reset": self.initial_offset_reset,
@@ -76,8 +77,7 @@ class QuerySubscriptionConsumer(object):
             "enable.auto.offset.store": "false",
             "enable.partition.eof": "false",
             "default.topic.config": {"auto.offset.reset": self.initial_offset_reset},
-        }
-        conf.update(self.broker_config)
+        })
 
         def on_assign(consumer, partitions):
             for partition in partitions:
