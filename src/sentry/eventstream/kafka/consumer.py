@@ -63,13 +63,15 @@ def run_commit_log_consumer(
     # partitions of the commit log topic and get a comprehensive view of the
     # state of the consumer groups it is tracking.
     consumer_config = cluster_options.copy()
-    consumer_config.update({
-        "group.id": consumer_group,
-        "enable.auto.commit": "false",
-        "enable.auto.offset.store": "true",
-        "enable.partition.eof": "false",
-        "default.topic.config": {"auto.offset.reset": "error"},
-    })
+    consumer_config.update(
+        {
+            "group.id": consumer_group,
+            "enable.auto.commit": "false",
+            "enable.auto.offset.store": "true",
+            "enable.partition.eof": "false",
+            "default.topic.config": {"auto.offset.reset": "error"},
+        }
+    )
     consumer = Consumer(consumer_config)
 
     def rewind_partitions_on_assignment(consumer, assignment):
@@ -185,14 +187,16 @@ class SynchronizedConsumer(object):
                 return on_commit(error, partitions)
 
         consumer_configuration = self.cluster_options.copy()
-        consumer_configuration.update({
-            "group.id": self.consumer_group,
-            "enable.auto.commit": "false",
-            "enable.auto.offset.store": "true",
-            "enable.partition.eof": "false",
-            "default.topic.config": {"auto.offset.reset": "error"},
-            "on_commit": commit_callback,
-        })
+        consumer_configuration.update(
+            {
+                "group.id": self.consumer_group,
+                "enable.auto.commit": "false",
+                "enable.auto.offset.store": "true",
+                "enable.partition.eof": "false",
+                "default.topic.config": {"auto.offset.reset": "error"},
+                "on_commit": commit_callback,
+            }
+        )
 
         self.__consumer = Consumer(consumer_configuration)
 

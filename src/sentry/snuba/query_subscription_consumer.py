@@ -69,15 +69,17 @@ class QuerySubscriptionConsumer(object):
         self.offsets.clear()
 
         conf = self.cluster_options.copy()
-        conf.update({
-            "group.id": self.group_id,
-            "session.timeout.ms": 6000,
-            "auto.offset.reset": self.initial_offset_reset,
-            "enable.auto.commit": "false",
-            "enable.auto.offset.store": "false",
-            "enable.partition.eof": "false",
-            "default.topic.config": {"auto.offset.reset": self.initial_offset_reset},
-        })
+        conf.update(
+            {
+                "group.id": self.group_id,
+                "session.timeout.ms": 6000,
+                "auto.offset.reset": self.initial_offset_reset,
+                "enable.auto.commit": "false",
+                "enable.auto.offset.store": "false",
+                "enable.partition.eof": "false",
+                "default.topic.config": {"auto.offset.reset": self.initial_offset_reset},
+            }
+        )
 
         def on_assign(consumer, partitions):
             for partition in partitions:

@@ -215,14 +215,16 @@ class BatchingKafkaConsumer(object):
     ):
 
         consumer_config = cluster_options.copy()
-        consume_config.update({
-            "enable.auto.commit": False,
-            "group.id": group_id,
-            "default.topic.config": {"auto.offset.reset": auto_offset_reset},
-            # overridden to reduce memory usage when there's a large backlog
-            "queued.max.messages.kbytes": queued_max_messages_kbytes,
-            "queued.min.messages": queued_min_messages,
-        })
+        consumer_config.update(
+            {
+                "enable.auto.commit": False,
+                "group.id": group_id,
+                "default.topic.config": {"auto.offset.reset": auto_offset_reset},
+                # overridden to reduce memory usage when there's a large backlog
+                "queued.max.messages.kbytes": queued_max_messages_kbytes,
+                "queued.min.messages": queued_min_messages,
+            }
+        )
 
         if settings.KAFKA_CONSUMER_AUTO_CREATE_TOPICS:
             # This is required for confluent-kafka>=1.5.0, otherwise the topics will
