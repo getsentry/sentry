@@ -53,6 +53,7 @@
     "@types/reflexbox": "^4.0.0",
     "@types/reflux": "0.4.1",
     "@types/scroll-to-element": "^2.0.0",
+    "ansicolor": "^1.1.93",
     "babel-loader": "^8.1.0",
     "babel-plugin-add-react-displayname": "^0.0.5",
     "babel-plugin-transform-react-remove-prop-types": "^0.4.24",
