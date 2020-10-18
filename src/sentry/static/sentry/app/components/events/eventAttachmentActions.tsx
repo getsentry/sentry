@@ -5,7 +5,7 @@ import {t} from 'app/locale';
 import Button from 'app/components/button';
 import space from 'app/styles/space';
 import Confirm from 'app/components/confirm';
-import {IconDelete, IconDownload} from 'app/icons';
+import {IconDelete, IconDownload, IconFilter} from 'app/icons';
 import withApi from 'app/utils/withApi';
 import {Client} from 'app/api';
 
@@ -13,7 +13,9 @@ type Props = {
   api: Client;
   url: string | null;
   attachmentId: string;
+  hasPreview?: boolean;
   onDelete: (attachmentId: string) => void;
+  onPreview?: (attachmentId: string) => void;
 };
 
 class EventAttachmentActions extends React.Component<Props> {
@@ -33,11 +35,28 @@ class EventAttachmentActions extends React.Component<Props> {
     }
   };
 
+  handlePreview() {
+    const {onPreview, attachmentId} = this.props;
+    if (onPreview) {
+      onPreview(attachmentId);
+    }
+  }
+
   render() {
-    const {url} = this.props;
+    const {url, hasPreview} = this.props;
 
     return (
       <React.Fragment>
+        <DownloadButton
+          size="xsmall"
+          disabled={!hasPreview}
+          icon={<IconFilter size="xs" />}
+          onClick={() => this.handlePreview()}
+          title={t('View Attachment Inline')}
+        >
+          {t('View')}
+        </DownloadButton>
+
         <DownloadButton
           size="xsmall"
           icon={<IconDownload size="xs" />}

@@ -8,6 +8,7 @@ import {Event, EventAttachment} from 'app/types';
 import {t} from 'app/locale';
 import {Panel, PanelBody, PanelItem} from 'app/components/panels';
 import EventAttachmentActions from 'app/components/events/eventAttachmentActions';
+import LogFileViewer from 'app/components/events/logFileViewer';
 import EventDataSection from 'app/components/events/eventDataSection';
 import FileSize from 'app/components/fileSize';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
@@ -27,6 +28,7 @@ type Props = {
 
 type State = {
   attachmentList: EventAttachment[];
+  attachmentPreviews: object;
   expanded: boolean;
 };
 
@@ -41,6 +43,7 @@ class EventAttachments extends React.Component<Props, State> {
   state: State = {
     attachmentList: [],
     expanded: false,
+    attachmentPreviews: {},
   };
 
   componentDidMount() {
@@ -93,6 +96,37 @@ class EventAttachments extends React.Component<Props, State> {
     }));
   };
 
+  hasInlineRenderer(attachment): boolean {
+    return !!attachment.name.match(/\.(log|txt)$/) && attachment.size > 0;
+  }
+
+  renderInlineAttachment(attachment) {
+    if (
+      !this.hasInlineRenderer(attachment) ||
+      !this.state.attachmentPreviews[attachment.id]
+    ) {
+      return null;
+    }
+    return (
+      <LogFileViewer
+        orgId={this.props.orgId}
+        projectId={this.props.projectId}
+        event={this.props.event}
+        attachment={attachment}
+      />
+    );
+  }
+
+  togglePreview(attachment) {
+    const attachmentPreviews = {
+      ...this.state.attachmentPreviews,
+      [attachment.id]: !this.state.attachmentPreviews[attachment.id],
+    };
+    this.setState({
+      attachmentPreviews,
+    });
+  }
+
   render() {
     const {event, projectId, orgId, location} = this.props;
     const {attachmentList} = this.state;
@@ -119,23 +153,28 @@ class EventAttachments extends React.Component<Props, State> {
           <Panel>
             <PanelBody>
               {attachmentList.map(attachment => (
-                <PanelItem key={attachment.id} alignItems="center">
-                  <AttachmentName>{attachment.name}</AttachmentName>
-                  <FileSizeWithGap bytes={attachment.size} />
-                  <AttachmentUrl
-                    projectId={projectId}
-                    eventId={event.id}
-                    attachment={attachment}
-                  >
-                    {url => (
-                      <EventAttachmentActions
-                        url={url}
-                        onDelete={this.handleDelete}
-                        attachmentId={attachment.id}
-                      />
-                    )}
-                  </AttachmentUrl>
-                </PanelItem>
+                <React.Fragment key={attachment.id}>
+                  <PanelItem alignItems="center">
+                    <AttachmentName>{attachment.name}</AttachmentName>
+                    <FileSizeWithGap bytes={attachment.size} />
+                    <AttachmentUrl
+                      projectId={projectId}
+                      eventId={event.id}
+                      attachment={attachment}
+                    >
+                      {url => (
+                        <EventAttachmentActions
+                          url={url}
+                          onDelete={this.handleDelete}
+                          onPreview={() => this.togglePreview(attachment)}
+                          hasPreview={this.hasInlineRenderer(attachment)}
+                          attachmentId={attachment.id}
+                        />
+                      )}
+                    </AttachmentUrl>
+                  </PanelItem>
+                  {this.renderInlineAttachment(attachment)}
+                </React.Fragment>
               ))}
             </PanelBody>
           </Panel>
