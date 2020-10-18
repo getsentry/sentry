@@ -28,7 +28,7 @@ type Props = {
 
 type State = {
   attachmentList: EventAttachment[];
-  attachmentPreviews: object;
+  attachmentPreviews: Record<string, boolean>;
   expanded: boolean;
 };
 
@@ -117,14 +117,13 @@ class EventAttachments extends React.Component<Props, State> {
     );
   }
 
-  togglePreview(attachment) {
-    const attachmentPreviews = {
-      ...this.state.attachmentPreviews,
-      [attachment.id]: !this.state.attachmentPreviews[attachment.id],
-    };
-    this.setState({
-      attachmentPreviews,
-    });
+  togglePreview(attachment: EventAttachment) {
+    this.setState(({attachmentPreviews}) => ({
+      attachmentPreviews: {
+        ...attachmentPreviews,
+        [attachment.id]: !attachmentPreviews[attachment.id],
+      },
+    }));
   }
 
   render() {

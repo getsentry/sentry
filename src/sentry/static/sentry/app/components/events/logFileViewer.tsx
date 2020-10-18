@@ -1,21 +1,22 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
+import {Event, EventAttachment} from 'app/types';
 import space from 'app/styles/space';
 import {PanelItem} from 'app/components/panels';
 import AsyncComponent from 'app/components/asyncComponent';
 
-export default class LogFileViewer extends AsyncComponent {
-  static propTypes = {
-    ...AsyncComponent.propTypes,
-    event: PropTypes.object.isRequired,
-    orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired,
-    attachment: PropTypes.object.isRequired,
-  };
+type Props = {
+  event: Event;
+  orgId: string;
+  projectId: string;
+  attachment: EventAttachment;
+} & AsyncComponent['props'];
 
-  getEndpoints() {
+type State = AsyncComponent['state'];
+
+export default class LogFileViewer extends AsyncComponent<Props, State> {
+  getEndpoints(): [string, string][] {
     const {orgId, projectId, event, attachment} = this.props;
     return [
       [
@@ -24,13 +25,6 @@ export default class LogFileViewer extends AsyncComponent {
       ],
     ];
   }
-
-  /*
-  renderLoading() {
-    // hide loading indicator
-    return null;
-  }
-  */
 
   renderBody() {
     const {attachmentText} = this.state;

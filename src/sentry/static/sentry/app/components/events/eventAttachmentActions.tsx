@@ -49,10 +49,16 @@ class EventAttachmentActions extends React.Component<Props> {
       <React.Fragment>
         <DownloadButton
           size="xsmall"
-          disabled={!hasPreview}
+          disabled={!url || !hasPreview}
           icon={<IconFilter size="xs" />}
           onClick={() => this.handlePreview()}
-          title={t('View Attachment Inline')}
+          title={
+            !url
+              ? t('Insufficient permissions to preview attachments')
+              : !hasPreview
+              ? t('This type of attachment cannot be previewed')
+              : undefined
+          }
         >
           {t('View')}
         </DownloadButton>
