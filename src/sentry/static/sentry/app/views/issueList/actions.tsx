@@ -657,18 +657,18 @@ const IssueListActions = createReactClass<Props, State>({
         {!allResultsVisible && pageSelected && (
           <SelectAllNotice>
             {allInQuerySelected ? (
-              <strong>
-                {queryCount >= BULK_LIMIT
-                  ? tct(
-                      'Selected up to the first [count] issues that match this search query.',
-                      {
-                        count: BULK_LIMIT_STR,
-                      }
-                    )
-                  : tct('Selected all [count] issues that match this search query.', {
-                      count: queryCount,
-                    })}
-              </strong>
+              queryCount >= BULK_LIMIT ? (
+                tct(
+                  'Selected up to the first [count] issues that match this search query.',
+                  {
+                    count: BULK_LIMIT_STR,
+                  }
+                )
+              ) : (
+                tct('Selected all [count] issues that match this search query.', {
+                  count: queryCount,
+                })
+              )
             ) : (
               <React.Fragment>
                 {tn(
@@ -809,18 +809,16 @@ const IconPad = styled('span')`
 `;
 
 const SelectAllNotice = styled('div')`
-  background-color: #fffdf7;
-  border: 1px solid #e7d796;
+  background-color: ${p => p.theme.yellow100};
+  border-top: 1px solid ${p => p.theme.yellow400};
+  border-bottom: 1px solid ${p => p.theme.yellow400};
+  font-size: ${p => p.theme.fontSizeMedium};
   text-align: center;
-  margin: 0 -1px -1px;
   padding: ${space(0.5)} ${space(1.5)};
-  z-index: 2;
 `;
 
 const SelectAllLink = styled('a')`
   margin-left: ${space(1)};
-  font-size: ${p => p.theme.fontSizeLarge};
-  color: ${p => p.theme.blue400};
 `;
 
 export {IssueListActions};
