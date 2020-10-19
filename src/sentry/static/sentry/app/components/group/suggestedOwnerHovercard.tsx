@@ -1,8 +1,8 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import moment from 'moment';
 import styled from '@emotion/styled';
 
+import {Actor, Commit} from 'app/types';
 import {t, tct} from 'app/locale';
 import {openInviteMembersModal} from 'app/actionCreators/modal';
 import ActorAvatar from 'app/components/avatar/actorAvatar';
@@ -11,61 +11,41 @@ import Button from 'app/components/button';
 import Hovercard from 'app/components/hovercard';
 import {IconCommit, IconWarning} from 'app/icons';
 import Link from 'app/components/links/link';
-import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
+import {defined} from 'app/utils';
 
-class SuggestedOwnerHovercard extends React.Component {
-  static propTypes = {
-    /**
-     * The suggested actor.
-     */
-    actor: PropTypes.oneOfType([
-      // eslint-disable-next-line react/no-typos
-      SentryTypes.User,
-      // Sentry user which has *not* been expanded
-      PropTypes.shape({
-        email: PropTypes.string.isRequired,
-        id: PropTypes.string.isRequired,
-        name: PropTypes.string.isRequired,
-      }),
-      // Unidentifier user (from commits)
-      PropTypes.shape({
-        email: PropTypes.string.isRequired,
-        name: PropTypes.string.isRequired,
-      }),
-      // Sentry team
-      PropTypes.shape({
-        id: PropTypes.string.isRequired,
-        name: PropTypes.string.isRequired,
-      }),
-    ]),
+type Props = {
+  /**
+   * The suggested actor.
+   */
+  actor: Actor;
+  /**
+   * The list of commits the actor is suggested for. May be left blank if the
+   * actor is not suggested for commits.
+   */
+  commits?: Commit[];
+  /**
+   * The list of ownership rules the actor is suggested for. May be left blank
+   * if the actor is not suggested based on ownership rules.
+   */
+  rules?: any[] | null;
+};
 
-    /**
-     * The list of commits the actor is suggested for. May be left blank if the
-     * actor is not suggested for commits.
-     */
-    commits: PropTypes.arrayOf(
-      PropTypes.shape({
-        message: PropTypes.string.isRequired,
-        dateCreated: PropTypes.string.isRequired,
-      })
-    ),
+type State = {
+  commitsExpanded: boolean;
+  rulesExpanded: boolean;
+};
 
-    /**
-     * The list of ownership rules the actor is suggested for. Maybe left blank
-     * if the actor is not suggested based on ownership rules.
-     */
-    rules: PropTypes.arrayOf(PropTypes.array),
-  };
-
-  state = {
+class SuggestedOwnerHovercard extends React.Component<Props, State> {
+  state: State = {
     commitsExpanded: false,
     rulesExpanded: false,
   };
 
   render() {
     const {actor, commits, rules, ...props} = this.props;
+    const {commitsExpanded, rulesExpanded} = this.state;
 
     return (
       <Hovercard
@@ -111,7 +91,7 @@ class SuggestedOwnerHovercard extends React.Component {
                 </div>
                 <div>
                   {commits
-                    .slice(0, this.state.commitsExpanded ? commits.length : 3)
+                    .slice(0, commitsExpanded ? commits.length : 3)
                     .map(({message, dateCreated}, i) => (
                       <CommitReasonItem key={i}>
                         <CommitIcon />
@@ -119,21 +99,21 @@ class SuggestedOwnerHovercard extends React.Component {
                       </CommitReasonItem>
                     ))}
                 </div>
-                {commits.length > 3 && !this.state.commitsExpanded ? (
+                {commits.length > 3 && !commitsExpanded ? (
                   <ViewMoreButton
                     onClick={() => this.setState({commitsExpanded: true})}
                   />
                 ) : null}
               </React.Fragment>
             )}
-            {rules !== undefined && (
+            {defined(rules) && (
               <React.Fragment>
                 <div className="divider">
                   <h6>{t('Matching Ownership Rules')}</h6>
                 </div>
                 <div>
                   {rules
-                    .slice(0, this.state.rulesExpanded ? rules.length : 3)
+                    .slice(0, rulesExpanded ? rules.length : 3)
                     .map(([type, matched], i) => (
                       <RuleReasonItem key={i}>
                         <OwnershipTag tagType={type} />
@@ -141,7 +121,7 @@ class SuggestedOwnerHovercard extends React.Component {
                       </RuleReasonItem>
                     ))}
                 </div>
-                {rules.length > 3 && !this.state.rulesExpanded ? (
+                {rules.length > 3 && !rulesExpanded ? (
                   <ViewMoreButton onClick={() => this.setState({rulesExpanded: true})} />
                 ) : null}
               </React.Fragment>
@@ -172,7 +152,7 @@ const CommitMessage = styled(({message = '', date, ...props}) => (
   </div>
 ))`
   color: ${p => p.theme.gray800};
-  font-size: 11px;
+  font-size: ${p => p.theme.fontSizeExtraSmall};
   margin-top: ${space(0.25)};
   hyphens: auto;
 `;
@@ -204,8 +184,8 @@ const RuleReasonItem = styled('code')`
 
 const OwnershipTag = styled(({tagType, ...props}) => <div {...props}>{tagType}</div>)`
   background: ${p => tagColors[p.tagType.indexOf('tags') === -1 ? p.tagType : 'tag']};
-  color: #fff;
-  font-size: 11px;
+  color: ${p => p.theme.white};
+  font-size: ${p => p.theme.fontSizeExtraSmall};
   padding: ${space(0.25)} ${space(0.5)};
   margin: ${space(0.25)} ${space(0.5)} ${space(0.25)} 0;
   border-radius: 2px;
