@@ -18,7 +18,6 @@ from sentry.api.helpers.group_index import (
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import StreamGroupSerializer
 from sentry.models import Environment, Group, GroupStatus
-from sentry.models.savedsearch import DEFAULT_SAVED_SEARCH_QUERIES
 from sentry.signals import advanced_search
 from sentry.utils.cursors import CursorResult
 from sentry.utils.validators import normalize_event_id
@@ -169,7 +168,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         self.add_cursor_headers(request, response, cursor_result)
 
-        if results and query not in DEFAULT_SAVED_SEARCH_QUERIES:
+        if results and query:
             advanced_search.send(project=project, sender=request.user)
             analytics.record(
                 "project_issue.searched",
