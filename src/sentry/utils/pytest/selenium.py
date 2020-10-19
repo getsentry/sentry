@@ -337,11 +337,11 @@ class Browser(object):
                             "window.__closeAllTooltips && window.__closeAllTooltips()"
                         )
 
-            with self.mobile_viewport():
                 # switch to a mobile sized viewport
-                self.driver.find_element_by_tag_name("body").screenshot(
-                    u"{}-mobile/{}.png".format(snapshot_dir, slugify(name))
-                )
+                with self.mobile_viewport():
+                    self.driver.find_element_by_tag_name("body").screenshot(
+                        u"{}-mobile/{}.png".format(snapshot_dir, slugify(name))
+                    )
 
         return self
 
