@@ -32,12 +32,22 @@ def BurstTaskRunner():
     def apply_async(self, args=(), kwargs=(), countdown=None):
         queue.append((self, args, kwargs))
 
-    def work():
-        while queue:
+    def work(max_tasks=None):
+        tasks_done = 0
+
+        while queue and (max_tasks is None or tasks_done < max_tasks):
+            tasks_done += 1
             self, args, kwargs = queue.pop(0)
 
             with patch("celery.app.task.Task.apply_async", apply_async):
                 self(*args, **kwargs)
+
+        if queue:
+            raise AssertionError(
+                "test executed {} tasks, {} still in queue".format(tasks_done, len(queue))
+            )
+
+        return tasks_done
 
     with patch("celery.app.task.Task.apply_async", apply_async):
         yield work

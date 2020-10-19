@@ -61,7 +61,6 @@ def register_event_preprocessor(register_plugin):
 @pytest.mark.snuba
 @pytest.mark.parametrize("change_groups", (True, False), ids=("new_group", "same_group"))
 def test_basic(
-    task_runner,
     default_project,
     change_groups,
     reset_snuba,
@@ -109,7 +108,7 @@ def test_basic(
     with burst_task_runner() as burst:
         reprocess_group(default_project.id, event.group_id)
 
-    burst()
+    burst(max_tasks=10)
 
     new_events = get_event_by_processing_counter("x1")
 
@@ -161,7 +160,7 @@ def test_concurrent_events_go_into_new_group(
     assert event2.event_id != event.event_id
     assert event2.group_id != event.group_id
 
-    burst_reprocess()
+    burst_reprocess(max_tasks=11)
 
     (event3,) = eventstore.get_events(
         eventstore.Filter(
@@ -183,7 +182,7 @@ def test_max_events(
     reset_snuba,
     register_event_preprocessor,
     process_and_save,
-    task_runner,
+    burst_task_runner,
     monkeypatch,
 ):
     @register_event_preprocessor
@@ -200,7 +199,9 @@ def test_max_events(
     # Make sure it never gets called
     monkeypatch.setattr("sentry.tasks.reprocessing2.reprocess_event", None)
 
-    with task_runner():
+    with burst_task_runner() as burst:
         reprocess_group(default_project.id, event.group_id, max_events=0)
+
+    burst(max_tasks=10)
 
     assert is_group_finished(event.group_id)
