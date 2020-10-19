@@ -41,8 +41,9 @@ type Props = {
   chartData: HistogramData[];
   colors: [string];
   eventView: EventView;
-  min?: string;
-  max?: string;
+  min?: number;
+  max?: number;
+  precision?: number;
 };
 
 type State = {
@@ -190,7 +191,7 @@ class VitalCard extends React.Component<Props, State> {
   handleDataZoomCancelled = () => {};
 
   renderHistogram() {
-    const {location, colors, vital} = this.props;
+    const {location, colors, vital, precision = 0} = this.props;
     const {slug} = vital;
 
     const series = this.getTransformedData();
@@ -220,7 +221,7 @@ class VitalCard extends React.Component<Props, State> {
 
     return (
       <BarChartZoom
-        minZoomWidth={NUM_BUCKETS}
+        minZoomWidth={10 ** -precision * NUM_BUCKETS}
         location={location}
         paramStart={`${slug}Start`}
         paramEnd={`${slug}End`}
