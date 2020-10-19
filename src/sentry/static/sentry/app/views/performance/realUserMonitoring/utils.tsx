@@ -3,11 +3,11 @@ import {ECharts} from 'echarts';
 
 import {HistogramData, Rectangle, Point} from './types';
 
-export function generateRealUserMonitoringRoute({orgSlug}: {orgSlug: String}): string {
-  return `/organizations/${orgSlug}/performance/summary/rum/`;
+export function generateVitalsRoute({orgSlug}: {orgSlug: String}): string {
+  return `/organizations/${orgSlug}/performance/summary/vitals/`;
 }
 
-export function realUserMonitoringRouteWithQuery({
+export function vitalsRouteWithQuery({
   orgSlug,
   transaction,
   projectID,
@@ -18,7 +18,7 @@ export function realUserMonitoringRouteWithQuery({
   query: Query;
   projectID?: string | string[];
 }) {
-  const pathname = generateRealUserMonitoringRoute({
+  const pathname = generateVitalsRoute({
     orgSlug,
   });
 
