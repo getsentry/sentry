@@ -99,7 +99,7 @@
             "properties": {
               "event_id": {
                 "type": "string",
-                "description": "The event ID."
+                "description": "The event ID. This can be retrieved from the [beforeSend callback](https://docs.sentry.io/platforms/javascript/configuration/filtering/#using-beforesend)."
               },
               "name": {
                 "type": "string",
