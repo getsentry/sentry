@@ -21,11 +21,11 @@ type Props = React.HTMLAttributes<HTMLSpanElement> & {
   /**
    * Icon on the left side.
    */
-  icon?: React.ReactNode;
+  icon?: React.ReactElement;
   /**
    * Text to show up on a hover.
    */
-  tooltip?: React.ReactNode;
+  tooltipText?: React.ReactElement | string;
   /**
    * Makes the tag clickable. Use for internal links handled by react router.
    * If no icon is passed, it defaults to IconOpen (can be removed by passing icon={null})
@@ -45,7 +45,7 @@ type Props = React.HTMLAttributes<HTMLSpanElement> & {
 function Tag({
   type = 'default',
   icon,
-  tooltip,
+  tooltipText,
   to,
   href,
   onDismiss,
@@ -58,7 +58,7 @@ function Tag({
   };
 
   const tag = (
-    <Tooltip title={tooltip} containerDisplayMode="inline">
+    <Tooltip title={tooltipText} containerDisplayMode="inline">
       <Background type={type}>
         {tagIcon()}
 
@@ -105,11 +105,7 @@ function Tag({
     }
 
     if (defined(to)) {
-      return (
-        <Link to={to} {...props}>
-          {tag}
-        </Link>
-      );
+      return <Link to={to}>{tag}</Link>;
     }
 
     return tag;
