@@ -416,7 +416,9 @@ class SearchVisitor(NodeVisitor):
             return SearchFilter(search_key, "=", search_value)
         else:
             search_value = SearchValue(search_value.text)
-            return self._handle_basic_filter(search_key, "=", search_value)
+            return self._handle_basic_filter(
+                search_key, "=" if not is_negated else "!=", search_value
+            )
 
     def visit_numeric_filter(self, node, children):
         (search_key, _, operator, search_value) = children
