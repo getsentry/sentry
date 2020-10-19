@@ -444,6 +444,7 @@ function TrendsListItem(props: TrendsListItemProps) {
       </ItemTransactionPercentage>
       <StyledDropdownLink
         caret={false}
+        anchorRight
         title={
           <StyledButton
             size="xsmall"
