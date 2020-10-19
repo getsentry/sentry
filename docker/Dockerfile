@@ -79,7 +79,6 @@ RUN set -x \
   " \
   && apt-get update \
   && apt-get install -y --no-install-recommends $buildDeps \
-  && python -m pip install --upgrade 'pip>=20.2.0' \
   && pip install -r /tmp/dist/requirements.txt \
   && mkdir /tmp/uwsgi-dogstatsd \
   && wget -O - https://github.com/eventbrite/uwsgi-dogstatsd/archive/filters-and-tags.tar.gz | \
@@ -117,7 +116,7 @@ RUN set -x \
   && mkdir -p $SENTRY_CONF
 
 COPY /dist/*.whl /tmp/dist/
-RUN pip install /tmp/dist/*.whl --use-feature=2020-resolver && pip check && rm -rf /tmp/dist
+RUN pip install /tmp/dist/*.whl && pip check && rm -rf /tmp/dist
 RUN sentry help | sed '1,/Commands:/d' | awk '{print $1}' >  /sentry-commands.txt
 
 COPY ./docker/sentry.conf.py ./docker/config.yml $SENTRY_CONF/
