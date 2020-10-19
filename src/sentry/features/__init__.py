@@ -66,6 +66,7 @@ default_manager.add("organizations:discover-basic", OrganizationFeature)  # NOQA
 default_manager.add("organizations:discover-query", OrganizationFeature)  # NOQA
 default_manager.add("organizations:enterprise-perf", OrganizationFeature)  # NOQA
 default_manager.add("organizations:event-attachments", OrganizationFeature)  # NOQA
+default_manager.add("organizations:event-attachments-viewer", OrganizationFeature)  # NOQA
 default_manager.add("organizations:events", OrganizationFeature)  # NOQA
 default_manager.add("organizations:global-views", OrganizationFeature)  # NOQA
 default_manager.add("organizations:incidents", OrganizationFeature)  # NOQA

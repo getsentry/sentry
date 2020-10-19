@@ -8,6 +8,7 @@ import Confirm from 'app/components/confirm';
 import {IconDelete, IconDownload, IconShow} from 'app/icons';
 import withApi from 'app/utils/withApi';
 import {Client} from 'app/api';
+import Feature from 'app/components/acl/feature';
 
 type Props = {
   api: Client;
@@ -48,22 +49,24 @@ class EventAttachmentActions extends React.Component<Props> {
 
     return (
       <React.Fragment>
-        <DownloadButton
-          size="xsmall"
-          disabled={!url || !hasPreview}
-          priority={previewIsOpen ? 'primary' : 'default'}
-          icon={<IconShow size="xs" />}
-          onClick={() => this.handlePreview()}
-          title={
-            !url
-              ? t('Insufficient permissions to preview attachments')
-              : !hasPreview
-              ? t('This attachment cannot be previewed')
-              : undefined
-          }
-        >
-          {t('Preview')}
-        </DownloadButton>
+        <Feature features={['event-attachments-viewer']}>
+          <DownloadButton
+            size="xsmall"
+            disabled={!url || !hasPreview}
+            priority={previewIsOpen ? 'primary' : 'default'}
+            icon={<IconShow size="xs" />}
+            onClick={() => this.handlePreview()}
+            title={
+              !url
+                ? t('Insufficient permissions to preview attachments')
+                : !hasPreview
+                ? t('This attachment cannot be previewed')
+                : undefined
+            }
+          >
+            {t('Preview')}
+          </DownloadButton>
+        </Feature>
 
         <DownloadButton
           size="xsmall"

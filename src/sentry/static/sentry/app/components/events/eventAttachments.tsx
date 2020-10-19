@@ -15,6 +15,7 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import AttachmentUrl from 'app/utils/attachmentUrl';
 import withApi from 'app/utils/withApi';
+import Feature from 'app/components/acl/feature';
 
 import EventAttachmentsCrashReportsNotice from './eventAttachmentsCrashReportsNotice';
 
@@ -186,7 +187,9 @@ class EventAttachments extends React.Component<Props, State> {
                       )}
                     </AttachmentUrl>
                   </PanelItem>
-                  {this.renderInlineAttachment(attachment)}
+                  <Feature features={['event-attachments-viewer']}>
+                    {this.renderInlineAttachment(attachment)}
+                  </Feature>
                 </React.Fragment>
               ))}
             </PanelBody>
