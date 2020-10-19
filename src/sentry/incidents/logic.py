@@ -1300,10 +1300,9 @@ TRANSLATABLE_COLUMNS = {
 
 
 def get_column_from_aggregate(aggregate):
-    field = resolve_field(aggregate)
-    if field[1] is not None:
-        column = field[1][0][1]
-        return column
+    _, _, aggregate_field = resolve_field(aggregate)
+    if aggregate_field is not None:
+        return aggregate_field[1]
     return None
 
 

@@ -14,9 +14,7 @@ from sentry.api.bases import OrganizationEndpoint, NoProjects
 from sentry.api.event_search import (
     get_filter,
     InvalidSearchQuery,
-    get_json_meta_type,
     get_function_alias,
-    FUNCTION_PATTERN,
 )
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
 from sentry.models.group import Group
@@ -170,32 +168,12 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
     def handle_results_with_meta(self, request, organization, project_ids, results, fields=None):
         with sentry_sdk.start_span(op="discover.endpoint", description="base.handle_results"):
             data = self.handle_data(request, organization, project_ids, results.get("data"))
-            if not data:
-                return {"data": [], "meta": {}}
-
-            field_alias_map = {}
-            if fields is not None:
-                field_alias_map = {
-                    get_function_alias(field): field
-                    for field in fields
-                    if FUNCTION_PATTERN.search(field)
-                }
-
-            meta = {
-                value["name"]: get_json_meta_type(
-                    value["name"], value["type"], field_alias_map.get(value["name"]),
-                )
-                for value in results["meta"]
-            }
-            # Ensure all columns in the result have types.
-            for key in data[0]:
-                if key not in meta:
-                    meta[key] = "string"
-            return {"meta": meta, "data": data}
+            meta = results.get("meta", {})
+            return {"data": data, "meta": meta}
 
     def handle_data(self, request, organization, project_ids, results):
         if not results:
-            return results
+            return []
 
         first_row = results[0]
 

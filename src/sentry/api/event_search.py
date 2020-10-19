@@ -456,10 +456,10 @@ class SearchVisitor(NodeVisitor):
             aggregate_value = None
             if search_value.expr_name == "duration_format":
                 # Even if the search value matches duration format, only act as duration for certain columns
-                _, agg_additions = resolve_field(search_key.name, None)
-                if len(agg_additions) > 0:
+                _, _, agg_addition = resolve_field(search_key.name, None)
+                if agg_addition is not None:
                     # Extract column and function name out so we can check if we should parse as duration
-                    if self.is_duration_key(agg_additions[0][-2]):
+                    if self.is_duration_key(agg_addition[-2]):
                         aggregate_value = parse_duration(*search_value.match.groups())
 
             if aggregate_value is None:
@@ -747,9 +747,9 @@ def convert_aggregate_filter_to_snuba_query(aggregate_filter, params):
     if aggregate_filter.operator in ("=", "!=") and aggregate_filter.value.value == "":
         return [["isNull", [name]], aggregate_filter.operator, 1]
 
-    _, agg_additions = resolve_field(name, params)
-    if len(agg_additions) > 0:
-        name = agg_additions[0][-1]
+    _, _, agg_addition = resolve_field(name, params)
+    if agg_addition is not None:
+        name = agg_addition[-1]
 
     condition = [name, aggregate_filter.operator, value]
     return condition
@@ -1254,36 +1254,27 @@ def get_filter(query=None, params=None):
 # static/app/views/eventsV2/eventQueryParams.tsx so that
 # the UI builder stays in sync.
 FIELD_ALIASES = {
-    "project": {"fields": ["project.id"], "column_alias": "project.id"},
-    "issue": {"fields": ["issue.id"], "column_alias": "issue.id"},
+    "project": {"field": "project.id", "column_alias": "project.id"},
+    "issue": {"field": "issue.id", "column_alias": "issue.id"},
     ERROR_UNHANDLED_ALIAS: {
-        "fields": [["notHandled", [], ERROR_UNHANDLED_ALIAS]],
+        "field": ["notHandled", [], ERROR_UNHANDLED_ALIAS],
         "column_alias": ERROR_UNHANDLED_ALIAS,
     },
     USER_DISPLAY_ALIAS: {
         "expression": ["coalesce", ["user.email", "user.username", "user.ip"]],
-        "fields": [["coalesce", ["user.email", "user.username", "user.ip"], USER_DISPLAY_ALIAS]],
+        "field": ["coalesce", ["user.email", "user.username", "user.ip"], USER_DISPLAY_ALIAS],
         "column_alias": USER_DISPLAY_ALIAS,
     },
 }
 
 
-def get_json_meta_type(field_alias, snuba_type, field=None):
-    alias_definition = FIELD_ALIASES.get(field_alias)
-    if alias_definition and alias_definition.get("result_type"):
-        return alias_definition.get("result_type")
-
+def get_json_meta_type(field_alias, snuba_type, function=None):
     snuba_json = get_json_type(snuba_type)
     if snuba_json != "string":
-        if field is not None:
-            function_match = FUNCTION_PATTERN.search(field)
-            if function_match:
-                function_name, columns = parse_function(field, function_match)
-                function_definition = FUNCTIONS.get(function_name)
-                if function_definition:
-                    result_type = function_definition.get_result_type(field, columns)
-                    if result_type is not None:
-                        return result_type
+        if function is not None:
+            result_type = function.instance.get_result_type(function.field, function.arguments)
+            if result_type is not None:
+                return result_type
 
         function_match = FUNCTION_ALIAS_PATTERN.match(field_alias)
         if function_match:
@@ -1594,15 +1585,14 @@ class Function(object):
 
         return arguments
 
-    def get_result_type(self, field=None, columns=None):
-        if field is None or columns is None:
+    def get_result_type(self, field=None, arguments=None):
+        if field is None or arguments is None or self.result_type_fn is None:
             return self.default_result_type
 
-        if self.result_type_fn is None:
-            return None
+        result_type = self.result_type_fn(self.args, arguments)
+        if result_type is None:
+            return self.default_result_type
 
-        columns = self.add_default_arguments(field, columns)
-        result_type = self.result_type_fn(self.args, columns)
         self.validate_result_type(result_type)
         return result_type
 
@@ -1672,8 +1662,10 @@ class Function(object):
 
 
 def reflective_result_type(index):
-    def result_type_fn(args, columns):
-        return args[index].get_type(columns[index])
+    def result_type_fn(arg_instances, args):
+        arg_instance = arg_instances[index]
+        arg = args[arg_instance.name]
+        return arg_instance.get_type(arg)
 
     return result_type_fn
 
@@ -2096,17 +2088,21 @@ def parse_function(field, match=None):
     )
 
 
+ResolvedFunction = namedtuple("ResolvedFunction", "field instance arguments")
+
+
 def resolve_function(field, match=None, params=None):
     function_name, columns = parse_function(field, match)
     function = FUNCTIONS[function_name]
-
     arguments = function.format_as_arguments(field, columns, params)
+    resolved = ResolvedFunction(field, function, arguments)
 
     if function.transform is not None:
         snuba_string = function.transform.format(**arguments)
         return (
-            [],
-            [[snuba_string, None, get_function_alias_with_columns(function.name, columns)]],
+            resolved,
+            None,
+            [snuba_string, None, get_function_alias_with_columns(function.name, columns)],
         )
     elif function.aggregate is not None:
         aggregate = deepcopy(function.aggregate)
@@ -2129,7 +2125,7 @@ def resolve_function(field, match=None, params=None):
         else:
             aggregate[2] = aggregate[2].format(**arguments)
 
-        return ([], [aggregate])
+        return (resolved, None, aggregate)
     elif function.column is not None:
         # These can be very nested functions, so we need to iterate through all the layers
         addition = deepcopy(function.column)
@@ -2138,7 +2134,7 @@ def resolve_function(field, match=None, params=None):
             addition.append(get_function_alias_with_columns(function.name, columns))
         elif len(addition) == 3 and addition[2] is None:
             addition[2] = get_function_alias_with_columns(function.name, columns)
-        return ([addition], [])
+        return (resolved, addition, [])
 
 
 def resolve_orderby(orderby, fields, aggregations):
@@ -2207,8 +2203,8 @@ def resolve_field(field, params=None):
 
     if field in FIELD_ALIASES:
         special_field = deepcopy(FIELD_ALIASES[field])
-        return (special_field.get("fields", []), None)
-    return ([field], None)
+        return (None, special_field.get("field"), None)
+    return (None, field, None)
 
 
 def resolve_field_list(fields, snuba_filter, auto_fields=True, auto_aggregations=False):
@@ -2228,6 +2224,7 @@ def resolve_field_list(fields, snuba_filter, auto_fields=True, auto_aggregations
     columns = []
     groupby = []
     project_key = ""
+    functions = {}
 
     # If project is requested, we need to map ids to their names since snuba only has ids
     if "project" in fields:
@@ -2244,20 +2241,27 @@ def resolve_field_list(fields, snuba_filter, auto_fields=True, auto_aggregations
     for field in fields:
         if isinstance(field, six.string_types) and field.strip() == "":
             continue
-        column_additions, agg_additions = resolve_field(field, snuba_filter.date_params)
-        if column_additions:
-            columns.extend([column for column in column_additions if column not in columns])
+        func_addition, column_addition, agg_addition = resolve_field(
+            field, snuba_filter.date_params
+        )
+        if column_addition is not None and column_addition not in columns:
+            columns.append(column_addition)
+            if func_addition is not None and isinstance(column_addition, (list, tuple)):
+                functions[column_addition[2]] = func_addition
+        elif agg_addition is not None:
+            aggregations.append(agg_addition)
+            if func_addition is not None and isinstance(agg_addition, (list, tuple)):
+                functions[agg_addition[2]] = func_addition
 
-        if agg_additions:
-            aggregations.extend(agg_additions)
-
-    # Only auto aggregate when there's one other so we the group by is not unexpectedly changed
+    # Only auto aggregate when there's one other so the group by is not unexpectedly changed
     if auto_aggregations and snuba_filter.having and len(aggregations) > 0:
         for agg in snuba_filter.condition_aggregates:
-            _, agg_additions = resolve_field(agg, snuba_filter.date_params)
+            _, _, agg_addition = resolve_field(agg, snuba_filter.date_params)
 
-            if agg_additions[0] not in aggregations:
-                aggregations.extend(agg_additions)
+            if agg_addition is not None and agg_addition not in aggregations:
+                aggregations.append(agg_addition)
+                if func_addition is not None and isinstance(agg_addition, (list, tuple)):
+                    functions[agg_addition[2]] = func_addition
 
     rollup = snuba_filter.rollup
     if not rollup and auto_fields:
@@ -2327,6 +2331,7 @@ def resolve_field_list(fields, snuba_filter, auto_fields=True, auto_aggregations
         "aggregations": aggregations,
         "groupby": groupby,
         "orderby": orderby,
+        "functions": functions,
     }
 
 
