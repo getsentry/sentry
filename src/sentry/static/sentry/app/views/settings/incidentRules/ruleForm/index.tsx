@@ -437,6 +437,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       );
       // if we get a 202 back it means that we have an async task
       // running to lookup and verify the channel id for Slack.
+      // if we have a uuid in state, no need to start a new polling cycle
       if (xhr && xhr.status === 202 && !uuid) {
         this.setState({loading: true, uuid: resp.uuid});
         this.fetchStatus(model);
