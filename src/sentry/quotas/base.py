@@ -73,6 +73,7 @@ class QuotaConfig(object):
     ):
         if limit is not None:
             assert reason_code, "reason code required for fallible quotas"
+            assert type(limit) == int, "limit must be a integer"
 
         if limit == 0:
             assert id is None, "reject-all quotas cannot be tracked"
