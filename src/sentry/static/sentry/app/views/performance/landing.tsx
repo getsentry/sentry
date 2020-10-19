@@ -225,10 +225,10 @@ class PerformanceLanding extends React.Component<Props, State> {
     if (viewKey === FilterViews.TRENDS) {
       const modifiedConditions = new QueryResults([]);
 
-      if (conditions.hasTag('count()')) {
-        modifiedConditions.setTagValues('count()', conditions.getTagValues('count()'));
+      if (conditions.hasTag('epm()')) {
+        modifiedConditions.setTagValues('epm()', conditions.getTagValues('epm()'));
       } else {
-        modifiedConditions.setTagValues('count()', ['>1000']);
+        modifiedConditions.setTagValues('epm()', ['>0.01']);
       }
       if (conditions.hasTag('transaction.duration')) {
         modifiedConditions.setTagValues(
@@ -245,7 +245,7 @@ class PerformanceLanding extends React.Component<Props, State> {
 
     if (isNavigatingAwayFromTrends) {
       // This stops errors from occurring when navigating to other views since we are appending aggregates to the trends view
-      conditions.removeTag('count()');
+      conditions.removeTag('epm()');
       conditions.removeTag('transaction.duration');
 
       newQuery.query = stringifyQueryObject(conditions);

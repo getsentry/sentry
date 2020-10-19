@@ -17,7 +17,7 @@ import {getUtcDateString} from 'app/utils/dates';
 
 const trendsViewQuery = {
   view: 'TRENDS',
-  query: 'count():>1000 transaction.duration:>0',
+  query: 'epm():>0.01 transaction.duration:>0',
 };
 
 jest.mock('moment', () => {
@@ -565,12 +565,12 @@ describe('Performance > Trends', function () {
           ? getTrendAliasedMinus(trendFunction.alias)
           : aliasedFieldDivide;
 
-      const defaultTrendsFields = ['project', 'count()'];
+      const defaultTrendsFields = ['project'];
 
       const transactionFields = ['transaction', ...defaultTrendsFields];
       const projectFields = [...defaultTrendsFields];
 
-      expect(transactionFields).toHaveLength(3);
+      expect(transactionFields).toHaveLength(2);
       expect(projectFields).toHaveLength(transactionFields.length - 1);
 
       // Improved projects call

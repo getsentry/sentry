@@ -40,7 +40,7 @@ function initializeTrendsData(query, addDefaultQuery = true) {
 
   const otherTrendsQuery = addDefaultQuery
     ? {
-        query: 'count():>1000 transaction.duration:>0',
+        query: 'epm():>0.01 transaction.duration:>0',
       }
     : {};
 
@@ -276,7 +276,7 @@ describe('Performance > Landing', function () {
 
   it('Navigating to trends does not modify statsPeriod when already set', async function () {
     const data = initializeTrendsData({
-      query: 'count():>500 transaction.duration:>10',
+      query: 'epm():>0.005 transaction.duration:>10',
       statsPeriod: '24h',
     });
 
@@ -298,7 +298,7 @@ describe('Performance > Landing', function () {
     expect(browserHistory.push).toHaveBeenCalledWith(
       expect.objectContaining({
         query: {
-          query: 'count():>500 transaction.duration:>10',
+          query: 'epm():>0.005 transaction.duration:>10',
           statsPeriod: '24h',
           view: 'TRENDS',
         },
@@ -359,7 +359,7 @@ describe('Performance > Landing', function () {
       1,
       expect.objectContaining({
         query: {
-          query: 'count():>1000 transaction.duration:>0',
+          query: 'epm():>0.01 transaction.duration:>0',
           view: 'TRENDS',
         },
       })
@@ -417,7 +417,7 @@ describe('Performance > Landing', function () {
     expect(browserHistory.push).toHaveBeenCalledWith(
       expect.objectContaining({
         query: {
-          query: 'count():>1000 transaction.duration:>0',
+          query: 'epm():>0.01 transaction.duration:>0',
           view: 'TRENDS',
         },
       })
@@ -428,7 +428,7 @@ describe('Performance > Landing', function () {
     const data = initializeTrendsData(
       {
         view: FilterViews.TRENDS,
-        query: 'device.family:Mac count():>1000 transaction.duration:>0',
+        query: 'device.family:Mac epm():>0.01 transaction.duration:>0',
       },
       false
     );
