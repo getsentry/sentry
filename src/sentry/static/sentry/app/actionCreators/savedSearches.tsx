@@ -1,5 +1,3 @@
-import {Query} from 'history';
-
 import {Client} from 'app/api';
 import {MAX_AUTOCOMPLETE_RECENT_SEARCHES} from 'app/constants';
 import {addErrorMessage} from 'app/actionCreators/indicator';
