@@ -2794,6 +2794,38 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["aggregations"] == []
         assert result["groupby"] == []
 
+    def test_resolves_functions_with_arguments(self):
+        fields = [
+            "count()",
+            "p50()",
+            "p50(transaction.duration)",
+            "avg(measurements.foo)",
+            "percentile(measurements.fcp, 0.5)",
+        ]
+        result = resolve_field_list(fields, eventstore.Filter())
+        functions = result["functions"]
+
+        assert functions["count"].instance.name == "count"
+        assert functions["count"].arguments == {"column": None}
+
+        assert functions["p50"].instance.name == "p50"
+        assert functions["p50"].arguments == {"column": "transaction.duration"}
+
+        assert functions["p50_transaction_duration"].instance.name == "p50"
+        assert functions["p50_transaction_duration"].arguments == {"column": "transaction.duration"}
+
+        assert functions["avg_measurements_foo"].instance.name == "avg"
+        assert functions["avg_measurements_foo"].arguments == {"column": "measurements.foo"}
+
+        assert functions["avg_measurements_foo"].instance.name == "avg"
+        assert functions["avg_measurements_foo"].arguments == {"column": "measurements.foo"}
+
+        assert functions["percentile_measurements_fcp_0_5"].instance.name == "percentile"
+        assert functions["percentile_measurements_fcp_0_5"].arguments == {
+            "column": "measurements.fcp",
+            "percentile": 0.5,
+        }
+
 
 def with_type(type, argument):
     argument.get_type = lambda *_: type

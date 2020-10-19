@@ -45,7 +45,7 @@ __all__ = (
     "timeseries_query",
     "top_events_timeseries",
     "get_facets",
-    "transform_results",
+    "transform_data",
     "zerofill",
     "measurements_histogram_query",
 )
@@ -237,6 +237,14 @@ def zerofill(data, start, end, rollup, orderby):
     return rv
 
 
+def transform_results(
+    results, function_alias_map, translated_columns, snuba_filter, selected_columns=None
+):
+    results = transform_data(results, translated_columns, snuba_filter, selected_columns)
+    results["meta"] = transform_meta(results, function_alias_map)
+    return results
+
+
 def transform_meta(results, function_alias_map):
     meta = {
         value["name"]: get_json_meta_type(
@@ -252,7 +260,7 @@ def transform_meta(results, function_alias_map):
     return meta
 
 
-def transform_results(result, translated_columns, snuba_filter, selected_columns=None):
+def transform_data(result, translated_columns, snuba_filter, selected_columns=None):
     """
     Transform internal names back to the public schema ones.
 
@@ -262,12 +270,9 @@ def transform_results(result, translated_columns, snuba_filter, selected_columns
     if selected_columns is None:
         selected_columns = []
 
-    meta = []
     for col in result["meta"]:
         # Translate back column names that were converted to snuba format
         col["name"] = translated_columns.get(col["name"], col["name"])
-        # Remove user fields as they will be replaced by the alias.
-        meta.append(col)
 
     def get_row(row):
         transformed = {}
@@ -480,9 +485,9 @@ def query(
         op="discover.discover", description="query.transform_results"
     ) as span:
         span.set_data("result_count", len(result.get("data", [])))
-        results = transform_results(result, translated_columns, snuba_filter, selected_columns)
-        results["meta"] = transform_meta(results, resolved_fields["functions"])
-        return results
+        return transform_results(
+            result, resolved_fields["functions"], translated_columns, snuba_filter, selected_columns
+        )
 
 
 def key_transaction_conditions(queryset):
@@ -768,7 +773,7 @@ def top_events_timeseries(
         op="discover.discover", description="top_events.transform_results"
     ) as span:
         span.set_data("result_count", len(result.get("data", [])))
-        result = transform_results(result, translated_columns, snuba_filter, selected_columns)
+        result = transform_data(result, translated_columns, snuba_filter, selected_columns)
 
         translated_columns["project_id"] = "project"
         translated_groupby = [

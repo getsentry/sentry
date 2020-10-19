@@ -93,11 +93,9 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
         except NoProjects:
             return Response([])
 
-        fields = request.GET.getlist("field")
-
         def data_fn(offset, limit):
             return discover.query(
-                selected_columns=fields[:],
+                selected_columns=request.GET.getlist("field")[:],
                 query=request.GET.get("query"),
                 params=params,
                 orderby=self.get_orderby(request),
@@ -114,6 +112,6 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
                 request=request,
                 paginator=GenericOffsetPaginator(data_fn=data_fn),
                 on_results=lambda results: self.handle_results_with_meta(
-                    request, organization, params["project_id"], results, fields
+                    request, organization, params["project_id"], results
                 ),
             )

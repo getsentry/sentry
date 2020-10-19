@@ -165,7 +165,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             has_results="true" if bool(cursor) else "false",
         )
 
-    def handle_results_with_meta(self, request, organization, project_ids, results, fields=None):
+    def handle_results_with_meta(self, request, organization, project_ids, results):
         with sentry_sdk.start_span(op="discover.endpoint", description="base.handle_results"):
             data = self.handle_data(request, organization, project_ids, results.get("data"))
             meta = results.get("meta", {})

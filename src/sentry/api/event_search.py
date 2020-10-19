@@ -1378,10 +1378,9 @@ class DateArg(FunctionArg):
 
 class NumericColumn(FunctionArg):
     def _normalize(self, value):
-        """
-        This is written this way so that `get_type` can always call this
-        method even in child classes where `normalize` can be overridden.
-        """
+        # This method is written in this way so that `get_type` can always call
+        # this even in child classes where `normalize` have been overridden.
+
         snuba_column = SEARCH_MAP.get(value)
         if not snuba_column and is_measurement(value):
             return value
@@ -1546,7 +1545,7 @@ class Function(object):
     def args(self):
         return self.required_args + self.optional_args
 
-    def add_default_arguments(self, field, columns, params=None):
+    def add_default_arguments(self, field, columns, params):
         # make sure to validate the argument count first to
         # ensure the right number of arguments have been passed
         self.validate_argument_count(field, columns)
@@ -1661,7 +1660,7 @@ class Function(object):
         ), u"{}: result type {} not one of {}".format(self.name, result_type, list(RESULT_TYPES))
 
 
-def reflective_result_type(index):
+def reflective_result_type(index=0):
     def result_type_fn(arg_instances, args):
         arg_instance = arg_instances[index]
         arg = args[arg_instance.name]
@@ -1680,42 +1679,42 @@ FUNCTIONS = {
             "percentile",
             required_args=[NumericColumnNoLookup("column"), NumberRange("percentile", 0, 1)],
             aggregate=[u"quantile({percentile:g})", ArgValue("column"), None],
-            result_type_fn=reflective_result_type(0),
+            result_type_fn=reflective_result_type(),
             default_result_type="duration",
         ),
         Function(
             "p50",
             optional_args=[with_default("transaction.duration", NumericColumnNoLookup("column"))],
             aggregate=[u"quantile(0.5)", ArgValue("column"), None],
-            result_type_fn=reflective_result_type(0),
+            result_type_fn=reflective_result_type(),
             default_result_type="duration",
         ),
         Function(
             "p75",
             optional_args=[with_default("transaction.duration", NumericColumnNoLookup("column"))],
             aggregate=[u"quantile(0.75)", ArgValue("column"), None],
-            result_type_fn=reflective_result_type(0),
+            result_type_fn=reflective_result_type(),
             default_result_type="duration",
         ),
         Function(
             "p95",
             optional_args=[with_default("transaction.duration", NumericColumnNoLookup("column"))],
             aggregate=[u"quantile(0.95)", ArgValue("column"), None],
-            result_type_fn=reflective_result_type(0),
+            result_type_fn=reflective_result_type(),
             default_result_type="duration",
         ),
         Function(
             "p99",
             optional_args=[with_default("transaction.duration", NumericColumnNoLookup("column"))],
             aggregate=[u"quantile(0.99)", ArgValue("column"), None],
-            result_type_fn=reflective_result_type(0),
+            result_type_fn=reflective_result_type(),
             default_result_type="duration",
         ),
         Function(
             "p100",
             optional_args=[with_default("transaction.duration", NumericColumnNoLookup("column"))],
             aggregate=[u"max", ArgValue("column"), None],
-            result_type_fn=reflective_result_type(0),
+            result_type_fn=reflective_result_type(),
             default_result_type="duration",
         ),
         Function(
@@ -1854,28 +1853,28 @@ FUNCTIONS = {
             "min",
             required_args=[NumericColumnNoLookup("column")],
             aggregate=["min", ArgValue("column"), None],
-            result_type_fn=reflective_result_type(0),
+            result_type_fn=reflective_result_type(),
             default_result_type="duration",
         ),
         Function(
             "max",
             required_args=[NumericColumnNoLookup("column")],
             aggregate=["max", ArgValue("column"), None],
-            result_type_fn=reflective_result_type(0),
+            result_type_fn=reflective_result_type(),
             default_result_type="duration",
         ),
         Function(
             "avg",
             required_args=[NumericColumnNoLookup("column")],
             aggregate=["avg", ArgValue("column"), None],
-            result_type_fn=reflective_result_type(0),
+            result_type_fn=reflective_result_type(),
             default_result_type="duration",
         ),
         Function(
             "sum",
             required_args=[NumericColumnNoLookup("column")],
             aggregate=["sum", ArgValue("column"), None],
-            result_type_fn=reflective_result_type(0),
+            result_type_fn=reflective_result_type(),
             default_result_type="duration",
         ),
         # Currently only being used by the baseline PoC
