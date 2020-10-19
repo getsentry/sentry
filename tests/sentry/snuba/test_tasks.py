@@ -8,7 +8,7 @@ from exam import patcher
 from mock import Mock, patch
 from six import add_metaclass
 
-from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQuery
+from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.tasks import (
     build_snuba_filter,
     create_subscription_in_snuba,
@@ -158,14 +158,16 @@ class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest, TestCase):
 
 class BuildSnubaFilterTest(TestCase):
     def test_simple_events(self):
-        snuba_filter = build_snuba_filter(QueryDatasets.EVENTS, "", "count_unique(user)", None,)
+        snuba_filter = build_snuba_filter(
+            QueryDatasets.EVENTS, "", "count_unique(user)", None, None
+        )
         assert snuba_filter
         assert snuba_filter.conditions == [["type", "=", "error"]]
         assert snuba_filter.aggregations == [["uniq", "tags[sentry:user]", u"count_unique_user"]]
 
     def test_simple_transactions(self):
         snuba_filter = build_snuba_filter(
-            QueryDatasets.TRANSACTIONS, "", "count_unique(user)", None,
+            QueryDatasets.TRANSACTIONS, "", "count_unique(user)", None, None
         )
         assert snuba_filter
         assert snuba_filter.conditions == []
@@ -173,7 +175,7 @@ class BuildSnubaFilterTest(TestCase):
 
     def test_aliased_query_events(self):
         snuba_filter = build_snuba_filter(
-            QueryDatasets.EVENTS, "release:latest", "count_unique(user)", None,
+            QueryDatasets.EVENTS, "release:latest", "count_unique(user)", None, None
         )
         assert snuba_filter
         assert snuba_filter.conditions == [
@@ -188,6 +190,7 @@ class BuildSnubaFilterTest(TestCase):
             "release:latest",
             "percentile(transaction.duration,.95)",
             None,
+            None,
         )
         assert snuba_filter
         assert snuba_filter.conditions == [["release", "=", "latest"]]
@@ -197,7 +200,7 @@ class BuildSnubaFilterTest(TestCase):
 
     def test_user_query(self):
         snuba_filter = build_snuba_filter(
-            QueryDatasets.EVENTS, "user:anengineer@work.io", "count()", None,
+            QueryDatasets.EVENTS, "user:anengineer@work.io", "count()", None, None
         )
         assert snuba_filter
         assert snuba_filter.conditions == [
@@ -208,7 +211,7 @@ class BuildSnubaFilterTest(TestCase):
 
     def test_user_query_transactions(self):
         snuba_filter = build_snuba_filter(
-            QueryDatasets.TRANSACTIONS, "user:anengineer@work.io", "p95()", None
+            QueryDatasets.TRANSACTIONS, "user:anengineer@work.io", "p95()", None, None
         )
         assert snuba_filter
         assert snuba_filter.conditions == [["user", "=", "anengineer@work.io"]]
@@ -216,11 +219,36 @@ class BuildSnubaFilterTest(TestCase):
 
     def test_boolean_query(self):
         snuba_filter = build_snuba_filter(
-            QueryDatasets.EVENTS, "release:latest OR release:123", "count_unique(user)", None
+            QueryDatasets.EVENTS, "release:latest OR release:123", "count_unique(user)", None, None
         )
         assert snuba_filter
         assert snuba_filter.conditions == [
             ["type", "=", "error"],
+            [
+                [
+                    "or",
+                    [
+                        ["equals", ["tags[sentry:release]", "'latest'"]],
+                        ["equals", ["tags[sentry:release]", "'123'"]],
+                    ],
+                ],
+                "=",
+                1,
+            ],
+        ]
+        assert snuba_filter.aggregations == [["uniq", "tags[sentry:user]", u"count_unique_user"]]
+
+    def test_event_types(self):
+        snuba_filter = build_snuba_filter(
+            QueryDatasets.EVENTS,
+            "release:latest OR release:123",
+            "count_unique(user)",
+            None,
+            [SnubaQueryEventType.EventType.ERROR, SnubaQueryEventType.EventType.DEFAULT],
+        )
+        assert snuba_filter
+        assert snuba_filter.conditions == [
+            [["or", [["equals", ["type", "'error'"]], ["equals", ["type", "'default'"]]]], "=", 1],
             [
                 [
                     "or",
