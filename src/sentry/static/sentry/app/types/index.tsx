@@ -206,6 +206,7 @@ export type Project = {
   latestDeploys: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
   builtinSymbolSources?: string[];
   stats?: Array<[number, number]>;
+  latestRelease?: {version: string};
 } & AvatarProject;
 
 export type MinimalProject = Pick<Project, 'id' | 'slug'>;
@@ -1488,29 +1489,37 @@ export type Widget = {
 
 export type EventGroupInfo = Record<EventGroupVariantKey, EventGroupVariant>;
 
-export type PlatformType = 'java' | 'csharp' | 'objc' | 'cocoa' | 'native' | 'other';
+export type PlatformType =
+  | 'java'
+  | 'csharp'
+  | 'objc'
+  | 'cocoa'
+  | 'native'
+  | 'javascript'
+  | 'other';
 
 export type Frame = {
-  filename: string;
-  module: string;
-  map: string;
-  preventCollapse: () => void;
-  errors: Array<any>;
+  absPath: string | null;
+  colNo: number | null;
   context: Array<[number, string]>;
-  vars: {[key: string]: any};
+  errors: Array<any> | null;
+  filename: string | null;
+  function: string | null;
   inApp: boolean;
-  function?: string;
-  absPath?: string;
-  rawFunction?: string;
-  platform: PlatformType;
-  lineNo?: number;
-  colNo?: number;
-  package?: string;
-  origAbsPath?: string;
-  mapUrl?: string;
-  instructionAddr?: string;
-  trust?: string;
-  symbolicatorStatus?: SymbolicatorStatus;
+  instructionAddr: string | null;
+  lineNo: number | null;
+  module: string | null;
+  package: string | null;
+  platform: PlatformType | null;
+  rawFunction: string | null;
+  symbol: string | null;
+  symbolAddr: string | null;
+  symbolicatorStatus: SymbolicatorStatus;
+  trust: any | null;
+  vars: Record<string, any> | null;
+  origAbsPath?: string | null;
+  mapUrl?: string | null;
+  map?: string | null;
 };
 
 /**

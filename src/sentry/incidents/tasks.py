@@ -31,6 +31,7 @@ from sentry.utils import metrics
 logger = logging.getLogger(__name__)
 
 INCIDENTS_SNUBA_SUBSCRIPTION_TYPE = "incidents"
+INCIDENT_SNAPSHOT_BATCH_SIZE = 50
 
 
 @instrumented_task(name="sentry.incidents.tasks.send_subscriber_notifications", queue="incidents")
@@ -196,29 +197,40 @@ def auto_resolve_snapshot_incidents(alert_rule_id, **kwargs):
 @instrumented_task(
     name="sentry.incidents.tasks.process_pending_incident_snapshots", queue="incident_snapshots"
 )
-def process_pending_incident_snapshots():
+def process_pending_incident_snapshots(next_id=None):
     """
     Processes PendingIncidentSnapshots and creates a snapshot for any snapshot that
     has passed it's target_run_date.
     """
     from sentry.incidents.logic import create_incident_snapshot
 
-    batch_size = 50
+    if next_id is None:
+        # When next_id is None we know we just started running the task. Take the count
+        # of total pending snapshots so that we can alert if we notice the queue
+        # constantly growing.
+        metrics.incr(
+            "incidents.pending_snapshots",
+            amount=PendingIncidentSnapshot.objects.count(),
+            sample_rate=1.0,
+        )
 
     now = timezone.now()
-    pending_snapshots = (
-        PendingIncidentSnapshot.objects.filter(target_run_date__lte=now)
-        .order_by("-id")
-        .select_related("incident")[: batch_size + 1]
-    )
+    pending_snapshots = PendingIncidentSnapshot.objects.filter(target_run_date__lte=now)
+    if next_id is not None:
+        pending_snapshots = pending_snapshots.filter(id__lte=next_id)
+    pending_snapshots = pending_snapshots.order_by("-id").select_related("incident")[
+        : INCIDENT_SNAPSHOT_BATCH_SIZE + 1
+    ]
 
     if not pending_snapshots:
         return
 
     for processed, pending_snapshot in enumerate(pending_snapshots):
         incident = pending_snapshot.incident
-        if processed >= batch_size:
-            process_pending_incident_snapshots.apply_async(countdown=1)
+        if processed >= INCIDENT_SNAPSHOT_BATCH_SIZE:
+            process_pending_incident_snapshots.apply_async(
+                countdown=1, kwargs={"next_id": pending_snapshot.id}
+            )
             break
         else:
             try:

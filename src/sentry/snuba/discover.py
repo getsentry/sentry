@@ -305,6 +305,7 @@ def query(
     limit=50,
     referrer=None,
     auto_fields=False,
+    auto_aggregations=False,
     use_aggregate_conditions=False,
     conditions=None,
 ):
@@ -326,6 +327,9 @@ def query(
     limit (int) The number of records to fetch.
     referrer (str|None) A referrer string to help locate the origin of this query.
     auto_fields (bool) Set to true to have project + eventid fields automatically added.
+    auto_aggregations (bool) Whether aggregates should be added automatically if they're used
+                    in conditions, and there's at least one aggregate already.
+    use_aggregate_conditions (bool) Set to true if aggregates conditions should be used at all.
     conditions (Sequence[any]) List of conditions that are passed directly to snuba without
                     any additional processing.
     """
@@ -342,6 +346,9 @@ def query(
 
         snuba_filter = get_filter(query, params)
         if not use_aggregate_conditions:
+            assert (
+                not auto_aggregations
+            ), "Auto aggregations cannot be used without enabling aggregate conditions"
             snuba_filter.having = []
 
     # We need to run a separate query to be able to properly bucket the values for the histogram
@@ -381,7 +388,12 @@ def query(
             snuba_filter.orderby = [get_function_alias(o) for o in orderby]
 
         snuba_filter.update_with(
-            resolve_field_list(selected_columns, snuba_filter, auto_fields=auto_fields)
+            resolve_field_list(
+                selected_columns,
+                snuba_filter,
+                auto_fields=auto_fields,
+                auto_aggregations=auto_aggregations,
+            )
         )
 
         # Resolve the public aliases into the discover dataset names.
@@ -393,6 +405,7 @@ def query(
         for having_clause in snuba_filter.having:
             # The first element of the having can be an alias, or a nested array of functions. Loop through to make sure
             # any referenced functions are in the aggregations.
+            error_extra = u", and could not be automatically added" if auto_aggregations else u""
             if isinstance(having_clause[0], (list, tuple)):
                 # Functions are of the form [fn, [args]]
                 args_to_check = [[having_clause[0]]]
@@ -412,8 +425,8 @@ def query(
 
                 if len(conditions_not_in_aggregations) > 0:
                     raise InvalidSearchQuery(
-                        u"Aggregate(s) {} used in a condition but are not in the selected columns.".format(
-                            ", ".join(conditions_not_in_aggregations)
+                        u"Aggregate(s) {} used in a condition but are not in the selected columns{}.".format(
+                            ", ".join(conditions_not_in_aggregations), error_extra,
                         )
                     )
             else:
@@ -422,8 +435,8 @@ def query(
                 )
                 if not found:
                     raise InvalidSearchQuery(
-                        u"Aggregate {} used in a condition but is not a selected column.".format(
-                            having_clause[0]
+                        u"Aggregate {} used in a condition but is not a selected column{}.".format(
+                            having_clause[0], error_extra,
                         )
                     )
 
@@ -495,6 +508,7 @@ def key_transaction_query(selected_columns, user_query, params, orderby, referre
         orderby=orderby,
         referrer=referrer,
         conditions=key_transaction_conditions(queryset),
+        auto_aggregations=True,
         use_aggregate_conditions=True,
     )
 
@@ -676,6 +690,7 @@ def top_events_timeseries(
                 orderby=orderby,
                 limit=limit,
                 referrer=referrer,
+                auto_aggregations=True,
                 use_aggregate_conditions=True,
             )
 
@@ -1106,6 +1121,7 @@ def find_measurements_min_max(
         limit=1,
         referrer="api.organization-events-measurements-min-max",
         auto_fields=True,
+        auto_aggregations=True,
         use_aggregate_conditions=True,
     )
 
