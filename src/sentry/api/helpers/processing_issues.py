@@ -21,7 +21,7 @@ def get_processing_issues(user, projects, include_detailed_issues=False):
         - 'lastSeen': The date a processing issue was last seen
         - 'resolveableIssues': How many Raw Events have no remaining issues and
         can be resolved automatically
-        - 'hasMoreResolveableIssues': Whether there are any Raw Events that
+        - 'hasMoreResolvableIssues': Whether there are any Raw Events that
         have no remaining issues and can be resolved automatically
         'issuesProcessing': How many ReprocessingReports exist for this Project
         'signedLink': Signed link that takes the user to the reprocessing page
@@ -82,7 +82,7 @@ def get_processing_issues(user, projects, include_detailed_issues=False):
             # XXX: Due to a bug in `find_resolved`, this was always returning
             # False. It's unused in our frontend, so just defaulting to False
             # so that we don't break any other consumers that expect this value.
-            "hasMoreResolveableIssues": False,
+            "hasMoreResolvableIssues": False,
             "issuesProcessing": project_reprocessing_issues.get(project.id, 0),
             "signedLink": signed_link,
             "project": project.slug,

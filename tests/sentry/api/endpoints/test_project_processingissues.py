@@ -30,7 +30,7 @@ class ProjectProjectProcessingIssuesTest(APITestCase):
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
         assert response.data["hasIssues"] is True
-        assert response.data["hasMoreResolveableIssues"] is False
+        assert response.data["hasMoreResolvableIssues"] is False
         assert response.data["numIssues"] == 1
         assert response.data["issuesProcessing"] == 0
         assert response.data["resolveableIssues"] == 0
@@ -69,7 +69,7 @@ class ProjectProjectProcessingIssuesTest(APITestCase):
         assert response.data["numIssues"] == 2
         assert response.data["lastSeen"] == issue2.datetime
         assert response.data["hasIssues"] is True
-        assert response.data["hasMoreResolveableIssues"] is False
+        assert response.data["hasMoreResolvableIssues"] is False
         assert response.data["issuesProcessing"] == 0
         assert response.data["resolveableIssues"] == 0
         assert response.data["issues"][0]["checksum"] == issue.checksum
@@ -95,6 +95,6 @@ class ProjectProjectProcessingIssuesTest(APITestCase):
         assert response.data["resolveableIssues"] == 1
         assert response.data["lastSeen"] is None
         assert response.data["hasIssues"] is False
-        assert response.data["hasMoreResolveableIssues"] is False
+        assert response.data["hasMoreResolvableIssues"] is False
         assert response.data["numIssues"] == 0
         assert response.data["issuesProcessing"] == 0
