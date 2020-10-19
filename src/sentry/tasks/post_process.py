@@ -295,7 +295,13 @@ def process_snoozes(group):
         return False
 
     if not snooze.is_valid(group, test_rates=True):
-        snooze_details = {"meow": "woof"}
+        snooze_details = {
+            "until": snooze.until,
+            "count": snooze.count,
+            "window": snooze.window,
+            "user_count": snooze.user_count,
+            "user_window": snooze.user_window,
+        }
         add_group_to_inbox(group, GroupInboxReason.UNIGNORED, snooze_details)
         snooze.delete()
         group.update(status=GroupStatus.UNRESOLVED)
