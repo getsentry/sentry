@@ -1,5 +1,6 @@
 import React from 'react';
 import {EChartOption} from 'echarts';
+import set from 'lodash/set';
 
 import theme from 'app/utils/theme';
 import {getFormattedDate} from 'app/utils/dates';
@@ -19,11 +20,7 @@ const defaultProps = {
   /**
    * Colors to use on the chart.
    */
-  colors: [theme.gray300, theme.purple300, theme.purple400] as string[],
-  /**
-   * Hover state colors to use on the chart.
-   */
-  emphasisColors: [theme.gray400, theme.purple400, theme.purple500] as string[],
+  colors: [theme.gray400, theme.purple400] as string[],
 };
 
 type Props = React.ComponentProps<typeof BaseChart> &
@@ -37,13 +34,19 @@ type Props = React.ComponentProps<typeof BaseChart> &
      * Whether timestamps are should be shown in UTC or local timezone.
      */
     utc?: boolean;
+    /**
+     * A list of colors to use on hover.
+     * By default hover state will shift opacity from 0.6 to 1.0.
+     * You can use this prop to also shift colors on hover.
+     */
+    emphasisColors?: string[];
   };
 
 class MiniBarChart extends React.Component<Props> {
   static defaultProps = defaultProps;
 
   render() {
-    const {markers, colors, emphasisColors, series: _series, ...props} = this.props;
+    const {markers, emphasisColors, colors, series: _series, ...props} = this.props;
     let series = [...this.props.series];
 
     // Ensure bars overlap and that empty values display as we're disabling the axis lines.
@@ -54,17 +57,17 @@ class MiniBarChart extends React.Component<Props> {
           cursor: 'normal',
           type: 'bar',
         } as EChartOption.SeriesBar;
+
         if (i === 0) {
           updated.barMinHeight = 1;
           updated.barGap = '-100%';
         }
-        if (emphasisColors[i]) {
-          updated.emphasis = {
-            itemStyle: {
-              color: emphasisColors[i],
-            },
-          };
+        set(updated, 'itemStyle.opacity', 0.6);
+        set(updated, 'itemStyle.emphasis.opacity', 1.0);
+        if (emphasisColors && emphasisColors[i]) {
+          set(updated, 'itemStyle.emphasis.color', emphasisColors[i]);
         }
+
         return updated;
       });
     }
@@ -120,17 +123,27 @@ class MiniBarChart extends React.Component<Props> {
 
     const chartOptions = {
       colors,
-      animation: false,
       tooltip: {
         trigger: 'axis',
       },
       yAxis: {
+        max(value) {
+          // This keeps small datasets from looking 'scary'
+          // by having full bars for < 10 values.
+          return Math.max(10, value.max);
+        },
         axisLabel: {
           show: false,
         },
         splitLine: {
           show: false,
         },
+      },
+      grid: {
+        top: 0,
+        bottom: markers ? 4 : 0,
+        left: 0,
+        right: 0,
       },
       xAxis: {
         axisLine: {
@@ -152,6 +165,9 @@ class MiniBarChart extends React.Component<Props> {
             width: 0,
           },
         },
+      },
+      options: {
+        animation: false,
       },
     };
     return <BarChart series={series} {...chartOptions} {...props} />;

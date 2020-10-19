@@ -107,12 +107,13 @@ export const _MiniBarChart = withInfo('Stacked MiniBarChart')(() => {
         ]}
       />
 
-      <h3>No markers as per issue list</h3>
+      <h3>No markers and emphasis colors</h3>
       <MiniBarChart
         width={160}
         height={24}
         isGroupedByDate
         showTimeInTooltip
+        emphasisColors={[theme.purple400]}
         series={[
           {
             seriesName: 'Events',
