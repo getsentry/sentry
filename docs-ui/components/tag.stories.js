@@ -5,6 +5,7 @@ import {select, text} from '@storybook/addon-knobs';
 import theme from 'app/utils/theme';
 import Tag from 'app/components/tag';
 import {IconFire} from 'app/icons';
+import {toTitleCase} from 'app/utils';
 
 export default {
   title: 'Core/Badges+Tags/Tag',
@@ -14,14 +15,11 @@ const types = Object.keys(theme.tag);
 
 export const Basic = () => (
   <Wrapper>
-    <Tag>Default</Tag>
-    <Tag type="promotion">Promotion</Tag>
-    <Tag type="highlight">Highlight</Tag>
-    <Tag type="warning">Warning</Tag>
-    <Tag type="success">Success</Tag>
-    <Tag type="error">Error</Tag>
-    <Tag type="info">Info</Tag>
-    <Tag type="white">White</Tag>
+    {types.map(type => (
+      <Tag key={type} type={type}>
+        {toTitleCase(type)}
+      </Tag>
+    ))}
   </Wrapper>
 );
 Basic.story = {name: 'basic'};
