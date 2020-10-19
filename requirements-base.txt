@@ -110,5 +110,3 @@ phabricator>=0.6.0,<1.0
 # test dependencies, but unable to move to requirements-test until sentry.utils.pytest and similar are moved to tests/
 mock==3.0.5 ; python_version < "3.3"
 selenium==3.141.0
-
-# kick py3 gha
