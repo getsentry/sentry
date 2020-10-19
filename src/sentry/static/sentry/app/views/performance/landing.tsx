@@ -236,7 +236,7 @@ class PerformanceLanding extends React.Component<Props, State> {
           conditions.getTagValues('transaction.duration')
         );
       } else {
-        modifiedConditions.setTagValues('transaction.duration', ['>0']);
+        modifiedConditions.setTagValues('transaction.duration', ['>0', '<60min']);
       }
       newQuery.query = stringifyQueryObject(modifiedConditions);
     }
