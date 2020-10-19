@@ -119,12 +119,14 @@ class EventSerializerTest(TestCase):
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
+                "level": "error",  # creates a derived tag.
                 "timestamp": iso_format(before_now(minutes=1)),
-                "tags": [["foo", "foo"], ["bar", "bar"]],
+                "tags": [["foo", "foo"], ["bar", "bar"], ["last", "tag"], None],
                 "_meta": {
                     "tags": {
                         "0": {"1": {"": {"err": ["foo error"]}}},
-                        "1": {"1": {"": {"err": ["bar error"]}}},
+                        "1": {"0": {"": {"err": ["bar error"]}}},
+                        "3": {"": {"err": ["full error"]}},
                     }
                 },
             },
@@ -133,17 +135,22 @@ class EventSerializerTest(TestCase):
         )
 
         result = serialize(event)
+        # Expect 3 custom tags + derived "level". The ``None``` entry is removed
+        # by the serializer as it cannot be rendered. Such entries are generated
+        # by Relay normalization.
+        assert len(result["tags"]) == 4
         assert result["tags"][0]["value"] == "bar"
         assert result["tags"][1]["value"] == "foo"
-        assert result["_meta"]["tags"]["0"]["value"] == {"": {"err": ["bar error"]}}
+        assert result["_meta"]["tags"]["0"]["key"] == {"": {"err": ["bar error"]}}
         assert result["_meta"]["tags"]["1"]["value"] == {"": {"err": ["foo error"]}}
+        assert result["_meta"]["tags"].get("2") is None
 
     def test_tags_dict(self):
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
                 "timestamp": iso_format(before_now(minutes=1)),
-                "tags": {"foo": "foo", "bar": "bar"},
+                "tags": {"foo": "foo", "bar": "bar", "last": "tag"},
                 "_meta": {
                     "tags": {
                         "foo": {"": {"err": ["foo error"]}},
@@ -160,6 +167,7 @@ class EventSerializerTest(TestCase):
         assert result["tags"][1]["value"] == "foo"
         assert result["_meta"]["tags"]["0"]["value"] == {"": {"err": ["bar error"]}}
         assert result["_meta"]["tags"]["1"]["value"] == {"": {"err": ["foo error"]}}
+        assert result["_meta"]["tags"].get("2") is None
 
     def test_none_interfaces(self):
         event = self.store_event(

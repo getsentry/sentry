@@ -1,19 +1,25 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import {Link} from 'react-router';
+import {css} from '@emotion/core';
 import * as queryString from 'query-string';
 import {Query, Location} from 'history';
 
-import {EventTag, Meta} from 'app/types';
+import {EventTag} from 'app/types';
 import AnnotatedText from 'app/components/events/meta/annotatedText';
-import DeviceName from 'app/components/deviceName';
 import {isUrl} from 'app/utils';
 import Pill from 'app/components/pill';
 import VersionHoverCard from 'app/components/versionHoverCard';
 import TraceHoverCard from 'app/utils/discover/traceHoverCard';
-import Version from 'app/components/version';
 import {IconOpen, IconInfo} from 'app/icons';
 import ExternalLink from 'app/components/links/externalLink';
+import {getMeta} from 'app/components/events/meta/metaProxy';
+
+import EventTagsPillValue from './eventTagsPillValue';
+
+const iconStyle = css`
+  position: relative;
+  top: 1px;
+`;
 
 type Props = {
   tag: EventTag;
@@ -23,7 +29,6 @@ type Props = {
   location: Location;
   orgId: string;
   projectId: string;
-  meta?: Meta;
   hasQueryFeature: boolean;
 };
 
@@ -34,33 +39,28 @@ const EventTagsPill = ({
   projectId,
   streamPath,
   releasesPath,
-  meta,
   location,
   hasQueryFeature,
 }: Props) => {
   const locationSearch = `?${queryString.stringify(query)}`;
-  const isRelease = tag.key === 'release';
-  const isTrace = tag.key === 'trace';
+  const {key, value} = tag;
+  const isRelease = key === 'release';
+  const isTrace = key === 'trace';
+  const name = !key ? <AnnotatedText value={key} meta={getMeta(tag, 'key')} /> : key;
+  const type = !key ? 'error' : undefined;
 
   return (
-    <Pill key={tag.key} name={tag.key} value={tag.value}>
-      <Link
-        to={{
-          pathname: streamPath,
-          search: locationSearch,
-        }}
-      >
-        {isRelease ? (
-          <Version version={tag.value} anchor={false} tooltipRawVersion truncate />
-        ) : (
-          <DeviceName value={tag.value}>
-            {deviceName => <AnnotatedText value={deviceName} meta={meta} />}
-          </DeviceName>
-        )}
-      </Link>
-      {isUrl(tag.value) && (
-        <ExternalLink href={tag.value} className="external-icon">
-          <StyledIconOpen size="xs" />
+    <Pill name={name} value={value} type={type}>
+      <EventTagsPillValue
+        tag={tag}
+        meta={getMeta(tag, 'value')}
+        streamPath={streamPath}
+        locationSearch={locationSearch}
+        isRelease={isRelease}
+      />
+      {isUrl(value) && (
+        <ExternalLink href={value} className="external-icon">
+          <IconOpen size="xs" css={iconStyle} />
         </ExternalLink>
       )}
       {isRelease && (
@@ -68,15 +68,10 @@ const EventTagsPill = ({
           <VersionHoverCard
             orgSlug={orgId}
             projectSlug={projectId}
-            releaseVersion={tag.value}
+            releaseVersion={value}
           >
-            <Link
-              to={{
-                pathname: `${releasesPath}${tag.value}/`,
-                search: locationSearch,
-              }}
-            >
-              <StyledIconInfo size="xs" />
+            <Link to={{pathname: `${releasesPath}${value}/`, search: locationSearch}}>
+              <IconInfo size="xs" css={iconStyle} />
             </Link>
           </VersionHoverCard>
         </div>
@@ -84,14 +79,14 @@ const EventTagsPill = ({
       {isTrace && hasQueryFeature && (
         <TraceHoverCard
           containerClassName="pill-icon"
-          traceId={tag.value}
+          traceId={value}
           orgId={orgId}
           location={location}
         >
           {({to}) => {
             return (
               <Link to={to}>
-                <StyledIconOpen size="xs" />
+                <IconOpen size="xs" css={iconStyle} />
               </Link>
             );
           }}
@@ -100,15 +95,5 @@ const EventTagsPill = ({
     </Pill>
   );
 };
-
-const StyledIconInfo = styled(IconInfo)`
-  position: relative;
-  top: 1px;
-`;
-
-const StyledIconOpen = styled(IconOpen)`
-  position: relative;
-  top: 1px;
-`;
 
 export default EventTagsPill;

@@ -42,7 +42,7 @@ export default class RRWebIntegration extends AsyncComponent {
     const url = `/api/0/projects/${orgId}/${projectId}/events/${event.id}/attachments/${attachment.id}/?download`;
 
     return (
-      <EventDataSection key="context-replay" title="Replay">
+      <EventDataSection key="context-replay" type="context-replay" title="Replay">
         <StyledPanel>
           <LazyLoad
             component={() =>

@@ -53,7 +53,7 @@ const AnnotatedText = ({value, meta, ...props}: Props) => {
     }
 
     return (
-      <Tooltip
+      <StyledTooltipError
         title={
           <TooltipTitle>
             <strong>
@@ -68,7 +68,7 @@ const AnnotatedText = ({value, meta, ...props}: Props) => {
         }
       >
         <StyledIconWarning color="red500" />
-      </Tooltip>
+      </StyledTooltipError>
     );
   };
 
@@ -82,11 +82,13 @@ const AnnotatedText = ({value, meta, ...props}: Props) => {
 
 export default AnnotatedText;
 
-const StyledIconWarning = styled(IconWarning)`
-  padding-left: ${space(0.75)};
+const StyledTooltipError = styled(Tooltip)`
+  margin-left: ${space(0.75)};
+  vertical-align: middle;
 `;
 
 const StyledListItem = styled(ListItem)`
+  padding-left: ${space(3)};
   ul & {
     color: ${p => p.theme.white};
     &:before {
@@ -97,4 +99,8 @@ const StyledListItem = styled(ListItem)`
 
 const TooltipTitle = styled('div')`
   text-align: left;
+`;
+
+const StyledIconWarning = styled(IconWarning)`
+  vertical-align: middle;
 `;
