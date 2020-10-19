@@ -1,6 +1,7 @@
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import React from 'react';
+import {RouteComponentProps} from 'react-router/lib/Router';
 
 import {t, tct} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
@@ -9,28 +10,33 @@ import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import Button from 'app/components/button';
 import ExternalLink from 'app/components/links/externalLink';
 import PlatformPicker from 'app/components/platformPicker';
-import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import recreateRoute from 'app/utils/recreateRoute';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
+import {Organization, PlatformType} from 'app/types';
+import {ProjectKey} from 'app/views/settings/project/projectKeys/types';
 
-class ProjectInstallOverview extends AsyncComponent {
-  static propTypes = {
-    organization: SentryTypes.Organization.isRequired,
-  };
+type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
+  organization: Organization;
+} & AsyncComponent['props'];
 
+type State = {
+  keyList: Array<ProjectKey> | null;
+} & AsyncComponent['state'];
+
+class ProjectInstallOverview extends AsyncComponent<Props, State> {
   get isGettingStarted() {
     return window.location.href.indexOf('getting-started') > 0;
   }
 
-  getEndpoints() {
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {orgId, projectId} = this.props.params;
     return [['keyList', `/projects/${orgId}/${projectId}/keys/`]];
   }
 
-  redirectToDocs = platform => {
+  redirectToDocs = (platform: PlatformType) => {
     const {orgId, projectId} = this.props.params;
 
     const installUrl = this.isGettingStarted
@@ -49,11 +55,9 @@ class ProjectInstallOverview extends AsyncComponent {
 
   render() {
     const {orgId, projectId} = this.props.params;
-    const {keyList} = this.state;
+    const {keyList, showDsn} = this.state;
 
     const issueStreamLink = `/organizations/${orgId}/issues/#welcome`;
-
-    const dsn = !!keyList?.length ? keyList[0].dsn : {};
 
     return (
       <div>
@@ -65,11 +69,11 @@ class ProjectInstallOverview extends AsyncComponent {
           )}
         </TextBlock>
 
-        {this.state.showDsn ? (
+        {showDsn ? (
           <DsnInfo>
             <DsnContainer>
               <strong>{t('DSN')}</strong>
-              <DsnValue>{dsn.public}</DsnValue>
+              <DsnValue>{keyList?.[0].dsn.public}</DsnValue>
             </DsnContainer>
 
             <Button priority="primary" to={issueStreamLink}>
