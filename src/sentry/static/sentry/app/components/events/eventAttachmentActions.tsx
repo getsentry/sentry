@@ -5,7 +5,7 @@ import {t} from 'app/locale';
 import Button from 'app/components/button';
 import space from 'app/styles/space';
 import Confirm from 'app/components/confirm';
-import {IconDelete, IconDownload, IconFilter} from 'app/icons';
+import {IconDelete, IconDownload, IconShow} from 'app/icons';
 import withApi from 'app/utils/withApi';
 import {Client} from 'app/api';
 
@@ -14,6 +14,7 @@ type Props = {
   url: string | null;
   attachmentId: string;
   hasPreview?: boolean;
+  previewIsOpen?: boolean;
   onDelete: (attachmentId: string) => void;
   onPreview?: (attachmentId: string) => void;
 };
@@ -43,24 +44,25 @@ class EventAttachmentActions extends React.Component<Props> {
   }
 
   render() {
-    const {url, hasPreview} = this.props;
+    const {url, hasPreview, previewIsOpen} = this.props;
 
     return (
       <React.Fragment>
         <DownloadButton
           size="xsmall"
           disabled={!url || !hasPreview}
-          icon={<IconFilter size="xs" />}
+          priority={previewIsOpen ? 'primary' : 'default'}
+          icon={<IconShow size="xs" />}
           onClick={() => this.handlePreview()}
           title={
             !url
               ? t('Insufficient permissions to preview attachments')
               : !hasPreview
-              ? t('This type of attachment cannot be previewed')
+              ? t('This attachment cannot be previewed')
               : undefined
           }
         >
-          {t('View')}
+          {t('Preview')}
         </DownloadButton>
 
         <DownloadButton

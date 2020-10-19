@@ -96,19 +96,32 @@ class EventAttachments extends React.Component<Props, State> {
     }));
   };
 
-  hasInlineRenderer(attachment): boolean {
-    return !!attachment.name.match(/\.(log|txt)$/) && attachment.size > 0;
+  getInlineAttachmentRenderer(attachment: EventAttachment) {
+    const contentType = attachment.headers['Content-Type'] || '';
+    const mimeType = contentType.split(';')[0].trim();
+    switch (mimeType) {
+      case 'text/plain':
+        return attachment.size > 0 ? LogFileViewer : undefined;
+      default:
+        return undefined;
+    }
   }
 
-  renderInlineAttachment(attachment) {
-    if (
-      !this.hasInlineRenderer(attachment) ||
-      !this.state.attachmentPreviews[attachment.id]
-    ) {
+  hasInlineAttachmentRenderer(attachment: EventAttachment): boolean {
+    return !!this.getInlineAttachmentRenderer(attachment);
+  }
+
+  attachmentPreviewIsOpen(attachment: EventAttachment) {
+    return !!this.state.attachmentPreviews[attachment.id];
+  }
+
+  renderInlineAttachment(attachment: EventAttachment) {
+    const Component = this.getInlineAttachmentRenderer(attachment);
+    if (!Component || !this.attachmentPreviewIsOpen(attachment)) {
       return null;
     }
     return (
-      <LogFileViewer
+      <Component
         orgId={this.props.orgId}
         projectId={this.props.projectId}
         event={this.props.event}
@@ -166,7 +179,8 @@ class EventAttachments extends React.Component<Props, State> {
                           url={url}
                           onDelete={this.handleDelete}
                           onPreview={() => this.togglePreview(attachment)}
-                          hasPreview={this.hasInlineRenderer(attachment)}
+                          previewIsOpen={this.attachmentPreviewIsOpen(attachment)}
+                          hasPreview={this.hasInlineAttachmentRenderer(attachment)}
                           attachmentId={attachment.id}
                         />
                       )}

@@ -87,7 +87,7 @@ export default class LogFileViewer extends AsyncComponent<Props, State> {
 
 const LogPanelItem = styled(PanelItem)`
   overflow: auto;
-  max-height: 300px;
+  max-height: 500px;
   padding: 0;
 `;
 
