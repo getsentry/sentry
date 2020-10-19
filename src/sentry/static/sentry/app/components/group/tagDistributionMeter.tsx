@@ -25,7 +25,6 @@ class GroupTagDistributionMeter extends React.Component<Props, State> {
   state: State = {
     loading: true,
     error: false,
-    iOSDeviceList: undefined,
   };
 
   componentDidMount() {
