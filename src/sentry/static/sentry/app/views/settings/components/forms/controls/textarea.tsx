@@ -43,6 +43,7 @@ const propFilter = (p: string) =>
 
 const TextArea = styled(TextAreaControl, {shouldForwardProp: propFilter})`
   ${inputStyles};
+  line-height: 1.3em;
 `;
 
 export default TextArea;
