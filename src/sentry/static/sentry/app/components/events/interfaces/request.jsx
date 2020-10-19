@@ -122,6 +122,10 @@ class RequestInterface extends React.Component {
   }
 }
 
+const MonoButton = styled(Button)`
+  font-family: ${p => p.theme.text.familyMono};
+`;
+
 const Path = styled('span')`
   color: ${p => p.theme.gray700};
   text-transform: none;
@@ -149,10 +153,6 @@ const StyledIconOpen = styled(IconOpen)`
   &:hover {
     color: ${p => p.theme.gray600};
   }
-`;
-
-const MonoButton = styled(Button)`
-  font-family: ${p => p.theme.text.familyMono};
 `;
 
 export default RequestInterface;

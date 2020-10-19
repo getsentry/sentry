@@ -112,7 +112,7 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
         self.page.visit_issue(self.org.slug, event.group.id)
         self.browser.snapshot("issue details javascript - event details")
 
-        self.browser.find_element_by_xpath("//button//span[contains(text(), 'curl')]").click()
+        self.browser.click('[aria-label="curl"]')
         self.browser.snapshot("issue details javascript - event details - curl command")
 
     def test_rust_event(self):
