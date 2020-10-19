@@ -310,7 +310,7 @@ describe('Performance > Trends', function () {
     expect(menuActions).toHaveLength(3);
 
     const menuAction = menuActions.at(0);
-    expect(menuAction.text()).toEqual('Exclude > 863ms');
+    expect(menuAction.text()).toEqual('Show \u2264 863ms');
     menuAction.simulate('click');
 
     expect(browserHistory.push).toHaveBeenCalledWith({
@@ -344,7 +344,7 @@ describe('Performance > Trends', function () {
     expect(menuActions).toHaveLength(3);
 
     const menuAction = menuActions.at(1);
-    expect(menuAction.text()).toEqual('Exclude < 863ms');
+    expect(menuAction.text()).toEqual('Show \u2265 863ms');
     menuAction.simulate('click');
 
     expect(browserHistory.push).toHaveBeenCalledWith({

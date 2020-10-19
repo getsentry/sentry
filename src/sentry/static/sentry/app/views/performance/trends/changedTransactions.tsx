@@ -442,7 +442,7 @@ function TrendsListItem(props: TrendsListItemProps) {
           )}
         </Tooltip>
       </ItemTransactionPercentage>
-      <StyledDropdownLink
+      <DropdownLink
         caret={false}
         anchorRight
         title={
@@ -458,21 +458,21 @@ function TrendsListItem(props: TrendsListItemProps) {
             handleFilterDuration(location, longestPeriodValue, FilterSymbols.GREATER_THAN)
           }
         >
-          <StyledMenuAction>{t('Exclude > %s', longestDuration)}</StyledMenuAction>
+          <StyledMenuAction>{t('Show \u2264 %s', longestDuration)}</StyledMenuAction>
         </MenuItem>
         <MenuItem
           onClick={() =>
             handleFilterDuration(location, longestPeriodValue, FilterSymbols.LESS_THAN)
           }
         >
-          <StyledMenuAction>{t('Exclude < %s', longestDuration)}</StyledMenuAction>
+          <StyledMenuAction>{t('Show \u2265 %s', longestDuration)}</StyledMenuAction>
         </MenuItem>
         <MenuItem
           onClick={() => handleFilterTransaction(location, transaction.transaction)}
         >
           <StyledMenuAction>{t('Hide from list')}</StyledMenuAction>
         </MenuItem>
-      </StyledDropdownLink>
+      </DropdownLink>
       <ItemTransactionDurationChange>
         {project && (
           <Tooltip title={transaction.project}>
@@ -596,10 +596,6 @@ const StyledButton = styled(Button)`
 const StyledMenuAction = styled('div')`
   white-space: nowrap;
   color: ${p => p.theme.textColor};
-`;
-
-const StyledDropdownLink = styled(DropdownLink)`
-  min-width: 200px;
 `;
 
 const StyledEmptyStateWarning = styled(EmptyStateWarning)`
