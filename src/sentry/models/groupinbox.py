@@ -23,9 +23,23 @@ class GroupInbox(Model):
 
     group = FlexibleForeignKey("sentry.Group", unique=True)
     reason = models.PositiveSmallIntegerField(null=False, default=GroupInboxReason.NEW.value)
+    # TODO: Create JSON schema to enforce data structure
     reason_details = JSONField(null=True)
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_groupinbox"
+
+
+def add_group_to_inbox(group, reason, reason_details):
+    if not GroupInbox.objects.filter(group=group).exists():
+        return GroupInbox.objects.create(
+            group=group, reason=reason.value, reason_details=reason_details
+        )
+    else:
+        return None
+
+
+def remove_group_from_inbox(group):
+    GroupInbox.objects.filter(group=group).delete()

@@ -227,6 +227,8 @@ class PostProcessGroupTest(TestCase):
 
     @patch("sentry.rules.processor.RuleProcessor")
     def test_invalidates_snooze(self, mock_processor):
+        from sentry.models import GroupInbox, GroupInboxReason
+
         event = self.store_event(data={"message": "testing"}, project_id=self.project.id)
         cache_key = write_event_to_cache(event)
 
@@ -242,6 +244,8 @@ class PostProcessGroupTest(TestCase):
             cache_key=cache_key,
             group_id=event.group_id,
         )
+        assert GroupInbox.objects.filter(group=group, reason=GroupInboxReason.NEW.value).exists()
+        GroupInbox.objects.filter(group=group).delete()  # Delete so it creates the UNIGNORED entry.
 
         mock_processor.assert_called_with(EventMatcher(event), True, False, True, False)
 
@@ -262,6 +266,9 @@ class PostProcessGroupTest(TestCase):
 
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.UNRESOLVED
+        assert GroupInbox.objects.filter(
+            group=group, reason=GroupInboxReason.UNIGNORED.value
+        ).exists()
 
     @patch("sentry.rules.processor.RuleProcessor")
     def test_maintains_valid_snooze(self, mock_processor):
@@ -670,3 +677,43 @@ class PostProcessGroupTest(TestCase):
         )
 
         assert not delay.called
+
+    @patch("sentry.rules.processor.RuleProcessor")
+    def test_group_inbox_regression(self, mock_processor):
+        from sentry.models import GroupInbox, GroupInboxReason
+
+        event = self.store_event(data={"message": "testing"}, project_id=self.project.id)
+        cache_key = write_event_to_cache(event)
+
+        group = event.group
+
+        post_process_group(
+            event=None,
+            is_new=True,
+            is_regression=True,
+            is_new_group_environment=False,
+            cache_key=cache_key,
+            group_id=event.group_id,
+        )
+        assert GroupInbox.objects.filter(group=group, reason=GroupInboxReason.NEW.value).exists()
+        GroupInbox.objects.filter(group=group).delete()  # Delete so it creates the UNIGNORED entry.
+
+        mock_processor.assert_called_with(EventMatcher(event), True, True, False, False)
+
+        cache_key = write_event_to_cache(event)
+        post_process_group(
+            event=None,
+            is_new=False,
+            is_regression=True,
+            is_new_group_environment=False,
+            cache_key=cache_key,
+            group_id=event.group_id,
+        )
+
+        mock_processor.assert_called_with(EventMatcher(event), False, True, False, False)
+
+        group = Group.objects.get(id=group.id)
+        assert group.status == GroupStatus.UNRESOLVED
+        assert GroupInbox.objects.filter(
+            group=group, reason=GroupInboxReason.REGRESSION.value
+        ).exists()
