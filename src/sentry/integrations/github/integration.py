@@ -98,6 +98,17 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
     def search_issues(self, query):
         return self.get_client().search_issues(query)
 
+    def get_stacktrace_link(self, repo, filepath, default_version):
+        try:
+            resp = self.get_client().get_file(repo.name, filepath)
+        except ApiError as e:
+            if e.code != 404:
+                raise
+            return
+
+        # if it exists return the url
+        return resp["html_url"]
+
     def get_unmigratable_repositories(self):
         accessible_repos = self.get_repositories()
         accessible_repo_names = [r["identifier"] for r in accessible_repos]
