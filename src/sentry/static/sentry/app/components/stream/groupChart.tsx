@@ -51,7 +51,7 @@ function GroupChart({
       data: stats.map(point => ({name: point[0] * 1000, value: point[1]})),
     });
   } else {
-    // Colors are custom to preserver historical appearance where the single series is
+    // Colors are custom to preserve historical appearance where the single series is
     // considerably darker than the two series results.
     colors = [theme.gray500];
     emphasisColors = [theme.purple400];
