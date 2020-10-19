@@ -68,6 +68,10 @@ class InvalidTriggerActionError(Exception):
     pass
 
 
+class ChannelLookupTimeoutError(Exception):
+    pass
+
+
 def create_incident(
     organization,
     type_,
@@ -581,6 +585,7 @@ def create_alert_rule(
     excluded_projects=None,
     dataset=QueryDatasets.EVENTS,
     user=None,
+    **kwargs
 ):
     """
     Creates an alert rule for an organization.
@@ -704,6 +709,7 @@ def update_alert_rule(
     include_all_projects=None,
     excluded_projects=None,
     user=None,
+    **kwargs
 ):
     """
     Updates an alert rule.
@@ -1062,7 +1068,13 @@ def get_subscriptions_from_alert_rule(alert_rule, projects):
 
 
 def create_alert_rule_trigger_action(
-    trigger, type, target_type, target_identifier=None, integration=None, sentry_app=None
+    trigger,
+    type,
+    target_type,
+    target_identifier=None,
+    integration=None,
+    sentry_app=None,
+    use_async_lookup=False,
 ):
     """
     Creates an AlertRuleTriggerAction
@@ -1075,14 +1087,17 @@ def create_alert_rule_trigger_action(
     :param sentry_app: (Optional) The Sentry App related to this action.
     :return: The created action
     """
-
     target_display = None
     if type.value in AlertRuleTriggerAction.INTEGRATION_TYPES:
         if target_type != AlertRuleTriggerAction.TargetType.SPECIFIC:
             raise InvalidTriggerActionError("Must specify specific target type")
 
         target_identifier, target_display = get_target_identifier_display_for_integration(
-            type.value, target_identifier, trigger.alert_rule.organization, integration.id
+            type.value,
+            target_identifier,
+            trigger.alert_rule.organization,
+            integration.id,
+            use_async_lookup=use_async_lookup,
         )
     elif type == AlertRuleTriggerAction.Type.SENTRY_APP:
         target_identifier, target_display = get_alert_rule_trigger_action_sentry_app(
@@ -1107,6 +1122,7 @@ def update_alert_rule_trigger_action(
     target_identifier=None,
     integration=None,
     sentry_app=None,
+    use_async_lookup=False,
 ):
     """
     Updates values on an AlertRuleTriggerAction
@@ -1135,7 +1151,11 @@ def update_alert_rule_trigger_action(
             organization = trigger_action.alert_rule_trigger.alert_rule.organization
 
             target_identifier, target_display = get_target_identifier_display_for_integration(
-                type, target_identifier, organization, integration.id
+                type,
+                target_identifier,
+                organization,
+                integration.id,
+                use_async_lookup=use_async_lookup,
             )
             updated_fields["target_display"] = target_display
 
@@ -1175,7 +1195,9 @@ def get_target_identifier_display_for_integration(type, target_value, *args, **k
     return target_identifier, target_value
 
 
-def get_alert_rule_trigger_action_slack_channel_id(name, organization, integration_id):
+def get_alert_rule_trigger_action_slack_channel_id(
+    name, organization, integration_id, use_async_lookup
+):
     from sentry.integrations.slack.utils import get_channel_id
 
     try:
@@ -1184,7 +1206,9 @@ def get_alert_rule_trigger_action_slack_channel_id(name, organization, integrati
         raise InvalidTriggerActionError("Slack workspace is a required field.")
 
     try:
-        _prefix, channel_id, timed_out = get_channel_id(organization, integration, name)
+        _prefix, channel_id, timed_out = get_channel_id(
+            organization, integration, name, use_async_lookup
+        )
     except DuplicateDisplayNameError as e:
         domain = integration.metadata["domain_name"]
 
@@ -1194,8 +1218,8 @@ def get_alert_rule_trigger_action_slack_channel_id(name, organization, integrati
         )
 
     if timed_out:
-        raise InvalidTriggerActionError(
-            "Could not find channel %s. We have timed out trying to look for it. " % name
+        raise ChannelLookupTimeoutError(
+            "Could not find channel %s. We have timed out trying to look for it." % name
         )
 
     if channel_id is None:
@@ -1207,7 +1231,9 @@ def get_alert_rule_trigger_action_slack_channel_id(name, organization, integrati
     return channel_id
 
 
-def get_alert_rule_trigger_action_msteams_channel_id(name, organization, integration_id):
+def get_alert_rule_trigger_action_msteams_channel_id(
+    name, organization, integration_id, use_async_lookup=False
+):
     from sentry.integrations.msteams.utils import get_channel_id
 
     channel_id = get_channel_id(organization, integration_id, name)
@@ -1219,7 +1245,9 @@ def get_alert_rule_trigger_action_msteams_channel_id(name, organization, integra
     return channel_id
 
 
-def get_alert_rule_trigger_action_pagerduty_service(target_value, organization, integration_id):
+def get_alert_rule_trigger_action_pagerduty_service(
+    target_value, organization, integration_id, use_async_lookup=False
+):
     try:
         service = PagerDutyService.objects.get(id=target_value)
     except PagerDutyService.DoesNotExist:
