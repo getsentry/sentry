@@ -27,7 +27,9 @@ from sentry.models import (
     ReleaseProjectEnvironment,
     UserReport,
 )
-from sentry.testutils import TestCase
+from sentry.testutils import TestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.samples import load_data
 
 
 class ProjectSerializerTest(TestCase):
@@ -215,8 +217,9 @@ class ProjectWithTeamSerializerTest(TestCase):
         }
 
 
-class ProjectSummarySerializerTest(TestCase):
+class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
     def setUp(self):
+        super(ProjectSummarySerializerTest, self).setUp()
         self.date = datetime.datetime(2018, 1, 12, 3, 8, 25, tzinfo=timezone.utc)
         self.user = self.create_user(username="foo")
         self.organization = self.create_organization(owner=self.user)
@@ -413,6 +416,37 @@ class ProjectSummarySerializerTest(TestCase):
                 "dateFinished": other_project_deploy.date_finished,
             }
         }
+
+    def test_stats_errors(self):
+        two_min_ago = before_now(minutes=2)
+        self.store_event(
+            data={"event_id": "d" * 32, "message": "oh no", "timestamp": iso_format(two_min_ago)},
+            project_id=self.project.id,
+        )
+        serializer = ProjectSummarySerializer(stats_period="24h")
+        results = serialize([self.project], self.user, serializer)
+        assert "stats" in results[0]
+        assert 24 == len(results[0]["stats"])
+        assert [1] == [v[1] for v in results[0]["stats"] if v[1] > 0]
+
+    def test_stats_with_transactions(self):
+        two_min_ago = before_now(minutes=2)
+        self.store_event(
+            data={"event_id": "d" * 32, "message": "oh no", "timestamp": iso_format(two_min_ago)},
+            project_id=self.project.id,
+        )
+        transaction = load_data("transaction", timestamp=two_min_ago)
+        self.store_event(data=transaction, project_id=self.project.id)
+        serializer = ProjectSummarySerializer(stats_period="24h", transaction_stats=True)
+        results = serialize([self.project], self.user, serializer)
+        assert "stats" in results[0]
+        assert 24 == len(results[0]["stats"])
+
+        assert [1] == [v[1] for v in results[0]["stats"] if v[1] > 0]
+
+        assert "transactionStats" in results[0]
+        assert 24 == len(results[0]["transactionStats"])
+        assert [1] == [v[1] for v in results[0]["transactionStats"] if v[1] > 0]
 
 
 class ProjectWithOrganizationSerializerTest(TestCase):
