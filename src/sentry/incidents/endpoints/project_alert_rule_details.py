@@ -7,7 +7,8 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.alert_rule import AlertRuleSerializer
 from sentry.incidents.endpoints.bases import ProjectAlertRuleEndpoint
 from sentry.incidents.endpoints.serializers import AlertRuleSerializer as DrfAlertRuleSerializer
-from sentry.incidents.logic import AlreadyDeletedError, delete_alert_rule
+from sentry.incidents.logic import AlreadyDeletedError, ChannelLookupTimeoutError, delete_alert_rule
+from sentry.integrations.slack import tasks
 
 
 class ProjectAlertRuleDetailsEndpoint(ProjectAlertRuleEndpoint):
@@ -21,6 +22,7 @@ class ProjectAlertRuleDetailsEndpoint(ProjectAlertRuleEndpoint):
         return Response(data)
 
     def put(self, request, project, alert_rule):
+        data = request.data
         serializer = DrfAlertRuleSerializer(
             context={
                 "organization": project.organization,
@@ -28,13 +30,26 @@ class ProjectAlertRuleDetailsEndpoint(ProjectAlertRuleEndpoint):
                 "user": request.user,
             },
             instance=alert_rule,
-            data=request.data,
+            data=data,
             partial=True,
         )
 
         if serializer.is_valid():
-            alert_rule = serializer.save()
-            return Response(serialize(alert_rule, request.user), status=status.HTTP_200_OK)
+            try:
+                alert_rule = serializer.save()
+            except ChannelLookupTimeoutError:
+                # need to kick off an async job for Slack
+                client = tasks.RedisRuleStatus()
+                task_args = {
+                    "organization_id": project.organization_id,
+                    "uuid": client.uuid,
+                    "data": data,
+                    "alert_rule_id": alert_rule.id,
+                }
+                tasks.find_channel_id_for_alert_rule.apply_async(kwargs=task_args)
+                return Response({"uuid": client.uuid}, status=202)
+            else:
+                return Response(serialize(alert_rule, request.user), status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

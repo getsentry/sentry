@@ -18,6 +18,7 @@ from sentry.incidents.logic import (
     AlertRuleNameAlreadyUsedError,
     AlertRuleTriggerLabelAlreadyUsedError,
     InvalidTriggerActionError,
+    ChannelLookupTimeoutError,
     check_aggregate_column_support,
     create_alert_rule,
     create_alert_rule_trigger,
@@ -156,7 +157,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
                 raise serializers.ValidationError(
                     {"sentry_app": "SentryApp must be provided for sentry_app"}
                 )
-
+        attrs["use_async_lookup"] = self.context.get("use_async_lookup")
         return attrs
 
     def create(self, validated_data):
@@ -220,6 +221,7 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
             raise serializers.ValidationError("This label is already in use for this alert rule")
 
     def _handle_actions(self, alert_rule_trigger, actions):
+        channel_lookup_timeout_error = None
         if actions is not None:
             # Delete actions we don't have present in the updated data.
             action_ids = [x["id"] for x in actions if "id" in x]
@@ -242,22 +244,28 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
                     )
                 else:
                     action_instance = None
-
                 action_serializer = AlertRuleTriggerActionSerializer(
                     context={
                         "alert_rule": alert_rule_trigger.alert_rule,
                         "trigger": alert_rule_trigger,
                         "organization": self.context["organization"],
                         "access": self.context["access"],
+                        "use_async_lookup": self.context.get("use_async_lookup"),
                     },
                     instance=action_instance,
                     data=action_data,
                 )
 
                 if action_serializer.is_valid():
-                    action_serializer.save()
+                    try:
+                        action_serializer.save()
+                    except ChannelLookupTimeoutError as e:
+                        # raise the lookup error after the rest of the validation is complete
+                        channel_lookup_timeout_error = e
                 else:
                     raise serializers.ValidationError(action_serializer.errors)
+        if channel_lookup_timeout_error:
+            raise channel_lookup_timeout_error
 
 
 class ObjectField(serializers.Field):
@@ -358,6 +366,9 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                 data["query"],
                 data["aggregate"],
                 data.get("environment"),
+                # TODO: We'll handle this when we add support for passing these to the
+                # serializer
+                None,
                 params={
                     "project_id": [p.id for p in project_id],
                     "start": timezone.now() - timedelta(minutes=10),
@@ -485,6 +496,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             raise serializers.ValidationError("This name is already in use for this organization")
 
     def _handle_triggers(self, alert_rule, triggers):
+        channel_lookup_timeout_error = None
         if triggers is not None:
             # Delete triggers we don't have present in the incoming data
             trigger_ids = [x["id"] for x in triggers if "id" in x]
@@ -507,12 +519,19 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                         "alert_rule": alert_rule,
                         "organization": self.context["organization"],
                         "access": self.context["access"],
+                        "use_async_lookup": self.context.get("use_async_lookup"),
                     },
                     instance=trigger_instance,
                     data=trigger_data,
                 )
 
                 if trigger_serializer.is_valid():
-                    trigger_serializer.save()
+                    try:
+                        trigger_serializer.save()
+                    except ChannelLookupTimeoutError as e:
+                        # raise the lookup error after the rest of the validation is complete
+                        channel_lookup_timeout_error = e
                 else:
                     raise serializers.ValidationError(trigger_serializer.errors)
+        if channel_lookup_timeout_error:
+            raise channel_lookup_timeout_error
