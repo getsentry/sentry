@@ -19,10 +19,17 @@ from sentry.utils.snuba import (
 DATASET_CONDITIONS = {QueryDatasets.EVENTS: "event.type:error"}
 
 
-def apply_dataset_query_conditions(dataset, query):
-    if dataset in DATASET_CONDITIONS:
-        query = u"({}) AND ({})".format(DATASET_CONDITIONS[dataset], query)
-    return query
+def apply_dataset_query_conditions(dataset, query, event_types):
+    if event_types:
+        event_type_conditions = " OR ".join(
+            ["event.type:{}".format(event_type.name.lower()) for event_type in event_types]
+        )
+    elif dataset in DATASET_CONDITIONS:
+        event_type_conditions = DATASET_CONDITIONS[dataset]
+    else:
+        return query
+
+    return u"({}) AND ({})".format(event_type_conditions, query)
 
 
 @instrumented_task(
@@ -122,13 +129,13 @@ def delete_subscription_from_snuba(query_subscription_id, **kwargs):
         subscription.update(subscription_id=None)
 
 
-def build_snuba_filter(dataset, query, aggregate, environment, params=None):
+def build_snuba_filter(dataset, query, aggregate, environment, event_types, params=None):
     resolve_func = (
         resolve_column(Dataset.Events)
         if dataset == QueryDatasets.EVENTS
         else resolve_column(Dataset.Transactions)
     )
-    query = apply_dataset_query_conditions(dataset, query)
+    query = apply_dataset_query_conditions(dataset, query, event_types)
     snuba_filter = get_filter(query, params=params)
     snuba_filter.update_with(resolve_field_list([aggregate], snuba_filter, auto_fields=False))
     snuba_filter = resolve_snuba_aliases(snuba_filter, resolve_func)[0]
@@ -144,6 +151,7 @@ def _create_in_snuba(subscription):
         snuba_query.query,
         snuba_query.aggregate,
         snuba_query.environment,
+        snuba_query.event_types,
     )
     response = _snuba_pool.urlopen(
         "POST",
