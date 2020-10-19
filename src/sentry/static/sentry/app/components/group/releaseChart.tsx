@@ -100,7 +100,7 @@ function GroupReleaseChart(props: Props) {
   }
 
   return (
-    <Container className={className}>
+    <Wrapper className={className}>
       <h6>{title}</h6>
       <MiniBarChart
         isGroupedByDate
@@ -109,12 +109,12 @@ function GroupReleaseChart(props: Props) {
         series={series}
         markers={markers}
       />
-    </Container>
+    </Wrapper>
   );
 }
 
-const Container = styled('div')`
+export default GroupReleaseChart;
+
+const Wrapper = styled('div')`
   margin-bottom: ${space(2)};
 `;
-
-export default GroupReleaseChart;
