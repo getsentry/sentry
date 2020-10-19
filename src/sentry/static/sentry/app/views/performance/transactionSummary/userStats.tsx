@@ -3,15 +3,18 @@ import {Location} from 'history';
 import styled from '@emotion/styled';
 
 import Feature from 'app/components/acl/feature';
+import Link from 'app/components/links/link';
+import QuestionTooltip from 'app/components/questionTooltip';
+import {SectionHeading} from 'app/components/charts/styles';
+import UserMisery from 'app/components/userMisery';
+import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import space from 'app/styles/space';
-import {t} from 'app/locale';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import {WebVital, getAggregateAlias} from 'app/utils/discover/fields';
+import {decodeScalar} from 'app/utils/queryString';
 import {getTermHelp} from 'app/views/performance/data';
-import QuestionTooltip from 'app/components/questionTooltip';
-import {SectionHeading, SectionValue} from 'app/components/charts/styles';
-import UserMisery from 'app/components/userMisery';
+import {vitalsRouteWithQuery} from 'app/views/performance/realUserMonitoring/utils';
 import {
   PERCENTILE as VITAL_PERCENTILE,
   WEB_VITAL_DETAILS,
@@ -21,9 +24,10 @@ type Props = {
   totals: Record<string, number>;
   location: Location;
   organization: Organization;
+  transactionName: string;
 };
 
-function UserStats({totals, location, organization}: Props) {
+function UserStats({totals, location, organization, transactionName}: Props) {
   let userMisery = <StatNumber>{'\u2014'}</StatNumber>;
   const threshold = organization.apdexThreshold;
   let apdex: React.ReactNode = <StatNumber>{'\u2014'}</StatNumber>;
@@ -68,6 +72,13 @@ function UserStats({totals, location, organization}: Props) {
     }
   }
 
+  const webVitalsTarget = vitalsRouteWithQuery({
+    orgSlug: organization.slug,
+    transaction: transactionName,
+    projectID: decodeScalar(location.query.project),
+    query: location.query,
+  });
+
   return (
     <Container>
       <div>
@@ -79,7 +90,9 @@ function UserStats({totals, location, organization}: Props) {
           <div>
             <SectionHeading>{t('Web Vitals')}</SectionHeading>
             <StatNumber>{vitalsPassRate}</StatNumber>
-            <StyledSectionValue>{t('Passed')}</StyledSectionValue>
+            <Link to={webVitalsTarget}>
+              <SectionValue>{t('Passed')}</SectionValue>
+            </Link>
           </div>
         )}
       </Feature>
@@ -118,9 +131,8 @@ const StatNumber = styled('div')`
   }
 `;
 
-const StyledSectionValue = styled(SectionValue)`
-  margin: ${space(1)} 0;
-  color: #2c58a8;
+const SectionValue = styled('span')`
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 export default UserStats;

@@ -13,8 +13,11 @@ import NavTabs from 'app/components/navTabs';
 import {t} from 'app/locale';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import Breadcrumb from 'app/views/performance/breadcrumb';
+import {decodeScalar} from 'app/utils/queryString';
 
 import KeyTransactionButton from './keyTransactionButton';
+import {transactionSummaryRouteWithQuery} from './utils';
+import {vitalsRouteWithQuery} from '../realUserMonitoring/utils';
 
 export enum Tab {
   TransactionSummary,
@@ -85,11 +88,6 @@ class TransactionHeader extends React.Component<Props> {
     );
   }
 
-  get baseUrl() {
-    const {organization} = this.props;
-    return `/organizations/${organization.slug}/performance/summary/`;
-  }
-
   render() {
     const {
       organization,
@@ -98,7 +96,6 @@ class TransactionHeader extends React.Component<Props> {
       currentTab,
       hasWebVitals,
     } = this.props;
-    const baseUrl = this.baseUrl;
 
     return (
       <Layout.Header>
@@ -124,17 +121,29 @@ class TransactionHeader extends React.Component<Props> {
             if (!hasFeature) {
               return null;
             }
+            const summaryTarget = transactionSummaryRouteWithQuery({
+              orgSlug: organization.slug,
+              transaction: transactionName,
+              projectID: decodeScalar(location.query.project),
+              query: location.query,
+            });
+            const vitalsTarget = vitalsRouteWithQuery({
+              orgSlug: organization.slug,
+              transaction: transactionName,
+              projectID: decodeScalar(location.query.project),
+              query: location.query,
+            });
             return (
               <StyledNavTabs>
                 <ListLink
-                  to={`${baseUrl}${location.search}`}
+                  to={summaryTarget}
                   isActive={() => currentTab === Tab.TransactionSummary}
                 >
                   {t('Overview')}
                 </ListLink>
                 {hasWebVitals && (
                   <ListLink
-                    to={`${baseUrl}rum/${location.search}`}
+                    to={vitalsTarget}
                     isActive={() => currentTab === Tab.RealUserMonitoring}
                   >
                     {t('Web Vitals')}

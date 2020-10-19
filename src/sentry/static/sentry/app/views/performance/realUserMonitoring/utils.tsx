@@ -3,11 +3,11 @@ import {ECharts} from 'echarts';
 
 import {HistogramData, Rectangle, Point} from './types';
 
-export function generateRealUserMonitoringRoute({orgSlug}: {orgSlug: String}): string {
-  return `/organizations/${orgSlug}/performance/summary/rum/`;
+export function generateVitalsRoute({orgSlug}: {orgSlug: String}): string {
+  return `/organizations/${orgSlug}/performance/summary/vitals/`;
 }
 
-export function realUserMonitoringRouteWithQuery({
+export function vitalsRouteWithQuery({
   orgSlug,
   transaction,
   projectID,
@@ -18,7 +18,7 @@ export function realUserMonitoringRouteWithQuery({
   query: Query;
   projectID?: string | string[];
 }) {
-  const pathname = generateRealUserMonitoringRoute({
+  const pathname = generateVitalsRoute({
     orgSlug,
   });
 
@@ -106,7 +106,7 @@ export function asPixelRect(chartRef: ECharts, dataRect: Rectangle): Rectangle |
     dataRect.point1.y,
   ]);
 
-  if (isNaN(point1[0]) || isNaN(point1[1])) {
+  if (isNaN(point1?.[0]) || isNaN(point1?.[1])) {
     return null;
   }
 
@@ -115,7 +115,7 @@ export function asPixelRect(chartRef: ECharts, dataRect: Rectangle): Rectangle |
     dataRect.point2.y,
   ]);
 
-  if (isNaN(point2[0]) || isNaN(point2[1])) {
+  if (isNaN(point2?.[0]) || isNaN(point2?.[1])) {
     return null;
   }
 

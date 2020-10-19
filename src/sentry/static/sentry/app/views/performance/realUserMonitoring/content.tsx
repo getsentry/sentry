@@ -17,7 +17,7 @@ import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 
 import TransactionVitals from './transactionVitals';
 import TransactionHeader, {Tab} from '../transactionSummary/header';
-import {FILTER_OPTIONS} from './constants';
+import {FILTER_OPTIONS, ZOOM_KEYS} from './constants';
 
 type Props = {
   location: Location;
@@ -65,13 +65,13 @@ class RumContent extends React.Component<Props, State> {
   handleResetView = () => {
     const {location} = this.props;
 
+    const query = {...location.query};
+    // reset all zoom parameters when resetting the view
+    ZOOM_KEYS.forEach(key => delete query[key]);
+
     browserHistory.push({
       pathname: location.pathname,
-      query: {
-        ...location.query,
-        startMeasurements: undefined,
-        endMeasurements: undefined,
-      },
+      query,
     });
   };
 
@@ -86,15 +86,18 @@ class RumContent extends React.Component<Props, State> {
 
   handleFilterChange = (value: string) => {
     const {location} = this.props;
+
+    const query = {
+      ...location.query,
+      cursor: undefined,
+      dataFilter: value,
+    };
+    // reset all zoom parameters when changing the filter
+    ZOOM_KEYS.forEach(key => delete query[key]);
+
     browserHistory.push({
       pathname: location.pathname,
-      query: {
-        ...location.query,
-        cursor: undefined,
-        startMeasurements: undefined,
-        endMeasurements: undefined,
-        dataFilter: value,
-      },
+      query,
     });
   };
 
@@ -104,9 +107,9 @@ class RumContent extends React.Component<Props, State> {
     const query = decodeScalar(location.query.query) || '';
     const activeFilter = this.getActiveFilter();
 
-    const isZoomed =
-      decodeScalar(location.query.startMeasurements) !== undefined ||
-      decodeScalar(location.query.endMeasurements) !== undefined;
+    const isZoomed = ZOOM_KEYS.map(key => location.query[key]).some(
+      value => value !== undefined
+    );
 
     return (
       <React.Fragment>

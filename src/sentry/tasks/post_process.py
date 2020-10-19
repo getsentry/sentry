@@ -9,7 +9,7 @@ from django.conf import settings
 from sentry import features
 from sentry.utils.cache import cache
 from sentry.exceptions import PluginError
-from sentry.signals import event_processed
+from sentry.signals import event_processed, issue_unignored
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.redis import redis_clusters
@@ -281,6 +281,13 @@ def process_snoozes(group):
     if not snooze.is_valid(group, test_rates=True):
         snooze.delete()
         group.update(status=GroupStatus.UNRESOLVED)
+        issue_unignored.send_robust(
+            project=group.project,
+            user=None,
+            group=group,
+            transition_type="automatic",
+            sender="process_snoozes",
+        )
         return True
 
     return False

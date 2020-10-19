@@ -52,20 +52,6 @@ FEATURES = [
     ),
 ]
 
-disable_dialog = {
-    "actionText": "Visit GitHub",
-    "body": "Before deleting this integration, you must uninstall this"
-    " integration from GitHub. After uninstalling, your integration will"
-    " be disabled at which point you can choose to delete this"
-    " integration.",
-}
-
-removal_dialog = {
-    "actionText": "Delete",
-    "body": "Deleting this integration will delete all associated repositories"
-    " and commit data. This action cannot be undone. Are you sure you"
-    " want to delete your integration?",
-}
 
 metadata = IntegrationMetadata(
     description=DESCRIPTION.strip(),
@@ -74,7 +60,7 @@ metadata = IntegrationMetadata(
     noun=_("Installation"),
     issue_url="https://github.com/getsentry/sentry/issues/new?title=GitHub%20Integration:%20&labels=Component%3A%20Integrations",
     source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/github",
-    aspects={"disable_dialog": disable_dialog, "removal_dialog": removal_dialog},
+    aspects={},
 )
 
 API_ERRORS = {
@@ -159,8 +145,6 @@ class GitHubIntegrationProvider(IntegrationProvider):
     metadata = metadata
     integration_cls = GitHubIntegration
     features = frozenset([IntegrationFeatures.COMMITS, IntegrationFeatures.ISSUE_BASIC])
-
-    can_disable = True
 
     setup_dialog_config = {"width": 1030, "height": 1000}
 
