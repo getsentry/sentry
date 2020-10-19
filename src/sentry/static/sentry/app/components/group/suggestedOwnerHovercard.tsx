@@ -26,7 +26,7 @@ type Props = {
    */
   commits?: Commit[];
   /**
-   * The list of ownership rules the actor is suggested for. Maybe left blank
+   * The list of ownership rules the actor is suggested for. May be left blank
    * if the actor is not suggested based on ownership rules.
    */
   rules?: any[] | null;
