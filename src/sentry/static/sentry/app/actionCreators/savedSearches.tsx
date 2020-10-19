@@ -14,13 +14,10 @@ export function resetSavedSearches() {
 
 export function fetchSavedSearches(api: Client, orgSlug: string): Promise<SavedSearch[]> {
   const url = `/organizations/${orgSlug}/searches/`;
-  const data: Query = {use_org_level: '1'};
-
   SavedSearchesActions.startFetchSavedSearches();
 
   const promise = api.requestPromise(url, {
     method: 'GET',
-    data,
   });
 
   promise
