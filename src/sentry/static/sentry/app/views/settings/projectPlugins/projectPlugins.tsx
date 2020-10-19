@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React, {Component} from 'react';
+import {WithRouterProps} from 'react-router';
 
 import {
   Panel,
@@ -14,11 +15,18 @@ import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import RouteError from 'app/views/routeError';
 import SentryTypes from 'app/sentryTypes';
+import {Plugin} from 'app/types';
 
-import {DEPRECATED_PLUGINS} from './constants';
 import ProjectPluginRow from './projectPluginRow';
 
-class ProjectPlugins extends Component {
+type Props = {
+  plugins: Plugin[];
+  loading: boolean;
+  error: React.ComponentProps<typeof RouteError>['error'];
+  onChange: React.ComponentProps<typeof ProjectPluginRow>['onChange'];
+} & WithRouterProps<{orgId: string}>;
+
+class ProjectPlugins extends Component<Props> {
   static propTypes = {
     plugins: PropTypes.arrayOf(SentryTypes.PluginShape),
     loading: PropTypes.bool,
@@ -29,13 +37,13 @@ class ProjectPlugins extends Component {
   };
 
   render() {
-    const {plugins, loading, error, onError, onChange, routes, params} = this.props;
+    const {plugins, loading, error, onChange, routes, params} = this.props;
     const {orgId} = this.props.params;
     const hasError = error;
     const isLoading = !hasError && loading;
 
     if (hasError) {
-      return <RouteError error={error} component={this} onRetry={onError} />;
+      return <RouteError error={error} />;
     }
 
     if (isLoading) {
@@ -68,9 +76,6 @@ class ProjectPlugins extends Component {
 
           {plugins
             .filter(p => {
-              if (DEPRECATED_PLUGINS.includes(p.id) && !p.enabled) {
-                return false;
-              }
               return !p.isHidden;
             })
             .map(plugin => (
