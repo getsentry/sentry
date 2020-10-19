@@ -1,5 +1,6 @@
 import React from 'react';
 import {WithRouterProps} from 'react-router';
+import styled from '@emotion/styled';
 
 import {
   addErrorMessage,
@@ -15,6 +16,7 @@ import PluginConfig from 'app/components/pluginConfig';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import withPlugins from 'app/utils/withPlugins';
 import {trackIntegrationEvent} from 'app/utils/integrationUtil';
+import space from 'app/styles/space';
 import {Plugin, Organization, Project} from 'app/types';
 
 type Props = {
@@ -171,20 +173,15 @@ class ProjectPluginDetails extends AsyncView<Props, State> {
     const enabled = this.getEnabled();
 
     const enable = (
-      <Button size="small" onClick={this.handleEnable} style={{marginRight: '6px'}}>
+      <RightMarginButton size="small" onClick={this.handleEnable}>
         {t('Enable Plugin')}
-      </Button>
+      </RightMarginButton>
     );
 
     const disable = (
-      <Button
-        size="small"
-        priority="danger"
-        onClick={this.handleDisable}
-        style={{marginRight: '6px'}}
-      >
+      <RightMarginButton size="small" priority="danger" onClick={this.handleDisable}>
         {t('Disable Plugin')}
-      </Button>
+      </RightMarginButton>
     );
 
     const toggleEnable = enabled ? disable : enable;
@@ -272,3 +269,7 @@ class ProjectPluginDetails extends AsyncView<Props, State> {
 export {ProjectPluginDetails};
 
 export default withPlugins(ProjectPluginDetails);
+
+const RightMarginButton = styled(Button)`
+  margin-right: ${space(0.75)};
+`;
