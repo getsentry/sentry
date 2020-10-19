@@ -127,6 +127,11 @@ class MiniBarChart extends React.Component<Props> {
         trigger: 'axis',
       },
       yAxis: {
+        max(value) {
+          // This keeps small datasets from looking 'scary'
+          // by having full bars for < 10 values.
+          return Math.max(10, value.max);
+        },
         axisLabel: {
           show: false,
         },
