@@ -65,7 +65,6 @@ type Props = DefaultProps & {
    * Should be set to true if tooltip contains unisolated data (eg. dates)
    */
   disableForVisualTest?: boolean;
-
   className?: string;
 };
 
