@@ -24,13 +24,13 @@ type Props = {
   project: Project;
   data: Plugin;
   onDisablePlugin: (data: Plugin) => void;
-  enabled?: boolean;
   api: Client;
+  enabled?: boolean;
 };
 
 type State = {
-  loading?: boolean;
   testResults: string;
+  loading?: boolean;
 };
 
 class PluginConfig extends React.Component<Props, State> {
