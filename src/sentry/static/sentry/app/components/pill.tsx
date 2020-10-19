@@ -82,11 +82,18 @@ const getPillValueStyle = ({type, theme}: {type?: PillType; theme: Theme}) => {
         margin: -1px;
       `;
     case 'error':
+      return `
+        border-left-color: ${theme.red400};
+        background: ${theme.red100};
+        border: 1px solid ${theme.red400};
+        margin: -1px;
+      `;
     case 'negative':
       return `
         border-left-color: ${theme.red400};
         background: ${theme.red100};
         border: 1px solid ${theme.red400};
+        font-family: ${theme.text.familyMono};
         margin: -1px;
       `;
     default:
