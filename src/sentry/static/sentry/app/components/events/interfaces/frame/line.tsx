@@ -181,7 +181,12 @@ export class Line extends React.Component<Props, State> {
 
     return (
       <ToggleContextButtonWrapper>
-        <ToggleContextButton title={t('Toggle Context')} onClick={this.toggleContext}>
+        <ToggleContextButton
+          className="btn-toggle"
+          css={this.getPlatform() === 'csharp' && {display: 'block !important'}} // remove important once we get rid of css files
+          title={t('Toggle Context')}
+          onClick={this.toggleContext}
+        >
           <StyledIconChevron
             isExpanded={!!isExpanded}
             direction={isExpanded ? 'up' : 'down'}
