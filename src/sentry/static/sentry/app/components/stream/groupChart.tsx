@@ -11,7 +11,7 @@ type Props = {
   statsPeriod: string;
   data: Group;
   hasDynamicIssueCounts?: boolean;
-  height: number;
+  height?: number;
   showSecondaryPoints?: boolean;
 };
 
@@ -65,7 +65,6 @@ function GroupChart({
     <LazyLoad debounce={50} height={height}>
       <MiniBarChart
         height={height}
-        width={160}
         isGroupedByDate
         showTimeInTooltip
         series={series}
