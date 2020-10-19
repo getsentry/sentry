@@ -1,4 +1,6 @@
 import React from 'react';
+import styled from '@emotion/styled';
+import PlatformIcon from 'platformicons';
 
 import Line from 'app/components/events/interfaces/frame/line';
 import {t} from 'app/locale';
@@ -221,9 +223,24 @@ export default class StacktraceContent extends React.Component<Props, State> {
     const className = this.getClassName();
 
     return (
-      <div className={className}>
+      <Wrapper className={className}>
+        <StyledPlatformIcon
+          platform={platform}
+          size="20px"
+          style={{borderRadius: '3px 0 0 3px'}}
+        />
         <ul>{frames}</ul>
-      </div>
+      </Wrapper>
     );
   }
 }
+
+const Wrapper = styled('div')`
+  position: relative;
+`;
+
+const StyledPlatformIcon = styled(PlatformIcon)`
+  position: absolute;
+  top: -1px;
+  left: -20px;
+`;

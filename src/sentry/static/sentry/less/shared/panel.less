@@ -4,6 +4,29 @@
 // Panels
 // --------------------------------------------------
 
+.panel-variant(@border; @heading-text-color; @heading-bg-color; @heading-border) {
+  border-color: @border;
+
+  & > .panel-heading {
+    color: @heading-text-color;
+    background-color: @heading-bg-color;
+    border-color: @heading-border;
+
+    + .panel-collapse > .panel-body {
+      border-top-color: @border;
+    }
+    .badge {
+      color: @heading-bg-color;
+      background-color: @heading-text-color;
+    }
+  }
+  & > .panel-footer {
+    + .panel-collapse > .panel-body {
+      border-bottom-color: @border;
+    }
+  }
+}
+
 // Base class
 .panel {
   margin-bottom: @line-height-computed;
@@ -251,36 +274,64 @@
 // Contextual variations
 .panel-default {
   .panel-variant(
-    @panel-default-border; @panel-default-text; @panel-default-heading-bg;
-      @panel-default-border
-  );
+      @panel-default-border; @panel-default-text; @panel-default-heading-bg;
+        @panel-default-border
+    );
 }
 .panel-primary {
   .panel-variant(
-    @panel-primary-border; @panel-primary-text; @panel-primary-heading-bg;
-      @panel-primary-border
-  );
+      @panel-primary-border; @panel-primary-text; @panel-primary-heading-bg;
+        @panel-primary-border
+    );
 }
 .panel-success {
   .panel-variant(
-    @panel-success-border; @panel-success-text; @panel-success-heading-bg;
-      @panel-success-border
-  );
+      @panel-success-border; @panel-success-text; @panel-success-heading-bg;
+        @panel-success-border
+    );
 }
 .panel-info {
   .panel-variant(
-    @panel-info-border; @panel-info-text; @panel-info-heading-bg; @panel-info-border
-  );
+      @panel-info-border; @panel-info-text; @panel-info-heading-bg; @panel-info-border
+    );
 }
 .panel-warning {
   .panel-variant(
-    @panel-warning-border; @panel-warning-text; @panel-warning-heading-bg;
-      @panel-warning-border
-  );
+      @panel-warning-border; @panel-warning-text; @panel-warning-heading-bg;
+        @panel-warning-border
+    );
 }
 .panel-danger {
   .panel-variant(
-    @panel-danger-border; @panel-danger-text; @panel-danger-heading-bg;
-      @panel-danger-border
-  );
+      @panel-danger-border; @panel-danger-text; @panel-danger-heading-bg;
+        @panel-danger-border
+    );
+}
+
+//
+// Sentry Panel
+// Extends Bootstrap's panels
+//
+// Variables for this component can be found in variables.less
+//
+
+.panel {
+  .panel-heading {
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+      font-size: 16px;
+      margin: 0;
+    }
+  }
+  .panel-heading-bold {
+    color: @60;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    line-height: 1;
+  }
 }

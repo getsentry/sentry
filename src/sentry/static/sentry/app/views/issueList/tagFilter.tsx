@@ -1,42 +1,45 @@
 import debounce from 'lodash/debounce';
-import PropTypes from 'prop-types';
 import React from 'react';
 
 import {Client} from 'app/api';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {t, tct} from 'app/locale';
 import SelectControl from 'app/components/forms/selectControl';
+import {Tag, TagValue} from 'app/types';
 
-class IssueListTagFilter extends React.Component {
-  static tagValueToSelectFormat = ({value}) => ({
-    value,
-    label: value,
-  });
+import {TagValueLoader} from './types';
 
-  static propTypes = {
-    tag: PropTypes.object.isRequired,
-    value: PropTypes.string,
-    onSelect: PropTypes.func,
-    tagValueLoader: PropTypes.func.isRequired,
+const defaultProps = {
+  value: '',
+};
+
+type SelectOption = Record<'value' | 'label', string>;
+
+type Props = {
+  tag: Tag;
+  onSelect: (tag: Tag, value: string | null) => void;
+  tagValueLoader: TagValueLoader;
+} & typeof defaultProps;
+
+type State = {
+  query: string;
+  isLoading: boolean;
+  value: string | null;
+  textValue: string;
+  options?: SelectOption[];
+};
+
+class IssueListTagFilter extends React.Component<Props, State> {
+  static defaultProps = defaultProps;
+
+  state: State = {
+    query: '',
+    isLoading: false,
+    value: this.props.value,
+    textValue: this.props.value,
   };
 
-  static defaultProps = {
-    tag: {},
-    value: '',
-  };
-
-  constructor(...args) {
-    super(...args);
-    this.state = {
-      query: '',
-      isLoading: false,
-      value: this.props.value,
-      textValue: this.props.value,
-    };
-    this.api = new Client();
-  }
-
-  UNSAFE_componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps: Props) {
     if (nextProps.value !== this.state.value) {
       this.setState({
         value: nextProps.value,
@@ -51,6 +54,8 @@ class IssueListTagFilter extends React.Component {
     }
     this.api.clear();
   }
+
+  api = new Client();
 
   handleLoadOptions = () => {
     const {tag, tagValueLoader} = this.props;
@@ -70,7 +75,12 @@ class IssueListTagFilter extends React.Component {
       .then(resp => {
         this.setState({
           isLoading: false,
-          options: Object.values(resp).map(IssueListTagFilter.tagValueToSelectFormat),
+          options: Object.values(resp).map(
+            ({value}: TagValue): SelectOption => ({
+              value,
+              label: value,
+            })
+          ),
         });
       })
       .catch(() => {
@@ -85,7 +95,7 @@ class IssueListTagFilter extends React.Component {
       });
   };
 
-  handleChangeInput = e => {
+  handleChangeInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     this.setState({
       textValue: value,
@@ -93,7 +103,7 @@ class IssueListTagFilter extends React.Component {
     this.debouncedTextChange(value);
   };
 
-  debouncedTextChange = debounce(function (text) {
+  debouncedTextChange = debounce(text => {
     this.handleChange(text);
   }, 150);
 
@@ -110,12 +120,12 @@ class IssueListTagFilter extends React.Component {
     );
   };
 
-  handleChangeSelect = valueObj => {
+  handleChangeSelect = (valueObj: SelectOption | null) => {
     const value = valueObj ? valueObj.value : null;
     this.handleChange(value);
   };
 
-  handleChangeSelectInput = value => {
+  handleChangeSelectInput = (value: string) => {
     this.setState(
       {
         textValue: value,
@@ -124,7 +134,7 @@ class IssueListTagFilter extends React.Component {
     );
   };
 
-  handleChange = value => {
+  handleChange = (value: string | null) => {
     const {onSelect, tag} = this.props;
 
     this.setState(

@@ -206,6 +206,7 @@ export type Project = {
   latestDeploys: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
   builtinSymbolSources?: string[];
   stats?: Array<[number, number]>;
+  latestRelease?: {version: string};
 } & AvatarProject;
 
 export type MinimalProject = Pick<Project, 'id' | 'slug'>;
@@ -1288,6 +1289,7 @@ export type Tag = {
   values?: string[];
   totalValues?: number;
   predefined?: boolean;
+  isInput?: boolean;
 };
 
 export type TagCollection = {[key: string]: Tag};

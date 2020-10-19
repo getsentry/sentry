@@ -207,6 +207,7 @@ ISSUE_ALIAS = "issue"
 ISSUE_ID_ALIAS = "issue.id"
 RELEASE_ALIAS = "release"
 USER_DISPLAY_ALIAS = "user.display"
+ERROR_UNHANDLED_ALIAS = "error.unhandled"
 
 
 class InvalidSearchQuery(Exception):
@@ -311,7 +312,7 @@ class SearchVisitor(NodeVisitor):
             "transaction.end_time",
         ]
     )
-    boolean_keys = set(["error.handled", "stack.in_app"])
+    boolean_keys = set(["error.handled", "error.unhandled", "stack.in_app"])
 
     unwrapped_exceptions = (InvalidSearchQuery,)
 
@@ -836,6 +837,18 @@ def convert_search_filter_to_snuba_query(search_filter, key=None):
                 1,
             ]
         return [user_display_expr, search_filter.operator, value]
+    elif name == ERROR_UNHANDLED_ALIAS:
+        # This field is the inversion of error.handled, otherwise the logic is the same.
+        if search_filter.value.raw_value == "":
+            output = 0 if search_filter.operator == "!=" else 1
+            return [["isHandled", []], "=", output]
+        if value in ("1", 1):
+            return [["notHandled", []], "=", 1]
+        if value in ("0", 0):
+            return [["isHandled", []], "=", 1]
+        raise InvalidSearchQuery(
+            "Invalid value for error.unhandled condition. Accepted values are 1, 0"
+        )
     elif name == "error.handled":
         # Treat has filter as equivalent to handled
         if search_filter.value.raw_value == "":
@@ -1163,6 +1176,7 @@ def get_filter(query=None, params=None):
         "having": [],
         "project_ids": [],
         "group_ids": [],
+        "condition_aggregates": [],
     }
 
     projects_to_filter = []
@@ -1182,6 +1196,9 @@ def get_filter(query=None, params=None):
             for func in and_conditions:
                 kwargs["conditions"].append(convert_function_to_condition(func))
         if having:
+            kwargs["condition_aggregates"] = [
+                term.key.name for term in parsed_terms if isinstance(term, AggregateFilter)
+            ]
             and_having = flatten_condition_tree(having, SNUBA_AND)
             for func in and_having:
                 kwargs["having"].append(convert_function_to_condition(func))
@@ -1201,6 +1218,7 @@ def get_filter(query=None, params=None):
                     kwargs["group_ids"].extend(group_ids)
             elif isinstance(term, AggregateFilter):
                 converted_filter = convert_aggregate_filter_to_snuba_query(term, params)
+                kwargs["condition_aggregates"].append(term.key.name)
                 if converted_filter:
                     kwargs["having"].append(converted_filter)
 
@@ -1234,10 +1252,14 @@ def get_filter(query=None, params=None):
 FIELD_ALIASES = {
     "project": {"fields": ["project.id"], "column_alias": "project.id"},
     "issue": {"fields": ["issue.id"], "column_alias": "issue.id"},
-    "user.display": {
+    ERROR_UNHANDLED_ALIAS: {
+        "fields": [["notHandled", [], ERROR_UNHANDLED_ALIAS]],
+        "column_alias": ERROR_UNHANDLED_ALIAS,
+    },
+    USER_DISPLAY_ALIAS: {
         "expression": ["coalesce", ["user.email", "user.username", "user.ip"]],
-        "fields": [["coalesce", ["user.email", "user.username", "user.ip"], "user.display"]],
-        "column_alias": "user.display",
+        "fields": [["coalesce", ["user.email", "user.username", "user.ip"], USER_DISPLAY_ALIAS]],
+        "column_alias": USER_DISPLAY_ALIAS,
     },
 }
 
@@ -1338,7 +1360,7 @@ class DateArg(FunctionArg):
             raise InvalidFunctionArgument(
                 u"{} is in the wrong format, expected a date like 2020-03-14T15:14:15".format(value)
             )
-        return value
+        return u"'{}'".format(value)
 
 
 class NumericColumn(FunctionArg):
@@ -1788,15 +1810,42 @@ FUNCTIONS = {
         Function(
             "percentile_range",
             required_args=[
-                DurationColumn("column"),
+                DurationColumnNoLookup("column"),
                 NumberRange("percentile", 0, 1),
                 DateArg("start"),
                 DateArg("end"),
                 NumberRange("index", 1, None),
             ],
             aggregate=[
-                u"quantileIf({percentile:.2f})({column},and(greaterOrEquals(timestamp,toDateTime('{start}')),less(timestamp,toDateTime('{end}'))))",
-                None,
+                u"quantileIf({percentile:.2f})",
+                [
+                    ArgValue("column"),
+                    [
+                        "and",
+                        [
+                            # NOTE: These conditions are written in this seemingly backwards way
+                            # because of how snuba special cases the following syntax
+                            # ["a", ["b", ["c", ["d"]]]
+                            #
+                            # This array is can be interpreted 2 ways
+                            # 1. a(b(c(d))) the way snuba interprets it
+                            #   - snuba special cases it when it detects an array where the first
+                            #     element is a literal, and the second element is an array and
+                            #     treats it as a function call rather than 2 separate arguments
+                            # 2. a(b, c(d)) the way we want it to be interpreted
+                            #
+                            # Because of how snuba interprets this expression, it makes it impossible
+                            # to specify a function with 2 arguments whose first argument is a literal
+                            # and the second argument is an expression.
+                            #
+                            # Working with this limitation, we have to invert the conditions in
+                            # order to express a function whose first argument is an expression while
+                            # the second argument is a literal.
+                            ["lessOrEquals", [["toDateTime", [ArgValue("start")]], "timestamp"]],
+                            ["greater", [["toDateTime", [ArgValue("end")]], "timestamp"]],
+                        ],
+                    ],
+                ],
                 "percentile_range_{index:g}",
             ],
             result_type="duration",
@@ -1804,14 +1853,24 @@ FUNCTIONS = {
         Function(
             "avg_range",
             required_args=[
-                DurationColumn("column"),
+                DurationColumnNoLookup("column"),
                 DateArg("start"),
                 DateArg("end"),
                 NumberRange("index", 1, None),
             ],
             aggregate=[
-                u"avgIf({column},and(greaterOrEquals(timestamp,toDateTime('{start}')),less(timestamp,toDateTime('{end}'))))",
-                None,
+                u"avgIf",
+                [
+                    ArgValue("column"),
+                    [
+                        "and",
+                        [
+                            # see `percentile_range` for why the conditions are backwards
+                            ["lessOrEquals", [["toDateTime", [ArgValue("start")]], "timestamp"]],
+                            ["greater", [["toDateTime", [ArgValue("end")]], "timestamp"]],
+                        ],
+                    ],
+                ],
                 "avg_range_{index:g}",
             ],
             result_type="duration",
@@ -1826,8 +1885,29 @@ FUNCTIONS = {
             ],
             calculated_args=[{"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0}],
             aggregate=[
-                u"uniqIf(user,and(greater(duration,{tolerated:g}),and(greaterOrEquals(timestamp,toDateTime('{start}')),less(timestamp,toDateTime('{end}')))))",
-                None,
+                u"uniqIf",
+                [
+                    "user",
+                    [
+                        "and",
+                        [
+                            # Currently, the column resolution on aggregates doesn't recurse, so we use
+                            # `duration` (snuba name) rather than `transaction.duration` (sentry name).
+                            ["greater", ["duration", ArgValue("tolerated")]],
+                            [
+                                "and",
+                                [
+                                    # see `percentile_range` for why the conditions are backwards
+                                    [
+                                        "lessOrEquals",
+                                        [["toDateTime", [ArgValue("start")]], "timestamp"],
+                                    ],
+                                    ["greater", [["toDateTime", [ArgValue("end")]], "timestamp"]],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
                 "user_misery_range_{index:g}",
             ],
             result_type="duration",
@@ -1836,8 +1916,17 @@ FUNCTIONS = {
             "count_range",
             required_args=[DateArg("start"), DateArg("end"), NumberRange("index", 1, None)],
             aggregate=[
-                u"countIf(and(greaterOrEquals(timestamp,toDateTime('{start}')),less(timestamp,toDateTime('{end}'))))",
-                None,
+                u"countIf",
+                [
+                    [
+                        "and",
+                        [
+                            # see `percentile_range` for why the conditions are backwards
+                            ["lessOrEquals", [["toDateTime", [ArgValue("start")]], "timestamp"]],
+                            ["greater", [["toDateTime", [ArgValue("end")]], "timestamp"]],
+                        ],
+                    ],
+                ],
                 "count_range_{index:g}",
             ],
             result_type="integer",
@@ -2033,13 +2122,18 @@ def resolve_field(field, params=None):
     return ([field], None)
 
 
-def resolve_field_list(fields, snuba_filter, auto_fields=True):
+def resolve_field_list(fields, snuba_filter, auto_fields=True, auto_aggregations=False):
     """
     Expand a list of fields based on aliases and aggregate functions.
 
     Returns a dist of aggregations, selected_columns, and
     groupby that can be merged into the result of get_snuba_query_args()
     to build a more complete snuba query based on event search conventions.
+
+    Auto aggregates are aggregates that will be automatically added to the
+    list of aggregations when they're used in a condition. This is so that
+    they can be used in a condition without having to manually add the
+    aggregate to a field.
     """
     aggregations = []
     columns = []
@@ -2067,6 +2161,14 @@ def resolve_field_list(fields, snuba_filter, auto_fields=True):
 
         if agg_additions:
             aggregations.extend(agg_additions)
+
+    # Only auto aggregate when there's one other so we the group by is not unexpectedly changed
+    if auto_aggregations and snuba_filter.having and len(aggregations) > 0:
+        for agg in snuba_filter.condition_aggregates:
+            _, agg_additions = resolve_field(agg, snuba_filter.date_params)
+
+            if agg_additions[0] not in aggregations:
+                aggregations.extend(agg_additions)
 
     rollup = snuba_filter.rollup
     if not rollup and auto_fields:

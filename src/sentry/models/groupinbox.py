@@ -21,9 +21,8 @@ class GroupInbox(Model):
 
     __core__ = False
 
-    group = FlexibleForeignKey("sentry.Group", unique=True)
+    group = FlexibleForeignKey("sentry.Group", unique=True, db_constraint=False)
     reason = models.PositiveSmallIntegerField(null=False, default=GroupInboxReason.NEW.value)
-    # TODO: Create JSON schema to enforce data structure
     reason_details = JSONField(null=True)
     date_added = models.DateTimeField(default=timezone.now)
 

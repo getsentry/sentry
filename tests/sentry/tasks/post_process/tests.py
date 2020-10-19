@@ -6,7 +6,14 @@ from datetime import timedelta
 from django.utils import timezone
 
 from sentry.eventstore.processing import event_processing_store
-from sentry.models import Group, GroupSnooze, GroupStatus, ProjectOwnership
+from sentry.models import (
+    Group,
+    GroupSnooze,
+    GroupStatus,
+    ProjectOwnership,
+    GroupInbox,
+    GroupInboxReason,
+)
 from sentry.ownership.grammar import Rule, Matcher, Owner, dump_schema
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature
@@ -225,10 +232,9 @@ class PostProcessGroupTest(TestCase):
             EventMatcher(event, group=group2), True, False, True, False
         )
 
+    @patch("sentry.signals.issue_unignored.send_robust")
     @patch("sentry.rules.processor.RuleProcessor")
-    def test_invalidates_snooze(self, mock_processor):
-        from sentry.models import GroupInbox, GroupInboxReason
-
+    def test_invalidates_snooze(self, mock_processor, send_robust):
         event = self.store_event(data={"message": "testing"}, project_id=self.project.id)
         cache_key = write_event_to_cache(event)
 
@@ -269,6 +275,7 @@ class PostProcessGroupTest(TestCase):
         assert GroupInbox.objects.filter(
             group=group, reason=GroupInboxReason.UNIGNORED.value
         ).exists()
+        assert send_robust.called
 
     @patch("sentry.rules.processor.RuleProcessor")
     def test_maintains_valid_snooze(self, mock_processor):

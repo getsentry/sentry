@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: Version to release
+        description: Version to release (optional)
         required: false
       skip_prepare:
         description: Skip preparation step (assume a release branch is ready)
@@ -16,11 +16,11 @@ on:
   schedule:
     # We want the release to be at 9-10am Pacific Time
     # We also want it to be 1 hour before the on-prem release
-    - cron:  '0 17 15 * *'
+    - cron: '0 17 15 * *'
 jobs:
   release:
     runs-on: ubuntu-latest
-    name: "Release a new version"
+    name: 'Release a new version'
     steps:
       - id: killswitch
         if: ${{ !github.event.inputs.force }}
@@ -32,14 +32,14 @@ jobs:
       - id: set-version
         run: |
           if [[ -n '${{ github.event.inputs.version }}' ]]; then
-            echo '::set-env name=RELEASE_VERSION::${{ github.event.inputs.version }}';
+            echo 'RELEASE_VERSION=${{ github.event.inputs.version }}' >> $GITHUB_ENV;
           else
             DATE_PART=$(date +'%y.%-m')
             declare -i PATCH_VERSION=0
             while curl -sf -o /dev/null "https://api.github.com/repos/$GITHUB_REPOSITORY/git/ref/tags/$DATE_PART.$PATCH_VERSION"; do
               PATCH_VERSION+=1
             done
-            echo "::set-env name=RELEASE_VERSION::${DATE_PART}.${PATCH_VERSION}"
+            echo "RELEASE_VERSION=${DATE_PART}.${PATCH_VERSION}" >> $GITHUB_ENV;
           fi
       - uses: actions/checkout@v2
         with:
@@ -61,7 +61,6 @@ jobs:
           ZEUS_API_TOKEN: ${{ secrets.ZEUS_API_TOKEN }}
       # Wait until the builds start. Craft should do this automatically
       # but it is broken now.
-      # TODO: Remove this once getsentry/craft#111 is fixed
       - run: sleep 10
       - uses: getsentry/craft@master
         with:

@@ -1832,6 +1832,34 @@ class GetSnubaQueryArgsTest(TestCase):
         with pytest.raises(InvalidSearchQuery):
             get_filter("error.handled:nope")
 
+    def test_error_unhandled(self):
+        result = get_filter("error.unhandled:true")
+        assert result.conditions == [[["notHandled", []], "=", 1]]
+
+        result = get_filter("error.unhandled:false")
+        assert result.conditions == [[["isHandled", []], "=", 1]]
+
+        result = get_filter("has:error.unhandled")
+        assert result.conditions == [[["isHandled", []], "=", 0]]
+
+        result = get_filter("!has:error.unhandled")
+        assert result.conditions == [[["isHandled", []], "=", 1]]
+
+        result = get_filter("!error.unhandled:true")
+        assert result.conditions == [[["isHandled", []], "=", 1]]
+
+        result = get_filter("!error.unhandled:false")
+        assert result.conditions == [[["notHandled", []], "=", 1]]
+
+        result = get_filter("!error.unhandled:0")
+        assert result.conditions == [[["notHandled", []], "=", 1]]
+
+        with pytest.raises(InvalidSearchQuery):
+            get_filter("error.unhandled:99")
+
+        with pytest.raises(InvalidSearchQuery):
+            get_filter("error.unhandled:nope")
+
     def test_function_negation(self):
         result = get_filter("!p95():5s")
         assert result.having == [["p95", "!=", 5000.0]]
@@ -2363,8 +2391,20 @@ class ResolveFieldListTest(unittest.TestCase):
         result = resolve_field_list(fields, eventstore.Filter())
         assert result["aggregations"] == [
             [
-                u"quantileIf(0.50)(duration,and(greaterOrEquals(timestamp,toDateTime('2020-05-01T01:12:34')),less(timestamp,toDateTime('2020-05-03T06:48:57'))))",
-                None,
+                "quantileIf(0.50)",
+                [
+                    "transaction.duration",
+                    [
+                        "and",
+                        [
+                            [
+                                "lessOrEquals",
+                                [["toDateTime", ["'2020-05-01T01:12:34'"]], "timestamp"],
+                            ],
+                            ["greater", [["toDateTime", ["'2020-05-03T06:48:57'"]], "timestamp"]],
+                        ],
+                    ],
+                ],
                 "percentile_range_1",
             ]
         ]
@@ -2386,8 +2426,20 @@ class ResolveFieldListTest(unittest.TestCase):
         result = resolve_field_list(fields, eventstore.Filter())
         assert result["aggregations"] == [
             [
-                u"avgIf(duration,and(greaterOrEquals(timestamp,toDateTime('2020-05-01T01:12:34')),less(timestamp,toDateTime('2020-05-03T06:48:57'))))",
-                None,
+                "avgIf",
+                [
+                    "transaction.duration",
+                    [
+                        "and",
+                        [
+                            [
+                                "lessOrEquals",
+                                [["toDateTime", ["'2020-05-01T01:12:34'"]], "timestamp"],
+                            ],
+                            ["greater", [["toDateTime", ["'2020-05-03T06:48:57'"]], "timestamp"]],
+                        ],
+                    ],
+                ],
                 "avg_range_1",
             ]
         ]
@@ -2407,8 +2459,29 @@ class ResolveFieldListTest(unittest.TestCase):
         result = resolve_field_list(fields, eventstore.Filter())
         assert result["aggregations"] == [
             [
-                "uniqIf(user,and(greater(duration,1200),and(greaterOrEquals(timestamp,toDateTime('2020-05-01T01:12:34')),less(timestamp,toDateTime('2020-05-03T06:48:57')))))",
-                None,
+                "uniqIf",
+                [
+                    "user",
+                    [
+                        "and",
+                        [
+                            ["greater", ["duration", 1200]],
+                            [
+                                "and",
+                                [
+                                    [
+                                        "lessOrEquals",
+                                        [["toDateTime", ["'2020-05-01T01:12:34'"]], "timestamp"],
+                                    ],
+                                    [
+                                        "greater",
+                                        [["toDateTime", ["'2020-05-03T06:48:57'"]], "timestamp"],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
                 u"user_misery_range_1",
             ]
         ]
@@ -2443,13 +2516,55 @@ class ResolveFieldListTest(unittest.TestCase):
         result = resolve_field_list(fields, eventstore.Filter())
         assert result["aggregations"] == [
             [
-                "uniqIf(user,and(greater(duration,1200),and(greaterOrEquals(timestamp,toDateTime('2020-05-01T01:12:34')),less(timestamp,toDateTime('2020-05-03T06:48:57')))))",
-                None,
+                "uniqIf",
+                [
+                    "user",
+                    [
+                        "and",
+                        [
+                            ["greater", ["duration", 1200]],
+                            [
+                                "and",
+                                [
+                                    [
+                                        "lessOrEquals",
+                                        [["toDateTime", ["'2020-05-01T01:12:34'"]], "timestamp"],
+                                    ],
+                                    [
+                                        "greater",
+                                        [["toDateTime", ["'2020-05-03T06:48:57'"]], "timestamp"],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
                 "user_misery_range_1",
             ],
             [
-                "uniqIf(user,and(greater(duration,1200),and(greaterOrEquals(timestamp,toDateTime('2020-05-03T06:48:57')),less(timestamp,toDateTime('2020-05-05T01:12:34')))))",
-                None,
+                "uniqIf",
+                [
+                    "user",
+                    [
+                        "and",
+                        [
+                            ["greater", ["duration", 1200]],
+                            [
+                                "and",
+                                [
+                                    [
+                                        "lessOrEquals",
+                                        [["toDateTime", ["'2020-05-03T06:48:57'"]], "timestamp"],
+                                    ],
+                                    [
+                                        "greater",
+                                        [["toDateTime", ["'2020-05-05T01:12:34'"]], "timestamp"],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
                 "user_misery_range_2",
             ],
             [
@@ -2468,13 +2583,55 @@ class ResolveFieldListTest(unittest.TestCase):
         result = resolve_field_list(fields, eventstore.Filter())
         assert result["aggregations"] == [
             [
-                "uniqIf(user,and(greater(duration,1200),and(greaterOrEquals(timestamp,toDateTime('2020-05-01T01:12:34')),less(timestamp,toDateTime('2020-05-03T06:48:57')))))",
-                None,
+                "uniqIf",
+                [
+                    "user",
+                    [
+                        "and",
+                        [
+                            ["greater", ["duration", 1200]],
+                            [
+                                "and",
+                                [
+                                    [
+                                        "lessOrEquals",
+                                        [["toDateTime", ["'2020-05-01T01:12:34'"]], "timestamp"],
+                                    ],
+                                    [
+                                        "greater",
+                                        [["toDateTime", ["'2020-05-03T06:48:57'"]], "timestamp"],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
                 "user_misery_range_1",
             ],
             [
-                "uniqIf(user,and(greater(duration,1200),and(greaterOrEquals(timestamp,toDateTime('2020-05-03T06:48:57')),less(timestamp,toDateTime('2020-05-05T01:12:34')))))",
-                None,
+                "uniqIf",
+                [
+                    "user",
+                    [
+                        "and",
+                        [
+                            ["greater", ["duration", 1200]],
+                            [
+                                "and",
+                                [
+                                    [
+                                        "lessOrEquals",
+                                        [["toDateTime", ["'2020-05-03T06:48:57'"]], "timestamp"],
+                                    ],
+                                    [
+                                        "greater",
+                                        [["toDateTime", ["'2020-05-05T01:12:34'"]], "timestamp"],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
                 "user_misery_range_2",
             ],
             [
