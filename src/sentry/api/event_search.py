@@ -48,6 +48,8 @@ NEGATION_MAP = {
     ">=": "<",
 }
 
+RESULT_TYPES = {"duration", "string", "number", "integer", "percentage", "date"}
+
 
 def translate(pat):
     """Translate a shell PATTERN to a regular expression.
@@ -1518,11 +1520,11 @@ class Function(object):
         :param str transform: NOTE: Use aggregate over transform whenever possible.
             An aggregate string to be passed to snuba once formatted. The arguments
             will be filled into the string using `.format(...)`.
-         :param str result_type_fn: A function to call with in order to determine the result type.
+        :param str result_type_fn: A function to call with in order to determine the result type.
             This function will be passed the list of argument classes and argument values. This should
             be tried first as the source of truth if available.
-        :param str default_result_type: The default resulting type of this function. Can be any of the
-            following (duration, string, number, integer, percentage, date).
+        :param str default_result_type: The default resulting type of this function. Must be a type
+            defined by RESULTS_TYPES
         """
 
         self.name = name
@@ -1600,7 +1602,9 @@ class Function(object):
             return None
 
         columns = self.add_default_arguments(field, columns)
-        return self.result_type_fn(self.args, columns)
+        result_type = self.result_type_fn(self.args, columns)
+        self.validate_result_type(result_type)
+        return result_type
 
     def validate(self):
         # assert that all optional args have defaults available
@@ -1629,6 +1633,8 @@ class Function(object):
                 calculation["name"] not in names
             ), u"{}: argument {} specified more than once".format(self.name, calculation["name"])
             names.add(calculation["name"])
+
+        self.validate_result_type(self.default_result_type)
 
     def validate_argument_count(self, field, arguments):
         """
@@ -1659,6 +1665,18 @@ class Function(object):
                     u"{}: expected at most {:g} argument(s)".format(field, total_args_count)
                 )
 
+    def validate_result_type(self, result_type):
+        assert (
+            result_type is None or result_type in RESULT_TYPES
+        ), u"{}: result type {} not one of {}".format(self.name, result_type, list(RESULT_TYPES))
+
+
+def reflective_result_type(index):
+    def result_type_fn(args, columns):
+        return args[index].get_type(columns[index])
+
+    return result_type_fn
+
 
 # When adding functions to this list please also update
 # static/sentry/app/utils/discover/fields.tsx so that
@@ -1670,42 +1688,42 @@ FUNCTIONS = {
             "percentile",
             required_args=[NumericColumnNoLookup("column"), NumberRange("percentile", 0, 1)],
             aggregate=[u"quantile({percentile:g})", ArgValue("column"), None],
-            result_type_fn=lambda args, columns: args[0].get_type(columns[0]),
+            result_type_fn=reflective_result_type(0),
             default_result_type="duration",
         ),
         Function(
             "p50",
             optional_args=[with_default("transaction.duration", NumericColumnNoLookup("column"))],
             aggregate=[u"quantile(0.5)", ArgValue("column"), None],
-            result_type_fn=lambda args, columns: args[0].get_type(columns[0]),
+            result_type_fn=reflective_result_type(0),
             default_result_type="duration",
         ),
         Function(
             "p75",
             optional_args=[with_default("transaction.duration", NumericColumnNoLookup("column"))],
             aggregate=[u"quantile(0.75)", ArgValue("column"), None],
-            result_type_fn=lambda args, columns: args[0].get_type(columns[0]),
+            result_type_fn=reflective_result_type(0),
             default_result_type="duration",
         ),
         Function(
             "p95",
             optional_args=[with_default("transaction.duration", NumericColumnNoLookup("column"))],
             aggregate=[u"quantile(0.95)", ArgValue("column"), None],
-            result_type_fn=lambda args, columns: args[0].get_type(columns[0]),
+            result_type_fn=reflective_result_type(0),
             default_result_type="duration",
         ),
         Function(
             "p99",
             optional_args=[with_default("transaction.duration", NumericColumnNoLookup("column"))],
             aggregate=[u"quantile(0.99)", ArgValue("column"), None],
-            result_type_fn=lambda args, columns: args[0].get_type(columns[0]),
+            result_type_fn=reflective_result_type(0),
             default_result_type="duration",
         ),
         Function(
             "p100",
             optional_args=[with_default("transaction.duration", NumericColumnNoLookup("column"))],
             aggregate=[u"max", ArgValue("column"), None],
-            result_type_fn=lambda args, columns: args[0].get_type(columns[0]),
+            result_type_fn=reflective_result_type(0),
             default_result_type="duration",
         ),
         Function(
@@ -1844,28 +1862,28 @@ FUNCTIONS = {
             "min",
             required_args=[NumericColumnNoLookup("column")],
             aggregate=["min", ArgValue("column"), None],
-            result_type_fn=lambda args, columns: args[0].get_type(columns[0]),
+            result_type_fn=reflective_result_type(0),
             default_result_type="duration",
         ),
         Function(
             "max",
             required_args=[NumericColumnNoLookup("column")],
             aggregate=["max", ArgValue("column"), None],
-            result_type_fn=lambda args, columns: args[0].get_type(columns[0]),
+            result_type_fn=reflective_result_type(0),
             default_result_type="duration",
         ),
         Function(
             "avg",
             required_args=[NumericColumnNoLookup("column")],
             aggregate=["avg", ArgValue("column"), None],
-            result_type_fn=lambda args, columns: args[0].get_type(columns[0]),
+            result_type_fn=reflective_result_type(0),
             default_result_type="duration",
         ),
         Function(
             "sum",
             required_args=[NumericColumnNoLookup("column")],
             aggregate=["sum", ArgValue("column"), None],
-            result_type_fn=lambda args, columns: args[0].get_type(columns[0]),
+            result_type_fn=reflective_result_type(0),
             default_result_type="duration",
         ),
         # Currently only being used by the baseline PoC
