@@ -9,6 +9,17 @@ from six import text_type
 from sentry.utils.compat import map
 
 
+def get_docker_client():
+    import docker
+
+    client = docker.from_env()
+    try:
+        client.ping()
+        return client
+    except Exception:
+        raise click.ClickException("Make sure Docker is running.")
+
+
 def get_or_create(client, thing, name):
     from docker.errors import NotFound
 
@@ -38,13 +49,7 @@ def devservices(ctx):
 
     Do not use in production!
     """
-    import docker
-
-    ctx.obj["client"] = docker.from_env()
-    try:
-        ctx.obj["client"].ping()
-    except Exception:
-        raise click.ClickException("Make sure Docker is running.")
+    ctx.obj["client"] = get_docker_client()
 
     # Disable backend validation so no devservices commands depend on like,
     # redis to be already running.
