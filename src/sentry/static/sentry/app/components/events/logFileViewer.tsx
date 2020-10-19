@@ -54,7 +54,7 @@ export default class LogFileViewer extends AsyncComponent<Props, State> {
     const spans = ansicolor
       .parse(attachmentText)
       .spans.map(({color, bgColor, text}, idx) => {
-        const style = {} as any;
+        const style = {} as React.CSSProperties;
         if (color) {
           if (color.name) {
             style.color =
