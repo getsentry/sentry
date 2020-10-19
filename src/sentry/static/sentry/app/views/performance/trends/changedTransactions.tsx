@@ -400,14 +400,6 @@ function TrendsListItem(props: TrendsListItemProps) {
   return (
     <ListItemContainer data-test-id={'trends-list-item-' + trendChangeType}>
       <ItemRadioContainer color={color}>
-        <RadioLineItem index={index} role="radio">
-          <Radio
-            checked={isSelected}
-            onChange={() => handleSelectTransaction(transaction)}
-          />
-        </RadioLineItem>
-      </ItemRadioContainer>
-      <ItemTransactionName>
         <Tooltip
           title={
             <TooltipContent>
@@ -420,52 +412,15 @@ function TrendsListItem(props: TrendsListItemProps) {
             </TooltipContent>
           }
         >
-          <TransactionName onClick={() => handleSelectTransaction(transaction)}>
-            {transaction.transaction}
-          </TransactionName>
-        </Tooltip>
-        <StyledDropdownLink
-          caret={false}
-          title={
-            <StyledButton
-              size="zero"
-              borderless
-              icon={<IconEllipsis data-test-id="trends-item-action" />}
+          <RadioLineItem index={index} role="radio">
+            <Radio
+              checked={isSelected}
+              onChange={() => handleSelectTransaction(transaction)}
             />
-          }
-        >
-          <MenuItem>
-            <TransactionSummaryLink {...props} />
-          </MenuItem>
-          <MenuItem
-            onClick={() => handleFilterTransaction(location, transaction.transaction)}
-          >
-            <StyledMenuAction>{t('Hide from list')}</StyledMenuAction>
-          </MenuItem>
-          <MenuItem
-            onClick={() =>
-              handleFilterDuration(
-                location,
-                longestPeriodValue,
-                FilterSymbols.GREATER_THAN
-              )
-            }
-          >
-            <StyledMenuAction>
-              {t('Exclude transactions > %s', longestDuration)}
-            </StyledMenuAction>
-          </MenuItem>
-          <MenuItem
-            onClick={() =>
-              handleFilterDuration(location, longestPeriodValue, FilterSymbols.LESS_THAN)
-            }
-          >
-            <StyledMenuAction>
-              {t('Exclude transactions < %s', longestDuration)}
-            </StyledMenuAction>
-          </MenuItem>
-        </StyledDropdownLink>
-      </ItemTransactionName>
+          </RadioLineItem>
+        </Tooltip>
+      </ItemRadioContainer>
+      <TransactionSummaryLink {...props} />
       <ItemTransactionPercentage>
         <Tooltip title={percentChangeExplanation}>
           {currentTrendFunction === TrendFunctionField.USER_MISERY ? (
@@ -487,16 +442,44 @@ function TrendsListItem(props: TrendsListItemProps) {
           )}
         </Tooltip>
       </ItemTransactionPercentage>
+      <DropdownLink
+        caret={false}
+        anchorRight
+        title={
+          <StyledButton
+            size="xsmall"
+            icon={<IconEllipsis data-test-id="trends-item-action" size="xs" />}
+          />
+        }
+      >
+        <CompareLink {...props} />
+        <MenuItem
+          onClick={() =>
+            handleFilterDuration(location, longestPeriodValue, FilterSymbols.GREATER_THAN)
+          }
+        >
+          <StyledMenuAction>{t('Show \u2264 %s', longestDuration)}</StyledMenuAction>
+        </MenuItem>
+        <MenuItem
+          onClick={() =>
+            handleFilterDuration(location, longestPeriodValue, FilterSymbols.LESS_THAN)
+          }
+        >
+          <StyledMenuAction>{t('Show \u2265 %s', longestDuration)}</StyledMenuAction>
+        </MenuItem>
+        <MenuItem
+          onClick={() => handleFilterTransaction(location, transaction.transaction)}
+        >
+          <StyledMenuAction>{t('Hide from list')}</StyledMenuAction>
+        </MenuItem>
+      </DropdownLink>
       <ItemTransactionDurationChange>
         {project && (
           <Tooltip title={transaction.project}>
             <ProjectAvatar project={project} />
           </Tooltip>
         )}
-
-        <Tooltip title={t('Compare baselines')}>
-          <CompareLink {...props} />
-        </Tooltip>
+        <CompareDurations {...props} />
       </ItemTransactionDurationChange>
       <ItemTransactionStatus color={color}>
         {currentTrendFunction === TrendFunctionField.USER_MISERY ? (
@@ -521,14 +504,7 @@ function TrendsListItem(props: TrendsListItemProps) {
 type CompareLinkProps = TrendsListItemProps & {};
 
 const CompareLink = (props: CompareLinkProps) => {
-  const {
-    organization,
-    trendView: eventView,
-    transaction,
-    api,
-    location,
-    currentTrendFunction,
-  } = props;
+  const {organization, trendView: eventView, transaction, api, location} = props;
   const intervalRatio = getIntervalRatio(location);
 
   async function onLinkClick() {
@@ -560,8 +536,14 @@ const CompareLink = (props: CompareLinkProps) => {
     }
   }
 
+  return <MenuItem onClick={onLinkClick}>{t('Compare baselines')}</MenuItem>;
+};
+
+const CompareDurations = (props: CompareLinkProps) => {
+  const {transaction, currentTrendFunction} = props;
+
   return (
-    <DurationChange onClick={onLinkClick}>
+    <DurationChange>
       {transformDeltaSpread(
         transaction.aggregate_range_1,
         transaction.aggregate_range_2,
@@ -585,7 +567,7 @@ const TransactionSummaryLink = (props: TransactionSummaryLinkProps) => {
     projectID,
   });
 
-  return <StyledSummaryLink to={target}>{t('View Summary')}</StyledSummaryLink>;
+  return <ItemTransactionName to={target}>{transaction.transaction}</ItemTransactionName>;
 };
 
 const TransactionsListContainer = styled('div')`
@@ -611,34 +593,9 @@ const StyledButton = styled(Button)`
   vertical-align: middle;
 `;
 
-const TransactionName = styled('div')`
-  cursor: pointer;
-  margin-right: ${space(1)};
-  ${overflowEllipsis};
-`;
-
-const DurationChange = styled('a')`
-  margin: 0 ${space(1)};
-`;
-
 const StyledMenuAction = styled('div')`
   white-space: nowrap;
   color: ${p => p.theme.textColor};
-`;
-
-const StyledSummaryLink = styled(Link)`
-  .dropdown-menu li & {
-    padding: 0;
-  }
-  padding: 0;
-  color: ${p => p.theme.textColor};
-  :hover {
-    color: ${p => p.theme.textColor};
-  }
-`;
-
-const StyledDropdownLink = styled(DropdownLink)`
-  min-width: 200px;
 `;
 
 const StyledEmptyStateWarning = styled(EmptyStateWarning)`
@@ -648,7 +605,7 @@ const StyledEmptyStateWarning = styled(EmptyStateWarning)`
 
 const ListItemContainer = styled('div')`
   display: grid;
-  grid-template-columns: 24px 75% auto;
+  grid-template-columns: 24px auto 100px 30px;
   grid-template-rows: repeat(2, auto);
   grid-column-gap: ${space(1)};
   border-top: 1px solid ${p => p.theme.borderLight};
@@ -657,20 +614,29 @@ const ListItemContainer = styled('div')`
 
 const ItemRadioContainer = styled('div')`
   grid-row: 1/3;
+  input {
+    cursor: pointer;
+  }
   input:checked::after {
     background-color: ${p => p.color};
   }
 `;
 
-const ItemTransactionName = styled('div')`
-  display: flex;
+const ItemTransactionName = styled(Link)`
   font-size: ${p => p.theme.fontSizeMedium};
+  margin-right: ${space(1)};
+  ${overflowEllipsis};
 `;
 
 const ItemTransactionDurationChange = styled('div')`
   display: flex;
   align-items: center;
   font-size: ${p => p.theme.fontSizeSmall};
+`;
+
+const DurationChange = styled('span')`
+  color: ${p => p.theme.gray500};
+  margin: 0 ${space(1)};
 `;
 
 const ItemTransactionPercentage = styled('div')`
