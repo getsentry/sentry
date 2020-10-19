@@ -1,9 +1,7 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
 import MiniBarChart from 'app/components/charts/miniBarChart';
-import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
 import theme from 'app/utils/theme';
 import space from 'app/styles/space';
@@ -15,9 +13,7 @@ type Markers = React.ComponentProps<typeof MiniBarChart>['markers'];
 /**
  * Stats are provided indexed by statsPeriod strings.
  */
-type StatsGroup = {
-  [key: string]: GroupStats[];
-};
+type StatsGroup = Record<string, GroupStats[]>;
 
 type Props = {
   group: Group;
