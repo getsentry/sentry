@@ -6,7 +6,7 @@ import CrashContent from 'app/components/events/interfaces/crashContent';
 import {withMeta} from 'app/components/events/meta/metaProxy';
 
 describe('CrashContent', function () {
-  const exc = TestStubs.ExceptionWithMeta();
+  const exc = TestStubs.ExceptionWithMeta({platform: 'cocoa'});
   const event = TestStubs.Event();
 
   const proxiedExc = withMeta(exc);

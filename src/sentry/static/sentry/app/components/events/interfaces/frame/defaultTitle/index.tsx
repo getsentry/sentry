@@ -31,7 +31,9 @@ const DefaultTitle = ({frame, platform}: Props) => {
     event.stopPropagation();
   };
 
-  const getPathName = (shouldPrioritizeModuleName: boolean): GetPathNameOutput => {
+  const getPathName = (
+    shouldPrioritizeModuleName: boolean
+  ): GetPathNameOutput | undefined => {
     if (shouldPrioritizeModuleName) {
       if (frame.module) {
         return {
@@ -40,11 +42,14 @@ const DefaultTitle = ({frame, platform}: Props) => {
           meta: getMeta(frame, 'module'),
         };
       }
-      return {
-        key: 'filename',
-        value: frame.filename,
-        meta: getMeta(frame, 'filename'),
-      };
+      if (frame.filename) {
+        return {
+          key: 'filename',
+          value: frame.filename,
+          meta: getMeta(frame, 'filename'),
+        };
+      }
+      return undefined;
     }
 
     if (frame.filename) {
@@ -55,11 +60,15 @@ const DefaultTitle = ({frame, platform}: Props) => {
       };
     }
 
-    return {
-      key: 'module',
-      value: frame.module,
-      meta: getMeta(frame, 'module'),
-    };
+    if (frame.module) {
+      return {
+        key: 'module',
+        value: frame.module,
+        meta: getMeta(frame, 'module'),
+      };
+    }
+
+    return undefined;
   };
 
   // TODO(dcramer): this needs to use a formatted string so it can be
@@ -70,18 +79,20 @@ const DefaultTitle = ({frame, platform}: Props) => {
       framePlatform === 'java' || framePlatform === 'csharp';
 
     const pathName = getPathName(shouldPrioritizeModuleName);
-    const enablePathTooltip = defined(frame.absPath) && frame.absPath !== pathName.value;
+    const enablePathTooltip = defined(frame.absPath) && frame.absPath !== pathName?.value;
 
-    title.push(
-      <Tooltip key={pathName.key} title={frame.absPath} disabled={!enablePathTooltip}>
-        <code key="filename" className="filename">
-          <AnnotatedText
-            value={<Truncate value={pathName.value} maxLength={100} leftTrim />}
-            meta={pathName.meta}
-          />
-        </code>
-      </Tooltip>
-    );
+    if (pathName) {
+      title.push(
+        <Tooltip key={pathName.key} title={frame.absPath} disabled={!enablePathTooltip}>
+          <code key="filename" className="filename">
+            <AnnotatedText
+              value={<Truncate value={pathName.value} maxLength={100} leftTrim />}
+              meta={pathName.meta}
+            />
+          </code>
+        </Tooltip>
+      );
+    }
 
     // in case we prioritized the module name but we also have a filename info
     // we want to show a litle (?) icon that on hover shows the actual filename

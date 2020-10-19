@@ -97,7 +97,7 @@ const Context = ({
                   <OpenInContextLine
                     key={index}
                     lineNo={line[0]}
-                    filename={frame.filename}
+                    filename={frame.filename || ''}
                     components={components}
                   />
                 </ErrorBoundary>
@@ -109,7 +109,7 @@ const Context = ({
       {(hasContextRegisters || hasContextVars) && (
         <StyledClippedBox clipHeight={100}>
           {hasContextRegisters && <FrameRegisters data={registers} key="registers" />}
-          {hasContextVars && <FrameVariables data={frame.vars} key="vars" />}
+          {hasContextVars && <FrameVariables data={frame.vars || {}} key="vars" />}
         </StyledClippedBox>
       )}
 
