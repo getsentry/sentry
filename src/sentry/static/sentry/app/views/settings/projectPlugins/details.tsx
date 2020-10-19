@@ -1,4 +1,5 @@
 import React from 'react';
+import {WithRouterProps} from 'react-router';
 
 import {
   addErrorMessage,
@@ -13,9 +14,20 @@ import ExternalLink from 'app/components/links/externalLink';
 import PluginConfig from 'app/components/pluginConfig';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import withPlugins from 'app/utils/withPlugins';
-import withOrganization from 'app/utils/withOrganization';
-import withProject from 'app/utils/withProject';
 import {trackIntegrationEvent} from 'app/utils/integrationUtil';
+import {Plugin, Organization, Project} from 'app/types';
+
+type Props = {
+  organization: Organization;
+  project: Project;
+  plugins: {
+    plugins: Plugin[];
+  };
+} & WithRouterProps<{orgId: string; projectId: string; pluginId: string}>;
+
+type State = {
+  pluginDetails?: Plugin;
+} & AsyncView['state'];
 
 /**
  * There are currently two sources of truths for plugin details:
@@ -26,9 +38,9 @@ import {trackIntegrationEvent} from 'app/utils/integrationUtil';
  *    The more correct way would be to pass `config` to PluginConfig and use plugin from
  *    PluginsStore
  */
-class ProjectPluginDetails extends AsyncView {
-  componentDidUpdate(prevProps) {
-    super.componentDidUpdate(...arguments);
+class ProjectPluginDetails extends AsyncView<Props, State> {
+  componentDidUpdate(prevProps: Props, prevContext: any) {
+    super.componentDidUpdate(prevProps, prevContext);
     if (prevProps.params.pluginId !== this.props.params.pluginId) {
       this.recordDetailsViewed();
     }
@@ -62,7 +74,7 @@ class ProjectPluginDetails extends AsyncView {
     }
   }
 
-  getEndpoints() {
+  getEndpoints(): [string, string][] {
     const {projectId, orgId, pluginId} = this.props.params;
     return [['pluginDetails', `/projects/${orgId}/${projectId}/plugins/${pluginId}/`]];
   }
@@ -121,12 +133,14 @@ class ProjectPluginDetails extends AsyncView {
     this.analyticsChangeEnableStatus(false);
   };
 
-  analyticsChangeEnableStatus = enabled => {
+  analyticsChangeEnableStatus = (enabled: boolean) => {
     const {pluginId} = this.props.params;
+    const eventKey = enabled ? 'integrations.enabled' : 'integrations.disabled';
+    const eventName = enabled ? 'Integrations: Enabled' : 'Integrations: Disabled';
     trackIntegrationEvent(
       {
-        eventKey: `integrations.${enabled ? 'enabled' : 'disabled'}`,
-        eventName: `Integrations: ${enabled ? 'Enabled' : 'Disabled'}`,
+        eventKey,
+        eventName,
         integration: pluginId,
         integration_type: 'plugin',
         view: 'plugin_details',
@@ -151,6 +165,9 @@ class ProjectPluginDetails extends AsyncView {
 
   renderActions() {
     const {pluginDetails} = this.state;
+    if (!pluginDetails) {
+      return null;
+    }
     const enabled = this.getEnabled();
 
     const enable = (
@@ -185,6 +202,9 @@ class ProjectPluginDetails extends AsyncView {
   renderBody() {
     const {organization, project} = this.props;
     const {pluginDetails} = this.state;
+    if (!pluginDetails) {
+      return null;
+    }
 
     return (
       <div>
@@ -207,8 +227,8 @@ class ProjectPluginDetails extends AsyncView {
                 <dt>{t('Name')}</dt>
                 <dd>{pluginDetails.name}</dd>
                 <dt>{t('Author')}</dt>
-                <dd>{pluginDetails.author.name}</dd>
-                {pluginDetails.author.url && (
+                <dd>{pluginDetails.author?.name}</dd>
+                {pluginDetails.author?.url && (
                   <div>
                     <dt>{t('URL')}</dt>
                     <dd>
@@ -251,4 +271,4 @@ class ProjectPluginDetails extends AsyncView {
 
 export {ProjectPluginDetails};
 
-export default withProject(withPlugins(withOrganization(ProjectPluginDetails)));
+export default withPlugins(ProjectPluginDetails);
