@@ -18,7 +18,7 @@ type Props = {
 type State = {
   loading: boolean;
   error: boolean;
-  iOSDeviceList: IOSDeviceList | undefined;
+  iOSDeviceList?: IOSDeviceList;
 };
 
 class GroupTagDistributionMeter extends React.Component<Props, State> {
