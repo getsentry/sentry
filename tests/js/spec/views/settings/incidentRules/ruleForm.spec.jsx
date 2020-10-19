@@ -5,6 +5,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import RuleFormContainer from 'app/views/settings/incidentRules/ruleForm';
+import FormModel from 'app/views/settings/components/forms/model';
 
 jest.mock('app/actionCreators/indicator');
 
@@ -91,8 +92,10 @@ describe('Incident Rules Form', function () {
     });
     describe('Slack async lookup', () => {
       const uuid = 'xxxx-xxxx-xxxx';
+      let model;
       beforeEach(() => {
         jest.useFakeTimers();
+        model = new FormModel();
       });
       afterEach(() => {
         jest.clearAllTimers();
@@ -119,7 +122,7 @@ describe('Incident Rules Form', function () {
         await Promise.resolve();
         ruleFormContainer.update();
 
-        ruleFormContainer.instance().fetchStatus();
+        ruleFormContainer.instance().fetchStatus(model);
         jest.runOnlyPendingTimers();
 
         await Promise.resolve();
@@ -155,7 +158,7 @@ describe('Incident Rules Form', function () {
         await Promise.resolve();
         ruleFormContainer.update();
 
-        ruleFormContainer.instance().fetchStatus();
+        ruleFormContainer.instance().fetchStatus(model);
         jest.runOnlyPendingTimers();
 
         await Promise.resolve();
@@ -186,7 +189,7 @@ describe('Incident Rules Form', function () {
         await Promise.resolve();
         ruleFormContainer.update();
 
-        ruleFormContainer.instance().fetchStatus();
+        ruleFormContainer.instance().fetchStatus(model);
         jest.runOnlyPendingTimers();
 
         await Promise.resolve();

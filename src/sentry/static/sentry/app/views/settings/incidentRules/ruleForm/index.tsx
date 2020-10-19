@@ -79,7 +79,6 @@ type State = {
 const isEmpty = (str: unknown): boolean => str === '' || !defined(str);
 
 class RuleFormContainer extends AsyncComponent<Props, State> {
-  model = new FormModel();
   componentDidMount() {
     const {organization, project} = this.props;
     // SearchBar gets its tags from Reflux.
@@ -134,20 +133,24 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     router.push(`/organizations/${orgId}/alerts/rules/`);
   }
 
-  fetchStatus() {
+  resetPollingState = () => {
+    this.setState({loading: false, uuid: undefined});
+  };
+
+  fetchStatus(model: FormModel) {
     // pollHandler calls itself until it gets either a success
     // or failed status but we don't want to poll forever so we pass
     // in a hard stop time of 3 minutes before we bail.
     const quitTime = Date.now() + POLLING_MAX_TIME_LIMIT;
     setTimeout(() => {
-      this.pollHandler(quitTime);
+      this.pollHandler(model, quitTime);
     }, 1000);
   }
 
-  pollHandler = async (quitTime: number) => {
+  pollHandler = async (model: FormModel, quitTime: number) => {
     if (Date.now() > quitTime) {
       addErrorMessage(t('Looking for that channel took too long :('));
-      this.setState({loading: false});
+      this.resetPollingState();
       return;
     }
 
@@ -168,14 +171,12 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
       if (status === 'pending') {
         setTimeout(() => {
-          this.pollHandler(quitTime);
+          this.pollHandler(model, quitTime);
         }, 1000);
         return;
       }
 
-      this.setState({
-        loading: false,
-      });
+      this.resetPollingState();
 
       if (status === 'failed') {
         addErrorMessage(error);
@@ -183,12 +184,12 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       if (alertRule) {
         addSuccessMessage(ruleId ? t('Updated alert rule') : t('Created alert rule'));
         if (onSubmitSuccess) {
-          onSubmitSuccess(alertRule, this.model);
+          onSubmitSuccess(alertRule, model);
         }
       }
     } catch {
       addErrorMessage(t('An error occurred'));
-      this.setState({loading: false});
+      this.resetPollingState();
     }
   };
 
@@ -380,8 +381,13 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     this.setState({query});
   };
 
-  handleSubmit = async () => {
-    const model = this.model;
+  handleSubmit = async (
+    _data: Partial<IncidentRule>,
+    _onSubmitSuccess,
+    _onSubmitError,
+    _e,
+    model: FormModel
+  ) => {
     // This validates all fields *except* for Triggers
     const validRule = model.validateForm();
 
@@ -402,7 +408,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
     const {organization, params, rule, onSubmitSuccess, location, sessionId} = this.props;
     const {ruleId} = this.props.params;
-    const {resolveThreshold, triggers, thresholdType} = this.state;
+    const {resolveThreshold, triggers, thresholdType, uuid} = this.state;
 
     // Remove empty warning trigger
     const sanitizedTriggers = triggers.filter(
@@ -431,9 +437,9 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       );
       // if we get a 202 back it means that we have an async task
       // running to lookup and verify the channel id for Slack.
-      if (xhr && xhr.status === 202) {
+      if (xhr && xhr.status === 202 && !uuid) {
         this.setState({loading: true, uuid: resp.uuid});
-        this.fetchStatus();
+        this.fetchStatus(model);
         addLoadingMessage(t('Looking through all your channels...'));
       } else {
         addSuccessMessage(ruleId ? t('Updated alert rule') : t('Created alert rule'));
@@ -556,7 +562,6 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       <Access access={['project:write']}>
         {({hasAccess}) => (
           <Form
-            model={this.model}
             apiMethod={ruleId ? 'PUT' : 'POST'}
             apiEndpoint={`/organizations/${organization.slug}/alert-rules/${
               ruleId ? `${ruleId}/` : ''
