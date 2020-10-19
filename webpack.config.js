@@ -28,7 +28,8 @@ const IS_STORYBOOK = env.STORYBOOK_BUILD === '1';
 // This is used to stop rendering dynamic content for tests/snapshots
 // We want it in the case where we are running tests and it is in CI,
 // this should not happen in local
-const IS_CI = (!!env.CI || !!env.TRAVIS) && !!env.VISUAL_SNAPSHOT_ENABLE;
+const IS_CI = !!env.CI || !!env.TRAVIS;
+const IS_ACCEPTANCE_TEST = IS_CI && !!env.VISUAL_SNAPSHOT_ENABLE;
 const IS_DEPLOY_PREVIEW = !!env.NOW_GITHUB_DEPLOYMENT;
 const IS_UI_DEV_ONLY = !!env.SENTRY_UI_DEV_ONLY;
 const DEV_MODE = !(IS_PRODUCTION || IS_CI);
@@ -310,7 +311,7 @@ let appConfig = {
     new webpack.DefinePlugin({
       'process.env': {
         NODE_ENV: JSON.stringify(env.NODE_ENV),
-        IS_CI: JSON.stringify(IS_CI),
+        IS_ACCEPTANCE_TEST: JSON.stringify(IS_ACCEPTANCE_TEST),
         DEPLOY_PREVIEW_CONFIG: JSON.stringify(DEPLOY_PREVIEW_CONFIG),
         EXPERIMENTAL_SPA: JSON.stringify(SENTRY_EXPERIMENTAL_SPA),
         SPA_DSN: JSON.stringify(env.SENTRY_SPA_DSN),
@@ -382,7 +383,7 @@ let appConfig = {
   devtool: IS_PRODUCTION ? 'source-map' : 'cheap-module-eval-source-map',
 };
 
-if (IS_TEST || IS_CI || IS_STORYBOOK) {
+if (IS_TEST || IS_ACCEPTANCE_TEST || IS_STORYBOOK) {
   appConfig.resolve.alias['integration-docs-platforms'] = path.join(
     __dirname,
     'tests/fixtures/integration-docs/_platforms.json'
