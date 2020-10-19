@@ -40,7 +40,7 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.models import QueryDatasets
+from sentry.snuba.models import QueryDatasets, SnubaQueryEventType
 from sentry.snuba.tasks import build_snuba_filter
 from sentry.utils.snuba import raw_query
 from sentry.utils.compat import zip
@@ -59,6 +59,12 @@ action_target_type_to_string = {
     AlertRuleTriggerAction.TargetType.SENTRY_APP: "sentry_app",
 }
 string_to_action_target_type = {v: k for (k, v) in action_target_type_to_string.items()}
+dataset_valid_event_types = {
+    QueryDatasets.EVENTS: set(
+        [SnubaQueryEventType.EventType.ERROR, SnubaQueryEventType.EventType.DEFAULT]
+    ),
+    QueryDatasets.TRANSACTIONS: set([SnubaQueryEventType.EventType.TRANSACTION]),
+}
 
 CRITICAL_TRIGGER_LABEL = "critical"
 WARNING_TRIGGER_LABEL = "warning"
@@ -287,6 +293,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
     excluded_projects = serializers.ListField(child=ProjectField(), required=False)
     triggers = serializers.ListField(required=True)
     dataset = serializers.CharField(required=False)
+    event_types = serializers.ListField(child=serializers.CharField(), required=False)
     query = serializers.CharField(required=True, allow_blank=True)
     time_window = serializers.IntegerField(
         required=True, min_value=1, max_value=int(timedelta(days=1).total_seconds() / 60)
@@ -310,6 +317,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             "include_all_projects",
             "excluded_projects",
             "triggers",
+            "event_types",
         ]
         extra_kwargs = {
             "name": {"min_length": 1, "max_length": 64},
@@ -334,6 +342,15 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         except ValueError:
             raise serializers.ValidationError(
                 "Invalid dataset, valid values are %s" % [item.value for item in QueryDatasets]
+            )
+
+    def validate_event_types(self, event_types):
+        try:
+            return [SnubaQueryEventType.EventType[event_type.upper()] for event_type in event_types]
+        except KeyError:
+            raise serializers.ValidationError(
+                "Invalid event_type, valid values are %s"
+                % [item.name.lower() for item in SnubaQueryEventType.EventType]
             )
 
     def validate_threshold_type(self, threshold_type):
@@ -366,9 +383,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                 data["query"],
                 data["aggregate"],
                 data.get("environment"),
-                # TODO: We'll handle this when we add support for passing these to the
-                # serializer
-                None,
+                data.get("event_types"),
                 params={
                     "project_id": [p.id for p in project_id],
                     "start": timezone.now() - timedelta(minutes=10),
@@ -408,6 +423,15 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         if len(triggers) > 2:
             raise serializers.ValidationError(
                 "Must send 1 or 2 triggers - A critical trigger, and an optional warning trigger"
+            )
+
+        event_types = data.get("event_types")
+
+        valid_event_types = dataset_valid_event_types[data["dataset"]]
+        if event_types and set(event_types) - valid_event_types:
+            raise serializers.ValidationError(
+                "Invalid event types for this dataset. Valid event types are %s"
+                % [et.name.lower() for et in valid_event_types]
             )
 
         for i, (trigger, expected_label) in enumerate(

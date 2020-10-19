@@ -11,7 +11,7 @@ from freezegun import freeze_time
 from sentry.api.serializers import serialize
 from sentry.incidents.models import AlertRule, AlertRuleThresholdType
 from sentry.models.organizationmember import OrganizationMember
-from sentry.snuba.models import QueryDatasets
+from sentry.snuba.models import QueryDatasets, SnubaQueryEventType
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils import json
@@ -58,6 +58,7 @@ class AlertRuleBase(object):
                     ],
                 },
             ],
+            "event_types": [SnubaQueryEventType.EventType.ERROR.name.lower()],
         }
 
 

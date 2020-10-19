@@ -54,7 +54,7 @@ def create_snuba_query(
 
 
 def update_snuba_query(
-    snuba_query, dataset, query, aggregate, time_window, resolution, environment
+    snuba_query, dataset, query, aggregate, time_window, resolution, environment, event_types
 ):
     """
     Updates a SnubaQuery. Triggers updates to any related QuerySubscriptions.
@@ -67,8 +67,16 @@ def update_snuba_query(
     :param time_window: The time window to aggregate over
     :param resolution: How often to receive updates/bucket size
     :param environment: An optional environment to filter by
+    :param event_types: A (currently) optional list of event_types that apply to this
+    query. If not passed, we'll use the existing event types on the query.
     :return: A list of QuerySubscriptions
     """
+    current_event_types = set(snuba_query.event_types)
+    if not event_types:
+        event_types = current_event_types
+
+    new_event_types = set(event_types) - current_event_types
+    removed_event_types = current_event_types - set(event_types)
     old_dataset = QueryDatasets(snuba_query.dataset)
     with transaction.atomic():
         query_subscriptions = list(snuba_query.subscriptions.all())
@@ -80,6 +88,18 @@ def update_snuba_query(
             resolution=int(resolution.total_seconds()),
             environment=environment,
         )
+        if new_event_types:
+            SnubaQueryEventType.objects.bulk_create(
+                [
+                    SnubaQueryEventType(snuba_query=snuba_query, type=event_type.value)
+                    for event_type in set(new_event_types)
+                ]
+            )
+        if removed_event_types:
+            SnubaQueryEventType.objects.filter(
+                snuba_query=snuba_query, type__in=[et.value for et in removed_event_types]
+            ).delete()
+
         bulk_update_snuba_subscriptions(query_subscriptions, old_dataset)
 
 

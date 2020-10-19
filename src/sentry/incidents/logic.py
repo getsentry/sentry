@@ -586,6 +586,7 @@ def create_alert_rule(
     excluded_projects=None,
     dataset=QueryDatasets.EVENTS,
     user=None,
+    event_types=None,
     **kwargs
 ):
     """
@@ -610,6 +611,7 @@ def create_alert_rule(
     :param excluded_projects: List of projects to exclude if we're using
     `include_all_projects`.
     :param dataset: The dataset that this query will be executed on
+    :param event_types: List of `EventType` that this alert will be related to
 
     :return: The created `AlertRule`
     """
@@ -625,6 +627,7 @@ def create_alert_rule(
             timedelta(minutes=time_window),
             timedelta(minutes=resolution),
             environment,
+            event_types=event_types,
         )
         alert_rule = AlertRule.objects.create(
             organization=organization,
@@ -710,6 +713,7 @@ def update_alert_rule(
     include_all_projects=None,
     excluded_projects=None,
     user=None,
+    event_types=None,
     **kwargs
 ):
     """
@@ -733,6 +737,7 @@ def update_alert_rule(
     from this organization
     :param excluded_projects: List of projects to exclude if we're using
     `include_all_projects`. Ignored otherwise.
+    :param event_types: List of `EventType` that this alert will be related to
     :return: The updated `AlertRule`
     """
     if (
@@ -763,6 +768,8 @@ def update_alert_rule(
         updated_fields["include_all_projects"] = include_all_projects
     if dataset is not None and dataset.value != alert_rule.snuba_query.dataset:
         updated_query_fields["dataset"] = dataset
+    if event_types is not None:
+        updated_query_fields["event_types"] = event_types
 
     with transaction.atomic():
         incidents = Incident.objects.filter(alert_rule=alert_rule).exists()
@@ -781,6 +788,7 @@ def update_alert_rule(
             updated_query_fields.setdefault(
                 "time_window", timedelta(seconds=snuba_query.time_window)
             )
+            updated_query_fields.setdefault("event_types", None)
             update_snuba_query(
                 alert_rule.snuba_query,
                 resolution=timedelta(minutes=DEFAULT_ALERT_RULE_RESOLUTION),

@@ -74,7 +74,7 @@ from sentry.incidents.models import (
     TimeSeriesSnapshot,
     TriggerStatus,
 )
-from sentry.snuba.models import QueryDatasets, QuerySubscription
+from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQueryEventType
 from sentry.models.integration import Integration
 from sentry.testutils import TestCase, BaseIncidentsTest
 from sentry.models import PagerDutyService
@@ -684,6 +684,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         threshold_type = AlertRuleThresholdType.ABOVE
         resolve_threshold = 10
         threshold_period = 1
+        event_types = [SnubaQueryEventType.EventType.ERROR]
         alert_rule = create_alert_rule(
             self.organization,
             [self.project],
@@ -694,6 +695,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             threshold_type,
             threshold_period,
             resolve_threshold=resolve_threshold,
+            event_types=event_types,
         )
         assert alert_rule.snuba_query.subscriptions.get().project == self.project
         assert alert_rule.name == name
@@ -704,6 +706,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule.snuba_query.aggregate == aggregate
         assert alert_rule.snuba_query.time_window == time_window * 60
         assert alert_rule.snuba_query.resolution == DEFAULT_ALERT_RULE_RESOLUTION * 60
+        assert set(alert_rule.snuba_query.event_types) == set(event_types)
         assert alert_rule.threshold_type == threshold_type.value
         assert alert_rule.resolve_threshold == resolve_threshold
         assert alert_rule.threshold_period == threshold_period
@@ -835,6 +838,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         time_window = 50
         threshold_type = AlertRuleThresholdType.BELOW
         threshold_period = 2
+        event_types = [SnubaQueryEventType.EventType.ERROR, SnubaQueryEventType.EventType.DEFAULT]
 
         updated_projects = [self.project, self.create_project(fire_project_created=True)]
 
@@ -847,6 +851,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             time_window=time_window,
             threshold_type=threshold_type,
             threshold_period=threshold_period,
+            event_types=event_types,
         )
         assert self.alert_rule.id == updated_rule.id
         assert self.alert_rule.name == name
@@ -861,6 +866,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert self.alert_rule.snuba_query.query == query
         assert self.alert_rule.snuba_query.aggregate == aggregate
         assert self.alert_rule.snuba_query.time_window == time_window * 60
+        assert set(self.alert_rule.snuba_query.event_types) == set(event_types)
         assert self.alert_rule.threshold_type == threshold_type.value
         assert self.alert_rule.threshold_period == threshold_period
 
