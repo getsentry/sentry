@@ -24,7 +24,7 @@ describe('Tag', function () {
 
   it('with tooltip', function () {
     const wrapper = mountWithTheme(
-      <Tag type="highlight" tooltip="lorem ipsum">
+      <Tag type="highlight" tooltipText="lorem ipsum">
         Tooltip
       </Tag>
     );

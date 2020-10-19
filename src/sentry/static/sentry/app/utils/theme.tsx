@@ -252,7 +252,7 @@ const tag = {
   },
   white: {
     background: colors.white,
-    iconColor: colors.gray400,
+    iconColor: colors.gray700,
   },
 };
 
