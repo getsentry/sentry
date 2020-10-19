@@ -5,7 +5,6 @@ import {DEFAULT_QUERY} from 'app/constants';
 import {LightWeightOrganization, Project} from 'app/types';
 import {t} from 'app/locale';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
-import ErrorRobot from 'app/components/errorRobot';
 import LoadingIndicator from 'app/components/loadingIndicator';
 
 import NoUnresolvedIssues from './noUnresolvedIssues';
@@ -115,13 +114,19 @@ class NoGroupsHandler extends React.Component<Props, State> {
     const project = projects && projects.length > 0 ? projects[0] : undefined;
     const sampleIssueId = groupIds.length > 0 ? groupIds[0] : undefined;
 
+    const ErrorRobot = React.lazy(
+      () => import(/* webpackChunkName: "ErrorRobot" */ 'app/components/errorRobot')
+    );
+
     return (
-      <ErrorRobot
-        org={organization}
-        project={project}
-        sampleIssueId={sampleIssueId?.toString() ?? ''}
-        gradient
-      />
+      <React.Suspense fallback={null}>
+        <ErrorRobot
+          org={organization}
+          project={project}
+          sampleIssueId={sampleIssueId?.toString() ?? ''}
+          gradient
+        />
+      </React.Suspense>
     );
   }
 

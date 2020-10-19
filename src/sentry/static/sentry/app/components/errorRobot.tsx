@@ -2,7 +2,7 @@ import {Link} from 'react-router';
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import Button from 'app/components/button';
 import CreateSampleEventButton from 'app/views/onboarding/createSampleEventButton';
 import withApi from 'app/utils/withApi';
@@ -109,10 +109,14 @@ class ErrorRobot extends React.Component<Props, State> {
           <Eye />
         </Robot>
         <MessageContainer>
-          <h3>Waiting for events…</h3>
+          <h3>{t('Waiting for events…')}</h3>
           <p>
-            Our error robot is waiting to <Strikethrough>devour</Strikethrough> receive
-            your first event.
+            {tct(
+              'Our error robot is waiting to [strike:devour] receive your first event.',
+              {
+                strike: <Strikethrough />,
+              }
+            )}
           </p>
           <p>
             {project && (
