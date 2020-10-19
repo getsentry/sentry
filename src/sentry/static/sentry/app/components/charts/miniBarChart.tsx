@@ -141,9 +141,11 @@ class MiniBarChart extends React.Component<Props> {
       },
       grid: {
         top: 0,
+        // Offset to ensure there is room for the marker symbols at the
+        // default size.
         bottom: markers ? 4 : 0,
-        left: 0,
-        right: 0,
+        left: markers ? 4 : 0,
+        right: markers ? 4 : 0,
       },
       xAxis: {
         axisLine: {
