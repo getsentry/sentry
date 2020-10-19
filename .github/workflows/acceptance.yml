@@ -93,6 +93,7 @@ jobs:
         id: setup
         with:
           python: 2
+          snuba: true
 
       - uses: actions/cache@v2
         id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
@@ -171,6 +172,7 @@ jobs:
         id: setup
         with:
           python: 3
+          snuba: true
 
       - name: yarn cache
         uses: actions/cache@v2
