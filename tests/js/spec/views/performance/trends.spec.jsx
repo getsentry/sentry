@@ -316,7 +316,7 @@ describe('Performance > Trends', function () {
     expect(browserHistory.push).toHaveBeenCalledWith({
       query: expect.objectContaining({
         project: expect.anything(),
-        query: 'epm():>0.01 transaction.duration:>863',
+        query: 'epm():>0.01 transaction.duration:>0 transaction.duration:<=863',
         view: 'TRENDS',
       }),
     });
@@ -350,7 +350,7 @@ describe('Performance > Trends', function () {
     expect(browserHistory.push).toHaveBeenCalledWith({
       query: expect.objectContaining({
         project: expect.anything(),
-        query: 'epm():>0.01 transaction.duration:>0 transaction.duration:<863',
+        query: 'epm():>0.01 transaction.duration:>0 transaction.duration:>=863',
         view: 'TRENDS',
       }),
     });
