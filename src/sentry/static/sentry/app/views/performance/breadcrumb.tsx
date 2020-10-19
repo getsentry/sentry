@@ -8,7 +8,7 @@ import {decodeScalar} from 'app/utils/queryString';
 
 import {getPerformanceLandingUrl} from './utils';
 import {transactionSummaryRouteWithQuery} from './transactionSummary/utils';
-import {realUserMonitoringRouteWithQuery} from './realUserMonitoring/utils';
+import {vitalsRouteWithQuery} from './realUserMonitoring/utils';
 
 type Props = {
   organization: Organization;
@@ -48,7 +48,7 @@ class Breadcrumb extends React.Component<Props> {
 
     if (transactionName) {
       if (realUserMonitoring) {
-        const rumTarget = realUserMonitoringRouteWithQuery({
+        const rumTarget = vitalsRouteWithQuery({
           orgSlug: organization.slug,
           transaction: transactionName,
           projectID: decodeScalar(location.query.project),
