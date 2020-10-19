@@ -105,7 +105,7 @@ function GroupReleaseChart(props: Props) {
       <MiniBarChart
         isGroupedByDate
         showTimeInTooltip
-        height={40}
+        height={42}
         series={series}
         markers={markers}
       />
