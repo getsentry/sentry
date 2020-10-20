@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 import omit from 'lodash/omit';
 
+import ErrorBoundary from 'app/components/errorBoundary';
 import EventDataSection from 'app/components/events/eventDataSection';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
@@ -372,15 +373,17 @@ class Breadcrumbs extends React.Component<Props, State> {
         isCentered
       >
         {filteredBySearch.length > 0 ? (
-          <List
-            breadcrumbs={filteredBySearch}
-            event={event}
-            orgId={orgId}
-            onSwitchTimeFormat={this.handleSwitchTimeFormat}
-            displayRelativeTime={displayRelativeTime}
-            searchTerm={searchTerm}
-            relativeTime={relativeTime!} // relativeTime has to be always available, as the last item timestamp is the event created time
-          />
+          <ErrorBoundary>
+            <List
+              breadcrumbs={filteredBySearch}
+              event={event}
+              orgId={orgId}
+              onSwitchTimeFormat={this.handleSwitchTimeFormat}
+              displayRelativeTime={displayRelativeTime}
+              searchTerm={searchTerm}
+              relativeTime={relativeTime!} // relativeTime has to be always available, as the last item timestamp is the event created time
+            />
+          </ErrorBoundary>
         ) : (
           <StyledEmptyMessage
             icon={<IconWarning size="xl" />}
