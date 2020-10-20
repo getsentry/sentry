@@ -21,6 +21,10 @@ const defaultProps = {
    * Colors to use on the chart.
    */
   colors: [theme.gray400, theme.purple400] as string[],
+  /**
+   * Show max/min values on yAxis
+   */
+  labelYAxisExtents: false as boolean,
 };
 
 type Props = React.ComponentProps<typeof BaseChart> &
@@ -46,7 +50,14 @@ class MiniBarChart extends React.Component<Props> {
   static defaultProps = defaultProps;
 
   render() {
-    const {markers, emphasisColors, colors, series: _series, ...props} = this.props;
+    const {
+      markers,
+      emphasisColors,
+      colors,
+      series: _series,
+      labelYAxisExtents,
+      ...props
+    } = this.props;
     let series = [...this.props.series];
 
     // Ensure bars overlap and that empty values display as we're disabling the axis lines.
@@ -120,6 +131,17 @@ class MiniBarChart extends React.Component<Props> {
       };
       series.push(markerSeries);
     }
+    const yAxisOptions = labelYAxisExtents
+      ? {
+          showMinLabel: true,
+          showMaxLabel: true,
+          interval: Infinity,
+        }
+      : {
+          axisLabel: {
+            show: false,
+          },
+        };
 
     const chartOptions = {
       colors,
@@ -132,18 +154,16 @@ class MiniBarChart extends React.Component<Props> {
           // by having full bars for < 10 values.
           return Math.max(10, value.max);
         },
-        axisLabel: {
-          show: false,
-        },
         splitLine: {
           show: false,
         },
+        ...yAxisOptions,
       },
       grid: {
-        top: 0,
-        bottom: markers ? 4 : 0,
-        left: 0,
-        right: 0,
+        top: labelYAxisExtents ? 6 : 0,
+        bottom: markers || labelYAxisExtents ? 4 : 0,
+        left: markers ? 4 : 0,
+        right: markers ? 4 : 0,
       },
       xAxis: {
         axisLine: {

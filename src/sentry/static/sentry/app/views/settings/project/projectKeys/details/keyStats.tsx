@@ -1,15 +1,16 @@
 import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
 
+import theme from 'app/utils/theme';
 import {Client} from 'app/api';
+import {Series} from 'app/types/echarts';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t} from 'app/locale';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import LoadingError from 'app/components/loadingError';
 import Placeholder from 'app/components/placeholder';
-import StackedBarChart from 'app/components/stackedBarChart';
+import MiniBarChart from 'app/components/charts/miniBarChart';
 
-type Point = React.ComponentProps<typeof StackedBarChart>['points'][0];
 type Props = {
   api: Client;
 } & Pick<
@@ -29,8 +30,7 @@ type State = {
   until: number;
   loading: boolean;
   error: boolean;
-  // TODO(ts): Add types to stats
-  stats: any[] | null;
+  series: Series[];
   emptyStats: boolean;
 };
 
@@ -41,7 +41,7 @@ const getInitialState = (): State => {
     until,
     loading: true,
     error: false,
-    stats: null,
+    series: [],
     emptyStats: false,
   };
 };
@@ -63,17 +63,27 @@ class KeyStats extends React.Component<Props, State> {
       },
       success: data => {
         let emptyStats = true;
-        const stats = data.map(p => {
+        const dropped: Series['data'] = [];
+        const accepted: Series['data'] = [];
+        data.forEach(p => {
           if (p.total) {
             emptyStats = false;
           }
-          return {
-            x: p.ts,
-            y: [p.accepted, p.dropped],
-          };
+          dropped.push({name: p.ts * 1000, value: p.dropped});
+          accepted.push({name: p.ts * 1000, value: p.accepted});
         });
+        const series = [
+          {
+            seriesName: t('Accepted'),
+            data: accepted,
+          },
+          {
+            seriesName: t('Rate Limited'),
+            data: dropped,
+          },
+        ];
         this.setState({
-          stats,
+          series,
           emptyStats,
           error: false,
           loading: false,
@@ -85,32 +95,6 @@ class KeyStats extends React.Component<Props, State> {
     });
   };
 
-  renderTooltip = (point: Point, _pointIdx: number, chart: StackedBarChart) => {
-    const timeLabel = chart.getTimeLabel(point);
-    const [accepted, dropped, filtered] = point.y;
-
-    return (
-      <div style={{width: '150px'}}>
-        <div className="time-label">{timeLabel}</div>
-        <div className="value-label">
-          {accepted.toLocaleString()} accepted
-          {dropped > 0 && (
-            <React.Fragment>
-              <br />
-              {dropped.toLocaleString()} rate limited
-            </React.Fragment>
-          )}
-          {filtered > 0 && (
-            <React.Fragment>
-              <br />
-              {filtered.toLocaleString()} filtered
-            </React.Fragment>
-          )}
-        </div>
-      </div>
-    );
-  };
-
   render() {
     if (this.state.error) {
       return <LoadingError onRetry={this.fetchData} />;
@@ -119,19 +103,16 @@ class KeyStats extends React.Component<Props, State> {
     return (
       <Panel>
         <PanelHeader>{t('Key usage in the last 30 days (by day)')}</PanelHeader>
-        <PanelBody>
+        <PanelBody withPadding>
           {this.state.loading ? (
             <Placeholder height="150px" />
           ) : !this.state.emptyStats ? (
-            <StackedBarChart
-              points={this.state.stats!}
+            <MiniBarChart
+              isGroupedByDate
+              series={this.state.series}
               height={150}
-              label="events"
-              barClasses={['accepted', 'rate-limited']}
-              minHeights={[1, 0]}
-              className="standard-barchart"
-              style={{border: 'none'}}
-              tooltip={this.renderTooltip}
+              colors={[theme.gray400, theme.red400]}
+              labelYAxisExtents
             />
           ) : (
             <EmptyMessage
