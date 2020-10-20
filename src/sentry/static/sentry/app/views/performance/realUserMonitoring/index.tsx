@@ -60,10 +60,10 @@ class RealUserMonitoring extends React.Component<Props> {
     const hasTransactionName = typeof name === 'string' && String(name).trim().length > 0;
 
     if (hasTransactionName) {
-      return [String(name).trim(), t('RUM')].join(' \u2014 ');
+      return [String(name).trim(), t('Vitals')].join(' \u2014 ');
     }
 
-    return [t('Summary'), t('RUM')].join(' \u2014 ');
+    return [t('Summary'), t('Vitals')].join(' \u2014 ');
   }
 
   renderNoAccess = () => {
