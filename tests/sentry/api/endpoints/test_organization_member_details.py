@@ -14,8 +14,10 @@ from sentry.models import (
     Organization,
     OrganizationMember,
     OrganizationMemberTeam,
-    RecoveryCodeInterface,
+)
+from sentry.auth.authenticators import (
     TotpInterface,
+    RecoveryCodeInterface,
 )
 from sentry.testutils import APITestCase
 from sentry.utils.compat import map

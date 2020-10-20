@@ -4,6 +4,7 @@ from django.core.urlresolvers import reverse
 from django.db import models
 from sentry.utils.compat.mock import patch
 
+from sentry.auth.authenticators import TotpInterface
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.models import (
     AuditLogEntry,
@@ -12,7 +13,6 @@ from sentry.models import (
     AuthProvider,
     Organization,
     OrganizationMember,
-    TotpInterface,
 )
 from sentry.testutils import AuthProviderTestCase, PermissionTestCase
 

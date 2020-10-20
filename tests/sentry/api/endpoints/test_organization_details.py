@@ -14,6 +14,7 @@ from django.core import mail
 
 from sentry.utils import json
 from sentry.utils.compat.mock import patch
+from sentry.auth.authenticators import TotpInterface
 from sentry.api.endpoints.organization_details import ERR_NO_2FA, ERR_SSO_ENABLED
 from sentry.constants import APDEX_THRESHOLD_DEFAULT, RESERVED_ORGANIZATION_SLUGS
 from sentry.models import (
@@ -26,7 +27,6 @@ from sentry.models import (
     OrganizationAvatar,
     OrganizationOption,
     OrganizationStatus,
-    TotpInterface,
 )
 from sentry.signals import project_created
 from sentry.testutils import APITestCase, TwoFactorAPITestCase, pytest

@@ -5,6 +5,7 @@ from django.core.urlresolvers import reverse
 from django.db.models import F
 from datetime import timedelta
 
+from sentry.auth.authenticators import TotpInterface
 from sentry.models import (
     AuditLogEntry,
     AuditLogEntryEvent,
@@ -12,7 +13,6 @@ from sentry.models import (
     InviteStatus,
     Organization,
     OrganizationMember,
-    TotpInterface,
     AuthProvider,
 )
 from sentry.testutils import TestCase

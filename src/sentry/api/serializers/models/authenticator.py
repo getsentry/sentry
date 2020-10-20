@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import six
 
 from sentry.api.serializers import Serializer, register
-from sentry.models import (
+from sentry.auth.authenticators import (
     AuthenticatorInterface,
     RecoveryCodeInterface,
     SmsInterface,
@@ -23,7 +23,7 @@ class AuthenticatorInterfaceSerializer(Serializer):
             "configureButton": obj.configure_button,
             "removeButton": obj.remove_button,
             "isBackupInterface": obj.is_backup_interface,
-            "isEnrolled": obj.is_enrolled,
+            "isEnrolled": obj.is_enrolled(),
             "canValidateOtp": obj.can_validate_otp,
             "allowMultiEnrollment": obj.allow_multi_enrollment,
         }

@@ -11,13 +11,13 @@ from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.db import models
 
+from sentry.auth.authenticators import TotpInterface
 from sentry.auth.providers.saml2.provider import SAML2Provider, Attributes, HAS_SAML2
 from sentry.models import (
     AuditLogEntry,
     AuditLogEntryEvent,
     AuthProvider,
     Organization,
-    TotpInterface,
 )
 from sentry.testutils import AuthProviderTestCase
 from sentry.testutils.helpers import Feature
