@@ -69,6 +69,7 @@ jobs:
         id: setup
         with:
           python: 3
+          snuba: true
           kafka: true
 
       - name: Run snuba test [py3.6] (${{ steps.setup.outputs.matrix-instance-number }} of ${{ strategy.job-total }})

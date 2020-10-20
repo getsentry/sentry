@@ -8,7 +8,7 @@ inputs:
   snuba:
     description: 'Is snuba required?'
     required: false
-    default: 'true'
+    default: 'false'
   kafka:
     description: 'Is kafka required?'
     required: false
@@ -110,6 +110,9 @@ runs:
       run: |
         sentry init
 
+        # redis, postgres are needed for almost every code path.
+        sentry devservices up redis postgres
+
         # TODO: Use devservices kafka. See https://github.com/getsentry/sentry/pull/20986#issuecomment-704510570
         if [ "$NEED_KAFKA" = "true" ]; then
           docker run \
@@ -131,7 +134,7 @@ runs:
         fi
 
         if [ "$NEED_SNUBA" = "true" ]; then
-          sentry devservices up postgres redis clickhouse snuba
+          sentry devservices up clickhouse snuba
         fi
 
         docker ps -a
