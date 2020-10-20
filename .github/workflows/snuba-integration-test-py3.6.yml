@@ -15,7 +15,6 @@ jobs:
         instance: [0]
 
     env:
-      # Note: `USE_SNUBA` is only used for the Snuba test suite because we have some failing acceptance tests with Snuba enabled.
       USE_SNUBA: 1
       MIGRATIONS_TEST_MIGRATE: 1
 

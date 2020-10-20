@@ -1,3 +1,6 @@
+# TODO(billy): this workflow has not been re-named from `acceptance` because
+# Visual Snapshots compares against artifacts from the same workflow name (on main branch)
+# We should rename this when we have a more finalized naming scheme.
 name: acceptance
 on:
   push:
@@ -7,7 +10,8 @@ on:
   pull_request:
 
 jobs:
-  jest:
+  frontend:
+    name: frontend tests
     runs-on: ubuntu-16.04
     env:
       VISUAL_HTML_ENABLE: 1
@@ -58,7 +62,9 @@ jobs:
 
   acceptance:
     # TODO(joshuarli): Convert to py3 with snapshots. See other TODO as well.
+    name: python2.7 acceptance
     runs-on: ubuntu-16.04
+    timeout-minutes: 20
     strategy:
       matrix:
         instance: [0, 1, 2]
@@ -129,84 +135,9 @@ jobs:
           save-only: true
           snapshot-path: .artifacts/visual-snapshots
 
-  py3-acceptance:
-    name: 'python3.6 acceptance'
-    runs-on: ubuntu-16.04
-    strategy:
-      matrix:
-        instance: [0, 1, 2]
-
-    env:
-      MIGRATIONS_TEST_MIGRATE: 1
-      VISUAL_SNAPSHOT_ENABLE: 1
-
-    steps:
-      - uses: actions/checkout@v2
-
-      - uses: volta-cli/action@v1
-
-      - name: Set python version output
-        id: python-version
-        run: |
-          echo "::set-output name=python-version::$(awk 'FNR == 2' .python-version)"
-
-      # Until GH composite actions can use `uses`, we need to setup python here
-      - uses: actions/setup-python@v2
-        with:
-          python-version: ${{ steps.python-version.outputs.python-version }}
-
-      - name: Setup pip
-        uses: ./.github/actions/setup-pip
-        id: pip
-
-      - name: pip cache
-        uses: actions/cache@v2
-        with:
-          path: ${{ steps.pip.outputs.pip-cache-dir }}
-          key: ${{ runner.os }}-pip-py${{ steps.python-version.outputs.python-version }}-${{ hashFiles('**/requirements-*.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-py${{ steps.python-version.outputs.python-version }}
-
-      - name: Setup sentry python env
-        uses: ./.github/actions/setup-sentry
-        id: setup
-        with:
-          python: 3
-          snuba: true
-
-      - name: yarn cache
-        uses: actions/cache@v2
-        id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
-        with:
-          path: ${{ steps.setup.outputs.yarn-cache-dir }}
-          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-yarn-
-
-      - name: Install Javascript Dependencies
-        run: |
-          yarn install --frozen-lockfile
-
-      - name: webpack
-        run: |
-          yarn webpack --display errors-only
-
-      - name: Run acceptance tests (#${{ steps.setup.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
-        if: always()
-        run: |
-          mkdir -p ${{ steps.setup.outputs.acceptance-dir }}
-          mkdir -p ${{ steps.setup.outputs.acceptance-dir }}-mobile
-          mkdir -p ${{ steps.setup.outputs.acceptance-dir }}-tooltips
-          make run-acceptance
-        env:
-          PYTEST_SNAPSHOTS_DIR: ${{ steps.setup.outputs.acceptance-dir }}
-          USE_SNUBA: 1
-
-      # TODO(joshuarli): SENTRY_PYTHON3=1, snapshots, visual-diff needs py3-acceptance.
-
   visual-diff:
     if: ${{ github.ref != 'refs/heads/master' }}
-    needs: [acceptance, jest]
+    needs: [acceptance, frontend]
     runs-on: ubuntu-16.04
 
     steps:
