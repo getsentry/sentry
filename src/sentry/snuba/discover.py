@@ -14,6 +14,7 @@ from sentry.api.event_search import (
     FIELD_ALIASES,
     get_filter,
     get_function_alias,
+    get_json_meta_type,
     is_function,
     InvalidSearchQuery,
     resolve_field_list,
@@ -44,7 +45,7 @@ __all__ = (
     "timeseries_query",
     "top_events_timeseries",
     "get_facets",
-    "transform_results",
+    "transform_data",
     "zerofill",
     "measurements_histogram_query",
 )
@@ -236,7 +237,30 @@ def zerofill(data, start, end, rollup, orderby):
     return rv
 
 
-def transform_results(result, translated_columns, snuba_filter, selected_columns=None):
+def transform_results(
+    results, function_alias_map, translated_columns, snuba_filter, selected_columns=None
+):
+    results = transform_data(results, translated_columns, snuba_filter, selected_columns)
+    results["meta"] = transform_meta(results, function_alias_map)
+    return results
+
+
+def transform_meta(results, function_alias_map):
+    meta = {
+        value["name"]: get_json_meta_type(
+            value["name"], value.get("type"), function_alias_map.get(value["name"])
+        )
+        for value in results["meta"]
+    }
+    # Ensure all columns in the result have types.
+    if results["data"]:
+        for key in results["data"][0]:
+            if key not in meta:
+                meta[key] = "string"
+    return meta
+
+
+def transform_data(result, translated_columns, snuba_filter, selected_columns=None):
     """
     Transform internal names back to the public schema ones.
 
@@ -246,12 +270,9 @@ def transform_results(result, translated_columns, snuba_filter, selected_columns
     if selected_columns is None:
         selected_columns = []
 
-    meta = []
     for col in result["meta"]:
         # Translate back column names that were converted to snuba format
         col["name"] = translated_columns.get(col["name"], col["name"])
-        # Remove user fields as they will be replaced by the alias.
-        meta.append(col)
 
     def get_row(row):
         transformed = {}
@@ -387,14 +408,14 @@ def query(
             orderby = list(orderby) if isinstance(orderby, (list, tuple)) else [orderby]
             snuba_filter.orderby = [get_function_alias(o) for o in orderby]
 
-        snuba_filter.update_with(
-            resolve_field_list(
-                selected_columns,
-                snuba_filter,
-                auto_fields=auto_fields,
-                auto_aggregations=auto_aggregations,
-            )
+        resolved_fields = resolve_field_list(
+            selected_columns,
+            snuba_filter,
+            auto_fields=auto_fields,
+            auto_aggregations=auto_aggregations,
         )
+
+        snuba_filter.update_with(resolved_fields)
 
         # Resolve the public aliases into the discover dataset names.
         snuba_filter, translated_columns = resolve_discover_aliases(
@@ -464,7 +485,9 @@ def query(
         op="discover.discover", description="query.transform_results"
     ) as span:
         span.set_data("result_count", len(result.get("data", [])))
-        return transform_results(result, translated_columns, snuba_filter, selected_columns)
+        return transform_results(
+            result, resolved_fields["functions"], translated_columns, snuba_filter, selected_columns
+        )
 
 
 def key_transaction_conditions(queryset):
@@ -753,7 +776,7 @@ def top_events_timeseries(
         op="discover.discover", description="top_events.transform_results"
     ) as span:
         span.set_data("result_count", len(result.get("data", [])))
-        result = transform_results(result, translated_columns, snuba_filter, selected_columns)
+        result = transform_data(result, translated_columns, snuba_filter, selected_columns)
 
         if "project" in selected_columns:
             translated_columns["project_id"] = "project"
@@ -1197,11 +1220,12 @@ def normalize_measurements_histogram(measurements, num_buckets, key_col, histogr
 
     # adjust the meta for the renamed columns
     meta = results["meta"]
-    new_meta = []
+    new_meta = {}
 
     meta_map = {key_name: "key", bin_name: "bin"}
-    for col in meta:
-        new_meta.append({"type": col["type"], "name": meta_map.get(col["name"], col["name"])})
+    for snuba_alias, col_type in meta.items():
+        new_alias = meta_map.get(snuba_alias, snuba_alias)
+        new_meta[new_alias] = col_type
 
     results["meta"] = new_meta
 

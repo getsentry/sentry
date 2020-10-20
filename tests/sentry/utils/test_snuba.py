@@ -147,6 +147,7 @@ class SnubaUtilsTest(TestCase):
         ]
 
     def test_get_json_type(self):
+        assert get_json_type(None) == "string"
         assert get_json_type("UInt8") == "boolean"
         assert get_json_type("UInt16") == "integer"
         assert get_json_type("UInt32") == "integer"

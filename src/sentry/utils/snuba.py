@@ -1094,6 +1094,9 @@ def get_json_type(snuba_type):
     Convert Snuba/Clickhouse type to JSON type
     Default is string
     """
+    if snuba_type is None:
+        return "string"
+
     # Ignore Nullable part
     nullable_match = re.search(r"^Nullable\((.+)\)$", snuba_type)
 
