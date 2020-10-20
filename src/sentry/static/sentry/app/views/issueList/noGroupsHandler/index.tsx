@@ -6,6 +6,7 @@ import {LightWeightOrganization, Project} from 'app/types';
 import {t} from 'app/locale';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import Placeholder from 'app/components/placeholder';
 
 import NoUnresolvedIssues from './noUnresolvedIssues';
 
@@ -119,7 +120,7 @@ class NoGroupsHandler extends React.Component<Props, State> {
     );
 
     return (
-      <React.Suspense fallback={null}>
+      <React.Suspense fallback={<Placeholder height="260px" />}>
         <ErrorRobot
           org={organization}
           project={project}
