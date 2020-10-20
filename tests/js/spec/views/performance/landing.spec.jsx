@@ -359,7 +359,7 @@ describe('Performance > Landing', function () {
       1,
       expect.objectContaining({
         query: {
-          query: 'epm():>0.01 transaction.duration:>=0 transaction.duration:<=60min',
+          query: 'epm():>0.01 transaction.duration:>0 transaction.duration:<60min',
           view: 'TRENDS',
         },
       })
@@ -417,7 +417,7 @@ describe('Performance > Landing', function () {
     expect(browserHistory.push).toHaveBeenCalledWith(
       expect.objectContaining({
         query: {
-          query: 'epm():>0.01 transaction.duration:>=0 transaction.duration:<=60min',
+          query: 'epm():>0.01 transaction.duration:>0 transaction.duration:<60min',
           view: 'TRENDS',
         },
       })

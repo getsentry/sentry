@@ -198,7 +198,7 @@ class DefaultTrends extends React.Component<DefaultTrendsProps> {
       return <React.Fragment>{children}</React.Fragment>;
     } else {
       conditions.setTagValues('epm()', ['>0.01']);
-      conditions.setTagValues('transaction.duration', ['>=0', '<=60min']);
+      conditions.setTagValues('transaction.duration', ['>0', '<60min']);
     }
 
     const query = stringifyQueryObject(conditions);
