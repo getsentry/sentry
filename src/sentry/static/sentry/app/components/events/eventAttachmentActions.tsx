@@ -14,6 +14,7 @@ type Props = {
   api: Client;
   url: string | null;
   attachmentId: string;
+  withPreviewButton?: boolean;
   hasPreview?: boolean;
   previewIsOpen?: boolean;
   onDelete: (attachmentId: string) => void;
@@ -45,28 +46,30 @@ class EventAttachmentActions extends React.Component<Props> {
   }
 
   render() {
-    const {url, hasPreview, previewIsOpen} = this.props;
+    const {url, withPreviewButton, hasPreview, previewIsOpen} = this.props;
 
     return (
       <React.Fragment>
-        <Feature features={['event-attachments-viewer']}>
-          <DownloadButton
-            size="xsmall"
-            disabled={!url || !hasPreview}
-            priority={previewIsOpen ? 'primary' : 'default'}
-            icon={<IconShow size="xs" />}
-            onClick={() => this.handlePreview()}
-            title={
-              !url
-                ? t('Insufficient permissions to preview attachments')
-                : !hasPreview
-                ? t('This attachment cannot be previewed')
-                : undefined
-            }
-          >
-            {t('Preview')}
-          </DownloadButton>
-        </Feature>
+        {withPreviewButton && (
+          <Feature features={['event-attachments-viewer']}>
+            <DownloadButton
+              size="xsmall"
+              disabled={!url || !hasPreview}
+              priority={previewIsOpen ? 'primary' : 'default'}
+              icon={<IconShow size="xs" />}
+              onClick={() => this.handlePreview()}
+              title={
+                !url
+                  ? t('Insufficient permissions to preview attachments')
+                  : !hasPreview
+                  ? t('This attachment cannot be previewed')
+                  : undefined
+              }
+            >
+              {t('Preview')}
+            </DownloadButton>
+          </Feature>
+        )}
 
         <DownloadButton
           size="xsmall"

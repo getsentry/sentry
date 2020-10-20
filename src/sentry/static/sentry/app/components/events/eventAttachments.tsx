@@ -180,6 +180,7 @@ class EventAttachments extends React.Component<Props, State> {
                           url={url}
                           onDelete={this.handleDelete}
                           onPreview={() => this.togglePreview(attachment)}
+                          withPreviewButton
                           previewIsOpen={this.attachmentPreviewIsOpen(attachment)}
                           hasPreview={this.hasInlineAttachmentRenderer(attachment)}
                           attachmentId={attachment.id}
