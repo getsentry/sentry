@@ -133,6 +133,45 @@ def smtp(bind, upgrade, noinput):
         SentrySMTPServer(host=bind[0], port=bind[1]).run()
 
 
+def run_worker(**options):
+    """
+    This is the inner function to actually start worker.
+    """
+    from django.conf import settings
+
+    if settings.CELERY_ALWAYS_EAGER:
+        raise click.ClickException(
+            "Disable CELERY_ALWAYS_EAGER in your settings file to spawn workers."
+        )
+
+    # These options are no longer used, but keeping around
+    # for backwards compatibility
+    for o in "without_gossip", "without_mingle", "without_heartbeat":
+        options.pop(o, None)
+
+    from sentry.celery import app
+
+    with managed_bgtasks(role="worker"):
+        worker = app.Worker(
+            # NOTE: without_mingle breaks everything,
+            # we can't get rid of this. Intentionally kept
+            # here as a warning. Jobs will not process.
+            # without_mingle=True,
+            without_gossip=True,
+            without_heartbeat=True,
+            pool_cls="processes",
+            **options
+        )
+        worker.start()
+        try:
+            sys.exit(worker.exitcode)
+        except AttributeError:
+            # `worker.exitcode` was added in a newer version of Celery:
+            # https://github.com/celery/celery/commit/dc28e8a5
+            # so this is an attempt to be forward compatible
+            pass
+
+
 @run.command()
 @click.option(
     "--hostname",
@@ -175,40 +214,14 @@ def smtp(bind, upgrade, noinput):
 @log_options()
 @configuration
 def worker(**options):
-    "Run background worker instance."
-    from django.conf import settings
+    """Run background worker instance and autoreload if necessary."""
+    if options["autoreload"]:
+        from django.utils import autoreload
 
-    if settings.CELERY_ALWAYS_EAGER:
-        raise click.ClickException(
-            "Disable CELERY_ALWAYS_EAGER in your settings file to spawn workers."
-        )
-
-    # These options are no longer used, but keeping around
-    # for backwards compatibility
-    for o in "without_gossip", "without_mingle", "without_heartbeat":
-        options.pop(o, None)
-
-    from sentry.celery import app
-
-    with managed_bgtasks(role="worker"):
-        worker = app.Worker(
-            # NOTE: without_mingle breaks everything,
-            # we can't get rid of this. Intentionally kept
-            # here as a warning. Jobs will not process.
-            # without_mingle=True,
-            without_gossip=True,
-            without_heartbeat=True,
-            pool_cls="processes",
-            **options
-        )
-        worker.start()
-        try:
-            sys.exit(worker.exitcode)
-        except AttributeError:
-            # `worker.exitcode` was added in a newer version of Celery:
-            # https://github.com/celery/celery/commit/dc28e8a5
-            # so this is an attempt to be forward compatible
-            pass
+        # Note this becomes autoreload.run_with_reloader in django 2.2
+        autoreload.main(run_worker, kwargs=options)
+    else:
+        run_worker(**options)
 
 
 @run.command()

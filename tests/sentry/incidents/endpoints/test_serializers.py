@@ -18,7 +18,7 @@ from sentry.incidents.endpoints.serializers import (
 from sentry.incidents.logic import create_alert_rule_trigger, ChannelLookupTimeoutError
 from sentry.incidents.models import AlertRule, AlertRuleThresholdType, AlertRuleTriggerAction
 from sentry.models import Integration, Environment
-from sentry.snuba.models import QueryDatasets
+from sentry.snuba.models import QueryDatasets, SnubaQueryEventType
 from sentry.testutils import TestCase
 
 
@@ -52,12 +52,14 @@ class TestAlertRuleSerializer(TestCase):
                     ],
                 },
             ],
+            "event_types": [SnubaQueryEventType.EventType.DEFAULT.name.lower()],
         }
 
     @fixture
     def valid_transaction_params(self):
         params = self.valid_params.copy()
         params["dataset"] = QueryDatasets.TRANSACTIONS.value
+        params["event_types"] = [SnubaQueryEventType.EventType.TRANSACTION.name.lower()]
         return params
 
     @fixture
@@ -443,6 +445,36 @@ class TestAlertRuleSerializer(TestCase):
             serializer.save()
         assert err.exception.detail == {"nonFieldErrors": ["Team does not exist"]}
         mock_get_channel_id.assert_called_with(self.integration, "my-channel", 10)
+
+    def test_event_types(self):
+        invalid_values = [
+            "Invalid event_type, valid values are %s"
+            % [item.name.lower() for item in SnubaQueryEventType.EventType]
+        ]
+        self.run_fail_validation_test({"event_types": ["a"]}, {"eventTypes": invalid_values})
+        self.run_fail_validation_test({"event_types": [1]}, {"eventTypes": invalid_values})
+        self.run_fail_validation_test(
+            {"event_types": ["transaction"]},
+            {
+                "nonFieldErrors": [
+                    "Invalid event types for this dataset. Valid event types are ['default', 'error']"
+                ]
+            },
+        )
+        params = self.valid_params.copy()
+        serializer = AlertRuleSerializer(context=self.context, data=params, partial=True)
+        assert serializer.is_valid()
+        alert_rule = serializer.save()
+        assert set(alert_rule.snuba_query.event_types) == set(
+            [SnubaQueryEventType.EventType.DEFAULT]
+        )
+        params["event_types"] = [SnubaQueryEventType.EventType.ERROR.name.lower()]
+        serializer = AlertRuleSerializer(
+            context=self.context, instance=alert_rule, data=params, partial=True
+        )
+        assert serializer.is_valid()
+        alert_rule = serializer.save()
+        assert set(alert_rule.snuba_query.event_types) == set([SnubaQueryEventType.EventType.ERROR])
 
 
 class TestAlertRuleTriggerSerializer(TestCase):

@@ -17,7 +17,7 @@ import {getUtcDateString} from 'app/utils/dates';
 
 const trendsViewQuery = {
   view: 'TRENDS',
-  query: 'count():>1000 transaction.duration:>0',
+  query: 'epm():>0.01 transaction.duration:>0',
 };
 
 jest.mock('moment', () => {
@@ -246,9 +246,8 @@ describe('Performance > Trends', function () {
     wrapper.find('DropdownLink').first().simulate('click');
 
     const firstTransaction = wrapper.find('TrendsListItem').first();
-    const summaryLink = firstTransaction.find('StyledSummaryLink');
+    const summaryLink = firstTransaction.find('ItemTransactionName');
 
-    expect(summaryLink.text()).toEqual('View Summary');
     expect(summaryLink.props().to.pathname).toEqual(
       '/organizations/org-slug/performance/summary/'
     );
@@ -276,14 +275,14 @@ describe('Performance > Trends', function () {
     const menuActions = firstTransaction.find('StyledMenuAction');
     expect(menuActions).toHaveLength(3);
 
-    const menuAction = menuActions.at(0);
+    const menuAction = menuActions.at(2);
     menuAction.simulate('click');
 
     expect(browserHistory.push).toHaveBeenCalledWith({
       query: expect.objectContaining({
         project: expect.anything(),
         query:
-          'count():>1000 transaction.duration:>0 !transaction:/organizations/:orgId/performance/',
+          'epm():>0.01 transaction.duration:>0 !transaction:/organizations/:orgId/performance/',
         view: 'TRENDS',
       }),
     });
@@ -310,14 +309,14 @@ describe('Performance > Trends', function () {
     const menuActions = firstTransaction.find('StyledMenuAction');
     expect(menuActions).toHaveLength(3);
 
-    const menuAction = menuActions.at(1);
-    expect(menuAction.text()).toEqual('Exclude transactions > 863ms');
+    const menuAction = menuActions.at(0);
+    expect(menuAction.text()).toEqual('Show \u2264 863ms');
     menuAction.simulate('click');
 
     expect(browserHistory.push).toHaveBeenCalledWith({
       query: expect.objectContaining({
         project: expect.anything(),
-        query: 'count():>1000 transaction.duration:>863',
+        query: 'epm():>0.01 transaction.duration:>0 transaction.duration:<=863',
         view: 'TRENDS',
       }),
     });
@@ -344,14 +343,14 @@ describe('Performance > Trends', function () {
     const menuActions = firstTransaction.find('StyledMenuAction');
     expect(menuActions).toHaveLength(3);
 
-    const menuAction = menuActions.at(2);
-    expect(menuAction.text()).toEqual('Exclude transactions < 863ms');
+    const menuAction = menuActions.at(1);
+    expect(menuAction.text()).toEqual('Show \u2265 863ms');
     menuAction.simulate('click');
 
     expect(browserHistory.push).toHaveBeenCalledWith({
       query: expect.objectContaining({
         project: expect.anything(),
-        query: 'count():>1000 transaction.duration:>0 transaction.duration:<863',
+        query: 'epm():>0.01 transaction.duration:>0 transaction.duration:>=863',
         view: 'TRENDS',
       }),
     });
@@ -566,12 +565,12 @@ describe('Performance > Trends', function () {
           ? getTrendAliasedMinus(trendFunction.alias)
           : aliasedFieldDivide;
 
-      const defaultTrendsFields = ['project', 'count()'];
+      const defaultTrendsFields = ['project'];
 
       const transactionFields = ['transaction', ...defaultTrendsFields];
       const projectFields = [...defaultTrendsFields];
 
-      expect(transactionFields).toHaveLength(3);
+      expect(transactionFields).toHaveLength(2);
       expect(projectFields).toHaveLength(transactionFields.length - 1);
 
       // Improved projects call
