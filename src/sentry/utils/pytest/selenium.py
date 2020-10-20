@@ -315,16 +315,16 @@ class Browser(object):
         if not os.path.exists(snapshot_dir):
             os.makedirs(snapshot_dir)
 
+        with self.mobile_viewport():
+            screenshot_path = u"{}-mobile/{}.png".format(snapshot_dir, slugify(name))
+            self.driver.find_element_by_tag_name("body").screenshot(screenshot_path)
+
+            if os.environ.get("SENTRY_SCREENSHOT"):
+                import click
+
+                click.launch(screenshot_path)
+
         if mobile_only:
-            with self.mobile_viewport():
-                screenshot_path = u"{}-mobile/{}.png".format(snapshot_dir, slugify(name))
-                self.driver.find_element_by_tag_name("body").screenshot(screenshot_path)
-
-                if os.environ.get("SENTRY_SCREENSHOT"):
-                    import click
-
-                    click.launch(screenshot_path)
-
             return self
 
         # This will make sure we resize viewport height to fit contents
