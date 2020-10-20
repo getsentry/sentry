@@ -41,4 +41,8 @@ def add_group_to_inbox(group, reason, reason_details=None):
 
 
 def remove_group_from_inbox(group):
-    GroupInbox.objects.filter(group=group).delete()
+    try:
+        group = GroupInbox.objects.get(group=group).delete()
+        group.delete()
+    except GroupInbox.DoesNotExist:
+        pass
