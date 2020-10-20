@@ -120,6 +120,7 @@ class RumContent extends React.Component<Props, State> {
           projects={projects}
           transactionName={transactionName}
           currentTab={Tab.RealUserMonitoring}
+          hasWebVitals
           handleIncompatibleQuery={this.handleIncompatibleQuery}
         />
         <Layout.Body>

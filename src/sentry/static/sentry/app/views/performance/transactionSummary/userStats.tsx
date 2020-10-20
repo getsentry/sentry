@@ -57,7 +57,7 @@ function UserStats({totals, location, organization, transactionName}: Props) {
       .reduce(
         ([passed, total], vital) => {
           const alias = getAggregateAlias(`percentile(${vital}, ${VITAL_PERCENTILE})`);
-          if (totals[alias] !== null && !isNaN(totals[alias])) {
+          if (Number.isFinite(totals[alias])) {
             total += 1;
             if (totals[alias] < WEB_VITAL_DETAILS[vital].failureThreshold) {
               passed += 1;

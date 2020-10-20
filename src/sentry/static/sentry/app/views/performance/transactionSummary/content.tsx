@@ -9,12 +9,17 @@ import {getParams} from 'app/components/organizations/globalSelectionHeader/getP
 import space from 'app/styles/space';
 import {generateQueryWithTag} from 'app/utils';
 import EventView from 'app/utils/discover/eventView';
+import {getAggregateAlias} from 'app/utils/discover/fields';
 import CreateAlertButton from 'app/components/createAlertButton';
 import * as Layout from 'app/components/layouts/thirds';
 import Tags from 'app/views/eventsV2/tags';
 import SearchBar from 'app/views/events/searchBar';
 import {decodeScalar} from 'app/utils/queryString';
 import withProjects from 'app/utils/withProjects';
+import {
+  PERCENTILE as VITAL_PERCENTILE,
+  VITAL_GROUPS,
+} from 'app/views/performance/realUserMonitoring/constants';
 
 import TransactionHeader, {Tab} from './header';
 import TransactionList from './transactionList';
@@ -92,6 +97,15 @@ class SummaryContent extends React.Component<Props, State> {
     const totalCount = totalValues.count;
     const slowDuration = totalValues?.p95;
 
+    // NOTE: This is not a robust check for whether or not a transaction is a front end
+    // transaction, however it will suffice for now.
+    const hasWebVitals = VITAL_GROUPS.some(group =>
+      group.vitals.some(vital => {
+        const alias = getAggregateAlias(`percentile(${vital}, ${VITAL_PERCENTILE})`);
+        return Number.isFinite(totalValues[alias]);
+      })
+    );
+
     return (
       <React.Fragment>
         <TransactionHeader
@@ -101,6 +115,7 @@ class SummaryContent extends React.Component<Props, State> {
           projects={projects}
           transactionName={transactionName}
           currentTab={Tab.TransactionSummary}
+          hasWebVitals={hasWebVitals}
           handleIncompatibleQuery={this.handleIncompatibleQuery}
         />
         <Layout.Body>
