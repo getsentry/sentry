@@ -36,7 +36,7 @@ type State = {
   eventView: EventView | undefined;
 };
 
-class RealUserMonitoring extends React.Component<Props> {
+class TransactionVitals extends React.Component<Props> {
   state: State = {
     eventView: generateRumEventView(
       this.props.location,
@@ -187,4 +187,4 @@ function generateRumEventView(
   );
 }
 
-export default withGlobalSelection(withProjects(withOrganization(RealUserMonitoring)));
+export default withGlobalSelection(withProjects(withOrganization(TransactionVitals)));
