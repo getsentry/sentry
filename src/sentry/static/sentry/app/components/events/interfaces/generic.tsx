@@ -25,7 +25,7 @@ type Props = {
 
 type State = {
   view: string;
-  data?: {[name: string]: any};
+  data?: Record<string, any>;
 };
 
 export default class GenericInterface extends Component<Props, State> {
