@@ -18,7 +18,6 @@ jobs:
 
     env:
       MIGRATIONS_TEST_MIGRATE: 1
-      VISUAL_SNAPSHOT_ENABLE: 1
 
     steps:
       - uses: actions/checkout@v2
@@ -105,4 +104,4 @@ jobs:
         env:
           PYTEST_SNAPSHOTS_DIR: ${{ steps.setup.outputs.acceptance-dir }}
 
-      # TODO(joshuarli): SENTRY_PYTHON3=1, snapshots, visual-diff needs py3-acceptance.
+      # TODO(joshuarli): snapshots, visual-diff needs py3-acceptance.
