@@ -213,7 +213,7 @@ class IssueListOverview extends React.Component<Props, State> {
     ) {
       this.fetchData();
     } else if (
-      !this.lastRequest &&
+      !this._lastRequest &&
       prevState.issuesLoading === false &&
       this.state.issuesLoading
     ) {
@@ -241,7 +241,7 @@ class IssueListOverview extends React.Component<Props, State> {
   }
 
   private _poller: any;
-  private lastRequest: any;
+  private _lastRequest: any;
   private _streamManager = new StreamManager(GroupStore);
 
   getQuery = () => {
@@ -367,13 +367,13 @@ class IssueListOverview extends React.Component<Props, State> {
       requestParams.statsPeriod = DEFAULT_STATS_PERIOD;
     }
 
-    if (this.lastRequest) {
-      this.lastRequest.cancel();
+    if (this._lastRequest) {
+      this._lastRequest.cancel();
     }
 
     this._poller.disable();
 
-    this.lastRequest = this.props.api.request(this.getGroupListEndpoint(), {
+    this._lastRequest = this.props.api.request(this.getGroupListEndpoint(), {
       method: 'GET',
       data: qs.stringify(requestParams),
       success: (data, _, jqXHR) => {
@@ -427,7 +427,7 @@ class IssueListOverview extends React.Component<Props, State> {
         });
       },
       complete: () => {
-        this.lastRequest = null;
+        this._lastRequest = null;
 
         this.resumePolling();
       },
