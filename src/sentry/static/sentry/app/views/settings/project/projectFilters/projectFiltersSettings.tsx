@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
+import {Project} from 'app/types';
 import {
   Panel,
   PanelAlert,
@@ -19,7 +20,6 @@ import Form from 'app/views/settings/components/forms/form';
 import FormField from 'app/views/settings/components/forms/formField';
 import HookStore from 'app/stores/hookStore';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import SentryTypes from 'app/sentryTypes';
 import Switch from 'app/components/switch';
 import filterGroups, {customFilterFields} from 'app/data/forms/inboundFilters';
 
@@ -68,7 +68,27 @@ const LEGACY_BROWSER_SUBFILTERS = {
 
 const LEGACY_BROWSER_KEYS = Object.keys(LEGACY_BROWSER_SUBFILTERS);
 
-class LegacyBrowserFilterRow extends React.Component {
+type FormFieldProps = React.ComponentProps<typeof FormField>;
+
+type RowProps = {
+  data: {
+    active: string[] | boolean;
+  };
+  onToggle: (
+    data: RowProps['data'],
+    filters: RowState['subfilters'],
+    event: React.MouseEvent
+  ) => void;
+  disabled?: boolean;
+};
+
+type RowState = {
+  loading: boolean;
+  error: boolean | Error;
+  subfilters: Set<string>;
+};
+
+class LegacyBrowserFilterRow extends React.Component<RowProps, RowState> {
   static propTypes = {
     data: PropTypes.object.isRequired,
     onToggle: PropTypes.func.isRequired,
@@ -163,20 +183,28 @@ class LegacyBrowserFilterRow extends React.Component {
   }
 }
 
-class ProjectFiltersSettings extends AsyncComponent {
-  static propTypes = {
-    project: SentryTypes.Project,
-    params: PropTypes.object,
-    features: PropTypes.object,
+type Props = {
+  project: Project;
+  features: Set<string>;
+  params: {
+    orgId: string;
+    projectId: string;
   };
+};
 
+type State = {
+  hooksDisabled: ReturnType<typeof HookStore['get']>;
+} & AsyncComponent['state'];
+
+class ProjectFiltersSettings extends AsyncComponent<Props, State> {
   getDefaultState() {
     return {
-      hooksDisabled: HookStore.get('project:custom-inbound-filters:disabled'),
+      ...super.getDefaultState(),
+      hooksDisabled: HookStore.get('feature-disabled:custom-inbound-filters'),
     };
   }
 
-  getEndpoints() {
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {orgId, projectId} = this.props.params;
     return [
       ['filterList', `/projects/${orgId}/${projectId}/filters/`],
@@ -184,16 +212,22 @@ class ProjectFiltersSettings extends AsyncComponent {
     ];
   }
 
-  componentDidUpdate(prevProps, prevState) {
+  componentDidUpdate(prevProps: Props, prevState: State) {
     if (prevProps.project !== this.props.project) {
       this.reloadData();
     }
     super.componentDidUpdate(prevProps, prevState);
   }
 
-  handleLegacyChange = (onChange, onBlur, _filter, subfilters, e) => {
-    onChange(subfilters, e);
-    onBlur(subfilters, e);
+  handleLegacyChange = (
+    onChange: FormFieldProps['onChange'],
+    onBlur: FormFieldProps['onBlur'],
+    _filter,
+    subfilters: RowState['subfilters'],
+    e
+  ) => {
+    onChange?.(subfilters, e);
+    onBlur?.(subfilters, e);
   };
 
   renderDisabledCustomFilters = p => (
@@ -207,17 +241,24 @@ class ProjectFiltersSettings extends AsyncComponent {
     />
   );
 
-  renderCustomFilters = disabled => () => (
+  renderCustomFilters = (disabled: boolean) => () => (
     <Feature
       features={['projects:custom-inbound-filters']}
       hookName="feature-disabled:custom-inbound-filters"
-      renderDisabled={({children, ...props}) =>
-        children({...props, renderDisabled: this.renderDisabledCustomFilters})
-      }
+      renderDisabled={({children, ...props}) => {
+        if (typeof children === 'function') {
+          return children({...props, renderDisabled: this.renderDisabledCustomFilters});
+        }
+        return null;
+      }}
     >
       {({hasFeature, organization, renderDisabled, ...featureProps}) => (
         <React.Fragment>
-          {!hasFeature && renderDisabled({organization, ...featureProps})}
+          {!hasFeature &&
+            typeof renderDisabled === 'function' &&
+            // XXX: children is set to null as we're doing tricksy things
+            // in the renderDisabled prop a few lines higher.
+            renderDisabled({organization, hasFeature, children: null, ...featureProps})}
 
           {customFilterFields.map(field => (
             <FieldFromConfig
