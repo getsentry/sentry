@@ -431,7 +431,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         if event_types and set(event_types) - valid_event_types:
             raise serializers.ValidationError(
                 "Invalid event types for this dataset. Valid event types are %s"
-                % [et.name.lower() for et in valid_event_types]
+                % sorted([et.name.lower() for et in valid_event_types])
             )
 
         for i, (trigger, expected_label) in enumerate(
