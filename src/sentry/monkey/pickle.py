@@ -86,11 +86,37 @@ def patch_pickle_loaders():
     #       > The protocol version of the pickle is detected automatically
     #
     # [0]: https://docs.python.org/3/library/pickle.html#pickle-protocols
+    #
+    # XXX(epurkhiser): Unfortunately changing this module property is NOT
+    # enough. Python 3 will use _pickle (aka new cpickle) if it is available
+    # (which it usually will be). In this case it will NOT read from
+    # DEFAULT_PROTOCOL, as the module functions passthrough to the C
+    # implementation, which does not have a mutable DEFAULT_PROTOCOL module
+    # property.
+    #
+    # I'm primarily leaving this here for consistency and documentation
     pickle.DEFAULT_PROTOCOL = 2
+
+    # Enforce protocol for kombu as well
+    kombu_serializer.pickle_protocol = 2
 
     original_pickle_load = pickle.load
     original_pickle_loads = pickle.loads
+    original_pickle_dumps = pickle.dumps
     original_kombu_pickle_loads = kombu_serializer.pickle_loads
+
+    def py3_compat_pickle_dumps(*args, **kwargs):
+        # Enforce protocol kwarg as DEFAULT_PROTOCOL. See the comment above
+        # DEFAULT_PROTOCOL above to understand why we must pass the kwarg due
+        # to _pickle.
+        if len(args) == 1:
+            kwargs["protocol"] = pickle.DEFAULT_PROTOCOL
+        else:
+            largs = list(args)
+            largs[1] = pickle.DEFAULT_PROTOCOL
+            args = tuple(largs)
+
+        return original_pickle_dumps(*args, **kwargs)
 
     def py3_compat_pickle_loads(*args, **kwargs):
         try:
@@ -127,4 +153,5 @@ def patch_pickle_loaders():
         return original_kombu_pickle_loads(s, load)
 
     pickle.loads = py3_compat_pickle_loads
+    pickle.dumps = py3_compat_pickle_dumps
     kombu_serializer.pickle_loads = py3_compat_kombu_pickle_loads
