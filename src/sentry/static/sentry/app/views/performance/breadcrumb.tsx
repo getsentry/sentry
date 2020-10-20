@@ -8,7 +8,7 @@ import {decodeScalar} from 'app/utils/queryString';
 
 import {getPerformanceLandingUrl} from './utils';
 import {transactionSummaryRouteWithQuery} from './transactionSummary/utils';
-import {vitalsRouteWithQuery} from './realUserMonitoring/utils';
+import {vitalsRouteWithQuery} from './transactionVitals/utils';
 
 type Props = {
   organization: Organization;
