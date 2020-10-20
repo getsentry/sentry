@@ -1,11 +1,15 @@
-import LazyLoad from 'react-lazyload';
 import React from 'react';
-import PropTypes from 'prop-types';
+import LazyLoad from 'react-lazyload';
 
+import {Project} from 'app/types';
 import BarChart from 'app/components/barChart';
-import SentryTypes from 'app/sentryTypes';
 
-const ProjectStatsGraph = ({project, stats}) => {
+type Props = {
+  project: Project;
+  stats?: Project['stats'];
+};
+
+const ProjectStatsGraph = ({project, stats}: Props) => {
   stats = stats || project.stats;
   const chartData = stats && stats.map(point => ({x: point[0], y: point[1]}));
 
@@ -24,11 +28,6 @@ const ProjectStatsGraph = ({project, stats}) => {
       )}
     </div>
   );
-};
-
-ProjectStatsGraph.propTypes = {
-  project: SentryTypes.Project,
-  stats: PropTypes.array,
 };
 
 export default ProjectStatsGraph;
