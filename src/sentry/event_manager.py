@@ -476,6 +476,9 @@ class EventManager(object):
         with metrics.timer("event_manager.save_attachments"):
             save_attachments(cache_key, attachments, job)
 
+        # Patch attachments that were ingested on the standalone path.
+        update_existing_attachments(job)
+
         metric_tags = {"from_relay": "_relay_processed" in job["data"]}
 
         metrics.timing(
@@ -1349,6 +1352,19 @@ def save_attachments(cache_key, attachments, job):
             key_id=job["key_id"],
             group_id=event.group_id,
             start_time=job["start_time"],
+        )
+
+
+def update_existing_attachments(job):
+    """
+    Attaches the group_id to all event attachments that were ingested prior to
+    the event via the standalone attachment endpoint.
+    """
+
+    event = job["event"]
+    if event.group:
+        EventAttachment.objects.filter(project_id=event.project.id, event_id=event.event_id).update(
+            group_id=event.group_id
         )
 
 
