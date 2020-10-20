@@ -7,7 +7,7 @@ import EventDataSection from 'app/components/events/eventDataSection';
 import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValueList';
 import {t} from 'app/locale';
 
-function getView(view, data) {
+function getView(view: View, data: Record<string, any>) {
   switch (view) {
     case 'report':
       return <KeyValueList data={Object.entries(data)} isContextData />;
@@ -23,9 +23,11 @@ type Props = {
   data: Record<string, any>;
 };
 
+type View = 'report' | 'raw';
+
 type State = {
-  view: string;
-  data?: Record<string, any>;
+  view: View;
+  data: Record<string, any>;
 };
 
 export default class GenericInterface extends Component<Props, State> {
@@ -43,11 +45,9 @@ export default class GenericInterface extends Component<Props, State> {
     };
   }
 
-  state: State = {
-    view: 'report',
-  };
+  state: State;
 
-  toggleView = value => {
+  toggleView = (value: View) => {
     this.setState({
       view: value,
     });
