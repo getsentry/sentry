@@ -12,7 +12,7 @@ import {Artifact} from 'app/types';
 import Confirm from 'app/components/confirm';
 import Access from 'app/components/acl/access';
 import Tooltip from 'app/components/tooltip';
-import Tag from 'app/components/tag';
+import Tag from 'app/components/tagDeprecated';
 
 type Props = {
   artifact: Artifact;

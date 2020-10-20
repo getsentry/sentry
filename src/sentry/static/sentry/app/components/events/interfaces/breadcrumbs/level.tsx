@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import Highlight from 'app/components/highlight';
-import Tag from 'app/components/tag';
+import Tag from 'app/components/tagDeprecated';
 import {Color} from 'app/utils/theme';
 
 import {BreadcrumbLevelType} from './types';
