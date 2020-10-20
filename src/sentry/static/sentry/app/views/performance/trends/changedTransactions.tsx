@@ -150,8 +150,8 @@ function handleChangeSelected(location: Location, trendChangeType: TrendChangeTy
 }
 
 enum FilterSymbols {
-  GREATER_THAN = '>',
-  LESS_THAN = '<',
+  GREATER_THAN_EQUALS = '>=',
+  LESS_THAN_EQUALS = '<=',
 }
 
 function handleFilterTransaction(location: Location, transaction: string) {
@@ -455,14 +455,22 @@ function TrendsListItem(props: TrendsListItemProps) {
         <CompareLink {...props} />
         <MenuItem
           onClick={() =>
-            handleFilterDuration(location, longestPeriodValue, FilterSymbols.GREATER_THAN)
+            handleFilterDuration(
+              location,
+              longestPeriodValue,
+              FilterSymbols.LESS_THAN_EQUALS
+            )
           }
         >
           <StyledMenuAction>{t('Show \u2264 %s', longestDuration)}</StyledMenuAction>
         </MenuItem>
         <MenuItem
           onClick={() =>
-            handleFilterDuration(location, longestPeriodValue, FilterSymbols.LESS_THAN)
+            handleFilterDuration(
+              location,
+              longestPeriodValue,
+              FilterSymbols.GREATER_THAN_EQUALS
+            )
           }
         >
           <StyledMenuAction>{t('Show \u2265 %s', longestDuration)}</StyledMenuAction>
