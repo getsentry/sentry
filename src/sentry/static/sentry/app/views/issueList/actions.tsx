@@ -655,44 +655,42 @@ const IssueListActions = createReactClass<Props, State>({
         </StyledFlex>
 
         {!allResultsVisible && pageSelected && (
-          <div className="row stream-select-all-notice">
-            <div className="col-md-12">
-              {allInQuerySelected ? (
-                <strong>
+          <SelectAllNotice>
+            {allInQuerySelected ? (
+              queryCount >= BULK_LIMIT ? (
+                tct(
+                  'Selected up to the first [count] issues that match this search query.',
+                  {
+                    count: BULK_LIMIT_STR,
+                  }
+                )
+              ) : (
+                tct('Selected all [count] issues that match this search query.', {
+                  count: queryCount,
+                })
+              )
+            ) : (
+              <React.Fragment>
+                {tn(
+                  '%s issue on this page selected.',
+                  '%s issues on this page selected.',
+                  numIssues
+                )}
+                <SelectAllLink onClick={this.handleApplyToAll}>
                   {queryCount >= BULK_LIMIT
                     ? tct(
-                        'Selected up to the first [count] issues that match this search query.',
+                        'Select the first [count] issues that match this search query.',
                         {
                           count: BULK_LIMIT_STR,
                         }
                       )
-                    : tct('Selected all [count] issues that match this search query.', {
+                    : tct('Select all [count] issues that match this search query.', {
                         count: queryCount,
                       })}
-                </strong>
-              ) : (
-                <span>
-                  {tn(
-                    '%s issue on this page selected.',
-                    '%s issues on this page selected.',
-                    numIssues
-                  )}
-                  <a onClick={this.handleApplyToAll}>
-                    {queryCount >= BULK_LIMIT
-                      ? tct(
-                          'Select the first [count] issues that match this search query.',
-                          {
-                            count: BULK_LIMIT_STR,
-                          }
-                        )
-                      : tct('Select all [count] issues that match this search query.', {
-                          count: queryCount,
-                        })}
-                  </a>
-                </span>
-              )}
-            </div>
-          </div>
+                </SelectAllLink>
+              </React.Fragment>
+            )}
+          </SelectAllNotice>
         )}
       </Sticky>
     );
@@ -808,6 +806,19 @@ const AssigneesLabel = styled('div')`
 const IconPad = styled('span')`
   position: relative;
   top: ${space(0.25)};
+`;
+
+const SelectAllNotice = styled('div')`
+  background-color: ${p => p.theme.yellow100};
+  border-top: 1px solid ${p => p.theme.yellow400};
+  border-bottom: 1px solid ${p => p.theme.yellow400};
+  font-size: ${p => p.theme.fontSizeMedium};
+  text-align: center;
+  padding: ${space(0.5)} ${space(1.5)};
+`;
+
+const SelectAllLink = styled('a')`
+  margin-left: ${space(1)};
 `;
 
 export {IssueListActions};
