@@ -7,6 +7,7 @@ import {ProcessingIssue} from 'app/types';
 import {IconWarning, IconSettings} from 'app/icons';
 import TimeSince from 'app/components/timeSince';
 import {t, tn, tct} from 'app/locale';
+import space from 'app/styles/space';
 
 type Props = {
   showProject: boolean;
@@ -106,4 +107,5 @@ const Wrapper = styled('div')`
 
 const StyledButton = styled(Button)`
   white-space: nowrap;
+  margin-left: ${space(1)};
 `;
