@@ -102,7 +102,7 @@ class SummaryContent extends React.Component<Props, State> {
     const hasWebVitals = VITAL_GROUPS.some(group =>
       group.vitals.some(vital => {
         const alias = getAggregateAlias(`percentile(${vital}, ${VITAL_PERCENTILE})`);
-        return totalValues[alias] !== null && !isNaN(totalValues[alias]);
+        return Number.isFinite(totalValues[alias]);
       })
     );
 
