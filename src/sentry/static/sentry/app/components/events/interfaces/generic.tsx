@@ -20,7 +20,7 @@ function getView(view, data) {
 
 type Props = {
   type: string;
-  data: {[name: string]: any};
+  data: Record<string, any>;
 };
 
 type State = {
