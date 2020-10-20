@@ -24,7 +24,7 @@ const defaultProps = {
   /**
    * Show max/min values on yAxis
    */
-  labelYAxisExtents: false as boolean,
+  labelYAxisExtents: false,
   /**
    * Whether not the series should be stacked.
    *
@@ -32,7 +32,7 @@ const defaultProps = {
    * breakdown data (issues). For these results `stacked` should be false.
    * Other endpoints return decomposed results that need to be stacked (outcomes).
    */
-  stacked: false as boolean,
+  stacked: false,
 };
 
 type Props = React.ComponentProps<typeof BaseChart> &
