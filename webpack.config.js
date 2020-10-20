@@ -461,7 +461,6 @@ if (
 //
 // Various sentry pages still rely on django to serve html views.
 if (IS_UI_DEV_ONLY) {
-  appConfig.output.publicPath = '/_assets/';
   appConfig.devServer = {
     ...appConfig.devServer,
     compress: true,
@@ -485,6 +484,8 @@ if (IS_UI_DEV_ONLY) {
 }
 
 if (IS_UI_DEV_ONLY || IS_DEPLOY_PREVIEW) {
+  appConfig.output.publicPath = '/_assets/';
+
   /**
    * Generate a index.html file used for running the app in pure client mode.
    * This is currently used for PR deploy previews, where only the frontend
@@ -493,8 +494,10 @@ if (IS_UI_DEV_ONLY || IS_DEPLOY_PREVIEW) {
   const HtmlWebpackPlugin = require('html-webpack-plugin');
   appConfig.plugins.push(
     new HtmlWebpackPlugin({
-      devServer: `https://localhost:${SENTRY_WEBPACK_PROXY_PORT}`,
-      // inject: false,
+      // Local dev vs vercel slightly differs...
+      ...(IS_UI_DEV_ONLY
+        ? {devServer: `https://localhost:${SENTRY_WEBPACK_PROXY_PORT}`}
+        : {}),
       template: path.resolve(staticPrefix, 'index.ejs'),
       mobile: true,
       title: 'Sentry',
