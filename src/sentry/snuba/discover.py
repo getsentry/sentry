@@ -666,17 +666,20 @@ def top_events_timeseries(
     case of gaps. Each value of the dictionary should match the result of a timeseries query
 
     timeseries_columns (Sequence[str]) List of public aliases to fetch for the timeseries query,
-                        usually matches the y-axis of the graph
+                    usually matches the y-axis of the graph
     selected_columns (Sequence[str]) List of public aliases to fetch for the events query,
-                        this is to determine what the top events are
+                    this is to determine what the top events are
     user_query (str) Filter query string to create conditions from. needs to be user_query
-                        to not conflict with the function query
+                    to not conflict with the function query
     params (Dict[str, str]) Filtering parameters with start, end, project_id, environment,
     orderby (Sequence[str]) The fields to order results by.
     rollup (int) The bucket width in seconds
     limit (int) The number of events to get timeseries for
     organization (Organization) Used to map group ids to short ids
     referrer (str|None) A referrer string to help locate the origin of this query.
+    top_events (dict|None) A dictionary with a 'data' key containing a list of dictionaries that
+                    represent the top events matching the query. Useful when you have found
+                    the top events earlier and want to save a query.
     """
     if top_events is None:
         with sentry_sdk.start_span(op="discover.discover", description="top_events.fetch_events"):
@@ -752,7 +755,8 @@ def top_events_timeseries(
         span.set_data("result_count", len(result.get("data", [])))
         result = transform_results(result, translated_columns, snuba_filter, selected_columns)
 
-        translated_columns["project_id"] = "project"
+        if "project" in selected_columns:
+            translated_columns["project_id"] = "project"
         translated_groupby = [
             translated_columns.get(groupby, groupby) for groupby in snuba_filter.groupby
         ]

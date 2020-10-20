@@ -57,12 +57,12 @@ class ProcessingIssueList extends React.Component<Props, State> {
     const promise = fetchProcessingIssues(this.api, organization.slug, projectIds);
 
     promise.then(
-      (data: ProcessingIssue[]) => {
-        const hasIssues = data.some(
+      (data?: ProcessingIssue[]) => {
+        const hasIssues = data?.some(
           p => p.hasIssues || p.resolveableIssues > 0 || p.issuesProcessing > 0
         );
 
-        if (hasIssues) {
+        if (data && hasIssues) {
           this.setState({issues: data});
         }
       },
