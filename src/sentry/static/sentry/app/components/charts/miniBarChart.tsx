@@ -62,10 +62,13 @@ class MiniBarChart extends React.Component<Props> {
           updated.barMinHeight = 1;
           updated.barGap = '-100%';
         }
+        set(updated, 'itemStyle.color', colors[i]);
         set(updated, 'itemStyle.opacity', 0.6);
         set(updated, 'itemStyle.emphasis.opacity', 1.0);
         if (emphasisColors && emphasisColors[i]) {
           set(updated, 'itemStyle.emphasis.color', emphasisColors[i]);
+        } else {
+          set(updated, 'itemStyle.emphasis.color', colors[i]);
         }
 
         return updated;
@@ -122,7 +125,6 @@ class MiniBarChart extends React.Component<Props> {
     }
 
     const chartOptions = {
-      colors,
       tooltip: {
         trigger: 'axis',
       },
