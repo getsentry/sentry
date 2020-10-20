@@ -115,6 +115,18 @@ def handle_owner_assignment(project, group, event):
         GroupAssignee.objects.assign(group, owner)
 
 
+def update_existing_attachments(event):
+    """
+    Attaches the group_id to all event attachments that were ingested prior to
+    the event via the standalone attachment endpoint.
+    """
+    from sentry.models import EventAttachment
+
+    EventAttachment.objects.filter(project_id=event.project_id, event_id=event.event_id).update(
+        group_id=event.group_id
+    )
+
+
 @instrumented_task(name="sentry.tasks.post_process.post_process_group")
 def post_process_group(
     is_new, is_regression, is_new_group_environment, cache_key, group_id=None, event=None, **kwargs
@@ -241,6 +253,9 @@ def post_process_group(
                 process_resource_change_bound.delay(
                     action="created", sender="Group", instance_id=event.group_id
                 )
+
+            # Patch attachments that were ingested on the standalone path.
+            update_existing_attachments(event)
 
             from sentry.plugins.base import plugins
 
