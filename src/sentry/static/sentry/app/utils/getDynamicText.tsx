@@ -1,7 +1,7 @@
-import {IS_CI} from 'app/constants';
+import {IS_ACCEPTANCE_TEST} from 'app/constants';
 
 // Return a specified "fixed" string when we are in a testing environment
-// (more specifically, when IS_CI is true)
+// (more specifically, when IS_ACCEPTANCE_TEST is true)
 export default function getDynamicText<Value, Fixed = Value>({
   value,
   fixed,
@@ -9,5 +9,5 @@ export default function getDynamicText<Value, Fixed = Value>({
   value: Value;
   fixed: Fixed;
 }): Value | Fixed {
-  return IS_CI ? fixed : value;
+  return IS_ACCEPTANCE_TEST ? fixed : value;
 }
