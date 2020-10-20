@@ -19,7 +19,7 @@ import withProjects from 'app/utils/withProjects';
 import {
   PERCENTILE as VITAL_PERCENTILE,
   VITAL_GROUPS,
-} from 'app/views/performance/realUserMonitoring/constants';
+} from 'app/views/performance/transactionVitals/constants';
 
 import TransactionHeader, {Tab} from './header';
 import TransactionList from './transactionList';

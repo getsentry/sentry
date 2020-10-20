@@ -17,7 +17,7 @@ import {decodeScalar} from 'app/utils/queryString';
 
 import KeyTransactionButton from './keyTransactionButton';
 import {transactionSummaryRouteWithQuery} from './utils';
-import {vitalsRouteWithQuery} from '../realUserMonitoring/utils';
+import {vitalsRouteWithQuery} from '../transactionVitals/utils';
 
 export enum Tab {
   TransactionSummary,

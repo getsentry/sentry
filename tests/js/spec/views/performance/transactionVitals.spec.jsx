@@ -5,11 +5,11 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ProjectsStore from 'app/stores/projectsStore';
-import RealUserMonitoring from 'app/views/performance/realUserMonitoring';
+import TransactionVitals from 'app/views/performance/transactionVitals';
 import {
   WEB_VITAL_DETAILS,
   ZOOM_KEYS,
-} from 'app/views/performance/realUserMonitoring/constants';
+} from 'app/views/performance/transactionVitals/constants';
 
 function initialize({project, features, transaction, query} = {}) {
   features = features || ['measurements'];
@@ -125,7 +125,7 @@ describe('Performance > Web Vitals', function () {
     });
 
     const wrapper = mountWithTheme(
-      <RealUserMonitoring organization={organization} location={router.location} />
+      <TransactionVitals organization={organization} location={router.location} />
     );
 
     await tick();
@@ -140,7 +140,7 @@ describe('Performance > Web Vitals', function () {
     });
 
     const wrapper = mountWithTheme(
-      <RealUserMonitoring
+      <TransactionVitals
         organization={organization}
         location={router.location}
         router={router}
@@ -161,7 +161,7 @@ describe('Performance > Web Vitals', function () {
     const {organization, router, routerContext} = initialize();
 
     const wrapper = mountWithTheme(
-      <RealUserMonitoring
+      <TransactionVitals
         organization={organization}
         location={router.location}
         router={router}
@@ -181,7 +181,7 @@ describe('Performance > Web Vitals', function () {
     const {organization, router, routerContext} = initialize();
 
     const wrapper = mountWithTheme(
-      <RealUserMonitoring
+      <TransactionVitals
         organization={organization}
         location={router.location}
         router={router}
@@ -201,7 +201,7 @@ describe('Performance > Web Vitals', function () {
     const {organization, router, routerContext} = initialize();
 
     const wrapper = mountWithTheme(
-      <RealUserMonitoring
+      <TransactionVitals
         organization={organization}
         location={router.location}
         router={router}
@@ -232,7 +232,7 @@ describe('Performance > Web Vitals', function () {
       const {project, organization, router, routerContext} = initialize();
 
       const wrapper = mountWithTheme(
-        <RealUserMonitoring
+        <TransactionVitals
           organization={organization}
           location={router.location}
           router={router}
@@ -269,7 +269,7 @@ describe('Performance > Web Vitals', function () {
       });
 
       const wrapper = mountWithTheme(
-        <RealUserMonitoring
+        <TransactionVitals
           organization={organization}
           location={router.location}
           router={router}
@@ -302,7 +302,7 @@ describe('Performance > Web Vitals', function () {
       });
 
       const wrapper = mountWithTheme(
-        <RealUserMonitoring
+        <TransactionVitals
           organization={organization}
           location={router.location}
           router={router}
@@ -339,7 +339,7 @@ describe('Performance > Web Vitals', function () {
       });
 
       const wrapper = mountWithTheme(
-        <RealUserMonitoring
+        <TransactionVitals
           organization={organization}
           location={router.location}
           router={router}
@@ -374,7 +374,7 @@ describe('Performance > Web Vitals', function () {
       const {organization, router, routerContext} = initialize();
 
       const wrapper = mountWithTheme(
-        <RealUserMonitoring
+        <TransactionVitals
           organization={organization}
           location={router.location}
           router={router}
@@ -395,7 +395,7 @@ describe('Performance > Web Vitals', function () {
       });
 
       const wrapper = mountWithTheme(
-        <RealUserMonitoring
+        <TransactionVitals
           organization={organization}
           location={router.location}
           router={router}
@@ -416,7 +416,7 @@ describe('Performance > Web Vitals', function () {
       });
 
       const wrapper = mountWithTheme(
-        <RealUserMonitoring
+        <TransactionVitals
           organization={organization}
           location={router.location}
           router={router}
@@ -438,7 +438,7 @@ describe('Performance > Web Vitals', function () {
       });
 
       const wrapper = mountWithTheme(
-        <RealUserMonitoring
+        <TransactionVitals
           organization={organization}
           location={router.location}
           router={router}
@@ -460,7 +460,7 @@ describe('Performance > Web Vitals', function () {
       });
 
       const wrapper = mountWithTheme(
-        <RealUserMonitoring
+        <TransactionVitals
           organization={organization}
           location={router.location}
           router={router}

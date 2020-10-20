@@ -1,4 +1,4 @@
-import {Vital} from 'app/views/performance/realUserMonitoring/types';
+import {Vital} from 'app/views/performance/transactionVitals/types';
 import {getDuration} from 'app/utils/formatters';
 
 export function formattedValue(record: Vital | undefined, value: number): string {

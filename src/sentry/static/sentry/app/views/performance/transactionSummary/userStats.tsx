@@ -14,11 +14,11 @@ import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import {WebVital, getAggregateAlias} from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
 import {getTermHelp} from 'app/views/performance/data';
-import {vitalsRouteWithQuery} from 'app/views/performance/realUserMonitoring/utils';
+import {vitalsRouteWithQuery} from 'app/views/performance/transactionVitals/utils';
 import {
   PERCENTILE as VITAL_PERCENTILE,
   WEB_VITAL_DETAILS,
-} from 'app/views/performance/realUserMonitoring/constants';
+} from 'app/views/performance/transactionVitals/constants';
 
 type Props = {
   totals: Record<string, number>;

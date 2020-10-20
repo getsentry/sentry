@@ -34,7 +34,7 @@ import {addRoutePerformanceContext, getTransactionName} from '../utils';
 import {
   PERCENTILE as VITAL_PERCENTILE,
   WEB_VITAL_DETAILS,
-} from '../realUserMonitoring/constants';
+} from '../transactionVitals/constants';
 
 type Props = {
   api: Client;
