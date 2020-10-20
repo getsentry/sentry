@@ -169,6 +169,17 @@ class BatchingKafkaConsumer(object):
         sample_rate = self.__metrics_sample_rates.get(metric, settings.SENTRY_METRICS_SAMPLE_RATE)
         return self.__metrics.timing(metric, value, tags=tags, sample_rate=sample_rate)
 
+    def __record_timer(self, metric, tags=None):
+        if self.__metrics is None:
+            return
+
+        tags = dict(tags or ())
+        tags.update(self.__metrics_default_tags)
+
+        sample_rate = self.__metrics_sample_rates.get(metric, settings.SENTRY_METRICS_SAMPLE_RATE)
+
+        return self.__metrics.timer(metric, tags=tags, sample_rate=sample_rate)
+
     def _wait_for_topics(self, admin_client, topics, timeout=10):
         """
         Make sure that the provided topics exist and have non-zero partitions in them.
@@ -379,10 +390,10 @@ class BatchingKafkaConsumer(object):
         if batch_results_length > 0:
             logger.debug("Flushing batch via worker")
             flush_start = time.time()
-            self.worker.flush_batch(self.__batch_results)
+            with self.__record_timer("batching_consumer.batch.flush"):
+                self.worker.flush_batch(self.__batch_results)
             flush_duration = (time.time() - flush_start) * 1000
             logger.info("Worker flush took %dms", flush_duration)
-            self.__record_timing("batching_consumer.batch.flush", flush_duration)
             self.__record_timing(
                 "batching_consumer.batch.flush.normalized", flush_duration / batch_results_length
             )
