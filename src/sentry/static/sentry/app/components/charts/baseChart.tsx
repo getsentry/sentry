@@ -3,7 +3,7 @@ import ReactEchartsCore from 'echarts-for-react/lib/core';
 import {EChartOption, ECharts} from 'echarts/lib/echarts';
 import styled from '@emotion/styled';
 
-import {IS_CI} from 'app/constants';
+import {IS_ACCEPTANCE_TEST} from 'app/constants';
 import {
   Series,
   EChartEventHandler,
@@ -391,7 +391,7 @@ class BaseChart extends React.Component<Props, State> {
             ...style,
           }}
           option={{
-            animation: IS_CI ? false : true,
+            animation: IS_ACCEPTANCE_TEST ? false : true,
             ...options,
             useUTC: utc,
             color: colors || this.getColorPalette(),

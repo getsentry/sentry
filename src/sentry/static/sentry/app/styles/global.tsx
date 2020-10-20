@@ -1,7 +1,7 @@
 import React from 'react';
 import {Global, css} from '@emotion/core';
 
-import {IS_CI} from 'app/constants';
+import {IS_ACCEPTANCE_TEST} from 'app/constants';
 import {Theme} from 'app/utils/theme';
 
 const styles = (theme: Theme) => css`
@@ -32,7 +32,7 @@ const styles = (theme: Theme) => css`
     }
   }
 
-  ${IS_CI
+  ${IS_ACCEPTANCE_TEST
     ? css`
         input,
         select {

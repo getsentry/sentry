@@ -244,7 +244,7 @@ export const ORGANIZATION_FETCH_ERROR_TYPES = {
 export const CONFIG_DOCS_URL = 'https://docs.sentry.io/server/config/';
 export const DISCOVER2_DOCS_URL = 'https://docs.sentry.io/product/discover-queries/';
 
-export const IS_CI = !!process.env.IS_CI;
+export const IS_ACCEPTANCE_TEST = !!process.env.IS_ACCEPTANCE_TEST;
 export const NODE_ENV = process.env.NODE_ENV;
 export const DISABLE_RR_WEB = !!process.env.DISABLE_RR_WEB;
 export const SPA_DSN = process.env.SPA_DSN;
