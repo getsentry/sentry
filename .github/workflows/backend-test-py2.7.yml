@@ -1,4 +1,4 @@
-name: backend [py2.7]
+name: backend
 on:
   push:
     branches:
@@ -8,6 +8,7 @@ on:
 
 jobs:
   test:
+    name: backend test
     runs-on: ubuntu-16.04
     timeout-minutes: 20
     strategy:
@@ -62,8 +63,11 @@ jobs:
         if: steps.changes.outputs.backend == 'true'
         with:
           python: 2
+          snuba: true
 
       - name: Run backend test [py2.7] (${{ steps.setup.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
         if: steps.changes.outputs.backend == 'true'
         run: |
+          # Note: `USE_SNUBA` is not used for backend tests because there are a few failing tests with Snuba enabled.
+          unset USE_SNUBA
           make travis-test-postgres

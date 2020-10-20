@@ -8,6 +8,7 @@ on:
 
 jobs:
   test:
+    name: cli test
     runs-on: ubuntu-16.04
     timeout-minutes: 10
     steps:
