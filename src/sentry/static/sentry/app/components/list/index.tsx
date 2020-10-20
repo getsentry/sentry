@@ -11,7 +11,7 @@ type Props = {
   className?: string;
 };
 
-const List = styled(({children, className, symbol}: Props) => {
+const List = styled(({children, className, symbol, ...props}: Props) => {
   const getWrapperComponent = () => {
     switch (symbol) {
       case 'numeric':
@@ -25,7 +25,7 @@ const List = styled(({children, className, symbol}: Props) => {
   const Wrapper = getWrapperComponent();
 
   return (
-    <Wrapper className={className}>
+    <Wrapper className={className} {...props}>
       {!symbol || typeof symbol === 'string'
         ? children
         : React.Children.map(children, child => {
