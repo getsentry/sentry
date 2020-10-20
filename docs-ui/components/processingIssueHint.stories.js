@@ -16,7 +16,7 @@ export const Default = withInfo('default')(() => {
     resolveableIssues: 2,
     signedLink: '',
     lastSeen: new Date().toISOString(),
-    hasMoreResolvableIssues: true,
+    hasMoreResolveableIssues: true,
     hasIssues: true,
   };
 

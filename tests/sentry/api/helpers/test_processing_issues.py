@@ -27,7 +27,7 @@ class GetProcessingIssuesTest(TestCase):
     def test_no_issues(self):
         result = get_processing_issues(self.user, [self.project])[0]
         assert not result["hasIssues"]
-        assert not result["hasMoreResolvableIssues"]
+        assert not result["hasMoreResolveableIssues"]
         assert result["numIssues"] == 0
         assert result["issuesProcessing"] == 0
         assert result["resolveableIssues"] == 0
@@ -43,7 +43,7 @@ class GetProcessingIssuesTest(TestCase):
 
         result = get_processing_issues(self.user, [self.project])[0]
         assert result["hasIssues"]
-        assert not result["hasMoreResolvableIssues"]
+        assert not result["hasMoreResolveableIssues"]
         assert result["numIssues"] == 1
         assert result["issuesProcessing"] == 0
         assert result["resolveableIssues"] == 0
@@ -68,7 +68,7 @@ class GetProcessingIssuesTest(TestCase):
 
         result = get_processing_issues(self.user, [self.project])[0]
         assert result["hasIssues"]
-        assert not result["hasMoreResolvableIssues"]
+        assert not result["hasMoreResolveableIssues"]
         assert result["numIssues"] == 3
         assert result["issuesProcessing"] == 2
         assert result["resolveableIssues"] == 1
@@ -101,14 +101,14 @@ class GetProcessingIssuesTest(TestCase):
 
         results = get_processing_issues(self.user, [self.project, other_project])
         assert results[0]["hasIssues"]
-        assert not results[0]["hasMoreResolvableIssues"]
+        assert not results[0]["hasMoreResolveableIssues"]
         assert results[0]["numIssues"] == 3
         assert results[0]["issuesProcessing"] == 2
         assert results[0]["resolveableIssues"] == 1
         assert results[0]["project"] == self.project.slug
 
         assert results[1]["hasIssues"]
-        assert not results[1]["hasMoreResolvableIssues"]
+        assert not results[1]["hasMoreResolveableIssues"]
         assert results[1]["numIssues"] == 1
         assert results[1]["issuesProcessing"] == 1
         assert results[1]["resolveableIssues"] == 2

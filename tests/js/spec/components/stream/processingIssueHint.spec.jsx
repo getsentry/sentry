@@ -12,7 +12,7 @@ describe('ProcessingIssueHint', function () {
   beforeEach(() => {
     issue = {
       hasIssues: false,
-      hasMoreResolvableIssues: false,
+      hasMoreResolveableIssues: false,
       issuesProcessing: 0,
       lastSeen: '2019-01-16T15:38:38Z',
       numIssues: 0,
