@@ -37,6 +37,14 @@ import {addOrUpdateRule} from '../actions';
 import {createDefaultTrigger, DATASET_EVENT_TYPE_FILTERS} from '../constants';
 import RuleConditionsForm from '../ruleConditionsForm';
 
+const POLLING_MAX_TIME_LIMIT = 3 * 60000;
+
+type RuleTaskResponse = {
+  status: 'pending' | 'failed' | 'success';
+  alertRule?: IncidentRule;
+  error?: string;
+};
+
 type Props = {
   organization: Organization;
   project: Project;
@@ -65,6 +73,7 @@ type State = {
   aggregate: string;
   timeWindow: number;
   environment: string | null;
+  uuid?: string;
 } & AsyncComponent['state'];
 
 const isEmpty = (str: unknown): boolean => str === '' || !defined(str);
@@ -123,6 +132,66 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
     router.push(`/organizations/${orgId}/alerts/rules/`);
   }
+
+  resetPollingState = () => {
+    this.setState({loading: false, uuid: undefined});
+  };
+
+  fetchStatus(model: FormModel) {
+    // pollHandler calls itself until it gets either a success
+    // or failed status but we don't want to poll forever so we pass
+    // in a hard stop time of 3 minutes before we bail.
+    const quitTime = Date.now() + POLLING_MAX_TIME_LIMIT;
+    setTimeout(() => {
+      this.pollHandler(model, quitTime);
+    }, 1000);
+  }
+
+  pollHandler = async (model: FormModel, quitTime: number) => {
+    if (Date.now() > quitTime) {
+      addErrorMessage(t('Looking for that channel took too long :('));
+      this.resetPollingState();
+      return;
+    }
+
+    const {
+      organization,
+      project,
+      onSubmitSuccess,
+      params: {ruleId},
+    } = this.props;
+    const {uuid} = this.state;
+
+    try {
+      const response: RuleTaskResponse = await this.api.requestPromise(
+        `/projects/${organization.slug}/${project.slug}/alert-rule-task/${uuid}/`
+      );
+
+      const {status, alertRule, error} = response;
+
+      if (status === 'pending') {
+        setTimeout(() => {
+          this.pollHandler(model, quitTime);
+        }, 1000);
+        return;
+      }
+
+      this.resetPollingState();
+
+      if (status === 'failed') {
+        addErrorMessage(error);
+      }
+      if (alertRule) {
+        addSuccessMessage(ruleId ? t('Updated alert rule') : t('Created alert rule'));
+        if (onSubmitSuccess) {
+          onSubmitSuccess(alertRule, model);
+        }
+      }
+    } catch {
+      addErrorMessage(t('An error occurred'));
+      this.resetPollingState();
+    }
+  };
 
   /**
    * Checks to see if threshold is valid given target value, and state of
@@ -339,7 +408,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
     const {organization, params, rule, onSubmitSuccess, location, sessionId} = this.props;
     const {ruleId} = this.props.params;
-    const {resolveThreshold, triggers, thresholdType} = this.state;
+    const {resolveThreshold, triggers, thresholdType, uuid} = this.state;
 
     // Remove empty warning trigger
     const sanitizedTriggers = triggers.filter(
@@ -350,7 +419,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     // track of the list of triggers (and actions within triggers)
     try {
       addLoadingMessage();
-      const resp = await addOrUpdateRule(
+      const [resp, , xhr] = await addOrUpdateRule(
         this.api,
         organization.slug,
         params.projectId,
@@ -366,9 +435,20 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
           sessionId,
         }
       );
-      addSuccessMessage(ruleId ? t('Updated alert rule') : t('Created alert rule'));
-      if (onSubmitSuccess) {
-        onSubmitSuccess(resp, model);
+      // if we get a 202 back it means that we have an async task
+      // running to lookup and verify the channel id for Slack.
+      if (xhr && xhr.status === 202) {
+        // if we have a uuid in state, no need to start a new polling cycle
+        if (!uuid) {
+          this.setState({loading: true, uuid: resp.uuid});
+          this.fetchStatus(model);
+          addLoadingMessage(t('Looking through all your channels...'));
+        }
+      } else {
+        addSuccessMessage(ruleId ? t('Updated alert rule') : t('Created alert rule'));
+        if (onSubmitSuccess) {
+          onSubmitSuccess(resp, model);
+        }
       }
     } catch (err) {
       const errors = err?.responseJSON
