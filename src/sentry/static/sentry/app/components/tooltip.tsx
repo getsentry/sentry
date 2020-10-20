@@ -290,7 +290,7 @@ const Container = styled('span')<{
 `;
 
 const TooltipContent = styled('div')<{hide: boolean} & Pick<Props, 'popperStyle'>>`
-  color: #fff;
+  color: ${p => p.theme.white};
   background: #000;
   opacity: 0.9;
   padding: 5px 10px;

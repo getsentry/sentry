@@ -197,8 +197,8 @@ class DefaultTrends extends React.Component<DefaultTrendsProps> {
     if (queryString || this.hasPushedDefaults) {
       return <React.Fragment>{children}</React.Fragment>;
     } else {
-      conditions.setTagValues('count()', ['>1000']);
-      conditions.setTagValues('transaction.duration', ['>0']);
+      conditions.setTagValues('epm()', ['>0.01']);
+      conditions.setTagValues('transaction.duration', ['>0', '<60min']);
     }
 
     const query = stringifyQueryObject(conditions);
