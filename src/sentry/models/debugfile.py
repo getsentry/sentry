@@ -107,6 +107,7 @@ class ProjectDebugFile(Model):
     __core__ = False
 
     file = FlexibleForeignKey("sentry.File")
+    checksum = models.CharField(max_length=40, null=True)
     object_name = models.TextField()
     cpu_name = models.CharField(max_length=40)
     project = FlexibleForeignKey("sentry.Project", null=True)
