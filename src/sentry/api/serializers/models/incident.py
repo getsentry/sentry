@@ -8,6 +8,7 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.incidents.models import Incident, IncidentProject, IncidentSubscription
 from sentry.models import User
 from sentry.snuba.models import QueryDatasets
+from sentry.snuba.tasks import apply_dataset_query_conditions
 from sentry.utils.db import attach_foreignkey
 
 
@@ -91,16 +92,9 @@ class DetailedIncidentSerializer(IncidentSerializer):
         return context
 
     def _build_discover_query(self, incident):
-        query = incident.alert_rule.snuba_query.query
-        dataset = QueryDatasets(incident.alert_rule.snuba_query.dataset)
-        condition = None
-
-        if dataset == QueryDatasets.EVENTS:
-            condition = "event.type:error"
-        elif dataset == QueryDatasets.TRANSACTIONS:
-            condition = "event.type:transaction"
-
-        if condition:
-            query = u"{} {}".format(condition, query) if query else condition
-
-        return query
+        return apply_dataset_query_conditions(
+            QueryDatasets(incident.alert_rule.snuba_query.dataset),
+            incident.alert_rule.snuba_query.query,
+            incident.alert_rule.snuba_query.event_types,
+            discover=True,
+        )
