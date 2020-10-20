@@ -2,18 +2,16 @@ import React from 'react';
 import styled from '@emotion/styled';
 import ansicolor from 'ansicolor';
 
-import {Event, EventAttachment} from 'app/types';
+import {
+  ViewerProps,
+  getAttachmentUrl,
+} from 'app/components/events/attachmentViewers/utils';
+import PreviewPanelItem from 'app/components/events/attachmentViewers/previewPanelItem';
 import space from 'app/styles/space';
-import {PanelItem} from 'app/components/panels';
 import AsyncComponent from 'app/components/asyncComponent';
 import theme from 'app/utils/theme';
 
-type Props = {
-  event: Event;
-  orgId: string;
-  projectId: string;
-  attachment: EventAttachment;
-} & AsyncComponent['props'];
+type Props = ViewerProps & AsyncComponent['props'];
 
 type State = AsyncComponent['state'];
 
@@ -36,13 +34,7 @@ const COLORS = {
 
 export default class LogFileViewer extends AsyncComponent<Props, State> {
   getEndpoints(): [string, string][] {
-    const {orgId, projectId, event, attachment} = this.props;
-    return [
-      [
-        'attachmentText',
-        `/projects/${orgId}/${projectId}/events/${event.id}/attachments/${attachment.id}/?download`,
-      ],
-    ];
+    return [['attachmentText', getAttachmentUrl(this.props)]];
   }
 
   renderBody() {
@@ -78,18 +70,12 @@ export default class LogFileViewer extends AsyncComponent<Props, State> {
       });
 
     return (
-      <LogPanelItem>
+      <PreviewPanelItem>
         <CodeWrapper>{spans}</CodeWrapper>
-      </LogPanelItem>
+      </PreviewPanelItem>
     );
   }
 }
-
-const LogPanelItem = styled(PanelItem)`
-  overflow: auto;
-  max-height: 500px;
-  padding: 0;
-`;
 
 const CodeWrapper = styled('pre')`
   padding: ${space(1)} ${space(2)};
