@@ -18,7 +18,7 @@ DATA_FILTERS = ["all", "exclude_outliers"]
 class MeasurementsHistogramSerializer(serializers.Serializer):
     query = serializers.CharField(required=False)
     measurement = serializers.ListField(allow_empty=False, max_length=MAX_MEASUREMENTS)
-    numBuckets = serializers.IntegerField(min_value=1)
+    numBuckets = serializers.IntegerField(min_value=1, max_value=100)
     precision = serializers.IntegerField(default=0, min_value=0, max_value=4)
     min = serializers.FloatField(required=False)
     max = serializers.FloatField(required=False)

@@ -153,6 +153,18 @@ class OrganizationEventsMeasurementsHistogramEndpointTest(APITestCase, SnubaTest
             "numBuckets": ["Ensure this value is greater than or equal to 1."],
         }
 
+    def test_bad_params_num_buckets_too_large(self):
+        query = {
+            "project": [self.project.id],
+            "measurement": ["foo", "bar"],
+            "numBuckets": 150,
+        }
+        response = self.do_request(query)
+        assert response.status_code == 400
+        assert response.data == {
+            "numBuckets": ["Ensure this value is less than or equal to 100."],
+        }
+
     def test_bad_params_invalid_precision_too_small(self):
         query = {
             "project": [self.project.id],
