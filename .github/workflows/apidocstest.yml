@@ -11,6 +11,7 @@ on:
 
 jobs:
   test:
+    name: api docs test
     runs-on: ubuntu-16.04
     steps:
       - uses: actions/checkout@v2
