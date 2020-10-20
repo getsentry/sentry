@@ -179,8 +179,8 @@ def post_process_group(
             Organization,
             EventDict,
             GroupInboxReason,
-            add_group_to_inbox,
         )
+        from sentry.models.groupinbox import add_group_to_inbox
         from sentry.models.group import get_group_with_redirect
         from sentry.rules.processor import RuleProcessor
         from sentry.tasks.servicehooks import process_service_hook
