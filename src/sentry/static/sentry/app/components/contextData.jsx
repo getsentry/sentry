@@ -123,6 +123,7 @@ class ContextData extends React.Component {
     preserveQuotes: PropTypes.bool,
     withAnnotatedText: PropTypes.bool,
     meta: PropTypes.any,
+    jsonConsts: PropTypes.bool,
   };
 
   static defaultProps = {
@@ -131,7 +132,7 @@ class ContextData extends React.Component {
   };
 
   renderValue(value) {
-    const {preserveQuotes, meta, withAnnotatedText} = this.props;
+    const {preserveQuotes, meta, withAnnotatedText, jsonConsts} = this.props;
 
     function getValueWithAnnotatedText(v, meta) {
       return <AnnotatedText value={v} meta={meta} />;
@@ -142,9 +143,13 @@ class ContextData extends React.Component {
       let i = 0;
       const children = [];
       if (value === null) {
-        return <span className="val-null">{'None'}</span>;
+        return <span className="val-null">{jsonConsts ? 'null' : 'None'}</span>;
       } else if (value === true || value === false) {
-        return <span className="val-bool">{value ? 'True' : 'False'}</span>;
+        return (
+          <span className="val-bool">
+            {jsonConsts ? (value ? 'true' : 'false') : value ? 'True' : 'False'}
+          </span>
+        );
       } else if (isString(value)) {
         const valueInfo = analyzeStringForRepr(value);
 
