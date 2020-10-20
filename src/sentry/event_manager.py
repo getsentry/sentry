@@ -1362,8 +1362,8 @@ def update_existing_attachments(job):
     """
 
     event = job["event"]
-    if event.group:
-        EventAttachment.objects.filter(project_id=event.project.id, event_id=event.event_id).update(
+    if event.group_id:
+        EventAttachment.objects.filter(project_id=event.project_id, event_id=event.event_id).update(
             group_id=event.group_id
         )
 
