@@ -31,7 +31,7 @@ class GroupInbox(Model):
         db_table = "sentry_groupinbox"
 
 
-def add_group_to_inbox(group, reason, reason_details):
+def add_group_to_inbox(group, reason, reason_details=None):
     if not GroupInbox.objects.filter(group=group).exists():
         return GroupInbox.objects.create(
             group=group, reason=reason.value, reason_details=reason_details
