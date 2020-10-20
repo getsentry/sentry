@@ -40,7 +40,7 @@ function initializeTrendsData(query, addDefaultQuery = true) {
 
   const otherTrendsQuery = addDefaultQuery
     ? {
-        query: 'epm():>0.01 transaction.duration:>=0 transaction.duration:<=60min',
+        query: 'epm():>0.01 transaction.duration:>0 transaction.duration:<60min',
       }
     : {};
 
@@ -429,7 +429,7 @@ describe('Performance > Landing', function () {
       {
         view: FilterViews.TRENDS,
         query:
-          'device.family:Mac epm():>0.01 transaction.duration:>=0 transaction.duration:<=60min',
+          'device.family:Mac epm():>0.01 transaction.duration:>0 transaction.duration:<60min',
       },
       false
     );
