@@ -104,6 +104,5 @@ jobs:
           make run-acceptance
         env:
           PYTEST_SNAPSHOTS_DIR: ${{ steps.setup.outputs.acceptance-dir }}
-          USE_SNUBA: 1
 
       # TODO(joshuarli): SENTRY_PYTHON3=1, snapshots, visual-diff needs py3-acceptance.
