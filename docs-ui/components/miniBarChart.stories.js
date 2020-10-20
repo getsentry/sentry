@@ -130,16 +130,24 @@ export const _MiniBarChart = withInfo('Stacked MiniBarChart')(() => {
       </div>
 
       <div className="section">
-        <h3>With yAxis labels</h3>
+        <h3>With yAxis labels and stacked results</h3>
         <MiniBarChart
           height={150}
           labelYAxisExtents
           isGroupedByDate
           showTimeInTooltip
+          stacked
           series={[
             {
-              seriesName: 'Events',
+              seriesName: 'Accepted',
               data: all.map((value, i) => ({
+                name: (startTime + interval * i) * 1000,
+                value,
+              })),
+            },
+            {
+              seriesName: 'Rejected',
+              data: current.map((value, i) => ({
                 name: (startTime + interval * i) * 1000,
                 value,
               })),

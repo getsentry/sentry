@@ -112,6 +112,7 @@ class KeyStats extends React.Component<Props, State> {
               series={this.state.series}
               height={150}
               colors={[theme.gray400, theme.red400]}
+              stacked
               labelYAxisExtents
             />
           ) : (

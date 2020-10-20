@@ -25,6 +25,14 @@ const defaultProps = {
    * Show max/min values on yAxis
    */
   labelYAxisExtents: false as boolean,
+  /**
+   * Whether not the series should be stacked.
+   *
+   * Some of our stats endpoints return data where the 'total' series includes
+   * breakdown data (issues). For these results `stacked` should be false.
+   * Other endpoints return decomposed results that need to be stacked (outcomes).
+   */
+  stacked: false as boolean,
 };
 
 type Props = React.ComponentProps<typeof BaseChart> &
@@ -56,6 +64,7 @@ class MiniBarChart extends React.Component<Props> {
       colors,
       series: _series,
       labelYAxisExtents,
+      stacked,
       ...props
     } = this.props;
     let series = [...this.props.series];
@@ -71,8 +80,14 @@ class MiniBarChart extends React.Component<Props> {
 
         if (i === 0) {
           updated.barMinHeight = 1;
-          updated.barGap = '-100%';
+          if (stacked === false) {
+            updated.barGap = '-100%';
+          }
         }
+        if (stacked) {
+          updated.stack = 'stack1';
+        }
+
         set(updated, 'itemStyle.opacity', 0.6);
         set(updated, 'itemStyle.emphasis.opacity', 1.0);
         if (emphasisColors && emphasisColors[i]) {
