@@ -299,49 +299,53 @@ class Browser(object):
         """
         # TODO(dcramer): ideally this would take the executing test package
         # into account for duplicate names
-        if os.environ.get("VISUAL_SNAPSHOT_ENABLE") == "1":
-            self.wait_for_images_loaded()
-            self.wait_for_fonts_loaded()
+        if os.environ.get("VISUAL_SNAPSHOT_ENABLE") != "1":
+            return self
 
-            # XXX: We assume we're relative to gitroot here.
-            snapshot_dir = os.environ.get(
-                "PYTEST_SNAPSHOTS_DIR", ".artifacts/visual-snapshots/acceptance"
+        self.wait_for_images_loaded()
+        self.wait_for_fonts_loaded()
+
+        # XXX: We assume we're relative to gitroot here.
+        snapshot_dir = os.environ.get(
+            "PYTEST_SNAPSHOTS_DIR", ".artifacts/visual-snapshots/acceptance"
+        )
+        # TODO(py3): Pass exist_ok=True here.
+        # Technically there's a race condition here with makedirs failing, but
+        # this is fine (practically) in this context.
+        if not os.path.exists(snapshot_dir):
+            os.makedirs(snapshot_dir)
+
+        if mobile_only:
+            with self.mobile_viewport():
+                screenshot_path = u"{}-mobile/{}.png".format(snapshot_dir, slugify(name))
+                self.driver.find_element_by_tag_name("body").screenshot(screenshot_path)
+
+                if os.environ.get("SENTRY_SCREENSHOT"):
+                    import click
+
+                    click.launch(screenshot_path)
+
+            return self
+
+        # This will make sure we resize viewport height to fit contents
+        with self.full_viewport():
+            screenshot_path = u"{}/{}.png".format(snapshot_dir, slugify(name))
+            self.driver.find_element_by_tag_name("body").screenshot(screenshot_path)
+
+            if os.environ.get("SENTRY_SCREENSHOT"):
+                import click
+
+                click.launch(screenshot_path)
+
+            has_tooltips = self.driver.execute_script(
+                "return window.__openAllTooltips && window.__openAllTooltips()"
             )
-            # TODO(py3): Pass exist_ok=True here.
-            # Technically there's a race condition here with makedirs failing, but
-            # this is fine (practically) in this context.
-            if not os.path.exists(snapshot_dir):
-                os.makedirs(snapshot_dir)
-
-            if not mobile_only:
-                # This will make sure we resize viewport height to fit contents
-                with self.full_viewport():
-                    screenshot_path = u"{}/{}.png".format(snapshot_dir, slugify(name))
-                    self.driver.find_element_by_tag_name("body").screenshot(screenshot_path)
-
-                    if os.environ.get("SENTRY_SCREENSHOT"):
-                        import click
-
-                        click.launch(screenshot_path)
-
-                    has_tooltips = self.driver.execute_script(
-                        "return window.__openAllTooltips && window.__openAllTooltips()"
-                    )
-                    if has_tooltips:
-                        screenshot_path = u"{}-tooltips/{}.png".format(snapshot_dir, slugify(name))
-                        self.driver.find_element_by_tag_name("body").screenshot(screenshot_path)
-                        self.driver.execute_script(
-                            "window.__closeAllTooltips && window.__closeAllTooltips()"
-                        )
-
-                with self.mobile_viewport():
-                    screenshot_path = u"{}-mobile/{}.png".format(snapshot_dir, slugify(name))
-                    self.driver.find_element_by_tag_name("body").screenshot(screenshot_path)
-
-                    if os.environ.get("SENTRY_SCREENSHOT"):
-                        import click
-
-                        click.launch(screenshot_path)
+            if has_tooltips:
+                screenshot_path = u"{}-tooltips/{}.png".format(snapshot_dir, slugify(name))
+                self.driver.find_element_by_tag_name("body").screenshot(screenshot_path)
+                self.driver.execute_script(
+                    "window.__closeAllTooltips && window.__closeAllTooltips()"
+                )
 
         return self
 
