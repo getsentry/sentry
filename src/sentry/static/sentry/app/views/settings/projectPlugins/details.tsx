@@ -76,7 +76,7 @@ class ProjectPluginDetails extends AsyncView<Props, State> {
     }
   }
 
-  getEndpoints(): [string, string][] {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {projectId, orgId, pluginId} = this.props.params;
     return [['pluginDetails', `/projects/${orgId}/${projectId}/plugins/${pluginId}/`]];
   }
@@ -173,15 +173,15 @@ class ProjectPluginDetails extends AsyncView<Props, State> {
     const enabled = this.getEnabled();
 
     const enable = (
-      <RightMarginButton size="small" onClick={this.handleEnable}>
+      <StyledButton size="small" onClick={this.handleEnable}>
         {t('Enable Plugin')}
-      </RightMarginButton>
+      </StyledButton>
     );
 
     const disable = (
-      <RightMarginButton size="small" priority="danger" onClick={this.handleDisable}>
+      <StyledButton size="small" priority="danger" onClick={this.handleDisable}>
         {t('Disable Plugin')}
-      </RightMarginButton>
+      </StyledButton>
     );
 
     const toggleEnable = enabled ? disable : enable;
@@ -270,6 +270,6 @@ export {ProjectPluginDetails};
 
 export default withPlugins(ProjectPluginDetails);
 
-const RightMarginButton = styled(Button)`
+const StyledButton = styled(Button)`
   margin-right: ${space(0.75)};
 `;
