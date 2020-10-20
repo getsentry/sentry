@@ -40,7 +40,7 @@ function initializeTrendsData(query, addDefaultQuery = true) {
 
   const otherTrendsQuery = addDefaultQuery
     ? {
-        query: 'epm():>0.01 transaction.duration:>0 transaction.duration:<60min',
+        query: 'epm():>0.01 transaction.duration:>=0 transaction.duration:<=60min',
       }
     : {};
 
@@ -276,7 +276,7 @@ describe('Performance > Landing', function () {
 
   it('Navigating to trends does not modify statsPeriod when already set', async function () {
     const data = initializeTrendsData({
-      query: 'epm():>0.005 transaction.duration:>10 transaction.duration:<60min',
+      query: 'epm():>0.005 transaction.duration:>10 transaction.duration:<=60min',
       statsPeriod: '24h',
     });
 
@@ -298,7 +298,7 @@ describe('Performance > Landing', function () {
     expect(browserHistory.push).toHaveBeenCalledWith(
       expect.objectContaining({
         query: {
-          query: 'epm():>0.005 transaction.duration:>10 transaction.duration:<60min',
+          query: 'epm():>0.005 transaction.duration:>10 transaction.duration:<=60min',
           statsPeriod: '24h',
           view: 'TRENDS',
         },
@@ -359,7 +359,7 @@ describe('Performance > Landing', function () {
       1,
       expect.objectContaining({
         query: {
-          query: 'epm():>0.01 transaction.duration:>0 transaction.duration:<60min',
+          query: 'epm():>0.01 transaction.duration:>=0 transaction.duration:<=60min',
           view: 'TRENDS',
         },
       })
@@ -417,7 +417,7 @@ describe('Performance > Landing', function () {
     expect(browserHistory.push).toHaveBeenCalledWith(
       expect.objectContaining({
         query: {
-          query: 'epm():>0.01 transaction.duration:>0 transaction.duration:<60min',
+          query: 'epm():>0.01 transaction.duration:>=0 transaction.duration:<=60min',
           view: 'TRENDS',
         },
       })
@@ -429,7 +429,7 @@ describe('Performance > Landing', function () {
       {
         view: FilterViews.TRENDS,
         query:
-          'device.family:Mac epm():>0.01 transaction.duration:>0 transaction.duration:<60min',
+          'device.family:Mac epm():>0.01 transaction.duration:>=0 transaction.duration:<=60min',
       },
       false
     );
