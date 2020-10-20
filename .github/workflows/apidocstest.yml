@@ -58,6 +58,7 @@ jobs:
         id: setup
         with:
           python: 3
+          snuba: true
 
       - name: yarn cache
         uses: actions/cache@v2

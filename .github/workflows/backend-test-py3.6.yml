@@ -67,6 +67,7 @@ jobs:
         id: setup
         with:
           python: 3
+          snuba: true
 
       - name: Run backend test [py3.6] (${{ steps.setup.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
         if: steps.changes.outputs.backend == 'true'
