@@ -45,7 +45,7 @@ class GitHubAppsClientTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_get_file_url(self, get_jwt):
+    def test_check_file(self, get_jwt):
         responses.add(
             method=responses.POST,
             url="https://api.github.com/app/installations/1/access_tokens",
@@ -58,22 +58,15 @@ class GitHubAppsClientTest(TestCase):
         url = "https://api.github.com/repos/{}/contents/{}".format(repo, path)
 
         responses.add(
-            method=responses.GET,
-            url=url,
-            json={
-                "html_url": "https://github.com/getsentry/sentry/blob/master/src/sentry/integrations/github/client.py"
-            },
+            method=responses.HEAD, url=url, json={"text": 200},
         )
 
-        resp = self.client.get_file_url(repo, path)
-        assert (
-            resp
-            == "https://github.com/getsentry/sentry/blob/master/src/sentry/integrations/github/client.py"
-        )
+        resp = self.client.check_file(repo, path)
+        assert resp == 200
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_fail_to_get_file_url(self, get_jwt):
+    def test_check_no_file(self, get_jwt):
         responses.add(
             method=responses.POST,
             url="https://api.github.com/app/installations/1/access_tokens",
@@ -85,8 +78,8 @@ class GitHubAppsClientTest(TestCase):
         path = "/src/santry/integrations/github/client.py"
         url = "https://api.github.com/repos/{}/contents/{}".format(repo, path)
 
-        responses.add(method=responses.GET, url=url, status=404)
+        responses.add(method=responses.HEAD, url=url, status=404)
 
         with self.assertRaises(ApiError):
-            self.client.get_file_url(repo, path)
+            self.client.check_file(repo, path)
         assert responses.calls[1].response.status_code == 404

@@ -113,9 +113,9 @@ class GitHubClientMixin(ApiClient):
             },
         )
 
-    @transaction_start("GitHubClientMixin")
-    def get_file_url(self, repo, path):
-        return self.get_cached(path="/repos/{}/contents/{}".format(repo, path))["html_url"]
+    @transaction_start("GitHubClientMixin.check_file")
+    def check_file(self, repo, path):
+        return self.head_cached(path="/repos/{}/contents/{}".format(repo, path)).text
 
 
 class GitHubAppsClient(GitHubClientMixin):

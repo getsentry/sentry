@@ -126,42 +126,32 @@ class GitlabRefreshAuthTest(GitLabTestCase):
         self.assert_identity_was_not_refreshed()
 
     @responses.activate
-    def test_get_file(self):
+    def test_check_file(self):
         path = "file.py"
         ref = "537f2e94fbc489b2564ca3d6a5f0bd9afa38c3c3"
         responses.add(
-            responses.GET,
+            responses.HEAD,
             "https://example.gitlab.com/api/v4/projects/{}/repository/files/{}?ref={}".format(
                 self.gitlab_id, path, ref
             ),
-            json={
-                u"file_name": u"file.py",
-                u"ref": u"537f2e94fbc489b2564ca3d6a5f0bd9afa38c3c3",
-                u"file_path": u"file.py",
-                u"size": 34,
-            },
+            json={"text": 200},
         )
 
-        resp = self.client.get_file(self.gitlab_id, path, ref)
+        resp = self.client.check_file(self.gitlab_id, path, ref)
         assert responses.calls[0].response.status_code == 200
-        assert resp == {
-            u"file_name": u"file.py",
-            u"size": 34,
-            u"ref": u"537f2e94fbc489b2564ca3d6a5f0bd9afa38c3c3",
-            u"file_path": u"file.py",
-        }
+        assert resp == 200
 
     @responses.activate
-    def test_fail_to_get_file(self):
+    def test_check_no_file(self):
         path = "file.py"
         ref = "537f2e94fbc489b2564ca3d6a5f0bd9afa38c3c3"
         responses.add(
-            responses.GET,
+            responses.HEAD,
             "https://example.gitlab.com/api/v4/projects/{}/repository/files/{}?ref={}".format(
                 self.gitlab_id, path, ref
             ),
             status=404,
         )
         with self.assertRaises(ApiError):
-            self.client.get_file(self.gitlab_id, path, ref)
+            self.client.check_file(self.gitlab_id, path, ref)
         assert responses.calls[0].response.status_code == 404

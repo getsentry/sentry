@@ -29,7 +29,7 @@ class GitLabApiClientPath(object):
     project_hooks = u"/projects/{project}/hooks"
     project_hook = u"/projects/{project}/hooks/{hook_id}"
     user = u"/user"
-    file = u"/projects/{id}/repository/files/{path}"
+    file = u"/projects/{project}/repository/files/{path}"
 
     @staticmethod
     def build_api_url(base_url, path):
@@ -243,13 +243,13 @@ class GitLabApiClient(ApiClient):
         path = GitLabApiClientPath.diff.format(project=project_id, sha=sha)
         return self.get(path)
 
-    @transaction_start("GitLabApiClient")
-    def get_file(self, project_id, path, ref):
+    @transaction_start("GitLabApiClient.check_file")
+    def check_file(self, project_id, path, ref):
         """Fetch a file for stacktrace linking
 
         See https://docs.gitlab.com/ee/api/repository_files.html#get-file-from-repository
         Path requires file path and ref
         """
-
-        request_path = GitLabApiClientPath.file.format(id=project_id, path=path)
-        return self.get_cached(request_path, params={"ref": ref})
+        request_path = GitLabApiClientPath.file.format(project=project_id, path=path)
+        # TODO: handle on prem gitlab w/o a base url (so use the user's URL I guess?)
+        return self.head_cached(request_path, params={"ref": ref}).text
