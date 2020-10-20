@@ -3,7 +3,7 @@ import color from 'color';
 import CHART_PALETTE from 'app/constants/chartPalette';
 
 const colors = {
-  white: '#FFFFFF',
+  white: 'purple',
   black: '#1D1127',
 
   gray100: '#FAF9FB',
@@ -58,7 +58,7 @@ const colors = {
   pink500: '#902D4C',
 
   get borderLighter() {
-    return colors.gray100;
+    return colors.pink400;
   },
 
   get borderLight() {
@@ -89,7 +89,7 @@ const aliases = {
   /**
    * Primary background color
    */
-  background: colors.black,
+  background: colors.purple,
 
   /**
    * Secondary background color used as a slight contrast against primary background
