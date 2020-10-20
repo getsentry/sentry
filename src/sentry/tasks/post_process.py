@@ -9,6 +9,7 @@ from django.conf import settings
 from sentry import features
 from sentry.utils.cache import cache
 from sentry.exceptions import PluginError
+from sentry.models import EventAttachment
 from sentry.signals import event_processed, issue_unignored
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
@@ -113,6 +114,16 @@ def handle_owner_assignment(project, group, event):
     owner = ProjectOwnership.get_autoassign_owner(group.project_id, event.data)
     if owner is not None:
         GroupAssignee.objects.assign(group, owner)
+
+
+def update_existing_attachments(event):
+    """
+    Attaches the group_id to all event attachments that were ingested prior to
+    the event via the standalone attachment endpoint.
+    """
+    EventAttachment.objects.filter(project_id=event.project_id, event_id=event.event_id).update(
+        group_id=event.group_id
+    )
 
 
 @instrumented_task(name="sentry.tasks.post_process.post_process_group")
@@ -241,6 +252,9 @@ def post_process_group(
                 process_resource_change_bound.delay(
                     action="created", sender="Group", instance_id=event.group_id
                 )
+
+            # Patch attachments that were ingested on the standalone path.
+            update_existing_attachments(event)
 
             from sentry.plugins.base import plugins
 
