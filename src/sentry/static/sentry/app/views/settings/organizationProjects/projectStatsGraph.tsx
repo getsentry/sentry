@@ -1,8 +1,10 @@
 import React from 'react';
 import LazyLoad from 'react-lazyload';
 
+import {t} from 'app/locale';
 import {Project} from 'app/types';
-import BarChart from 'app/components/barChart';
+import {Series} from 'app/types/echarts';
+import MiniBarChart from 'app/components/charts/miniBarChart';
 
 type Props = {
   project: Project;
@@ -10,23 +12,22 @@ type Props = {
 };
 
 const ProjectStatsGraph = ({project, stats}: Props) => {
-  stats = stats || project.stats;
-  const chartData = stats && stats.map(point => ({x: point[0], y: point[1]}));
+  stats = stats || project.stats || [];
+  const series: Series[] = [
+    {
+      seriesName: t('Events'),
+      data: stats.map(point => ({name: point[0] * 1000, value: point[1]})),
+    },
+  ];
 
   return (
-    <div>
-      {chartData && (
+    <React.Fragment>
+      {series && (
         <LazyLoad height={25} debounce={50}>
-          <BarChart
-            height={25}
-            minHeights={[3]}
-            gap={1}
-            points={chartData}
-            label="events"
-          />
+          <MiniBarChart isGroupedByDate showTimeInTooltip series={series} height={25} />
         </LazyLoad>
       )}
-    </div>
+    </React.Fragment>
   );
 };
 
