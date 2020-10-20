@@ -3,6 +3,7 @@ import {browserHistory} from 'react-router';
 import React from 'react';
 import classNames from 'classnames';
 import styled from '@emotion/styled';
+import omit from 'lodash/omit';
 
 import {ALL_ENVIRONMENTS_KEY} from 'app/constants';
 import {Environment, Organization, Project, OnboardingTaskKey} from 'app/types';
@@ -15,6 +16,7 @@ import {
 } from 'app/types/alerts';
 import {IconWarning, IconChevron} from 'app/icons';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import Input from 'app/views/settings/components/forms/controls/input';
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -30,14 +32,13 @@ import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import Form from 'app/views/settings/components/forms/form';
 import LoadingMask from 'app/components/loadingMask';
-import PanelAlert from 'app/components/panels/panelAlert';
 import SelectField from 'app/views/settings/components/forms/selectField';
-import TextField from 'app/views/settings/components/forms/textField';
 import recreateRoute from 'app/utils/recreateRoute';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 import withProject from 'app/utils/withProject';
 import {updateOnboardingTask} from 'app/actionCreators/onboardingTasks';
+import Field from 'app/views/settings/components/forms/field';
 
 import RuleNodeList from './ruleNodeList';
 
@@ -300,7 +301,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     this.setState(state => {
       const rule = {...state.rule} as IssueAlertRule;
       rule[prop] = val;
-      return {rule};
+      return {rule, detailedError: omit(state.detailedError, prop)};
     });
   };
 
@@ -382,6 +383,21 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   handleChangeFilterProperty = (ruleIndex: number, prop: string, val: string) =>
     this.handlePropertyChange('filters', ruleIndex, prop, val);
 
+  handleValidateRuleName = () => {
+    const isRuleNameEmpty = !this.state.rule?.name.trim();
+
+    if (!isRuleNameEmpty) {
+      return;
+    }
+
+    this.setState(prevState => ({
+      detailedError: {
+        ...prevState.detailedError,
+        name: [t('Field Required')],
+      },
+    }));
+  };
+
   renderLoading() {
     return this.renderBody();
   }
@@ -447,11 +463,6 @@ class IssueRuleEditor extends AsyncView<Props, State> {
             {this.state.loading && <SemiTransparentLoadingMask />}
             <Panel>
               <PanelHeader>{t('Alert Setup')}</PanelHeader>
-
-              {this.hasError('name') && (
-                <PanelAlert type="error">{t('Must enter a rule name')}</PanelAlert>
-              )}
-
               <PanelBody>
                 <SelectField
                   className={classNames({
@@ -466,37 +477,32 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                   onChange={val => this.handleEnvironmentChange(val)}
                   disabled={!hasAccess}
                 />
-                <TextField
+
+                <StyledField
                   label={t('Alert name')}
                   help={t('Add a name for this alert')}
-                  name="name"
-                  defaultValue={name}
-                  required
-                  placeholder={t('My Rule Name')}
-                  onChange={val => this.handleChange('name', val)}
+                  error={detailedError?.name?.[0]}
                   disabled={!hasAccess}
-                />
+                  required
+                  stacked
+                >
+                  <Input
+                    type="text"
+                    name="name"
+                    value={name}
+                    placeholder={t('My Rule Name')}
+                    onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+                      this.handleChange('name', event.target.value)
+                    }
+                    onBlur={this.handleValidateRuleName}
+                  />
+                </StyledField>
               </PanelBody>
             </Panel>
 
             <Panel>
-              <StyledPanelHeader>
-                {t('Alert Conditions')}
-                <PanelHelpText>
-                  {t(
-                    'Conditions are evaluated every time an event is captured by Sentry.'
-                  )}
-                </PanelHelpText>
-              </StyledPanelHeader>
+              <PanelHeader>{t('Alert Conditions')}</PanelHeader>
               <PanelBody>
-                {detailedError && (
-                  <PanelAlert type="error">
-                    {t(
-                      'There was an error saving your changes. Make sure all fields are valid and try again.'
-                    )}
-                  </PanelAlert>
-                )}
-
                 <Step>
                   <StepConnector />
 
@@ -510,18 +516,15 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                       />
                     </ChevronContainer>
 
-                    <StepContent>
-                      <StepLead>
-                        {tct(
-                          '[when:When] an issue meets [selector] of the following conditions',
-                          {
-                            when: <Badge />,
-                            selector: (
-                              <Feature
-                                features={['projects:alert-filters']}
-                                project={project}
-                              >
-                                {({hasFeature}) => (
+                    <Feature features={['projects:alert-filters']} project={project}>
+                      {({hasFeature}) => (
+                        <StepContent>
+                          <StepLead>
+                            {tct(
+                              '[when:When] an event is captured by Sentry and [selector] of the following happens',
+                              {
+                                when: <Badge />,
+                                selector: (
                                   <EmbeddedWrapper>
                                     <EmbeddedSelectField
                                       className={classNames({
@@ -551,31 +554,35 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                                       disabled={!hasAccess}
                                     />
                                   </EmbeddedWrapper>
-                                )}
-                              </Feature>
-                            ),
-                          }
-                        )}
-                      </StepLead>
-                      <RuleNodeList
-                        nodes={this.state.configs?.conditions ?? null}
-                        items={conditions ?? []}
-                        placeholder={t('Add a condition...')}
-                        onPropertyChange={this.handleChangeConditionProperty}
-                        onAddRow={this.handleAddCondition}
-                        onDeleteRow={this.handleDeleteCondition}
-                        organization={organization}
-                        project={project}
-                        disabled={!hasAccess}
-                        error={
-                          this.hasError('conditions') && (
-                            <StyledAlert type="error">
-                              {this.state.detailedError?.conditions[0]}
-                            </StyledAlert>
-                          )
-                        }
-                      />
-                    </StepContent>
+                                ),
+                              }
+                            )}
+                          </StepLead>
+                          <RuleNodeList
+                            nodes={this.state.configs?.conditions ?? null}
+                            items={conditions ?? []}
+                            placeholder={
+                              hasFeature
+                                ? t('Add optional trigger...')
+                                : t('Add optional condition...')
+                            }
+                            onPropertyChange={this.handleChangeConditionProperty}
+                            onAddRow={this.handleAddCondition}
+                            onDeleteRow={this.handleDeleteCondition}
+                            organization={organization}
+                            project={project}
+                            disabled={!hasAccess}
+                            error={
+                              this.hasError('conditions') && (
+                                <StyledAlert type="error">
+                                  {detailedError?.conditions[0]}
+                                </StyledAlert>
+                              )
+                            }
+                          />
+                        </StepContent>
+                      )}
+                    </Feature>
                   </StepContainer>
                 </Step>
 
@@ -600,7 +607,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
                       <StepContent>
                         <StepLead>
-                          {tct('[if:If] that issue has [selector] of these properties', {
+                          {tct('[if:If] [selector] of these filters match', {
                             if: <Badge />,
                             selector: (
                               <EmbeddedWrapper>
@@ -632,7 +639,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                         <RuleNodeList
                           nodes={this.state.configs?.filters ?? null}
                           items={filters ?? []}
-                          placeholder={t('Add a filter...')}
+                          placeholder={t('Add optional filter...')}
                           onPropertyChange={this.handleChangeFilterProperty}
                           onAddRow={this.handleAddFilter}
                           onDeleteRow={this.handleDeleteFilter}
@@ -642,7 +649,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                           error={
                             this.hasError('filters') && (
                               <StyledAlert type="error">
-                                {this.state.detailedError?.filters[0]}
+                                {detailedError?.filters[0]}
                               </StyledAlert>
                             )
                           }
@@ -672,7 +679,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                       <RuleNodeList
                         nodes={this.state.configs?.actions ?? null}
                         items={actions ?? []}
-                        placeholder={t('Add an action...')}
+                        placeholder={t('Add action...')}
                         onPropertyChange={this.handleChangeActionProperty}
                         onAddRow={this.handleAddAction}
                         onDeleteRow={this.handleDeleteAction}
@@ -682,7 +689,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                         error={
                           this.hasError('actions') && (
                             <StyledAlert type="error">
-                              {this.state.detailedError?.actions[0]}
+                              {detailedError?.actions[0]}
                             </StyledAlert>
                           )
                         }
@@ -721,19 +728,6 @@ export default withProject(withOrganization(IssueRuleEditor));
 
 const StyledForm = styled(Form)`
   position: relative;
-`;
-
-const StyledPanelHeader = styled(PanelHeader)`
-  flex-direction: column;
-  align-items: flex-start;
-`;
-
-const PanelHelpText = styled('div')`
-  color: ${p => p.theme.gray500};
-  font-size: 14px;
-  font-weight: normal;
-  text-transform: none;
-  margin-top: ${space(1)};
 `;
 
 const StyledAlert = styled(Alert)`
@@ -805,4 +799,10 @@ const EmbeddedSelectField = styled(SelectField)`
 const SemiTransparentLoadingMask = styled(LoadingMask)`
   opacity: 0.6;
   z-index: 1; /* Needed so that it sits above form elements */
+`;
+
+const StyledField = styled(Field)`
+  :last-child {
+    padding-bottom: ${space(2)};
+  }
 `;

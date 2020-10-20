@@ -321,7 +321,7 @@ class Factories(object):
         condition_data = condition_data or [
             {
                 "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
-                "name": "The issue is first seen",
+                "name": "A new issue is created",
             },
             {
                 "id": "sentry.rules.conditions.every_event.EveryEventCondition",
@@ -875,6 +875,7 @@ class Factories(object):
         threshold_type=AlertRuleThresholdType.ABOVE,
         resolve_threshold=None,
         user=None,
+        event_types=None,
     ):
         if not name:
             name = petname.Generate(2, " ", letters=10).title()
@@ -894,6 +895,7 @@ class Factories(object):
             include_all_projects=include_all_projects,
             excluded_projects=excluded_projects,
             user=user,
+            event_types=event_types,
         )
 
         if date_added is not None:

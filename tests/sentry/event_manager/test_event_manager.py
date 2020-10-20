@@ -172,7 +172,8 @@ class EventManagerTest(TestCase):
 
         assert event.group_id != event2.group_id
 
-    def test_unresolves_group(self):
+    @mock.patch("sentry.signals.issue_unresolved.send_robust")
+    def test_unresolves_group(self, send_robust):
         ts = time() - 300
 
         # N.B. EventManager won't unresolve the group unless the event2 has a
@@ -192,6 +193,7 @@ class EventManagerTest(TestCase):
 
         group = Group.objects.get(id=group.id)
         assert not group.is_resolved()
+        assert send_robust.called
 
     @mock.patch("sentry.event_manager.plugin_is_regression")
     def test_does_not_unresolve_group(self, plugin_is_regression):
@@ -945,7 +947,9 @@ class EventManagerTest(TestCase):
                     "csp": {
                         "effective_directive": "script-src",
                         "blocked_uri": "http://example.com",
-                    }
+                    },
+                    # this normally is noramlized in relay as part of ingest
+                    "logentry": {"message": "Blocked 'script' from 'example.com'"},
                 }
             )
         )
@@ -958,9 +962,9 @@ class EventManagerTest(TestCase):
         assert group.data.get("metadata") == {
             "directive": "script-src",
             "uri": "example.com",
-            # Relay will add a logentry that fixes this title, just not as part of StoreNormalizer
-            "title": "<unlabeled event>",
+            "message": "Blocked 'script' from 'example.com'",
         }
+        assert group.title == "Blocked 'script' from 'example.com'"
 
     def test_transaction_event_type(self):
         manager = EventManager(

@@ -4,7 +4,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
 
-describe('EventOrGroupTitle', function() {
+describe('EventOrGroupTitle', function () {
   const data = {
     metadata: {
       title: 'metadata title',
@@ -15,7 +15,7 @@ describe('EventOrGroupTitle', function() {
     culprit: 'culprit',
   };
 
-  it('renders with subtitle when `type = error`', function() {
+  it('renders with subtitle when `type = error`', function () {
     const component = mountWithTheme(
       <EventOrGroupTitle
         data={{
@@ -30,7 +30,7 @@ describe('EventOrGroupTitle', function() {
     expect(component).toSnapshot();
   });
 
-  it('renders with subtitle when `type = csp`', function() {
+  it('renders with subtitle when `type = csp`', function () {
     const component = mountWithTheme(
       <EventOrGroupTitle
         data={{
@@ -45,7 +45,7 @@ describe('EventOrGroupTitle', function() {
     expect(component).toSnapshot();
   });
 
-  it('renders with no subtitle when `type = default`', function() {
+  it('renders with no subtitle when `type = default`', function () {
     const component = mountWithTheme(
       <EventOrGroupTitle
         data={{

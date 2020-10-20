@@ -17,7 +17,7 @@ jest.mock('app/actionCreators/modal', () => ({
   openSudo: jest.fn(),
 }));
 
-describe('OrganizationContext', function() {
+describe('OrganizationContext', function () {
   let wrapper;
   const org = TestStubs.Organization({
     teams: [TestStubs.Team()],
@@ -41,7 +41,7 @@ describe('OrganizationContext', function() {
     return wrapper;
   };
 
-  beforeEach(function() {
+  beforeEach(function () {
     MockApiClient.clearMockResponses();
     getOrgMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/',
@@ -52,7 +52,7 @@ describe('OrganizationContext', function() {
     jest.spyOn(OrganizationActionCreator, 'fetchOrganizationDetails');
   });
 
-  afterEach(async function() {
+  afterEach(async function () {
     // Ugh these stores are a pain
     // It's possible that a test still has an update action in flight
     // and caues store to update *AFTER* we reset. Attempt to flush out updates
@@ -70,7 +70,7 @@ describe('OrganizationContext', function() {
     OrganizationActionCreator.fetchOrganizationDetails.mockRestore();
   });
 
-  it('renders and fetches org', async function() {
+  it('renders and fetches org', async function () {
     wrapper = createWrapper();
     // await dispatching the action to org store
     await tick();
@@ -95,7 +95,7 @@ describe('OrganizationContext', function() {
     );
   });
 
-  it('fetches new org when router params change', async function() {
+  it('fetches new org when router params change', async function () {
     wrapper = createWrapper();
     await tick();
     await tick();
@@ -111,7 +111,7 @@ describe('OrganizationContext', function() {
     expect(mock).toHaveBeenLastCalledWith('/organizations/new-slug/', expect.anything());
   });
 
-  it('shows loading error for non-superusers on 403s', async function() {
+  it('shows loading error for non-superusers on 403s', async function () {
     getOrgMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/',
       statusCode: 403,
@@ -129,7 +129,7 @@ describe('OrganizationContext', function() {
     console.error.mockRestore(); // eslint-disable-line no-console
   });
 
-  it('opens sudo modal for superusers on 403s', async function() {
+  it('opens sudo modal for superusers on 403s', async function () {
     ConfigStore.get.mockImplementation(() => ({
       isSuperuser: true,
     }));
@@ -148,7 +148,7 @@ describe('OrganizationContext', function() {
     expect(openSudo).toHaveBeenCalled();
   });
 
-  it('uses last organization from ConfigStore', async function() {
+  it('uses last organization from ConfigStore', async function () {
     getOrgMock = MockApiClient.addMockResponse({
       url: '/organizations/lastOrganization/',
       body: org,
@@ -166,7 +166,7 @@ describe('OrganizationContext', function() {
     );
   });
 
-  it('uses last organization from `organizations` prop', async function() {
+  it('uses last organization from `organizations` prop', async function () {
     MockApiClient.addMockResponse({
       url: '/organizations/foo/environments/',
       body: TestStubs.Environments(),
@@ -202,7 +202,7 @@ describe('OrganizationContext', function() {
     expect(getOrgMock).toHaveBeenLastCalledWith('/organizations/foo/', expect.anything());
   });
 
-  it('uses last organization when no orgId in URL - and fetches org details once', async function() {
+  it('uses last organization when no orgId in URL - and fetches org details once', async function () {
     ConfigStore.get.mockImplementation(() => 'my-last-org');
     getOrgMock = MockApiClient.addMockResponse({
       url: '/organizations/my-last-org/',
@@ -235,7 +235,7 @@ describe('OrganizationContext', function() {
     expect(getOrgMock).toHaveBeenCalledTimes(1);
   });
 
-  it('fetches org details only once if organizations loading store changes', async function() {
+  it('fetches org details only once if organizations loading store changes', async function () {
     wrapper = createWrapper({
       params: {orgId: 'org-slug'},
       organizationsLoading: true,

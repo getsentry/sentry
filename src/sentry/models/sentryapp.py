@@ -119,6 +119,11 @@ class SentryApp(ParanoidModel, HasApiScopes):
     date_updated = models.DateTimeField(default=timezone.now)
     date_published = models.DateTimeField(null=True, blank=True)
 
+    creator_user = FlexibleForeignKey(
+        "sentry.User", null=True, on_delete=models.SET_NULL, db_constraint=False
+    )
+    creator_label = models.TextField(null=True)
+
     class Meta:
         app_label = "sentry"
         db_table = "sentry_sentryapp"

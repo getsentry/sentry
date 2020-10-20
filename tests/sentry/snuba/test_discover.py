@@ -757,8 +757,23 @@ class QueryTransformTest(TestCase):
             selected_columns=["transaction"],
             aggregations=[
                 [
-                    "quantileIf(0.50)(duration,and(greaterOrEquals(timestamp,toDateTime('2020-05-02T13:45:01')),less(timestamp,toDateTime('2020-05-02T14:45:01'))))",
-                    None,
+                    "quantileIf(0.50)",
+                    [
+                        "duration",
+                        [
+                            "and",
+                            [
+                                [
+                                    "lessOrEquals",
+                                    [["toDateTime", ["'2020-05-02T13:45:01'"]], "timestamp"],
+                                ],
+                                [
+                                    "greater",
+                                    [["toDateTime", ["'2020-05-02T14:45:01'"]], "timestamp"],
+                                ],
+                            ],
+                        ],
+                    ],
                     "percentile_range_1",
                 ]
             ],
@@ -794,8 +809,23 @@ class QueryTransformTest(TestCase):
             selected_columns=["transaction"],
             aggregations=[
                 [
-                    "avgIf(duration,and(greaterOrEquals(timestamp,toDateTime('2020-05-02T13:45:01')),less(timestamp,toDateTime('2020-05-02T14:45:01'))))",
-                    None,
+                    "avgIf",
+                    [
+                        "duration",
+                        [
+                            "and",
+                            [
+                                [
+                                    "lessOrEquals",
+                                    [["toDateTime", ["'2020-05-02T13:45:01'"]], "timestamp"],
+                                ],
+                                [
+                                    "greater",
+                                    [["toDateTime", ["'2020-05-02T14:45:01'"]], "timestamp"],
+                                ],
+                            ],
+                        ],
+                    ],
                     "avg_range_1",
                 ]
             ],
@@ -831,8 +861,35 @@ class QueryTransformTest(TestCase):
             selected_columns=["transaction"],
             aggregations=[
                 [
-                    "uniqIf(user,and(greater(duration,1200),and(greaterOrEquals(timestamp,toDateTime('2020-05-02T13:45:01')),less(timestamp,toDateTime('2020-05-02T14:45:01')))))",
-                    None,
+                    "uniqIf",
+                    [
+                        "user",
+                        [
+                            "and",
+                            [
+                                ["greater", ["duration", 1200]],
+                                [
+                                    "and",
+                                    [
+                                        [
+                                            "lessOrEquals",
+                                            [
+                                                ["toDateTime", ["'2020-05-02T13:45:01'"]],
+                                                "timestamp",
+                                            ],
+                                        ],
+                                        [
+                                            "greater",
+                                            [
+                                                ["toDateTime", ["'2020-05-02T14:45:01'"]],
+                                                "timestamp",
+                                            ],
+                                        ],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
                     "user_misery_range_1",
                 ]
             ],
@@ -1355,6 +1412,106 @@ class QueryTransformTest(TestCase):
             )
 
     @patch("sentry.snuba.discover.raw_query")
+    def test_aggregate_condition_missing_with_auto(self, mock_query):
+        mock_query.return_value = {
+            "meta": [{"name": "transaction"}, {"name": "duration"}],
+            "data": [{"transaction": "api.do_things", "duration": 200}],
+        }
+        start_time = before_now(minutes=10)
+        end_time = before_now(seconds=1)
+
+        with pytest.raises(InvalidSearchQuery):
+            discover.query(
+                selected_columns=["transaction"],
+                query="http.method:GET max(time):>5",
+                params={"project_id": [self.project.id], "start": start_time, "end": end_time},
+                use_aggregate_conditions=True,
+                auto_aggregations=True,
+            )
+
+    @patch("sentry.snuba.discover.raw_query")
+    def test_no_aggregate_conditions_with_auto(self, mock_query):
+        mock_query.return_value = {
+            "meta": [{"name": "transaction"}, {"name": "duration"}],
+            "data": [{"transaction": "api.do_things", "duration": 200}],
+        }
+        start_time = before_now(minutes=10)
+        end_time = before_now(seconds=1)
+
+        with pytest.raises(AssertionError):
+            discover.query(
+                selected_columns=["transaction"],
+                query="http.method:GET max(time):>5",
+                params={"project_id": [self.project.id], "start": start_time, "end": end_time},
+                use_aggregate_conditions=False,
+                auto_aggregations=True,
+            )
+
+    @patch("sentry.snuba.discover.raw_query")
+    def test_auto_aggregation(self, mock_query):
+        mock_query.return_value = {
+            "meta": [{"name": "transaction"}, {"name": "duration"}],
+            "data": [{"transaction": "api.do_things", "duration": 200}],
+        }
+        start_time = before_now(minutes=10)
+        end_time = before_now(seconds=1)
+
+        discover.query(
+            selected_columns=["transaction", "p95()"],
+            query="http.method:GET max(time):>5",
+            params={"project_id": [self.project.id], "start": start_time, "end": end_time},
+            use_aggregate_conditions=True,
+            auto_aggregations=True,
+        )
+        mock_query.assert_called_with(
+            selected_columns=["transaction"],
+            aggregations=[["quantile(0.95)", "duration", "p95"], ["max", "time", "max_time"]],
+            filter_keys={"project_id": [self.project.id]},
+            dataset=Dataset.Discover,
+            groupby=["transaction"],
+            conditions=[["http_method", "=", "GET"]],
+            start=start_time,
+            end=end_time,
+            orderby=None,
+            having=[["max_time", ">", 5.0]],
+            limit=50,
+            offset=None,
+            referrer=None,
+        )
+
+    @patch("sentry.snuba.discover.raw_query")
+    def test_auto_aggregation_with_boolean_conditions(self, mock_query):
+        mock_query.return_value = {
+            "meta": [{"name": "transaction"}, {"name": "duration"}],
+            "data": [{"transaction": "api.do_things", "duration": 200}],
+        }
+        start_time = before_now(minutes=10)
+        end_time = before_now(seconds=1)
+
+        discover.query(
+            selected_columns=["transaction", "min(time)"],
+            query="max(time):>5 AND min(time):<10",
+            params={"project_id": [self.project.id], "start": start_time, "end": end_time},
+            use_aggregate_conditions=True,
+            auto_aggregations=True,
+        )
+        mock_query.assert_called_with(
+            selected_columns=["transaction"],
+            aggregations=[["min", "time", "min_time"], ["max", "time", "max_time"]],
+            filter_keys={"project_id": [self.project.id]},
+            dataset=Dataset.Discover,
+            groupby=["transaction"],
+            conditions=[],
+            start=start_time,
+            end=end_time,
+            orderby=None,
+            having=[["max_time", ">", 5.0], ["min_time", "<", 10.0]],
+            limit=50,
+            offset=None,
+            referrer=None,
+        )
+
+    @patch("sentry.snuba.discover.raw_query")
     def test_function_conditions(self, mock_query):
         mock_query.return_value = {
             "meta": [{"name": "transaction"}, {"name": "percentile_transaction_duration_0_75"}],
@@ -1738,6 +1895,602 @@ class QueryTransformTest(TestCase):
         assert len(results["data"]) == 11
         assert results["data"][-1]["histogram_transaction_duration_10"] == 64733000000
         assert results["data"][-1]["count"] == 1
+
+    @patch("sentry.snuba.discover.raw_query")
+    def test_measurements_histogram_min_max(self, mock_query):
+        # no rows returned from snuba
+        mock_query.side_effect = [{"meta": [], "data": []}]
+        values = discover.find_measurements_min_max(
+            ["foo"], None, None, "", {"project_id": [self.project.id]}
+        )
+        assert values == (None, None)
+
+        # more than 2 rows returned snuba
+        mock_query.side_effect = [{"meta": [], "data": [{}, {}]}]
+        values = discover.find_measurements_min_max(
+            ["foo"], None, None, "", {"project_id": [self.project.id]}
+        )
+        assert values == (None, None)
+
+        # None rows are returned from snuba
+        mock_query.side_effect = [
+            {
+                "meta": [{"name": "min_measurements_foo"}, {"name": "max_measurements_foo"}],
+                "data": [{"min_measurements_foo": None, "max_measurements_foo": None}],
+            },
+        ]
+        values = discover.find_measurements_min_max(
+            ["foo"], None, None, "", {"project_id": [self.project.id]}
+        )
+        assert values == (None, None)
+
+        # use the given min/max
+        values = discover.find_measurements_min_max(
+            ["foo"], 1, 2, "", {"project_id": [self.project.id]}
+        )
+        assert values == (1, 2)
+
+        # use the given min, but query for max
+        mock_query.side_effect = [
+            {"meta": [{"name": "max_measurements_foo"}], "data": [{"max_measurements_foo": 3.45}]},
+        ]
+        values = discover.find_measurements_min_max(
+            ["foo"], 1.23, None, "", {"project_id": [self.project.id]}
+        )
+        assert values == (1.23, 3.45)
+
+        # use the given max, but query for min
+        mock_query.side_effect = [
+            {"meta": [{"name": "min_measurements_foo"}], "data": [{"min_measurements_foo": 1.23}]},
+        ]
+        values = discover.find_measurements_min_max(
+            ["foo"], None, 3.45, "", {"project_id": [self.project.id]}
+        )
+        assert values == (1.23, 3.45)
+
+        # single min/max returned from snuba
+        mock_query.side_effect = [
+            {
+                "meta": [{"name": "min_measurements_foo"}, {"name": "max_measurements_foo"}],
+                "data": [{"min_measurements_foo": 1.23, "max_measurements_foo": 3.45}],
+            },
+        ]
+        values = discover.find_measurements_min_max(
+            ["foo"], None, None, "", {"project_id": [self.project.id]}
+        )
+        assert values == (1.23, 3.45)
+
+        # multiple min/max returned from snuba
+        mock_query.side_effect = [
+            {
+                "meta": [
+                    {"name": "min_measurements_foo"},
+                    {"name": "min_measurements_bar"},
+                    {"name": "min_measurements_baz"},
+                    {"name": "max_measurements_foo"},
+                    {"name": "max_measurements_bar"},
+                    {"name": "max_measurements_baz"},
+                ],
+                "data": [
+                    {
+                        "min_measurements_foo": 1.23,
+                        "min_measurements_bar": 1.34,
+                        "min_measurements_baz": 1.45,
+                        "max_measurements_foo": 3.45,
+                        "max_measurements_bar": 3.56,
+                        "max_measurements_baz": 3.67,
+                    }
+                ],
+            },
+        ]
+        values = discover.find_measurements_min_max(
+            ["foo", "bar", "baz"], None, None, "", {"project_id": [self.project.id]}
+        )
+        assert values == (1.23, 3.67)
+
+        # multiple min/max with some Nones returned from snuba
+        mock_query.side_effect = [
+            {
+                "meta": [
+                    {"name": "min_measurements_foo"},
+                    {"name": "min_measurements_bar"},
+                    {"name": "min_measurements_baz"},
+                    {"name": "max_measurements_foo"},
+                    {"name": "max_measurements_bar"},
+                    {"name": "max_measurements_baz"},
+                ],
+                "data": [
+                    {
+                        "min_measurements_foo": 1.23,
+                        "min_measurements_bar": None,
+                        "min_measurements_baz": 1.45,
+                        "max_measurements_foo": 3.45,
+                        "max_measurements_bar": None,
+                        "max_measurements_baz": 3.67,
+                    }
+                ],
+            },
+        ]
+        values = discover.find_measurements_min_max(
+            ["foo", "bar", "baz"], None, None, "", {"project_id": [self.project.id]}
+        )
+        assert values == (1.23, 3.67)
+
+    def test_measurements_histogram_params(self):
+        # min and max is None
+        assert discover.find_measurements_histogram_params(1, None, None, 1) == (1, 0, 1)
+        # min is None
+        assert discover.find_measurements_histogram_params(1, None, 1, 10) == (1, 0, 10)
+        # max is None
+        assert discover.find_measurements_histogram_params(1, 1, None, 100) == (1, 0, 100)
+
+        assert discover.find_measurements_histogram_params(10, 0, 9, 1) == (1, 0, 1)
+        assert discover.find_measurements_histogram_params(10, 0, 10, 1) == (2, 0, 1)
+        assert discover.find_measurements_histogram_params(10, 0, 99, 1) == (10, 0, 1)
+        assert discover.find_measurements_histogram_params(10, 0, 100, 1) == (11, 0, 1)
+        assert discover.find_measurements_histogram_params(5, 10, 19, 10) == (19, 100, 10)
+        assert discover.find_measurements_histogram_params(5, 10, 19.9, 10) == (20, 100, 10)
+        assert discover.find_measurements_histogram_params(10, 10, 20, 1) == (2, 10, 1)
+        assert discover.find_measurements_histogram_params(10, 10, 20, 10) == (11, 100, 10)
+        assert discover.find_measurements_histogram_params(10, 10, 20, 100) == (101, 1000, 100)
+
+    def test_measurements_histogram_normalization_empty(self):
+        results = {
+            "meta": [
+                {"name": "array_join_measurements_key", "type": "String"},
+                {"name": "measurements_histogram_1_0_1", "type": "Float64"},
+                {"name": "count", "type": "UInt64"},
+            ],
+            "data": [],
+        }
+        normalized_results = discover.normalize_measurements_histogram(
+            ["foo"], 3, "array_join(measurements_key)", discover.HistogramParams(1, 0, 1), results,
+        )
+        assert normalized_results == {
+            "meta": [
+                {"name": "key", "type": "String"},
+                {"name": "bin", "type": "Float64"},
+                {"name": "count", "type": "UInt64"},
+            ],
+            "data": [
+                {"key": "foo", "bin": 0, "count": 0},
+                {"key": "foo", "bin": 1, "count": 0},
+                {"key": "foo", "bin": 2, "count": 0},
+            ],
+        }
+
+    def test_measurements_histogram_normalization_empty_multiple(self):
+        results = {
+            "meta": [
+                {"name": "array_join_measurements_key", "type": "String"},
+                {"name": "measurements_histogram_1_0_1", "type": "Float64"},
+                {"name": "count", "type": "UInt64"},
+            ],
+            "data": [],
+        }
+        normalized_results = discover.normalize_measurements_histogram(
+            ["bar", "foo"],
+            3,
+            "array_join(measurements_key)",
+            discover.HistogramParams(1, 0, 1),
+            results,
+        )
+        assert normalized_results == {
+            "meta": [
+                {"name": "key", "type": "String"},
+                {"name": "bin", "type": "Float64"},
+                {"name": "count", "type": "UInt64"},
+            ],
+            "data": [
+                {"key": "bar", "bin": 0, "count": 0},
+                {"key": "foo", "bin": 0, "count": 0},
+                {"key": "bar", "bin": 1, "count": 0},
+                {"key": "foo", "bin": 1, "count": 0},
+                {"key": "bar", "bin": 2, "count": 0},
+                {"key": "foo", "bin": 2, "count": 0},
+            ],
+        }
+
+    def test_measurements_histogram_normalization_full(self):
+        results = {
+            "meta": [
+                {"name": "array_join_measurements_key", "type": "String"},
+                {"name": "measurements_histogram_1_0_1", "type": "Float64"},
+                {"name": "count", "type": "UInt64"},
+            ],
+            "data": [
+                {
+                    "array_join_measurements_key": "foo",
+                    "measurements_histogram_1_0_1": 0,
+                    "count": 3,
+                },
+                {
+                    "array_join_measurements_key": "foo",
+                    "measurements_histogram_1_0_1": 1,
+                    "count": 2,
+                },
+                {
+                    "array_join_measurements_key": "foo",
+                    "measurements_histogram_1_0_1": 2,
+                    "count": 1,
+                },
+            ],
+        }
+        normalized_results = discover.normalize_measurements_histogram(
+            ["foo"], 3, "array_join(measurements_key)", discover.HistogramParams(1, 0, 1), results,
+        )
+        assert normalized_results == {
+            "meta": [
+                {"name": "key", "type": "String"},
+                {"name": "bin", "type": "Float64"},
+                {"name": "count", "type": "UInt64"},
+            ],
+            "data": [
+                {"key": "foo", "bin": 0, "count": 3},
+                {"key": "foo", "bin": 1, "count": 2},
+                {"key": "foo", "bin": 2, "count": 1},
+            ],
+        }
+
+    def test_measurements_histogram_normalization_full_multiple(self):
+        results = {
+            "meta": [
+                {"name": "array_join_measurements_key", "type": "String"},
+                {"name": "measurements_histogram_1_0_1", "type": "Float64"},
+                {"name": "count", "type": "UInt64"},
+            ],
+            "data": [
+                {
+                    "array_join_measurements_key": "bar",
+                    "measurements_histogram_1_0_1": 0,
+                    "count": 1,
+                },
+                {
+                    "array_join_measurements_key": "foo",
+                    "measurements_histogram_1_0_1": 0,
+                    "count": 3,
+                },
+                {
+                    "array_join_measurements_key": "bar",
+                    "measurements_histogram_1_0_1": 1,
+                    "count": 2,
+                },
+                {
+                    "array_join_measurements_key": "foo",
+                    "measurements_histogram_1_0_1": 1,
+                    "count": 2,
+                },
+                {
+                    "array_join_measurements_key": "bar",
+                    "measurements_histogram_1_0_1": 2,
+                    "count": 3,
+                },
+                {
+                    "array_join_measurements_key": "foo",
+                    "measurements_histogram_1_0_1": 2,
+                    "count": 1,
+                },
+            ],
+        }
+        normalized_results = discover.normalize_measurements_histogram(
+            ["bar", "foo"],
+            3,
+            "array_join(measurements_key)",
+            discover.HistogramParams(1, 0, 1),
+            results,
+        )
+        assert normalized_results == {
+            "meta": [
+                {"name": "key", "type": "String"},
+                {"name": "bin", "type": "Float64"},
+                {"name": "count", "type": "UInt64"},
+            ],
+            "data": [
+                {"key": "bar", "bin": 0, "count": 1},
+                {"key": "foo", "bin": 0, "count": 3},
+                {"key": "bar", "bin": 1, "count": 2},
+                {"key": "foo", "bin": 1, "count": 2},
+                {"key": "bar", "bin": 2, "count": 3},
+                {"key": "foo", "bin": 2, "count": 1},
+            ],
+        }
+
+    def test_measurements_histogram_normalization_partial(self):
+        results = {
+            "meta": [
+                {"name": "array_join_measurements_key", "type": "String"},
+                {"name": "measurements_histogram_1_0_1", "type": "Float64"},
+                {"name": "count", "type": "UInt64"},
+            ],
+            "data": [
+                {
+                    "array_join_measurements_key": "foo",
+                    "measurements_histogram_1_0_1": 0,
+                    "count": 3,
+                },
+            ],
+        }
+        normalized_results = discover.normalize_measurements_histogram(
+            ["foo"], 3, "array_join(measurements_key)", discover.HistogramParams(1, 0, 1), results,
+        )
+        assert normalized_results == {
+            "meta": [
+                {"name": "key", "type": "String"},
+                {"name": "bin", "type": "Float64"},
+                {"name": "count", "type": "UInt64"},
+            ],
+            "data": [
+                {"key": "foo", "bin": 0, "count": 3},
+                {"key": "foo", "bin": 1, "count": 0},
+                {"key": "foo", "bin": 2, "count": 0},
+            ],
+        }
+
+    def test_measurements_histogram_normalization_partial_multiple(self):
+        results = {
+            "meta": [
+                {"name": "array_join_measurements_key", "type": "String"},
+                {"name": "measurements_histogram_1_0_1", "type": "Float64"},
+                {"name": "count", "type": "UInt64"},
+            ],
+            "data": [
+                {
+                    "array_join_measurements_key": "foo",
+                    "measurements_histogram_1_0_1": 0,
+                    "count": 3,
+                },
+                {
+                    "array_join_measurements_key": "bar",
+                    "measurements_histogram_1_0_1": 2,
+                    "count": 3,
+                },
+            ],
+        }
+        normalized_results = discover.normalize_measurements_histogram(
+            ["bar", "foo"],
+            3,
+            "array_join(measurements_key)",
+            discover.HistogramParams(1, 0, 1),
+            results,
+        )
+        assert normalized_results == {
+            "meta": [
+                {"name": "key", "type": "String"},
+                {"name": "bin", "type": "Float64"},
+                {"name": "count", "type": "UInt64"},
+            ],
+            "data": [
+                {"key": "bar", "bin": 0, "count": 0},
+                {"key": "foo", "bin": 0, "count": 3},
+                {"key": "bar", "bin": 1, "count": 0},
+                {"key": "foo", "bin": 1, "count": 0},
+                {"key": "bar", "bin": 2, "count": 3},
+                {"key": "foo", "bin": 2, "count": 0},
+            ],
+        }
+
+    def test_measurements_histogram_normalization_ignore_unexpected_rows(self):
+        results = {
+            "meta": [
+                {"name": "array_join_measurements_key", "type": "String"},
+                {"name": "measurements_histogram_1_0_1", "type": "Float64"},
+                {"name": "count", "type": "UInt64"},
+            ],
+            "data": [
+                {
+                    "array_join_measurements_key": "foo",
+                    "measurements_histogram_1_0_1": 0,
+                    "count": 3,
+                },
+                # this row shouldn't be used because "baz" isn't an expected measurement
+                {
+                    "array_join_measurements_key": "baz",
+                    "measurements_histogram_1_0_1": 1,
+                    "count": 3,
+                },
+                {
+                    "array_join_measurements_key": "bar",
+                    "measurements_histogram_1_0_1": 2,
+                    "count": 3,
+                },
+                # this row shouldn't be used because 3 isn't an expected bin
+                {
+                    "array_join_measurements_key": "bar",
+                    "measurements_histogram_1_0_1": 3,
+                    "count": 3,
+                },
+            ],
+        }
+        normalized_results = discover.normalize_measurements_histogram(
+            ["bar", "foo"],
+            3,
+            "array_join(measurements_key)",
+            discover.HistogramParams(1, 0, 1),
+            results,
+        )
+        assert normalized_results == {
+            "meta": [
+                {"name": "key", "type": "String"},
+                {"name": "bin", "type": "Float64"},
+                {"name": "count", "type": "UInt64"},
+            ],
+            "data": [
+                {"key": "bar", "bin": 0, "count": 0},
+                {"key": "foo", "bin": 0, "count": 3},
+                {"key": "bar", "bin": 1, "count": 0},
+                {"key": "foo", "bin": 1, "count": 0},
+                {"key": "bar", "bin": 2, "count": 3},
+                {"key": "foo", "bin": 2, "count": 0},
+            ],
+        }
+
+    def test_measurements_histogram_normalization_adjust_for_precision(self):
+        results = {
+            "meta": [
+                {"name": "array_join_measurements_key", "type": "String"},
+                {"name": "measurements_histogram_25_0_100", "type": "Float64"},
+                {"name": "count", "type": "UInt64"},
+            ],
+            "data": [
+                {
+                    "array_join_measurements_key": "foo",
+                    "measurements_histogram_25_0_100": 0,
+                    "count": 3,
+                },
+                {
+                    "array_join_measurements_key": "foo",
+                    "measurements_histogram_25_0_100": 25,
+                    "count": 2,
+                },
+                {
+                    "array_join_measurements_key": "foo",
+                    "measurements_histogram_25_0_100": 50,
+                    "count": 1,
+                },
+                {
+                    "array_join_measurements_key": "foo",
+                    "measurements_histogram_25_0_100": 75,
+                    "count": 1,
+                },
+            ],
+        }
+        normalized_results = discover.normalize_measurements_histogram(
+            ["foo"],
+            4,
+            "array_join(measurements_key)",
+            discover.HistogramParams(25, 0, 100),
+            results,
+        )
+        assert normalized_results == {
+            "meta": [
+                {"name": "key", "type": "String"},
+                {"name": "bin", "type": "Float64"},
+                {"name": "count", "type": "UInt64"},
+            ],
+            "data": [
+                {"key": "foo", "bin": 0, "count": 3},
+                {"key": "foo", "bin": 0.25, "count": 2},
+                {"key": "foo", "bin": 0.50, "count": 1},
+                {"key": "foo", "bin": 0.75, "count": 1},
+            ],
+        }
+
+    @patch("sentry.snuba.discover.raw_query")
+    def test_measurements_histogram(self, mock_query):
+        mock_query.side_effect = [
+            {
+                "meta": [{"name": "min_measurements_foo"}, {"name": "max_measurements_foo"}],
+                "data": [
+                    {
+                        "min_measurements_bar": 2,
+                        "min_measurements_foo": 0,
+                        "max_measurements_bar": 2,
+                        "max_measurements_foo": 2,
+                    }
+                ],
+            },
+            {
+                "meta": [
+                    {"name": "array_join_measurements_key", "type": "String"},
+                    {"name": "measurements_histogram_1_0_1", "type": "Float64"},
+                    {"name": "count", "type": "UInt64"},
+                ],
+                "data": [
+                    {
+                        "array_join_measurements_key": "bar",
+                        "measurements_histogram_1_0_1": 0,
+                        "count": 3,
+                    },
+                    {
+                        "array_join_measurements_key": "foo",
+                        "measurements_histogram_1_0_1": 0,
+                        "count": 3,
+                    },
+                    {
+                        "array_join_measurements_key": "foo",
+                        "measurements_histogram_1_0_1": 2,
+                        "count": 1,
+                    },
+                ],
+            },
+        ]
+        results = discover.measurements_histogram_query(
+            ["bar", "foo"], "", {"project_id": [self.project.id]}, 3, 0
+        )
+        assert results == {
+            "meta": [
+                {"name": "key", "type": "String"},
+                {"name": "bin", "type": "Float64"},
+                {"name": "count", "type": "UInt64"},
+            ],
+            "data": [
+                {"key": "bar", "bin": 0, "count": 3},
+                {"key": "foo", "bin": 0, "count": 3},
+                {"key": "bar", "bin": 1, "count": 0},
+                {"key": "foo", "bin": 1, "count": 0},
+                {"key": "bar", "bin": 2, "count": 0},
+                {"key": "foo", "bin": 2, "count": 1},
+            ],
+        }
+
+    @patch("sentry.snuba.discover.raw_query")
+    def test_measurements_histogram_with_optionals(self, mock_query):
+        mock_query.side_effect = [
+            {
+                "meta": [
+                    {"name": "array_join_measurements_key", "type": "String"},
+                    {"name": "measurements_histogram_5_5_10", "type": "Float64"},
+                    {"name": "count", "type": "UInt64"},
+                ],
+                "data": [
+                    # this row shouldn't be used because it lies outside the boundary
+                    {
+                        "array_join_measurements_key": "foo",
+                        "measurements_histogram_5_5_10": 0,
+                        "count": 1,
+                    },
+                    {
+                        "array_join_measurements_key": "foo",
+                        "measurements_histogram_5_5_10": 5,
+                        "count": 3,
+                    },
+                    {
+                        "array_join_measurements_key": "bar",
+                        "measurements_histogram_5_5_10": 10,
+                        "count": 2,
+                    },
+                    {
+                        "array_join_measurements_key": "foo",
+                        "measurements_histogram_5_5_10": 15,
+                        "count": 1,
+                    },
+                    # this row shouldn't be used because it lies outside the boundary
+                    {
+                        "array_join_measurements_key": "bar",
+                        "measurements_histogram_5_5_10": 30,
+                        "count": 2,
+                    },
+                ],
+            },
+        ]
+        results = discover.measurements_histogram_query(
+            ["bar", "foo"], "", {"project_id": [self.project.id]}, 3, 1, 0.5, 2
+        )
+        assert results == {
+            "meta": [
+                {"name": "key", "type": "String"},
+                {"name": "bin", "type": "Float64"},
+                {"name": "count", "type": "UInt64"},
+            ],
+            "data": [
+                {"key": "bar", "bin": 0.5, "count": 0},
+                {"key": "foo", "bin": 0.5, "count": 3},
+                {"key": "bar", "bin": 1.0, "count": 2},
+                {"key": "foo", "bin": 1.0, "count": 0},
+                {"key": "bar", "bin": 1.5, "count": 0},
+                {"key": "foo", "bin": 1.5, "count": 1},
+            ],
+        }
 
 
 class TimeseriesQueryTest(SnubaTestCase, TestCase):

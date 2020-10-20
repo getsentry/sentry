@@ -14,6 +14,7 @@ from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
 
+from sentry.utils import json
 from sentry.utils.samples import load_data
 from sentry.utils.compat.mock import patch
 from sentry.utils.compat import zip
@@ -25,6 +26,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         super(OrganizationEventsV2EndpointTest, self).setUp()
         self.min_ago = iso_format(before_now(minutes=1))
         self.two_min_ago = iso_format(before_now(minutes=2))
+        self.transaction_data = load_data("transaction", timestamp=before_now(minutes=1))
 
     def do_request(self, query, features=None):
         if features is None:
@@ -517,6 +519,49 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             assert 2 == len(response.data["data"])
             assert [None] == response.data["data"][0]["error.handled"]
             assert [1] == response.data["data"][1]["error.handled"]
+
+    def test_error_unhandled_condition(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+        prototype = load_data("android-ndk")
+        events = (
+            ("a" * 32, "not handled", False),
+            ("b" * 32, "was handled", True),
+            ("c" * 32, "undefined", None),
+        )
+        for event in events:
+            prototype["event_id"] = event[0]
+            prototype["message"] = event[1]
+            prototype["exception"]["values"][0]["value"] = event[1]
+            prototype["exception"]["values"][0]["mechanism"]["handled"] = event[2]
+            prototype["timestamp"] = self.two_min_ago
+            self.store_event(data=prototype, project_id=project.id)
+
+        with self.feature("organizations:discover-basic"):
+            query = {
+                "field": ["message", "error.unhandled", "error.handled"],
+                "query": "error.unhandled:true",
+                "orderby": "message",
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.data
+            assert 1 == len(response.data["data"])
+            assert [0] == response.data["data"][0]["error.handled"]
+            assert 1 == response.data["data"][0]["error.unhandled"]
+
+        with self.feature("organizations:discover-basic"):
+            query = {
+                "field": ["message", "error.handled", "error.unhandled"],
+                "query": "error.unhandled:false",
+                "orderby": "message",
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.data
+            assert 2 == len(response.data["data"])
+            assert [None] == response.data["data"][0]["error.handled"]
+            assert 0 == response.data["data"][0]["error.unhandled"]
+            assert [1] == response.data["data"][1]["error.handled"]
+            assert 0 == response.data["data"][1]["error.unhandled"]
 
     def test_implicit_groupby(self):
         project = self.create_project()
@@ -2474,3 +2519,173 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                     response.data["detail"]
                     == "You can view up to 20 fields at a time. Please delete some and try again."
                 )
+
+    def test_count_at_least_query(self):
+        self.store_event(self.transaction_data, self.project.id)
+
+        response = self.do_request({"field": "count_at_least(measurements.fcp, {})".format(0)})
+        assert response.status_code == 200
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["count_at_least_measurements_fcp_0"] == 1
+
+        # a value that's a little bigger than the stored fcp
+        fcp = int(self.transaction_data["measurements"]["fcp"]["value"] + 1)
+        response = self.do_request({"field": "count_at_least(measurements.fcp, {})".format(fcp)})
+        assert response.status_code == 200
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["count_at_least_measurements_fcp_{}".format(fcp)] == 0
+
+    def test_measurements_query(self):
+        self.store_event(self.transaction_data, self.project.id)
+        query = {
+            "field": [
+                "measurements.fp",
+                "measurements.fcp",
+                "measurements.lcp",
+                "measurements.fid",
+            ]
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        for field in query["field"]:
+            measure = field.split(".", 1)[1]
+            assert (
+                response.data["data"][0][field]
+                == self.transaction_data["measurements"][measure]["value"]
+            )
+
+        query = {
+            "field": [
+                "measurements.fP",
+                "measurements.Fcp",
+                "measurements.LcP",
+                "measurements.FID",
+            ]
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        for field in query["field"]:
+            measure = field.split(".", 1)[1].lower()
+            assert (
+                response.data["data"][0][field]
+                == self.transaction_data["measurements"][measure]["value"]
+            )
+
+    def test_measurements_aggregations(self):
+        self.store_event(self.transaction_data, self.project.id)
+
+        # should try all the potential aggregates
+        query = {
+            "field": [
+                "percentile(measurements.fcp, 0.5)",
+                "count_unique(measurements.fcp)",
+                "min(measurements.fcp)",
+                "max(measurements.fcp)",
+                "avg(measurements.fcp)",
+                "sum(measurements.fcp)",
+            ],
+        }
+        response = self.do_request(query)
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert (
+            response.data["data"][0]["percentile_measurements_fcp_0_5"]
+            == self.transaction_data["measurements"]["fcp"]["value"]
+        )
+        assert response.data["data"][0]["count_unique_measurements_fcp"] == 1
+        assert (
+            response.data["data"][0]["min_measurements_fcp"]
+            == self.transaction_data["measurements"]["fcp"]["value"]
+        )
+        assert (
+            response.data["data"][0]["max_measurements_fcp"]
+            == self.transaction_data["measurements"]["fcp"]["value"]
+        )
+        assert (
+            response.data["data"][0]["avg_measurements_fcp"]
+            == self.transaction_data["measurements"]["fcp"]["value"]
+        )
+        assert (
+            response.data["data"][0]["sum_measurements_fcp"]
+            == self.transaction_data["measurements"]["fcp"]["value"]
+        )
+
+    def get_measurement_condition_response(self, query_str, field):
+        query = {
+            "field": ["transaction", "count()"] + (field if field else []),
+            "query": query_str,
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        return response
+
+    def assert_measurement_condition_without_results(self, query_str, field=None):
+        response = self.get_measurement_condition_response(query_str, field)
+        assert len(response.data["data"]) == 0
+
+    def assert_measurement_condition_with_results(self, query_str, field=None):
+        response = self.get_measurement_condition_response(query_str, field)
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["transaction"] == self.transaction_data["metadata"]["title"]
+        assert response.data["data"][0]["count"] == 1
+
+    def test_measurements_conditions(self):
+        self.store_event(self.transaction_data, self.project.id)
+
+        fcp = self.transaction_data["measurements"]["fcp"]["value"]
+
+        # equality condition
+        # We use json dumps here to ensure precision when converting from float to str
+        # This is necessary because equality on floating point values need to be precise
+        self.assert_measurement_condition_with_results(
+            "measurements.fcp:{}".format(json.dumps(fcp))
+        )
+
+        # greater than condition
+        self.assert_measurement_condition_with_results("measurements.fcp:>{}".format(fcp - 1))
+        self.assert_measurement_condition_without_results("measurements.fcp:>{}".format(fcp + 1))
+
+        # less than condition
+        self.assert_measurement_condition_with_results("measurements.fcp:<{}".format(fcp + 1))
+        self.assert_measurement_condition_without_results("measurements.fcp:<{}".format(fcp - 1))
+
+        # has condition
+        self.assert_measurement_condition_with_results("has:measurements.fcp")
+        self.assert_measurement_condition_without_results("!has:measurements.fcp")
+
+    def test_measurements_aggregation_conditions(self):
+        self.store_event(self.transaction_data, self.project.id)
+
+        fcp = self.transaction_data["measurements"]["fcp"]["value"]
+        functions = [
+            "percentile(measurements.fcp, 0.5)",
+            "min(measurements.fcp)",
+            "max(measurements.fcp)",
+            "avg(measurements.fcp)",
+            "sum(measurements.fcp)",
+        ]
+
+        for function in functions:
+            self.assert_measurement_condition_with_results(
+                "{}:>{}".format(function, fcp - 1), field=[function]
+            )
+            self.assert_measurement_condition_without_results(
+                "{}:>{}".format(function, fcp + 1), field=[function]
+            )
+            self.assert_measurement_condition_with_results(
+                "{}:<{}".format(function, fcp + 1), field=[function]
+            )
+            self.assert_measurement_condition_without_results(
+                "{}:<{}".format(function, fcp - 1), field=[function]
+            )
+
+        count_unique = "count_unique(measurements.fcp)"
+        self.assert_measurement_condition_with_results(
+            "{}:1".format(count_unique), field=[count_unique]
+        )
+        self.assert_measurement_condition_without_results(
+            "{}:0".format(count_unique), field=[count_unique]
+        )

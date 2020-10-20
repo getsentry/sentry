@@ -36,7 +36,7 @@ class Rule(Model):
     data = GzippedDictField()
     status = BoundedPositiveIntegerField(
         default=RuleStatus.ACTIVE,
-        choices=((RuleStatus.ACTIVE, "Active"), (RuleStatus.INACTIVE, "Inactive")),
+        choices=((RuleStatus.ACTIVE, u"Active"), (RuleStatus.INACTIVE, u"Inactive")),
         db_index=True,
     )
 

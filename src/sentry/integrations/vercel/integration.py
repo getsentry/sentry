@@ -203,7 +203,11 @@ class VercelIntegration(IntegrationInstallation):
         # data = {"project_mappings": [[sentry_project_id, vercel_project_id]]}
         vercel_client = self.get_client()
         config = self.org_integration.config
-        new_mappings = data["project_mappings"]
+        try:
+            new_mappings = data["project_mappings"]
+        except KeyError:
+            return ValidationError("Failed to update configuration.")
+
         old_mappings = config.get("project_mappings") or []
 
         for mapping in new_mappings:

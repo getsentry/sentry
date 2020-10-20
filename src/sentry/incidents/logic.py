@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from copy import deepcopy
-from datetime import timedelta
+from datetime import datetime, timedelta
 from itertools import chain
 
 import six
@@ -9,7 +9,7 @@ from django.db import transaction
 from django.db.models.signals import post_save
 from django.utils import timezone
 
-from sentry import analytics
+from sentry import analytics, quotas
 from sentry.api.event_search import get_filter, resolve_field
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
 from sentry.incidents import tasks
@@ -65,6 +65,10 @@ class AlreadyDeletedError(Exception):
 
 
 class InvalidTriggerActionError(Exception):
+    pass
+
+
+class ChannelLookupTimeoutError(Exception):
     pass
 
 
@@ -302,10 +306,22 @@ def create_incident_snapshot(incident, windowed_stats=False):
     and total events, plus a time series snapshot of the entire incident.
     """
     assert incident.status == IncidentStatus.CLOSED.value
+    if IncidentSnapshot.objects.filter(incident=incident).exists():
+        return None
+
+    start, end = calculate_incident_time_range(incident, windowed_stats=windowed_stats)
+    if start == end:
+        return IncidentSnapshot.objects.create(
+            incident=incident,
+            event_stats_snapshot=TimeSeriesSnapshot.objects.create(
+                start=start, end=end, values=[], period=incident.alert_rule.snuba_query.time_window,
+            ),
+            unique_users=0,
+            total_events=0,
+        )
 
     event_stats_snapshot = create_event_stat_snapshot(incident, windowed_stats=windowed_stats)
     aggregates = get_incident_aggregates(incident)
-
     return IncidentSnapshot.objects.create(
         incident=incident,
         event_stats_snapshot=event_stats_snapshot,
@@ -321,6 +337,7 @@ def create_event_stat_snapshot(incident, windowed_stats=False):
 
     event_stats = get_incident_event_stats(incident, windowed_stats=windowed_stats)
     start, end = calculate_incident_time_range(incident, windowed_stats=windowed_stats)
+
     return TimeSeriesSnapshot.objects.create(
         start=start,
         end=end,
@@ -347,6 +364,7 @@ def build_incident_query_params(incident, start=None, end=None, windowed_stats=F
         snuba_query.query,
         snuba_query.aggregate,
         snuba_query.environment,
+        snuba_query.event_types,
         params=params,
     )
 
@@ -386,6 +404,13 @@ def calculate_incident_time_range(incident, start=None, end=None, windowed_stats
             end = min(end, latest_end_date)
 
             start = end - timedelta(seconds=time_window * WINDOWED_STATS_DATA_POINTS)
+
+    retention = quotas.get_event_retention(organization=incident.organization) or 90
+    start = max(
+        start.replace(tzinfo=timezone.utc),
+        datetime.utcnow().replace(tzinfo=timezone.utc) - timedelta(days=retention),
+    )
+    end = max(start, end.replace(tzinfo=timezone.utc))
 
     return start, end
 
@@ -561,6 +586,8 @@ def create_alert_rule(
     excluded_projects=None,
     dataset=QueryDatasets.EVENTS,
     user=None,
+    event_types=None,
+    **kwargs
 ):
     """
     Creates an alert rule for an organization.
@@ -584,6 +611,7 @@ def create_alert_rule(
     :param excluded_projects: List of projects to exclude if we're using
     `include_all_projects`.
     :param dataset: The dataset that this query will be executed on
+    :param event_types: List of `EventType` that this alert will be related to
 
     :return: The created `AlertRule`
     """
@@ -599,6 +627,7 @@ def create_alert_rule(
             timedelta(minutes=time_window),
             timedelta(minutes=resolution),
             environment,
+            event_types=event_types,
         )
         alert_rule = AlertRule.objects.create(
             organization=organization,
@@ -684,6 +713,8 @@ def update_alert_rule(
     include_all_projects=None,
     excluded_projects=None,
     user=None,
+    event_types=None,
+    **kwargs
 ):
     """
     Updates an alert rule.
@@ -706,6 +737,7 @@ def update_alert_rule(
     from this organization
     :param excluded_projects: List of projects to exclude if we're using
     `include_all_projects`. Ignored otherwise.
+    :param event_types: List of `EventType` that this alert will be related to
     :return: The updated `AlertRule`
     """
     if (
@@ -736,6 +768,8 @@ def update_alert_rule(
         updated_fields["include_all_projects"] = include_all_projects
     if dataset is not None and dataset.value != alert_rule.snuba_query.dataset:
         updated_query_fields["dataset"] = dataset
+    if event_types is not None:
+        updated_query_fields["event_types"] = event_types
 
     with transaction.atomic():
         incidents = Incident.objects.filter(alert_rule=alert_rule).exists()
@@ -754,6 +788,7 @@ def update_alert_rule(
             updated_query_fields.setdefault(
                 "time_window", timedelta(seconds=snuba_query.time_window)
             )
+            updated_query_fields.setdefault("event_types", None)
             update_snuba_query(
                 alert_rule.snuba_query,
                 resolution=timedelta(minutes=DEFAULT_ALERT_RULE_RESOLUTION),
@@ -1042,7 +1077,13 @@ def get_subscriptions_from_alert_rule(alert_rule, projects):
 
 
 def create_alert_rule_trigger_action(
-    trigger, type, target_type, target_identifier=None, integration=None, sentry_app=None
+    trigger,
+    type,
+    target_type,
+    target_identifier=None,
+    integration=None,
+    sentry_app=None,
+    use_async_lookup=False,
 ):
     """
     Creates an AlertRuleTriggerAction
@@ -1055,14 +1096,17 @@ def create_alert_rule_trigger_action(
     :param sentry_app: (Optional) The Sentry App related to this action.
     :return: The created action
     """
-
     target_display = None
     if type.value in AlertRuleTriggerAction.INTEGRATION_TYPES:
         if target_type != AlertRuleTriggerAction.TargetType.SPECIFIC:
             raise InvalidTriggerActionError("Must specify specific target type")
 
         target_identifier, target_display = get_target_identifier_display_for_integration(
-            type.value, target_identifier, trigger.alert_rule.organization, integration.id
+            type.value,
+            target_identifier,
+            trigger.alert_rule.organization,
+            integration.id,
+            use_async_lookup=use_async_lookup,
         )
     elif type == AlertRuleTriggerAction.Type.SENTRY_APP:
         target_identifier, target_display = get_alert_rule_trigger_action_sentry_app(
@@ -1087,6 +1131,7 @@ def update_alert_rule_trigger_action(
     target_identifier=None,
     integration=None,
     sentry_app=None,
+    use_async_lookup=False,
 ):
     """
     Updates values on an AlertRuleTriggerAction
@@ -1115,7 +1160,11 @@ def update_alert_rule_trigger_action(
             organization = trigger_action.alert_rule_trigger.alert_rule.organization
 
             target_identifier, target_display = get_target_identifier_display_for_integration(
-                type, target_identifier, organization, integration.id
+                type,
+                target_identifier,
+                organization,
+                integration.id,
+                use_async_lookup=use_async_lookup,
             )
             updated_fields["target_display"] = target_display
 
@@ -1155,13 +1204,21 @@ def get_target_identifier_display_for_integration(type, target_value, *args, **k
     return target_identifier, target_value
 
 
-def get_alert_rule_trigger_action_slack_channel_id(name, organization, integration_id):
+def get_alert_rule_trigger_action_slack_channel_id(
+    name, organization, integration_id, use_async_lookup
+):
     from sentry.integrations.slack.utils import get_channel_id
 
     try:
-        _prefix, channel_id, timed_out = get_channel_id(organization, integration_id, name)
-    except DuplicateDisplayNameError as e:
         integration = Integration.objects.get(id=integration_id)
+    except Integration.DoesNotExist:
+        raise InvalidTriggerActionError("Slack workspace is a required field.")
+
+    try:
+        _prefix, channel_id, timed_out = get_channel_id(
+            organization, integration, name, use_async_lookup
+        )
+    except DuplicateDisplayNameError as e:
         domain = integration.metadata["domain_name"]
 
         raise InvalidTriggerActionError(
@@ -1170,8 +1227,8 @@ def get_alert_rule_trigger_action_slack_channel_id(name, organization, integrati
         )
 
     if timed_out:
-        raise InvalidTriggerActionError(
-            "Could not find channel %s. We have timed out trying to look for it. " % name
+        raise ChannelLookupTimeoutError(
+            "Could not find channel %s. We have timed out trying to look for it." % name
         )
 
     if channel_id is None:
@@ -1183,7 +1240,9 @@ def get_alert_rule_trigger_action_slack_channel_id(name, organization, integrati
     return channel_id
 
 
-def get_alert_rule_trigger_action_msteams_channel_id(name, organization, integration_id):
+def get_alert_rule_trigger_action_msteams_channel_id(
+    name, organization, integration_id, use_async_lookup=False
+):
     from sentry.integrations.msteams.utils import get_channel_id
 
     channel_id = get_channel_id(organization, integration_id, name)
@@ -1195,7 +1254,9 @@ def get_alert_rule_trigger_action_msteams_channel_id(name, organization, integra
     return channel_id
 
 
-def get_alert_rule_trigger_action_pagerduty_service(target_value, organization, integration_id):
+def get_alert_rule_trigger_action_pagerduty_service(
+    target_value, organization, integration_id, use_async_lookup=False
+):
     try:
         service = PagerDutyService.objects.get(id=target_value)
     except PagerDutyService.DoesNotExist:
@@ -1243,6 +1304,7 @@ def get_alertable_sentry_apps(organization_id, with_metric_alerts=False):
         installations__organization_id=organization_id,
         is_alertable=True,
         installations__status=SentryAppInstallationStatus.INSTALLED,
+        installations__date_deleted=None,
     )
 
     if with_metric_alerts:

@@ -28,7 +28,7 @@ class SearchBar extends React.PureComponent<Props, State> {
   static defaultProps: DefaultProps = {
     query: '',
     defaultQuery: '',
-    onSearch: function() {},
+    onSearch: function () {},
   };
 
   state = {

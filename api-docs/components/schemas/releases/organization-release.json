@@ -57,8 +57,16 @@
         "nullable": true
       },
       "lastDeploy": {
-        "$ref": "deploy.json#/Deploy",
-        "nullable": true
+        "type": "object",
+        "nullable": true,
+        "oneOf": [
+          {
+            "$ref": "deploy.json#/Deploy"
+          },
+          {
+            "$ref": "../null.json#/NullValue"
+          }
+        ]
       },
       "lastEvent": {
         "type": "string",

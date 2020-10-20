@@ -1,6 +1,6 @@
 import React from 'react';
 import {Location} from 'history';
-import * as ReactRouter from 'react-router';
+import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
@@ -8,6 +8,7 @@ import {Client} from 'app/api';
 import {t} from 'app/locale';
 import {GlobalSelection, Organization, Project} from 'app/types';
 import {loadOrganizationTags} from 'app/actionCreators/tags';
+import {updateDateTime} from 'app/actionCreators/globalSelection';
 import SearchBar from 'app/views/events/searchBar';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
@@ -16,7 +17,9 @@ import {PageContent} from 'app/styles/organization';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import Alert from 'app/components/alert';
 import Feature from 'app/components/acl/feature';
+import FeatureBadge from 'app/components/featureBadge';
 import EventView from 'app/utils/discover/eventView';
+import {generateAggregateFields} from 'app/utils/discover/fields';
 import space from 'app/styles/space';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
@@ -26,7 +29,12 @@ import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
-import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
+import {
+  tokenizeSearch,
+  stringifyQueryObject,
+  QueryResults,
+} from 'app/utils/tokenizeSearch';
+import {decodeScalar} from 'app/utils/queryString';
 
 import {generatePerformanceEventView, DEFAULT_STATS_PERIOD} from './data';
 import Table from './table';
@@ -50,7 +58,7 @@ type Props = {
   organization: Organization;
   selection: GlobalSelection;
   location: Location;
-  router: ReactRouter.InjectedRouter;
+  router: InjectedRouter;
   projects: Project[];
   loadingProjects: boolean;
   demoMode?: boolean;
@@ -60,6 +68,13 @@ type State = {
   eventView: EventView;
   error: string | undefined;
 };
+
+function isStatsPeriodDefault(
+  statsPeriod: string | undefined,
+  defaultPeriod: string
+): boolean {
+  return !statsPeriod || defaultPeriod === statsPeriod;
+}
 
 class PerformanceLanding extends React.Component<Props, State> {
   static getDerivedStateFromProps(nextProps: Props, prevState: State): State {
@@ -123,7 +138,7 @@ class PerformanceLanding extends React.Component<Props, State> {
       organization_id: parseInt(organization.id, 10),
     });
 
-    ReactRouter.browserHistory.push({
+    browserHistory.push({
       pathname: location.pathname,
       query: {
         ...location.query,
@@ -140,14 +155,14 @@ class PerformanceLanding extends React.Component<Props, State> {
       case FilterViews.KEY_TRANSACTIONS:
         return t('By Key Transaction');
       case FilterViews.TRENDS:
-        return t('By Trends');
+        return t('By Trend');
       default:
         throw Error(`Unknown view: ${currentView}`);
     }
   }
 
   /**
-   * Generate conditions to foward to the summary views.
+   * Generate conditions to forward to the summary views.
    *
    * We drop the bare text string as in this view we apply it to
    * the transaction name, and that condition is redundant in the
@@ -170,27 +185,73 @@ class PerformanceLanding extends React.Component<Props, State> {
   }
 
   handleViewChange(viewKey: FilterViews) {
-    const {location} = this.props;
+    const {location, organization} = this.props;
 
     const newQuery = {
       ...location.query,
     };
 
-    // This is a temporary change for trends to test adding a default count to increase relevancy
-    if (viewKey === FilterViews.TRENDS) {
-      if (!newQuery.query) {
-        newQuery.query =
-          'count():>1000 transaction.duration:>0 p50():>0 avg(transaction.duration):>0';
-      }
-      if (!newQuery.query.includes('count()')) {
-        newQuery.query += 'count():>1000';
-      }
-      if (!newQuery.query.includes('transaction.duration')) {
-        newQuery.query += ' transaction.duration:>0';
-      }
+    const query = decodeScalar(location.query.query) || '';
+    const statsPeriod = decodeScalar(location.query.statsPeriod);
+    const conditions = tokenizeSearch(query);
+
+    const currentView = location.query.view;
+
+    const newDefaultPeriod =
+      viewKey === FilterViews.TRENDS ? DEFAULT_TRENDS_STATS_PERIOD : DEFAULT_STATS_PERIOD;
+
+    const hasStartAndEnd = newQuery.start && newQuery.end;
+
+    if (!hasStartAndEnd && isStatsPeriodDefault(statsPeriod, newDefaultPeriod)) {
+      /**
+       * Resets stats period to default of the tab you are navigating to
+       * on tab change as tabs have different default periods.
+       */
+      updateDateTime({
+        start: null,
+        end: null,
+        utc: false,
+        period: newDefaultPeriod,
+      });
     }
 
-    ReactRouter.browserHistory.push({
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.change_view',
+      eventName: 'Performance Views: Change View',
+      organization_id: parseInt(organization.id, 10),
+      view_name: viewKey,
+    });
+
+    if (viewKey === FilterViews.TRENDS) {
+      const modifiedConditions = new QueryResults([]);
+
+      if (conditions.hasTag('epm()')) {
+        modifiedConditions.setTagValues('epm()', conditions.getTagValues('epm()'));
+      } else {
+        modifiedConditions.setTagValues('epm()', ['>0.01']);
+      }
+      if (conditions.hasTag('transaction.duration')) {
+        modifiedConditions.setTagValues(
+          'transaction.duration',
+          conditions.getTagValues('transaction.duration')
+        );
+      } else {
+        modifiedConditions.setTagValues('transaction.duration', ['>0', '<60min']);
+      }
+      newQuery.query = stringifyQueryObject(modifiedConditions);
+    }
+
+    const isNavigatingAwayFromTrends = viewKey !== FilterViews.TRENDS && currentView;
+
+    if (isNavigatingAwayFromTrends) {
+      // This stops errors from occurring when navigating to other views since we are appending aggregates to the trends view
+      conditions.removeTag('epm()');
+      conditions.removeTag('transaction.duration');
+
+      newQuery.query = stringifyQueryObject(conditions);
+    }
+
+    browserHistory.push({
       pathname: location.pathname,
       query: {...newQuery, view: viewKey},
     });
@@ -198,7 +259,7 @@ class PerformanceLanding extends React.Component<Props, State> {
 
   renderHeaderButtons() {
     return (
-      <Feature features={['trends', 'internal-catchall']} requireAll={false}>
+      <Feature features={['trends']}>
         {({hasFeature}) =>
           hasFeature ? (
             <ButtonBar merged active={this.getCurrentView()}>
@@ -208,9 +269,11 @@ class PerformanceLanding extends React.Component<Props, State> {
                     key={viewKey}
                     barId={viewKey}
                     size="small"
+                    data-test-id={'landing-header-' + viewKey.toLowerCase()}
                     onClick={() => this.handleViewChange(viewKey)}
                   >
                     {this.getViewLabel(viewKey)}
+                    {viewKey === FilterViews.TRENDS && <StyledFeatureBadge type="beta" />}
                   </Button>
                 );
               })}
@@ -310,7 +373,7 @@ class PerformanceLanding extends React.Component<Props, State> {
                     organization={organization}
                     projectIds={eventView.project}
                     query={filterString}
-                    fields={eventView.fields}
+                    fields={generateAggregateFields(organization, eventView.fields)}
                     onSearch={this.handleSearch}
                   />
                   <Charts
@@ -353,6 +416,10 @@ const StyledSearchBar = styled(SearchBar)`
   flex-grow: 1;
 
   margin-bottom: ${space(2)};
+`;
+
+const StyledFeatureBadge = styled(FeatureBadge)`
+  height: 12px;
 `;
 
 export default withApi(

@@ -65,6 +65,7 @@ type Props = DefaultProps & {
    * Should be set to true if tooltip contains unisolated data (eg. dates)
    */
   disableForVisualTest?: boolean;
+  className?: string;
 };
 
 type State = {
@@ -217,7 +218,7 @@ class Tooltip extends React.Component<Props, State> {
 
     propList.containerDisplayMode = this.props.containerDisplayMode;
     return (
-      <Container {...propList} ref={ref}>
+      <Container {...propList} className={this.props.className} ref={ref}>
         {children}
       </Container>
     );
@@ -289,7 +290,7 @@ const Container = styled('span')<{
 `;
 
 const TooltipContent = styled('div')<{hide: boolean} & Pick<Props, 'popperStyle'>>`
-  color: #fff;
+  color: ${p => p.theme.white};
   background: #000;
   opacity: 0.9;
   padding: 5px 10px;

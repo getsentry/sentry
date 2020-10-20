@@ -1,17 +1,10 @@
 import React from 'react';
 import {Location} from 'history';
 import styled from '@emotion/styled';
+import moment from 'moment';
 
 import theme from 'app/utils/theme';
-import {
-  getDiffInMinutes,
-  THIRTY_DAYS,
-  TWENTY_FOUR_HOURS,
-  ONE_HOUR,
-  DateTimeObject,
-  ONE_WEEK,
-  TWO_WEEKS,
-} from 'app/components/charts/utils';
+import {getInterval} from 'app/components/charts/utils';
 import {decodeScalar} from 'app/utils/queryString';
 import Duration from 'app/components/duration';
 import {Sort, Field} from 'app/utils/discover/fields';
@@ -21,7 +14,7 @@ import Count from 'app/components/count';
 import {Organization, Project} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import {Client} from 'app/api';
-import {getUtcDateString} from 'app/utils/dates';
+import {getUtcDateString, parsePeriodToHours} from 'app/utils/dates';
 import {IconArrow} from 'app/icons';
 
 import {
@@ -31,7 +24,6 @@ import {
   TrendsTransaction,
   NormalizedTrendsTransaction,
   TrendFunctionField,
-  TrendsStats,
   ProjectTrend,
   NormalizedProjectTrend,
 } from './types';
@@ -77,42 +69,19 @@ export const TRENDS_FUNCTIONS: TrendFunction[] = [
   },
 ];
 
-/**
- * This function will increase the interval to help smooth trends
- */
-export function chartIntervalFunction(dateTimeSelection: DateTimeObject) {
-  const diffInMinutes = getDiffInMinutes(dateTimeSelection);
-  if (diffInMinutes >= THIRTY_DAYS) {
-    return '24h';
-  }
-
-  if (diffInMinutes >= TWO_WEEKS) {
-    return '12h';
-  }
-
-  if (diffInMinutes >= ONE_WEEK) {
-    return '6h';
-  }
-
-  if (diffInMinutes >= TWENTY_FOUR_HOURS) {
-    return '30m';
-  }
-
-  if (diffInMinutes <= ONE_HOUR) {
-    return '90s';
-  }
-
-  return '60s';
-}
-
 export const trendToColor = {
   [TrendChangeType.IMPROVED]: theme.green400,
   [TrendChangeType.REGRESSION]: theme.red400,
 };
 
-export const trendOffsetQueryKeys = {
-  [TrendChangeType.IMPROVED]: 'improvedOffset',
-  [TrendChangeType.REGRESSION]: 'regressionOffset',
+export const trendSelectedQueryKeys = {
+  [TrendChangeType.IMPROVED]: 'improvedSelected',
+  [TrendChangeType.REGRESSION]: 'regressionSelected',
+};
+
+export const trendCursorNames = {
+  [TrendChangeType.IMPROVED]: 'improvedCursor',
+  [TrendChangeType.REGRESSION]: 'regressionCursor',
 };
 
 export function getCurrentTrendFunction(location: Location): TrendFunction {
@@ -174,13 +143,10 @@ export function modifyTrendView(
 ) {
   const trendFunction = getCurrentTrendFunction(location);
 
-  const trendFunctionFields = TRENDS_FUNCTIONS.map(({field}) => field);
   const transactionField = isProjectOnly ? [] : ['transaction'];
-  const fields = [...trendFunctionFields, ...transactionField, 'project', 'count()'].map(
-    field => ({
-      field,
-    })
-  ) as Field[];
+  const fields = [...transactionField, 'project'].map(field => ({
+    field,
+  })) as Field[];
 
   const trendSort = {
     field: `percentage_${trendFunction.alias}_2_${trendFunction.alias}_1`,
@@ -222,7 +188,6 @@ export async function getTrendBaselinesForTransaction(
   api: Client,
   organization: Organization,
   eventView: EventView,
-  statsData: TrendsStats,
   intervalRatio: number,
   transaction: NormalizedTrendsTransaction
 ) {
@@ -232,17 +197,30 @@ export async function getTrendBaselinesForTransaction(
   const scopeQueryToTransaction = ` transaction:${transaction.transaction}`;
 
   const globalSelectionQuery = eventView.getGlobalSelectionQuery();
+  const statsPeriod = eventView.statsPeriod;
+
   delete globalSelectionQuery.statsPeriod;
   const baseApiPayload = {
     ...globalSelectionQuery,
     query: eventView.query + scopeQueryToTransaction,
   };
 
-  const stats = Object.values(statsData)[0].data;
+  const hasStartEnd = eventView.start && eventView.end;
 
-  const seriesStart = stats[0][0] * 1000;
-  const seriesEnd = stats.slice(-1)[0][0] * 1000;
-  const seriesSplit = seriesStart + (seriesEnd - seriesStart) * intervalRatio;
+  let seriesStart = moment(eventView.start);
+  let seriesEnd = moment(eventView.end);
+
+  if (!hasStartEnd) {
+    seriesEnd = transaction.received_at;
+    seriesStart = seriesEnd
+      .clone()
+      .subtract(parsePeriodToHours(statsPeriod || DEFAULT_TRENDS_STATS_PERIOD), 'hours');
+  }
+
+  const startTime = seriesStart.toDate().getTime();
+  const endTime = seriesEnd.toDate().getTime();
+
+  const seriesSplit = moment(startTime + (endTime - startTime) * intervalRatio);
 
   const previousPeriodPayload = {
     ...baseApiPayload,
@@ -284,7 +262,7 @@ function getQueryInterval(location: Location, eventView: TrendView) {
     period: statsPeriod,
   };
 
-  const intervalFromSmoothing = chartIntervalFunction(datetimeSelection);
+  const intervalFromSmoothing = getInterval(datetimeSelection, true);
 
   return intervalFromQueryParam || intervalFromSmoothing;
 }
@@ -331,6 +309,7 @@ export function normalizeTrends(data: Array<ProjectTrend>): Array<NormalizedProj
 export function normalizeTrends(
   data: Array<TrendsTransaction | ProjectTrend>
 ): Array<NormalizedTrendsTransaction | NormalizedProjectTrend> {
+  const received_at = moment(); // Adding the received time for the transaction so calls to get baseline always line up with the transaction
   return data.map(row => {
     const {
       project,
@@ -358,6 +337,7 @@ export function normalizeTrends(
       count_range_1,
       count_range_2,
       percentage_count_range_2_count_range_1,
+      received_at,
     };
 
     if ('transaction' in row) {
@@ -386,7 +366,16 @@ export function getTrendAliasedMinus(alias: string) {
 }
 
 export function getSelectedQueryKey(trendChangeType: TrendChangeType) {
-  return trendOffsetQueryKeys[trendChangeType];
+  return trendSelectedQueryKeys[trendChangeType];
+}
+
+export function movingAverage(data, index, size) {
+  return (
+    data
+      .slice(index - size, index)
+      .map(a => a.value)
+      .reduce((a, b) => a + b, 0) / size
+  );
 }
 
 /**

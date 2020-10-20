@@ -4,12 +4,12 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ToolbarHeader from 'app/components/toolbarHeader';
 
-describe('ToolbarHeader', function() {
-  beforeEach(function() {});
+describe('ToolbarHeader', function () {
+  beforeEach(function () {});
 
-  afterEach(function() {});
+  afterEach(function () {});
 
-  it('renders', function() {
+  it('renders', function () {
     const wrapper = mountWithTheme(
       <ToolbarHeader>
         <div />

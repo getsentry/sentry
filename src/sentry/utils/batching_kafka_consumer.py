@@ -14,6 +14,7 @@ from confluent_kafka import (
     OFFSET_STORED,
     OFFSET_INVALID,
 )
+from confluent_kafka.admin import AdminClient
 
 from django.conf import settings
 
@@ -168,6 +169,41 @@ class BatchingKafkaConsumer(object):
         sample_rate = self.__metrics_sample_rates.get(metric, settings.SENTRY_METRICS_SAMPLE_RATE)
         return self.__metrics.timing(metric, value, tags=tags, sample_rate=sample_rate)
 
+    def _wait_for_topics(self, admin_client, topics, timeout=10):
+        """
+        Make sure that the provided topics exist and have non-zero partitions in them.
+        """
+        for topic in topics:
+            start = time.time()
+            last_error = None
+
+            while True:
+                if time.time() > start + timeout:
+                    raise RuntimeError(
+                        "Timeout when waiting for Kafka topic '%s' to become available, last error: %s".format(
+                            topic, last_error
+                        )
+                    )
+
+                result = admin_client.list_topics(topic=topic)
+                topic_metadata = result.topics.get(topic)
+                if topic_metadata and topic_metadata.partitions and not topic_metadata.error:
+                    logger.debug("Topic '%s' is ready", topic)
+                    break
+                elif topic_metadata.error in {
+                    KafkaError.UNKNOWN_TOPIC_OR_PART,
+                    KafkaError.LEADER_NOT_AVAILABLE,
+                }:
+                    last_error = topic_metadata.error
+                    logger.warn("Topic '%s' or its partitions are not ready, retrying...", topic)
+                    time.sleep(0.1)
+                    continue
+                else:
+                    raise RuntimeError(
+                        "Unknown error when waiting for Kafka topic '%s': %s"
+                        % (topic, topic_metadata.error)
+                    )
+
     def create_consumer(
         self,
         topics,
@@ -188,6 +224,17 @@ class BatchingKafkaConsumer(object):
             "queued.min.messages": queued_min_messages,
         }
 
+        if settings.KAFKA_CONSUMER_AUTO_CREATE_TOPICS:
+            # This is required for confluent-kafka>=1.5.0, otherwise the topics will
+            # not be automatically created.
+            admin_client = AdminClient(
+                {
+                    "bootstrap.servers": consumer_config["bootstrap.servers"],
+                    "allow.auto.create.topics": "true",
+                }
+            )
+            self._wait_for_topics(admin_client, topics)
+
         consumer = Consumer(consumer_config)
 
         def on_partitions_assigned(consumer, partitions):
@@ -205,7 +252,9 @@ class BatchingKafkaConsumer(object):
         return consumer
 
     def run(self):
-        "The main run loop, see class docstring for more information."
+        """
+        The main run loop, see class docstring for more information.
+        """
 
         logger.debug("Starting")
         while not self.shutdown:
@@ -360,7 +409,7 @@ class BatchingKafkaConsumer(object):
             except KafkaException as e:
                 if e.args[0].code() in (
                     KafkaError.REQUEST_TIMED_OUT,
-                    KafkaError.NOT_COORDINATOR_FOR_GROUP,
+                    KafkaError.NOT_COORDINATOR,
                     KafkaError._WAIT_COORD,
                 ):
                     logger.warning("Commit failed: %s (%d retries)", e, retries)

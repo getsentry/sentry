@@ -31,7 +31,7 @@ class VstsIssueSync(IssueSyncMixin):
     def get_project_choices(self, group, **kwargs):
         client = self.get_client()
         try:
-            projects = client.get_projects(self.instance)["value"]
+            projects = client.get_projects(self.instance)
         except (ApiError, ApiUnauthorized, KeyError) as e:
             self.raise_error(e)
 
@@ -235,7 +235,7 @@ class VstsIssueSync(IssueSyncMixin):
         # TODO(jess): figure out if there's a better way to do this
         vsts_project_name = work_item["fields"]["System.TeamProject"]
 
-        vsts_projects = client.get_projects(self.instance)["value"]
+        vsts_projects = client.get_projects(self.instance)
 
         vsts_project_id = None
         for p in vsts_projects:
@@ -315,7 +315,7 @@ class VstsIssueSync(IssueSyncMixin):
     def create_comment(self, issue_id, user_id, group_note):
         comment = group_note.data["text"]
         quoted_comment = self.create_comment_attribution(user_id, comment)
-        self.get_client().update_work_item(self.instance, issue_id, comment=quoted_comment)
+        return self.get_client().update_work_item(self.instance, issue_id, comment=quoted_comment)
 
     def create_comment_attribution(self, user_id, comment_text):
         # VSTS uses markdown or xml

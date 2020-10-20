@@ -8,6 +8,7 @@ import {decodeScalar} from 'app/utils/queryString';
 
 import {getPerformanceLandingUrl} from './utils';
 import {transactionSummaryRouteWithQuery} from './transactionSummary/utils';
+import {vitalsRouteWithQuery} from './realUserMonitoring/utils';
 
 type Props = {
   organization: Organization;
@@ -15,6 +16,7 @@ type Props = {
   transactionName?: string;
   eventSlug?: string;
   transactionComparison?: boolean;
+  realUserMonitoring?: boolean;
 };
 
 class Breadcrumb extends React.Component<Props> {
@@ -26,6 +28,7 @@ class Breadcrumb extends React.Component<Props> {
       transactionName,
       eventSlug,
       transactionComparison,
+      realUserMonitoring,
     } = this.props;
 
     const performanceTarget: LocationDescriptor = {
@@ -44,18 +47,33 @@ class Breadcrumb extends React.Component<Props> {
     });
 
     if (transactionName) {
-      const summaryTarget = transactionSummaryRouteWithQuery({
-        orgSlug: organization.slug,
-        transaction: transactionName,
-        projectID: decodeScalar(location.query.project),
-        query: location.query,
-      });
+      if (realUserMonitoring) {
+        const rumTarget = vitalsRouteWithQuery({
+          orgSlug: organization.slug,
+          transaction: transactionName,
+          projectID: decodeScalar(location.query.project),
+          query: location.query,
+        });
 
-      crumbs.push({
-        to: summaryTarget,
-        label: t('Transaction Summary'),
-        preserveGlobalSelection: true,
-      });
+        crumbs.push({
+          to: rumTarget,
+          label: t('Web Vitals'),
+          preserveGlobalSelection: true,
+        });
+      } else {
+        const summaryTarget = transactionSummaryRouteWithQuery({
+          orgSlug: organization.slug,
+          transaction: transactionName,
+          projectID: decodeScalar(location.query.project),
+          query: location.query,
+        });
+
+        crumbs.push({
+          to: summaryTarget,
+          label: t('Transaction Summary'),
+          preserveGlobalSelection: true,
+        });
+      }
     }
 
     if (transactionName && eventSlug) {

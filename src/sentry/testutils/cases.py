@@ -26,6 +26,7 @@ import os.path
 import pytest
 import requests
 import six
+import time
 import inspect
 from uuid import uuid4
 from contextlib import contextmanager
@@ -53,6 +54,7 @@ from rest_framework.test import APITestCase as BaseAPITestCase
 from six.moves.urllib.parse import urlencode
 
 from sentry import auth
+from sentry import eventstore
 from sentry.auth.providers.dummy import DummyProvider
 from sentry.auth.superuser import (
     Superuser,
@@ -83,6 +85,7 @@ from sentry.tagstore.snuba import SnubaTagStorage
 from sentry.utils import json
 from sentry.utils.auth import SSO_SESSION_KEY
 from sentry.testutils.helpers.datetime import iso_format
+from sentry.utils.retries import TimedRetryPolicy
 
 from .fixtures import Fixtures
 from .factories import Factories
@@ -176,6 +179,7 @@ class BaseTestCase(Fixtures, Exam):
 
     # TODO(dcramer): ideally superuser_sso would be False by default, but that would require
     # a lot of tests changing
+    @TimedRetryPolicy.wrap(timeout=5)
     def login_as(
         self, user, organization_id=None, organization_ids=None, superuser=False, superuser_sso=True
     ):
@@ -680,6 +684,28 @@ class SnubaTestCase(BaseTestCase):
                 self.store_group(stored_group)
             return stored_event
 
+    def wait_for_event_count(self, project_id, total, attempts=2):
+        """
+        Wait until the event count reaches the provided value or until attempts is reached.
+
+        Useful when you're storing several events and need to ensure that snuba/clickhouse
+        state has settled.
+        """
+        # Verify that events have settled in snuba's storage.
+        # While snuba is synchronous, clickhouse isn't entirely synchronous.
+        attempt = 0
+        snuba_filter = eventstore.Filter(project_ids=[project_id])
+        while attempt < attempts:
+            events = eventstore.get_events(snuba_filter)
+            if len(events) >= total:
+                break
+            attempt += 1
+            time.sleep(0.05)
+        if attempt == attempts:
+            assert False, "Could not ensure event was persisted within {} attempt(s)".format(
+                attempt
+            )
+
     def store_session(self, session):
         assert (
             requests.post(
@@ -951,7 +977,7 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
             "groupby": ["time"],
             "rollup": 86400,
         }
-        self.geo_erorrs_query = {
+        self.geo_errors_query = {
             "name": "errorsByGeo",
             "fields": ["geo.country_code"],
             "conditions": [["geo.country_code", "IS NOT NULL", None]],

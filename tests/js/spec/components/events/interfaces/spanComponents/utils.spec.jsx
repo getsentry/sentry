@@ -4,21 +4,21 @@ import {
   pickSpanBarColour,
 } from 'app/components/events/interfaces/spans/utils';
 
-describe('pickSpanBarColour()', function() {
-  it('returns blue when undefined', function() {
+describe('pickSpanBarColour()', function () {
+  it('returns blue when undefined', function () {
     expect(pickSpanBarColour(undefined)).toEqual(spanColors.default);
   });
 
-  it('returns the predefined color when available', function() {
+  it('returns the predefined color when available', function () {
     expect(pickSpanBarColour('transaction')).toEqual(spanColors.transaction);
   });
 
-  it('returns blue when the string is too short', function() {
+  it('returns blue when the string is too short', function () {
     expect(pickSpanBarColour('')).toEqual(spanColors.default);
     expect(pickSpanBarColour('c')).toEqual(spanColors.default);
   });
 
-  it('returns a random color when no predefined option is available', function() {
+  it('returns a random color when no predefined option is available', function () {
     const colorsAsArray = Object.keys(CHART_PALETTE).map(key => CHART_PALETTE[17][key]);
 
     let randomColor = pickSpanBarColour('a normal string');

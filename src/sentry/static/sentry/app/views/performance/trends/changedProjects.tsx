@@ -9,8 +9,8 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import withApi from 'app/utils/withApi';
 import withProjects from 'app/utils/withProjects';
 import withOrganization from 'app/utils/withOrganization';
-import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {Client} from 'app/api';
@@ -19,11 +19,11 @@ import QuestionTooltip from 'app/components/questionTooltip';
 import {formatPercentage, getDuration} from 'app/utils/formatters';
 import {DEFAULT_RELATIVE_PERIODS} from 'app/constants';
 
+import ProjectTrendsDiscoverQuery from './projectTrendsDiscoverQuery';
 import {
   TrendChangeType,
   TrendFunctionField,
   TrendView,
-  ProjectTrendsData,
   NormalizedProjectTrend,
 } from './types';
 import {modifyTrendView, normalizeTrends, trendToColor, getTrendProjectId} from './utils';
@@ -81,9 +81,10 @@ function getDescription(
     absoluteChange < 1000 ? 0 : 2
   );
 
-  const period = trendView.statsPeriod
-    ? DEFAULT_RELATIVE_PERIODS[trendView.statsPeriod].toLowerCase()
-    : t('given timeframe');
+  const period =
+    trendView.statsPeriod && DEFAULT_RELATIVE_PERIODS[trendView.statsPeriod]
+      ? DEFAULT_RELATIVE_PERIODS[trendView.statsPeriod].toLowerCase()
+      : t('given timeframe');
 
   const improvedTemplate =
     'In the [period], [project] sped up by [absoluteChangeDuration] (a [percent] decrease in duration). See the top transactions that made that happen.';
@@ -125,16 +126,15 @@ function ChangedProjects(props: Props) {
   modifyTrendView(projectTrendView, location, trendChangeType, true);
 
   return (
-    <DiscoverQuery
+    <ProjectTrendsDiscoverQuery
       eventView={projectTrendView}
       orgSlug={organization.slug}
       location={location}
       trendChangeType={trendChangeType}
       limit={1}
     >
-      {({isLoading, tableData}) => {
-        const eventsTrendsData = (tableData as unknown) as ProjectTrendsData;
-        const trends = eventsTrendsData?.events?.data || [];
+      {({isLoading, projectTrendsData}) => {
+        const trends = projectTrendsData?.data || [];
         const events = normalizeTrends(trends);
 
         const transactionsList = events && events.slice ? events.slice(0, 5) : [];
@@ -170,16 +170,14 @@ function ChangedProjects(props: Props) {
                   </EmptyContainer>
                 )}
                 {projectTrend && (
-                  <ProjectTrendAction>
-                    <Button
-                      onClick={() =>
-                        handleViewTransactions(projectTrend, projects, location)
-                      }
-                      size="small"
-                    >
-                      {t('View Transactions')}
-                    </Button>
-                  </ProjectTrendAction>
+                  <StyledProjectButton
+                    onClick={() =>
+                      handleViewTransactions(projectTrend, projects, location)
+                    }
+                    size="small"
+                  >
+                    {t('View Transactions')}
+                  </StyledProjectButton>
                 )}
               </React.Fragment>
             )}
@@ -189,7 +187,7 @@ function ChangedProjects(props: Props) {
           </TrendsProjectPanel>
         );
       }}
-    </DiscoverQuery>
+    </ProjectTrendsDiscoverQuery>
   );
 }
 
@@ -219,9 +217,9 @@ const ProjectTrendContainer = styled('div')`
   grid-column: 1/2;
 `;
 
-const ProjectTrendAction = styled('div')`
-  display: flex;
-  align-items: flex-end;
+const StyledProjectButton = styled(Button)`
+  align-self: end;
+  justify-self: start;
 `;
 
 function getVisualization(
@@ -237,11 +235,11 @@ function getVisualization(
 
   return (
     <TrendCircle color={color}>
-      <TrendCirclePrimary>
+      <TrendCirclePercentage>
         {trendChangeType === TrendChangeType.REGRESSION ? '+' : ''}
         {trendPercent}
-      </TrendCirclePrimary>
-      <TrendCircleSecondary>{projectTrend.project}</TrendCircleSecondary>
+      </TrendCirclePercentage>
+      <TrendCircleProject>{projectTrend.project}</TrendCircleProject>
     </TrendCircle>
   );
 }
@@ -249,10 +247,8 @@ function getVisualization(
 const TrendCircle = styled('div')<{color: string}>`
   width: 120px;
   height: 120px;
-  border-style: solid;
-  border-width: 5px;
+  border: 5px solid ${p => p.color};
   border-radius: 50%;
-  border-color: ${p => p.color};
 
   display: flex;
   flex-direction: column;
@@ -262,13 +258,16 @@ const TrendCircle = styled('div')<{color: string}>`
   grid-row: 1/4;
 `;
 
-const TrendCirclePrimary = styled('div')`
+const TrendCirclePercentage = styled('div')`
   font-size: ${p => p.theme.headerFontSize};
 `;
 
-const TrendCircleSecondary = styled('div')`
+const TrendCircleProject = styled('div')`
   color: ${p => p.theme.gray600};
   font-size: ${p => p.theme.fontSizeExtraSmall};
+  text-align: center;
+  width: 80px;
+  ${overflowEllipsis};
 `;
 
 export default withApi(withProjects(withOrganization(ChangedProjects)));

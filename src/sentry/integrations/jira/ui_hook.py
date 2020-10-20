@@ -19,7 +19,10 @@ class JiraUiHookView(View):
     def get_response(self, context):
         context["ac_js_src"] = "https://connect-cdn.atl-paas.net/all.js"
         res = render_to_response("sentry/integrations/jira-config.html", context, self.request)
-        res["X-Frame-Options"] = "ALLOW-FROM %s" % self.request.GET["xdm_e"]
+        # we aren't actually displaying it on the same page but we don't want to set it to deny
+        # which security.py will do
+        res["X-Frame-Options"] = "SAMEORIGIN"
+        res["Content-Security-Policy"] = u"frame-ancestors %s" % self.request.GET["xdm_e"]
         return res
 
     def get(self, request, *args, **kwargs):

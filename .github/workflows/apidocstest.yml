@@ -1,0 +1,78 @@
+name: api docs
+
+on:
+  push:
+    branches:
+      - master
+
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  test:
+    runs-on: ubuntu-16.04
+    env:
+      SENTRY_PYTHON3: 1
+      PIP_DISABLE_PIP_VERSION_CHECK: on
+
+      SENTRY_LIGHT_BUILD: 1
+      SENTRY_SKIP_BACKEND_VALIDATION: 1
+      MIGRATIONS_TEST_MIGRATE: 0
+
+      PYTEST_SENTRY_DSN: https://6fd5cfea2d4d46b182ad214ac7810508@sentry.io/2423079
+      PYTEST_ADDOPTS: '--reruns 5'
+
+      # The hostname used to communicate with the PostgreSQL from sentry
+      DATABASE_URL: postgresql://postgres:postgres@localhost/sentry
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: volta-cli/action@v1
+
+      - name: Set python version output
+        id: python-version
+        run: |
+          echo "::set-output name=python-version::$(awk 'FNR == 2' .python-version)"
+
+      # Until GH composite actions can use `uses`, we need to setup python here
+      - uses: actions/setup-python@v2
+        with:
+          python-version: ${{ steps.python-version.outputs.python-version }}
+
+      - name: Setup pip
+        uses: ./.github/actions/setup-pip
+        id: pip
+
+      - name: pip cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.pip.outputs.pip-cache-dir }}
+          key: ${{ runner.os }}-pip-py${{ steps.python-version.outputs.python-version }}-${{ hashFiles('**/requirements-*.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-py${{ steps.python-version.outputs.python-version }}
+
+      - name: Setup sentry python env
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          python: 3
+          snuba: true
+
+      - name: yarn cache
+        uses: actions/cache@v2
+        id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
+        with:
+          path: ${{ steps.setup.outputs.yarn-cache-dir }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+
+      - name: Install Javascript Dependencies
+        run: |
+          yarn install --frozen-lockfile
+
+      - name: Run API docs tests
+        run: |
+          make test-api-docs
