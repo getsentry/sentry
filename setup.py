@@ -108,9 +108,9 @@ setup(
     package_data={"sentry": ["static/sentry/dist/**", "static/sentry/js/**"]},
     exclude_package_data={
         "sentry": [
-            "static/sentry/{}/**".format(d)
-            for d in ("app", "fonts", "images", "less", "vendor") + "static/sentry/*"
+            "static/sentry/{}/**".format(d) for d in ("app", "fonts", "images", "less", "vendor")
         ]
+        + ["static/sentry/*"]
     },
     entry_points={
         "console_scripts": ["sentry = sentry.runner:main"],
