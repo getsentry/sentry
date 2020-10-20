@@ -299,49 +299,49 @@ class Browser(object):
         """
         # TODO(dcramer): ideally this would take the executing test package
         # into account for duplicate names
-        if os.environ.get("SENTRY_SCREENSHOT") == "open":
-            import tempfile
-            import click
-            import time
-
-            with tempfile.NamedTemporaryFile("wb", suffix=".png") as tf:
-                tf.write(self.driver.get_screenshot_as_png())
-                tf.flush()
-                click.launch(tf.name)
-                time.sleep(1)
-
         if os.environ.get("VISUAL_SNAPSHOT_ENABLE") == "1":
-            # wait for external assets to be loaded
             self.wait_for_images_loaded()
             self.wait_for_fonts_loaded()
 
+            # XXX: We assume we're relative to gitroot here.
             snapshot_dir = os.environ.get(
                 "PYTEST_SNAPSHOTS_DIR", ".artifacts/visual-snapshots/acceptance"
             )
-            # Note: below will fail if these directories do not exist
+            # TODO(py3): Pass exist_ok=True here.
+            # Technically there's a race condition here with makedirs failing, but
+            # this is fine (practically) in this context.
+            if not os.path.exists(snapshot_dir):
+                os.makedirs(snapshot_dir)
 
             if not mobile_only:
                 # This will make sure we resize viewport height to fit contents
                 with self.full_viewport():
-                    self.driver.find_element_by_tag_name("body").screenshot(
-                        u"{}/{}.png".format(snapshot_dir, slugify(name))
-                    )
+                    screenshot_path = u"{}/{}.png".format(snapshot_dir, slugify(name))
+                    self.driver.find_element_by_tag_name("body").screenshot(screenshot_path)
+
+                    if os.environ.get("SENTRY_SCREENSHOT"):
+                        import click
+
+                        click.launch(screenshot_path)
+
                     has_tooltips = self.driver.execute_script(
                         "return window.__openAllTooltips && window.__openAllTooltips()"
                     )
                     if has_tooltips:
-                        self.driver.find_element_by_tag_name("body").screenshot(
-                            u"{}-tooltips/{}.png".format(snapshot_dir, slugify(name))
-                        )
+                        screenshot_path = u"{}-tooltips/{}.png".format(snapshot_dir, slugify(name))
+                        self.driver.find_element_by_tag_name("body").screenshot(screenshot_path)
                         self.driver.execute_script(
                             "window.__closeAllTooltips && window.__closeAllTooltips()"
                         )
 
-                # switch to a mobile sized viewport
                 with self.mobile_viewport():
-                    self.driver.find_element_by_tag_name("body").screenshot(
-                        u"{}-mobile/{}.png".format(snapshot_dir, slugify(name))
-                    )
+                    screenshot_path = u"{}-mobile/{}.png".format(snapshot_dir, slugify(name))
+                    self.driver.find_element_by_tag_name("body").screenshot(screenshot_path)
+
+                    if os.environ.get("SENTRY_SCREENSHOT"):
+                        import click
+
+                        click.launch(screenshot_path)
 
         return self
 
