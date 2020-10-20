@@ -9,7 +9,6 @@ from django.conf import settings
 from sentry import features
 from sentry.utils.cache import cache
 from sentry.exceptions import PluginError
-from sentry.models import EventAttachment
 from sentry.signals import event_processed, issue_unignored
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
@@ -121,6 +120,8 @@ def update_existing_attachments(event):
     Attaches the group_id to all event attachments that were ingested prior to
     the event via the standalone attachment endpoint.
     """
+    from sentry.models import EventAttachment
+
     EventAttachment.objects.filter(project_id=event.project_id, event_id=event.event_id).update(
         group_id=event.group_id
     )
