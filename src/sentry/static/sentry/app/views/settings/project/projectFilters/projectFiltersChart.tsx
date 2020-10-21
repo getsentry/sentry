@@ -1,8 +1,6 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import moment from 'moment';
 
-import SentryTypes from 'app/sentryTypes';
 import {intcomma} from 'app/utils';
 import {t, tn} from 'app/locale';
 import withApi from 'app/utils/withApi';
@@ -12,13 +10,33 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import StackedBarChart from 'app/components/stackedBarChart';
 import {formatAbbreviatedNumber} from 'app/utils/formatters';
+import {Project} from 'app/types';
+import {Client} from 'app/api';
 
-class ProjectFiltersChart extends React.Component {
-  static propTypes = {
-    api: PropTypes.object,
-    project: SentryTypes.Project,
-  };
+type Props = {
+  api: Client;
+  project: Project;
+  params: {orgId: string; projectId: string};
+};
 
+type StatRecord = {
+  data: {x: number; y: number}[];
+  label: string;
+  statName: string;
+};
+
+type State = {
+  loading: boolean;
+  error: boolean;
+  statsError: boolean;
+  querySince: number;
+  queryUntil: number;
+  rawStatsData: null | Record<string, any>;
+  formattedData: StatRecord[];
+  blankStats: boolean;
+};
+
+class ProjectFiltersChart extends React.Component<Props, State> {
   constructor(props) {
     super(props);
 
@@ -41,7 +59,7 @@ class ProjectFiltersChart extends React.Component {
     this.fetchData();
   }
 
-  componentDidUpdate(prevProps) {
+  componentDidUpdate(prevProps: Props) {
     if (prevProps.project !== this.props.project) {
       this.fetchData();
     }

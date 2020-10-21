@@ -1,5 +1,6 @@
 import {Link} from 'react-router';
 import React from 'react';
+import {RouteComponentProps} from 'react-router/lib/Router';
 
 import {t} from 'app/locale';
 import GroupTombstones from 'app/views/settings/project/projectFilters/groupTombstones';
@@ -8,17 +9,17 @@ import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import PermissionAlert from 'app/views/settings/project/permissionAlert';
 import ProjectFiltersChart from 'app/views/settings/project/projectFilters/projectFiltersChart';
 import ProjectFiltersSettings from 'app/views/settings/project/projectFilters/projectFiltersSettings';
-import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import recreateRoute from 'app/utils/recreateRoute';
 import withProject from 'app/utils/withProject';
+import {Project} from 'app/types';
 
-class ProjectFilters extends React.Component {
-  static propTypes = {
-    project: SentryTypes.Project,
-  };
+type Props = {
+  project: Project;
+} & RouteComponentProps<{projectId: string; orgId: string; filterType: string}, {}>;
 
+class ProjectFilters extends React.Component<Props> {
   render() {
     const {project, params} = this.props;
     const {orgId, projectId, filterType} = params;
@@ -29,7 +30,7 @@ class ProjectFilters extends React.Component {
     const features = new Set(project.features);
 
     return (
-      <div>
+      <React.Fragment>
         <SentryDocumentTitle title={t('Inbound Filters')} objSlug={projectId} />
         <SettingsPageHeader title={t('Inbound Data Filters')} />
         <PermissionAlert />
@@ -70,7 +71,7 @@ class ProjectFilters extends React.Component {
             />
           )}
         </div>
-      </div>
+      </React.Fragment>
     );
   }
 }

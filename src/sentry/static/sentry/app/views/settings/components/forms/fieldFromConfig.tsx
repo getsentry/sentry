@@ -25,6 +25,7 @@ type Props = {
   highlighted?: boolean;
   disabled?: boolean | ((props) => boolean);
   flexibleControlStateSize?: boolean;
+  getData?: (data) => any;
   stacked?: boolean;
   inline?: boolean;
   onBlur?: (value, event) => void;
