@@ -12,7 +12,7 @@ def backfill_debug_file_checksum(apps, schema_editor):
     """
     ProjectDebugFile = apps.get_model("sentry", "ProjectDebugFile")
     all_debug_files = ProjectDebugFile.objects.filter(checksum__isnull=True).select_related("file")
-    for debug_file in RangeQuerySetWrapperWithProgressBar(queryset=all_debug_files, step=1000,):
+    for debug_file in RangeQuerySetWrapperWithProgressBar(queryset=all_debug_files, step=1000):
         if debug_file.file.checksum:
             ProjectDebugFile.objects.filter(id=debug_file.id).update(
                 checksum=debug_file.file.checksum
