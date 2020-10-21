@@ -40,7 +40,7 @@ function initializeTrendsData(query, addDefaultQuery = true) {
 
   const otherTrendsQuery = addDefaultQuery
     ? {
-        query: 'count():>1000 transaction.duration:>0',
+        query: 'epm():>0.01 transaction.duration:>0 transaction.duration:<60min',
       }
     : {};
 
@@ -60,6 +60,8 @@ function initializeTrendsData(query, addDefaultQuery = true) {
 }
 
 describe('Performance > Landing', function () {
+  let eventsMock;
+  let keyTransactionsMock;
   beforeEach(function () {
     browserHistory.push = jest.fn();
     jest.spyOn(globalSelection, 'updateDateTime');
@@ -89,7 +91,7 @@ describe('Performance > Landing', function () {
       method: 'POST',
       body: [],
     });
-    MockApiClient.addMockResponse({
+    eventsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/eventsv2/',
       body: {
         meta: {
@@ -118,6 +120,19 @@ describe('Performance > Landing', function () {
             user_misery_300: 122,
           },
         ],
+      },
+    });
+    keyTransactionsMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/key-transactions/',
+      body: {
+        meta: {},
+        data: [],
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/key-transactions-stats/',
+      body: {
+        data: [],
       },
     });
     MockApiClient.addMockResponse({
@@ -261,7 +276,7 @@ describe('Performance > Landing', function () {
 
   it('Navigating to trends does not modify statsPeriod when already set', async function () {
     const data = initializeTrendsData({
-      query: 'count():>500 transaction.duration:>10',
+      query: 'epm():>0.005 transaction.duration:>10 transaction.duration:<60min',
       statsPeriod: '24h',
     });
 
@@ -283,7 +298,7 @@ describe('Performance > Landing', function () {
     expect(browserHistory.push).toHaveBeenCalledWith(
       expect.objectContaining({
         query: {
-          query: 'count():>500 transaction.duration:>10',
+          query: 'epm():>0.005 transaction.duration:>10 transaction.duration:<60min',
           statsPeriod: '24h',
           view: 'TRENDS',
         },
@@ -311,8 +326,24 @@ describe('Performance > Landing', function () {
     expect(browserHistory.push).toHaveBeenCalledTimes(0);
   });
 
-  it('Default page (trends) with trends feature will update filters if none are set', async function () {
+  it('Default page (transactions) with trends feature will not update filters if none are set', async function () {
     const data = initializeTrendsData({view: undefined}, false);
+
+    const wrapper = mountWithTheme(
+      <PerformanceLanding
+        organization={data.organization}
+        location={data.router.location}
+      />,
+      data.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    expect(browserHistory.push).toHaveBeenCalledTimes(0);
+  });
+
+  it('Visiting trends with trends feature will update filters if none are set', async function () {
+    const data = initializeTrendsData({view: FilterViews.TRENDS}, false);
 
     const wrapper = mountWithTheme(
       <PerformanceLanding
@@ -328,11 +359,40 @@ describe('Performance > Landing', function () {
       1,
       expect.objectContaining({
         query: {
-          query: 'count():>1000 transaction.duration:>0',
+          query: 'epm():>0.01 transaction.duration:>0 transaction.duration:<60min',
           view: 'TRENDS',
         },
       })
     );
+  });
+
+  it('Changing views from all transactions to key transactions fires discover query', async function () {
+    const data = initializeTrendsData({view: FilterViews.ALL_TRANSACTIONS}, false);
+
+    const wrapper = mountWithTheme(
+      <PerformanceLanding
+        organization={data.organization}
+        location={data.router.location}
+      />,
+      data.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    expect(eventsMock).toHaveBeenCalledTimes(1);
+    expect(keyTransactionsMock).toHaveBeenCalledTimes(0);
+
+    const changedViewData = initializeTrendsData(
+      {view: FilterViews.KEY_TRANSACTIONS},
+      false
+    );
+
+    wrapper.setProps({location: changedViewData.router.location});
+    await tick();
+    wrapper.update();
+
+    expect(eventsMock).toHaveBeenCalledTimes(1);
+    expect(keyTransactionsMock).toHaveBeenCalledTimes(1);
   });
 
   it('Tags are replaced with trends default query if navigating to trends', async function () {
@@ -357,7 +417,7 @@ describe('Performance > Landing', function () {
     expect(browserHistory.push).toHaveBeenCalledWith(
       expect.objectContaining({
         query: {
-          query: 'count():>1000 transaction.duration:>0',
+          query: 'epm():>0.01 transaction.duration:>0 transaction.duration:<60min',
           view: 'TRENDS',
         },
       })
@@ -368,7 +428,8 @@ describe('Performance > Landing', function () {
     const data = initializeTrendsData(
       {
         view: FilterViews.TRENDS,
-        query: 'device.family:Mac count():>1000 transaction.duration:>0',
+        query:
+          'device.family:Mac epm():>0.01 transaction.duration:>0 transaction.duration:<60min',
       },
       false
     );

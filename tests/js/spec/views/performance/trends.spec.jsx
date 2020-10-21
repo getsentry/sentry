@@ -17,7 +17,7 @@ import {getUtcDateString} from 'app/utils/dates';
 
 const trendsViewQuery = {
   view: 'TRENDS',
-  query: 'count():>1000 transaction.duration:>0',
+  query: 'epm():>0.01 transaction.duration:>0',
 };
 
 jest.mock('moment', () => {
@@ -61,6 +61,7 @@ describe('Performance > Trends', function () {
   let trendsStatsMock;
   let baselineMock;
   beforeEach(function () {
+    browserHistory.push = jest.fn();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
@@ -245,14 +246,114 @@ describe('Performance > Trends', function () {
     wrapper.find('DropdownLink').first().simulate('click');
 
     const firstTransaction = wrapper.find('TrendsListItem').first();
-    const summaryLink = firstTransaction.find('StyledSummaryLink');
-    expect(summaryLink).toHaveLength(1);
+    const summaryLink = firstTransaction.find('ItemTransactionName');
 
-    expect(summaryLink.text()).toEqual('View Summary');
     expect(summaryLink.props().to.pathname).toEqual(
       '/organizations/org-slug/performance/summary/'
     );
     expect(summaryLink.props().to.query.project).toEqual(1);
+  });
+
+  it('hide from list menu action modifies query', async function () {
+    const projects = [TestStubs.Project({id: 1, slug: 'internal'}), TestStubs.Project()];
+    const data = initializeData(projects, {project: ['1']});
+
+    const wrapper = mountWithTheme(
+      <PerformanceLanding
+        organization={data.organization}
+        location={data.router.location}
+      />,
+      data.routerContext
+    );
+
+    await tick();
+    wrapper.update();
+
+    wrapper.find('DropdownLink').first().simulate('click');
+
+    const firstTransaction = wrapper.find('TrendsListItem').first();
+    const menuActions = firstTransaction.find('StyledMenuAction');
+    expect(menuActions).toHaveLength(3);
+
+    const menuAction = menuActions.at(2);
+    menuAction.simulate('click');
+
+    expect(browserHistory.push).toHaveBeenCalledWith({
+      query: expect.objectContaining({
+        project: expect.anything(),
+        query:
+          'epm():>0.01 transaction.duration:>0 !transaction:/organizations/:orgId/performance/',
+        view: 'TRENDS',
+      }),
+    });
+  });
+
+  it('exclude greater than list menu action modifies query', async function () {
+    const projects = [TestStubs.Project({id: 1, slug: 'internal'}), TestStubs.Project()];
+    const data = initializeData(projects, {project: ['1']});
+
+    const wrapper = mountWithTheme(
+      <PerformanceLanding
+        organization={data.organization}
+        location={data.router.location}
+      />,
+      data.routerContext
+    );
+
+    await tick();
+    wrapper.update();
+
+    wrapper.find('DropdownLink').first().simulate('click');
+
+    const firstTransaction = wrapper.find('TrendsListItem').first();
+    const menuActions = firstTransaction.find('StyledMenuAction');
+    expect(menuActions).toHaveLength(3);
+
+    const menuAction = menuActions.at(0);
+    expect(menuAction.text()).toEqual('Show \u2264 863ms');
+    menuAction.simulate('click');
+
+    expect(browserHistory.push).toHaveBeenCalledWith({
+      query: expect.objectContaining({
+        project: expect.anything(),
+        query: 'epm():>0.01 transaction.duration:>0 transaction.duration:<=863',
+        view: 'TRENDS',
+      }),
+    });
+  });
+
+  it('exclude less than list menu action modifies query', async function () {
+    const projects = [TestStubs.Project({id: 1, slug: 'internal'}), TestStubs.Project()];
+    const data = initializeData(projects, {project: ['1']});
+
+    const wrapper = mountWithTheme(
+      <PerformanceLanding
+        organization={data.organization}
+        location={data.router.location}
+      />,
+      data.routerContext
+    );
+
+    await tick();
+    wrapper.update();
+
+    wrapper.find('DropdownLink').first().simulate('click');
+
+    const firstTransaction = wrapper.find('TrendsListItem').first();
+    const menuActions = firstTransaction.find('StyledMenuAction');
+    expect(menuActions).toHaveLength(3);
+
+    const menuAction = menuActions.at(1);
+    expect(menuAction.text()).toEqual('Show \u2265 863ms');
+    menuAction.simulate('click');
+
+    expect(browserHistory.push).toHaveBeenCalledWith({
+      query: expect.objectContaining({
+        project: expect.anything(),
+        query: 'epm():>0.01 transaction.duration:>0 transaction.duration:>=863',
+        view: 'TRENDS',
+      }),
+    });
   });
 
   it('transaction link with stats period calls comparison view', async function () {
@@ -464,17 +565,12 @@ describe('Performance > Trends', function () {
           ? getTrendAliasedMinus(trendFunction.alias)
           : aliasedFieldDivide;
 
-      const defaultTrendsFields = ['project', 'count()'];
-      const trendFunctionFields = TRENDS_FUNCTIONS.map(({field}) => field);
+      const defaultTrendsFields = ['project'];
 
-      const transactionFields = [
-        ...trendFunctionFields,
-        'transaction',
-        ...defaultTrendsFields,
-      ];
-      const projectFields = [...trendFunctionFields, ...defaultTrendsFields];
+      const transactionFields = ['transaction', ...defaultTrendsFields];
+      const projectFields = [...defaultTrendsFields];
 
-      expect(transactionFields).toHaveLength(8);
+      expect(transactionFields).toHaveLength(2);
       expect(projectFields).toHaveLength(transactionFields.length - 1);
 
       // Improved projects call
@@ -486,7 +582,7 @@ describe('Performance > Trends', function () {
             trendFunction: trendFunction.field,
             sort,
             query: expect.stringContaining(aliasedQueryDivide + ':<1'),
-            interval: '12h',
+            interval: '30m',
             field: projectFields,
             statsPeriod: '14d',
           }),
@@ -502,7 +598,7 @@ describe('Performance > Trends', function () {
             trendFunction: trendFunction.field,
             sort,
             query: expect.stringContaining(aliasedQueryDivide + ':<1'),
-            interval: '12h',
+            interval: '30m',
             field: transactionFields,
             statsPeriod: '14d',
           }),
@@ -518,7 +614,7 @@ describe('Performance > Trends', function () {
             trendFunction: trendFunction.field,
             sort: '-' + sort,
             query: expect.stringContaining(aliasedQueryDivide + ':>1'),
-            interval: '12h',
+            interval: '30m',
             field: projectFields,
             statsPeriod: '14d',
           }),
@@ -534,7 +630,7 @@ describe('Performance > Trends', function () {
             trendFunction: trendFunction.field,
             sort: '-' + sort,
             query: expect.stringContaining(aliasedQueryDivide + ':>1'),
-            interval: '12h',
+            interval: '30m',
             field: transactionFields,
             statsPeriod: '14d',
           }),

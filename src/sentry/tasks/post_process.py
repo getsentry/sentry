@@ -9,7 +9,7 @@ from django.conf import settings
 from sentry import features
 from sentry.utils.cache import cache
 from sentry.exceptions import PluginError
-from sentry.signals import event_processed
+from sentry.signals import event_processed, issue_unignored
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.redis import redis_clusters
@@ -113,6 +113,18 @@ def handle_owner_assignment(project, group, event):
     owner = ProjectOwnership.get_autoassign_owner(group.project_id, event.data)
     if owner is not None:
         GroupAssignee.objects.assign(group, owner)
+
+
+def update_existing_attachments(event):
+    """
+    Attaches the group_id to all event attachments that were ingested prior to
+    the event via the standalone attachment endpoint.
+    """
+    from sentry.models import EventAttachment
+
+    EventAttachment.objects.filter(project_id=event.project_id, event_id=event.event_id).update(
+        group_id=event.group_id
+    )
 
 
 @instrumented_task(name="sentry.tasks.post_process.post_process_group")
@@ -242,6 +254,9 @@ def post_process_group(
                     action="created", sender="Group", instance_id=event.group_id
                 )
 
+            # Patch attachments that were ingested on the standalone path.
+            update_existing_attachments(event)
+
             from sentry.plugins.base import plugins
 
             for plugin in plugins.for_project(event.project):
@@ -281,6 +296,13 @@ def process_snoozes(group):
     if not snooze.is_valid(group, test_rates=True):
         snooze.delete()
         group.update(status=GroupStatus.UNRESOLVED)
+        issue_unignored.send_robust(
+            project=group.project,
+            user=None,
+            group=group,
+            transition_type="automatic",
+            sender="process_snoozes",
+        )
         return True
 
     return False

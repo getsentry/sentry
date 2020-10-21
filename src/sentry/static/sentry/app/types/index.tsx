@@ -206,6 +206,7 @@ export type Project = {
   latestDeploys: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
   builtinSymbolSources?: string[];
   stats?: Array<[number, number]>;
+  latestRelease?: {version: string};
 } & AvatarProject;
 
 export type MinimalProject = Pick<Project, 'id' | 'slug'>;
@@ -1288,6 +1289,7 @@ export type Tag = {
   values?: string[];
   totalValues?: number;
   predefined?: boolean;
+  isInput?: boolean;
 };
 
 export type TagCollection = {[key: string]: Tag};
@@ -1327,7 +1329,7 @@ export type TagWithTopValues = {
 export type Level = 'error' | 'fatal' | 'info' | 'warning' | 'sample';
 
 export type Meta = {
-  chunks: Array<Chunks>;
+  chunks: Array<ChunkType>;
   len: number;
   rem: Array<MetaRemark>;
   err: Array<MetaError>;
@@ -1336,11 +1338,11 @@ export type Meta = {
 export type MetaError = [string, any];
 export type MetaRemark = Array<string | number>;
 
-export type Chunks = {
+export type ChunkType = {
   text: string;
   type: string;
-  remark?: string;
-  rule_id?: string;
+  rule_id: string | number;
+  remark?: string | number;
 };
 
 export enum ResolutionStatus {
@@ -1487,29 +1489,37 @@ export type Widget = {
 
 export type EventGroupInfo = Record<EventGroupVariantKey, EventGroupVariant>;
 
-export type PlatformType = 'java' | 'csharp' | 'objc' | 'cocoa' | 'native' | 'other';
+export type PlatformType =
+  | 'java'
+  | 'csharp'
+  | 'objc'
+  | 'cocoa'
+  | 'native'
+  | 'javascript'
+  | 'other';
 
 export type Frame = {
-  filename: string;
-  module: string;
-  map: string;
-  preventCollapse: () => void;
-  errors: Array<any>;
+  absPath: string | null;
+  colNo: number | null;
   context: Array<[number, string]>;
-  vars: {[key: string]: any};
+  errors: Array<any> | null;
+  filename: string | null;
+  function: string | null;
   inApp: boolean;
-  function?: string;
-  absPath?: string;
-  rawFunction?: string;
-  platform: PlatformType;
-  lineNo?: number;
-  colNo?: number;
-  package?: string;
-  origAbsPath?: string;
-  mapUrl?: string;
-  instructionAddr?: string;
-  trust?: string;
-  symbolicatorStatus?: SymbolicatorStatus;
+  instructionAddr: string | null;
+  lineNo: number | null;
+  module: string | null;
+  package: string | null;
+  platform: PlatformType | null;
+  rawFunction: string | null;
+  symbol: string | null;
+  symbolAddr: string | null;
+  symbolicatorStatus: SymbolicatorStatus;
+  trust: any | null;
+  vars: Record<string, any> | null;
+  origAbsPath?: string | null;
+  mapUrl?: string | null;
+  map?: string | null;
 };
 
 /**

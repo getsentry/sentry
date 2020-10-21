@@ -8,7 +8,7 @@ import {t, tct} from 'app/locale';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import HookOrDefault from 'app/components/hookOrDefault';
-import Tag from 'app/components/tag';
+import Tag from 'app/components/tagDeprecated';
 import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
 import SelectControl from 'app/components/forms/selectControl';

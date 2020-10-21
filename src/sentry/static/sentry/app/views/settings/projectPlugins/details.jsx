@@ -17,8 +17,6 @@ import withOrganization from 'app/utils/withOrganization';
 import withProject from 'app/utils/withProject';
 import {trackIntegrationEvent} from 'app/utils/integrationUtil';
 
-import {DEPRECATED_PLUGINS} from './constants';
-
 /**
  * There are currently two sources of truths for plugin details:
  *
@@ -154,17 +152,9 @@ class ProjectPluginDetails extends AsyncView {
   renderActions() {
     const {pluginDetails} = this.state;
     const enabled = this.getEnabled();
-    const {pluginId} = this.props.params;
-
-    const disabled = DEPRECATED_PLUGINS.includes(pluginId);
 
     const enable = (
-      <Button
-        disabled={disabled}
-        size="small"
-        onClick={this.handleEnable}
-        style={{marginRight: '6px'}}
-      >
+      <Button size="small" onClick={this.handleEnable} style={{marginRight: '6px'}}>
         {t('Enable Plugin')}
       </Button>
     );

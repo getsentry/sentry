@@ -181,7 +181,7 @@ class FeatureManager(RegisteredFeatureManager):
             return rv
 
         if self._entity_handler:
-            rv = self._entity_handler(feature, actor)
+            rv = self._entity_handler.has(feature, actor)
             if rv is not None:
                 return rv
 
@@ -191,6 +191,21 @@ class FeatureManager(RegisteredFeatureManager):
 
         # Features are by default disabled if no plugin or default enables them
         return False
+
+    def batch_has(self, feature_names, actor, projects=None, organization=None):
+        """
+        Determine if multiple features are enabled. Unhandled flags will not be in
+        the results if they cannot be handled.
+
+        Will only accept one type of feature, either all ProjectFeatures or all
+        OrganizationFeatures.
+        """
+        if self._entity_handler:
+            return self._entity_handler.batch_has(
+                feature_names, actor, projects=projects, organization=organization
+            )
+        else:
+            return None
 
 
 class FeatureCheckBatch(object):
