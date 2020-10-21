@@ -86,7 +86,15 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
         variance_column = self.trend_columns["variance_range"]
         avg_column = self.trend_columns["avg"]
         selected_columns = request.GET.getlist("field")[:]
+        t_score = self.trend_columns["t_score"]["format"].format(
+            avg=avg_column["alias"], variance=variance_column["alias"], count=count_column["alias"],
+        )
+        degrees_of_freedom = self.trend_columns["degrees_of_freedom"]["format"].format(
+            variance=variance_column["alias"], count=count_column["alias"]
+        )
         query = request.GET.get("query")
+        query = query.replace("t_score()", t_score)
+        query = query.replace("degrees_of_freedom()", degrees_of_freedom)
         orderby = self.get_orderby(request)
 
         def data_fn(offset, limit):
@@ -103,14 +111,8 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
                     variance_column["format"].format(start=middle, end=end, index="2"),
                     avg_column["format"].format(start=start, end=middle, index="1"),
                     avg_column["format"].format(start=middle, end=end, index="2"),
-                    self.trend_columns["t_score"]["format"].format(
-                        avg=avg_column["alias"],
-                        variance=variance_column["alias"],
-                        count=count_column["alias"],
-                    ),
-                    self.trend_columns["degrees_of_freedom"]["format"].format(
-                        variance=variance_column["alias"], count=count_column["alias"]
-                    ),
+                    t_score,
+                    degrees_of_freedom,
                 ],
                 query=query,
                 params=params,
@@ -128,7 +130,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
                 request=request,
                 paginator=GenericOffsetPaginator(data_fn=data_fn),
                 on_results=self.build_result_handler(
-                    request, organization, params, trend_function, selected_columns, orderby
+                    request, organization, params, trend_function, selected_columns, orderby, query
                 ),
                 default_per_page=5,
                 max_per_page=5,
@@ -137,7 +139,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
 
 class OrganizationEventsTrendsStatsEndpoint(OrganizationEventsTrendsEndpointBase):
     def build_result_handler(
-        self, request, organization, params, trend_function, selected_columns, orderby
+        self, request, organization, params, trend_function, selected_columns, orderby, query
     ):
         def on_results(events_results):
             def get_event_stats(query_columns, query, params, rollup):
@@ -162,6 +164,7 @@ class OrganizationEventsTrendsStatsEndpoint(OrganizationEventsTrendsEndpointBase
                     top_events=True,
                     query_column=trend_function,
                     params=params,
+                    query=query,
                 )
                 if len(events_results["data"]) > 0
                 else {}
@@ -179,7 +182,7 @@ class OrganizationEventsTrendsStatsEndpoint(OrganizationEventsTrendsEndpointBase
 
 class OrganizationEventsTrendsEndpoint(OrganizationEventsTrendsEndpointBase):
     def build_result_handler(
-        self, request, organization, params, trend_function, selected_columns, orderby
+        self, request, organization, params, trend_function, selected_columns, orderby, query
     ):
         return lambda events_results: self.handle_results_with_meta(
             request, organization, params["project_id"], events_results
