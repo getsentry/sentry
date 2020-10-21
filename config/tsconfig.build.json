@@ -29,7 +29,7 @@
     // Skip type checking of all declaration files
     "skipLibCheck": true,
     "esModuleInterop": true,
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "baseUrl": "../",
     "outDir": "../src/sentry/static/sentry/dist",
     "paths": {

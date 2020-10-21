@@ -2,6 +2,7 @@
   "extends": "./config/tsconfig.build.json",
   "compilerOptions": {
     "allowJs": true,
+    "jsx": "react-jsxdev",
   },
   "include": ["src", "tests", "docs-ui"],
   "exclude": ["node_modules"]
