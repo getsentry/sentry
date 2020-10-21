@@ -56,7 +56,7 @@ export const WEB_VITAL_DETAILS: Record<WebVital, Vital> = {
     description: t(
       'The sum total of all individual layout shift scores for every unexpected layout shift that occurs during the entire lifespan of the page.'
     ),
-    failureThreshold: 0.1,
+    failureThreshold: 0.25,
     type: measurementType(WebVital.CLS),
   },
   [WebVital.TTFB]: {
@@ -75,7 +75,7 @@ export const WEB_VITAL_DETAILS: Record<WebVital, Vital> = {
       'Captures the time spent making the request and receiving the first byte of the response.'
     ),
     failureThreshold: 600,
-    type: measurementType(WebVital.TTFB),
+    type: measurementType(WebVital.RequestTime),
   },
 };
 
