@@ -224,7 +224,7 @@ class ProjectFiltersSettings extends AsyncComponent<Props, State> {
     onBlur: FormFieldProps['onBlur'],
     _filter,
     subfilters: RowState['subfilters'],
-    e
+    e: React.MouseEvent
   ) => {
     onChange?.(subfilters, e);
     onBlur?.(subfilters, e);
