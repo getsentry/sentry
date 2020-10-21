@@ -64,8 +64,6 @@ steps:
       - get-onpremise-repo
     entrypoint: 'bash'
     dir: onpremise
-    env:
-      - 'CI=1'
     args:
       - '-e'
       - '-c'
@@ -90,8 +88,6 @@ steps:
       - e2e-test-py2
     entrypoint: 'bash'
     dir: onpremise
-    env:
-      - 'CI=1'
       - 'SENTRY_PYTHON3=1'
     args:
       - '-e'
@@ -170,6 +166,7 @@ options:
   # We need more memory for Webpack builds & e2e onpremise tests
   machineType: 'N1_HIGHCPU_8'
   env:
+    - 'CI=1'
     - 'SENTRY_IMAGE=us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA'
     - 'DOCKER_REPO=getsentry/sentry'
     - 'SENTRY_TEST_HOST=http://nginx'
