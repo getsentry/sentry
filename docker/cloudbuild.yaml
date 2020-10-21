@@ -88,6 +88,7 @@ steps:
       - e2e-test-py2
     entrypoint: 'bash'
     dir: onpremise
+    env:
       - 'SENTRY_PYTHON3=1'
     args:
       - '-e'
