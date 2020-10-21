@@ -40,6 +40,7 @@ class OrganizationSerializerTest(TestCase):
                 "custom-symbol-sources",
                 "discover-basic",
                 "discover-query",
+                "dynamic-issue-counts",
             ]
         )
 
