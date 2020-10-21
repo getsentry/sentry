@@ -72,11 +72,11 @@ class GitLabSetupClient(ApiClient):
 
 
 class GitLabApiClient(ApiClient):
-    base_url = "https://gitlab.com"
     integration_name = "gitlab"
 
     def __init__(self, installation):
         self.installation = installation
+        # self.base_url = self.metadata["base_url"]
         verify_ssl = self.metadata["verify_ssl"]
         self.is_refreshing_token = False
         super(GitLabApiClient, self).__init__(verify_ssl)
@@ -250,6 +250,6 @@ class GitLabApiClient(ApiClient):
         See https://docs.gitlab.com/ee/api/repository_files.html#get-file-from-repository
         Path requires file path and ref
         """
+        self.base_url = self.metadata["base_url"]
         request_path = GitLabApiClientPath.file.format(project=project_id, path=path)
-        # TODO: handle on prem gitlab w/o a base url (so use the user's URL I guess?)
         return self.head_cached(request_path, params={"ref": ref}).text
