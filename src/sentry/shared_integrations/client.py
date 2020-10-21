@@ -45,10 +45,10 @@ class BaseApiResponse(object):
     @classmethod
     def from_response(self, response, allow_text=False):
         if response.request.method == "HEAD":
-            return TextApiResponse(response.status_code, response.headers, response.status_code)
+            return BaseApiResponse(response.headers, response.status_code)
         # XXX(dcramer): this doesnt handle leading spaces, but they're not common
         # paths so its ok
-        elif response.text.startswith(u"<?xml"):
+        if response.text.startswith(u"<?xml"):
             return XmlApiResponse(response.text, response.headers, response.status_code)
         elif response.text.startswith("<"):
             if not allow_text:
