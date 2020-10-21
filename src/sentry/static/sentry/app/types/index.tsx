@@ -851,7 +851,7 @@ export type IntegrationProvider = BaseIntegrationProvider & {
     source_url: string;
     aspects: IntegrationAspects;
   };
-  hasCodeMappings?: boolean; // TODO: Remove when we GA the feature
+  hasStacktraceLinking?: boolean; // TODO: Remove when we GA the feature
 };
 
 export type IntegrationFeature = {

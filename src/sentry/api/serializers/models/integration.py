@@ -113,12 +113,12 @@ class IntegrationProviderSerializer(Serializer):
 
         # until we GA the stack trace linking feature to everyone it's easier to
         # control whether we show the feature this way
-        if obj.has_code_mappings:
+        if obj.has_stacktrace_linking:
             feature_flag_name = "organizations:integrations-stacktrace-link"
-            has_code_mappings = features.has(feature_flag_name, organization, actor=user)
-            if has_code_mappings:
+            has_stacktrace_linking = features.has(feature_flag_name, organization, actor=user)
+            if has_stacktrace_linking:
                 # only putting the field in if it's true to minimize test changes
-                output["hasCodeMappings"] = True
+                output["hasStacktraceLinking"] = True
 
         return output
 

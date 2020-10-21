@@ -162,7 +162,9 @@ class IntegrationProvider(PipelineProvider):
     # if this is hidden without the feature flag
     requires_feature_flag = False
 
-    has_code_mappings = False
+    # whether this integration can be used for stacktrace linking
+    # will eventually be replaced with a feature flag
+    has_stacktrace_linking = False
 
     @classmethod
     def get_installation(cls, model, organization_id, **kwargs):
