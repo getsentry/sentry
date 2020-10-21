@@ -8,7 +8,7 @@ from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
 def backfill_debug_file_checksum(apps, schema_editor):
     """
-    Fille the ProjectDebugFile.checksum from related File.checksum.
+    Fill the ProjectDebugFile.checksum from related File.checksum.
     """
     ProjectDebugFile = apps.get_model("sentry", "ProjectDebugFile")
     all_debug_files = ProjectDebugFile.objects.filter(checksum__isnull=True).select_related("file")
