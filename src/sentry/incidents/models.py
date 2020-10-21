@@ -151,6 +151,7 @@ class Incident(Model):
     projects = models.ManyToManyField(
         "sentry.Project", related_name="incidents", through=IncidentProject
     )
+    # TODO MARCOS
     alert_rule = FlexibleForeignKey("sentry.AlertRule", on_delete=models.PROTECT)
     # Incrementing id that is specific to the org.
     identifier = models.IntegerField()

@@ -1308,6 +1308,9 @@ export type IssueConfigField = Field & {
   multiple?: boolean;
 };
 
+// TODO MARCOS data type
+// TODO MARCOS where is this populated?
+// TODO MARCOS look at the API
 export type IntegrationIssueConfig = {
   status: ObjectStatus;
   name: string;

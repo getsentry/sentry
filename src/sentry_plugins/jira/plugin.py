@@ -405,6 +405,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
             message += " ".join(["%s: %s" % (k, v) for k, v in data.get("errors").items()])
         return message
 
+    # TODO MARCOS reuse this code
     def create_issue(self, request, group, form_data, **kwargs):
         cleaned_data = {}
 

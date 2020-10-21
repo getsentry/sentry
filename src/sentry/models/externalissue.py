@@ -6,6 +6,7 @@ from django.utils import timezone
 from sentry.db.models import BoundedPositiveIntegerField, JSONField, Model, sane_repr
 
 
+# TODO MARCOS FIRST we're saving these issues to DB!
 class ExternalIssue(Model):
     __core__ = False
 

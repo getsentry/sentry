@@ -8,6 +8,7 @@ from sentry.mediators.external_issues import IssueLinkCreator
 from sentry.models import Group, Project
 
 
+# TODO MARCOS clubhouse
 class SentryAppInstallationExternalIssuesEndpoint(SentryAppInstallationBaseEndpoint):
     def post(self, request, installation):
         data = request.data.copy()

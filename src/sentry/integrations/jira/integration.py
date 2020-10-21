@@ -76,6 +76,7 @@ external_install = {
     "noticeText": _(INSTALL_NOTICE_TEXT.strip()),
 }
 
+# TODO MARCOS DESCRIBE
 metadata = IntegrationMetadata(
     description=_(DESCRIPTION.strip()),
     features=FEATURE_DESCRIPTIONS,

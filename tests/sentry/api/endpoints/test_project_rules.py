@@ -220,6 +220,7 @@ class CreateProjectRuleTest(APITestCase):
 
         project = self.create_project()
 
+        # TODO MARCOS example condition
         conditions = [
             {
                 "id": "sentry.rules.conditions.tagged_event.TaggedEventCondition",

@@ -8,6 +8,7 @@ from sentry.db.models import Model, sane_repr
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 
 
+# TODO MARCOS what's the difference?
 class PlatformExternalIssue(Model):
     __core__ = False
 

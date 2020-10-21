@@ -9,6 +9,7 @@ from sentry.utils.cache import memoize
 from sentry.utils.html import escape
 
 
+# TODO what is this
 class IssueLinkCreator(Mediator):
     install = Param("sentry.models.SentryAppInstallation")
     group = Param("sentry.models.Group")

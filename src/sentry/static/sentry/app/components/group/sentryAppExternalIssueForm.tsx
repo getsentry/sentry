@@ -280,6 +280,7 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
       };
       //default message for async select fields
       if (isAsync) {
+        // TODO MARCOS
         fieldToPass.noOptionsMessage = () => 'Type to search';
       }
     } else if (['text', 'textarea'].includes(fieldToPass.type || '') && field.default) {

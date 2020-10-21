@@ -38,6 +38,7 @@ type Props = {
   onPropertyChange: (rowIndex: number, name: string, value: string) => void;
 };
 
+// TODO MARCOS is this a row in "then perform these actions"?
 class RuleNode extends React.Component<Props> {
   handleDelete = () => {
     const {index, onDelete} = this.props;

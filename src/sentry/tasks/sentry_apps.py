@@ -83,7 +83,7 @@ def _webhook_event_data(event, group_id, project_id):
 
     return event_context
 
-
+# TODO MARCOS this might be issue alerts
 @instrumented_task(name="sentry.tasks.sentry_apps.send_alert_event", **TASK_OPTIONS)
 @retry(**RETRY_OPTIONS)
 def send_alert_event(event, rule, sentry_app_id):

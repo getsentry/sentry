@@ -35,6 +35,7 @@ type Props = {
   onDeleteRow: (ruleIndex: number) => void;
 };
 
+// TODO MARCOS how do we populate the options?
 class RuleNodeList extends React.Component<Props> {
   getNode = (
     id: string

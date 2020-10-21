@@ -37,6 +37,7 @@ _short_id_re = re.compile(r"^(.*?)(?:[\s_-])([A-Za-z0-9]+)$")
 ShortId = namedtuple("ShortId", ["project_slug", "short_id"])
 
 
+# TODO MARCOS DOCUMENT
 def parse_short_id(short_id):
     match = _short_id_re.match(short_id.strip())
     if match is None:
@@ -164,6 +165,7 @@ def get_oldest_or_latest_event_for_environments(
 class GroupManager(BaseManager):
     use_for_related_fields = True
 
+    # TODO MARCOS document?
     def by_qualified_short_id(self, organization_id, short_id):
         short_id = parse_short_id(short_id)
         if not short_id:
@@ -243,7 +245,7 @@ class GroupManager(BaseManager):
             project__organization_id__in=integration.organizations.values_list("id", flat=True),
         )
 
-
+# TODO MARCOS group model
 class Group(Model):
     """
     Aggregated message which summarizes a set of Events.
@@ -291,6 +293,7 @@ class Group(Model):
     data = GzippedDictField(blank=True, null=True)
     short_id = BoundedBigIntegerField(null=True)
 
+    # TODO MARCOS objects?
     objects = GroupManager(cache_fields=("id",))
 
     class Meta:

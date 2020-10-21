@@ -109,6 +109,8 @@ function isSavedAlertRule(rule: State['rule']): rule is IssueAlertRule {
   return rule?.hasOwnProperty('id') ?? false;
 }
 
+// TODO MARCOS does this include plugins?
+// TODO MARCOS is this the frontend?
 class IssueRuleEditor extends AsyncView<Props, State> {
   getDefaultState() {
     return {
@@ -124,8 +126,10 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   getEndpoints() {
     const {ruleId, projectId, orgId} = this.props.params;
 
+    // TODO check environments?
     const endpoints = [
       ['environments', `/projects/${orgId}/${projectId}/environments/`],
+      // TODO MARCOS grabbing project configs
       ['configs', `/projects/${orgId}/${projectId}/rules/configuration/`],
     ];
 
@@ -318,6 +322,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     });
   };
 
+  // TODO MARCOS is this after selection?
   handleAddRow = (type: ConditionOrActionProperty, id: string) => {
     this.setState(state => {
       const configuration = this.state.configs?.[type]?.find(c => c.id === id);
@@ -421,6 +426,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     ];
 
     const {rule, detailedError} = this.state;
+    // TODO MARCOS actions defined
     const {actions, filters, conditions, frequency, name} = rule || {};
 
     const environment =

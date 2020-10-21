@@ -41,6 +41,7 @@ def handle_assignee_change(integration, data, use_email_scope=False):
             JiraCloud(integration.metadata["shared_secret"]),
             verify_ssl=True,
         )
+        # TODO can't get the email?
         email = client.get_email(account_id)
 
     # TODO(steve) check display name
@@ -78,6 +79,7 @@ def handle_status_change(integration, data):
         )
 
 
+# TODO MARCOS
 class JiraIssueUpdatedWebhook(Endpoint):
     authentication_classes = ()
     permission_classes = ()

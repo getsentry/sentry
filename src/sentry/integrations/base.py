@@ -57,6 +57,7 @@ IntegrationMetadata = namedtuple(
 )
 
 
+# TODO MARCOS
 class IntegrationMetadata(IntegrationMetadata):
     @staticmethod
     def feature_flag_name(f):

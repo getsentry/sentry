@@ -7,6 +7,7 @@ from sentry.models import Integration, PagerDutyService, OrganizationIntegration
 from sentry.testutils.cases import RuleTestCase
 from sentry.integrations.pagerduty.notify_action import PagerDutyNotifyServiceAction
 
+# TODO MARCOS this might be a good model for my new tests
 # external_id is the account name in pagerduty
 EXTERNAL_ID = "example-pagerduty"
 SERVICES = [

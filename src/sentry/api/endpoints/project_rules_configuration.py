@@ -7,6 +7,8 @@ from sentry.rules import rules
 from rest_framework.response import Response
 
 
+# TODO MARCOS here is the rules endpoint
+# TODO MARCOS are we including plugins?
 class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
     def get(self, request, project):
         """

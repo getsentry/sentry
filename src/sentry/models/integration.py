@@ -107,6 +107,7 @@ class Integration(DefaultFieldsModel):
         "sentry.Project", related_name="integrations", through=ProjectIntegration
     )
     provider = models.CharField(max_length=64)
+    # TODO document the external_id
     external_id = models.CharField(max_length=64)
     name = models.CharField(max_length=200)
     # metadata might be used to store things like credentials, but it should NOT

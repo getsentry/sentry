@@ -96,6 +96,7 @@ class NotifyEventServiceForm(forms.Form):
         self.fields["service"].widget.choices = self.fields["service"].choices
 
 
+# TODO MARCOS
 class NotifyEventServiceAction(EventAction):
     form_cls = NotifyEventServiceForm
     label = "Send a notification via {service}"
@@ -176,6 +177,7 @@ class NotifyEventServiceAction(EventAction):
 
         return results
 
+    # TODO MARCOS FIRST should
     def get_services(self):
         services = self.get_plugins()
         services += self.get_sentry_app_services()

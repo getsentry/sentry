@@ -123,6 +123,7 @@ class VstsIssueSync(IssueSyncMixin):
             },
         ] + fields
 
+    # TODO MARCOS extract to helper
     def get_link_issue_config(self, group, **kwargs):
         fields = super(VstsIssueSync, self).get_link_issue_config(group, **kwargs)
         org = group.organization

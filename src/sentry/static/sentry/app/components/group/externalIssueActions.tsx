@@ -30,6 +30,7 @@ type LinkedIssues = {
   unlinked: GroupIntegration[];
 };
 
+// TODO MARCOS FIRST this looks important
 class ExternalIssueActions extends AsyncComponent<Props, State> {
   constructor(props: Props, context) {
     super(props, context);

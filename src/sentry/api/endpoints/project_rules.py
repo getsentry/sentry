@@ -36,6 +36,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             on_results=lambda x: serialize(x, request.user),
         )
 
+    # TODO MARCOS save rule API
     @transaction_start("ProjectRulesEndpoint")
     def post(self, request, project):
         """
@@ -64,6 +65,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             if "filters" in data:
                 conditions.extend(data["filters"])
 
+            # TODO MARCOS is this our schema?
             kwargs = {
                 "name": data["name"],
                 "environment": data.get("environment"),

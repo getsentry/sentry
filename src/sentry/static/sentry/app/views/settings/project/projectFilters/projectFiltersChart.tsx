@@ -86,6 +86,7 @@ class ProjectFiltersChart extends React.Component<Props, State> {
     const since = until - 3600 * 24 * 30;
 
     const statEndpoint = `/projects/${orgId}/${project.slug}/stats/`;
+    // TODO MARCOS front end bug?
     const query = {
       since,
       until,

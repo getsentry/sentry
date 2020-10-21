@@ -6,7 +6,7 @@ from collections import Iterable
 from sentry.mediators import Mediator, Param
 from sentry.mediators.param import if_param
 
-
+# TODO MARCOS why are there mediators everywhere?
 class Updater(Mediator):
     rule = Param("sentry.models.Rule")
     name = Param(six.string_types, required=False)
