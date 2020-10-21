@@ -862,7 +862,12 @@ def resolve_condition(cond, column_resolver):
                     else:
                         func_args[i] = column_resolver(arg)
                 else:
-                    func_args[i] = u"'{}'".format(arg) if isinstance(arg, six.string_types) else arg
+                    if isinstance(arg, six.string_types):
+                        func_args[i] = u"'{}'".format(arg)
+                    elif isinstance(arg, datetime):
+                        func_args[i] = json.dumps(arg).replace('"', "'")
+                    else:
+                        func_args[i] = arg
 
             cond[index + 1] = func_args
             return cond
