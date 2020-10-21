@@ -27,6 +27,7 @@ module.exports = {
     // https://babeljs.io/docs/en/plugins#plugin-ordering
     ['@babel/plugin-proposal-decorators', {legacy: true}],
     ['@babel/plugin-proposal-class-properties', {loose: true}],
+    '@babel/helper-builder-react-jsx-experimental',
   ],
   env: {
     production: {
