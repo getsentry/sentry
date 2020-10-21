@@ -33,12 +33,16 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
         # should probably feature gate
         filepath = request.GET.get("file")
         if not filepath:
-            return Response("Filepath is required", status=400)
+            return Response({"detail": "Filepath is required"}, status=400)
 
         commitId = request.GET.get("commitId")
         result = {"config": None}
 
+        # xxx(meredith): if there are ever any changes to this query, make
+        # sure that we are still ordering by `id` because we want to make sure
+        # the ordering is deterministic
         configs = RepositoryProjectPathConfig.objects.filter(project=project)
+
         # we only want to attempt the stack trace linking IF the user
         # has a configuration set up, otherwise we don't care
         if not configs:

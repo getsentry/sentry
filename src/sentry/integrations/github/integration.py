@@ -104,7 +104,7 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
         except ApiError as e:
             if e.code != 404:
                 raise
-            return
+            return None
 
         # if it exists return the url
         return resp["html_url"]
